@@ -18,7 +18,7 @@ const select = (ctrl: Ctrl) => (dimension: Dimension) => {
             placeholder: dimension.name,
             width: '100%',
             selectAll: false,
-            filter: dimension.key === 'opening',
+            filter: false,
             single,
             minimumCountSelected: 10,
             onClick: view =>

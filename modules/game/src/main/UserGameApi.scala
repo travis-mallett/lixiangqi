@@ -47,7 +47,7 @@ final class UserGameApi(
             .add("aiLevel" -> p.aiLevel)
             .add("rating" -> p.rating)
             .add("ratingDiff" -> p.ratingDiff)),
-        "fen" -> chess.format.Fen.writeBoard(g.position),
+        "fen" -> g.position.fen,
         "winner" -> g.winnerColor.map(_.name),
         "bookmarks" -> g.bookmarks
       )

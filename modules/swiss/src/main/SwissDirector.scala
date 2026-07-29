@@ -5,6 +5,7 @@ import monocle.syntax.all.*
 
 import lila.db.dsl.{ *, given }
 import lila.mon.extensions.*
+import lila.xiangqi.{ Xiangqi, XiangqiRules }
 
 final private class SwissDirector(
     mongo: SwissMongo,
@@ -64,7 +65,9 @@ final private class SwissDirector(
                 .void
             }
             _ <- mongo.pairing.insert.many(pairings).void
-            games = pairings.map(makeGame(swiss, players.mapBy(_.userId)))
+            xiangqiGame <-
+              XiangqiRules.initialGame(swiss.settings.position.map(_.value)).fold(fufail, fuccess)
+            games = pairings.map(makeGame(swiss, players.mapBy(_.userId), xiangqiGame))
             _ <- games.sequentiallyVoid: game =>
               for _ <- gameRepo.insertDenormalized(game) yield onStart.exec(game.id)
           yield swiss.some
@@ -78,24 +81,24 @@ final private class SwissDirector(
       }
       .monSuccess(lila.mon.swiss.startRound)
 
-  private def makeGame(swiss: Swiss, players: Map[UserId, SwissPlayer])(pairing: SwissPairing): Game =
+  private def makeGame(
+      swiss: Swiss,
+      players: Map[UserId, SwissPlayer],
+      xiangqiGame: Xiangqi.Game
+  )(pairing: SwissPairing): Game =
     lila.core.game
       .newGame(
-        chess = chess
-          .Game(
-            variant =
-              if swiss.settings.position.isEmpty then swiss.variant
-              else chess.variant.FromPosition,
-            fen = swiss.settings.position
-          )
-          .copy(clock = swiss.clock.toClock.some),
+        xiangqi = xiangqiGame,
         players = ByColor: c =>
           val player = players.get(pairing(c)).err(s"Missing pairing $c $pairing")
           newPlayer(c, player.userId, player.rating, player.provisional)
         ,
         rated = swiss.settings.rated,
         source = lila.core.game.Source.Swiss,
-        pgnImport = None
+        pgnImport = None,
+        clock = swiss.clock.toClock.some,
+        startedAtPly = chess.Ply(xiangqiGame.state.ply),
+        variant = if swiss.settings.position.isDefined then chess.variant.FromPosition else swiss.variant
       )
       .withId(pairing.gameId)
       .focus(_.metadata.swissId)

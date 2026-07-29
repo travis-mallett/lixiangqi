@@ -1,9 +1,11 @@
+import { Result } from '@badrap/result';
 import { type Position, parseUci, makeSquare } from 'chessops';
 import { chessgroundDests, lichessRules, scalachessCharPair } from 'chessops/compat';
 import { parseFen } from 'chessops/fen';
 import { setupPosition } from 'chessops/variant';
 
 import { memoize } from '@/common';
+import { xiangqiLegalMoveDests } from '@/game';
 
 import type { PositionResult, TreeNode, TreeNodeBase } from './types';
 
@@ -12,6 +14,19 @@ export const completeNode =
   (variant: VariantKey) =>
   (from: TreeNodeBase): TreeNode => {
     const node = from as TreeNode;
+    if (variant === 'xiangqi') {
+      node.id ||= node.uci ?? '';
+      node.children ||= [];
+      node.pos ||= memoize(() =>
+        Result.err(new Error('Xiangqi positions come from the native rules boundary')),
+      );
+      node.dests ||= memoize(() => xiangqiLegalMoveDests(node.xiangqiLegalMoves ?? []) as Dests);
+      node.drops ||= memoize(() => []);
+      node.check ||= memoize(() => node.xiangqiCheck ?? false);
+      node.outcome ||= memoize(() => undefined);
+      node.children.forEach(completeNode(variant));
+      return node;
+    }
     node.id ||= node.uci ? scalachessCharPair(parseUci(node.uci)!) : '';
     node.children ||= [];
     node.pos ||= memoize(() =>

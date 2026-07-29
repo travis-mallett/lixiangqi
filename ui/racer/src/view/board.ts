@@ -31,9 +31,8 @@ const renderGround = (ctrl: RacerCtrl): VNode =>
           ),
         ),
       );
-      pubsub.on('board.change', (is3d: boolean) =>
+      pubsub.on('board.change', () =>
         ctrl.withGround(g => {
-          g.state.addPieceZIndex = is3d;
           g.redrawAll();
         }),
       );

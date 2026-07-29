@@ -95,8 +95,8 @@
   }
 }
 
-@mixin backdrop-blur-if-transparent($size: 6px) {
-  @include if-transp {
+@mixin backdrop-blur-if-background($size: 6px) {
+  @include if-background {
     backdrop-filter: blur($size);
   }
 }
@@ -180,7 +180,7 @@
       if($defaultShadow != (), 0 1px 3px 0 if($lightShadow != (), $lightShadow, $defaultShadow), ());
   }
 
-  @include if-transp {
+  @include if-background {
     box-shadow: none;
   }
 }
@@ -198,7 +198,7 @@
       if($defaultShadow != (), 0 2px 4px 0 if($lightShadow != (), $lightShadow, $defaultShadow), ());
   }
 
-  @include if-transp {
+  @include if-background {
     box-shadow: none;
   }
 }
@@ -229,7 +229,7 @@
         0 2px 4px 0 hsl(0 0% 0% / 0.21);
     }
 
-    @include if-transp {
+    @include if-background {
       box-shadow: none;
     }
   }

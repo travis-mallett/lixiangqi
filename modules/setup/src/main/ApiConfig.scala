@@ -9,6 +9,7 @@ import lila.core.data.Template
 import lila.core.game.GameRule
 import lila.lobby.TriColor
 import lila.rating.PerfType
+import lila.xiangqi.Xiangqi
 
 final case class ApiConfig(
     variant: chess.variant.Variant,
@@ -26,7 +27,11 @@ final case class ApiConfig(
   def perfType: PerfType = lila.rating.PerfType(variant, chess.Speed(days.isEmpty.so(clock)))
   def perfKey = perfType.key
 
-  def validFen = Variant.isValidInitialFen(variant, position)
+  def validFen =
+    if variant == FromPosition then position.exists(fen => Xiangqi.Fen.isValid(fen.value))
+    else position.forall(_.value == Xiangqi.startFen)
+
+  def isCustomPosition = position.exists(_.value != Xiangqi.startFen)
 
   def validSpeed(isBot: Boolean) =
     !isBot || clock.forall: c =>
@@ -35,7 +40,7 @@ final case class ApiConfig(
   def validRated = rated.no || ((clock.isDefined || variant.standard) && variant.fromPosition.not)
 
   def autoVariant =
-    if variant.standard && position.exists(!_.isInitial)
+    if variant.standard && position.exists(_.value != Xiangqi.startFen)
     then copy(variant = FromPosition)
     else this
 

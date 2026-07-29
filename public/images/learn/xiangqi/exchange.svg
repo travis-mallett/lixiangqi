@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Balanced Xiangqi exchange">
+  <circle cx="80" cy="80" r="62" fill="#ead6ad" stroke="#7b4e2e" stroke-width="6"/>
+  <path d="M43 69c8-23 34-35 58-24l13 7M117 91c-8 23-34 35-58 24l-13-7" fill="none" stroke="#a9362e" stroke-width="8" stroke-linecap="round"/>
+  <path d="M105 38l10 15-18 4M55 122l-10-15 18-4" fill="none" stroke="#a9362e" stroke-width="7"/>
+  <text x="80" y="92" text-anchor="middle" font-size="40" font-family="Noto Serif CJK SC,SimSun,serif" fill="#573821">兑</text>
+</svg>

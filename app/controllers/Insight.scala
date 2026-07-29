@@ -46,7 +46,7 @@ final class Insight(env: Env) extends LilaController(env):
                 insightUser = insightUser,
                 prefId = prefId,
                 ui = env.insight.jsonView
-                  .ui(insightUser.families, insightUser.openings, asMod = isGrantedOpt(_.ViewBlurs)),
+                  .ui(asMod = isGrantedOpt(_.ViewBlurs)),
                 question = env.insight.jsonView.question(metric, dimension, filters),
                 stale = s == Stale
               )

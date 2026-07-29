@@ -30,7 +30,7 @@
   }
 }
 
-/* text printed directly on the page background deserves special treatment (transp theme) */
+/* text printed directly on an image background deserves special treatment */
 %page-font {
   color: $c-font-page;
 }
@@ -168,7 +168,7 @@
 }
 
 %dropdown-shadow {
-  @include if-transp {
+  @include if-background {
     @include back-blur;
   }
 
@@ -176,7 +176,7 @@
 }
 
 %popup-shadow {
-  @include if-transp {
+  @include if-background {
     @include back-blur;
   }
 

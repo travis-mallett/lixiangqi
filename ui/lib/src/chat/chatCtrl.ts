@@ -151,6 +151,7 @@ export class ChatCtrl {
 
   private readonly onMessage = (line: Line): void => {
     this.data.lines.push(line);
+    if (line.u !== this.data.userId) site.sound.play('newChatMessage');
     const nb = this.data.lines.length;
     if (nb > this.maxLines) {
       this.data.lines.splice(0, nb - this.maxLines + this.maxLinesDrop);

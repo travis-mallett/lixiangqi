@@ -9,13 +9,14 @@ const args = files => files.map(f => `'${f.replaceAll("'", "'\\''")}'`).join(' '
 
 export default {
   '*.{json,ts,mts,js,mjs,scss}': files => {
-    const code = files.filter(f => /\.(?:ts|mts|js|mjs)$/.test(f));
-    const scss = files.filter(f => f.endsWith('.scss'));
+    const formatted = files.filter(f => !/[\\/]public[\\/]/.test(f));
+    const code = formatted.filter(f => /\.(?:ts|mts|js|mjs)$/.test(f));
+    const scss = formatted.filter(f => f.endsWith('.scss'));
 
     return [
       code.length && `oxlint --type-aware ${args(code)}`,
       scss.length && `stylelint ${args(scss)}`,
-      `oxfmt ${args(files)}`,
+      formatted.length && `oxfmt ${args(formatted)}`,
     ].filter(Boolean);
   },
 };

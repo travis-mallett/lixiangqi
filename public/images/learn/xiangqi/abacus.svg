@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Chinese abacus for material calculation">
+  <rect x="16" y="24" width="128" height="112" rx="10" fill="#6e4129" stroke="#e2bd75" stroke-width="6"/>
+  <g stroke="#e2bd75" stroke-width="4"><path d="M34 34v92M57 34v92M80 34v92M103 34v92M126 34v92M22 67h116"/></g>
+  <g fill="#b43c31"><ellipse cx="34" cy="51" rx="9" ry="7"/><ellipse cx="57" cy="48" rx="9" ry="7"/><ellipse cx="80" cy="84" rx="9" ry="7"/><ellipse cx="103" cy="96" rx="9" ry="7"/><ellipse cx="126" cy="110" rx="9" ry="7"/></g>
+</svg>

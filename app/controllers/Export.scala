@@ -2,13 +2,13 @@ package controllers
 
 import org.apache.pekko.stream.scaladsl.*
 import org.apache.pekko.util.ByteString
-import chess.format.{ Fen, Uci }
 import chess.variant.Variant
 import play.api.mvc.Result
 
 import lila.app.{ *, given }
 import lila.core.id.PuzzleId
-import lila.pref.{ PieceSet, Theme }
+import lila.pref.{ BoardThemes, PieceSets }
+import lila.xiangqi.{ Xiangqi, XiangqiRules }
 
 final class Export(env: Env) extends LilaController(env):
 
@@ -23,17 +23,16 @@ final class Export(env: Env) extends LilaController(env):
       piece: Option[String]
   ) = Anon:
     NoCrawlersUnlessPreview:
-      exportImageOf(env.game.gameRepo.gameWithInitialFen(id)): g =>
+      exportImageOf(env.game.gameRepo.game(id)): game =>
         val options = lila.game.GifExport.Options.fromReq
-        val filename = s"lichess-game-${g.game.id}-${color.name}.gif"
-        stream(filename, cacheSeconds = if g.game.finishedOrAborted then 3600 * 24 else 10):
+        val filename = s"lixiangqi-game-${game.id}-${color.name}.gif"
+        stream(filename, cacheSeconds = if game.finishedOrAborted then 3600 * 24 else 10):
           for
-            analysis <- options.glyphs.so(env.analyse.repo.byGame(g.game))
+            analysis <- options.glyphs.so(env.analyse.repo.byGame(game))
             source <- env.game.gifExport.fromPov(
-              Pov(g.game, color),
-              g.fen,
-              Theme(theme).name,
-              PieceSet.get(piece).name,
+              Pov(game, color),
+              BoardThemes.get(theme).key,
+              PieceSets.get(piece).key,
               analysis,
               options
             )
@@ -44,9 +43,9 @@ final class Export(env: Env) extends LilaController(env):
 
   def gameThumbnail(id: GameId, theme: Option[String], piece: Option[String]) = Anon:
     exportImageOf(env.game.gameRepo.game(id)) { game =>
-      val filename = s"lichess-game-${game.id}-thumbnail.gif"
+      val filename = s"lixiangqi-game-${game.id}-thumbnail.gif"
       env.game.gifExport
-        .gameThumbnail(game, Theme(theme).name, PieceSet.get(piece).name)
+        .gameThumbnail(game, BoardThemes.get(theme).key, PieceSets.get(piece).key)
         .pipe(stream(filename, cacheSeconds = if game.finishedOrAborted then 3600 * 24 else 10))
     }
 
@@ -54,34 +53,40 @@ final class Export(env: Env) extends LilaController(env):
     exportImageOf(env.puzzle.api.puzzle.find(id)): puzzle =>
       env.game.gifExport
         .thumbnail(
-          position = puzzle.boardAfterInitialMove.err(s"invalid puzzle ${puzzle.id}"),
-          lastMove = puzzle.line.head.some,
+          position = puzzle.stateAfterInitialMove.err(s"invalid puzzle ${puzzle.id}"),
+          lastMove = puzzle.line.head.value.some,
           orientation = puzzle.color,
-          theme = Theme(theme).name,
-          piece = PieceSet.get(piece).name,
+          theme = BoardThemes.get(theme).key,
+          piece = PieceSets.get(piece).key,
           description = s"puzzleThumbnail ${puzzle.id}"
         )
-        .pipe(stream(s"lichess-puzzle-${puzzle.id}.gif"))
+        .pipe(stream(s"lixiangqi-puzzle-${puzzle.id}.gif"))
 
   def fenThumbnail(
       fen: String,
       color: Option[Color],
-      lastMove: Option[Uci],
+      lastMove: Option[String],
       variant: Option[Variant.LilaKey],
       theme: Option[String],
       piece: Option[String]
   ) = Anon:
-    exportImageOf(fuccess(Fen.read(Variant.orDefault(variant), Fen.Full.clean(fen)))): position =>
+    val supportedVariant = variant.forall: key =>
+      key == chess.variant.Standard.key || key == chess.variant.FromPosition.key
+    val position =
+      if supportedVariant
+      then fuccess(XiangqiRules.position(Xiangqi.Position(initialFen = fen)).toOption)
+      else fuccess(none)
+    exportImageOf(position): position =>
       env.game.gifExport
         .thumbnail(
           position = position,
           lastMove = lastMove,
           orientation = color | Color.white,
-          theme = Theme(theme).name,
-          piece = PieceSet.get(piece).name,
+          theme = BoardThemes.get(theme).key,
+          piece = PieceSets.get(piece).key,
           description = s"fenThumbnail $fen"
         )
-        .pipe(stream(s"lichess-fen.gif"))
+        .pipe(stream(s"lixiangqi-fen.gif"))
 
   private def stream(filename: String, contentType: String = "image/gif", cacheSeconds: Int = 1209600)(
       upstream: Fu[Source[ByteString, ?]]

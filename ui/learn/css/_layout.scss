@@ -1,14 +1,7 @@
-#main-wrap:not(:has(.learn--map)) {
-  ---main-max-width: calc(100vh - #{$site-header-outer-height} - 10rem);
-
-  @include mq-at-least-col2 {
-    ---main-max-width: auto;
-  }
-}
-
 .learn {
   grid-area: main;
   display: grid;
+  gap: 2rem;
 
   &__side {
     grid-area: side;
@@ -16,43 +9,40 @@
 
   &__main {
     grid-area: main;
+    min-width: 0;
   }
 
   &__table {
     grid-area: table;
-  }
-
-  &--run {
-    grid-template-areas: 'main' 'table' 'side';
+    min-width: 0;
   }
 
   &--map {
     grid-template-areas: 'side' 'main';
   }
 
-  gap: 2rem;
+  &--run {
+    grid-template-areas: 'main' 'table' 'side';
+  }
 
   @include mq-at-least-col2 {
-    &--run {
-      grid-template-columns: var(---col2-uniboard-width) $col2-uniboard-table;
-      grid-template-rows: fit-content(0);
-      grid-template-areas: 'main table' 'side .';
-    }
-
     &--map {
       grid-template-areas: 'side main';
-      grid-template-columns: 242px auto;
+      grid-template-columns: 260px minmax(0, 1080px);
+      align-items: start;
+    }
 
-      @media (min-width: $x-large) {
-        grid-template-columns: 242px minmax(auto, 1028px);
-      }
+    &--run {
+      grid-template-areas: 'main table' 'side table';
+      grid-template-columns: minmax(430px, 680px) minmax(320px, 400px);
+      align-items: start;
     }
   }
 
   @include mq-at-least-col3 {
     &--run {
-      grid-template-columns: $col3-uniboard-side var(---col3-uniboard-width) $col3-uniboard-table;
       grid-template-areas: 'side main table';
+      grid-template-columns: 250px minmax(500px, 680px) minmax(330px, 390px);
     }
   }
 }

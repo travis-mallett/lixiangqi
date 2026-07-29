@@ -332,14 +332,23 @@ function toggleLocalEvaluation(ctrl: AnalyseCtrl): void {
 function renderBestMove({ ctrl, moveStyle }: AnalyseNvuiContext): string {
   const noEvalMsg = noEvalStr(ctrl);
   if (noEvalMsg) return noEvalMsg;
-  const node = ctrl.node,
-    setup = parseFen(node.fen).unwrap();
+  const node = ctrl.node;
   let pvs: PvData[] = [];
   if (ctrl.threatMode() && node.threat) {
     pvs = node.threat.pvs;
+    if (ctrl.ceval.opts.variant.key === 'xiangqi') return pvs[0]?.moves[0] ?? '';
+    const setup = parseFen(node.fen).unwrap();
     setup.turn = opposite(setup.turn);
     if (setup.turn === 'white') setup.fullmoves += 1;
+    const pos = setupPosition(lichessRules(ctrl.ceval.opts.variant.key), setup);
+    if (pos.isOk && pvs.length > 0 && pvs[0].moves.length > 0) {
+      const uci = pvs[0].moves[0];
+      const san = makeSan(pos.unwrap(), parseUci(uci)!);
+      return renderSan(san, uci, moveStyle.get());
+    }
   } else if (node.ceval) pvs = node.ceval.pvs;
+  if (ctrl.ceval.opts.variant.key === 'xiangqi') return pvs[0]?.moves[0] ?? '';
+  const setup = parseFen(node.fen).unwrap();
   const pos = setupPosition(lichessRules(ctrl.ceval.opts.variant.key), setup);
   if (pos.isOk && pvs.length > 0 && pvs[0].moves.length > 0) {
     const uci = pvs[0].moves[0];
@@ -547,7 +556,7 @@ const requestAnalysisBtn = ({ ctrl, notify, analysisInProgress }: AnalyseNvuiCon
 };
 
 const renderPlayer = (ctrl: AnalyseCtrl, player: Player): LooseVNodes =>
-  player.ai ? i18n.site.aiNameLevelAiLevel('Stockfish', player.ai) : userHtml(ctrl, player);
+  player.ai ? i18n.site.aiNameLevelAiLevel('Pikafish', player.ai) : userHtml(ctrl, player);
 
 function userHtml(ctrl: AnalyseCtrl, player: Player) {
   const d = ctrl.data,

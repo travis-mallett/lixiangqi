@@ -2,10 +2,8 @@ package lila.fishnet
 
 import org.apache.pekko.actor.*
 import com.softwaremill.macwire.*
-import com.softwaremill.tagging.*
 import io.lettuce.core.*
 import play.api.Configuration
-import play.api.libs.ws.StandaloneWSClient
 
 import lila.common.Bus
 import lila.common.config.given
@@ -26,15 +24,12 @@ final class Env(
     appConfig: Configuration,
     uciMemo: lila.core.game.UciMemo,
     requesterApi: lila.analyse.RequesterApi,
-    getSinglePvEval: lila.tree.CloudEval.GetSinglePvEval,
     gameRepo: lila.core.game.GameRepo,
     gameApi: lila.core.game.GameApi,
     analysisRepo: lila.analyse.AnalysisRepo,
     userApi: lila.core.user.UserApi,
     db: lila.db.Db,
     cacheApi: lila.memo.CacheApi,
-    settingStore: lila.memo.SettingStore.Builder,
-    ws: StandaloneWSClient,
     sink: lila.analyse.Analyser,
     shutdown: org.apache.pekko.actor.CoordinatedShutdown
 )(using Executor, ActorSystem, Scheduler, org.apache.pekko.stream.Materializer, lila.core.config.RateLimit):
@@ -71,21 +66,15 @@ final class Env(
 
   lazy val api: FishnetApi = wire[FishnetApi]
 
-  lazy val openingBookDepth = settingStore[Int](
-    "fishnetOpeningBookDepth",
-    default = 0,
-    text = "Fishnet: use opening explorer until ply".some
-  ).taggedWith[FishnetOpeningBook.Depth]
-
-  private lazy val openingBook: FishnetOpeningBook = wire[FishnetOpeningBook]
-
-  lazy val player = wire[FishnetPlayer]
-
   private val limiter = wire[FishnetLimiter]
 
   lazy val analyser = wire[Analyser]
 
+  lazy val player = wire[FishnetPlayer]
+
   lazy val awaiter = wire[FishnetAwaiter]
+
+  def explorerEndpoint: String = config.explorerEndpoint
 
   wire[Cleaner]
 

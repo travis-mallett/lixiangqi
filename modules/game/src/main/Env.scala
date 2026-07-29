@@ -9,6 +9,7 @@ import play.api.libs.ws.StandaloneWSClient
 
 import lila.common.autoconfig.{ *, given }
 import lila.core.config.*
+import lila.core.game.Game
 
 final private class GameConfig(
     @ConfigName("collection.game") val gameColl: CollName,
@@ -39,10 +40,6 @@ final class Env(
   given idGenerator: IdGenerator = wire[IdGenerator]
 
   val divider = wire[Divider]
-
-  val gameOpening = wire[GameOpening]
-
-  val gameOpeningOf: lila.core.game.GameOpening = gameOpening.of
 
   val cached: Cached = wire[Cached]
 

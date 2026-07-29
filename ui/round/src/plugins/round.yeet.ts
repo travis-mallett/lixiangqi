@@ -4,7 +4,7 @@
  * It's just a joke after all. */
 export async function initModule(): Promise<void> {
   window.scrollTo(0, 0);
-  await site.sound.load('yeet', site.asset.url('sound/other/yeet.mp3'));
+  await site.sound.load('yeet');
   site.sound.play('yeet');
   setTimeout(yeet, 150);
 }

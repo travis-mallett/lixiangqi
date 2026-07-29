@@ -65,7 +65,7 @@ final class TeamSecurity(memberRepo: TeamMemberRepo, userApi: lila.core.user.Use
             _ => t.leaders.sizeIs < Team.maxLeaders.value
           )
           .verifying(
-            "You can't make Lichess a leader",
+            "You can't make Lixiangqi a leader",
             n => Granter(_.ManageTeam) || n.isnt(UserId.lichess)
           )
           .verifying(
@@ -89,7 +89,7 @@ final class TeamSecurity(memberRepo: TeamMemberRepo, userApi: lila.core.user.Use
     def permissions(t: Team.WithLeaders)(using me: Me): Form[List[LeaderData]] = Form(
       single("leaders" -> list(permissionsForm))
         .verifying(
-          "You can't make Lichess a leader",
+          "You can't make Lixiangqi a leader",
           Granter(_.ManageTeam) ||
             !_.exists(_.name.is(UserId.lichess)) ||
             t.leaders.exists(_.is(UserId.lichess))

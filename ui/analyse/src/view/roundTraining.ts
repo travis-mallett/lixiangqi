@@ -29,7 +29,7 @@ const renderPlayer = ({ data, study }: AnalyseCtrl, color: Color): VNode => {
   return h(
     'span',
     player.name ||
-      (player.ai && 'Stockfish level ' + player.ai) ||
+      (player.ai && 'Pikafish level ' + player.ai) ||
       (study && findTag(study.data.chapter.tags, color)) ||
       'Anonymous',
   );
@@ -116,24 +116,6 @@ const doRender = (ctrl: AnalyseCtrl): VNode => {
   );
 };
 
-export function puzzleLink(ctrl: AnalyseCtrl): VNode | undefined {
-  const puzzle = ctrl.data.puzzle;
-  if (!puzzle) return undefined;
-  return h(
-    'div.analyse__puzzle',
-    h(
-      'a.button-link.text',
-      {
-        attrs: {
-          ...dataIcon(licon.ArcheryTarget),
-          href: `/training/${puzzle.key}/${ctrl.bottomColor()}`,
-        },
-      },
-      ['Recommended puzzle training', h('br'), puzzle.name],
-    ),
-  );
-}
-
 export function render(ctrl: AnalyseCtrl): VNode | undefined {
   if (ctrl.study?.practice) return undefined;
 
@@ -142,15 +124,15 @@ export function render(ctrl: AnalyseCtrl): VNode | undefined {
     !ctrl.settings.showStaticAnalysis ||
     (ctrl.study && ctrl.study.vm.toolTab() !== 'serverEval')
   )
-    return h('div.analyse__round-training', puzzleLink(ctrl));
+    return undefined;
 
   // don't cache until the analysis is complete!
   const buster = ctrl.data.analysis.partial ? Math.random() : '';
   let cacheKey = String(buster) + !!ctrl.retro;
   if (ctrl.study) cacheKey += ctrl.study.data.chapter.id;
 
-  return h('div.analyse__round-training', [
+  return h(
+    'div.analyse__round-training',
     h('div.analyse__acpl', thunk('div.advice-summary', doRender, [ctrl, cacheKey])),
-    puzzleLink(ctrl),
-  ]);
+  );
 }

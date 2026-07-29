@@ -122,7 +122,7 @@ function tournamentClass(tour: Tournament): Classes {
       'tsht-finished': finished,
       'tsht-joinable': !finished,
       'tsht-user-created': userCreated,
-      'tsht-thematic': !!tour.position,
+      'tsht-position': !!tour.position,
       'tsht-short': tour.minutes <= 30,
       'tsht-max-rating': !userCreated && tour.hasMaxRating,
       'tsht-variant': tour.variant.key !== 'standard' && tour.variant.key !== 'fromPosition',
@@ -180,7 +180,7 @@ function renderTournament(tour: Tournament) {
         h('span.infos', [
           h('span.text', [
             displayClock(tour.clock) + ' ',
-            tour.position ? 'Thematic ' : null,
+            tour.position ? 'Custom position ' : null,
             i18n.site[tour.rated ? 'ratedTournament' : 'casualTournament'],
           ]),
           tour.nbPlayers ? h('span.nb-players', { attrs: dataIcon(licon.User) }, tour.nbPlayers) : null,

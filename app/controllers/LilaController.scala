@@ -315,7 +315,7 @@ abstract private[controllers] class LilaController(val env: Env)
           withSecure(perm)(f)
         }
 
-  /* everyone on dev/stage, beta perm or https://lichess.org/team/lichess-beta-testers on prod */
+  /* everyone on dev/stage, beta perm or https://lixiangqi.org/team/lichess-beta-testers on prod */
   def Beta[A](f: Context ?=> Me ?=> Fu[Result]): EssentialAction =
     Auth { ctx ?=> _ ?=>
       if env.mode.notProd || isGrantedOpt(_.Beta)

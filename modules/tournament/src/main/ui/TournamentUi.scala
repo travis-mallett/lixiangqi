@@ -12,6 +12,22 @@ import lila.common.ClientName
 final class TournamentUi(helpers: Helpers)(getTourName: GetTourName):
   import helpers.{ *, given }
 
+  object openList:
+
+    def apply(t: Tournament)(using Context): Tag =
+      tr(cls := "paginated")(
+        td(cls := "icon")(iconTag(tournamentIcon(t))),
+        finishedList.header(t),
+        td(cls := "date")(
+          if t.isStarted then trans.site.eventInProgress()
+          else momentFromNow(t.startsAt)
+        ),
+        td(cls := "players")(
+          span(iconTag(Icon.User)(cls := "text")),
+          span(trans.site.nbPlayers.plural(t.nbPlayers, t.nbPlayers.localize))
+        )
+      )
+
   object finishedList:
 
     def apply(finished: List[Tournament])(using Context): Tag =
@@ -39,7 +55,7 @@ final class TournamentUi(helpers: Helpers)(getTourName: GetTourName):
             t.clock.show,
             " • ",
             if t.variant.exotic then t.variant.name else t.perfType.trans,
-            t.position.isDefined.option(frag(" • ", trans.site.thematic())),
+            t.position.isDefined.option(frag(" • ", trans.site.customPosition())),
             " • ",
             lila.gathering.ui.translateRated(t.rated),
             " • ",
@@ -115,7 +131,7 @@ final class TournamentUi(helpers: Helpers)(getTourName: GetTourName):
             t.clock.show,
             " • ",
             if t.variant.exotic then t.variant.name else t.perfType.trans,
-            t.position.isDefined.option(frag(" • ", trans.site.thematic())),
+            t.position.isDefined.option(frag(" • ", trans.site.customPosition())),
             " • ",
             lila.gathering.ui.translateRated(t.rated),
             " • ",

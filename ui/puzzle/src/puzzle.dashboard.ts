@@ -9,7 +9,7 @@ import {
   type ChartData,
 } from 'chart.js';
 
-import { currentTheme } from 'lib/device';
+import { currentColorScheme } from 'lib/device';
 
 Chart.register(RadarController, RadialLinearScale, PointElement, LineElement, Tooltip, Filler);
 
@@ -25,7 +25,7 @@ export function initModule(data: { radar: ChartData<'radar', number, 'Performanc
     borderColor: 'rgb(189 130 35 / 1)',
     pointBackgroundColor: 'rgb(189 130 35 / 1)',
   };
-  const fontColor = currentTheme() === 'dark' ? '#bababa' : '#4d4d4d';
+  const fontColor = currentColorScheme() === 'dark' ? '#bababa' : '#4d4d4d';
   const lineColor = 'rgb(127 127 127 / 0.3)';
 
   new Chart(canvas, {

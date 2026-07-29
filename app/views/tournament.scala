@@ -14,12 +14,7 @@ lazy val list = TournamentList(helpers, ui)(
 
 lazy val moderation = ModerationUi(helpers, ui)
 
-private lazy val showUi = TournamentShow(helpers, views.gathering)(
-  variantTeamLinks = lila.team.Team.variants.view
-    .mapValues: team =>
-      (team, teamLink(team, true))
-    .toMap
-)
+private lazy val showUi = TournamentShow(helpers, views.gathering)
 export showUi.faq.page as faq
 
 lazy val form = TournamentForm(helpers, showUi)(

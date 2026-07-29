@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="General beneath a Chinese palace roof">
+  <path d="M20 55h120L112 30H48z" fill="#9e302b" stroke="#f0d5a2" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M36 56v74M124 56v74M24 132h112" stroke="#f0d5a2" stroke-width="7" fill="none"/>
+  <circle cx="80" cy="92" r="31" fill="#f2d6a3" stroke="#9e302b" stroke-width="5"/>
+  <text x="80" y="108" text-anchor="middle" font-size="43" font-weight="700" font-family="Noto Serif CJK SC,SimSun,serif" fill="#9e302b">将</text>
+</svg>

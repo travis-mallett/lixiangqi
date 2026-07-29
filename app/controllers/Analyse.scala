@@ -1,21 +1,13 @@
 package controllers
 
-import chess.format.Fen
-import play.api.libs.json.{ Json, JsArray }
+import play.api.libs.json.{ JsArray, Json }
 import play.api.mvc.*
 
-import lila.app.{ *, given }
+import lila.app.*
 import lila.common.HTTPRequest
-import lila.core.misc.lpv.LpvEmbed
-import lila.game.PgnDump
 import lila.oauth.AccessToken
-import lila.tree.ExportOptions
 
-final class Analyse(
-    env: Env,
-    gameC: => Game,
-    roundC: => Round
-) extends LilaController(env):
+final class Analyse(env: Env) extends LilaController(env):
 
   def requestAnalysis(id: GameId) = AuthOrScoped(_.Web.Mobile) { ctx ?=> me ?=>
     Found(env.game.gameRepo.game(id)): game =>
@@ -33,123 +25,41 @@ final class Analyse(
           _.error.fold(NoContent)(BadRequest(_))
   }
 
-  private[controllers] def replay(pov: Pov, userTv: Option[lila.user.User])(using ctx: Context) =
-    if ctx.req.client.isCrawler then replayForCrawler(pov)
-    else
-      for
-        initialFen <- env.game.gameRepo.initialFen(pov.game)
-        users <- env.user.api.gamePlayers(pov.game.players.map(_.userId), pov.game.perfKey)
-        _ = gameC.preloadUsers(users)
-        res <- RedirectAtFen(pov, initialFen):
-          val pgnFlags = PgnDump.WithFlags(
-            clocks = false,
-            rating = ctx.pref.showRatings,
-            opening = ctx.isAuth.option(true)
-          )
-          val opening = pgnFlags.opening.so(env.game.gameOpening.atPly(pov.game, _))
-          (
-            env.analyse.analyser.get(pov.game),
-            (!pov.game.metadata.analysed).so(env.fishnet.api.userAnalysisExists(pov.gameId)),
-            pov.game.simulId.so(env.simul.repo.find),
-            roundC.getWatcherChat(pov.game),
-            ctx.noBlind.so(env.game.crosstableApi.withMatchup(pov.game)),
-            env.bookmark.api.exists(pov.game, ctx.me),
-            env.api.pgnDump(
-              pov.game,
-              initialFen,
-              analysis = none,
-              opening = opening,
-              pgnFlags
-            )
-          ).flatMapN: (analysis, analysisInProgress, simul, chat, crosstable, bookmarked, pgn) =>
-            env.api.roundApi
-              .review(
-                pov,
-                users,
-                analysis,
-                opening.map(_.opening),
-                initialFen = initialFen,
-                tv = userTv.map: u =>
-                  lila.round.OnTv.User(u.id),
-                withFlags = ExportOptions(
-                  movetimes = true,
-                  clocks = true,
-                  division = true,
-                  rating = ctx.pref.showRatings,
-                  lichobileCompat = HTTPRequest.isLichobile(ctx.req),
-                  puzzles = true
-                )
-              )
-              .flatMap: data =>
-                Ok.page(
-                  views.analyse.replay.forBrowser(
-                    pov,
-                    data,
-                    initialFen,
-                    env.analyse.annotator(pgn, pov.game, analysis, opening).render,
-                    analysis,
-                    analysisInProgress,
-                    simul,
-                    crosstable,
-                    userTv,
-                    chat,
-                    bookmarked = bookmarked
-                  )
-                ).map(_.enforceCrossSiteIsolation)
-      yield res
+  private[controllers] def replay(
+      pov: Pov,
+      @annotation.unused userTv: Option[lila.user.User]
+  )(using @annotation.unused ctx: Context) =
+    (
+      env.analyse.repo.byGame(pov.game),
+      if pov.game.metadata.analysed then fuccess(false)
+      else env.fishnet.api.userAnalysisExists(pov.gameId)
+    ).flatMapN: (analysis, analysisInProgress) =>
+      Ok.page(
+        views.xiangqi.analysis:
+          UserAnalysis.bootstrap(
+            pov,
+            analysis,
+            analysisInProgress
+          ) ++ Json.obj("explorerEndpoint" -> env.fishnet.explorerEndpoint)
+      ).dmap(_.noCache)
 
   def embed(gameId: GameId, color: Color) = embedReplayGame(gameId, color)
 
-  val AcceptsPgn = Accepting("application/x-chess-pgn")
-
   def embedReplayGame(gameId: GameId, color: Color) = Anon:
-    InEmbedContext:
-      env.api.textLpvExpand
-        .getPgn(gameId)
-        .map:
-          case Some(LpvEmbed.PublicPgn(pgn)) =>
-            render:
-              case AcceptsPgn() => Ok(pgn)
-              case _ =>
-                Ok.snip:
-                  views.analyse.embed.lpv(
-                    pgn,
-                    getPgn = true,
-                    title = "Lichess PGN viewer",
-                    Json.obj("orientation" -> color.name)
-                  )
-          case _ =>
-            render:
-              case AcceptsPgn() => NotFound("*")
-              case _ => NotFound.snip(views.analyse.embed.notFound)
-
-  private def RedirectAtFen(pov: Pov, initialFen: Option[Fen.Full])(or: => Fu[Result])(using
-      Context
-  ): Fu[Result] =
-    (get("fen").map(Fen.Full.clean): Option[Fen.Full]).fold(or): atFen =>
-      val url = routes.Round.watcher(pov.gameId, pov.color)
-      chess.Replay
-        .plyAtFen(pov.game.sans, initialFen, pov.game.variant, atFen)
-        .fold(
-          _ => Redirect(url),
-          ply => Redirect(s"$url#$ply")
+    Found(env.game.gameRepo.pov(gameId, color)): pov =>
+      (
+        env.analyse.repo.byGame(pov.game),
+        if pov.game.metadata.analysed then fuccess(false)
+        else env.fishnet.api.userAnalysisExists(pov.gameId)
+      ).flatMapN: (analysis, analysisInProgress) =>
+        Ok.page(
+          views.xiangqi.analysis:
+            UserAnalysis.bootstrap(
+              pov,
+              analysis,
+              analysisInProgress
+            ) ++ Json.obj("explorerEndpoint" -> env.fishnet.explorerEndpoint)
         )
-
-  private def replayForCrawler(pov: Pov)(using Context) = for
-    initialFen <- env.game.gameRepo.initialFen(pov.game)
-    analysis <- env.analyse.analyser.get(pov.game)
-    simul <- pov.game.simulId.so(env.simul.repo.find)
-    crosstable <- env.game.crosstableApi.withMatchup(pov.game)
-    pgn <- env.api.pgnDump(pov.game, initialFen, analysis, none, PgnDump.WithFlags(clocks = false))
-    page <- renderPage:
-      views.analyse.replay.forCrawler(
-        pov,
-        initialFen,
-        env.analyse.annotator(pgn, pov.game, analysis, none).render,
-        simul,
-        crosstable
-      )
-  yield Ok(page)
 
   def externalEngineList = ScopedBody(_.Engine.Read) { _ ?=> me ?=>
     env.analyse.externalEngine.list(me).map { list =>

@@ -2,7 +2,6 @@ package lila.game
 package ui
 
 import chess.format.Fen
-import chess.format.pgn.PgnStr
 
 import lila.core.game.{ Game, Player }
 import lila.core.i18n.I18nKey
@@ -46,7 +45,7 @@ final class GameUi(helpers: Helpers):
       val fen =
         if me.flatMap(pov.game.player).exists(_.blindfold) && pov.game.playable
         then chess.format.BoardAndColorFen("8/8/8/8/8/8/8/8 w")
-        else Fen.writeBoardAndColor(pov.game.position)
+        else Fen.Full(pov.game.position.fen)
       dataState := s"${fen},${pov.color.name},${~pov.game.lastMoveKeys}"
 
     private def showTimeControl(c: chess.Clock.Config) = s"${c.limitSeconds}+${c.incrementSeconds}"
@@ -128,9 +127,6 @@ final class GameUi(helpers: Helpers):
         import lila.game.DrawReason.*
         game.drawReason match
           case Some(MutualAgreement) => trans.site.drawByMutualAgreement.txt()
-          case Some(FiftyMoves) => trans.site.fiftyMovesWithoutProgress.txt() + " • " + trans.site.draw.txt()
-          case Some(ThreefoldRepetition) =>
-            trans.site.threefoldRepetition.txt() + " • " + trans.site.draw.txt()
           case Some(InsufficientMaterial) =>
             trans.site.insufficientMaterial.txt() + " • " + trans.site.draw.txt()
           case _ => trans.site.draw.txt()
@@ -146,12 +142,7 @@ final class GameUi(helpers: Helpers):
         if game.loser.exists(_.color.white) then trans.site.whiteDidntMove.txt()
         else trans.site.blackDidntMove.txt()
       case S.Cheat => trans.site.cheatDetected.txt()
-      case S.VariantEnd =>
-        game.variant match
-          case chess.variant.KingOfTheHill => trans.site.kingInTheCenter.txt()
-          case chess.variant.ThreeCheck => trans.site.threeChecks.txt()
-          case chess.variant.RacingKings => trans.site.raceFinished.txt()
-          case _ => trans.site.variantEnding.txt()
+      case S.VariantEnd => trans.site.gameOver.txt()
       case _ => ""
 
   object crosstable:
@@ -230,14 +221,6 @@ final class GameUi(helpers: Helpers):
             standardFlash,
             postForm(cls := "form3 import", action := routes.Importer.sendGame)(
               form3.group(form("pgn"), trans.site.pasteThePgnStringHere())(form3.textarea(_)()),
-              form("pgn").value.flatMap { pgn =>
-                lila.game.importer
-                  .parseImport(PgnStr(pgn), ctx.userId)
-                  .fold(
-                    err => frag(pre(cls := "error")(err), br, br).some,
-                    _ => none
-                  )
-              },
               form3.group(form("pgnFile"), trans.site.orUploadPgnFile(), klass = "upload"): f =>
                 form3.file.pgn(f.name),
               form3.checkboxGroup(
@@ -286,12 +269,12 @@ final class GameUi(helpers: Helpers):
       )
 
     def miniBoard(pov: Pov)(using ctx: Context): Tag => Tag =
-      chessgroundMini(
+      xiangqiGroundMini(
         if ctx.me.flatMap(pov.game.player).exists(_.blindfold) && pov.game.playable
-        then Fen.Board("8/8/8/8/8/8/8/8")
-        else Fen.writeBoard(pov.game.position),
-        if pov.game.variant == chess.variant.RacingKings then chess.White else pov.player.color,
-        pov.game.history.lastMove
+        then "9/9/9/9/9/9/9/9/9/9 w - - 0 1"
+        else pov.game.position.fen,
+        pov.player.color,
+        pov.game.lastMoveKeys
       )
 
     def source(g: Game)(using Context) =
@@ -346,11 +329,11 @@ final class GameUi(helpers: Helpers):
                       frag(br, _)
                   )
 
-    private def opening(g: Game) =
+    private def opening(g: Game)(using ctx: Context) =
       div(cls := "opening")(
-        gameOpening(g, false).map(o => strong(o.name)),
         div(cls := "pgn")(
-          g.sans
+          g.xiangqi
+            .notations(ctx.pref.xiangqiNotationStyle(ctx.lang))
             .take(6)
             .grouped(2)
             .zipWithIndex

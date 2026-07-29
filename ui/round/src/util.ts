@@ -1,14 +1,14 @@
+import type { Dests } from 'chessgroundx/types';
+
+import { selectXiangqiNotation, xiangqiLegalMoveDests } from 'lib/game';
+
 import type { EncodedDests, RoundData, Step } from './interfaces';
 
 export function parsePossibleMoves(dests?: EncodedDests): Dests {
-  const dec: Dests = new Map();
-  if (!dests) return dec;
-  if (typeof dests === 'string')
-    for (const ds of dests.split(' ')) {
-      dec.set(ds.slice(0, 2) as Key, (ds.slice(2).match(/.{2}/g) || []) as Key[]);
-    }
-  else for (const k in dests) dec.set(k as Key, (dests[k].match(/.{2}/g) || []) as Key[]);
-  return dec;
+  if (!dests) return new Map();
+  return xiangqiLegalMoveDests(
+    Object.entries(dests).flatMap(([orig, destinations]) => destinations.map(dest => orig + dest)),
+  );
 }
 
 export const firstPly = (d: RoundData): number => d.steps[0].ply;
@@ -22,7 +22,10 @@ export const plyStep = (d: RoundData, ply: number): Step => d.steps[ply - firstP
 export const upgradeServerData = (d: RoundData): void => {
   if (d.correspondence) d.correspondence.showBar = d.pref.clockBar;
 
-  if (['horde', 'crazyhouse'].includes(d.game.variant.key)) d.pref.showCaptured = false;
+  d.pref.showCaptured = false;
+  d.steps.forEach(step => {
+    step.san = selectXiangqiNotation(step.san, step.sanZh, d.pref.notationStyle);
+  });
 
   if (d.expiration) d.expiration.movedAt = Date.now() - d.expiration.idleMillis;
 };

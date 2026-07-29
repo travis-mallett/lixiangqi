@@ -1,9 +1,4 @@
-import Lpv from '@lichess-org/pgn-viewer';
-
-import { set } from 'lib/data';
 import { numberFormat } from 'lib/i18n';
-
-import type { Opening } from './interfaces';
 
 interface AnimateNumber {
   duration: number;
@@ -26,21 +21,4 @@ export const animateNumber = (counter: HTMLElement, opts: Partial<AnimateNumber>
     }
   };
   animate();
-};
-
-export const loadOpeningLpv = (el: HTMLElement, color: Color, opening: Opening): void => {
-  const lpv = Lpv(el, {
-    pgn: opening.pgn,
-    initialPly: 0,
-    keyboardToMove: false,
-    showMoves: 'bottom',
-    showClocks: false,
-    showPlayers: false,
-    showControls: false,
-    chessground: {
-      coordinates: false,
-    },
-    orientation: color,
-  });
-  set(lpv.div!, 'lpv', lpv);
 };

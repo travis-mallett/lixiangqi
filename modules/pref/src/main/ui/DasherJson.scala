@@ -9,40 +9,25 @@ import lila.ui.Context
 
 object DasherJson:
 
-  def apply(pref: Pref, gallery: Option[JsValue])(using ctx: Context): JsObject =
+  def apply(pref: Pref)(using ctx: Context): JsObject =
+    import Backgrounds.given
+    import BoardThemes.given
+    import MusicSets.given
+    import PieceSets.given
+    import SoundSets.given
+    import ThemePacks.given
+    import UiThemes.given
     Json.obj(
       "user" -> ctx.me.map(_.light),
-      "sound" -> Json.obj(
-        "list" -> SoundSet.list.map { set =>
-          s"${set.key} ${set.name}"
-        }
-      ),
-      "background" -> Json
-        .obj(
-          "current" -> Pref.Bg.asString.get(pref.bg),
-          "image" -> pref.bgImgOrDefault
-        )
-        .add("gallery", gallery),
-      "board" -> Json.obj(
-        "is3d" -> pref.is3d,
-        "d2" -> Json.obj(
-          "current" -> pref.currentTheme.name,
-          "list" -> Theme.all
-        ),
-        "d3" -> Json.obj(
-          "current" -> pref.currentTheme3d.name,
-          "list" -> Theme3d.all
-        )
-      ),
-      "piece" -> Json.obj(
-        "d2" -> Json.obj(
-          "current" -> pref.currentPieceSet.name,
-          "list" -> PieceSet.all
-        ),
-        "d3" -> Json.obj(
-          "current" -> pref.currentPieceSet3d.name,
-          "list" -> PieceSet3d.all
-        )
+      "appearance" -> Json.obj(
+        "current" -> pref.appearance,
+        "packs" -> ThemePacks.all,
+        "uiThemes" -> UiThemes.all,
+        "backgrounds" -> Backgrounds.all,
+        "boards" -> BoardThemes.all,
+        "pieceSets" -> PieceSets.all,
+        "soundSets" -> SoundSets.all,
+        "musicSets" -> MusicSets.all
       ),
       "coach" -> Granter.opt(_.Coach)(using ctx.me)
     )

@@ -4,7 +4,6 @@ import play.api.data.Form
 import play.api.mvc.*
 
 import lila.app.{ *, given }
-import lila.common.LilaOpeningFamily
 import lila.rating.PerfType
 import lila.tutor.{ TutorFullReport, TutorPerfReport, TutorConfig, TutorAvailability }
 
@@ -48,17 +47,7 @@ final class Tutor(env: Env) extends LilaController(env):
         case "phases" => Ok.page(views.tutor.perf.phases(full, perf))
         case "time" => Ok.page(views.tutor.perf.time(full, perf))
         case "pieces" => Ok.page(views.tutor.perf.pieces(full, perf))
-        case "opening" => Ok.page(views.tutor.openingUi.openings(full, perf))
         case _ => notFound
-    }
-
-  def opening(username: UserStr, range: String, perf: PerfKey, color: Color, opName: String) =
-    TutorPerfPage(username, range, perf) { _ ?=> full => perf =>
-      LilaOpeningFamily
-        .find(opName)
-        .flatMap(perf.openings(color).find)
-        .fold(Redirect(full.url.angle(perf.perf, "opening")).toFuccess): family =>
-          Ok.page(views.tutor.openingUi.opening(full, perf, family, color))
     }
 
   def compute(username: UserStr) = AuthBody { _ ?=> _ ?=>

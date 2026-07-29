@@ -11,7 +11,7 @@
       background-color: rgb(from $c-bg r g b / 0.84);
     }
 
-    @include if-transp {
+    @include if-background {
       background-color: rgb(from $c-bg r g b / 0.82);
     }
   }

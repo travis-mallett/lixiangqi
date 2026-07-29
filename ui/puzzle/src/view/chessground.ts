@@ -1,5 +1,6 @@
 import { Chessground as makeChessground } from '@lichess-org/chessground';
 import { h, type VNode } from 'snabbdom';
+import { makeXiangqiGround } from 'xiangqi';
 
 import resizeHandle from 'lib/chessgroundResize';
 import { isSafari } from 'lib/device';
@@ -10,9 +11,25 @@ import { onInsert } from 'lib/view';
 import type PuzzleCtrl from '../ctrl';
 
 export default function (ctrl: PuzzleCtrl): VNode {
-  return h('div.cg-wrap.cgv' + ctrl.cgVersion, {
+  const xiangqiOpts = ctrl.isXiangqi ? ctrl.makeXiangqiGroundOpts() : undefined;
+  return h(`div.cg-wrap.cgv${ctrl.cgVersion}${ctrl.isXiangqi ? '.xiangqi9x10' : ''}`, {
+    attrs: xiangqiOpts
+      ? {
+          'data-legal-move-count': `${xiangqiOpts.legalMoves?.length ?? 0}`,
+          'data-movable-color': xiangqiOpts.movableColor ?? '',
+        }
+      : undefined,
     hook: {
-      ...onInsert(el => ctrl.setChessground(makeChessground(el, makeConfig(ctrl)))),
+      ...onInsert(el =>
+        ctrl.setChessground(
+          (xiangqiOpts
+            ? makeXiangqiGround(el, {
+                ...xiangqiOpts,
+                onMove: ctrl.userXiangqiMove,
+              })
+            : makeChessground(el, makeConfig(ctrl))) as CgApi,
+        ),
+      ),
       destroy: () => {
         // ctrl.disableGooglyEyes();
         ctrl.ground().destroy();
@@ -31,7 +48,6 @@ export function makeConfig(ctrl: PuzzleCtrl): CgConfig {
     lastMove: opts.lastMove,
     coordinates: ctrl.pref.coords !== Coords.Hidden,
     coordinatesOnSquares: ctrl.pref.coords === Coords.All,
-    addPieceZIndex: ctrl.pref.is3d,
     addDimensionsCssVarsTo: document.body,
     jsHover: isSafari(),
     movable: {

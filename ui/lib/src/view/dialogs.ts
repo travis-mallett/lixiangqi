@@ -184,7 +184,7 @@ const onClick = (a: HTMLLinkElement): boolean => {
 const isPassList = (url: URL) => passList().find(h => h === url.host || url.host.endsWith('.' + h));
 
 const passList = () =>
-  `lichess.org lichess4545.com ligacatur.com
+  `lixiangqi.org ligacatur.com
 github.com discord.com discord.gg mastodon.online
 bsky.app facebook.com twitch.tv
 wikipedia.org wikimedia.org

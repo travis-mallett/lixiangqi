@@ -1,6 +1,6 @@
 import { Chart, type ChartDataset, type ChartOptions } from 'chart.js';
 
-import { currentTheme } from 'lib/device';
+import { currentColorScheme } from 'lib/device';
 
 export interface MovePoint {
   y: number;
@@ -13,7 +13,7 @@ export type * from './interface';
 export const chartYMax = 1.05;
 export const chartYMin: number = -chartYMax;
 
-const lightTheme = currentTheme() === 'light';
+const lightTheme = currentColorScheme() === 'light';
 export const orangeAccent = '#d85000';
 export const whiteFill: string = lightTheme ? 'rgb(255 255 255 / 0.7)' : 'rgb(255 255 255 / 0.3)';
 export const blackFill: string = lightTheme ? 'rgb(0 0 0 / 0.2)' : 'rgb(0 0 0 / 1)';

@@ -1,10 +1,10 @@
 package lila.game
 
 import chess.*
-import chess.CoreArbitraries.{ castleGen, given }
 import org.scalacheck.{ Arbitrary, Gen }
-import play.api.libs.json.JsObject
-import chess.variant.Crazyhouse
+import play.api.libs.json.Json
+
+import lila.xiangqi.Xiangqi
 
 object Arbitraries:
 
@@ -12,25 +12,12 @@ object Arbitraries:
   given [S, T](using SameRuntime[S, T], Arbitrary[S]): Arbitrary[T] = Arbitrary:
     Arbitrary.arbitrary[S].map(summon[SameRuntime[S, T]].apply)
 
-  given Arbitrary[Event.Castling] = Arbitrary:
-    for
-      color <- Arbitrary.arbitrary[Color]
-      castle <- castleGen(color)
-    yield Event.Castling(castle, color)
-
-  given Arbitrary[Event.Enpassant] = Arbitrary:
-    for
-      color <- Arbitrary.arbitrary[Color]
-      pos <- Gen.oneOf(color.passablePawnRank.bb.squares)
-    yield Event.Enpassant(pos, color)
-
-  // We use Event.Castling as a cookie for this test because We don't have an Arbitrary instance for JsObject yet
   given Arbitrary[Event.RedirectOwner] = Arbitrary:
     for
-      color <- Arbitrary.arbitrary[Color]
+      color <- Gen.oneOf(Color.all)
       id <- Arbitrary.arbitrary[GameFullId]
-      cookie <- Arbitrary.arbitrary[Option[Event.Castling]]
-    yield Event.RedirectOwner(color, id, cookie.map(_.data.asInstanceOf[JsObject]))
+      cookie <- Arbitrary.arbitrary[Option[Boolean]]
+    yield Event.RedirectOwner(color, id, cookie.map(value => Json.obj("value" -> value)))
 
   given Arbitrary[Status] = Arbitrary(Gen.oneOf(Status.all))
 
@@ -38,16 +25,10 @@ object Arbitraries:
     for
       turns <- Arbitrary.arbitrary[Ply]
       status <- Gen.option(Arbitrary.arbitrary[Status])
-      winner <- Gen.option(Arbitrary.arbitrary[Color])
+      winner <- Gen.option(Gen.oneOf(Color.all))
       whiteOffersDraw <- Arbitrary.arbitrary[Boolean]
       blackOffersDraw <- Arbitrary.arbitrary[Boolean]
     yield Event.State(turns, status, winner, whiteOffersDraw, blackOffersDraw)
-
-  given Arbitrary[Event.Promotion] = Arbitrary:
-    for
-      role <- Arbitrary.arbitrary[PromotableRole]
-      pos <- Arbitrary.arbitrary[Square]
-    yield Event.Promotion(role, pos)
 
   given Arbitrary[Event.ClockEvent] = Arbitrary:
     for
@@ -58,35 +39,40 @@ object Arbitraries:
 
   given Arbitrary[Event.Move] = Arbitrary:
     for
-      orig <- Arbitrary.arbitrary[Square]
-      dest <- Arbitrary.arbitrary[Square]
-      san <- Arbitrary.arbitrary[format.pgn.SanStr]
-      fen <- Arbitrary.arbitrary[format.BoardFen]
-      check <- Arbitrary.arbitrary[Check]
-      threefold <- Arbitrary.arbitrary[Boolean]
-      fiftyMoves <- Arbitrary.arbitrary[Boolean]
-      promotion <- Gen.option(Arbitrary.arbitrary[Event.Promotion])
-      enpassant <- Gen.option(Arbitrary.arbitrary[Event.Enpassant])
-      castle <- Gen.option(Arbitrary.arbitrary[Event.Castling])
+      move <- Gen.oneOf("a1a2", "i10i9", "b3b10", "e1e2").map(Xiangqi.Uci.unsafe)
+      notation <- Gen.oneOf("R9+1", "R1+1", "C8+7", "K5+1")
+      capture <- Arbitrary.arbitrary[Boolean]
+      check <- Arbitrary.arbitrary[Boolean]
       state <- Arbitrary.arbitrary[Event.State]
       clock <- Gen.option(Arbitrary.arbitrary[Event.ClockEvent])
-      possibleMoves <- Arbitrary.arbitrary[Map[Square, Bitboard]]
-      possibleDrops <- Gen.option(Gen.listOfN(8, Gen.oneOf(Square.all)))
-      crazyData <- Gen.option(Arbitrary.arbitrary[Crazyhouse.Data])
-    yield Event.Move(
-      orig,
-      dest,
-      san,
-      fen,
-      check,
-      threefold,
-      fiftyMoves,
-      promotion,
-      enpassant,
-      castle,
-      state,
-      clock,
-      possibleMoves,
-      possibleDrops,
-      crazyData
-    )
+      side = if state.turns.turn.white then Xiangqi.Side.Red else Xiangqi.Side.Black
+      position = Xiangqi.State(
+        variant = "xiangqi",
+        fen = Xiangqi.startFen,
+        ply = state.turns.value,
+        turn = side,
+        legalMoves = Vector("a1a2", "b3b10").map(Xiangqi.Uci.unsafe),
+        check = check,
+        insufficientMaterial = false,
+        gameResult = Xiangqi.Result.Ongoing,
+        immediateEnd = Xiangqi.Ending(ended = false, result = 0),
+        optionalEnd = Xiangqi.Ending(ended = false, result = 0)
+      )
+      result = Xiangqi.MoveResult(
+        move = move,
+        notation = notation,
+        chineseNotation = notation,
+        capture = capture,
+        checkmate = false,
+        variant = position.variant,
+        fen = position.fen,
+        ply = position.ply,
+        turn = position.turn,
+        legalMoves = position.legalMoves,
+        check = position.check,
+        insufficientMaterial = position.insufficientMaterial,
+        gameResult = position.gameResult,
+        immediateEnd = position.immediateEnd,
+        optionalEnd = position.optionalEnd
+      )
+    yield Event.Move(result, state, clock)

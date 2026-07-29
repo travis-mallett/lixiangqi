@@ -1,8 +1,7 @@
 package lila.tv
 
-import chess.{ Color, Ply }
+import chess.Color
 import chess.IntRating
-import monocle.syntax.all.*
 import scalalib.actor.SyncActor
 import scalalib.HeapSort.topNToList
 
@@ -78,7 +77,7 @@ final private class ChannelSyncActor(
     bestOf(candidates).filter { isWayBetter(game, _) }
 
   private def resetTurns(g: Game): Game =
-    g.focus(_.chess).modify(c => c.copy(ply = Ply.initial, startedAtPly = Ply.initial))
+    g.copy(startedAtPly = g.ply)
 
   private def isWayBetter(g1: Game, g2: Game) = score(resetTurns(g2)) > (score(resetTurns(g1)) * 1.17)
 

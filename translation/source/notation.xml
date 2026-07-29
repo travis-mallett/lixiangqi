@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resources>
+  <string name="xiangqiNotation">Xiangqi Notation</string>
+  <string name="xiangqiNotationTraining">Xiangqi Notation training</string>
+  <string name="averageScoreFromRedX">Average score from Red's side: %s</string>
+  <string name="averageScoreFromBlackX">Average score from Black's side: %s</string>
+  <string name="averageScoreFromBothX">Average score with both perspectives: %s</string>
+  <string name="notationIntroduction">Move notation is the language used to record, study, and discuss Xiangqi games.</string>
+  <string name="notationStructure">A notation move identifies the piece, its starting file or order, its direction, and its destination.</string>
+  <string name="moveFromNotationExplanation">Move from Notation shows a valid move; play that move on the board.</string>
+  <string name="writeNotationExplanation">Write Notation plays a valid move; enter the notation that describes it.</string>
+  <string name="youHaveThirtySeconds">You have 30 seconds to solve as many notation exercises as possible.</string>
+  <string name="goAsLongAsYouWant">Practice without a time limit.</string>
+  <string name="startTraining">Start training</string>
+  <string name="moveFromNotation">Move from Notation</string>
+  <string name="writeNotation">Write Notation</string>
+  <string name="trainingMode">Training mode</string>
+  <string name="notationSystem">Notation system</string>
+  <string name="wxfNotation">WXF (C2=5)</string>
+  <string name="traditionalNotation">WXF Chinese (炮二平五)</string>
+  <string name="playThisMove">Play this move</string>
+  <string name="nameTheMove">What move was played?</string>
+  <string name="yourNotation">Your notation</string>
+  <string name="checkAnswer">Check</string>
+  <string name="boardPerspective">Board perspective</string>
+  <string name="showBoardCoordinates">Show board coordinates</string>
+  <string name="sideToMove">Side to move</string>
+  <string name="red">Red</string>
+  <string name="black">Black</string>
+  <string name="redSide">Red side</string>
+  <string name="blackSide">Black side</string>
+  <string name="both">Both</string>
+  <string name="practiceTime">Practice time</string>
+  <string name="notationBoard">Xiangqi notation training board</string>
+</resources>

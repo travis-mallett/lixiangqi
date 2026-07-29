@@ -30,7 +30,7 @@ final class CaptchaUi(helpers: Helpers):
           dataCheckUrl := routes.Main.captchaCheck(captcha.gameId)
         )(
           div(cls := "challenge")(
-            chessgroundMini(captcha.fen, captcha.color) {
+            xiangqiGroundMini(captcha.fen.value, captcha.color) {
               div(
                 dataMoves := safeJsonValue(Json.toJson(captcha.moves)),
                 dataPlayable := 1

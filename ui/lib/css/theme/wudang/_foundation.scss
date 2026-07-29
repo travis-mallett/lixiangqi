@@ -1,0 +1,199 @@
+html.wudang {
+  &,
+  body {
+    background-color: var(--wudang-ink-950);
+  }
+
+  // The supplied landscape remains crisp and meaningful. This second,
+  // feathered layer builds a quiet content field without turning the painting
+  // into one blurred or rectangular overlay.
+  &::before {
+    z-index: -2;
+    background-color: #c7c7bf;
+    background-position: center top;
+    background-size: cover;
+    filter: none;
+  }
+
+  &::after {
+    content: '';
+    position: fixed;
+    z-index: -1;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse 68% 88% at 50% 48%, rgb(232 229 220 / 0.28) 0 42%, transparent 78%),
+      linear-gradient(
+        90deg,
+        rgb(9 16 17 / 0.38) 0,
+        rgb(9 16 17 / 0.08) 18%,
+        transparent 37% 68%,
+        rgb(9 16 17 / 0.08) 84%,
+        rgb(9 16 17 / 0.34) 100%
+      ),
+      linear-gradient(180deg, rgb(8 14 15 / 0.12), transparent 22% 78%, rgb(8 14 15 / 0.22));
+  }
+
+  body {
+    min-height: 100vh;
+    background: transparent;
+    font-family: 'Noto Sans', 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+    font-variant-numeric: proportional-nums;
+  }
+
+  // Broad glass effects muddy the brushwork. Small transient surfaces receive
+  // opacity and a keyline instead of relying on blur for contrast.
+  *,
+  *::before,
+  *::after {
+    backdrop-filter: none !important;
+  }
+
+  ::selection {
+    background: rgb(102 134 115 / 0.42);
+    color: var(--wudang-ink-950);
+  }
+
+  ::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--wudang-ink-900);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    border: 2px solid var(--wudang-ink-900);
+    border-radius: 1px;
+    background: var(--wudang-ink-600);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--wudang-mineral-blue);
+  }
+
+  * {
+    scrollbar-color: var(--wudang-ink-600) var(--wudang-ink-900);
+    scrollbar-width: thin;
+  }
+
+  a,
+  button,
+  input,
+  textarea,
+  select,
+  [tabindex] {
+    &:focus-visible {
+      outline: 0;
+      box-shadow: var(--wudang-focus);
+    }
+  }
+
+  main h1,
+  main h2,
+  .box__top h1,
+  .box__top h2,
+  .tour__main__header h1 {
+    font-family: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', Georgia, serif;
+    font-weight: 600;
+    letter-spacing: -0.018em;
+  }
+
+  code,
+  pre,
+  kbd,
+  samp,
+  .monospace,
+  .ceval pearl,
+  .eval-gauge,
+  .xiangqi-eval__score,
+  .xiangqi-engine__headline-score,
+  .xiangqi-engine__rank,
+  .xiangqi-engine__score,
+  .move-eval,
+  .rating,
+  .rclock,
+  .analyse__clock,
+  .trainer .score,
+  .trainer .timer {
+    font-family: 'Noto Sans Mono', 'Cascadia Mono', SFMono-Regular, Consolas, monospace;
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+
+  // Mounted xuan paper: nearly flat, dark-backed, with quiet edge variation
+  // outside the main reading field.
+  .box,
+  .page-menu__content,
+  .paginated,
+  .search,
+  .games-database,
+  .analyse__underboard,
+  .xiangqi-analysis__underboard,
+  .study-list,
+  .forum,
+  .forum-post,
+  .user-show,
+  .team-show,
+  .challenge-page {
+    border: 1px solid var(--wudang-line-dark);
+    border-radius: var(--wudang-radius-paper);
+    background: var(--wudang-paper-field);
+    color: var(--wudang-text-on-paper);
+    box-shadow:
+      0 0 0 var(--wudang-paper-mount) var(--wudang-ink-800),
+      var(--wudang-shadow-paper);
+  }
+
+  .box__top,
+  .box__top + .tabs-horiz,
+  .games-database__header,
+  .dialog-header,
+  thead {
+    border-bottom: 1px solid #aaa294;
+    background: linear-gradient(180deg, rgb(255 255 255 / 0.38), rgb(184 173 157 / 0.13));
+  }
+
+  .box,
+  .page-menu__content,
+  .paginated,
+  .search,
+  .games-database,
+  .analyse__underboard,
+  .xiangqi-analysis__underboard {
+    a:not(.button) {
+      text-underline-offset: 0.16em;
+
+      &:hover {
+        text-decoration: underline;
+        text-decoration-thickness: 1px;
+      }
+    }
+  }
+
+  hr {
+    height: 1px;
+    background: #a9a194;
+  }
+
+  // Text that deliberately remains outside a mounted surface must be stable
+  // over both the pale mist and the darker perimeter.
+  .about-side,
+  .lobby__counters,
+  .learn-board-caption,
+  .puzzle__side > :not(.box),
+  .round__side > :not(.box),
+  .analyse__side > :not(.box) {
+    text-shadow:
+      0 1px 1px rgb(242 238 228 / 0.7),
+      0 0 12px rgb(242 238 228 / 0.72);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      scroll-behavior: auto !important;
+    }
+  }
+}

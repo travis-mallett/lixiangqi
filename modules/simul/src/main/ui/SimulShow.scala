@@ -76,17 +76,13 @@ final class SimulShow(helpers: Helpers, gathering: GatheringUi):
                   case Some("black") => trans.site.black()
                   case _ => trans.site.randomColor()),
                 sim.position
-                  .flatMap(p => lila.gathering.Thematic.byFen(p.opening))
-                  .map { pos =>
-                    frag(br, a(targetBlank, href := pos.url)(pos.name))
-                  }
-                  .orElse(sim.position.map { fen =>
+                  .map { fen =>
                     frag(
                       br,
                       "Custom position • ",
                       lila.ui.bits.fenAnalysisLink(fen)
                     )
-                  })
+                  }
               ),
               gathering.verdicts(verdicts, sim.mainPerfType, relevant = !userIsHost) | br,
               trans.site.by(userIdLink(sim.hostId.some)),

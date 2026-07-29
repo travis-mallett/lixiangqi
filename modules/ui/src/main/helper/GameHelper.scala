@@ -11,12 +11,10 @@ trait GameHelper:
 
   protected val namer: Namer
 
-  def gameOpening: (Game, Boolean) => Option[_root_.chess.opening.Opening]
-
   def titleGame(g: Game) =
     val speed = chess.Speed(g.clock.map(_.config)).name
     val variant = g.variant.exotic.so(s" ${g.variant.name}")
-    s"$speed$variant Chess • ${playerText(g.whitePlayer)} vs ${playerText(g.blackPlayer)}"
+    s"$speed$variant Xiangqi • ${playerText(g.whitePlayer)} vs ${playerText(g.blackPlayer)}"
 
   def shortClockName(clock: Option[Clock.Config])(using t: Translate): Frag =
     clock.fold[Frag](trans.site.unlimited())(shortClockName)
@@ -133,7 +131,7 @@ trait GameHelper:
   def gameLink(pov: Pov)(using Context): String = gameLink(pov.game, pov.color)
 
   def aiName(level: Int)(using Translate): String =
-    trans.site.aiNameLevelAiLevel.txt("Stockfish", level)
+    trans.site.aiNameLevelAiLevel.txt("Pikafish", level)
 
   def aiNameFrag(level: Int)(using Translate) =
     raw(aiName(level).replace(" ", "&nbsp;"))
@@ -170,3 +168,6 @@ trait GameHelper:
         name = PerfKey.correspondence.perfTrans
       )
     else span(title := pk.perfDesc.txt())(pk.perfTrans)
+
+  def perfLink(pk: PerfKey)(using Translate): Frag =
+    variantLink(chess.variant.Standard, pk)

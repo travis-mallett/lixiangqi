@@ -39,7 +39,7 @@ const renderStreak = (ctrl: PuzzleCtrl): MaybeVNodes => [
 export default function (ctrl: PuzzleCtrl): VNode {
   const { data } = ctrl;
   const win = ctrl.lastFeedback === 'win';
-  const canPlayComputer = !ctrl.node.san?.includes('#');
+  const canPlayComputer = !ctrl.isXiangqi && !ctrl.node.san?.includes('#');
   return hl(
     'div.puzzle__feedback.after',
     ctrl.streak && !win
@@ -60,7 +60,16 @@ export default function (ctrl: PuzzleCtrl): VNode {
                     target: '_blank',
                   },
                 })
-              : hl('a'),
+              : ctrl.isXiangqi
+                ? hl('a.practice.button.button-empty', {
+                    attrs: {
+                      'data-icon': licon.Bullseye,
+                      href: `/analysis?fen=${encodeURIComponent(ctrl.node.fen)}`,
+                      title: 'Open this position in Xiangqi analysis',
+                      target: '_blank',
+                    },
+                  })
+                : hl('a'),
             data.user ? renderVote(ctrl) : undefined,
           ]),
         ],

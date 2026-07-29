@@ -19,10 +19,10 @@ final class AuthUi(helpers: Helpers):
     case None =>
       div(cls := "auth__brand")(
         span(cls := "auth__brand__logo", aria.hidden := "true"),
-        span(cls := "auth__brand__name")("lichess.org")
+        span(cls := "auth__brand__name")("lixiangqi.org")
       )
     case Some(c) =>
-      frag(customLogo(c), h2(cls := "oauth__connection__to-lichess")("Connect to lichess.org"))
+      frag(customLogo(c), h2(cls := "oauth__connection__to-lichess")("Connect to lixiangqi.org"))
 
   def customLogo(c: AuthCustomUi) =
     div(cls := "oauth__connection")(
@@ -374,7 +374,7 @@ final class AuthUi(helpers: Helpers):
         postForm(action := addReferrer(routes.Auth.loginWithTokenPost(token).url))(
           form3.actions(
             a(href := routes.Lobby.home)(trans.site.cancel()),
-            submitButton(cls := "button")(s"${user.username} is my Lichess username, log me in")
+            submitButton(cls := "button")(s"${user.username} is my Lixiangqi username, log me in")
           )
         )
       )
@@ -389,8 +389,8 @@ final class AuthUi(helpers: Helpers):
     Page("Public proxy"):
       main(cls := "page-small box box-pad")(
         boxTop(h1(cls := "text")("Ooops")),
-        p("Sorry, you can't signup to Lichess through Tor or public proxies!"),
-        p("You can play, train and use almost all Lichess features as an anonymous user.")
+        p("Sorry, you can't signup to Lixiangqi through Tor or public proxies!"),
+        p("You can play, train and use almost all Lixiangqi features as an anonymous user.")
       )
 
   def logout(using Context) =
@@ -416,7 +416,7 @@ final class AuthUi(helpers: Helpers):
     div(cls := "form-group agreement")(
       error.option(p:
         strong(cls := "error"):
-          "You must agree to the Lichess policies listed below:"),
+          "You must agree to the Lixiangqi policies listed below:"),
       agreements.map: (field, text) =>
         form3.checkboxGroup(form(field), text)
     )

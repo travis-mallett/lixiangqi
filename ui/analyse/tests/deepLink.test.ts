@@ -5,7 +5,7 @@ import { broadcasterDeepLink } from '../src/study/relay/deepLink';
 
 test('creates deep link from URL', () => {
   assert.equal(
-    broadcasterDeepLink('https://lichess.org/broadcast/fide-grand-swiss-2025--open/round-1/xSCoiNg0'),
+    broadcasterDeepLink('https://lixiangqi.org/broadcast/fide-grand-swiss-2025--open/round-1/xSCoiNg0'),
     'lichess-broadcaster://broadcast/fide-grand-swiss-2025--open/round-1/xSCoiNg0',
   );
 });

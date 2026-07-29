@@ -1,12 +1,10 @@
 import { type Prop, prop } from 'lib';
 import type { MaybeVNode } from 'lib/view';
 
-import { BackgroundCtrl } from './background';
-import { BoardCtrl } from './board';
+import { AppearanceCtrl } from './appearance';
 import type { DasherData, Mode, PaneCtrl } from './interfaces';
 import { LangsCtrl } from './langs';
 import { LinksCtrl } from './links';
-import { PieceCtrl } from './piece';
 import { PingCtrl } from './ping';
 import { SoundCtrl } from './sound';
 
@@ -18,9 +16,7 @@ export class DasherCtrl implements ModeIndexed {
   ping: PingCtrl;
   langs: LangsCtrl;
   sound: SoundCtrl;
-  background: BackgroundCtrl;
-  board: BoardCtrl;
-  piece: PieceCtrl;
+  appearance: AppearanceCtrl;
   links: LinksCtrl;
 
   opts: { playing: boolean; zenable: boolean } = {
@@ -35,9 +31,7 @@ export class DasherCtrl implements ModeIndexed {
     this.ping = new PingCtrl(this);
     this.langs = new LangsCtrl(this);
     this.sound = new SoundCtrl(this);
-    this.background = new BackgroundCtrl(this);
-    this.board = new BoardCtrl(this);
-    this.piece = new PieceCtrl(this);
+    this.appearance = new AppearanceCtrl(this);
     this.links = new LinksCtrl(this);
   }
 

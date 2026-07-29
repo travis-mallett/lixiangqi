@@ -84,7 +84,7 @@ export default function (ctrl: PuzzleCtrl): VNode {
   }
 
   return hl(
-    `main.puzzle.puzzle-${ctrl.data.replay ? 'replay' : 'play'}${ctrl.streak ? '.puzzle--streak' : ''}`,
+    `main.puzzle.puzzle-${ctrl.data.replay ? 'replay' : 'play'}${ctrl.streak ? '.puzzle--streak' : ''}${ctrl.isXiangqi ? '.puzzle-xiangqi' : ''}`,
     {
       class: { 'gauge-on': gaugeOn },
       hook: {
@@ -109,7 +109,7 @@ export default function (ctrl: PuzzleCtrl): VNode {
         config(ctrl),
       ]),
       hl(
-        'div.puzzle__board.main-board' + (ctrl.blindfold() ? '.blindfold' : ''),
+        `div.puzzle__board.main-board${ctrl.isXiangqi ? '.xiangqi9x10' : ''}${ctrl.blindfold() ? '.blindfold' : ''}`,
         {
           hook:
             'ontouchstart' in window || !storage.boolean('scrollMoves').getOrDefault(true)
@@ -126,7 +126,7 @@ export default function (ctrl: PuzzleCtrl): VNode {
                   ),
                 ),
         },
-        [chessground(ctrl), ctrl.promotion.view()],
+        [chessground(ctrl), ctrl.isXiangqi ? null : ctrl.promotion.view()],
       ),
       cevalView.renderGauge(ctrl),
       hl('div.puzzle__tools', [

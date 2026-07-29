@@ -10,6 +10,7 @@ type ButtonInfo = { gameType: GameType | 'dev' | 'bots'; label: string; disabled
 
 export default function table(ctrl: LobbyController) {
   const { data, opts } = ctrl;
+  const isWudang = document.body.dataset.uiTheme === 'wudang';
   const hasOngoingRealTimeGame = ctrl.hasOngoingRealTimeGame(true);
   const hookDisabled =
     opts.playban || opts.hasUnreadLichessMessage || ctrl.me?.isBot || hasOngoingRealTimeGame;
@@ -110,7 +111,7 @@ export default function table(ctrl: LobbyController) {
               ctrl.redraw,
             ),
       },
-      label,
+      isWudang ? hl('span.lobby__start__label', label) : label,
     );
   }
 }

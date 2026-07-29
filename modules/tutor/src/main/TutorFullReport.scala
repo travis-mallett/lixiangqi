@@ -48,10 +48,13 @@ case class TutorFullReport(
 
 object TutorFullReport:
 
+  val schemaVersion = 1
+
   case class Preview(config: TutorConfig, at: Instant, perfs: List[TutorPerfReport.Preview]):
     def stats = perfs.map(_.stats)
 
   object F:
+    val version = "v"
     val config = "config"
     val user = "config.user"
     val at = "at"

@@ -1,7 +1,6 @@
 package lila.game
 
 import chess.format.Fen
-import chess.format.pgn.SanStr
 import chess.{ ByColor, Color, Status }
 import chess.rating.IntRatingDiff
 import reactivemongo.pekkostream.{ PekkoStreamCursor, cursorProducer }
@@ -360,9 +359,7 @@ final class GameRepo(c: Coll)(using Executor) extends lila.core.game.GameRepo(c)
   private def holdAlertField(color: Color) = s"p${color.fold(0, 1)}.${PF.holdAlert}"
 
   private val finishUnsets = $doc(
-    F.positionHashes -> true,
     F.playingUids -> true,
-    F.unmovedRooks -> true,
     ("p0." + PF.isOfferingDraw) -> true,
     ("p1." + PF.isOfferingDraw) -> true,
     ("p0." + PF.proposeTakebackAt) -> true,
@@ -397,7 +394,7 @@ final class GameRepo(c: Coll)(using Executor) extends lila.core.game.GameRepo(c)
       )
       .void
 
-  def findRandomStandardCheckmate(distribution: Int): Fu[Option[Game]] =
+  def findRandomCheckmate(distribution: Int): Fu[Option[Game]] =
     coll
       .find(Query.mate ++ Query.variantStandard)
       .sort(Query.sortCreated)
@@ -411,10 +408,9 @@ final class GameRepo(c: Coll)(using Executor) extends lila.core.game.GameRepo(c)
       then g.copy(rated = chess.Rated.No)
       else g
     val userIds = g2.userIds.distinct
+    val xiangqiInitialFen: Fen.Full = Fen.Full(g2.xiangqi.initialFen)
     val fen: Option[Fen.Full] = initialFen.orElse:
-      (g2.variant.fromPosition || g2.variant.chess960)
-        .option(Fen.write(g2.chess))
-        .filterNot(_.isInitial)
+      g2.fromPosition.option(xiangqiInitialFen)
     val checkInHours =
       if g2.isPgnImport then none
       else if g2.sourceIs(_.Api) then some(24 * 7)
@@ -465,15 +461,11 @@ final class GameRepo(c: Coll)(using Executor) extends lila.core.game.GameRepo(c)
   def unsetPlayingUids(g: Game): Unit =
     coll.update(ordered = false, WriteConcern.Unacknowledged).one($id(g.id), $unset(F.playingUids))
 
-  private def initialFen(gameId: GameId, readPref: ReadPref): Fu[Option[Fen.Full]] =
-    coll.withReadPreference(readPref).primitiveOne[Fen.Full]($id(gameId), F.initialFen)
-
   def initialFen(game: Game): Fu[Option[Fen.Full]] =
-    if game.sourceIs(_.Import) || !game.variant.standardInitialPosition then
-      initialFen(game.id, if game.finished then _.sec else _.pri).dmap:
-        case None if game.variant == chess.variant.Chess960 => Fen.initial.some
-        case fen => fen
-    else fuccess(none)
+    fuccess:
+      Option
+        .when(game.xiangqi.initialFen != lila.xiangqi.Xiangqi.startFen):
+          Fen.Full(game.xiangqi.initialFen)
 
   def gameWithInitialFen(gameId: GameId): Fu[Option[WithInitialFen]] =
     game(gameId).flatMapz: game =>
@@ -525,8 +517,6 @@ final class GameRepo(c: Coll)(using Executor) extends lila.core.game.GameRepo(c)
       .sort(Query.sortCreated)
       .skip(ThreadLocalRandom.nextInt(1000))
       .one[Game]
-
-  def getOptionPgn(id: GameId): Fu[Option[Vector[SanStr]]] = game(id).dmap2(_.sans)
 
   def lastGameBetween(u1: UserId, u2: UserId, since: Instant): Fu[Option[Game]] =
     coll.one[Game](

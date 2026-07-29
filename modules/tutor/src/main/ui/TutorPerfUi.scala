@@ -1,10 +1,9 @@
 package lila.tutor
 package ui
 
-import lila.insight.{ InsightPosition, Phase }
+import lila.insight.InsightPosition
 import lila.ui.*
 import lila.ui.ScalatagsTemplate.{ *, given }
-import chess.Color
 
 final class TutorPerfUi(helpers: Helpers, bits: TutorBits):
   import helpers.given
@@ -40,17 +39,6 @@ final class TutorPerfUi(helpers: Helpers, bits: TutorBits):
             grade.peerGrade(concept.tacticalAwareness, report.awareness),
             grade.peerGrade(concept.resourcefulness, report.resourcefulness),
             grade.peerGrade(concept.conversion, report.conversion)
-          ),
-          angleCard(
-            frag(report.perf.trans, " openings"),
-            full.url.angle(report.perf, "opening").some
-          )(
-            cls := (if report.variant.exotic then "tutor__perf__angle--na" else ""),
-            if report.variant.exotic
-            then "Not applicable to variants"
-            else
-              selectFourOpenings(report).map: (color, fam) =>
-                grade.peerGrade(concept.opening(fam.family, color), fam.mix, h4)
           ),
           angleCard(
             frag(report.perf.trans, " time management"),
@@ -91,7 +79,7 @@ final class TutorPerfUi(helpers: Helpers, bits: TutorBits):
         perfReport.perf.trans,
         " games represent ",
         bits.percentFrag(percent),
-        " of your chess playing time.",
+        " of your Xiangqi playing time.",
         br
       )
     },
@@ -105,12 +93,6 @@ final class TutorPerfUi(helpers: Helpers, bits: TutorBits):
       "."
     )
   )
-
-  private def selectFourOpenings(report: TutorPerfReport): List[(Color, TutorOpeningFamily)] =
-    for
-      color <- Color.all
-      ops <- report.openings(color).families.take(2)
-    yield color -> ops
 
   def menu(report: TutorPerfReport, active: Option[Angle])(using config: TutorConfig)(using Context) = frag(
     bits.menuBase(report.some),
@@ -176,12 +158,6 @@ final class TutorPerfUi(helpers: Helpers, bits: TutorBits):
                     dataIcon := Icon.AnalogTv,
                     href := s"${routes.Video.index}?tags=${phase.phase.name}"
                   )("Watch ", phase.phase.name, " videos")
-                ),
-                (phase.phase == Phase.Opening).option(
-                  a(
-                    cls := "tutor-card__more",
-                    href := full.url.angle(report.perf, "opening")
-                  )("More about your ", report.perf.trans, " openings")
                 )
               )
             )

@@ -26,6 +26,9 @@ final class TournamentRepo(val coll: Coll, playerCollName: CollName)(using Execu
   private def variantSelect(variant: Variant) =
     if variant.standard then $doc("variant".$exists(false))
     else $doc("variant" -> variant.id)
+  // Keep variant-capable tournament storage and APIs intact while only Standard is released.
+  private val publicVariantSelect =
+    variantSelect(chess.variant.Standard) ++ $doc("fen".$exists(false))
   private def nbPlayersSelect(nb: Int) = $doc("nbPlayers".$gte(nb))
   private val nonEmptySelect = nbPlayersSelect(1)
   private[tournament] val selectUnique = $doc("schedule.freq" -> "unique")
@@ -64,7 +67,7 @@ final class TournamentRepo(val coll: Coll, playerCollName: CollName)(using Execu
 
   private[tournament] def notableFinished(limit: Int): Fu[List[Tournament]] =
     coll
-      .find(finishedSelect ++ scheduledSelect)
+      .find(finishedSelect ++ scheduledSelect ++ publicVariantSelect)
       .sort($sort.desc("startsAt"))
       .cursor[Tournament]()
       .list(limit)
@@ -119,6 +122,18 @@ final class TournamentRepo(val coll: Coll, playerCollName: CollName)(using Execu
         _.sec
       )
       .withLotsOfResults
+
+  private[tournament] def enterableAdapter(teamIds: List[TeamId]) =
+    val teamVisibility =
+      if teamIds.isEmpty then $doc("forTeams".$exists(false))
+      else $or($doc("forTeams".$exists(false)), forTeamsSelect(teamIds))
+    new lila.db.paginator.Adapter[Tournament](
+      collection = coll,
+      selector = enterableSelect ++ $doc("password".$exists(false)) ++ teamVisibility ++ publicVariantSelect,
+      projection = none,
+      sort = $sort.asc("startsAt"),
+      readPref = _.sec
+    )
 
   def isUnfinished(tourId: TourId): Fu[Boolean] =
     coll.secondary.exists($id(tourId) ++ unfinishedSelect)
@@ -207,10 +222,10 @@ final class TournamentRepo(val coll: Coll, playerCollName: CollName)(using Execu
       $doc("startsAt".$lt(nowInstant.plusMinutes(ahead.value)))
 
   private[tournament] def scheduledCreated(ahead: Minutes): Fu[List[Tournament]] =
-    coll.list[Tournament](startingSoonSelect(ahead) ++ scheduledSelect)
+    coll.list[Tournament](startingSoonSelect(ahead) ++ scheduledSelect ++ publicVariantSelect)
 
   private[tournament] def scheduledStarted: Fu[List[Tournament]] =
-    coll.list[Tournament](startedSelect ++ scheduledSelect)
+    coll.list[Tournament](startedSelect ++ scheduledSelect ++ publicVariantSelect)
 
   private[tournament] def visibleForTeams(
       teamIds: Seq[TeamId],
@@ -219,7 +234,7 @@ final class TournamentRepo(val coll: Coll, playerCollName: CollName)(using Execu
   ): Fu[List[Tournament]] =
     teamIds.nonEmpty.so:
       coll
-        .find(forTeamsSelect(teamIds) ++ $or(startedSelect, startingSoonSelect(ahead)))
+        .find(forTeamsSelect(teamIds) ++ $or(startedSelect, startingSoonSelect(ahead)) ++ publicVariantSelect)
         .sort($sort.asc("startsAt"))
         .cursor[Tournament](ReadPref.sec)
         .list(max.value)
@@ -237,11 +252,11 @@ final class TournamentRepo(val coll: Coll, playerCollName: CollName)(using Execu
       .list(5)
 
   private[tournament] def scheduledNotHourlyCreated(ahead: Minutes): Fu[List[Tournament]] =
-    coll.list[Tournament](startingSoonSelect(ahead) ++ scheduledButNotHourly)
+    coll.list[Tournament](startingSoonSelect(ahead) ++ scheduledButNotHourly ++ publicVariantSelect)
 
   private[tournament] def scheduledNotHourlyStillWorthEntering: Fu[List[Tournament]] =
     coll
-      .list[Tournament](startedSelect ++ scheduledButNotHourly)
+      .list[Tournament](startedSelect ++ scheduledButNotHourly ++ publicVariantSelect)
       .map:
         _.filter(_.isStillWorthEntering)
 
@@ -262,7 +277,7 @@ final class TournamentRepo(val coll: Coll, playerCollName: CollName)(using Execu
 
   def allScheduledDedup: Fu[List[Tournament]] =
     coll
-      .find(createdSelect ++ scheduledSelect)
+      .find(createdSelect ++ scheduledSelect ++ publicVariantSelect)
       .sort($doc("startsAt" -> 1))
       .cursor[Tournament]()
       .listAll()
@@ -337,7 +352,7 @@ final class TournamentRepo(val coll: Coll, playerCollName: CollName)(using Execu
         $doc(
           "startsAt".$gte(from).$lte(to),
           "schedule.freq".$in(Schedule.Freq.list.filter(_.isWeeklyOrBetter))
-        )
+        ) ++ publicVariantSelect
       .sort($sort.asc("startsAt"))
       .cursor[Tournament](ReadPref.sec)
       .list(500)

@@ -57,7 +57,6 @@ final class PerfsUpdater(
 
   private def computeGlicko(game: Game, prevPlayers: ByColor[Player], outcome: chess.Outcome) =
     val gameId = game.id
-    // uses crazyhouse or standard ColorAdvantage, except for From Position games
     PerfsUpdater
       .withCalculator(game.variant)
       .computeGame(chess.rating.glicko.Game(prevPlayers, outcome), skipDeviationIncrease = true)
@@ -108,5 +107,4 @@ final class PerfsUpdater(
 object PerfsUpdater:
   def withCalculator(variant: Variant) =
     if variant.standard then lila.rating.Glicko.calculatorWithStandardAdvantage
-    else if variant.crazyhouse then lila.rating.Glicko.calculatorWithCrazyhouseAdvantage
     else lila.rating.Glicko.calculator

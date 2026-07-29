@@ -9,11 +9,22 @@ import type { Role, Move, Outcome } from 'chessops/types';
 import { parseSquare, parseUci, makeSquare, makeUci, opposite } from 'chessops/util';
 import { ctrl as makeKeyboardMove, type KeyboardMove, type KeyboardMoveRootCtrl } from 'keyboard-move';
 import { makeVoiceMove, type VoiceMove } from 'voice';
+import {
+  hydrateXiangqiState,
+  legalMoveDests,
+  playXiangqiMoveSound,
+  requestXiangqi,
+  uciMoveToCg,
+  uciToCg,
+  type RulesState,
+  type XiangqiGroundOptions,
+} from 'xiangqi';
 
 import { prop, type Prop, propWithEffect, type Toggle, toggle, requestIdleCallbackSafe, myUserId } from 'lib';
 import { type Deferred, defer, throttle } from 'lib/async';
 import { CevalCtrl } from 'lib/ceval';
 import type { CevalHandler } from 'lib/ceval/types';
+import { selectXiangqiNotation } from 'lib/game';
 import { plyColor } from 'lib/game/chess';
 import { type WithGround } from 'lib/game/ground';
 import { PromotionCtrl } from 'lib/game/promotion';
@@ -35,6 +46,7 @@ import type {
   ReplayEnd,
   PuzzleRound,
   RoundThemes,
+  XiangqiMoveTest,
 } from './interfaces';
 import keyboard from './keyboard';
 import moveTest from './moveTest';
@@ -43,6 +55,19 @@ import Report from './report';
 import PuzzleSession from './session';
 import PuzzleStreak from './streak';
 import * as xhr from './xhr';
+import {
+  buildXiangqiTree,
+  makeXiangqiNode,
+  nextXiangqiMove,
+  splitXiangqiUci,
+  xiangqiMoveTest,
+  type XiangqiPuzzleNode,
+} from './xiangqi';
+
+interface XiangqiMoveResponse extends RulesState {
+  notation: string;
+  chineseNotation: string;
+}
 
 export default class PuzzleCtrl implements CevalHandler {
   data: PuzzleData;
@@ -84,6 +109,9 @@ export default class PuzzleCtrl implements CevalHandler {
   isDaily: boolean;
   blindfolded: StoredProp<boolean>;
   cgVersion = 1;
+  isXiangqi = false;
+  private xiangqiBusy = false;
+  private readonly xiangqiHydrations = new WeakMap<TreeNode, Promise<void>>();
 
   private report: Report;
 
@@ -156,18 +184,18 @@ export default class PuzzleCtrl implements CevalHandler {
     $('body').addClass('playing'); // for zen
     $('#zentog').on('click', () => pubsub.emit('zen'));
     (window as any).lichess.puzzle = {
-      playUci: (uci: Uci) => this.sendMove(parseUci(uci)!),
+      playUci: (uci: Uci) => this.playUci(uci),
     };
     (window as any).lichess.chessground = this.ground;
   }
 
   private readonly loadSound = (name: string, volume?: number) => {
-    site.sound.load(name, site.sound.url(`${name}.mp3`));
+    site.sound.load(name);
     return () => site.sound.play(name, volume);
   };
   sound = {
-    good: this.loadSound('lisp/PuzzleStormGood', 0.7),
-    end: this.loadSound('lisp/PuzzleStormEnd', 1),
+    good: this.loadSound('puzzleStormGood', 0.7),
+    end: this.loadSound('puzzleStormEnd', 1),
   };
 
   setPath = (path: TreePath): void => {
@@ -180,6 +208,10 @@ export default class PuzzleCtrl implements CevalHandler {
 
   setChessground = (cg: CgApi): void => {
     this.ground(cg);
+    if (this.isXiangqi) {
+      requestAnimationFrame(() => this.redraw());
+      return;
+    }
     const makeRoot = (): KeyboardMoveRootCtrl => ({
       data: {
         game: { variant: { key: 'standard' } },
@@ -204,9 +236,8 @@ export default class PuzzleCtrl implements CevalHandler {
       this.keyboardMove.update(up);
     }
     requestAnimationFrame(() => this.redraw());
-    pubsub.on('board.change', (is3d: boolean) => {
+    pubsub.on('board.change', () => {
       this.withGround(g => {
-        g.state.addPieceZIndex = is3d;
         g.redrawAll();
       });
       this.setAutoShapes();
@@ -242,7 +273,12 @@ export default class PuzzleCtrl implements CevalHandler {
 
   initiate = (fromData: PuzzleData): void => {
     this.data = fromData;
-    this.tree = makeTree(pgnToTree(this.data.game.pgn.split(' ')));
+    this.isXiangqi = fromData.variant === 'xiangqi';
+    this.tree = makeTree(
+      this.isXiangqi
+        ? buildXiangqiTree(this.data, this.pref.notationStyle)
+        : pgnToTree(this.data.game.pgn.split(' ')),
+    );
     const initialPath = treePath.fromNodeList(treeOps.mainlineNodeList(this.tree.root));
     this.mode = 'play';
     this.next = defer();
@@ -251,7 +287,11 @@ export default class PuzzleCtrl implements CevalHandler {
     this.lastFeedback = 'init';
     this.initialPath = initialPath;
     this.initialNode = this.tree.nodeAtPath(initialPath);
-    this.pov = plyColor(this.initialNode.ply);
+    this.pov = this.isXiangqi
+      ? this.data.puzzle.state?.turn === 'black'
+        ? 'black'
+        : 'white'
+      : plyColor(this.initialNode.ply);
     this.isDaily = !!this.data.isDaily;
     this.hintHasBeenShown(false);
     this.canViewSolution(false);
@@ -282,6 +322,43 @@ export default class PuzzleCtrl implements CevalHandler {
       g.setShapes([]);
       this.showGround(g);
     });
+    if (this.isXiangqi && (this.node as XiangqiPuzzleNode).xiangqi.needsHydration)
+      void this.hydrateXiangqiPosition(initialPath);
+  };
+
+  private readonly hydrateXiangqiPosition = (path: TreePath): Promise<void> => {
+    const node = this.tree.nodeAtPath(path) as XiangqiPuzzleNode;
+    if (!node.xiangqi.needsHydration) return Promise.resolve();
+    const existing = this.xiangqiHydrations.get(node);
+    if (existing) return existing;
+    const fen = node.xiangqi.fen;
+    const hydration = (async () => {
+      try {
+        const state = await hydrateXiangqiState(node.xiangqi);
+        if (node.xiangqi.fen !== fen) return;
+        node.xiangqi = state;
+        node.fen = state.fen;
+        node.ply = state.ply;
+        node.dests = () => legalMoveDests(state.legalMoves) as Dests;
+        node.check = () => state.check;
+        if (this.path === path) this.withGround(this.showGround);
+      } catch (error) {
+        console.error('Could not hydrate Xiangqi puzzle position', error);
+      } finally {
+        this.xiangqiHydrations.delete(node);
+      }
+    })();
+    this.xiangqiHydrations.set(node, hydration);
+    return hydration;
+  };
+
+  private readonly playXiangqiSound = (path: TreePath): void => {
+    const node = this.tree.nodeAtPath(path) as XiangqiPuzzleNode;
+    const play = () => {
+      if (this.path === path) playXiangqiMoveSound(node.xiangqi);
+    };
+    if (node.xiangqi.needsHydration) void this.hydrateXiangqiPosition(path).then(play);
+    else play();
   };
 
   position = (): Chess => {
@@ -326,8 +403,39 @@ export default class PuzzleCtrl implements CevalHandler {
     return config;
   };
 
+  makeXiangqiGroundOpts = (): XiangqiGroundOptions => {
+    const node = this.node as XiangqiPuzzleNode;
+    const state =
+      this.path === this.initialPath && this.data.puzzle.state ? this.data.puzzle.state : node.xiangqi;
+    const color: Color = state.turn === 'black' ? 'black' : 'white';
+    const canMove = this.mode === 'view' || color === this.pov;
+    return {
+      fen: state.fen,
+      orientation: this.flipped() ? opposite(this.pov) : this.pov,
+      turnColor: color,
+      movableColor: canMove && state.legalMoves.length ? color : undefined,
+      legalMoves: canMove ? state.legalMoves : [],
+      lastMove: node.uci,
+      coordinates: true,
+      viewOnly: false,
+      ply: node.ply,
+    };
+  };
+
   showGround = (g: CgApi): void => {
-    g.set(this.makeCgOpts());
+    if (this.isXiangqi) {
+      const opts = this.makeXiangqiGroundOpts();
+      g.set({
+        fen: opts.fen,
+        orientation: opts.orientation,
+        turnColor: opts.turnColor,
+        lastMove: opts.lastMove ? uciMoveToCg(opts.lastMove) : undefined,
+        movable: {
+          color: opts.movableColor,
+          dests: legalMoveDests(opts.legalMoves || []),
+        },
+      } as CgConfig);
+    } else g.set(this.makeCgOpts());
     this.setAutoShapes();
   };
 
@@ -355,7 +463,10 @@ export default class PuzzleCtrl implements CevalHandler {
     this.pluginUpdate(this.node.fen);
   };
 
-  playUci = (uci: Uci): void => this.sendMove(parseUci(uci)!);
+  playUci = (uci: Uci): void => {
+    if (this.isXiangqi) void this.playXiangqiUciAt(this.path, uci);
+    else this.sendMove(parseUci(uci)!);
+  };
 
   playUciList = (uciList: Uci[]): void => uciList.forEach(this.playUci);
 
@@ -367,6 +478,31 @@ export default class PuzzleCtrl implements CevalHandler {
     });
 
   sendMove = (move: Move): void => this.sendMoveAt(this.path, this.position(), move);
+
+  userXiangqiMove = (uci: string): void => {
+    if (!this.xiangqiBusy) void this.playXiangqiUciAt(this.path, uci);
+  };
+
+  private readonly playXiangqiUciAt = async (path: TreePath, uci: string): Promise<void> => {
+    if (this.xiangqiBusy) return;
+    this.xiangqiBusy = true;
+    const parent = this.tree.nodeAtPath(path);
+    try {
+      const state = await requestXiangqi<XiangqiMoveResponse>('/api/analysis/move', {
+        initialFen: parent.fen,
+        moves: [],
+        move: uci,
+      });
+      const notation = selectXiangqiNotation(state.notation, state.chineseNotation, this.pref.notationStyle);
+      this.addNode(makeXiangqiNode(state, uci, notation || uci, parent.children.length), path);
+    } catch (error) {
+      console.error(error);
+      this.jump(path);
+      await alert('That Xiangqi move could not be validated. Please try again.');
+    } finally {
+      this.xiangqiBusy = false;
+    }
+  };
 
   sendMoveAt = (path: TreePath, pos: Chess, move: Move): void => {
     move = normalizeMove(pos, move);
@@ -388,7 +524,7 @@ export default class PuzzleCtrl implements CevalHandler {
     this.jump(newPath);
     this.withGround(g => g.playPremove());
 
-    const progress = moveTest(this);
+    const progress = this.isXiangqi ? xiangqiMoveTest(this) : moveTest(this);
     this.setAutoShapes();
     if (progress === 'fail') site.sound.say(i18n.puzzle.failed);
     if (progress) this.applyProgress(progress);
@@ -421,7 +557,7 @@ export default class PuzzleCtrl implements CevalHandler {
     else setTimeout(this.instantRevertUserMove, 300);
   };
 
-  applyProgress = (progress: undefined | 'fail' | 'win' | MoveTest): void => {
+  applyProgress = (progress: undefined | 'fail' | 'win' | MoveTest | XiangqiMoveTest): void => {
     if (progress === 'fail') {
       this.lastFeedback = 'fail';
       this.revertUserMove();
@@ -448,8 +584,11 @@ export default class PuzzleCtrl implements CevalHandler {
       this.lastFeedback = 'good';
       setTimeout(
         () => {
-          const pos = Chess.fromSetup(parseFen(progress.fen).unwrap()).unwrap();
-          this.sendMoveAt(progress.path, pos, progress.move);
+          if ('uci' in progress) void this.playXiangqiUciAt(progress.path, progress.uci);
+          else {
+            const pos = Chess.fromSetup(parseFen(progress.fen).unwrap()).unwrap();
+            this.sendMoveAt(progress.path, pos, progress.move);
+          }
         },
         this.opts.pref.animation.duration * (this.autoNext() ? 1 : 1.5),
       );
@@ -523,22 +662,30 @@ export default class PuzzleCtrl implements CevalHandler {
   };
 
   setAutoShapes = (): void =>
-    this.withGround(g =>
-      g.setAutoShapes(
-        computeAutoShapes({
-          ...this,
-          node: this.node,
-          hint: this.hintSquare(),
-        }),
-      ),
-    );
+    this.withGround(g => {
+      if (this.isXiangqi) {
+        const move = this.showHint() ? nextXiangqiMove(this) : undefined;
+        const squares = move && splitXiangqiUci(move);
+        g.setAutoShapes(
+          squares ? ([{ orig: uciToCg(squares[0]) as Key, brush: 'green' }] as DrawShape[]) : [],
+        );
+      } else
+        g.setAutoShapes(
+          computeAutoShapes({
+            ...this,
+            node: this.node,
+            hint: this.hintSquare(),
+          }),
+        );
+    });
 
   hintSquare = () => {
+    if (this.isXiangqi) return undefined;
     const hint = this.showHint() ? nextCorrectMove(this) : undefined;
     return hint?.from;
   };
 
-  isCevalAllowed = (): boolean => this.mode === 'view';
+  isCevalAllowed = (): boolean => !this.isXiangqi && this.mode === 'view';
 
   startCeval = (): void => {
     if (this.cevalEnabled()) this.doStartCeval();
@@ -583,7 +730,7 @@ export default class PuzzleCtrl implements CevalHandler {
     this.redraw();
   };
 
-  outcome = (): Outcome | undefined => this.position().outcome();
+  outcome = (): Outcome | undefined => (this.isXiangqi ? undefined : this.position().outcome());
 
   jump = (path: TreePath): void => {
     const pathChanged = path !== this.path,
@@ -592,14 +739,17 @@ export default class PuzzleCtrl implements CevalHandler {
     this.withGround(this.showGround);
     if (pathChanged) {
       if (isForwardStep) {
-        site.sound.saySan(this.node.san);
-        site.sound.move(this.node);
+        if (this.isXiangqi) this.playXiangqiSound(path);
+        else {
+          site.sound.saySan(this.node.san);
+          site.sound.move({ san: this.node.san });
+        }
       }
       this.threatMode(false);
       this.ceval.reset();
       this.startCeval();
     }
-    this.promotion.cancel();
+    if (!this.isXiangqi) this.promotion.cancel();
     this.autoScrollRequested = true;
     this.pluginUpdate(this.node.fen);
     pubsub.emit('ply', this.node.ply);
@@ -626,12 +776,22 @@ export default class PuzzleCtrl implements CevalHandler {
     }
     this.showHint.toggle();
     this.setAutoShapes();
-    const hint = this.hintSquare();
-    this.withGround(g => g.selectSquare(hint ? makeSquare(hint) : null));
+    if (this.isXiangqi) {
+      const hint = this.showHint() && nextXiangqiMove(this);
+      const squares = hint && splitXiangqiUci(hint);
+      this.withGround(g => g.selectSquare(squares ? (uciToCg(squares[0]) as Key) : null));
+    } else {
+      const hint = this.hintSquare();
+      this.withGround(g => g.selectSquare(hint ? makeSquare(hint) : null));
+    }
     this.redraw();
   };
 
   viewSolution = (): void => {
+    if (this.isXiangqi) {
+      void this.viewXiangqiSolution();
+      return;
+    }
     this.sendResult(false);
     this.mode = 'view';
     mergeSolution(this.tree, this.initialPath, this.data.puzzle.solution, this.pov);
@@ -648,6 +808,40 @@ export default class PuzzleCtrl implements CevalHandler {
     this.autoScrollRequested = true;
     this.redraw();
     this.startCeval();
+  };
+
+  private readonly viewXiangqiSolution = async (): Promise<void> => {
+    this.sendResult(false);
+    this.mode = 'view';
+    let path = this.initialPath;
+    for (let index = 0; index < this.data.puzzle.solution.length; index++) {
+      const uci = this.data.puzzle.solution[index];
+      const parent = this.tree.nodeAtPath(path);
+      let child = parent.children.find(node => node.uci === uci);
+      if (!child) {
+        const state = await requestXiangqi<XiangqiMoveResponse>('/api/analysis/move', {
+          initialFen: parent.fen,
+          moves: [],
+          move: uci,
+        });
+        const notation = selectXiangqiNotation(
+          state.notation,
+          state.chineseNotation,
+          this.pref.notationStyle,
+        );
+        child = makeXiangqiNode(state, uci, notation || uci, parent.children.length);
+        this.tree.addNode(child, path);
+      }
+      if (index % 2 === 0) child.puzzle = index === this.data.puzzle.solution.length - 1 ? 'win' : 'good';
+      path += child.id;
+    }
+    this.reorderChildren(this.initialPath, true);
+    const first = this.tree
+      .nodeAtPath(this.initialPath)
+      .children.find(node => node.puzzle === 'good' || node.puzzle === 'win');
+    if (first) this.userJump(this.initialPath + first.id);
+    this.autoScrollRequested = true;
+    this.redraw();
   };
 
   skip = () => {
@@ -695,7 +889,9 @@ export default class PuzzleCtrl implements CevalHandler {
     return this.blindfolded();
   };
   playBestMove = (): void => {
-    const uci = this.nextNodeBest() || this.node.ceval?.pvs[0].moves[0];
+    const uci = this.isXiangqi
+      ? nextXiangqiMove(this)
+      : this.nextNodeBest() || this.node.ceval?.pvs[0].moves[0];
     if (uci) this.playUci(uci);
   };
   autoNexting = () => this.lastFeedback === 'win' && this.autoNext();
@@ -709,7 +905,7 @@ export default class PuzzleCtrl implements CevalHandler {
   getCeval = () => this.ceval;
   ongoing = false;
   getNode = () => this.node;
-  showEvaluation = () => this.mode === 'view';
+  showEvaluation = () => !this.isXiangqi && this.mode === 'view';
   routerWithLang = (path: string): string => {
     if (document.body.hasAttribute('data-user')) return path;
     const language = document.documentElement.lang.slice(0, 2);

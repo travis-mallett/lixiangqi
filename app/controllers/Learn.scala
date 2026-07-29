@@ -3,6 +3,8 @@ package controllers
 import play.api.libs.json.*
 
 import lila.app.*
+import lila.xiangqi.{ Xiangqi, XiangqiRules }
+import lila.xiangqi.XiangqiJson.given
 
 final class Learn(env: Env) extends LilaController(env):
 
@@ -10,6 +12,18 @@ final class Learn(env: Env) extends LilaController(env):
 
   def index = Open(serveIndex)
   def indexLang = LangPage(routes.Learn.index)(serveIndex)
+
+  def validate = AnonBodyOf(parse.json): body =>
+    body
+      .validate[Xiangqi.Position]
+      .fold(
+        errors => fuccess(BadRequest(jsonError(JsError.toJson(errors).toString))),
+        command =>
+          fuccess:
+            XiangqiRules.Lesson
+              .validate(command)
+              .fold(error => BadRequest(jsonError(error)), result => JsonOk(Json.toJson(result)))
+      )
 
   private def serveIndex(using ctx: Context) = NoBot:
     pageHit

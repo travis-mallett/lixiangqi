@@ -1,0 +1,140 @@
+html.wudang {
+  @include shared-color-defs;
+
+  color-scheme: dark;
+
+  // Material palette. Keep cinnabar and gold scarce; jade and mineral blue
+  // carry interaction, while ink and paper carry almost the whole interface.
+  --wudang-ink-950: #0c1518;
+  --wudang-ink-900: #111d20;
+  --wudang-ink-850: #172529;
+  --wudang-ink-800: #203034;
+  --wudang-ink-700: #344448;
+  --wudang-ink-600: #536064;
+  --wudang-paper: #e9e1d2;
+  --wudang-paper-high: #f3eddf;
+  --wudang-paper-warm: #d9cfbd;
+  --wudang-paper-low: #c8bdab;
+  --wudang-paper-shadow: #b9ad98;
+  --wudang-cinnabar: #9e4036;
+  --wudang-cinnabar-light: #c57262;
+  --wudang-cinnabar-dark: #67251f;
+  --wudang-jade: #5f7f72;
+  --wudang-jade-dark: #38574f;
+  --wudang-jade-light: #8fa99b;
+  --wudang-mineral-blue: #60777c;
+  --wudang-mineral-blue-dark: #3f555a;
+  --wudang-temple-gold: #b18b4d;
+  --wudang-text-on-dark: #efe7d6;
+  --wudang-muted-on-dark: #aeb4b1;
+  --wudang-text-on-paper: #22292a;
+  --wudang-muted-on-paper: #596161;
+
+  // Construction tokens.
+  --wudang-radius-stone: 3px;
+  --wudang-radius-paper: 2px;
+  --wudang-line-dark: rgb(13 21 22 / 0.48);
+  --wudang-line-paper: rgb(242 238 228 / 0.12);
+  --wudang-paper-mount: 4px;
+  --wudang-shadow-stone:
+    inset 0 1px 0 rgb(255 255 255 / 0.055), 0 2px 4px rgb(4 9 10 / 0.38), 0 18px 48px rgb(4 8 9 / 0.26);
+  --wudang-shadow-stone-small:
+    inset 0 1px 0 rgb(255 255 255 / 0.05), 0 2px 4px rgb(4 9 10 / 0.34), 0 8px 22px rgb(4 8 9 / 0.2);
+  --wudang-shadow-paper:
+    inset 0 1px 0 rgb(255 255 255 / 0.6), 0 0 0 1px rgb(22 31 31 / 0.16), 0 8px 24px rgb(8 14 15 / 0.2);
+  --wudang-shadow-paper-raised:
+    inset 0 1px 0 rgb(255 255 255 / 0.72), 0 0 0 1px rgb(22 31 31 / 0.2), 0 3px 5px rgb(8 14 15 / 0.22),
+    0 18px 42px rgb(8 14 15 / 0.24);
+  --wudang-shadow-pressed: inset 0 2px 5px rgb(5 12 13 / 0.28), 0 1px 1px rgb(5 10 11 / 0.24);
+  --wudang-focus:
+    0 0 0 2px var(--wudang-paper-high), 0 0 0 4px var(--wudang-jade), 0 4px 12px rgb(13 21 22 / 0.3);
+  --wudang-paper-field:
+    linear-gradient(112deg, rgb(255 255 255 / 0.22), transparent 24% 74%, rgb(68 76 73 / 0.035)),
+    var(--wudang-paper);
+  --wudang-stone-field:
+    linear-gradient(155deg, rgb(255 255 255 / 0.035), transparent 31%),
+    linear-gradient(180deg, var(--wudang-ink-850), var(--wudang-ink-900));
+
+  // Lila color contract. The theme is intentionally dual-surface: these
+  // defaults favour paper, while instrument selectors below establish stone.
+  ---site-hue: 174deg;
+  --c-bg: var(--wudang-paper);
+  --c-bg-box: var(--wudang-paper);
+  --c-bg-high: var(--wudang-paper-high);
+  --c-bg-page: transparent;
+  --c-bg-low: var(--wudang-paper-warm);
+  --c-bg-mid: #e2dccf;
+  --c-bg-popup: var(--wudang-paper-high);
+  --c-bg-opaque: var(--wudang-paper);
+  --c-bg-zebra: #ded8cc;
+  --c-bg-zebra2: #d3ccbf;
+  --c-bg-input: #f1ede4;
+  --c-bg-variation: #d9d2c5;
+  --c-bg-header-dropdown: var(--wudang-ink-900);
+  --c-page-input: #d5cec1;
+  --c-body-gradient: transparent;
+  --c-font: var(--wudang-text-on-paper);
+  --c-font-dim: var(--wudang-muted-on-paper);
+  --c-font-dimmer: #7a817e;
+  --c-font-clear: #151d1e;
+  --c-font-clearer: #0d1516;
+  --c-font-page: var(--wudang-text-on-dark);
+  --c-font-shadow: rgb(4 9 10 / 0.72);
+  --c-header-dropdown: var(--wudang-text-on-dark);
+  --c-shade: var(--wudang-paper-shadow);
+  --c-dark: var(--wudang-ink-950);
+  --c-dimmer: var(--wudang-ink-950);
+  --c-clearer: var(--wudang-paper-high);
+  --c-page-mask: rgb(6 12 13 / 0.78);
+  --c-border: #aaa396;
+  --c-border-page: rgb(13 21 22 / 0.56);
+  --c-border-tour: #aaa396;
+  --c-border-light: #c0b8a9;
+  --c-primary: var(--wudang-mineral-blue);
+  --c-primary-dim: var(--wudang-mineral-blue-dark);
+  --c-primary-clear: #78949b;
+  --c-link: #456a64;
+  --c-link-dim: #3d5e59;
+  --c-link-clear: #64857f;
+  --c-link-hover: #2d514b;
+  --c-secondary: var(--wudang-jade);
+  --c-secondary-dim: var(--wudang-jade-dark);
+  --c-secondary-dimmer: #354e42;
+  --c-accent: var(--wudang-cinnabar);
+  --c-accent-dim: var(--wudang-cinnabar-dark);
+  --c-accent-faint: rgb(150 63 54 / 0.42);
+  --c-accent-clear: var(--wudang-cinnabar-light);
+  --c-accent-glass: rgb(150 63 54 / 0.16);
+  --c-accent-cloud: rgb(150 63 54 / 0.48);
+  --c-brag: var(--wudang-temple-gold);
+  --c-brag-hover: #8d662f;
+  --c-contours: #7d6d55;
+  --c-dasher: var(--wudang-jade);
+  --c-good: var(--wudang-jade);
+  --c-good-move: var(--wudang-jade);
+  --c-bad: var(--wudang-cinnabar);
+  --c-error: var(--wudang-cinnabar);
+  --c-live: var(--wudang-cinnabar-light);
+  --c-warn: var(--wudang-temple-gold);
+  --c-over: var(--wudang-text-on-dark);
+  --c-inaccuracy: var(--wudang-mineral-blue);
+  --c-mistake: #a87c3e;
+  --c-blunder: var(--wudang-cinnabar);
+  --c-brilliant: #4f7765;
+  --c-interesting: #725f72;
+  --c-fancy: #725f72;
+  --c-future: #766981;
+  --c-mv-branch-white: var(--wudang-paper-high);
+  --c-mv-branch-black: var(--wudang-ink-950);
+  --c-chat-host-bg: rgb(102 134 115 / 0.2);
+  --c-chat-mention-bg: rgb(99 126 134 / 0.22);
+  --c-metal-top: var(--wudang-ink-800);
+  --c-metal-bottom: var(--wudang-ink-900);
+  --c-metal-top-hover: #314143;
+  --c-metal-bottom-hover: #1c292a;
+  --c-pool-button: var(--wudang-ink-850);
+  --c-paper: var(--wudang-paper);
+  --c-tutor-bg: #d1ddd4;
+  --c-marathon: #5d5365;
+  --c-racer-boost: rgb(173 130 69 / 0.68);
+}

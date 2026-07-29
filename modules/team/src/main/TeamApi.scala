@@ -306,7 +306,7 @@ final class TeamApi(
   def kickMembers(team: Team, users: List[UserId])(using me: Me, req: RequestHeader): Funit =
     val client = lila.common.HTTPRequest.printClient(req)
     logger.info:
-      s"kick members ${users.size} by ${me.username} from lichess.org/team/${team.slug} $client | ${users.mkString(" ")}"
+      s"kick members ${users.size} by ${me.username} from lixiangqi.org/team/${team.slug} $client | ${users.mkString(" ")}"
     users.sequentiallyVoid(kick(team, _))
 
   object blocklist:

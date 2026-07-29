@@ -52,7 +52,7 @@ final class RelayPush(
 
   private def monitor(rt: RelayRound.WithTour)(results: Results)(using me: Me, ua: UserAgent): Unit =
     val client = ua.value.some
-      .filter(_.startsWith("Lichess Broadcaster"))
+      .filter(_.startsWith("Lixiangqi Broadcaster"))
       .flatMap(_.split("as:").headOption)
       .getOrElse(ua.value)
       .trim

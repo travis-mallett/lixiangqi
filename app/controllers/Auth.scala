@@ -141,7 +141,7 @@ final class Auth(env: Env, accountC: => Account) extends LilaController(env):
         val isRemember = api.rememberForm.bindFromRequest().value | true
         val isLichobile = HTTPRequest.isLichobile(ctx.req)
         if isLichobile && !env.security.lichobileLogin.get() then
-          BadRequest(Json.obj("global" -> List("Please use our new mobile app! lichess.org/app")))
+          BadRequest(Json.obj("global" -> List("Please use our new mobile app! lixiangqi.org/app")))
         else
           bindForm(api.loginForm)(
             err =>
@@ -308,7 +308,7 @@ final class Auth(env: Env, accountC: => Account) extends LilaController(env):
           then
             BadRequest:
               jsonError:
-                Json.obj("username" -> List("Please use our new mobile app! https://lichess.org/app"))
+                Json.obj("username" -> List("Please use our new mobile app! https://lixiangqi.org/app"))
           else
             limit.enumeration.signup(rateLimited):
               import Signup.Result.*

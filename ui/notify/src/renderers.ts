@@ -67,10 +67,10 @@ export default function makeRenderers(): Renderers {
     titledTourney: {
       html: n =>
         generic(n, '/tournament/' + n.content.id, licon.Trophy, [
-          h('span', [h('strong', 'Lichess Titled Arena'), drawTime(n)]),
+          h('span', [h('strong', 'Lixiangqi Titled Arena'), drawTime(n)]),
           h('span', n.content.text),
         ]),
-      text: _ => 'Lichess Titled Arena',
+      text: _ => 'Lixiangqi Titled Arena',
     },
     reportedBanned: {
       html: n =>
@@ -116,9 +116,9 @@ export default function makeRenderers(): Renderers {
     planStart: {
       html: n =>
         generic(n, '/patron', licon.Wings, [
-          h('span', [h('strong', 'You just became a lichess Patron.'), drawTime(n)]),
+          h('span', [h('strong', 'You just became a Lixiangqi Patron.'), drawTime(n)]),
         ]),
-      text: _ => 'You just became a lichess Patron.',
+      text: _ => 'You just became a Lixiangqi Patron.',
     },
     planExpire: {
       html: n =>
@@ -137,7 +137,7 @@ export default function makeRenderers(): Renderers {
       html: n =>
         generic(n, '/' + n.content.id, licon.PaperAirplane, [
           h('span', [h('strong', i18n.site.timeAlmostUp), drawTime(n)]),
-          // not a `LightUser`, could be a game against Stockfish
+          // not a `LightUser`, could be a game against a computer opponent
           h('span', i18n.site.gameVsX(n.content.op)),
         ]),
       text: _ => i18n.site.timeAlmostUp,

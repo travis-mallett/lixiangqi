@@ -1,4 +1,5 @@
-import type { DrawShape } from '@lichess-org/chessground/draw';
+import type { DrawShape } from 'chessgroundx/draw';
+import type { Key } from 'chessgroundx/types';
 
 // Safari specifically requires globally unique IDs for SVG elements, even between different SVGs,
 // so we concatenate a unique key to every ID for each SVG.
@@ -102,7 +103,5 @@ const svg = (key: string) => $html`
 
 export const makeAppleShape = (key: Key): DrawShape => ({
   orig: key,
-  customSvg: {
-    html: svg(key),
-  },
+  customSvg: svg(key),
 });

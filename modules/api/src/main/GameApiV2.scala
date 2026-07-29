@@ -4,7 +4,6 @@ import org.apache.pekko.stream.scaladsl.*
 import chess.ByColor
 import chess.format.Fen
 import chess.format.pgn.{ PgnStr, Tag }
-import chess.opening.Opening
 import play.api.libs.json.*
 import play.api.i18n.Lang
 import reactivemongo.pekkostream.cursorProducer
@@ -37,7 +36,6 @@ final class GameApiV2(
     getLightUser: LightUser.Getter,
     gameProxy: GameProxyRepo,
     divider: Divider,
-    gameOpening: lila.game.GameOpening,
     bookmarkApi: lila.bookmark.BookmarkApi,
     gameSearch: GameSearchApi,
     crosstableApi: lila.game.CrosstableApi
@@ -51,17 +49,15 @@ final class GameApiV2(
       case None =>
         for
           (game, initialFen, analysis) <- enrich(config.flags)(game)
-          opening = gameOpening.atPly(game, true)
           formatted <- config.format match
             case Format.JSON =>
-              toJson(game, initialFen, analysis, opening, config).map(Json.stringify)
+              toJson(game, initialFen, analysis, config).map(Json.stringify)
             case Format.PGN =>
               PgnStr.raw(
                 pgnDump(
                   game,
                   initialFen,
                   analysis,
-                  opening,
                   config.flags
                 ).map(annotator.toPgnString)
               )
@@ -72,7 +68,7 @@ final class GameApiV2(
   def filename(game: Game, format: Format): Fu[String] =
     gameLightUsers(game).map: users =>
       fileR.replaceAllIn(
-        "lichess_pgn_%s_%s_vs_%s.%s.%s".format(
+        "lixiangqi_%s_%s_vs_%s.%s.%s".format(
           Tag.UTCDate.format.print(game.createdAt),
           pgnDump.dumper.player.tupled(users.white),
           pgnDump.dumper.player.tupled(users.black),
@@ -87,7 +83,7 @@ final class GameApiV2(
 
   def filename(tour: Tournament, format: String): String =
     fileR.replaceAllIn(
-      "lichess_tournament_%s_%s_%s.%s".format(
+      "lixiangqi_tournament_%s_%s_%s.%s".format(
         Tag.UTCDate.format.print(tour.startsAt),
         tour.id,
         scalalib.StringOps.slug(tour.name),
@@ -101,7 +97,7 @@ final class GameApiV2(
 
   def filename(swiss: lila.swiss.Swiss, format: String): String =
     fileR.replaceAllIn(
-      "lichess_swiss_%s_%s_%s.%s".format(
+      "lixiangqi_swiss_%s_%s_%s.%s".format(
         Tag.UTCDate.format.print(swiss.startsAt),
         swiss.id,
         scalalib.StringOps.slug(swiss.name),
@@ -152,7 +148,7 @@ final class GameApiV2(
     config = MobileRecentConfig(user)
     enriched <- games.sequentially(enrich(config.flags))
     jsons <- enriched.sequentially: (game, fen, analysis) =>
-      toJson(game, fen, analysis, gameOpening.atPly(game, false), config)
+      toJson(game, fen, analysis, config)
   yield JsArray(jsons)
 
   def mobileCurrent(user: User)(using Option[Me], Lang): Fu[Option[JsObject]] =
@@ -162,7 +158,7 @@ final class GameApiV2(
       .flatMapz: game =>
         val config = OneConfig(GameApiV2.Format.JSON, false, WithFlags())
         enrich(config.flags)(game).flatMap: (game, fen, analysis) =>
-          toJson(game, fen, analysis, none, config).dmap(some)
+          toJson(game, fen, analysis, config).dmap(some)
 
   def exportByIds(config: ByIdsConfig)(using Lang): Source[String, ?] =
     gameRepo
@@ -207,9 +203,8 @@ final class GameApiV2(
       .mapAsync(4): (game, pairing, teams) =>
         enrich(config.flags)(game).dmap { (_, pairing, teams) }
       .mapAsync(4) { case ((game, fen, analysis), pairing, teams) =>
-        val opening = config.flags.opening.isDefined.so(gameOpening.atPly(game, false))
         config.format match
-          case Format.PGN => pgnDump.formatter(config.flags)(game, fen, analysis, opening, teams)
+          case Format.PGN => pgnDump.formatter(config.flags)(game, fen, analysis, teams)
           case Format.JSON =>
             def addBerserk(color: Color)(json: JsObject) =
               if pairing.berserkOf(color) then
@@ -217,7 +212,7 @@ final class GameApiV2(
                   Json.obj:
                     "players" -> Json.obj(color.name -> Json.obj("berserk" -> true))
               else json
-            toJson(game, fen, analysis, opening, config, teams)
+            toJson(game, fen, analysis, config, teams)
               .dmap(addBerserk(chess.White))
               .dmap(addBerserk(chess.Black))
               .dmap: json =>
@@ -270,8 +265,7 @@ final class GameApiV2(
       .throttle(config.perSecond.value, 1.second)
       .mapAsync(4)(enrich(config.flags))
       .mapAsync(4): (game, fen, analysis) =>
-        val opening = config.flags.opening.so(gameOpening.atPly(game, _))
-        formatterFor(config)(game, fen, analysis, opening, None)
+        formatterFor(config)(game, fen, analysis, None)
 
   private def enrich(flags: WithFlags)(game: Game) =
     gameRepo
@@ -292,29 +286,27 @@ final class GameApiV2(
         game: Game,
         initialFen: Option[Fen.Full],
         analysis: Option[Analysis],
-        opening: Option[Opening.AtPly],
         teams: Option[GameTeams]
     ) =>
-      toJson(game, initialFen, analysis, opening, config, teams).map: json =>
+      toJson(game, initialFen, analysis, config, teams).map: json =>
         s"${Json.stringify(json)}\n"
 
   private def toJson(
       g: Game,
-      initialFen: Option[Fen.Full],
+      @annotation.unused initialFen: Option[Fen.Full],
       analysisOption: Option[Analysis],
-      opening: Option[Opening.AtPly],
       config: Config,
       teams: Option[GameTeams] = None
   )(using Lang): Fu[JsObject] = for
     lightUsers <- gameLightUsers(g)
     flags = config.flags
     pgn <- config.flags.pgnInJson.optionFu:
-      pgnDump(g, initialFen, analysisOption, opening, config.flags).map(annotator.toPgnString)
+      pgnDump(g, none, analysisOption, config.flags).map(annotator.toPgnString)
     bookmarked <- config.flags.bookmark.so(bookmarkApi.exists(g, config.by.map(_.userId)))
     arena <- g.tournamentId.traverse: tournamentId =>
       for name <- tourName.async(tournamentId)
       yield Json.obj("id" -> tournamentId, "name" -> name)
-    division = flags.division.option(divider(g, initialFen))
+    division = flags.division.option(divider.forGame(g))
     accuracy = analysisOption
       .ifTrue(flags.accuracy)
       .flatMap(AccuracyPercent.gameAccuracy(g.startedAtPly.turn, _))
@@ -323,6 +315,7 @@ final class GameApiV2(
   yield Json
     .obj(
       "id" -> g.id,
+      "initialFen" -> g.xiangqi.initialFen,
       "rated" -> g.rated,
       "variant" -> g.variant.key,
       "speed" -> g.speed.key,
@@ -332,7 +325,7 @@ final class GameApiV2(
       "status" -> g.status.name,
       "source" -> g.source,
       "players" -> JsObject(lightUsers.mapList: (p, user) =>
-        p.color.name -> gameJsonView
+        sideName(p.color) -> gameJsonView
           .player(p, user)
           .add:
             "analysis" -> analysisOption.flatMap:
@@ -340,11 +333,12 @@ final class GameApiV2(
           .add("team" -> teams.map(_(p.color))))
     )
     .add("fullId" -> config.by.flatMap(Pov(g, _)).map(_.fullId))
-    .add("initialFen" -> initialFen)
-    .add("winner" -> g.winnerColor.map(_.name))
-    .add("opening" -> opening)
+    .add("winner" -> g.winnerColor.map(sideName))
     .add("moves" -> flags.moves.option {
       applyDelay(g.sans, flags.keepDelayIf(g.playable)).mkString(" ")
+    })
+    .add("uci" -> flags.moves.option {
+      applyDelay(g.xiangqi.moves, flags.keepDelayIf(g.playable)).map(_.value).mkString(" ")
     })
     .add("clocks" -> flags.clocks.so(g.bothClockStates).map { clocks =>
       applyDelay(clocks, flags.keepDelayIf(g.playable))
@@ -360,7 +354,7 @@ final class GameApiV2(
         "increment" -> clock.incrementSeconds,
         "totalTime" -> clock.estimateTotalSeconds
       ))
-    .add("lastFen" -> flags.lastFen.option(Fen.write(g.chess.position)))
+    .add("lastFen" -> flags.lastFen.option(g.position.fen))
     .add("lastMove" -> flags.lastFen.option(g.lastMoveKeys))
     .add("division" -> division)
     .add("bookmarked" -> bookmarked)
@@ -369,6 +363,8 @@ final class GameApiV2(
 
   private def gameLightUsers(game: Game): Future[ByColor[(lila.core.game.Player, Option[LightUser])]] =
     game.players.traverse(_.userId.so(getLightUser)).dmap(game.players.zip(_))
+
+  private def sideName(color: chess.Color) = if color.white then "red" else "black"
 
 object GameApiV2:
 
@@ -487,6 +483,7 @@ object GameApiV2:
         clocks = false,
         moves = false,
         evals = false,
+        opening = false.some,
         lastFen = true,
         accuracy = true
       )

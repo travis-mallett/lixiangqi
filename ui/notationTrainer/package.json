@@ -1,0 +1,16 @@
+{
+  "name": "notation-trainer",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Interactive Xiangqi move notation trainer",
+  "dependencies": {
+    "@fnando/sparkline": "^0.3.10",
+    "@types/fnando__sparkline": "^0.3.7",
+    "lib": "workspace:*",
+    "xiangqi": "workspace:*"
+  },
+  "build": {
+    "bundle": "src/notationTrainer.ts"
+  }
+}

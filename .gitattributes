@@ -1,3 +1,9 @@
+* text=auto eol=lf
+
+# Keep native command scripts friendly to Windows Command Prompt.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
 /lila       text eol=lf
 /ui/build   text eol=lf
 /public/lifat/nnue/*.nnue filter=lfs diff=lfs merge=lfs -text
@@ -6,3 +12,7 @@
 /public/lifat/bots/book/*.bin filter=lfs diff=lfs merge=lfs -text
 /public/lifat/bots/book/*.png filter=lfs diff=lfs merge=lfs -text
 /public/lifat/background/gallery/*.webp filter=lfs diff=lfs merge=lfs -text
+/public/pikafish-web/*.nnue filter=lfs diff=lfs merge=lfs -text
+
+# Unified-diff context requires a single-space prefix on otherwise blank lines.
+*.patch whitespace=-blank-at-eol,-blank-at-eof

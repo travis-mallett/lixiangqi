@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Xiangqi Horse piece">
+  <circle cx="80" cy="80" r="68" fill="#f5e2bd" stroke="#a9362e" stroke-width="8"/>
+  <circle cx="80" cy="80" r="55" fill="none" stroke="#a9362e" stroke-width="3"/>
+  <text x="80" y="108" text-anchor="middle" font-size="76" font-weight="700" font-family="Noto Serif CJK SC,SimSun,serif" fill="#a9362e">马</text>
+</svg>

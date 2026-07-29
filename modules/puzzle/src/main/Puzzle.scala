@@ -1,39 +1,57 @@
 package lila.puzzle
 
 import chess.{ Ply, IntRating }
-import chess.format.{ Fen, Uci }
 import chess.rating.glicko.Glicko
+
+import lila.xiangqi.{ Xiangqi, XiangqiRules }
 
 case class Puzzle(
     id: PuzzleId,
     gameId: GameId,
-    fen: Fen.Full,
-    line: NonEmptyList[Uci.Move],
+    gameSource: Option[Puzzle.GameSource],
+    fen: String,
+    line: NonEmptyList[Xiangqi.Uci],
     glicko: Glicko,
     plays: Int,
     vote: Float, // denormalized ratio of voteUp/voteDown
     themes: Set[PuzzleTheme.Key]
 ):
+  def gameRef: Puzzle.GameRef =
+    gameSource.fold[Puzzle.GameRef](Puzzle.GameRef.Lila(gameId)):
+      case Puzzle.GameSource.Catalog(database) =>
+        Puzzle.GameRef.Catalog(database = database, id = gameId.value)
+
   // ply after "initial move" when we start solving
-  def initialPly: Ply = Fen.readPly(fen) | Ply.initial
+  def initialPly: Ply =
+    Ply(XiangqiRules.position(Xiangqi.Position(initialFen = fen)).fold(_ => 0, _.ply))
 
-  lazy val boardAfterInitialMove: Option[chess.Position] =
-    for
-      p1 <- Fen.read(fen)
-      p2 <- p1.move(line.head).toOption.map(_.after)
-    yield p2
+  lazy val stateAfterInitialMove: Option[Xiangqi.State] =
+    XiangqiRules.move(Xiangqi.Position(initialFen = fen), line.head).toOption.map(_.state)
 
-  lazy val initialGame: chess.Game =
-    chess.Game(none, fenAfterInitialMove.some).withTurns(initialPly + 1)
+  lazy val initialGame: Xiangqi.Game =
+    XiangqiRules
+      .game(Xiangqi.Position(initialFen = fen, moves = Vector(line.head)))
+      .fold(error => sys.error(s"Can't initialize puzzle $id: $error"), identity)
 
-  lazy val fenAfterInitialMove: Fen.Full =
-    boardAfterInitialMove.map(Fen.write).err(s"Can't apply puzzle $id first move")
+  lazy val fenAfterInitialMove: String =
+    stateAfterInitialMove.map(_.fen).err(s"Can't apply puzzle $id first move")
 
-  def color = !fen.colorOrWhite
+  def color =
+    stateAfterInitialMove
+      .fold(chess.Color.White)(state =>
+        if state.turn == Xiangqi.Side.Red then chess.Color.White else chess.Color.Black
+      )
 
   def hasTheme(anyOf: PuzzleTheme*) = anyOf.exists(t => themes(t.key))
 
 object Puzzle:
+
+  enum GameSource:
+    case Catalog(database: String)
+
+  enum GameRef:
+    case Lila(id: GameId)
+    case Catalog(database: String, id: String)
 
   val idSize = 5
 
@@ -84,6 +102,7 @@ object Puzzle:
   object BSONFields:
     val id = "_id"
     val gameId = "gameId"
+    val gameSource = "gameSource"
     val fen = "fen"
     val line = "line"
     val glicko = "glicko"
@@ -92,7 +111,6 @@ object Puzzle:
     val voteDown = "vd"
     val plays = "plays"
     val themes = "themes"
-    val opening = "opening"
     val day = "day"
     val issue = "issue"
     val dirty = "dirty" // themes need to be denormalized

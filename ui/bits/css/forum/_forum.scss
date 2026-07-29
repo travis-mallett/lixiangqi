@@ -35,7 +35,7 @@
       background: color-mix(in oklab, $c-secondary 21%, $c-bg-zebra);
     }
 
-    @include if-transp {
+    @include if-background {
       .sticky {
         background: color-mix(in oklab, $c-secondary 26%, $c-bg);
       }

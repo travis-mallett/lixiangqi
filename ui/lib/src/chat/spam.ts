@@ -55,5 +55,5 @@ const suspLink = (txt: string) => !!txt.match(spamRegex);
 const followMeRegex = /follow me|join my team/i;
 const followMe = (txt: string) => !!txt.match(followMeRegex);
 
-const teamUrlRegex = /lichess\.org\/team\//i;
+const teamUrlRegex = /lixiangqi\.org\/team\//i;
 export const hasTeamUrl = (txt: string): boolean => !!txt.match(teamUrlRegex);

@@ -22,10 +22,9 @@ final class UserList(helpers: Helpers, bits: UserBits):
       .css("user.list")
       .flag(_.fullScreen)
       .graph(
-        title = "Chess players and leaderboards",
+        title = "Xiangqi players and leaderboards",
         url = routeUrl(routes.User.list),
-        description =
-          "Best chess players in bullet, blitz, rapid, classical, Chess960 and more chess variants"
+        description = "Best Xiangqi players in bullet, blitz, rapid, and classical time controls"
       ):
         main(cls := "page-menu")(
           bits.communityMenu("leaderboard"),
@@ -53,15 +52,7 @@ final class UserList(helpers: Helpers, bits: UserBits):
                     a(href := routes.Tournament.leaderboard)(trans.site.tournament())
                   ),
                   tournamentWinners
-                ),
-                userTopPerf(leaderboards.crazyhouse, PerfKey.crazyhouse),
-                userTopPerf(leaderboards.chess960, PerfKey.chess960),
-                userTopPerf(leaderboards.antichess, PerfKey.antichess),
-                userTopPerf(leaderboards.atomic, PerfKey.atomic),
-                userTopPerf(leaderboards.threeCheck, PerfKey.threeCheck),
-                userTopPerf(leaderboards.kingOfTheHill, PerfKey.kingOfTheHill),
-                userTopPerf(leaderboards.horde, PerfKey.horde),
-                userTopPerf(leaderboards.racingKings, PerfKey.racingKings)
+                )
               )
             )
           )
@@ -135,7 +126,7 @@ final class UserList(helpers: Helpers, bits: UserBits):
 
   def bots(users: List[UserWithPerfs], bestPerfs: UserPerfs => List[PerfKey])(using Context) =
     val title = s"${users.size} Online bots"
-    val aboutLink = a(href := "/blog/WvDNticAAMu_mHKP/welcome-lichess-bots")("About Lichess Bots")
+    val aboutLink = a(href := routes.Cms.lonePage(lila.core.id.CmsPageKey("bot-accounts")))("About bots")
     val (featured, community) = users.partition(_.isVerified)
     Page(title)
       .css("bits.slist")
@@ -146,15 +137,15 @@ final class UserList(helpers: Helpers, bits: UserBits):
           div(cls := "bots page-menu__content")(
             div(cls := "box box-pad bots__categ")(
               boxTop(h1("Featured bots")),
-              p("Try playing these innovative chess engines! These are our favourites."),
+              h3("Try playing these innovative Xiangqi engines! These are our favourites."),
               div(cls := "bots__featured")(
                 botGrid(featured, bestPerfs)
               )
             ),
             div(cls := "box box-pad bots__categ")(
               boxTop(h1("Community bots"), aboutLink),
-              p(
-                "More chess engines created by the Lichess community. They are hosted by their creators, and as such might not always be online."
+              h3(
+                "More Xiangqi engines created by the Lixiangqi community. They are hosted by their creators, and as such might not always be online."
               ),
               botGrid(community, bestPerfs)
             )

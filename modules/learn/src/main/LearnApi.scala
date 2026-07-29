@@ -22,7 +22,7 @@ final class LearnApi(coll: Coll)(using Executor):
   def reset(user: UserId) =
     coll.delete.one($id(user)).void
 
-  private val maxCompletion = 110
+  private val maxCompletion = 67
 
   def completionPercent(userIds: List[UserId]): Fu[Map[UserId, Int]] =
     coll

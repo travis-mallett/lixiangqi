@@ -1,11 +1,10 @@
 package lila.game
 
-import chess.format.UciDump
 import com.github.blemale.scaffeine.Cache
 
 import lila.core.game.Game
 
-final class UciMemo(gameRepo: GameRepo)(using Executor) extends lila.core.game.UciMemo:
+final class UciMemo(using Executor) extends lila.core.game.UciMemo:
 
   type UciVector = Vector[String]
 
@@ -15,10 +14,10 @@ final class UciMemo(gameRepo: GameRepo)(using Executor) extends lila.core.game.U
 
   private val hardLimit = 300
 
-  def add(game: Game, move: chess.MoveOrDrop): Unit =
-    add(game, UciDump.move(move))
+  def add(game: Game, move: lila.xiangqi.Xiangqi.Uci): Unit =
+    addString(game, move.value)
 
-  private def add(game: Game, uciMove: String): Unit =
+  private def addString(game: Game, uciMove: String): Unit =
     val current = ~cache.getIfPresent(game.id)
     cache.put(game.id, current :+ uciMove)
 
@@ -43,7 +42,4 @@ final class UciMemo(gameRepo: GameRepo)(using Executor) extends lila.core.game.U
   }
 
   private def compute(game: Game, max: Int): Fu[UciVector] =
-    for
-      fen <- gameRepo.initialFen(game)
-      uciMoves <- UciDump(game.sans.take(max), fen, game.variant).toFuture
-    yield uciMoves.toVector
+    fuccess(game.xiangqi.moves.take(max).map(_.value))

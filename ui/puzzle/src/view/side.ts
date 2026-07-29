@@ -15,7 +15,11 @@ export function puzzleBox(ctrl: PuzzleCtrl): VNode {
 
 const angleImg = (angle: Angle): string => {
   const name =
-    angle.opening || angle.openingAbstract ? 'opening' : angle.key.startsWith('mateIn') ? 'mate' : angle.key;
+    angle.key === 'centroidPawnMate'
+      ? 'centroidPawnMate'
+      : angle.key.startsWith('mateIn')
+        ? 'mate'
+        : angle.key;
   return site.asset.url(`images/puzzle-themes/${name}.svg`);
 };
 
@@ -57,7 +61,10 @@ const puzzleInfos = (ctrl: PuzzleCtrl): VNode => {
 
 function gameInfos(ctrl: PuzzleCtrl): VNode {
   const { game, puzzle } = ctrl.data;
-  const gameName = game.clock && game.perf ? `${game.clock} • ${game.perf.name}` : 'import';
+  const gameName =
+    game.event ||
+    (game.clock && game.perf ? `${game.clock} • ${game.perf.name}` : game.perf?.name || 'import');
+  const gameUrl = game.url || `/${game.id}/${ctrl.pov}#${puzzle.initialPly}`;
   return hl('div.infos', { attrs: game.perf && dataIcon(perfIcons[game.perf.key]) }, [
     hl('div', [
       hl(
@@ -65,17 +72,33 @@ function gameInfos(ctrl: PuzzleCtrl): VNode {
         i18n.puzzle.fromGameLink.asArray(
           ctrl.mode === 'play'
             ? hl('span', gameName)
-            : hl('a', { attrs: { href: `/${game.id}/${ctrl.pov}#${puzzle.initialPly}` } }, gameName),
+            : hl(
+                'a',
+                {
+                  attrs: {
+                    href: gameUrl,
+                  },
+                },
+                gameName,
+              ),
         ),
       ),
       hl(
         'div.players',
         game.players.map(p => {
-          const user =
-            p.name === 'ghost'
+          const label = `${p.name}${ctrl.opts.showRatings && p.rating ? ` (${p.rating})` : ''}`;
+          const user = ctrl.isXiangqi
+            ? p.url
+              ? hl('a.user-link', { attrs: { href: p.url } }, label)
+              : label
+            : p.name === 'ghost'
               ? p.rating?.toString() || ''
               : userLink({ ...p, rating: ctrl.opts.showRatings ? p.rating : undefined, line: false });
-          return hl('div.player.color-icon.is.text.' + p.color, user);
+          return hl(
+            'div.player.color-icon.is.text.' +
+              (ctrl.isXiangqi && p.color === 'white' ? 'white.is-red' : p.color),
+            user,
+          );
         }),
       ),
     ]),
@@ -141,17 +164,11 @@ const difficulties: [PuzzleDifficulty, number][] = [
   ['harder', 300],
   ['hardest', 600],
 ];
-const colors = [
-  ['black', 'asBlack'],
-  ['random', 'randomColor'],
-  ['white', 'asWhite'],
-] as const;
-
 export function replay(ctrl: PuzzleCtrl): MaybeVNode {
   const { replay, angle } = ctrl.data;
   if (!replay) return;
   const i = replay.i + (ctrl.mode === 'play' ? 0 : 1);
-  const text = i18n.puzzleTheme[angle.key];
+  const text = i18n.puzzleTheme[angle.key] || angle.name;
   return hl('div.puzzle__side__replay', [
     hl('a', { attrs: { href: `/training/dashboard/${replay.days}` } }, ['« ', `Replaying ${text} puzzles`]),
     hl('div.puzzle__side__replay__bar', {
@@ -212,23 +229,4 @@ export const renderDifficultyForm = (ctrl: PuzzleCtrl): VNode =>
         ),
       ),
     ],
-  );
-
-export const renderColorForm = (ctrl: PuzzleCtrl): VNode =>
-  hl(
-    'div.puzzle__side__config__color',
-    hl(
-      'group.radio',
-      colors.map(([key, i18nKey]) =>
-        hl('div', [
-          hl(
-            `a.label.color-${key}${key === (ctrl.opts.settings.color || 'random') ? '.active' : ''}`,
-            {
-              attrs: { href: `/training/${ctrl.data.angle.key}/${key}`, title: i18n.site[i18nKey] },
-            },
-            hl('icon'),
-          ),
-        ]),
-      ),
-    ),
   );

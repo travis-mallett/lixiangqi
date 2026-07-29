@@ -139,7 +139,7 @@ final class RelayFormUi(helpers: Helpers, ui: RelayUi, pageMenu: RelayMenuUi):
           standardFlash,
           nav.targetRound.map: tr =>
             flashMessage("success")(
-              "Your tournament round is officially broadcasted by Lichess!",
+              "Your tournament round is officially broadcasted by Lixiangqi!",
               br,
               strong(a(href := tr.path, cls := "text", dataIcon := Icon.RadioTower)(tr.fullName)),
               "."
@@ -168,13 +168,13 @@ final class RelayFormUi(helpers: Helpers, ui: RelayUi, pageMenu: RelayMenuUi):
         url: play.api.mvc.Call,
         nav: FormNavigation
     )(using ctx: Context) =
-      val broadcastEmailContact = a(href := "mailto:broadcast@lichess.org")("broadcast@lichess.org")
+      val broadcastEmailContact = a(href := "mailto:broadcast@lixiangqi.org")("broadcast@lixiangqi.org")
       val lccWarning = for
         round <- nav.round
         upstream <- round.sync.upstream
         if upstream.hasLcc
       yield flashMessage("box relay-form__warning")(
-        p(strong("Please use the ", a(href := broadcasterUrl)("Lichess Broadcaster App"))),
+        p(strong("Please use the ", a(href := broadcasterUrl)("Lixiangqi Broadcaster App"))),
         p(
           "LiveChessCloud support is deprecated and will be removed soon.",
           br,
@@ -186,7 +186,7 @@ final class RelayFormUi(helpers: Helpers, ui: RelayUi, pageMenu: RelayMenuUi):
       val contactUsForOfficial = nav.featurableRound.isDefined.option:
         flashMessage("box relay-form__contact-us")(
           p(
-            "Is this a tournament you organize? Do you want Lichess to feature it on the ",
+            "Is this a tournament you organize? Do you want Lixiangqi to feature it on the ",
             a(href := routes.RelayTour.index(1))("broadcast page"),
             "?"
           ),
@@ -275,14 +275,14 @@ final class RelayFormUi(helpers: Helpers, ui: RelayUi, pageMenu: RelayMenuUi):
           )(form3.input(_))(cls := "relay-form__sync relay-form__sync-ids none"),
           form3.group(
             form("syncUsers"),
-            "Up to 100 Lichess usernames, separated by spaces",
+            "Up to 100 Lixiangqi usernames, separated by spaces",
             half = false
           )(form3.input(_))(cls := "relay-form__sync relay-form__sync-users none"),
           div(cls := "form-group relay-form__sync relay-form__sync-push none")(
             contactUsForOfficial,
             p(
-              "Send your local games to Lichess using the ",
-              a(href := broadcasterUrl)("Lichess Broadcaster App"),
+              "Send your local games to Lixiangqi using the ",
+              a(href := broadcasterUrl)("Lixiangqi Broadcaster App"),
               "."
             )
           ),
@@ -359,7 +359,7 @@ final class RelayFormUi(helpers: Helpers, ui: RelayUi, pageMenu: RelayMenuUi):
               form("status"),
               "Current status",
               help = frag(
-                "Lichess can usually detect the round status, but you can also set it manually if needed."
+                "Lixiangqi can usually detect the round status, but you can also set it manually if needed."
               ).some,
               half = true
             ):
@@ -403,7 +403,7 @@ Hanna Marie ; Kozul, Zdenko"""),
                 form3.group(
                   form("fideTCOverride"),
                   trb.fideRatingCategory(),
-                  help = frag("Optional. Override the FIDE rating category for this round").some,
+                  help = frag("Optional. Override the WXF rating category for this round").some,
                   half = true
                 ):
                   form3.select(
@@ -580,7 +580,7 @@ Hanna Marie ; Kozul, Zdenko"""),
             form3.group(
               form("info.location"),
               trb.tournamentLocation(),
-              help = frag("""e.g. "Paris, France" or "lichess.org"""").some,
+              help = frag("""e.g. "Paris, France" or "lixiangqi.org"""").some,
               half = true
             )(form3.input(_))
           ),
@@ -609,7 +609,7 @@ Hanna Marie ; Kozul, Zdenko"""),
             form3.group(
               form("info.fideTC"),
               trb.fideRatingCategory(),
-              help = frag("Which FIDE ratings to use").some,
+              help = frag("Which WXF ratings to use").some,
               half = true
             ):
               form3.select(
@@ -702,17 +702,17 @@ Hanna Marie ; Kozul, Zdenko"""),
               trb.replacePlayerTags(),
               help = frag( // do not translate
                 "One line per player, formatted as such:",
-                pre("player name / FIDE ID"),
+                pre("player name / WXF ID"),
                 "Example:",
-                pre("""Magnus Carlsen / 1503014"""),
+                pre("""Xu Yinchuan / 000001"""),
                 "Player names ignore case and punctuation, and match all possible combinations of 2 words:",
                 br,
                 """"Jorge Rick Vito" will match "Jorge Rick", "jorge vito", "Rick, Vito", etc.""",
                 br,
                 "If the player is NM or WNM, you can:",
-                pre("""Player Name / FIDE ID / title"""),
+                pre("""Player Name / WXF ID / title"""),
                 "Alternatively, you may set tags manually, like so:",
-                pre("player name / FIDE ID / title / rating / new name / new fed"),
+                pre("player name / WXF ID / title / rating / new name / new fed"),
                 "All values are optional. Example:",
                 pre("""Magnus Carlsen / / GM / 2863
 YouGotLittUp / / / 1890 / Louis Litt / FID""")
@@ -764,7 +764,7 @@ Team Dogs ; Scooby Doo"""),
               form3.split(
                 form3.group(
                   form("tier"),
-                  raw("Official Lichess broadcast tier"),
+                  raw("Official Lixiangqi broadcast tier"),
                   help = raw("Priority and ranking - for admins only").some,
                   half = true
                 )(form3.select(_, RelayTour.Tier.options)),

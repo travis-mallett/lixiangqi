@@ -176,7 +176,7 @@ final class TournamentApi(
                       featureOneOf(tour, pairings, ranking.ranking) // do outside of queue
         .monSuccess(lila.mon.tournament.pairing.create)
         .chronometer
-        .logIfSlow(100, logger)(_ => s"Pairings for https://lichess.org/tournament/${tour.id}")
+        .logIfSlow(100, logger)(_ => s"Pairings for https://lixiangqi.org/tournament/${tour.id}")
         .result)
 
   private def featureOneOf(tour: Tournament, pairings: List[Pairing.WithPlayers], ranking: Ranking): Funit =
@@ -691,6 +691,13 @@ final class TournamentApi(
   def calendar: Fu[List[Tournament]] =
     val from = nowInstant.minusDays(1)
     tournamentRepo.calendar(from = from, to = from.plusYears(1))
+
+  def enterable(page: Int, teamIds: List[TeamId]): Fu[Paginator[Tournament]] =
+    Paginator(
+      adapter = tournamentRepo.enterableAdapter(teamIds),
+      currentPage = page,
+      maxPerPage = MaxPerPage(20)
+    )
 
   def history(freq: Schedule.Freq, page: Int): Fu[Paginator[Tournament]] =
     Paginator(

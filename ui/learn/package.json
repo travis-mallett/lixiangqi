@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "lib": "workspace:*"
+    "lib": "workspace:*",
+    "xiangqi": "workspace:*"
   },
   "build": {
     "bundle": "src/learn.ts"

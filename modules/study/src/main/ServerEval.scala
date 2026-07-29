@@ -179,9 +179,7 @@ object ServerEval:
     def divisionOf(chapter: Chapter) =
       divider(
         id = chapter.id.into(GameId),
-        sans = chapter.root.mainline.map(_.move.san).toVector,
-        variant = chapter.setup.variant,
-        initialFen = chapter.root.fen.some
+        positions = chapter.root.fen.value +: chapter.root.mainline.map(_.fen.value).toVector
       )
 
   case class Progress(chapterId: StudyChapterId, tree: Root, analysis: JsObject, division: chess.Division)

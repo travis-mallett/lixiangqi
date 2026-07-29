@@ -2,37 +2,30 @@ import { type Prop, propWithEffect } from 'lib';
 
 import type { LearnCtrl } from './ctrl';
 import type { LearnProgress, LearnOpts } from './learn';
-import * as scoring from './score';
-import { stageIdToCategId, byKey as stageByKey, list as stageList } from './stage/list';
+import { availableStages, stageIdToCategId, totalInteractiveLevels } from './stage/list';
 
 export class SideCtrl {
-  opts: LearnOpts;
   data: LearnProgress;
-
   categId: Prop<number>;
 
-  constructor(ctrl: LearnCtrl, opts: LearnOpts) {
-    this.opts = opts;
+  constructor(
+    readonly ctrl: LearnCtrl,
+    readonly opts: LearnOpts,
+  ) {
     this.data = ctrl.data;
-
     this.categId = propWithEffect(this.getCategIdFromStageId() ?? 0, ctrl.redraw);
   }
 
   reset = () => this.opts.storage.reset();
-
-  activeStageId = () => this.opts.stageId || 1;
+  activeStageId = () => this.opts.stageId || availableStages[0].id;
   getCategIdFromStageId = () => stageIdToCategId(this.activeStageId());
-  updateCategId = () => this.categId(this.getCategIdFromStageId() || this.categId());
+  updateCategId = () => this.categId(this.getCategIdFromStageId() ?? this.categId());
 
   progress = () => {
-    const max = stageList.length * 10;
-    const data = this.data.stages;
-    const total = Object.keys(data).reduce((t, key) => {
-      const rank = scoring.getStageRank(stageByKey[key], data[key].scores);
-      if (rank === 1) return t + 10;
-      if (rank === 2) return t + 8;
-      return t + 5;
+    const complete = availableStages.reduce((total, stage) => {
+      const scores = this.data.stages[stage.key]?.scores ?? [];
+      return total + stage.levels.filter(level => (scores[level.id - 1] ?? 0) > 0).length;
     }, 0);
-    return Math.round((total / max) * 100);
+    return Math.round((complete / Math.max(1, totalInteractiveLevels)) * 100);
   };
 }

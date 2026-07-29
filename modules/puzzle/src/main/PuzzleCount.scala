@@ -5,8 +5,7 @@ import lila.memo.CacheApi.buildAsyncTimeout
 
 final private class PuzzleCountApi(
     colls: PuzzleColls,
-    mongoCache: lila.memo.MongoCache.Api,
-    openingApi: PuzzleOpeningApi
+    mongoCache: lila.memo.MongoCache.Api
 )(using Executor, Scheduler):
 
   private type ThemeCount = Map[PuzzleTheme.Key, Int]
@@ -17,9 +16,8 @@ final private class PuzzleCountApi(
   def byTheme(theme: PuzzleTheme.Key): Fu[Int] =
     countsByTheme.dmap { _.getOrElse(theme, 0) }
 
-  def byAngle(angle: PuzzleAngle): Fu[Int] = angle match
-    case PuzzleAngle.Theme(theme) => byTheme(theme)
-    case PuzzleAngle.Opening(either) => openingApi.count(either)
+  def byAngle(angle: PuzzleAngle): Fu[Int] =
+    byTheme(angle.asTheme | PuzzleTheme.mix.key)
 
   private val byThemeCache =
     given reactivemongo.api.bson.BSONHandler[ThemeCount] = typedMapHandler

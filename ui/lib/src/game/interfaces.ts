@@ -175,6 +175,7 @@ export interface RoundStep {
   ply: Ply;
   fen: FEN;
   san: San;
+  sanZh?: San;
   uci: Uci;
   check?: boolean;
   crazy?: Record<string, any>;

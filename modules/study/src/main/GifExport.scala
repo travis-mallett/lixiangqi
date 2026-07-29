@@ -29,9 +29,9 @@ final class GifExport(
           "delay" -> 80,
           "orientation" -> chapter.setup.orientation.name,
           "white" -> List(
-            chapter.tags(_.WhiteTitle),
-            chapter.tags(_.White),
-            chapter.tags(_.WhiteElo).map(elo => s"($elo)")
+            chapter.tags("RedTitle"),
+            chapter.tags("Red"),
+            chapter.tags("RedElo").map(elo => s"($elo)")
           ).flatten.mkString(" "),
           "black" -> List(
             chapter.tags(_.BlackTitle),

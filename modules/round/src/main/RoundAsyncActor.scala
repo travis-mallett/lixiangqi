@@ -149,7 +149,7 @@ final private class RoundAsyncActor(
           has <- gameRepo.hasHoldAlert(pov)
           _ <- has.not.so:
             logger.info:
-              s"hold alert $ip https://lichess.org/${pov.gameId}/${pov.color.name}#${pov.game.ply} ${pov.player.userId | "anon"} mean: $mean SD: $sd"
+              s"hold alert $ip https://lixiangqi.org/${pov.gameId}/${pov.color.name}#${pov.game.ply} ${pov.player.userId | "anon"} mean: $mean SD: $sd"
             lila.mon.cheat.holdAlert.increment()
             gameRepo.setHoldAlert(pov, GamePlayer.HoldAlert(ply = pov.game.ply, mean = mean, sd = sd)).void
         yield Nil
@@ -233,7 +233,10 @@ final private class RoundAsyncActor(
             if _ then
               finisher.rageQuit(
                 pov.game,
-                Some(pov.color).ifFalse(pov.game.position.opponentHasInsufficientMaterial)
+                Some(pov.color).ifFalse:
+                  pov.game.position.insufficient:
+                    if pov.color == chess.White then lila.xiangqi.Xiangqi.Side.Red
+                    else lila.xiangqi.Xiangqi.Side.Black
               )
             else fuccess(List(Event.Reload))
 
@@ -283,10 +286,10 @@ final private class RoundAsyncActor(
           finisher.other(game, _.Cheat, Some(!color))
     case TooManyPlies => handle(drawer.force(_))
 
-    case Threefold =>
+    case OptionalDraw =>
       proxy.withGame: game =>
         drawer
-          .autoThreefold(game)
+          .autoOptionalDraw(game)
           .map:
             _.foreach: pov =>
               this ! DrawClaim(pov.player.id)
@@ -445,9 +448,10 @@ final private class RoundAsyncActor(
         socketSend.exec:
           Protocol.Out.tellVersion(roomId, version, e)
       if events.exists:
-          case e: Event.Move => e.threefold
+          case e: Event.Move =>
+            e.result.optionalEnd.ended && e.result.gameResult == lila.xiangqi.Xiangqi.Result.Draw
           case _ => false
-      then this ! Threefold
+      then this ! OptionalDraw
 
   private def errorHandler(name: String): PartialFunction[Throwable, Unit] =
     case e: BenignError =>

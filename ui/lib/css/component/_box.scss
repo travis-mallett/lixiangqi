@@ -34,7 +34,7 @@ $vp-max-width: 1200px;
     @extend %box-padding-horiz;
   }
 
-  @include if-transp {
+  @include if-background {
     position: relative;
 
     @include back-blur;

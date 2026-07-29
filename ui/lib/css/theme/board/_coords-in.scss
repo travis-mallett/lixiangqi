@@ -49,20 +49,6 @@ coords {
   coord {
     flex: 1 1 auto;
   }
-
-  /* negate inner coords colors */
-  .is3d .cg-wrap coords coord {
-    color: #fff !important;
-    text-shadow: 0 1px 2px #000 !important;
-  }
-
-  .is3d .cg-wrap coords.files {
-    bottom: calc(1px - 2.5%);
-
-    coord {
-      padding-left: 3px;
-    }
-  }
 }
 
 @import 'coords-colors';

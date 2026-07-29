@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Chinese seal for capture">
+  <path d="M40 24h80l16 16v92H24V40z" fill="#b33b31" stroke="#f0d5a2" stroke-width="6"/>
+  <path d="M40 24v20H24M120 24v20h16" fill="none" stroke="#f0d5a2" stroke-width="5"/>
+  <text x="80" y="111" text-anchor="middle" font-size="78" font-weight="700" font-family="Noto Serif CJK SC,SimSun,serif" fill="#f7e8c7">擒</text>
+</svg>

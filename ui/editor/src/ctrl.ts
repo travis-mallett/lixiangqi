@@ -1,355 +1,173 @@
-import { type Result } from '@badrap/result';
-import type { Api as CgApi } from '@lichess-org/chessground/api';
-import { opposite } from '@lichess-org/chessground/util';
-import { parseSquare } from 'chessops';
-import { Board } from 'chessops/board';
-import { lichessRules } from 'chessops/compat';
-import { makeFen, parseFen, parseCastlingFen, INITIAL_FEN, EMPTY_FEN } from 'chessops/fen';
-import { type Setup, Material, RemainingChecks, defaultSetup } from 'chessops/setup';
-import type { Rules, Square } from 'chessops/types';
-import { Castles, defaultPosition, Position, setupPosition } from 'chessops/variant';
+import type { Api } from 'chessgroundx/api';
+import { read as readFen } from 'chessgroundx/fen';
+import type { Color } from 'chessgroundx/types';
 
-import { defined, prop, type Prop } from 'lib';
-import { prompt } from 'lib/view';
+import * as xhr from 'lib/xhr';
 
-import {
-  chess960CastlingSquares,
-  chess960IdToFEN,
-  fenToChess960Id,
-  boardFenToChess960Id,
-  randomPositionId,
-} from './chess960';
-import {
-  type EditorState,
-  type Selected,
-  type Redraw,
-  type Options,
-  type Config,
-  type CastlingToggle,
-  type CastlingToggles,
-  CASTLING_TOGGLES,
-} from './interfaces';
+import type { Config, EditorState, Redraw, Selected } from './interfaces';
+
+const DIMENSIONS = { width: 9, height: 10 } as const;
+
+interface PositionResponse {
+  fen: string;
+  gameResult: string;
+  legalMoves: string[];
+}
 
 export default class EditorCtrl {
-  options: Options;
-  chessground?: CgApi;
-  selected: Prop<Selected>;
-  initialFen: FEN;
-  pockets?: Material;
+  ground?: Api;
+  selected: Selected = 'pointer';
+  orientation: Color;
   turn: Color;
-  castlingToggles: CastlingToggles<boolean>;
-  enabledCastlingToggles: CastlingToggles<boolean>;
-  epSquare?: Square;
-  remainingChecks?: RemainingChecks;
-  variant: VariantKey = 'standard';
-  halfmoves: number;
-  fullmoves: number;
-  guessCastlingToggles: boolean;
-  chess960PositionId?: number;
+  halfmoves = 0;
+  fullmoves = 1;
+  state: EditorState;
+  private validation = 0;
 
   constructor(
     readonly cfg: Config,
     readonly redraw: Redraw,
   ) {
-    this.options = cfg.options || {};
-
-    this.selected = prop('pointer');
-
-    [...(cfg.positions || []), ...(cfg.endgamePositions || [])].forEach(
-      p => (p.epd = p.fen.split(' ').slice(0, 4).join(' ')),
-    );
-
-    if (this.options.bindHotkeys !== false)
-      site.mousetrap.bind('f', () => {
-        if (this.chessground) {
-          this.chessground.toggleOrientation();
-          if (this.options.orientation) this.setOrientation(opposite(this.options.orientation));
-        }
-        this.onChange();
-      });
-
-    this.castlingToggles = { K: false, Q: false, k: false, q: false };
-    const params = new URLSearchParams(location.search);
-    this.variant = this.cfg.embed ? 'standard' : ((params.get('variant') || 'standard') as VariantKey);
-    const fenPassedIn: FEN | null = cfg.fen || params.get('fen');
-    this.initialFen = (fenPassedIn || INITIAL_FEN).replace(/_/g, ' ');
-    this.guessCastlingToggles = false;
-    if (this.variant === 'chess960') {
-      this.chess960PositionId = fenPassedIn
-        ? fenToChess960Id(fenPassedIn)
-        : params.get('position') !== null
-          ? parseInt(params.get('position')!, 10)
-          : randomPositionId();
-    }
-
-    if (!this.cfg.embed) this.options.orientation = params.get('color') === 'black' ? 'black' : 'white';
-
-    parseFen(this.initialFen).unwrap(this.setSetup, _ => {
-      this.initialFen = INITIAL_FEN;
-      this.setSetup(defaultSetup());
-    });
-
-    new MutationObserver(mutations => {
-      for (const m of mutations) {
-        if (!m.attributeName || !(m.attributeName === 'data-board' || m.attributeName === 'data-piece-set'))
-          continue;
-        this.redraw();
-      }
-    }).observe(window.document.body, { attributes: true });
+    this.orientation = cfg.options?.orientation ?? 'white';
+    const fen = normalizeFen(cfg.fen ?? cfg.startFen, cfg.startFen);
+    const fields = fen.split(/\s+/);
+    this.turn = fields[1] === 'b' ? 'black' : 'white';
+    this.halfmoves = nonNegativeInt(fields[4], 0);
+    this.fullmoves = Math.max(1, nonNegativeInt(fields[5], 1));
+    this.state = { fen, validating: true, playable: false };
   }
 
-  private readonly indexOfNthOccurrence = (haystack: string, needle: string, n: number): number => {
-    let index = haystack.indexOf(needle);
-    for (; n > 1 && index !== -1; n--) index = haystack.indexOf(needle, index + needle.length);
-    return index;
-  };
-
-  // Ideally to be replaced when something like parseCastlingFen exists in chessops but for epSquare (@getSetup)
-  private fenFixedEp(fen: FEN) {
-    let enPassant = fen.split(' ')[3];
-    if (enPassant !== '-' && !this.getEnPassantOptions(fen).includes(enPassant)) {
-      this.epSquare = undefined;
-      enPassant = '-';
-    }
-    const epIndex = this.indexOfNthOccurrence(fen, ' ', 3) + 1;
-    const epEndIndex = fen.indexOf(' ', epIndex);
-    return `${fen.substring(0, epIndex)}${enPassant}${fen.substring(epEndIndex)}`;
+  attachGround(ground: Api): void {
+    this.ground = ground;
+    void this.validate();
   }
 
-  onChange(): void {
-    // We can use the first field of the fen now; it's the ep and castle fields that may be inaccurate at the moment.
-    this.chess960PositionId = boardFenToChess960Id(this.getFen().split(' ')[0]) ?? this.chess960PositionId;
-    // The id will be used for computing castling toggles, which will in turn be used in the later `this.getFen()` call.
-    this.enabledCastlingToggles = this.computeCastlingToggles();
-    if (this.guessCastlingToggles) {
-      this.castlingToggles = { ...this.enabledCastlingToggles };
-    }
-    const fen = this.fenFixedEp(this.getFen());
-    if (!this.cfg.embed) {
-      window.history.replaceState(null, '', this.makeEditorUrl(fen, this.bottomColor()));
-    }
-    this.options.onChange?.(fen);
-    this.redraw();
+  getFen(): string {
+    const placement = this.ground?.getFen() ?? this.state.fen.split(/\s+/)[0];
+    return `${placement} ${this.turn === 'white' ? 'w' : 'b'} - - ${this.halfmoves} ${this.fullmoves}`;
   }
 
-  private castlingToggleFen(): string {
-    const isCastlingToggleEnabled = (toggle: CastlingToggle) =>
-      this.enabledCastlingToggles[toggle] && this.castlingToggles[toggle];
-    return CASTLING_TOGGLES.filter(isCastlingToggleEnabled).join('');
+  setFen(rawFen: string): boolean {
+    const fen = normalizeFen(rawFen, '');
+    if (!fen || !hasBoardShape(fen)) return false;
+    const fields = fen.split(/\s+/);
+    this.turn = fields[1] === 'b' ? 'black' : 'white';
+    this.halfmoves = nonNegativeInt(fields[4], 0);
+    this.fullmoves = Math.max(1, nonNegativeInt(fields[5], 1));
+    this.state = { fen, validating: true, playable: false };
+    this.ground?.set({ fen: fields[0], turnColor: this.turn });
+    this.changed();
+    return true;
   }
 
-  private computeCastlingToggles(): CastlingToggles<boolean> {
-    const chess960Castling = chess960CastlingSquares(this.chess960PositionId);
-    const board = this.getBoard(),
-      whiteKingOnE1 = board.king.intersect(board.white).has(parseSquare(chess960Castling.white.king)!),
-      blackKingOnE8 = board.king.intersect(board.black).has(parseSquare(chess960Castling.black.king)!),
-      whiteRooks = board.rook.intersect(board.white),
-      blackRooks = board.rook.intersect(board.black);
-    return {
-      K: whiteKingOnE1 && whiteRooks.has(parseSquare(chess960Castling.white.rookK)!),
-      Q: whiteKingOnE1 && whiteRooks.has(parseSquare(chess960Castling.white.rookQ)!),
-      k: blackKingOnE8 && blackRooks.has(parseSquare(chess960Castling.black.rookK)!),
-      q: blackKingOnE8 && blackRooks.has(parseSquare(chess960Castling.black.rookQ)!),
-    };
+  startPosition(): void {
+    this.setFen(this.cfg.startFen);
   }
 
-  private getBoard(): Board {
-    const boardFen = this.chessground?.getFen() || this.initialFen;
-    return parseFen(boardFen).unwrap(
-      setup => setup.board,
-      _ => Board.empty(),
-    );
+  clearBoard(): void {
+    this.setFen(`9/9/9/9/9/9/9/9/9/9 ${this.turn === 'white' ? 'w' : 'b'} - - 0 1`);
   }
 
-  private getSetup(): Setup {
-    const board = this.getBoard();
-    return {
-      board,
-      pockets: this.pockets,
-      turn: this.turn,
-      castlingRights: parseCastlingFen(board, this.castlingToggleFen()).unwrap(),
-      epSquare: this.epSquare,
-      remainingChecks: this.remainingChecks,
-      halfmoves: this.halfmoves,
-      fullmoves: this.fullmoves,
-    };
+  flip(): void {
+    this.ground?.toggleOrientation();
+    this.orientation = this.orientation === 'white' ? 'black' : 'white';
+    this.changed(false);
   }
 
-  private getRules(): Rules {
-    return lichessRules(this.variant);
+  setOrientation(orientation: Color): void {
+    if (orientation !== this.orientation) this.ground?.toggleOrientation();
+    this.orientation = orientation;
+    this.changed(false);
   }
 
-  getFen(): FEN {
-    return makeFen(this.getSetup());
-  }
-
-  getPosition(): Result<Position> {
-    return setupPosition(this.getRules(), this.getSetup());
-  }
-
-  private getLegalFen(): FEN | undefined {
-    return this.getPosition().unwrap(
-      pos => makeFen(pos.toSetup()),
-      _ => undefined,
-    );
-  }
-
-  private isPlayable(): boolean {
-    return this.getPosition().unwrap(
-      pos => !pos.isEnd(),
-      _ => false,
-    );
-  }
-
-  // hopefully moved to chessops soon
-  // https://github.com/niklasf/chessops/issues/154
-  private getEnPassantOptions(fen: FEN): string[] {
-    const unpackRank = (packedRank: string) =>
-      Array.from(packedRank).reduce((accumulator, current) => {
-        const parsedInt = parseInt(current);
-        return accumulator + (parsedInt >= 1 ? 'x'.repeat(parsedInt) : current);
-      }, '');
-    const checkRank = (rank: string, regex: RegExp, offset: number, filesEnPassant: Set<number>) => {
-      let match: RegExpExecArray | null;
-      while ((match = regex.exec(rank)) !== null) {
-        filesEnPassant.add(match.index + offset);
-      }
-    };
-    const filesEnPassant: Set<number> = new Set();
-    const [positions, turn] = fen.split(' ');
-    const ranks = positions.split('/');
-    const unpackedRank = unpackRank(ranks[turn === 'w' ? 3 : 4]);
-    checkRank(unpackedRank, /pP/g, turn === 'w' ? 0 : 1, filesEnPassant);
-    checkRank(unpackedRank, /Pp/g, turn === 'w' ? 1 : 0, filesEnPassant);
-    const [rank1, rank2] =
-      filesEnPassant.size >= 1
-        ? [unpackRank(ranks[turn === 'w' ? 1 : 6]), unpackRank(ranks[turn === 'w' ? 2 : 5])]
-        : [null, null];
-    return Array.from(filesEnPassant)
-      .filter(e => rank1![e] === 'x' && rank2![e] === 'x')
-      .map(e => String.fromCharCode('a'.charCodeAt(0) + e) + (turn === 'w' ? '6' : '3'));
-  }
-
-  getState(): EditorState {
-    const legalFen = this.getLegalFen();
-    return {
-      fen: this.getFen(),
-      legalFen,
-      playable: ['standard', 'chess960', 'fromPosition'].includes(this.variant) && this.isPlayable(),
-      enPassantOptions: legalFen ? this.getEnPassantOptions(legalFen) : [],
-    };
-  }
-
-  makeAnalysisUrl(legalFen: FEN, orientation: Color = 'white'): string {
-    const variant = this.variant === 'standard' ? '' : this.variant + '/';
-    const chess960PositionId =
-      this.chess960PositionId === undefined ? '' : `&position=${this.chess960PositionId}`;
-    return `/analysis/${variant}${this.urlFen(legalFen)}?color=${orientation}${chess960PositionId}`;
-  }
-
-  makeEditorUrl(fen: FEN, orientation: Color = 'white'): string {
-    if (fen === INITIAL_FEN && this.variant === 'standard' && orientation === 'white')
-      return this.cfg.baseUrl;
-    const variant = this.variant === 'standard' ? '' : '?variant=' + this.variant;
-    const chess960PositionId =
-      this.chess960PositionId === undefined ? '' : `&position=${this.chess960PositionId}`;
-    const orientationParam = variant ? `&color=${orientation}` : `?color=${orientation}`;
-    return `${this.cfg.baseUrl}/${this.urlFen(fen)}${variant}${orientationParam}${chess960PositionId}`;
-  }
-
-  bottomColor = (): Color =>
-    this.chessground ? this.chessground.state.orientation : this.options.orientation || 'white';
-
-  setCastlingToggle(id: CastlingToggle, value: boolean): void {
-    this.castlingToggles[id] = value;
-    this.guessCastlingToggles = false;
-    this.onChange();
+  setVariant(_variant: string): void {
+    // Xiangqi is the sole game. Retain the editor API method for native
+    // embedding callers that previously selected a chess variant.
   }
 
   setTurn(turn: Color): void {
     this.turn = turn;
-    this.epSquare = undefined;
-    this.onChange();
+    this.ground?.set({ turnColor: turn });
+    this.changed();
   }
 
-  setEnPassant(epSquare: Square | undefined): void {
-    this.epSquare = epSquare;
-    this.onChange();
-  }
-
-  startPosition = (): boolean =>
-    this.setFen(
-      this.variant === 'chess960' && this.chess960PositionId !== undefined
-        ? chess960IdToFEN(this.chess960PositionId)
-        : makeFen(defaultPosition(this.getRules()).toSetup()),
-    );
-
-  clearBoard = (): boolean => {
-    this.guessCastlingToggles = this.variant !== 'antichess';
-    const parts = EMPTY_FEN.split(' ');
-    parts[1] = this.turn[0];
-    return this.setFen(parts.join(' '));
-  };
-
-  loadNewFen(fen: FEN): void {
-    if (fen === 'prompt') prompt('Paste FEN position').then(fen => fen && this.setFen(fen.trim()));
-    else this.setFen(fen);
-  }
-
-  private readonly setSetup = (setup: Setup): void => {
-    this.pockets = setup.pockets;
-    this.turn = setup.turn;
-    this.epSquare = setup.epSquare;
-    this.remainingChecks = setup.remainingChecks;
-    this.halfmoves = setup.halfmoves;
-    this.fullmoves = setup.fullmoves;
-
-    const castles = Castles.fromSetup(setup);
-    this.castlingToggles['Q'] = defined(castles.rook.white.a) || setup.castlingRights.has(0);
-    this.castlingToggles['K'] = defined(castles.rook.white.h) || setup.castlingRights.has(7);
-    this.castlingToggles['q'] = defined(castles.rook.black.a) || setup.castlingRights.has(56);
-    this.castlingToggles['k'] = defined(castles.rook.black.h) || setup.castlingRights.has(63);
-
-    this.enabledCastlingToggles = this.computeCastlingToggles();
-  };
-
-  setFen = (fen: FEN): boolean =>
-    parseFen(fen).unwrap(
-      setup => {
-        if (this.chessground) this.chessground.set({ fen });
-        this.setSetup(setup);
-        this.onChange();
-        return true;
-      },
-      _ => false,
-    );
-
-  setVariant(variant: VariantKey): void {
-    this.variant = variant;
-    if (variant === 'crazyhouse') this.pockets ||= Material.empty();
-    else this.pockets = undefined;
-    if (variant === 'threeCheck') this.remainingChecks ||= RemainingChecks.default();
-    else this.remainingChecks = undefined;
-    this.onChange();
-  }
-
-  setOrientation(o: Color): void {
-    this.options.orientation = o;
-    if (this.chessground!.state.orientation !== o) this.chessground!.toggleOrientation();
+  select(selected: Selected): void {
+    this.selected = selected;
     this.redraw();
   }
 
-  set960Position(positionId: number): void {
-    this.chess960PositionId = positionId;
-    this.setFen(chess960IdToFEN(positionId));
+  changed(validate = true): void {
+    const fen = this.getFen();
+    this.state = {
+      ...this.state,
+      fen,
+      validating: validate,
+      playable: validate ? false : this.state.playable,
+    };
+    this.cfg.options?.onChange?.(fen);
+    if (!this.cfg.embed)
+      history.replaceState(
+        null,
+        '',
+        fen === this.cfg.startFen && this.orientation === 'white'
+          ? this.cfg.baseUrl
+          : `${this.cfg.baseUrl}/${fen.replace(/ /g, '_')}?color=${this.orientation}`,
+      );
+    this.redraw();
+    if (validate) void this.validate();
   }
 
-  setRandom960Position(): void {
-    const id = randomPositionId();
-    id !== this.chess960PositionId ? this.set960Position(id) : this.setRandom960Position();
+  private async validate(): Promise<void> {
+    const generation = ++this.validation;
+    const fen = this.getFen();
+    try {
+      const position = await xhr.json<PositionResponse>('/api/analysis/position', {
+        method: 'post',
+        body: JSON.stringify({ initialFen: fen, moves: [] }),
+        headers: {
+          ...xhr.jsonHeader,
+          ...xhr.xhrHeader,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (generation !== this.validation || fen !== this.getFen()) return;
+      const legalFen = position.fen;
+      this.state = {
+        fen,
+        legalFen,
+        playable: position.gameResult === '*' && position.legalMoves.length > 0,
+        validating: false,
+      };
+    } catch {
+      if (generation !== this.validation || fen !== this.getFen()) return;
+      this.state = { fen, playable: false, validating: false };
+    }
+    this.redraw();
   }
+}
 
-  urlFen(fen: FEN): string {
-    return encodeURIComponent(fen).replace(/%20/g, '_').replace(/%2F/g, '/');
+function normalizeFen(rawFen: string, fallback: string): string {
+  const value = rawFen.replace(/_/g, ' ').trim();
+  if (!value) return fallback;
+  const fields = value.split(/\s+/);
+  if (!hasBoardShape(value)) return fallback;
+  const turn = fields[1] === 'b' ? 'b' : 'w';
+  const halfmoves = nonNegativeInt(fields[4], 0);
+  const fullmoves = Math.max(1, nonNegativeInt(fields[5], 1));
+  return `${fields[0]} ${turn} - - ${halfmoves} ${fullmoves}`;
+}
+
+function hasBoardShape(fen: string): boolean {
+  try {
+    const placement = fen.split(/\s+/)[0];
+    const board = readFen(placement, DIMENSIONS);
+    return board.pieces.size >= 0 && placement.split('/').length === 10;
+  } catch {
+    return false;
   }
+}
+
+function nonNegativeInt(value: string | undefined, fallback: number): number {
+  const parsed = Number.parseInt(value ?? '', 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
 }

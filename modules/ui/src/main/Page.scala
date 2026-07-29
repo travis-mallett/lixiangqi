@@ -13,11 +13,11 @@ case class OpenGraph(
     url: Url,
     `type`: String = "website",
     image: Option[Url] = None,
-    siteName: String = "lichess.org"
+    siteName: String = "lixiangqi.org"
 )
 
 enum PageFlags:
-  case noRobots, playing, zoom, zen, fullScreen, noHeader
+  case noRobots, playing, zoom, zen, fullScreen, noHeader, crossSiteIsolation
 
 case class Page(
     title: String,

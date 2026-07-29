@@ -5,6 +5,7 @@ import reactivemongo.api.bson.*
 import InsightMetric.DataType.*
 import InsightPosition.*
 import InsightEntry.BSONFields as F
+import lila.xiangqi.Xiangqi
 
 enum InsightMetric(
     val key: String,
@@ -225,8 +226,8 @@ object InsightMetric:
         MetricValue(BSONInteger(r.id), MetricValueName(r.name))
       }.toIndexedSeq
     case PieceRole =>
-      chess.Role.all.reverse.map { r =>
-        MetricValue(BSONString(r.forsyth.toString), MetricValueName(r.toString))
+      Xiangqi.Role.values.toIndexedSeq.map { role =>
+        MetricValue(BSONString(role.forsyth.toString), MetricValueName(role.name))
       }
     case CplBucket =>
       lila.insight.CplRange.all.map { cpl =>

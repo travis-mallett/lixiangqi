@@ -65,7 +65,7 @@ describe('similarEvals', () => {
 
 describe('hasMultipleSolutions', () => {
   each<[Color, CentipawnsOrMate, CentipawnsOrMate]>([
-    // https://lichess.org/training/ZIRBc
+    // https://lixiangqi.org/training/ZIRBc
     // It is unclear if this should not be a false positive
     // but try to report more puzzles like that for the moment to get more opinions
     ['black', '#-16', -420],

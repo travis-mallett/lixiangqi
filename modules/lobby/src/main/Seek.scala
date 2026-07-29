@@ -13,7 +13,7 @@ import lila.core.perf.UserWithPerfs
 import lila.core.rating.RatingRange
 import lila.rating.PerfType
 
-// correspondence chess, persistent
+// Correspondence Xiangqi, persisted while advertised in the lobby.
 case class Seek(
     _id: String,
     variant: Variant.Id,

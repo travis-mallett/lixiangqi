@@ -63,10 +63,13 @@ export interface TreeNodeBase {
   shapes?: Shape[];
   comp?: boolean;
   san?: string;
+  sanZh?: string;
   threefold?: boolean;
   fail?: boolean;
   puzzle?: 'win' | 'fail' | 'good' | 'retry';
   crazy?: NodeCrazy;
+  xiangqiLegalMoves?: Uci[];
+  xiangqiCheck?: boolean;
   collapsed?: boolean;
   pos?: () => PositionResult; // precomputed
   dests?: () => Dests;

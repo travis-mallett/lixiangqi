@@ -38,7 +38,7 @@ export async function hash(): Promise<void> {
           const shouldLog = !isEquivalent(files, fullList);
           await Promise.all(
             files.map(async src => {
-              const name = relative(env.outDir, src);
+              const name = relative(env.outDir, src).replaceAll('\\', '/');
               const hash =
                 symlinkHashes[name] && !(await isLinkStale(hashedBasename(name, symlinkHashes[name])))
                   ? symlinkHashes[name]
@@ -84,6 +84,7 @@ export async function symlinkTargetHashes(newLinks?: string[]) {
 }
 
 export function hashedBasename(path: string, hash: string) {
+  path = path.replaceAll('\\', '/');
   const name = path.slice(path.lastIndexOf('/') + 1);
   const extPos = name.lastIndexOf('.');
   return extPos < 0 ? `${name}.${hash}` : `${name.slice(0, extPos)}.${hash}${name.slice(extPos)}`;
@@ -119,7 +120,11 @@ async function hashAndLink(name: string) {
   const link = join(env.hashOutDir, hashedBasename(name, hash));
   const [{ mtime }] = await Promise.all([
     fs.promises.stat(join(env.outDir, name)),
-    fs.promises.symlink(relative(env.outDir, name), link).catch(() => {}),
+    fs.promises.symlink(relative(env.hashOutDir, src), link).catch(async () => {
+      await fs.promises.link(src, link).catch(async () => {
+        await fs.promises.copyFile(src, link);
+      });
+    }),
   ]);
   await fs.promises.lutimes(link, mtime, mtime);
   return hash;

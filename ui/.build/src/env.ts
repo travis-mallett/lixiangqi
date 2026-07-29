@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import ps from 'node:process';
+import { fileURLToPath } from 'node:url';
 
 import { definedUnique, isEquivalent } from './algo.ts';
 
@@ -30,7 +31,7 @@ export interface Sync {
 }
 
 export const env = new (class {
-  readonly rootDir = resolve(dirname(new URL(import.meta.url).pathname), '../../..');
+  readonly rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
   readonly uiDir = join(this.rootDir, 'ui');
   readonly outDir = join(this.rootDir, 'public');
   readonly cssOutDir = join(this.outDir, 'css');

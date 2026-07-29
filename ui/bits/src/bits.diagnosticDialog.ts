@@ -28,7 +28,7 @@ export async function initModule(opts?: DiagnosticOpts): Promise<void> {
       `Cores: ${navigator.hardwareConcurrency}, ` +
       `Touch: ${isTouchDevice()} ${navigator.maxTouchPoints}, ` +
       `Screen: ${window.screen.width}x${window.screen.height}, ` +
-      ('lichessTools' in window ? 'Extension: Lichess Tools, ' : '') +
+      ('lixiangqiTools' in window ? 'Extension: Lixiangqi Tools, ' : '') +
       `Page lang: ${site.displayLocale}, ` +
       `Browser lang: ${navigator.language}, ` +
       `Engine: ${storage.get('ceval.engine')}, ` +
@@ -43,7 +43,7 @@ export async function initModule(opts?: DiagnosticOpts): Promise<void> {
       <form method="post" action="/diagnostic">
         <input type="hidden" name="text" value="${escaped}"/>
         <input type="hidden" name="plaintext" value="${opts?.plaintext ?? false}"/>
-        <button type="submit" class="button">${opts?.submit ?? 'send to lichess'}</button>
+        <button type="submit" class="button">${opts?.submit ?? 'send to Lixiangqi'}</button>
       </form>`
     : '';
   const clear = logs ? `<button class="button button-empty button-red clear">clear logs</button>` : '';
@@ -84,7 +84,7 @@ const storageProxy: Record<string, { storageKey: string; validate: (val?: string
   },
   wsHost: {
     storageKey: 'socket.host',
-    validate: (val?: string) => val?.endsWith('.lichess.org') ?? false,
+    validate: (val?: string) => val?.endsWith('.lixiangqi.org') ?? false,
   },
   logWindow: {
     storageKey: 'log.window',

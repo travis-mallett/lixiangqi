@@ -21,7 +21,7 @@
     align-content: flex-start;
     will-change: scroll-position;
     line-height: 1.7;
-    font-size: 1.1em;
+    font-size: $move-list-font-size;
   }
 
   #{$index-tag} {

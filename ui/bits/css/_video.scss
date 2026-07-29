@@ -65,7 +65,7 @@
     .reveal {
       @extend %metal;
       @include transition;
-      @include backdrop-blur-if-transparent;
+      @include backdrop-blur-if-background;
 
       position: absolute;
       top: 100%;

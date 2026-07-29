@@ -33,9 +33,9 @@ final class BotJsonView(
         "perf" -> Json.obj("name" -> game.perfType.trans),
         "rated" -> game.rated,
         "createdAt" -> game.createdAt,
-        "white" -> playerJson(game.pov(Color.white)),
+        "red" -> playerJson(game.pov(Color.white)),
         "black" -> playerJson(game.pov(Color.black)),
-        "initialFen" -> fen.fold("startpos")(_.value)
+        "initialFen" -> game.xiangqi.initialFen
       )
       .add("clock" -> game.clock.map(_.config))
       .add("daysPerTurn" -> game.daysPerTurn)
@@ -43,24 +43,25 @@ final class BotJsonView(
 
   def gameState(wf: WithInitialFen): Fu[JsObject] =
     import wf.*
-    for uciMoves <- chess.format.UciDump(game.sans, fen, game.variant, legacyStandardCastling = true).toFuture
-    yield Json
-      .obj(
-        "type" -> "gameState",
-        "moves" -> uciMoves.mkString(" "),
-        "wtime" -> millisRemaining(game, Color.white),
-        "btime" -> millisRemaining(game, Color.black),
-        "winc" -> game.clock.so[Long](_.config.increment.millis),
-        "binc" -> game.clock.so[Long](_.config.increment.millis),
-        "status" -> game.status.name
-      )
-      .add("wdraw" -> game.whitePlayer.isOfferingDraw)
-      .add("bdraw" -> game.blackPlayer.isOfferingDraw)
-      .add("wtakeback" -> game.whitePlayer.isProposingTakeback)
-      .add("btakeback" -> game.blackPlayer.isProposingTakeback)
-      .add("winner" -> game.winnerColor)
-      .add("rematch" -> rematches.getAcceptedId(game.id))
-      .add("expiration" -> lila.game.JsonView.expiration(game))
+    fuccess(
+      Json
+        .obj(
+          "type" -> "gameState",
+          "moves" -> game.xiangqi.moves.map(_.value).mkString(" "),
+          "rtime" -> millisRemaining(game, Color.white),
+          "btime" -> millisRemaining(game, Color.black),
+          "rinc" -> game.clock.so[Long](_.config.increment.millis),
+          "binc" -> game.clock.so[Long](_.config.increment.millis),
+          "status" -> game.status.name
+        )
+        .add("rdraw" -> game.whitePlayer.isOfferingDraw)
+        .add("bdraw" -> game.blackPlayer.isOfferingDraw)
+        .add("rtakeback" -> game.whitePlayer.isProposingTakeback)
+        .add("btakeback" -> game.blackPlayer.isProposingTakeback)
+        .add("winner" -> game.winnerColor.map(sideName))
+        .add("rematch" -> rematches.getAcceptedId(game.id))
+        .add("expiration" -> lila.game.JsonView.expiration(game))
+    )
 
   private def millisRemaining(game: Game, color: Color): Int =
     game.clock
@@ -102,3 +103,5 @@ final class BotJsonView(
       "initial" -> c.limit.millis,
       "increment" -> c.increment.millis
     )
+
+  private def sideName(color: Color) = if color.white then "red" else "black"

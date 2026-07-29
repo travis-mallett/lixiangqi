@@ -1,0 +1,971 @@
+// Wudang homepage authority.
+// This partial ports the approved design mock onto the native lobby DOM. Every
+// selector is rooted in `html.wudang`, so the light, dark, and wood packages
+// retain their original layout and component styling.
+
+html.wudang {
+  &:has(.lobby)::after {
+    animation: wudang-background-resolve 520ms ease-out both;
+  }
+
+  &:has(.lobby) #top {
+    animation: wudang-settle-header 480ms cubic-bezier(0.18, 0.74, 0.26, 1) 70ms both;
+  }
+
+  .site-title-nav__donate {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    margin-block: 0;
+    color: var(--wudang-temple-gold);
+
+    &::before {
+      position: static;
+      margin: 0;
+      color: currentcolor;
+      transform: translateY(-1px);
+    }
+  }
+
+  .lobby {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      'app app'
+      'table table'
+      'feed feed'
+      'tv puzzle'
+      'tours tours'
+      'timeline timeline'
+      'about about';
+    gap: clamp(0.75rem, 1.8vw, 1.5rem);
+    padding-top: 36px;
+    padding-bottom: clamp(2rem, 6vw, 5rem);
+
+    &__side,
+    &__blog,
+    &__support {
+      display: none !important;
+    }
+  }
+
+  // Generated inkstone frame with a live, keyboard-operable lobby inside it.
+  .lobby__app {
+    position: relative;
+    isolation: isolate;
+    box-sizing: border-box;
+    min-width: 0;
+    min-height: 0;
+    height: auto;
+    max-height: none;
+    overflow: visible;
+    aspect-ratio: 670 / 495;
+    padding: 73px 70px 50px;
+    border: 0;
+    border-radius: 0;
+    background: url('../images/theme/wudang/inkstone-frame.webp') center / 100% 100% no-repeat;
+    box-shadow: none;
+    filter: drop-shadow(0 4px 3px rgb(2 7 8 / 0.7)) drop-shadow(0 27px 30px rgb(2 7 9 / 0.4));
+    animation: wudang-settle-pairing 590ms cubic-bezier(0.16, 0.78, 0.24, 1) 150ms both;
+    animation-fill-mode: backwards;
+
+    // Exact inset instrument from the approved mockup. The native tabs and
+    // pool controls remain live above this material layer.
+    &::before {
+      content: '';
+      position: absolute;
+      z-index: 0;
+      inset: 28px 55px 36px;
+      border: 1px solid rgb(200 166 100 / 0.52);
+      border-radius: 27px 21px 30px 24px;
+      background:
+        radial-gradient(circle at 22% 9%, rgb(255 255 255 / 0.035), transparent 32%),
+        linear-gradient(145deg, #17262a, #101b1e 54%, #152327);
+      box-shadow:
+        inset 0 0 0 3px rgb(5 11 13 / 0.5),
+        inset 0 0 28px rgb(2 7 8 / 0.58),
+        0 2px 2px rgb(0 0 0 / 0.7);
+      pointer-events: none;
+    }
+
+    > .tabs-horiz {
+      position: absolute;
+      z-index: 2;
+      top: 4px;
+      right: 65px;
+      left: 65px;
+      display: grid;
+      grid-template-columns: 1fr 0.92fr 1.12fr;
+      align-items: center;
+      gap: 4px;
+      height: 65px;
+      margin: 0;
+      border: 0;
+      background: transparent;
+      box-shadow: none;
+
+      > button {
+        position: relative;
+        min-width: 0;
+        min-height: 0;
+        height: 47px;
+        padding: 0.4rem 0.7rem;
+        border: 1px solid rgb(169 173 165 / 0.18);
+        border-radius: 0;
+        background: linear-gradient(180deg, rgb(255 255 255 / 0.035), transparent), #182326;
+        color: #aeb2ae;
+        font-family: 'Noto Serif SC', 'Source Han Serif SC', Georgia, serif;
+        font-size: 0.91rem;
+        font-weight: 500;
+        text-transform: none;
+        clip-path: polygon(4% 5%, 94% 0, 100% 15%, 98% 90%, 91% 98%, 5% 94%, 0 82%, 2% 14%);
+        box-shadow: none;
+
+        &::after {
+          right: 24%;
+          bottom: 7px;
+          left: 24%;
+          height: 4px;
+          background: transparent;
+          clip-path: polygon(
+            0 44%,
+            18% 22%,
+            36% 40%,
+            54% 12%,
+            76% 36%,
+            100% 18%,
+            96% 70%,
+            65% 66%,
+            42% 94%,
+            16% 71%
+          );
+        }
+
+        &:hover,
+        &:focus-visible {
+          color: var(--wudang-text-on-dark);
+        }
+
+        &.active {
+          border-color: #c9c0af;
+          background:
+            radial-gradient(circle at 15% 20%, rgb(90 62 34 / 0.08) 0 1px, transparent 2px),
+            linear-gradient(110deg, #eee6d7, #dcd0bd);
+          background-size:
+            38px 33px,
+            auto;
+          color: var(--wudang-text-on-paper);
+          box-shadow:
+            inset 0 0 0 3px rgb(255 255 255 / 0.22),
+            0 4px 7px rgb(2 7 8 / 0.52);
+          height: 59px;
+          transform: translateY(-5px);
+
+          &::after {
+            background: var(--wudang-cinnabar);
+          }
+        }
+      }
+    }
+  }
+
+  .lobby__app__content {
+    position: relative;
+    z-index: 1;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden auto;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .lpools {
+    gap: 8px;
+    padding: 0;
+    background: transparent !important;
+
+    .clock {
+      color: var(--wudang-text-on-dark);
+      font-family: 'Noto Serif SC', 'Source Han Serif SC', Georgia, serif;
+      font-size: clamp(1.6rem, 2.25vw, 2.28rem);
+      font-variant-numeric: tabular-nums lining-nums;
+      font-weight: 500;
+      line-height: 1;
+      letter-spacing: 0.02em;
+      text-shadow: none;
+    }
+
+    .perf {
+      margin-top: 8px;
+      color: #aeb4b1;
+      font-size: 0.88rem;
+      font-weight: 360;
+    }
+
+    .range {
+      color: var(--wudang-temple-gold);
+      text-shadow: 0 0 10px rgb(213 189 132 / 0.38);
+    }
+  }
+
+  .lpool {
+    position: relative;
+    min-width: 0;
+    border: 1px solid rgb(143 151 145 / 0.22);
+    border-radius: 0;
+    background: linear-gradient(145deg, rgb(255 255 255 / 0.024), transparent 48%), #132125;
+    clip-path: polygon(7% 0, 93% 0, 100% 14%, 98% 87%, 92% 100%, 7% 97%, 0 84%, 2% 13%);
+    color: var(--wudang-text-on-dark);
+    box-shadow:
+      inset 0 0 0 2px rgb(4 10 12 / 0.62),
+      inset 0 1px rgb(255 255 255 / 0.045),
+      0 3px 5px rgb(2 7 8 / 0.58);
+    transition:
+      transform 140ms ease,
+      box-shadow 140ms ease,
+      border-color 140ms ease,
+      background 140ms ease;
+
+    &::after {
+      inset-inline: 30%;
+      bottom: 7px;
+      height: 3px;
+      background: transparent;
+      clip-path: polygon(0 45%, 24% 15%, 50% 42%, 77% 0, 100% 38%, 94% 75%, 61% 68%, 37% 100%, 12% 70%);
+    }
+
+    &:hover,
+    &:focus-visible,
+    &.active {
+      z-index: 2;
+      border-color: #9bb9aa;
+      background:
+        radial-gradient(ellipse at 50% 72%, rgb(81 119 103 / 0.22), transparent 72%),
+        linear-gradient(145deg, #203538, #152528) !important;
+      color: var(--wudang-text-on-dark);
+      box-shadow:
+        inset 0 0 0 2px rgb(199 215 204 / 0.16),
+        inset 4px 0 var(--wudang-jade-light),
+        0 4px 5px rgb(3 8 10 / 0.58),
+        0 14px 27px rgb(3 8 10 / 0.48);
+      transform: translate3d(0, -4px, 0) scale(1.012);
+
+      &::after {
+        background: var(--wudang-cinnabar);
+      }
+    }
+
+    &:active {
+      transform: translate3d(0, 1px, 0) scale(0.995);
+      box-shadow:
+        inset 0 3px 8px rgb(2 7 8 / 0.72),
+        0 1px 2px rgb(2 7 8 / 0.48);
+    }
+
+    &[data-id='custom'] {
+      font-family: 'Noto Sans', 'Noto Sans SC', sans-serif;
+      font-size: 1.35rem;
+      font-weight: 420;
+    }
+  }
+
+  // Generated plaque bodies, with native translated labels and icons left live.
+  .lobby__table {
+    align-self: start;
+    min-width: 0;
+    overflow: visible;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .lobby__start {
+    align-items: flex-start;
+    gap: 36px;
+    margin: 0;
+  }
+
+  .button.lobby__start__button {
+    --wudang-plaque-contact: rgb(2 7 8 / 0.72);
+    --wudang-plaque-shadow: rgb(2 7 8 / 0.48);
+    --wudang-plaque-aura: rgb(213 189 132 / 0.44);
+    --wudang-plaque-text-glow: rgb(255 238 199 / 0.72);
+    --wudang-plaque-pad-start: clamp(29px, 11.5%, 38px);
+    --wudang-plaque-pad-end: clamp(22px, 10.3%, 34px);
+    --wudang-plaque-gap: clamp(16px, 7.9%, 26px);
+    --wudang-plaque-content-y: -3px;
+
+    position: relative;
+    isolation: isolate;
+    min-height: 0;
+    justify-content: flex-start;
+    gap: var(--wudang-plaque-gap);
+    padding-inline: var(--wudang-plaque-pad-start) var(--wudang-plaque-pad-end);
+    border: 0;
+    border-radius: 0;
+    background-color: transparent !important;
+    background-position: center !important;
+    background-size: 100% 100% !important;
+    background-repeat: no-repeat !important;
+    color: var(--wudang-text-on-dark);
+    font-family: 'Noto Serif SC', 'Source Han Serif SC', Georgia, serif;
+    font-size: 1.24rem;
+    font-weight: 500;
+    text-align: left;
+    filter: drop-shadow(0 3px 2px var(--wudang-plaque-contact))
+      drop-shadow(0 13px 11px var(--wudang-plaque-shadow));
+    box-shadow: none;
+    transform-origin: 46% 70%;
+    will-change: transform, filter;
+    transition:
+      transform 220ms cubic-bezier(0.18, 0.78, 0.2, 1),
+      filter 220ms ease;
+
+    &::before {
+      flex: 0 0 auto;
+      width: clamp(32px, 13.4%, 44px);
+      height: clamp(29px, 12%, 39px);
+      aspect-ratio: 1;
+      margin: 0;
+      color: currentcolor;
+      font-size: clamp(1.45rem, 3.2vw, 2.25rem);
+      line-height: 1;
+      filter: none;
+      transform: translate3d(0, var(--wudang-plaque-content-y), 0);
+      transition:
+        filter 180ms ease,
+        transform 220ms cubic-bezier(0.18, 0.78, 0.2, 1);
+    }
+
+    .lobby__start__label {
+      position: relative;
+      z-index: 1;
+      text-shadow: 0 2px 2px rgb(2 7 8 / 0.72);
+      transform: translate3d(0, var(--wudang-plaque-content-y), 0);
+      transition:
+        color 180ms ease,
+        letter-spacing 220ms ease,
+        text-shadow 180ms ease,
+        transform 220ms cubic-bezier(0.18, 0.78, 0.2, 1);
+    }
+
+    &--hook {
+      --wudang-plaque-image: url('../images/theme/wudang/play-lobby-plaque.webp');
+      --wudang-plaque-aura: rgb(224 126 86 / 0.5);
+      --wudang-plaque-text-glow: rgb(255 226 169 / 0.82);
+
+      width: 330px;
+      height: 108px;
+      background-image: url('../images/theme/wudang/play-lobby-plaque.webp') !important;
+    }
+
+    &--friend {
+      --wudang-plaque-image: url('../images/theme/wudang/play-friend-plaque.webp');
+      --wudang-plaque-aura: rgb(196 226 211 / 0.5);
+      --wudang-plaque-text-glow: rgb(231 248 237 / 0.82);
+      --wudang-plaque-pad-start: clamp(27px, 11%, 34px);
+      --wudang-plaque-pad-end: clamp(18px, 8%, 24px);
+      --wudang-plaque-gap: clamp(12px, 6%, 18px);
+
+      width: 300px;
+      height: 77px;
+      margin-inline-start: 18px;
+      background-image: url('../images/theme/wudang/play-friend-plaque.webp') !important;
+      color: #1f292a;
+      font-size: 1.05rem;
+
+      .lobby__start__label {
+        text-shadow: 0 1px 1px rgb(255 255 255 / 0.74);
+      }
+    }
+
+    &--ai {
+      --wudang-plaque-image: url('../images/theme/wudang/play-computer-plaque.webp');
+      --wudang-plaque-aura: rgb(118 163 184 / 0.52);
+      --wudang-plaque-text-glow: rgb(207 234 241 / 0.82);
+      --wudang-plaque-pad-start: clamp(27px, 11%, 34px);
+      --wudang-plaque-pad-end: clamp(14px, 6%, 20px);
+      --wudang-plaque-gap: clamp(12px, 6%, 18px);
+      --wudang-plaque-content-y: -2px;
+
+      width: 295px;
+      height: 73px;
+      margin-inline-start: 30px;
+      background-image: url('../images/theme/wudang/play-computer-plaque.webp') !important;
+      font-size: 1rem;
+    }
+
+    &:not(.disabled, :disabled):hover,
+    &:not(.disabled, :disabled):focus-visible {
+      outline: 0;
+      border: 0;
+      background-color: transparent !important;
+      color: inherit !important;
+      filter: brightness(1.12) saturate(1.1) drop-shadow(0 6px 3px var(--wudang-plaque-contact))
+        drop-shadow(0 21px 17px var(--wudang-plaque-shadow)) drop-shadow(0 0 18px var(--wudang-plaque-aura));
+      box-shadow: none;
+      transform: translate3d(0, -5px, 0) scale(1.014);
+
+      &::before {
+        color: currentcolor;
+        filter: drop-shadow(0 0 10px var(--wudang-plaque-text-glow));
+        transform: translate3d(2px, calc(var(--wudang-plaque-content-y) - 3px), 0) scale(1.08);
+      }
+
+      .lobby__start__label {
+        letter-spacing: 0.018em;
+        text-shadow:
+          0 0 12px var(--wudang-plaque-text-glow),
+          0 2px 2px rgb(2 7 8 / 0.7);
+        transform: translate3d(6px, calc(var(--wudang-plaque-content-y) - 2px), 0);
+      }
+    }
+
+    &--hook:not(.disabled, :disabled):hover,
+    &--hook:not(.disabled, :disabled):focus-visible {
+      transform: translate3d(0, -7px, 0) scale(1.018);
+    }
+
+    &--friend:not(.disabled, :disabled):hover,
+    &--friend:not(.disabled, :disabled):focus-visible {
+      .lobby__start__label {
+        text-shadow:
+          0 0 12px var(--wudang-plaque-text-glow),
+          0 1px 1px rgb(255 255 255 / 0.8);
+      }
+    }
+
+    &:not(.disabled, :disabled):active {
+      background-color: transparent !important;
+      filter: brightness(0.92) saturate(1.02) drop-shadow(0 2px 1px var(--wudang-plaque-contact))
+        drop-shadow(0 7px 6px var(--wudang-plaque-shadow));
+      transform: translate3d(0, 3px, 0) scale(0.992);
+      transition-duration: 70ms;
+
+      .lobby__start__label {
+        letter-spacing: 0;
+        text-shadow: 0 1px 1px rgb(2 7 8 / 0.78);
+        transform: translate3d(1px, calc(var(--wudang-plaque-content-y) + 2px), 0);
+      }
+    }
+  }
+
+  .lobby__start__button:nth-child(1) {
+    animation: wudang-settle-action 430ms cubic-bezier(0.2, 0.78, 0.26, 1) 260ms both;
+    animation-fill-mode: backwards;
+  }
+
+  .lobby__start__button:nth-child(2) {
+    animation: wudang-settle-action 430ms cubic-bezier(0.2, 0.78, 0.26, 1) 330ms both;
+    animation-fill-mode: backwards;
+  }
+
+  .lobby__start__button:nth-child(3) {
+    animation: wudang-settle-action 430ms cubic-bezier(0.2, 0.78, 0.26, 1) 400ms both;
+    animation-fill-mode: backwards;
+  }
+
+  .lobby__counters {
+    position: relative;
+    inset: auto;
+    display: flex !important;
+    flex-flow: row nowrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    width: min(100%, 320px);
+    min-height: 54px;
+    margin: clamp(13px, 2vw, 22px) auto 0;
+    padding: 8px 14px 8px 32px;
+    border: 1px solid rgb(213 189 132 / 0.26);
+    border-radius: 3px 14px 3px 14px;
+    background:
+      radial-gradient(circle at 18% 0, rgb(143 169 155 / 0.13), transparent 42%),
+      linear-gradient(112deg, rgb(10 21 24 / 0.96), rgb(18 32 35 / 0.94));
+    color: var(--wudang-muted-on-dark);
+    box-shadow:
+      inset 0 1px rgb(255 255 255 / 0.05),
+      var(--wudang-shadow-stone-small);
+    text-shadow: none;
+    animation: wudang-settle-secondary 420ms ease-out 500ms both;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: 14px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--wudang-jade-light);
+      box-shadow:
+        0 0 0 5px rgb(143 169 155 / 0.12),
+        0 0 14px rgb(175 197 185 / 0.58);
+    }
+
+    a {
+      flex: 1 1 50%;
+      min-width: 0;
+      padding-inline: 10px;
+      color: var(--wudang-muted-on-dark);
+      font-size: 0.68rem;
+      line-height: 1.08;
+      text-align: left;
+      text-shadow: none;
+
+      + a {
+        border-inline-start: 1px solid rgb(213 189 132 / 0.26);
+      }
+
+      &:hover {
+        color: var(--wudang-text-on-dark);
+        text-decoration: none;
+      }
+    }
+
+    strong {
+      display: block;
+      color: var(--wudang-temple-gold);
+      font-family: 'Noto Serif SC', Georgia, serif;
+      font-size: 1.04rem;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.025em;
+    }
+  }
+
+  // Mounted update ledger.
+  .lobby__feed {
+    min-width: 0;
+    min-height: 0;
+    max-height: 19rem;
+    overflow: hidden auto;
+    padding: clamp(0.65rem, 1.5vw, 1rem);
+    border: 1px solid #b6ad9d;
+    border-radius: 2px 17px 4px 12px;
+    background:
+      repeating-linear-gradient(14deg, rgb(62 56 47 / 0.02) 0 1px, transparent 1px 8px),
+      var(--wudang-paper-field);
+    color: var(--wudang-text-on-paper);
+    box-shadow:
+      inset 5px 0 var(--wudang-jade-dark),
+      var(--wudang-shadow-paper);
+    animation: wudang-settle-secondary 420ms ease-out 500ms both;
+  }
+
+  .daily-feed__updates {
+    margin: 0 0 0 18px;
+    border-inline-start-color: rgb(95 127 114 / 0.56);
+  }
+
+  .daily-feed__update {
+    margin-top: 0.85rem;
+    padding-inline-start: 20px;
+
+    &__marker {
+      width: 26px;
+      height: 26px;
+      margin-inline-start: -34px;
+      border-color: var(--wudang-paper-high);
+      background: var(--wudang-jade);
+    }
+
+    &__day {
+      color: var(--wudang-text-on-paper);
+      font-family: 'Noto Serif SC', Georgia, serif;
+    }
+  }
+
+  // Native live game and daily puzzle, paired at every viewport width.
+  .lobby__tv,
+  .lobby__puzzle {
+    place-self: start center;
+    box-sizing: border-box;
+    width: min(100%, 500px);
+    min-width: 0;
+    overflow: hidden;
+    padding: clamp(7px, 1.4vw, 16px);
+    border-radius: 5px 18px 7px 16px;
+    box-shadow:
+      inset 0 1px rgb(255 255 255 / 0.05),
+      0 4px 5px rgb(4 9 11 / 0.5),
+      0 22px 42px rgb(4 9 11 / 0.26);
+    animation: wudang-settle-secondary 420ms ease-out 500ms both;
+  }
+
+  .lobby__tv {
+    border: 1px solid rgb(213 189 132 / 0.3);
+    background:
+      radial-gradient(circle at 84% 12%, rgb(95 127 114 / 0.16), transparent 38%), var(--wudang-ink-900);
+    color: var(--wudang-text-on-dark);
+  }
+
+  .lobby__puzzle {
+    border: 1px solid #b7ad9d;
+    background:
+      repeating-linear-gradient(15deg, rgb(75 65 50 / 0.022) 0 1px, transparent 1px 7px),
+      var(--wudang-paper-high);
+    color: var(--wudang-text-on-paper);
+  }
+
+  .lobby__tv .mini-game,
+  .lobby__puzzle > a {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .lobby__tv .mini-game {
+    color: var(--wudang-text-on-dark);
+
+    .mini-game__player {
+      color: var(--wudang-muted-on-dark);
+    }
+  }
+
+  .lobby__puzzle .text {
+    min-height: 0;
+    margin: 0 0 0.35rem;
+    color: var(--wudang-text-on-paper);
+    font-family: 'Noto Serif SC', Georgia, serif;
+    text-shadow: none;
+  }
+
+  .lobby__tv .mini-board,
+  .lobby__puzzle .mini-board {
+    overflow: hidden;
+    border: 1px solid #6e4f2d;
+    border-radius: 1px;
+    box-shadow:
+      inset 0 0 0 3px rgb(86 54 25 / 0.16),
+      0 7px 15px rgb(2 7 8 / 0.34) !important;
+  }
+
+  .lobby__tournaments-simuls {
+    overflow: hidden;
+    padding: 8px;
+    border: 1px solid rgb(213 189 132 / 0.22);
+    border-radius: 3px 16px 3px 14px;
+    background:
+      linear-gradient(90deg, transparent, rgb(95 127 114 / 0.08), transparent), var(--wudang-ink-900);
+    color: var(--wudang-text-on-dark);
+    box-shadow: var(--wudang-shadow-stone);
+    animation: wudang-settle-secondary 420ms ease-out 500ms both;
+  }
+
+  .lobby__tournaments-simuls .lobby__box {
+    border: 0;
+    background: transparent;
+    color: inherit;
+    box-shadow: none;
+  }
+
+  .lobby__about {
+    margin-top: clamp(0.75rem, 2vw, 1.5rem);
+    border-top-color: rgb(239 231 214 / 0.13);
+    background: rgb(8 16 18 / 0.9);
+    animation: wudang-settle-secondary 380ms ease-out 610ms both;
+  }
+
+  @keyframes wudang-settle-pairing {
+    from {
+      opacity: 0;
+      filter: saturate(0.8);
+      transform: translateY(18px) scale(0.985);
+    }
+
+    to {
+      opacity: 1;
+      filter: saturate(1);
+      transform: none;
+    }
+  }
+
+  @keyframes wudang-background-resolve {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes wudang-settle-header {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes wudang-settle-action {
+    from {
+      opacity: 0;
+      transform: translate3d(14px, 9px, 0);
+    }
+
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes wudang-settle-secondary {
+    from {
+      opacity: 0;
+      transform: translateY(7px);
+    }
+
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  // This rule intentionally has no upper bound. The desktop composition below
+  // follows it in source order and takes over at 1281px, avoiding fractional
+  // viewport gaps on browsers whose effective CSS width falls between pixels.
+  @media (min-width: 841px) {
+    .lobby {
+      grid-template-columns: minmax(0, 1.85fr) minmax(250px, 0.9fr);
+      grid-template-areas:
+        'app table'
+        'feed feed'
+        'tv puzzle'
+        'tours tours'
+        'timeline timeline'
+        'about about';
+    }
+
+    .lobby__app {
+      min-height: clamp(400px, 48vw, 600px);
+    }
+  }
+
+  @media (min-width: 1281px) {
+    .lobby {
+      grid-template-columns: minmax(0, 1fr) repeat(2, 327.5px) 345px;
+      grid-template-areas:
+        '. app app table'
+        '. feed feed .'
+        'tv tv puzzle puzzle'
+        'tours tours tours tours'
+        'timeline timeline timeline timeline'
+        'about about about about';
+    }
+
+    .lobby__app {
+      width: 670px;
+      max-width: 100%;
+      min-height: 495px;
+      justify-self: center;
+    }
+
+    .lobby__table {
+      margin-top: 53px;
+    }
+
+    .lobby__feed {
+      width: 654px;
+      height: 184px;
+      max-height: 184px;
+      justify-self: center;
+    }
+  }
+
+  @media (max-width: 1280px) {
+    .lobby__app {
+      width: 100%;
+      min-height: clamp(400px, 48vw, 600px);
+    }
+
+    .lobby__table {
+      margin-top: 0;
+    }
+
+    .lobby__feed {
+      width: 100%;
+      height: auto;
+      min-height: 184px;
+      max-height: 19rem;
+    }
+
+    .lobby__start {
+      gap: clamp(12px, 1.5vw, 18px);
+    }
+
+    .button.lobby__start__button,
+    .button.lobby__start__button--hook,
+    .button.lobby__start__button--friend,
+    .button.lobby__start__button--ai {
+      width: 100%;
+      height: auto;
+      margin-inline-start: 0;
+      font-size: clamp(0.9rem, 1.35vw, 1rem);
+    }
+
+    .button.lobby__start__button--hook {
+      aspect-ratio: 1796 / 577;
+    }
+
+    .button.lobby__start__button--friend {
+      aspect-ratio: 1797 / 506;
+    }
+
+    .button.lobby__start__button--ai {
+      aspect-ratio: 1922 / 484;
+    }
+  }
+
+  @media (max-width: 840px) {
+    // The compact site header owns this breakpoint. Keeping Donate out of the
+    // collapsed rail prevents it from colliding with the native menu trigger.
+    .site-title-nav__donate {
+      display: none;
+    }
+
+    .lobby {
+      gap: clamp(0.55rem, 2.4vw, 0.9rem);
+      padding-top: 24px;
+    }
+
+    .lobby__app {
+      min-height: 0;
+      height: clamp(440px, 111vw, 520px);
+      aspect-ratio: auto;
+      padding: 74px 31px 38px;
+
+      &::before {
+        inset: 24px 22px 28px;
+      }
+    }
+
+    .lobby__app > .tabs-horiz {
+      gap: 4px;
+      top: 0;
+      right: 26px;
+      left: 26px;
+      margin: 0;
+    }
+
+    .lobby__app > .tabs-horiz > button {
+      min-height: 0;
+      padding-inline: 0.25rem;
+      font-family: inherit;
+      font-size: 0.72rem;
+    }
+
+    .lpools {
+      gap: 5px;
+      padding: 0;
+
+      .clock {
+        font-size: clamp(1.25rem, 7.3vw, 1.9rem);
+      }
+
+      .perf {
+        margin-top: 5px;
+        font-size: 0.7rem;
+      }
+    }
+
+    .lpool {
+      min-height: 0;
+    }
+
+    .lobby__start {
+      width: min(100%, 360px);
+      margin-inline: auto;
+    }
+
+    .button.lobby__start__button {
+      max-width: 360px;
+    }
+
+    .lobby__counters {
+      max-width: 360px;
+    }
+
+    .lobby__feed {
+      max-height: 17rem;
+    }
+
+    .lobby__tv,
+    .lobby__puzzle {
+      padding: clamp(4px, 1.7vw, 8px);
+      border-radius: 3px 9px 4px 8px;
+    }
+
+    .lobby__tv {
+      font-size: clamp(0.54rem, 2.1vw, 0.75rem);
+    }
+
+    .lobby__puzzle .text {
+      overflow: hidden;
+      margin-bottom: 0.2rem;
+      font-size: clamp(0.58rem, 2.4vw, 0.78rem);
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  @media (max-width: 499px) {
+    .lobby {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .lobby__app,
+    .lobby__table,
+    .lobby__feed,
+    .lobby__tournaments-simuls {
+      grid-column: 1 / -1;
+    }
+
+    .lobby__counters {
+      padding-inline: 29px 8px;
+
+      a {
+        padding-inline: 7px;
+        font-size: 0.59rem;
+      }
+
+      strong {
+        font-size: 0.9rem;
+      }
+    }
+
+    .lobby__tv .mini-game__player {
+      font-size: 0.72em;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &:has(.lobby)::after,
+    &:has(.lobby) #top {
+      animation-delay: 0ms !important;
+      animation-duration: 1ms !important;
+    }
+
+    .lobby *,
+    .lobby *::before,
+    .lobby *::after {
+      animation-delay: 0ms !important;
+      animation-duration: 1ms !important;
+      transition-duration: 1ms !important;
+    }
+
+    .lpool,
+    .button.lobby__start__button,
+    .button.lobby__start__button::before,
+    .button.lobby__start__button::after,
+    .lobby__start__label {
+      transition-duration: 1ms;
+    }
+  }
+}

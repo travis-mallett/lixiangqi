@@ -1,15 +1,13 @@
 package lila.recap
 
 import reactivemongo.api.bson.Macros.Annotations.Key
-import chess.ByColor
-import lila.common.SimpleOpening
-import chess.format.pgn.SanStr
 import lila.recap.Recap.Counted
 import lila.core.game.Source
 import play.api.libs.json.JsObject
 
 case class Recap(
     @Key("_id") id: UserId,
+    v: Int,
     year: Int,
     games: RecapGames,
     puzzles: RecapPuzzles,
@@ -19,10 +17,9 @@ case class Recap(
 
 case class RecapGames(
     nbs: NbWin,
-    nbWhite: Int,
+    nbRed: Int,
     moves: Int,
-    openings: Recap.Openings,
-    firstMoves: List[Counted[SanStr]],
+    firstRedMoves: List[Counted[String]],
     timePlaying: FiniteDuration,
     sources: Map[Source, Int],
     opponents: List[Counted[UserId]],
@@ -33,11 +30,10 @@ case class RecapPuzzles(nbs: NbWin = NbWin(), votes: PuzzleVotes = PuzzleVotes()
 
 object Recap:
 
+  val schemaVersion = 1
+
   case class Counted[A](value: A, count: Int)
   case class Perf(key: PerfKey, games: Int)
-
-  type Openings = ByColor[Counted[SimpleOpening]]
-  lazy val nopening = Counted(SimpleOpening.openingList.head, 0)
 
   type QueueEntry = ParallelQueue.Entry[UserId]
 

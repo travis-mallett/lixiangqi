@@ -8,7 +8,6 @@ import {
 } from 'snabbdom';
 
 import { Coords } from 'lib/prefs';
-import { pubsub } from 'lib/pubsub';
 
 import { LearnCtrl } from './ctrl';
 import storage, { type Storage } from './storage';
@@ -36,7 +35,6 @@ export interface LearnOpts {
 export interface LearnPrefs {
   coords: Coords;
   destination: boolean;
-  is3d: boolean;
 }
 
 interface LearnServerOpts {
@@ -66,9 +64,5 @@ export function initModule({ data, pref }: LearnServerOpts) {
 
   redraw();
 
-  const was3d = document.head.querySelector(`link[data-css-key='lib.board-3d']`) !== null;
-  pubsub.on('board.change', (is3d: boolean) => {
-    if (is3d !== was3d) setTimeout(site.reload, 200);
-  });
   return {};
 }

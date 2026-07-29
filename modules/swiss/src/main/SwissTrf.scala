@@ -32,7 +32,7 @@ private final class SwissTrf(
       List(
         s"012 ${swiss.name}",
         s"022 $baseUrl/swiss/${swiss.id}",
-        s"032 Lichess",
+        s"032 Lixiangqi",
         s"042 ${dateFormatter.print(swiss.startsAt)}",
         s"052 ${swiss.finishedAt.so(dateFormatter.print)}",
         s"062 ${swiss.nbPlayers}",

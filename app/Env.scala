@@ -15,8 +15,8 @@ final class Env(
     shutdown: org.apache.pekko.actor.CoordinatedShutdown,
     cookieBaker: SessionCookieBaker
 )(using val system: org.apache.pekko.actor.ActorSystem, val executor: Executor)(using
-    StandaloneWSClient,
-    org.apache.pekko.stream.Materializer
+    ws: StandaloneWSClient,
+    materializer: org.apache.pekko.stream.Materializer
 ):
   val net: NetConfig = lila.web.WebConfig.netConfig(config)
   export net.baseUrl
@@ -74,7 +74,7 @@ final class Env(
   val appeal: lila.appeal.Env = wire[lila.appeal.Env]
   val timeline: lila.timeline.Env = wire[lila.timeline.Env]
   val puzzle: lila.puzzle.Env = wire[lila.puzzle.Env]
-  val coordinate: lila.coordinate.Env = wire[lila.coordinate.Env]
+  val notation: lila.notation.Env = wire[lila.notation.Env]
   val tv: lila.tv.Env = wire[lila.tv.Env]
   val feed: lila.feed.Env = wire[lila.feed.Env]
   val video: lila.video.Env = wire[lila.video.Env]
@@ -100,8 +100,6 @@ final class Env(
   val bot: lila.bot.Env = wire[lila.bot.Env]
   val storm: lila.storm.Env = wire[lila.storm.Env]
   val racer: lila.racer.Env = wire[lila.racer.Env]
-  val jsBot: lila.jsBot.Env = wire[lila.jsBot.Env]
-  val opening: lila.opening.Env = wire[lila.opening.Env]
   val tutor: lila.tutor.Env = wire[lila.tutor.Env]
   val recap: lila.recap.Env = wire[lila.recap.Env]
   val cms: lila.cms.Env = wire[lila.cms.Env]

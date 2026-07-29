@@ -31,7 +31,7 @@ import { pubsub } from 'lib/pubsub';
 import { storedBooleanProp } from 'lib/storage';
 import { makeTree, treePath, treeOps, type TreeWrapper } from 'lib/tree';
 import { completeNode } from 'lib/tree/node';
-import type { ClientEval, LocalEval, ServerEval, TreeNode, TreePath } from 'lib/tree/types';
+import type { ClientEval, LocalEval, ServerEval, TreeNode, TreeNodeBase, TreePath } from 'lib/tree/types';
 import { confirm } from 'lib/view';
 
 import { Autoplay, type AutoplayDelay } from './autoplay';
@@ -223,9 +223,8 @@ export default class AnalyseCtrl implements CevalHandler {
       this.jumpToIndex(index);
       this.redraw();
     });
-    pubsub.on('board.change', (is3d: boolean) => {
+    pubsub.on('board.change', () => {
       if (this.chessground) {
-        this.chessground.state.addPieceZIndex = is3d;
         this.chessground.redrawAll();
         redraw();
       }
@@ -240,6 +239,15 @@ export default class AnalyseCtrl implements CevalHandler {
 
   initialize(data: AnalyseData, merge: boolean): void {
     this.data = data;
+    if (data.pref.notationStyle === 'chinese') {
+      const useChineseNotation = (nodes: TreeNodeBase[]): void =>
+        nodes.forEach(node => {
+          if (node.sanZh) node.san = node.sanZh;
+          if (node.children) useChineseNotation(node.children);
+        });
+      useChineseNotation(data.treeParts);
+      data.sidelines?.forEach(useChineseNotation);
+    }
     this.synthetic = data.game.id === 'synthetic';
     this.ongoing = !this.synthetic && playable(data);
     this.treeView.hidden = true;
@@ -427,7 +435,7 @@ export default class AnalyseCtrl implements CevalHandler {
       if (isForwardStep) {
         const isAtomicCapture = this.data.game.variant.key === 'atomic' && !!this.node.san?.includes('x');
         if (isAtomicCapture) site.sound.play('explosion');
-        else site.sound.move(this.node);
+        else site.sound.move({ san: this.node.san });
       }
       this.threatMode(false);
       this.ceval?.reset();

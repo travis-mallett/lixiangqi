@@ -1,9 +1,6 @@
 package lila.tutor
 
-import chess.{ ByColor, Color }
-
 import lila.analyse.AccuracyPercent
-import lila.common.LilaOpeningFamily
 import lila.insight.*
 import lila.rating.PerfType
 import lila.tutor.TutorCompare.AnyComparison
@@ -19,7 +16,6 @@ case class TutorPerfReport(
     conversion: TutorBothOption[GoodPercent],
     globalClock: TutorBothOption[ClockPercent],
     clockUsage: TutorBothOption[ClockPercent],
-    openings: ByColor[TutorColorOpenings],
     phases: TutorPhases,
     pieces: TutorPieces,
     flagging: TutorFlagging
@@ -77,27 +73,17 @@ case class TutorPerfReport(
 
   val clockCompares = List(globalPressureCompare, timeUsageCompare)
 
-  def openingCompares: List[TutorCompare[LilaOpeningFamily, ?]] = Color.all.flatMap: color =>
-    val op = openings(color)
-    List(op.accuracyCompare, op.awarenessCompare, op.performanceCompare).map(_.as(color))
-
-  lazy val allCompares: List[TutorCompare[?, ?]] = openingCompares ::: phases.compares
+  lazy val allCompares: List[TutorCompare[?, ?]] = phases.compares
 
   val skillHighlights = TutorCompare.mixedBag(skillCompares.flatMap(_.peerComparisons))
-
-  val openingHighlights = TutorCompare.mixedBag(openingCompares.flatMap(_.allComparisons))
 
   val timeHighlights = TutorCompare.mixedBag(clockCompares.flatMap(_.peerComparisons))
 
   val relevantComparisons: List[AnyComparison] =
-    openingCompares.flatMap(_.allComparisons) :::
-      phases.compares.flatMap(_.peerComparisons) :::
+    phases.compares.flatMap(_.peerComparisons) :::
       clockCompares.flatMap(_.peerComparisons) :::
       skillCompares.flatMap(_.peerComparisons)
   val relevantHighlights = TutorCompare.mixedBag(relevantComparisons)
-
-  def openingFrequency(color: Color, fam: TutorOpeningFamily) =
-    GoodPercent(fam.performance.mine.count, stats.nbGames(color))
 
 private object TutorPerfReport:
 
@@ -129,7 +115,6 @@ private object TutorPerfReport:
       clockUsage <- clockUsers.traverse(TutorClockUsage.compute)
       perfReports <- users.toList.sequentially: user =>
         for
-          openings <- TutorOpening.compute(user)
           phases <- TutorPhases.compute(user)
           pieces <- TutorPieces.compute(user)
           flagging <- TutorFlagging.computeIfRelevant(user)
@@ -143,7 +128,6 @@ private object TutorPerfReport:
           conversion = GoodPercent.from(conversion.valueMetric(user.perfType)),
           globalClock = ClockPercent.from(globalClock.so(_.valueMetric(user.perfType))),
           clockUsage = ClockPercent.from(clockUsage.so(_.valueMetric(user.perfType))),
-          openings,
           phases,
           pieces,
           flagging

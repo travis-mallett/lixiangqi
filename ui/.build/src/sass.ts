@@ -29,6 +29,7 @@ export async function sass(): Promise<string | undefined> {
     fs.promises.mkdir(env.themeGenDir),
     fs.promises.mkdir(join(env.buildTempDir, 'css')),
   ]);
+  await buildColorWrap();
 
   let remaining: Set<string> | undefined;
 
@@ -86,11 +87,14 @@ export async function sass(): Promise<string | undefined> {
 
 // compile an array of concrete scss files, return any that error
 async function compile(sources: string[], logAll = true): Promise<string[]> {
+  const sassDir = join(env.buildDir, 'node_modules', `sass-embedded-${ps.platform}-${ps.arch}`, 'dart-sass');
   const sassBin =
     process.env.SASS_PATH ??
     (await fs.promises.realpath(
-      join(env.buildDir, 'node_modules', `sass-embedded-${ps.platform}-${ps.arch}`, 'dart-sass', 'sass'),
+      ps.platform === 'win32' ? join(sassDir, 'src', 'dart.exe') : join(sassDir, 'sass'),
     ));
+  const sassPrefix =
+    !process.env.SASS_PATH && ps.platform === 'win32' ? [join(sassDir, 'src', 'sass.snapshot')] : [];
   if (!(await readable(sassBin))) env.exit(`Sass executable not found '${c.cyan(sassBin)}'`, 'sass');
 
   return new Promise(resolveWithErrors => {
@@ -102,7 +106,8 @@ async function compile(sources: string[], logAll = true): Promise<string[]> {
     sassPs?.removeAllListeners();
     sassPs = cps.spawn(
       sassBin,
-      sassArgs.concat(
+      sassPrefix.concat(
+        sassArgs,
         env.prod ? ['--style=compressed', '--no-source-map'] : ['--embed-sources'],
         sources.map((src: string) => `${src}:${absTempCss(src)}`),
       ),

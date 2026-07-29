@@ -1,13 +1,13 @@
 package lila.puzzle
 
-import chess.{ Divider, Division }
 import reactivemongo.pekkostream.cursorProducer
 
 import lila.common.LilaStream
 import lila.db.dsl.{ *, given }
 import lila.mon.extensions.*
+import lila.xiangqi.{ Xiangqi, XiangqiRules }
 
-final private class PuzzleTagger(colls: PuzzleColls, openingApi: PuzzleOpeningApi)(using
+final private class PuzzleTagger(colls: PuzzleColls)(using
     ec: Executor,
     mat: org.apache.pekko.stream.Materializer
 ):
@@ -19,7 +19,6 @@ final private class PuzzleTagger(colls: PuzzleColls, openingApi: PuzzleOpeningAp
         .cursor[Puzzle]()
         .documentSource()
         .throttle(500, 1.second)
-        .mapAsyncUnordered(2)(p => openingApi.updateOpening(p).inject(p))
         .mapAsyncUnordered(2)(p => addPhase(p).inject(p))
         .mapAsyncUnordered(2)(checkFirstTheme)
         .runWith(LilaStream.sinkCount)
@@ -29,12 +28,13 @@ final private class PuzzleTagger(colls: PuzzleColls, openingApi: PuzzleOpeningAp
         .void
 
   private def addPhase(puzzle: Puzzle): Funit =
-    puzzle.boardAfterInitialMove match
-      case Some(position) =>
-        val theme = Divider(List(position.board)) match
-          case Division(None, Some(_), _) => PuzzleTheme.endgame
-          case Division(Some(_), None, _) => PuzzleTheme.middlegame
-          case _ => PuzzleTheme.opening
+    puzzle.stateAfterInitialMove.flatMap(state => Xiangqi.Fen.board(state.fen)) match
+      case Some(board) =>
+        val theme =
+          if board.attackingPieces <= 6 then PuzzleTheme.endgame
+          else if board.attackingPieces <= 10 || board.developedAttackingPieces >= 4
+          then PuzzleTheme.middlegame
+          else PuzzleTheme.opening
         colls.puzzle:
           _.update
             .one(
@@ -48,12 +48,12 @@ final private class PuzzleTagger(colls: PuzzleColls, openingApi: PuzzleOpeningAp
 
   private def checkFirstTheme(puzzle: Puzzle): Funit = {
     for
-      init <- puzzle.boardAfterInitialMove
+      init <- puzzle.stateAfterInitialMove
       if !puzzle.hasTheme(PuzzleTheme.mateIn1)
       move <- puzzle.line.tail.headOption
-      first <- init.move(move).toOption.map(_.after)
-    yield first.check
-  }.exists(_.yes)
+      first <- XiangqiRules.move(Xiangqi.Position(initialFen = init.fen), move).toOption
+    yield first.state.check
+  }.exists(identity)
     .so:
       colls
         .round:

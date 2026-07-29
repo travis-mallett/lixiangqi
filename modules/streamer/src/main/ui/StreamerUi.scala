@@ -124,7 +124,7 @@ final class StreamerUi(helpers: Helpers, bits: StreamerBits)(using netDomain: Ne
                     )
                   case _ =>
                     s.streamer.twitch.map: twitch =>
-                      val darkChat = (ctx.pref.currentBg != "light").so("darkpopout&")
+                      val darkChat = (ctx.pref.colorScheme != "light").so("darkpopout&")
                       iframe(
                         frame.credentialless,
                         st.frameborder := "0",

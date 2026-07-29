@@ -2,7 +2,7 @@ package lila.challenge
 
 import cats.derived.*
 import chess.format.Fen
-import chess.variant.{ Chess960, FromPosition, Horde, RacingKings, Variant }
+import chess.variant.Variant
 import chess.{ Color, Rated, Speed }
 import reactivemongo.api.bson.Macros.Annotations.Key
 import scalalib.ThreadLocalRandom
@@ -68,9 +68,10 @@ case class Challenge(
 
   def speed = speedOf(timeControl)
 
-  def notableInitialFen: Option[Fen.Full] = variant match
-    case FromPosition | Horde | RacingKings | Chess960 => initialFen
-    case _ => none
+  def notableInitialFen: Option[Fen.Full] =
+    variant.fromPosition.option(initialFen).flatten
+
+  def isCustomPosition = notableInitialFen.isDefined
 
   def isOpen = open.isDefined
 
@@ -199,12 +200,7 @@ object Challenge:
       id = id.fold(randomId)(_.into(ChallengeId)),
       status = Status.Created,
       variant = variant,
-      initialFen =
-        if variant == FromPosition then initialFen
-        else if variant == Chess960 then
-          initialFen.filter: fen =>
-            Chess960.positionNumber(fen).isDefined
-        else (!variant.standardInitialPosition).option(variant.initialFen),
+      initialFen = variant.fromPosition.option(initialFen).flatten,
       timeControl = timeControl,
       rated = finalRated,
       colorChoice = colorChoice,

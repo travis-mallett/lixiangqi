@@ -1,7 +1,6 @@
 package lila.analyse
 
 import chess.format.pgn.{ Comment, Glyphs, Move, Pgn, PgnStr, SanStr, Tag }
-import chess.opening.*
 import chess.{ Color, Ply, Status, Tree, Variation }
 
 import lila.core.game.{ Game, GameDrawOffers }
@@ -9,14 +8,12 @@ import lila.tree.{ Advice, Analysis, StatusText }
 
 final class Annotator(netDomain: lila.core.config.NetDomain) extends lila.tree.Annotator:
 
-  def apply(p: Pgn, game: Game, analysis: Option[Analysis], opening: Option[Opening.AtPly]): Pgn =
+  def apply(p: Pgn, game: Game, analysis: Option[Analysis]): Pgn =
     annotateStatus(game.winnerColor, game.status):
-      annotateOpening(opening) {
-        annotateTurns(
-          annotateDrawOffers(p, game.drawOffers),
-          analysis.so(_.advices)
-        )
-      }.copy(
+      annotateTurns(
+        annotateDrawOffers(p, game.drawOffers),
+        analysis.so(_.advices)
+      ).copy(
         tags = p.tags + Tag(_.Annotator, netDomain)
       )
 
@@ -40,10 +37,6 @@ final class Annotator(netDomain: lila.core.config.NetDomain) extends lila.tree.A
     StatusText(status, winner, chess.variant.Standard) match
       case "" => p
       case text => p.updateLastPly(_.copy(result = text.some))
-
-  private def annotateOpening(opening: Option[Opening.AtPly])(p: Pgn) =
-    opening.fold(p): o =>
-      p.updatePly(o.ply, _.copy(opening = s"${o.opening.eco} ${o.opening.name}".some)).getOrElse(p)
 
   // add advices into mainline
   private def annotateTurns(p: Pgn, advices: List[Advice]): Pgn =

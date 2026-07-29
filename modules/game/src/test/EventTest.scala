@@ -1,78 +1,47 @@
 package lila.game
 
-import chess.*
-import chess.variant.Crazyhouse
-import org.scalacheck.Prop.{ forAll, propBoolean }
+import org.scalacheck.Prop.forAll
 import play.api.libs.json.*
-import chess.CoreArbitraries.given
-import JsonView.given
-import lila.common.Json.given
+
+import lila.xiangqi.Xiangqi
 
 class EventTest extends munit.ScalaCheckSuite:
 
   import Arbitraries.given
+  import JsonView.given
 
-  test("Move anti regression"):
+  test("native Xiangqi move event contract"):
     forAll: (move: Event.Move) =>
       val data = move.data
-      assertEquals(data.str("uci"), s"${move.orig.key}${move.dest.key}".some)
-      assertEquals(data.str("san"), move.san.value.some)
-      assertEquals(data.str("fen"), move.fen.value.some)
+      assertEquals(data.str("uci"), move.result.move.value.some)
+      assertEquals(data.str("san"), move.result.notation.some)
+      assertEquals(data.str("sanZh"), move.result.chineseNotation.some)
+      assertEquals(data.str("fen"), move.result.fen.some)
       assertEquals(data.int("ply"), move.state.turns.value.some)
-      val destsJson = Event.PossibleMoves.oldJson(move.possibleMoves)
-      assert(destsJson == JsNull || move.data.obj("dests") == destsJson.some)
-      assertFalseOrSome(data)("check", move.check.value)
-      assertFalseOrSome(data)("threefold", move.threefold)
-      assertFalseOrSome(data)("wDraw", move.state.whiteOffersDraw)
-      assertFalseOrSome(data)("bDraw", move.state.blackOffersDraw)
-      assertEquals(move.data.obj("clock"), move.clock.map(_.data))
-      assertEquals(move.data.obj("status"), move.state.status.map(summon[OWrites[Status]].writes))
-      assertEquals(move.data.str("winner"), move.state.winner.map(_.name))
-      assertEquals(move.data.obj("promotion"), move.promotion.map(_.data))
-      assertEquals(move.data.obj("enpassant"), move.enpassant.map(_.data))
-      assertEquals(move.data.obj("castle"), move.castle.map(_.data))
-      assertEquals(move.data.obj("crazyhouse"), move.crazyData.map(summon[OWrites[Crazyhouse.Data]].writes))
-      assertEquals(move.data.str("drops"), move.possibleDrops.map(_.map(_.key).mkString))
+      assertEquals(data.boolean("check"), move.result.check.some)
+      assertEquals(data.boolean("capture"), move.result.capture.some)
+      assertEquals(
+        data.obj("dests"),
+        Event.PossibleMoves.json(move.result.legalMoves).asOpt[JsObject]
+      )
+      assertEquals(data.obj("clock"), move.clock.map(_.data))
+      assertEquals(data.obj("status"), move.state.status.map(summon[OWrites[chess.Status]].writes))
+      assertEquals(data.str("winner"), move.state.winner.map(_.name))
 
-  private def assertFalseOrSome(obj: JsValue)(field: String, value: Boolean)(implicit loc: munit.Location) =
-    assert(!value || obj.boolean(field) == true.some)
+  test("possible moves preserve rank ten coordinates"):
+    val moves = Vector("b3b10", "b3b4", "i10i9").map(Xiangqi.Uci.unsafe)
+    assertEquals(
+      Event.PossibleMoves.json(moves),
+      Json.obj(
+        "b3" -> Json.arr("b10", "b4"),
+        "i10" -> Json.arr("i9")
+      )
+    )
 
-  test("PossibleMoves anti regression"):
-    val moves = Map(Square.E2 -> Bitboard(Square.E4, Square.D4, Square.E3))
-    val str = stringFromPossibleMoves(moves)
-    // If We somehow change the order of destinations, We may need to update this test
-    assertEquals(str, "e2e3d4e4")
+  test("possible moves with empty vector"):
+    assertEquals(Event.PossibleMoves.json(Vector.empty), JsNull)
 
-  test("PossibleMoves with empty map"):
-    assertEquals(Event.PossibleMoves.json(Map.empty), JsNull)
-
-  test("PossibleMoves writes every square"):
-    forAll: (m: Map[Square, Bitboard]) =>
-      m.nonEmpty ==> {
-        val str = stringFromPossibleMoves(m)
-        val totalSquares = m.values.foldLeft(0)(_ + _.count) + m.size
-        // str length = total squares * 2 + spaces in between
-        assertEquals(str.length, totalSquares * 2 + m.size - 1)
-      }
-
-  private def stringFromPossibleMoves(moves: Map[Square, Bitboard]): String =
-    Event.PossibleMoves.json(moves) match
-      case JsString(str) => str
-      case _ => failSuite("Expected JsString")
-
-  test("Enpassant anti regression"):
-    forAll: (event: Event.Enpassant) =>
-      assertEquals(event.data.str("key"), event.pos.key.some)
-      assertEquals(event.data.str("color"), event.color.name.some)
-
-  test("Castling anti regression"):
-    forAll: (event: Event.Castling) =>
-      assertEquals(event.typ, "castling")
-      assertEquals(event.data.str("color"), event.color.name.some)
-      assertEquals(event.data.arr("king"), Json.arr(event.castle.king.key, event.castle.kingTo.key).some)
-      assertEquals(event.data.arr("rook"), Json.arr(event.castle.rook.key, event.castle.rookTo.key).some)
-
-  test("RedirectOwner anti regression"):
+  test("redirect owner contract"):
     forAll: (event: Event.RedirectOwner) =>
       assertEquals(event.data.str("id"), event.id.value.some)
       assertEquals(event.data.str("url"), s"/${event.id}".some)

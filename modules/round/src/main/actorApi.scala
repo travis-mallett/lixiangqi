@@ -1,13 +1,13 @@
 package lila.round
 
-import chess.format.Uci
 import chess.{ Color, MoveMetrics }
 
 import lila.core.socket.SocketVersion
+import lila.xiangqi.Xiangqi
 
 private class HumanPlay(
     val playerId: GamePlayerId,
-    val uci: Uci,
+    val uci: Xiangqi.Uci,
     val blur: Boolean,
     val moveMetrics: chess.MoveMetrics = chess.MoveMetrics(),
     val promise: Option[Promise[Unit]] = None

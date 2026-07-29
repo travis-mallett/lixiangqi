@@ -1,27 +1,41 @@
-import { defined, requestIdleCallbackSafe } from 'lib';
+import { requestIdleCallbackSafe } from 'lib';
 import { throttle } from 'lib/async';
 import { isIos } from 'lib/device';
 import { speakable } from 'lib/game/sanWriter';
 import { storage } from 'lib/storage';
 
+import { BackgroundMusic } from './backgroundMusic';
+
 type Name = string;
 type Path = string;
 
-export default new (class implements SoundI {
+class SoundService implements SoundI {
   ctx?: AudioContext;
   ctxPromise: Promise<AudioContext>;
   listeners = new Set<SoundListener>();
   sounds = new Map<Path, Sound>(); // All loaded sounds and their instances
   paths = new Map<Name, Path>(); // sound names to paths
-  theme = document.body.dataset.soundSet!;
-  speechStorage = storage.boolean('speech.enabled');
-  voiceStorage = storage.make('speech.voice');
+  soundThrottles = new Map<Name, (volume: number) => void>();
+  soundSet = document.body.dataset.soundSet!;
+  musicSet = document.body.dataset.musicSet!;
   volumeStorage = storage.make('sound-volume');
-  music?: SoundMove;
+  soundEnabledStorage = storage.make('sound-enabled');
+  musicEnabledStorage = storage.make('music-enabled');
+  musicSetStorage = storage.make('music-set');
+  backgroundMusic = new BackgroundMusic();
   primerEvents = ['touchend', 'pointerup', 'pointerdown', 'mousedown', 'keydown'];
 
   constructor() {
     this.primerEvents.forEach(e => window.addEventListener(e, this.primer, { capture: true }));
+    window.addEventListener('storage', event => {
+      if (event.key === 'sound-volume' || event.key === 'music-enabled') this.syncMusic();
+    });
+    this.musicSetStorage.listen(event => {
+      if (event.value && /^[a-z0-9-]+$/.test(event.value)) {
+        this.musicSet = event.value;
+        this.syncMusic();
+      }
+    });
     this.ctxPromise = new Promise((resolve, fail) => {
       requestIdleCallbackSafe(() => {
         this.ctx = makeAudioContext();
@@ -30,11 +44,15 @@ export default new (class implements SoundI {
         window.speechSynthesis?.getVoices(); // preload
       });
     });
+    queueMicrotask(this.syncMusic);
   }
 
   primer = async () => {
-    const ctx = await this.ctxPromise;
-    await ctx.resume();
+    this.backgroundMusic.resume();
+    try {
+      const ctx = await this.ctxPromise;
+      await ctx.resume();
+    } catch {}
     setTimeout(() => $('#warn-no-autoplay').removeClass('shown'), 500);
     for (const e of this.primerEvents) window.removeEventListener(e, this.primer, { capture: true });
   };
@@ -60,13 +78,8 @@ export default new (class implements SoundI {
   }
 
   resolvePath(name: Name): string | undefined {
-    if (!this.enabled()) return;
-    let dir = this.theme;
-    if (this.theme === 'music' || this.speech()) {
-      if (['move', 'capture', 'check', 'checkmate'].includes(name)) return;
-      dir = 'standard';
-    }
-    return this.url(`${dir}/${name[0].toUpperCase() + name.slice(1)}.mp3`);
+    if (!this.effectsEnabled()) return;
+    return this.url(`${this.soundSet}/${name[0].toUpperCase() + name.slice(1)}.mp3`);
   }
 
   url(name: Name): string {
@@ -74,39 +87,37 @@ export default new (class implements SoundI {
   }
 
   async play(name: Name, volume = 1): Promise<void> {
-    if (!this.enabled()) return;
+    if (!this.effectsEnabled()) return;
     const sound = await this.load(name);
     if (sound && (await this.resumeWithTest())) await sound.play(this.getVolume() * volume);
   }
 
-  throttled = throttle(100, (name: Name, volume: number) => this.play(name, volume));
+  throttled = (name: Name, volume: number): void => {
+    let play = this.soundThrottles.get(name);
+    if (!play) {
+      play = throttle(100, (nextVolume: number) => this.play(name, nextVolume));
+      this.soundThrottles.set(name, play);
+    }
+    play(volume);
+  };
 
   async move(o?: SoundMoveOpts) {
     const volume = o?.volume ?? 1;
-    if (o?.filter !== 'music' && this.theme !== 'music') {
-      if (o?.name) this.throttled(o.name, volume);
-      else {
-        if (o?.san?.includes('x')) this.throttled('capture', volume);
-        else this.throttled('move', volume);
-        if (o?.san?.includes('#')) {
-          this.throttled('checkmate', volume);
-        } else if (o?.san?.includes('+')) {
-          this.throttled('check', volume);
-        }
-      }
-    }
-    if (o?.filter === 'game' || this.theme !== 'music') return;
-    this.music ??= await site.asset.loadEsm<SoundMove>('bits.soundMove');
-    this.music(o);
+    if (o?.name) return this.throttled(o.name, volume);
+
+    this.throttled('move', volume);
+    if (o?.capture || o?.san?.includes('x')) this.throttled('capture', volume);
+    if (o?.mate || o?.san?.includes('#')) this.throttled('checkmate', volume);
+    else if (o?.check || o?.san?.includes('+')) this.throttled('check', volume);
   }
 
   async playAndDelayMateResultIfNecessary(name: Name): Promise<void> {
-    if (this.theme === 'standard') this.play(name);
+    if (this.soundSet === 'standard') this.play(name);
     else setTimeout(() => this.play(name), 600);
   }
 
   async countdown(count: number, interval = 500): Promise<void> {
-    if (!this.enabled()) return;
+    if (!this.effectsEnabled()) return;
     try {
       while (count > 0) {
         const promises = [new Promise(r => setTimeout(r, interval)), this.play(`countDown${count}`)];
@@ -132,7 +143,10 @@ export default new (class implements SoundI {
     else setTimeout(doIt, 10 + Math.random() * 500);
   }
 
-  setVolume = this.volumeStorage.set;
+  setVolume = (volume: number) => {
+    this.volumeStorage.set(volume);
+    this.syncMusic();
+  };
 
   getVolume = () => {
     // garbage has been stored here by accident (e972d5612d)
@@ -140,41 +154,28 @@ export default new (class implements SoundI {
     return v >= 0 ? v : 0.7;
   };
 
+  isSoundEnabled = () => this.soundEnabledStorage.get() !== '0';
+
+  setSoundEnabled = (enabled: boolean) => {
+    this.soundEnabledStorage.set(enabled ? '1' : '0');
+  };
+
+  isMusicEnabled = () => this.musicEnabledStorage.get() === '1';
+
+  setMusicEnabled = (enabled: boolean) => {
+    this.musicEnabledStorage.set(enabled ? '1' : '0');
+    this.syncMusic();
+  };
+
   getVoice = (): SpeechSynthesisVoice | undefined => {
-    let o: { name: string; lang: string } = { name: '', lang: document.documentElement.lang.split('-')[0] };
-    try {
-      o = JSON.parse(this.voiceStorage.get() ?? JSON.stringify(o));
-    } catch {}
-    const voiceMap = this.getVoiceMap();
-    return voiceMap.get(o.name) ?? [...voiceMap.values()].find(v => v.lang.startsWith(o.lang));
-  };
-
-  getVoiceMap = (): Map<string, SpeechSynthesisVoice> => {
     const voices = speechSynthesis.getVoices();
-    const voiceMap = new Map<string, SpeechSynthesisVoice>();
-
-    for (const code of ['en', document.documentElement.lang.split('-')[0], document.documentElement.lang]) {
-      voices
-        .filter(v => v.lang.startsWith(code))
-        .sort((a, b) => a.lang.localeCompare(b.lang))
-        .forEach(v => voiceMap.set(v.name, v));
-      // populate map with preferred regional language pronunciations taking precedence. if not matched
-      // exactly by documentElement.lang, the chosen region will be the last one lexicographically
-    }
-    return voiceMap;
+    const languages = [document.documentElement.lang, document.documentElement.lang.split('-')[0], 'en'];
+    return languages.flatMap(language => voices.filter(voice => voice.lang.startsWith(language)))[0];
   };
 
-  setVoice = (o?: { name: string; lang: string }) => {
-    if (!o) this.voiceStorage.remove();
-    else this.voiceStorage.set(JSON.stringify({ name: o.name, lang: o.lang }));
-  };
+  effectsEnabled = () => this.isSoundEnabled() && this.soundSet !== 'none' && this.getVolume() !== 0;
 
-  enabled = () => this.theme !== 'silent' && this.getVolume() !== 0;
-
-  speech = (v?: boolean): boolean => {
-    if (defined(v)) this.speechStorage.set(v);
-    return this.speechStorage.get();
-  };
+  speech = (): boolean => site.blindMode;
 
   say = (text: string, cut = false, force = false, translated = false) =>
     this.sayLazy(() => text, cut, force, translated);
@@ -209,9 +210,35 @@ export default new (class implements SoundI {
 
   sayOrPlay = (name: string, text: string) => this.say(text) || this.play(name);
 
-  changeSet = (s: string) => {
+  changeSoundSet = (soundSet: string) => {
     if (isIos()) this.ctx?.resume();
-    this.theme = s;
+    this.soundSet = soundSet;
+  };
+
+  changeMusicSet = (musicSet: string) => {
+    this.musicSet = musicSet;
+    this.musicSetStorage.fire(musicSet);
+    this.syncMusic();
+  };
+
+  private readonly musicTrack = (): string | undefined => {
+    if (!this.isMusicEnabled() || this.getVolume() === 0) return undefined;
+    return this.musicSet !== 'none' ? this.musicSet : undefined;
+  };
+
+  private readonly musicVolume = () => this.getVolume() * 0.35;
+
+  private readonly syncMusic = (): void => {
+    const track = this.musicTrack();
+    this.backgroundMusic.sync(
+      track
+        ? {
+            name: track,
+            url: this.url(`${track}/Music.mp3`),
+            volume: this.musicVolume(),
+          }
+        : undefined,
+    );
   };
 
   preloadBoardSounds() {
@@ -243,9 +270,10 @@ export default new (class implements SoundI {
 
     if (this.ctx?.state !== 'running') return false;
     $('#warn-no-autoplay').removeClass('shown');
+    this.syncMusic();
     return true;
   }
-})();
+}
 
 class Sound {
   node: GainNode;
@@ -259,7 +287,7 @@ class Sound {
   }
 
   play(volume = 1): Promise<void> {
-    this.node.gain.setValueAtTime(volume, this.ctx.currentTime);
+    this.setVolume(volume);
     const source = this.ctx.createBufferSource();
     source.buffer = this.buffer;
     source.connect(this.node);
@@ -271,6 +299,11 @@ class Sound {
       source.start(0);
     });
   }
+
+  setVolume(volume: number): void {
+    this.node.gain.setValueAtTime(volume, this.ctx.currentTime);
+  }
+
   rewire(ctx: AudioContext) {
     this.node?.disconnect();
     this.ctx = ctx;
@@ -286,3 +319,5 @@ function makeAudioContext(): AudioContext | undefined {
       ? new AudioContext({ latencyHint: 'interactive' })
       : undefined;
 }
+
+export default new SoundService();

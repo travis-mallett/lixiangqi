@@ -1,0 +1,805 @@
+// A self-contained light theme inspired by a contemporary Xiangqi scholar's desk.
+// Wood remains the environmental layer; every functional surface is opaque paper.
+html.wood {
+  color-scheme: light;
+
+  --wood-background: #b8793e;
+  --wood-fallback: #c68a4e;
+  --wood-paper: #faf4e8;
+  --wood-paper-high: #fffaf0;
+  --wood-paper-low: #efe3d0;
+  --wood-paper-deep: #e5d3b7;
+  --wood-ink: #38291f;
+  --wood-ink-soft: #655447;
+  --wood-cinnabar: #922c26;
+  --wood-cinnabar-hover: #7e211d;
+  --wood-cinnabar-active: #681814;
+  --wood-jade: #3f705a;
+  --wood-jade-hover: #315b49;
+  --wood-amber: #a66517;
+  --wood-border: #d3bea0;
+  --wood-border-strong: #bfa27c;
+  --wood-walnut: #6f4228;
+  --wood-walnut-dark: #4d2b1b;
+  --wood-radius: 8px;
+  --wood-shadow-contact: 0 1px 2px rgb(66 39 20 / 0.18);
+  --wood-shadow-paper: 0 2px 5px rgb(66 39 20 / 0.16), 0 12px 30px rgb(66 39 20 / 0.14);
+  --wood-shadow-raised: 0 2px 3px rgb(66 39 20 / 0.22), 0 16px 38px rgb(66 39 20 / 0.2);
+  --wood-shadow-button:
+    0 1px 0 rgb(255 255 255 / 0.24) inset, 0 -3px 0 rgb(61 24 17 / 0.28) inset, 0 3px 7px rgb(58 28 12 / 0.24);
+  --wood-focus: 0 0 0 3px rgb(146 44 38 / 0.3);
+  --wood-hover: #f3e7d4;
+  --wood-active: #e7d3b5;
+  --wood-disabled: #b8aa99;
+  ---site-hue: 32deg;
+  --c-bg: var(--wood-paper);
+  --c-bg-box: var(--wood-paper);
+  --c-bg-high: var(--wood-paper-high);
+  --c-bg-page: var(--wood-fallback);
+  --c-bg-low: var(--wood-paper-low);
+  --c-bg-mid: #f6ecdc;
+  --c-bg-zebra: #f3e8d6;
+  --c-bg-zebra2: #e9d9c1;
+  --c-bg-popup: var(--wood-paper-high);
+  --c-bg-opaque: var(--wood-paper);
+  --c-bg-input: #fffdf7;
+  --c-bg-variation: #ede0cc;
+  --c-bg-header-dropdown: #fff8ec;
+  --c-page-input: #eadcc7;
+  --c-body-gradient: #d8a76f;
+  --c-font: var(--wood-ink);
+  --c-font-dim: var(--wood-ink-soft);
+  --c-font-dimmer: #817166;
+  --c-font-clear: #49372b;
+  --c-font-clearer: #241810;
+  --c-font-page: #463226;
+  --c-font-shadow: #fff8ea;
+  --c-header-dropdown: var(--wood-ink);
+  --c-shade: #c8b69c;
+  --c-dark: var(--wood-ink);
+  --c-dimmer: #21140d;
+  --c-clearer: #fffdf8;
+  --c-primary: var(--wood-cinnabar);
+  --c-primary-clear: #b8443b;
+  --c-primary-dim: #782a25;
+  --c-secondary: var(--wood-jade);
+  --c-secondary-dim: #345d4b;
+  --c-secondary-dimmer: #294a3c;
+  --c-link: var(--wood-cinnabar);
+  --c-link-dim: #7f4537;
+  --c-link-clear: #b8443b;
+  --c-link-hover: var(--wood-cinnabar-hover);
+  --c-over: #fffaf1;
+  --c-brag: var(--wood-amber);
+  --c-brag-hover: #824c0e;
+  --c-contours: #8b4d2c;
+  --c-accent: var(--wood-cinnabar);
+  --c-accent-dim: #74231e;
+  --c-accent-faint: #d9a49c;
+  --c-accent-clear: #b8443b;
+  --c-accent-glass: #ead0ca;
+  --c-accent-cloud: #c57b71;
+  --c-dasher: var(--wood-jade);
+  --c-dasher-light: #d6e3d9;
+  --c-bot: #775b7f;
+  --c-good: var(--wood-jade);
+  --c-warn: var(--wood-amber);
+  --c-bad: #a83c33;
+  --c-error: #a83c33;
+  --c-live: #a83c33;
+  --c-page-mask: rgb(46 27 14 / 0.62);
+  --c-metal-top: #fffaf0;
+  --c-metal-bottom: #eadbc4;
+  --c-metal-top-hover: #fffdf7;
+  --c-metal-bottom-hover: #dfc9a9;
+  --c-paper: #f3e4c9;
+  --c-border: var(--wood-border);
+  --c-border-page: var(--wood-border-strong);
+  --c-border-tour: #c7ad87;
+  --c-border-light: #e2d2bb;
+  --c-chat-host-bg: #d6e2d8;
+  --c-chat-mention-bg: #eee0bf;
+  --c-fancy: #7e5a80;
+  --c-future: #78678d;
+  --c-inaccuracy: #3c748c;
+  --c-mistake: #9b641b;
+  --c-blunder: #a83c33;
+  --c-good-move: var(--wood-jade);
+  --c-brilliant: #2f6c50;
+  --c-interesting: #805273;
+  --c-mv-branch-white: #fffdf8;
+  --c-mv-branch-black: var(--wood-ink);
+  --c-pool-button: var(--wood-paper-high);
+  --c-tutor-bg: #d8e5db;
+  --c-racer-boost: #c5914f;
+  --c-marathon: #7c5b3f;
+
+  &,
+  body {
+    background-color: transparent;
+  }
+
+  &::before {
+    background-color: var(--wood-background);
+    background-position: center top;
+    background-size: cover;
+    filter: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    backdrop-filter: none !important;
+  }
+
+  body {
+    color: var(--wood-ink);
+  }
+
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 2px solid var(--wood-cinnabar);
+    outline-offset: 2px;
+  }
+
+  // Header: an opaque ivory-paper rail with ink navigation and seal-red actions.
+  &.wood #top,
+  &.wood #top.scrolled {
+    background: #f7edde;
+    border-bottom: 1px solid var(--wood-border-strong);
+    box-shadow:
+      0 1px 0 #fffaf2 inset,
+      0 2px 5px rgb(65 36 17 / 0.2),
+      0 8px 22px rgb(65 36 17 / 0.14);
+  }
+
+  &.wood #top::before,
+  &.wood #topnav::before,
+  &.wood #topnav div::before,
+  .site-buttons .dropdown::before {
+    content: none;
+  }
+
+  .site-title {
+    color: var(--wood-ink);
+    text-shadow: none;
+
+    span {
+      color: var(--wood-ink-soft);
+    }
+
+    &:hover,
+    &:hover span {
+      color: var(--wood-cinnabar);
+    }
+  }
+
+  &.wood #topnav section > a {
+    color: var(--wood-ink);
+    text-shadow: none !important;
+  }
+
+  #topnav section:hover > a,
+  #topnav section:active > a,
+  #topnav section.active > a {
+    background: var(--wood-paper-low);
+    border-color: var(--wood-cinnabar);
+    color: var(--wood-ink);
+  }
+
+  #topnav div {
+    background: var(--wood-paper-high);
+    border: 1px solid var(--wood-border);
+    border-inline-start: 3px solid var(--wood-cinnabar);
+    box-shadow: var(--wood-shadow-paper);
+
+    a {
+      color: var(--wood-ink);
+      text-shadow: none;
+
+      &:hover {
+        background: var(--wood-cinnabar);
+        color: var(--c-over);
+      }
+    }
+  }
+
+  .site-title-nav__donate {
+    color: var(--wood-amber);
+    text-shadow: none;
+
+    &::before {
+      color: var(--wood-amber);
+    }
+
+    &:hover {
+      background: #ead7b6;
+      color: #794608;
+    }
+  }
+
+  .site-buttons {
+    .link {
+      color: var(--wood-ink);
+      text-shadow: none;
+
+      &:hover {
+        color: var(--wood-cinnabar) !important;
+      }
+    }
+
+    .button.signin {
+      border: 1px solid #c7ae8a;
+      background: linear-gradient(to bottom, #f6ead7, #e5d1b3);
+      color: #58382a;
+      box-shadow:
+        0 1px 0 #fff9ed inset,
+        0 2px 5px rgb(71 39 20 / 0.18);
+      text-shadow: none;
+
+      &:hover {
+        border-color: #af8c61;
+        background: linear-gradient(to bottom, #fff4e2, #dbc19b);
+        color: var(--wood-cinnabar) !important;
+      }
+    }
+
+    .signup {
+      border: 1px solid #6f1c18;
+      background: linear-gradient(to bottom, #ad4037, var(--wood-cinnabar));
+      color: #fffaf1;
+      box-shadow: var(--wood-shadow-button);
+      text-shadow: 0 1px 1px rgb(55 17 13 / 0.65);
+
+      &:hover {
+        background: linear-gradient(to bottom, #bd4c42, var(--wood-cinnabar-hover));
+        color: #fff !important;
+      }
+    }
+
+    .dropdown {
+      border: 1px solid var(--wood-border);
+      background: var(--wood-paper-high);
+      box-shadow: var(--wood-shadow-raised);
+    }
+  }
+
+  // Core paper surfaces shared by lobby, analysis, puzzles, profiles, and lists.
+  .box,
+  .page-menu__content,
+  .round__app__table,
+  .analyse__tools,
+  .analyse__underboard,
+  .puzzle__side__metas,
+  .puzzle__side__user,
+  .puzzle__side__config,
+  .puzzle__side__replay,
+  .mchat,
+  .chat__members,
+  .lobby__box,
+  .lobby__feed,
+  dialog {
+    border: 1px solid var(--wood-border);
+    background: linear-gradient(145deg, var(--wood-paper-high), var(--wood-paper) 58%, #f5ead8);
+    box-shadow: var(--wood-shadow-paper);
+  }
+
+  .box,
+  .page-menu__content,
+  .round__app__table,
+  .analyse__tools,
+  .analyse__underboard,
+  .mchat,
+  dialog {
+    border-radius: var(--wood-radius);
+  }
+
+  .box__top,
+  .lobby__box__top,
+  thead,
+  .dialog-header {
+    border-bottom: 1px solid var(--wood-border);
+    background: linear-gradient(to bottom, #fff8ec, #eee0ca);
+    color: var(--wood-ink);
+  }
+
+  hr {
+    background: var(--wood-border);
+  }
+
+  // Navigation families use a tea-toned paper rail, never text directly on wood.
+  .subnav__inner {
+    border: 1px solid #c39d70;
+    background: linear-gradient(150deg, #e8cda5, #d9b27d);
+    box-shadow:
+      var(--wood-shadow-contact),
+      0 9px 24px rgb(69 38 18 / 0.16);
+  }
+
+  .subnav a {
+    color: #4a3022;
+    font-weight: 550;
+    text-shadow: 0 1px 0 rgb(255 244 224 / 0.58);
+
+    &:hover {
+      background: #efd9b8;
+      color: var(--wood-cinnabar);
+    }
+
+    &.active {
+      background: var(--wood-paper-high);
+      color: var(--wood-ink);
+      box-shadow:
+        3px 0 0 var(--wood-cinnabar) inset,
+        var(--wood-shadow-contact);
+      text-shadow: none;
+    }
+  }
+
+  .tabs-horiz {
+    border: 1px solid var(--wood-border);
+    border-radius: var(--wood-radius);
+    background: #f3e5d0;
+    box-shadow: var(--wood-shadow-contact);
+
+    > span,
+    > a,
+    > button {
+      color: var(--wood-ink-soft);
+      text-shadow: none;
+
+      &:hover {
+        background: #ead7bb;
+        color: var(--wood-ink);
+      }
+
+      &.active {
+        color: var(--wood-cinnabar);
+        font-weight: 600;
+      }
+    }
+  }
+
+  // Primary controls are satin cinnabar; positive controls remain muted jade.
+  .button {
+    border: 1px solid #701e1a;
+    border-radius: calc(var(--wood-radius) - 1px);
+    background: linear-gradient(to bottom, #ad4037, var(--wood-cinnabar));
+    color: #fffaf1;
+    box-shadow: var(--wood-shadow-button);
+    text-shadow: 0 1px 1px rgb(55 17 13 / 0.65);
+
+    &,
+    &:visited,
+    &:focus {
+      color: #fffaf1;
+    }
+
+    &:not(.disabled):hover {
+      border-color: #5f1714;
+      background: linear-gradient(to bottom, #b9483f, var(--wood-cinnabar-hover));
+      color: #fff;
+    }
+
+    &:not(.disabled):active {
+      background: var(--wood-cinnabar-active);
+      box-shadow: 0 3px 5px rgb(45 14 10 / 0.34) inset;
+      transform: translateY(1px);
+    }
+
+    &.button-green {
+      border-color: #284b3c;
+      background: linear-gradient(to bottom, #56836d, var(--wood-jade));
+
+      &:not(.disabled):hover {
+        background: linear-gradient(to bottom, #619078, var(--wood-jade-hover));
+      }
+    }
+
+    &.button-red {
+      background: linear-gradient(to bottom, #b9473e, #962f29);
+    }
+
+    &.button-metal {
+      border-color: var(--wood-border-strong);
+      background: linear-gradient(to bottom, #fffaf0, #e7d5b9);
+      color: var(--wood-ink);
+      box-shadow:
+        0 1px 0 #fff inset,
+        0 -2px 0 rgb(117 78 41 / 0.12) inset,
+        0 3px 7px rgb(66 38 18 / 0.19);
+      text-shadow: 0 1px 0 #fff8eb !important;
+
+      &:not(.disabled):hover {
+        border-color: #b59064;
+        background: linear-gradient(to bottom, #fffdf7, #dcc19a);
+        color: var(--wood-cinnabar);
+      }
+    }
+
+    &.button-empty {
+      border-color: transparent;
+      background: transparent;
+      color: var(--wood-cinnabar);
+      box-shadow: none;
+      text-shadow: none;
+
+      &:not(.disabled):hover {
+        border-color: var(--wood-border);
+        background: var(--wood-hover);
+        color: var(--wood-cinnabar-hover);
+        box-shadow: var(--wood-shadow-contact);
+      }
+    }
+
+    &.disabled,
+    &:disabled {
+      border-color: #a99a89;
+      background: #d6cbbb;
+      color: #76695e;
+      box-shadow: none;
+      text-shadow: none;
+      opacity: 1;
+    }
+  }
+
+  input:not([type='checkbox'], [type='radio'], [type='range']),
+  textarea,
+  select {
+    border: 1px solid var(--wood-border-strong);
+    border-radius: 6px;
+    background: #fffdf7;
+    color: var(--wood-ink);
+    box-shadow: 0 1px 3px rgb(66 39 20 / 0.1) inset;
+
+    &::placeholder {
+      color: #8a7a6d;
+      opacity: 1;
+    }
+
+    &:hover {
+      border-color: #aa8962;
+    }
+
+    &:focus {
+      border-color: var(--wood-cinnabar);
+      box-shadow: var(--wood-focus);
+    }
+
+    &:disabled {
+      background: var(--wood-paper-low);
+      color: var(--wood-disabled);
+    }
+  }
+
+  .cmn-toggle {
+    &__track {
+      background: #c5b6a3;
+    }
+
+    input:checked + .cmn-toggle__track {
+      background: var(--wood-jade);
+    }
+  }
+
+  // Lobby: paper pairing tiles and tactile walnut invitations.
+  .lpool {
+    border: 1px solid var(--wood-border);
+    background: linear-gradient(145deg, #fffaf1, #f5ead9);
+    color: var(--wood-ink-soft);
+    box-shadow:
+      var(--wood-shadow-contact),
+      0 7px 18px rgb(66 38 18 / 0.11);
+
+    .clock {
+      color: var(--wood-ink);
+      font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+      font-weight: 500;
+    }
+
+    .perf {
+      color: var(--wood-ink-soft);
+    }
+
+    &:hover {
+      border-color: #b56f65;
+      background: linear-gradient(145deg, #fffaf1, #edd8c2) !important;
+      color: var(--wood-cinnabar);
+      box-shadow:
+        0 0 0 2px #dcb4ad,
+        var(--wood-shadow-paper);
+      transform: translateY(-1px);
+    }
+
+    &.transp {
+      opacity: 0.62;
+    }
+  }
+
+  .button.lobby__start__button {
+    border-color: var(--wood-walnut-dark);
+    background: linear-gradient(160deg, #8a5a36, var(--wood-walnut) 58%, #5b321f);
+    color: #fff4df;
+    box-shadow:
+      0 1px 0 rgb(255 231 190 / 0.2) inset,
+      0 -3px 0 rgb(45 22 12 / 0.28) inset,
+      0 4px 9px rgb(58 27 12 / 0.28) !important;
+    text-shadow: 0 1px 1px #32180d !important;
+
+    &::before {
+      color: #f0cc8a;
+    }
+
+    &:not(.disabled):hover {
+      border-color: #3e2013;
+      background: linear-gradient(160deg, #96623b, #75462a 58%, #4c2919);
+      color: #fffaf0 !important;
+    }
+  }
+
+  .about-side {
+    border: 1px solid #c5a071;
+    border-radius: var(--wood-radius);
+    padding: 1rem;
+    background: #efd9b7;
+    color: #4b3122;
+    box-shadow: var(--wood-shadow-contact);
+    text-shadow: none;
+  }
+
+  .lobby__counters {
+    color: #4b3122;
+    text-shadow: 0 1px 0 #f8e4c4;
+  }
+
+  .lobby__support-link {
+    border: 1px solid var(--wood-border);
+    border-radius: var(--wood-radius);
+    background: linear-gradient(145deg, #fffaf1, #efe0c9);
+    color: var(--wood-amber);
+    box-shadow:
+      var(--wood-shadow-contact),
+      0 7px 18px rgb(66 38 18 / 0.12);
+
+    &:hover {
+      border-color: #c4934f;
+      background: linear-gradient(145deg, #fffdf7, #e8d2b0);
+      color: #7b470c;
+      transform: translateY(-1px);
+    }
+  }
+
+  .lobby__feed,
+  .lobby__box {
+    overflow: hidden;
+  }
+
+  // Tournament schedules sit on a calmer tea-paper rail beside the main calendar.
+  .tour-home__side {
+    border: 1px solid #c39d70;
+    border-radius: var(--wood-radius);
+    padding: 0.25rem 1rem 1rem;
+    background: linear-gradient(145deg, #f3dfbd, #ead0a6);
+    color: #4a3022;
+    box-shadow:
+      var(--wood-shadow-contact),
+      0 9px 20px rgb(72 41 18 / 0.13);
+    text-shadow: none;
+
+    h2 {
+      border-bottom-color: #b98c5b;
+    }
+
+    a {
+      color: #4a3022;
+
+      &:hover {
+        color: var(--wood-cinnabar);
+      }
+    }
+
+    .scheduled a:hover {
+      background: #f9ead1;
+    }
+  }
+
+  .tour-chart .tsht {
+    border: 1px solid rgb(66 38 22 / 0.32);
+    box-shadow:
+      0 1px 0 rgb(255 247 226 / 0.2) inset,
+      0 2px 5px rgb(62 33 16 / 0.22);
+
+    &-hourly {
+      background-color: #4f765f;
+    }
+
+    &-daily,
+    &-eastern {
+      background-color: #98473e;
+    }
+
+    &-weekly,
+    &-weekend,
+    &-monthly,
+    &-marathon,
+    &-yearly {
+      background-color: #8b5b32;
+    }
+
+    &-max-rating {
+      background-color: #76533d;
+    }
+
+    &-variant,
+    &-unique {
+      background-color: #596d50;
+    }
+
+    &-user-created {
+      background-color: var(--wood-cinnabar);
+    }
+  }
+
+  // Rankings use a furniture-dark title rail over an otherwise quiet paper list.
+  .community__leaders .leaderboards {
+    overflow: hidden;
+    border: 1px solid var(--wood-border);
+    background: var(--wood-paper);
+    box-shadow:
+      var(--wood-shadow-contact),
+      0 7px 18px rgb(66 38 18 / 0.1);
+
+    h2 {
+      border-bottom: 1px solid var(--wood-walnut-dark);
+      background: linear-gradient(160deg, #825334, var(--wood-walnut) 62%, #5d351f);
+
+      &,
+      a {
+        color: #fff4df;
+        text-shadow: 0 1px 1px #32180d;
+      }
+    }
+
+    .user-top {
+      border-color: var(--wood-border-strong);
+      background: #fffaf0;
+    }
+  }
+
+  // Analysis, studies, and game controls use deliberate paper/ink hierarchy.
+  .analyse__tools,
+  .round__app__table {
+    overflow: hidden;
+  }
+
+  .ceval {
+    border-bottom: 1px solid var(--wood-border);
+    background: linear-gradient(to bottom, #fff9ed, #e8d8bf);
+    color: var(--wood-ink);
+    text-shadow: none;
+  }
+
+  .analyse__tools .sub-box .title {
+    border-bottom: 1px solid #b9cbbc;
+    background: #dbe6dd;
+    color: #2d4f40;
+  }
+
+  .eval-gauge {
+    background: #fffaf0;
+
+    tick {
+      border-bottom-color: #c9bda9;
+    }
+
+    .black {
+      background: #554a43;
+    }
+  }
+
+  .analyse__controls .fbt,
+  .round__app__table .fbt {
+    color: var(--wood-ink-soft);
+    text-shadow: none;
+
+    &:hover {
+      background: var(--wood-hover);
+      color: var(--wood-cinnabar);
+    }
+
+    &.active {
+      background: var(--wood-cinnabar);
+      color: #fffaf1;
+    }
+  }
+
+  move.active,
+  .analyse__moves .active,
+  .study__chapters .active {
+    background: var(--wood-cinnabar);
+    color: #fffaf1;
+  }
+
+  // Tables and cards keep dense data calm and legible.
+  table {
+    color: var(--wood-ink);
+  }
+
+  th {
+    color: var(--wood-ink-soft);
+  }
+
+  tbody tr {
+    border-bottom-color: var(--wood-border);
+  }
+
+  tbody tr:nth-child(even) {
+    background: #f3e8d6;
+  }
+
+  .slist tbody tr:hover,
+  .paginated tbody tr:hover,
+  .lobby__box tbody tr:hover {
+    background: #ead8bd;
+  }
+
+  // Toasts, popovers, menus, and modals are raised paper with unambiguous states.
+  .power-tip,
+  .dropdown,
+  .context-menu,
+  .autocomplete,
+  .textcomplete-dropdown {
+    border: 1px solid var(--wood-border);
+    background: var(--wood-paper-high);
+    color: var(--wood-ink);
+    box-shadow: var(--wood-shadow-raised);
+  }
+
+  .flash {
+    border-color: var(--wood-border-strong);
+    background: #f7ead5;
+    color: var(--wood-ink);
+  }
+
+  .flash-success {
+    border-color: #8eaa98;
+    background: #dbe7dd;
+    color: #294b3c;
+  }
+
+  .flash-error {
+    border-color: #cf928b;
+    background: #f2d8d3;
+    color: #72231e;
+  }
+
+  // Headings receive a restrained Song-style voice without sacrificing body clarity.
+  main h1,
+  main h2,
+  .box__top h1,
+  .box__top h2 {
+    color: var(--wood-ink);
+    font-family: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+    font-weight: 500;
+    letter-spacing: -0.015em;
+  }
+
+  @media (max-width: 799px) {
+    .subnav__inner {
+      border-radius: var(--wood-radius);
+    }
+
+    .page-menu__content {
+      border-radius: var(--wood-radius);
+    }
+  }
+}
+
+html.wood.has-background {
+  --c-bg-page: transparent;
+  --c-body-gradient: transparent;
+}

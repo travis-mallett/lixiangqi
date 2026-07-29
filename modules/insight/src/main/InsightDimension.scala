@@ -1,13 +1,10 @@
 package lila.insight
 
-import chess.Role
 import chess.eval.WinPercent
 import play.api.libs.json.*
 import reactivemongo.api.bson.*
 
 import lila.analyse.AccuracyPercent
-import lila.common.Json.given
-import lila.common.{ LilaOpeningFamily, SimpleOpening }
 import lila.core.i18n.Translate
 import lila.db.dsl.{ *, given }
 import lila.insight.BSONHandlers.given
@@ -16,6 +13,7 @@ import lila.rating.BSONHandlers.perfTypeIdHandler
 import lila.game.BSONHandlers.sourceHandler
 import lila.rating.PerfType
 import lila.core.game.Source
+import lila.xiangqi.Xiangqi
 
 enum InsightDimension[A](
     val key: String,
@@ -51,7 +49,7 @@ enum InsightDimension[A](
         "Variant",
         F.perf,
         InsightPosition.Game,
-        "The rating category of the game, like Bullet, Blitz, or Chess960."
+        "The Xiangqi rating category of the game, like Bullet, Blitz, or Rapid."
       )
 
   case Phase
@@ -87,25 +85,7 @@ enum InsightDimension[A](
         "Color",
         F.color,
         InsightPosition.Game,
-        "The side you are playing: White or Black."
-      )
-
-  case OpeningFamily
-      extends InsightDimension[LilaOpeningFamily](
-        "openingFamily",
-        "Opening Family",
-        F.openingFamily,
-        InsightPosition.Game,
-        "General opening, like 'Sicilian Defense'."
-      )
-
-  case OpeningVariation
-      extends InsightDimension[SimpleOpening](
-        "openingVariation",
-        "Opening Variation",
-        F.opening,
-        InsightPosition.Game,
-        "Precise opening, like 'Sicilian Defense: Najdorf Variation'."
+        "The side you are playing: Red or Black."
       )
 
   case OpponentStrength
@@ -118,7 +98,7 @@ enum InsightDimension[A](
       )
 
   case PieceRole
-      extends InsightDimension[Role](
+      extends InsightDimension[Xiangqi.Role](
         "piece",
         "Piece moved",
         F.moves("r"),
@@ -135,40 +115,13 @@ enum InsightDimension[A](
         "The amount of time you spend thinking on each move, in seconds."
       )
 
-  case MyCastling
-      extends InsightDimension[Castling](
-        "myCastling",
-        "My castling side",
-        F.myCastling,
-        InsightPosition.Game,
-        "The side you castled on during the game: kingside, queenside, or none."
-      )
-
-  case OpCastling
-      extends InsightDimension[Castling](
-        "opCastling",
-        "Opponent castling side",
-        F.opponentCastling,
-        InsightPosition.Game,
-        "The side your opponent castled on during the game: kingside, queenside, or none."
-      )
-
-  case QueenTrade
-      extends InsightDimension[QueenTrade](
-        "queenTrade",
-        "Queen trade",
-        F.queenTrade,
-        InsightPosition.Game,
-        "Whether queens were traded before the endgame or not."
-      )
-
   case MaterialRange
       extends InsightDimension[MaterialRange](
         "material",
         "Material imbalance",
         F.moves("i"),
         InsightPosition.Move,
-        "Value of your pieces compared to your opponent's. Pawn=1, Bishop/Knight=3, Rook=5, Queen=9."
+        "Value of your pieces compared to your opponent's. Soldier=1, Advisor/Elephant=2, Horse=4, Cannon=5, Chariot=9."
       )
 
   case Blur
@@ -195,7 +148,7 @@ enum InsightDimension[A](
         "Centipawn loss",
         F.moves("c"),
         InsightPosition.Move,
-        "Centipawns lost by each move, according to Stockfish evaluation."
+        "Centipawns lost by each move, according to Pikafish evaluation."
       )
 
   case EvalRange
@@ -204,7 +157,7 @@ enum InsightDimension[A](
         "Evaluation",
         F.moves("e"),
         InsightPosition.Move,
-        "Stockfish evaluation of the position, relative to the player, in centipawns."
+        "Pikafish evaluation of the position, relative to the player, in centipawns."
       )
 
   case AccuracyPercentRange
@@ -213,7 +166,7 @@ enum InsightDimension[A](
         "Accuracy",
         F.moves("a"),
         InsightPosition.Move,
-        """How accurate your moves are, based on Stockfish evaluation."""
+        """How accurate your moves are, based on Pikafish evaluation."""
       )
 
   case WinPercentRange
@@ -222,7 +175,7 @@ enum InsightDimension[A](
         "Winning chances",
         F.moves("w"),
         InsightPosition.Move,
-        "Chances to win a position, based on Stockfish evaluation. A.k.a. Win%"
+        "Chances to win a position, based on Pikafish evaluation. A.k.a. Win%"
       )
 
   case ClockPercentRange
@@ -257,16 +210,11 @@ object InsightDimension:
     case Result => lila.insight.Result.values.toIndexedSeq
     case Termination => lila.insight.Termination.values.toIndexedSeq
     case Color => lila.insight.Color.values.toIndexedSeq
-    case OpeningFamily => LilaOpeningFamily.familyList
-    case OpeningVariation => SimpleOpening.openingList
     case OpponentStrength => RelativeStrength.values.toIndexedSeq
-    case PieceRole => chess.Role.all.reverse
+    case PieceRole => Xiangqi.Role.values.toIndexedSeq
     case MovetimeRange => lila.insight.MovetimeRange.values.toIndexedSeq
     case CplRange => lila.insight.CplRange.all
     case AccuracyPercentRange => lila.insight.AccuracyPercentRange.all.toList
-    case MyCastling => lila.insight.Castling.values.toIndexedSeq
-    case OpCastling => lila.insight.Castling.values.toIndexedSeq
-    case QueenTrade => lila.insight.QueenTrade.values.toIndexedSeq
     case MaterialRange => lila.insight.MaterialRange.values.toIndexedSeq
     case EvalRange => lila.insight.EvalRange.values.toIndexedSeq
     case WinPercentRange => lila.insight.WinPercentRange.all.toList
@@ -285,17 +233,16 @@ object InsightDimension:
     case Phase => key.toIntOption.flatMap(lila.insight.Phase.byId.get)
     case Result => key.toIntOption.flatMap(lila.insight.Result.byId.get)
     case Termination => key.toIntOption.flatMap(lila.insight.Termination.byId.get)
-    case Color => lila.insight.Color.fromName(key)
-    case OpeningFamily => LilaOpeningFamily.find(key)
-    case OpeningVariation => SimpleOpening.find(key)
+    case Color =>
+      key match
+        case "red" => chess.Color.White.some
+        case "black" => chess.Color.Black.some
+        case _ => none
     case OpponentStrength => key.toIntOption.flatMap(RelativeStrength.byId.get)
-    case PieceRole => chess.Role.all.find(_.name == key)
+    case PieceRole => Xiangqi.Role.byKey.get(key)
     case MovetimeRange => key.toIntOption.flatMap(lila.insight.MovetimeRange.byId.get)
     case CplRange => key.toIntOption.flatMap(lila.insight.CplRange.byId.get)
     case AccuracyPercentRange => key.toIntOption.flatMap(lila.insight.AccuracyPercentRange.byPercent.get)
-    case MyCastling => key.toIntOption.flatMap(lila.insight.Castling.byId.get)
-    case OpCastling => key.toIntOption.flatMap(lila.insight.Castling.byId.get)
-    case QueenTrade => lila.insight.QueenTrade(key == "true").some
     case MaterialRange => key.toIntOption.flatMap(lila.insight.MaterialRange.byId.get)
     case EvalRange => key.toIntOption.flatMap(lila.insight.EvalRange.byId.get)
     case WinPercentRange => key.toIntOption.flatMap(lila.insight.WinPercentRange.byPercent.get)
@@ -318,17 +265,12 @@ object InsightDimension:
       case Phase => v.id
       case Result => v.id
       case Termination => v.id
-      case Color => v.name
-      case OpeningFamily => v.key
-      case OpeningVariation => v.key
+      case Color => if v.white then "red" else "black"
       case OpponentStrength => v.id
-      case PieceRole => v.name
+      case PieceRole => v.key
       case MovetimeRange => v.id
       case CplRange => v.cpl
       case AccuracyPercentRange => v.bottom.toInt
-      case MyCastling => v.id
-      case OpCastling => v.id
-      case QueenTrade => v.id
       case MaterialRange => v.id
       case EvalRange => v.id
       case WinPercentRange => v.bottom.toInt
@@ -346,17 +288,12 @@ object InsightDimension:
       case Phase => JsString(v.name)
       case Result => JsString(v.name)
       case Termination => JsString(v.name)
-      case Color => JsString(v.toString)
-      case OpeningFamily => Json.toJson(v.name)
-      case OpeningVariation => Json.toJson(v.name)
+      case Color => JsString(if v.white then "Red" else "Black")
       case OpponentStrength => JsString(v.name)
-      case PieceRole => JsString(v.toString)
+      case PieceRole => JsString(v.name)
       case MovetimeRange => JsString(v.name)
       case CplRange => JsString(v.name)
       case AccuracyPercentRange => JsString(v.name)
-      case MyCastling => JsString(v.name)
-      case OpCastling => JsString(v.name)
-      case QueenTrade => JsString(v.name)
       case MaterialRange => JsString(v.name)
       case EvalRange => JsString(v.name)
       case WinPercentRange => JsString(v.name)
@@ -453,4 +390,4 @@ object InsightDimension:
       case _ => "text"
 
   // these are not always present in an insight entry
-  val optionalDimensions = List[InsightDimension[?]](OpeningFamily, OpeningVariation, OpponentStrength)
+  val optionalDimensions = List[InsightDimension[?]](OpponentStrength)

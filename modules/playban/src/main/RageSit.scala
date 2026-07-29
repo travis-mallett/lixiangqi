@@ -22,21 +22,7 @@ object RageSit:
     case Reset
     case Inc(v: Int)
 
-  def imbalanceInc(game: Game, loser: Color) = Update.Inc:
-    {
-      import chess.variant.*
-      (game.chess.position.materialImbalance, game.variant) match
-        case (_, Crazyhouse | Horde | Antichess) => 0
-        case (a, _) if a >= 4 => 1
-        case (a, _) if a <= -4 => -1
-        case _ => 0
-    } * {
-      if loser.white then 1 else -1
-    } * {
-      if game.speed <= Speed.Bullet then 5
-      else if game.speed == Speed.Blitz then 10
-      else 15
-    }
+  def imbalanceInc(_game: Game, _loser: Color) = Update.Noop
 
   def redeem(game: Game) = Update.Inc:
     game.speed match

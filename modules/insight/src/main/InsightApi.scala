@@ -20,14 +20,7 @@ final class InsightApi(
     _.expireAfterWrite(15.minutes).maximumSize(1_024).buildAsyncFuture(computeUser)
 
   private def computeUser(userId: UserId): Fu[InsightUser] =
-    storage
-      .count(userId)
-      .flatMap:
-        case 0 => fuccess(InsightUser(0, Nil, Nil))
-        case count =>
-          storage.openings(userId).map { (families, openings) =>
-            InsightUser(count, families, openings)
-          }
+    storage.count(userId).map(InsightUser.apply)
   private given Ordering[GameId] = stringOrdering
 
   def insightUser(user: User): Fu[InsightUser] = userCache.get(user.id)

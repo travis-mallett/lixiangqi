@@ -1,88 +1,42 @@
-# [lichess.org](https://lichess.org)
+# Lixiangqi
 
-[![Crowdin](https://d322cqt584bo4o.cloudfront.net/lichess/localized.svg)](https://crowdin.com/project/lichess)
-[![Mastodon](https://img.shields.io/mastodon/follow/109298525492334687?domain=mastodon.online)](https://mastodon.online/@lichess)
-[![Bluesky](https://img.shields.io/badge/Bluesky-0285FF?logo=bluesky&logoColor=fff)](https://bsky.app/profile/lichess.org)
-[![Discord](https://img.shields.io/discord/280713822073913354?label=Discord&logo=discord&style=flat)](https://discord.gg/lichess)
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/lichess-org/lila)
+Lixiangqi is a native Xiangqi conversion of the current [Lichess](https://github.com/lichess-org/lila) server. The web shell, accounts, navigation, accessibility, internationalization, game orchestration, ratings, puzzles, and analysis boundaries remain Lila; their game semantics are Standard Xiangqi.
 
-<img src="https://raw.githubusercontent.com/lichess-org/lila/master/public/images/home-bicolor.png" alt="Lichess homepage" title="Lichess comes with light and dark theme, this screenshot shows both." />
+Standard Xiangqi (WXF rules) is the only selectable variant today. Lila's structural variant machinery remains in place so future Xiangqi variants can use the native setup, lobby, challenge, rating, and game abstractions without reconstructing them.
 
-Lila (li[chess in sca]la) is a free online chess game server focused on [realtime](https://lichess.org/games) gameplay and ease of use.
+## Windows preview
 
-It features a [search engine](https://lichess.org/games/search),
-[computer analysis](https://lichess.org/ief49lif) distributed with [fishnet](https://github.com/lichess-org/fishnet),
-[tournaments](https://lichess.org/tournament),
-[simuls](https://lichess.org/simul),
-[forums](https://lichess.org/forum),
-[teams](https://lichess.org/team),
-[tactic trainer](https://lichess.org/training),
-a [mobile app](https://lichess.org/app),
-and a [shared analysis board](https://lichess.org/study).
-The UI is available in more than [140 languages](https://crowdin.com/project/lichess) thanks to the community.
+On the prepared development machine, double-click **`Start Lixiangqi.cmd`**. It starts MongoDB, Redis, the read-only Xiangqi opening explorer, and the web application, waits for readiness, and opens:
 
-Lichess is written in [Scala 3](https://www.scala-lang.org/),
-and relies on a modified [Play 2.8](https://www.playframework.com/) framework.
-[scalatags](https://com-lihaoyi.github.io/scalatags/) is used for templating.
-Pure chess logic is contained in the [scalachess](https://github.com/lichess-org/scalachess) submodule.
-The server is fully asynchronous, making heavy use of Scala Futures and [Pekko streams](https://pekko.apache.org).
-WebSocket connections are handled by a [separate server](https://github.com/lichess-org/lila-ws) that communicates using [redis](https://redis.io/).
-Lichess talks to [Stockfish](https://stockfishchess.org/) deployed in an [AI cluster](https://github.com/lichess-org/fishnet) of donated servers.
-It uses [MongoDB](https://www.mongodb.com) to store more than 12 billion games, which are indexed by [elasticsearch](https://github.com/elastic/elasticsearch).
-HTTP requests and WebSocket connections can be proxied by [nginx](https://nginx.org).
-The web client is written in [TypeScript](https://www.typescriptlang.org/) and [snabbdom](https://github.com/snabbdom/snabbdom), using [Sass](https://sass-lang.com/) to generate CSS.
-All rated games are published in a [free PGN database](https://database.lichess.org).
-Browser testing done with [Browserstack](https://www.browserstack.com).
-Proxy detection done with [IP2Proxy database](https://www.ip2location.com/database/ip2proxy).
-Please help us [translate Lichess with Crowdin](https://crowdin.com/project/lichess).
-
-See [lichess.org/source](https://lichess.org/source) for a list of repositories.
-
-[Join us on Discord](https://discord.gg/lichess) for more info.
-Use [GitHub issues](https://github.com/lichess-org/lila/issues) for bug reports and feature requests.
-
-## Installation
-
-```
-./lila.sh # thin wrapper around sbt
-run
+```text
+http://localhost:9663/
 ```
 
-The Wiki describes [how to setup a development environment](https://github.com/lichess-org/lila/wiki/Lichess-Development-Onboarding).
+Runtime data is kept in `data/local` and process logs in `logs`. See [scripts/windows/README.md](scripts/windows/README.md) for command-line options and troubleshooting.
 
-## HTTP API
+## Development and tests
 
-Feel free to use the [Lichess API](https://lichess.org/api) in your applications and websites.
+The native Xiangqi rules boundary is in `modules/xiangqi`. Coordinate moves are authoritative; positions, legality, WXF, and game results are derived in process. Pikafish runs at Lila's browser-ceval and Fishnet boundaries, and remains an independent comparison oracle for offline tests.
+The repository-wide native feature audit and mandatory conversion order are in
+[doc/NATIVE_PORT_AUDIT.md](doc/NATIVE_PORT_AUDIT.md).
 
-## Supported browsers
+Useful focused checks:
 
-| Name              | Version | Notes                      |
-| ----------------- | ------- | -------------------------- |
-| Firefox           | 115+    | Full support (recommended) |
-| Chromium / Chrome | 112+    | Full support               |
-| Edge              | 111+    | Full support               |
-| Opera             | 97+     | Reasonable support         |
-| Safari            | 16.2+   | Reasonable support         |
+```powershell
+.venv\Scripts\python.exe -m unittest discover tools\xiangqi_data\tests
+node ui\.test\runner.mjs xiangqi
+& .tools\jdk-21\jdk-21.0.11+10\bin\java.exe '-Dsbt.server.autostart=false' -jar .tools\sbt\sbt-launch-2.0.3.jar 'xiangqi/test'
+```
 
-Older browsers will not work.
-For your own sake, please upgrade. Security and performance, think about it!
+## Current scope
 
-## License
+Normal moves, setup, challenges, tournaments, Swiss, simuls, imports, analysis requests, and native puzzles use the in-process Xiangqi domain. Browser evaluation uses Pikafish Web; server analysis and AI use Lila's Fishnet work boundary. The read-only opening explorer and its catalog query model are independently deployable under `external/xiangqi_explorer`, while ingestion, mining, and comparison-oracle code is under `tools/xiangqi_data`.
 
-Lila is licensed under the GNU Affero General Public License 3 or any later
-version at your choice. See [copying](https://github.com/lichess-org/lila/blob/master/COPYING.md) for
-details.
+With the local site running, `python -m tools.xiangqi_data.validate_native_rules`
+differentially checks native legality, check state, and position transitions
+against the pinned Pikafish executable. This is an offline release check, not a
+runtime dependency.
 
-## Production architecture (as of July 2022)
+## License and attribution
 
-![Lichess production server architecture diagram](https://raw.githubusercontent.com/lichess-org/lila/master/public/images/architecture.png)
-
-## Credits
-
-See [lichess.org/thanks](https://lichess.org/thanks) and the contributors here:
-
-[![GitHub contributors](https://contrib.rocks/image?repo=lichess-org/lila)](https://github.com/lichess-org/lila/graphs/contributors)
-
-## Competence development program
-
-Lichess would like to support its contributors in their competence development by covering costs of relevant training materials and activities. This is a small way to further empower contributors who have given their time to Lichess and to enable or improve additional contributions to Lichess in the future. For more information, including how to apply, check [Competence Development for Lichess contributors](https://lichess.org/page/competence-development).
+Lila and PyChess Variants are free software distributed under the GNU Affero General Public License. See [COPYING.md](COPYING.md), the upstream repositories, and [doc/PYCHESS_PORT.md](doc/PYCHESS_PORT.md) for attribution and pinned revisions.

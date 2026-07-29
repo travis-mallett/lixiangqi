@@ -6,12 +6,10 @@ import lila.ui.ScalatagsTemplate.{ *, given }
 import lila.rating.PerfType
 import lila.insight.MeanRating
 
-final class TutorBits(helpers: Helpers)(
-    val openingUrl: chess.opening.Opening => Call
-):
+final class TutorBits(helpers: Helpers):
   import helpers.{ *, given }
 
-  def page(menu: Frag, title: String = "Lichess Tutor", pageSmall: Boolean = false)(mods: AttrPair*): Page =
+  def page(menu: Frag, title: String = "Lixiangqi Tutor", pageSmall: Boolean = false)(mods: AttrPair*): Page =
     Page(title)
       .css("tutor.report")
       .js(Esm("tutor"))
@@ -106,7 +104,6 @@ final class TutorBits(helpers: Helpers)(
 
   val reportAngles: List[(Angle, String)] = List(
     ("skills", "Skills"),
-    ("opening", "Openings"),
     ("time", "Time management"),
     ("phases", "Game phases"),
     ("pieces", "Pieces")

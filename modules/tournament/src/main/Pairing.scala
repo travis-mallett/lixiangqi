@@ -1,6 +1,6 @@
 package lila.tournament
 
-import chess.variant.*
+import chess.variant.Variant
 import scalalib.ThreadLocalRandom
 
 case class Pairing(
@@ -34,10 +34,9 @@ case class Pairing(
   def quickFinish = finished && turns.exists(20 >)
   def quickDraw = draw && turns.exists(20 >)
   def notSoQuickFinish = finished && turns.exists(14 <=)
-  def longGame(variant: Variant) = turns.exists(_ >= (variant match
-    case Standard | Chess960 | Horde => 60
-    case Antichess | Crazyhouse | KingOfTheHill => 40
-    case ThreeCheck | Atomic | RacingKings => 20))
+  def longGame(@annotation.unused variant: Variant) =
+    // The threshold remains a ruleset concern even though only Standard Xiangqi is registered today.
+    turns.exists(_ >= 60)
 
   def wonBy(user: UserId): Boolean = winner.exists(user.is(_))
   def lostBy(user: UserId): Boolean = winner.exists(user.isnt(_))

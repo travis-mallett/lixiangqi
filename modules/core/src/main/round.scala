@@ -1,8 +1,7 @@
 package lila.core
 package round
 
-import _root_.chess.format.{ Fen, Uci }
-import _root_.chess.{ Color, MoveOrDrop }
+import _root_.chess.Color
 import play.api.libs.json.{ JsArray, JsObject }
 import scalalib.bus.NotBuseable
 
@@ -10,6 +9,7 @@ import lila.core.game.{ Game, Pov }
 import lila.core.id.{ GameAnyId, GameId, GamePlayerId, SimulId, TourId }
 import lila.core.net.IpAddress
 import lila.core.userId.UserId
+import lila.xiangqi.Xiangqi
 
 case class Berserk(gameId: GameId, userId: UserId)
 
@@ -19,9 +19,9 @@ enum RoundBus extends NotBuseable:
   case Abort(playerId: GamePlayerId)
   case AbortForce
   case BotConnected(color: Color, v: Boolean)
-  case BotPlay(playerId: GamePlayerId, uci: Uci, promise: Option[Promise[Unit]] = None)
+  case BotPlay(playerId: GamePlayerId, uci: Xiangqi.Uci, promise: Option[Promise[Unit]] = None)
   case Draw(playerId: GamePlayerId, draw: Boolean)
-  case FishnetPlay(uci: Uci, sign: String)
+  case FishnetPlay(uci: Xiangqi.Uci, sign: String)
   case IsOnGame(color: Color, promise: Promise[Boolean])
   case QuietFlagCheck
   case Rematch(playerId: GamePlayerId, rematch: Boolean)
@@ -33,7 +33,7 @@ enum RoundBus extends NotBuseable:
 case class Tell(id: GameId, msg: RoundBus)
 case class TellMany(ids: Seq[GameId], msg: StartClock.type | RoundBus.QuietFlagCheck.type)
 
-case class MoveEvent(gameId: GameId, fen: Fen.Full, move: Uci)
+case class MoveEvent(gameId: GameId, fen: String, move: Xiangqi.Uci)
 case class CorresMoveEvent(
     move: MoveEvent,
     playerUserId: Option[UserId],
@@ -54,7 +54,7 @@ case class Mlat(millis: Int)
 case class DeleteUnplayed(gameId: GameId)
 case class SocketExists(gameId: GameId, promise: Promise[Boolean])
 
-case object Threefold
+case object OptionalDraw
 case object ResignAi
 case class DrawClaim(playerId: GamePlayerId)
 case class Blindfold(playerId: GamePlayerId, blindfold: Boolean)
@@ -67,7 +67,7 @@ case class Moretime(
 )
 case class ClientFlag(color: Color, fromPlayerId: Option[GamePlayerId])
 case object Abandon
-case class ForecastPlay(lastMove: MoveOrDrop)
+case class ForecastPlay(lastMove: Xiangqi.Uci)
 case class Cheat(color: Color)
 case class HoldAlert(playerId: GamePlayerId, mean: Int, sd: Int, ip: IpAddress)
 case class GoBerserk(color: Color, promise: Promise[Boolean])

@@ -1,6 +1,7 @@
 import sbt.*, Keys.*
 
 object Dependencies:
+  val isWindows = System.getProperty("os.name").toLowerCase.startsWith("windows")
   val arch = if System.getProperty("os.arch").toLowerCase.startsWith("aarch") then "aarch_64" else "x86_64"
   val dashArch = arch.replace("_", "-")
   val (os, notifier) =

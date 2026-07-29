@@ -65,22 +65,22 @@
 
 %box-bordered {
   @extend %box-radius;
-  @include backdrop-blur-if-transparent;
+  @include backdrop-blur-if-background;
 
   border: $border;
 }
 
 %box-neat {
   @extend %box-shadow, %box-radius;
-  @include backdrop-blur-if-transparent;
+  @include backdrop-blur-if-background;
 }
 
 %box-neat-top {
   @extend %box-shadow, %box-radius-top;
-  @include backdrop-blur-if-transparent;
+  @include backdrop-blur-if-background;
 }
 
 %box-neat-force {
   @extend %box-shadow, %box-radius-force;
-  @include backdrop-blur-if-transparent;
+  @include backdrop-blur-if-background;
 }

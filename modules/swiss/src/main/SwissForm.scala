@@ -25,7 +25,7 @@ final class SwissForm(using mode: play.api.Mode):
         )(ClockConfig.apply)(unapply)
           .verifying("Invalid clock", _.estimateTotalSeconds > 0),
         "startsAt" -> optional(inTheFuture(ISOInstantOrTimestamp.mapping)),
-        "variant" -> optional(typeIn(Variant.list.all.map(_.key).toSet)),
+        "variant" -> optional(typeIn(Set(chess.variant.Standard.key))),
         "rated" -> optional(boolean.into[Rated]),
         "nbRounds" -> number(min = minRounds, max = 100),
         "description" -> optional(cleanNonEmptyText),

@@ -3,7 +3,7 @@
   <string name="community">Community</string>
   <string name="byMonth">By month</string>
   <string name="byTopic">By topic</string>
-  <string name="byLichess">By Lichess</string>
+  <string name="byLichess">By Lixiangqi</string>
   <string name="myFriends">My friends</string>
   <string name="myLikes">My likes</string>
   <string name="myBlog">My blog</string>
@@ -13,7 +13,7 @@
     <item quantity="other">%s blog posts</item>
   </plurals>
   <string name="continueReadingPost">Continue reading this post</string>
-  <string name="lichessBlogPostsFromXYear">Lichess blog posts in %s</string>
+  <string name="lichessBlogPostsFromXYear">Lixiangqi blog posts in %s</string>
   <string name="previousBlogPosts">Previous blog posts</string>
   <string name="xBlog">%s\'s Blog</string>
   <string name="newPost">New post</string>
@@ -54,7 +54,7 @@
   <string name="deleteBlog">Delete this blog post permanently</string>
   <string name="safeToUseImages">It is safe to use images from the following websites: </string>
   <string name="selectPostTopics">Select the topics your post is about</string>
-  <string name="useImagesYouMadeYourself">You can also use images that you made yourself, pictures you took, screenshots of Lichess... anything that is not copyrighted by someone else.</string>
+  <string name="useImagesYouMadeYourself">You can also use images that you made yourself, pictures you took, screenshots of Lixiangqi... anything that is not copyrighted by someone else.</string>
   <string name="safeAndRespectfulContent">Please only post safe and respectful content. Do not copy someone else\'s content.</string>
   <string name="inappropriateContentAccountClosed">Anything inappropriate could get your account closed.</string>
   <string name="blogTips">Our simple tips to write great blog posts</string>

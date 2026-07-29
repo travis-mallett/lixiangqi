@@ -11,13 +11,26 @@ import lila.mon.extensions.*
 final class PuzzleApi(
     colls: PuzzleColls,
     trustApi: PuzzleTrustApi,
-    countApi: PuzzleCountApi,
-    openingApi: PuzzleOpeningApi
+    countApi: PuzzleCountApi
 )(using Executor, Scheduler):
 
   import BsonHandlers.given
 
   object puzzle:
+
+    def random(turn: Option[lila.xiangqi.Xiangqi.Side] = None): Fu[Option[Puzzle]] =
+      colls
+        .puzzle:
+          _.aggregateOne(): framework =>
+            import framework.*
+            turn match
+              case None => Sample(1) -> List.empty
+              case Some(side) =>
+                // The stored FEN is before the puzzle's initial move, so the
+                // requested exercise turn is the opposite FEN side.
+                val fenTurn = if side == lila.xiangqi.Xiangqi.Side.Red then "b" else "w"
+                Match(Puzzle.BSONFields.fen.$regex(s" $fenTurn ")) -> List(Sample(1))
+        .map(_.flatMap(_.asOpt[Puzzle]))
 
     def find(id: PuzzleId): Fu[Option[Puzzle]] =
       colls.puzzle(_.byId[Puzzle](id))
@@ -120,10 +133,8 @@ final class PuzzleApi(
               )
               .void
 
-  def angles: Fu[PuzzleAngle.All] = for
-    themes <- theme.categorizedWithCount
-    openings <- openingApi.collection
-  yield PuzzleAngle.All(themes, openings)
+  def angles: Fu[PuzzleAngle.All] =
+    theme.categorizedWithCount.map(PuzzleAngle.All.apply)
 
   object theme:
 

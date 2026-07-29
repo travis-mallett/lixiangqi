@@ -1,5 +1,6 @@
 package lila.api
 
+import chess.Color
 import chess.format.Fen
 import play.api.libs.json.*
 import play.api.mvc.RequestHeader
@@ -21,8 +22,7 @@ final private[api] class GameApi(
     gameRepo: lila.game.GameRepo,
     gameCache: lila.game.Cached,
     analysisRepo: lila.analyse.AnalysisRepo,
-    crosstableApi: lila.game.CrosstableApi,
-    gameOpening: lila.game.GameOpening
+    crosstableApi: lila.game.CrosstableApi
 )(using Executor):
 
   import GameApi.WithFlags
@@ -137,13 +137,14 @@ final private[api] class GameApi(
   private def gameToJson(
       g: Game,
       analysisOption: Option[Analysis],
-      initialFen: Option[Fen.Full],
+      @annotation.unused initialFen: Option[Fen.Full],
       withFlags: WithFlags
   ) =
+    def sideName(color: Color) = if color.white then "red" else "black"
     Json
       .obj(
         "id" -> g.id,
-        "initialFen" -> initialFen,
+        "initialFen" -> g.xiangqi.initialFen,
         "rated" -> g.rated,
         "variant" -> g.variant.key,
         "speed" -> g.speed.key,
@@ -151,7 +152,7 @@ final private[api] class GameApi(
         "createdAt" -> g.createdAt,
         "lastMoveAt" -> g.movedAt,
         "turns" -> g.ply,
-        "color" -> g.turnColor.name,
+        "color" -> sideName(g.turnColor),
         "status" -> g.status.name,
         "clock" -> g.clock.map { clock =>
           Json.obj(
@@ -162,7 +163,7 @@ final private[api] class GameApi(
         },
         "daysPerTurn" -> g.daysPerTurn,
         "players" -> JsObject(g.players.mapList { p =>
-          p.color.name -> Json
+          sideName(p.color) -> Json
             .obj(
               "userId" -> p.userId,
               "rating" -> p.rating,
@@ -178,19 +179,13 @@ final private[api] class GameApi(
                 .flatMap(analysisJson.player(g.pov(p.color).sideAndStart)(_, accuracy = none))
             )
         }),
+        "analysis" -> analysisOption.ifTrue(withFlags.analysis).map(analysisJson.moves(_)),
         "moves" -> withFlags.moves.option(g.sans.mkString(" ")),
-        "fens" -> ((withFlags.fens && g.finished).so {
-          chess
-            .Position(g.variant, initialFen)
-            .playPositions(g.sans)
-            .toOption
-            .map(boards => JsArray(boards.map(chess.format.Fen.writeBoard).map(Json.toJson)))
-        }: Option[JsArray]),
-        "winner" -> g.winnerColor.map(_.name),
+        "uci" -> withFlags.moves.option(g.xiangqi.moves.map(_.value).mkString(" ")),
+        "fens" -> (withFlags.fens && g.finished).option(JsArray(g.xiangqi.states.map(s => JsString(s.fen)))),
+        "winner" -> g.winnerColor.map(sideName),
         "url" -> makeUrl(g)
       )
-      .add("analysis", analysisOption.ifTrue(withFlags.analysis).map(analysisJson.moves(_)))
-      .add("opening", withFlags.opening.so(gameOpening.quickAtPly(g)))
       .noNull
 
 object GameApi:

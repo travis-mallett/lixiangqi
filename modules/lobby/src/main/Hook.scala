@@ -12,7 +12,7 @@ import lila.core.socket.Sri
 import lila.rating.PerfType
 import lila.core.pool.IsClockCompatible
 
-// realtime chess, volatile
+// Realtime Xiangqi, kept in memory while advertised in the lobby.
 case class Hook(
     id: String,
     sri: Sri, // owner socket sri

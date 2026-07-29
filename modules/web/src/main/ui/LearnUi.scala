@@ -8,11 +8,9 @@ import lila.ui.*
 import ScalatagsTemplate.*
 
 final class LearnUi(helpers: Helpers):
-  import helpers.{ *, given }
-  import trans.learn as trl
-
+  import helpers.*
   def apply(data: Option[play.api.libs.json.JsValue])(using ctx: Context) =
-    Page(s"${trl.learnChess.txt()} - ${trl.byPlaying.txt()}")
+    Page("Fundamentals of Xiangqi - learn by playing")
       .js:
         PageModule(
           "learn",
@@ -20,16 +18,16 @@ final class LearnUi(helpers: Helpers):
             "data" -> data,
             "pref" -> Json.obj(
               "coords" -> ctx.pref.coords,
-              "destination" -> ctx.pref.destination,
-              "is3d" -> ctx.pref.is3d
+              "destination" -> ctx.pref.destination
             )
           )
         )
       .css("learn")
       .i18n(_.learn)
       .graph(
-        title = "Learn chess by playing",
-        description = "You don't know much about chess? Excellent! Let's have fun and learn to play chess!",
+        title = "Learn Xiangqi by playing",
+        description =
+          "Learn the board, pieces, rules, notation, tactics, and classical checkmating patterns of Xiangqi.",
         url = routeUrl(routes.Learn.index)
       )
       .hrefLangs(lila.ui.LangPath(routes.Learn.index))

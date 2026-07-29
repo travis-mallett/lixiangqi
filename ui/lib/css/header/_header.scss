@@ -37,7 +37,7 @@
       }
     }
 
-    @include if-transp {
+    @include if-background {
       @include back-blur(6px);
 
       border: none;
@@ -140,8 +140,4 @@ body.zen {
       }
     }
   }
-}
-
-html.transp body[data-board3d] #top::before {
-  display: none;
 }

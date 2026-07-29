@@ -1,24 +1,26 @@
 package lila.insight
 
-import chess.{ Color, Role }
+import chess.Color
 import chess.IntRating
 import chess.eval.WinPercent
 import chess.rating.IntRatingDiff
 import reactivemongo.api.bson.*
 
 import lila.analyse.AccuracyPercent
-import lila.common.SimpleOpening
 import lila.db.BSON
 import lila.db.dsl.{ *, given }
 import lila.rating.BSONHandlers.perfTypeIdHandler
 import lila.rating.PerfType
 import lila.core.game.Source
 import lila.game.BSONHandlers.sourceHandler
+import lila.xiangqi.Xiangqi
 
 object BSONHandlers:
 
-  given BSONHandler[Role] = tryHandler(
-    { case BSONString(v) => Role.allByForsyth.get(v.head).toTry(s"Invalid role $v") },
+  given BSONHandler[Xiangqi.Role] = tryHandler(
+    { case BSONString(v) =>
+      v.headOption.flatMap(Xiangqi.Role.fromForsyth).toTry(s"Invalid Xiangqi role $v")
+    },
     e => BSONString(e.forsyth.toString)
   )
   given BSONHandler[RelativeStrength] = valueMapHandler(RelativeStrength.byId)(_.id)
@@ -26,13 +28,11 @@ object BSONHandlers:
   given BSONHandler[Phase] = valueMapHandler(Phase.byId)(_.id)
   given BSONHandler[Termination] = valueMapHandler(Termination.byId)(_.id)
   given BSONHandler[MovetimeRange] = valueMapHandler(MovetimeRange.byId)(_.id)
-  given BSONHandler[Castling] = valueMapHandler(Castling.byId)(_.id)
   given BSONHandler[MaterialRange] = valueMapHandler(MaterialRange.byId)(_.id)
   given BSONHandler[EvalRange] = valueMapHandler(EvalRange.byId)(_.id)
   given BSONHandler[WinPercentRange] = valueMapHandler(WinPercentRange.byPercent)(_.bottom.toInt)
   given BSONHandler[AccuracyPercentRange] = valueMapHandler(AccuracyPercentRange.byPercent)(_.bottom.toInt)
   given BSONHandler[ClockPercentRange] = valueMapHandler(ClockPercentRange.byPercent)(_.bottom.toInt)
-  given BSONHandler[QueenTrade] = BSONBooleanHandler.as[QueenTrade](QueenTrade.apply, _.id)
   given BSONHandler[Blur] = BSONBooleanNullHandler.as[Blur](Blur.apply, _.id)
   given BSONHandler[CplRange] = valueMapHandler(CplRange.byId)(_.cpl)
   given BSONHandler[AccuracyPercent] = percentAsIntHandler[AccuracyPercent]
@@ -58,7 +58,7 @@ object BSONHandlers:
         phase = r.get[Phase]("p"),
         tenths = r.intO("t"),
         clockPercent = r.getO[ClockPercent]("s"),
-        role = r.get[Role]("r"),
+        role = r.get[Xiangqi.Role]("r"),
         eval = r.intO("e"),
         cpl = r.intO("c"),
         winPercent = r.getO[WinPercent]("w"),
@@ -94,14 +94,10 @@ object BSONHandlers:
         userId = r.get[UserId](userId),
         color = r.get[Color](color),
         perf = r.get[PerfType](perf),
-        opening = r.getO[SimpleOpening](opening),
-        myCastling = r.get[Castling](myCastling),
         rating = r.getO[IntRating](rating),
         opponentRating = r.getO[IntRating](opponentRating),
         opponentStrength = r.getO[RelativeStrength](opponentStrength),
-        opponentCastling = r.get[Castling](opponentCastling),
         moves = r.get[List[InsightMove]](moves),
-        queenTrade = r.get[QueenTrade](queenTrade),
         result = r.get[Result](result),
         termination = r.get[Termination](termination),
         ratingDiff = r.get[IntRatingDiff](ratingDiff),
@@ -113,18 +109,14 @@ object BSONHandlers:
     def writes(w: BSON.Writer, e: InsightEntry) =
       BSONDocument(
         id -> e.id,
+        version -> InsightEntry.schemaVersion,
         userId -> e.userId,
         color -> e.color,
         perf -> PerfType(e.perf),
-        opening -> e.opening,
-        openingFamily -> e.opening.map(_.family),
-        myCastling -> e.myCastling,
         rating -> e.rating,
         opponentRating -> e.opponentRating,
         opponentStrength -> e.opponentStrength,
-        opponentCastling -> e.opponentCastling,
         moves -> e.moves,
-        queenTrade -> e.queenTrade,
         result -> e.result,
         termination -> e.termination,
         ratingDiff -> e.ratingDiff,

@@ -22,7 +22,9 @@ export async function parsePackages(): Promise<void> {
 export async function glob(glob: string[] | string | undefined, opts: fg.Options = {}): Promise<string[]> {
   if (!glob) return [];
   const results = await Promise.all(
-    [glob].flatMap(async g => fg.glob(g, { cwd: env.rootDir, absolute: true, ...opts })),
+    [glob].flatMap(async g =>
+      fg.glob(g.replaceAll('\\', '/'), { cwd: env.rootDir, absolute: true, ...opts }),
+    ),
   );
   return [...new Set(results.flat())];
 }
@@ -93,7 +95,8 @@ async function parsePackage(root: string): Promise<Package> {
   const build = pkgInfo.pkg.build;
 
   // 'hash' and 'sync' paths beginning with '/' are repo relative, otherwise they are package relative
-  const normalize = (file: string) => (file.startsWith('/') ? file.slice(1) : join('ui', pkgInfo.name, file));
+  const normalize = (file: string) =>
+    (file.startsWith('/') ? file.slice(1) : join('ui', pkgInfo.name, file)).replaceAll('\\', '/');
   const normalizeObject = <T extends Record<string, any>>(o: T) =>
     Object.fromEntries(Object.entries(o).map(([k, v]) => [k, typeof v === 'string' ? normalize(v) : v]));
 

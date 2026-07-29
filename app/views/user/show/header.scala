@@ -154,7 +154,7 @@ object header:
                   .so(profile.nonEmptyRealName)
                   .map(strong(cls := List("name" -> true, "muted" -> muted))(_)),
                 info.publicFideId.map: id =>
-                  p(a(href := routes.Fide.show(id, u.username.value))("FIDE player #" + id)),
+                  p(a(href := routes.Fide.show(id, u.username.value))("WXF player #" + id)),
                 (showLinks && showProfile || isGranted(_.AccountInfo))
                   .so(profile.nonEmptyBio)
                   .map: bio =>
@@ -224,7 +224,7 @@ object header:
               info.insightVisible.option(
                 a(cls := "insight", href := routes.Insight.index(u.username), dataIcon := Icon.Target):
                   span(
-                    strong("Chess Insights"),
+                    strong("Xiangqi Insights"),
                     em("Analytics from ", if ctx.is(u) then "your" else s"${u.username}'s", " games")
                   )
               )

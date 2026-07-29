@@ -14,7 +14,7 @@ export interface PubsubEvents {
   'analysis.comp.toggle': (enabled: boolean) => void;
   'analysis.eval': (ev: ClientEval, meta: EvalMeta) => void;
   'analysis.server.progress': (analyseData: any) => void;
-  'board.change': (is3d: boolean) => void;
+  'board.change': () => void;
   'challenge-app.open': () => void;
   'chart.panning': () => void;
   'chat.permissions': (perms: { local: boolean }) => void;

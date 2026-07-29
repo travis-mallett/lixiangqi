@@ -25,8 +25,6 @@ final private class AggregationPipeline(store: InsightStorage)(using Executor):
         val sortDate = target.isLeft.so(List(Sort(Descending(F.date))))
         val limitMoves = Limit((200_000 / maxGames.value.toDouble * nbGames.value).toInt).some
         val unwindMoves = UnwindField(F.moves).some
-        val sortNb = Sort(Descending("nb")).some
-        def limit(nb: Int) = Limit(nb).some
 
         def groupOptions(identifiers: pack.Value)(ops: (String, Option[GroupFunction])*) =
           Group(identifiers)(ops.collect { case (k, Some(f)) => k -> f }*)
@@ -374,7 +372,6 @@ final private class AggregationPipeline(store: InsightStorage)(using Executor):
                 ) :::
                 List(includeSomeGameIds)
           ) ::: dimension.match
-            case D.OpeningVariation | D.OpeningFamily => List(sortNb, limit(12))
             case _ => Nil
           ).flatten
         }

@@ -1,12 +1,11 @@
 package lila.tutor
 
-import chess.Role
-
 import lila.analyse.AccuracyPercent
 import lila.insight.{ InsightApi, InsightDimension, InsightMetric, Question }
+import lila.xiangqi.Xiangqi
 
 case class TutorPiece(
-    role: Role,
+    role: Xiangqi.Role,
     accuracy: TutorBothOption[AccuracyPercent],
     awareness: TutorBothOption[GoodPercent]
 ):
@@ -16,13 +15,13 @@ case class TutorPiece(
 
 case class TutorPieces(list: List[TutorPiece]):
 
-  lazy val accuracyCompare = TutorCompare[Role, AccuracyPercent](
+  lazy val accuracyCompare = TutorCompare[Xiangqi.Role, AccuracyPercent](
     InsightDimension.PieceRole,
     TutorMetric.Accuracy,
     list.map { piece => (piece.role, piece.accuracy) }
   )
 
-  lazy val awarenessCompare = TutorCompare[Role, GoodPercent](
+  lazy val awarenessCompare = TutorCompare[Xiangqi.Role, GoodPercent](
     InsightDimension.PieceRole,
     TutorMetric.Awareness,
     list.map { piece => (piece.role, piece.awareness) }
@@ -32,9 +31,9 @@ case class TutorPieces(list: List[TutorPiece]):
 
   val highlights = TutorCompare.mixedBag(compares.flatMap(_.peerComparisons))
 
-  def apply(role: Role) = list.find(_.role == role)
+  def apply(role: Xiangqi.Role) = list.find(_.role == role)
 
-  def frequency(role: Role) =
+  def frequency(role: Xiangqi.Role) =
     val total = list.flatMap(_.accuracy).map(_.mine.count).sum
     val count = ~apply(role).flatMap(_.accuracy).map(_.mine.count)
     GoodPercent(count, total)
@@ -47,12 +46,12 @@ private object TutorPieces:
   private val awarenessQuestion = Question(InsightDimension.PieceRole, InsightMetric.Awareness)
   private val roles = InsightDimension.valuesOf(InsightDimension.PieceRole).toList
 
-  private type RoleGet = Role => Option[Double]
+  private type RoleGet = Xiangqi.Role => Option[Double]
 
   def compute(user: TutorPlayer)(using TutorConfig, InsightApi, Executor): Fu[TutorPieces] =
 
     def cachedOrComputedPeerRoleGet[V](
-        question: Question[Role],
+        question: Question[Xiangqi.Role],
         cacheGet: TutorPiece => Option[Double]
     ): Fu[RoleGet] =
       user.peerMatch

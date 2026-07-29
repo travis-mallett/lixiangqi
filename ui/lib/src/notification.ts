@@ -18,7 +18,7 @@ function notify(msg: string | (() => string)) {
   if (document.hasFocus() || Date.now() - parseInt(store.get()!, 10) < 1000) return;
   store.set(String(Date.now()));
   if ($.isFunction(msg)) msg = msg();
-  const notification = new Notification('lichess.org', {
+  const notification = new Notification('lixiangqi.org', {
     icon: site.asset.url('logo/lichess-favicon-256.png'),
     body: msg,
   });

@@ -74,7 +74,7 @@ final private class FarmBoostDetection(
       .addEffect:
         if _ then
           lila.mon.round.farming.provisional.increment()
-          logger.info(s"new account boosting: https://lichess.org/${g.id} ${users.map(_.user.username)}")
+          logger.info(s"new account boosting: https://lixiangqi.org/${g.id} ${users.map(_.user.username)}")
 
   private def linearInterpolation(x: Int)(p1: PairOf[Int], p2: PairOf[Int]): Int =
     val ((x1, y1), (x2, y2)) = (p1, p2)

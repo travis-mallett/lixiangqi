@@ -3,7 +3,7 @@ package ui
 
 import lila.insight.{ InsightMetric, Phase }
 import lila.ui.ScalatagsTemplate.*
-import lila.common.LilaOpeningFamily
+import lila.xiangqi.Xiangqi
 
 sealed class TutorConcept(
     val name: String,
@@ -117,19 +117,18 @@ object concept:
 
   def phase(phase: Phase, unit: TutorUnit = percent) = adhoc(phase.name, phaseIcon(phase), unit)
 
-  val pieceIcon: chess.Role => TutorIcon =
-    case chess.Pawn => TutorIcon.pawn
-    case chess.Knight => TutorIcon.knight
-    case chess.Bishop => TutorIcon.bishop
-    case chess.Rook => TutorIcon.rook
-    case chess.Queen => TutorIcon.queen
-    case chess.King => TutorIcon.king
+  val pieceIcon: Xiangqi.Role => TutorIcon =
+    case Xiangqi.Role.General => TutorIcon.general
+    case Xiangqi.Role.Advisor => TutorIcon.advisor
+    case Xiangqi.Role.Elephant => TutorIcon.elephant
+    case Xiangqi.Role.Horse => TutorIcon.horse
+    case Xiangqi.Role.Chariot => TutorIcon.chariot
+    case Xiangqi.Role.Cannon => TutorIcon.cannon
+    case Xiangqi.Role.Soldier => TutorIcon.soldier
 
-  def piece(piece: chess.Role, unit: TutorUnit = percent) = adhoc(piece.name, pieceIcon(piece), unit)
+  def piece(piece: Xiangqi.Role, unit: TutorUnit = percent) = adhoc(piece.name, pieceIcon(piece), unit)
 
-  def opening(fam: LilaOpeningFamily, color: Color) = adhoc(s"${fam.name} as $color", TutorIcon.spellBook)
-
-  private def adhoc(name: String, icon: TutorIcon, unit: TutorUnit = percent) =
+  private def adhoc(name: String, icon: TutorIcon, unit: TutorUnit) =
     TutorConcept(name, "", none, unit, icon)
 
   def show(concept: TutorConcept): Tag =

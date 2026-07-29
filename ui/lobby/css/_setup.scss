@@ -11,6 +11,19 @@ $c-slider: $c-setup;
   overflow: visible;
 
   .mselect {
+    .variant-icon {
+      display: inline-block;
+      flex: 0 0 auto;
+      width: 1.35em;
+      height: 1.35em;
+      vertical-align: middle;
+
+      &--standard {
+        background: currentcolor;
+        mask: url('../images/icons/xiangqi-standard.svg') center / contain no-repeat;
+      }
+    }
+
     .fullscreen-mask {
       display: block;
     }

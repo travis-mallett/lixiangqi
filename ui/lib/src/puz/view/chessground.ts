@@ -14,7 +14,6 @@ export function makeConfig(opts: CgConfig, pref: PuzPrefs, userMove: UserMove): 
     lastMove: opts.lastMove,
     coordinates: pref.coords !== Coords.Hidden,
     coordinatesOnSquares: pref.coords === Coords.All,
-    addPieceZIndex: pref.is3d,
     addDimensionsCssVarsTo: document.body,
     jsHover: isSafari(),
     movable: {

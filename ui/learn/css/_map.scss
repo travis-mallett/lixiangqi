@@ -1,170 +1,267 @@
-.learn-stages {
-  .categ > h2 {
-    @extend %roboto, %page-text-shadow;
+.xiangqi-learn-map .learn__main {
+  max-width: 1080px;
+}
 
-    font-size: 2em;
-    letter-spacing: 8px;
+.learn-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 2rem;
+  overflow: hidden;
+  border: 1px solid color-mix(in oklab, #c79a48 52%, $c-border);
+  border-radius: 10px;
+  padding: clamp(1.5rem, 4vw, 3.2rem);
+  background:
+    radial-gradient(circle at 90% 10%, rgb(190 47 38 / 0.24), transparent 37%),
+    linear-gradient(135deg, color-mix(in oklab, $c-bg-box 93%, #7d2d27), $c-bg-box);
+  box-shadow: 0 12px 35px rgb(0 0 0 / 0.18);
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: auto -5% -55% 35%;
+    height: 85%;
+    border-top: 1px solid rgb(207 169 94 / 0.28);
+    border-radius: 50%;
+  }
+
+  .eyebrow {
+    color: #d3a757;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: #999;
-    text-align: center;
   }
 
-  .categ_stages {
-    ---min-width: 400px;
+  h1 {
+    margin: 0.35rem 0 0.75rem;
+    color: $c-font-clear;
+    font-size: clamp(2rem, 4vw, 3.6rem);
+    line-height: 1.02;
+  }
 
-    @media (max-width: $xx-small) {
-      ---min-width: calc(100vw - 2em);
+  p {
+    max-width: 48rem;
+    margin: 0;
+    color: $c-font-dim;
+    font-size: 1.08rem;
+    line-height: 1.55;
+  }
 
-      padding: 0 0.5em;
-    }
-
+  .hero-seal {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(var(---min-width), 1fr));
-    gap: 1em;
-    margin: 1.5em 0 3em 0;
+    width: 7rem;
+    aspect-ratio: 1;
+    place-items: center;
+    border: 4px double #d7a65a;
+    color: #f0d29b;
+    background: #9d342e;
+    box-shadow: 0 0 0 8px rgb(157 52 46 / 0.14);
+    font:
+      700 2.35rem/1 'Noto Serif CJK SC',
+      SimSun,
+      serif;
+    letter-spacing: 0.08em;
+    writing-mode: vertical-rl;
+    transform: rotate(-3deg);
   }
 
-  .stage {
-    @extend %box-radius, %flex-center-nowrap;
-    @include transition;
-    @include backdrop-blur-if-transparent;
+  @media (max-width: $xx-small) {
+    grid-template-columns: 1fr;
 
-    position: relative;
-    min-height: 90px;
-    color: #fff;
-    box-shadow: 0 3px 5px 0 rgb(0 0 0 / 0.07);
-    font-size: 1.2em;
-    border: 1px solid $c-border;
-    background: $c-bg-box;
-    padding-right: 3em;
-
-    @include if-light {
-      color: $c-font;
-
-      img {
-        filter: brightness(0.15);
-      }
+    .hero-seal {
+      display: none;
     }
+  }
+}
 
-    @media (max-width: $xx-small) {
-      min-height: fit-content;
-      padding: 6px 3em 6px 0;
+.learn-stages {
+  .categ {
+    margin-top: 3.5rem;
+  }
 
-      p {
-        margin-top: 2px;
-      }
-    }
+  .categ-heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1rem;
+    border-bottom: 1px solid color-mix(in oklab, #c79a48 35%, $c-border);
+    padding-bottom: 0.75rem;
 
-    img {
-      width: 70px;
-      height: 70px;
-      margin: 0 1em;
-      opacity: 0.6;
-
-      @media (max-width: $xx-small) {
-        width: 50px;
-        height: 64px;
-      }
-    }
-
-    h3 {
-      font-size: 1.6em;
-      line-height: 1;
+    h2 {
+      margin: 0;
+      color: $c-font-clear;
+      font-size: clamp(1.45rem, 3vw, 2.05rem);
+      letter-spacing: 0.025em;
     }
 
     p {
-      margin: 4px 0 0 0;
-      line-height: 1.2;
-      opacity: 0.8;
+      max-width: 34rem;
+      margin: 0;
+      color: $c-font-dim;
+      text-align: right;
     }
 
-    &.ongoing {
-      border-color: rgb(from $c-primary r g b / calc(alpha * 0.5));
-      background: linear-gradient(
-        0deg,
-        rgb(from $c-primary r g b / calc(alpha * 0.4)),
-        rgb(from $c-primary r g b / calc(alpha * 0.2)) 100px
-      );
+    @media (max-width: $small) {
+      display: block;
 
-      .attention-effect {
-        @include animated-border(
-          hsl(from $c-primary h s calc(l + 30)),
-          rgb(from $c-primary r g b / calc(alpha * 0.2))
-        );
+      p {
+        margin-top: 0.35rem;
+        text-align: left;
       }
-
-      @include if-light {
-        background: linear-gradient(
-          180deg,
-          rgb(from $c-primary r g b / calc(alpha * 0.4)),
-          rgb(from $c-primary r g b / calc(alpha * 0.2)) 100px
-        );
-
-        .attention-effect {
-          @include animated-border(
-            hsl(from $c-primary h s calc(l - 25)),
-            rgb(from $c-primary r g b / calc(alpha * 0.2))
-          );
-        }
-      }
-    }
-
-    &.done {
-      border-color: rgb(from $c-secondary r g b / calc(alpha * 0.65));
-      background: linear-gradient(
-        0deg,
-        rgb(from $c-secondary r g b / calc(alpha * 0.4)),
-        rgb(from $c-secondary r g b / calc(alpha * 0.2)) 100px
-      );
-
-      img {
-        filter: brightness(0) saturate(100%) invert(81%) sepia(42%) saturate(529%) hue-rotate(38deg)
-          brightness(94%) contrast(90%);
-      }
-
-      @include if-light {
-        background: linear-gradient(
-          180deg,
-          rgb(from $c-secondary r g b / calc(alpha * 0.4)),
-          rgb(from $c-secondary r g b / calc(alpha * 0.2)) 100px
-        );
-
-        img {
-          filter: brightness(0) saturate(100%) invert(41%) sepia(14%) saturate(1540%) hue-rotate(47deg)
-            brightness(97%) contrast(93%);
-        }
-      }
-    }
-
-    &.future {
-      border-color: rgb(from $c-future r g b / calc(alpha * 0.65));
-      background: linear-gradient(
-        0deg,
-        rgb(from $c-future r g b / calc(alpha * 0.4)),
-        rgb(from $c-future r g b / calc(alpha * 0.2)) 100px
-      );
-
-      @include if-light {
-        background: linear-gradient(
-          180deg,
-          rgb(from $c-future r g b / calc(alpha * 0.4)),
-          rgb(from $c-future r g b / calc(alpha * 0.2)) 100px
-        );
-      }
-    }
-
-    &.active,
-    &:hover {
-      transform: scale(1.025);
     }
   }
 
-  .what_next > p {
-    @extend %page-text-shadow !optional;
+  .categ_stages {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: 1.25rem;
 
-    width: 100%;
-    text-align: center;
-    margin: 0.5em 0 1.5em;
-    font-size: 1.2em;
+    @media (max-width: $small) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .stage {
+    @include transition;
+    @include backdrop-blur-if-background;
+
+    position: relative;
+    display: grid;
+    grid-template-columns: 76px minmax(0, 1fr) auto;
+    align-items: center;
+    min-height: 116px;
+    overflow: hidden;
+    border: 1px solid color-mix(in oklab, #b9914e 24%, $c-border);
+    border-radius: 8px;
+    padding: 0.85rem 1rem 0.85rem 0.8rem;
+    color: $c-font;
+    background: linear-gradient(120deg, color-mix(in oklab, $c-bg-box 97%, #7f2f29), $c-bg-box);
+    box-shadow: 0 4px 12px rgb(0 0 0 / 0.1);
+
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 3px;
+      background: #a63a32;
+    }
+
+    &.available:hover,
+    &.available:focus-visible {
+      border-color: #c49645;
+      box-shadow: 0 10px 26px rgb(0 0 0 / 0.22);
+      transform: translateY(-3px);
+    }
+
+    &.done {
+      border-color: color-mix(in oklab, $c-good 62%, $c-border);
+      background: linear-gradient(120deg, color-mix(in oklab, $c-bg-box 87%, $c-good), $c-bg-box);
+
+      &::before {
+        background: $c-good;
+      }
+    }
+
+    &.coming-soon {
+      filter: grayscale(0.65);
+      opacity: 0.58;
+
+      &::before {
+        background: $c-font-dim;
+      }
+    }
+
+    .stage-icon {
+      display: grid;
+      width: 66px;
+      aspect-ratio: 1;
+      place-items: center;
+      border-radius: 50%;
+      background: rgb(214 174 99 / 0.08);
+    }
+
+    img {
+      width: 62px;
+      height: 62px;
+      object-fit: contain;
+    }
+
+    .text {
+      min-width: 0;
+    }
+
+    .stage-code {
+      color: #cda55d;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+    }
+
+    h3 {
+      margin: 0.12rem 0 0;
+      color: $c-font-clear;
+      font-size: 1.22rem;
+      line-height: 1.15;
+    }
+
+    p {
+      margin: 0.3rem 0 0;
+      color: $c-font-dim;
+      font-size: 0.88rem;
+      line-height: 1.3;
+    }
+
+    .lesson-count,
+    .coming-soon-label {
+      display: inline-block;
+      margin-top: 0.45rem;
+      color: #c89d50;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .complete-mark {
+      display: grid;
+      width: 2rem;
+      aspect-ratio: 1;
+      place-items: center;
+      border-radius: 50%;
+      color: white;
+      background: $c-good;
+    }
+
+    @media (max-width: $xx-small) {
+      grid-template-columns: 58px minmax(0, 1fr) auto;
+
+      .stage-icon {
+        width: 50px;
+      }
+
+      img {
+        width: 48px;
+        height: 48px;
+      }
+    }
+  }
+}
+
+.learn-footer-note {
+  margin: 3.5rem 0 1rem;
+  border-inline-start: 4px solid #a63a32;
+  padding: 1rem 1.25rem;
+  background: color-mix(in oklab, $c-bg-box 96%, #a63a32);
+
+  strong {
+    color: #cda55d;
+  }
+
+  p {
+    margin: 0.35rem 0 0;
+    color: $c-font-dim;
+    line-height: 1.5;
   }
 }

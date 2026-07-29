@@ -2,7 +2,6 @@ package lila.analyse
 package ui
 
 import chess.variant.*
-import chess.format.Fen
 import chess.format.pgn.PgnStr
 import play.api.libs.json.*
 
@@ -21,8 +20,8 @@ final class ReplayUi(helpers: Helpers)(analyseUi: AnalyseUi):
       chessground: Frag,
       gameSide: Option[Frag],
       crosstable: Option[Tag]
-  ) =
-    Page(analyseUi.titlePlayerVs(pov.game))
+  )(using Context) =
+    Page(analyseUi.titleOf(pov))
       .css("analyse.round")
       .graph(graph):
         main(cls := "analyse")(
@@ -61,7 +60,7 @@ final class ReplayUi(helpers: Helpers)(analyseUi: AnalyseUi):
     val imageLinks = frag(
       a(cls := "text game-gif", dataIcon := Icon.Download)(trans.site.gameAsGIF()),
       copyMeLink(
-        fenThumbnailUrl(Fen.write(pov.game.position).opening, pov.color.some, pov.game.variant),
+        xiangqiFenThumbnailUrl(pov.game.position.fen, pov.color.some, pov.game.lastMoveKeys),
         trans.site.screenshotCurrentPosition()
       )(cls := "position-gif")
     )
@@ -78,7 +77,7 @@ final class ReplayUi(helpers: Helpers)(analyseUi: AnalyseUi):
     )
 
     analyseUi.bits
-      .page(analyseUi.titleFull(pov))
+      .page(analyseUi.titleOf(pov))
       .css("analyse.round")
       .css((pov.game.variant == Crazyhouse).option("analyse.zh"))
       .css(ctx.blind.option("round.nvui"))

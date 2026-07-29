@@ -95,7 +95,23 @@ trait AssetHelper:
         color,
         none,
         Option.when(variant.exotic)(variant.key),
-        ctx.pref.theme.some,
+        ctx.pref.boardTheme.some,
+        ctx.pref.pieceSet.some
+      )
+      .url
+
+  def xiangqiFenThumbnailUrl(
+      fen: String,
+      color: Option[chess.Color] = None,
+      lastMove: Option[String] = None
+  )(using ctx: Context): Url = cdnUrl:
+    routes.Export
+      .fenThumbnail(
+        fen,
+        color,
+        lastMove,
+        none,
+        ctx.pref.boardTheme.some,
         ctx.pref.pieceSet.some
       )
       .url

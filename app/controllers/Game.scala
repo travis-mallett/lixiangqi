@@ -93,7 +93,7 @@ final class Game(env: Env, apiC: => Api) extends LilaController(env):
                     ): source =>
                       Ok.chunked(source)
                         .asAttachmentStream:
-                          s"lichess_${user.username}_${fileDate}.${format.toString.toLowerCase}"
+                          s"lixiangqi_${user.username}_${fileDate}.${format.toString.toLowerCase}"
                         .as(gameContentType(config))
 
   private def fileDate = DateTimeFormatter.ofPattern("yyyy-MM-dd").print(nowInstant)

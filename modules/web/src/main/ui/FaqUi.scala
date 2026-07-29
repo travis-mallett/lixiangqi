@@ -5,7 +5,8 @@ import lila.ui.*
 
 import ScalatagsTemplate.{ *, given }
 
-val fideHandbookUrl = "https://handbook.fide.com/chapter/E012023"
+val fideHandbookUrl =
+  "https://www.wxf-xiangqi.org/index.php?Itemid=291&id=269&lang=en&option=com_content&view=article"
 
 final class FaqUi(helpers: Helpers, sitePages: SitePages)(
     standardRankableDeviation: Int,
@@ -35,7 +36,7 @@ final class FaqUi(helpers: Helpers, sitePages: SitePages)(
       .css("bits.faq"):
         div(cls := "faq box box-pad")(
           h1(cls := "box__top")(trf.frequentlyAskedQuestions()),
-          h2("Lichess"),
+          h2("Lixiangqi"),
           question(
             "name",
             trf.whyIsLichessCalledLichess.txt(),
@@ -73,7 +74,7 @@ final class FaqUi(helpers: Helpers, sitePages: SitePages)(
               trf.yesLichessInspiredOtherOpenSourceWebsites(
                 a(href := "/source")(trans.site.sourceCode()),
                 a(href := "/api")("API"),
-                a(href := "https://database.lichess.org")(trans.site.database())
+                a(href := routes.GameCatalog.index)(trans.site.database())
               )
             ),
             ul(
@@ -139,15 +140,6 @@ final class FaqUi(helpers: Helpers, sitePages: SitePages)(
             )
           ),
           question(
-            "variants",
-            trf.whatVariantsCanIplay.txt(),
-            p(
-              trf.lichessSupportChessAnd(
-                a(href := routes.Cms.variantHome)(trf.eightVariants())
-              )
-            )
-          ),
-          question(
             "acpl",
             trf.whatIsACPL.txt(),
             p(
@@ -158,7 +150,7 @@ final class FaqUi(helpers: Helpers, sitePages: SitePages)(
             "timeout",
             trf.insufficientMaterial.txt(),
             p(
-              trf.lichessFollowFIDErules(a(href := fideHandbookUrl)(trf.fideHandbookX("§6.9")))
+              trf.lichessFollowFIDErules(a(href := fideHandbookUrl)(trf.fideHandbook()))
             )
           ),
           question(
@@ -166,16 +158,14 @@ final class FaqUi(helpers: Helpers, sitePages: SitePages)(
             trf.discoveringEnPassant.txt(),
             p(
               trf.explainingEnPassant(
-                a(href := "https://en.wikipedia.org/wiki/En_passant")(trf.goodIntroduction()),
+                a(href := "https://en.wikipedia.org/wiki/Xiangqi#Rules")(trf.goodIntroduction()),
                 a(href := fideHandbookUrl)(trf.fideHandbook()),
                 a(href := s"${routes.Learn.index}#/15")(trf.lichessTraining())
               )
             ),
             p(
               trf.watchIMRosenCheckmate(
-                a(href := "https://www.reddit.com/r/AnarchyChess/comments/p9wuic/eric_rosen_ascending/")(
-                  "en passant"
-                )
+                a(href := "https://en.wikipedia.org/wiki/Xiangqi#Rules")("generals")
               )
             )
           ),
@@ -209,25 +199,25 @@ final class FaqUi(helpers: Helpers, sitePages: SitePages)(
             trf.titlesAvailableOnLichess.txt(),
             p(
               trf.lichessRecognizeAllOTBtitles(
-                a(href := "https://github.com/lichess-org/lila/wiki/Handling-title-verification-requests")(
+                a(href := routes.TitleVerify.index)(
                   trf.asWellAsManyNMtitles()
                 )
               )
             ),
             ul(
-              li("Grandmaster (GM)"),
-              li("International Master (IM)"),
-              li("FIDE Master (FM)"),
-              li("Candidate Master (CM)"),
-              li("Woman Grandmaster (WGM)"),
-              li("Woman International Master (WIM)"),
-              li("Woman FIDE Master (WFM)"),
-              li("Woman Candidate Master (WCM)")
+              li("Grandmaster"),
+              li("International Master"),
+              li("Xiangqi Master"),
+              li("National Master"),
+              li("Woman Grandmaster"),
+              li("Woman International Master"),
+              li("Woman Xiangqi Master"),
+              li("Woman National Master")
             ),
             p(
               trf.showYourTitle(
                 a(href := routes.TitleVerify.index)(trf.verificationForm()),
-                a(href := "#lm")("Lichess Master (LM)")
+                a(href := "#lm")("Lixiangqi Master (LM)")
               )
             )
           ),
@@ -242,7 +232,7 @@ final class FaqUi(helpers: Helpers, sitePages: SitePages)(
             trf.whatUsernameCanIchoose.txt(),
             p(
               trf.usernamesNotOffensive(
-                a(href := "https://lichess.org/page/username-policy")(trf.guidelines())
+                a(href := cmsPageUrl("username-policy"))(trf.guidelines())
               )
             )
           ),
@@ -257,7 +247,7 @@ final class FaqUi(helpers: Helpers, sitePages: SitePages)(
             h4("The Golden Zee"),
             p(
               trf.ownerUniqueTrophies(
-                a(href := "https://lichess.org/@/ZugAddict")("ZugAddict")
+                a(href := "/@/ZugAddict")("ZugAddict")
               )
             ),
             p(
@@ -372,16 +362,8 @@ final class FaqUi(helpers: Helpers, sitePages: SitePages)(
           ),
           question(
             "make-a-bot",
-            "Make a Lichess bot?",
-            p(
-              "To learn how to create a ",
-              a(href := "https://lichess.org/blog/WvDNticAAMu_mHKP/welcome-lichess-bots")("Lichess bot"),
-              ", please read ",
-              a(href := "https://lichess.org/@/thibault/blog/how-to-create-a-lichess-bot/FuKyvDuB")(
-                "this blog post"
-              ),
-              "."
-            )
+            "Make a Lixiangqi bot?",
+            p("Bot play is not part of the initial Lixiangqi release.")
           ),
           question(
             "stop-chess-addiction",
@@ -391,8 +373,8 @@ final class FaqUi(helpers: Helpers, sitePages: SitePages)(
                 a(href := "https://getcoldturkey.com")("ColdTurkey"),
                 a(href := "https://freedom.to")("Freedom"),
                 a(href := "https://www.proginosko.com/leechblock")("LeechBlock"),
-                a(href := "https://lichess.org/page/userstyles")(trf.lichessUserstyles()),
-                a(href := "https://github.com/ornicar/userstyles/blob/master/lichess.fewer-pools.user.css")(
+                a(href := cmsPageUrl("userstyles"))(trf.lichessUserstyles()),
+                a(href := cmsPageUrl("userstyles"))(
                   trf.fewerLobbyPools()
                 ),
                 a(href := "https://icd.who.int/browse/2024-01/mms/en#1448597234")(trf.mentalHealthCondition())

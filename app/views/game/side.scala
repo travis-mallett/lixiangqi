@@ -96,19 +96,6 @@ def meta(
             )
         )
       ),
-      game.variant.chess960.option:
-        chess.variant.Chess960
-          .positionNumber(initialFen | chess.format.Fen.initial)
-          .map: number =>
-            st.section(
-              trans.site.chess960StartPosition(
-                a(
-                  targetBlank,
-                  href := "https://chess960.net/wp-content/uploads/2018/02/chess960-starting-positions.pdf"
-                )(number)
-              )
-            )
-      ,
       userTv.map: u =>
         st.section(cls := "game__tv"):
           h2(cls := "top user-tv text", dataUserTv := u.id, dataIcon := Icon.AnalogTv)(u.titleUsername)

@@ -9,10 +9,9 @@ import lila.core.misc.analysis.MyEnginesAsJson
 final class Env(
     db: lila.db.Db,
     gameRepo: lila.core.game.GameRepo,
-    divider: lila.core.game.Divider,
     cacheApi: lila.memo.CacheApi,
     net: NetConfig
-)(using Executor):
+)(using Executor, lila.core.config.RateLimit):
 
   lazy val repo = AnalysisRepo(db(CollName("analysis2")))
 

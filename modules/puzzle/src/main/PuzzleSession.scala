@@ -112,9 +112,7 @@ final class PuzzleSessionApi(pathApi: PuzzlePathApi, cacheApi: CacheApi)(using E
       me: Me,
       perf: Perf
   ): Fu[PuzzleSession] =
-    val validSettings =
-      if angle.opening.isDefined then settings
-      else settings.copy(color = none) // only opening sessions can have a color choice
+    val validSettings = settings.copy(color = none)
     pathApi
       .nextFor(s"session.$reason")(angle, PuzzleTier.top, validSettings.difficulty, Set.empty)
       .orFail(s"No puzzle path found for ${me.username}, angle: $angle")

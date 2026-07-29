@@ -86,20 +86,24 @@ interface LichessPowertip {
 }
 
 type SoundMoveOpts = {
-  name?: string; // either provide this or valid san/uci
+  name?: string; // either provide this or move metadata
   san?: string;
   uci?: string;
+  capture?: boolean;
+  check?: boolean;
+  mate?: boolean;
   volume?: number;
-  filter?: 'music' | 'game';
 };
 
 type SoundMove = (opts?: SoundMoveOpts) => void;
 type SoundListener = (event: 'start' | 'stop', text?: string) => void;
+type SoundCategory = 'backgroundMusic' | 'soundEffects';
 
 interface SoundI {
   // file://./../../site/src/sound.ts
   listeners: Set<SoundListener>;
-  theme: string;
+  soundSet: string;
+  musicSet: string;
   move: SoundMove;
   load(name: string, path?: string): Promise<any>;
   play(name: string, volume?: number): Promise<void>;
@@ -108,11 +112,13 @@ interface SoundI {
   countdown(count: number, intervalMs?: number): Promise<void>;
   getVolume(): number;
   setVolume(v: number): void;
-  getVoice(): SpeechSynthesisVoice | undefined;
-  getVoiceMap(): Map<string, SpeechSynthesisVoice>;
-  setVoice(v: { name: string; lang: string }): void;
-  speech(v?: boolean): boolean;
-  changeSet(s: string): void;
+  isSoundEnabled(): boolean;
+  setSoundEnabled(enabled: boolean): void;
+  isMusicEnabled(): boolean;
+  setMusicEnabled(enabled: boolean): void;
+  speech(): boolean;
+  changeSoundSet(soundSet: string): void;
+  changeMusicSet(musicSet: string): void;
   sayLazy(text: () => string, cut?: boolean, force?: boolean, translated?: boolean): boolean;
   say(text: string, cut?: boolean, force?: boolean, translated?: boolean): boolean;
   saySan(san?: San, cut?: boolean, force?: boolean): void;
@@ -205,6 +211,7 @@ interface Navigator {
 }
 
 type VariantKey =
+  | 'xiangqi'
   | 'standard'
   | 'chess960'
   | 'antichess'

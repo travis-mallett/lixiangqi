@@ -50,6 +50,11 @@
   }
 }
 
+// WXF uses Latin piece letters as notation, not chess SAN glyph codes.
+.puzzle-xiangqi .puzzle__moves .tview2 move {
+  font-family: 'Noto Sans', sans-serif;
+}
+
 .puzzle__feedback {
   @extend %flex-column;
 
@@ -77,10 +82,6 @@
     flex: 0 0 64px;
     height: 64px;
     margin-inline-end: 10px;
-  }
-
-  .is3d & div.no-square {
-    height: 82px;
   }
 
   piece {

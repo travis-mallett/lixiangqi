@@ -3,25 +3,11 @@ package lila.game
 import scala.util.Try
 
 import chess.*
-import chess.format.Uci
-import chess.format.pgn.SanStr
-import chess.variant.Variant
 import org.lichess.compression.clock.Encoder as ClockEncoder
 
 import lila.db.ByteArray
 
 object BinaryFormat:
-
-  object pgn:
-
-    def write(moves: Vector[SanStr]): ByteArray = ByteArray:
-      format.pgn.Binary.writeMoves(moves).get
-
-    def read(ba: ByteArray): Vector[SanStr] =
-      format.pgn.Binary.readMoves(ba.value.toList).get.toVector
-
-    def read(ba: ByteArray, nb: Int): Vector[SanStr] =
-      format.pgn.Binary.readMoves(ba.value.toList, nb).get.toVector
 
   object clockHistory:
 
@@ -154,120 +140,6 @@ object BinaryFormat:
         case _ => None
 
     def readClockLimit(i: Int) = Clock.LimitSeconds(if i < 181 then i * 60 else (i - 180) * 15)
-
-  object castleLastMove:
-
-    def write(clmt: CastleLastMove): ByteArray = ByteArray:
-
-      val castleInt = clmt.castles.toSeq.zipWithIndex.foldLeft(0):
-        case (acc, (false, _)) => acc
-        case (acc, (true, p)) => acc + (1 << (3 - p))
-
-      def posInt(pos: Square): Int = (pos.file.value << 3) + pos.rank.value
-      val lastMoveInt = clmt.lastMove.map(_.origDest).fold(0) { (o, d) =>
-        (posInt(o) << 6) + posInt(d)
-      }
-      Array(((castleInt << 4) + (lastMoveInt >> 8)).toByte, lastMoveInt.toByte)
-
-    def read(ba: ByteArray): CastleLastMove =
-      val ints = ba.value.map(toInt)
-      doRead(ints(0), ints(1))
-
-    private def doRead(b1: Int, b2: Int) =
-      CastleLastMove(
-        castles = Castles(b1 > 127, (b1 & 64) != 0, (b1 & 32) != 0, (b1 & 16) != 0),
-        lastMove = for
-          orig <- Square.at((b1 & 15) >> 1, ((b1 & 1) << 2) + (b2 >> 6))
-          dest <- Square.at((b2 & 63) >> 3, b2 & 7)
-          if orig != Square.A1 || dest != Square.A1
-        yield Uci.Move(orig, dest)
-      )
-
-  object piece:
-
-    private val groupedPos = Square.all
-      .grouped(2)
-      .collect:
-        case List(p1, p2) => (p1, p2)
-      .toArray
-
-    def write(pieces: PieceMap): ByteArray =
-      def posInt(pos: Square): Int =
-        (pieces
-          .get(pos))
-          .fold(0): piece =>
-            piece.color.fold(0, 8) + roleToInt(piece.role)
-      ByteArray:
-        groupedPos.map: (p1, p2) =>
-          ((posInt(p1) << 4) + posInt(p2)).toByte
-
-    def read(ba: ByteArray, variant: Variant): PieceMap =
-      def splitInts(b: Byte) =
-        val int = b.toInt
-        Array(int >> 4, int & 0x0f)
-      def intPiece(int: Int): Option[Piece] =
-        intToRole(int & 7, variant).map: role =>
-          Piece(Color.fromWhite((int & 8) == 0), role)
-      val pieceInts = ba.value.flatMap(splitInts)
-      (Square.all
-        .zip(pieceInts))
-        .view
-        .flatMap: (pos, int) =>
-          intPiece(int).map(pos -> _)
-        .to(Map)
-
-    private def intToRole(int: Int, variant: Variant): Option[Role] =
-      int match
-        case 6 => Some(Pawn)
-        case 1 => Some(King)
-        case 2 => Some(Queen)
-        case 3 => Some(Rook)
-        case 4 => Some(Knight)
-        case 5 => Some(Bishop)
-        // Legacy from when we used to have an 'Antiking' piece
-        case 7 if variant.antichess => Some(King)
-        case _ => None
-    private def roleToInt(role: Role): Int =
-      role match
-        case Pawn => 6
-        case King => 1
-        case Queen => 2
-        case Rook => 3
-        case Knight => 4
-        case Bishop => 5
-
-  object unmovedRooks:
-
-    val emptyByteArray = ByteArray(Array(0, 0))
-
-    def write(o: UnmovedRooks): ByteArray =
-      if o.isEmpty then emptyByteArray
-      else
-        ByteArray:
-          var white = 0
-          var black = 0
-          o.toList.foreach: pos =>
-            if pos.rank == Rank.First then white = white | (1 << (7 - pos.file.value))
-            else black = black | (1 << (7 - pos.file.value))
-          Array(white.toByte, black.toByte)
-
-    private def bitAt(n: Int, k: Int) = (n >> k) & 1
-
-    private val arrIndexes = 0 to 1
-    private val bitIndexes = 0 to 7
-    private val whiteStd = Set(Square.A1, Square.H1)
-    private val blackStd = Set(Square.A8, Square.H8)
-
-    def read(ba: ByteArray) =
-      var set = Set.empty[Square]
-      arrIndexes.foreach: i =>
-        val int = ba.value(i).toInt
-        if int != 0 then
-          if int == -127 then set = if i == 0 then whiteStd else set ++ blackStd
-          else
-            bitIndexes.foreach: j =>
-              if bitAt(int, j) == 1 then set = set + Square.at(7 - j, 7 * i).get
-      UnmovedRooks(set)
 
   inline private def toInt(inline b: Byte): Int = b & 0xff
 

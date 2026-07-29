@@ -128,7 +128,7 @@ final class TournamentForm:
 
 object TournamentForm:
 
-  import chess.variant.*
+  import chess.variant.{ Standard, Variant }
 
   val minutes = (20 to 60 by 5) ++ (70 to 120 by 10) ++ (150 to 360 by 30) ++ (420 to 600 by 60) :+ 720
   val minuteDefault = 45
@@ -141,8 +141,7 @@ object TournamentForm:
   val waitMinuteChoices = options(waitMinutes, "%d minute{s}")
   val waitMinuteDefault = 5
 
-  val validVariants =
-    List(Standard, Chess960, KingOfTheHill, ThreeCheck, Antichess, Atomic, Horde, RacingKings, Crazyhouse)
+  val validVariants = List(Standard)
 
   def guessVariant(from: String): Option[Variant] =
     validVariants.find: v =>
@@ -199,13 +198,12 @@ private[tournament] case class TournamentSetup(
     prev.exists(_.conditions.allowsBots == conditions.allowsBots)
 
   def realRated: Rated =
-    if realPosition.isDefined && !thematicPosition then Rated.No
+    if realPosition.isDefined then Rated.No
     else rated | Rated.Yes
 
   def realVariant = variant.flatMap(TournamentForm.guessVariant) | chess.variant.Standard
 
   def realPosition: Option[Fen.Standard] = position.ifTrue(realVariant.standard).map(_.opening)
-  def thematicPosition = realPosition.flatMap(lila.gathering.Thematic.byFen).isDefined
 
   def clockConfig = Clock.Config(LimitSeconds((clockTime * 60).toInt), clockIncrement)
 

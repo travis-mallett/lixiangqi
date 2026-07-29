@@ -25,7 +25,6 @@ final class Round(
     with lila.web.TheftPrevention:
 
   private def renderPlayer(pov: Pov)(using ctx: Context): Fu[Result] =
-    pov.game.playableByAi.so(env.fishnet.player(pov.game))
     for
       tour <- env.tournament.api.gameView.player(pov)
       users <- env.user.api.gamePlayers(pov.game.userIdPair, pov.game.perfKey)
@@ -268,7 +267,7 @@ final class Round(
       Redirect:
         "%s?fen=%s#%s".format(
           routes.Lobby.home,
-          get("fen") | (chess.format.Fen.write(game.chess)).value,
+          get("fen") | game.position.fen,
           mode
         )
 

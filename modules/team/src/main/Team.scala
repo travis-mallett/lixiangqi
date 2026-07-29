@@ -72,7 +72,7 @@ object Team:
   import chess.variant.Variant
   val variants: Map[Variant.LilaKey, LightTeam] = Variant.list.all.view.collect {
     case v if v.exotic =>
-      val name = s"Lichess ${v.name}"
+      val name = s"Lixiangqi ${v.name}"
       v.key -> LightTeam(nameToId(name), name, none)
   }.toMap
 

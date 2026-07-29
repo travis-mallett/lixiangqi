@@ -330,7 +330,7 @@ You can re-open it at ${routeUrl(routes.Clas.show(clas.id))}"""
         clas: Clas,
         data: ClasForm.CreateStudent
     )(using teacher: Me): Fu[Student.WithPassword] =
-      val email = EmailAddress(s"noreply.class.${clas.id}.${data.username}@lichess.org")
+      val email = EmailAddress(s"noreply.class.${clas.id}.${data.username}@lixiangqi.org")
       val password = Student.password.generate()
       lila.mon.clas.student.create(teacher.userId).increment()
       for

@@ -33,7 +33,7 @@ object page:
       .js(esmInitBit("contact"))(lila.web.ui.contact(netConfig.email))
 
   def webmasters(using Context) =
-    ui.webmasters(lila.pref.PieceSet.all.map(_.name))
+    ui.webmasters(lila.pref.PieceSets.all.map(_.key))
 
 object variant:
 
@@ -43,7 +43,7 @@ object variant:
       perfType: lila.rating.PerfType
   )(using Context) =
     page(
-      title = s"${variant.variantTrans.txt()} • ${variant.variantTitleTrans.txt()}",
+      title = s"${variant.variantTrans.txt()} â€¢ ${variant.variantTitleTrans.txt()}",
       klass = "box-pad page variant",
       active = perfType.key.some
     ).csp(_.withInlineIconFont)
@@ -55,20 +55,20 @@ object variant:
         )
 
   def home(using Context) =
-    page(title = "Lichess variants", klass = "variants"):
+    page(title = "Lixiangqi variants", klass = "variants"):
       frag(
         h1(cls := "box__top")(trans.site.variants()),
         div(cls := "body box__pad")(
-          "Chess variants introduce variations of or new mechanics in regular Chess that gives it a unique, compelling, or sophisticated gameplay. Are you ready to think outside the box?"
+          "Xiangqi variants introduce different boards, pieces, information, or player counts while retaining a shared game-selection workflow."
         ),
         div(cls := "variants")(
-          lila.rating.PerfType.variants.map: pk =>
-            val variant = lila.rating.PerfType.variantOf(pk)
-            val pt = lila.rating.PerfType(pk)
+          lila.rating.PerfType.variants.map: perfKey =>
+            val variant = lila.rating.PerfType.variantOf(perfKey)
+            val perfType = lila.rating.PerfType(perfKey)
             a(
               cls := "variant text box__pad",
               href := routes.Cms.variant(variant.key),
-              dataIcon := pt.icon
+              dataIcon := perfType.icon
             ):
               span(
                 h2(variant.variantTrans()),
@@ -84,12 +84,12 @@ object variant:
       .wrap: body =>
         main(cls := "page-menu")(
           lila.ui.bits.pageMenuSubnav(
-            lila.rating.PerfType.variants.map: pk =>
-              val variant = lila.rating.PerfType.variantOf(pk)
+            lila.rating.PerfType.variants.map: perfKey =>
+              val variant = lila.rating.PerfType.variantOf(perfKey)
               a(
-                cls := List("text" -> true, "active" -> active.contains(pk)),
+                cls := List("text" -> true, "active" -> active.contains(perfKey)),
                 href := routes.Cms.variant(variant.key),
-                dataIcon := pk.perfIcon
+                dataIcon := perfKey.perfIcon
               )(variant.variantTrans())
           ),
           div(cls := s"page-menu__content box $klass")(body)

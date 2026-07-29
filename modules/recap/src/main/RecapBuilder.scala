@@ -2,11 +2,7 @@ package lila.recap
 
 import reactivemongo.pekkostream.cursorProducer
 import reactivemongo.api.bson.BSONNull
-import chess.ByColor
-import chess.opening.OpeningDb
-import chess.format.pgn.SanStr
 
-import lila.common.SimpleOpening
 import lila.db.dsl.{ *, given }
 import lila.game.Query
 import lila.core.game.Source
@@ -23,7 +19,7 @@ private final class RecapBuilder(
       runGameScan(userId).map(makeGameRecap),
       runPuzzleScan(userId).map(_ | RecapPuzzles())
     ).mapN: (game, puzzle) =>
-      Recap(userId, yearToRecap, game, puzzle, nowInstant)
+      Recap(userId, Recap.schemaVersion, yearToRecap, game, puzzle, nowInstant)
     _ <- repo.insert(recap)
   yield ()
 
@@ -57,24 +53,15 @@ private final class RecapBuilder(
   private def makeGameRecap(scan: GameScan): RecapGames =
     RecapGames(
       nbs = scan.nbs,
-      nbWhite = scan.nbWhite,
+      nbRed = scan.nbRed,
       moves = scan.nbMoves,
-      openings = scan.openings.map:
-        _.toList.sortBy(-_._2).headOption.fold(Recap.nopening)(Recap.Counted.apply)
-      ,
-      firstMoves = scan.firstMoves.toList.sortBy(-_._2).take(5).map(Recap.Counted.apply),
+      firstRedMoves = scan.firstRedMoves.toList.sortBy(-_._2).take(5).map(Recap.Counted.apply),
       timePlaying = scan.secondsPlaying.seconds,
       sources = scan.sources,
       opponents = scan.opponents.toList.sortBy(-_._2).take(5).map(Recap.Counted.apply),
       perfs = scan.perfs.toList.sortBy(-_._2).map(Recap.Perf.apply)
     )
 
-  /* This might be made faster by:
-   * - fetching Bdoc instead of Game with a projection
-   * - uncompressing only the moves needed to compute the opening
-   * - using mutable state instead of runFold
-   *   as the many little immutable objects hit the GC hard
-   */
   private def runGameScan(userId: UserId): Fu[GameScan] =
     val query =
       Query.createdBetween(dateStart.some, dateEnd.some) ++
@@ -90,11 +77,10 @@ private final class RecapBuilder(
 
   private case class GameScan(
       nbs: NbWin = NbWin(),
-      nbWhite: Int = 0,
+      nbRed: Int = 0,
       nbMoves: Int = 0,
       secondsPlaying: Int = 0,
-      openings: ByColor[Map[SimpleOpening, Int]] = ByColor.fill(Map.empty),
-      firstMoves: Map[SanStr, Int] = Map.empty,
+      firstRedMoves: Map[String, Int] = Map.empty,
       sources: Map[Source, Int] = Map.empty,
       opponents: Map[UserId, Int] = Map.empty,
       perfs: Map[PerfKey, Int] = Map.empty
@@ -104,23 +90,20 @@ private final class RecapBuilder(
         .fold(this): player =>
           val opponent = g.opponent(player).userId
           val winner = g.winnerUserId
-          val opening = g.variant.standard.so:
-            OpeningDb.search(g.sans.take(20)).map(_.opening).flatMap(SimpleOpening.apply)
           val durationSeconds = g.hasClock.so(g.durationSeconds) | 30 // ?? :shrug:
           copy(
             nbs = NbWin(
               total = nbs.total + 1,
               win = nbs.win + winner.exists(_.is(userId)).so(1)
             ),
-            nbWhite = nbWhite + player.color.fold(1, 0),
+            nbRed = nbRed + player.color.fold(1, 0),
             nbMoves = nbMoves + g.playerMoves(player.color),
             secondsPlaying = secondsPlaying + durationSeconds,
-            openings = opening.fold(openings): op =>
-              openings.update(player.color, _.updatedWith(op)(_.fold(1)(_ + 1).some)),
-            firstMoves = player.color.white
-              .so(g.sans.headOption)
-              .fold(firstMoves): fm =>
-                firstMoves.updatedWith(fm)(_.fold(1)(_ + 1).some),
+            firstRedMoves = player.color
+              .fold(true, false)
+              .so(g.xiangqi.wxf.headOption)
+              .fold(firstRedMoves): move =>
+                firstRedMoves.updatedWith(move)(_.fold(1)(_ + 1).some),
             sources = g.source.fold(sources): source =>
               sources.updatedWith(source)(_.fold(1)(_ + 1).some),
             opponents = opponent.fold(opponents): op =>

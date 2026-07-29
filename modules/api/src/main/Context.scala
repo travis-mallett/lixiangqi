@@ -97,15 +97,27 @@ final class PageContext(val ctx: Context, val data: PageData) extends lila.ui.Pa
   export data.*
   def hasInquiry = inquiry.isDefined
 
-final class EmbedContext(val ctx: Context, val bg: String, val nonce: Nonce):
+final class EmbedContext(
+    val ctx: Context,
+    val uiTheme: String,
+    val boardTheme: String,
+    val pieceSet: String,
+    val nonce: Nonce
+):
   export ctx.*
-  def boardClass = ctx.pref.realTheme.name
-  def pieceSet = ctx.pref.realPieceSet
 
 object EmbedContext:
   given (using config: EmbedContext): Lang = config.lang
   def apply(ctx: Context): EmbedContext = new EmbedContext(
     ctx,
-    bg = HTTPRequest.queryStringGet("bg")(using ctx.req).filterNot("auto".==) | "system",
+    uiTheme = HTTPRequest
+      .queryStringGet("uiTheme")(using ctx.req)
+      .filter(lila.pref.UiThemes.contains) | lila.pref.UiThemes.system.key,
+    boardTheme = HTTPRequest
+      .queryStringGet("boardTheme")(using ctx.req)
+      .filter(lila.pref.BoardThemes.contains) | ctx.pref.boardTheme,
+    pieceSet = HTTPRequest
+      .queryStringGet("pieceSet")(using ctx.req)
+      .filter(lila.pref.PieceSets.contains) | ctx.pref.pieceSet,
     nonce = Nonce.random
   )

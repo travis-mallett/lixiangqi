@@ -6,6 +6,7 @@ import chess.variant.{ FromPosition, Variant }
 import scalalib.model.Days
 
 import lila.core.game.GameRule
+import lila.xiangqi.Xiangqi
 
 final case class OpenConfig(
     name: Option[String],
@@ -21,10 +22,12 @@ final case class OpenConfig(
 
   def perfType = lila.rating.PerfType(variant, chess.Speed(clock))
 
-  def validFen = Variant.isValidInitialFen(variant, position)
+  def validFen =
+    if variant == FromPosition then position.exists(fen => Xiangqi.Fen.isValid(fen.value))
+    else position.forall(_.value == Xiangqi.startFen)
 
   def autoVariant =
-    if variant.standard && position.exists(!_.isInitial)
+    if variant.standard && position.exists(_.value != Xiangqi.startFen)
     then copy(variant = FromPosition)
     else this
 

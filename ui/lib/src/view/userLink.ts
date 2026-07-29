@@ -37,7 +37,7 @@ export const userLine = (u: Pick<AnyUser, 'line' | 'patronColor' | 'moderator'>)
           moderator: !!u.moderator,
           ...(u.patronColor ? { [`paco${u.patronColor}`]: true } : {}),
         },
-        attrs: u.patronColor ? { title: 'Lichess Patron' } : {},
+        attrs: u.patronColor ? { title: 'Lixiangqi Patron' } : {},
       })
     : undefined;
 

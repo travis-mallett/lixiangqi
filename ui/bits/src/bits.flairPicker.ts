@@ -9,9 +9,9 @@ type Config = {
 export async function initModule(cfg: Config): Promise<void> {
   if (cfg.element.classList.contains('emoji-done')) return;
   const theme =
-    document.body.dataset.theme === 'system'
+    document.body.dataset.uiTheme === 'system'
       ? 'auto'
-      : document.body.dataset.theme === 'light'
+      : document.body.dataset.colorScheme === 'light'
         ? 'light'
         : 'dark';
   const opts = {

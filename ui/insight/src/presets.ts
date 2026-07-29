@@ -39,13 +39,10 @@ const basePresets: Preset[] = [
     },
   },
   {
-    name: 'What is the Win-Rate of my favourite openings as white?',
-    dimension: 'openingVariation',
-    metric: 'result',
-    filters: {
-      variant: ['bullet', 'blitz', 'rapid', 'classical', 'correspondence'],
-      color: ['white'],
-    },
+    name: 'How accurate am I when playing Red or Black?',
+    dimension: 'color',
+    metric: 'accuracy',
+    filters: {},
   },
   {
     name: 'How often do I punish blunders made by my opponent during each game phase?',
@@ -54,20 +51,16 @@ const basePresets: Preset[] = [
     filters: {},
   },
   {
-    name: "Do I gain rating when I don't castle kingside?",
-    dimension: 'myCastling',
-    metric: 'ratingDiff',
-    filters: {
-      myCastling: ['2', '3'],
-    },
+    name: 'How does material imbalance affect my results?',
+    dimension: 'material',
+    metric: 'result',
+    filters: {},
   },
   {
-    name: 'When I trade queens, how do games end?',
-    dimension: 'queenTrade',
-    metric: 'result',
-    filters: {
-      queenTrade: ['true'],
-    },
+    name: 'How accurate are my moves under time pressure?',
+    dimension: 'clockPercent',
+    metric: 'accuracy',
+    filters: {},
   },
   {
     name: 'What is the average rating of my opponents across each variant?',

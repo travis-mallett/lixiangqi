@@ -18,6 +18,7 @@ POST  /timeline/unsub/:channel         controllers.Timeline.unsub(channel)
 
 # Search
 GET   /games/search                    controllers.Search.index(page: Int ?= 1)
+GET   /games/database                  controllers.GameCatalog.index
 
 # Game export
 POST  /games/export/_ids               controllers.Game.exportByIds
@@ -150,18 +151,11 @@ POST  /feed/:id/edit                   controllers.Feed.update(id)
 POST  /feed/:id/delete                 controllers.Feed.delete(id)
 GET   /feed.atom                       controllers.Feed.atom
 
-# Opening
-GET   /opening                         controllers.Opening.index(q: Option[String] ?= None)
-POST  /opening/config/:key             controllers.Opening.config(key)
-POST  /opening/wiki/:key/:moves        controllers.Opening.wikiWrite(key, moves)
-GET   /opening/tree                    controllers.Opening.tree
-GET   /opening/:key                    controllers.Opening.byKeyAndMoves(key, moves = "")
-GET   /opening/:key/:moves             controllers.Opening.byKeyAndMoves(key, moves)
-
-# Training - Coordinate
-GET   /training/coordinate             controllers.Coordinate.home
-POST  /training/coordinate/score       controllers.Coordinate.score
-GET   /$lang<\w\w\w?>/training/coordinate controllers.Coordinate.homeLang(lang: Language)
+# Learn - Xiangqi notation
+GET   /training/notation               controllers.Notation.home
+GET   /training/notation/exercise      controllers.Notation.exercise(turn: Option[String] ?= None)
+POST  /training/notation/score         controllers.Notation.score
+GET   /$lang<\w\w\w?>/training/notation controllers.Notation.homeLang(lang: Language)
 
 # Training - Puzzle
 GET   /training                        controllers.Puzzle.home
@@ -170,7 +164,6 @@ GET   /training/frame                  controllers.Puzzle.frame
 GET   /training/help                   controllers.Puzzle.help
 GET   /training/export/gif/thumbnail/:id.gif controllers.Export.puzzleThumbnail(id: PuzzleId, theme: Option[String], piece: Option[String])
 GET   /training/themes                 controllers.Puzzle.themes
-GET   /training/openings               controllers.Puzzle.openings(order ?= "popular")
 GET   /training/of-player              controllers.Puzzle.ofPlayer(name: Option[UserStr] ?= None, page: Int ?= 1)
 GET   /training/dashboard/$days<\d+>   controllers.Puzzle.dashboard(days: Days, path = "home", u: Option[UserStr])
 GET   /training/dashboard/$days<\d+>/:path  controllers.Puzzle.dashboard(days: Days, path, u: Option[UserStr])
@@ -182,7 +175,6 @@ GET   /training/new                    controllers.Puzzle.mobileBcNew
 GET   /training/$numericalId<\d{6,}>/load      controllers.Puzzle.mobileBcLoad(numericalId: Long)
 POST  /training/$numericalId<\d{6,}>/vote      controllers.Puzzle.mobileBcVote(numericalId: Long)
 GET   /training/:angleOrId             controllers.Puzzle.show(angleOrId)
-GET   /training/:angle/$color<white|black|random> controllers.Puzzle.angleAndColor(angle, color: String)
 GET   /training/:angle/$id<\w{5}>      controllers.Puzzle.showWithAngle(angle, id: PuzzleId)
 POST  /training/$numericalId<\d{6,}>/round2    controllers.Puzzle.mobileBcRound(numericalId: Long)
 POST  /training/$id<\w{5}>/vote        controllers.Puzzle.vote(id: PuzzleId)
@@ -220,11 +212,12 @@ POST  /racer/lobby                      controllers.Racer.lobby
 GET   /$lang<\w\w\w?>/racer             controllers.Racer.homeLang(lang: Language)
 
 # User Analysis
-GET   /analysis/help                   controllers.UserAnalysis.help
-GET   /analysis/pgn/*pgn               controllers.UserAnalysis.pgn(pgn)
-GET   /analysis/*something             controllers.UserAnalysis.parseArg(something)
 GET   /analysis                        controllers.UserAnalysis.index
+GET   /analysis/*something             controllers.UserAnalysis.parseArg(something)
 GET   /embed/analysis                  controllers.UserAnalysis.embed
+POST  /api/analysis/position           controllers.UserAnalysis.position
+POST  /api/analysis/move               controllers.UserAnalysis.move
+POST  /api/analysis/import             controllers.UserAnalysis.importNotation
 
 # Study
 GET   /study                           controllers.Study.allDefault(page: Int ?= 1)
@@ -321,6 +314,7 @@ GET   /$lang<\w\w\w?>/broadcast               controllers.RelayTour.indexLang(la
 
 # Learn
 GET   /learn                           controllers.Learn.index
+POST  /learn/validate                  controllers.Learn.validate
 POST  /learn/score                     controllers.Learn.score
 POST  /learn/reset                     controllers.Learn.reset
 GET   /$lang<\w\w\w?>/learn            controllers.Learn.indexLang(lang: Language)
@@ -376,15 +370,8 @@ POST  /streamer/$platform<youtube|twitch>/oauth/unlink controllers.Streamer.oaut
 
 # Private Play
 
-GET   /bots                           controllers.JsBot.index
-GET   /bots/assets                    controllers.JsBot.assetKeys
-# GET   /bots/test                      controllers.JsBot.test
-GET   /bots/dev                       controllers.JsBot.devIndex
-GET   /bots/dev/history               controllers.JsBot.devBotHistory(id: Option[String])
-POST  /bots/dev/bot                   controllers.JsBot.devPostBot
-GET   /bots/dev/assets                controllers.JsBot.devAssets
-POST  /bots/dev/asset/$tpe<sound|image|book>/$key<\w{12}(\.\w{2,4})?> controllers.JsBot.devPostAsset(tpe: String, key: String)
-POST  /bots/dev/asset/mv/$key<\w{12}(\.\w{2,4})?>/:name  controllers.JsBot.devNameAsset(key: String, name: String)
+GET   /bots                           controllers.UserAnalysis.index
+GET   /bots/dev                       controllers.UserAnalysis.index
 
 # Round
 GET   /$gameId<\w{8}>                            controllers.Round.watcher(gameId: GameId, color: Color = Color.white)
@@ -510,7 +497,7 @@ GET   /game/export/png/$gameId<\w{8}>.png                     controllers.Export
 GET   /game/export/gif/thumbnail/$gameId<\w{8}>.gif           controllers.Export.gameThumbnail(gameId: GameId, theme: Option[String], piece: Option[String])
 GET   /game/export/gif/$gameId<\w{8}>.gif                     controllers.Export.gif(gameId: GameId, color: Color = Color.white, theme: Option[String], piece: Option[String])
 GET   /game/export/gif/:color/$gameId<\w{8}>.gif              controllers.Export.gif(gameId: GameId, color: Color, theme: Option[String], piece: Option[String])
-GET   /export/fen.gif                                         controllers.Export.fenThumbnail(fen, color: Option[Color], lastMove: Option[Uci], variant: Option[chess.variant.Variant.LilaKey], theme: Option[String], piece: Option[String])
+GET   /export/fen.gif                                         controllers.Export.fenThumbnail(fen, color: Option[Color], lastMove: Option[String], variant: Option[chess.variant.Variant.LilaKey], theme: Option[String], piece: Option[String])
 
 # Fishnet
 POST  /fishnet/acquire                        controllers.Fishnet.acquire(slow: Boolean ?= false)
@@ -790,8 +777,8 @@ POST  /api/account/kid                 controllers.Account.apiKidPost
 GET   /api/account/preferences         controllers.Pref.apiGet
 POST  /api/account/preferences/:name   controllers.Pref.apiSet(name)
 GET   /api/challenge                   controllers.Challenge.apiList
-POST  /api/challenge/ai                controllers.Setup.apiAi
 POST  /api/challenge/open              controllers.Challenge.openCreate
+POST  /api/challenge/ai                controllers.Setup.apiAi
 POST  /api/challenge/:user             controllers.Challenge.apiCreate(user: UserStr)
 GET   /api/challenge/$id<\w{8}>/show   controllers.Challenge.apiShow(id: ChallengeId)
 POST  /api/challenge/$id<\w{8}>/accept controllers.Challenge.apiAccept(id: ChallengeId, color: Option[Color] ?= None)
@@ -813,11 +800,6 @@ GET   /api/games/export/imports        controllers.Game.apiExportByUserImportedG
 GET   /api/games/export/bookmarks      controllers.Game.apiExportByUserBookmarks()
 
 # External engine
-GET   /api/external-engine             controllers.Analyse.externalEngineList
-POST  /api/external-engine             controllers.Analyse.externalEngineCreate
-GET   /api/external-engine/:id         controllers.Analyse.externalEngineShow(id)
-PUT   /api/external-engine/:id         controllers.Analyse.externalEngineUpdate(id)
-DELETE /api/external-engine/:id        controllers.Analyse.externalEngineDelete(id)
 
 # Bot API
 GET   /api/bot/game/stream/:id         controllers.PlayApi.botGameStream(id: GameId)
@@ -874,7 +856,6 @@ GET   /tutor/:user/:range              controllers.Tutor.report(user: UserStr, r
 POST  /tutor/:user/delete              controllers.Tutor.delete(user: UserStr, range)
 GET   /tutor/:user/:range/:perf        controllers.Tutor.perf(user: UserStr, range, perf: PerfKey)
 GET   /tutor/:user/:range/:perf/:angle controllers.Tutor.angle(user: UserStr, range, perf: PerfKey, angle)
-GET   /tutor/:user/:range/:perf/opening/:color/:opening controllers.Tutor.opening(user: UserStr, range, perf: PerfKey, color: Color, opening: String)
 
 # Recap
 GET   /recap                           controllers.Recap.home
@@ -920,7 +901,7 @@ GET   /app-store                       controllers.Main.redirectToAppStore
 GET   /swag                            controllers.Main.redirectToSwag
 GET   /$lang<\w\w\w?>/app              controllers.Main.appLang(lang: Language)
 GET   /lag                             controllers.Main.lag
-GET   /get-fishnet                     controllers.Main.getFishnet
+GET   /get-fishnet                     controllers.UserAnalysis.index
 GET   /costs                           controllers.Main.costs
 GET   /InstantChess.com                controllers.Main.instantChess
 POST  /upload/image/user/:rel          controllers.Main.uploadImage(rel)

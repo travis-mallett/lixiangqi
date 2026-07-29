@@ -29,6 +29,26 @@ trait ChessHelper:
       dataState := s"${fen.value},${color.name},${lastMove.so(_.uci)}"
     )(cgWrapContent)
 
+  def xiangqiGroundMini(fen: String, color: Color = chess.White, lastMove: Option[String] = None)(
+      tag: Tag
+  ): Tag =
+    tag(
+      cls := "mini-board mini-board--init cg-wrap is2d xiangqi9x10",
+      dataState := s"$fen,${color.name},${lastMove.getOrElse("")}"
+    )(cgWrapContent)
+
+  def xiangqiGround(
+      fen: String,
+      color: Color,
+      lastMove: Option[String],
+      blindfold: Boolean
+  ): Frag =
+    div(
+      cls := "cg-wrap xiangqi9x10",
+      dataState := s"$fen,${color.name},${lastMove.getOrElse("")}",
+      attr("data-blindfold") := blindfold
+    )(cgWrapContent)
+
   def chessgroundWrap(content: Frag): Frag =
     cgWrap:
       cgContainer:

@@ -119,7 +119,8 @@ object SetupForm:
 
     lazy val optionalDays = "days" -> optional(days)
 
-    lazy val variant = "variant" -> optional(typeIn(Variant.list.all.map(_.key).toSet))
+    lazy val variant =
+      "variant" -> optional(typeIn(Set(chess.variant.Standard.key, chess.variant.FromPosition.key)))
 
     lazy val message = "message" -> optional(
       nonEmptyText(maxLength = 8_000).verifying(

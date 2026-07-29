@@ -21,7 +21,7 @@
   <string name="resign">认输</string>
   <string name="checkmate">将杀</string>
   <string name="stalemate">逼和</string>
-  <string name="white">白方</string>
+  <string name="white">红方</string>
   <string name="black">黑方</string>
   <string name="asWhite">执白</string>
   <string name="asBlack">执黑</string>

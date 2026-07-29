@@ -63,7 +63,7 @@ export function boot() {
 
     serviceWorker();
 
-    console.info('Lichess is open source! See https://lichess.org/source');
+    console.info('Lichess is open source! See https://lixiangqi.org/source');
 
     // if not already connected by a ui module, setup default connection
     eventuallySetupDefaultConnection();
@@ -109,8 +109,12 @@ export function boot() {
     const mql = prefersLightThemeQuery();
     if (typeof mql.addEventListener === 'function')
       mql.addEventListener('change', e => {
-        if (document.body.dataset.theme === 'system')
-          document.documentElement.className = e.matches ? 'light' : 'dark';
+        if (document.body.dataset.uiTheme === 'system') {
+          document.documentElement.classList.toggle('light', e.matches);
+          document.documentElement.classList.toggle('dark', !e.matches);
+          document.body.dataset.colorScheme = e.matches ? 'light' : 'dark';
+          pubsub.emit('theme', e.matches ? 'light' : 'dark');
+        }
       });
 
     upgradeNag();
@@ -120,5 +124,5 @@ export function boot() {
 
 function mirrorCheck() {
   const mirrors: string[] = ['orbitofavatars.com', 'bealive.fit'];
-  if (mirrors.includes(location.host)) location.href = 'https://lichess.org' + location.pathname;
+  if (mirrors.includes(location.host)) location.href = 'https://lixiangqi.org' + location.pathname;
 }

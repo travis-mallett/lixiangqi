@@ -1,12 +1,12 @@
 package lila.puzzle
 
-import chess.format.{ Fen, Uci }
 import chess.rating.glicko.Glicko
 import reactivemongo.api.bson.*
 import scala.util.{ Success, Try }
 
 import lila.db.BSON
 import lila.db.dsl.{ *, given }
+import lila.xiangqi.Xiangqi
 
 private object BsonHandlers:
 
@@ -17,9 +17,16 @@ private object BsonHandlers:
     def readDocument(r: BSONDocument) = for
       id <- r.getAsTry[PuzzleId](id)
       gameId <- r.getAsTry[GameId](gameId)
-      fen <- r.getAsTry[Fen.Full](fen)
+      source = r
+        .getAsOpt[BSONDocument](gameSource)
+        .filter(_.getAsOpt[String]("type").contains("catalog"))
+        .flatMap: source =>
+          source
+            .getAsOpt[String]("database")
+            .map(Puzzle.GameSource.Catalog.apply)
+      fen <- r.getAsTry[String](fen)
       lineStr <- r.getAsTry[String](line)
-      line <- lineStr.split(' ').toList.flatMap(Uci.Move.apply).toNel.toTry("Empty move list?!")
+      line <- lineStr.split(' ').toList.flatMap(Xiangqi.Uci.from(_).toOption).toNel.toTry("Empty move list?!")
       glicko <- r.getAsTry[Glicko](glicko)
       plays <- r.getAsTry[Int](plays)
       vote <- r.getAsTry[Float](vote)
@@ -27,6 +34,7 @@ private object BsonHandlers:
     yield Puzzle(
       id = id,
       gameId = gameId,
+      gameSource = source,
       fen = fen,
       line = line,
       glicko = glicko,

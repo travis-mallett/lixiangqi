@@ -66,7 +66,7 @@ final private class ExplorerGameApi(
     gameTitle(g, tags)
 
   private def gameTitle(g: Game, tags: Tags): String =
-    val white = tags(_.White) | namer.playerTextBlocking(g.whitePlayer)(using lightUserApi.sync)
+    val white = tags("Red") | namer.playerTextBlocking(g.whitePlayer)(using lightUserApi.sync)
     val black = tags(_.Black) | namer.playerTextBlocking(g.blackPlayer)(using lightUserApi.sync)
     val result = chess.Outcome.showResult(chess.Outcome(g.winnerColor).some)
     val event: Option[String] =

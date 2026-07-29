@@ -118,7 +118,7 @@ object InsightChart:
           user2 <- gameUserJson(pov.opponent)
         yield Json.obj(
           "id" -> pov.gameId,
-          "fen" -> (chess.format.Fen.writeBoard(pov.game.position)),
+          "fen" -> pov.game.xiangqi.state.fen,
           "color" -> pov.player.color.name,
           "lastMove" -> (pov.game.lastMoveKeys | ""),
           "user1" -> user1,

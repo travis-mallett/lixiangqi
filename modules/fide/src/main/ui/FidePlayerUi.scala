@@ -15,7 +15,7 @@ final class FidePlayerUi(helpers: Helpers, fideUi: FideUi, picfitUrl: lila.memo.
   def index(players: Paginator[FidePlayer.WithFollow], query: String, order: FidePlayerOrder)(using
       Context
   ) =
-    fideUi.page("FIDE players", "players")(
+    fideUi.page("WXF players", "players")(
       cls := "fide-players",
       boxTop(
         h1(trb.fidePlayers()),
@@ -31,7 +31,7 @@ final class FidePlayerUi(helpers: Helpers, fideUi: FideUi, picfitUrl: lila.memo.
     )
 
   def notFound(id: chess.FideId)(using Context) =
-    fideUi.page("FIDE player not found", "players")(
+    fideUi.page("WXF player not found", "players")(
       cls := "fide-players",
       boxTop(
         h1(trb.fidePlayerNotFound()),
@@ -40,16 +40,16 @@ final class FidePlayerUi(helpers: Helpers, fideUi: FideUi, picfitUrl: lila.memo.
       ),
       div(cls := "box__pad")(
         p(
-          "We could not find anyone with the FIDE ID \"",
+          "We could not find anyone with the WXF ID \"",
           strong(id),
           "\", please make sure the number is correct."
         ),
         p(
           "If the player appears on the ",
-          a(href := "https://ratings.fide.com/", targetBlank)("official FIDE website"),
-          ", then the player was not included in the latest rating export from FIDE.",
+          a(href := "https://www.wxf-xiangqi.org/", targetBlank)("official WXF website"),
+          ", then the player was not included in the latest rating export.",
           br,
-          "FIDE exports are provided once a month and includes players who have at least one official rating."
+          "WXF rating exports are provided periodically and include players who have at least one official rating."
         )
       )
     )
@@ -154,7 +154,7 @@ final class FidePlayerUi(helpers: Helpers, fideUi: FideUi, picfitUrl: lila.memo.
       isFollowing: Boolean
   )(using ctx: Context) =
     fideUi.page(
-      s"${player.name} - FIDE player ${player.id}",
+      s"${player.name} - WXF player ${player.id}",
       "players",
       _.js(esmInit("fideRatingChart", ratings.toJson))
     )(
@@ -189,7 +189,7 @@ final class FidePlayerUi(helpers: Helpers, fideUi: FideUi, picfitUrl: lila.memo.
                 ),
               tr(
                 th(trb.fideProfile()),
-                td(a(href := s"https://ratings.fide.com/profile/${player.id}")(player.id))
+                td(player.id)
               ),
               player.age.map: age =>
                 tr(

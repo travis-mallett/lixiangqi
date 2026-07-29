@@ -9,10 +9,7 @@ object bits:
     div(cls := "lobby__app__content lpools")
   )
 
-  def underboards(
-      tours: List[lila.tournament.Tournament],
-      simuls: List[lila.simul.Simul]
-  )(using ctx: Context) =
+  def underboards(tours: List[lila.tournament.Tournament])(using ctx: Context) =
     div(cls := "lobby__tournaments-simuls")(
       div(cls := "lobby__tournaments lobby__box")(
         a(cls := "lobby__box__top", href := routes.Tournament.home)(
@@ -21,16 +18,6 @@ object bits:
         ),
         div(cls := "lobby__box__content"):
           views.tournament.ui.enterable(tours)
-      ),
-      simuls.nonEmpty.option(
-        div(cls := "lobby__simuls lobby__box")(
-          a(cls := "lobby__box__top", href := routes.Simul.home)(
-            h2(cls := "title text", dataIcon := Icon.Group)(trans.site.simultaneousExhibitions()),
-            span(cls := "more")(trans.site.more(), " »")
-          ),
-          div(cls := "lobby__box__content"):
-            views.simul.ui.allCreated(simuls, withName = false)
-        )
       )
     )
 

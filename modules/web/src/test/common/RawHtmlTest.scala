@@ -6,7 +6,7 @@ import RawHtml.*
 
 class RawHtmlTest extends munit.FunSuite:
 
-  given NetDomain = NetDomain("lichess.org")
+  given NetDomain = NetDomain("lixiangqi.org")
   given munit.Compare[Html, String] with
     def isEqual(obtained: Html, expected: String): Boolean = obtained.value == expected
 
@@ -100,50 +100,50 @@ class RawHtmlTest extends munit.FunSuite:
 
   test("internal links"):
     assertEquals(
-      addLinks("lichess.org/@/foo/games"),
-      """<a href="/@/foo/games">lichess.org/@/foo/games</a>"""
+      addLinks("lixiangqi.org/@/foo/games"),
+      """<a href="/@/foo/games">lixiangqi.org/@/foo/games</a>"""
     )
-    assertEquals(addLinks("lichess.org/@/foo"), """<a href="/@/foo">@foo</a>""")
-    assertEquals(addLinks("http://lichess.org/"), """<a href="/">lichess.org/</a>""")
-    assertEquals(addLinks("http://lichess.org"), """<a href="/">lichess.org</a>""")
+    assertEquals(addLinks("lixiangqi.org/@/foo"), """<a href="/@/foo">@foo</a>""")
+    assertEquals(addLinks("http://lixiangqi.org/"), """<a href="/">lixiangqi.org/</a>""")
+    assertEquals(addLinks("http://lixiangqi.org"), """<a href="/">lixiangqi.org</a>""")
     assertEquals(addLinks("@foo"), """<a href="/@/foo">@foo</a>""")
 
   test("handle weird characters"):
-    assertEquals(addLinks("lichess.org/-–%20"), """<a href="/-–%20">lichess.org/-–%20</a>""")
+    assertEquals(addLinks("lixiangqi.org/-–%20"), """<a href="/-–%20">lixiangqi.org/-–%20</a>""")
 
   test("handle multiple links"):
     assertEquals(
-      addLinks("@foo blah lichess.org"),
-      """<a href="/@/foo">@foo</a> blah <a href="/">lichess.org</a>"""
+      addLinks("@foo blah lixiangqi.org"),
+      """<a href="/@/foo">@foo</a> blah <a href="/">lixiangqi.org</a>"""
     )
     assertEquals(
-      addLinks("b foo.com blah lichess.org"),
-      """b <a rel="nofollow noreferrer" href="https://foo.com" target="_blank">foo.com</a> blah <a href="/">lichess.org</a>"""
+      addLinks("b foo.com blah lixiangqi.org"),
+      """b <a rel="nofollow noreferrer" href="https://foo.com" target="_blank">foo.com</a> blah <a href="/">lixiangqi.org</a>"""
     )
 
   test("handle trailing punctuation"):
-    assertEquals(addLinks("lichess.org."), """<a href="/">lichess.org</a>.""")
-    assertEquals(addLinks("lichess.org)"), """<a href="/">lichess.org</a>)""")
-    assertEquals(addLinks("lichess.org/()"), """<a href="/()">lichess.org/()</a>""")
+    assertEquals(addLinks("lixiangqi.org."), """<a href="/">lixiangqi.org</a>.""")
+    assertEquals(addLinks("lixiangqi.org)"), """<a href="/">lixiangqi.org</a>)""")
+    assertEquals(addLinks("lixiangqi.org/()"), """<a href="/()">lixiangqi.org/()</a>""")
 
-    assertEquals(addLinks("lichess.org/())"), """<a href="/()">lichess.org/()</a>)""")
-    assertEquals(addLinks("lichess.org/(2)-)?"), """<a href="/(2)-">lichess.org/(2)-</a>)?""")
+    assertEquals(addLinks("lixiangqi.org/())"), """<a href="/()">lixiangqi.org/()</a>)""")
+    assertEquals(addLinks("lixiangqi.org/(2)-)?"), """<a href="/(2)-">lixiangqi.org/(2)-</a>)?""")
 
-    assertEquals(addLinks("lichess.org.-"), """<a href="/">lichess.org</a>.-""")
+    assertEquals(addLinks("lixiangqi.org.-"), """<a href="/">lixiangqi.org</a>.-""")
 
-    assertEquals(addLinks("lichess.org/foo:bar"), """<a href="/foo:bar">lichess.org/foo:bar</a>""")
-    assertEquals(addLinks("lichess.org/foo:bar:"), """<a href="/foo:bar">lichess.org/foo:bar</a>:""")
+    assertEquals(addLinks("lixiangqi.org/foo:bar"), """<a href="/foo:bar">lixiangqi.org/foo:bar</a>""")
+    assertEquals(addLinks("lixiangqi.org/foo:bar:"), """<a href="/foo:bar">lixiangqi.org/foo:bar</a>:""")
 
   test("handle embedded links"):
-    assertEquals(addLinks(".lichess.org"), """.lichess.org""")
-    assertEquals(addLinks("/lichess.org"), """/lichess.org""")
-    assertEquals(addLinks(".http://lichess.org"), """.<a href="/">lichess.org</a>""")
+    assertEquals(addLinks(".lixiangqi.org"), """.lixiangqi.org""")
+    assertEquals(addLinks("/lixiangqi.org"), """/lixiangqi.org""")
+    assertEquals(addLinks(".http://lixiangqi.org"), """.<a href="/">lixiangqi.org</a>""")
 
-    assertEquals(addLinks("/http://lichess.org"), """/<a href="/">lichess.org</a>""")
+    assertEquals(addLinks("/http://lixiangqi.org"), """/<a href="/">lixiangqi.org</a>""")
 
   test("handle ambig path separator"):
-    assertEquals(addLinks("lichess.org#f"), """<a href="/#f">lichess.org/#f</a>""")
-    assertEquals(addLinks("lichess.org?f"), """<a href="/?f">lichess.org/?f</a>""")
+    assertEquals(addLinks("lixiangqi.org#f"), """<a href="/#f">lixiangqi.org/#f</a>""")
+    assertEquals(addLinks("lixiangqi.org?f"), """<a href="/?f">lixiangqi.org/?f</a>""")
 
   test("pass through plain text (fast case)"):
     val noUrl = "blah blah foobar"
@@ -184,11 +184,11 @@ class RawHtmlTest extends munit.FunSuite:
 
   test("markdown handle $ >> link content"):
     val md =
-      "[$$$ test 9$ prize](https://lichess.org/tournament)"
+      "[$$$ test 9$ prize](https://lixiangqi.org/tournament)"
     assertEquals(
       justMarkdownLinks(Html(md)),
       Html(
-        """<a rel="nofollow noopener noreferrer" href="https://lichess.org/tournament">$$$ test 9$ prize</a>"""
+        """<a rel="nofollow noopener noreferrer" href="https://lixiangqi.org/tournament">$$$ test 9$ prize</a>"""
       )
     )
 
@@ -210,19 +210,19 @@ class RawHtmlTest extends munit.FunSuite:
     )
 
   test("atUser expand valid"):
-    assertEquals(expandAtUser("@foo"), List("lichess.org/@/foo"))
-    assertEquals(expandAtUser("@2foo"), List("lichess.org/@/2foo"))
-    assertEquals(expandAtUser("@foo."), List("lichess.org/@/foo", "."))
+    assertEquals(expandAtUser("@foo"), List("lixiangqi.org/@/foo"))
+    assertEquals(expandAtUser("@2foo"), List("lixiangqi.org/@/2foo"))
+    assertEquals(expandAtUser("@foo."), List("lixiangqi.org/@/foo", "."))
     assertEquals(expandAtUser("@foo.com"), List("@foo.com"))
 
-    assertEquals(expandAtUser("@foo./"), List("lichess.org/@/foo", "./"))
-    assertEquals(expandAtUser("@foo/games"), List("lichess.org/@/foo", "/games"))
+    assertEquals(expandAtUser("@foo./"), List("lixiangqi.org/@/foo", "./"))
+    assertEquals(expandAtUser("@foo/games"), List("lixiangqi.org/@/foo", "/games"))
 
   test("linkConsistency at user links"):
     copyLinkConsistency("http://example.com")
     copyLinkConsistency("https://example.com/@foo")
-    copyLinkConsistency("lichess.org/@/foo")
-    copyLinkConsistency("lichess.org/@/foo/games")
+    copyLinkConsistency("lixiangqi.org/@/foo")
+    copyLinkConsistency("lixiangqi.org/@/foo/games")
     copyLinkConsistency("@foo/games")
     copyLinkConsistency("@foo")
 

@@ -21,8 +21,8 @@ final class SitePages(helpers: Helpers):
     val external = frag(" ", iconTag(Icon.ExternalArrow))
     def activeCls(c: String) = cls := active.activeO(c)
     lila.ui.bits.pageMenuSubnav(
-      a(activeCls("about"), href := "/about")(trans.site.aboutX("lichess.org")),
-      a(activeCls("news"), href := routes.Feed.index(1))("Lichess updates"),
+      a(activeCls("about"), href := "/about")(trans.site.aboutX("lixiangqi.org")),
+      a(activeCls("news"), href := routes.Feed.index(1))("Lixiangqi updates"),
       a(activeCls("faq"), href := routes.Main.faq)(trans.faq.faqAbbreviation()),
       a(activeCls("contact"), href := routes.Main.contact)(trans.contact.contact()),
       a(activeCls("tos"), href := routes.Cms.tos)(trans.site.termsOfService()),
@@ -35,7 +35,7 @@ final class SitePages(helpers: Helpers):
       a(activeCls("thanks"), href := "/thanks")(trans.site.thankYou()),
       sep,
       a(activeCls("webmasters"), href := routes.Main.webmasters)(trans.site.webmasters()),
-      a(activeCls("database"), href := "https://database.lichess.org")(trans.site.database(), external),
+      a(activeCls("database"), href := "/games")(trans.site.database(), external),
       a(activeCls("api"), href := "/api")("API", external),
       sep,
       a(activeCls("lag"), href := routes.Main.lag)(trans.lag.isLichessLagging()),
@@ -46,8 +46,7 @@ final class SitePages(helpers: Helpers):
     def parameters(extra: Modifier*) = frag(
       p("Parameters:"),
       ul(
-        // actual supported board theme list from lila-gif/src/assets.rs
-        li(strong("theme"), ": ", List("blue", "brown", "green", "ic", "purple").mkString(", ")),
+        li(strong("theme"), ": xiangqi"),
         li(strong("pieceSet"), ": ", pieceNames.mkString(", ")),
         li(strong("bg"), ": light, dark, system"),
         extra
@@ -58,12 +57,12 @@ final class SitePages(helpers: Helpers):
       active = "webmasters",
       contentCls = "page force-ltr"
     ).css("bits.page")
-      .csp(_.copy(frameSrc = "https://lichess.org" :: Nil)):
+      .csp(_.copy(frameSrc = "https://lixiangqi.org" :: Nil)):
         frag(
           st.section(cls := "box box-pad developers")(
             h1(cls := "box__top")("HTTP API"),
             p(
-              "Lichess exposes a RESTish HTTP/JSON API that you are welcome to use. Read the ",
+              "Lixiangqi exposes a RESTish HTTP/JSON API that you are welcome to use. Read the ",
               a(href := "/api")("HTTP API documentation"),
               "."
             )
@@ -74,7 +73,7 @@ final class SitePages(helpers: Helpers):
               """style="width: 400px; aspect-ratio: 10/11;" allowtransparency="true" frameborder="0""""
             frag(
               a(href := "#embed-tv")(
-                h1(cls := "box__top", id := "embed-tv")("Embed Lichess TV in your site")
+                h1(cls := "box__top", id := "embed-tv")("Embed Lixiangqi TV in your site")
               ),
               div(cls := "body")(
                 div(cls := "center")(raw(s"""<iframe src="/tv/frame?theme=brown&bg=dark" $args></iframe>""")),
@@ -83,7 +82,7 @@ final class SitePages(helpers: Helpers):
                 parameters(),
                 p(
                   "You can also show the channel for a specific variant or time control by adding the channel key to the URL, corresponding to the channels available at ",
-                  a(href := "/tv")("lichess.org/tv"),
+                  a(href := "/tv")("lixiangqi.org/tv"),
                   ". If not included, the top rated game will be shown."
                 ),
                 copyMeInput(
@@ -118,7 +117,7 @@ final class SitePages(helpers: Helpers):
             val args = """style="width: 100%; aspect-ratio: 3/2;" frameborder="0""""
             frag(
               a(href := "#embed-study")(
-                h1(cls := "box__top", id := "embed-study")("Embed a chess analysis in your site")
+                h1(cls := "box__top", id := "embed-study")("Embed a Xiangqi analysis in your site")
               ),
               div(cls := "body")(
                 div(cls := "center"):
@@ -139,7 +138,7 @@ final class SitePages(helpers: Helpers):
             val args = """style="width: 100%; aspect-ratio: 3/2;" frameborder="0""""
             frag(
               a(href := "#embed-game")(
-                h1(cls := "box__top", id := "embed-game")("Embed a chess game in your site")
+                h1(cls := "box__top", id := "embed-game")("Embed a Xiangqi game in your site")
               ),
               div(cls := "body")(
                 div(cls := "center"):
@@ -167,7 +166,7 @@ final class SitePages(helpers: Helpers):
               div(cls := "body")(
                 div(cls := "center"):
                   raw:
-                    s"""<iframe src="https://lichess.org/embed/broadcast/fide-world-rapidblitz-team-championships-2024--rapid-matches-1-10/G1YjiG7j" $args></iframe>"""
+                    s"""<iframe src="https://lixiangqi.org/embed/broadcast/world-xiangqi-championship/G1YjiG7j" $args></iframe>"""
                 ,
                 p(
                   "On a broadcast page, select the embed iframe code, then optionally add query parameters to customize the appearance."
@@ -181,7 +180,7 @@ final class SitePages(helpers: Helpers):
           st.section(cls := "box box-pad developers", id := "analysis") {
             val args = """style="width: 100%; aspect-ratio: 4/3;" frameborder="0""""
             val iframe =
-              s"""<iframe src="https://lichess.org/embed/analysis" $args></iframe>"""
+              s"""<iframe src="https://lixiangqi.org/embed/analysis" $args></iframe>"""
             frag(
               a(href := "#embed-analysis")(
                 h1(cls := "box__top", id := "embed-analysis")("Embed an analysis board")
@@ -190,8 +189,8 @@ final class SitePages(helpers: Helpers):
                 div(cls := "center")(raw(iframe)),
                 p(
                   "Embeds the ",
-                  a(href := routes.UserAnalysis.index)("fully-featured Lichess analysis board"),
-                  " with stockfish evaluation, opening explorer and tablebase."
+                  a(href := routes.UserAnalysis.index)("Xiangqi analysis board"),
+                  " with Pikafish evaluation and the Xiangqi Cloud Explorer."
                 ),
                 copyMeInput(iframe),
                 parameters(
@@ -201,7 +200,7 @@ final class SitePages(helpers: Helpers):
                 div(
                   "Example using a custom initial position:",
                   copyMeInput:
-                    s"""<iframe src="https://lichess.org/embed/analysis?fen=r1bqkb1r/pp2pppp/2np1n2/6B1/3NP3/2N5/PPP2PPP/R2QKB1R_b_KQkq_-_1_6&color=black" $args></iframe>"""
+                    s"""<iframe src="https://lixiangqi.org/embed/analysis" $args></iframe>"""
                 ),
                 p("The text is automatically translated to your visitor's language.")
               )
@@ -256,7 +255,7 @@ final class SitePages(helpers: Helpers):
 
   def lag(using Context) =
     import trans.lag as trl
-    SitePage(title = "Is Lichess lagging?", active = "lag")
+    SitePage(title = "Is Lixiangqi lagging?", active = "lag")
       .css("bits.lag")
       .js(esmInit("chart.lag")):
         div(cls := "box box-pad lag")(

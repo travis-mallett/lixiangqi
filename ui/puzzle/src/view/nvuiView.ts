@@ -310,7 +310,7 @@ function renderReplay({ data, mode }: PuzzleCtrl): string {
   const replay = data.replay;
   if (!replay) return '';
   const i = replay.i + (mode === 'play' ? 0 : 1);
-  const text = i18n.puzzleTheme[data.angle.key];
+  const text = i18n.puzzleTheme[data.angle.key] || data.angle.name;
   return `Replaying ${text} puzzles: ${i} of ${replay.of}`;
 }
 

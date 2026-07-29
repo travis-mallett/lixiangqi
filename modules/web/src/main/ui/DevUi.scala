@@ -114,7 +114,7 @@ final class DevUi(helpers: Helpers)(modMenu: String => Context ?=> Frag):
         )
 
   private val cliExamples = """uptime
-announce 10 minutes Lichess will restart!
+announce 10 minutes Lixiangqi will restart!
 announce cancel
 change asset version
 fishnet client create {username}

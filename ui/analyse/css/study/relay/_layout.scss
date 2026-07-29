@@ -136,10 +136,6 @@ main.analyse.is-relay:not(.has-relay-tour) {
 
     .analyse__underboard {
       margin-top: unset;
-
-      .is3d & {
-        margin-top: calc(var(---cg-height) * 2 / 100);
-      }
     }
 
     .eval-chart-and-training {

@@ -14,8 +14,7 @@ final private class ChapterMaker(
     chatApi: lila.core.chat.ChatApi,
     gameRepo: lila.core.game.GameRepo,
     pgnDump: lila.core.game.PgnDump,
-    namer: lila.core.game.Namer,
-    gameOpening: lila.core.game.GameOpening
+    namer: lila.core.game.Namer
 )(using Executor):
 
   import ChapterMaker.*
@@ -69,7 +68,7 @@ final private class ChapterMaker(
 
   private def getChapterNameFromPgn(data: Data, parsed: StudyPgnImport.Result): StudyChapterName =
     def fromPgnTags =
-      (parsed.tags(_.White), parsed.tags(_.Black)) match
+      (parsed.tags("Red"), parsed.tags(_.Black)) match
         case (Some(white), Some(black)) => Some(s"$white - $black")
         case (Some(white), None) => Some(white)
         case (None, Some(black)) => Some(black)
@@ -139,7 +138,7 @@ final private class ChapterMaker(
   ): Fu[Chapter] =
     for
       root <- makeRoot(game, data.pgn, initialFen)
-      tags <- pgnDump.tags(game, initialFen, none, gameOpening(game, true), withRatings)
+      tags <- pgnDump.tags(game, initialFen, none, withOpening = true.some, withRatings)
       name <-
         if data.isDefaultName then
           StudyChapterName.from(namer.gameVsText(game, withRatings)(using lightUser.async))

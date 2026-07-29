@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Xiangqi study scroll">
+  <path d="M35 24h86v112H35c-15 0-15-22 0-22h8V46h-8c-15 0-15-22 0-22z" fill="#ead3a1" stroke="#71482c" stroke-width="6"/>
+  <path d="M43 46h78M43 114h78" stroke="#9f342d" stroke-width="5"/>
+  <text x="82" y="82" text-anchor="middle" font-size="29" font-family="Noto Serif CJK SC,SimSun,serif" fill="#51331f">棋谱</text>
+  <text x="82" y="105" text-anchor="middle" font-size="16" font-family="serif" fill="#71482c">察 · 算 · 复</text>
+</svg>

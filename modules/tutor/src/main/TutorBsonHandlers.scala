@@ -1,7 +1,5 @@
 package lila.tutor
 
-import scala.util.Try
-import chess.ByColor
 import reactivemongo.api.bson.*
 
 import lila.db.dsl.{ *, given }
@@ -17,12 +15,6 @@ private object TutorBsonHandlers:
   given BSONHandler[GoodPercent] = percentAsIntHandler[GoodPercent]
 
   given BSONHandler[TutorConfig] = Macros.handler
-
-  given [A](using handler: BSONHandler[A]): BSONHandler[ByColor[A]] =
-    mapHandler[A].as[ByColor[A]](
-      doc => ByColor(doc("w"), doc("b")),
-      map => Map("w" -> map.white, "b" -> map.black)
-    )
 
   given [A](using handler: BSONHandler[A], ordering: Ordering[A]): BSONHandler[TutorBothOption[A]] =
     quickHandler[TutorBothOption[A]](
@@ -46,18 +38,6 @@ private object TutorBsonHandlers:
     )
   given [A](using BSONHandler[A], Ordering[A]): BSONHandler[TutorBothValues[A]] =
     summon[BSONHandler[TutorBothOption[A]]].as(_.get, Some(_))
-
-  given BSONDocumentHandler[TutorOpeningFamily] = Macros.handler
-
-  // survive to an opening family that has since disappeared
-  given BSONDocumentHandler[TutorColorOpenings] = new:
-    val writer = Macros.writer[TutorColorOpenings]
-    export writer.writeTry
-    def readDocument(doc: BSONDocument): Try[TutorColorOpenings] =
-      doc
-        .getAsTry[List[Bdoc]]("families")
-        .map: docs =>
-          TutorColorOpenings(docs.flatMap(_.asOpt[TutorOpeningFamily]))
 
   private def listWrapper[A, W](using
       handler: BSONHandler[List[A]]

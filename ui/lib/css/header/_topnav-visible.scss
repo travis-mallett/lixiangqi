@@ -31,7 +31,7 @@
           text-shadow: 0 1px 0 $c-font-shadow;
         }
 
-        @include if-transp {
+        @include if-background {
           text-shadow: 0.5px 1px 1px #000;
         }
 
@@ -57,7 +57,7 @@
       border-radius: 0 3px 3px 3px;
       border-inline-start: 2px solid $c-primary;
 
-      @include if-transp {
+      @include if-background {
         @include back-blur;
       }
 

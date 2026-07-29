@@ -2,7 +2,6 @@ package lila.insight
 
 import play.api.libs.json.*
 
-import lila.common.{ LilaOpeningFamily, SimpleOpening }
 import lila.core.i18n.Translate
 
 final class JsonView:
@@ -12,23 +11,7 @@ final class JsonView:
   case class Categ(name: String, items: List[JsValue])
   private given Writes[Categ] = Json.writes
 
-  def ui(families: List[LilaOpeningFamily], openings: List[SimpleOpening], asMod: Boolean)(using Translate) =
-
-    val openingFamilyJson = Json.obj(
-      "key" -> D.OpeningFamily.key,
-      "name" -> D.OpeningFamily.name,
-      "position" -> D.OpeningFamily.position,
-      "description" -> D.OpeningFamily.description,
-      "values" -> families.map(InsightDimension.valueToJson(D.OpeningFamily))
-    )
-
-    val openingJson = Json.obj(
-      "key" -> D.OpeningVariation.key,
-      "name" -> D.OpeningVariation.name,
-      "position" -> D.OpeningVariation.position,
-      "description" -> D.OpeningVariation.description,
-      "values" -> openings.map(InsightDimension.valueToJson(D.OpeningVariation))
-    )
+  def ui(asMod: Boolean)(using Translate) =
 
     val dimensionCategs = List(
       Categ(
@@ -40,16 +23,6 @@ final class JsonView:
           dimWrites.writes(D.Color),
           dimWrites.writes(D.OpponentStrength),
           dimWrites.writes(D.GameSource)
-        )
-      ),
-      Categ(
-        "Game",
-        List(
-          openingFamilyJson,
-          openingJson,
-          dimWrites.writes(D.MyCastling),
-          dimWrites.writes(D.OpCastling),
-          dimWrites.writes(D.QueenTrade)
         )
       ),
       Categ(

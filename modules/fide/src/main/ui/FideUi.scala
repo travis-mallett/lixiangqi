@@ -42,7 +42,7 @@ final class FideUi(helpers: Helpers)(menu: String => Context ?=> Frag):
     def index(feds: Paginator[Federation])(using Context) =
       def ratingCell(stats: lila.core.fide.Federation.Stats) =
         td(if stats.top10Rating > 0 then stats.top10Rating else "-")
-      page("FIDE federations", "federations")(
+      page("WXF federations", "federations")(
         cls := "fide-federations",
         boxTop(h1(trb.fideFederations())),
         table(cls := "slist slist-pad")(
@@ -72,7 +72,7 @@ final class FideUi(helpers: Helpers)(menu: String => Context ?=> Frag):
       )
 
     def show(fed: Federation, playersList: Frag)(using Context) =
-      page(s"${fed.name} - FIDE federation", "federations")(
+      page(s"${fed.name} - WXF federation", "federations")(
         cls := "fide-federation",
         div(cls := "box__top fide-federation__head")(
           flag(fed.id, none),

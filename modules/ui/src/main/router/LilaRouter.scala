@@ -33,8 +33,8 @@ object LilaRouter:
     def bind(_key: String, value: String) = parse(value).toRight(error)
     def unbind(_key: String, value: A) = write(value)
 
-  given PathBindable[UserStr] = strPath[UserStr](UserStr.read, "Invalid Lichess username")
-  given PathBindable[PerfKey] = strPath[PerfKey](PerfKey.apply, "Invalid Lichess performance key")
+  given PathBindable[UserStr] = strPath[UserStr](UserStr.read, "Invalid Lixiangqi username")
+  given PathBindable[PerfKey] = strPath[PerfKey](PerfKey.apply, "Invalid Lixiangqi performance key")
   given PathBindable[GameId] = summon[PathBindable[GameAnyId]].transform(_.gameId, _.into(GameAnyId))
   given PathBindable[Color] =
     strPath[Color](Color.fromName, "Invalid chess color, should be white or black", _.name)

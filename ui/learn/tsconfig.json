@@ -1,5 +1,21 @@
 {
   "extends": "../tsconfig.base.json",
+  "include": [
+    "src/learn.ts",
+    "src/apple.ts",
+    "src/ctrl.ts",
+    "src/hashRouting.ts",
+    "src/mapSideView.ts",
+    "src/progressView.ts",
+    "src/score.ts",
+    "src/sideCtrl.ts",
+    "src/storage.ts",
+    "src/view.ts",
+    "src/xiangqiBoard.ts",
+    "src/run/runCtrl.ts",
+    "src/run/runView.ts",
+    "src/stage/list.ts"
+  ],
   "compilerOptions": { "noEmit": true, "isolatedDeclarations": false },
-  "references": [{ "path": "../lib/tsconfig.json" }]
+  "references": [{ "path": "../lib/tsconfig.json" }, { "path": "../xiangqi/tsconfig.json" }]
 }

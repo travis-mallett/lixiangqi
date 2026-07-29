@@ -94,7 +94,7 @@
       background: rgb(from $c-shade r g b / calc(alpha * 0.6));
     }
 
-    @include if-transp {
+    @include if-background {
       background: rgb(from $c-bg r g b / calc(alpha * 0.6));
     }
 

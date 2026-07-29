@@ -321,8 +321,7 @@ export function renderPvs(ctrl: CevalHandler): VNode | undefined {
   if (!ctrl.cevalEnabled()) return;
   const ceval = ctrl.ceval;
   const multiPv = ceval.search.multiPv,
-    node = ctrl.getNode(),
-    setup = parseFen(node.fen).unwrap();
+    node = ctrl.getNode();
   let pvs: PvData[],
     threat = false,
     pvMoves: (string | null)[],
@@ -332,6 +331,9 @@ export function renderPvs(ctrl: CevalHandler): VNode | undefined {
     threat = true;
   } else if (node.ceval) pvs = node.ceval.pvs;
   else pvs = [];
+  if (ceval.opts.variant.key === 'xiangqi') return renderXiangqiPvs(ctrl, pvs, multiPv, node.ply);
+
+  const setup = parseFen(node.fen).unwrap();
   if (threat) {
     setup.turn = opposite(setup.turn);
     if (setup.turn === 'white') setup.fullmoves += 1;
@@ -407,6 +409,39 @@ export function renderPvs(ctrl: CevalHandler): VNode | undefined {
 }
 
 const MAX_NUM_MOVES = 16;
+
+function renderXiangqiPvs(ctrl: CevalHandler, pvs: PvData[], multiPv: number, ply: number): VNode {
+  return hl(
+    'div.pv_box',
+    [...Array(multiPv).keys()].map(index => {
+      const pv = pvs[index];
+      const attrs = pv?.moves[0] ? { 'data-uci': pv.moves[0] } : {};
+      const data: any = { attrs };
+      if (pv)
+        data.hook = bind('click', () => {
+          if (!ctrl.threatMode()) ctrl.playUciList(pv.moves);
+        });
+      return hl('div.pv.pv--nowrap', data, [
+        renderPvWrapToggle(),
+        pv && multiPv > 1
+          ? hl('strong', defined(pv.mate) ? `#${pv.mate}` : renderEval(pv.cp ?? 0))
+          : undefined,
+        ...(pv ? renderXiangqiPvMoves(pv.moves.slice(0, MAX_NUM_MOVES), ply) : []),
+      ]);
+    }),
+  );
+}
+
+function renderXiangqiPvMoves(moves: Uci[], startPly: number): VNode[] {
+  return moves.flatMap((move, index) => {
+    const movePly = startPly + index;
+    const turn = Math.floor(movePly / 2) + 1;
+    const prefix = movePly % 2 === 0 ? `${turn}.` : index === 0 ? `${turn}...` : '';
+    return [prefix ? hl('span', prefix) : undefined, hl('span.pv-san', move)].filter(
+      (node): node is VNode => !!node,
+    );
+  });
+}
 
 function renderPv(threat: boolean, multiPv: number, pv?: PvData, pos?: Position): VNode {
   const data: any = {};

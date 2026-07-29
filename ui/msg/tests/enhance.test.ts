@@ -41,8 +41,8 @@ test('bulk message ids should have a text class', () => {
 
 test('regular game links should not have a text class', () => {
   assert.strictEqual(
-    enhance('I played a game: https://lichess.org/GameIdXX'),
-    'I played a game: <a target="_blank" rel="nofollow noreferrer" href="https://lichess.org/GameIdXX">lichess.org/GameIdXX</a>',
+    enhance('I played a game: https://lixiangqi.org/GameIdXX'),
+    'I played a game: <a target="_blank" rel="nofollow noreferrer" href="https://lixiangqi.org/GameIdXX">lixiangqi.org/GameIdXX</a>',
   );
 });
 

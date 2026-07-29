@@ -2,7 +2,7 @@ import { ops as treeOps } from 'lib/tree/tree';
 import type { Shape } from 'lib/tree/types';
 
 import type AnalyseCtrl from './ctrl';
-import type { EvalGetData, EvalPutData, Opening, ServerEvalData } from './interfaces';
+import type { EvalGetData, EvalPutData, ServerEvalData } from './interfaces';
 import type { AnaDrop, AnaMove, ChapterData, EditChapterData } from './study/interfaces';
 import type { FormData as StudyFormData } from './study/studyForm';
 
@@ -48,7 +48,6 @@ export interface StudySocketSendParams {
   setTag: (d: { chapterId: string; name: string; value: string }) => void;
   anaMove: (d: AnaMove & MoveOpts) => void;
   anaDrop: (d: AnaDrop & MoveOpts) => void;
-  opening: (d: { fen: FEN }) => void;
   like: (d: { liked: boolean }) => void;
   kick: (username: string) => void;
   editStudy: (d: StudyFormData) => void;
@@ -91,10 +90,6 @@ export function make(send: AnalyseSocketSend, ctrl: AnalyseCtrl): Socket {
     }, 1000);
 
   const handlers = {
-    opening({ fen, opening }: { fen: FEN; opening: Opening }) {
-      console.log(fen, opening);
-      // ctrl.setOpening(fen, opening);
-    },
     fen(e: GameUpdate) {
       if (ctrl.forecast && e.id === ctrl.data.game.id && !treeOps.last(ctrl.mainline)!.fen.startsWith(e.fen))
         ctrl.forecast.reloadToLastPly();

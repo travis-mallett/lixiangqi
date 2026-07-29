@@ -1,13 +1,12 @@
 package lila.fishnet
 
-import chess.format.{ Fen, Uci }
-import chess.variant.Variant
 import chess.eval.Eval.{ Cp, Mate }
 import play.api.libs.json.*
 
-import lila.common.Json.{ *, given }
+import lila.common.Json.given
 import lila.core.chess.Depth
 import lila.fishnet.Work as W
+import lila.xiangqi.Xiangqi
 
 object JsonApi:
 
@@ -52,7 +51,7 @@ object JsonApi:
     )
 
     case class Evaluation(
-        pv: List[Uci],
+        pv: List[Xiangqi.Uci],
         score: Evaluation.Score,
         time: Option[Int],
         nodes: Option[Int],
@@ -81,16 +80,16 @@ object JsonApi:
 
   case class Game(
       game_id: String,
-      position: Fen.Full,
-      variant: Variant,
+      position: String,
+      variant: String,
       moves: String
   )
 
   def fromGame(g: W.Game) =
     Game(
       game_id = if g.studyId.isDefined then "" else g.id,
-      position = g.initialFen | g.variant.initialFen,
-      variant = g.variant,
+      position = g.initialFen.fold(Xiangqi.startFen)(_.value),
+      variant = "xiangqi",
       moves = g.moves
     )
 
@@ -119,11 +118,14 @@ object JsonApi:
     given Reads[Request.Stockfish] = Json.reads
     given Reads[Request.Acquire] = Json.reads
     given Reads[Request.Evaluation.Score] = Json.reads
-    given Reads[List[Uci]] = Reads.of[String].map(Uci.readList(_).getOrElse(Nil))
+    given Reads[List[Xiangqi.Uci]] = Reads
+      .of[String]
+      .map: moves =>
+        moves.split(' ').iterator.flatMap(Xiangqi.Uci.from(_).toOption).toList
 
     given EvaluationReads: Reads[Request.Evaluation] = (
       (__ \ "pv")
-        .readNullable[List[Uci]]
+        .readNullable[List[Xiangqi.Uci]]
         .map(~_)
         .and((__ \ "score").read[Request.Evaluation.Score])
         .and((__ \ "time").readNullable[Int])
@@ -139,7 +141,6 @@ object JsonApi:
     given Reads[Request.PostAnalysis] = Json.reads
 
   object writers:
-    given Writes[Variant] = writeAs(_.key)
     given Writes[Game] = Json.writes
     given OWrites[Work] = OWrites { work =>
       (work match

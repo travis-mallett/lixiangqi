@@ -43,7 +43,11 @@
       }
 
       &--ai.button::before {
-        content: $licon-Cpu;
+        content: '';
+        width: 32px;
+        height: 32px;
+        background: currentcolor;
+        mask: url('../images/icons/robot.svg') center / contain no-repeat;
       }
 
       &--friend-user.button::before {

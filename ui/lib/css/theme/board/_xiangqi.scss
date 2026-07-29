@@ -1,0 +1,145 @@
+// Geometry and default presentation copied from PyChess's standard Xiangqi
+// board family. Keep the 9x10 cell grid: pieces sit on intersections encoded
+// into the board image, including a full half-cell margin at every edge.
+
+@import 'xiangqi-pieces';
+
+.main-board.xiangqi9x10 {
+  padding-bottom: calc(10 * 100% / 9);
+}
+
+.mini-board.xiangqi9x10 {
+  padding-bottom: calc(10 * 100% / 9);
+}
+
+body .cg-wrap.xiangqi9x10 {
+  square,
+  piece {
+    width: calc(100% / 9);
+    height: 10%;
+  }
+
+  square {
+    &.last-move-origin {
+      background: radial-gradient(
+        circle,
+        rgb(255 255 255 / 0.98) 0 9%,
+        rgb(255 255 255 / 0.88) 10%,
+        rgb(255 255 255 / 0.38) 13%,
+        rgb(255 255 255 / 0.12) 17%,
+        rgb(255 255 255 / 0.88) 18%,
+        rgb(255 255 255 / 0.96) 20%,
+        rgb(255 255 255 / 0.28) 21%,
+        transparent 24%
+      );
+    }
+
+    &.last-move-destination {
+      z-index: $z-cg-below-pieces-1;
+      background: none;
+
+      &::after {
+        content: '';
+        position: absolute;
+        inset: -2%;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle,
+          rgb(255 255 255 / 0.96) 0 58%,
+          rgb(255 255 255 / 0.86) 61%,
+          rgb(255 255 255 / 0.6) 65%,
+          rgb(255 255 255 / 0.32) 68%,
+          rgb(255 255 255 / 0.12) 71%,
+          transparent 74%
+        );
+      }
+    }
+
+    &.check {
+      z-index: $z-cg-below-pieces-1;
+      background: none;
+
+      &::after {
+        content: '';
+        position: absolute;
+        inset: -2%;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle,
+          rgb(255 0 0 / 0.96) 0 58%,
+          rgb(255 0 0 / 0.86) 61%,
+          rgb(255 0 0 / 0.6) 65%,
+          rgb(255 0 0 / 0.32) 68%,
+          rgb(255 0 0 / 0.12) 71%,
+          transparent 74%
+        );
+      }
+    }
+  }
+
+  // The playable grid is the inner 800x900 rectangle in the 900x1000 board
+  // artwork. The 816x916 rectangle around it is a decorative border, leaving
+  // an exact 42-unit band between that border and each horizontal board edge.
+  // Keep Chessground's native coordinate rows, but paint the public-domain
+  // CNS11643 Kai glyph outlines used by the source Wikipedia board.
+  coords.top,
+  coords.bottom {
+    left: 0;
+    z-index: $z-cg-below-pieces-1;
+    width: 100%;
+    height: 4.2%;
+    align-items: center;
+    background-image: url('../images/board/svg/xiangqi-file-coordinates.svg');
+    background-repeat: no-repeat;
+    background-size: 100% 400%;
+    text-align: center;
+
+    &.forward {
+      flex-flow: row;
+    }
+
+    &.backward {
+      flex-flow: row-reverse;
+    }
+
+    coord {
+      flex: 1 1 calc(100% / 9);
+      padding: 0;
+      color: transparent;
+    }
+  }
+
+  coords.top {
+    top: 0;
+  }
+
+  coords.bottom {
+    bottom: 0;
+  }
+
+  // Chessground's orientation class is rebuilt by its native flip path.
+  // Xiangqi files are always relative to the player: each player's file 1 is
+  // on their right. The four sprite rows let us keep every glyph upright:
+  // black 9..1, red 九..一, red 一..九, black 1..9.
+  &.orientation-white {
+    // Seen from Red: Black's 1..9 is across the top, Red's 九..一 is below.
+    coords.top {
+      background-position: center bottom;
+    }
+
+    coords.bottom {
+      background-position: center 33.3333%;
+    }
+  }
+
+  &.orientation-black {
+    // Seen from Black: Red's 一..九 is across the top, Black's 9..1 is below.
+    coords.top {
+      background-position: center 66.6667%;
+    }
+
+    coords.bottom {
+      background-position: center top;
+    }
+  }
+}

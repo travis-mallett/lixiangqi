@@ -102,7 +102,7 @@ object SimulForm:
         "clockExtra" -> numberIn(clockExtraChoices).into[LimitMinutes],
         "clockExtraPerPlayer" -> numberIn(clockExtraPerPlayerChoices).into[LimitSeconds],
         "variants" -> list {
-          typeIn(Variant.list.all.filter(chess.variant.FromPosition != _).map(_.id).toSet)
+          typeIn(Set(chess.variant.Standard.id))
         }.verifying("At least one variant", _.nonEmpty),
         "position" -> optional(lila.common.Form.fen.playableStrict),
         "color" -> stringIn(colorChoices),

@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="chessVideos">Chess videos</string>
+  <string name="chessVideos">Xiangqi videos</string>
   <string name="allVideosAreFree">All videos are free for everyone.</string>
   <string name="selectTagsToFilter">Select tags to filter the videos.</string>
   <string name="weHaveCarefullySelectedX">We have carefully selected %s videos so far!</string>
-  <string name="freeChessVideos">Free chess videos</string>
-  <string name="xFreeCarefullyCurated">%s free, carefully curated chess videos</string>
-  <string name="xCuratedChessVideos">%s curated chess videos</string>
+  <string name="freeChessVideos">Free Xiangqi videos</string>
+  <string name="xFreeCarefullyCurated">%s free, carefully curated Xiangqi videos</string>
+  <string name="xCuratedChessVideos">%s curated Xiangqi videos</string>
   <string name="xWithTagsY">%1$s with tags %2$s</string>
   <string name="freeForAll">free for all</string>
   <plurals name="nbVideosFound">

@@ -95,13 +95,13 @@ enum Permission(val key: String, val alsoGrants: List[Permission], val name: Str
   // Set the tier of own broadcasts, making them official. Group own broadcasts.
   case Relay extends Permission("RELAY", "Broadcast official")
   case RelayStream extends Permission("RELAY_STREAM", "Broadcast Live stream")
-  case FidePlayer extends Permission("FIDE_PLAYER", "Edit FIDE players")
+  case FidePlayer extends Permission("FIDE_PLAYER", "Edit WXF players")
   case Cli extends Permission("CLI", "Command line")
   case Settings
       extends Permission("SETTINGS", "Lila settings base permission") // tho most settings require SUPER_ADMIN
   case Streamers extends Permission("STREAMERS", "Manage streamers")
   case Verified extends Permission("VERIFIED", "Verified badge")
-  case Pages extends Permission("PAGES", "Lichess pages")
+  case Pages extends Permission("PAGES", "Lixiangqi pages")
   case Feed extends Permission("DAILY_FEED", "Feed updates")
   case MonitoredCheatMod extends Permission("MONITORED_MOD_CHEAT", "Monitored mod: cheat")
   case MonitoredBoostMod extends Permission("MONITORED_MOD_BOOST", "Monitored mod: boost")

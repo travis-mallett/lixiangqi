@@ -84,12 +84,7 @@ export const loadI18n = async (catalog: string) => {
   await import(url(`compiled/i18n/${catalog}.${window.site.manifest.i18n![catalog]}.js`));
 };
 
-export function embedChessground() {
-  return import(url('npm/chessground.min.js'));
-}
-
 export const loadPieces = new Promise<void>((resolve, reject) => {
-  if (document.getElementById('main-wrap')?.classList.contains('is3d')) return resolve();
   const style = window.getComputedStyle(document.body);
   const urls = COLORS.flatMap(c =>
     ['pawn', 'knight', 'bishop', 'rook', 'queen', 'king'].map(r => `---${c}-${r}`),

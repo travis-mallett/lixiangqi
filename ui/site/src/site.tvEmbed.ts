@@ -1,7 +1,5 @@
 import { initMiniGame, updateMiniGame } from 'lib/view';
 
-import { embedChessground } from './asset';
-
 function resize() {
   const el = document.querySelector('#featured-game') as HTMLElement;
   if (el.offsetHeight > window.innerHeight)
@@ -9,10 +7,9 @@ function resize() {
       window.innerHeight - (el.querySelector('.mini-game__player') as HTMLElement).offsetHeight * 2 + 'px';
 }
 
-window.onload = async () => {
-  const makeChessground = (await embedChessground()).Chessground;
+window.onload = () => {
   const findGame = () => document.getElementsByClassName('mini-game').item(0) as HTMLElement;
-  const setup = () => initMiniGame(findGame(), makeChessground);
+  const setup = () => initMiniGame(findGame());
   setup();
   if (window.EventSource)
     new EventSource(document.body.getAttribute('data-stream-url')!).addEventListener(

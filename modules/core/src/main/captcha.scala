@@ -13,7 +13,7 @@ case class Captcha(
     fen: BoardFen,
     color: Color,
     solutions: Solutions,
-    moves: Map[String, String]
+    moves: Map[String, Vector[String]]
 )
 
 val failMessage = "captcha.fail"

@@ -18,6 +18,7 @@ final class TournamentList(helpers: Helpers, ui: TournamentUi)(
 
   def home(
       scheduled: List[Tournament],
+      enterable: Paginator[Tournament],
       finished: List[Tournament],
       winners: AllWinners,
       json: JsObject
@@ -63,7 +64,7 @@ final class TournamentList(helpers: Helpers, ui: TournamentUi)(
                 "Leagues & Streamer Battles"
               )
             ),
-            h2(trans.site.lichessTournaments()),
+            h2(trans.site.tournaments()),
             div(cls := "scheduled")(
               scheduled.map: tour =>
                 tour.schedule
@@ -90,7 +91,20 @@ final class TournamentList(helpers: Helpers, ui: TournamentUi)(
             ),
             div(cls := "tour-chart")
           ),
-          div(cls := "arena-list box")(
+          div(cls := "tour-home__list arena-list box")(
+            table(cls := "slist slist-pad")(
+              thead(
+                tr(
+                  th(colspan := 2, cls := "large")(trans.site.openTournaments()),
+                  th(cls := "date"),
+                  th(cls := "players")
+                )
+              ),
+              tbody(cls := "infinite-scroll")(
+                enterable.currentPageResults.map(ui.openList.apply),
+                pagerNextTable(enterable, page => s"${routes.Tournament.home.url}?page=$page")
+              )
+            ),
             table(cls := "slist slist-pad")(
               thead(
                 tr(
@@ -275,12 +289,13 @@ final class TournamentList(helpers: Helpers, ui: TournamentUi)(
                 freqWinners(winners.blitz, PerfType.Blitz, "Blitz"),
                 freqWinners(winners.rapid, PerfType.Rapid, "Rapid"),
                 marathonWinners,
-                lila.tournament.WinnersApi.variants.map: v =>
-                  PerfKey.byVariant(v).map { pk =>
-                    winners.variants.get(chess.variant.Variant.LilaKey(pk.value)).map {
-                      freqWinners(_, pk, v.name)
-                    }
-                  }
+                lila.tournament.WinnersApi.variants.map: variant =>
+                  PerfKey
+                    .byVariant(variant)
+                    .map: perfKey =>
+                      winners.variants
+                        .get(chess.variant.Variant.LilaKey(perfKey.value))
+                        .map(freqWinners(_, perfKey, variant.name))
               )
             )
           )

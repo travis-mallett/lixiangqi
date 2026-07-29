@@ -9,7 +9,7 @@ import alleycats.Zero
 
 import lila.core.i18n.Translate
 import lila.core.tournament.Status
-import lila.gathering.{ GreatPlayer, Thematic }
+import lila.gathering.GreatPlayer
 import lila.rating.PerfType
 
 case class Tournament(
@@ -144,8 +144,6 @@ case class Tournament(
 
   def ratingVariant = if variant.fromPosition then chess.variant.Standard else variant
 
-  def startingPosition = position.flatMap(Thematic.byFen)
-
   lazy val prizeInDescription = lila.gathering.looksLikePrize(s"$name $description")
   lazy val looksLikePrize = !isScheduled && prizeInDescription
 
@@ -179,7 +177,7 @@ object Tournament:
     Tournament(
       id = makeId,
       name = setup.name | setup.realPosition.match
-        case Some(pos) => Thematic.byFen(pos).fold("Custom position")(_.name.value)
+        case Some(_) => "Custom position"
         case None => GreatPlayer.randomName
       ,
       status = Status.created,
@@ -222,7 +220,7 @@ object Tournament:
       startsAt = startsAt
     )
 
-  def tournamentUrl(tourId: TourId) = Url(s"https://lichess.org/tournament/$tourId")
+  def tournamentUrl(tourId: TourId) = Url(s"https://lixiangqi.org/tournament/$tourId")
 
   def makeId = TourId(ThreadLocalRandom.nextString(8))
 

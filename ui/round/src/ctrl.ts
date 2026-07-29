@@ -1,21 +1,26 @@
 /// <reference types="../types/ab" />
 
-import type { DrawShape } from '@lichess-org/chessground/draw';
-import { opposite, uciToMove } from '@lichess-org/chessground/util';
+import type { MoveMetadata as ChessgroundMoveMetadata } from '@lichess-org/chessground/types';
 import * as ab from 'ab/round';
-import { roleToChar } from 'chessops/util';
+import type { Api as XiangqiGroundApi } from 'chessgroundx/api';
+import type { Config as XiangqiGroundConfig } from 'chessgroundx/config';
+import type { DrawShape as XiangqiDrawShape } from 'chessgroundx/draw';
+import type {
+  Key as XiangqiKey,
+  MoveMetadata as XiangqiMoveMetadata,
+  Piece as XiangqiPiece,
+} from 'chessgroundx/types';
 import { ctrl as makeKeyboardMove, type KeyboardMove } from 'keyboard-move';
 import { makeVoiceMove, type VoiceMove } from 'voice';
 
 import { defined, type Toggle, type Prop, toggle, requestIdleCallbackSafe, memoize } from 'lib';
 import * as game from 'lib/game';
-import { plyOpponentColor } from 'lib/game';
+import { plyOpponentColor, xiangqiCgToUci, xiangqiUciMoveToCg } from 'lib/game';
 import { plyToTurn, plyColor } from 'lib/game/chess';
 import { ClockCtrl, type ClockOpts } from 'lib/game/clock/clockCtrl';
 import type { MoveRootCtrl } from 'lib/game/moveRootCtrl';
-import { PromotionCtrl, promote } from 'lib/game/promotion';
+import { PromotionCtrl } from 'lib/game/promotion';
 import { game as gameRoute } from 'lib/game/router';
-import { readFen, almostSanOf, speakable } from 'lib/game/sanWriter';
 import { playing } from 'lib/game/status';
 import viewStatus from 'lib/game/view/status';
 import { licon } from 'lib/licon';
@@ -25,29 +30,24 @@ import { Replay } from 'lib/prefs';
 import { pubsub } from 'lib/pubsub';
 import { type SocketSendOpts } from 'lib/socket';
 import { storage, once, storedBooleanProp, type LichessBooleanStorage } from 'lib/storage';
-import type { NodeCrazy } from 'lib/tree/types';
 import type { QuestionOpts } from 'lib/types';
 import { toggleZenMode } from 'lib/view/zen';
 import * as wakeLock from 'lib/wakeLock';
 
-import * as atomic from './atomic';
 import * as blur from './blur';
 import * as cevalSub from './cevalSub';
 import { CorresClockController } from './corresClock/corresClockCtrl';
-import { valid as crazyValid, init as crazyInit, onEnd as crazyEndHook } from './crazy/crazyCtrl';
 import * as ground from './ground';
 import type {
   Step,
   RoundOpts,
   RoundData,
   SocketMove,
-  SocketDrop,
   MoveMetadata,
   NvuiPlugin,
   RoundTour,
   ApiMove,
   ApiEnd,
-  EventsWithPayload,
 } from './interfaces';
 import { init as keyboardInit } from './keyboard';
 import MoveOn from './moveOn';
@@ -65,7 +65,7 @@ type GoneBerserk = Partial<ByColor<boolean>>;
 export default class RoundController implements MoveRootCtrl {
   data: RoundData;
   socket: RoundSocket;
-  chessground: CgApi;
+  chessground: XiangqiGroundApi;
   clock?: ClockCtrl;
   corresClock?: CorresClockController;
   keyboardMove?: KeyboardMove;
@@ -81,17 +81,14 @@ export default class RoundController implements MoveRootCtrl {
   loadingTimeout: number;
   redirecting = false;
   transientMove?: TransientMove;
-  toSubmit?: SocketMove | SocketDrop;
+  toSubmit?: SocketMove;
   goneBerserk: GoneBerserk = {};
   resignConfirm?: Timeout = undefined;
   drawConfirm?: Timeout = undefined;
   preventDrawOffer?: Timeout = undefined;
   // will be replaced by view layer
   autoScroll: () => void = () => {};
-  justDropped?: Role;
-  justCaptured?: Piece;
   shouldSendMoveTime = false;
-  preDrop?: Role;
   sign: string = Math.random().toString(36);
   keyboardHelp: boolean = location.hash === '#keyboard';
   blindfoldStorage: LichessBooleanStorage;
@@ -119,7 +116,7 @@ export default class RoundController implements MoveRootCtrl {
 
     this.updateClockCtrl();
     this.promotion = new PromotionCtrl(
-      f => f(this.chessground),
+      f => f(this.chessground as unknown as CgApi),
       () => {
         this.chessground.cancelPremove();
         xhr.reload(this.data).then(this.reload, site.reload);
@@ -162,72 +159,29 @@ export default class RoundController implements MoveRootCtrl {
     setTimeout(this.showExpiration, 250);
   };
 
-  private readonly onUserMove = (orig: Key, dest: Key, meta: MoveMetadata) => {
-    if (!this.keyboardMove?.usedSan && !this.opts.noab) ab.move(this, meta, pubsub.emit);
-    if (!this.startPromotion(orig, dest, meta)) this.sendMove(orig, dest, undefined, meta);
+  private readonly onUserMove = (orig: XiangqiKey, dest: XiangqiKey, meta: XiangqiMoveMetadata) => {
+    if (!this.keyboardMove?.usedSan && !this.opts.noab)
+      ab.move(this, meta as unknown as ChessgroundMoveMetadata, pubsub.emit);
+    this.sendMove(orig, dest, meta);
   };
 
-  private readonly onUserNewPiece = (role: Role, key: Key, meta: MoveMetadata) => {
-    if (!this.replaying() && crazyValid(this.data, role, key)) {
-      this.sendNewPiece(role, key, !!meta.predrop);
-    } else this.jump(this.ply);
+  private readonly onMove = (_orig: XiangqiKey, _dest: XiangqiKey, captured?: XiangqiPiece) => {
+    site.sound.move({ capture: !!captured });
   };
 
-  private readonly onMove = (orig: Key, dest: Key, captured?: Piece) => {
-    if (captured || this.enpassant(orig, dest)) {
-      if (this.data.game.variant.key === 'atomic') {
-        site.sound.play('explosion');
-        atomic.capture(this, dest);
-      } else site.sound.move({ name: 'capture', filter: 'game' });
-    } else site.sound.move({ name: 'move', filter: 'game' });
-  };
-
-  private readonly startPromotion = (orig: Key, dest: Key, meta: MoveMetadata) =>
-    this.promotion.start(
-      orig,
-      dest,
-      {
-        submit: (orig, dest, role) => this.sendMove(orig, dest, role, meta),
-        show: this.voiceMove?.promotionHook(),
-      },
-      meta,
-      this.keyboardMove?.justSelected(),
-    );
-
-  private readonly onPremove = (orig: Key, dest: Key, meta: MoveMetadata) =>
-    this.startPromotion(orig, dest, meta);
+  private readonly onPremove = () => {};
 
   private readonly onCancelPremove = () => this.promotion.cancelPrePromotion();
 
-  private readonly onNewPiece = (piece: Piece, key: Key): void => {
-    if (piece.role === 'pawn' && (key[1] === '1' || key[1] === '8')) return;
-    site.sound.move();
-  };
-
-  private readonly onPredrop = (role: Role | undefined) => {
-    this.preDrop = role;
-    this.redraw();
-  };
-
   private readonly isSimulHost = () => this.data.simul && this.data.simul.hostId === this.opts.userId;
-
-  private readonly enpassant = (orig: Key, dest: Key): boolean => {
-    if (dest.startsWith(orig[0]) || this.chessground.state.pieces.get(dest)?.role !== 'pawn') return false;
-    const pos = (dest[0] + orig[1]) as Key;
-    this.chessground.setPieces(new Map([[pos, undefined]]));
-    return true;
-  };
 
   lastPly = (): number => util.lastPly(this.data);
 
   makeCgHooks = (): any => ({
     onUserMove: this.onUserMove,
-    onUserNewPiece: this.onUserNewPiece,
     onMove: this.data.local ? undefined : this.onMove,
-    onNewPiece: this.onNewPiece,
     onPremove: this.onPremove,
     onCancelPremove: this.onCancelPremove,
-    onPredrop: this.onPredrop,
   });
 
   replaying = (): boolean => this.ply !== this.lastPly() && !this.data.local;
@@ -248,12 +202,10 @@ export default class RoundController implements MoveRootCtrl {
     ply = Math.max(util.firstPly(this.data), Math.min(this.lastPly(), ply));
     const isForwardStep = ply === this.ply + 1;
     this.ply = ply;
-    this.justDropped = undefined;
-    this.preDrop = undefined;
     const s = this.stepAt(ply),
-      config: CgConfig = {
+      config: XiangqiGroundConfig = {
         fen: s.fen,
-        lastMove: uciToMove(s.uci),
+        lastMove: s.uci ? xiangqiUciMoveToCg(s.uci) : undefined,
         check: !!s.check,
         turnColor: plyColor(this.ply),
       };
@@ -300,11 +252,7 @@ export default class RoundController implements MoveRootCtrl {
 
   setTitle = (): void => title.set(this);
 
-  actualSendMove = <moveOrDrop extends 'move' | 'drop'>(
-    tpe: moveOrDrop,
-    data: EventsWithPayload[moveOrDrop],
-    meta: MoveMetadata = { premove: false },
-  ): void => {
+  actualSendMove = (data: SocketMove, meta: MoveMetadata = { premove: false }): void => {
     const socketOpts: SocketSendOpts = {
       sign: this.sign,
       ackable: true,
@@ -321,24 +269,17 @@ export default class RoundController implements MoveRootCtrl {
         }
       }
     }
-    this.socket.send(tpe, data, socketOpts);
+    this.socket.send('move', data, socketOpts);
 
-    this.justDropped = meta.justDropped;
-    this.justCaptured = meta.justCaptured;
-    this.preDrop = undefined;
     this.transientMove?.register();
     this.redraw();
   };
 
-  pluginMove = (orig: Key, dest: Key, role?: Role, preConfirmed?: boolean): void => {
-    if (!role) {
-      this.chessground.move(orig, dest);
-      this.chessground.state.movable.dests = undefined;
-      this.chessground.state.turnColor = opposite(this.chessground.state.turnColor);
-
-      if (this.startPromotion(orig, dest, { premove: false })) return;
-    }
-    this.sendMove(orig, dest, role, { premove: false, preConfirmed });
+  pluginMove = (orig: XiangqiKey, dest: XiangqiKey, _role?: Role, preConfirmed?: boolean): void => {
+    this.chessground.move(orig, dest);
+    this.chessground.state.movable.dests = undefined;
+    this.chessground.state.turnColor = this.chessground.state.turnColor === 'white' ? 'black' : 'white';
+    this.sendMove(orig, dest, { premove: false, preConfirmed });
   };
 
   pluginUpdate = (fen: string): void => {
@@ -346,37 +287,21 @@ export default class RoundController implements MoveRootCtrl {
     this.keyboardMove?.update({ fen, canMove: this.canMove() });
   };
 
-  sendMove = (orig: Key, dest: Key, prom: Role | undefined, meta: MoveMetadata): void => {
-    const move: SocketMove = { u: orig + dest };
-    if (prom) move.u += prom === 'knight' ? 'n' : prom[0];
+  sendMove = (orig: XiangqiKey, dest: XiangqiKey, meta: MoveMetadata): void => {
+    const move: SocketMove = { u: xiangqiCgToUci(orig + dest) };
     if (blur.get()) move.b = 1;
     this.resign(false);
 
     if (!meta.preConfirmed && this.confirmMoveToggle() && !meta.premove) {
       if (site.sound.speech()) {
-        const spoken = `${speakable(almostSanOf(readFen(this.stepAt(this.ply).fen), move.u))}. confirm?`;
+        const spoken = `${move.u}. confirm?`;
         site.sound.say(spoken, false, true);
       }
       this.toSubmit = move;
       this.redraw();
       return;
     }
-    this.actualSendMove('move', move, { justCaptured: meta.captured, premove: meta.premove });
-  };
-
-  sendNewPiece = (role: Role, key: Key, isPredrop: boolean): void => {
-    const drop: SocketDrop = { role, pos: key };
-    if (blur.get()) drop.b = 1;
-    this.resign(false);
-    if (this.confirmMoveToggle() && !isPredrop) {
-      this.toSubmit = drop;
-      this.redraw();
-    } else {
-      this.actualSendMove('drop', drop, {
-        justDropped: role,
-        premove: isPredrop,
-      });
-    }
+    this.actualSendMove(move, { premove: meta.premove });
   };
 
   showYourMoveNotification = (): void => {
@@ -414,31 +339,11 @@ export default class RoundController implements MoveRootCtrl {
     this.playerByColor('black').offeringDraw = o.bDraw;
     d.possibleMoves = activeColor ? o.dests : undefined;
     d.possibleDrops = activeColor ? o.drops : undefined;
-    d.crazyhouse = o.crazyhouse;
     this.setTitle();
     if (!this.replaying()) {
       this.ply++;
-      if (o.role)
-        this.chessground.newPiece(
-          {
-            role: o.role,
-            color: playedColor,
-          },
-          o.uci.slice(2, 4) as Key,
-        );
-      else {
-        // This block needs to be idempotent, even for castling moves in
-        // Chess960.
-        const keys = uciToMove(o.uci)!,
-          pieces = this.chessground.state.pieces;
-        if (
-          !o.castle ||
-          (pieces.get(o.castle.king[0])?.role === 'king' && pieces.get(o.castle.rook[0])?.role === 'rook')
-        ) {
-          this.chessground.move(keys[0], keys[1]);
-        }
-      }
-      if (o.promotion) promote(this.chessground, o.promotion.key, o.promotion.pieceClass);
+      const keys = xiangqiUciMoveToCg(o.uci);
+      this.chessground.move(keys[0], keys[1]);
       this.chessground.set({
         turnColor: d.game.player,
         movable: {
@@ -460,15 +365,12 @@ export default class RoundController implements MoveRootCtrl {
     const step = {
       ply: this.lastPly() + 1,
       fen: o.fen,
-      san: o.san,
+      san: game.selectXiangqiNotation(o.san, o.sanZh, d.pref.notationStyle),
       uci: o.uci,
       check: o.check,
-      crazy: o.crazyhouse,
     };
     d.steps.push(step);
     if (this.ply === step.ply && this.chessground.getFen() !== step.fen) ground.sync(this, step, playing);
-    this.justDropped = undefined;
-    this.justCaptured = undefined;
     game.setOnGame(d, playedColor, true);
     this.data.forecastCount = undefined;
     if (o.clock) {
@@ -498,49 +400,30 @@ export default class RoundController implements MoveRootCtrl {
       if (this.vibration() && 'vibrate' in navigator) navigator.vibrate(100);
       // prevent race conditions with explosions and premoves
       // https://github.com/lichess-org/lila/issues/343
-      const premoveDelay = d.game.variant.key === 'atomic' ? 100 : 1;
       const premovePly = this.ply;
       const premoveFen = step.fen;
       setTimeout(() => {
         if (this.ply !== premovePly || this.stepAt(this.ply).fen !== premoveFen) return;
         if (this.nvui) this.nvui.playPremove();
-        else if (!this.chessground.playPremove() && !this.playPredrop()) {
+        else if (!this.chessground.playPremove()) {
           this.promotion.cancel();
           this.showYourMoveNotification();
         }
-      }, premoveDelay);
+      }, 1);
     }
     this.autoScroll();
     this.onChange();
     this.pluginUpdate(step.fen);
-    if (!this.data.local) site.sound.move({ ...o, filter: 'music' });
     site.sound.saySan(step.san);
     this.server.alive();
     return true; // prevents default socket pubsub
   };
-
-  crazyValid = (role: Role, key: Key): boolean => crazyValid(this.data, role, key);
-
-  getCrazyhousePockets = (): NodeCrazy['pockets'] | undefined => this.data.crazyhouse?.pockets;
-
-  private readonly playPredrop = () => {
-    return this.chessground.playPredrop(drop => {
-      return crazyValid(this.data, drop.role, drop.key);
-    });
-  };
-
-  private clearJust() {
-    this.justDropped = undefined;
-    this.justCaptured = undefined;
-    this.preDrop = undefined;
-  }
 
   reload = (d: RoundData): void => {
     const posChanged = d.steps.length !== this.data.steps.length;
     if (posChanged) this.ply = util.lastPly(d);
     util.upgradeServerData(d);
     this.data = d;
-    this.clearJust();
     this.shouldSendMoveTime = false;
     this.updateClockCtrl();
     if (this.clock)
@@ -594,8 +477,6 @@ export default class RoundController implements MoveRootCtrl {
     }
     this.onTimeTrouble(false);
     endGameView();
-    if (d.crazyhouse) crazyEndHook();
-    this.clearJust();
     this.setTitle();
     this.moveOn.next();
     this.setQuietMode();
@@ -790,7 +671,7 @@ export default class RoundController implements MoveRootCtrl {
     this.setLoading(true, 300);
 
     if (v) {
-      this.actualSendMove('u' in submit ? 'move' : 'drop', submit);
+      this.actualSendMove(submit);
       site.sound.play('confirmation');
     } else this.jump(this.ply);
   };
@@ -874,11 +755,14 @@ export default class RoundController implements MoveRootCtrl {
     this.socket.sendLoading('draw-yes');
   };
 
-  setChessground = (cg: CgApi): void => {
+  setChessground = (cg: XiangqiGroundApi): void => {
     this.chessground = cg;
-    const up = { fen: this.stepAt(this.ply).fen, canMove: this.canMove(), cg };
-    pubsub.on('board.change', (is3d: boolean) => {
-      this.chessground.state.addPieceZIndex = is3d;
+    const up = {
+      fen: this.stepAt(this.ply).fen,
+      canMove: this.canMove(),
+      cg: cg as unknown as CgApi,
+    };
+    pubsub.on('board.change', () => {
       this.chessground.redrawAll();
     });
     if (!this.isPlaying()) return;
@@ -898,12 +782,11 @@ export default class RoundController implements MoveRootCtrl {
   pendingStep = (): Step | undefined => {
     const submit = this.toSubmit;
     if (!submit) return undefined;
-    const uci = 'u' in submit ? submit.u : `${roleToChar(submit.role).toUpperCase()}@${submit.pos}`;
     return {
       ply: this.ply + 1,
       fen: this.chessground.getFen(),
-      san: almostSanOf(readFen(this.stepAt(this.ply).fen), uci),
-      uci,
+      san: submit.u,
+      uci: submit.u,
     };
   };
 
@@ -924,7 +807,6 @@ export default class RoundController implements MoveRootCtrl {
   onTimeTrouble = (t: boolean): void => {
     if (this.data.player.spectator) return;
     site.powertip.forcePlacementHook = t ? (el: HTMLElement) => el.closest('.crosstable') && 's' : undefined;
-    this.chessground.state.touchIgnoreRadius = t ? Math.SQRT2 : 1;
   };
 
   yeet = (): void => {
@@ -936,7 +818,7 @@ export default class RoundController implements MoveRootCtrl {
     site.asset.loadEsm('round.yeet');
   });
 
-  private googlyEyes?: () => DrawShape[];
+  private googlyEyes?: () => XiangqiDrawShape[];
 
   googlyEyesStart: () => void = memoize(async () => {
     const redraw = () => this.googlyEyes && this.chessground.setAutoShapes(this.googlyEyes());
@@ -956,8 +838,6 @@ export default class RoundController implements MoveRootCtrl {
 
           title.init();
           this.setTitle();
-
-          if (d.crazyhouse) crazyInit(this);
 
           if (!this.nvui && d.clock && !d.opponent.ai && !this.isSimulHost() && !d.local)
             window.addEventListener('beforeunload', e => {

@@ -354,7 +354,7 @@ final class DashboardUi(helpers: Helpers, ui: ClasUi)(using NetDomain):
                     trans.clas.nbStudents.pluralSame(students.size),
                     thSortNumber(trans.site.chessBasics()),
                     thSortNumber(trans.site.practice()),
-                    thSortNumber(trans.coordinates.coordinates())
+                    thSortNumber(trans.notation.xiangqiNotation())
                   )
                 ),
                 tbody(

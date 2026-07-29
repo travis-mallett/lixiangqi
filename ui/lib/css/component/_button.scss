@@ -2,7 +2,7 @@
   @extend %roboto, %box-radius;
   @include prevent-select;
   @include transition;
-  @include backdrop-blur-if-transparent;
+  @include backdrop-blur-if-background;
 
   font-weight: 500;
   background: $c-primary;

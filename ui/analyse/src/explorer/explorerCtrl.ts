@@ -149,7 +149,6 @@ export default class ExplorerCtrl {
     isOpening: true,
     moves: [],
     fen: '',
-    opening: this.root.data.game.opening,
   };
 
   private readonly tablebaseRelevant = (variant: VariantKey, fen: FEN) =>

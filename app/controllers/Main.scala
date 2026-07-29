@@ -105,7 +105,7 @@ final class Main(env: Env, assetsC: ExternalAssets) extends LilaController(env):
     else
       Redirect(s"${routes.Lobby.home}#pool/10+0").withCookies:
         env.security.lilaCookie.withSession(remember = true): s =>
-          s + ("theme" -> "ic") + ("pieceSet" -> "icpieces")
+          s + ("appearancePack" -> lila.pref.ThemePacks.default.key)
 
   def prometheusMetrics(key: String) = Anon:
     if key == env.web.config.prometheusKey

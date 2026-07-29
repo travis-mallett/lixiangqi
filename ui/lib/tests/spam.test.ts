@@ -6,13 +6,14 @@ const xhrUrl = new URL('../src/xhr.ts', import.meta.url).href;
 
 test('self report', async () => {
   const textMock = mock.fn(async (url: string) => {
-    assert.equal(url, '/jslog/lichess.org/?n=spam');
+    assert.equal(url, '/jslog/abcdefgh1234?n=spam');
     return 'ok';
   });
 
   let selfReport: (msg: string) => Promise<unknown>;
 
   before(async () => {
+    window.history.replaceState(null, '', '/abcdefgh1234');
     const xhr = await import(xhrUrl);
     mock.module(xhrUrl, { namedExports: { ...xhr, text: textMock } });
 

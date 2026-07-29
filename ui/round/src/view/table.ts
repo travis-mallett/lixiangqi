@@ -17,7 +17,7 @@ function renderPlayer(ctrl: RoundController, position: TopOrBottom) {
   return player.ai
     ? h('div.user-link.online.ruser.ruser-' + position, [
         h('icon.line'),
-        h('name', i18n.site.aiNameLevelAiLevel('Stockfish', player.ai)),
+        h('name', i18n.site.aiNameLevelAiLevel('Pikafish', player.ai)),
       ])
     : userHtml(ctrl, player, position);
 }

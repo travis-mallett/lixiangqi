@@ -4,9 +4,13 @@ package http
 import play.api.mvc.*
 import scalatags.Text.Frag
 
-import lila.ui.{ Page, RenderedPage, Snippet }
+import lila.ui.{ Page, PageFlags, RenderedPage, Snippet }
 
-trait CtrlPage(using Executor) extends RequestContext with ControllerHelpers with lila.web.ResponseWriter:
+trait CtrlPage(using Executor)
+    extends RequestContext
+    with ControllerHelpers
+    with lila.web.ResponseHeaders
+    with lila.web.ResponseWriter:
 
   def renderPage(page: Page)(using Context): Fu[RenderedPage] =
     pageContext.map: pctx =>
@@ -18,8 +22,13 @@ trait CtrlPage(using Executor) extends RequestContext with ControllerHelpers wit
 
   extension (s: Status)
 
-    def page(page: Page)(using Context): Fu[Result] = renderPage(page).map(s(_))
-    def async(page: Fu[Page])(using Context): Fu[Result] = renderAsync(page).map(s(_))
+    def page(page: Page)(using ctx: Context): Fu[Result] =
+      renderPage(page).map: rendered =>
+        val result = s(rendered)
+        if page.flags(PageFlags.crossSiteIsolation) then
+          result.withHeaders(crossOriginPolicy.forReq(ctx.req)*)
+        else result
+    def async(page: Fu[Page])(using ctx: Context): Fu[Result] = page.flatMap(p => s.page(p))
 
     def snipAsync(frag: Fu[Frag | Snippet]): Fu[Result] = frag.dmap(snip)
     def snip(frag: Frag | Snippet): Result = s(frag.match

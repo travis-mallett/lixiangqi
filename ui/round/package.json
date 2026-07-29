@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "chessgroundx": "10.7.5",
     "keyboard-move": "workspace:*",
     "lib": "workspace:*",
     "shepherd.js": "11.2.0",

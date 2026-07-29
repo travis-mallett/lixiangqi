@@ -3,7 +3,7 @@
 
   $c-bg-preview: $c-bg-input;
 
-  @include if-transp {
+  @include if-background {
     $c-bg-preview: $c-bg-opaque;
   }
 

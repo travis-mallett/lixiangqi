@@ -1,7 +1,6 @@
 package lila.tree
 
 import chess.Ply
-import chess.format.Uci
 import chess.format.pgn.{ Comment, SanStr }
 import chess.eval.WinPercent
 
@@ -18,7 +17,7 @@ case class Info(ply: Ply, eval: Eval, variation: List[SanStr]):
 
   def encode: String =
     List(
-      best.so(_.chars),
+      best.getOrElse(""),
       variation.take(Info.LineMaxPlies).mkString(" "),
       mate.so(_.value.toString),
       cp.so(_.value.toString)
@@ -73,7 +72,7 @@ object Info:
       case Array(cp, ma, va, be) =>
         Info(
           ply,
-          Eval(strCp(cp), strMate(ma), Uci.Move.fromChars(be)),
+          Eval(strCp(cp), strMate(ma), be.nonEmpty.option(be)),
           SanStr.from(va.split(' ').toList)
         ).some
       case _ => none

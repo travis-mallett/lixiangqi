@@ -33,7 +33,7 @@
     color: $c-font;
   }
 
-  @include if-transp {
+  @include if-background {
     background: $c-bg-zebra;
     border-color: rgb(from $c-border r g b / 0.4);
 

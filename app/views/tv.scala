@@ -22,12 +22,12 @@ def index(
 def embed(pov: Pov, channelKey: Option[String])(using EmbedContext) =
   val dataStreamUrl = channelKey.fold("/tv/feed?bc=1")(key => s"/tv/${key}/feed?bc=1")
   views.base.embed.minimal(
-    title = "lichess.org chess TV",
+    title = "lixiangqi.org Xiangqi TV",
     cssKeys = List("bits.tv.embed"),
     modules = Esm("site.tvEmbed")
   )(
     attr("data-stream-url") := dataStreamUrl,
-    div(id := "featured-game", cls := "embedded", title := "lichess.org TV")(
+    div(id := "featured-game", cls := "embedded", title := "lixiangqi.org TV")(
       views.game.mini.noCtx(pov, tv = true, channelKey)(targetBlank)
     ),
     cashTag,

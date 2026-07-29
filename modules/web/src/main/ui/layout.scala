@@ -20,7 +20,7 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
 
   val doctype = raw("<!DOCTYPE html>")
   def htmlTag(using lang: Lang) = html(st.lang := lang.code, dir := isRTL(lang).option("rtl"))
-  val topComment = raw("""<!-- Lichess is open source! See https://lichess.org/source -->""")
+  val topComment = raw("""<!-- Lixiangqi is open source! See https://lixiangqi.org/source -->""")
   val charset = raw("""<meta charset="utf-8">""")
   val viewport = raw:
     """<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,viewport-fit=cover">"""
@@ -82,7 +82,7 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
 
   def botImage = img(
     src := staticAssetUrl("images/icons/bot.webp"),
-    title := "Robot chess",
+    title := "Robot Xiangqi",
     style := "display:inline;width:34px;height:34px;vertical-align:top;margin-right:5px;vertical-align:text-top"
   )
 
@@ -108,7 +108,7 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
       }"><input type="hidden" name="redirect" value="${ctx.req.path}"><button id="nvui-button" type="submit">$btnText</button>$tutorialLink</form>"""
 
   val assetsMissingTroubleshooting = raw:
-    """<h2 id="assets-missing"><a href="/page/network-administrators">Your network blocks the Lichess assets!</a></h2>"""
+    """<h2 id="assets-missing"><a href="/page/network-administrators">Your network blocks the Lixiangqi assets!</a></h2>"""
 
   def zenZone(using Translate) = spaceless:
     s"""
@@ -186,7 +186,7 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
 
   val dailyNewsAtom = link(
     href := routes.Feed.atom,
-    st.title := "Lichess Updates Feed",
+    st.title := "Lixiangqi Updates Feed",
     tpe := "application/atom+xml",
     rel := "alternate"
   )
@@ -196,17 +196,17 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
   val dataNonce = attr("data-nonce")
   val dataAnnounce = attr("data-announce")
   val dataSoundSet = attr("data-sound-set")
-  val dataTheme = attr("data-theme")
+  val dataMusicSet = attr("data-music-set")
+  val dataUiTheme = attr("data-ui-theme")
+  val dataColorScheme = attr("data-color-scheme")
   val dataDirection = attr("data-direction")
   val dataBoard = attr("data-board")
   val dataPieceSet = attr("data-piece-set")
-  val dataBoard3d = attr("data-board3d")
-  val dataPieceSet3d = attr("data-piece-set3d")
   val dataAssetUrl = attr("data-asset-url") := netConfig.assetBaseUrl.value
   val dataAssetVersion = attr("data-asset-version")
 
   val spinnerMask = raw:
-    """<svg width="0" height="0"><mask id="spinner-mask"><path fill="#fff" stroke="#fff" stroke-linejoin="round" d="M38.956.5c-3.53.418-6.452.902-9.286 2.984C5.534 1.786-.692 18.533.68 29.364 3.493 50.214 31.918 55.785 41.329 41.7c-7.444 7.696-19.276 8.752-28.323 3.084C3.959 39.116-.506 27.392 4.683 17.567 9.873 7.742 18.996 4.535 29.03 6.405c2.43-1.418 5.225-3.22 7.655-3.187l-1.694 4.86 12.752 21.37c-.439 5.654-5.459 6.112-5.459 6.112-.574-1.47-1.634-2.942-4.842-6.036-3.207-3.094-17.465-10.177-15.788-16.207-2.001 6.967 10.311 14.152 14.04 17.663 3.73 3.51 5.426 6.04 5.795 6.756 0 0 9.392-2.504 7.838-8.927L37.4 7.171z"/></mask></svg>"""
+    """<svg width="0" height="0"><mask id="spinner-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="50" height="50"><g fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="25" cy="25" r="22"/><circle cx="25" cy="25" r="16"/><path d="M17 16h16M17 34h16M18 18l14 14M32 18 18 32M25 13v24"/></g></mask></svg>"""
 
   val networkAlert = a(id := "network-status", cls := "link text", dataIcon := Icon.ChasingArrows)
 
@@ -291,7 +291,7 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
         )
 
     private val siteNameFrag: Frag =
-      if siteName == "lichess.org" then frag("lichess", span(".org"))
+      if siteName == "lixiangqi.org" then frag("lixiangqi")
       else frag(siteName)
 
     def apply(
@@ -308,7 +308,7 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
           a(cls := "site-title", href := langHref("/"), testId("site-title"))(
             if ctx.kid.yes then span(title := trans.site.kidMode.txt(), cls := "kiddo")(":)")
             else ctx.isBot.option(botImage),
-            div(cls := "site-icon", dataIcon := Icon.Logo),
+            div(cls := "site-icon")(lila.web.ui.bits.logo),
             div(cls := "site-name")(siteNameFrag)
           ),
           (!isAppealUser).option(

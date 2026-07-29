@@ -1,0 +1,1659 @@
+#main-wrap {
+  ---main-max-width: calc((100vh - #{$site-header-outer-height} - #{$col1-uniboard-controls}) * 9 / 10);
+
+  @include mq-at-least-col2 {
+    ---main-max-width: auto;
+  }
+}
+
+.xiangqi-page {
+  // Lichess's resize handle is visible at this breakpoint. Keep its exact
+  // zoom-to-scale calculation active for the same viewport range so the
+  // Xiangqi board never exposes a handle that cannot resize its grid track.
+  ---xiangqi-board-scale: 1;
+
+  @include mq-board-resizable {
+    ---xiangqi-board-scale: calc((var(---zoom) / 100) * 0.75 + 0.25);
+  }
+
+  // This is Lichess's col2 uniboard calculation adapted from a square to the
+  // 9:10 Xiangqi board. Width or height can be the limiting dimension.
+  ---xiangqi-board-max-width: min(#{$col2-uniboard-max-width}, calc(#{$col2-uniboard-max-height} * 9 / 10));
+  ---xiangqi-board-width: calc(var(---xiangqi-board-max-width) * var(---xiangqi-board-scale));
+  ---xiangqi-board-column-width: var(---xiangqi-board-width);
+
+  display: grid;
+  grid-template-columns: var(---xiangqi-board-column-width) $col2-uniboard-table;
+  gap: $block-gap;
+  width: min(calc(var(---xiangqi-board-column-width) + 400px + #{$block-gap}), 100%);
+  margin: 0 auto;
+  align-items: start;
+
+  .main-board {
+    width: 100%;
+  }
+}
+
+.xiangqi-panel {
+  min-height: 360px;
+  padding: $block-gap;
+
+  h1 {
+    margin: 0 0 0.4rem;
+  }
+}
+
+.xiangqi-analysis-page {
+  ---xiangqi-eval-thickness: 2.2rem;
+  ---xiangqi-dock-gap: 0.45rem;
+  ---xiangqi-analysis-board-offset: calc(var(---xiangqi-eval-thickness) + var(---xiangqi-dock-gap));
+  ---xiangqi-dock-left: var(---xiangqi-analysis-board-offset);
+  ---xiangqi-dock-right: 0rem;
+  ---xiangqi-dock-top: 0rem;
+  ---xiangqi-dock-bottom: 0rem;
+  ---xiangqi-board-max-width: min(
+    calc(#{$col2-uniboard-max-width} - var(---xiangqi-analysis-board-offset)),
+    calc(#{$col2-uniboard-max-height} * 9 / 10)
+  );
+  ---xiangqi-board-column-width: calc(var(---xiangqi-board-width) + var(---xiangqi-analysis-board-offset));
+
+  position: relative;
+  transition: grid-template-columns 180ms cubic-bezier(0.2, 0, 0, 1);
+
+  &.gauge-dock-right {
+    ---xiangqi-dock-left: 0rem;
+    ---xiangqi-dock-right: var(---xiangqi-analysis-board-offset);
+  }
+
+  &.gauge-dock-top,
+  &.gauge-dock-bottom {
+    ---xiangqi-dock-left: 0rem;
+    ---xiangqi-dock-right: 0rem;
+    ---xiangqi-board-max-width: min(
+      #{$col2-uniboard-max-width},
+      calc((#{$col2-uniboard-max-height} - var(---xiangqi-analysis-board-offset)) * 9 / 10)
+    );
+    ---xiangqi-board-column-width: var(---xiangqi-board-width);
+  }
+
+  &.gauge-dock-top {
+    ---xiangqi-dock-top: var(---xiangqi-analysis-board-offset);
+  }
+
+  &.gauge-dock-bottom {
+    ---xiangqi-dock-bottom: var(---xiangqi-analysis-board-offset);
+  }
+}
+
+.xiangqi-analysis-board {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(---xiangqi-dock-left) minmax(0, 1fr) var(---xiangqi-dock-right);
+  grid-template-rows: var(---xiangqi-dock-top) auto var(---xiangqi-dock-bottom);
+  width: 100%;
+  align-items: stretch;
+  transition:
+    grid-template-columns 180ms cubic-bezier(0.2, 0, 0, 1),
+    grid-template-rows 180ms cubic-bezier(0.2, 0, 0, 1);
+
+  > .main-board {
+    grid-area: 2 / 2;
+  }
+}
+
+.xiangqi-eval {
+  position: relative;
+  z-index: 2;
+  grid-area: 2 / 1;
+  min-width: 0;
+  min-height: 0;
+  margin-inline-end: var(---xiangqi-dock-gap);
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: #24211f;
+  box-shadow: 0 1px 4px #0008;
+  cursor: grab;
+  touch-action: none;
+  transition:
+    opacity 140ms,
+    border-color 140ms,
+    box-shadow 140ms;
+
+  &::after {
+    content: '';
+    position: absolute;
+    z-index: 2;
+    width: 4px;
+    height: 1.45rem;
+    inset: 50% 0.18rem auto auto;
+    border-radius: 2px;
+    background: repeating-linear-gradient(to bottom, #fff9 0 2px, transparent 2px 5px);
+    opacity: 0;
+    translate: 0 -50%;
+    transition: opacity 140ms;
+  }
+
+  &:hover {
+    border-color: color-mix(in oklab, $c-accent 70%, transparent);
+    box-shadow: 0 2px 9px #000a;
+
+    &::after {
+      opacity: 0.8;
+    }
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.gauge-dock-right .xiangqi-eval {
+  grid-area: 2 / 3;
+  margin-inline: var(---xiangqi-dock-gap) 0;
+
+  &::after {
+    inset-inline: 0.18rem auto;
+  }
+}
+
+.gauge-dock-top .xiangqi-eval,
+.gauge-dock-bottom .xiangqi-eval {
+  grid-area: 1 / 2;
+  margin: 0 0 var(---xiangqi-dock-gap);
+
+  &::after {
+    width: 1.45rem;
+    height: 4px;
+    inset: auto auto 0.18rem 50%;
+    background: repeating-linear-gradient(to right, #fff9 0 2px, transparent 2px 5px);
+    translate: -50% 0;
+  }
+}
+
+.gauge-dock-bottom .xiangqi-eval {
+  grid-area: 3 / 2;
+  margin: var(---xiangqi-dock-gap) 0 0;
+
+  &::after {
+    inset-block: 0.18rem auto;
+  }
+}
+
+.panels-locked .xiangqi-eval {
+  pointer-events: none;
+  touch-action: auto;
+  transition: none;
+
+  &,
+  &:hover,
+  &:active {
+    border-color: transparent;
+    box-shadow: 0 1px 4px #0008;
+    cursor: default;
+  }
+
+  &::after {
+    display: none;
+  }
+}
+
+.xiangqi-analysis-page.gauge-hidden {
+  ---xiangqi-dock-left: 0rem;
+  ---xiangqi-dock-right: 0rem;
+  ---xiangqi-dock-top: 0rem;
+  ---xiangqi-dock-bottom: 0rem;
+  ---xiangqi-board-max-width: min(#{$col2-uniboard-max-width}, calc(#{$col2-uniboard-max-height} * 9 / 10));
+  ---xiangqi-board-column-width: var(---xiangqi-board-width);
+
+  .xiangqi-eval {
+    display: none;
+  }
+}
+
+.xiangqi-eval__red {
+  position: absolute;
+  inset: auto 0 0;
+  height: var(--xiangqi-eval-share, 50%);
+  background: #b94b45;
+  transition:
+    height 1s,
+    width 1s;
+}
+
+.xiangqi-eval__score {
+  position: absolute;
+  z-index: 1;
+  inset: 0.45rem 0 auto;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: bold;
+  text-align: center;
+  text-shadow: 0 1px 2px #000;
+  writing-mode: vertical-rl;
+}
+
+.gauge-dock-top,
+.gauge-dock-bottom {
+  .xiangqi-eval__red {
+    inset: 0 auto 0 0;
+    width: var(--xiangqi-eval-share, 50%);
+    height: 100%;
+  }
+
+  .xiangqi-eval__score {
+    inset: 0 auto 0 0.55rem;
+    display: grid;
+    place-items: center;
+    writing-mode: horizontal-tb;
+  }
+}
+
+.xiangqi-dock-overlay {
+  position: absolute;
+  z-index: 8;
+  grid-area: 2 / 2;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms;
+}
+
+.xiangqi-dock-target {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  min-width: 4.2rem;
+  min-height: 2.5rem;
+  border: 1px solid color-mix(in oklab, $c-accent 72%, white);
+  border-radius: 6px;
+  background: color-mix(in oklab, $c-bg-high 78%, transparent);
+  color: $c-font-clear;
+  box-shadow: 0 0.3rem 1rem #0009;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  backdrop-filter: blur(6px);
+  transition:
+    transform 150ms cubic-bezier(0.2, 0, 0, 1),
+    background 150ms,
+    box-shadow 150ms;
+
+  &[data-dock='top'] {
+    inset: 0.8rem auto auto 50%;
+    translate: -50% 0;
+  }
+
+  &[data-dock='right'] {
+    inset: 50% 0.8rem auto auto;
+    translate: 0 -50%;
+  }
+
+  &[data-dock='bottom'] {
+    inset: auto auto 0.8rem 50%;
+    translate: -50% 0;
+  }
+
+  &[data-dock='left'] {
+    inset: 50% auto auto 0.8rem;
+    translate: 0 -50%;
+  }
+
+  &.active {
+    background: color-mix(in oklab, $c-accent 82%, $c-bg-high);
+    box-shadow:
+      0 0 0 3px color-mix(in oklab, $c-accent 30%, transparent),
+      0 0.4rem 1.2rem #000b;
+    transform: scale(1.08);
+  }
+}
+
+.gauge-dragging {
+  .xiangqi-dock-overlay {
+    opacity: 1;
+  }
+
+  .xiangqi-eval:not(.xiangqi-eval-drag-ghost) {
+    border-color: $c-accent;
+    opacity: 0.34;
+    box-shadow: 0 0 0 3px color-mix(in oklab, $c-accent 26%, transparent);
+  }
+}
+
+.xiangqi-eval-drag-ghost {
+  position: fixed;
+  z-index: 1300;
+  inset: 0 auto auto 0;
+  width: 8rem;
+  height: 2.2rem;
+  margin: 0;
+  border-color: color-mix(in oklab, $c-accent 75%, white);
+  opacity: 0.94;
+  box-shadow: 0 0.7rem 1.8rem #000b;
+  pointer-events: none;
+  cursor: grabbing;
+  will-change: translate;
+
+  .xiangqi-eval__red {
+    inset: 0 auto 0 0;
+    width: var(--xiangqi-eval-share, 50%);
+    height: 100%;
+  }
+
+  .xiangqi-eval__score {
+    inset: 0;
+    display: grid;
+    place-items: center;
+    writing-mode: horizontal-tb;
+  }
+
+  &::after {
+    display: none;
+  }
+}
+
+.dragging-xiangqi-gauge,
+.dragging-xiangqi-gauge * {
+  cursor: grabbing !important;
+  user-select: none !important;
+}
+
+.xiangqi-dock-status {
+  @extend %visually-hidden;
+}
+
+.xiangqi-analysis-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 30rem;
+  height: var(--cg-height, min(78vh, 800px));
+  overflow: hidden;
+  padding: 0;
+}
+
+.xiangqi-engine {
+  position: relative;
+  flex: 0 0 auto;
+  padding-top: 3px; // bar
+  border-bottom: 1px solid $c-border;
+  background: color-mix(in oklab, $c-bg-box 96%, $c-good);
+
+  .bar {
+    position: absolute;
+    width: 100%;
+    height: 3px;
+    top: 0;
+  }
+
+  @keyframes bar-anim {
+    from {
+      background-position: 0 0;
+    }
+
+    to {
+      background-position: 100000px 0;
+    }
+  }
+
+  .bar span {
+    display: block;
+    height: 3px;
+    width: 0;
+    background: $c-good;
+    transition: width 1s;
+  }
+
+  &.computing .bar span {
+    background-image: url('../images/bar-highlight.png');
+    animation: bar-anim 1000s linear infinite;
+  }
+}
+
+.xiangqi-engine__summary {
+  display: flex;
+  align-items: center;
+  min-height: 3.4rem;
+  gap: 0.55rem;
+  padding: 0.35rem 0.45rem;
+}
+
+.xiangqi-engine__switch {
+  flex: 0 0 2.85rem;
+  cursor: pointer;
+
+  input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  span {
+    position: relative;
+    display: block;
+    width: 2.75rem;
+    height: 1.55rem;
+    border-radius: 2rem;
+    background: $c-bg-zebra;
+    box-shadow: inset 0 0 0 1px $c-border;
+    transition: background 150ms;
+
+    &::after {
+      content: '';
+      position: absolute;
+      width: 1.27rem;
+      height: 1.27rem;
+      inset: 0.14rem auto auto 0.15rem;
+      border-radius: 50%;
+      background: $c-font-dim;
+      transition:
+        transform 150ms,
+        background 150ms;
+    }
+  }
+
+  input:checked + span {
+    background: color-mix(in oklab, $c-good 70%, $c-bg-box);
+
+    &::after {
+      transform: translateX(1.18rem);
+      background: white;
+    }
+  }
+
+  input:focus-visible + span {
+    outline: 2px solid $c-accent;
+    outline-offset: 2px;
+  }
+}
+
+.xiangqi-engine__headline-score {
+  flex: 0 0 3.5rem;
+  color: $c-font-clear;
+  font-size: 1.35rem;
+  text-align: center;
+}
+
+.xiangqi-engine__identity {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.xiangqi-engine__name {
+  color: $c-font;
+  font-weight: 600;
+}
+
+.xiangqi-analysis__substatus {
+  color: $c-font-dim;
+  font-size: 0.72rem;
+
+  &.error {
+    color: $c-bad;
+  }
+}
+
+.xiangqi-cloud-badge {
+  flex: 0 0 auto;
+  border-radius: 3px;
+  padding: 0.1rem 0.3rem;
+  background: color-mix(in oklab, $c-good 62%, $c-bg-box);
+  color: $c-font-clear;
+  font-size: 0.62rem;
+  font-weight: bold;
+  letter-spacing: 0.04em;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.xiangqi-icon-button {
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: $c-font-dim;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible,
+  &[aria-expanded='true'] {
+    color: $c-font-clear;
+    background: $c-bg-zebra;
+  }
+
+  &:disabled {
+    opacity: 0.28;
+    cursor: default;
+  }
+}
+
+.xiangqi-engine__summary > .xiangqi-icon-button {
+  flex: 0 0 2.35rem;
+  align-self: stretch;
+  border-radius: 3px;
+  font-size: 1.1rem;
+}
+
+.xiangqi-engine-settings {
+  position: absolute;
+  z-index: 20;
+  inset: 3.4rem 0 auto;
+  display: grid;
+  gap: 0.9rem;
+  border-top: 2px solid $c-accent;
+  padding: 1rem;
+  background: $c-bg-high;
+  box-shadow: 0 0.55rem 1.25rem #0008;
+
+  &[hidden] {
+    display: none;
+  }
+
+  label {
+    display: grid;
+    grid-template-columns: 7.5rem minmax(0, 1fr) 3.3rem;
+    align-items: center;
+    gap: 0.5rem;
+    color: $c-font-dim;
+    font-size: 0.84rem;
+  }
+
+  label.xiangqi-engine-settings__toggle {
+    grid-template-columns: minmax(0, 1fr) auto;
+    color: $c-font;
+    cursor: pointer;
+
+    input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+  }
+
+  &__toggle-control {
+    position: relative;
+    display: block;
+    width: 2.75rem;
+    height: 1.55rem;
+    border-radius: 2rem;
+    background: $c-bg-zebra;
+    box-shadow: inset 0 0 0 1px $c-border;
+    transition: background 150ms;
+
+    &::after {
+      content: '';
+      position: absolute;
+      width: 1.27rem;
+      height: 1.27rem;
+      inset: 0.14rem auto auto 0.15rem;
+      border-radius: 50%;
+      background: $c-font-dim;
+      transition:
+        transform 150ms,
+        background 150ms;
+    }
+  }
+
+  &__toggle input:checked + &__toggle-control {
+    background: color-mix(in oklab, $c-good 70%, $c-bg-box);
+
+    &::after {
+      transform: translateX(1.18rem);
+      background: white;
+    }
+  }
+
+  &__toggle input:focus-visible + &__toggle-control {
+    outline: 2px solid $c-accent;
+    outline-offset: 2px;
+  }
+
+  input[type='range'] {
+    width: 100%;
+    margin: 0;
+  }
+
+  &__value {
+    color: $c-font;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .button {
+    justify-self: end;
+    padding: 0.45rem 0.75rem;
+  }
+}
+
+.xiangqi-engine__lines {
+  display: block;
+  padding: 0;
+
+  &.pv_box {
+    // WXF uses piece letters such as R and K as literal notation. The shared
+    // Lichess PV styles use Noto Chess, which turns those letters into chess
+    // figurines unless Xiangqi explicitly keeps its notation in the base font.
+    .pv-san {
+      @extend %base-font;
+    }
+
+    .pv.placeholder {
+      min-height: 2em;
+    }
+
+    // Lichess's preview is square; preserve the exact popup treatment while
+    // accommodating the Xiangqi board's 9-by-10 geometry.
+    .pv-board .pv-board-square {
+      padding-bottom: calc(10 * 100% / 9);
+    }
+  }
+}
+
+.xiangqi-engine__line {
+  display: grid;
+  grid-template-columns: 3.65rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+  min-height: 2rem;
+  border: 0;
+  border-radius: 0;
+  padding: 0.28rem 0.55rem;
+  background: transparent;
+  color: $c-font;
+  text-align: left;
+  cursor: pointer;
+
+  &:nth-child(even) {
+    background: color-mix(in oklab, $c-bg-zebra 65%, transparent);
+  }
+
+  &:hover,
+  &:focus-visible {
+    background: color-mix(in oklab, $c-bg-box 75%, $c-accent);
+  }
+
+  &.placeholder {
+    cursor: default;
+    pointer-events: none;
+  }
+}
+
+.xiangqi-engine__rank,
+.xiangqi-engine__score {
+  color: $c-font-dim;
+  font-size: 0.76rem;
+  text-align: right;
+}
+
+.xiangqi-engine__move {
+  overflow: hidden;
+  color: $c-font-clear;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.xiangqi-engine__source {
+  border-radius: 2px;
+  padding: 0.08rem 0.25rem;
+  background: color-mix(in oklab, $c-good 45%, transparent);
+  color: $c-font-clear;
+  font-size: 0.58rem;
+  font-weight: bold;
+}
+
+.xiangqi-engine__more {
+  width: 100%;
+  border: 0;
+  border-top: 1px solid $c-border;
+  padding: 0.22rem;
+  background: transparent;
+  color: $c-font-dim;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+
+  &[hidden] {
+    display: none;
+  }
+
+  &:hover,
+  &:focus-visible {
+    color: $c-font-clear;
+    background: $c-bg-zebra;
+  }
+}
+
+.xiangqi-analysis__position-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+  min-height: 2rem;
+  border-bottom: 1px solid $c-border;
+  padding: 0.25rem 0.65rem;
+  color: $c-accent;
+  font-size: 0.78rem;
+
+  .xiangqi-analysis__substatus {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+#xiangqi-moves {
+  display: block;
+}
+
+.xiangqi-analysis__moves {
+  @extend %base-font;
+
+  flex: 1 1 0;
+  min-height: 10rem;
+  overflow: auto;
+  padding: 0.25rem 0.35rem;
+  background: $c-bg-box;
+  font-size: $move-list-font-size;
+}
+
+.xiangqi-analysis__branch {
+  display: block;
+  margin-inline-start: min(calc(var(--variation-depth) * 0.72rem), 3.6rem);
+  border-inline-start: 2px solid color-mix(in oklab, $c-font 15%, transparent);
+  padding-inline-start: 0.28rem;
+  line-height: 1.35rem;
+
+  &.mainline {
+    margin-inline-start: 0;
+    border-inline-start: 0;
+    padding-inline-start: 0;
+    line-height: 2rem;
+  }
+
+  &:not(.mainline) {
+    margin-block: 0.08rem;
+    background: color-mix(in oklab, $c-bg-zebra 55%, transparent);
+  }
+}
+
+.xiangqi-analysis__move {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.18rem;
+  min-height: 1.55rem;
+  margin: 0.05rem;
+  border: 0;
+  border-radius: 3px;
+  padding: 0.16rem 0.35rem;
+  background: transparent;
+  color: $c-font;
+  font-size: 0.78em;
+  line-height: 1.2;
+  text-align: left;
+  cursor: pointer;
+
+  .move-number {
+    color: $c-font-dim;
+    font-size: 0.75em;
+  }
+
+  .move-eval {
+    color: $c-font-dim;
+    font-size: 0.68em;
+  }
+
+  &:hover,
+  &:focus-visible {
+    background: color-mix(in oklab, $c-primary 15%, $c-bg-box);
+  }
+
+  &.branch-point:not(.active) {
+    box-shadow: inset 0 -1px color-mix(in oklab, $c-primary 48%, transparent);
+  }
+
+  &.active {
+    color: $c-over;
+    background: $c-primary;
+    font-weight: bold;
+
+    .move-number,
+    .move-eval {
+      color: $c-over;
+    }
+  }
+}
+
+.xiangqi-analysis__branch.mainline > .xiangqi-analysis__move {
+  font-size: 1em;
+}
+
+.xiangqi-analysis__branch:not(.mainline) .xiangqi-analysis__move {
+  min-height: 1.12rem;
+  padding-block: 0.08rem;
+}
+
+.xiangqi-analysis-page.two-column-notation {
+  .xiangqi-analysis__branch.mainline {
+    line-height: 2rem;
+  }
+
+  .xiangqi-analysis__move-row {
+    display: grid;
+    grid-template-columns: 2.6rem repeat(2, minmax(0, 1fr));
+    min-height: 2.25rem;
+    border-bottom: 1px solid color-mix(in oklab, $c-border 45%, transparent);
+
+    &:nth-of-type(odd) {
+      background: color-mix(in oklab, $c-bg-zebra 45%, transparent);
+    }
+
+    > .move-row-number {
+      display: flex;
+      grid-column: 1;
+      align-items: center;
+      justify-content: center;
+      color: $c-font-dim;
+      font-size: 0.78em;
+    }
+
+    > .xiangqi-analysis__move {
+      display: flex;
+      min-width: 0;
+      min-height: 2.25rem;
+      width: 100%;
+      justify-content: space-between;
+      gap: 0.35rem;
+      margin: 0;
+      border-radius: 0;
+      padding: 0.25rem 0.65rem;
+      font-size: 1em;
+
+      &.red-move {
+        grid-column: 2;
+      }
+
+      &.black-move {
+        grid-column: 3;
+        border-inline-start: 1px solid color-mix(in oklab, $c-border 45%, transparent);
+      }
+
+      .move-number {
+        display: none;
+      }
+
+      .move-notation {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .move-eval {
+        margin-inline-start: auto;
+      }
+    }
+  }
+}
+
+.xiangqi-analysis-page.inline-notation {
+  .xiangqi-analysis__branch:not(.mainline) {
+    display: inline;
+    margin: 0;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    font-style: italic;
+
+    &::before {
+      content: '(';
+      color: $c-font-dim;
+    }
+
+    &::after {
+      content: ')';
+      color: $c-font-dim;
+    }
+  }
+}
+
+.xiangqi-analysis-page.annotations-hidden .move-eval {
+  display: none;
+}
+
+.xiangqi-analysis__empty {
+  display: block;
+  padding: 1.5rem;
+  color: $c-font-dim;
+  text-align: center;
+}
+
+.xiangqi-analysis__nav {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr) 1.18fr;
+  flex: 0 0 3.1rem;
+  border-top: 1px solid $c-border;
+
+  .xiangqi-icon-button {
+    border-inline-end: 1px solid color-mix(in oklab, $c-border 70%, transparent);
+    font-size: 1.45rem;
+
+    &[aria-pressed='true'] {
+      color: $c-over;
+      background: $c-primary;
+    }
+  }
+
+  .xiangqi-analysis__menu-button {
+    border-inline-end: 0;
+    font-size: 1.25rem;
+  }
+}
+
+.xiangqi-analysis-panel > .explorer-box {
+  min-height: 11rem;
+  border-top: 1px solid $c-border;
+
+  &[hidden] {
+    display: none;
+  }
+
+  .data,
+  .config {
+    min-height: 100%;
+  }
+
+  .moves {
+    width: 100%;
+  }
+
+  .moves td:nth-child(2) {
+    width: 4.5rem;
+  }
+
+  .bar {
+    display: flex;
+    width: 100%;
+  }
+
+  .bar .red {
+    color: #fff;
+    background: #b94b45;
+    box-shadow: 0 -5px 7px rgb(0 0 0 / 0.2) inset;
+  }
+
+  .message strong {
+    white-space: normal;
+  }
+}
+
+.xiangqi-analysis__underboard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.45fr);
+  grid-column: 1 / -1;
+  gap: $block-gap;
+  padding: $block-gap;
+
+  label {
+    display: block;
+    margin-bottom: 0.35rem;
+    color: $c-font-dim;
+  }
+
+  textarea {
+    box-sizing: border-box;
+    width: 100%;
+    resize: vertical;
+    font: 0.82rem/1.4 monospace;
+  }
+
+  .xiangqi-note {
+    grid-column: 1 / -1;
+    margin: 0;
+  }
+}
+
+.xiangqi-server-analysis {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid $c-border;
+  padding-bottom: $block-gap;
+
+  div {
+    display: grid;
+    gap: 0.2rem;
+  }
+
+  span {
+    color: $c-font-dim;
+  }
+}
+
+.xiangqi-analysis__tabs {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: stretch;
+  min-width: 0;
+  min-height: 2.7rem;
+  overflow-x: auto;
+  padding: 0;
+  scrollbar-width: thin;
+}
+
+.xiangqi-analysis__tab {
+  display: flex;
+  flex: 0 1 15rem;
+  min-width: 7rem;
+  max-width: 18rem;
+  border-right: 1px solid $c-border;
+  background: color-mix(in oklab, $c-bg-box 94%, #000);
+
+  &.active {
+    background: $c-bg-box;
+    box-shadow: inset 0 -3px $c-accent;
+  }
+}
+
+.xiangqi-analysis__tab-select,
+.xiangqi-analysis__tab-close,
+.xiangqi-analysis__tab-add {
+  border: 0;
+  background: transparent;
+  color: $c-font-dim;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    color: $c-font;
+    background: color-mix(in oklab, $c-accent 12%, transparent);
+  }
+}
+
+.xiangqi-analysis__tab-select {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0.65rem 0.75rem;
+  font-weight: bold;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.xiangqi-analysis__tab-input {
+  box-sizing: border-box;
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 1px solid $c-accent;
+  outline: 0;
+  padding: calc(0.65rem - 1px) calc(0.75rem - 1px);
+  background: $c-bg-box;
+  color: $c-font;
+  font: inherit;
+  font-weight: bold;
+}
+
+.xiangqi-analysis__tab-close {
+  flex: 0 0 2rem;
+  padding: 0;
+  font-size: 1.15rem;
+  text-align: center;
+}
+
+.xiangqi-analysis__tab-add {
+  flex: 0 0 3rem;
+  min-width: 3rem;
+  font-size: 1.45rem;
+  font-weight: bold;
+  text-align: center;
+}
+
+.xiangqi-analysis__fen-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.65rem;
+}
+
+.xiangqi-tree-menu {
+  position: fixed;
+  z-index: 1200;
+  display: grid;
+  min-width: 13rem;
+  overflow: hidden;
+  border: 1px solid $c-border;
+  border-radius: 5px;
+  background: $c-bg-box;
+  box-shadow: 0 0.35rem 1.2rem #0008;
+
+  strong {
+    padding: 0.65rem 0.8rem;
+    color: $c-font-dim;
+    font-size: 0.82rem;
+  }
+
+  button {
+    border: 0;
+    border-top: 1px solid $c-border;
+    padding: 0.62rem 0.8rem;
+    background: transparent;
+    color: $c-font;
+    text-align: left;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      background: color-mix(in oklab, $c-accent 16%, $c-bg-box);
+    }
+  }
+}
+
+.xiangqi-interface-settings {
+  position: fixed;
+  z-index: 1100;
+  inset: 0;
+  display: grid;
+  place-items: center;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.xiangqi-interface-settings__scrim {
+  position: absolute;
+  inset: 0;
+  background: #000a;
+}
+
+.xiangqi-interface-settings__dialog {
+  position: relative;
+  width: min(92vw, 680px);
+  max-height: min(90vh, 720px);
+  overflow: auto;
+  border-radius: 7px;
+  padding: 1.2rem;
+  background: $c-bg-high;
+  box-shadow: 0 1rem 3rem #000b;
+}
+
+.xiangqi-interface-settings__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  h2 {
+    margin: 0;
+  }
+
+  .xiangqi-icon-button {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    font-size: 1.5rem;
+  }
+}
+
+.xiangqi-interface-settings__actions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 1rem 0 1.25rem;
+
+  button {
+    display: flex;
+    min-height: 5.5rem;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    border: 0;
+    border-radius: 5px;
+    background: $c-bg-zebra;
+    color: $c-font;
+    cursor: pointer;
+
+    strong {
+      color: $c-font-dim;
+      font-size: 1.75rem;
+      font-weight: normal;
+    }
+
+    &:hover,
+    &:focus-visible {
+      color: $c-accent;
+      background: color-mix(in oklab, $c-bg-zebra 80%, $c-accent);
+    }
+  }
+}
+
+.xiangqi-interface-settings__groups {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+
+  fieldset {
+    display: grid;
+    align-content: start;
+    gap: 0.8rem;
+    border: 1px solid $c-border;
+    border-radius: 6px;
+    padding: 1rem;
+    background: $c-bg-mid;
+  }
+
+  legend {
+    padding: 0 0.35rem;
+    color: $c-font-dim;
+    font-size: 1.05rem;
+  }
+}
+
+.xiangqi-setting-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  color: $c-font-dim;
+  cursor: pointer;
+
+  input {
+    width: 1.15rem;
+    height: 1.15rem;
+    accent-color: $c-accent;
+  }
+}
+
+.xiangqi-setting-radios {
+  display: grid;
+  gap: 0.5rem;
+  border-bottom: 1px solid color-mix(in oklab, $c-border 65%, transparent);
+  padding-bottom: 0.8rem;
+
+  label {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    color: $c-font-dim;
+    cursor: pointer;
+  }
+
+  input {
+    width: 1.15rem;
+    height: 1.15rem;
+    margin: 0;
+    accent-color: $c-accent;
+  }
+}
+
+.xiangqi-gauge-dock-settings {
+  gap: 0.6rem;
+
+  &__label {
+    color: $c-font-dim;
+  }
+
+  > div {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    overflow: hidden;
+    border: 1px solid $c-border;
+    border-radius: 5px;
+  }
+
+  label {
+    position: relative;
+    display: grid;
+    min-height: 2.2rem;
+    place-items: center;
+    border-inline-end: 1px solid $c-border;
+    color: $c-font-dim;
+    font-size: 0.72rem;
+    cursor: pointer;
+
+    &:last-child {
+      border-inline-end: 0;
+    }
+
+    &:has(input:checked) {
+      color: $c-over;
+      background: $c-accent;
+      font-weight: 700;
+    }
+
+    &:has(input:focus-visible) {
+      z-index: 1;
+      outline: 2px solid $c-accent;
+      outline-offset: -2px;
+    }
+  }
+
+  input {
+    @extend %visually-hidden;
+  }
+}
+
+.xiangqi-note {
+  color: $c-font-dim;
+  line-height: 1.5;
+}
+
+.games-database {
+  width: min(1480px, 100%);
+  margin: 0 auto;
+  overflow: hidden;
+
+  &__header {
+    padding: 1.5rem 2rem 1.1rem;
+    border-bottom: 1px solid $c-border;
+
+    h1,
+    p {
+      margin: 0;
+    }
+
+    p {
+      margin-top: 0.35rem;
+      color: $c-font-dim;
+    }
+  }
+
+  &__layout {
+    display: grid;
+    grid-template-columns: minmax(205px, 245px) minmax(0, 1fr);
+    min-height: 620px;
+  }
+
+  &__filters {
+    padding: 1.25rem 1rem;
+    border-inline-end: 1px solid $c-border;
+    background: color-mix(in oklab, $c-bg-box 72%, $c-bg-page);
+
+    h2 {
+      margin: 0 0 0.7rem 0.35rem;
+      font-size: 1.15rem;
+    }
+  }
+
+  &__source {
+    display: flex;
+    gap: 0.65rem;
+    align-items: center;
+    min-height: 2.35rem;
+    padding: 0.35rem 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+
+    &:hover {
+      background: $c-bg-zebra;
+    }
+
+    &.parent {
+      margin-top: 0.25rem;
+      font-weight: 700;
+    }
+
+    &.nested {
+      min-height: 2rem;
+      padding-inline-start: 1.4rem;
+      color: $c-font-dim;
+      font-size: 0.9rem;
+    }
+
+    input {
+      flex: 0 0 auto;
+      margin: 0;
+      accent-color: $c-accent;
+    }
+  }
+
+  &__results {
+    min-width: 0;
+    padding: 1.25rem;
+  }
+
+  &__search {
+    display: flex;
+    gap: 0.65rem;
+
+    input {
+      flex: 1 1 auto;
+      min-width: 0;
+      padding: 0.65rem 0.8rem;
+      border: 1px solid $c-border;
+      border-radius: 4px;
+      color: $c-font;
+      background: $c-bg-input;
+      font-size: 1rem;
+
+      &:focus {
+        border-color: $c-accent;
+        outline: 1px solid $c-accent;
+      }
+    }
+  }
+
+  &__status {
+    min-height: 2.5rem;
+    padding: 0.75rem 0 0.55rem;
+    color: $c-font-dim;
+
+    &.error {
+      color: $c-bad;
+    }
+  }
+
+  &__table-wrap {
+    overflow-x: auto;
+    border: 1px solid $c-border;
+    border-radius: 4px;
+  }
+
+  &__table {
+    width: 100%;
+    min-width: 940px;
+    border-collapse: collapse;
+
+    th {
+      padding: 0;
+      color: $c-font-dim;
+      background: $c-bg-zebra;
+      text-align: start;
+      white-space: nowrap;
+
+      button {
+        width: 100%;
+        padding: 0.75rem 0.65rem;
+        border: 0;
+        color: inherit;
+        background: none;
+        text-align: inherit;
+        cursor: pointer;
+
+        &.active {
+          color: $c-accent;
+        }
+
+        &.active::after {
+          content: ' ↓';
+        }
+
+        &.active[data-direction='asc']::after {
+          content: ' ↑';
+        }
+      }
+    }
+
+    td {
+      padding: 0.7rem 0.65rem;
+      border-top: 1px solid $c-border;
+      vertical-align: middle;
+    }
+
+    tbody tr {
+      cursor: pointer;
+
+      &:hover,
+      &:focus-visible {
+        outline: 0;
+        background: $c-bg-zebra;
+      }
+    }
+  }
+
+  &__sources {
+    max-width: 160px;
+
+    span {
+      display: inline-block;
+      margin: 0.1rem 0.25rem 0.1rem 0;
+      padding: 0.15rem 0.4rem;
+      border-radius: 3px;
+      color: $c-font-dim;
+      background: $c-bg-zebra;
+      font-size: 0.78rem;
+      white-space: nowrap;
+    }
+  }
+
+  &__player {
+    color: $c-link;
+    font-weight: 600;
+  }
+
+  td small {
+    display: block;
+    color: $c-font-dimmer;
+  }
+
+  &__result,
+  &__moves {
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  &__empty {
+    padding: 3rem 1rem !important;
+    color: $c-font-dim;
+    text-align: center;
+  }
+
+  &__pagination {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    align-items: center;
+    padding-top: 1rem;
+  }
+}
+
+@media (max-width: at-most($small)) {
+  .xiangqi-page {
+    // Once Lichess collapses the page to one column, desktop panel sizing
+    // must not contribute an intrinsic width to the main grid track.
+    display: block;
+    min-width: 0;
+    max-width: 100vw;
+    width: 100%;
+  }
+
+  .xiangqi-panel,
+  .xiangqi-analysis-panel,
+  .xiangqi-analysis__tabs,
+  .xiangqi-analysis__underboard {
+    margin-top: $block-gap;
+  }
+
+  .xiangqi-analysis-panel {
+    // The controls are first in the mobile panel so they remain immediately
+    // below the board and evaluation gauge.
+    margin-top: 0;
+    height: min(68vh, 640px);
+
+    > .xiangqi-analysis__nav {
+      order: -3;
+      border-top: 0;
+      border-bottom: 1px solid $c-border;
+    }
+
+    > .xiangqi-engine {
+      order: -2;
+      overflow-anchor: none;
+    }
+
+    > .xiangqi-analysis__position-status {
+      order: -1;
+    }
+
+    > #xiangqi-moves {
+      overflow-anchor: none;
+    }
+  }
+
+  .xiangqi-engine-settings__preview-toggle {
+    display: none !important;
+  }
+
+  .xiangqi-analysis-page {
+    ---xiangqi-eval-thickness: 1.7rem;
+    ---xiangqi-dock-gap: 0.3rem;
+  }
+
+  .xiangqi-analysis__underboard,
+  .xiangqi-interface-settings__groups {
+    display: block;
+
+    > * + * {
+      margin-top: 1rem;
+    }
+  }
+
+  .xiangqi-interface-settings__actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .games-database {
+    &__header {
+      padding: 1.2rem;
+    }
+
+    &__layout {
+      display: block;
+    }
+
+    &__filters {
+      border-inline-end: 0;
+      border-bottom: 1px solid $c-border;
+    }
+
+    &__source-children {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    &__results {
+      padding: 1rem;
+    }
+
+    &__optional {
+      display: none;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xiangqi-analysis-board,
+  .xiangqi-eval,
+  .xiangqi-dock-overlay,
+  .xiangqi-dock-target {
+    transition: none;
+  }
+}

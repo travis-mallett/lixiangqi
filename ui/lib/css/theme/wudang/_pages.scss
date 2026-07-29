@@ -1,0 +1,1533 @@
+html.wudang {
+  // =========================================================================
+  // Homepage
+  // =========================================================================
+  .lobby__app {
+    border-radius: var(--wudang-radius-stone);
+    background: var(--wudang-ink-950);
+    box-shadow: var(--wudang-shadow-stone);
+
+    > .tabs-horiz {
+      border-bottom-color: rgb(240 236 226 / 0.12);
+    }
+  }
+
+  .lobby__app__content {
+    border: 1px solid rgb(240 236 226 / 0.12);
+    border-top: 0;
+    border-radius: 0 0 var(--wudang-radius-stone) var(--wudang-radius-stone);
+    background:
+      radial-gradient(circle at 50% 50%, rgb(240 236 226 / 0.022), transparent 54%), var(--wudang-ink-900);
+    background-image: none;
+    box-shadow: inset 0 1px rgb(255 255 255 / 0.035);
+  }
+
+  .lpools {
+    gap: 1px;
+    overflow: hidden !important;
+    padding: 10px;
+    background: var(--wudang-ink-950) !important;
+
+    .clock {
+      color: var(--wudang-text-on-dark);
+      font-family: 'Noto Serif SC', 'Source Han Serif SC', Georgia, serif;
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+    }
+
+    .perf {
+      color: var(--wudang-muted-on-dark);
+      font-size: 0.74em;
+      letter-spacing: 0.04em;
+    }
+
+    .range {
+      background-image: none;
+      color: var(--wudang-temple-gold);
+      animation: none;
+    }
+  }
+
+  .lpool {
+    position: relative;
+    border: 0;
+    border-inline-end: 1px solid rgb(240 236 226 / 0.09);
+    border-bottom: 1px solid rgb(240 236 226 / 0.09);
+    border-radius: 0;
+    background: linear-gradient(145deg, rgb(255 255 255 / 0.026), transparent 38%), var(--wudang-ink-850);
+    color: var(--wudang-muted-on-dark);
+    box-shadow: inset 0 1px rgb(255 255 255 / 0.025);
+    transition:
+      background 160ms,
+      color 160ms,
+      box-shadow 160ms,
+      transform 120ms;
+
+    &::after {
+      content: '';
+      position: absolute;
+      inset: auto 18% 0;
+      height: 2px;
+      background: transparent;
+      transition: background-color 160ms;
+    }
+
+    &:hover {
+      background:
+        linear-gradient(90deg, rgb(99 126 134 / 0.16), transparent 72%), var(--wudang-ink-800) !important;
+      color: var(--wudang-text-on-dark);
+      box-shadow: inset 0 1px rgb(255 255 255 / 0.05);
+      transform: none;
+
+      &::after {
+        background: var(--wudang-mineral-blue);
+      }
+    }
+
+    &:focus-visible {
+      z-index: 2;
+      box-shadow:
+        inset 0 0 0 2px var(--wudang-paper-high),
+        inset 0 0 0 4px var(--wudang-jade);
+    }
+
+    &:active {
+      transform: translateY(1px);
+      box-shadow: inset 0 2px 5px rgb(4 9 10 / 0.48);
+    }
+
+    &.transp {
+      opacity: 0.48;
+    }
+  }
+
+  .lobby__table {
+    align-self: start;
+    border: 1px solid rgb(240 236 226 / 0.12);
+    border-radius: var(--wudang-radius-stone);
+    padding: 9px;
+    background: var(--wudang-stone-field);
+    box-shadow: var(--wudang-shadow-stone-small);
+  }
+
+  .lobby__start {
+    gap: 7px;
+    margin: 0;
+  }
+
+  .button.lobby__start__button {
+    position: relative;
+    min-height: 3.35em;
+    border: 1px solid #aaa294;
+    border-inline-start: 4px solid var(--wudang-ink-700);
+    border-radius: var(--wudang-radius-paper);
+    background: var(--wudang-paper-field);
+    color: var(--wudang-text-on-paper);
+    box-shadow:
+      inset 0 1px rgb(255 255 255 / 0.58),
+      0 2px 4px rgb(4 9 10 / 0.26);
+    text-shadow: none !important;
+
+    &::before {
+      color: var(--wudang-ink-700);
+    }
+
+    &--hook {
+      border-inline-start-color: var(--wudang-cinnabar);
+    }
+
+    &:not(.disabled):hover {
+      border-color: #8d9995;
+      border-inline-start-color: var(--wudang-mineral-blue);
+      background: linear-gradient(90deg, rgb(99 126 134 / 0.18), transparent 72%), var(--wudang-paper-high);
+      color: var(--wudang-text-on-paper);
+      box-shadow:
+        inset 0 1px rgb(255 255 255 / 0.64),
+        0 3px 7px rgb(4 9 10 / 0.32);
+      transform: translateY(-1px);
+
+      &::before {
+        color: var(--wudang-mineral-blue-dark);
+      }
+    }
+
+    &:not(.disabled):active {
+      transform: translateY(1px);
+      box-shadow: inset 0 2px 4px rgb(13 21 22 / 0.17);
+    }
+  }
+
+  .about-side {
+    border: 1px solid #aaa294;
+    border-radius: var(--wudang-radius-paper);
+    padding: 0.95rem 1rem;
+    background: var(--wudang-paper-field);
+    color: var(--wudang-muted-on-paper);
+    box-shadow:
+      0 0 0 3px var(--wudang-ink-800),
+      var(--wudang-shadow-paper);
+    text-shadow: none;
+  }
+
+  .lobby__box,
+  .lobby__feed,
+  .lobby__blog .ublog-post-card {
+    border: 1px solid #aaa294;
+    border-radius: var(--wudang-radius-paper);
+    background: var(--wudang-paper-field);
+    color: var(--wudang-text-on-paper);
+    box-shadow:
+      0 0 0 3px var(--wudang-ink-800),
+      var(--wudang-shadow-paper);
+  }
+
+  .lobby__box {
+    overflow: hidden;
+  }
+
+  .lobby__box__top,
+  .tour-spotlight {
+    border-bottom: 1px solid rgb(240 236 226 / 0.11);
+    background: var(--wudang-stone-field);
+    color: var(--wudang-text-on-dark);
+    text-shadow: none;
+
+    .title,
+    .more,
+    .headline {
+      color: var(--wudang-muted-on-dark);
+    }
+  }
+
+  .tour-spotlight {
+    border-radius: var(--wudang-radius-stone);
+    opacity: 1;
+
+    &:hover {
+      background: linear-gradient(90deg, rgb(99 126 134 / 0.2), transparent 70%), var(--wudang-ink-850);
+      box-shadow: inset 3px 0 var(--wudang-cinnabar);
+    }
+  }
+
+  .lobby__feed {
+    overflow: hidden;
+    padding-block: 0.15rem;
+  }
+
+  .daily-feed__updates {
+    border-inline-start-color: var(--wudang-jade-dark);
+  }
+
+  .daily-feed__update__marker {
+    border-color: var(--wudang-paper);
+    border-radius: 50%;
+    background: var(--wudang-jade-dark);
+  }
+
+  .lobby__support-link {
+    border: 1px solid #a8a093;
+    border-radius: var(--wudang-radius-paper);
+    background: var(--wudang-paper-field);
+    color: #6e552f;
+    box-shadow:
+      0 0 0 3px var(--wudang-ink-800),
+      var(--wudang-shadow-paper);
+
+    &:hover {
+      border-color: var(--wudang-temple-gold);
+      background: #ede4d3;
+      color: #5d431f;
+      box-shadow:
+        inset 3px 0 var(--wudang-temple-gold),
+        0 0 0 3px var(--wudang-ink-800),
+        var(--wudang-shadow-paper-raised);
+      transform: translateY(-1px);
+    }
+  }
+
+  .lobby__about {
+    border-top: 1px solid rgb(240 236 226 / 0.12);
+    border-radius: var(--wudang-radius-stone);
+    padding: 0.8rem 1rem;
+    background: rgb(13 21 22 / 0.76);
+
+    a {
+      color: var(--wudang-muted-on-dark);
+
+      &:hover {
+        color: var(--wudang-text-on-dark);
+      }
+    }
+  }
+
+  // =========================================================================
+  // Game, analysis, Xiangqi analysis, and studies
+  // =========================================================================
+  .analyse__tools,
+  .puzzle__tools,
+  .round__app__table,
+  .xiangqi-analysis-panel {
+    overflow: hidden;
+    border: 1px solid rgb(240 236 226 / 0.13);
+    border-radius: var(--wudang-radius-stone);
+    background: var(--wudang-stone-field);
+    color: var(--wudang-text-on-dark);
+    box-shadow: var(--wudang-shadow-stone);
+  }
+
+  .ceval,
+  .xiangqi-engine {
+    border-bottom: 1px solid rgb(240 236 226 / 0.14);
+    background: linear-gradient(90deg, rgb(102 134 115 / 0.08), transparent 34%), var(--wudang-ink-850);
+    color: var(--wudang-text-on-dark);
+    text-shadow: none;
+
+    pearl,
+    .xiangqi-engine__headline-score {
+      color: var(--wudang-text-on-dark);
+      font-size: 1.45em;
+      font-weight: 700;
+    }
+
+    .engine,
+    .xiangqi-engine__substatus {
+      color: var(--wudang-muted-on-dark);
+    }
+
+    .settings-gear,
+    .show-threat,
+    .xiangqi-icon-button {
+      color: var(--wudang-muted-on-dark);
+
+      &:hover,
+      &:focus-visible,
+      &.active {
+        background: rgb(99 126 134 / 0.2);
+        color: var(--wudang-text-on-dark);
+      }
+    }
+
+    .bar span {
+      background: var(--wudang-jade);
+    }
+
+    .bar span.threat {
+      background: var(--wudang-cinnabar);
+    }
+  }
+
+  .ceval.computing .bar span,
+  .xiangqi-engine.computing .bar span {
+    background-image: none;
+    animation: none;
+  }
+
+  .pv_box,
+  .analyse__moves,
+  .puzzle__moves,
+  .xiangqi-analysis__moves,
+  .xiangqi-engine__lines,
+  #xiangqi-moves {
+    background: var(--wudang-paper);
+    color: var(--wudang-text-on-paper);
+  }
+
+  .pv_box {
+    border-bottom: 1px solid #aaa294;
+    font-family: 'Noto Sans Mono', 'Cascadia Mono', Consolas, monospace;
+    font-variant-numeric: tabular-nums;
+
+    .pv {
+      border-top-color: #bbb3a5;
+    }
+
+    .pv:nth-child(even) {
+      background: rgb(99 126 134 / 0.055);
+    }
+
+    .pv:hover {
+      background: rgb(99 126 134 / 0.14);
+      box-shadow: inset 3px 0 var(--wudang-mineral-blue);
+    }
+
+    .pv strong {
+      color: var(--wudang-muted-on-paper);
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  .tview2 {
+    --c-base: var(--wudang-text-on-paper);
+
+    move {
+      border-radius: 1px;
+
+      &.active {
+        background: rgb(99 126 134 / 0.26);
+        color: var(--wudang-text-on-paper);
+        box-shadow: inset 3px 0 var(--wudang-mineral-blue);
+
+        eval,
+        index,
+        shapes {
+          color: var(--wudang-text-on-paper);
+        }
+      }
+
+      &.current {
+        border-color: var(--wudang-cinnabar);
+      }
+
+      &:not(.active):hover {
+        background: rgb(99 126 134 / 0.12);
+        color: var(--wudang-text-on-paper);
+      }
+    }
+
+    > index,
+    > interrupt,
+    .tview2-column > index {
+      border-color: #bdb5a7;
+      background: rgb(99 126 134 / 0.07);
+    }
+  }
+
+  .analyse__tools .comp-off__hint,
+  .xiangqi-analysis__empty {
+    min-height: 5rem;
+    border: 4px solid var(--wudang-ink-800);
+    padding: 1rem;
+    background:
+      radial-gradient(ellipse at 82% 36%, rgb(99 126 134 / 0.1), transparent 28%), var(--wudang-paper);
+    color: var(--wudang-muted-on-paper);
+    text-shadow: none;
+  }
+
+  .analyse__tools .sub-box .title,
+  .xiangqi-analysis__position-status {
+    border-bottom: 1px solid #a9a194;
+    background: #d8dfd9;
+    color: #314c40;
+  }
+
+  .analyse__controls,
+  .puzzle__controls,
+  .xiangqi-analysis__nav,
+  .rcontrols {
+    border: 1px solid rgb(240 236 226 / 0.12);
+    border-radius: 0 0 var(--wudang-radius-stone) var(--wudang-radius-stone);
+    background: var(--wudang-stone-field);
+    color: var(--wudang-muted-on-dark);
+    box-shadow: var(--wudang-shadow-stone-small);
+  }
+
+  .analyse__controls .fbt,
+  .puzzle__controls .fbt,
+  .xiangqi-analysis__nav .xiangqi-icon-button,
+  .rcontrols .fbt {
+    border-radius: 1px;
+    color: var(--wudang-muted-on-dark);
+    text-shadow: none;
+
+    &:hover,
+    &:focus-visible {
+      background: rgb(99 126 134 / 0.2);
+      color: var(--wudang-text-on-dark);
+    }
+
+    &.active,
+    &[aria-pressed='true'] {
+      background: rgb(150 63 54 / 0.25);
+      color: var(--wudang-text-on-dark);
+      box-shadow: inset 0 -3px var(--wudang-cinnabar);
+    }
+
+    &.disabled,
+    &:disabled {
+      color: #6f7a77;
+    }
+  }
+
+  .round__app__table {
+    .ruser,
+    .rclock,
+    .material {
+      color: var(--wudang-text-on-dark);
+    }
+
+    rmoves,
+    .moves {
+      margin: 4px;
+      background: var(--wudang-paper);
+      color: var(--wudang-text-on-paper);
+    }
+  }
+
+  .rclock,
+  .analyse__clock {
+    border: 1px solid rgb(240 236 226 / 0.12);
+    border-radius: var(--wudang-radius-stone);
+    background: var(--wudang-ink-850);
+    color: var(--wudang-text-on-dark);
+    box-shadow:
+      inset 0 1px rgb(255 255 255 / 0.045),
+      0 2px 5px rgb(4 9 10 / 0.34);
+
+    &.running {
+      border-color: var(--wudang-jade);
+      box-shadow:
+        inset 3px 0 var(--wudang-jade),
+        var(--wudang-shadow-stone-small);
+    }
+
+    &.emerg {
+      border-color: var(--wudang-cinnabar);
+      color: var(--wudang-cinnabar-light);
+      box-shadow:
+        inset 3px 0 var(--wudang-cinnabar),
+        var(--wudang-shadow-stone-small);
+    }
+  }
+
+  .ruser,
+  .analyse__player_strip,
+  .game__meta,
+  .round__side .box {
+    border: 1px solid #aaa294;
+    border-radius: var(--wudang-radius-paper);
+    background: var(--wudang-paper-field);
+    color: var(--wudang-text-on-paper);
+    box-shadow: var(--wudang-shadow-paper);
+  }
+
+  // Purpose-built Xiangqi engine: stone instrument, inset paper ledger.
+  .xiangqi-analysis-panel {
+    padding: 4px;
+    background: var(--wudang-ink-950);
+  }
+
+  .xiangqi-engine {
+    border-radius: 1px 1px 0 0;
+  }
+
+  .xiangqi-engine__summary {
+    min-height: 3.5rem;
+  }
+
+  .xiangqi-engine__headline-score {
+    color: var(--wudang-text-on-dark);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .xiangqi-engine__name {
+    color: var(--wudang-text-on-dark);
+  }
+
+  .xiangqi-engine__switch span,
+  .xiangqi-engine-settings__toggle-control {
+    border: 1px solid #687370;
+    border-radius: 2rem;
+    background: #56615e;
+    box-shadow: inset 0 1px 3px rgb(4 9 10 / 0.46);
+  }
+
+  .xiangqi-engine__switch input:checked + span,
+  .xiangqi-engine-settings__toggle input:checked + .xiangqi-engine-settings__toggle-control {
+    background: var(--wudang-jade);
+  }
+
+  .xiangqi-cloud-badge,
+  .xiangqi-engine__source {
+    border: 1px solid rgb(134 161 143 / 0.44);
+    border-radius: 1px;
+    background: rgb(102 134 115 / 0.28);
+    color: var(--wudang-text-on-dark);
+  }
+
+  .xiangqi-engine__lines {
+    border: 0;
+    background: var(--wudang-paper);
+  }
+
+  .xiangqi-engine__line {
+    border-bottom: 1px solid #c2baac;
+    border-radius: 0;
+    color: var(--wudang-text-on-paper);
+
+    &:nth-child(even) {
+      background: rgb(99 126 134 / 0.055);
+    }
+
+    &:hover,
+    &:focus-visible {
+      background: rgb(99 126 134 / 0.14);
+      box-shadow: inset 3px 0 var(--wudang-mineral-blue);
+    }
+  }
+
+  .xiangqi-engine__rank,
+  .xiangqi-engine__score {
+    color: var(--wudang-muted-on-paper);
+  }
+
+  .xiangqi-engine__move {
+    color: var(--wudang-text-on-paper);
+  }
+
+  .xiangqi-engine__more {
+    border-top-color: #aaa294;
+    background: #dcd5c8;
+    color: var(--wudang-muted-on-paper);
+
+    &:hover {
+      background: #d0d8d2;
+      color: #314f46;
+    }
+  }
+
+  .xiangqi-analysis__moves {
+    border-top: 1px solid #a9a194;
+    padding: 0.35rem;
+    background: var(--wudang-paper);
+  }
+
+  .xiangqi-analysis__move {
+    border-radius: 1px;
+    color: var(--wudang-text-on-paper);
+
+    &:hover,
+    &:focus-visible {
+      background: rgb(99 126 134 / 0.14);
+    }
+
+    &.active {
+      background: rgb(99 126 134 / 0.28);
+      color: var(--wudang-text-on-paper);
+      box-shadow:
+        inset 3px 0 var(--wudang-mineral-blue),
+        inset 0 -1px var(--wudang-mineral-blue-dark);
+
+      .move-number,
+      .move-eval {
+        color: var(--wudang-text-on-paper);
+      }
+    }
+
+    &.red-move .move-notation {
+      color: var(--wudang-cinnabar-dark);
+    }
+
+    &.black-move .move-notation {
+      color: var(--wudang-ink-950);
+    }
+  }
+
+  .xiangqi-analysis__move-row {
+    border-bottom-color: #bdb5a7 !important;
+
+    &:nth-of-type(odd) {
+      background: rgb(99 126 134 / 0.05) !important;
+    }
+  }
+
+  .xiangqi-analysis__nav {
+    border: 0;
+    border-top: 1px solid rgb(240 236 226 / 0.12);
+    border-radius: 0;
+    background: var(--wudang-ink-850);
+    box-shadow: none;
+
+    .xiangqi-icon-button {
+      border-inline-end-color: rgb(240 236 226 / 0.1);
+    }
+  }
+
+  .xiangqi-engine-settings {
+    border: 1px solid rgb(240 236 226 / 0.14);
+    border-top: 3px solid var(--wudang-jade);
+    border-radius: 0 0 var(--wudang-radius-stone) var(--wudang-radius-stone);
+    background: var(--wudang-ink-900);
+    color: var(--wudang-text-on-dark);
+    box-shadow: var(--wudang-shadow-stone);
+
+    label,
+    .xiangqi-engine-settings__value {
+      color: var(--wudang-muted-on-dark);
+    }
+  }
+
+  .xiangqi-dock-target {
+    border: 1px solid rgb(240 236 226 / 0.18);
+    border-radius: var(--wudang-radius-stone);
+    background: var(--wudang-ink-850);
+    color: var(--wudang-text-on-dark);
+    box-shadow: var(--wudang-shadow-stone-small);
+
+    &.active {
+      border-color: var(--wudang-jade);
+      background: #294039;
+      box-shadow: var(--wudang-focus);
+    }
+  }
+
+  .xiangqi-analysis__tabs {
+    border: 1px solid rgb(240 236 226 / 0.12);
+    background: var(--wudang-ink-950);
+  }
+
+  .xiangqi-analysis__tab {
+    position: relative;
+    border-right-color: rgb(240 236 226 / 0.1);
+    background: var(--wudang-ink-850);
+    color: var(--wudang-muted-on-dark);
+
+    &.active {
+      background: var(--wudang-paper);
+      color: var(--wudang-text-on-paper);
+      box-shadow: inset 0 -3px var(--wudang-cinnabar);
+    }
+  }
+
+  .xiangqi-analysis__tab-select,
+  .xiangqi-analysis__tab-close,
+  .xiangqi-analysis__tab-add {
+    color: inherit;
+
+    &:hover,
+    &:focus-visible {
+      background: rgb(99 126 134 / 0.16);
+      color: inherit;
+    }
+  }
+
+  .xiangqi-analysis__underboard {
+    border-radius: var(--wudang-radius-paper);
+    background: var(--wudang-paper-field);
+
+    textarea,
+    input {
+      font-family: 'Noto Sans Mono', 'Cascadia Mono', Consolas, monospace;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  .xiangqi-server-analysis {
+    border-bottom-color: #aaa294;
+  }
+
+  .xiangqi-interface-settings__dialog {
+    border: 1px solid rgb(240 236 226 / 0.14);
+    border-radius: var(--wudang-radius-stone);
+    background: var(--wudang-stone-field);
+    color: var(--wudang-text-on-dark);
+    box-shadow: var(--wudang-shadow-stone);
+  }
+
+  .xiangqi-interface-settings__groups fieldset {
+    border: 4px solid var(--wudang-ink-800);
+    border-radius: var(--wudang-radius-paper);
+    background: var(--wudang-paper);
+    color: var(--wudang-text-on-paper);
+    box-shadow: inset 0 0 0 1px #aaa294;
+
+    legend,
+    label {
+      color: var(--wudang-muted-on-paper);
+    }
+  }
+
+  .xiangqi-interface-settings__actions button {
+    border: 1px solid rgb(240 236 226 / 0.12);
+    border-radius: var(--wudang-radius-stone);
+    background: var(--wudang-ink-800);
+    color: var(--wudang-muted-on-dark);
+
+    &:hover,
+    &:focus-visible {
+      background: #304144;
+      color: var(--wudang-text-on-dark);
+      box-shadow: inset 0 -3px var(--wudang-cinnabar);
+    }
+  }
+
+  .study__chapters,
+  .study__members,
+  .study__comments,
+  .study__metadata,
+  .study-desc,
+  .practice-side {
+    border: 1px solid #aaa294;
+    border-radius: var(--wudang-radius-paper);
+    background: var(--wudang-paper-field);
+    color: var(--wudang-text-on-paper);
+    box-shadow: var(--wudang-shadow-paper);
+  }
+
+  .study__chapters .active,
+  .study__members .active {
+    background: rgb(99 126 134 / 0.18);
+    color: var(--wudang-text-on-paper);
+    box-shadow: inset 3px 0 var(--wudang-cinnabar);
+  }
+
+  // =========================================================================
+  // Puzzles, themes, and dashboard
+  // =========================================================================
+  .puzzle__feedback {
+    border-top: 1px solid #aaa294;
+    background: var(--wudang-paper);
+    color: var(--wudang-text-on-paper);
+
+    &.good {
+      box-shadow: inset 4px 0 var(--wudang-jade);
+    }
+
+    &.fail {
+      box-shadow: inset 4px 0 var(--wudang-cinnabar);
+    }
+
+    &.good .icon,
+    .win .icon {
+      color: var(--wudang-jade-dark);
+    }
+
+    &.fail .icon {
+      color: var(--wudang-cinnabar);
+    }
+  }
+
+  .puzzle__side__metas,
+  .puzzle__side__user,
+  .puzzle__side__config,
+  .puzzle__side__replay,
+  .puzzle__side__theme,
+  .puzzle__session {
+    border: 1px solid #aaa294;
+    border-radius: var(--wudang-radius-paper);
+    background: var(--wudang-paper-field);
+    color: var(--wudang-text-on-paper);
+    box-shadow:
+      0 0 0 3px var(--wudang-ink-800),
+      var(--wudang-shadow-paper);
+  }
+
+  .puzzle-themes {
+    .box__top {
+      background: linear-gradient(180deg, rgb(255 255 255 / 0.34), rgb(184 173 157 / 0.1));
+    }
+
+    h2 {
+      border-bottom: 1px solid #aaa294;
+      padding-bottom: 0.45rem;
+      color: var(--wudang-ink-800);
+    }
+  }
+
+  .puzzle-themes__list {
+    gap: 0;
+  }
+
+  .puzzle-themes__link {
+    min-height: 7rem;
+    border-bottom: 1px solid #c2baac;
+    border-radius: 0;
+    color: var(--wudang-text-on-paper);
+
+    img {
+      filter: grayscale(0.7) sepia(0.16) contrast(0.9);
+      opacity: 0.76;
+    }
+
+    &:hover {
+      background: linear-gradient(90deg, rgb(99 126 134 / 0.16), transparent 68%), transparent;
+      box-shadow: inset 4px 0 var(--wudang-mineral-blue);
+
+      img {
+        filter: grayscale(0.25) sepia(0.08) contrast(0.95);
+      }
+    }
+
+    h3 {
+      font-family: 'Noto Serif SC', 'Source Han Serif SC', Georgia, serif;
+      color: var(--wudang-ink-800);
+    }
+  }
+
+  // Keep the root theme class before the ancestor in the emitted selector.
+  // Nesting `.puzzle-recommended &` here would produce the impossible
+  // `.puzzle-recommended html.wudang …` selector.
+  .puzzle-recommended .puzzle-themes__link {
+    border: 1px solid #8fa497;
+    border-inline-start: 4px solid var(--wudang-jade);
+    border-radius: var(--wudang-radius-paper);
+    background: #d9e0da;
+    color: var(--wudang-jade-dark);
+
+    &:hover {
+      border-color: var(--wudang-mineral-blue);
+      background: linear-gradient(90deg, rgb(99 126 134 / 0.15), transparent 74%), #d9e0da;
+      color: var(--wudang-jade-dark);
+      box-shadow: inset 4px 0 var(--wudang-mineral-blue);
+    }
+  }
+
+  .puzzle-dashboard__metric {
+    border: 1px solid #a59d90;
+    border-radius: var(--wudang-radius-paper);
+    background: #dcd5c8;
+    color: var(--wudang-text-on-paper);
+    box-shadow: var(--wudang-shadow-paper);
+
+    span {
+      color: var(--wudang-muted-on-paper);
+    }
+
+    &--win {
+      background: linear-gradient(
+        to right,
+        var(--wudang-jade-dark) 0 var(---first),
+        var(--wudang-jade) var(---first) var(---win),
+        var(--wudang-cinnabar) var(---win) 100%
+      );
+      color: var(--wudang-text-on-dark);
+
+      span {
+        color: var(--wudang-text-on-dark);
+      }
+    }
+
+    &--perf {
+      border-color: #8d6b39;
+      background: #8d6b39;
+      color: var(--wudang-text-on-dark);
+    }
+
+    &--fix[href] {
+      border-color: var(--wudang-mineral-blue-dark);
+      background: var(--wudang-mineral-blue-dark);
+      color: var(--wudang-text-on-dark);
+
+      &:hover {
+        background: var(--wudang-mineral-blue);
+      }
+    }
+  }
+
+  .puzzle-dashboard__global .puzzle-dashboard__metric {
+    border-radius: var(--wudang-radius-paper);
+  }
+
+  // =========================================================================
+  // Tournaments — the canonical /tournament surface
+  // =========================================================================
+  .tour-home__schedule,
+  .tour-home__list,
+  .arena-history,
+  .tour__main,
+  .tour__standing,
+  .tour__stats,
+  .tour__duels {
+    border: 1px solid #aaa294;
+    border-radius: var(--wudang-radius-paper);
+    background: var(--wudang-paper-field);
+    color: var(--wudang-text-on-paper);
+    box-shadow:
+      0 0 0 3px var(--wudang-ink-800),
+      var(--wudang-shadow-paper);
+  }
+
+  .tour-home__side,
+  .tour__side,
+  .tour__controls,
+  .tour__actor-info,
+  .tour__player-info {
+    border: 1px solid rgb(240 236 226 / 0.13);
+    border-radius: var(--wudang-radius-stone);
+    background: var(--wudang-stone-field);
+    color: var(--wudang-text-on-dark);
+    box-shadow: var(--wudang-shadow-stone-small);
+
+    a {
+      color: var(--wudang-muted-on-dark);
+
+      &:hover {
+        color: var(--wudang-text-on-dark);
+      }
+    }
+  }
+
+  .tour-chart__inner {
+    border-top-color: #aaa294;
+    background:
+      linear-gradient(90deg, rgb(99 126 134 / 0.055) 1px, transparent 1px) 0 0 / 4em 100%,
+      var(--wudang-paper);
+  }
+
+  .tour-chart .timeheader {
+    border-inline-start-color: #aca597;
+    color: var(--wudang-muted-on-paper);
+
+    &.now {
+      border-inline-start-color: var(--wudang-cinnabar);
+
+      &::after {
+        border-top-color: var(--wudang-cinnabar);
+      }
+    }
+  }
+
+  .tsht {
+    border: 1px solid rgb(240 236 226 / 0.13);
+    border-radius: 2px;
+    background-color: var(--wudang-ink-800);
+    background-image: none;
+    color: var(--wudang-text-on-dark);
+    box-shadow: var(--wudang-shadow-stone-small);
+    text-shadow: none;
+
+    &-hourly,
+    &-daily,
+    &-eastern {
+      background-color: var(--wudang-mineral-blue-dark);
+    }
+
+    &-weekly,
+    &-weekend,
+    &-monthly,
+    &-unique {
+      background-color: var(--wudang-jade-dark);
+      background-image: none;
+    }
+
+    &-yearly,
+    &-marathon {
+      background-color: #61566a;
+      background-image: none;
+    }
+
+    &-max-rating,
+    &-variant {
+      background-color: #5c6255;
+    }
+
+    &-user-created {
+      background-color: var(--wudang-cinnabar-dark);
+    }
+
+    &:hover,
+    &:focus-visible {
+      filter: none;
+      box-shadow:
+        inset 3px 0 var(--wudang-cinnabar-light),
+        var(--wudang-shadow-stone);
+      transform: translateY(-1px);
+    }
+  }
+
+  .tour__main__header {
+    border-bottom: 1px solid rgb(240 236 226 / 0.12);
+    background: var(--wudang-stone-field);
+    color: var(--wudang-text-on-dark);
+
+    h1,
+    h2,
+    a {
+      color: var(--wudang-text-on-dark);
+    }
+  }
+
+  .tour__standing tr.active,
+  .tour__standing tr.me {
+    background: rgb(99 126 134 / 0.16);
+    box-shadow: inset 4px 0 var(--wudang-cinnabar);
+  }
+
+  // =========================================================================
+  // Xiangqi notation practice
+  // =========================================================================
+  #trainer {
+    .table,
+    .current-status,
+    .notation-prompt {
+      border: 1px solid rgb(240 236 226 / 0.13);
+      border-radius: var(--wudang-radius-stone);
+      padding: 1rem;
+      background: var(--wudang-stone-field);
+      color: var(--wudang-text-on-dark);
+      box-shadow: var(--wudang-shadow-stone-small);
+    }
+
+    .move-notation,
+    .move-question,
+    .side-to-move strong {
+      color: var(--wudang-text-on-dark);
+      font-family: 'Noto Serif SC', 'Source Han Serif SC', Georgia, serif;
+      font-variant-numeric: tabular-nums;
+      text-shadow: 0 1px var(--wudang-ink-950);
+    }
+
+    .prompt-label,
+    .setting-label {
+      color: var(--wudang-muted-on-dark);
+    }
+
+    .notation-input {
+      border: 4px solid var(--wudang-ink-800);
+      border-radius: var(--wudang-radius-paper);
+      padding: 0.8rem;
+      background: var(--wudang-paper);
+      color: var(--wudang-text-on-paper);
+      box-shadow: var(--wudang-shadow-paper);
+
+      input {
+        font-family: 'Noto Sans Mono', 'Cascadia Mono', Consolas, monospace;
+      }
+    }
+
+    .side .box,
+    .configuration,
+    .explanation,
+    .scores {
+      border: 1px solid #aaa294;
+      border-radius: var(--wudang-radius-paper);
+      padding: 1rem;
+      background: var(--wudang-paper-field);
+      color: var(--wudang-text-on-paper);
+      box-shadow:
+        0 0 0 3px var(--wudang-ink-800),
+        var(--wudang-shadow-paper);
+      text-shadow: none;
+    }
+
+    .configuration label {
+      color: var(--wudang-muted-on-paper);
+    }
+
+    .configuration group.radio input:checked + label {
+      color: var(--wudang-text-on-dark);
+      text-shadow: 0 1px rgb(54 17 14 / 0.42);
+    }
+
+    .score,
+    .timer {
+      color: var(--wudang-text-on-dark);
+      font-family: 'Noto Serif SC', 'Source Han Serif SC', Georgia, serif;
+      font-variant-numeric: tabular-nums;
+      text-shadow:
+        0 1px var(--wudang-ink-950),
+        0 0 12px rgb(13 21 22 / 0.58);
+    }
+
+    &.wrong {
+      .move-question,
+      .score {
+        color: var(--wudang-cinnabar-light) !important;
+      }
+
+      .notation-input {
+        box-shadow:
+          inset 4px 0 var(--wudang-cinnabar),
+          var(--wudang-shadow-paper);
+      }
+    }
+  }
+
+  // =========================================================================
+  // Learning
+  // =========================================================================
+  .learn-hero,
+  .learn__side-home,
+  .learn__side-map,
+  .learn__table .wrap,
+  .lesson-validation-state {
+    border: 1px solid #aaa294;
+    border-radius: var(--wudang-radius-paper);
+    background: var(--wudang-paper-field);
+    color: var(--wudang-text-on-paper);
+    box-shadow:
+      0 0 0 3px var(--wudang-ink-800),
+      var(--wudang-shadow-paper);
+  }
+
+  .learn-hero {
+    &::after {
+      border-top-color: rgb(99 126 134 / 0.2);
+    }
+
+    .eyebrow {
+      color: var(--wudang-cinnabar);
+    }
+
+    h1 {
+      color: var(--wudang-ink-800);
+    }
+
+    p {
+      color: var(--wudang-muted-on-paper);
+    }
+
+    .hero-seal {
+      border-color: #7b322c;
+      border-radius: 2px;
+      background: var(--wudang-cinnabar);
+      color: var(--wudang-paper-high);
+      box-shadow: 0 0 0 6px rgb(150 63 54 / 0.11);
+    }
+  }
+
+  .learn-stages {
+    .categ-heading {
+      border: 1px solid #aaa294;
+      border-inline-start: 4px solid var(--wudang-ink-700);
+      border-radius: var(--wudang-radius-paper);
+      padding: 0.7rem 1rem 0.65rem;
+      background: linear-gradient(90deg, rgb(255 255 255 / 0.28), transparent 72%), rgb(233 228 216 / 0.94);
+      box-shadow: var(--wudang-shadow-paper);
+
+      h2 {
+        color: var(--wudang-ink-800);
+      }
+
+      p {
+        color: var(--wudang-muted-on-paper);
+      }
+    }
+
+    .stage {
+      border: 1px solid #aaa294;
+      border-radius: var(--wudang-radius-paper);
+      background: var(--wudang-paper-field);
+      color: var(--wudang-text-on-paper);
+      box-shadow: var(--wudang-shadow-paper);
+
+      &::before {
+        background: var(--wudang-cinnabar);
+      }
+
+      h3 {
+        color: var(--wudang-ink-800);
+      }
+
+      p {
+        color: var(--wudang-muted-on-paper);
+      }
+
+      .stage-code,
+      .lesson-count,
+      .coming-soon-label {
+        color: var(--wudang-mineral-blue-dark);
+      }
+
+      &.available:hover,
+      &.available:focus-visible {
+        border-color: var(--wudang-mineral-blue);
+        box-shadow:
+          inset 4px 0 var(--wudang-mineral-blue),
+          var(--wudang-shadow-paper-raised);
+        transform: translateY(-1px);
+      }
+
+      &.done {
+        border-color: var(--wudang-jade);
+        background: #d8e0da;
+
+        &::before {
+          background: var(--wudang-jade);
+        }
+      }
+    }
+  }
+
+  .learn__side-home {
+    .learn-badge {
+      border-color: var(--wudang-mineral-blue);
+      color: var(--wudang-mineral-blue-dark);
+    }
+
+    h1 {
+      color: var(--wudang-ink-800);
+    }
+
+    h2,
+    .side-intro {
+      color: var(--wudang-muted-on-paper);
+    }
+
+    .progress .bar {
+      background: linear-gradient(90deg, var(--wudang-jade-dark), var(--wudang-jade));
+    }
+  }
+
+  .learn__side-map {
+    .back {
+      background: var(--wudang-stone-field);
+      color: var(--wudang-text-on-dark);
+    }
+
+    .categ > h2 {
+      border-top-color: #aaa294;
+      color: var(--wudang-muted-on-paper);
+    }
+
+    .categ.active > h2 {
+      background: rgb(99 126 134 / 0.13);
+      color: var(--wudang-mineral-blue-dark);
+    }
+
+    .stage {
+      border-top-color: #c0b8aa;
+      color: var(--wudang-text-on-paper);
+
+      strong {
+        color: var(--wudang-mineral-blue-dark);
+      }
+
+      &.active {
+        border-inline-start-color: var(--wudang-cinnabar);
+        background: rgb(150 63 54 / 0.1);
+      }
+    }
+  }
+
+  .learn__table {
+    .title {
+      background: linear-gradient(90deg, rgb(150 63 54 / 0.18), transparent 68%), var(--wudang-stone-field);
+      color: var(--wudang-text-on-dark);
+    }
+
+    .lesson-copy,
+    .lesson-hint,
+    .lesson-action,
+    .progress {
+      border-color: #aaa294;
+      background: var(--wudang-paper);
+      color: var(--wudang-text-on-paper);
+    }
+
+    .lesson-copy {
+      h3 {
+        color: var(--wudang-ink-800);
+      }
+
+      .notation {
+        border-radius: 1px;
+        background: var(--wudang-ink-800);
+        color: var(--wudang-text-on-dark);
+        font-family: 'Noto Sans Mono', 'Cascadia Mono', Consolas, monospace;
+      }
+
+      .goal {
+        border-inline-start-color: var(--wudang-cinnabar);
+      }
+    }
+
+    .culture-note {
+      border-radius: var(--wudang-radius-paper);
+      background: #d7ddd8;
+
+      strong {
+        color: var(--wudang-jade-dark);
+      }
+    }
+
+    .result.completed {
+      background: var(--wudang-jade-dark);
+    }
+
+    .result.failed {
+      background: var(--wudang-cinnabar-dark);
+    }
+
+    .progress a {
+      border-color: #aaa294;
+      color: var(--wudang-muted-on-paper);
+
+      &.active {
+        background: var(--wudang-cinnabar);
+        color: var(--wudang-text-on-dark);
+      }
+
+      &.done {
+        background: var(--wudang-jade);
+        color: var(--wudang-text-on-dark);
+      }
+    }
+  }
+
+  .learn__screen {
+    border: 4px solid var(--wudang-ink-800);
+    border-radius: var(--wudang-radius-paper);
+    background: var(--wudang-paper);
+    color: var(--wudang-text-on-paper);
+    box-shadow: var(--wudang-shadow-paper-raised);
+
+    > * {
+      animation-duration: 180ms !important;
+    }
+
+    .round-svg {
+      border-radius: 50%;
+      background: var(--wudang-jade-dark);
+    }
+  }
+
+  .learn-xiangqi-board {
+    border-radius: 1px;
+    background: var(--wudang-ink-950);
+    box-shadow:
+      0 0 0 4px var(--wudang-ink-800),
+      var(--wudang-shadow-stone);
+  }
+
+  // =========================================================================
+  // Profiles, settings, community, media, and tools
+  // =========================================================================
+  .user-show__header,
+  .account .box__top,
+  .team-show__header,
+  .coach-widget,
+  .streamer-show__header,
+  .ublog-post__header {
+    border-bottom: 1px solid #aaa294;
+    background: linear-gradient(180deg, rgb(255 255 255 / 0.34), rgb(184 173 157 / 0.1));
+    color: var(--wudang-text-on-paper);
+  }
+
+  .community .leaderboards .user-top h2.text {
+    border-color: #76562f;
+    background: #815f32;
+    color: var(--wudang-text-on-dark);
+    text-shadow: 0 1px rgb(49 31 13 / 0.5);
+
+    &:hover {
+      background: #74532d;
+    }
+  }
+
+  .account form,
+  .pref-form,
+  .team-edit,
+  .challenge-page__content,
+  .study-create,
+  .importer,
+  .search,
+  .clas-create {
+    input,
+    textarea,
+    select {
+      background: #f3efe6;
+    }
+
+    fieldset,
+    .form-group {
+      border-color: #aaa294;
+    }
+  }
+
+  .user-show__ratings a,
+  .user-show__stats,
+  .account__kid,
+  .coach-card,
+  .team-card,
+  .video-card,
+  .ublog-post-card,
+  .tv-games .mini-game,
+  .now-playing .mini-game {
+    border: 1px solid #aaa294;
+    border-radius: var(--wudang-radius-paper);
+    background: var(--wudang-paper-field);
+    color: var(--wudang-text-on-paper);
+    box-shadow: var(--wudang-shadow-paper);
+
+    &:hover {
+      border-color: var(--wudang-mineral-blue);
+      background: #e5e4dc;
+      box-shadow:
+        inset 3px 0 var(--wudang-mineral-blue),
+        var(--wudang-shadow-paper-raised);
+    }
+  }
+
+  .forum-post__metas,
+  .forum-post__actions,
+  .msg-app__side,
+  .msg-app__convo__head,
+  .relay-tour__side,
+  .broadcast__side,
+  .tv-channel {
+    border: 1px solid rgb(240 236 226 / 0.12);
+    border-radius: var(--wudang-radius-stone);
+    background: var(--wudang-stone-field);
+    color: var(--wudang-muted-on-dark);
+    box-shadow: var(--wudang-shadow-stone-small);
+  }
+
+  .forum-post__message,
+  .msg-app__convo__msgs,
+  .relay-tour__rounds,
+  .broadcast__boards,
+  .tv-games {
+    border: 1px solid #aaa294;
+    border-radius: var(--wudang-radius-paper);
+    background: var(--wudang-paper-field);
+    color: var(--wudang-text-on-paper);
+    box-shadow: var(--wudang-shadow-paper);
+  }
+
+  .games-database__filters {
+    border-inline-end-color: #aaa294;
+    background: #d8d2c6;
+  }
+
+  .games-database__source {
+    border-radius: 1px;
+
+    &:hover {
+      background: rgb(99 126 134 / 0.12);
+    }
+
+    &:has(input:checked) {
+      background: rgb(102 134 115 / 0.14);
+      box-shadow: inset 3px 0 var(--wudang-jade);
+    }
+  }
+
+  .games-database__table-wrap {
+    border-color: #aaa294;
+    border-radius: var(--wudang-radius-paper);
+  }
+
+  .games-database__table th {
+    background: #d8d2c6;
+
+    button.active {
+      color: var(--wudang-cinnabar);
+    }
+  }
+
+  .games-database__sources span {
+    border-radius: 1px;
+    background: #d7ddd8;
+    color: #3f5d50;
+  }
+
+  .editor__tools,
+  .editor__spare,
+  .practice-app,
+  .practice-box {
+    border: 1px solid rgb(240 236 226 / 0.13);
+    border-radius: var(--wudang-radius-stone);
+    background: var(--wudang-stone-field);
+    color: var(--wudang-text-on-dark);
+    box-shadow: var(--wudang-shadow-stone-small);
+  }
+
+  .editor__tools .spare,
+  .practice-app__content,
+  .practice-box__content {
+    margin: 4px;
+    background: var(--wudang-paper);
+    color: var(--wudang-text-on-paper);
+  }
+}

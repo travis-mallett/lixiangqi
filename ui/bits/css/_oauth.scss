@@ -33,6 +33,14 @@
     margin-bottom: 1rem;
   }
 
+  .lichess-logo-svg {
+    display: block;
+    width: 8em;
+    height: 8em;
+    margin: 0 auto 1rem;
+    color: $c-brag;
+  }
+
   &__access-text {
     text-align: center;
     color: $c-font-dim;

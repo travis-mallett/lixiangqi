@@ -19,6 +19,7 @@ import lila.gathering.Condition.GetMyTeamIds
 import lila.memo.CacheApi.*
 import lila.rating.PerfType
 import lila.rating.UserWithPerfs.only
+import lila.xiangqi.XiangqiRules
 
 final class SimulApi(
     userApi: lila.core.user.UserApi,
@@ -241,24 +242,22 @@ final class SimulApi(
       number: Int
   ): Fu[(Game, Color)] = for
     user <- userApi.withPerfs(pairing.player.user).orFail(s"No user with id ${pairing.player.user}")
+    xiangqiGame <-
+      XiangqiRules.initialGame(simul.position.map(_.value)).fold(fufail, fuccess)
     hostColor = simul.hostColor | Color.fromWhite(number % 2 == 0)
     us = ByColor(host, user)
     users = hostColor.fold(us, us.swap)
     clock = simul.clock.chessClockOf(hostColor)
     perfType = PerfType(pairing.player.variant, chess.Speed(clock.config))
     game1 = lila.core.game.newGame(
-      chess = chess
-        .Game(
-          if simul.position.isEmpty
-          then pairing.player.variant
-          else chess.variant.FromPosition,
-          fen = simul.position
-        )
-        .copy(clock = clock.start.some),
+      xiangqi = xiangqiGame,
       players = users.mapWithColor((c, u) => newPlayer(c, u.only(perfType).some)),
       rated = chess.Rated.No,
       source = lila.core.game.Source.Simul,
-      pgnImport = None
+      pgnImport = None,
+      clock = clock.start.some,
+      startedAtPly = chess.Ply(xiangqiGame.state.ply),
+      variant = if simul.position.isDefined then chess.variant.FromPosition else pairing.player.variant
     )
     game2 = game1
       .withId(pairing.gameId)

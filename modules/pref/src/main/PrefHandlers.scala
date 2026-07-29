@@ -8,18 +8,18 @@ import lila.db.dsl.{ *, given }
 
 private object PrefHandlers:
 
-  given BSONDocumentHandler[Pref.BoardPref] = new BSON[Pref.BoardPref]:
+  given BSONDocumentHandler[Appearance.BoardSettings] = new BSON[Appearance.BoardSettings]:
 
-    def reads(r: BSON.Reader): Pref.BoardPref =
-      val d = Pref.default.board
-      Pref.BoardPref(
+    def reads(r: BSON.Reader): Appearance.BoardSettings =
+      val d = Appearance.defaultBoardSettings
+      Appearance.BoardSettings(
         brightness = r.getD("brightness", d.brightness),
         contrast = r.getD("contrast", d.contrast),
         opacity = r.getD("opacity", d.opacity),
         hue = r.getD("hue", d.hue)
       )
 
-    def writes(w: BSON.Writer, o: Pref.BoardPref) =
+    def writes(w: BSON.Writer, o: Appearance.BoardSettings) =
       $doc(
         "brightness" -> o.brightness,
         "contrast" -> o.contrast,
@@ -27,20 +27,60 @@ private object PrefHandlers:
         "hue" -> o.hue
       )
 
+  given BSONDocumentHandler[Appearance] = new BSON[Appearance]:
+
+    private def key(
+        r: BSON.Reader,
+        name: String,
+        default: String,
+        valid: String => Boolean
+    ): String =
+      r.strO(name).filter(valid) | default
+
+    def reads(r: BSON.Reader): Appearance =
+      val d = ThemePacks.default.appearance
+      val pack = key(r, "pack", d.pack, ThemePacks.isValidSelection)
+      ThemePacks.get(pack) match
+        case Some(themePack) => themePack.appearance
+        case None =>
+          val background = key(r, "background", d.background, Backgrounds.contains)
+          Appearance(
+            pack = ThemePacks.customKey,
+            uiTheme = key(r, "uiTheme", d.uiTheme, UiThemes.contains),
+            background = background,
+            backgroundUrl = Option
+              .when(background == Backgrounds.customKey)(r.strO("backgroundUrl"))
+              .flatten
+              .filterNot(_.isBlank),
+            boardTheme = key(r, "boardTheme", d.boardTheme, BoardThemes.contains),
+            pieceSet = key(r, "pieceSet", d.pieceSet, PieceSets.contains),
+            soundSet = key(r, "soundSet", d.soundSet, SoundSets.contains),
+            musicSet = key(r, "musicSet", d.musicSet, MusicSets.contains),
+            board = r.getD("board", d.board)
+          )
+
+    def writes(w: BSON.Writer, o: Appearance) =
+      if o.pack != ThemePacks.customKey then $doc("pack" -> o.pack)
+      else
+        $doc(
+          "pack" -> o.pack,
+          "uiTheme" -> o.uiTheme,
+          "background" -> o.background,
+          "backgroundUrl" -> o.backgroundUrl,
+          "boardTheme" -> o.boardTheme,
+          "pieceSet" -> o.pieceSet,
+          "soundSet" -> o.soundSet,
+          "musicSet" -> o.musicSet,
+          "board" -> o.board
+        )
+
   given BSONDocumentHandler[Pref] = new BSON[Pref]:
 
     def reads(r: BSON.Reader): Pref =
       val d = Pref.default
       Pref(
         id = r.get[UserId]("_id"),
-        bg = r.getD("bg", d.bg),
-        bgImg = r.strO("bgImg"),
-        is3d = r.getD("is3d", d.is3d),
-        theme = r.getD("theme", d.theme),
-        pieceSet = r.getD("pieceSet", d.pieceSet),
-        theme3d = r.getD("theme3d", d.theme3d),
-        pieceSet3d = r.getD("pieceSet3d", d.pieceSet3d),
-        soundSet = r.getD("soundSet", d.soundSet),
+        appearance = r.getD("appearance", d.appearance),
         autoQueen = r.getD("autoQueen", d.autoQueen),
         autoThreefold = r.getD("autoThreefold", d.autoThreefold),
         takeback = r.getD("takeback", d.takeback),
@@ -72,7 +112,6 @@ private object PrefHandlers:
         resizeHandle = r.getD("resizeHandle", d.resizeHandle),
         moveEvent = r.getD("moveEvent", d.moveEvent),
         agreement = r.getD("agreement", 0),
-        board = r.getD("board", d.board),
         blogFilter = r.strO("blogFilter").flatMap(BlogQualityFilter.fromName) | d.blogFilter,
         usingAltSocket = r.getO("usingAltSocket"),
         sayGG = r.getD("sayGG", d.sayGG),
@@ -82,14 +121,7 @@ private object PrefHandlers:
     def writes(w: BSON.Writer, o: Pref) =
       $doc(
         "_id" -> o.id,
-        "bg" -> o.bg,
-        "bgImg" -> o.bgImg,
-        "is3d" -> o.is3d,
-        "theme" -> o.theme,
-        "pieceSet" -> o.pieceSet,
-        "theme3d" -> o.theme3d,
-        "pieceSet3d" -> o.pieceSet3d,
-        "soundSet" -> SoundSet.name2key(o.soundSet),
+        "appearance" -> o.appearance,
         "autoQueen" -> o.autoQueen,
         "autoThreefold" -> o.autoThreefold,
         "takeback" -> o.takeback,
@@ -122,7 +154,6 @@ private object PrefHandlers:
         "resizeHandle" -> o.resizeHandle,
         "agreement" -> o.agreement,
         "usingAltSocket" -> o.usingAltSocket,
-        "board" -> o.board,
         "blogFilter" -> o.blogFilter.ordinal,
         "sayGG" -> o.sayGG,
         "tags" -> o.tags

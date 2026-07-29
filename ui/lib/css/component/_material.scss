@@ -14,30 +14,30 @@
     display: inline-block;
 
     &.pawn {
-      background-image: url('../piece/mono/P.svg');
+      background-image: url('../piece/xiangqi-wikipedia/rP.svg');
     }
 
     &.bishop {
-      background-image: url('../piece/mono/B.svg');
+      background-image: url('../piece/xiangqi-wikipedia/rB.svg');
     }
 
     &.knight {
-      background-image: url('../piece/mono/N.svg');
+      background-image: url('../piece/xiangqi-wikipedia/rN.svg');
     }
 
     &.rook {
-      background-image: url('../piece/mono/R.svg');
+      background-image: url('../piece/xiangqi-wikipedia/rR.svg');
     }
 
     &.queen {
-      background-image: url('../piece/mono/Q.svg');
+      background-image: url('../piece/xiangqi-wikipedia/rC.svg');
     }
 
     &.king {
-      background-image: url('../piece/mono/K.svg');
+      background-image: url('../piece/xiangqi-wikipedia/rK.svg');
     }
 
-    @include if-transp {
+    @include if-background {
       filter: brightness(1.3) drop-shadow(0 1px 1px #000);
     }
   }

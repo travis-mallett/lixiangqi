@@ -1,0 +1,247 @@
+html.wudang {
+  // The board is a precise instrument mounted over an irregular ink field.
+  body[data-board='xiangqi-wudang'] {
+    .main-board,
+    .mini-board {
+      border-radius: 1px;
+      background: var(--wudang-ink-950);
+      box-shadow:
+        0 0 0 2px rgb(240 236 226 / 0.13),
+        0 0 0 5px var(--wudang-ink-900),
+        0 2px 4px rgb(4 9 10 / 0.42),
+        0 16px 42px rgb(4 8 9 / 0.35);
+    }
+
+    cg-board {
+      border-radius: 1px;
+      background: var(--wudang-ink-950);
+      box-shadow:
+        inset 0 0 0 1px rgb(240 236 226 / 0.08),
+        inset 0 0 18px rgb(13 21 22 / 0.18);
+    }
+
+    cg-board::before {
+      border-radius: 1px;
+      box-shadow:
+        inset 0 0 0 1px rgb(13 21 22 / 0.32),
+        inset 0 0 22px rgb(13 21 22 / 0.12);
+    }
+
+    // The explorer follows the standard site presentation: the board sits
+    // directly in its layout with only the shared, softly rounded board edge.
+    // Keep this narrow so Wudang's framed treatment remains available to the
+    // game, puzzle, practice, and miniature boards.
+    .xiangqi-analysis-board {
+      > .main-board {
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none !important;
+      }
+
+      cg-board {
+        border-radius: 7px;
+        background: transparent;
+        box-shadow: none;
+
+        &::before {
+          border-radius: 7px;
+          box-shadow: none;
+        }
+      }
+    }
+
+    .cg-wrap.xiangqi9x10 coords.top,
+    .cg-wrap.xiangqi9x10 coords.bottom {
+      filter: saturate(0.68) sepia(0.14) contrast(0.92);
+      opacity: 0.78;
+    }
+  }
+
+  body[data-piece-set='xiangqi-wudang'] cg-board piece {
+    filter: drop-shadow(0 1px 0 rgb(240 236 226 / 0.12)) drop-shadow(0 2px 2px rgb(4 9 10 / 0.34));
+
+    &.dragging {
+      filter: drop-shadow(0 2px 1px rgb(240 236 226 / 0.12)) drop-shadow(0 7px 7px rgb(4 9 10 / 0.42));
+    }
+
+    &.ghost,
+    &.fading {
+      filter: grayscale(0.2) drop-shadow(0 1px 2px rgb(4 9 10 / 0.22));
+    }
+  }
+
+  // Mineral feedback replaces fluorescent chessboard overlays. The geometry
+  // stays centered and exact even where the painted edge appears irregular.
+  body .cg-wrap.xiangqi9x10 {
+    square {
+      &.selected {
+        background:
+          radial-gradient(circle, transparent 0 51%, rgb(242 238 228 / 0.72) 52% 54%, transparent 55%),
+          radial-gradient(circle, rgb(102 134 115 / 0.38) 0 62%, transparent 64%);
+      }
+
+      &.move-dest {
+        background: radial-gradient(
+          circle,
+          var(--wudang-jade-dark) 0 13%,
+          rgb(242 238 228 / 0.86) 14% 18%,
+          rgb(102 134 115 / 0.2) 19% 24%,
+          transparent 25%
+        );
+      }
+
+      &.oc.move-dest {
+        background:
+          radial-gradient(circle, transparent 0 54%, rgb(242 238 228 / 0.74) 55% 58%, transparent 59%),
+          radial-gradient(circle, transparent 0 61%, rgb(102 134 115 / 0.72) 62% 68%, transparent 69%);
+      }
+
+      &.premove-dest {
+        background: radial-gradient(
+          circle,
+          var(--wudang-mineral-blue-dark) 0 12%,
+          rgb(242 238 228 / 0.78) 13% 17%,
+          rgb(99 126 134 / 0.18) 18% 24%,
+          transparent 25%
+        );
+      }
+
+      &.oc.premove-dest {
+        background: radial-gradient(
+          circle,
+          transparent 0 59%,
+          rgb(99 126 134 / 0.76) 60% 66%,
+          transparent 67%
+        );
+      }
+
+      &.current-premove {
+        background:
+          linear-gradient(145deg, transparent 24%, rgb(99 126 134 / 0.34) 25% 66%, transparent 68%),
+          radial-gradient(circle, rgb(99 126 134 / 0.18), transparent 69%) !important;
+      }
+
+      &.check {
+        background: radial-gradient(circle, rgb(150 63 54 / 0.2) 0 52%, transparent 67%);
+
+        &::after {
+          inset: 0;
+          border: 0;
+          background: repeating-conic-gradient(
+            from 8deg,
+            var(--wudang-cinnabar) 0 21deg,
+            transparent 21deg 31deg,
+            var(--wudang-cinnabar-light) 31deg 49deg,
+            transparent 49deg 63deg
+          );
+          box-shadow: none;
+          mask: radial-gradient(circle, transparent 0 57%, #000 59% 66%, transparent 68%);
+          animation: wudang-check-settle 900ms ease-out 1;
+        }
+      }
+    }
+
+    @media (hover: hover) {
+      square.move-dest:hover,
+      square.move-dest.hover {
+        background:
+          radial-gradient(circle, rgb(242 238 228 / 0.38) 0 45%, transparent 47%),
+          radial-gradient(circle, rgb(102 134 115 / 0.52) 0 62%, transparent 65%);
+      }
+
+      square.premove-dest:hover,
+      square.premove-dest.hover {
+        background: radial-gradient(circle, rgb(99 126 134 / 0.46) 0 61%, transparent 64%);
+      }
+    }
+  }
+
+  @keyframes wudang-check-settle {
+    from {
+      opacity: 0.38;
+      transform: scale(1.12);
+    }
+  }
+
+  .cg-shapes,
+  .cg-shapes-below {
+    opacity: 0.56;
+    filter: saturate(0.66) contrast(0.92);
+  }
+
+  // Both native analysis bars read as narrow ink sticks: soot against matte
+  // cinnabar, with an exact center incision and tabular labels.
+  .eval-gauge {
+    border-inline: 1px solid rgb(240 236 226 / 0.14);
+    border-radius: 1px;
+    background: var(--wudang-cinnabar);
+    box-shadow:
+      inset 0 0 5px rgb(46 14 12 / 0.32),
+      0 1px 4px rgb(4 9 10 / 0.36);
+
+    .black {
+      background: linear-gradient(90deg, #0b1213, var(--wudang-ink-800));
+    }
+
+    tick {
+      border-bottom: 1px solid rgb(240 236 226 / 0.2);
+
+      &.zero {
+        border-bottom: 2px solid var(--wudang-paper-high) !important;
+        box-shadow: 0 1px var(--wudang-ink-950);
+      }
+    }
+
+    &::after {
+      box-shadow:
+        inset 0 0 0 1px rgb(240 236 226 / 0.08),
+        inset 0 0 5px rgb(4 9 10 / 0.48);
+    }
+  }
+
+  .xiangqi-eval {
+    border: 1px solid rgb(240 236 226 / 0.13);
+    border-radius: 1px;
+    background: linear-gradient(90deg, #0b1213, var(--wudang-ink-800));
+    box-shadow:
+      inset 0 0 4px rgb(4 9 10 / 0.6),
+      0 2px 5px rgb(4 9 10 / 0.38);
+
+    &:hover {
+      border-color: var(--wudang-jade-light);
+      box-shadow:
+        0 0 0 2px rgb(242 238 228 / 0.68),
+        0 0 0 4px var(--wudang-jade-dark),
+        0 2px 8px rgb(4 9 10 / 0.42);
+    }
+
+    &::before {
+      content: '';
+      position: absolute;
+      z-index: 3;
+      inset: calc(50% - 1px) 0 auto;
+      height: 2px;
+      background: var(--wudang-paper-high);
+      box-shadow: 0 1px var(--wudang-ink-950);
+      pointer-events: none;
+    }
+  }
+
+  .xiangqi-eval__red {
+    background: linear-gradient(90deg, var(--wudang-cinnabar-dark), var(--wudang-cinnabar));
+  }
+
+  .xiangqi-eval__score {
+    color: var(--wudang-text-on-dark);
+    text-shadow:
+      0 1px var(--wudang-ink-950),
+      0 0 3px var(--wudang-ink-950);
+  }
+
+  .gauge-dock-top .xiangqi-eval::before,
+  .gauge-dock-bottom .xiangqi-eval::before {
+    inset: 0 auto 0 calc(50% - 1px);
+    width: 2px;
+    height: auto;
+  }
+}

@@ -37,7 +37,7 @@ trait ResponseHeaders extends HeaderNames:
 
   val assetsHeaders = List(
     "Service-Worker-Allowed" -> "/",
-    "Cross-Origin-Embedder-Policy" -> "require-corp" // for Stockfish worker
+    "Cross-Origin-Embedder-Policy" -> "require-corp" // retained for isolated WebAssembly features
   )
 
   val permissionsPolicyHeader =

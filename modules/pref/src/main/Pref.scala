@@ -1,18 +1,13 @@
 package lila.pref
 
 import reactivemongo.api.bson.Macros.Annotations.Key
+import play.api.i18n.Lang
 import lila.core.ublog.QualityFilter
+import lila.xiangqi.Xiangqi
 
 case class Pref(
     @Key("_id") id: UserId,
-    bg: Int,
-    bgImg: Option[String],
-    is3d: Boolean,
-    theme: String,
-    pieceSet: String,
-    theme3d: String,
-    pieceSet3d: String,
-    soundSet: String,
+    appearance: Appearance,
     autoQueen: Int,
     autoThreefold: Int,
     takeback: Int,
@@ -46,29 +41,28 @@ case class Pref(
     agreement: Int,
     blogFilter: QualityFilter,
     usingAltSocket: Option[Boolean],
-    board: Pref.BoardPref,
     sayGG: Int,
     tags: Map[String, String] = Map.empty
 ) extends lila.core.pref.Pref:
 
   import Pref.*
 
-  def realTheme = Theme(theme)
-  def realPieceSet = PieceSet.get(pieceSet)
-  def realTheme3d = Theme3d(theme3d)
-  def realPieceSet3d = PieceSet3d.get(pieceSet3d)
+  def boardTheme = appearance.boardTheme
+  def pieceSet = appearance.pieceSet
+  def soundSet = appearance.soundSet
+  def musicSet = appearance.musicSet
+  def uiTheme = appearance.uiTheme
+  def colorScheme = appearance.colorScheme.key
+  def backgroundImage = appearance.backgroundImage
+  def boardBrightness = appearance.board.brightness
+  def boardContrast = appearance.board.contrast
+  def boardOpacity = appearance.board.opacity
+  def boardHue = appearance.board.hue
 
   val themeColorLight = "#dbd7d1"
   val themeColorDark = "#2e2a24"
-  def themeColor = if bg == Bg.LIGHT then themeColorLight else themeColorDark
-  def themeColorClass =
-    if bg == Bg.LIGHT then "light".some
-    else if bg == Bg.TRANSPARENT then "transp".some
-    else if bg == Bg.SYSTEM then none
-    else "dark".some
-
-  def realSoundSet = SoundSet(soundSet)
-
+  def themeColor =
+    if appearance.colorScheme == ColorScheme.Light then themeColorLight else themeColorDark
   def coordsClass = Coords.classOf(coords)
 
   def hasDgt = tags contains Tag.dgt
@@ -87,10 +81,15 @@ case class Pref(
       case Animation.SLOW => 120
       case _ => 70
 
-  def bgImgOrDefault =
-    bgImg | Pref.defaultBgImg
+  def pieceNotationIsLetter: Boolean = true
 
-  def pieceNotationIsLetter: Boolean = pieceNotation == PieceNotation.LETTER
+  def xiangqiNotationStyle(lang: Lang): Xiangqi.NotationStyle =
+    pieceNotation match
+      case PieceNotation.ENGLISH => Xiangqi.NotationStyle.English
+      case PieceNotation.CHINESE => Xiangqi.NotationStyle.Chinese
+      case _ =>
+        if lang.language == "zh" then Xiangqi.NotationStyle.Chinese
+        else Xiangqi.NotationStyle.English
 
   def isZen = zen == Zen.YES
   def isZenAuto = zen == Zen.GAME_AUTO
@@ -98,13 +97,10 @@ case class Pref(
   def showRatings = ratings != Ratings.NO
   def hideRatingsInGame = ratings == Ratings.EXCEPT_GAME
 
-  def is2d = !is3d
-
   def agree = copy(agreement = Agreement.current)
 
   def hasKeyboardMove = keyboardMove == KeyboardMove.YES
   def hasVoice = voice.has(Voice.YES)
-  def hasSpeech = soundSet == SoundSet.speech.toString
 
   def isUsingAltSocket = usingAltSocket.has(true)
 
@@ -118,31 +114,13 @@ case class Pref(
       )
 
   def simpleBoard =
-    board.hue == 0 && board.brightness == 100 && board.contrast == 100 && (board.opacity == 100 || bg != Bg.TRANSPARENT)
+    appearance.board.isDefault
 
-  def currentTheme = Theme(theme)
-  def currentTheme3d = Theme3d(theme3d)
-  def currentPieceSet = PieceSet.get(pieceSet)
-  def currentPieceSet3d = PieceSet3d.get(pieceSet3d)
-  def currentSoundSet = SoundSet(soundSet)
-  def currentBg: String =
-    if bg == Pref.Bg.TRANSPARENT then "transp"
-    else if bg == Pref.Bg.LIGHT then "light"
-    else if bg == Pref.Bg.SYSTEM then "system"
-    else "dark" // dark && dark board
-
-  def forceDarkBg = copy(bg = Pref.Bg.DARK)
+  def forceDarkTheme = copy(
+    appearance = appearance.customized.copy(uiTheme = UiThemes.dark.key)
+  )
 
 object Pref:
-
-  val defaultBgImg = "//lichess1.org/assets/images/background/landscape.jpg"
-
-  case class BoardPref(
-      brightness: Int,
-      contrast: Int,
-      opacity: Int,
-      hue: Int // in turns, 1turn = 2pi
-  )
 
   trait BooleanPref:
     val NO = 0
@@ -151,31 +129,6 @@ object Pref:
 
   object BooleanPref:
     val verify = (v: Int) => v == 0 || v == 1
-
-  object Bg:
-    val LIGHT = 100
-    val DARK = 200
-    val DARKBOARD = 300
-    val TRANSPARENT = 400
-    val SYSTEM = 500
-
-    val choices = Seq(
-      LIGHT -> "Light",
-      DARK -> "Dark",
-      DARKBOARD -> "Dark Board",
-      TRANSPARENT -> "Transparent",
-      SYSTEM -> "Device theme"
-    )
-
-    val fromString = Map(
-      "light" -> LIGHT,
-      "dark" -> DARK,
-      "darkBoard" -> DARKBOARD,
-      "transp" -> TRANSPARENT,
-      "system" -> SYSTEM
-    )
-
-    val asString = fromString.map(_.swap)
 
   object Tag:
     val dgt = "dgt"
@@ -270,12 +223,14 @@ object Pref:
     )
 
   object PieceNotation:
-    val SYMBOL = 0
-    val LETTER = 1
+    val AUTO = 0
+    val ENGLISH = 1
+    val CHINESE = 2
 
     val choices = Seq(
-      SYMBOL -> "Chess piece symbol",
-      LETTER -> "PGN letter (K, Q, R, B, N)"
+      AUTO -> "Automatic",
+      ENGLISH -> "WXF (English)",
+      CHINESE -> "WXF (Chinese)"
     )
 
   object AutoThreefold:
@@ -450,21 +405,13 @@ object Pref:
 
   def create(user: User) = default.copy(
     id = user.id,
-    bg = Bg.SYSTEM,
     agreement =
       Agreement.current // if user.createdAt.isAfter(Agreement.changedAt) then Agreement.current else 0
   )
 
   lazy val default = Pref(
     id = UserId(""),
-    bg = Bg.DARK,
-    bgImg = none,
-    is3d = false,
-    theme = Theme.default.name,
-    pieceSet = PieceSet.default.name,
-    theme3d = Theme3d.default.name,
-    pieceSet3d = PieceSet3d.default.name,
-    soundSet = SoundSet.default.key,
+    appearance = ThemePacks.default.appearance,
     autoQueen = AutoQueen.PREMOVE,
     autoThreefold = AutoThreefold.ALWAYS,
     takeback = Takeback.ALWAYS,
@@ -493,11 +440,10 @@ object Pref:
     flairs = true,
     rookCastle = RookCastle.YES,
     moveEvent = MoveEvent.BOTH,
-    pieceNotation = PieceNotation.SYMBOL,
+    pieceNotation = PieceNotation.AUTO,
     resizeHandle = ResizeHandle.INITIAL,
     agreement = Agreement.current,
     usingAltSocket = none,
-    board = BoardPref(brightness = 100, contrast = 100, opacity = 100, hue = 0),
     blogFilter = QualityFilter.best,
     sayGG = SayGG.NO,
     tags = Map.empty

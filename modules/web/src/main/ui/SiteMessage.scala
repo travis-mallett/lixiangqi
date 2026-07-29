@@ -60,7 +60,7 @@ final class SiteMessage(helpers: Helpers):
       back = routes.User.show(u.id).url.some
     ):
       p(
-        "Before using chess insights,",
+        "Before using Xiangqi insights,",
         userLink(u),
         " has to play at least one rated game."
       )

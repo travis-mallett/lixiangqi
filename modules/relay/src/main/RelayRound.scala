@@ -177,7 +177,7 @@ object RelayRound:
           case _ => none
         def looksLikeLcc = url.host.toString.endsWith("livechesscloud.com")
         def looksLikeIdChess = url.host.toString.endsWith("idchess.com")
-        def isLichess = isDomainOrSubdomain(url.host, "lichess.org")
+        def isLichess = isDomainOrSubdomain(url.host, "lixiangqi.org")
       // is host the same as domain, or a subdomain of domain
       def isDomainOrSubdomain(host: Host, domain: String) = s".${host.toHostString}".endsWith(s".$domain")
     import url.*

@@ -37,7 +37,7 @@ final class Puzzle(env: Env, apiC: => Api) extends LilaController(env):
   )(using ctx: Context)(using Perf) = for
     json <- jsonView.analysis(puzzle, angle, replay)
     settings <- ctx.user.traverse(env.puzzle.session.getSettings)
-    prefJson = jsonView.pref(ctx.pref)
+    prefJson = jsonView.pref(ctx.pref)(using ctx.lang)
     page <- renderPage:
       views.puzzle.ui
         .show(
@@ -129,7 +129,7 @@ final class Puzzle(env: Env, apiC: => Api) extends LilaController(env):
 
   private def serveStreak(using ctx: Context) = NoBot:
     FoundPage(env.puzzle.streakJsonAndPuzzle): (json, puzzle) =>
-      val prefJson = env.puzzle.jsonView.pref(ctx.pref)
+      val prefJson = env.puzzle.jsonView.pref(ctx.pref)(using ctx.lang)
       val langPath = LangPath(routes.Puzzle.streak).some
       views.puzzle.ui.show(puzzle, json, prefJson, PuzzleSettings.default, langPath)
     .map(_.noCache.enforceCrossSiteIsolation)
@@ -231,18 +231,6 @@ final class Puzzle(env: Env, apiC: => Api) extends LilaController(env):
         json = Ok(lila.puzzle.JsonView.angles(angles))
       )
 
-  def openings(order: String) = Open:
-    env.puzzle.opening.collection.flatMap: collection =>
-      negotiate(
-        html = for
-          insights <- ctx.me.so(env.insight.api.insightUser(_).dmap(_.some.filterNot(_.isEmpty)))
-          myOpenings = insights.map(u => collection.makeMine(u.families, u.openings))
-          page = views.puzzle.ui.opening.all(collection, myOpenings, lila.puzzle.PuzzleOpening.Order(order))
-          result <- Ok.page(page)
-        yield result,
-        json = Ok(lila.puzzle.JsonView.openings(collection))
-      )
-
   def show(angleOrId: String) = Open(serveShow(angleOrId))
   def showLang(language: Language, angleOrId: String) =
     LangPage(routes.Puzzle.show(angleOrId).url)(serveShow(angleOrId))(language)
@@ -285,18 +273,6 @@ final class Puzzle(env: Env, apiC: => Api) extends LilaController(env):
               _ <- ctx.me.so(env.puzzle.api.casual.setCasualIfNotYetPlayed(_, puzzle))
               res <- renderShow(puzzle, angle)
             yield res
-
-  def angleAndColor(angleKey: String, colorKey: String) = Open:
-    NoBot:
-      PuzzleAngle
-        .find(angleKey)
-        .fold(Redirect(routes.Puzzle.openings()).toFuccess): angle =>
-          val color = Color.fromName(colorKey)
-          WithPuzzlePerf:
-            selector
-              .nextPuzzleFor(angle, color.some, PuzzleDifficulty.fromReqSession(req))
-              .flatMap:
-                _.fold(redirectNoPuzzle) { renderShow(_, angle, color = color) }
 
   private val fetchRateLimit =
     env.security.ipTrust.rateLimit(300, 1.hour, "puzzle.fetch.ip", _.antiScraping(dch = 5, others = 1))

@@ -1,18 +1,13 @@
 package lila.insight
 
 import scalalib.model.Percent
-import chess.format.pgn.SanStr
-import chess.{ Centis, Clock, Ply, Role }
+import chess.{ Centis, Clock, Ply }
 import chess.eval.WinPercent
 
 import lila.analyse.AccuracyPercent
-import lila.common.{ LilaOpeningFamily, SimpleOpening }
+import lila.xiangqi.Xiangqi
 
-case class InsightUser(
-    count: Int, // nb insight entries
-    families: List[LilaOpeningFamily],
-    openings: List[SimpleOpening]
-):
+case class InsightUser(count: Int): // number of native Xiangqi insight entries
   def isEmpty = count == 0
 
 opaque type MeanRating = Int
@@ -22,7 +17,7 @@ case class InsightMove(
     phase: Phase,
     tenths: Option[Int], // tenths of seconds spent thinking
     clockPercent: Option[ClockPercent],
-    role: Role,
+    role: Xiangqi.Role,
     eval: Option[Int], // before the move was played, relative to player
     cpl: Option[Int], // eval diff caused by the move, relative to player, mate ~= 10
     winPercent: Option[WinPercent], // before the move was played, relative to player
@@ -92,31 +87,13 @@ enum Phase(val id: Int, val name: String):
 
 object Phase:
   val byId = values.mapBy(_.id)
-  def of(div: chess.Division, ply: Ply): Phase =
+  def of(div: Xiangqi.PhaseDivision, ply: Ply): Phase =
     div.middle.fold[Phase](Opening):
-      case m if ply < m => Opening
+      case middle if ply.value < middle => Opening
       case _ =>
         div.end.fold[Phase](Middle):
-          case e if ply < e => Middle
+          case end if ply.value < end => Middle
           case _ => End
-
-enum Castling(val id: Int, val name: String):
-  case Kingside extends Castling(1, "Kingside castling")
-  case Queenside extends Castling(2, "Queenside castling")
-  case None extends Castling(3, "No castling")
-object Castling:
-  val byId = values.mapBy(_.id)
-  def fromMoves(moves: Iterable[SanStr]) =
-    SanStr.raw(moves).find(_.startsWith("O")) match
-      case Some("O-O") => Kingside
-      case Some("O-O-O") => Queenside
-      case _ => None
-
-enum QueenTrade(val id: Boolean, val name: String):
-  case Yes extends QueenTrade(true, "Queen trade")
-  case No extends QueenTrade(false, "No queen trade")
-object QueenTrade:
-  def apply(v: Boolean): QueenTrade = if v then Yes else No
 
 enum Blur(val id: Boolean, val name: String):
   case Yes extends Blur(true, "Blur")

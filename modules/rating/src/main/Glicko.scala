@@ -62,7 +62,7 @@ object Glicko:
   val defaultManaged = new Glicko(800d, 400d, defaultVolatility)
   val defaultManagedPuzzle = new Glicko(800d, 400d, defaultVolatility)
 
-  // bot accounts (usually a stockfish instance)
+  // bot accounts (usually an engine instance)
   val defaultBot = new Glicko(3000d, maxDeviation, defaultVolatility)
 
   // rating that can be lost or gained with a single game
@@ -73,11 +73,6 @@ object Glicko:
 
   val calculator = GlickoCalculator(
     ratingPeriodsPerDay = periodsPerDay
-  )
-
-  val calculatorWithCrazyhouseAdvantage = GlickoCalculator(
-    ratingPeriodsPerDay = periodsPerDay,
-    colorAdvantage = ColorAdvantage.crazyhouse
   )
 
   val calculatorWithStandardAdvantage = GlickoCalculator(

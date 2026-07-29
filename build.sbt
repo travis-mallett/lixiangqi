@@ -63,14 +63,14 @@ libraryDependencies ++= pekko.bundle ++ playWs.bundle ++ macwire.bundle ++ scala
   play.json, play.logback, compression, hasher,
   reactivemongo.driver, /* reactivemongo.kamon, */ maxmind, scalatags,
   kamon.core, kamon.influxdb, kamon.metrics,
-  scaffeine, caffeine, lettuce, uaparser, nettyTransport, reactivemongo.shaded, catsMtl
-) ++ tests.bundle
+  scaffeine, caffeine, lettuce, uaparser, catsMtl
+) ++ Option.unless(isWindows)(Seq(nettyTransport, reactivemongo.shaded)).getOrElse(Seq.empty) ++ tests.bundle
 
 // influences the compilation order
 // matches https://github.com/ornicar/lila-dep-graphs
 lazy val modules = Seq(
   // level 1
-  core, coreI18n,
+  xiangqi, core, coreI18n,
   // level 2
   common, ui, mon, tree, markdown,
   // level 3
@@ -87,12 +87,12 @@ lazy val modules = Seq(
   relay, tutor, security, tournament, plan, round,
   swiss, insight, fishnet, mod, challenge, web,
   team, forum, streamer, simul, activity, msg, ublog,
-  notifyModule, clas, perfStat, opening, timeline,
+  notifyModule, clas, perfStat, timeline,
   setup, video, fide, title, push,
   // and then the smaller ones
-  pool, lobby, relation, tv, coordinate, feed, history, recap,
+  pool, lobby, relation, tv, notation, feed, history, recap,
   shutup, appeal, irc, explorer, learn, event, coach,
-  practice, evalCache, irwin, bot, racer, cms, i18n, jsBot,
+  practice, evalCache, irwin, bot, racer, cms, i18n,
   socket, bookmark, studySearch, gameSearch, forumSearch, teamSearch, irc
 )
 
@@ -100,13 +100,18 @@ lazy val moduleRefs = modules map projectToRef
 lazy val moduleCPDeps = moduleRefs map { sbt.ClasspathDependency(_, None) }
 
 lazy val core = module("core",
-  Seq(),
+  Seq(xiangqi),
   Seq(catsMtl, scalatags, galimatias) ++ scalalib.bundle ++ reactivemongo.bundle ++ tests.bundle
 )
 
 lazy val coreI18n = module("coreI18n",
   Seq(),
   Seq(scalatags) ++ scalalib.bundle
+)
+
+lazy val xiangqi = module("xiangqi",
+  Seq(),
+  Seq(chess.playJson) ++ tests.bundle
 )
 
 lazy val mon = module("mon",
@@ -142,7 +147,7 @@ lazy val i18n = module("i18n",
     I18n.serialize(
       sourceDir = new File("translation/source"),
       destDir = new File("translation/dest"),
-      dbs = "activity app appeal arena broadcast challenge class coach contact coordinates dgt emails faq features insight keyboardMove lag learn nvui oauthScope onboarding patron perfStat preferences puzzle puzzleTheme recap search settings site streamer storm study swiss team timeago tfa tourname ublog variant video voiceCommands msg".split(' ').toList,
+      dbs = "activity app appeal arena broadcast challenge class coach contact notation dgt emails faq features insight keyboardMove lag learn nvui oauthScope onboarding patron perfStat preferences puzzle puzzleTheme recap search settings site streamer storm study swiss team timeago tfa tourname ublog variant video voiceCommands msg".split(' ').toList,
       outputDir = (Compile / resourceManaged).value
     )
   }.taskValue
@@ -173,11 +178,6 @@ lazy val racer = module("racer",
   Seq()
 )
 
-lazy val jsBot = module("jsBot",
-  Seq(memo, ui),
-  Seq()
-)
-
 lazy val video = module("video",
   Seq(memo, ui),
   macwire.bundle
@@ -193,7 +193,7 @@ lazy val streamer = module("streamer",
   Seq()
 )
 
-lazy val coordinate = module("coordinate",
+lazy val notation = module("notation",
   Seq(db, ui),
   macwire.bundle
 )
@@ -280,7 +280,7 @@ lazy val bot = module("bot",
 )
 
 lazy val analyse = module("analyse",
-  Seq(tree, memo, ui),
+  Seq(tree, memo, ui, game),
   tests.bundle
 ).dependsOn(coreI18n % "test->test")
 
@@ -319,11 +319,6 @@ lazy val tutor = module("tutor",
   tests.bundle
 )
 
-lazy val opening = module("opening",
-  Seq(memo, ui),
-  tests.bundle
-)
-
 lazy val gathering = module("gathering",
   Seq(rating),
   tests.bundle
@@ -346,7 +341,7 @@ lazy val simul = module("simul",
 
 lazy val fishnet = module("fishnet",
   Seq(analyse),
-  Seq(lettuce) ++ tests.bundle
+  tests.bundle
 )
 
 lazy val irwin = module("irwin",

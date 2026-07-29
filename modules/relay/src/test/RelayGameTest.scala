@@ -35,11 +35,13 @@ class RelayGameTest extends munit.FunSuite:
 
   val g2 = makeGame:
     """
-[WhiteClock "00:00:23"]
+[Red "General Red"]
+[RedClock "00:00:23"]
 [BlackClock "00:00:41"]
 """
 
-  test("parse clock tags"):
+  test("parse Xiangqi aliases"):
+    assertEquals(g2.tags.names.white.map(_.value), "General Red".some)
     assertEquals(g2.tags.clocks.white, Centis.ofSeconds(23).some)
     assertEquals(g2.tags.clocks.black, Centis.ofSeconds(41).some)
 

@@ -5,6 +5,7 @@ import chess.ByColor
 import lila.core.game.{ GameRepo, IdGenerator, NewPlayer, Source }
 import lila.core.pool.{ Pairing, Pairings }
 import lila.common.Bus
+import lila.xiangqi.Xiangqi
 
 final private class GameStarter(
     userApi: lila.core.user.UserApi,
@@ -63,15 +64,14 @@ final private class GameStarter(
       whiteUser: (UserId, Perf),
       blackUser: (UserId, Perf)
   ) =
-    Game(
-      id = id,
-      chess = chess.Game(
-        position = chess.variant.Standard.initialPosition,
-        clock = pool.clock.toClock.some
-      ),
-      players = ByColor(whiteUser, blackUser).mapWithColor((u, p) => newPlayer(u, p)),
-      rated = chess.Rated.Yes,
-      status = chess.Status.Created,
-      daysPerTurn = none,
-      metadata = lila.core.game.newMetadata(Source.Pool)
-    )
+    lila.core.game
+      .newGame(
+        xiangqi = Xiangqi.Game.initial,
+        players = ByColor(whiteUser, blackUser).mapWithColor((u, p) => newPlayer(u, p)),
+        rated = chess.Rated.Yes,
+        source = Source.Pool,
+        pgnImport = None,
+        clock = pool.clock.toClock.some,
+        variant = chess.variant.Standard
+      )
+      .withId(id)

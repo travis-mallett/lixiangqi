@@ -4,6 +4,9 @@ import { dataIcon, enter, hl } from 'lib/view';
 import { variants, variantsForGameType } from '@/options';
 import type SetupController from '@/setupCtrl';
 
+const variantIcon = ({ key, icon }: (typeof variants)[number]) =>
+  hl(`span.variant-icon.variant-icon--${key}`, key === 'standard' ? {} : { attrs: dataIcon(icon) });
+
 export const variantPicker = (setupCtrl: SetupController) => {
   if (site.blindMode) {
     return hl('div.variant.label-select', [
@@ -44,7 +47,7 @@ export const variantPicker = (setupCtrl: SetupController) => {
         attrs: { for: inputId },
       },
       [
-        hl('span.icon', { attrs: dataIcon(currentVariant.icon) }),
+        variantIcon(currentVariant),
         hl('div.text', [hl('span.name', currentVariant.name), hl('span.desc', currentVariant.description)]),
       ],
     ),
@@ -76,11 +79,7 @@ export const variantPicker = (setupCtrl: SetupController) => {
                     }),
                   },
                 },
-                [
-                  hl('td.icon', hl('span', { attrs: dataIcon(v.icon) })),
-                  hl('td.name', v.name),
-                  hl('td.desc', v.description),
-                ],
+                [hl('td.icon', variantIcon(v)), hl('td.name', v.name), hl('td.desc', v.description)],
               ),
             ),
           ),

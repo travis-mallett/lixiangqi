@@ -61,8 +61,7 @@ final class GameMod(env: Env)(using org.apache.pekko.stream.Materializer) extend
               ip = ctx.ip.some,
               mod = true,
               system = false
-            ),
-            lila.fishnet.Work.Origin.autoHunter.some
+            )
           )
       _ <- env.fishnet.awaiter(games.map(_.id), 2.minutes)
     yield NoContent
@@ -79,5 +78,5 @@ final class GameMod(env: Env)(using org.apache.pekko.stream.Materializer) extend
             playerFile = none
           )
         )
-    .asAttachmentStream(s"lichess_mod_${user.username}_${gameIds.size}_games.pgn")
+    .asAttachmentStream(s"lixiangqi_mod_${user.username}_${gameIds.size}_games.pgn")
       .as(pgnContentType)

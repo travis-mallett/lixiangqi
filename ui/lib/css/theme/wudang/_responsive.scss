@@ -1,0 +1,215 @@
+html.wudang {
+  @media (max-width: 799px) {
+    --wudang-paper-mount: 2px;
+    --wudang-shadow-stone:
+      inset 0 1px 0 rgb(255 255 255 / 0.055), 0 2px 4px rgb(4 9 10 / 0.38), 0 10px 24px rgb(4 8 9 / 0.22);
+    --wudang-shadow-paper:
+      inset 0 1px 0 rgb(255 255 255 / 0.58), 0 0 0 1px rgb(22 31 31 / 0.18), 0 5px 14px rgb(8 14 15 / 0.18);
+
+    &::before {
+      background-position: 68% top;
+    }
+
+    &::after {
+      background:
+        linear-gradient(180deg, rgb(13 21 22 / 0.28), rgb(233 228 216 / 0.54) 12% 86%, rgb(13 21 22 / 0.34)),
+        radial-gradient(ellipse at 50% 42%, rgb(233 228 216 / 0.52), transparent 82%);
+    }
+
+    #top,
+    #top.scrolled {
+      background: linear-gradient(180deg, #1b282a, #101a1b);
+    }
+
+    .box,
+    .page-menu__content,
+    .paginated,
+    .search,
+    .games-database,
+    .analyse__underboard,
+    .xiangqi-analysis__underboard,
+    .lobby__box,
+    .lobby__feed,
+    .puzzle__side__metas,
+    .puzzle__side__user,
+    .puzzle__side__config,
+    .puzzle__side__replay,
+    .puzzle__side__theme,
+    .puzzle__session,
+    .tour-home__schedule,
+    .tour-home__list,
+    .tour__main,
+    .learn-hero,
+    .learn__side-home,
+    .learn__side-map,
+    .learn__table .wrap {
+      max-width: 100%;
+      box-shadow: var(--wudang-shadow-paper);
+    }
+
+    .main-board,
+    .mini-board {
+      box-shadow:
+        0 0 0 2px var(--wudang-ink-900),
+        0 3px 14px rgb(4 8 9 / 0.32) !important;
+    }
+
+    .tabs-horiz > a,
+    .tabs-horiz > button,
+    .subnav a,
+    .page-menu__menu a,
+    .appearance-dialog__tabs button,
+    .xiangqi-analysis__nav button,
+    .analyse__controls button,
+    .puzzle__controls button {
+      min-height: 44px;
+    }
+
+    .lobby__table {
+      padding: 7px;
+    }
+
+    .button.lobby__start__button {
+      min-height: 44px;
+      padding-inline: 1rem;
+    }
+
+    .lpools {
+      padding: 7px;
+    }
+
+    .lpool {
+      min-height: 58px;
+    }
+
+    .puzzle-themes__link {
+      min-height: 6rem;
+    }
+
+    .xiangqi-analysis-panel,
+    .analyse__tools,
+    .puzzle__tools,
+    .round__app__table {
+      box-shadow: var(--wudang-shadow-stone-small);
+    }
+
+    .xiangqi-analysis__underboard,
+    .games-database__results {
+      padding: 0.85rem;
+    }
+
+    #trainer {
+      .table,
+      .current-status,
+      .notation-prompt {
+        padding: 0.8rem;
+      }
+
+      .score,
+      .timer {
+        font-size: clamp(2.6rem, 14vw, 4.2rem);
+      }
+    }
+  }
+
+  @media (max-width: 499px) {
+    &::before {
+      background-position: 71% top;
+    }
+
+    &::after {
+      background: linear-gradient(
+        180deg,
+        rgb(13 21 22 / 0.44),
+        rgb(233 228 216 / 0.7) 10% 90%,
+        rgb(13 21 22 / 0.46)
+      );
+    }
+
+    .lobby__app,
+    .lobby__table,
+    .analyse__tools,
+    .puzzle__tools,
+    .round__app__table,
+    .xiangqi-analysis-panel,
+    .mchat,
+    .chat__members {
+      border-inline: 0;
+      border-radius: 0;
+    }
+
+    .theme-pack-list {
+      grid-template-columns: 1fr !important;
+    }
+
+    .appearance-option-grid,
+    .background-grid,
+    .board-grid,
+    .piece-grid {
+      grid-template-columns: repeat(auto-fill, minmax(125px, 1fr));
+    }
+
+    .puzzle-themes__link img {
+      flex-basis: 5.5rem;
+      height: 3.8rem;
+    }
+
+    .tour-chart {
+      min-height: 330px;
+    }
+  }
+
+  @media (prefers-contrast: more) {
+    --wudang-muted-on-dark: #d7dcd8;
+    --wudang-muted-on-paper: #3f4744;
+    --c-border: #747a76;
+
+    &::after {
+      background:
+        linear-gradient(90deg, rgb(13 21 22 / 0.5), transparent 22% 78%, rgb(13 21 22 / 0.5)),
+        radial-gradient(ellipse at center, rgb(233 228 216 / 0.52), transparent 78%);
+    }
+
+    .box,
+    .page-menu__content,
+    .paginated,
+    .search,
+    .games-database,
+    .analyse__underboard,
+    .xiangqi-analysis__underboard {
+      background: var(--wudang-paper-high);
+    }
+
+    .analyse__tools,
+    .puzzle__tools,
+    .round__app__table,
+    .xiangqi-analysis-panel,
+    #top {
+      background: var(--wudang-ink-950);
+    }
+  }
+
+  @media print {
+    &,
+    body {
+      background: #fff;
+    }
+
+    &::before,
+    &::after,
+    #top,
+    .site-buttons,
+    .mchat {
+      display: none !important;
+    }
+
+    .box,
+    .page-menu__content,
+    .analyse__underboard,
+    .xiangqi-analysis__underboard {
+      border: 1px solid #555;
+      background: #fff;
+      box-shadow: none;
+    }
+  }
+}

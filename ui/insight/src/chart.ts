@@ -14,7 +14,7 @@ import {
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { h, type VNode } from 'snabbdom';
 
-import { currentTheme } from 'lib/device';
+import { currentColorScheme } from 'lib/device';
 import { licon } from 'lib/licon';
 import { icon, spinnerHtml } from 'lib/view';
 
@@ -25,7 +25,7 @@ import { formatNumber } from './table';
 Chart.register(BarController, CategoryScale, LinearScale, BarElement, Tooltip, Legend, ChartDataLabels);
 Chart.defaults.font = fontFamily();
 
-const light = currentTheme() === 'light';
+const light = currentColorScheme() === 'light';
 
 const resultColors = {
   Victory: '#759900',

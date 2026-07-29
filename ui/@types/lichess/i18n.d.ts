@@ -51,11 +51,11 @@ interface I18n {
     rankedInSwissTournament: I18nFormat;
     /** Ranked #%1$s (top %2$s%%) with %3$s games in %4$s */
     rankedInTournament: I18nPlural;
-    /** Signed up to lichess.org */
+    /** Signed up to lixiangqi.org */
     signedUp: string;
     /** Solved %s training puzzles */
     solvedNbPuzzles: I18nPlural;
-    /** Supported lichess.org for %1$s months as a %2$s */
+    /** Supported lixiangqi.org for %1$s months as a %2$s */
     supportedNbMonths: I18nPlural;
   };
   app: {
@@ -69,13 +69,13 @@ interface I18n {
     downloadOnGooglePlay: string;
     /** If the app does not open automatically, tap the "%s" button. */
     ifAppDoesNotOpenAutomatically: I18nFormat;
-    /** Lichess Mobile App */
+    /** Lixiangqi Mobile App */
     lichessMobileApp: string;
-    /** Lichess mobile screen */
+    /** Lixiangqi mobile screen */
     lichessMobileScreen: string;
-    /** Open the Lichess app */
+    /** Open the Lixiangqi app */
     openTheApp: string;
-    /** Returning to the Lichess app */
+    /** Returning to the Lixiangqi app */
     returningToApp: string;
     /** View %s on GitHub */
     viewAllReleases: I18nFormat;
@@ -159,10 +159,8 @@ interface I18n {
     defender: string;
     /** Drawing the game within the first %s moves will earn neither player any points. */
     drawingWithinNbMoves: I18nPlural;
-    /** Draw streaks: When a player has consecutive draws in an arena, only the first draw will result in a point or draws lasting more than %s moves in standard games. The draw streak can only be broken by a win, not a loss or a draw. */
+    /** Draw streaks: When a player has consecutive draws in an arena, only the first draw scores a point unless the game lasts more than %s moves. The draw streak can only be broken by a win, not a loss or a draw. */
     drawStreakStandard: I18nFormat;
-    /** The minimum game length for drawn games to award points differs by variant. The table below lists the threshold for each variant. */
-    drawStreakVariants: string;
     /** Edit team battle */
     editTeamBattle: string;
     /** Edit tournament */
@@ -193,8 +191,6 @@ interface I18n {
     isRated: string;
     /** medians */
     medians: string;
-    /** Minimum game length */
-    minimumGameLength: string;
     /** My tournaments */
     myTournaments: string;
     /** New Team Battle */
@@ -241,8 +237,6 @@ interface I18n {
     tournamentStats: string;
     /** Tournament winners */
     tournamentWinners: string;
-    /** Variant */
-    variant: string;
     /** View all %s teams */
     viewAllXTeams: I18nPlural;
     /** Which team will you represent in this battle? */
@@ -303,15 +297,15 @@ interface I18n {
     embedThisBroadcast: string;
     /** Federation */
     federation: string;
-    /** FIDE federations */
+    /** WXF federations */
     fideFederations: string;
-    /** FIDE player not found */
+    /** WXF player not found */
     fidePlayerNotFound: string;
-    /** FIDE players */
+    /** WXF players */
     fidePlayers: string;
-    /** FIDE profile */
+    /** WXF profile */
     fideProfile: string;
-    /** FIDE rating category */
+    /** WXF rating category */
     fideRatingCategory: string;
     /** Finals */
     finals: string;
@@ -329,7 +323,7 @@ interface I18n {
     girlsTournament: string;
     /** Girls U%s */
     girlsUnderXAgeTournament: I18nFormat;
-    /** How to use Lichess Broadcasts. */
+    /** How to use Lixiangqi Broadcasts. */
     howToUseLichessBroadcasts: string;
     /** Find more options on the %s. */
     iframeHelp: I18nFormat;
@@ -365,7 +359,7 @@ interface I18n {
     officialWebsite: string;
     /** Ongoing */
     ongoing: string;
-    /** Open in Lichess */
+    /** Open in Lixiangqi */
     openLichess: string;
     /** Open */
     openTournament: string;
@@ -403,11 +397,11 @@ interface I18n {
     showScores: string;
     /** Since you chose to hide the results, all the preview boards are empty to avoid spoilers. */
     sinceHideResults: string;
-    /** Up to 64 Lichess game IDs, separated by spaces. */
+    /** Up to 64 Lixiangqi game IDs, separated by spaces. */
     sourceGameIds: string;
     /** PGN Source URL */
     sourceSingleUrl: string;
-    /** URL that Lichess will check to get PGN updates. It must be publicly accessible from the Internet. */
+    /** URL that Lixiangqi will check to get PGN updates. It must be publicly accessible from the Internet. */
     sourceUrlHelp: string;
     /** Standings are calculated using broadcasted games and may differ from official results. */
     standingsDisclaimer: string;
@@ -497,7 +491,7 @@ interface I18n {
     declineTooSlow: string;
     /** I'm not willing to play this variant right now. */
     declineVariant: string;
-    /** Or invite a Lichess user: */
+    /** Or invite a Lixiangqi user: */
     inviteLichessUser: string;
     /** Please register to send challenges to this user. */
     registerToSendChallenges: string;
@@ -511,7 +505,7 @@ interface I18n {
     yourXRatingIsTooFarFromY: I18nFormat;
   };
   class: {
-    /** Add Lichess usernames to invite them as teachers. One per line. */
+    /** Add Lixiangqi usernames to invite them as teachers. One per line. */
     addLichessUsernames: string;
     /** Add student */
     addStudent: string;
@@ -523,7 +517,7 @@ interface I18n {
     allowMessagingBetweenStudentsDesc: string;
     /** An invitation has been sent to %s */
     anInvitationHasBeenSentToX: I18nFormat;
-    /** Apply to be a Lichess Teacher */
+    /** Apply to be a Lixiangqi Teacher */
     applyToBeLichessTeacher: string;
     /** Class description */
     classDescription: string;
@@ -543,9 +537,9 @@ interface I18n {
     closeStudent: string;
     /** Close the student account permanently. */
     closeTheAccount: string;
-    /** Create a new Lichess account */
+    /** Create a new Lixiangqi account */
     createANewLichessAccount: string;
-    /** If the student doesn't have a Lichess account yet, you can create one for them here. */
+    /** If the student doesn't have a Lixiangqi account yet, you can create one for them here. */
     createDesc1: string;
     /** No email address is required. A password will be generated, and you will have to give it to the student so they can sign in. */
     createDesc2: string;
@@ -555,7 +549,7 @@ interface I18n {
     createDesc4: string;
     /** create more classes */
     createMoreClasses: string;
-    /** Create multiple Lichess accounts at once */
+    /** Create multiple Lixiangqi accounts at once */
     createMultipleAccounts: string;
     /** Only create accounts for real students. Do not use this to make multiple accounts for yourself. You would get banned. */
     createStudentWarning: string;
@@ -577,11 +571,11 @@ interface I18n {
     invitationToClass: I18nFormat;
     /** Invite */
     invite: string;
-    /** Invite a Lichess account */
+    /** Invite a Lixiangqi account */
     inviteALichessAccount: string;
-    /** If the student already has a Lichess account, you can invite them to the class. */
+    /** If the student already has a Lixiangqi account, you can invite them to the class. */
     inviteDesc1: string;
-    /** They will receive a message on Lichess with a link to join the class. */
+    /** They will receive a message on Lixiangqi with a link to join the class. */
     inviteDesc2: string;
     /** Important: only invite students you know, and who actively want to join the class. */
     inviteDesc3: string;
@@ -595,9 +589,9 @@ interface I18n {
     lastActiveDate: string;
     /** Classes */
     lichessClasses: string;
-    /** Lichess profile %1$s created for %2$s. */
+    /** Lixiangqi profile %1$s created for %2$s. */
     lichessProfileXCreatedForY: I18nFormat;
-    /** Lichess username */
+    /** Lixiangqi username */
     lichessUsername: string;
     /** Make sure you copy or write down the password now. You will never be able to see it again! */
     makeSureToCopy: string;
@@ -611,7 +605,7 @@ interface I18n {
     moveToAnotherClass: string;
     /** Move to %s */
     moveToClass: I18nFormat;
-    /** You can also %s to create multiple Lichess accounts from a list of student names. */
+    /** You can also %s to create multiple Lixiangqi accounts from a list of student names. */
     multipleAccsFormDescription: I18nFormat;
     /** N/A */
     na: string;
@@ -661,7 +655,7 @@ interface I18n {
     quickLoginCode: string;
     /** Quick login codes */
     quickLoginCodes: string;
-    /** Use these codes on %s to log your students into Lichess. */
+    /** Use these codes on %s to log your students into Lixiangqi. */
     quickLoginCodesDesc1: I18nFormat;
     /** When the codes expire, your students will remain logged in, until they manually log out. */
     quickLoginCodesDesc2: string;
@@ -697,7 +691,7 @@ interface I18n {
     students: string;
     /** Real names of students, one per line */
     studentsRealNamesOnePerLine: string;
-    /** Teach classes of chess students with the Lichess Classes tool suite. */
+    /** Teach classes of Xiangqi students with the Lixiangqi Classes tool suite. */
     teachClassesOfChessStudents: string;
     /** Teachers */
     teachers: string;
@@ -743,7 +737,7 @@ interface I18n {
     accepting: string;
     /** All countries */
     allCountries: string;
-    /** Are you a great chess coach with a %s? */
+    /** Are you a great xiangqi coach with a %s? */
     areYouCoach: I18nFormat;
     /** Availability */
     availability: string;
@@ -757,15 +751,15 @@ interface I18n {
     languages: string;
     /** Last login */
     lastLogin: string;
-    /** Lichess coach */
+    /** Lixiangqi coach */
     lichessCoach: string;
-    /** Lichess coaches */
+    /** Lixiangqi coaches */
     lichessCoaches: string;
-    /** Lichess rating */
+    /** Lixiangqi rating */
     lichessRating: string;
     /** Location */
     location: string;
-    /** NM or FIDE title */
+    /** recognized xiangqi title */
     nmOrFideTitle: string;
     /** Not accepting students at the moment */
     notAccepting: string;
@@ -785,9 +779,9 @@ interface I18n {
     teachingExperience: string;
     /** Teaching methodology */
     teachingMethod: string;
-    /** View %s Lichess profile */
+    /** View %s Lixiangqi profile */
     viewXProfile: I18nFormat;
-    /** %s coaches chess students */
+    /** %s coaches Xiangqi students */
     xCoachesStudents: I18nFormat;
     /** YouTube videos */
     youtubeVideos: string;
@@ -797,27 +791,27 @@ interface I18n {
     accountLost: string;
     /** I need account support */
     accountSupport: string;
-    /** Authorisation to use Lichess */
+    /** Authorisation to use Lixiangqi */
     authorizationToUse: string;
     /** Appeal for a ban or IP restriction */
     banAppeal: string;
     /** In certain circumstances when playing against a bot account, a rated game may not award points if we determine that the player is abusing the bot for rating points. */
     botRatingAbuse: string;
-    /** Broadcast a tournament on Lichess */
+    /** Broadcast a tournament on Lixiangqi */
     broadcastTournamentOnLichess: string;
-    /** Buying Lichess */
+    /** Buying Lixiangqi */
     buyingLichess: string;
-    /** It is called "en passant" and is one of the rules of chess. */
+    /** It is called the flying general rule and is one of the rules of Xiangqi. */
     calledEnPassant: string;
     /** We can't change more than the case. For technical reasons, it's downright impossible. */
     cantChangeMore: string;
     /** It's not possible to clear your game history, puzzle history, or ratings. */
     cantClearHistory: string;
-    /** If you imported the game, or started it from a position, make sure you correctly set the castling rights. */
+    /** If you imported the game, or started it from a position, make sure the generals and pieces are placed legally. */
     castlingImported: string;
-    /** Castling is only prevented if the king goes through a controlled square. */
+    /** The two generals may not face each other on the same file with no pieces between them. */
     castlingPrevented: string;
-    /** Make sure you understand the castling rules */
+    /** Make sure you understand the flying general rule */
     castlingRules: string;
     /** Visit this page to change the case of your username */
     changeUsernameCase: string;
@@ -827,7 +821,7 @@ interface I18n {
     collaboration: string;
     /** Contact */
     contact: string;
-    /** Contact Lichess */
+    /** Contact Lixiangqi */
     contactLichess: string;
     /** Credit is appreciated but not required. */
     creditAppreciated: string;
@@ -849,11 +843,11 @@ interface I18n {
     engineAppeal: string;
     /** Error page */
     errorPage: string;
-    /** Please explain your request clearly and thoroughly. State your Lichess username, and any information that could help us help you. */
+    /** Please explain your request clearly and thoroughly. State your Lixiangqi username, and any information that could help us help you. */
     explainYourRequest: string;
     /** False positives do happen sometimes, and we're sorry about that. */
     falsePositives: string;
-    /** According to the FIDE Laws of Chess §6.9, if a checkmate is possible with any legal sequence of moves, then the game is not a draw */
+    /** According to the WXF Laws of Xiangqi §6.9, if a checkmate is possible with any legal sequence of moves, then the game is not a draw */
     fideMate: string;
     /** I forgot my password */
     forgotPassword: string;
@@ -865,19 +859,19 @@ interface I18n {
     iCantLogIn: string;
     /** If your appeal is legitimate, we will lift the ban ASAP. */
     ifLegit: string;
-    /** If you want to officially broadcast a tournament on Lichess, or have any questions about our broadcasts: */
+    /** If you want to officially broadcast a tournament on Lixiangqi, or have any questions about our broadcasts: */
     ifYouWantToBroadcastClause1: string;
     /** Please contact our Broadcast Team at %1$s or on %2$s. */
     ifYouWantToBroadcastClause2: I18nFormat;
-    /** Illegal or impossible castling */
+    /** Illegal general position */
     illegalCastling: string;
     /** Illegal pawn capture */
     illegalPawnCapture: string;
     /** Insufficient mating material */
     insufficientMaterial: string;
-    /** It is possible to checkmate with only a knight or a bishop, if the opponent has more than a king on the board. */
+    /** It can be possible to checkmate with limited material, depending on the opponent's pieces and general position. */
     knightMate: string;
-    /** Learn how to make your own broadcasts on Lichess */
+    /** Learn how to make your own broadcasts on Lixiangqi */
     learnHowToMakeBroadcasts: string;
     /** I lost access to my two-factor authentication codes */
     lost2FA: string;
@@ -889,9 +883,9 @@ interface I18n {
     monetiseNoAdsTrackingOrTraffic: string;
     /** Please do not email us about marketing, tracking, or advertising. */
     monetiseNoMarketingEmail: string;
-    /** We are not interested in any way of monetising Lichess. */
+    /** We are not interested in any way of monetising Lixiangqi. */
     monetiseNotInterested: string;
-    /** Monetising Lichess */
+    /** Monetising Lixiangqi */
     monetizing: string;
     /** I didn't receive my confirmation email */
     noConfirmationEmail: string;
@@ -911,15 +905,15 @@ interface I18n {
     ratedGame: string;
     /** You can reopen your account on this page. */
     reopenOnThisPage: string;
-    /** In the Lichess Discord server */
+    /** In the Lixiangqi Discord server */
     reportBugInDiscord: string;
-    /** In the Lichess Feedback section of the forum */
+    /** In the Lixiangqi Feedback section of the forum */
     reportBugInForum: string;
     /** If you faced an error page, you may report it: */
     reportErrorPage: string;
-    /** As a Lichess mobile app issue on GitHub */
+    /** As a Lixiangqi mobile app issue on GitHub */
     reportMobileIssue: string;
-    /** As a Lichess website issue on GitHub */
+    /** As a Lixiangqi website issue on GitHub */
     reportWebsiteIssue: string;
     /** You may send an appeal to %s. */
     sendAppealTo: I18nFormat;
@@ -927,15 +921,15 @@ interface I18n {
     sendEmailAt: I18nFormat;
     /** To report a player, use the report form */
     toReportAPlayerUseForm: string;
-    /** Try this little interactive game to practice castling in chess */
+    /** Try this little interactive game to practice general safety in Xiangqi */
     tryCastling: string;
-    /** Try this little interactive game to learn more about "en passant". */
+    /** Try this little interactive game to learn more about the flying general rule. */
     tryEnPassant: string;
-    /** You can show it in your videos, and you can print screenshots of Lichess in your books. */
+    /** You can show it in your videos, and you can print screenshots of Lixiangqi in your books. */
     videosAndBooks: string;
     /** Visit this page to solve the issue */
     visitThisPage: string;
-    /** To show your title on your Lichess profile, and participate in Titled Arenas, visit the title confirmation page */
+    /** To show your title on your Lixiangqi profile, and participate in Titled Arenas, visit the title confirmation page */
     visitTitleConfirmation: string;
     /** I want to change my username */
     wantChangeUsername: string;
@@ -949,9 +943,9 @@ interface I18n {
     wantReport: string;
     /** I want to report a bug */
     wantReportBug: string;
-    /** I want my title displayed on Lichess */
+    /** I want my title displayed on Lixiangqi */
     wantTitle: string;
-    /** You are welcome to use Lichess for your activity, even commercial. */
+    /** You are welcome to use Lixiangqi for your activity, even commercial. */
     welcomeToUse: string;
     /** What can we help you with? */
     whatCanWeHelpYouWith: string;
@@ -960,52 +954,12 @@ interface I18n {
     /** You can login with the email address you signed up with */
     youCanLoginWithEmail: string;
   };
-  coordinates: {
-    /** A coordinate appears on the board and you must click on the corresponding square. */
-    aCoordinateAppears: string;
-    /** A square is highlighted on the board and you must enter its coordinate (e.g. "e4"). */
-    aSquareIsHighlightedExplanation: string;
-    /** Average score as black: %s */
-    averageScoreAsBlackX: I18nFormat;
-    /** Average score as white: %s */
-    averageScoreAsWhiteX: I18nFormat;
-    /** Coordinates */
-    coordinates: string;
-    /** Coordinate training */
-    coordinateTraining: string;
-    /** Find square */
-    findSquare: string;
-    /** Go as long as you want, there is no time limit! */
-    goAsLongAsYouWant: string;
-    /** Knowing the chessboard coordinates is a very important skill for several reasons: */
-    knowingTheChessBoard: string;
-    /** Most chess courses and exercises use the algebraic notation extensively. */
-    mostChessCourses: string;
-    /** Name square */
-    nameSquare: string;
-    /** Practice only some files & ranks */
-    practiceOnlySomeFilesAndRanks: string;
-    /** Show coordinates */
-    showCoordinates: string;
-    /** Coordinates on every square */
-    showCoordsOnAllSquares: string;
-    /** Show pieces */
-    showPieces: string;
-    /** Start training */
-    startTraining: string;
-    /** It makes it easier to talk to your chess friends, since you both understand the 'language of chess'. */
-    talkToYourChessFriends: string;
-    /** You can analyse a game more effectively if you can quickly recognise coordinates. */
-    youCanAnalyseAGameMoreEffectively: string;
-    /** You have 30 seconds to correctly map as many squares as possible! */
-    youHaveThirtySeconds: string;
-  };
   dgt: {
     /** Announce All Moves */
     announceAllMoves: string;
     /** Announce Move Format */
     announceMoveFormat: string;
-    /** As a last resort: Set up the board identically to Lichess, then %s */
+    /** As a last resort: Set up the board identically to Lixiangqi, then %s */
     asALastResort: I18nFormat;
     /** The board will auto connect to any game that is already on course or any new game that starts. Ability to choose which game to play is coming soon. */
     boardWillAutoConnect: string;
@@ -1043,17 +997,17 @@ interface I18n {
     ifLiveChessRunningOnThisComputer: I18nFormat;
     /** If a move is not detected */
     ifMoveNotDetected: string;
-    /** The play page needs to remain open on your browser. It does not need to be visible, you can minimize it or set it side to side with the Lichess game page, but don't close it or the board will stop working. */
+    /** The play page needs to remain open on your browser. It does not need to be visible, you can minimize it or set it side to side with the Lixiangqi game page, but don't close it or the board will stop working. */
     keepPlayPageOpen: string;
     /** Keywords are in JSON format. They are used to translate moves and results into your language. Default is English, but feel free to change it. */
     keywordFormatDescription: string;
     /** Keywords */
     keywords: string;
-    /** Lichess & DGT */
+    /** Lixiangqi & DGT */
     lichessAndDgt: string;
-    /** Lichess connectivity */
+    /** Lixiangqi connectivity */
     lichessConnectivity: string;
-    /** SAN is the standard on Lichess, for example "Nf6". UCI is common for engines, for example "g8f6". */
+    /** SAN is the standard on Lixiangqi, for example "Nf6". UCI is common for engines, for example "g8f6". */
     moveFormatDescription: string;
     /** No suitable OAuth token has been created. */
     noSuitableOauthToken: string;
@@ -1069,7 +1023,7 @@ interface I18n {
     speechSynthesisVoice: string;
     /** Text to speech */
     textToSpeech: string;
-    /** This page allows you to connect your DGT board to Lichess and use it for playing games. */
+    /** This page allows you to connect your DGT board to Lixiangqi and use it for playing games. */
     thisPageAllowsConnectingDgtBoard: string;
     /** Time controls for casual games: Classical, Correspondence and Rapid only. */
     timeControlsForCasualGames: string;
@@ -1105,41 +1059,41 @@ interface I18n {
     emailChange_intro: string;
     /** Confirm new email address, %s */
     emailChange_subject: I18nFormat;
-    /** Click the link to enable your Lichess account: */
+    /** Click the link to enable your Lixiangqi account: */
     emailConfirm_click: string;
-    /** Thanks for registering with Lichess! */
+    /** Thanks for registering with Lixiangqi! */
     emailConfirm_intro: string;
-    /** If you did not register with Lichess, you can safely ignore this message. The unconfirmed account and all traces of your email address will be deleted from our system after 48 hours. */
+    /** If you did not register with Lixiangqi, you can safely ignore this message. The unconfirmed account and all traces of your email address will be deleted from our system after 48 hours. */
     emailConfirm_justIgnore: string;
-    /** Confirm your lichess.org account, %s */
+    /** Confirm your lixiangqi.org account, %s */
     emailConfirm_subject: I18nFormat;
-    /** Log in to lichess.org, %s */
+    /** Log in to lixiangqi.org, %s */
     logInToLichess: I18nFormat;
     /** If you made this request, click the link below. If not, you can ignore this email. */
     passwordReset_clickOrIgnore: string;
     /** We received a request to reset the password for your account. */
     passwordReset_intro: string;
-    /** Reset your lichess.org password, %s */
+    /** Reset your lixiangqi.org password, %s */
     passwordReset_subject: I18nFormat;
-    /** Welcome to lichess.org, %s */
+    /** Welcome to lixiangqi.org, %s */
     welcome_subject: I18nFormat;
-    /** You have successfully created your account on https://lichess.org. */
+    /** You have successfully created your account on https://lixiangqi.org. */
     welcome_text: I18nFormat;
   };
   faq: {
     /** Accounts */
     accounts: string;
-    /** The centipawn is the unit of measure used in chess as representation of the advantage. A centipawn is equal to 1/100th of a pawn. Therefore 100 centipawns = 1 pawn. These values play no formal role in the game but are useful to players, and essential in computer chess, for evaluating positions. */
+    /** The centipawn is the unit of measure used in Xiangqi engine analysis as representation of the advantage. A centipawn is equal to 1/100th of a pawn. Therefore 100 centipawns = 1 pawn. These values play no formal role in the game but are useful to players and engines when evaluating positions. */
     acplExplanation: string;
     /** We regularly receive messages from users asking us for help to stop them from playing too much. */
     adviceOnMitigatingAddiction: I18nFormat;
     /** an hourly Bullet tournament */
     aHourlyBulletTournament: string;
-    /** Are there websites based on Lichess? */
+    /** Are there websites based on Lixiangqi? */
     areThereWebsitesBasedOnLichess: string;
     /** many national master titles */
     asWellAsManyNMtitles: string;
-    /** Lichess time controls are based on estimated game duration = %1$s. */
+    /** Lixiangqi time controls are based on estimated game duration = %1$s. */
     basedOnGameDuration: I18nFormat;
     /** being a patron */
     beingAPatron: string;
@@ -1147,7 +1101,7 @@ interface I18n {
     beInTopTen: string;
     /** breakdown of our costs */
     breakdownOfOurCosts: string;
-    /** Can I get the Lichess Master (LM) title? */
+    /** Can I get the Lixiangqi Master (LM) title? */
     canIbecomeLM: string;
     /** Can I change my username? */
     canIChangeMyUsername: string;
@@ -1157,33 +1111,31 @@ interface I18n {
     connexionLostCanIGetMyRatingBack: string;
     /** desktop */
     desktop: string;
-    /** Why can a pawn capture another pawn when it is already passed? (en passant) */
+    /** Why can generals not face each other? */
     discoveringEnPassant: string;
     /** display preferences */
     displayPreferences: string;
     /** (clock initial time in seconds) + 40 × (clock increment) */
     durationFormula: string;
-    /** 8 chess variants */
-    eightVariants: string;
     /** Most browsers can prevent sound from playing on a freshly loaded page to protect users. Imagine if every website could immediately bombard you with audio ads. */
     enableAutoplayForSoundsA: string;
-    /** 1. Go to lichess.org */
+    /** 1. Go to lixiangqi.org */
     enableAutoplayForSoundsChrome: string;
-    /** 1. Go to lichess.org */
+    /** 1. Go to lixiangqi.org */
     enableAutoplayForSoundsChromeSiteInformation: string;
-    /** 1. Go to lichess.org */
+    /** 1. Go to lixiangqi.org */
     enableAutoplayForSoundsFirefox: string;
     /** 1. Click the three dots in the top right corner */
     enableAutoplayForSoundsMicrosoftEdge: string;
     /** Enable autoplay for sounds? */
     enableAutoplayForSoundsQ: string;
-    /** 1. Go to lichess.org */
+    /** 1. Go to lixiangqi.org */
     enableAutoplayForSoundsSafari: string;
     /** Enable or disable notification popups? */
     enableDisableNotificationPopUps: string;
     /** Enable Zen mode in the %1$s, or by pressing %2$s during a game. */
     enableZenMode: I18nFormat;
-    /** This is a legal move known as "en passant". The Wikipedia article gives a %1$s. */
+    /** This is the Xiangqi flying general rule. The Wikipedia article gives a %1$s. */
     explainingEnPassant: I18nFormat;
     /** Fair Play */
     fairPlay: string;
@@ -1193,17 +1145,17 @@ interface I18n {
     faqAbbreviation: string;
     /** fewer lobby pools */
     fewerLobbyPools: string;
-    /** FIDE handbook */
+    /** WXF rules */
     fideHandbook: string;
-    /** FIDE handbook %s */
+    /** WXF rules %s */
     fideHandbookX: I18nFormat;
-    /** You can find out more about %1$s (including a %2$s). If you want to help Lichess by volunteering your time and skills, there are many %3$s. */
+    /** You can find out more about %1$s (including a %2$s). If you want to help Lixiangqi by volunteering your time and skills, there are many %3$s. */
     findMoreAndSeeHowHelp: I18nFormat;
     /** Frequently Asked Questions */
     frequentlyAskedQuestions: string;
     /** Gameplay */
     gameplay: string;
-    /** ZugAddict was streaming and for the last 2 hours he had been trying to defeat A.I. level 8 in a 1+0 game, without success. Thibault told him that if he successfully did it on stream, he'd get a unique trophy. One hour later, he smashed Stockfish, and the promise was honoured. */
+    /** ZugAddict was streaming and for the last 2 hours he had been trying to defeat A.I. level 8 in a 1+0 game, without success. Thibault told him that if he successfully did it on stream, he'd get a unique trophy. One hour later, he won the game, and the promise was honoured. */
     goldenZeeExplanation: string;
     /** good introduction */
     goodIntroduction: string;
@@ -1219,7 +1171,7 @@ interface I18n {
     howBulletBlitzEtcDecided: string;
     /** How can I become a moderator? */
     howCanIBecomeModerator: string;
-    /** How can I contribute to Lichess? */
+    /** How can I contribute to Lixiangqi? */
     howCanIContributeToLichess: string;
     /** How do ranks and leaderboards work? */
     howDoLeaderoardsWork: string;
@@ -1233,35 +1185,33 @@ interface I18n {
     inOrderToAppearsYouMust: I18nFormat;
     /** Losing on time, drawing and insufficient material */
     insufficientMaterial: string;
-    /** Is correspondence different from normal chess? */
+    /** Is correspondence different from normal Xiangqi? */
     isCorrespondenceDifferent: string;
     /** What keyboard shortcuts are there? */
     keyboardShortcuts: string;
-    /** Some Lichess pages have keyboard shortcuts you can use. Try pressing the '?' key on a study, analysis, puzzle, or game page to list available keyboard shortcuts. */
+    /** Some Lixiangqi pages have keyboard shortcuts you can use. Try pressing the '?' key on a study, analysis, puzzle, or game page to list available keyboard shortcuts. */
     keyboardShortcutsExplanation: string;
     /** If your opponent frequently aborts/leaves games, they get "play banned", which means they're temporarily banned from playing games. This is not publicly indicated on their profile. If this behaviour continues, the length of the playban increases - and prolonged behaviour of this nature may lead to account closure. */
     leavingGameWithoutResigningExplanation: string;
-    /** lee-chess */
+    /** lee-shyang-chee */
     leechess: string;
-    /** Lichess can optionally send popup notifications, for example when it is your turn or you received a private message. */
+    /** Lixiangqi can optionally send popup notifications, for example when it is your turn or you received a private message. */
     lichessCanOptionnalySendPopUps: string;
-    /** Lichess is a combination of live/light/libre and chess. It is pronounced %1$s. */
+    /** Lixiangqi is a combination of live/light/libre and Xiangqi. It is pronounced %1$s. */
     lichessCombinationLiveLightLibrePronounced: I18nFormat;
-    /** In the event of one player running out of time, that player will usually lose the game. However, the game is drawn if the position is such that the opponent cannot checkmate the player's king by any possible series of legal moves (%1$s). */
+    /** In the event of one player running out of time, that player will usually lose the game. However, the game is drawn if the position is such that the opponent cannot checkmate the player's general by any possible series of legal moves (%1$s). */
     lichessFollowFIDErules: I18nFormat;
-    /** Lichess is powered by donations from patrons and the efforts of a team of volunteers. */
+    /** Lixiangqi is powered by donations from patrons and the efforts of a team of volunteers. */
     lichessPoweredByDonationsAndVolunteers: string;
-    /** Lichess ratings */
+    /** Lixiangqi ratings */
     lichessRatings: string;
-    /** Lichess recognises all FIDE titles gained from OTB (over the board) play, as well as %1$s. Here is a list of FIDE titles: */
+    /** Lixiangqi recognises Xiangqi titles gained from over-the-board play, as well as %1$s. Here is a list of common Xiangqi titles: */
     lichessRecognizeAllOTBtitles: I18nFormat;
-    /** Lichess supports standard chess and %1$s. */
-    lichessSupportChessAnd: I18nFormat;
-    /** Lichess training */
+    /** Lixiangqi training */
     lichessTraining: string;
-    /** Lichess userstyles */
+    /** Lixiangqi userstyles */
     lichessUserstyles: string;
-    /** This honorific title is unofficial and only exists on Lichess. */
+    /** This honorific title is unofficial and only exists on Lixiangqi. */
     lMtitleComesToYouDoNotRequestIt: string;
     /** stand-alone mental health condition */
     mentalHealthCondition: string;
@@ -1277,7 +1227,7 @@ interface I18n {
     noUpperCaseDot: string;
     /** other ways to help */
     otherWaysToHelp: string;
-    /** That trophy is unique in the history of Lichess; nobody other than %1$s will ever have it. */
+    /** That trophy is unique in the history of Lixiangqi; nobody other than %1$s will ever have it. */
     ownerUniqueTrophies: I18nFormat;
     /** For more information, please read our %s */
     pleaseReadFairPlayPage: I18nFormat;
@@ -1287,7 +1237,7 @@ interface I18n {
     preventLeavingGameWithoutResigning: string;
     /** The question mark means the rating is provisional. Reasons include: */
     provisionalRatingExplanation: string;
-    /** have a rating deviation lower than %1$s, in standard chess, and lower than %2$s in variants, */
+    /** have a rating deviation lower than %1$s in standard Xiangqi, and lower than %2$s in variants, */
     ratingDeviationLowerThanXinChessYinVariants: I18nFormat;
     /** Concretely, it means that the Glicko-2 deviation is greater than 110. The deviation is the level of confidence the system has in the rating. The lower the deviation, the more stable is a rating. */
     ratingDeviationMorethanOneHundredTen: string;
@@ -1295,7 +1245,7 @@ interface I18n {
     ratingLeaderboards: string;
     /** One minute after a player is marked, their 40 latest rated games in the last 5 days are taken. If you were their opponent in one of those games, you lost rating (because of a loss or a draw), and your rating was not provisional, you get a rating refund. The refund is capped based on your peak rating and your rating progress after the game. (For example, if your rating greatly increased after that game, you might get no refund or only a partial refund.) A refund will never exceed 150 points. */
     ratingRefundExplanation: string;
-    /** Ratings are calculated using the Glicko-2 rating method developed by Mark Glickman. This is a very popular rating method, and is used by a significant number of chess organisations (FIDE being a notable counter-example, as they still use the dated Elo rating system). */
+    /** Ratings are calculated using the Glicko-2 rating method developed by Mark Glickman. This is a very popular rating method, and is used by a significant number of board-game organisations. */
     ratingSystemUsedByLichess: string;
     /** Threefold repetition is about repeated %1$s, not moves. Repetition does not have to occur consecutively. */
     repeatedPositionsThatMatters: I18nFormat;
@@ -1309,15 +1259,15 @@ interface I18n {
     stopMyselfFromPlaying: string;
     /** ≥ %1$ss = %2$s */
     superiorThanXsEqualYtimeControl: I18nFormat;
-    /** Repetition needs to be claimed by one of the players. You can claim a draw by pressing the button when it is shown, or by offering a draw before your final repeating move. It won't matter if your opponent rejects the draw offer; the draw by threefold repetition will be claimed anyway. You can also %1$s Lichess to automatically claim repetitions for you. Additionally, fivefold repetition always immediately ends the game. */
+    /** Repetition handling depends on whether the repeated moves are checks, chases, or idle moves. You can also %1$s Lixiangqi to claim repetitions automatically when the rules allow it. */
     threeFoldHasToBeClaimed: I18nFormat;
     /** Threefold repetition */
     threefoldRepetition: string;
-    /** If a position occurs three times, players can claim a draw by %1$s. Lichess implements the official FIDE rules, as described in Article 9.2 of the %2$s. */
+    /** If a position repeats, Xiangqi perpetual-check and perpetual-chase rules may apply. Lixiangqi follows the official WXF rules described in %2$s. */
     threefoldRepetitionExplanation: I18nFormat;
     /** threefold repetition */
     threefoldRepetitionLowerCase: string;
-    /** What titles are there on Lichess? */
+    /** What titles are there on Lixiangqi? */
     titlesAvailableOnLichess: string;
     /** Unique trophies */
     uniqueTrophies: string;
@@ -1329,9 +1279,9 @@ interface I18n {
     verificationForm: string;
     /** View site information popup */
     viewSiteInformationPopUp: string;
-    /** Watch International Master Eric Rosen checkmate %s. */
+    /** Learn how this rule shapes direct attacks on the %s. */
     watchIMRosenCheckmate: I18nFormat;
-    /** Unfortunately, we cannot give back rating points for games lost due to lag or disconnection, regardless of whether the problem was at your end or our end. The latter is very rare though. Also note that when Lichess restarts and you lose on time because of that, we abort the game to prevent an unfair loss. */
+    /** Unfortunately, we cannot give back rating points for games lost due to lag or disconnection, regardless of whether the problem was at your end or our end. The latter is very rare though. Also note that when Lixiangqi restarts and you lose on time because of that, we abort the game to prevent an unfair loss. */
     weCannotDoThatEvenIfItIsServerSideButThatsRare: string;
     /** We repeated a position three times. Why was the game not drawn? */
     weRepeatedthreeTimesPosButNoDraw: string;
@@ -1341,31 +1291,29 @@ interface I18n {
     whatIsProvisionalRating: string;
     /** What can my username be? */
     whatUsernameCanIchoose: string;
-    /** What variants can I play on Lichess? */
-    whatVariantsCanIplay: string;
     /** When am I eligible for the automatic rating refund from cheaters? */
     whenAmIEligibleRatinRefund: string;
-    /** What rating system does Lichess use? */
+    /** What rating system does Lixiangqi use? */
     whichRatingSystemUsedByLichess: string;
-    /** Why are ratings higher compared to other sites and organisations such as FIDE, USCF and the ICC? */
+    /** Why are ratings higher compared to other sites and Xiangqi organisations? */
     whyAreRatingHigher: string;
     /** It is best not to think of ratings as absolute numbers, or compare them against other organisations. Different organisations have different levels of players, different rating systems (Elo, Glicko, Glicko-2, or a modified version of the aforementioned). These factors can drastically affect the absolute numbers (ratings). */
     whyAreRatingHigherExplanation: string;
-    /** Why is Lichess called Lichess? */
+    /** Why is Lixiangqi called Lixiangqi? */
     whyIsLichessCalledLichess: string;
-    /** Similarly, the source code for Lichess, %1$s, stands for li[chess in sca]la, seeing as the bulk of Lichess is written in %2$s, an intuitive programming language. */
+    /** Similarly, the source code for Lixiangqi, %1$s, stands for li[xiangqi in sca]la, seeing as the bulk of Lixiangqi is written in %2$s, an intuitive programming language. */
     whyIsLilaCalledLila: I18nFormat;
-    /** Live, because games are played and watched in real-time 24/7; light and libre for the fact that Lichess is open-source and unencumbered by proprietary junk that plagues other websites. */
+    /** Live, because games are played and watched in real-time 24/7; light and libre for the fact that Lixiangqi is open-source and unencumbered by proprietary junk that plagues other websites. */
     whyLiveLightLibre: string;
-    /** Yes. Lichess has indeed inspired other open-source sites that use our %1$s, %2$s, or %3$s. */
+    /** Yes. Lixiangqi is based on open-source Lila technology and shares the same spirit of reusable %1$s, %2$s, and %3$s. */
     yesLichessInspiredOtherOpenSourceWebsites: I18nFormat;
     /** It is not possible to apply to become a moderator. If we see someone who we think would be good as a moderator, we will contact them directly. */
     youCannotApply: string;
-    /** On Lichess, the main difference in rules for correspondence chess is that an opening book is allowed. The use of engines is still prohibited and will result in being flagged for engine assistance. Although ICCF allows engine use in correspondence, Lichess does not. */
+    /** On Lixiangqi, the main difference in rules for correspondence Xiangqi is that an opening database is allowed. The use of engines is still prohibited and will result in being flagged for engine assistance. */
     youCanUseOpeningBookNoEngine: string;
   };
   features: {
-    /** All lessons in the basics of chess */
+    /** All lessons in the basics of Xiangqi */
     allChessBasicsLessons: string;
     /** All features are free for everybody, forever! */
     allFeaturesAreFreeForEverybody: string;
@@ -1373,11 +1321,11 @@ interface I18n {
     allFeaturesToCome: string;
     /** Board editor and analysis board with %s */
     boardEditorAndAnalysisBoardWithEngine: I18nFormat;
-    /** Chess insights (detailed analysis of your play) */
+    /** Xiangqi insights (detailed analysis of your play) */
     chessInsights: string;
     /** Cloud engine analysis */
     cloudEngineAnalysis: string;
-    /** Correspondence chess with conditional premoves */
+    /** Correspondence Xiangqi with conditional premoves */
     correspondenceWithConditionalPremoves: string;
     /** Deep %s server analysis */
     deepXServerAnalysis: I18nFormat;
@@ -1391,18 +1339,18 @@ interface I18n {
     gamesPerDay: I18nPlural;
     /** Global opening explorer (%s games!) */
     globalOpeningExplorerInNbGames: I18nFormat;
-    /** If you love Lichess, */
+    /** If you love Lixiangqi, */
     ifYouLoveLichess: string;
     /** iPhone & Android phones and tablets, landscape support */
     landscapeSupportOnApp: string;
     /** Light/Dark theme, custom boards, pieces and background */
     lightOrDarkThemeCustomBoardsPiecesAndBackground: string;
+    /** Native Xiangqi games */
+    nativeXiangqiGames: string;
     /** Personal opening explorer */
     personalOpeningExplorer: string;
     /** %1$s (also works on %2$s) */
     personalOpeningExplorerX: I18nFormat;
-    /** Standard chess and %s */
-    standardChessAndX: I18nFormat;
     /** Studies (shareable and persistent analysis) */
     studies: string;
     /** Support us with a Patron account! */
@@ -1411,33 +1359,33 @@ interface I18n {
     tacticalPuzzlesFromUserGames: string;
     /** Blog, forum, teams, TV, messaging, friends, challenges */
     tvForumBlogTeamsMessagingFriendsChallenges: string;
-    /** UltraBullet, Bullet, Blitz, Rapid, Classical, Correspondence Chess */
+    /** UltraBullet, Bullet, Blitz, Rapid, Classical, Correspondence Xiangqi */
     ultraBulletBulletBlitzRapidClassicalAndCorrespondenceChess: string;
-    /** We believe every chess player deserves the best, and so: */
+    /** We believe every Xiangqi player deserves the best, and so: */
     weBelieveEveryChessPlayerDeservesTheBest: string;
     /** Zero advertisement, no tracking */
     zeroAdsAndNoTracking: string;
   };
   insight: {
-    /** Sorry, you cannot see %s's chess insights. */
+    /** Sorry, you cannot see %s's Xiangqi insights. */
     cantSeeInsights: I18nFormat;
     /** Now crunching data just for you! */
     crunchingData: string;
-    /** Generate %s's chess insights */
+    /** Generate %s's Xiangqi insights */
     generateInsights: I18nFormat;
-    /** %s's chess insights are protected */
+    /** %s's Xiangqi insights are protected */
     insightsAreProtected: I18nFormat;
     /** insights settings */
     insightsSettings: string;
     /** Maybe ask them to change their %s? */
     maybeAskThemToChangeTheir: I18nFormat;
-    /** %s's chess insights */
+    /** %s's Xiangqi insights */
     xChessInsights: I18nFormat;
-    /** %s has no chess insights yet! */
+    /** %s has no Xiangqi insights yet! */
     xHasNoChessInsights: I18nFormat;
   };
   keyboardMove: {
-    /** Both the letter "o" and the digit zero "0" can be used when castling */
+    /** Use the displayed move notation exactly when entering moves */
     bothTheLetterOAndTheDigitZero: string;
     /** Capitalization only matters in ambiguous situations involving a bishop and the b-pawn */
     capitalizationOnlyMattersInAmbiguousSituations: string;
@@ -1479,21 +1427,21 @@ interface I18n {
   lag: {
     /** And now, the long answer! Game lag is composed of two unrelated values (lower is better): */
     andNowTheLongAnswerLagComposedOfTwoValues: string;
-    /** Is Lichess lagging? */
+    /** Is Lixiangqi lagging? */
     isLichessLagging: string;
     /** Lag compensation */
     lagCompensation: string;
-    /** Lichess compensates for network lag. This includes sustained lag and occasional lag spikes. Compensation limits and rules are based on time control and already-compensated lag, ensuring the game stays fair for both players. As a result, having a higher network lag than your opponent is not a handicap! */
+    /** Lixiangqi compensates for network lag. This includes sustained lag and occasional lag spikes. Compensation limits and rules are based on time control and already-compensated lag, ensuring the game stays fair for both players. As a result, having a higher network lag than your opponent is not a handicap! */
     lagCompensationExplanation: string;
-    /** Lichess server latency */
+    /** Lixiangqi server latency */
     lichessServerLatency: string;
-    /** The time it takes to process a move on the server. It's the same for everybody, and only depends on the servers load. The more players, the higher it gets, but Lichess developers do their best to keep it low. It rarely exceeds 10ms. */
+    /** The time it takes to process a move on the server. It's the same for everybody, and only depends on the servers load. The more players, the higher it gets, but Lixiangqi developers do their best to keep it low. It rarely exceeds 10ms. */
     lichessServerLatencyExplanation: string;
     /** Measurements in progress... */
     measurementInProgressThreeDot: string;
-    /** Network between Lichess and you */
+    /** Network between Lixiangqi and you */
     networkBetweenLichessAndYou: string;
-    /** The time it takes to send a move from your computer to Lichess's server, and get a response back. The ping depends on your distance to Lichess (France) as well as the quality of your Internet connection. Lichess developers cannot fix your Wi-Fi or make light go faster. */
+    /** The time it takes to send a move from your computer to Lixiangqi's server, and get a response back. The ping depends on your distance to Lixiangqi (France) as well as the quality of your Internet connection. Lixiangqi developers cannot fix your Wi-Fi or make light go faster. */
     networkBetweenLichessAndYouExplanation: string;
     /** No. And your network is bad. */
     noAndYourNetworkIsBad: string;
@@ -1527,7 +1475,7 @@ interface I18n {
     blackJustMovedThePawnByTwoSquares: string;
     /** Board setup */
     boardSetup: string;
-    /** Congratulations! You know how to set up the chess board. */
+    /** Congratulations! You know how to set up the Xiangqi board. */
     boardSetupComplete: string;
     /** The two armies face each other, ready for the battle. */
     boardSetupIntro: string;
@@ -1537,7 +1485,7 @@ interface I18n {
     capture: string;
     /** Capture and defend pieces */
     captureAndDefendPieces: string;
-    /** Congratulations! You know how to fight with chess pieces! */
+    /** Congratulations! You know how to fight with Xiangqi pieces! */
     captureComplete: string;
     /** Identify the opponent's undefended pieces, and capture them! */
     captureIntro: string;
@@ -1551,11 +1499,11 @@ interface I18n {
     castleQueenSide: string;
     /** Castle queen-side! */
     castleQueenSideMovePiecesFirst: string;
-    /** Castling */
+    /** General safety */
     castling: string;
-    /** Congratulations! You should almost always castle in a game. */
+    /** Congratulations! You know how to keep the general safe. */
     castlingComplete: string;
-    /** Bring your king to safety, and deploy your rook for attack! */
+    /** Keep your general safe while preparing your pieces for attack! */
     castlingIntro: string;
     /** Check in one */
     checkInOne: string;
@@ -1573,11 +1521,11 @@ interface I18n {
     checkInTwoGoal: string;
     /** Find the right combination of two moves that checks the opponent's king! */
     checkInTwoIntro: string;
-    /** Chess pieces */
+    /** Xiangqi pieces */
     chessPieces: string;
     /** Combat */
     combat: string;
-    /** Congratulations! You know how to fight with chess pieces! */
+    /** Congratulations! You know how to fight with Xiangqi pieces! */
     combatComplete: string;
     /** A good warrior knows both attack and defence! */
     combatIntro: string;
@@ -1587,13 +1535,13 @@ interface I18n {
     defendYourKing: string;
     /** Don't let them take */
     dontLetThemTakeAnyUndefendedPiece: string;
-    /** Congratulations! You can now take en passant. */
+    /** Congratulations! You understand this soldier tactic. */
     enPassantComplete: string;
     /** When the opponent's pawn moves two squares, you can still take it as if it had only moved one square. */
     enPassantIntro: string;
-    /** En passant only works */
+    /** This tactic only works */
     enPassantOnlyWorksImmediately: string;
-    /** En passant only works */
+    /** This tactic only works */
     enPassantOnlyWorksOnFifthRank: string;
     /** You're under attack! */
     escape: string;
@@ -1615,7 +1563,7 @@ interface I18n {
     firstPlaceTheRooks: string;
     /** Fundamentals */
     fundamentals: string;
-    /** Get a free Lichess account */
+    /** Get a free Lixiangqi account */
     getAFreeLichessAccount: string;
     /** Grab all the stars! */
     grabAllTheStars: string;
@@ -1653,15 +1601,15 @@ interface I18n {
     knightsHaveAFancyWay: string;
     /** Last one! */
     lastOne: string;
-    /** Learn chess */
+    /** Learn Xiangqi */
     learnChess: string;
-    /** Learn common chess positions */
+    /** Learn common Xiangqi positions */
     learnCommonChessPositions: string;
     /** Let's go! */
     letsGo: string;
     /** Mate in one */
     mateInOne: string;
-    /** Congratulations! That is how you win chess games! */
+    /** Congratulations! That is how you win Xiangqi games! */
     mateInOneComplete: string;
     /** You win when your opponent cannot defend against a check. */
     mateInOneIntro: string;
@@ -1741,9 +1689,9 @@ interface I18n {
     queenCombinesRookAndBishop: string;
     /** Congratulations! Queens have no secrets for you. */
     queenComplete: string;
-    /** The most powerful chess piece enters. Her majesty the queen! */
+    /** The most powerful Xiangqi piece enters. Her majesty the queen! */
     queenIntro: string;
-    /** Take the piece */
+    /** >Take the piece */
     queenOverBishop: string;
     /** Register */
     register: string;
@@ -1773,7 +1721,7 @@ interface I18n {
     stalemateGoal: string;
     /** When a player is not in check and does not have a legal move, it's a stalemate. The game is drawn: no one wins, no one loses. */
     stalemateIntro: string;
-    /** Take all the pawns en passant! */
+    /** Use every soldier tactic! */
     takeAllThePawnsEnPassant: string;
     /** Take the black pieces! */
     takeTheBlackPieces: string;
@@ -1827,7 +1775,7 @@ interface I18n {
     useTwoRooks: string;
     /** Videos */
     videos: string;
-    /** Watch instructive chess videos */
+    /** Watch instructive Xiangqi videos */
     watchInstructiveChessVideos: string;
     /** Way to go! */
     wayToGo: string;
@@ -1841,7 +1789,7 @@ interface I18n {
     youCannotCastleIfAttacked: string;
     /** You cannot castle if */
     youCannotCastleIfMoved: string;
-    /** You know how to play chess, congratulations! Do you want to become a stronger player? */
+    /** You know how to play Xiangqi, congratulations! Do you want to become a stronger player? */
     youKnowHowToPlayChess: string;
     /** One light-squared bishop, */
     youNeedBothBishops: string;
@@ -1853,10 +1801,76 @@ interface I18n {
     youWillLoseAllYourProgress: string;
   };
   msg: {
-    /** There is a new Lichess mobile app available! */
+    /** There is a new Lixiangqi mobile app available! */
     lichobileNewAppAvailable: string;
-    /** Please download the new official Lichess app at %s. */
+    /** Please download the new official Lixiangqi app at %s. */
     lichobileNewAppDownload: I18nFormat;
+  };
+  notation: {
+    /** Average score from Black's side: %s */
+    averageScoreFromBlackX: I18nFormat;
+    /** Average score with both perspectives: %s */
+    averageScoreFromBothX: I18nFormat;
+    /** Average score from Red's side: %s */
+    averageScoreFromRedX: I18nFormat;
+    /** Black */
+    black: string;
+    /** Black side */
+    blackSide: string;
+    /** Board perspective */
+    boardPerspective: string;
+    /** Both */
+    both: string;
+    /** Check */
+    checkAnswer: string;
+    /** Practice without a time limit. */
+    goAsLongAsYouWant: string;
+    /** Move from Notation */
+    moveFromNotation: string;
+    /** Move from Notation shows a valid move; play that move on the board. */
+    moveFromNotationExplanation: string;
+    /** What move was played? */
+    nameTheMove: string;
+    /** Xiangqi notation training board */
+    notationBoard: string;
+    /** Move notation is the language used to record, study, and discuss Xiangqi games. */
+    notationIntroduction: string;
+    /** A notation move identifies the piece, its starting file or order, its direction, and its destination. */
+    notationStructure: string;
+    /** Notation system */
+    notationSystem: string;
+    /** Play this move */
+    playThisMove: string;
+    /** Practice time */
+    practiceTime: string;
+    /** Red */
+    red: string;
+    /** Red side */
+    redSide: string;
+    /** Show board coordinates */
+    showBoardCoordinates: string;
+    /** Side to move */
+    sideToMove: string;
+    /** Start training */
+    startTraining: string;
+    /** WXF Chinese (炮二平五) */
+    traditionalNotation: string;
+    /** Training mode */
+    trainingMode: string;
+    /** Write Notation */
+    writeNotation: string;
+    /** Write Notation plays a valid move; enter the notation that describes it. */
+    writeNotationExplanation: string;
+    /** WXF (C2=5) */
+    wxfNotation: string;
+    /** Xiangqi Notation */
+    xiangqiNotation: string;
+    /** Xiangqi Notation training */
+    xiangqiNotationTraining: string;
+    /** You have 30 seconds to solve as many notation exercises as possible. */
+    youHaveThirtySeconds: string;
+    /** Your notation */
+    yourNotation: string;
   };
   nvui: {
     /** Actions */
@@ -1957,11 +1971,11 @@ interface I18n {
     sanCheckmate: string;
     /** is dropped on */
     sanDroppedOn: string;
-    /** long castling */
+    /** long move */
     sanLongCastling: string;
     /** promotes to */
     sanPromotesTo: string;
-    /** short castling */
+    /** short move */
     sanShortCastling: string;
     /** K Q R B N x */
     sanSymbols: string;
@@ -2083,17 +2097,17 @@ interface I18n {
     whatTheTokenCanDo: string;
   };
   onboarding: {
-    /** Configure Lichess to your liking. */
+    /** Configure Lixiangqi to your liking. */
     configureLichess: string;
     /** Will a child use this account? You might want to enable %s. */
     enabledKidModeSuggestion: I18nFormat;
     /** Explore the site and have fun :) */
     exploreTheSiteAndHaveFun: string;
-    /** Follow your friends on Lichess. */
+    /** Follow your friends on Lixiangqi. */
     followYourFriendsOnLichess: string;
-    /** Improve with chess tactics puzzles. */
+    /** Improve with Xiangqi tactics puzzles. */
     improveWithChessTacticsPuzzles: string;
-    /** Learn the rules of chess. */
+    /** Learn the rules of Xiangqi. */
     learnChessRules: string;
     /** Learn from %1$s and %2$s. */
     learnFromXAndY: I18nFormat;
@@ -2109,7 +2123,7 @@ interface I18n {
     thisIsYourProfilePage: string;
     /** Welcome! */
     welcome: string;
-    /** Welcome to Lichess! */
+    /** Welcome to Lixiangqi! */
     welcomeToLichess: string;
     /** What now? Here are a few suggestions: */
     whatNowSuggestions: string;
@@ -2121,11 +2135,11 @@ interface I18n {
     amount: string;
     /** We also accept bank transfers */
     bankTransfers: string;
-    /** Become a Lichess Patron */
+    /** Become a Lixiangqi Patron */
     becomePatron: string;
     /** Cancel your support */
     cancelSupport: string;
-    /** The celebrated Patrons who make Lichess possible */
+    /** The celebrated Patrons who make Lixiangqi possible */
     celebratedPatrons: string;
     /** Change currency */
     changeCurrency: string;
@@ -2137,7 +2151,7 @@ interface I18n {
     changeSupport: I18nFormat;
     /** Check out your profile page! */
     checkOutProfile: string;
-    /** contact Lichess support */
+    /** contact Lixiangqi support */
     contactSupport: string;
     /** See the detailed cost breakdown */
     costBreakdown: string;
@@ -2147,19 +2161,19 @@ interface I18n {
     currentStatus: string;
     /** Date */
     date: string;
-    /** Decide what Lichess is worth to you: */
+    /** Decide what Lixiangqi is worth to you: */
     decideHowMuch: string;
     /** Donate */
     donate: string;
     /** Donate as %s */
     donateAsX: I18nFormat;
-    /** In one month, you will NOT be charged again, and your Lichess account will revert to a regular account. */
+    /** In one month, you will NOT be charged again, and your Lixiangqi account will revert to a regular account. */
     downgradeNextMonth: string;
     /** See the detailed feature comparison */
     featuresComparison: string;
     /** Free account */
     freeAccount: string;
-    /** Free chess for everyone, forever! */
+    /** Free Xiangqi for everyone, forever! */
     freeChess: string;
     /** Gift Patron wings to a player */
     giftPatronWings: string;
@@ -2167,13 +2181,13 @@ interface I18n {
     giftPatronWingsShort: string;
     /** If not renewed, your account will then revert to a regular account. */
     ifNotRenewedThenAccountWillRevert: string;
-    /** Lichess is registered with %s. */
+    /** Lixiangqi is registered with %s. */
     lichessIsRegisteredWith: I18nFormat;
-    /** Lichess Patron */
+    /** Lixiangqi Patron */
     lichessPatron: string;
     /** Lifetime */
     lifetime: string;
-    /** Lifetime Lichess Patron */
+    /** Lifetime Lixiangqi Patron */
     lifetimePatron: string;
     /** Sign in to donate */
     logInToDonate: string;
@@ -2187,15 +2201,15 @@ interface I18n {
     nextPayment: string;
     /** No ads, no subscriptions; but open-source and passion. */
     noAdsNoSubs: string;
-    /** No longer support Lichess */
+    /** No longer support Lixiangqi */
     noLongerSupport: string;
-    /** No, because Lichess is entirely free, forever, and for everyone. That's a promise. */
+    /** No, because Lixiangqi is entirely free, forever, and for everyone. That's a promise. */
     noPatronFeatures: string;
-    /** You are now a lifetime Lichess Patron! */
+    /** You are now a lifetime Lixiangqi Patron! */
     nowLifetime: string;
-    /** You are now a Lichess Patron for one month! */
+    /** You are now a Lixiangqi Patron for one month! */
     nowOneMonth: string;
-    /** Is Lichess an official non-profit? */
+    /** Is Lixiangqi an official non-profit? */
     officialNonProfit: string;
     /** One-time */
     onetime: string;
@@ -2207,7 +2221,7 @@ interface I18n {
     otherMethods: string;
     /** Are some features reserved to Patrons? */
     patronFeatures: string;
-    /** Lichess Patron for %s months */
+    /** Lixiangqi Patron for %s months */
     patronForMonths: I18nPlural;
     /** the patron page */
     patronPage: string;
@@ -2215,7 +2229,7 @@ interface I18n {
     patronSince: I18nFormat;
     /** You have a Patron account until %s. */
     patronUntil: I18nFormat;
-    /** Pay %s once. Be a Lichess Patron forever! */
+    /** Pay %s once. Be a Lixiangqi Patron forever! */
     payLifetimeOnce: I18nFormat;
     /** Payment details */
     paymentDetails: string;
@@ -2245,27 +2259,27 @@ interface I18n {
     update: string;
     /** Update payment method */
     updatePaymentMethod: string;
-    /** View other Lichess Patrons */
+    /** View other Lixiangqi Patrons */
     viewOthers: string;
-    /** We are a non‑profit association because we believe everyone should have access to a free, world-class chess platform. */
+    /** We are a non‑profit association because we believe everyone should have access to a free, world-class Xiangqi platform. */
     weAreNonProfit: string;
     /** We are a small team, so your support makes a huge difference! */
     weAreSmallTeam: string;
-    /** We rely on support from people like you to make it possible. If you enjoy using Lichess, please consider supporting us by donating and becoming a Patron! */
+    /** We rely on support from people like you to make it possible. If you enjoy using Lixiangqi, please consider supporting us by donating and becoming a Patron! */
     weRelyOnSupport: string;
     /** Where does the money go? */
     whereMoneyGoes: string;
     /** Credit Card */
     withCreditCard: string;
-    /** %s became a Lichess Patron */
+    /** %s became a Lixiangqi Patron */
     xBecamePatron: I18nFormat;
-    /** %1$s is a Lichess Patron for %2$s months */
+    /** %1$s is a Lixiangqi Patron for %2$s months */
     xIsPatronForNbMonths: I18nPlural;
     /** %1$s or %2$s */
     xOrY: I18nFormat;
     /** You have a Lifetime Patron account. That's pretty awesome! */
     youHaveLifetime: string;
-    /** You support lichess.org with %s per month. */
+    /** You support lixiangqi.org with %s per month. */
     youSupportWith: I18nFormat;
     /** You will be charged %1$s on %2$s. */
     youWillBeChargedXOnY: I18nFormat;
@@ -2315,7 +2329,7 @@ interface I18n {
     ratedGames: string;
     /** Rating deviation: %s. */
     ratingDeviation: I18nFormat;
-    /** Lower value means the rating is more stable. Above %1$s, the rating is considered provisional. To be included in the rankings, this value should be below %2$s (standard chess) or %3$s (variants). */
+    /** Lower value means the rating is more stable. Above %1$s, the rating is considered provisional. To be included in the rankings, this value should be below %2$s (standard Xiangqi) or %3$s (variants). */
     ratingDeviationTooltip: I18nFormat;
     /** Time spent playing */
     timeSpentPlaying: string;
@@ -2333,11 +2347,13 @@ interface I18n {
   preferences: {
     /** Analysis settings */
     analysisSettings: string;
+    /** Automatic (based on site language) */
+    automaticNotation: string;
     /** Bell notification sound */
     bellNotificationSound: string;
     /** Blindfold */
     blindfold: string;
-    /** Board coordinates (A-H, 1-8) */
+    /** Board coordinates (1-9, 一-九) */
     boardCoordinates: string;
     /** Board highlights (last move and check) */
     boardHighlights: string;
@@ -2345,15 +2361,15 @@ interface I18n {
     boardSettings: string;
     /** Either */
     bothClicksAndDrag: string;
-    /** Move king onto rook */
+    /** Move onto the target piece */
     castleByMovingOntoTheRook: string;
-    /** Castling method */
+    /** Special move method */
     castleByMovingTheKingTwoSquaresOrOntoTheRook: string;
     /** Move king two squares */
     castleByMovingTwoSquares: string;
-    /** Chess clock */
+    /** Xiangqi clock */
     chessClock: string;
-    /** Chess piece symbol */
+    /** Xiangqi piece symbol */
     chessPieceSymbol: string;
     /** Claim draw on threefold repetition automatically */
     claimDrawOnThreefoldRepetitionAutomatically: string;
@@ -2377,9 +2393,9 @@ interface I18n {
     exceptInGame: string;
     /** Can be disabled during a game with the board menu */
     explainCanThenBeTemporarilyDisabled: string;
-    /** Hold the <ctrl> key while promoting to temporarily disable auto-promotion */
+    /** Hold the <ctrl> key to temporarily disable auto-promotion */
     explainPromoteToQueenAutomatically: string;
-    /** Hides all ratings from Lichess, to help you focus on the game. */
+    /** Hides all ratings from Lixiangqi, to help you focus on the game. */
     explainShowPlayerRatings: string;
     /** Game behaviour */
     gameBehavior: string;
@@ -2417,7 +2433,7 @@ interface I18n {
     moveListWhilePlaying: string;
     /** Notifications */
     notifications: string;
-    /** Notification within Lichess */
+    /** Notification within Lixiangqi */
     notifyBell: string;
     /** Broadcasts */
     notifyBroadcasts: string;
@@ -2437,7 +2453,7 @@ interface I18n {
     notifyInboxMsg: string;
     /** Study invite */
     notifyInvitedStudy: string;
-    /** Device notification when you're not on Lichess */
+    /** Device notification when you're not on Lixiangqi */
     notifyPush: string;
     /** Streamer goes live */
     notifyStreamStart: string;
@@ -2467,7 +2483,7 @@ interface I18n {
     premovesPlayingDuringOpponentTurn: string;
     /** Privacy */
     privacy: string;
-    /** Promote to Queen automatically */
+    /** Auto-promote when available */
     promoteToQueenAutomatically: string;
     /** Say "Good game, well played" upon defeat or draw */
     sayGgWpAfterLosingOrDrawing: string;
@@ -2513,6 +2529,10 @@ interface I18n {
     whenTimeRemainingLessThanTenSeconds: string;
     /** When time remaining < 30 seconds */
     whenTimeRemainingLessThanThirtySeconds: string;
+    /** WXF (Chinese) */
+    wxfChineseNotation: string;
+    /** WXF (English) */
+    wxfEnglishNotation: string;
     /** Your preferences have been saved. */
     yourPreferencesHaveBeenSaved: string;
     /** Zen mode */
@@ -2551,13 +2571,13 @@ interface I18n {
     failed: string;
     /** Find the best move for black. */
     findTheBestMoveForBlack: string;
-    /** Find the best move for white. */
+    /** Find the best move for red. */
     findTheBestMoveForWhite: string;
     /** From game %s */
     fromGameLink: I18nFormat;
     /** From my games */
     fromMyGames: string;
-    /** You have no puzzles in the database, but Lichess still loves you very much. */
+    /** You have no puzzles in the database, but Lixiangqi still loves you very much. */
     fromMyGamesNone: string;
     /** Goals */
     goals: string;
@@ -2719,10 +2739,14 @@ interface I18n {
     capturingDefender: string;
     /** Removing a piece that is critical to defence of another piece, allowing the now undefended piece to be captured on a following move. */
     capturingDefenderDescription: string;
-    /** Castling */
+    /** General safety */
     castling: string;
-    /** Bring the king to safety, and deploy the rook for attack. */
+    /** Keep the general safe while preparing a counterattack. */
     castlingDescription: string;
+    /** Centroid Pawn Attack */
+    centroidPawnMate: string;
+    /** Use a central pawn attack to break through toward the opposing general. */
+    centroidPawnMateDescription: string;
     /** Clearance */
     clearance: string;
     /** A move, often with tempo, that clears a square, file or diagonal for a follow-up tactical idea. */
@@ -2771,9 +2795,9 @@ interface I18n {
     endgame: string;
     /** A tactic during the last phase of the game. */
     endgameDescription: string;
-    /** A tactic involving the en passant rule, where a pawn can capture an opposing pawn that has just moved next to it with its initial two-square move. */
+    /** A tactic involving an advanced soldier that has crossed the river and attacks horizontally. */
     enPassantAdjacentCaptureDescription: string;
-    /** A tactic involving the en passant rule, where a pawn can capture an opponent pawn that has bypassed it using its initial two-square move. */
+    /** A tactic involving a soldier that has crossed the river and can create direct threats. */
     enPassantDescription: string;
     /** Epaulette mate */
     epauletteMate: string;
@@ -2981,9 +3005,7 @@ interface I18n {
   recap: {
     /** What have you been up to this year? */
     awaitQuestion: string;
-    /** Your best chess foes */
-    chessFoes: string;
-    /** is how you started %s of your games as white */
+    /** is how you started %s of your games as Red */
     firstMoveStats: I18nFormat;
     /** What did it take to get there? */
     gamesNextQuestion: string;
@@ -2991,12 +3013,8 @@ interface I18n {
     gamesYouWon: I18nFormat;
     /** Hi, %s */
     hiUser: I18nFormat;
-    /** What a chess year you've had! */
+    /** What a Xiangqi year you've had! */
     initTitle: string;
-    /** %s of them were yours. */
-    lichessGamesOfThemYours: I18nFormat;
-    /** %1$s games played on Lichess in %2$s */
-    lichessGamesPlayedIn: I18nFormat;
     /** We didn't use your device against you */
     malwareNoAbuse: string;
     /** %s ads and trackers loaded */
@@ -3007,14 +3025,6 @@ interface I18n {
     malwareWarningCta: string;
     /** But other websites do, so please %s. */
     malwareWarningPrefix: I18nFormat;
-    /** That's %s of wood pushed! */
-    movesOfWoodPushed: I18nFormat;
-    /** Standard pieces weigh about 40g each */
-    movesStandardPiecesWeight: string;
-    /** %s grams */
-    nbGrams: I18nPlural;
-    /** %s kilograms */
-    nbKilograms: I18nPlural;
     /** %s moves */
     nbMoves: I18nPlural;
     /** %s moves played */
@@ -3023,21 +3033,17 @@ interface I18n {
     noGamesCta: string;
     /** You did not play any games this year. */
     noGamesText: string;
-    /** Your most played opening as black with %s games */
-    openingsMostPlayedAsBlack: I18nPlural;
-    /** Your most played opening as white with %s games */
-    openingsMostPlayedAsWhite: I18nPlural;
     /** We're a charity, running purely on donations. */
     patronCharity: string;
     /** If we helped entertain you this year, or you believe in our work, please consider %s! */
     patronConsiderDonating: I18nFormat;
     /** costs */
     patronCosts: string;
-    /** Lichess's %1$s this year were %2$s. */
+    /** Lixiangqi's %1$s this year were %2$s. */
     patronCostsThisYear: I18nFormat;
     /** supporting us with a donation */
     patronMakeDonation: string;
-    /** What time controls and variants did you play? */
+    /** What time controls did you play? */
     perfsTitle: string;
     /** You also helped tag %s of them. */
     puzzlesHelpedTagging: I18nFormat;
@@ -3067,18 +3073,20 @@ interface I18n {
     sourcesTitle: string;
     /** We're glad you're here. Have a great %s! */
     thanksHaveAGreat: I18nFormat;
-    /** Thank you for playing on Lichess! */
+    /** Thank you for playing on Lixiangqi! */
     thanksTitle: string;
-    /** That is a lot of chess. */
+    /** That is a lot of Xiangqi. */
     timeALot: string;
     /** How many moves did you play in all that time? */
     timeHowManyMoves: string;
-    /** That seems like a reasonable amount of chess. */
+    /** That seems like a reasonable amount of Xiangqi. */
     timeReasonable: string;
     /** %s spent playing! */
     timeSpentPlayingExclam: I18nFormat;
-    /** That is way too much chess. */
+    /** That is way too much Xiangqi. */
     timeTooMuch: string;
+    /** Your most frequent Xiangqi opponents */
+    xiangqiFoes: string;
   };
   search: {
     /** Advanced search */
@@ -3123,7 +3131,7 @@ interface I18n {
     result: string;
     /** Search */
     search: string;
-    /** Search in %s chess games */
+    /** Search in %s Xiangqi games */
     searchInXGames: I18nPlural;
     /** Sort by */
     sortBy: string;
@@ -3187,6 +3195,8 @@ interface I18n {
     accountRegisteredWithoutEmail: I18nFormat;
     /** Accuracy */
     accuracy: string;
+    /** Active */
+    active: string;
     /** Active players */
     activePlayers: string;
     /** Add current variation */
@@ -3195,7 +3205,7 @@ interface I18n {
     advancedSettings: string;
     /** Advantage */
     advantage: string;
-    /** I agree that I will at no time receive assistance during my games (from a chess computer, book, database or another person). */
+    /** I agree that I will at no time receive assistance during my games (from a Xiangqi computer, book, database or another person). */
     agreementAssistance: string;
     /** I agree that I will not create multiple accounts (except for the reasons stated in the %s). */
     agreementMultipleAccounts: I18nFormat;
@@ -3225,13 +3235,15 @@ interface I18n {
     anonymous: string;
     /** Another was %s */
     anotherWasX: I18nFormat;
+    /** Appearance categories */
+    appearanceCategories: string;
     /** Submit */
     apply: string;
     /** as black */
     asBlack: string;
-    /** Your account is managed. Ask your chess teacher about removing kid mode. */
+    /** Your account is managed. Ask your Xiangqi teacher about removing kid mode. */
     askYourChessTeacherAboutLiftingKidMode: string;
-    /** as white */
+    /** as Red */
     asWhite: string;
     /** Automatically proceed to next game after moving */
     automaticallyProceedToNextGameAfterMoving: string;
@@ -3251,6 +3263,8 @@ interface I18n {
     background: string;
     /** Background image URL: */
     backgroundImageUrl: string;
+    /** Background Music */
+    backgroundMusic: string;
     /** Back to game */
     backToGame: string;
     /** Back to tournament */
@@ -3265,7 +3279,7 @@ interface I18n {
     bewareTheGameIsRatedButHasNoClock: string;
     /** Biography */
     biography: string;
-    /** Talk about yourself, your interests, what you like in chess, your favourite openings, players, ... */
+    /** Talk about yourself, your interests, what you like in Xiangqi, your favourite openings, players, ... */
     biographyDescription: string;
     /** Black */
     black: string;
@@ -3275,7 +3289,7 @@ interface I18n {
     blackAcceptsTakeback: string;
     /** Black cancels takeback */
     blackCancelsTakeback: string;
-    /** Black O-O */
+    /** Black option */
     blackCastlingKingside: string;
     /** Black to checkmate in one move */
     blackCheckmatesInOneMove: string;
@@ -3303,7 +3317,7 @@ interface I18n {
     blackWins: string;
     /** Black wins */
     blackWinsGame: string;
-    /** You have used the same password on another site, and that site has been compromised. To ensure the safety of your Lichess account, we need you to set a new password. Thank you for your understanding. */
+    /** You have used the same password on another site, and that site has been compromised. To ensure the safety of your Lixiangqi account, we need you to set a new password. Thank you for your understanding. */
     blankedPassword: string;
     /** Blitz */
     blitz: string;
@@ -3349,11 +3363,11 @@ interface I18n {
     cancelSimul: string;
     /** Cancel the tournament */
     cancelTournament: string;
-    /** Please solve the chess captcha. */
+    /** Please solve the Xiangqi captcha. */
     'captcha.fail': string;
     /** Capture */
     capture: string;
-    /** Castling rights */
+    /** Special move rights */
     castling: string;
     /** Casual */
     casual: string;
@@ -3393,10 +3407,12 @@ interface I18n {
     checkSpamOrJunkFolder: string;
     /** Check your Email */
     checkYourEmail: string;
-    /** Chess960 start position: %s */
+    /** Randomized start position: %s */
     chess960StartPosition: I18nFormat;
-    /** Chess basics */
+    /** Fundamentals of Xiangqi */
     chessBasics: string;
+    /** Choose each part of the site appearance independently. */
+    chooseAppearanceParts: string;
     /** Claim a draw */
     claimADraw: string;
     /** Classical */
@@ -3447,7 +3463,7 @@ interface I18n {
     computerAnalysisAvailable: string;
     /** Computer analysis disabled */
     computerAnalysisDisabled: string;
-    /** Computers and computer-assisted players are not allowed to play. Please do not get assistance from chess engines, databases, or from other players while playing. Also note that making multiple accounts is strongly discouraged and excessive multi-accounting will lead to being banned. */
+    /** Computers and computer-assisted players are not allowed to play. Please do not get assistance from Xiangqi engines, databases, or from other players while playing. Also note that making multiple accounts is strongly discouraged and excessive multi-accounting will lead to being banned. */
     computersAreNotAllowedToPlay: string;
     /** Computer thinking ... */
     computerThinking: string;
@@ -3509,12 +3525,18 @@ interface I18n {
     currentPassword: string;
     /** Custom */
     custom: string;
+    /** Custom Combination */
+    customCombination: string;
+    /** Custom image URL */
+    customImageUrl: string;
     /** Custom position */
     customPosition: string;
     /** Cycle previous/next variation */
     cyclePreviousOrNextVariation: string;
     /** Dark */
     dark: string;
+    /** Dark interface with the classic Xiangqi board and pieces. */
+    darkThemeDescription: string;
     /** Database */
     database: string;
     /** Days per turn */
@@ -3551,7 +3573,7 @@ interface I18n {
     doItAgain: string;
     /** Done reviewing black's mistakes */
     doneReviewingBlackMistakes: string;
-    /** Done reviewing white's mistakes */
+    /** Done reviewing Red's mistakes */
     doneReviewingWhiteMistakes: string;
     /** Download */
     download: string;
@@ -3611,7 +3633,7 @@ interface I18n {
     embedInYourWebsite: string;
     /** Paste a game URL or a study chapter URL to embed it. */
     embedsAvailable: string;
-    /** Leave empty to name the tournament after a notable chess player. */
+    /** Leave empty to name the tournament after a notable Xiangqi player. */
     emptyTournamentName: string;
     /** Enable */
     enable: string;
@@ -3625,7 +3647,7 @@ interface I18n {
     endgamePositions: string;
     /** Error loading engine */
     engineFailed: string;
-    /** En passant rights */
+    /** Special move rights */
     enPassant: string;
     /** This email address is invalid */
     'error.email': string;
@@ -3665,6 +3687,8 @@ interface I18n {
     expandVariations: string;
     /** Export games */
     exportGames: string;
+    /** Failed to save %s preference */
+    failedToSaveAppearancePreference: I18nFormat;
     /** Fast */
     fast: string;
     /** Favourite opponents */
@@ -3675,7 +3699,7 @@ interface I18n {
     filterGames: string;
     /** Find a better move for black */
     findBetterMoveForBlack: string;
-    /** Find a better move for white */
+    /** Find a better move for Red */
     findBetterMoveForWhite: string;
     /** Finished */
     finished: string;
@@ -3701,7 +3725,7 @@ interface I18n {
     forgotPassword: string;
     /** Forum */
     forum: string;
-    /** Free Online Chess */
+    /** Free Online Xiangqi */
     freeOnlineChess: string;
     /** Friends */
     friends: string;
@@ -3789,7 +3813,7 @@ interface I18n {
     incrementInSeconds: string;
     /** Infinite analysis */
     infiniteAnalysis: string;
-    /** In kid mode, the Lichess logo gets a %s icon, so you know your kids are safe. */
+    /** In kid mode, the Lixiangqi logo gets a %s icon, so you know your kids are safe. */
     inKidModeTheLichessLogoGetsIconX: I18nFormat;
     /** Inline notation */
     inlineNotation: string;
@@ -3877,16 +3901,18 @@ interface I18n {
     letOtherPlayersMessageYou: string;
     /** Level */
     level: string;
-    /** Rated games played on Lichess */
+    /** Rated games played on Lixiangqi */
     lichessDbExplanation: string;
-    /** Lichess is a charity and entirely free/libre open source software. We depend on user donations to support our operating costs, development, and content. Without our generous community, we would not be able to keep the site running. Thank you for joining us! */
+    /** Lixiangqi is a charity and entirely free/libre open source software. We depend on user donations to support our operating costs, development, and content. Without our generous community, we would not be able to keep the site running. Thank you for joining us! */
     lichessPatronInfo: string;
-    /** Lichess tournaments */
+    /** Lixiangqi tournaments */
     lichessTournaments: string;
     /** Lifetime score */
     lifetimeScore: string;
     /** Light */
     light: string;
+    /** Light interface with the classic Xiangqi board and pieces. */
+    lightThemeDescription: string;
     /** Like */
     like: string;
     /** Liked */
@@ -3917,7 +3943,7 @@ interface I18n {
     lossOr50MovesByPriorMistake: string;
     /** Loss prevented by 50-move rule */
     lossSavedBy50MoveRule: string;
-    /** You lost rating points to someone who violated the Lichess TOS */
+    /** You lost rating points to someone who violated the Lixiangqi TOS */
     lostAgainstTOSViolator: string;
     /** For safekeeping and sharing, consider making a study. */
     makeAStudy: string;
@@ -3929,7 +3955,7 @@ interface I18n {
     makeSureToRead: I18nFormat;
     /** %s is available for formatting. */
     markdownIsAvailable: I18nFormat;
-    /** OTB games of %1$s+ FIDE-rated players from %2$s to %3$s */
+    /** OTB games of %1$s+ WXF-rated players from %2$s to %3$s */
     masterDbExplanation: I18nFormat;
     /** Mate in %s half-moves */
     mateInXHalfMoves: I18nPlural;
@@ -3967,6 +3993,8 @@ interface I18n {
     minutesPerSide: string;
     /** Mistake */
     mistake: string;
+    /** Mix individual appearance options */
+    mixAppearanceOptions: string;
     /** Mobile */
     mobile: string;
     /** Mobile App */
@@ -4063,11 +4091,11 @@ interface I18n {
     needNbMoreGames: I18nPlural;
     /** You need to play %1$s more %2$s rated games */
     needNbMorePerfGames: I18nPlural;
-    /** Network lag between you and Lichess */
+    /** Network lag between you and Lixiangqi */
     networkLagBetweenYouAndLichess: string;
     /** Never */
     never: string;
-    /** Never type your Lichess password on another site! */
+    /** Never type your Lixiangqi password on another site! */
     neverTypeYourPassword: string;
     /** New opponent */
     newOpponent: string;
@@ -4097,7 +4125,7 @@ interface I18n {
     noGameFound: string;
     /** No mistakes found for black */
     noMistakesFoundForBlack: string;
-    /** No mistakes found for white */
+    /** No mistakes found for Red */
     noMistakesFoundForWhite: string;
     /** None */
     none: string;
@@ -4219,9 +4247,9 @@ interface I18n {
     play: string;
     /** Play against computer */
     playAgainstComputer: string;
-    /** Play chess everywhere */
+    /** Play Xiangqi everywhere */
     playChessEverywhere: string;
-    /** Play chess in style */
+    /** Play Xiangqi in style */
     playChessInStyle: string;
     /** Play best computer move */
     playComputerMove: string;
@@ -4243,7 +4271,7 @@ interface I18n {
     playVariationToCreateConditionalPremoves: string;
     /** Play %s */
     playX: I18nFormat;
-    /** We aim to provide a pleasant chess experience for everyone. */
+    /** We aim to provide a pleasant Xiangqi experience for everyone. */
     pleasantChessExperience: string;
     /** Please be nice in the forum. */
     pleaseBeNiceInTheForum: string;
@@ -4263,7 +4291,7 @@ interface I18n {
     practice: string;
     /** Practice with computer */
     practiceWithComputer: string;
-    /** Previously on Lichess TV */
+    /** Previously on Lixiangqi TV */
     previouslyOnLichessTV: string;
     /** Ctrl or shift = red; command, alt, or meta = blue; a key from each = yellow. */
     primaryColorArrowsHowTo: string;
@@ -4283,7 +4311,7 @@ interface I18n {
     promoteVariation: string;
     /** Propose a takeback */
     proposeATakeback: string;
-    /** Chess tactics trainer */
+    /** Xiangqi tactics trainer */
     puzzleDesc: string;
     /** Puzzles */
     puzzles: string;
@@ -4293,7 +4321,7 @@ interface I18n {
     quote: string;
     /** Race finished */
     raceFinished: string;
-    /** Random Chess960 position */
+    /** Randomized start position */
     randomChess960Position: string;
     /** Random side */
     randomColor: string;
@@ -4417,7 +4445,7 @@ interface I18n {
     reusableChallengeUrl: string;
     /** Review black's mistakes */
     reviewBlackMistakes: string;
-    /** Review white's mistakes */
+    /** Review Red's mistakes */
     reviewWhiteMistakes: string;
     /** revoke all sessions */
     revokeAllSessions: string;
@@ -4455,7 +4483,7 @@ interface I18n {
     setTheBoard: string;
     /** Settings */
     settings: string;
-    /** Share your chess insights data */
+    /** Share your Xiangqi insights data */
     shareYourInsightsData: string;
     /** View this help overlay */
     showHelpDialog: string;
@@ -4463,7 +4491,7 @@ interface I18n {
     showMeEverything: string;
     /** Show threat */
     showThreat: string;
-    /** You have received a private message from Lichess. */
+    /** You have received a private message from Lixiangqi. */
     showUnreadLichessMessage: string;
     /** Show variation arrows */
     showVariationArrows: string;
@@ -4505,7 +4533,7 @@ interface I18n {
     simulVariantsHint: string;
     /** Since */
     since: string;
-    /** Free online chess server. Play chess in a clean interface. No registration, no ads, no plugin required. Play chess with the computer, friends or random opponents. */
+    /** Free online Xiangqi server. Play Xiangqi in a clean interface. No registration, no ads, no plugin required. Play Xiangqi with the computer, friends or random opponents. */
     siteDescription: string;
     /** Size */
     size: string;
@@ -4523,6 +4551,8 @@ interface I18n {
     sorry: string;
     /** Sound */
     sound: string;
+    /** Sound effects */
+    soundEffects: string;
     /** Source Code */
     sourceCode: string;
     /** Spectator room */
@@ -4585,15 +4615,15 @@ interface I18n {
     theForumEtiquette: string;
     /** The game is a draw. */
     theGameIsADraw: string;
-    /** Thematic */
-    thematic: string;
+    /** Theme */
+    theme: string;
     /** No results for "%s" */
     thereAreNoResultsForX: I18nFormat;
-    /** The Lichess Terms of Service were violated on this account */
+    /** The Lixiangqi Terms of Service were violated on this account */
     thisAccountViolatedTos: string;
     /** This game is rated */
     thisGameIsRated: string;
-    /** This is a chess CAPTCHA. */
+    /** This is a Xiangqi CAPTCHA. */
     thisIsAChessCaptcha: string;
     /** This topic has been archived and can no longer be replied to. */
     thisTopicIsArchived: string;
@@ -4619,7 +4649,7 @@ interface I18n {
     timeControl: string;
     /** Timeline */
     timeline: string;
-    /** Time to process a move on Lichess's server */
+    /** Time to process a move on Lixiangqi's server */
     timeToProcessAMoveOnLichessServer: string;
     /** Title verification */
     titleVerification: string;
@@ -4667,9 +4697,9 @@ interface I18n {
     tournamentEntryCode: string;
     /** Arena tournament FAQ */
     tournamentFAQ: string;
-    /** Play fast-paced chess tournaments! Join an official scheduled tournament, or create your own. Bullet, Blitz, Classical, Chess960, King of the Hill, Threecheck, and more options available for endless chess fun. */
+    /** Play fast-paced Xiangqi tournaments! Join an official scheduled tournament, or create your own. Bullet, Blitz, Classical, and more options available for endless Xiangqi fun. */
     tournamentHomeDescription: string;
-    /** Chess tournaments featuring various time controls and variants */
+    /** Xiangqi tournaments featuring various time controls and variants */
     tournamentHomeTitle: string;
     /** The tournament may have been cancelled if all players left before it started. */
     tournamentMayHaveBeenCanceled: string;
@@ -4695,7 +4725,7 @@ interface I18n {
     troll: string;
     /** Try another move for black */
     tryAnotherMoveForBlack: string;
-    /** Try another move for white */
+    /** Try another move for Red */
     tryAnotherMoveForWhite: string;
     /** try the contact page */
     tryTheContactPage: string;
@@ -4703,6 +4733,8 @@ interface I18n {
     tryToWin: string;
     /** Type private notes here */
     typePrivateNotesHere: string;
+    /** UI theme */
+    uiTheme: string;
     /** UltraBullet */
     ultraBullet: string;
     /** Insanely fast games: less than 30 seconds */
@@ -4815,43 +4847,43 @@ interface I18n {
     whatSignupUsername: string;
     /** When you create a simul, you get to play several players at once. */
     whenCreateSimul: string;
-    /** White */
+    /** Red */
     white: string;
-    /** White aborted the game */
+    /** Red aborted the game */
     whiteAborted: string;
-    /** White accepts takeback */
+    /** Red accepts takeback */
     whiteAcceptsTakeback: string;
-    /** White cancels takeback */
+    /** Red cancels takeback */
     whiteCancelsTakeback: string;
-    /** White O-O */
+    /** Red option */
     whiteCastlingKingside: string;
-    /** White to checkmate in one move */
+    /** Red to checkmate in one move */
     whiteCheckmatesInOneMove: string;
-    /** White declines draw */
+    /** Red declines draw */
     whiteDeclinesDraw: string;
-    /** White declines takeback */
+    /** Red declines takeback */
     whiteDeclinesTakeback: string;
-    /** White didn't move */
+    /** Red didn't move */
     whiteDidntMove: string;
-    /** White / Draw / Black */
+    /** Red / Draw / Black */
     whiteDrawBlack: string;
-    /** White is victorious */
+    /** Red is victorious */
     whiteIsVictorious: string;
-    /** White left the game */
+    /** Red left the game */
     whiteLeftTheGame: string;
-    /** White offers draw */
+    /** Red offers draw */
     whiteOffersDraw: string;
-    /** White to play */
+    /** Red to play */
     whitePlays: string;
-    /** White proposes takeback */
+    /** Red proposes takeback */
     whiteProposesTakeback: string;
-    /** White resigned */
+    /** Red resigned */
     whiteResigned: string;
-    /** White time out */
+    /** Red time out */
     whiteTimeOut: string;
-    /** White wins */
+    /** Red wins */
     whiteWins: string;
-    /** White wins */
+    /** Red wins */
     whiteWinsGame: string;
     /** Why? */
     why: string;
@@ -4867,7 +4899,7 @@ interface I18n {
     winRate: string;
     /** Wins */
     wins: string;
-    /** and wish you great games on lichess.org. */
+    /** and wish you great games on lixiangqi.org. */
     wishYouGreatGames: string;
     /** Withdraw */
     withdraw: string;
@@ -4887,7 +4919,7 @@ interface I18n {
     xHostsY: I18nFormat;
     /** %1$s invited you to "%2$s". */
     xInvitedYouToY: I18nFormat;
-    /** %1$s is a free (%2$s), libre, no-ads, open source chess server. */
+    /** %1$s is a free (%2$s), libre, no-ads, open source Xiangqi server. */
     xIsAFreeYLibreOpenSourceChessServer: I18nFormat;
     /** %1$s joined team %2$s */
     xJoinedTeamY: I18nFormat;
@@ -4915,7 +4947,7 @@ interface I18n {
     yesterday: string;
     /** You are better than %1$s of %2$s players. */
     youAreBetterThanPercentOfPerfTypePlayers: I18nFormat;
-    /** You are leaving Lichess */
+    /** You are leaving Lixiangqi */
     youAreLeavingLichess: string;
     /** You are not in the team %s */
     youAreNotInTeam: I18nFormat;
@@ -4947,7 +4979,7 @@ interface I18n {
     youNeedAnAccountToDoThat: string;
     /** You play the black pieces */
     youPlayTheBlackPieces: string;
-    /** You play the white pieces */
+    /** You play the Red pieces */
     youPlayTheWhitePieces: string;
     /** Your opponent offers a draw */
     yourOpponentOffersADraw: string;
@@ -5091,11 +5123,11 @@ interface I18n {
     allStreamers: string;
     /** Your stream is approved. */
     approved: string;
-    /** Become a Lichess streamer */
+    /** Become a Lixiangqi streamer */
     becomeStreamer: string;
     /** Change/delete your picture */
     changePicture: string;
-    /** Choose the YouTube channel you will use on Lichess. */
+    /** Choose the YouTube channel you will use on Lixiangqi. */
     chooseYoutubeChannel: string;
     /** Connect */
     connect: string;
@@ -5117,9 +5149,9 @@ interface I18n {
     keepItShort: I18nPlural;
     /** Last stream %s */
     lastStream: I18nFormat;
-    /** Lichess streamer */
+    /** Lixiangqi streamer */
     lichessStreamer: string;
-    /** Lichess streamers */
+    /** Lixiangqi streamers */
     lichessStreamers: string;
     /** LIVE! */
     live: string;
@@ -5131,11 +5163,11 @@ interface I18n {
     offline: string;
     /** Your stream is being reviewed by moderators. */
     pendingReview: string;
-    /** Get a flaming streamer icon on your Lichess profile. */
+    /** Get a flaming streamer icon on your Lixiangqi profile. */
     perk1: string;
     /** Get bumped up to the top of the streamers list. */
     perk2: string;
-    /** Notify your Lichess followers. */
+    /** Notify your Lixiangqi followers. */
     perk3: string;
     /** Show your stream in your games, tournaments and studies. */
     perk4: string;
@@ -5145,19 +5177,19 @@ interface I18n {
     pleaseAllow: string;
     /** Please fill in your streamer information, and upload a picture. */
     pleaseFillIn: string;
-    /** Include the keyword "lichess.org" in your stream title and use the category "Chess" when you stream on Lichess. */
+    /** Include the keyword "lixiangqi.org" in your stream title and use the category "Xiangqi" when you stream on Lixiangqi. */
     rule1: string;
-    /** Remove the keyword when you stream non-Lichess stuff. */
+    /** Remove the keyword when you stream non-Lixiangqi stuff. */
     rule2: string;
-    /** Lichess will detect your stream automatically and enable the following perks: */
+    /** Lixiangqi will detect your stream automatically and enable the following perks: */
     rule3: string;
     /** Read our %s to ensure fair play for everyone during your stream. */
     rule4: I18nFormat;
     /** Streaming rules */
     rules: string;
-    /** The Lichess streamer page targets your audience with the language provided by your streaming platform. Set the correct default language for your chess streams in the app or service you use to broadcast. */
+    /** The Lixiangqi streamer page targets your audience with the language provided by your streaming platform. Set the correct default language for your Xiangqi streams in the app or service you use to broadcast. */
     streamerLanguageSettings: string;
-    /** Your streamer name on Lichess */
+    /** Your streamer name on Lixiangqi */
     streamerName: string;
     /** streaming Fairplay FAQ */
     streamingFairplayFAQ: string;
@@ -5171,7 +5203,7 @@ interface I18n {
     visibility: string;
     /** When approved by moderators */
     whenApproved: string;
-    /** When you are ready to be listed as a Lichess streamer, %s */
+    /** When you are ready to be listed as a Lixiangqi streamer, %s */
     whenReady: I18nFormat;
     /** %s is streaming */
     xIsStreaming: I18nFormat;
@@ -5221,7 +5253,7 @@ interface I18n {
     blunder: string;
     /** Brilliant move */
     brilliantMove: string;
-    /** Chapters are saved forever.<br>Have fun organizing your chess content! */
+    /** Chapters are saved forever.<br>Have fun organizing your Xiangqi content! */
     chapterConclusionText: string;
     /** Chapter PGN */
     chapterPgn: string;
@@ -5245,7 +5277,7 @@ interface I18n {
     commentThisMove: string;
     /** Comment on this position */
     commentThisPosition: string;
-    /** You can find your <a href='/study/mine/hot'>previous studies</a> on your profile page.<br>There is also a <a href='//lichess.org/blog/V0KrLSkAAMo3hsi4/study-chess-the-lichess-way'>blog post about studies</a>.<br>Power users might want to press "?" to see keyboard shortcuts.<br>Have fun! */
+    /** You can find your <a href='/study/mine/hot'>previous studies</a> on your profile page.<br>There is also a <a href='//lixiangqi.org/blog/V0KrLSkAAMo3hsi4/study-Xiangqi-the-lixiangqi-way'>blog post about studies</a>.<br>Power users might want to press "?" to see keyboard shortcuts.<br>Have fun! */
     conclusionText: string;
     /** Thanks for your time */
     conclusionTitle: string;
@@ -5357,9 +5389,9 @@ interface I18n {
     loadAGameFromPgn: string;
     /** Load a position from FEN */
     loadAPositionFromFen: string;
-    /** Paste a lichess game URL<br>(like lichess.org/7fHIU0XI)<br>to load the game moves in the chapter. */
+    /** Paste a Lixiangqi game URL<br>(like lixiangqi.org/7fHIU0XI)<br>to load the game moves in the chapter. */
     loadExistingLichessGameText: string;
-    /** Load an existing lichess game */
+    /** Load an existing Lixiangqi game */
     loadExistingLichessGameTitle: string;
     /** Make sure the chapter is complete. You can only request analysis once. */
     makeSureTheChapterIsComplete: string;
@@ -5513,15 +5545,15 @@ interface I18n {
     unlisted: string;
     /** URL of the games, one per line */
     urlOfTheGame: string;
-    /** Yes, you can study crazyhouse<br>and all lichess variants! */
+    /** Yes, you can study crazyhouse<br>and all lixiangqi variants! */
     variantsAreSupportedText: string;
     /** Studies support variants */
     variantsAreSupportedTitle: string;
     /** Visibility */
     visibility: string;
-    /** This is a shared analysis board.<br><br>Use it to analyse and annotate games,<br>to discuss positions with friends,<br>and of course for chess lessons!<br><br>It's a powerful tool. Let's take some time to see how it works. */
+    /** This is a shared analysis board.<br><br>Use it to analyse and annotate games,<br>to discuss positions with friends,<br>and of course for Xiangqi lessons!<br><br>It's a powerful tool. Let's take some time to see how it works. */
     welcomeToLichessStudyText: string;
-    /** Welcome to Lichess Study! */
+    /** Welcome to Lixiangqi Study! */
     welcomeToLichessStudyTitle: string;
     /** What are studies? */
     whatAreStudies: string;
@@ -5549,7 +5581,7 @@ interface I18n {
     youAreNowAContributor: string;
     /** You are now a spectator */
     youAreNowASpectator: string;
-    /** You can paste this in the forum or your Lichess blog to embed */
+    /** You can paste this in the forum or your Lixiangqi blog to embed */
     youCanPasteThisInTheForumToEmbed: string;
     /** Congratulations! You completed this lesson. */
     youCompletedThisLesson: string;
@@ -5571,7 +5603,7 @@ interface I18n {
     earlyDrawsAnswer: string;
     /** What happens with early draws? */
     earlyDrawsQ: string;
-    /** FIDE handbook */
+    /** WXF handbook */
     FIDEHandbook: string;
     /** If this list is non-empty, then users absent from this list will be forbidden to join. One username per line. */
     forbiddedUsers: string;
@@ -5631,7 +5663,7 @@ interface I18n {
     oneRoundEveryXDays: I18nPlural;
     /** Ongoing games */
     ongoingGames: I18nPlural;
-    /** We don't plan to add more tournament systems to Lichess at the moment. */
+    /** We don't plan to add more tournament systems to Lixiangqi at the moment. */
     otherSystemsA: string;
     /** What about other tournament systems? */
     otherSystemsQ: string;
@@ -5673,7 +5705,7 @@ interface I18n {
     protectionAgainstNoShowA: string;
     /** What is done regarding no-shows? */
     protectionAgainstNoShowQ: string;
-    /** Swiss tournaments were not designed for online chess. They demand punctuality, dedication and patience from players. */
+    /** Swiss tournaments were not designed for online Xiangqi. They demand punctuality, dedication and patience from players. */
     restrictedToTeamsA: string;
     /** Why is it restricted to teams? */
     restrictedToTeamsQ: string;
@@ -5863,7 +5895,7 @@ interface I18n {
     openTwoFactorApp: string;
     /** Scan the QR code with the app. */
     scanTheCode: string;
-    /** Please enable two-factor authentication to secure your account at https://lichess.org/account/twofactor. */
+    /** Please enable two-factor authentication to secure your account at https://lixiangqi.org/account/twofactor. */
     setupReminder: string;
     /** Get an app for two-factor authentication. We recommend the following apps: */
     twoFactorAppRecommend: string;
@@ -6009,7 +6041,7 @@ interface I18n {
     blogPosts: I18nPlural;
     /** Our simple tips to write great blog posts */
     blogTips: string;
-    /** By Lichess */
+    /** By Lixiangqi */
     byLichess: string;
     /** By month */
     byMonth: string;
@@ -6039,7 +6071,7 @@ interface I18n {
     inappropriateContentAccountClosed: string;
     /** Latest blog posts */
     latestBlogPosts: string;
-    /** Lichess blog posts in %s */
+    /** Lixiangqi blog posts in %s */
     lichessBlogPostsFromXYear: I18nFormat;
     /** Liked blog posts */
     likedBlogs: string;
@@ -6091,7 +6123,7 @@ interface I18n {
     thisPostIsPublished: string;
     /** Upload an image for your post */
     uploadAnImageForYourPost: string;
-    /** You can also use images that you made yourself, pictures you took, screenshots of Lichess... anything that is not copyrighted by someone else. */
+    /** You can also use images that you made yourself, pictures you took, screenshots of Lixiangqi... anything that is not copyrighted by someone else. */
     useImagesYouMadeYourself: string;
     /** View all %s posts */
     viewAllNbPosts: I18nPlural;
@@ -6103,7 +6135,7 @@ interface I18n {
     youBlockedByBlogAuthor: string;
   };
   variant: {
-    /** Antichess */
+    /** Giveaway Xiangqi */
     antichess: string;
     /** Lose all your pieces (or get stalemated) to win the game. */
     antichessTitle: string;
@@ -6111,7 +6143,7 @@ interface I18n {
     atomic: string;
     /** Nuke your opponent's king to win. */
     atomicTitle: string;
-    /** Chess960 */
+    /** Randomized Xiangqi */
     chess960: string;
     /** The starting position of the home rank pieces is randomised. */
     chess960Title: string;
@@ -6121,7 +6153,7 @@ interface I18n {
     crazyhouseTitle: string;
     /** From Position */
     fromPosition: string;
-    /** Standard chess from a custom position */
+    /** Standard Xiangqi from a custom position */
     fromPositionTitle: string;
     /** Horde */
     horde: string;
@@ -6137,7 +6169,7 @@ interface I18n {
     racingKingsTitle: string;
     /** Standard */
     standard: string;
-    /** Standard rules of chess (FIDE) */
+    /** Standard rules of Xiangqi (WXF) */
     standardTitle: string;
     /** Three-Check */
     threeCheck: string;
@@ -6149,9 +6181,9 @@ interface I18n {
     allNbVideoTags: I18nFormat;
     /** All videos are free for everyone. */
     allVideosAreFree: string;
-    /** Chess videos */
+    /** Xiangqi videos */
     chessVideos: string;
-    /** Free chess videos */
+    /** Free Xiangqi videos */
     freeChessVideos: string;
     /** free for all */
     freeForAll: string;
@@ -6173,9 +6205,9 @@ interface I18n {
     weHaveCarefullySelectedX: I18nFormat;
     /** %1$s by %2$s */
     xByY: I18nFormat;
-    /** %s curated chess videos */
+    /** %s curated Xiangqi videos */
     xCuratedChessVideos: I18nFormat;
-    /** %s free, carefully curated chess videos */
+    /** %s free, carefully curated Xiangqi videos */
     xFreeCarefullyCurated: I18nFormat;
     /** %1$s with tags %2$s */
     xWithTagsY: I18nFormat;
@@ -6193,7 +6225,7 @@ interface I18n {
     instructions3: I18nFormat;
     /** Enable %s in noisy surroundings. Hold Shift when speaking commands while this option is active. */
     instructions4: I18nFormat;
-    /** Use the phonetic alphabet to improve recognition of chessboard files. */
+    /** Use the phonetic alphabet to improve recognition of Xiangqiboard files. */
     instructions5: string;
     /** %s explains the voice move settings in detail. */
     instructions6: I18nFormat;

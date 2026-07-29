@@ -151,17 +151,7 @@ final class SetupUi(helpers: Helpers):
   private def variantTuple(encode: Variant => String)(variant: Variant)(using Translate): SelectChoice =
     (encode(variant), variant.variantTrans.txt(), variant.variantTitleTrans.txt().some)
 
-  private val selectableVariants: List[Variant] = List(
-      chess.variant.Standard,
-      chess.variant.Crazyhouse,
-      chess.variant.Chess960,
-      chess.variant.KingOfTheHill,
-      chess.variant.ThreeCheck,
-      chess.variant.Antichess,
-      chess.variant.Atomic,
-      chess.variant.Horde,
-      chess.variant.RacingKings
-    )
+  private val selectableVariants: List[Variant] = List(chess.variant.Standard)
 
   def translatedVariantChoicesWithVariantsById(using Translate): List[SelectChoice] =
     translatedVariantChoicesWithVariants(encodeId)

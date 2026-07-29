@@ -3,7 +3,6 @@ package lila.tv
 import org.apache.pekko.actor.*
 import org.apache.pekko.stream.scaladsl.*
 import org.apache.pekko.pattern.pipe
-import chess.format.Fen
 import play.api.libs.json.*
 
 import lila.common.Bus
@@ -83,7 +82,7 @@ final private class TvBroadcast(
               .add("rating" -> p.rating)
               .add("seconds" -> game.clock.map(_.remainingTime(pov.color).roundSeconds))
         ),
-        fen = Fen.write(game.position)
+        fen = game.position.fen
       )
       lazy val featuredHtmlMsg = makeMessage(
         "featured",
@@ -105,7 +104,7 @@ final private class TvBroadcast(
         Json
           .obj(
             "fen" -> fen,
-            "lm" -> move
+            "lm" -> move.value
           )
           .add("wc" -> game.clock.map(_.remainingTime(chess.White).roundSeconds))
           .add("bc" -> game.clock.map(_.remainingTime(chess.Black).roundSeconds))
@@ -125,7 +124,7 @@ object TvBroadcast:
   type SourceType = Source[JsValue, ?]
   type Queue = SourceQueueWithComplete[JsValue]
 
-  case class Featured(id: GameId, data: JsObject, fen: Fen.Full):
+  case class Featured(id: GameId, data: JsObject, fen: String):
     def dataWithFen = data ++ Json.obj("fen" -> fen)
     def socketMsg = makeMessage("featured", dataWithFen)
 

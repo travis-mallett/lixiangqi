@@ -1,7 +1,6 @@
 package lila.round
 
 import org.apache.pekko.actor.{ Cancellable, CoordinatedShutdown, Scheduler }
-import chess.format.Uci
 import chess.{ ByColor, Black, Centis, Color, MoveMetrics, Speed, White }
 import play.api.libs.json.*
 import reactivemongo.api.Cursor
@@ -307,12 +306,6 @@ object RoundSocket:
           case Speed.Blitz => 2
           case _ => 1
       } / {
-        import chess.variant.*
-        (pov.game.chess.position.materialImbalance, pov.game.variant) match
-          case (_, Antichess | Crazyhouse | Horde) => 1
-          case (i, _) if (pov.color.white && i <= -4) || (pov.color.black && i >= 4) => 2
-          case _ => 1
-      } / {
         if pov.player.hasUser then 1 else 2
       }
 
@@ -322,7 +315,12 @@ object RoundSocket:
 
       case class PlayerOnlines(onlines: Iterable[(GameId, Option[RoomCrowd])]) extends P.In
       case class PlayerDo(fullId: GameFullId, tpe: String) extends P.In
-      case class PlayerMove(fullId: GameFullId, uci: Uci, blur: Boolean, lag: MoveMetrics) extends P.In
+      case class PlayerMove(
+          fullId: GameFullId,
+          uci: lila.xiangqi.Xiangqi.Uci,
+          blur: Boolean,
+          lag: MoveMetrics
+      ) extends P.In
       case class PlayerChatSay(gameId: GameId, userIdOrColor: Either[UserId, Color], msg: String) extends P.In
       case class WatcherChatSay(gameId: GameId, userId: UserId, msg: String) extends P.In
       case class Bye(fullId: GameFullId) extends P.In
@@ -356,13 +354,16 @@ object RoundSocket:
           }
         case P.RawMsg("r/move", raw) =>
           raw.get(6) { case Array(fullId, uciS, blurS, lagS, mtS, fraS) =>
-            Uci(uciS).map: uci =>
-              PlayerMove(
-                GameFullId(fullId),
-                uci,
-                P.In.boolean(blurS),
-                MoveMetrics(centis(lagS), centis(mtS), centis(fraS))
-              )
+            lila.xiangqi.Xiangqi.Uci
+              .from(uciS)
+              .toOption
+              .map: uci =>
+                PlayerMove(
+                  GameFullId(fullId),
+                  uci,
+                  P.In.boolean(blurS),
+                  MoveMetrics(centis(lagS), centis(mtS), centis(fraS))
+                )
           }
         case P.RawMsg("chat/say", raw) =>
           raw.get(3) { case Array(roomId, author, msg) =>

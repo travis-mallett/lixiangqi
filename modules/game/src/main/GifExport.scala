@@ -2,14 +2,12 @@ package lila.game
 
 import org.apache.pekko.stream.scaladsl.*
 import org.apache.pekko.util.ByteString
-import chess.format.{ Fen, Uci, UciDump }
-import chess.{ Position, Centis, Color }
+import chess.{ Centis, Color }
 import play.api.libs.json.*
 import play.api.libs.ws.JsonBodyWritables.*
 import play.api.libs.ws.{ StandaloneWSClient, StandaloneWSResponse }
 import scalalib.Maths
 
-import lila.common.Json.given
 import lila.core.config.RouteUrl
 import lila.core.game.{ ClockHistory, Game, Pov }
 import lila.game.GameExt.*
@@ -18,6 +16,7 @@ import play.api.mvc.RequestHeader
 import lila.common.HTTPRequest.queryStringBoolOpt
 import chess.Ply
 import chess.format.pgn.Glyph
+import lila.xiangqi.Xiangqi
 
 object GifExport:
   case class UpstreamStatus(code: Int) extends lila.core.lilaism.LilaException:
@@ -45,7 +44,6 @@ final class GifExport(
 
   def fromPov(
       pov: Pov,
-      initialFen: Option[Fen.Full],
       theme: String,
       piece: String,
       analysis: Option[Analysis],
@@ -65,13 +63,14 @@ final class GifExport(
             Json
               .obj(
                 "comment" -> s"${routeUrl(routes.Round.watcher(pov.game.id, pov.color))} rendered with https://github.com/lichess-org/lila-gif",
-                "orientation" -> pov.color.name,
+                "orientation" -> sideName(pov.color),
+                "variant" -> "xiangqi",
                 "delay" -> targetMedianTime.centis, // default delay for frames
-                "frames" -> frames(pov.game, initialFen, analysis, options),
+                "frames" -> frames(pov.game, analysis, options),
                 "theme" -> theme,
                 "piece" -> piece
               )
-              .add("white", showPlayer(Color.White))
+              .add("red", showPlayer(Color.White))
               .add("black", showPlayer(Color.Black))
           )
           .stream()
@@ -79,22 +78,22 @@ final class GifExport(
   def gameThumbnail(game: Game, theme: String, piece: String): Fu[Source[ByteString, ?]] =
     lightUserApi.preloadMany(game.userIds) >>
       thumbnail(
-        position = game.chess.position,
-        white = Namer.playerTextBlocking(game.whitePlayer, withRating = true)(using lightUserApi.sync).some,
+        position = game.position,
+        red = Namer.playerTextBlocking(game.whitePlayer, withRating = true)(using lightUserApi.sync).some,
         black = Namer.playerTextBlocking(game.blackPlayer, withRating = true)(using lightUserApi.sync).some,
         orientation = game.naturalOrientation,
-        lastMove = game.history.lastMove,
+        lastMove = game.lastMoveKeys,
         theme = theme,
         piece = piece,
         description = s"gameThumbnail ${game.id}"
       )
 
   def thumbnail(
-      position: Position,
-      white: Option[String] = None,
+      position: Xiangqi.State,
+      red: Option[String] = None,
       black: Option[String] = None,
       orientation: Color,
-      lastMove: Option[Uci],
+      lastMove: Option[String],
       theme: String,
       piece: String,
       description: String
@@ -104,15 +103,15 @@ final class GifExport(
         .withMethod("GET")
         .withQueryStringParameters(
           List(
-            "fen" -> Fen.write(position).value,
-            "orientation" -> orientation.name,
+            "fen" -> position.fen,
+            "orientation" -> sideName(orientation),
+            "variant" -> "xiangqi",
             "theme" -> theme,
             "piece" -> piece
           ) ::: List(
-            white.map { "white" -> _ },
+            red.map { "red" -> _ },
             black.map { "black" -> _ },
-            lastMove.map { lm => "lastMove" -> UciDump.lastMove(lm, position.variant) },
-            position.checkSquare.map { "check" -> _.key }
+            lastMove.map { "lastMove" -> _ }
           ).flatten*
         )
         .stream()
@@ -152,13 +151,13 @@ final class GifExport(
 
   private def frames(
       game: Game,
-      initialFen: Option[Fen.Full],
       analysis: Option[Analysis],
       options: GifExport.Options
   ): JsArray =
-    val positions = Position(game.variant, initialFen).playPositions(game.sans).getOrElse(List(game.position))
     val glyphs = options.glyphs.so(glyphsMap(analysis))
     val clocks = options.clocks.so(game.clockHistory)
+    val positions = game.xiangqi.states.zipWithIndex.map: (position, index) =>
+      position -> game.xiangqi.moves.lift(index - 1)
     framesRec(
       positions.zip(scaleMoveTimes(~game.moveTimes).map(some).padTo(positions.length, None)),
       glyphs,
@@ -169,15 +168,16 @@ final class GifExport(
 
   @annotation.tailrec
   private def framesRec(
-      games: List[(Position, Option[Centis])],
+      games: Vector[((Xiangqi.State, Option[Xiangqi.Uci]), Option[Centis])],
       glyphs: Map[Ply, Glyph],
       clocks: Option[ClockHistory],
       ply: Ply,
       arr: JsArray
   ): JsArray =
-    games match
-      case Nil => arr
-      case (position, scaledMoveTime) :: tail =>
+    games.headOption match
+      case None => arr
+      case Some(((position, lastMove), scaledMoveTime)) =>
+        val tail = games.tail
         // longer delay for last frame
         val delay = if tail.isEmpty then Centis(500).some else scaledMoveTime
         val glyph = glyphs.get(ply)
@@ -187,23 +187,25 @@ final class GifExport(
           glyphs,
           clocks,
           ply + 1,
-          arr :+ frame(position, position.history.lastMove, delay, glyph, clock)
+          arr :+ frame(position, lastMove, delay, glyph, clock)
         )
 
   private def frame(
-      position: Position,
-      uci: Option[Uci],
+      position: Xiangqi.State,
+      uci: Option[Xiangqi.Uci],
       delay: Option[Centis],
       glyph: Option[Glyph],
       clock: Option[JsObject]
   ) =
     Json
       .obj(
-        "fen" -> (Fen.write(position)),
-        "lastMove" -> uci.map(UciDump.lastMove(_, position.variant))
+        "fen" -> position.fen,
+        "lastMove" -> uci.map(_.value),
+        "variant" -> "xiangqi"
       )
-      .add("check", position.checkSquare.map(_.key))
+      .add("check", position.check)
       .add("delay", delay.map(_.centis))
       .add("glyph", glyph.map(_.symbol))
       .add("clock", clock)
-      .add("pockets", position.crazyData.map(_.pockets))
+
+  private def sideName(color: Color) = if color == Color.White then "red" else "black"

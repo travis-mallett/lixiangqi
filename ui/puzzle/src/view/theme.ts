@@ -4,9 +4,7 @@ import { type VNode, type MaybeVNode, bind, hl, type VNodeData, icon } from 'lib
 import type PuzzleCtrl from '@/ctrl';
 import type { ThemeKey, RoundThemes } from '@/interfaces';
 
-import { renderColorForm } from './side';
-
-const STUDY_URL = 'https://lichess.org/study/viiWlKjv';
+const STUDY_URL = 'https://lixiangqi.org/study/viiWlKjv';
 
 export default function theme(ctrl: PuzzleCtrl): MaybeVNode {
   const { angle, replay } = ctrl.data;
@@ -15,7 +13,7 @@ export default function theme(ctrl: PuzzleCtrl): MaybeVNode {
   if (replay) return showEditor ? hl('div.puzzle__side__theme', editor(ctrl)) : null;
   if (ctrl.streak) return null;
 
-  const backHref = ctrl.routerWithLang(`/training/${angle.opening ? 'openings' : 'themes'}`);
+  const backHref = ctrl.routerWithLang('/training/themes');
 
   if (ctrl.isDaily) {
     return hl(
@@ -26,23 +24,16 @@ export default function theme(ctrl: PuzzleCtrl): MaybeVNode {
 
   return hl('div.puzzle__side__theme', [
     backToTheme(backHref, ['« ', angle.name], { class: { long: angle.name.length > 20 } }),
-    angle.opening
-      ? hl('a', { attrs: { href: `/opening/${angle.opening.key}` } }, [
-          'Learn more about ',
-          angle.opening.name,
-        ])
-      : hl('p', [
-          angle.desc,
-          angle.chapter &&
-            hl(
-              'a.puzzle__side__theme__chapter.text',
-              { attrs: { href: `${STUDY_URL}/${angle.chapter}`, target: '_blank' } },
-              [' ', i18n.puzzle.example],
-            ),
-        ]),
-    showEditor
-      ? hl('div.puzzle__themes', editor(ctrl))
-      : !replay && !ctrl.streak && (angle.opening || angle.openingAbstract) && renderColorForm(ctrl),
+    hl('p', [
+      angle.desc,
+      angle.chapter &&
+        hl(
+          'a.puzzle__side__theme__chapter.text',
+          { attrs: { href: `${STUDY_URL}/${angle.chapter}`, target: '_blank' } },
+          [' ', i18n.puzzle.example],
+        ),
+    ]),
+    showEditor ? hl('div.puzzle__themes', editor(ctrl)) : null,
   ]);
 }
 
@@ -86,7 +77,7 @@ const editor = (ctrl: PuzzleCtrl): VNode[] => {
           hl(
             'a',
             { attrs: { href: `/training/${key}`, title: themeTrans(`${key}Description`) } },
-            themeTrans(key),
+            key === ctrl.data.angle.key ? ctrl.data.angle.name : themeTrans(key),
           ),
           allThemes &&
             hl(

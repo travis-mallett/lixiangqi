@@ -50,7 +50,7 @@ final class ChallengeUi(helpers: Helpers):
       else
         c.destUser.fold(s"Challenge from $challenger"): dest =>
           s"$challenger challenges ${titleNameOrId(dest.id)}${ctx.pref.showRatings.so(s" (${dest.rating.show})")}"
-    s"$speed$variant ${c.rated.name} Chess • $players"
+    s"$speed$variant ${c.rated.name} Xiangqi • $players"
 
   private def details(c: Challenge, requestedColor: Option[Color])(using ctx: Context) =
     div(cls := "details-wrapper")(

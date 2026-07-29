@@ -15,7 +15,7 @@
   <string name="tips">Tips</string>
   <string name="ifTheAboveMoveNotationIsUnfamiliar">If the above move notation is unfamiliar, learn more here:</string>
   <string name="includingAXToIndicateACapture">Including an "x" to indicate a capture is optional</string>
-  <string name="bothTheLetterOAndTheDigitZero">Both the letter "o" and the digit zero "0" can be used when castling</string>
+  <string name="bothTheLetterOAndTheDigitZero">Use the displayed move notation exactly when entering moves</string>
   <string name="ifItIsLegalToCastleBothWays">If it is legal to castle both ways, use enter to kingside castle</string>
   <string name="capitalizationOnlyMattersInAmbiguousSituations">Capitalization only matters in ambiguous situations involving a bishop and the b-pawn</string>
   <string name="toPremoveSimplyTypeTheDesiredPremove">To premove, simply type the desired premove before it is your turn</string>

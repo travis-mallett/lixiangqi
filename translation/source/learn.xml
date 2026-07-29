@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <resources>
-  <string name="learnChess">Learn chess</string>
+  <string name="learnChess">Learn Xiangqi</string>
   <string name="byPlaying">by playing!</string>
   <string name="menu">Menu</string>
   <string name="progressX">Progress: %s</string>
   <string name="resetMyProgress">Reset my progress</string>
   <string name="youWillLoseAllYourProgress">You will lose all your progress!</string>
   <string name="play">play!</string>
-  <string name="chessPieces">Chess pieces</string>
+  <string name="chessPieces">Xiangqi pieces</string>
   <string name="theRook">The rook</string>
   <string name="itMovesInStraightLines">It moves in straight lines</string>
   <string name="rookIntro">The rook is a powerful piece. Are you ready to command it?</string>
@@ -28,7 +28,7 @@ You need both!</string>
   <string name="bishopComplete">Congratulations! You can command a bishop.</string>
   <string name="theQueen">The queen</string>
   <string name="queenCombinesRookAndBishop">Queen = rook + bishop</string>
-  <string name="queenIntro">The most powerful chess piece enters. Her majesty the queen!</string>
+  <string name="queenIntro">The most powerful Xiangqi piece enters. Her majesty the queen!</string>
   <string name="queenComplete">Congratulations! Queens have no secrets for you.</string>
   <string name="theKing">The king</string>
   <string name="theMostImportantPiece">The most important piece</string>
@@ -71,7 +71,7 @@ No need to promote.</string>
   <string name="takeTheBlackPieces">Take the black pieces!</string>
   <string name="takeTheBlackPiecesAndDontLoseYours">Take the black pieces!
 And don't lose yours.</string>
-  <string name="captureComplete">Congratulations! You know how to fight with chess pieces!</string>
+  <string name="captureComplete">Congratulations! You know how to fight with Xiangqi pieces!</string>
   <string name="protection">Protection</string>
   <string name="keepYourPiecesSafe">Keep your pieces safe</string>
   <string name="protectionIntro">Identify the pieces your opponent attacks, and defend them!</string>
@@ -85,7 +85,7 @@ any undefended piece!</string>
   <string name="combat">Combat</string>
   <string name="captureAndDefendPieces">Capture and defend pieces</string>
   <string name="combatIntro">A good warrior knows both attack and defence!</string>
-  <string name="combatComplete">Congratulations! You know how to fight with chess pieces!</string>
+  <string name="combatComplete">Congratulations! You know how to fight with Xiangqi pieces!</string>
   <string name="checkInOne">Check in one</string>
   <string name="attackTheOpponentsKing">Attack the opponent's king</string>
   <string name="checkInOneIntro">To check your opponent, attack their king. They must defend it!</string>
@@ -110,13 +110,13 @@ or block the attack!</string>
   <string name="mateInOneIntro">You win when your opponent cannot defend against a check.</string>
   <string name="attackYourOpponentsKing">Attack your opponent's king
 in a way that cannot be defended!</string>
-  <string name="mateInOneComplete">Congratulations! That is how you win chess games!</string>
+  <string name="mateInOneComplete">Congratulations! That is how you win Xiangqi games!</string>
   <string name="intermediate">Intermediate</string>
   <string name="boardSetup">Board setup</string>
   <string name="howTheGameStarts">How the game starts</string>
   <string name="boardSetupIntro">The two armies face each other, ready for the battle.</string>
   <string name="thisIsTheInitialPosition">This is the initial position
-of every game of chess!
+of every game of Xiangqi!
 Make any move to continue.</string>
   <string name="firstPlaceTheRooks">First place the rooks!
 They go in the corners.</string>
@@ -130,10 +130,10 @@ She goes on her own colour.</string>
 Right next to his queen.</string>
   <string name="pawnsFormTheFrontLine">Pawns form the front line.
 Make any move to continue.</string>
-  <string name="boardSetupComplete">Congratulations! You know how to set up the chess board.</string>
-  <string name="castling">Castling</string>
+  <string name="boardSetupComplete">Congratulations! You know how to set up the Xiangqi board.</string>
+  <string name="castling">General safety</string>
   <string name="theSpecialKingMove">The special king move</string>
-  <string name="castlingIntro">Bring your king to safety, and deploy your rook for attack!</string>
+  <string name="castlingIntro">Keep your general safe while preparing your pieces for attack!</string>
   <string name="castleKingSide">Move your king two squares
 to castle king-side!</string>
   <string name="castleQueenSide">Move your king two squares
@@ -154,19 +154,19 @@ Block the check then castle!</string>
 castle king-side!</string>
   <string name="findAWayToCastleQueenSide">Find a way to
 castle queen-side!</string>
-  <string name="castlingComplete">Congratulations! You should almost always castle in a game.</string>
+  <string name="castlingComplete">Congratulations! You know how to keep the general safe.</string>
   <string name="theSpecialPawnMove">The special pawn move</string>
   <string name="enPassantIntro">When the opponent's pawn moves two squares, you can still take it as if it had only moved one square.</string>
   <string name="blackJustMovedThePawnByTwoSquares">Black just moved the pawn
 by two squares!
-Take it en passant.</string>
-  <string name="enPassantOnlyWorksImmediately">En passant only works
+Cross the river and press forward.</string>
+  <string name="enPassantOnlyWorksImmediately">This tactic only works
 immediately after the opponent
 moved the pawn.</string>
-  <string name="enPassantOnlyWorksOnFifthRank">En passant only works
+  <string name="enPassantOnlyWorksOnFifthRank">This tactic only works
 if your pawn is on the 5th rank.</string>
-  <string name="takeAllThePawnsEnPassant">Take all the pawns en passant!</string>
-  <string name="enPassantComplete">Congratulations! You can now take en passant.</string>
+  <string name="takeAllThePawnsEnPassant">Use every soldier tactic!</string>
+  <string name="enPassantComplete">Congratulations! You understand this soldier tactic.</string>
   <string name="stalemate">Stalemate</string>
   <string name="theGameIsADraw">The game is a draw</string>
   <string name="stalemateIntro">When a player is not in check and does not have a legal move, it's a stalemate. The game is drawn: no one wins, no one loses.</string>
@@ -184,9 +184,9 @@ Bishop = 3
 Knight = 3
 Pawn = 1
 The king is priceless! Losing it means losing the game.</string>
-  <string name="queenOverBishop">Take the piece
+  <string name="queenOverBishop">>Take the piece
 with the highest value!
-Queen > Bishop</string>
+Queen  Bishop</string>
     <string name="pieceValueExchange">Take the piece with the highest value!
 Do not exchange
 a higher valued piece for a less valuable one.</string>
@@ -208,15 +208,15 @@ Pawn = 1</string>
 in two moves!</string>
   <string name="checkInTwoComplete">Congratulations! You checked your opponent, forcing them to defend their king!</string>
   <string name="whatNext">What next?</string>
-  <string name="youKnowHowToPlayChess">You know how to play chess, congratulations! Do you want to become a stronger player?</string>
+  <string name="youKnowHowToPlayChess">You know how to play Xiangqi, congratulations! Do you want to become a stronger player?</string>
   <string name="register">Register</string>
-  <string name="getAFreeLichessAccount">Get a free Lichess account</string>
+  <string name="getAFreeLichessAccount">Get a free Lixiangqi account</string>
   <string name="practice">Practise</string>
-  <string name="learnCommonChessPositions">Learn common chess positions</string>
+  <string name="learnCommonChessPositions">Learn common Xiangqi positions</string>
   <string name="puzzles">Puzzles</string>
   <string name="exerciseYourTacticalSkills">Exercise your tactical skills</string>
   <string name="videos">Videos</string>
-  <string name="watchInstructiveChessVideos">Watch instructive chess videos</string>
+  <string name="watchInstructiveChessVideos">Watch instructive Xiangqi videos</string>
   <string name="playPeople">Play people</string>
   <string name="opponentsFromAroundTheWorld">Opponents from around the world</string>
   <string name="playMachine">Play machine</string>

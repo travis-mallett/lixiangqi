@@ -1,6 +1,6 @@
 .copy-me {
   @extend %box-radius, %flex-center-nowrap;
-  @include backdrop-blur-if-transparent;
+  @include backdrop-blur-if-background;
 
   &__target {
     @extend %nowrap-ellipsis, %box-radius-left;

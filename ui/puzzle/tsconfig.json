@@ -4,6 +4,7 @@
   "references": [
     { "path": "../lib/tsconfig.json" },
     { "path": "../keyboardMove/tsconfig.json" },
+    { "path": "../xiangqi/tsconfig.json" },
     { "path": "../voice/tsconfig.json" }
   ]
 }

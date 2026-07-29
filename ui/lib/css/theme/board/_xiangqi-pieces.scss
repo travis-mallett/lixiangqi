@@ -1,0 +1,58 @@
+// ChessgroundX retains white/black as internal color keys. In Lixiangqi they
+// select the red and black Xiangqi assets exposed by the native piece-set loader.
+
+piece.p-piece.white {
+  background-image: var(---red-soldier);
+}
+
+piece.b-piece.white {
+  background-image: var(---red-elephant);
+}
+
+piece.n-piece.white {
+  background-image: var(---red-horse);
+}
+
+piece.r-piece.white {
+  background-image: var(---red-chariot);
+}
+
+piece.a-piece.white {
+  background-image: var(---red-advisor);
+}
+
+piece.c-piece.white {
+  background-image: var(---red-cannon);
+}
+
+piece.k-piece.white {
+  background-image: var(---red-general);
+}
+
+piece.p-piece.black {
+  background-image: var(---black-soldier);
+}
+
+piece.b-piece.black {
+  background-image: var(---black-elephant);
+}
+
+piece.n-piece.black {
+  background-image: var(---black-horse);
+}
+
+piece.r-piece.black {
+  background-image: var(---black-chariot);
+}
+
+piece.a-piece.black {
+  background-image: var(---black-advisor);
+}
+
+piece.c-piece.black {
+  background-image: var(---black-cannon);
+}
+
+piece.k-piece.black {
+  background-image: var(---black-general);
+}

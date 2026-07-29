@@ -1,57 +1,43 @@
 .learn__side-map {
   @include prevent-select;
 
-  .back,
-  .categ > h2 {
-    display: block;
-    font-size: 1.3em;
-    height: 50px;
-    line-height: 50px;
-    text-indent: 15px;
-    cursor: pointer;
-    opacity: 0.81;
-  }
+  position: sticky;
+  top: 1rem;
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  border: 1px solid color-mix(in oklab, #b9914e 28%, $c-border);
+  border-radius: 8px;
+  background: $c-bg-box;
 
   .back {
     display: flex;
-    color: $c-font;
-  }
+    align-items: center;
+    gap: 0.65rem;
+    min-height: 58px;
+    padding: 0.45rem 0.65rem;
+    color: $c-font-clear;
+    font-size: 1.1rem;
+    font-weight: 700;
+    background: linear-gradient(90deg, rgb(156 49 43 / 0.25), transparent);
 
-  .back img {
-    width: 50px;
-    height: 50px;
-    opacity: 0.9;
-    margin-inline-end: 10px;
-    padding: 10px;
-    background: rgb(120 120 120 / 1);
-    display: block;
-  }
-
-  .back:hover {
-    background: rgb(120 120 120 / 0.2);
+    img {
+      width: 44px;
+      height: 44px;
+    }
   }
 
   .categ > h2 {
-    border-top: $border;
-  }
-
-  .categ > h2:hover {
-    background: rgb(from $c-primary r g b / calc(alpha * 0.2));
-  }
-
-  .categ.active {
-    border: $border;
-    border-width: 0 1px;
-  }
-
-  .categ.active:last-child {
-    border-bottom-width: 1px;
+    margin: 0;
+    border-top: 1px solid $c-border;
+    padding: 0.75rem 0.8rem;
+    color: $c-font-dim;
+    font-size: 0.9rem;
+    cursor: pointer;
   }
 
   .categ.active > h2 {
-    cursor: default;
-    background: $c-primary;
-    color: $c-over;
+    color: #e0b76b;
+    background: rgb(167 57 48 / 0.14);
   }
 
   .categ:not(.active) .categ_stages {
@@ -59,54 +45,55 @@
   }
 
   .stage {
-    @extend %roboto, %flex-center;
     @include transition;
 
-    font-size: 1.1em;
-    opacity: 0.9;
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-height: 52px;
+    padding: 0.35rem 0.65rem;
     color: $c-font;
+    border-top: 1px solid color-mix(in oklab, $c-border 60%, transparent);
 
-    img,
-    icon {
-      width: 50px;
-      height: 50px;
-      opacity: 0.9;
-      margin-inline-end: 10px;
-      padding: 10px;
+    img {
+      width: 40px;
+      height: 40px;
+      object-fit: contain;
     }
 
-    icon::before {
-      font-size: 30px;
+    > span {
+      display: grid;
+      min-width: 0;
+    }
+
+    strong {
+      color: #cda55d;
+      font-size: 0.65rem;
+      letter-spacing: 0.05em;
+    }
+
+    span span {
+      overflow: hidden;
+      font-size: 0.86rem;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     &.active {
-      background: rgb(from $c-primary r g b / calc(alpha * 0.2));
+      border-inline-start: 4px solid #b53e34;
+      background: rgb(181 62 52 / 0.16);
     }
 
-    &.active img {
-      background: $c-primary;
+    &.done {
+      border-inline-start: 4px solid $c-good;
     }
 
-    &.done:hover {
-      background: rgb(from $c-secondary r g b / calc(alpha * 0.2));
+    &.coming-soon {
+      opacity: 0.42;
     }
 
-    &.done img {
-      background: $c-good;
-    }
-
-    &.future:hover {
-      background: rgb(from $c-primary r g b / calc(alpha * 0.2));
-    }
-
-    &.future img {
-      opacity: 0.7;
-      background: $c-primary;
-    }
-
-    &:hover {
-      filter: brightness(0.9);
-      color: $c-font-clearer;
+    &:is(a):hover {
+      background: $c-bg-zebra;
     }
   }
 }

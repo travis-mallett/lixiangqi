@@ -70,7 +70,7 @@ final class AuthTakex3Ui(helpers: Helpers):
       .hrefLangs(Option.empty[LangPath])
       .flag(_.noHeader):
         main(cls := authClasses("auth auth-login box box-pad"))(
-          connectionHeader("Login to Lichess"),
+          connectionHeader("Login to Lixiangqi"),
           postForm(
             cls := "form3",
             action := addReferrer(routes.Auth.authenticateTakex3.url)
@@ -134,7 +134,7 @@ final class AuthTakex3Ui(helpers: Helpers):
       Option[AuthCustomUi]
   ) =
     given Translate = oauthClientLanguage
-    Page("Create Lichess account")
+    Page("Create Lixiangqi account")
       .js(esmInit("bits.auth", "signup"))
       .js(fingerprintTag)
       .css("bits.auth")
@@ -145,7 +145,7 @@ final class AuthTakex3Ui(helpers: Helpers):
         main(
           cls := authClasses("auth auth-signup box box-pad")
         )(
-          connectionHeader("Create Lichess account"),
+          connectionHeader("Create Lixiangqi account"),
           postForm(
             id := "signup-form",
             cls := "form3",
@@ -187,7 +187,7 @@ final class AuthTakex3Ui(helpers: Helpers):
             simple.not.option(turnstile.widget(hidden = true)),
             turnstile.submit("Create account"),
             small(cls := "form-help")(
-              "By registering you accept Lichess' ",
+              "By registering you accept Lixiangqi's ",
               a(href := routes.Cms.tos)("Terms and conditions")
             )
           )
@@ -249,7 +249,7 @@ final class AuthTakex3Ui(helpers: Helpers):
       form: Form[?]
   )(using Context, Option[AuthCustomUi]) =
     given Translate = oauthClientLanguage
-    val title = "Reset your Lichess password"
+    val title = "Reset your Lixiangqi password"
     def confirmForm =
       postForm(cls := "form3", action := routes.Auth.passwordResetConfirmApplyTakex3(token))(
         form3.hidden(form("token")),
@@ -288,7 +288,7 @@ final class AuthTakex3Ui(helpers: Helpers):
         main(cls := authClasses("auth auth-password-reset auth-password-reset--success box box-pad"))(
           connectionHeader("Password reset"),
           p(cls := "auth__reset-copy")(
-            "Your Lichess password has been updated. Return to Take Take Take to log in with your new password."
+            "Your Lixiangqi password has been updated. Return to Take Take Take to log in with your new password."
           ),
           a(cls := "button auth__open-app", href := openAppLichessLoginUrl)(
             "Return to Take Take Take"

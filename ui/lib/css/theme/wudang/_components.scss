@@ -1,0 +1,702 @@
+html.wudang {
+  // -------------------------------------------------------------------------
+  // Global navigation: a thin, predictable smoked-ink ribbon.
+  // -------------------------------------------------------------------------
+  &.has-background #top,
+  &.has-background #top.scrolled,
+  body #top,
+  body #top.scrolled {
+    border-bottom: 1px solid rgb(240 236 226 / 0.12);
+    background:
+      linear-gradient(90deg, rgb(255 255 255 / 0.025), transparent 20% 80%, rgb(255 255 255 / 0.02)),
+      linear-gradient(180deg, #1b282a, #101a1b);
+    box-shadow:
+      inset 0 -1px 0 rgb(0 0 0 / 0.58),
+      0 2px 4px rgb(4 9 10 / 0.28),
+      0 10px 30px rgb(4 8 9 / 0.16);
+  }
+
+  #top::after {
+    content: '';
+    position: absolute;
+    inset: auto 0 -7px;
+    height: 7px;
+    pointer-events: none;
+    background: linear-gradient(180deg, rgb(13 21 22 / 0.18), transparent);
+  }
+
+  .site-title {
+    color: var(--wudang-text-on-dark);
+    text-shadow: none;
+
+    span {
+      color: var(--wudang-muted-on-dark);
+    }
+
+    &:hover,
+    &:hover span {
+      color: var(--wudang-jade-light);
+    }
+  }
+
+  #topnav section > a {
+    color: var(--wudang-muted-on-dark);
+    text-shadow: none !important;
+  }
+
+  #topnav section:hover > a,
+  #topnav section:active > a,
+  #topnav section.active > a {
+    border-color: var(--wudang-cinnabar);
+    background: #202e30;
+    color: var(--wudang-text-on-dark);
+    box-shadow: inset 0 -2px var(--wudang-cinnabar);
+  }
+
+  #topnav div,
+  .site-buttons .dropdown {
+    border: 1px solid rgb(240 236 226 / 0.13);
+    border-inline-start: 3px solid var(--wudang-cinnabar);
+    border-radius: 0 var(--wudang-radius-stone) var(--wudang-radius-stone);
+    background: var(--wudang-stone-field);
+    color: var(--wudang-text-on-dark);
+    box-shadow: var(--wudang-shadow-stone-small);
+
+    a,
+    button {
+      color: var(--wudang-muted-on-dark);
+    }
+
+    a:hover,
+    button:hover {
+      background: rgb(99 126 134 / 0.24);
+      color: var(--wudang-text-on-dark);
+      box-shadow: inset 3px 0 var(--wudang-mineral-blue);
+    }
+  }
+
+  .site-buttons {
+    .link {
+      color: var(--wudang-muted-on-dark);
+      text-shadow: none;
+
+      &:hover {
+        color: var(--wudang-text-on-dark) !important;
+      }
+    }
+
+    .signin {
+      color: var(--wudang-muted-on-dark);
+
+      &:hover {
+        color: var(--wudang-jade-light) !important;
+      }
+    }
+
+    .signup {
+      border: 1px solid #662822;
+      border-radius: var(--wudang-radius-stone);
+      background: linear-gradient(180deg, #a84d43, var(--wudang-cinnabar));
+      color: var(--wudang-text-on-dark);
+      box-shadow:
+        inset 0 1px rgb(255 255 255 / 0.12),
+        inset 0 -2px rgb(57 17 14 / 0.28),
+        0 2px 4px rgb(4 9 10 / 0.36);
+      text-shadow: 0 1px rgb(54 17 14 / 0.55);
+
+      &:hover {
+        background: linear-gradient(180deg, var(--wudang-cinnabar-light), #87372f);
+        color: #fff !important;
+      }
+    }
+  }
+
+  .site-title-nav__donate,
+  #topnav .community-patron::after {
+    color: var(--wudang-temple-gold);
+    text-shadow: none;
+  }
+
+  .site-title-nav__donate {
+    border-radius: var(--wudang-radius-stone);
+
+    &::before {
+      color: var(--wudang-temple-gold);
+    }
+
+    &:hover {
+      background: rgb(173 130 69 / 0.14);
+      color: #d0aa6d;
+    }
+  }
+
+  // Segmented radios use the cinnabar active material. The shared radio
+  // stylesheet is emitted after the theme bundle, so keep the active label
+  // explicitly on the dark-surface text contract.
+  group.radio input:checked + label {
+    color: var(--wudang-text-on-dark);
+    text-shadow: 0 1px rgb(54 17 14 / 0.42);
+  }
+
+  // -------------------------------------------------------------------------
+  // Buttons and tactile controls.
+  // -------------------------------------------------------------------------
+  .button {
+    border: 1px solid #692923;
+    border-radius: var(--wudang-radius-stone);
+    background: linear-gradient(180deg, #a54a41, var(--wudang-cinnabar));
+    color: var(--wudang-text-on-dark);
+    box-shadow:
+      inset 0 1px rgb(255 255 255 / 0.12),
+      inset 0 -2px rgb(57 17 14 / 0.3),
+      0 2px 4px rgb(4 9 10 / 0.28),
+      0 7px 15px rgb(4 8 9 / 0.14);
+    text-shadow: 0 1px rgb(55 18 15 / 0.62);
+    transition:
+      background-color 160ms,
+      border-color 160ms,
+      color 160ms,
+      box-shadow 160ms,
+      transform 120ms;
+
+    &,
+    &:visited,
+    &:focus {
+      color: var(--wudang-text-on-dark);
+    }
+
+    &:not(.disabled, :disabled):hover {
+      border-color: #5d211c;
+      background: linear-gradient(180deg, #b6554b, #87362f);
+      color: #fff;
+      box-shadow:
+        inset 0 1px rgb(255 255 255 / 0.14),
+        inset 3px 0 var(--wudang-cinnabar-light),
+        0 3px 5px rgb(4 9 10 / 0.32),
+        0 9px 19px rgb(4 8 9 / 0.18);
+    }
+
+    &:not(.disabled, :disabled):active {
+      transform: translateY(1px);
+      background: var(--wudang-cinnabar-dark);
+      box-shadow: var(--wudang-shadow-pressed);
+    }
+
+    &.button-green {
+      border-color: #314b3e;
+      background: linear-gradient(180deg, #75927f, var(--wudang-jade-dark));
+      box-shadow:
+        inset 0 1px rgb(255 255 255 / 0.12),
+        inset 0 -2px rgb(20 42 31 / 0.26),
+        0 2px 5px rgb(4 9 10 / 0.28);
+
+      &:not(.disabled):hover {
+        background: linear-gradient(180deg, var(--wudang-jade-light), #52715f);
+      }
+    }
+
+    &.button-red {
+      background: linear-gradient(180deg, var(--wudang-cinnabar-light), var(--wudang-cinnabar-dark));
+    }
+
+    &.button-metal,
+    &.button-inverse {
+      border-color: rgb(240 236 226 / 0.14);
+      background: var(--wudang-stone-field);
+      color: var(--wudang-text-on-dark);
+      box-shadow: var(--wudang-shadow-stone-small);
+      text-shadow: none !important;
+
+      &:not(.disabled):hover {
+        border-color: var(--wudang-mineral-blue);
+        background: linear-gradient(180deg, #304043, #1a2829);
+        color: #fff;
+        box-shadow:
+          inset 3px 0 var(--wudang-mineral-blue),
+          var(--wudang-shadow-stone-small);
+      }
+    }
+
+    &.button-empty {
+      border-color: transparent;
+      background: transparent;
+      color: var(--wudang-jade-dark);
+      box-shadow: none;
+      text-shadow: none;
+
+      &:not(.disabled):hover {
+        border-color: #a9a194;
+        background: rgb(99 126 134 / 0.11);
+        color: #304f49;
+        box-shadow: inset 3px 0 var(--wudang-mineral-blue);
+      }
+
+      &.button-red,
+      &.button-red:hover {
+        color: var(--wudang-cinnabar);
+      }
+    }
+
+    &.disabled,
+    &:disabled {
+      border-color: #8f918c;
+      background: #a7aaa4;
+      color: #5c6461;
+      box-shadow: none;
+      text-shadow: none;
+      opacity: 0.82;
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Inputs, selectors, toggles, and ranges: recessed paper wells.
+  // -------------------------------------------------------------------------
+  input:not([type='checkbox'], [type='radio'], [type='range']),
+  textarea,
+  select {
+    border: 1px solid #8f928c;
+    border-radius: var(--wudang-radius-paper);
+    background: #f3efe6;
+    color: var(--wudang-text-on-paper);
+    box-shadow:
+      inset 0 2px 4px rgb(13 21 22 / 0.11),
+      0 1px rgb(255 255 255 / 0.45);
+    caret-color: var(--wudang-cinnabar);
+
+    &::placeholder {
+      color: #737b77;
+      opacity: 1;
+    }
+
+    &:hover {
+      border-color: var(--wudang-mineral-blue);
+    }
+
+    &:focus {
+      border-color: var(--wudang-jade-dark);
+      box-shadow: var(--wudang-focus);
+    }
+
+    &:disabled {
+      border-color: #b4aea3;
+      background: #d7d1c5;
+      color: #797e7a;
+    }
+  }
+
+  input[type='checkbox'],
+  input[type='radio'] {
+    accent-color: var(--wudang-jade-dark);
+  }
+
+  input[type='range'] {
+    accent-color: var(--wudang-jade);
+  }
+
+  .cmn-toggle {
+    &__track {
+      border: 1px solid #787f7b;
+      background: #a8aaa5;
+      box-shadow: inset 0 1px 3px rgb(13 21 22 / 0.25);
+    }
+
+    input:checked + .cmn-toggle__track {
+      border-color: #385345;
+      background: var(--wudang-jade);
+    }
+  }
+
+  .mselect__list,
+  .select-search__results {
+    border: 1px solid rgb(240 236 226 / 0.13);
+    border-radius: var(--wudang-radius-stone);
+    background: var(--wudang-stone-field);
+    color: var(--wudang-text-on-dark);
+    box-shadow: var(--wudang-shadow-stone);
+
+    .current,
+    [aria-selected='true'] {
+      background: rgb(99 126 134 / 0.28);
+      color: var(--wudang-text-on-dark);
+      box-shadow: inset 3px 0 var(--wudang-jade);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Horizontal tabs, subnavigation, and page menus.
+  // -------------------------------------------------------------------------
+  .tabs-horiz {
+    border: 1px solid rgb(240 236 226 / 0.11);
+    border-radius: var(--wudang-radius-stone) var(--wudang-radius-stone) 0 0;
+    background: var(--wudang-stone-field);
+    box-shadow: inset 0 -1px rgb(0 0 0 / 0.38);
+
+    > span,
+    > a,
+    > button {
+      position: relative;
+      color: var(--wudang-muted-on-dark);
+      text-shadow: none;
+
+      &:hover {
+        background: rgb(99 126 134 / 0.13);
+        color: var(--wudang-text-on-dark);
+      }
+
+      &.active {
+        color: var(--wudang-text-on-dark);
+        font-weight: 650;
+      }
+
+      &.active::after {
+        content: '';
+        position: absolute;
+        inset: auto 20% 0;
+        height: 3px;
+        background: var(--wudang-cinnabar);
+        transform-origin: left;
+        animation: wudang-stroke-in 160ms ease-out;
+      }
+    }
+  }
+
+  @keyframes wudang-stroke-in {
+    from {
+      transform: scaleX(0);
+    }
+  }
+
+  .subnav__inner,
+  .page-menu__menu {
+    border: 1px solid rgb(240 236 226 / 0.12);
+    border-radius: var(--wudang-radius-stone);
+    background: var(--wudang-stone-field);
+    color: var(--wudang-text-on-dark);
+    box-shadow: var(--wudang-shadow-stone-small);
+  }
+
+  .subnav a,
+  .page-menu__menu a {
+    color: var(--wudang-muted-on-dark);
+    text-shadow: none;
+
+    &:hover {
+      background: rgb(99 126 134 / 0.16);
+      color: var(--wudang-text-on-dark);
+    }
+
+    &.active {
+      background: rgb(99 126 134 / 0.24);
+      color: var(--wudang-text-on-dark);
+      box-shadow: inset 3px 0 var(--wudang-cinnabar);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Tables: mounted ledgers with disciplined ruled rows.
+  // -------------------------------------------------------------------------
+  table {
+    color: var(--wudang-text-on-paper);
+    font-variant-numeric: tabular-nums;
+  }
+
+  th {
+    color: var(--wudang-muted-on-paper);
+    font-weight: 650;
+  }
+
+  thead {
+    box-shadow: inset 0 -1px #999387;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid #beb6a8;
+  }
+
+  tbody tr:nth-child(even) {
+    background: rgb(99 126 134 / 0.055);
+  }
+
+  .slist tbody tr:hover,
+  .paginated tbody tr:hover,
+  .lobby__box tbody tr:hover,
+  .games-database tbody tr:hover {
+    background: rgb(99 126 134 / 0.13);
+    box-shadow: inset 3px 0 var(--wudang-mineral-blue);
+  }
+
+  // -------------------------------------------------------------------------
+  // Dialogs, menus, popovers, tooltips, and notices.
+  // -------------------------------------------------------------------------
+  dialog {
+    border: 1px solid rgb(240 236 226 / 0.14);
+    border-radius: var(--wudang-radius-stone);
+    background: var(--wudang-stone-field);
+    color: var(--wudang-text-on-dark);
+    box-shadow: var(--wudang-shadow-stone);
+
+    &::backdrop {
+      background: rgb(6 12 13 / 0.78);
+    }
+
+    button.close-button {
+      border: 1px solid rgb(240 236 226 / 0.14);
+      border-radius: var(--wudang-radius-stone);
+      background: var(--wudang-ink-800);
+      color: var(--wudang-muted-on-dark);
+
+      &:hover {
+        background: var(--wudang-cinnabar);
+        color: #fff;
+      }
+    }
+  }
+
+  .dialog-content:not(.appearance-dialog) {
+    margin: var(--wudang-paper-mount);
+    border-radius: var(--wudang-radius-paper);
+    background: var(--wudang-paper-field);
+    color: var(--wudang-text-on-paper);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.4);
+  }
+
+  #powerTip,
+  .power-tip,
+  .tooltip,
+  [role='tooltip'] {
+    border: 1px solid rgb(240 236 226 / 0.14);
+    border-radius: var(--wudang-radius-stone);
+    background: var(--wudang-ink-900);
+    color: var(--wudang-text-on-dark);
+    box-shadow: var(--wudang-shadow-stone-small);
+    text-shadow: none;
+  }
+
+  .dropdown,
+  .context-menu,
+  .autocomplete,
+  .textcomplete-dropdown,
+  .xiangqi-tree-menu {
+    border: 1px solid rgb(240 236 226 / 0.13);
+    border-radius: var(--wudang-radius-stone);
+    background: var(--wudang-stone-field);
+    color: var(--wudang-text-on-dark);
+    box-shadow: var(--wudang-shadow-stone);
+  }
+
+  .context-menu button,
+  .textcomplete-dropdown li,
+  .xiangqi-tree-menu button {
+    color: var(--wudang-muted-on-dark);
+
+    &:hover,
+    &:focus-visible {
+      background: rgb(99 126 134 / 0.24);
+      color: var(--wudang-text-on-dark);
+      box-shadow: inset 3px 0 var(--wudang-jade);
+    }
+  }
+
+  .flash,
+  .announce,
+  .toast {
+    border: 1px solid #9f978a;
+    border-radius: var(--wudang-radius-paper);
+    background: var(--wudang-paper-field);
+    color: var(--wudang-text-on-paper);
+    box-shadow:
+      0 0 0 3px var(--wudang-ink-800),
+      var(--wudang-shadow-paper-raised);
+  }
+
+  .flash-success,
+  .announce.success {
+    border-inline-start: 4px solid var(--wudang-jade);
+  }
+
+  .flash-error,
+  .announce.error {
+    border-inline-start: 4px solid var(--wudang-cinnabar);
+  }
+
+  // -------------------------------------------------------------------------
+  // Chat, progress, and chart systems.
+  // -------------------------------------------------------------------------
+  .mchat,
+  .chat__members {
+    border: 1px solid rgb(240 236 226 / 0.12);
+    border-radius: var(--wudang-radius-stone);
+    background: var(--wudang-stone-field);
+    color: var(--wudang-muted-on-dark);
+    box-shadow: var(--wudang-shadow-stone-small);
+  }
+
+  .mchat__messages,
+  .chat__messages {
+    margin: 4px;
+    background: var(--wudang-paper);
+    color: var(--wudang-text-on-paper);
+
+    li {
+      border-bottom: 1px solid #c8c0b2;
+    }
+  }
+
+  .mchat__say,
+  .chat__say {
+    border-top: 1px solid rgb(240 236 226 / 0.12);
+    background: var(--wudang-ink-850);
+  }
+
+  .progress {
+    overflow: hidden;
+    border: 1px solid #7e8782;
+    border-radius: 2px;
+    background: #b6bab5;
+    box-shadow: inset 0 1px 3px rgb(13 21 22 / 0.2);
+  }
+
+  .progress__bar,
+  .progress .bar {
+    border-radius: 0;
+    background: linear-gradient(90deg, var(--wudang-jade-dark), var(--wudang-jade));
+    box-shadow: inset 0 1px rgb(255 255 255 / 0.13);
+  }
+
+  .highcharts-background {
+    fill: var(--wudang-paper) !important;
+  }
+
+  .highcharts-grid-line {
+    stroke: #bcb4a6 !important;
+  }
+
+  .highcharts-axis-line,
+  .highcharts-tick {
+    stroke: var(--wudang-ink-700) !important;
+  }
+
+  .highcharts-axis-labels text,
+  .highcharts-legend-item text,
+  .highcharts-title,
+  .highcharts-subtitle {
+    fill: var(--wudang-muted-on-paper) !important;
+  }
+
+  .highcharts-color-0 {
+    fill: var(--wudang-mineral-blue) !important;
+    stroke: var(--wudang-mineral-blue) !important;
+  }
+
+  .highcharts-color-1 {
+    fill: var(--wudang-cinnabar) !important;
+    stroke: var(--wudang-cinnabar) !important;
+  }
+
+  .highcharts-color-2 {
+    fill: var(--wudang-jade) !important;
+    stroke: var(--wudang-jade) !important;
+  }
+
+  // -------------------------------------------------------------------------
+  // Appearance palette drawer.
+  // -------------------------------------------------------------------------
+  #dasher_app,
+  .appearance-dialog {
+    border: 1px solid rgb(240 236 226 / 0.14);
+    border-radius: var(--wudang-radius-stone);
+    background: var(--wudang-stone-field);
+    color: var(--wudang-text-on-dark);
+    box-shadow: var(--wudang-shadow-stone);
+  }
+
+  .appearance-dialog__header {
+    border-bottom-color: rgb(240 236 226 / 0.12);
+    background: rgb(13 21 22 / 0.38);
+
+    p {
+      color: var(--wudang-muted-on-dark);
+    }
+  }
+
+  .appearance-dialog__tabs {
+    border-bottom-color: rgb(240 236 226 / 0.12);
+    background: var(--wudang-ink-950);
+
+    button {
+      color: var(--wudang-muted-on-dark);
+
+      &:hover {
+        background: rgb(99 126 134 / 0.17);
+        color: var(--wudang-text-on-dark);
+      }
+
+      &.active {
+        border-bottom-color: var(--wudang-cinnabar);
+        color: var(--wudang-text-on-dark);
+      }
+    }
+  }
+
+  .appearance-dialog__content {
+    background: linear-gradient(145deg, rgb(255 255 255 / 0.025), transparent 38%), var(--wudang-ink-900);
+  }
+
+  .theme-pack-card,
+  .custom-combination,
+  .appearance-option-grid button,
+  .background-card,
+  .board-grid button,
+  .piece-grid button,
+  .board-settings {
+    border: 1px solid #aaa294;
+    border-radius: var(--wudang-radius-paper);
+    background: var(--wudang-paper-field);
+    color: var(--wudang-text-on-paper);
+    box-shadow: var(--wudang-shadow-paper);
+
+    small,
+    label,
+    output {
+      color: var(--wudang-muted-on-paper);
+    }
+
+    &:hover,
+    &:focus-visible {
+      border-color: var(--wudang-mineral-blue);
+      background: #eee9de;
+      box-shadow:
+        inset 3px 0 var(--wudang-mineral-blue),
+        var(--wudang-shadow-paper-raised);
+      transform: translateY(-1px);
+    }
+
+    &.active {
+      border-color: var(--wudang-jade-dark);
+      box-shadow:
+        inset 3px 0 var(--wudang-cinnabar),
+        0 0 0 2px var(--wudang-paper-high),
+        0 0 0 4px var(--wudang-jade-dark),
+        var(--wudang-shadow-paper-raised);
+    }
+  }
+
+  .theme-pack-preview {
+    border: 4px solid var(--wudang-paper-warm);
+    border-radius: var(--wudang-radius-paper);
+    box-shadow:
+      0 0 0 1px var(--wudang-ink-700),
+      0 4px 12px rgb(13 21 22 / 0.26);
+  }
+
+  .board-reset {
+    border-color: #aaa294;
+    border-radius: var(--wudang-radius-paper);
+    color: var(--wudang-muted-on-paper);
+
+    &:hover {
+      background: rgb(99 126 134 / 0.12);
+      color: var(--wudang-mineral-blue-dark);
+    }
+  }
+}

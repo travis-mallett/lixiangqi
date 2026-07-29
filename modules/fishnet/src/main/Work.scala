@@ -1,11 +1,12 @@
 package lila.fishnet
 
 import chess.Ply
-import chess.format.{ Fen, Uci }
+import chess.format.Fen
 import chess.variant.Variant
 import scalalib.ThreadLocalRandom
 
 import lila.core.net.IpAddress
+import lila.xiangqi.Xiangqi
 
 sealed trait Work:
   def _id: Work.Id
@@ -48,7 +49,8 @@ object Work:
       variant: Variant,
       moves: String
   ):
-    def uciList: List[Uci] = Uci.readList(moves).getOrElse(Nil)
+    def uciList: List[Xiangqi.Uci] =
+      moves.split(' ').iterator.flatMap(Xiangqi.Uci.from(_).toOption).toList
     def hash: Array[Byte] = java.security.MessageDigest
       .getInstance("MD5")
       .digest(s"$variant $initialFen $moves".getBytes(java.nio.charset.StandardCharsets.UTF_8))
@@ -65,7 +67,7 @@ object Work:
   case class Clock(wtime: Int, btime: Int, inc: chess.Clock.IncrementSeconds)
 
   case class Move(
-      _id: Work.Id, // random
+      _id: Work.Id,
       game: Game,
       level: Int,
       clock: Option[Work.Clock]

@@ -6,7 +6,7 @@ import lila.core.config.NetDomain
 
 class StringTest extends munit.FunSuite:
 
-  given NetDomain = NetDomain("lichess.org")
+  given NetDomain = NetDomain("lixiangqi.org")
 
   test("richText handle nl"):
     val url = "http://imgur.com/gallery/pMtTE"
@@ -34,7 +34,7 @@ class StringTest extends munit.FunSuite:
 
   test("richText forum post path regex find forum post path"):
     assertEquals(
-      extractPosts("[mod](https://lichess.org/@/mod) :gear: Unfeature topic  general-chess-discussion/abc"),
+      extractPosts("[mod](https://lixiangqi.org/@/mod) :gear: Unfeature topic  general-chess-discussion/abc"),
       List("general-chess-discussion/abc")
     )
     assertEquals(extractPosts("lichess-feedback/test-2"), List("lichess-feedback/test-2"))

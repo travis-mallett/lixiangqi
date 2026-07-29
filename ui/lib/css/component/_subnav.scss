@@ -6,7 +6,7 @@
   }
 
   &__inner {
-    @include backdrop-blur-if-transparent;
+    @include backdrop-blur-if-background;
   }
 
   @include mq-subnav-top {

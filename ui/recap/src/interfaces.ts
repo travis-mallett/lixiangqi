@@ -12,11 +12,6 @@ interface NbWin {
   total: number;
   win: number;
 }
-export interface Opening {
-  key: string;
-  name: string;
-  pgn: string;
-}
 export interface Counted<A> {
   value: A;
   count: number;
@@ -49,12 +44,11 @@ export interface Recap {
   games: {
     perfs: RecapPerf[];
     moves: number;
-    openings: ByColor<Counted<Opening>>;
     nbs: NbWin;
-    nbWhite: number;
+    nbRed: number;
     opponents: Counted<LightUser>[];
     timePlaying: number;
     sources: Sources;
-    firstMoves: Counted<string>[];
+    firstRedMoves: Counted<string>[];
   };
 }

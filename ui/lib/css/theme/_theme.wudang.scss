@@ -1,0 +1,12 @@
+// Seeking the Dao at Wudang
+// This entrypoint deliberately owns the complete Wudang visual system. The
+// package is split by responsibility so it can evolve without leaking rules
+// into the light, dark, or wood themes.
+@import 'theme.default';
+@import 'wudang/tokens';
+@import 'wudang/foundation';
+@import 'wudang/components';
+@import 'wudang/board';
+@import 'wudang/pages';
+@import 'wudang/responsive';
+@import 'wudang/homepage';

@@ -95,7 +95,8 @@ export function taskOk(ctx?: Context): boolean {
 export const tasksIdle = (): boolean => activeTaskCount === 0;
 
 async function execute(t: Task, firstRun = false): Promise<void> {
-  const makeRelative = (files: AbsPath[]) => (t.root ? files.map(f => relative(t.root!, f)) : files);
+  const makeRelative = (files: AbsPath[]) =>
+    t.root ? files.map(f => relative(t.root!, f).replaceAll('\\', '/')) : files;
   const debounced = [...t.debounce.files];
   const modified: AbsPath[] = [];
   const { rename } = t.debounce;
@@ -213,7 +214,7 @@ async function cachedFileTime(file: AbsPath, update = false): Promise<number> {
 }
 
 async function globTimes(includes: CwdPath[], excludes: Path[]): Promise<Map<AbsPath, number>> {
-  const globs = includes.map(({ path, cwd }) => fg.glob(path, { cwd, absolute: true }));
+  const globs = includes.map(({ path, cwd }) => fg.glob(path.replaceAll('\\', '/'), { cwd, absolute: true }));
   return new Map(
     await Promise.all(
       (await Promise.all(globs))

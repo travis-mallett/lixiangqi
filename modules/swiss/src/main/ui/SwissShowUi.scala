@@ -147,15 +147,12 @@ final class SwissShowUi(helpers: Helpers, ui: SwissBitsUi, gathering: GatheringU
         s.settings.payouts.map(gathering.payouts),
         s.looksLikePrize.option(gathering.userPrizeDisclaimer(s.createdBy)),
         s.settings.position
-          .flatMap(p => lila.gathering.Thematic.byFen(p.opening))
-          .map: pos =>
-            div(a(targetBlank, href := pos.url)(pos.name))
-          .orElse(s.settings.position.map: fen =>
+          .map: fen =>
             div(
               trans.site.customPosition(),
               " • ",
               lila.ui.bits.fenAnalysisLink(fen)
-            )),
+            ),
         teamLink(s.teamId),
         gathering.verdicts(verdicts, s.perfType, s.isEnterable) | br,
         small(trans.site.by(userIdLink(s.createdBy.some))),

@@ -3,7 +3,7 @@ package lila.pref
 import play.api.data.*
 import play.api.data.Forms.*
 
-import lila.common.Form.{ numberIn, stringIn, tolerantBoolean }
+import lila.common.Form.numberIn
 
 object PrefForm:
 
@@ -26,17 +26,17 @@ object PrefForm:
     number.verifying(Pref.BooleanPref.verify)
 
   object fields:
-    val theme = "theme" -> text.verifying(Theme.contains(_))
-    val theme3d = "theme3d" -> text.verifying(Theme3d.contains(_))
-    val pieceSet = "pieceSet" -> text.verifying(PieceSet.contains(_))
-    val pieceSet3d = "pieceSet3d" -> text.verifying(PieceSet3d.contains(_))
-    val soundSet = "soundSet" -> text.verifying(SoundSet.contains(_))
-    val bg = "bg" -> stringIn(Pref.Bg.fromString.keySet)
-    val bgImg = "bgImg" -> text(maxLength = 400).verifying(
+    val appearancePack = "appearancePack" -> text.verifying(ThemePacks.contains)
+    val uiTheme = "uiTheme" -> text.verifying(UiThemes.contains)
+    val background = "background" -> text.verifying(Backgrounds.contains)
+    val backgroundUrl = "backgroundUrl" -> text(maxLength = 400).verifying(
       "URL must use https",
-      url => url.isBlank || url.startsWith("https://") || url.startsWith("//")
+      url => url.isBlank || url.startsWith("https://") || url.startsWith("//") || url.startsWith("/assets/")
     )
-    val is3d = "is3d" -> tolerantBoolean
+    val boardTheme = "boardTheme" -> text.verifying(BoardThemes.contains)
+    val pieceSet = "pieceSet" -> text.verifying(PieceSets.contains)
+    val soundSet = "soundSet" -> text.verifying(SoundSets.contains)
+    val musicSet = "musicSet" -> text.verifying(MusicSets.contains)
     val zen = "zen" -> checkedNumber(Pref.Zen.choices)
     val voice = "voice" -> booleanNumber
     val keyboardMove = "keyboardMove" -> booleanNumber
@@ -49,7 +49,7 @@ object PrefForm:
     val moretime = "moretime" -> checkedNumber(Pref.Moretime.choices)
     val clockSound = "clockSound" -> booleanNumber
     val clockTenths = "clockTenths" -> checkedNumber(Pref.ClockTenths.choices)
-    val pieceNotation = "pieceNotation" -> booleanNumber
+    val pieceNotation = "pieceNotation" -> checkedNumber(Pref.PieceNotation.choices)
     val ratings = "ratings" -> checkedNumber(Pref.Ratings.choices)
     val flairs = "flairs" -> boolean
     val follow = "follow" -> booleanNumber
@@ -71,7 +71,7 @@ object PrefForm:
         "destination" -> booleanNumber,
         "coords" -> checkedNumber(Pref.Coords.choices),
         "replay" -> checkedNumber(Pref.Replay.choices),
-        "pieceNotation" -> optional(booleanNumber),
+        "pieceNotation" -> optional(checkedNumber(Pref.PieceNotation.choices)),
         fields.zen.map2(optional),
         "resizeHandle" -> optional(checkedNumber(Pref.ResizeHandle.choices))
       )(DisplayData.apply)(unapply),

@@ -70,7 +70,7 @@ function inlineTask() {
   const inlineToModule: Record<string, string> = {};
   for (const [pkg, bundle] of env.tasks('bundle'))
     if (bundle.inline)
-      inlineToModule[join(pkg.root, bundle.inline)] = bundle.module
+      inlineToModule[join(pkg.root, bundle.inline).replaceAll('\\', '/')] = bundle.module
         ? basename(bundle.module, '.ts')
         : basename(bundle.inline, '.inline.ts');
   return makeTask({
@@ -85,7 +85,7 @@ function inlineTask() {
     execute: (_, inlines) =>
       Promise.all(
         inlines.map(async inlineSrc => {
-          const moduleName = inlineToModule[inlineSrc];
+          const moduleName = inlineToModule[inlineSrc.replaceAll('\\', '/')];
           try {
             const res = await es.transform(await fs.promises.readFile(inlineSrc), {
               minify: true,
@@ -141,7 +141,7 @@ function esbuildLog(msgs: es.Message[], error = false): void {
 }
 
 function splitPath(path: string) {
-  const match = path.match(/\/public\/compiled\/(.*)\.([A-Z0-9]+)\.js$/);
+  const match = path.replaceAll('\\', '/').match(/(?:^|\/)public\/compiled\/(.*)\.([A-Z0-9]+)\.js$/);
   return match ? { name: match[1], hash: match[2] } : undefined;
 }
 

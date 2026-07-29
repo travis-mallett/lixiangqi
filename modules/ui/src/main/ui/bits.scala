@@ -11,7 +11,10 @@ import lila.ui.ScalatagsTemplate.{ *, given }
 
 object bits:
 
-  val engineFullName = "Stockfish 18"
+  val engineFullName = "Pikafish 2026-01-02"
+
+  val logo = raw:
+    """<svg class="lichess-logo-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50"><g fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="25" cy="25" r="22"/><circle cx="25" cy="25" r="16"/><path d="M17 16h16M17 34h16M18 18l14 14M32 18 18 32M25 13v24"/></g></svg>"""
 
   def subnav(mods: Modifier*) = st.aside(cls := "subnav"):
     st.nav(cls := "subnav__inner")(mods)
@@ -81,8 +84,8 @@ object bits:
       )
     )
 
-  def fenAnalysisLink(fen: Fen.Full)(using Translate) =
-    a(href := routes.UserAnalysis.parseArg(ChessHelper.underscoreFen(fen)))(
+  def fenAnalysisLink(@annotation.unused fen: Fen.Full)(using Translate) =
+    a(href := routes.UserAnalysis.index)(
       lila.core.i18n.I18nKey.site.analysis()
     )
 

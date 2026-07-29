@@ -88,7 +88,7 @@ final class GarbageCollector(
         val armed = isArmed()
         val wait = if quickly then 3.seconds else (10 + ThreadLocalRandom.nextInt(30)).minutes
         logger.info:
-          s"Will dispose of https://lichess.org/${user.username} in $wait. $msg${(!armed).so(" [DRY]")}"
+          s"Will dispose of https://lixiangqi.org/${user.username} in $wait. $msg${(!armed).so(" [DRY]")}"
         noteApi.lichessWrite(user, s"Garbage collection in $wait because of $msg")
         if armed then
           for

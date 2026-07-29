@@ -1,10 +1,10 @@
 package lila.tree
 
-import chess.format.Uci
 import chess.Position
+import chess.format.Uci
 import chess.eval.{ Eval as Ev, * }
 
-case class Eval(cp: Option[Ev.Cp], mate: Option[Ev.Mate], best: Option[Uci]):
+case class Eval(cp: Option[Ev.Cp], mate: Option[Ev.Mate], best: Option[String]):
 
   def isEmpty = cp.isEmpty && mate.isEmpty
 
@@ -26,7 +26,6 @@ object evals:
 
   import play.api.libs.json.*
   import scalalib.json.Json.given
-  import chess.json.Json.given
 
   given jsonWrites: Writes[Eval] = Json.writes[Eval]
 

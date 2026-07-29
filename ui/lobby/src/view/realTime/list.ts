@@ -37,9 +37,9 @@ function renderHook(ctrl: LobbyController, hook: Hook) {
   );
 }
 
-const isStandard = (value: boolean) => (hook: Hook) => (hook.variant === 'standard') === value;
-
 const isMine = (hook: Hook) => hook.action === 'cancel';
+
+const isStandard = (value: boolean) => (hook: Hook) => (hook.variant === 'standard') === value;
 
 const isNotMine = (hook: Hook) => !isMine(hook);
 
@@ -72,6 +72,7 @@ export const render = (ctrl: LobbyController, allHooks: Hook[]) => {
     ...variants.map(render),
   ];
   if (mine) renderedHooks.unshift(render(mine));
+
   return h('table.hooks__list', [
     h(
       'thead',

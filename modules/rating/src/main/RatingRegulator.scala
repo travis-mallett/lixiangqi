@@ -10,9 +10,7 @@ object RatingRegulator:
     PerfKey.classical -> 1.010,
     PerfKey.blitz -> 1.005,
     PerfKey.bullet -> 1.010,
-    PerfKey.ultraBullet -> 1.013,
-    PerfKey.atomic -> 1.02,
-    PerfKey.antichess -> 1.02
+    PerfKey.ultraBullet -> 1.013
   )
 
   def apply(

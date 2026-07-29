@@ -110,14 +110,6 @@ object TournamentShield:
     case Classical extends Category(Left(Schedule.Speed.Classical), Icon.Turtle)
     case HyperBullet extends Category(Left(Schedule.Speed.HyperBullet), Icon.Bullet)
     case UltraBullet extends Category(Left(Schedule.Speed.UltraBullet), Icon.UltraBullet)
-    case Chess960 extends Category(Right(chess.variant.Chess960), Icon.DieSix)
-    case Crazyhouse extends Category(Right(chess.variant.Crazyhouse), Icon.Crazyhouse)
-    case KingOfTheHill extends Category(Right(chess.variant.KingOfTheHill), Icon.FlagKingHill)
-    case ThreeCheck extends Category(Right(chess.variant.ThreeCheck), Icon.ThreeCheckStack)
-    case Antichess extends Category(Right(chess.variant.Antichess), Icon.Antichess)
-    case Atomic extends Category(Right(chess.variant.Atomic), Icon.Atom)
-    case Horde extends Category(Right(chess.variant.Horde), Icon.Keypad)
-    case RacingKings extends Category(Right(chess.variant.RacingKings), Icon.FlagRacingKings)
 
   object Category:
     val list = values.toList
@@ -126,8 +118,7 @@ object TournamentShield:
 
   def make(name: String)(t: Tournament) = t.copy(
     name = s"$name Shield",
-    description =
-      s"""This [Shield trophy](https://lichess.org/blog/Wh36WiQAAMMApuRb/introducing-shield-tournaments) is unique.
+    description = s"""This Shield trophy is unique.
 The winner keeps it for one month,
 then must defend it during the next $name Shield tournament!""".some,
     spotlight = Spotlight(

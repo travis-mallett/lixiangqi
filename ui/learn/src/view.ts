@@ -1,98 +1,75 @@
 import { h, type VNode } from 'snabbdom';
 
-import { licon } from 'lib/licon';
-import { icon } from 'lib/view';
-
 import type { LearnCtrl } from './ctrl';
 import { hashHref } from './hashRouting';
-import type { StageProgress } from './learn';
 import { mapSideView } from './mapSideView';
 import { runView } from './run/runView';
-import * as scoring from './score';
-import { type Stage, categs } from './stage/list';
-import { assetUrl } from './util';
+import { categs } from './stage/list';
 
 export const view = (ctrl: LearnCtrl): VNode => (ctrl.inStage() ? runView(ctrl) : mapView(ctrl));
 
-type Status = 'future' | 'done' | 'ongoing';
-
 const mapView = (ctrl: LearnCtrl) =>
-  h('div.learn.learn--map', [
+  h('div.learn.learn--map.xiangqi-learn-map', [
     h('div.learn__side', mapSideView(ctrl)),
-    h('div.learn__main.learn-stages', [
-      ...categs.map(categ =>
-        h('div.categ', [
-          h('h2', categ.name),
+    h('main.learn__main.learn-stages', [
+      h('section.learn-hero', [
+        h('div', [
+          h(
+            'a.eyebrow',
+            {
+              attrs: {
+                href: 'https://www.youtube.com/@ChineseChessOutLoud',
+                target: '_blank',
+                rel: 'noopener noreferrer',
+              },
+            },
+            'Course Created by Chinese Chess Out Loud',
+          ),
+          h('h1', 'Fundamentals of Xiangqi'),
+          h(
+            'p',
+            'A complete, interactive foundation in the board, pieces, rules, notation, tactics, and classical Chinese mating patterns.',
+          ),
+        ]),
+        h('div.hero-seal', { attrs: { 'aria-hidden': 'true' } }, '象棋'),
+      ]),
+      ...categs.map(category =>
+        h('section.categ', { attrs: { id: category.key } }, [
+          h('header.categ-heading', [h('h2', category.name), h('p', category.description)]),
           h(
             'div.categ_stages',
-            categ.stages.map(stage => {
-              const stageProgress = ctrl.data.stages[stage.key];
-              const complete = ctrl.isStageIdComplete(stage.id);
-              const prevComplete = ctrl.isStageIdComplete(stage.id - 1);
-              const status: Status = complete ? 'done' : prevComplete || stageProgress ? 'ongoing' : 'future';
-              const title = stage.title;
-              return h(`a.stage.${status}`, { attrs: { href: hashHref(stage.id) } }, [
-                status !== 'future' ? ribbon(ctrl, stage, status, stageProgress) : undefined,
-                h('img', { attrs: { src: stage.image } }),
-                h('div.text', [h('h3', title), h('p.subtitle', stage.subtitle)]),
-                status === 'ongoing' ? h('div.attention-effect') : undefined,
-              ]);
+            category.stages.map(stage => {
+              const complete = !stage.comingSoon && ctrl.isStageIdComplete(stage.id);
+              const progress = !stage.comingSoon ? ctrl.stageProgress(stage) : [0, 0];
+              const body = [
+                h('div.stage-icon', h('img', { attrs: { src: stage.image, alt: '' } })),
+                h('div.text', [
+                  h('span.stage-code', stage.code),
+                  h('h3', stage.title),
+                  h('p.subtitle', stage.subtitle),
+                  stage.comingSoon
+                    ? h('span.coming-soon-label', 'Coming Soon')
+                    : h('span.lesson-count', `${progress[0]} / ${progress[1]} lessons`),
+                ]),
+                complete ? h('span.complete-mark', { attrs: { 'aria-label': 'Complete' } }, '✓') : null,
+              ];
+              return stage.comingSoon
+                ? h('article.stage.coming-soon', { attrs: { 'aria-disabled': 'true' } }, body)
+                : h(
+                    `a.stage.${complete ? 'done' : 'available'}`,
+                    { attrs: { href: hashHref(stage.id) } },
+                    body,
+                  );
             }),
           ),
         ]),
       ),
-      whatNext(ctrl),
+      h('section.learn-footer-note', [
+        h('strong', 'A living curriculum'),
+        h(
+          'p',
+          'The foundation and classical killing-method courses are playable now. The advanced roadmap remains visible so every lesson has a clear place as the system grows.',
+        ),
+      ]),
     ]),
   ]);
-
-const makeStars = (rank: scoring.Rank): VNode[] => Array(4 - rank).fill(icon(licon.Star)());
-
-const ongoingStr = (ctrl: LearnCtrl, s: Stage): string => {
-  const progress = ctrl.stageProgress(s);
-  return progress[0] ? progress.join(' / ') : i18n.learn.play;
-};
-
-const ribbon = (ctrl: LearnCtrl, s: Stage, status: Exclude<Status, 'future'>, stageProgress: StageProgress) =>
-  h(
-    'span.ribbon-wrapper',
-    h(
-      `span.ribbon.${status}`,
-      status === 'ongoing' ? ongoingStr(ctrl, s) : makeStars(scoring.getStageRank(s, stageProgress.scores)),
-    ),
-  );
-
-function whatNext(ctrl: LearnCtrl) {
-  const makeStage = (href: string, img: string, title: string, subtitle: string, done?: boolean) => {
-    return h(`a.stage.done`, { attrs: { href } }, [
-      done ? h('span.ribbon-wrapper', h('span.ribbon.done', makeStars(1))) : null,
-      h('img', { attrs: { src: assetUrl + 'images/learn/' + img + '.svg' } }),
-      h('div.text', [h('h3', title), h('p.subtitle', subtitle)]),
-    ]);
-  };
-  const userId = ctrl.data._id;
-  return h('div.categ.what_next', [
-    h('h2', i18n.learn.whatNext),
-    h('p', i18n.learn.youKnowHowToPlayChess),
-    h('div.categ_stages', [
-      userId
-        ? makeStage(
-            '/@/' + userId,
-            'beams-aura',
-            i18n.learn.register,
-            i18n.learn.getAFreeLichessAccount,
-            true,
-          )
-        : makeStage('/signup', 'beams-aura', i18n.learn.register, i18n.learn.getAFreeLichessAccount),
-      makeStage('/practice', 'robot-golem', i18n.learn.practice, i18n.learn.learnCommonChessPositions),
-      makeStage('/training', 'bullseye', i18n.learn.puzzles, i18n.learn.exerciseYourTacticalSkills),
-      makeStage(
-        '/video?tags=beginner',
-        'tied-scroll',
-        i18n.learn.videos,
-        i18n.learn.watchInstructiveChessVideos,
-      ),
-      makeStage('/#hook', 'sword-clash', i18n.learn.playPeople, i18n.learn.opponentsFromAroundTheWorld),
-      makeStage('/#ai', 'vintage-robot', i18n.learn.playMachine, i18n.learn.testYourSkillsWithTheComputer),
-    ]),
-  ]);
-}

@@ -12,11 +12,10 @@
 
   &__list {
     grid-area: list;
-    display: none;
   }
 
   gap: $block-gap;
-  grid-template-areas: 'schedule' 'side';
+  grid-template-areas: 'schedule' 'list' 'side';
 
   @media (min-width: at-least($medium)) {
     grid-template-columns: minmax(200px, 300px);
@@ -24,10 +23,6 @@
 
     &__side {
       margin: 0;
-    }
-
-    &__list {
-      display: block;
     }
   }
 }

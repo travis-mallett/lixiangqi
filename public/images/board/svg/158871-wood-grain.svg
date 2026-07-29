@@ -1,0 +1,983 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg version="1.1" viewBox="0 0 1200 1200" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<filter id="p" color-interpolation-filters="sRGB">
+<feFlood flood-color="rgb(85,35,0)" result="result3"/>
+<feFlood flood-color="rgb(228,92,6)" result="result4"/>
+<feTurbulence baseFrequency="0.23200000000000001 0.002" numOctaves="3" result="result1"/>
+<feComponentTransfer result="result5">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-0.10000000000000001" slope="2.2000000000000002" type="linear"/>
+</feComponentTransfer>
+<feTurbulence baseFrequency="0.30599999999999999 0.017000000000000001" numOctaves="8" result="result7" scale="3.7999999999999998"/>
+<feTurbulence baseFrequency="0.092843326885880081 0.0080000000000000002" numOctaves="4"/>
+<feComponentTransfer baseFrequency="0.092999999999999999 0.0080000000000000002" result="result9">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-0.40000000000000002" slope="2.1200000000000001" type="linear"/>
+</feComponentTransfer>
+<feTurbulence baseFrequency="0.10251450676982592 0.752" numOctaves="7" result="result13" scale="3.1000000000000001"/>
+<feComposite in="result3" in2="result5" operator="in" result="result2"/>
+<feComposite in2="result4" result="result6"/>
+<feDisplacementMap in2="result7" result="result8" scale="3.825136612021858"/>
+<feComposite in2="result9" operator="in"/>
+<feComponentTransfer result="result10">
+<feFuncR slope="0.97999999999999998" type="linear"/>
+<feFuncG slope="0.97999999999999998" type="linear"/>
+<feFuncB slope="0.97999999999999998" type="linear"/>
+<feFuncA slope="1.45" type="linear"/>
+</feComponentTransfer>
+<feComposite in2="result8" k2="0.4" k3="0.6" operator="arithmetic" result="result11"/>
+<feComposite in2="result8" result="result12"/>
+<feDisplacementMap baseFrequency="0.10299999999999999 0.752" in2="result13" result="result14" scale="0.1"/>
+<feConvolveMatrix bias="0.40000000000000002" kernelMatrix="0 -1 0 -1 4 -1 0 -1 0 " order="3 3" preserveAlpha="true"/>
+<feColorMatrix result="result17" type="luminanceToAlpha"/>
+<feComponentTransfer result="result16">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-1.1499999999999999" slope="4.2599999999999998" type="linear"/>
+</feComponentTransfer>
+<feComponentTransfer in="result14" result="result15">
+<feFuncR slope="0.90000000000000002" type="linear"/>
+<feFuncG slope="0.90000000000000002" type="linear"/>
+<feFuncB slope="0.90000000000000002" type="linear"/>
+<feFuncA type="identity"/>
+</feComponentTransfer>
+<feDiffuseLighting diffuseConstant="1.1000000238" in="result17" surfaceScale="5">
+<feDistantLight azimuth="45" elevation="45"/>
+</feDiffuseLighting>
+<feColorMatrix type="luminanceToAlpha"/>
+<feComponentTransfer result="result18">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA slope="1.53" type="linear"/>
+</feComponentTransfer>
+<feComposite in="result15" in2="result18" operator="in" result="result19"/>
+<feComposite in2="result14" result="result20"/>
+<feComposite in2="SourceGraphic" operator="in"/>
+</filter>
+<filter id="n" color-interpolation-filters="sRGB">
+<feFlood flood-color="rgb(85,35,0)" result="result3"/>
+<feFlood flood-color="rgb(228,92,6)" result="result4"/>
+<feTurbulence baseFrequency="0.26100000000000001 0" numOctaves="3" result="result1"/>
+<feComponentTransfer result="result5">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-0.10000000000000001" slope="3.3199999999999998" type="linear"/>
+</feComponentTransfer>
+<feTurbulence baseFrequency="0.30599999999999999 0.017000000000000001" numOctaves="8" result="result7" scale="3.7999999999999998"/>
+<feTurbulence baseFrequency="0.092843326885880081 0.0080000000000000002" numOctaves="4"/>
+<feComponentTransfer baseFrequency="0.092999999999999999 0.0080000000000000002" result="result9">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-0.40000000000000002" slope="2.1200000000000001" type="linear"/>
+</feComponentTransfer>
+<feTurbulence baseFrequency="0.10251450676982592 0.752" numOctaves="7" result="result13" scale="3.1000000000000001"/>
+<feComposite in="result3" in2="result5" operator="in" result="result2"/>
+<feComposite in2="result4" result="result6"/>
+<feDisplacementMap in2="result7" result="result8" scale="3.825136612021858"/>
+<feComposite in2="result9" operator="in"/>
+<feComponentTransfer result="result10">
+<feFuncR slope="0.97999999999999998" type="linear"/>
+<feFuncG slope="0.97999999999999998" type="linear"/>
+<feFuncB slope="0.97999999999999998" type="linear"/>
+<feFuncA slope="1.45" type="linear"/>
+</feComponentTransfer>
+<feComposite in2="result8" k2="0.4" k3="0.6" operator="arithmetic" result="result11"/>
+<feComposite in2="result8" result="result12"/>
+<feDisplacementMap baseFrequency="0.10299999999999999 0.752" in2="result13" result="result14" scale="0.1"/>
+<feConvolveMatrix bias="0.40000000000000002" kernelMatrix="0 -1 0 -1 4 -1 0 -1 0 " order="3 3" preserveAlpha="true"/>
+<feColorMatrix result="result17" type="luminanceToAlpha"/>
+<feComponentTransfer result="result16">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-1.1499999999999999" slope="4.2599999999999998" type="linear"/>
+</feComponentTransfer>
+<feComponentTransfer in="result14" result="result15">
+<feFuncR slope="0.90000000000000002" type="linear"/>
+<feFuncG slope="0.90000000000000002" type="linear"/>
+<feFuncB slope="0.90000000000000002" type="linear"/>
+<feFuncA type="identity"/>
+</feComponentTransfer>
+<feDiffuseLighting diffuseConstant="1.1000000238" in="result17" surfaceScale="5">
+<feDistantLight azimuth="45" elevation="45"/>
+</feDiffuseLighting>
+<feColorMatrix type="luminanceToAlpha"/>
+<feComponentTransfer result="result18">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA slope="1.53" type="linear"/>
+</feComponentTransfer>
+<feComposite in="result15" in2="result18" operator="in" result="result19"/>
+<feComposite in2="result14" result="result20"/>
+<feComposite in2="SourceGraphic" operator="in"/>
+</filter>
+<filter id="l" color-interpolation-filters="sRGB">
+<feFlood flood-color="rgb(85,35,0)" result="result3"/>
+<feFlood flood-color="rgb(228,92,6)" result="result4"/>
+<feTurbulence baseFrequency="0.26100000000000001 0" numOctaves="3" result="result1"/>
+<feComponentTransfer result="result5">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-0.10000000000000001" slope="3.3199999999999998" type="linear"/>
+</feComponentTransfer>
+<feTurbulence baseFrequency="0.30599999999999999 0.017000000000000001" numOctaves="8" result="result7" scale="3.7999999999999998"/>
+<feTurbulence baseFrequency="0.84899999999999998 0.23799999999999999" numOctaves="4"/>
+<feComponentTransfer baseFrequency="0.092999999999999999 0.0080000000000000002" result="result9">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-0.40000000000000002" slope="2.1200000000000001" type="linear"/>
+</feComponentTransfer>
+<feTurbulence baseFrequency="0.10251450676982592 0.752" numOctaves="7" result="result13" scale="3.1000000000000001"/>
+<feComposite in="result3" in2="result5" operator="in" result="result2"/>
+<feComposite in2="result4" result="result6"/>
+<feDisplacementMap in2="result7" result="result8" scale="3.825136612021858"/>
+<feComposite in2="result9" operator="in"/>
+<feComponentTransfer result="result10">
+<feFuncR slope="0.97999999999999998" type="linear"/>
+<feFuncG slope="0.97999999999999998" type="linear"/>
+<feFuncB slope="0.97999999999999998" type="linear"/>
+<feFuncA slope="1.45" type="linear"/>
+</feComponentTransfer>
+<feComposite in2="result8" k2="0.4" k3="0.6" operator="arithmetic" result="result11"/>
+<feComposite in2="result8" result="result12"/>
+<feDisplacementMap baseFrequency="0.10299999999999999 0.752" in2="result13" result="result14" scale="0.1"/>
+<feConvolveMatrix bias="0.40000000000000002" kernelMatrix="0 -1 0 -1 4 -1 0 -1 0 " order="3 3" preserveAlpha="true"/>
+<feColorMatrix result="result17" type="luminanceToAlpha"/>
+<feComponentTransfer result="result16">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-1.1499999999999999" slope="4.2599999999999998" type="linear"/>
+</feComponentTransfer>
+<feComponentTransfer in="result14" result="result15">
+<feFuncR slope="0.90000000000000002" type="linear"/>
+<feFuncG slope="0.90000000000000002" type="linear"/>
+<feFuncB slope="0.90000000000000002" type="linear"/>
+<feFuncA type="identity"/>
+</feComponentTransfer>
+<feDiffuseLighting diffuseConstant="1.1000000238" in="result17" surfaceScale="5">
+<feDistantLight azimuth="45" elevation="45"/>
+</feDiffuseLighting>
+<feColorMatrix type="luminanceToAlpha"/>
+<feComponentTransfer result="result18">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA slope="1.53" type="linear"/>
+</feComponentTransfer>
+<feComposite in="result15" in2="result18" operator="in" result="result19"/>
+<feComposite in2="result14" result="result20"/>
+<feComposite in2="SourceGraphic" operator="in"/>
+</filter>
+<filter id="k" color-interpolation-filters="sRGB">
+<feFlood flood-color="rgb(85,35,0)" result="result3"/>
+<feFlood flood-color="rgb(228,92,6)" result="result4"/>
+<feTurbulence baseFrequency="0.26100000000000001 0" numOctaves="3" result="result1"/>
+<feComponentTransfer result="result5">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-0.10000000000000001" slope="3.3199999999999998" type="linear"/>
+</feComponentTransfer>
+<feTurbulence baseFrequency="0.30599999999999999 0.017000000000000001" numOctaves="8" result="result7" scale="3.7999999999999998"/>
+<feTurbulence baseFrequency="0.84899999999999998 0.23799999999999999" numOctaves="4"/>
+<feComponentTransfer baseFrequency="0.092999999999999999 0.0080000000000000002" result="result9">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-0.40000000000000002" slope="3.02" type="linear"/>
+</feComponentTransfer>
+<feTurbulence baseFrequency="0.0088652482269503553 0.025000000000000001" numOctaves="10" result="result13" scale="7.4000000000000004"/>
+<feComposite in="result3" in2="result5" operator="in" result="result2"/>
+<feComposite in2="result4" result="result6"/>
+<feDisplacementMap in2="result7" result="result8" scale="3.825136612021858"/>
+<feComposite in2="result9" operator="in"/>
+<feComponentTransfer result="result10">
+<feFuncR slope="0.97999999999999998" type="linear"/>
+<feFuncG slope="0.97999999999999998" type="linear"/>
+<feFuncB slope="0.97999999999999998" type="linear"/>
+<feFuncA slope="1.45" type="linear"/>
+</feComponentTransfer>
+<feComposite in2="result8" k2="0.4" k3="0.6" operator="arithmetic" result="result11"/>
+<feComposite in2="result8" result="result12"/>
+<feDisplacementMap baseFrequency="0.0089999999999999993 0.025000000000000001" in2="result13" result="result14" scale="6.2000000000000002"/>
+<feConvolveMatrix bias="0.40000000000000002" kernelMatrix="0 -1 0 -1 4 -1 0 -1 0 " order="3 3" preserveAlpha="true"/>
+<feColorMatrix result="result17" type="luminanceToAlpha"/>
+<feComponentTransfer result="result16">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-1.1499999999999999" slope="4.2599999999999998" type="linear"/>
+</feComponentTransfer>
+<feComponentTransfer in="result14" result="result15">
+<feFuncR slope="0.90000000000000002" type="linear"/>
+<feFuncG slope="0.90000000000000002" type="linear"/>
+<feFuncB slope="0.90000000000000002" type="linear"/>
+<feFuncA type="identity"/>
+</feComponentTransfer>
+<feDiffuseLighting diffuseConstant="1.1000000238" in="result17" surfaceScale="5">
+<feDistantLight azimuth="45" elevation="45"/>
+</feDiffuseLighting>
+<feColorMatrix type="luminanceToAlpha"/>
+<feComponentTransfer result="result18">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA slope="1.53" type="linear"/>
+</feComponentTransfer>
+<feComposite in="result15" in2="result18" operator="in" result="result19"/>
+<feComposite in2="result14" result="result20"/>
+<feComposite in2="SourceGraphic" operator="in"/>
+</filter>
+<filter id="i" color-interpolation-filters="sRGB">
+<feFlood flood-color="rgb(85,35,0)" result="result3"/>
+<feFlood flood-color="rgb(228,92,6)" result="result4"/>
+<feTurbulence baseFrequency="0.26100000000000001 0" numOctaves="3" result="result1"/>
+<feComponentTransfer result="result5">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-0.10000000000000001" slope="3.3199999999999998" type="linear"/>
+</feComponentTransfer>
+<feTurbulence baseFrequency="0.30599999999999999 0.017000000000000001" numOctaves="8" result="result7" scale="3.7999999999999998"/>
+<feTurbulence baseFrequency="0.84899999999999998 0.23799999999999999" numOctaves="4"/>
+<feComponentTransfer baseFrequency="0.092999999999999999 0.0080000000000000002" result="result9">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-0.40000000000000002" slope="3.02" type="linear"/>
+</feComponentTransfer>
+<feTurbulence baseFrequency="0.012 0.0050000000000000001" numOctaves="10" result="result13" scale="9.9000000000000004"/>
+<feComposite in="result3" in2="result5" operator="in" result="result2"/>
+<feComposite in2="result4" result="result6"/>
+<feDisplacementMap in2="result7" result="result8" scale="3.825136612021858"/>
+<feComposite in2="result9" operator="in"/>
+<feComponentTransfer result="result10">
+<feFuncR slope="0.97999999999999998" type="linear"/>
+<feFuncG slope="0.97999999999999998" type="linear"/>
+<feFuncB slope="0.97999999999999998" type="linear"/>
+<feFuncA slope="1.45" type="linear"/>
+</feComponentTransfer>
+<feComposite in2="result8" k2="0.4" k3="0.6" operator="arithmetic" result="result11"/>
+<feComposite in2="result8" result="result12"/>
+<feDisplacementMap baseFrequency="0.0089999999999999993 0.025000000000000001" in2="result13" result="result14" scale="9.8993288590604021"/>
+<feConvolveMatrix bias="0.40000000000000002" kernelMatrix="0 -1 0 -1 4 -1 0 -1 0 " order="3 3" preserveAlpha="true"/>
+<feColorMatrix result="result17" type="luminanceToAlpha"/>
+<feComponentTransfer result="result16">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-1.1499999999999999" slope="4.2599999999999998" type="linear"/>
+</feComponentTransfer>
+<feComponentTransfer in="result14" result="result15">
+<feFuncR slope="0.90000000000000002" type="linear"/>
+<feFuncG slope="0.90000000000000002" type="linear"/>
+<feFuncB slope="0.90000000000000002" type="linear"/>
+<feFuncA type="identity"/>
+</feComponentTransfer>
+<feDiffuseLighting diffuseConstant="1.1000000238" in="result17" surfaceScale="5">
+<feDistantLight azimuth="45" elevation="45"/>
+</feDiffuseLighting>
+<feColorMatrix type="luminanceToAlpha"/>
+<feComponentTransfer result="result18">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA slope="1.53" type="linear"/>
+</feComponentTransfer>
+<feComposite in="result15" in2="result18" operator="in" result="result19"/>
+<feComposite in2="result14" result="result20"/>
+<feComposite in2="SourceGraphic" operator="in"/>
+</filter>
+<filter id="g" color-interpolation-filters="sRGB">
+<feFlood flood-color="rgb(85,35,0)" result="result3"/>
+<feFlood flood-color="rgb(228,92,6)" result="result4"/>
+<feTurbulence baseFrequency="0.26100000000000001 0" numOctaves="3" result="result1"/>
+<feComponentTransfer result="result5">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-0.10000000000000001" slope="3.3199999999999998" type="linear"/>
+</feComponentTransfer>
+<feTurbulence baseFrequency="0.30599999999999999 0.017000000000000001" numOctaves="8" result="result7" scale="3.7999999999999998"/>
+<feTurbulence baseFrequency="0.84899999999999998 0.23799999999999999" numOctaves="4"/>
+<feComponentTransfer baseFrequency="0.092999999999999999 0.0080000000000000002" result="result9">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-0.40000000000000002" slope="3.02" type="linear"/>
+</feComponentTransfer>
+<feTurbulence baseFrequency="0.42899999999999999 0.0050000000000000001" numOctaves="10" result="result13" scale="9.9000000000000004"/>
+<feComposite in="result3" in2="result5" operator="in" result="result2"/>
+<feComposite in2="result4" result="result6"/>
+<feDisplacementMap in2="result7" result="result8" scale="3.825136612021858"/>
+<feComposite in2="result9" operator="in"/>
+<feComponentTransfer result="result10">
+<feFuncR slope="0.97999999999999998" type="linear"/>
+<feFuncG slope="0.97999999999999998" type="linear"/>
+<feFuncB slope="0.97999999999999998" type="linear"/>
+<feFuncA slope="1.45" type="linear"/>
+</feComponentTransfer>
+<feComposite in2="result8" k2="0.4" k3="0.6" operator="arithmetic" result="result11"/>
+<feComposite in2="result8" result="result12"/>
+<feDisplacementMap baseFrequency="0.0089999999999999993 0.025000000000000001" in2="result13" result="result14" scale="9.899328859060402"/>
+<feConvolveMatrix bias="0.40000000000000002" kernelMatrix="0 -1 0 -1 4 -1 0 -1 0 " order="3 3" preserveAlpha="true"/>
+<feColorMatrix result="result17" type="luminanceToAlpha"/>
+<feComponentTransfer result="result16">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-1.1499999999999999" slope="4.2599999999999998" type="linear"/>
+</feComponentTransfer>
+<feComponentTransfer in="result14" result="result15">
+<feFuncR slope="0.90000000000000002" type="linear"/>
+<feFuncG slope="0.90000000000000002" type="linear"/>
+<feFuncB slope="0.90000000000000002" type="linear"/>
+<feFuncA type="identity"/>
+</feComponentTransfer>
+<feDiffuseLighting diffuseConstant="1.1000000238" in="result17" surfaceScale="5">
+<feDistantLight azimuth="45" elevation="45"/>
+</feDiffuseLighting>
+<feColorMatrix type="luminanceToAlpha"/>
+<feComponentTransfer result="result18">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA slope="1.53" type="linear"/>
+</feComponentTransfer>
+<feComposite in="result15" in2="result18" operator="in" result="result19"/>
+<feComposite in2="result14" result="result20"/>
+<feComposite in2="SourceGraphic" operator="in"/>
+</filter>
+<filter id="e" color-interpolation-filters="sRGB">
+<feFlood flood-color="rgb(85,35,0)" result="result3"/>
+<feFlood flood-color="rgb(228,92,6)" result="result4"/>
+<feTurbulence baseFrequency="0.26100000000000001 0" numOctaves="3" result="result1"/>
+<feComponentTransfer result="result5">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-0.10000000000000001" slope="3.3199999999999998" type="linear"/>
+</feComponentTransfer>
+<feTurbulence baseFrequency="0.30599999999999999 0.002" numOctaves="8" result="result7" scale="8.0999999999999996"/>
+<feTurbulence baseFrequency="0.84899999999999998 0.23799999999999999" numOctaves="4"/>
+<feComponentTransfer baseFrequency="0.092999999999999999 0.0080000000000000002" result="result9">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-0.40000000000000002" slope="3.02" type="linear"/>
+</feComponentTransfer>
+<feTurbulence baseFrequency="0.42899999999999999 0.0050000000000000001" numOctaves="10" result="result13" scale="9.9000000000000004"/>
+<feComposite in="result3" in2="result5" operator="in" result="result2"/>
+<feComposite in2="result4" result="result6"/>
+<feDisplacementMap in2="result7" result="result8" scale="8.0536912751677843"/>
+<feComposite in2="result9" operator="in"/>
+<feComponentTransfer result="result10">
+<feFuncR slope="0.97999999999999998" type="linear"/>
+<feFuncG slope="0.97999999999999998" type="linear"/>
+<feFuncB slope="0.97999999999999998" type="linear"/>
+<feFuncA slope="1.45" type="linear"/>
+</feComponentTransfer>
+<feComposite in2="result8" k2="0.4" k3="0.6" operator="arithmetic" result="result11"/>
+<feComposite in2="result8" result="result12"/>
+<feDisplacementMap baseFrequency="0.0089999999999999993 0.025000000000000001" in2="result13" result="result14" scale="9.899328859060402"/>
+<feConvolveMatrix bias="0.40000000000000002" kernelMatrix="0 -1 0 -1 4 -1 0 -1 0 " order="3 3" preserveAlpha="true"/>
+<feColorMatrix result="result17" type="luminanceToAlpha"/>
+<feComponentTransfer result="result16">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-1.1499999999999999" slope="4.2599999999999998" type="linear"/>
+</feComponentTransfer>
+<feComponentTransfer in="result14" result="result15">
+<feFuncR slope="0.90000000000000002" type="linear"/>
+<feFuncG slope="0.90000000000000002" type="linear"/>
+<feFuncB slope="0.90000000000000002" type="linear"/>
+<feFuncA type="identity"/>
+</feComponentTransfer>
+<feDiffuseLighting diffuseConstant="1.1000000238" in="result17" surfaceScale="5">
+<feDistantLight azimuth="45" elevation="45"/>
+</feDiffuseLighting>
+<feColorMatrix type="luminanceToAlpha"/>
+<feComponentTransfer result="result18">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA slope="1.53" type="linear"/>
+</feComponentTransfer>
+<feComposite in="result15" in2="result18" operator="in" result="result19"/>
+<feComposite in2="result14" result="result20"/>
+<feComposite in2="SourceGraphic" operator="in"/>
+</filter>
+<filter id="c" color-interpolation-filters="sRGB">
+<feFlood flood-color="rgb(85,35,0)" result="result3"/>
+<feFlood flood-color="rgb(228,92,6)" result="result4"/>
+<feTurbulence baseFrequency="0.26100000000000001 0" numOctaves="3" result="result1"/>
+<feComponentTransfer result="result5">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-0.10000000000000001" slope="3.3199999999999998" type="linear"/>
+</feComponentTransfer>
+<feTurbulence baseFrequency="0.30599999999999999 0.002" numOctaves="8" result="result7" scale="8.0999999999999996"/>
+<feTurbulence baseFrequency="0.84899999999999998 0.23799999999999999" numOctaves="4"/>
+<feComponentTransfer baseFrequency="0.092999999999999999 0.0080000000000000002" result="result9">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-0.40000000000000002" slope="3.02" type="linear"/>
+</feComponentTransfer>
+<feTurbulence baseFrequency="0.42899999999999999 0.0050000000000000001" numOctaves="10" result="result13" scale="9.9000000000000004"/>
+<feComposite in="result3" in2="result5" operator="in" result="result2"/>
+<feComposite in2="result4" result="result6"/>
+<feDisplacementMap in2="result7" result="result8" scale="8.053691275167784"/>
+<feComposite in2="result9" operator="in"/>
+<feComponentTransfer result="result10">
+<feFuncR slope="0.97999999999999998" type="linear"/>
+<feFuncG slope="0.97999999999999998" type="linear"/>
+<feFuncB slope="0.97999999999999998" type="linear"/>
+<feFuncA slope="1.45" type="linear"/>
+</feComponentTransfer>
+<feComposite in2="result8" k2="0.4" k3="0.6" operator="arithmetic" result="result11"/>
+<feComposite in2="result8" result="result12"/>
+<feDisplacementMap baseFrequency="0.0089999999999999993 0.025000000000000001" in2="result13" result="result14" scale="9.899328859060402"/>
+<feConvolveMatrix bias="4.5999999999999996" kernelMatrix="0 -10 0 -10 40 -10 0 -10 0 " order="3 3" preserveAlpha="true"/>
+<feColorMatrix result="result17" type="luminanceToAlpha"/>
+<feComponentTransfer result="result16">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-1.1499999999999999" slope="4.2599999999999998" type="linear"/>
+</feComponentTransfer>
+<feComponentTransfer in="result14" result="result15">
+<feFuncR slope="0.90000000000000002" type="linear"/>
+<feFuncG slope="0.90000000000000002" type="linear"/>
+<feFuncB slope="0.90000000000000002" type="linear"/>
+<feFuncA type="identity"/>
+</feComponentTransfer>
+<feDiffuseLighting diffuseConstant="0.83999999999999997" in="result17" surfaceScale="5">
+<feDistantLight azimuth="45" elevation="69"/>
+</feDiffuseLighting>
+<feColorMatrix type="luminanceToAlpha"/>
+<feComponentTransfer result="result18">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA slope="1.53" type="linear"/>
+</feComponentTransfer>
+<feComposite in="result15" in2="result18" operator="in" result="result19"/>
+<feComposite in2="result14" result="result20"/>
+<feComposite in2="SourceGraphic" operator="in"/>
+</filter>
+<filter id="b" color-interpolation-filters="sRGB">
+<feFlood flood-color="rgb(244,199,105)" result="result3"/>
+<feFlood flood-color="rgb(255,232,176)" result="result4"/>
+<feTurbulence baseFrequency="0.26100000000000001 0" numOctaves="3" result="result1"/>
+<feComponentTransfer result="result5">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-0.10000000000000001" slope="3.3199999999999998" type="linear"/>
+</feComponentTransfer>
+<feTurbulence baseFrequency="0.30599999999999999 0.002" numOctaves="8" result="result7" scale="8.0999999999999996"/>
+<feTurbulence baseFrequency="0.84899999999999998 0.23799999999999999" numOctaves="4"/>
+<feComponentTransfer baseFrequency="0.092999999999999999 0.0080000000000000002" result="result9">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-0.40000000000000002" slope="3.02" type="linear"/>
+</feComponentTransfer>
+<feTurbulence baseFrequency="0.42899999999999999 0.0050000000000000001" numOctaves="10" result="result13" scale="9.9000000000000004"/>
+<feComposite in="result3" in2="result5" operator="in" result="result2"/>
+<feComposite in2="result4" result="result6"/>
+<feDisplacementMap in2="result7" result="result8" scale="8.053691275167784"/>
+<feComposite in2="result9" operator="in"/>
+<feComponentTransfer result="result10">
+<feFuncR slope="0.97999999999999998" type="linear"/>
+<feFuncG slope="0.97999999999999998" type="linear"/>
+<feFuncB slope="0.97999999999999998" type="linear"/>
+<feFuncA slope="1.45" type="linear"/>
+</feComponentTransfer>
+<feComposite in2="result8" k2="0.4" k3="0.6" operator="arithmetic" result="result11"/>
+<feComposite in2="result8" result="result12"/>
+<feDisplacementMap baseFrequency="0.0089999999999999993 0.025000000000000001" in2="result13" result="result14" scale="9.899328859060402"/>
+<feConvolveMatrix bias="4.5999999999999996" kernelMatrix="0 -10 0 -10 40 -10 0 -10 0 " order="3 3" preserveAlpha="true"/>
+<feColorMatrix result="result17" type="luminanceToAlpha"/>
+<feComponentTransfer result="result16">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-1.1499999999999999" slope="4.2599999999999998" type="linear"/>
+</feComponentTransfer>
+<feComponentTransfer in="result14" result="result15">
+<feFuncR slope="0.90000000000000002" type="linear"/>
+<feFuncG slope="0.90000000000000002" type="linear"/>
+<feFuncB slope="0.90000000000000002" type="linear"/>
+<feFuncA type="identity"/>
+</feComponentTransfer>
+<feDiffuseLighting diffuseConstant="0.8399999738" in="result17" surfaceScale="5">
+<feDistantLight azimuth="45" elevation="69"/>
+</feDiffuseLighting>
+<feColorMatrix type="luminanceToAlpha"/>
+<feComponentTransfer result="result18">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA slope="1.53" type="linear"/>
+</feComponentTransfer>
+<feComposite in="result15" in2="result18" operator="in" result="result19"/>
+<feComposite in2="result14" result="result20"/>
+<feComposite in2="SourceGraphic" operator="in"/>
+</filter>
+<filter id="d" color-interpolation-filters="sRGB">
+<feFlood flood-color="rgb(244,199,105)" result="result3"/>
+<feFlood flood-color="rgb(255,232,176)" result="result4"/>
+<feTurbulence baseFrequency="0.26100000000000001 0" numOctaves="3" result="result1"/>
+<feComponentTransfer result="result5">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-0.10000000000000001" slope="3.3199999999999998" type="linear"/>
+</feComponentTransfer>
+<feTurbulence baseFrequency="0.30599999999999999 0.002" numOctaves="8" result="result7" scale="8.0999999999999996"/>
+<feTurbulence baseFrequency="0.84899999999999998 0.23799999999999999" numOctaves="4"/>
+<feComponentTransfer baseFrequency="0.092999999999999999 0.0080000000000000002" result="result9">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-0.40000000000000002" slope="3.02" type="linear"/>
+</feComponentTransfer>
+<feTurbulence baseFrequency="0.42899999999999999 0.0050000000000000001" numOctaves="10" result="result13" scale="9.9000000000000004"/>
+<feComposite in="result3" in2="result5" operator="in" result="result2"/>
+<feComposite in2="result4" result="result6"/>
+<feDisplacementMap in2="result7" result="result8" scale="8.053691275167784"/>
+<feComposite in2="result9" operator="in"/>
+<feComponentTransfer result="result10">
+<feFuncR slope="0.97999999999999998" type="linear"/>
+<feFuncG slope="0.97999999999999998" type="linear"/>
+<feFuncB slope="0.97999999999999998" type="linear"/>
+<feFuncA slope="1.45" type="linear"/>
+</feComponentTransfer>
+<feComposite in2="result8" k2="0.4" k3="0.6" operator="arithmetic" result="result11"/>
+<feComposite in2="result8" result="result12"/>
+<feDisplacementMap baseFrequency="0.0089999999999999993 0.025000000000000001" in2="result13" result="result14" scale="9.899328859060402"/>
+<feConvolveMatrix bias="0.40000000000000002" kernelMatrix="0 -1 0 -1 4 -1 0 -1 0 " order="3 3" preserveAlpha="true"/>
+<feColorMatrix result="result17" type="luminanceToAlpha"/>
+<feComponentTransfer result="result16">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-1.1499999999999999" slope="4.2599999999999998" type="linear"/>
+</feComponentTransfer>
+<feComponentTransfer in="result14" result="result15">
+<feFuncR slope="0.90000000000000002" type="linear"/>
+<feFuncG slope="0.90000000000000002" type="linear"/>
+<feFuncB slope="0.90000000000000002" type="linear"/>
+<feFuncA type="identity"/>
+</feComponentTransfer>
+<feDiffuseLighting diffuseConstant="1.1000000238" in="result17" surfaceScale="5">
+<feDistantLight azimuth="45" elevation="45"/>
+</feDiffuseLighting>
+<feColorMatrix type="luminanceToAlpha"/>
+<feComponentTransfer result="result18">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA slope="1.53" type="linear"/>
+</feComponentTransfer>
+<feComposite in="result15" in2="result18" operator="in" result="result19"/>
+<feComposite in2="result14" result="result20"/>
+<feComposite in2="SourceGraphic" operator="in"/>
+</filter>
+<filter id="f" color-interpolation-filters="sRGB">
+<feFlood flood-color="rgb(244,199,105)" result="result3"/>
+<feFlood flood-color="rgb(255,232,176)" result="result4"/>
+<feTurbulence baseFrequency="0.26100000000000001 0" numOctaves="3" result="result1"/>
+<feComponentTransfer result="result5">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-0.10000000000000001" slope="3.3199999999999998" type="linear"/>
+</feComponentTransfer>
+<feTurbulence baseFrequency="0.30599999999999999 0.017000000000000001" numOctaves="8" result="result7" scale="3.7999999999999998"/>
+<feTurbulence baseFrequency="0.84899999999999998 0.23799999999999999" numOctaves="4"/>
+<feComponentTransfer baseFrequency="0.092999999999999999 0.0080000000000000002" result="result9">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-0.40000000000000002" slope="3.02" type="linear"/>
+</feComponentTransfer>
+<feTurbulence baseFrequency="0.42899999999999999 0.0050000000000000001" numOctaves="10" result="result13" scale="9.9000000000000004"/>
+<feComposite in="result3" in2="result5" operator="in" result="result2"/>
+<feComposite in2="result4" result="result6"/>
+<feDisplacementMap in2="result7" result="result8" scale="3.825136612021858"/>
+<feComposite in2="result9" operator="in"/>
+<feComponentTransfer result="result10">
+<feFuncR slope="0.97999999999999998" type="linear"/>
+<feFuncG slope="0.97999999999999998" type="linear"/>
+<feFuncB slope="0.97999999999999998" type="linear"/>
+<feFuncA slope="1.45" type="linear"/>
+</feComponentTransfer>
+<feComposite in2="result8" k2="0.4" k3="0.6" operator="arithmetic" result="result11"/>
+<feComposite in2="result8" result="result12"/>
+<feDisplacementMap baseFrequency="0.0089999999999999993 0.025000000000000001" in2="result13" result="result14" scale="9.899328859060402"/>
+<feConvolveMatrix bias="0.40000000000000002" kernelMatrix="0 -1 0 -1 4 -1 0 -1 0 " order="3 3" preserveAlpha="true"/>
+<feColorMatrix result="result17" type="luminanceToAlpha"/>
+<feComponentTransfer result="result16">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-1.1499999999999999" slope="4.2599999999999998" type="linear"/>
+</feComponentTransfer>
+<feComponentTransfer in="result14" result="result15">
+<feFuncR slope="0.90000000000000002" type="linear"/>
+<feFuncG slope="0.90000000000000002" type="linear"/>
+<feFuncB slope="0.90000000000000002" type="linear"/>
+<feFuncA type="identity"/>
+</feComponentTransfer>
+<feDiffuseLighting diffuseConstant="1.1000000238" in="result17" surfaceScale="5">
+<feDistantLight azimuth="45" elevation="45"/>
+</feDiffuseLighting>
+<feColorMatrix type="luminanceToAlpha"/>
+<feComponentTransfer result="result18">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA slope="1.53" type="linear"/>
+</feComponentTransfer>
+<feComposite in="result15" in2="result18" operator="in" result="result19"/>
+<feComposite in2="result14" result="result20"/>
+<feComposite in2="SourceGraphic" operator="in"/>
+</filter>
+<filter id="h" color-interpolation-filters="sRGB">
+<feFlood flood-color="rgb(244,199,105)" result="result3"/>
+<feFlood flood-color="rgb(255,232,176)" result="result4"/>
+<feTurbulence baseFrequency="0.26100000000000001 0" numOctaves="3" result="result1"/>
+<feComponentTransfer result="result5">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-0.10000000000000001" slope="3.3199999999999998" type="linear"/>
+</feComponentTransfer>
+<feTurbulence baseFrequency="0.30599999999999999 0.017000000000000001" numOctaves="8" result="result7" scale="3.7999999999999998"/>
+<feTurbulence baseFrequency="0.84899999999999998 0.23799999999999999" numOctaves="4"/>
+<feComponentTransfer baseFrequency="0.092999999999999999 0.0080000000000000002" result="result9">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-0.40000000000000002" slope="3.02" type="linear"/>
+</feComponentTransfer>
+<feTurbulence baseFrequency="0.012 0.0050000000000000001" numOctaves="10" result="result13" scale="9.9000000000000004"/>
+<feComposite in="result3" in2="result5" operator="in" result="result2"/>
+<feComposite in2="result4" result="result6"/>
+<feDisplacementMap in2="result7" result="result8" scale="3.825136612021858"/>
+<feComposite in2="result9" operator="in"/>
+<feComponentTransfer result="result10">
+<feFuncR slope="0.97999999999999998" type="linear"/>
+<feFuncG slope="0.97999999999999998" type="linear"/>
+<feFuncB slope="0.97999999999999998" type="linear"/>
+<feFuncA slope="1.45" type="linear"/>
+</feComponentTransfer>
+<feComposite in2="result8" k2="0.4" k3="0.6" operator="arithmetic" result="result11"/>
+<feComposite in2="result8" result="result12"/>
+<feDisplacementMap baseFrequency="0.0089999999999999993 0.025000000000000001" in2="result13" result="result14" scale="9.899328859060402"/>
+<feConvolveMatrix bias="0.40000000000000002" kernelMatrix="0 -1 0 -1 4 -1 0 -1 0 " order="3 3" preserveAlpha="true"/>
+<feColorMatrix result="result17" type="luminanceToAlpha"/>
+<feComponentTransfer result="result16">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-1.1499999999999999" slope="4.2599999999999998" type="linear"/>
+</feComponentTransfer>
+<feComponentTransfer in="result14" result="result15">
+<feFuncR slope="0.90000000000000002" type="linear"/>
+<feFuncG slope="0.90000000000000002" type="linear"/>
+<feFuncB slope="0.90000000000000002" type="linear"/>
+<feFuncA type="identity"/>
+</feComponentTransfer>
+<feDiffuseLighting diffuseConstant="1.1000000238" in="result17" surfaceScale="5">
+<feDistantLight azimuth="45" elevation="45"/>
+</feDiffuseLighting>
+<feColorMatrix type="luminanceToAlpha"/>
+<feComponentTransfer result="result18">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA slope="1.53" type="linear"/>
+</feComponentTransfer>
+<feComposite in="result15" in2="result18" operator="in" result="result19"/>
+<feComposite in2="result14" result="result20"/>
+<feComposite in2="SourceGraphic" operator="in"/>
+</filter>
+<filter id="j" color-interpolation-filters="sRGB">
+<feFlood flood-color="rgb(244,199,105)" result="result3"/>
+<feFlood flood-color="rgb(255,232,176)" result="result4"/>
+<feTurbulence baseFrequency="0.26100000000000001 0" numOctaves="3" result="result1"/>
+<feComponentTransfer result="result5">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-0.10000000000000001" slope="3.3199999999999998" type="linear"/>
+</feComponentTransfer>
+<feTurbulence baseFrequency="0.30599999999999999 0.017000000000000001" numOctaves="8" result="result7" scale="3.7999999999999998"/>
+<feTurbulence baseFrequency="0.84899999999999998 0.23799999999999999" numOctaves="4"/>
+<feComponentTransfer baseFrequency="0.092999999999999999 0.0080000000000000002" result="result9">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-0.40000000000000002" slope="3.02" type="linear"/>
+</feComponentTransfer>
+<feTurbulence baseFrequency="0.0088652482269503553 0.025000000000000001" numOctaves="10" result="result13" scale="7.4000000000000004"/>
+<feComposite in="result3" in2="result5" operator="in" result="result2"/>
+<feComposite in2="result4" result="result6"/>
+<feDisplacementMap in2="result7" result="result8" scale="3.825136612021858"/>
+<feComposite in2="result9" operator="in"/>
+<feComponentTransfer result="result10">
+<feFuncR slope="0.97999999999999998" type="linear"/>
+<feFuncG slope="0.97999999999999998" type="linear"/>
+<feFuncB slope="0.97999999999999998" type="linear"/>
+<feFuncA slope="1.45" type="linear"/>
+</feComponentTransfer>
+<feComposite in2="result8" k2="0.4" k3="0.6" operator="arithmetic" result="result11"/>
+<feComposite in2="result8" result="result12"/>
+<feDisplacementMap baseFrequency="0.0089999999999999993 0.025000000000000001" in2="result13" result="result14" scale="6.2"/>
+<feConvolveMatrix bias="0.40000000000000002" kernelMatrix="0 -1 0 -1 4 -1 0 -1 0 " order="3 3" preserveAlpha="true"/>
+<feColorMatrix result="result17" type="luminanceToAlpha"/>
+<feComponentTransfer result="result16">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-1.1499999999999999" slope="4.2599999999999998" type="linear"/>
+</feComponentTransfer>
+<feComponentTransfer in="result14" result="result15">
+<feFuncR slope="0.90000000000000002" type="linear"/>
+<feFuncG slope="0.90000000000000002" type="linear"/>
+<feFuncB slope="0.90000000000000002" type="linear"/>
+<feFuncA type="identity"/>
+</feComponentTransfer>
+<feDiffuseLighting diffuseConstant="1.1000000238" in="result17" surfaceScale="5">
+<feDistantLight azimuth="45" elevation="45"/>
+</feDiffuseLighting>
+<feColorMatrix type="luminanceToAlpha"/>
+<feComponentTransfer result="result18">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA slope="1.53" type="linear"/>
+</feComponentTransfer>
+<feComposite in="result15" in2="result18" operator="in" result="result19"/>
+<feComposite in2="result14" result="result20"/>
+<feComposite in2="SourceGraphic" operator="in"/>
+</filter>
+<filter id="a" color-interpolation-filters="sRGB">
+<feFlood flood-color="rgb(244,199,105)" result="result3"/>
+<feFlood flood-color="rgb(255,232,176)" result="result4"/>
+<feTurbulence baseFrequency="0.26100000000000001 0" numOctaves="3" result="result1"/>
+<feComponentTransfer result="result5">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-0.10000000000000001" slope="3.3199999999999998" type="linear"/>
+</feComponentTransfer>
+<feTurbulence baseFrequency="0.30599999999999999 0.017000000000000001" numOctaves="8" result="result7" scale="3.7999999999999998"/>
+<feTurbulence baseFrequency="0.84899999999999998 0.23799999999999999" numOctaves="4"/>
+<feComponentTransfer baseFrequency="0.092999999999999999 0.0080000000000000002" result="result9">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-0.40000000000000002" slope="2.1200000000000001" type="linear"/>
+</feComponentTransfer>
+<feTurbulence baseFrequency="0.10251450676982592 0.752" numOctaves="7" result="result13" scale="3.1000000000000001"/>
+<feComposite in="result3" in2="result5" operator="in" result="result2"/>
+<feComposite in2="result4" result="result6"/>
+<feDisplacementMap in2="result7" result="result8" scale="3.825136612021858"/>
+<feComposite in2="result9" operator="in"/>
+<feComponentTransfer result="result10">
+<feFuncR slope="0.97999999999999998" type="linear"/>
+<feFuncG slope="0.97999999999999998" type="linear"/>
+<feFuncB slope="0.97999999999999998" type="linear"/>
+<feFuncA slope="1.45" type="linear"/>
+</feComponentTransfer>
+<feComposite in2="result8" k2="0.4" k3="0.6" operator="arithmetic" result="result11"/>
+<feComposite in2="result8" result="result12"/>
+<feDisplacementMap baseFrequency="0.10299999999999999 0.752" in2="result13" result="result14" scale="0.1"/>
+<feConvolveMatrix bias="0.40000000000000002" kernelMatrix="0 -1 0 -1 4 -1 0 -1 0 " order="3 3" preserveAlpha="true"/>
+<feColorMatrix result="result17" type="luminanceToAlpha"/>
+<feComponentTransfer result="result16">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-1.1499999999999999" slope="4.2599999999999998" type="linear"/>
+</feComponentTransfer>
+<feComponentTransfer in="result14" result="result15">
+<feFuncR slope="0.90000000000000002" type="linear"/>
+<feFuncG slope="0.90000000000000002" type="linear"/>
+<feFuncB slope="0.90000000000000002" type="linear"/>
+<feFuncA type="identity"/>
+</feComponentTransfer>
+<feDiffuseLighting diffuseConstant="1.1000000238" in="result17" surfaceScale="5">
+<feDistantLight azimuth="45" elevation="45"/>
+</feDiffuseLighting>
+<feColorMatrix type="luminanceToAlpha"/>
+<feComponentTransfer result="result18">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA slope="1.53" type="linear"/>
+</feComponentTransfer>
+<feComposite in="result15" in2="result18" operator="in" result="result19"/>
+<feComposite in2="result14" result="result20"/>
+<feComposite in2="SourceGraphic" operator="in"/>
+</filter>
+<filter id="m" color-interpolation-filters="sRGB">
+<feFlood flood-color="rgb(244,199,105)" result="result3"/>
+<feFlood flood-color="rgb(255,232,176)" result="result4"/>
+<feTurbulence baseFrequency="0.26100000000000001 0" numOctaves="3" result="result1"/>
+<feComponentTransfer result="result5">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-0.10000000000000001" slope="3.3199999999999998" type="linear"/>
+</feComponentTransfer>
+<feTurbulence baseFrequency="0.30599999999999999 0.017000000000000001" numOctaves="8" result="result7" scale="3.7999999999999998"/>
+<feTurbulence baseFrequency="0.092843326885880081 0.0080000000000000002" numOctaves="4"/>
+<feComponentTransfer baseFrequency="0.092999999999999999 0.0080000000000000002" result="result9">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-0.40000000000000002" slope="2.1200000000000001" type="linear"/>
+</feComponentTransfer>
+<feTurbulence baseFrequency="0.10251450676982592 0.752" numOctaves="7" result="result13" scale="3.1000000000000001"/>
+<feComposite in="result3" in2="result5" operator="in" result="result2"/>
+<feComposite in2="result4" result="result6"/>
+<feDisplacementMap in2="result7" result="result8" scale="3.825136612021858"/>
+<feComposite in2="result9" operator="in"/>
+<feComponentTransfer result="result10">
+<feFuncR slope="0.97999999999999998" type="linear"/>
+<feFuncG slope="0.97999999999999998" type="linear"/>
+<feFuncB slope="0.97999999999999998" type="linear"/>
+<feFuncA slope="1.45" type="linear"/>
+</feComponentTransfer>
+<feComposite in2="result8" k2="0.4" k3="0.6" operator="arithmetic" result="result11"/>
+<feComposite in2="result8" result="result12"/>
+<feDisplacementMap baseFrequency="0.10299999999999999 0.752" in2="result13" result="result14" scale="0.1"/>
+<feConvolveMatrix bias="0.40000000000000002" kernelMatrix="0 -1 0 -1 4 -1 0 -1 0 " order="3 3" preserveAlpha="true"/>
+<feColorMatrix result="result17" type="luminanceToAlpha"/>
+<feComponentTransfer result="result16">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-1.1499999999999999" slope="4.2599999999999998" type="linear"/>
+</feComponentTransfer>
+<feComponentTransfer in="result14" result="result15">
+<feFuncR slope="0.90000000000000002" type="linear"/>
+<feFuncG slope="0.90000000000000002" type="linear"/>
+<feFuncB slope="0.90000000000000002" type="linear"/>
+<feFuncA type="identity"/>
+</feComponentTransfer>
+<feDiffuseLighting diffuseConstant="1.1000000238" in="result17" surfaceScale="5">
+<feDistantLight azimuth="45" elevation="45"/>
+</feDiffuseLighting>
+<feColorMatrix type="luminanceToAlpha"/>
+<feComponentTransfer result="result18">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA slope="1.53" type="linear"/>
+</feComponentTransfer>
+<feComposite in="result15" in2="result18" operator="in" result="result19"/>
+<feComposite in2="result14" result="result20"/>
+<feComposite in2="SourceGraphic" operator="in"/>
+</filter>
+<filter id="o" color-interpolation-filters="sRGB">
+<feFlood flood-color="rgb(244,199,105)" result="result3"/>
+<feFlood flood-color="rgb(255,232,176)" result="result4"/>
+<feTurbulence baseFrequency="0.23200000000000001 0.002" numOctaves="3" result="result1"/>
+<feComponentTransfer result="result5">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-0.10000000000000001" slope="2.2000000000000002" type="linear"/>
+</feComponentTransfer>
+<feTurbulence baseFrequency="0.30599999999999999 0.017000000000000001" numOctaves="8" result="result7" scale="3.7999999999999998"/>
+<feTurbulence baseFrequency="0.092843326885880081 0.0080000000000000002" numOctaves="4"/>
+<feComponentTransfer baseFrequency="0.092999999999999999 0.0080000000000000002" result="result9">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-0.40000000000000002" slope="2.1200000000000001" type="linear"/>
+</feComponentTransfer>
+<feTurbulence baseFrequency="0.10251450676982592 0.752" numOctaves="7" result="result13" scale="3.1000000000000001"/>
+<feComposite in="result3" in2="result5" operator="in" result="result2"/>
+<feComposite in2="result4" result="result6"/>
+<feDisplacementMap in2="result7" result="result8" scale="3.825136612021858"/>
+<feComposite in2="result9" operator="in"/>
+<feComponentTransfer result="result10">
+<feFuncR slope="0.97999999999999998" type="linear"/>
+<feFuncG slope="0.97999999999999998" type="linear"/>
+<feFuncB slope="0.97999999999999998" type="linear"/>
+<feFuncA slope="1.45" type="linear"/>
+</feComponentTransfer>
+<feComposite in2="result8" k2="0.4" k3="0.6" operator="arithmetic" result="result11"/>
+<feComposite in2="result8" result="result12"/>
+<feDisplacementMap baseFrequency="0.10299999999999999 0.752" in2="result13" result="result14" scale="0.1"/>
+<feConvolveMatrix bias="0.40000000000000002" kernelMatrix="0 -1 0 -1 4 -1 0 -1 0 " order="3 3" preserveAlpha="true"/>
+<feColorMatrix result="result17" type="luminanceToAlpha"/>
+<feComponentTransfer result="result16">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA intercept="-1.1499999999999999" slope="4.2599999999999998" type="linear"/>
+</feComponentTransfer>
+<feComponentTransfer in="result14" result="result15">
+<feFuncR slope="0.90000000000000002" type="linear"/>
+<feFuncG slope="0.90000000000000002" type="linear"/>
+<feFuncB slope="0.90000000000000002" type="linear"/>
+<feFuncA type="identity"/>
+</feComponentTransfer>
+<feDiffuseLighting diffuseConstant="1.1000000238" in="result17" surfaceScale="5">
+<feDistantLight azimuth="45" elevation="45"/>
+</feDiffuseLighting>
+<feColorMatrix type="luminanceToAlpha"/>
+<feComponentTransfer result="result18">
+<feFuncR type="identity"/>
+<feFuncG type="identity"/>
+<feFuncB type="identity"/>
+<feFuncA slope="1.53" type="linear"/>
+</feComponentTransfer>
+<feComposite in="result15" in2="result18" operator="in" result="result19"/>
+<feComposite in2="result14" result="result20"/>
+<feComposite in2="SourceGraphic" operator="in"/>
+</filter>
+</defs>
+<g transform="translate(-10184 3920.3)" fill="#d5b03f" shape-rendering="auto">
+<path d="m10184-3920.3h300v300h-300z" color="#000000" color-rendering="auto" filter="url(#p)" image-rendering="auto" solid-color="#000000" style="isolation:auto;mix-blend-mode:normal"/>
+<path d="m10484-3920.3h300v300h-300z" color="#000000" color-rendering="auto" filter="url(#n)" image-rendering="auto" solid-color="#000000" style="isolation:auto;mix-blend-mode:normal"/>
+<path d="m10784-3920.3h300v300h-300z" color="#000000" color-rendering="auto" filter="url(#l)" image-rendering="auto" solid-color="#000000" style="isolation:auto;mix-blend-mode:normal"/>
+<path d="m11084-3920.3h300v300h-300z" color="#000000" color-rendering="auto" filter="url(#k)" image-rendering="auto" solid-color="#000000" style="isolation:auto;mix-blend-mode:normal"/>
+<path d="m10184-3620.3h300v300h-300z" color="#000000" color-rendering="auto" filter="url(#i)" image-rendering="auto" solid-color="#000000" style="isolation:auto;mix-blend-mode:normal"/>
+<path d="m10484-3620.3h300v300h-300z" color="#000000" color-rendering="auto" filter="url(#g)" image-rendering="auto" solid-color="#000000" style="isolation:auto;mix-blend-mode:normal"/>
+<path d="m10784-3620.3h300v300h-300z" color="#000000" color-rendering="auto" filter="url(#e)" image-rendering="auto" solid-color="#000000" style="isolation:auto;mix-blend-mode:normal"/>
+<path d="m11084-3620.3h300v300h-300z" color="#000000" color-rendering="auto" filter="url(#c)" image-rendering="auto" solid-color="#000000" style="isolation:auto;mix-blend-mode:normal"/>
+<path d="m10184-3320.3h300v300h-300z" color="#000000" color-rendering="auto" filter="url(#o)" image-rendering="auto" solid-color="#000000" style="isolation:auto;mix-blend-mode:normal"/>
+<path d="m10484-3320.3h300v300h-300z" color="#000000" color-rendering="auto" filter="url(#m)" image-rendering="auto" solid-color="#000000" style="isolation:auto;mix-blend-mode:normal"/>
+<path d="m10784-3320.3h300v300h-300z" color="#000000" color-rendering="auto" filter="url(#a)" image-rendering="auto" solid-color="#000000" style="isolation:auto;mix-blend-mode:normal"/>
+<path d="m11084-3320.3h300v300h-300z" color="#000000" color-rendering="auto" filter="url(#j)" image-rendering="auto" solid-color="#000000" style="isolation:auto;mix-blend-mode:normal"/>
+<path d="m10184-3020.3h300v300h-300z" color="#000000" color-rendering="auto" filter="url(#h)" image-rendering="auto" solid-color="#000000" style="isolation:auto;mix-blend-mode:normal"/>
+<path d="m10484-3020.3h300v300h-300z" color="#000000" color-rendering="auto" filter="url(#f)" image-rendering="auto" solid-color="#000000" style="isolation:auto;mix-blend-mode:normal"/>
+<path d="m10784-3020.3h300v300h-300z" color="#000000" color-rendering="auto" filter="url(#d)" image-rendering="auto" solid-color="#000000" style="isolation:auto;mix-blend-mode:normal"/>
+<path d="m11084-3020.3h300v300h-300z" color="#000000" color-rendering="auto" filter="url(#b)" image-rendering="auto" solid-color="#000000" style="isolation:auto;mix-blend-mode:normal"/>
+</g>
+</svg>

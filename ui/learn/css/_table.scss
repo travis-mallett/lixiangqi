@@ -1,186 +1,202 @@
 .learn__table {
-  align-self: center;
+  position: sticky;
+  top: 1rem;
 
   .wrap {
     @extend %box-neat, %box-radius-force;
+
+    overflow: hidden;
+    border: 1px solid color-mix(in oklab, #b9914e 32%, $c-border);
+    box-shadow: 0 8px 28px rgb(0 0 0 / 0.18);
   }
 
   .title {
-    display: flex;
-    background: $c-primary;
-    color: $c-over;
-
-    h2,
-    h3 {
-      font-size: 2.3em;
-      margin: 15px 0 5px -3px;
-      white-space: nowrap;
-    }
+    display: grid;
+    grid-template-columns: 74px minmax(0, 1fr);
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.65rem;
+    color: #fff;
+    background:
+      radial-gradient(circle at 85% 10%, rgb(220 171 84 / 0.3), transparent 34%),
+      linear-gradient(110deg, #7d2925, #aa3b32);
 
     img {
-      width: 80px;
-      height: 80px;
-      margin: 5px 8px 5px 5px;
-    }
-  }
-
-  .subtitle {
-    margin-bottom: 1em;
-  }
-
-  .goal {
-    @extend %flex-center-center;
-
-    background: $c-bg-box;
-    border: $border;
-    border-top: none;
-    padding: $block-gap;
-    text-align: center;
-  }
-
-  .result {
-    @extend %flex-center-center;
-
-    flex-flow: column nowrap;
-    border: $border;
-    border-top: none;
-    text-align: center;
-    cursor: pointer;
-
-    @include transition;
-
-    min-height: 135px;
-    padding: 0;
-    font-size: 1.7em;
-
-    @keyframes shadow-glow {
-      50% {
-        box-shadow: 0 0 10px 10px rgb(255 255 255 / 0.5);
-        transform: scale(1.05);
-      }
+      width: 68px;
+      height: 68px;
+      object-fit: contain;
     }
 
-    @keyframes text-shadow-glow {
-      50% {
-        text-shadow: 0 0 10px #fff;
-        transform: scale(1.05);
-      }
+    .lesson-code {
+      color: #f0ce8f;
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
     }
 
     h2 {
-      animation: text-shadow-glow 1s 1;
+      margin: 0.08rem 0 0;
+      font-size: 1.55rem;
+      line-height: 1.05;
     }
 
-    &.failed h2,
-    &.next h2 {
-      margin-top: 15px;
-    }
-
-    &:hover {
-      filter: brightness(1.1);
-    }
-
-    .stars {
-      margin-top: 4px;
-    }
-
-    .stars icon {
-      margin: 3px;
-      animation: text-shadow-glow 1s 1;
-    }
-
-    button {
-      margin: 15px auto 15px auto;
-      font-size: 30px;
-      font-weight: bold;
-      text-transform: uppercase;
-      background: #fff;
-      border-radius: 5px;
-      padding: 5px 10px;
-      box-shadow: 0 0 5px 5px rgb(255 255 255 / 0.5);
-      animation: shadow-glow 1s infinite;
-    }
-
-    &.completed {
-      background: $c-good;
-      color: $c-over;
-    }
-
-    &.completed button {
-      color: $c-good;
-    }
-
-    &.failed {
-      background: $c-bad;
-      color: $c-over;
-    }
-
-    &.failed button {
-      color: $c-bad;
-    }
-
-    @keyframes go-home {
-      from {
-        opacity: 1;
-      }
-
-      to {
-        opacity: 0.1;
-      }
-    }
-
-    &.completed:not(.no-go-home) piece {
-      animation: 0.7s ease-in-out 0.7s go-home;
+    .subtitle {
+      margin: 0.25rem 0 0;
+      color: rgb(255 255 255 / 0.8);
+      font-size: 0.82rem;
+      line-height: 1.2;
     }
   }
 
-  .progress {
-    @extend %flex-center-nowrap;
+  .lesson-copy {
+    padding: 1.2rem 1.25rem;
+    background: $c-bg-box;
 
+    .level-kicker {
+      color: #c99c4c;
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    h3 {
+      margin: 0.35rem 0 0.8rem;
+      color: $c-font-clear;
+      font-size: 1.35rem;
+    }
+
+    .notation {
+      display: inline-block;
+      margin: -0.25rem 0 0.65rem;
+      border-radius: 4px;
+      padding: 0.35rem 0.55rem;
+      color: #f2d496;
+      background: #4b2a22;
+      font-size: 1.1rem;
+    }
+
+    p {
+      line-height: 1.5;
+    }
+
+    .goal {
+      margin: 0;
+      border-inline-start: 3px solid #b23c33;
+      padding-inline-start: 0.75rem;
+      color: $c-font;
+      font-weight: 700;
+    }
+
+    .explanation {
+      margin: 0.85rem 0 0;
+      color: $c-font-dim;
+    }
+  }
+
+  .culture-note {
+    display: grid;
+    gap: 0.25rem;
+    margin: 1rem 0 0;
+    border: 0;
+    border-radius: 5px;
+    padding: 0.75rem;
+    color: $c-font-dim;
+    background: color-mix(in oklab, $c-bg-zebra 82%, #b08a45);
+    font-size: 0.84rem;
+    line-height: 1.45;
+
+    strong {
+      color: #cda55d;
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+  }
+
+  .lesson-hint,
+  .lesson-action,
+  .result {
+    display: flex;
+    min-height: 64px;
+    align-items: center;
+    justify-content: center;
+    gap: 0.65rem;
+    border-top: 1px solid $c-border;
+    padding: 0.75rem 1rem;
     text-align: center;
-    border: $border;
-    border-top: 0;
+    background: $c-bg-high;
+  }
+
+  .target-star {
+    width: 2.4rem;
+    height: 2.4rem;
+    flex: 0 0 2.4rem;
+    background: url('../images/learn/star.png') center / contain no-repeat;
+    filter: drop-shadow(0 1px 2px #000);
+    font-size: 0;
+  }
+
+  .result.completed {
+    flex-direction: column;
+    color: #fff;
+    background: color-mix(in oklab, $c-good 72%, #17351b);
+  }
+
+  .result.failed {
+    flex-direction: column;
+    color: #fff;
+    background: color-mix(in oklab, $c-bad 72%, #421d1c);
+  }
+
+  .result strong {
+    font-size: 1.05rem;
+  }
+
+  .button {
+    min-width: 9rem;
+  }
+
+  .progress {
+    display: flex;
+    flex-wrap: wrap;
+    border-top: 1px solid $c-border;
+    background: $c-bg-box;
 
     a {
-      @extend %flex-center;
+      display: grid;
+      min-width: 2.6rem;
+      min-height: 2.6rem;
+      flex: 1 1 2.6rem;
+      place-items: center;
+      border-inline-end: 1px solid $c-border;
+      color: $c-font-dim;
+      font-weight: 700;
 
-      align-content: center;
-      flex: 1 1 100%;
-      text-align: center;
-      background: $c-bg-high;
-      height: 3em;
-      font-size: 0.9em;
-      border-inline-start: $border;
-      opacity: 0.8;
+      &.active {
+        color: white;
+        background: #a4372f;
+      }
 
-      @include transition;
+      &.done {
+        color: white;
+        background: $c-good;
+      }
     }
 
-    a:first-child {
-      border-inline-start: 0;
-    }
+    .learn-step-back {
+      width: 100%;
+      border: 0;
+      border-top: 1px solid $c-border;
+      padding: 0.55rem;
+      color: $c-font-dim;
+      background: transparent;
+      cursor: pointer;
 
-    a:hover {
-      opacity: 1;
-    }
-
-    a span {
-      margin: auto;
-    }
-
-    .st3 icon:first-child {
-      display: block;
-    }
-
-    a.done {
-      color: $c-over;
-      background: $c-good;
-    }
-
-    a.active {
-      opacity: 1;
-      color: $c-over;
-      background: $c-primary;
+      &:hover {
+        color: $c-font;
+        background: $c-bg-zebra;
+      }
     }
   }
 }

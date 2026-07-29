@@ -13,7 +13,7 @@ final private class MailerCli(mailer: Mailer):
               val msg = Mailer.Message(
                 to = email,
                 subject = "Lichess test email",
-                text = "This is a test email from Lichess: https://lichess.org/dev/cli"
+                text = "This is a test email from Lichess: https://lixiangqi.org/dev/cli"
               )
               mailer
                 .sendTest(msg, client)

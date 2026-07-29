@@ -1,29 +1,38 @@
 package lila.pref
 
-import monocle.syntax.all.*
-
 object PrefSingleChange:
 
   type Change[A] = lila.common.Form.SingleChange.Change[Pref, A]
   private def changing[A] = lila.common.Form.SingleChange.changing[Pref, PrefForm.fields.type, A]
+  private def changeAppearance(update: Appearance => Appearance)(pref: Pref): Pref =
+    pref.copy(appearance = ThemePacks.normalize(update(pref.appearance)))
 
   val changes: Map[String, Change[?]] = List[Change[?]](
-    changing(_.bg): v =>
-      Pref.Bg.fromString.get(v).fold[Pref => Pref](identity)(bg => _.copy(bg = bg)),
-    changing(_.bgImg): v =>
-      _.copy(bgImg = v.some.filterNot(_.isBlank)),
-    changing(_.theme): v =>
-      _.copy(theme = v),
+    changing(_.appearancePack): v =>
+      pref => ThemePacks.get(v).fold(pref)(pack => pref.copy(appearance = pack.appearance)),
+    changing(_.uiTheme): v =>
+      changeAppearance(_.copy(uiTheme = v)),
+    changing(_.background): v =>
+      changeAppearance: appearance =>
+        appearance.copy(
+          background = v,
+          backgroundUrl = Option.when(v == Backgrounds.customKey)(appearance.backgroundUrl).flatten
+        ),
+    changing(_.backgroundUrl): v =>
+      changeAppearance(
+        _.copy(
+          background = Backgrounds.customKey,
+          backgroundUrl = v.some.filterNot(_.isBlank)
+        )
+      ),
+    changing(_.boardTheme): v =>
+      changeAppearance(_.copy(boardTheme = v)),
     changing(_.pieceSet): v =>
-      _.copy(pieceSet = v),
-    changing(_.theme3d): v =>
-      _.copy(theme3d = v),
-    changing(_.pieceSet3d): v =>
-      _.copy(pieceSet3d = v),
-    changing(_.is3d): v =>
-      _.copy(is3d = v),
+      changeAppearance(_.copy(pieceSet = v)),
     changing(_.soundSet): v =>
-      _.copy(soundSet = v),
+      changeAppearance(_.copy(soundSet = v)),
+    changing(_.musicSet): v =>
+      changeAppearance(_.copy(musicSet = v)),
     changing(_.zen): v =>
       _.copy(zen = v),
     changing(_.voice): v =>
@@ -59,13 +68,13 @@ object PrefSingleChange:
     changing(_.message): v =>
       _.copy(message = v),
     changing(_.board.brightness): v =>
-      _.focus(_.board.brightness).replace(v),
+      changeAppearance(appearance => appearance.copy(board = appearance.board.copy(brightness = v))),
     changing(_.board.contrast): v =>
-      _.focus(_.board.contrast).replace(v),
+      changeAppearance(appearance => appearance.copy(board = appearance.board.copy(contrast = v))),
     changing(_.board.opacity): v =>
-      _.focus(_.board.opacity).replace(v),
+      changeAppearance(appearance => appearance.copy(board = appearance.board.copy(opacity = v))),
     changing(_.board.hue): v =>
-      _.focus(_.board.hue).replace(v),
+      changeAppearance(appearance => appearance.copy(board = appearance.board.copy(hue = v))),
     changing(_.sayGG): v =>
       _.copy(sayGG = v)
   ).map: change =>

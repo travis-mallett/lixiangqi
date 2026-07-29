@@ -7,7 +7,7 @@ import scalalib.data.Preload
 import lila.common.Bus
 import lila.core.i18n.{ I18nKey as trans, Translator, defaultLang }
 import lila.core.round.*
-import lila.game.{ Event, GameRepo, Progress, Rewind, UciMemo }
+import lila.game.{ Event, Progress, Rewind, UciMemo }
 import lila.pref.{ Pref, PrefApi }
 import lila.round.RoundGame.playableByAi
 
@@ -22,7 +22,6 @@ private given takebackBoardZero: Zero[TakebackBoard] = Zero(ByColor.fill(Takebac
 
 final private class Takebacker(
     messenger: Messenger,
-    gameRepo: GameRepo,
     uciMemo: UciMemo,
     prefApi: PrefApi
 )(using Executor, Translator):
@@ -142,10 +141,9 @@ final private class Takebacker(
 
   private def rewind(pov: Pov, plies: Int)(using GameProxy): Fu[Events] =
     for
-      fen <- gameRepo.initialFen(pov.game)
       progress <- (1 to plies).foldLeft(fuccess(Progress(pov.game))): (prev, _) =>
         prev.flatMap: prog =>
-          Rewind(prog.game, fen).toFuture.dmap(rewinded => prog.withGame(rewinded.game))
+          Rewind(prog.game).toFuture.dmap(rewinded => prog.withGame(rewinded.game))
       _ <- fuccess(uciMemo.drop(pov.game, plies))
       events <- saveAndNotify(progress, pov)
     yield events

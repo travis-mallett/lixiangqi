@@ -79,15 +79,10 @@ final class PgnDump(
   private def makeTags(study: Study, chapter: Chapter)(using flags: WithFlags): Tags =
     flags.updateTags:
       Tags:
-        val opening =
-          chess.variant.Variant.list
-            .openingSensibleVariants(chapter.setup.variant)
-            .so(chess.opening.OpeningDb.searchInFens(chapter.root.mainline.take(40).map(_.fen.opening)))
         val genTags = List(
           Tag(_.Event, s"${study.name}: ${chapter.name}"),
-          Tag(_.Variant, chapter.setup.variant.name.capitalize),
-          Tag(_.ECO, opening.fold("?")(_.eco)),
-          Tag(_.Opening, opening.fold("?")(_.name)),
+          Tag(_.Variant, "Xiangqi"),
+          Tag("MoveFormat", "WXF"),
           Tag(_.Result, "*") // required for SCID to import
         ) ::: study.isRelay.not.so(
           List(

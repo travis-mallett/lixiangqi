@@ -11,14 +11,14 @@ final class TopNav(helpers: Helpers):
   private def linkTitle(url: String, name: Frag)(using ctx: Context) =
     if ctx.blind then h3(name) else a(href := url)(name)
 
-  def apply(seesClassMenu: Boolean, hasDgt: Boolean)(using ctx: Context) =
+  def apply(seesClassMenu: Boolean)(using ctx: Context) =
     st.nav(id := "topnav", cls := "hover")(
       st.section(
         linkTitle(
           "/",
           frag(
             span(cls := "play")(trans.site.play()),
-            span(cls := "home")("lichess.org")
+            span(cls := "home")("lixiangqi")
           )
         ),
         div(role := "group")(
@@ -26,10 +26,7 @@ final class TopNav(helpers: Helpers):
           else a(href := "/?any#friend")(trans.site.challengeAFriend()),
           Option.when(ctx.noBot):
             frag(
-              a(href := langHref(routes.Tournament.home))(trans.arena.arenaTournaments()),
-              a(href := langHref(routes.Swiss.home))(trans.swiss.swissTournaments()),
-              a(href := langHref(routes.Simul.home))(trans.site.simultaneousExhibitions()),
-              hasDgt.option(a(href := routes.DgtCtrl.index)(trans.dgt.dgtBoard())),
+              a(href := langHref(routes.Tournament.home))(trans.site.tournaments()),
               (ctx.kid.no && !ctx.me.exists(_.isPatron)).option:
                 a(cls := "community-patron mobile-only", href := routes.Plan.index())(trans.patron.donate())
             )
@@ -42,10 +39,7 @@ final class TopNav(helpers: Helpers):
           div(role := "group")(
             a(href := puzzleUrl)(trans.site.puzzles()),
             a(href := langHref(routes.Puzzle.themes))(trans.puzzle.puzzleThemes()),
-            a(href := routes.Puzzle.dashboard(Days(30), "home", none))(trans.puzzle.puzzleDashboard()),
-            a(href := langHref(routes.Puzzle.streak))("Puzzle Streak"),
-            a(href := langHref(routes.Storm.home))("Puzzle Storm"),
-            a(href := langHref(routes.Racer.home))("Puzzle Racer")
+            a(href := routes.Puzzle.dashboard(Days(30), "home", none))(trans.puzzle.puzzleDashboard())
           )
         )
       ,
@@ -56,7 +50,7 @@ final class TopNav(helpers: Helpers):
             frag(
               a(href := langHref(routes.Learn.index))(trans.site.chessBasics()),
               a(href := routes.Practice.index)(trans.site.practice()),
-              a(href := langHref(routes.Coordinate.home))(trans.coordinates.coordinates())
+              a(href := langHref(routes.Notation.home))(trans.notation.xiangqiNotation())
             )
           ,
           a(href := langHref(routes.Study.allDefault()))(trans.site.studyMenu()),
@@ -70,7 +64,7 @@ final class TopNav(helpers: Helpers):
           linkTitle(broadcastUrl, trans.site.watch()),
           div(role := "group")(
             a(href := routes.RelayTour.index())(trans.broadcast.broadcasts()),
-            a(href := langHref(routes.Tv.index))("Lichess TV"),
+            a(href := langHref(routes.Tv.index))("Lixiangqi TV"),
             a(href := routes.Tv.games)(trans.site.currentGames()),
             (ctx.kid.no && ctx.noBot).option(a(href := routes.Streamer.index())(trans.site.streamersMenu())),
             ctx.noBot.option(a(href := langHref(routes.Video.index))(trans.site.videoLibrary()))
@@ -93,8 +87,7 @@ final class TopNav(helpers: Helpers):
         linkTitle(routes.UserAnalysis.index.url, trans.site.tools()),
         div(role := "group")(
           a(href := routes.UserAnalysis.index)(trans.site.analysis()),
-          a(href := routes.Opening.index())(trans.site.openings()),
-          a(href := routes.Editor.index)(trans.site.boardEditor()),
+          a(href := routes.GameCatalog.index)("Games Database"),
           a(href := routes.Importer.importGame)(trans.site.importGame()),
           a(href := routes.Search.index())(trans.search.advancedSearch())
         )

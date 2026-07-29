@@ -101,103 +101,19 @@ object PuzzleTheme:
   val veryLong = PuzzleTheme(i.veryLong, i.veryLongDescription)
   val xRayAttack = PuzzleTheme(i.xRayAttack, i.xRayAttackDescription)
   val zugzwang = PuzzleTheme(i.zugzwang, i.zugzwangDescription)
+  val centroidPawnMate = PuzzleTheme(i.centroidPawnMate, i.centroidPawnMateDescription)
   val checkFirst = PuzzleTheme(Key("checkFirst"), I18nKey("Check first"), I18nKey("Check first"))
 
   val categorized = List[(I18nKey, List[PuzzleTheme])](
     I18nKey.puzzle.recommended -> List(
-      mix
+      centroidPawnMate
     ),
-    I18nKey.puzzle.phases -> List(
-      opening,
-      middlegame,
-      endgame,
-      rookEndgame,
-      bishopEndgame,
-      pawnEndgame,
-      knightEndgame,
-      queenEndgame,
-      queenRookEndgame
-    ),
-    I18nKey.puzzle.motifs -> List(
-      advancedPawn,
-      attackingF2F7,
-      capturingDefender,
-      discoveredAttack,
-      doubleCheck,
-      exposedKing,
-      fork,
-      hangingPiece,
-      kingsideAttack,
-      pin,
-      queensideAttack,
-      sacrifice,
-      skewer,
-      trappedPiece
-    ),
-    I18nKey.puzzle.advanced -> List(
-      attraction,
-      clearance,
-      collinearMove,
-      discoveredCheck,
-      defensiveMove,
-      deflection,
-      interference,
-      intermezzo,
-      quietMove,
-      xRayAttack,
-      zugzwang
-    ),
-    I18nKey.puzzle.mates -> List(
-      mate,
+    I18nKey.puzzle.mateThemes -> List(
       mateIn1,
       mateIn2,
       mateIn3,
       mateIn4,
       mateIn5
-    ),
-    I18nKey.puzzle.mateThemes -> List(
-      anastasiaMate,
-      arabianMate,
-      backRankMate,
-      balestraMate,
-      blindSwineMate,
-      bodenMate,
-      cornerMate,
-      doubleBishopMate,
-      dovetailMate,
-      epauletteMate,
-      hookMate,
-      killBoxMate,
-      pillsburysMate,
-      morphysMate,
-      operaMate,
-      swallowstailMate,
-      triangleMate,
-      vukovicMate,
-      smotheredMate
-    ),
-    I18nKey.puzzle.specialMoves -> List(
-      castling,
-      enPassant,
-      promotion,
-      underPromotion
-    ),
-    I18nKey.puzzle.goals -> List(
-      equality,
-      advantage,
-      crushing,
-      mate
-    ),
-    I18nKey.puzzle.lengths -> List(
-      oneMove,
-      short,
-      long,
-      veryLong
-    ),
-    I18nKey.puzzle.origin -> List(
-      master,
-      masterVsMaster,
-      superGM
     )
   )
 
@@ -205,7 +121,84 @@ object PuzzleTheme:
   // themes that can't be viewed by players
   private[puzzle] val hiddenThemes: List[PuzzleTheme] = List(checkFirst)
 
-  private val all: List[PuzzleTheme] = visible ::: hiddenThemes
+  private val legacyThemes: List[PuzzleTheme] = List(
+    mix,
+    advancedPawn,
+    advantage,
+    anastasiaMate,
+    arabianMate,
+    attackingF2F7,
+    attraction,
+    backRankMate,
+    balestraMate,
+    blindSwineMate,
+    triangleMate,
+    bishopEndgame,
+    bodenMate,
+    capturingDefender,
+    collinearMove,
+    castling,
+    clearance,
+    cornerMate,
+    crushing,
+    defensiveMove,
+    deflection,
+    discoveredAttack,
+    discoveredCheck,
+    doubleBishopMate,
+    doubleCheck,
+    dovetailMate,
+    equality,
+    endgame,
+    epauletteMate,
+    enPassant,
+    exposedKing,
+    fork,
+    hangingPiece,
+    hookMate,
+    interference,
+    intermezzo,
+    kingsideAttack,
+    killBoxMate,
+    pillsburysMate,
+    morphysMate,
+    vukovicMate,
+    knightEndgame,
+    long,
+    master,
+    masterVsMaster,
+    mate,
+    mateIn1,
+    mateIn2,
+    mateIn3,
+    mateIn4,
+    mateIn5,
+    smotheredMate,
+    middlegame,
+    oneMove,
+    opening,
+    operaMate,
+    pawnEndgame,
+    pin,
+    promotion,
+    queenEndgame,
+    queenRookEndgame,
+    queensideAttack,
+    quietMove,
+    rookEndgame,
+    sacrifice,
+    short,
+    skewer,
+    superGM,
+    swallowstailMate,
+    trappedPiece,
+    underPromotion,
+    veryLong,
+    xRayAttack,
+    zugzwang
+  )
+
+  private val all: List[PuzzleTheme] = visible ::: hiddenThemes ::: legacyThemes
   val hiddenThemesKey: Set[Key] = hiddenThemes.map(_.key).toSet
 
   private val byKey: Map[Key, PuzzleTheme] = all.mapBy(_.key)

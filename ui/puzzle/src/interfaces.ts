@@ -1,13 +1,15 @@
 import type { Move } from 'chessops/types';
 import type { VNode } from 'snabbdom';
+import type { RulesState } from 'xiangqi';
 
 import type { ExternalEngineInfo } from 'lib/ceval';
+import type { XiangqiNotationStyle } from 'lib/game';
 import perfIcons from 'lib/game/perfIcons';
 import type { Coords } from 'lib/prefs';
 import type { TreePath } from 'lib/tree/types';
 
 export type PuzzleId = string;
-export type ThemeKey = keyof I18n['puzzleTheme'];
+export type ThemeKey = keyof I18n['puzzleTheme'] | 'centroidPawnMate';
 
 export interface NvuiPlugin {
   render(): VNode;
@@ -36,7 +38,6 @@ export interface PuzzleOpts {
 
 export interface PuzzlePrefs {
   coords: Coords;
-  is3d: boolean;
   destination: boolean;
   rookCastle: boolean;
   moveEvent: number;
@@ -47,6 +48,7 @@ export interface PuzzlePrefs {
   blindfold: boolean;
   keyboardMove: boolean;
   voiceMove: boolean;
+  notationStyle: XiangqiNotationStyle;
 }
 
 export interface Angle {
@@ -54,14 +56,10 @@ export interface Angle {
   name: string;
   desc: string;
   chapter?: string;
-  opening?: {
-    key: string;
-    name: string;
-  };
-  openingAbstract?: boolean;
 }
 
 export interface PuzzleData {
+  variant?: 'xiangqi';
   puzzle: Puzzle;
   angle: Angle;
   game: PuzzleGame;
@@ -80,6 +78,9 @@ export interface PuzzleReplay {
 
 export interface PuzzleGame {
   id: string;
+  url?: string;
+  event?: string;
+  sourceUrl?: string;
   perf?: {
     key: keyof typeof perfIcons;
     name: string;
@@ -88,6 +89,10 @@ export interface PuzzleGame {
   players: [PuzzlePlayer, PuzzlePlayer];
   pgn: string;
   clock?: string;
+  initialFen?: string;
+  moves?: string[];
+  notations?: string[];
+  notationsZh?: string[];
 }
 
 export interface PuzzlePlayer {
@@ -95,6 +100,7 @@ export interface PuzzlePlayer {
   rating?: number;
   title?: string;
   flair?: string;
+  url?: string;
   color: Color;
 }
 
@@ -110,6 +116,10 @@ export interface Puzzle {
   plays: number;
   initialPly: number;
   themes: ThemeKey[];
+  state?: RulesState;
+  displayFen?: string;
+  mateIn?: number;
+  engine?: string;
 }
 
 export interface PuzzleResult {
@@ -129,5 +139,10 @@ export interface PuzzleRound {
 export interface MoveTest {
   move: Move;
   fen: FEN;
+  path: TreePath;
+}
+
+export interface XiangqiMoveTest {
+  uci: string;
   path: TreePath;
 }

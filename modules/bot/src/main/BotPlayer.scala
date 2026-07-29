@@ -1,12 +1,11 @@
 package lila.bot
 
-import chess.format.Uci
-
 import lila.common.Bus
 import lila.core.round.*
 import lila.core.chat.PublicSource
 import lila.game.GameExt.playerCanOfferDraw
 import lila.game.{ GameRepo, Rematches }
+import lila.xiangqi.Xiangqi
 
 final class BotPlayer(
     chatApi: lila.chat.ChatApi,
@@ -20,16 +19,18 @@ final class BotPlayer(
 
   def apply(pov: Pov, uciStr: String, offeringDraw: Option[Boolean])(using me: Me): Funit =
     lila.common.LilaFuture.delay((pov.game.hasAi.so(500)).millis):
-      Uci(uciStr).fold(clientError[Unit](s"Invalid UCI: $uciStr")): uci =>
-        lila.mon.bot.moves(me.username.value).increment()
-        if !pov.isMyTurn then clientError("Not your turn, or game already over")
-        else
-          val promise = Promise[Unit]()
-          if pov.player.isOfferingDraw && offeringDraw.has(false) then declineDraw(pov)
-          else if !pov.player.isOfferingDraw && ~offeringDraw then offerDraw(pov)
-          tellRound(pov.gameId, RoundBus.BotPlay(pov.playerId, uci, promise.some))
-          promise.future.recover:
-            case _: lila.core.round.GameIsFinishedError if ~offeringDraw => ()
+      Xiangqi.Uci.from(uciStr) match
+        case Left(error) => clientError(error)
+        case Right(uci) =>
+          lila.mon.bot.moves(me.username.value).increment()
+          if !pov.isMyTurn then clientError("Not your turn, or game already over")
+          else
+            val promise = Promise[Unit]()
+            if pov.player.isOfferingDraw && offeringDraw.has(false) then declineDraw(pov)
+            else if !pov.player.isOfferingDraw && ~offeringDraw then offerDraw(pov)
+            tellRound(pov.gameId, RoundBus.BotPlay(pov.playerId, uci, promise.some))
+            promise.future.recover:
+              case _: lila.core.round.GameIsFinishedError if ~offeringDraw => ()
 
   def chat(gameId: GameId, d: BotForm.ChatData)(using me: Me) =
     (!spam.detect(d.text))

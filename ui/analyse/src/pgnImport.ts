@@ -61,7 +61,6 @@ export default function (pgn: string): Partial<AnalyseData> {
       fen,
       initialFen: fen,
       id: 'synthetic',
-      opening: undefined, // TODO
       player: start.turn,
       status: { id: 20, name: 'started' },
       turns: treeParts.length,

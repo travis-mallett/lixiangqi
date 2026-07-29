@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Xiangqi board with river and palaces">
+  <rect x="18" y="12" width="124" height="136" rx="8" fill="#ead09c" stroke="#694629" stroke-width="6"/>
+  <g stroke="#694629" stroke-width="2" fill="none">
+    <path d="M32 24v112M48 24v112M64 24v112M80 24v112M96 24v112M112 24v112M128 24v112"/>
+    <path d="M32 24h96M32 38h96M32 52h96M32 66h96M32 80h96M32 94h96M32 108h96M32 122h96M32 136h96"/>
+    <path d="M64 24l32 28M96 24L64 52M64 108l32 28M96 108l-32 28"/>
+  </g>
+  <rect x="30" y="68" width="100" height="24" fill="#ead09c"/>
+  <text x="80" y="85" text-anchor="middle" font-size="13" font-family="Noto Serif CJK SC,SimSun,serif" fill="#694629">楚河　漢界</text>
+</svg>

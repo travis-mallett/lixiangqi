@@ -1,10 +1,9 @@
 package lila.challenge
 
-import chess.format.Fen
-import chess.variant.Variant
-import chess.{ Position, ByColor, Rated }
+import chess.ByColor
 
 import lila.core.user.GameUser
+import lila.xiangqi.{ Xiangqi, XiangqiRules }
 
 final private class ChallengeJoiner(
     gameRepo: lila.game.GameRepo,
@@ -16,7 +15,7 @@ final private class ChallengeJoiner(
     exists <- gameRepo.exists(c.gameId)
     _ <- raiseIf(exists)("The challenge has already been accepted")
     origUser <- c.challengerUserId.so(userApi.byIdWithPerf(_, c.perfType))
-    game = ChallengeJoiner.createGame(c, origUser, destUser)
+    game <- ChallengeJoiner.createGame(c, origUser, destUser).raiseIfLeft
     _ <- gameRepo.insertDenormalized(game)
     _ <- onStartOrRetry(game.id).recover: _ =>
       logger.error(s"onStart failed for game ${game.id}")
@@ -37,52 +36,34 @@ private object ChallengeJoiner:
       c: Challenge,
       origUser: GameUser,
       destUser: GameUser
+  ): Either[String, Game] =
+    gameSetup(c).map(createGame(c, origUser, destUser, _))
+
+  private[challenge] def createGame(
+      c: Challenge,
+      origUser: GameUser,
+      destUser: GameUser,
+      xiangqiGame: Xiangqi.Game
   ): Game =
-    val (chessGame, state) = gameSetup(c.variant, c.timeControl, c.initialFen)
     lila.core.game
       .newGame(
-        chess = chessGame,
+        xiangqi = xiangqiGame,
         players = ByColor: color =>
           lila.game.Player.make(color, if c.finalColor == color then origUser else destUser),
-        rated = c.rated.map(_ && !chessGame.position.variant.fromPosition),
+        rated = c.rated.map(_ && xiangqiGame.initialFen == Xiangqi.startFen),
         source = lila.core.game.Source.Friend,
         daysPerTurn = c.daysPerTurn,
         pgnImport = None,
-        rules = c.rules
+        rules = c.rules,
+        clock = c.timeControl.realTime.map(_.toClock),
+        startedAtPly = chess.Ply(xiangqiGame.state.ply),
+        variant = c.variant
       )
       .withId(c.gameId)
-      .pipe(addGameHistory(state))
       .start
 
-  def gameSetup(
-      variant: Variant,
-      tc: Challenge.TimeControl,
-      initialFen: Option[Fen.Full]
-  ): (chess.Game, Option[Position.AndFullMoveNumber]) =
-
-    def makeChess(variant: Variant): chess.Game =
-      chess.Game(position = variant.initialPosition, clock = tc.realTime.map(_.toClock))
-
-    val baseState = initialFen
-      .ifTrue(variant.fromPosition || variant.chess960)
-      .flatMap:
-        Fen.readWithMoveNumber(variant, _)
-
-    baseState.fold(makeChess(variant) -> none[Position.AndFullMoveNumber]): sp =>
-      val game = chess.Game(
-        position = sp.position,
-        ply = sp.ply,
-        startedAtPly = sp.ply,
-        clock = tc.realTime.map(_.toClock)
-      )
-      if variant.fromPosition && Fen.write(game).isInitial then makeChess(chess.variant.Standard) -> none
-      else game -> baseState
-
-  def addGameHistory(position: Option[Position.AndFullMoveNumber])(game: Game): Game =
-    position.fold(game): sp =>
-      game.copy(
-        chess = game.chess.copy(
-          position = game.position.copy(history = sp.position.history),
-          ply = sp.ply
-        )
-      )
+  def gameSetup(c: Challenge): Either[String, Xiangqi.Game] =
+    XiangqiRules.initialGame:
+      c.initialFen
+        .filter(_ => c.variant.fromPosition)
+        .map(_.value)

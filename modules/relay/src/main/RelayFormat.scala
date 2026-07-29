@@ -63,14 +63,18 @@ final private class RelayFormatApi(
       .so: id =>
         roundRepo.exists(id).map(_.option(RelayFormat.Round(id)))
 
-  private def looksLikePgn(body: String): Boolean =
+  private def looksLikePgn(body: String): Fu[Boolean] =
     lila.study.MultiPgn
       .split(PgnStr(body), Max(1))
       .value
       .headOption
-      .so(lila.game.importer.parseImport(_, none).isRight)
+      .fold(fuccess(false)): pgn =>
+        fuccess:
+          lila.xiangqi.XiangqiRules.Notation
+            .importTree(lila.xiangqi.Xiangqi.NotationImport(notation = pgn.value))
+            .isRight
 
-  private def looksLikePgn(url: URL)(using CanProxy): Fu[Boolean] = http.get(url).map(looksLikePgn)
+  private def looksLikePgn(url: URL)(using CanProxy): Fu[Boolean] = http.get(url).flatMap(looksLikePgn)
 
   private def looksLikeJson(body: String): Boolean =
     try Json.parse(body) != JsNull

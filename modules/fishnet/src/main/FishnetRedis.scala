@@ -1,13 +1,14 @@
 package lila.fishnet
 
 import org.apache.pekko.actor.CoordinatedShutdown
-import chess.format.Uci
 import io.lettuce.core.*
 import io.lettuce.core.pubsub.*
 
 import lila.common.{ Bus, Lilakka }
-import lila.core.round.{ Tell, RoundBus, FishnetStart }
+import lila.core.round.{ FishnetStart, RoundBus, Tell }
+import lila.xiangqi.Xiangqi
 
+/** Existing Lila AI-work transport, carrying Xiangqi positions and moves. */
 final class FishnetRedis(
     client: RedisClient,
     chanIn: String,
@@ -15,26 +16,25 @@ final class FishnetRedis(
     shutdown: CoordinatedShutdown
 )(using Executor):
 
-  val connIn = client.connectPubSub()
-  val connOut = client.connectPubSub()
-
+  private val connIn = client.connectPubSub()
+  private val connOut = client.connectPubSub()
   private var stopping = false
 
   def request(work: Work.Move): Unit =
     if !stopping then connOut.async.publish(chanOut, writeWork(work))
 
   connIn.async.subscribe(chanIn)
-
   connIn.addListener:
     new RedisPubSubAdapter[String, String]:
       override def message(chan: String, msg: String): Unit =
         msg.split(' ') match
           case Array("start") => Bus.pub(FishnetStart)
           case Array(gameId, sign, uci) =>
-            Uci(uci).foreach { move =>
-              Bus.pub(Tell(GameId(gameId), RoundBus.FishnetPlay(move, sign)))
-            }
-          case _ =>
+            Xiangqi.Uci
+              .from(uci)
+              .foreach: move =>
+                Bus.pub(Tell(GameId(gameId), RoundBus.FishnetPlay(move, sign)))
+          case _ => ()
 
   Lilakka.shutdown(shutdown, _.PhaseServiceUnbind, "Stopping the fishnet redis pool"): () =>
     Future:
@@ -45,15 +45,11 @@ final class FishnetRedis(
     List(
       work.game.id,
       work.level,
-      work.clock.so(writeClock),
-      work.game.variant.some.filter(_.exotic).so(_.key.value),
-      work.game.initialFen.so(_.value),
+      work.clock.fold("")(writeClock),
+      "xiangqi",
+      work.game.initialFen.fold(Xiangqi.startFen)(_.value),
       work.game.moves
     ).mkString(";")
 
   private def writeClock(clock: Work.Clock): String =
-    List(
-      clock.wtime,
-      clock.btime,
-      clock.inc
-    ).mkString(" ")
+    List(clock.wtime, clock.btime, clock.inc).mkString(" ")

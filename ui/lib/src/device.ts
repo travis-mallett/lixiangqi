@@ -8,11 +8,8 @@ export const hookMobileMousedown = (f: (e: MouseEvent) => void): Hooks =>
 export const prefersLightThemeQuery = (): MediaQueryList =>
   window.matchMedia('(prefers-color-scheme: light)');
 
-export const currentTheme = (): 'light' | 'dark' => {
-  const dataTheme = document.body.dataset.theme!;
-  if (dataTheme === 'system') return prefersLightThemeQuery().matches ? 'light' : 'dark';
-  return dataTheme === 'light' ? 'light' : 'dark';
-};
+export const currentColorScheme = (): 'light' | 'dark' =>
+  document.body.dataset.colorScheme === 'light' ? 'light' : 'dark';
 
 let colCache: number | undefined;
 window.addEventListener('resize', () => (colCache = undefined));

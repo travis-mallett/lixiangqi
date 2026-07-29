@@ -42,7 +42,7 @@ final class Env(
   val donationGoalSetting = settingStore[Int](
     "donationGoal",
     default = 0,
-    text = "Monthly donation goal in USD from https://lichess.org/costs".some
+    text = "Monthly donation goal in USD from https://lixiangqi.org/costs".some
   )
 
   private lazy val mongo = PlanMongo(

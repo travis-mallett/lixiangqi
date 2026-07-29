@@ -1,6 +1,6 @@
 package views.base
 
-import scalalib.StringUtils.escapeHtmlRaw
+import play.api.libs.json.JsString
 
 import lila.app.UiEnv.{ *, given }
 import lila.common.String.html.safeJsonValue
@@ -23,17 +23,19 @@ object page:
   private def metaThemeColor(using ctx: Context): Frag =
     raw(s"""<meta name="theme-color" content="${ctx.pref.themeColor}">""")
 
-  private def boardPreload(using ctx: Context) = frag(
-    imagePreload(assetUrl(s"images/board/${ctx.pref.currentTheme.file}")),
-    ctx.pref.is3d.option:
-      imagePreload(assetUrl(s"images/staunton/board/${ctx.pref.currentTheme3d.file}"))
-  )
+  private def boardPreload(using ctx: Context) =
+    imagePreload(assetUrl(s"images/board/${lila.pref.BoardThemes(ctx.pref.boardTheme).file}"))
 
   def boardStyle(zoomable: Boolean)(using ctx: Context) =
-    s"---board-opacity:${ctx.pref.board.opacity};" +
-      s"---board-brightness:${ctx.pref.board.brightness};" +
-      s"---board-contrast:${ctx.pref.board.contrast};" +
-      s"---board-hue:${ctx.pref.board.hue};" +
+    val board = lila.pref.BoardThemes(ctx.pref.boardTheme)
+    s"---board-image:url(${assetUrl(s"images/board/${board.file}").value});" +
+      s"---cg-ccw:${board.coordinateLight};" +
+      s"---cg-ccb:${board.coordinateDark};" +
+      "---cg-cs:none;" +
+      s"---board-opacity:${ctx.pref.boardOpacity};" +
+      s"---board-brightness:${ctx.pref.boardBrightness};" +
+      s"---board-contrast:${ctx.pref.boardContrast};" +
+      s"---board-hue:${ctx.pref.boardHue};" +
       zoomable.so(s"---zoom:$pageZoom;")
 
   def apply(p: Page)(using ctx: PageContext): RenderedPage =
@@ -48,8 +50,11 @@ object page:
     val pageFrag = frag(
       doctype,
       htmlTag(
-        (ctx.impersonatedBy.isEmpty && !ctx.blind)
-          .option(cls := ctx.pref.themeColorClass),
+        cls := List(
+          ctx.pref.uiTheme ->
+            (ctx.impersonatedBy.isEmpty && !ctx.blind && ctx.pref.uiTheme != lila.pref.UiThemes.system.key),
+          "has-background" -> pref.backgroundImage.isDefined
+        ),
         topComment,
         head(
           charset,
@@ -63,7 +68,6 @@ object page:
           ,
           cssTag("lib.theme.all"),
           cssTag("site"),
-          pref.is3d.option(cssTag("lib.board-3d")),
           ctx.data.inquiry.isDefined.option(cssTag("mod.inquiry")),
           ctx.impersonatedBy.isDefined.option(cssTag("mod.impersonate")),
           ctx.blind.option(cssTag("bits.blind")),
@@ -78,11 +82,14 @@ object page:
           noTranslate,
           p.openGraph.map(lila.web.ui.openGraph),
           p.atomLinkTag | dailyNewsAtom,
-          (pref.bg == lila.pref.Pref.Bg.TRANSPARENT).option(pref.bgImgOrDefault).map { loc =>
+          pref.backgroundImage.map { loc =>
             val url =
-              if loc.startsWith("/assets/") then assetUrl(loc.drop(8))
-              else escapeHtmlRaw(loc).replace("&amp;", "&")
-            raw(s"""<style id="bg-data">html.transp::before{background-image:url("$url");}</style>""")
+              if loc.startsWith("/assets/") then assetUrl(loc.drop(8)).value
+              else loc
+            val safeUrl = safeJsonValue(JsString(url)).value
+            raw(
+              s"""<style id="bg-data">html.has-background::before{background-image:url($safeUrl);}</style>"""
+            )
           },
           fontsPreload,
           boardPreload,
@@ -90,15 +97,16 @@ object page:
           p.withHrefLangs.map(hrefLangs),
           sitePreload(p.i18nModules, ctx.data.inquiry.isDefined.option(Esm("mod.inquiry")) :: allModules),
           lichessFontFaceCss,
-          pieceSetImages.load(ctx.pref.currentPieceSet.name),
-          (ctx.pref.bg === lila.pref.Pref.Bg.SYSTEM || ctx.impersonatedBy.isDefined)
+          pieceSetImages.load(ctx.pref.pieceSet, lila.pref.PieceSets.assets(ctx.pref.pieceSet)),
+          (ctx.pref.uiTheme == lila.pref.UiThemes.system.key || ctx.impersonatedBy.isDefined)
             .so(systemThemeScript(ctx.nonce))
         ).pipe(p.transformHead),
         st.body(
           cls := {
-            val baseClass = s"${pref.currentBg} coords-${pref.coordsClass}"
+            val baseClass = s"coords-${pref.coordsClass}"
             List(
               baseClass -> true,
+              "has-background" -> pref.backgroundImage.isDefined,
               "simple-board" -> pref.simpleBoard,
               "piece-letter" -> pref.pieceNotationIsLetter,
               "blind-mode" -> ctx.blind,
@@ -116,17 +124,17 @@ object page:
             .option(env.push.vapidPublicKey),
           dataUser := ctx.userId,
           dataUsername := ctx.username,
-          dataSoundSet := pref.currentSoundSet.toString,
+          dataSoundSet := pref.soundSet,
+          dataMusicSet := pref.musicSet,
           attr("data-socket-domains") := (if ~pref.usingAltSocket then netConfig.socketAlts
                                           else netConfig.socketDomains).mkString(","),
           dataAssetUrl,
           dataAssetVersion := assetVersion,
           dataNonce := ctx.nonce,
-          dataTheme := pref.currentBg,
-          dataBoard := pref.currentTheme.name,
-          dataPieceSet := pref.currentPieceSet.name,
-          dataBoard3d := pref.is3d.option(pref.currentTheme3d.name),
-          dataPieceSet3d := pref.is3d.option(pref.currentPieceSet3d.name),
+          dataUiTheme := pref.uiTheme,
+          dataColorScheme := pref.colorScheme,
+          dataBoard := pref.boardTheme,
+          dataPieceSet := pref.pieceSet,
           dataAnnounce := lila.web.AnnounceApi.get.map(a => safeJsonValue(a.json)),
           attr("data-i18n-catalog") := assetHelper.manifest
             .js(s"i18n/${ctx.lang.code}")
@@ -137,7 +145,6 @@ object page:
           assetsMissingTroubleshooting,
           for in <- ctx.data.inquiry; me <- ctx.me yield views.mod.inquiryUi(in)(using ctx, me),
           ctx.me.ifTrue(ctx.impersonatedBy.isDefined).map { views.mod.ui.impersonate(_) },
-          netConfig.stageBanner.option(views.bits.stage),
           anonOnboarding.map: u =>
             frag(cssTag("bits.email-confirm"), views.auth.checkYourEmailBanner(u.username, u.email)),
           zenable.option(zenZone),
@@ -148,18 +155,14 @@ object page:
               challenges = ctx.nbChallenges,
               notifications = ctx.nbNotifications.value,
               error = ctx.data.error,
-              topnav = topnav(
-                seesClassMenu = ctx.seesClassMenu,
-                hasDgt = ctx.pref.hasDgt
-              )
+              topnav = topnav(seesClassMenu = ctx.seesClassMenu)
             )
           ,
           div(
             id := "main-wrap",
             cls := List(
               "full-screen-force" -> p.flags(PageFlags.fullScreen),
-              "is2d" -> pref.is2d,
-              "is3d" -> pref.is3d
+              "is2d" -> true
             )
           )(p.transform(p.body)),
           bottomHtml,

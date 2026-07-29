@@ -29,7 +29,7 @@
   .study {
     @extend %box-radius, %flex-center-nowrap;
     @include transition;
-    @include backdrop-blur-if-transparent;
+    @include backdrop-blur-if-background;
 
     position: relative;
     min-height: 90px;

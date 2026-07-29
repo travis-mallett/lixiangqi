@@ -1,8 +1,6 @@
 package lila.core
 package game
 
-import _root_.chess.Color.White
-import _root_.chess.format.UciDump
 import _root_.chess.format.pgn.SanStr
 import _root_.chess.variant.{ Standard, Variant }
 import _root_.chess.{
@@ -11,7 +9,6 @@ import _root_.chess.{
   Clock,
   Color,
   CorrespondenceClock,
-  Game as ChessGame,
   Rated,
   Ply,
   Speed,
@@ -26,11 +23,14 @@ import lila.core.perf.PerfKey
 import lila.core.user.User
 import lila.core.userId.{ UserId, UserIdOf }
 import lila.core.game.ClockHistory.bothClockStates
+import lila.xiangqi.Xiangqi
 
 case class Game(
     id: GameId,
     players: ByColor[Player],
-    chess: ChessGame,
+    xiangqi: Xiangqi.Game,
+    clock: Option[Clock],
+    startedAtPly: Ply = Ply.initial,
     loadClockHistory: Clock => Option[ClockHistory] = _ => ClockHistory.empty.some,
     status: Status,
     daysPerTurn: Option[Days],
@@ -40,14 +40,18 @@ case class Game(
     createdAt: Instant = nowInstant,
     movedAt: Instant = nowInstant,
     metadata: GameMetadata,
-    abortedBy: Option[Color] = None
+    abortedBy: Option[Color] = None,
+    variant: Variant = Standard
 ):
 
-  export chess.{ position, ply, clock, sans, startedAtPly, player as turnColor, history, variant }
   export metadata.{ tournamentId, simulId, swissId, drawOffers, source, pgnImport, hasRule }
   export players.{ white as whitePlayer, black as blackPlayer, apply as player }
 
-  lazy val clockHistory = chess.clock.flatMap(loadClockHistory)
+  def position = xiangqi.state
+  def ply = Ply(xiangqi.state.ply)
+  def sans = xiangqi.wxf.map(SanStr.apply)
+  def turnColor = if xiangqi.state.turn == Xiangqi.Side.Red then Color.White else Color.Black
+  lazy val clockHistory = clock.flatMap(loadClockHistory)
 
   def player[U: UserIdOf](user: U): Option[Player] = players.find(_.isUser(user))
   def opponentOf[U: UserIdOf](user: U): Option[Player] = player(user).map(opponent)
@@ -66,7 +70,7 @@ case class Game(
   def opponent(c: Color): Player = player(!c)
 
   lazy val naturalOrientation =
-    if variant.racingKings then White else Color.fromWhite(players.reduce(_.before(_)))
+    Color.fromWhite(players.reduce(_.before(_)))
 
   def turnOf(p: Player): Boolean = p == player
   def turnOf(c: Color): Boolean = c == turnColor
@@ -108,7 +112,7 @@ case class Game(
 
   // not UCI. Only for lastMove display purposes.
   def lastMoveKeys: Option[String] =
-    history.lastMove.map(UciDump.lastMove(_, variant))
+    xiangqi.moves.lastOption.map(_.value)
 
   def updatePlayer(color: Color, f: Player => Player) =
     copy(players = players.update(color, f))
@@ -172,7 +176,8 @@ case class Game(
 
   def replayable = isPgnImport || finished || (aborted && bothPlayersHaveMoved)
 
-  def fromPosition = variant.fromPosition || source.has(Source.Position)
+  def fromPosition =
+    variant.fromPosition || xiangqi.initialFen != Xiangqi.startFen || source.has(Source.Position)
 
   def sourceIs(f: Source.type => Source): Boolean = source contains f(Source)
   def lobbyOrPool = source.exists(s => s == Source.Lobby || s == Source.Pool)

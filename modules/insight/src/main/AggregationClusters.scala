@@ -47,6 +47,4 @@ object AggregationClusters:
 
   private def postSort[X](q: Question[X])(clusters: List[Cluster[X]]): List[Cluster[X]] =
     q.dimension match
-      case InsightDimension.OpeningFamily => clusters
-      case InsightDimension.OpeningVariation => clusters
       case _ => clusters.sortLike(InsightDimension.valuesOf(q.dimension), _.x)

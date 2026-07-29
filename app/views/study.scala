@@ -102,7 +102,7 @@ def show(
       OpenGraph(
         title = s.name.value,
         url = routeUrl(routes.Study.show(s.id)),
-        description = s"A chess study by ${titleNameOrId(s.ownerId)}",
+        description = s"A Xiangqi study by ${titleNameOrId(s.ownerId)}",
         image = fenThumbnailUrl(
           chapter.root.fen.opening,
           chapter.setup.orientation.some,

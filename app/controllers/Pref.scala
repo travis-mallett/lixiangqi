@@ -79,8 +79,14 @@ final class Pref(env: Env) extends LilaController(env):
           bindForm(change.form)(
             form => fuccess(BadRequest(form.errors.flatMap(_.messages).mkString("\n"))),
             v =>
+              val cookie =
+                if lila.pref.Appearance.sessionKeys.contains(name) then
+                  val appearance = change.update(v)(ctx.pref).appearance
+                  env.security.lilaCookie.withSession(remember = true): session =>
+                    lila.pref.Appearance.sessionKeys.foldLeft(session)(_ - _) ++ appearance.sessionValues
+                else env.security.lilaCookie.session(name, v.toString)
               for _ <- ctx.me.so(api.setPref(_, change.update(v)))
-              yield Ok(()).withCookies(env.security.lilaCookie.session(name, v.toString))
+              yield Ok(()).withCookies(cookie)
           )
 
   def apiSet(name: String) = ScopedBody(_.Web.Mobile) { ctx ?=> me ?=>

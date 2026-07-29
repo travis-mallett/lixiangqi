@@ -12,6 +12,7 @@ import lila.core.round.TellMany
 import lila.core.round.StartClock
 import lila.db.dsl.{ *, given }
 import lila.rating.PerfType
+import lila.xiangqi.{ Xiangqi, XiangqiRules }
 
 final class ChallengeBulkApi(
     colls: ChallengeColls,
@@ -86,43 +87,51 @@ final class ChallengeBulkApi(
   private def makePairings(bulk: ScheduledBulk): Funit =
     def timeControl =
       bulk.clock.fold(Challenge.TimeControl.Clock.apply, Challenge.TimeControl.Correspondence.apply)
-    val (chessGame, state) = ChallengeJoiner.gameSetup(bulk.variant, timeControl, bulk.fen)
-    lila.rating.PerfType(bulk.variant, Speed(bulk.clock.left.toOption))
-    Source(bulk.games)
-      .mapAsyncUnordered(8): game =>
-        userApi
-          .gamePlayersLoggedIn(game.userIds, bulk.perfType, useCache = false)
-          .map2: users =>
-            (game.id, users)
-      .mapConcat(_.toList)
-      .map: (id, users) =>
-        val game = lila.core.game
-          .newGame(
-            chess = chessGame,
-            players = users.map(some).mapWithColor(lila.game.Player.make),
-            rated = bulk.rated,
-            source = lila.core.game.Source.Api,
-            daysPerTurn = bulk.clock.toOption,
-            pgnImport = None,
-            rules = bulk.rules
-          )
-          .withId(id)
-          .pipe(ChallengeJoiner.addGameHistory(state))
-          .start
-        (game, users)
-      .mapAsyncUnordered(8): (game, users) =>
-        for
-          _ <- gameRepo
-            .insertDenormalized(game)
-            .recover(e => logger.error(s"Bulk.insertGame ${game.id} ${e.getMessage}"))
-          _ = onStart.exec(game.id)
-        yield game -> users
-      .mapAsyncUnordered(8): (game, users) =>
-        msgApi
-          .onApiPair(game.id, users.map(_.light))(bulk.by, bulk.message)
-          .recover(e => logger.error(s"Bulk.sendMsg ${game.id} ${e.getMessage}"))
-      .runWith(LilaStream.sinkCount)
-      .addEffect(lila.mon.api.challenge.bulk.createNb(bulk.by).increment(_))
-      .logFailure(logger, e => s"Bulk.makePairings ${bulk.id} ${e.getMessage}") >> {
-      coll.updateField($id(bulk.id), "pairedAt", nowInstant)
-    }.void
+    XiangqiRules
+      .initialGame:
+        bulk.fen
+          .filter(_ => bulk.variant.fromPosition)
+          .map(_.value)
+      .fold(fufail, fuccess)
+      .flatMap: xiangqiGame =>
+        lila.rating.PerfType(bulk.variant, Speed(bulk.clock.left.toOption))
+        Source(bulk.games)
+          .mapAsyncUnordered(8): game =>
+            userApi
+              .gamePlayersLoggedIn(game.userIds, bulk.perfType, useCache = false)
+              .map2: users =>
+                (game.id, users)
+          .mapConcat(_.toList)
+          .map: (id, users) =>
+            val game = lila.core.game
+              .newGame(
+                xiangqi = xiangqiGame,
+                players = users.map(some).mapWithColor(lila.game.Player.make),
+                rated = bulk.rated.map(_ && xiangqiGame.initialFen == Xiangqi.startFen),
+                source = lila.core.game.Source.Api,
+                daysPerTurn = bulk.clock.toOption,
+                pgnImport = None,
+                rules = bulk.rules,
+                clock = timeControl.realTime.map(_.toClock),
+                startedAtPly = chess.Ply(xiangqiGame.state.ply),
+                variant = bulk.variant
+              )
+              .withId(id)
+              .start
+            (game, users)
+          .mapAsyncUnordered(8): (game, users) =>
+            for
+              _ <- gameRepo
+                .insertDenormalized(game)
+                .recover(e => logger.error(s"Bulk.insertGame ${game.id} ${e.getMessage}"))
+              _ = onStart.exec(game.id)
+            yield game -> users
+          .mapAsyncUnordered(8): (game, users) =>
+            msgApi
+              .onApiPair(game.id, users.map(_.light))(bulk.by, bulk.message)
+              .recover(e => logger.error(s"Bulk.sendMsg ${game.id} ${e.getMessage}"))
+          .runWith(LilaStream.sinkCount)
+          .addEffect(lila.mon.api.challenge.bulk.createNb(bulk.by).increment(_))
+          .logFailure(logger, e => s"Bulk.makePairings ${bulk.id} ${e.getMessage}") >> {
+          coll.updateField($id(bulk.id), "pairedAt", nowInstant)
+        }.void

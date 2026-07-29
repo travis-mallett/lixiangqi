@@ -1,24 +1,13 @@
-import { uciToMove } from '@lichess-org/chessground/util';
+import { initMiniBoard } from 'lib/view';
 
-import { embedChessground } from './asset';
-
-// https://lichess.org/training/frame
-window.onload = async () => {
+// https://lixiangqi.org/training/frame
+window.onload = () => {
   const el = document.querySelector<HTMLElement>('#daily-puzzle');
   const board = el?.querySelector<HTMLAnchorElement>('.mini-board');
 
   if (!el || !board) return;
 
-  const [fen, orientation, lm] = board.getAttribute('data-state')?.split(',') ?? [];
-
-  (await embedChessground()).Chessground(board.firstChild, {
-    coordinates: false,
-    drawable: { enabled: false, visible: false },
-    viewOnly: true,
-    fen,
-    lastMove: uciToMove(lm),
-    orientation: orientation as 'white' | 'black',
-  });
+  initMiniBoard(board);
 
   const resize = () => {
     const windowHeight = window.innerHeight;

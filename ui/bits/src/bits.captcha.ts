@@ -1,4 +1,8 @@
+import type { Api as XiangqiGroundApi } from 'chessgroundx/api';
+import type { Key as XiangqiKey } from 'chessgroundx/types';
+
 import * as domData from 'lib/data';
+import { xiangqiCgKeyToUci, xiangqiKeyToCg } from 'lib/game';
 import * as xhr from 'lib/xhr';
 
 function init() {
@@ -10,7 +14,7 @@ function init() {
     const $captcha = $(this),
       $board = $captcha.find('.mini-board'),
       $input = $captcha.find('input').val(''),
-      cg = domData.get($board[0]!, 'chessground') as CgApi;
+      cg = domData.get($board[0]!, 'chessground') as XiangqiGroundApi;
     if (!cg) {
       failed = true;
       return;
@@ -22,9 +26,9 @@ function init() {
     });
 
     const fen = cg.getFen(),
-      destsObj = $board.data('moves'),
-      dests = new Map();
-    for (const k in destsObj) dests.set(k, destsObj[k].match(/.{2}/g));
+      destsObj = $board.data('moves') as Record<string, string[]>,
+      dests = new Map<XiangqiKey, XiangqiKey[]>();
+    for (const orig in destsObj) dests.set(xiangqiKeyToCg(orig), destsObj[orig].map(xiangqiKeyToCg));
     cg.set({
       turnColor: cg.state.orientation,
       movable: {
@@ -32,24 +36,9 @@ function init() {
         dests,
         color: cg.state.orientation,
         events: {
-          after(orig: Key, dest: Key) {
-            const piece = cg.state.pieces.get(dest);
-            if (piece?.role === 'pawn' && (dest[1] === '8' || dest[1] === '1')) {
-              cg.setPieces(
-                new Map([
-                  [
-                    dest,
-                    {
-                      role: 'queen',
-                      color: piece.color,
-                      promoted: true,
-                    },
-                  ],
-                ]),
-              );
-            }
+          after(orig: XiangqiKey, dest: XiangqiKey) {
             $captcha.removeClass('success failure');
-            submit(orig + ' ' + dest);
+            submit(`${xiangqiCgKeyToUci(orig)} ${xiangqiCgKeyToUci(dest)}`);
           },
         },
       },
@@ -59,7 +48,7 @@ function init() {
       $input.val(solution);
       xhr.text(xhr.url($captcha.data('check-url'), { solution })).then(data => {
         $captcha.toggleClass('success', data === '1').toggleClass('failure', data !== '1');
-        if (data === '1') domData.get($board[0]!, 'chessground').stop();
+        if (data === '1') cg.stop();
         else
           setTimeout(
             () =>

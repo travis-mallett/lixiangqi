@@ -1,8 +1,7 @@
 package lila.round
 
 import org.apache.pekko.stream.scaladsl.*
-import chess.format.{ Uci, UciDump, Fen }
-import chess.{ ByColor, Centis, Ply, Position }
+import chess.{ ByColor, Centis }
 import play.api.libs.json.*
 
 import lila.common.Bus
@@ -10,7 +9,7 @@ import lila.common.Json.given
 import lila.core.game.FinishGame
 import lila.game.GameRepo
 import lila.game.actorApi.MoveGameEvent
-import chess.variant.Variant
+import lila.xiangqi.Xiangqi
 
 final class ApiMoveStream(
     gameRepo: GameRepo,
@@ -49,24 +48,19 @@ final class ApiMoveStream(
                   clkHistory <- game.clockHistory
                 yield clkHistory.map(Vector(clk.config.initTime) ++ _)
               val clockOffset = game.startColor.fold(0, 1)
-              Position(game.variant, initialFen)
-                .playPositions(game.sans)
-                .foreach {
-                  _.zipWithIndex.foreach: (s, index) =>
-                    val clk = for
-                      c <- clocks
-                      white <- c.white.lift((index + 1 - clockOffset) >> 1)
-                      black <- c.black.lift((index + clockOffset) >> 1)
-                    yield ByColor(white, black)
-                    queue.offer(
-                      toJson(
-                        game.variant,
-                        Fen.write(s, (game.startedAtPly + index).fullMoveNumber),
-                        s.history.lastMove,
-                        clk
-                      )
-                    )
-                }
+              game.xiangqi.states.zipWithIndex.foreach: (state, index) =>
+                val clk = for
+                  c <- clocks
+                  white <- c.white.lift((index + 1 - clockOffset) >> 1)
+                  black <- c.black.lift((index + clockOffset) >> 1)
+                yield ByColor(white, black)
+                queue.offer(
+                  toJson(
+                    state.fen,
+                    game.xiangqi.moves.lift(index - 1),
+                    clk
+                  )
+                )
               if game.finished then
                 queue.offer(makeGameJson(game, full = true))
                 queue.complete()
@@ -92,9 +86,8 @@ final class ApiMoveStream(
         )
   end apply
 
-  private def toJson(game: Game, fen: Fen.Full, lastMove: Option[Uci]): JsObject =
+  private def toJson(game: Game, fen: String, lastMove: Option[Xiangqi.Uci]): JsObject =
     toJson(
-      game.variant,
       fen,
       lastMove,
       game.clock.map: clk =>
@@ -102,14 +95,13 @@ final class ApiMoveStream(
     )
 
   private def toJson(
-      variant: Variant,
-      fen: Fen.Full,
-      lastMove: Option[Uci],
+      fen: String,
+      lastMove: Option[Xiangqi.Uci],
       clock: Option[ByColor[Centis]]
   ): JsObject =
     clock.foldLeft(
       Json
         .obj("fen" -> fen)
-        .add("lm" -> lastMove.map(UciDump.lastMove(_, variant)))
+        .add("lm" -> lastMove.map(_.value))
     ): (js, clk) =>
       js ++ Json.obj("wc" -> clk.white.roundSeconds, "bc" -> clk.black.roundSeconds)

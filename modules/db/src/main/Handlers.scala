@@ -154,16 +154,6 @@ trait Handlers:
 
   given BSONHandler[Color] = BSONBooleanHandler.as[Color](Color.fromWhite(_), _.white)
 
-  import lila.common.{ LilaOpeningFamily, SimpleOpening }
-  given BSONHandler[SimpleOpening] = tryHandler[SimpleOpening](
-    { case BSONString(key) => SimpleOpening.find(key).toTry(s"No such opening: $key") },
-    o => BSONString(o.key.value)
-  )
-  given BSONHandler[LilaOpeningFamily] = tryHandler[LilaOpeningFamily](
-    { case BSONString(key) => LilaOpeningFamily.find(key).toTry(s"No such opening family: $key") },
-    o => BSONString(o.key.value)
-  )
-
   given perfKeyHandler: BSONHandler[PerfKey] =
     BSONStringHandler.as[PerfKey](key => PerfKey(key).err(s"Unknown perf key $key"), _.value)
 

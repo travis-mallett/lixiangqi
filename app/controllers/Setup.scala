@@ -1,6 +1,6 @@
 package controllers
 
-import chess.format.Fen
+import chess.format.BoardFen
 import play.api.libs.json.Json
 import play.api.mvc.{ EssentialAction, Result }
 
@@ -9,7 +9,7 @@ import lila.common.HTTPRequest
 import lila.core.socket.Sri
 import lila.game.AnonCookie
 import lila.setup.Processor.HookResult
-import lila.setup.ValidFen
+import lila.xiangqi.Xiangqi
 
 final class Setup(
     env: Env,
@@ -209,9 +209,18 @@ final class Setup(
     Ok.snip(views.setup.filter(forms.filter))
 
   def validateFen = Open:
-    (get("fen").map(Fen.Full.clean): Option[Fen.Full]).flatMap(ValidFen(getBool("strict"))) match
-      case None => BadRequest
-      case Some(v) => Ok.snip(views.analyse.ui.miniSpan(v.fen.board, v.color))
+    get("fen").map(_.trim).filter(Xiangqi.Fen.isValid) match
+      case None => fuccess(BadRequest)
+      case Some(fen) =>
+        lila.xiangqi.XiangqiRules
+          .position(Xiangqi.Position(initialFen = fen))
+          .fold(
+            _ => BadRequest,
+            state =>
+              val color = if state.turn == Xiangqi.Side.Red then Color.white else Color.black
+              Ok.snip(views.analyse.ui.miniSpan(BoardFen(state.fen.takeWhile(_ != ' ')), color))
+          )
+          .toFuccess
 
   def apiAi = ScopedBody(_.Challenge.Write, _.Bot.Play, _.Board.Play, _.Web.Mobile, _.Web.Takex3) {
     ctx ?=> me ?=>

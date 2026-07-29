@@ -1,0 +1,4 @@
+Pikafish source: https://github.com/official-pikafish/Pikafish.git
+Tag: Pikafish-2026-01-02
+Commit: ce0679e00ee196f7ba17f6ec18941b9a5036f8cf
+Web build sources and patch: scripts/pikafish-web/

@@ -82,7 +82,9 @@ object StudyForm:
         "orientation" -> optional(of[ChapterMaker.Orientation]),
         "fen" -> optional(lila.common.Form.fen.playable(strict = false)),
         "pgn" -> optional(nonEmptyText.into[PgnStr]),
-        "variant" -> optional(of[Variant]),
+        "variant" -> optional(
+          of[Variant].verifying(v => v == chess.variant.Standard || v == chess.variant.FromPosition)
+        ),
         "as" -> optional(nonEmptyText),
         "mode" -> optional(of[ChapterMaker.Mode])
       )(Data.apply)(unapply)
@@ -124,7 +126,9 @@ object StudyForm:
       mapping(
         "name" -> optional(cleanNonEmptyText(minLength = 1, maxLength = 100)),
         "orientation" -> optional(of[ChapterMaker.Orientation]),
-        "variant" -> optional(of[Variant]),
+        "variant" -> optional(
+          of[Variant].verifying(v => v == chess.variant.Standard || v == chess.variant.FromPosition)
+        ),
         "mode" -> defaulting(of[ChapterMaker.Mode], ChapterMaker.Mode.Normal),
         "initial" -> boolean,
         "sticky" -> boolean,

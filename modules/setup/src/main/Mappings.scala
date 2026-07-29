@@ -17,7 +17,7 @@ private object Mappings:
   val aiVariants = typeIn(Config.aiVariants.toSet)
   val variantWithVariants = typeIn(Config.variantsWithVariants.toSet)
   val variantWithFenAndVariants = typeIn(Config.variantsWithFenAndVariants.toSet)
-  val boardApiVariants = V.Variant.list.all.view.filterNot(_.fromPosition).map(_.key).toSet
+  val boardApiVariants = Set(V.Standard.key)
   val boardApiVariantKeys = typeIn(boardApiVariants)
   val time = of[Double].verifying(HookConfig.validateTime(_))
   val increment = of[Clock.IncrementSeconds].verifying(HookConfig.validateIncrement(_))

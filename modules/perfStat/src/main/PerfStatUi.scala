@@ -129,8 +129,7 @@ final class PerfStatUi(helpers: Helpers)(communityMenu: Context ?=> Frag):
           strong(
             title := tps.ratingDeviationTooltip.txt(
               chess.rating.glicko.provisionalDeviation,
-              lila.rating.Glicko.standardRankableDeviation,
-              lila.rating.Glicko.variantRankableDeviation
+              lila.rating.Glicko.standardRankableDeviation
             )
           )(decimal(perf.glicko.deviation).toString)
         )

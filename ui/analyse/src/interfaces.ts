@@ -2,7 +2,7 @@ import type { VNode } from 'snabbdom';
 
 import type { ExternalEngineInfo } from 'lib/ceval';
 import type { ChatCtrl, ChatPlugin, ChatOpts } from 'lib/chat/interfaces';
-import type { Player, Status, Source, Clock } from 'lib/game';
+import type { Player, Status, Source, Clock, XiangqiNotationStyle } from 'lib/game';
 import type { Coords, MoveEvent } from 'lib/prefs';
 import type { EnhanceOpts } from 'lib/richText';
 import type {
@@ -32,12 +32,6 @@ export interface AnalyseApi {
   setChapter(id: string): void;
 }
 
-export interface OpeningPuzzle {
-  key: string;
-  name: string;
-  count: number;
-}
-
 // similar, but not identical, to game/GameData
 export interface AnalyseData {
   game: Game;
@@ -58,13 +52,11 @@ export interface AnalyseData {
   userTv?: {
     id: string;
   };
-  puzzle?: OpeningPuzzle;
   externalEngines?: ExternalEngineInfo[];
 }
 
 export interface AnalysePref {
   coords: Coords;
-  is3d?: boolean;
   showDests?: boolean;
   rookCastle?: boolean;
   destination?: boolean;
@@ -73,6 +65,7 @@ export interface AnalysePref {
   animationDuration?: number;
   keyboardMove: boolean;
   moveEvent: MoveEvent;
+  notationStyle?: XiangqiNotationStyle;
 }
 
 export interface ServerEvalData {
@@ -114,16 +107,9 @@ export interface Game {
   initialFen?: string;
   importedBy?: string;
   division?: Division;
-  opening?: Opening;
   perf: string;
   rated?: boolean;
   threefold?: boolean;
-}
-
-export interface Opening {
-  name: string;
-  eco: string;
-  ply: Ply;
 }
 
 export interface Division {

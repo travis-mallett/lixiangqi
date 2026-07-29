@@ -1,5 +1,4 @@
 package lila.puzzle
-import chess.format.{ BoardFen, Uci }
 import scalalib.ThreadLocalRandom.odds
 
 import lila.db.dsl.{ *, given }
@@ -34,7 +33,7 @@ final private[puzzle] class DailyPuzzle(
   private def makeDaily(puzzle: Puzzle): Fu[Option[DailyPuzzle.WithHtml]] = {
     lila.common.Bus
       .ask[Html, DailyPuzzle.Render]:
-        DailyPuzzle.Render(puzzle, puzzle.fenAfterInitialMove.board, puzzle.line.head, _)
+        DailyPuzzle.Render(puzzle, puzzle.fenAfterInitialMove, puzzle.line.head.value, _)
       .map: html =>
         DailyPuzzle.WithHtml(puzzle, html).some
   }.recover { case e: Exception =>
@@ -107,4 +106,4 @@ object DailyPuzzle:
 
   case class WithHtml(puzzle: Puzzle, html: Html)
 
-  case class Render(puzzle: Puzzle, fen: BoardFen, lastMove: Uci, promise: Promise[Html])
+  case class Render(puzzle: Puzzle, fen: String, lastMove: String, promise: Promise[Html])

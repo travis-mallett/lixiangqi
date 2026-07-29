@@ -4,30 +4,19 @@
   "type": "module",
   "dependencies": {
     "@badrap/result": "^0.3.1",
-    "@lichess-org/stockfish-web": "0.4.2",
     "@lichess-org/zerofish": "^0.0.40",
     "@types/debounce-promise": "^3.1.9",
+    "chessgroundx": "10.7.5",
     "debounce-promise": "^3.1.2",
     "idb-keyval": "^6.2.1",
-    "stockfish-mv.wasm": "^0.6.1",
-    "stockfish-nnue.wasm": "1.0.0-1946a675.smolnet",
-    "stockfish.js": "^10.0.2",
-    "stockfish.wasm": "^0.10.0",
     "tablesort": "5.7.0"
   },
   "build": {
-    "sync": {
-      "node_modules/stockfish*/*.{js,wasm}": "/public/npm",
-      "node_modules/@lichess-org/stockfish-web/*.{js,wasm}": "/public/npm/stockfish-web",
-      "node_modules/@lichess-org/zerofish/dist/zerofishEngine*.{js,wasm}": "/public/npm",
-      "/node_modules/@lichess-org/chessground/dist/chessground.min.js": "/public/npm"
-    },
     "hash": [
       "/public/font/*.woff2",
       "/public/images/**",
       "/public/javascripts/**",
-      "/public/lifat/background/**/*.webp",
-      "/public/npm/stockfish-web/*",
+      "/public/pikafish-web/*",
       "/public/npm/*",
       "/public/piece/**",
       "/public/sound/**/*.mp3",

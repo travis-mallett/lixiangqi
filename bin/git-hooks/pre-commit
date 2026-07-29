@@ -1,3 +1,90 @@
 #!/bin/sh
 
-exec pnpm exec lint-staged --config lint-staged.config.mjs
+set -eu
+
+author_name=$(git config --get user.name || true)
+author_email=$(git config --get user.email || true)
+
+if [ -z "$author_name" ]; then
+  printf >&2 'Commit blocked: Git user.name is not configured.\n'
+  exit 1
+fi
+
+case "$author_email" in
+  *@users.noreply.github.com) ;;
+  *)
+    printf >&2 'Commit blocked: use the configured GitHub noreply address for user.email.\n'
+    exit 1
+    ;;
+esac
+
+if ! git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol \
+  diff --cached --check; then
+  printf >&2 'Commit blocked: the staged diff contains whitespace errors.\n'
+  exit 1
+fi
+
+staged_paths=$(git diff --cached --name-only --diff-filter=ACMR)
+ignored_paths=$(printf '%s\n' "$staged_paths" | git check-ignore --no-index --stdin || true)
+if [ -n "$ignored_paths" ]; then
+  printf '%s\n' "$ignored_paths" |
+    while IFS= read -r path; do
+      [ -n "$path" ] &&
+        printf >&2 'Commit blocked: ignored path is staged: %s\n' "$path"
+    done
+  exit 1
+fi
+
+sensitive_paths=$(
+  printf '%s\n' "$staged_paths" |
+    grep -Ei '(^|/)(\.env($|\.)|\.envrc$|\.direnv/|\.netrc$|\.authinfo$|\.npmrc$|\.pypirc$|\.ssh/|known_hosts$|authorized_keys$|ssh_config$|conf/application\.conf$|conf/secrets\.conf$|data/local/|scripts/data/local/|music-review/|design-mockups/|project/\.boot/|project/\.cache/|target/|node_modules/|credentials\.json$|service-account[^/]*\.json$|id_(rsa|ed25519|ecdsa)$)|\.(db|sqlite|sqlite3|key|pem|p12|pfx|ppk)$' |
+    grep -Eiv '(^|/)\.env\.(example|sample)$' || true
+)
+if [ -n "$sensitive_paths" ]; then
+  printf '%s\n' "$sensitive_paths" |
+    while IFS= read -r path; do
+      [ -n "$path" ] &&
+        printf >&2 'Commit blocked: sensitive or generated path is staged: %s\n' "$path"
+    done
+  exit 1
+fi
+
+blocked_paths=0
+large_blobs=$(
+  git ls-tree -r -l "$(git write-tree)" |
+    awk '$4 != "-" && $4 > 52428800 { sub(/^[^\t]*\t/, ""); print }'
+)
+while IFS= read -r path; do
+  [ -n "$path" ] || continue
+  filter=$(git check-attr --cached filter -- "$path" | sed 's/^.*: //')
+  if [ "$filter" != lfs ]; then
+    printf >&2 'Commit blocked: blob exceeds 50 MiB without Git LFS: %s\n' "$path"
+    blocked_paths=1
+  fi
+done <<EOF
+$large_blobs
+EOF
+
+if [ "$blocked_paths" -ne 0 ]; then
+  exit 1
+fi
+
+if git diff --cached --no-ext-diff --unified=0 --diff-filter=ACMR -- . \
+  | grep '^+' \
+  | grep -v '^+++' \
+  | grep -Eiq \
+  '(BEGIN (OPENSSH |RSA |EC |DSA )?PRIVATE KEY|AKIA[[:alnum:]]{16}|ASIA[[:alnum:]]{16}|github_pat_[[:alnum:]_]{20,}|gh[pousr]_[[:alnum:]]{30,}|xox[baprs]-[[:alnum:]-]{20,}|https?://[^/@[:space:]]+:[^/@[:space:]]+@)'; then
+  printf >&2 'Commit blocked: a high-confidence credential pattern appears in staged additions.\n'
+  exit 1
+fi
+
+if command -v pnpm >/dev/null 2>&1; then
+  exec pnpm exec lint-staged --concurrent 1 --config lint-staged.config.mjs
+fi
+
+if command -v corepack >/dev/null 2>&1; then
+  exec corepack pnpm exec lint-staged --concurrent 1 --config lint-staged.config.mjs
+fi
+
+printf >&2 'Commit blocked: pnpm is unavailable. Install pnpm or enable Node.js Corepack.\n'
+exit 1

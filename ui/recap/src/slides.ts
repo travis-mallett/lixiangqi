@@ -1,15 +1,10 @@
-import { COLORS } from 'chessops';
-
-import { shuffle } from 'lib/algo';
 import perfIcons from 'lib/game/perfIcons';
 import { currencyFormat, numberFormat, percentFormat } from 'lib/i18n';
 import { licon } from 'lib/licon';
 import { onInsert, hl, type LooseVNodes, type VNode, spinnerVdom, icon } from 'lib/view';
 import { fullName, userFlair, userTitle } from 'lib/view/userLink';
 
-import { pieceGrams, totalGames } from './constants';
-import type { Counted, Opening, Recap, Sources, RecapPerf, Opts } from './interfaces';
-import { loadOpeningLpv } from './ui';
+import type { Counted, Recap, Sources, RecapPerf, Opts } from './interfaces';
 import { formatDuration, perfIsSpeed, perfLabel } from './util';
 
 const confettiCanvas = (): VNode =>
@@ -33,7 +28,7 @@ export const init = (user: LightUser): VNode =>
   slideTag('init')([
     confettiCanvas(),
     hi(user),
-    hl('img.recap__logo', { attrs: { src: site.asset.url('logo/lichess-white.svg') } }),
+    hl('div.recap__brand', 'Lixiangqi'),
     hl('h2', i18n.recap.initTitle),
   ]);
 
@@ -81,16 +76,12 @@ export const nbMoves = (r: Recap): VNode => {
       'div.recap--massive',
       i18n.recap.nbMoves.asArray(r.games.moves, hl('strong', animateNumber(r.games.moves))),
     ),
-    hl('div', [
-      hl('p', i18n.recap.movesOfWoodPushed.asArray(showGrams(r.games.moves * pieceGrams))),
-      hl('p', [hl('small', i18n.recap.movesStandardPiecesWeight)]),
-    ]),
   ]);
 };
 
 export const opponents = (r: Recap): VNode => {
   return slideTag('opponents')([
-    hl('div.recap--massive', i18n.recap.chessFoes),
+    hl('div.recap--massive', i18n.recap.xiangqiFoes),
     hl(
       'table.recap__data',
       hl(
@@ -109,26 +100,10 @@ export const opponents = (r: Recap): VNode => {
 const opponentLink = (o: LightUser): VNode =>
   hl('a', { attrs: { href: `/@/${o.name}` } }, [userFlair(o) || noFlair(o), userTitle(o), o.name]);
 
-const userFallbackFlair = new Map<string, string>();
-const noFlair = (o: LightUser): VNode => {
-  const randomFlair =
-    userFallbackFlair.get(o.id) ||
-    userFallbackFlair
-      .set(
-        o.id,
-        (() =>
-          shuffle([
-            'activity.lichess-horsey',
-            'activity.lichess-hogger',
-            'activity.lichess-horsey-yin-yang',
-          ])[0])(),
-      )
-      .get(o.id)!;
-  return hl('img.uflair.noflair', { attrs: { src: site.asset.flairSrc(randomFlair) } });
-};
+const noFlair = (_: LightUser): VNode => hl('span.uflair.noflair', '象');
 
-export const firstMoves = (r: Recap, firstMove: Counted<string>): VNode => {
-  const ofTotal = firstMove.count / r.games.nbWhite;
+export const firstRedMove = (r: Recap, firstMove: Counted<string>): VNode => {
+  const ofTotal = firstMove.count / r.games.nbRed;
   return slideTag('first')([
     hl('div.recap--massive', [hl('strong.animated-pulse', '1. ' + firstMove.value)]),
     hl('div', [
@@ -136,35 +111,6 @@ export const firstMoves = (r: Recap, firstMove: Counted<string>): VNode => {
         'p',
         i18n.recap.firstMoveStats.asArray(
           hl('div', [hl('strong', animateNumber(firstMove.count)), ` (${percentFormat(ofTotal, 2)})`]),
-        ),
-      ),
-    ]),
-  ]);
-};
-
-export const openingColor = (os: ByColor<Counted<Opening>>, color: Color): VNode | undefined => {
-  const o = os[color];
-  if (!o.count) return;
-  return slideTag('openings')([
-    hl('div.lpv.lpv--todo.lpv--moves-bottom.is2d', {
-      hook: onInsert(el => loadOpeningLpv(el, color, o.value)),
-    }),
-    hl(
-      'div',
-      hl(
-        'a',
-        {
-          attrs: { href: `/opening/${o.value.key}`, target: '_blank' },
-        },
-        o.value.name,
-      ),
-    ),
-    hl('div', [
-      hl(
-        'p',
-        i18n.recap[color === 'white' ? 'openingsMostPlayedAsWhite' : 'openingsMostPlayedAsBlack'].asArray(
-          o.count,
-          hl('strong', animateNumber(o.count)),
         ),
       ),
     ]),
@@ -276,27 +222,10 @@ export const malware = (): VNode =>
     ),
   ]);
 
-export const lichessGames = (r: Recap): VNode => {
-  const gamesPercentOfTotal = r.games.nbs.total / totalGames;
-  return slideTag('lichess-games')([
-    hl(
-      'div.recap--massive',
-      i18n.recap.lichessGamesPlayedIn.asArray<LooseVNodes>(hl('strong', animateNumber(totalGames)), r.year),
-    ),
-    hl(
-      'div',
-      hl(
-        'p',
-        i18n.recap.lichessGamesOfThemYours.asArray(hl('strong', percentFormat(gamesPercentOfTotal, 6))),
-      ),
-    ),
-  ]);
-};
-
 export const thanks = (r: Recap): VNode =>
   slideTag('thanks')([
     hl('div.recap--massive', i18n.recap.thanksTitle),
-    hl('img.recap__logo', { attrs: { src: site.asset.url('logo/lichess-white.svg') } }),
+    hl('div.recap__brand', 'Lixiangqi'),
     hl('div', i18n.recap.thanksHaveAGreat.asArray(r.year + 1)),
   ]);
 
@@ -331,11 +260,13 @@ export const patron = (opts: Opts): VNode =>
 const renderPerf = (perf: RecapPerf): VNode => {
   return hl('span', [
     icon(perfIcons[perf.key])('.text'),
-    !perfIsSpeed(perf.key)
-      ? i18n.variant[perf.key]
-      : perf.key !== 'ultraBullet'
-        ? i18n.site[perf.key]
-        : perf.key,
+    perf.key === 'xiangqi'
+      ? 'Xiangqi'
+      : !perfIsSpeed(perf.key)
+        ? i18n.variant[perf.key]
+        : perf.key !== 'ultraBullet'
+          ? i18n.site[perf.key]
+          : perf.key,
   ]);
 };
 
@@ -350,7 +281,7 @@ const stati18n = (value: number, plural: I18nPlural): VNode => {
 export const shareable = (r: Recap): VNode =>
   slideTag('shareable')([
     hl('div.recap__shareable', [
-      hl('img.logo', { attrs: { src: site.asset.url('logo/logo-with-name-dark.png') } }),
+      hl('div.logo', 'Lixiangqi'),
       hl('h2', i18n.recap.shareableTitle.asArray(r.year)),
       hl('div.grid', [
         stati18n(r.games.nbs.total, i18n.site.nbGames),
@@ -361,14 +292,6 @@ export const shareable = (r: Recap): VNode =>
           stat(opponentLink(r.games.opponents[0].value), i18n.recap.shareableMostPlayedOpponent),
         stati18n(r.puzzles.nbs.total, i18n.recap.shareableNbPuzzlesSolved),
       ]),
-      hl(
-        'div.openings',
-        COLORS.map(
-          c =>
-            r.games.openings[c].count &&
-            stat(r.games.openings[c].value.name, i18n.site[c === 'white' ? 'asWhite' : 'asBlack']),
-        ),
-      ),
     ]),
   ]);
 
@@ -387,8 +310,3 @@ const slideTag =
 
 const animateNumber = (n: number) => hl('span.animated-number', { attrs: { 'data-value': n } }, '0');
 const animateTime = (n: number) => hl('span.animated-time', { attrs: { 'data-value': n } }, '');
-
-const showGrams = (g: number) =>
-  g > 20_000
-    ? hl('span', i18n.recap.nbKilograms.asArray(Math.round(g / 1000), animateNumber(g / 1000)))
-    : hl('span', i18n.recap.nbGrams.asArray(g, animateNumber(g)));

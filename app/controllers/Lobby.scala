@@ -23,7 +23,7 @@ final class Lobby(env: Env) extends LilaController(env):
     negotiate(
       serveHtmlHome,
       json =
-        val expiration = 60 * 60 * 24 * 7 // set to one hour, one week before changing the pool config
+        val expiration = 60 * 60 * 24 * 7
         Ok(lobbyJson).headerCacheSeconds(expiration)
     )
 

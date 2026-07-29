@@ -2,7 +2,7 @@ package lila.setup
 
 import chess.format.Fen
 import chess.variant.{ FromPosition, Variant }
-import chess.{ ByColor, Clock }
+import chess.{ ByColor, Clock, Ply }
 import scalalib.model.Days
 
 import lila.core.game.{ IdGenerator, NewPlayer, Source }
@@ -30,28 +30,36 @@ final case class ApiAiConfig(
     else if daysO.isDefined then TimeMode.Correspondence
     else TimeMode.Unlimited
 
-  private def game(user: GameUser)(using idGenerator: IdGenerator, newPlayer: NewPlayer): Fu[Game] =
-    fenGame: chessGame =>
-      lila.rating.PerfType(chessGame.position.variant, chess.Speed(chessGame.clock.map(_.config)))
+  private def game(user: GameUser)(using
+      idGenerator: IdGenerator,
+      newPlayer: NewPlayer
+  ): Fu[Game] =
+    fenGame: xiangqiGame =>
+      lila.rating.PerfType(variant, chess.Speed(makeClock))
       idGenerator.withUniqueId:
         lila.core.game
           .newGame(
-            chess = chessGame,
+            xiangqi = xiangqiGame,
             players = ByColor: c =>
               if creatorColor == c
               then newPlayer(c, user)
               else newPlayer.anon(c, level.some),
             rated = chess.Rated.No,
-            source = if chessGame.position.variant.fromPosition then Source.Position else Source.Ai,
+            source = if xiangqiGame.initialFen == lila.xiangqi.Xiangqi.startFen then Source.Ai
+            else Source.Position,
             daysPerTurn = makeDaysPerTurn,
-            pgnImport = None
+            pgnImport = None,
+            clock = makeClock.map(_.toClock),
+            startedAtPly = Ply(xiangqiGame.state.ply),
+            variant = variant
           )
     .dmap(_.start)
 
-  def pov(user: GameUser)(using IdGenerator, NewPlayer) = game(user).dmap { Pov(_, creatorColor) }
+  def pov(user: GameUser)(using IdGenerator, NewPlayer) =
+    game(user).dmap { Pov(_, creatorColor) }
 
   def autoVariant =
-    if variant.standard && fen.exists(!_.isInitial)
+    if variant.standard && fen.exists(_.value != lila.xiangqi.Xiangqi.startFen)
     then copy(variant = FromPosition)
     else this
 

@@ -1,6 +1,5 @@
 package lila.tutor
 package ui
-import lila.common.LilaOpeningFamily
 import lila.core.i18n.Translate
 import lila.insight.{ InsightDimension, Phase }
 import lila.rating.PerfType
@@ -35,7 +34,6 @@ object compare:
 
   private def otherDims[D](dimension: InsightDimension[D]) = dimension match
     case InsightDimension.Phase => "other phases"
-    case InsightDimension.OpeningFamily => "other openings"
     case _ => "others"
 
   private[tutor] def showQuality(quality: Grade) =
@@ -50,6 +48,5 @@ object compare:
       case metric => metric.metric.name.toLowerCase
 
   private[tutor] def showDimension[D](dimension: D): String = dimension match
-    case d: LilaOpeningFamily => s"the ${d.name.value}"
     case d: Phase => d.name.toLowerCase
     case d => d.toString.toLowerCase

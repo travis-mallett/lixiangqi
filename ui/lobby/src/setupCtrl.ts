@@ -1,7 +1,6 @@
-import { INITIAL_FEN } from 'chessops/fen';
-
 import { type Prop, propWithEffect, toggle } from 'lib';
 import { debounce } from 'lib/async';
+import { XIANGQI_START_FEN } from 'lib/game';
 import type { ColorChoice, ColorProp } from 'lib/setup/color';
 import {
   allTimeModeKeys,
@@ -220,7 +219,7 @@ export default class SetupController {
     // anonymous games cannot be rated
     !this.root.me ||
     this.timeControl.mode() === 'unlimited' ||
-    (this.variant() === 'fromPosition' && this.fen() !== INITIAL_FEN) ||
+    (this.variant() === 'fromPosition' && this.fen() !== XIANGQI_START_FEN) ||
     // variants with very low time cannot be rated
     (this.variant() !== 'standard' && this.timeControl.notForRatedVariant());
 

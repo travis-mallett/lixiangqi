@@ -45,9 +45,9 @@ object PlanBuilder:
           startsAt.minusMinutes(SCHEDULE_DAILY_OVERLAP_MINS).isBefore(si2.endsAt)
         else
           (
-            s1.variant.exotic || // overlapping exotic variant
+            s1.variant.exotic || // overlapping non-standard variant
               s1.hasMaxRating || // overlapping same rating limit
-              Schedule.Speed.similar(s1.speed, s2.speed) // overlapping similar
+              Schedule.Speed.similar(s1.speed, s2.speed) // overlapping similar speed
           ) && s1.conditions.similar(s2.conditions) && overlaps(si2)
       )
 

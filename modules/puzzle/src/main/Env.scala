@@ -2,6 +2,7 @@ package lila.puzzle
 
 import com.softwaremill.macwire.*
 import play.api.Configuration
+import play.api.libs.ws.StandaloneWSClient
 
 import lila.common.autoconfig.{ *, given }
 import lila.core.config.*
@@ -26,6 +27,7 @@ final class Env(
     mongoCacheApi: lila.memo.MongoCache.Api,
     gameRepo: lila.core.game.GameRepo,
     myEngines: lila.core.misc.analysis.MyEnginesAsJson,
+    ws: StandaloneWSClient,
     mongo: lila.db.Env
 )(using
     Executor,
@@ -48,6 +50,9 @@ final class Env(
     path = db(config.pathColl)
   )
 
+  private val sourceGameJson =
+    new SourceGameJson(Url(appConfig.get[String]("explorer.internal_endpoint")), ws)
+
   private val gameJson: GameJson = wire[GameJson]
 
   val jsonView = wire[JsonView]
@@ -55,8 +60,6 @@ final class Env(
   private val pathApi = wire[PuzzlePathApi]
 
   private val trustApi = wire[PuzzleTrustApi]
-
-  val opening = wire[PuzzleOpeningApi]
 
   private val countApi = wire[PuzzleCountApi]
 
@@ -107,9 +110,6 @@ final class Env(
     }
 
   lila.common.Cli.handle:
-    case "puzzle" :: "opening" :: "recompute" :: "all" :: Nil =>
-      opening.recomputeAll
-      fuccess("started in background")
     case "puzzle" :: "issue" :: id :: issue :: Nil =>
       api.puzzle.setIssue(PuzzleId(id), issue).map(if _ then "done" else "not found")
 

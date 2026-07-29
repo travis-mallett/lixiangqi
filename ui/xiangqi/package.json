@@ -1,0 +1,21 @@
+{
+  "name": "xiangqi",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "chessgroundx": "10.7.5",
+    "lib": "workspace:*"
+  },
+  "build": {
+    "bundle": "src/xiangqi.*.ts"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": {
+        "source": "./src/index.ts",
+        "default": "./dist/index.js"
+      }
+    }
+  }
+}

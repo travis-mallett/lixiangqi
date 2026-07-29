@@ -40,7 +40,7 @@
   --c-lpv-bg-brilliant-current: #{color-mix(in oklab, $c-brilliant 50%, $c-bg)};
   --c-lpv-bg-interesting-current: #{color-mix(in oklab, $c-interesting 50%, $c-bg)};
 
-  @include if-transp {
+  @include if-background {
     --c-lpv-bg-pane: #{rgb(from $c-body-gradient r g b / calc(alpha * 0.85))};
   }
 

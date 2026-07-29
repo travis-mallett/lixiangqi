@@ -4,12 +4,11 @@ import monocle.syntax.all.*
 import play.api.libs.json.*
 
 import lila.common.Bus
-import lila.tree.Analysis
+import lila.tree.{ Analysis, ExportOptions, XiangqiTreeJson }
 
 final class Analyser(
     gameRepo: lila.core.game.GameRepo,
-    analysisRepo: AnalysisRepo,
-    divider: lila.core.game.Divider
+    analysisRepo: AnalysisRepo
 )(using Executor)
     extends lila.tree.Analyser:
 
@@ -34,11 +33,11 @@ final class Analyser(
   private def sendAnalysisProgress(analysis: Analysis, complete: Boolean): Funit =
     analysis.id match
       case Analysis.Id.Game(id) =>
-        gameRepo.gameWithInitialFen(id).mapz { g =>
+        gameRepo.game(id).mapz { game =>
           Bus.pub(
             lila.tree.AnalysisProgress(
               id,
-              () => makeProgressPayload(analysis, g.game, g.fen | g.game.variant.initialFen)
+              () => makeProgressPayload(analysis, game)
             )
           )
         }
@@ -48,13 +47,9 @@ final class Analyser(
 
   private def makeProgressPayload(
       analysis: Analysis,
-      game: Game,
-      initialFen: chess.format.Fen.Full
+      game: Game
   ): JsObject =
-    import lila.tree.{ TreeBuilder, ExportOptions, Node }
-    val tree = TreeBuilder(game, analysis.some, initialFen, ExportOptions.default, lila.log.system.warn)
-    val division = divider(game.id, game.sans, game.variant, initialFen.some)
     Json.obj(
-      "analysis" -> JsonView.bothPlayers(game.startedAtPly, analysis, division = division),
-      "tree" -> Node.lichobileNodeJsonWriter.writes(tree)
+      "analysis" -> JsonView.bothPlayers(game.startedAtPly, analysis),
+      "treeParts" -> XiangqiTreeJson(game, analysis.some, ExportOptions.default)
     )

@@ -1,0 +1,229 @@
+diff --git a/render.js b/render.js
+index b0e04fcdf9138ab66ee66393adffa6e502c5ed11..2b1f89ff57699bfd4afc69ade90792fd2bee02d2 100644
+--- a/render.js
++++ b/render.js
+@@ -30,11 +30,8 @@ export function render(s) {
+                 // continue animation if already animating and same piece
+                 // (otherwise it could animate a captured piece)
+                 if (anim && el.cgAnimating && elPieceName === pieceNameOf(pieceAtKey, s.orientation)) {
+-                    const pos = key2pos(k);
+-                    pos[0] += anim[2];
+-                    pos[1] += anim[3];
+                     el.classList.add('anim');
+-                    translate(el, posToTranslate(pos, asWhite));
++                    translate(el, posToTranslate(posWithAnimation(k, anim), asWhite));
+                 }
+                 else if (el.cgAnimating) {
+                     el.cgAnimating = false;
+@@ -65,8 +62,11 @@ export function render(s) {
+         }
+         else if (isSquareNode(el)) {
+             const cn = el.className;
+-            if (squares.get(k) === cn)
++            if (squares.get(k) === cn) {
+                 sameSquares.add(k);
++                if (isLastMoveDestination(cn))
++                    translate(el, posToTranslate(posWithAnimation(k, anims.get(k)), asWhite));
++            }
+             else
+                 appendValue(movedSquares, cn, el);
+         }
+@@ -78,7 +78,7 @@ export function render(s) {
+         if (!sameSquares.has(sk)) {
+             sMvdset = movedSquares.get(className);
+             sMvd = sMvdset && sMvdset.pop();
+-            const translation = posToTranslate(key2pos(sk), asWhite);
++            const translation = posToTranslate(posWithAnimation(sk, isLastMoveDestination(className) ? anims.get(sk) : undefined), asWhite);
+             if (sMvd) {
+                 sMvd.cgKey = sk;
+                 translate(sMvd, translation);
+@@ -112,22 +112,17 @@ export function render(s) {
+                 if (anim) {
+                     pMvd.cgAnimating = true;
+                     pMvd.classList.add('anim');
+-                    pos[0] += anim[2];
+-                    pos[1] += anim[3];
+                 }
+-                translate(pMvd, posToTranslate(pos, asWhite));
++                translate(pMvd, posToTranslate(posWithAnimation(k, anim), asWhite));
+             }
+             // no piece in moved obj: insert the new piece
+             // assumes the new piece is not being dragged
+             else {
+-                const pieceName = pieceNameOf(p, s.orientation), pieceNode = createEl('piece', pieceName), pos = key2pos(k);
++                const pieceName = pieceNameOf(p, s.orientation), pieceNode = createEl('piece', pieceName), pos = posWithAnimation(k, anim);
+                 pieceNode.cgPiece = pieceName;
+                 pieceNode.cgKey = k;
+-                if (anim) {
++                if (anim)
+                     pieceNode.cgAnimating = true;
+-                    pos[0] += anim[2];
+-                    pos[1] += anim[3];
+-                }
+                 translate(pieceNode, posToTranslate(pos, asWhite));
+                 if (s.addPieceZIndex)
+                     pieceNode.style.zIndex = posZIndex(pos, asWhite);
+@@ -142,10 +137,12 @@ export function render(s) {
+         removeNodes(s, nodes);
+ }
+ export function renderResized(s) {
+-    const asWhite = whitePov(s), posToTranslate = posToTranslateFromBounds(s.dom.bounds(), s.dimensions);
++    var _a;
++    const asWhite = whitePov(s), posToTranslate = posToTranslateFromBounds(s.dom.bounds(), s.dimensions), anims = (_a = s.animation.current) === null || _a === void 0 ? void 0 : _a.plan.anims;
+     let el = s.dom.elements.board.firstChild;
+     while (el) {
+-        if ((isPieceNode(el) && !el.cgAnimating) || isSquareNode(el)) {
++        const animatedDestination = isSquareNode(el) && isLastMoveDestination(el.className) && (anims === null || anims === void 0 ? void 0 : anims.has(el.cgKey));
++        if ((isPieceNode(el) && !el.cgAnimating) || (isSquareNode(el) && !animatedDestination)) {
+             translate(el, posToTranslate(key2pos(el.cgKey), asWhite));
+         }
+         el = el.nextSibling;
+@@ -172,6 +169,15 @@ export function updateBounds(s) {
+ }
+ const isPieceNode = (el) => el.tagName === 'PIECE';
+ const isSquareNode = (el) => el.tagName === 'SQUARE';
++const isLastMoveDestination = (className) => className.includes('last-move-destination');
++function posWithAnimation(key, animation) {
++    const pos = key2pos(key);
++    if (animation) {
++        pos[0] += animation[2];
++        pos[1] += animation[3];
++    }
++    return pos;
++}
+ function removeNodes(s, nodes) {
+     for (const node of nodes)
+         s.dom.elements.board.removeChild(node);
+@@ -186,9 +192,9 @@ function computeSquareClasses(s) {
+     var _a;
+     const squares = new Map();
+     if (s.lastMove && s.highlight.lastMove)
+-        for (const k of s.lastMove) {
++        for (const [index, k] of s.lastMove.entries()) {
+             if (isKey(k) && k !== 'a0')
+-                addSquare(squares, k, 'last-move');
++                addSquare(squares, k, `last-move last-move-${index === s.lastMove.length - 1 ? 'destination' : 'origin'}`);
+         }
+     if (s.check && s.highlight.check)
+         for (const k of s.check)
+diff --git a/src/render.ts b/src/render.ts
+index ccdab31437578395b2ede1c81b866b33766f1782..f82c999f3885148aa83bf174fedc20dc78c46241 100644
+--- a/src/render.ts
++++ b/src/render.ts
+@@ -69,11 +69,8 @@ export function render(s: State): void {
+         // continue animation if already animating and same piece
+         // (otherwise it could animate a captured piece)
+         if (anim && el.cgAnimating && elPieceName === pieceNameOf(pieceAtKey, s.orientation)) {
+-          const pos = key2pos(k);
+-          pos[0] += anim[2];
+-          pos[1] += anim[3];
+           el.classList.add('anim');
+-          translate(el, posToTranslate(pos, asWhite));
++          translate(el, posToTranslate(posWithAnimation(k, anim), asWhite));
+         } else if (el.cgAnimating) {
+           el.cgAnimating = false;
+           el.classList.remove('anim');
+@@ -100,8 +97,11 @@ export function render(s: State): void {
+       }
+     } else if (isSquareNode(el)) {
+       const cn = el.className;
+-      if (squares.get(k) === cn) sameSquares.add(k);
+-      else appendValue(movedSquares, cn, el);
++      if (squares.get(k) === cn) {
++        sameSquares.add(k);
++        if (isLastMoveDestination(cn))
++          translate(el, posToTranslate(posWithAnimation(k, anims.get(k)), asWhite));
++      } else appendValue(movedSquares, cn, el);
+     }
+     el = el.nextSibling as cg.PieceNode | cg.SquareNode | undefined;
+   }
+@@ -112,7 +112,10 @@ export function render(s: State): void {
+     if (!sameSquares.has(sk)) {
+       sMvdset = movedSquares.get(className);
+       sMvd = sMvdset && sMvdset.pop();
+-      const translation = posToTranslate(key2pos(sk), asWhite);
++      const translation = posToTranslate(
++        posWithAnimation(sk, isLastMoveDestination(className) ? anims.get(sk) : undefined),
++        asWhite,
++      );
+       if (sMvd) {
+         sMvd.cgKey = sk;
+         translate(sMvd, translation);
+@@ -145,25 +148,19 @@ export function render(s: State): void {
+         if (anim) {
+           pMvd.cgAnimating = true;
+           pMvd.classList.add('anim');
+-          pos[0] += anim[2];
+-          pos[1] += anim[3];
+         }
+-        translate(pMvd, posToTranslate(pos, asWhite));
++        translate(pMvd, posToTranslate(posWithAnimation(k, anim), asWhite));
+       }
+       // no piece in moved obj: insert the new piece
+       // assumes the new piece is not being dragged
+       else {
+         const pieceName = pieceNameOf(p, s.orientation),
+           pieceNode = createEl('piece', pieceName) as cg.PieceNode,
+-          pos = key2pos(k);
++          pos = posWithAnimation(k, anim);
+ 
+         pieceNode.cgPiece = pieceName;
+         pieceNode.cgKey = k;
+-        if (anim) {
+-          pieceNode.cgAnimating = true;
+-          pos[0] += anim[2];
+-          pos[1] += anim[3];
+-        }
++        if (anim) pieceNode.cgAnimating = true;
+         translate(pieceNode, posToTranslate(pos, asWhite));
+ 
+         if (s.addPieceZIndex) pieceNode.style.zIndex = posZIndex(pos, asWhite);
+@@ -180,10 +177,13 @@ export function render(s: State): void {
+ 
+ export function renderResized(s: State): void {
+   const asWhite: boolean = whitePov(s),
+-    posToTranslate = posToTranslateFromBounds(s.dom.bounds(), s.dimensions);
++    posToTranslate = posToTranslateFromBounds(s.dom.bounds(), s.dimensions),
++    anims = s.animation.current?.plan.anims;
+   let el = s.dom.elements.board.firstChild as cg.PieceNode | cg.SquareNode | undefined;
+   while (el) {
+-    if ((isPieceNode(el) && !el.cgAnimating) || isSquareNode(el)) {
++    const animatedDestination =
++      isSquareNode(el) && isLastMoveDestination(el.className) && anims?.has(el.cgKey);
++    if ((isPieceNode(el) && !el.cgAnimating) || (isSquareNode(el) && !animatedDestination)) {
+       translate(el, posToTranslate(key2pos(el.cgKey), asWhite));
+     }
+     el = el.nextSibling as cg.PieceNode | cg.SquareNode | undefined;
+@@ -213,6 +213,16 @@ export function updateBounds(s: State): void {
+ 
+ const isPieceNode = (el: cg.PieceNode | cg.SquareNode): el is cg.PieceNode => el.tagName === 'PIECE';
+ const isSquareNode = (el: cg.PieceNode | cg.SquareNode): el is cg.SquareNode => el.tagName === 'SQUARE';
++const isLastMoveDestination = (className: string): boolean => className.includes('last-move-destination');
++
++function posWithAnimation(key: cg.Key, animation?: AnimVector): cg.Pos {
++  const pos = key2pos(key);
++  if (animation) {
++    pos[0] += animation[2];
++    pos[1] += animation[3];
++  }
++  return pos;
++}
+ 
+ function removeNodes(s: State, nodes: HTMLElement[]): void {
+   for (const node of nodes) s.dom.elements.board.removeChild(node);
+@@ -229,8 +239,13 @@ function posZIndex(pos: cg.Pos, asWhite: boolean): string {
+ function computeSquareClasses(s: State): SquareClasses {
+   const squares: SquareClasses = new Map();
+   if (s.lastMove && s.highlight.lastMove)
+-    for (const k of s.lastMove) {
+-      if (isKey(k) && k !== 'a0') addSquare(squares, k, 'last-move');
++    for (const [index, k] of s.lastMove.entries()) {
++      if (isKey(k) && k !== 'a0')
++        addSquare(
++          squares,
++          k,
++          `last-move last-move-${index === s.lastMove.length - 1 ? 'destination' : 'origin'}`,
++        );
+     }
+   if (s.check && s.highlight.check)
+     for (const k of s.check)

@@ -61,11 +61,11 @@
     </script>
     <script>
       function playSound(set, name) {
-        site.sound.changeSet(set);
+        site.sound.changeSoundSet(set);
         site.sound.play(name);
       }
 
-      const soundSets = ['standard', 'futuristic', 'lisp', 'nes', 'piano', 'robot', 'sfx', 'woodland'];
+      const soundSets = ['standard'];
 
       const basics = [
         'genericNotify',
@@ -80,11 +80,24 @@
         'check',
         'checkmate',
         'newChallenge',
+        'newChatMessage',
         'newPM',
         'confirmation',
         'error',
-        'practiceComplete',
-        'practiceWrong',
+        'outOfBound',
+        'select',
+        'socialNotify',
+        'practiceSuccess',
+        'practiceFailure',
+        'learnCapture',
+        'learnLevelStart',
+        'learnLevelComplete',
+        'learnStageStart',
+        'learnStageComplete',
+        'learnFailure',
+        'puzzleStormGood',
+        'puzzleStormEnd',
+        'yeet',
         'tournament1st',
         'tournament2nd',
         'tournament3rd',
@@ -111,15 +124,15 @@
         }
 
         [
-          ['good', 'PuzzleStormGood'],
-          ['wrong', 'Error'],
-          ['end', 'PuzzleStormEnd'],
+          ['good', 'puzzleStormGood'],
+          ['wrong', 'error'],
+          ['end', 'puzzleStormEnd'],
         ].forEach(([name, sound]) => {
           var tr = $('<tr>').appendTo($('table.storm tbody'));
           $('<td>')
             .append(
               $('<button>')
-                .on('click', () => playSound('lisp', sound))
+                .on('click', () => playSound('standard', sound))
                 .text(name),
             )
             .appendTo(tr);

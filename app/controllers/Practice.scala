@@ -90,7 +90,7 @@ final class Practice(
             initialFen,
             chapter.setup.orientation,
             owner = false,
-            opening = none
+            notationStyle = ctx.pref.xiangqiNotationStyle(ctx.lang)
           )
         analysis = baseData ++ Json.obj(
           "treeParts" -> partitionTreeWriter(chapter.root, lichobile = false),

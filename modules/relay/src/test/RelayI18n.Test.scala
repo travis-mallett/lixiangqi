@@ -8,7 +8,7 @@ class RelayI18nTest extends munit.FunSuite:
   given play.api.i18n.Lang = defaultLang
 
   test("Tour name"):
-    // https://lichess.org/broadcast/turkish-cadet--youth-championships-2026--u13-open/round-9/iV4feSab
+    // https://lixiangqi.org/broadcast/turkish-cadet--youth-championships-2026--u13-open/round-9/iV4feSab
     val name = RelayTour.Name("Turkish Cadet & Youth Championships 2026 | U13 Open")
     assertEquals(RelayI18n(name), name.value)
 

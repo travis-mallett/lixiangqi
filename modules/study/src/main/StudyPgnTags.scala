@@ -13,6 +13,25 @@ case class AfterSetTagOnRelayChapter(chapterId: StudyChapterId, tag: Tag)
 
 object StudyPgnTags:
 
+  private def customType(name: String): TagType = Tag(name, "").name
+
+  val Red = customType("Red")
+  val RedElo = customType("RedElo")
+  val RedTitle = customType("RedTitle")
+  val RedTeam = customType("RedTeam")
+  val RedFideId = customType("RedFideId")
+  val RedClock = customType("RedClock")
+
+  private val redToWhite: Map[TagType, TagType] = Map(
+    Red -> Tag.White,
+    RedElo -> Tag.WhiteElo,
+    RedTitle -> Tag.WhiteTitle,
+    RedTeam -> Tag.WhiteTeam,
+    RedFideId -> Tag.WhiteFideId,
+    RedClock -> Tag.WhiteClock
+  )
+  private val whiteToRed = redToWhite.map(_.swap)
+
   def apply(tags: Tags): Tags =
     tags.pipe(filterRelevant(Set.empty)).pipe(removeContradictingTermination).pipe(sort)
 
@@ -32,15 +51,17 @@ object StudyPgnTags:
 
   // clean up tags before exposing them
   def cleanUpForPublication(tags: Tags) = tags.map:
-    _.filter:
-      // we need fideId=0 to know that the player really doesn't have one,
-      // and that we shouldn't alert about it or try to fix it.
-      // But we don't want to publish it.
-      case Tag(Tag.WhiteFideId | Tag.BlackFideId, "0") => false
-      case _ => true
+    _.flatMap: tag =>
+      val published = whiteToRed.get(tag.name).fold(tag)(name => tag.copy(name = name))
+      published match
+        // We need fideId=0 to know that the player really doesn't have one,
+        // and that we shouldn't alert about it or try to fix it. But we don't
+        // want to publish it.
+        case Tag(RedFideId | Tag.BlackFideId, "0") => none
+        case _ => published.some
 
   def validate(name: String, value: String): Option[Tag] = for
-    tpe <- Tag.tagTypesByLowercase.get(name.toLowerCase).filter(relevantTypeSet)
+    tpe <- relevantTypesByLowercase.get(name.toLowerCase)
     cleaned = lila.common.String.fullCleanUp(value)
     if cleaned.length <= 140
   yield Tag(tpe, cleaned)
@@ -51,7 +72,7 @@ object StudyPgnTags:
         case t if !relevantTypeSet(t.name) => s"Unknown tag type: ${t.name}"
       .match
         case Some(err) => Left(err)
-        case None => Right(removeContradictingTermination(tags))
+        case None => Right(apply(tags))
 
   private[study] def fillPlayer(tags: Tags, newTag: Tag)(using
       Executor
@@ -65,24 +86,30 @@ object StudyPgnTags:
           for fedName <- player.fed.so(getFedName)
           yield
             val newTags = List(
-              Tag(_.names(color), player.name).some,
-              player.title.map { title => Tag(_.titles(color), title.value) },
-              fedName.map { fed => Tag(_.teams(color), fed) }
+              Tag(if color.white then "White" else "Black", player.name).some,
+              player.title.map { title =>
+                Tag(if color.white then "WhiteTitle" else "BlackTitle", title.value)
+              },
+              fedName.map { fed => Tag(if color.white then "WhiteTeam" else "BlackTeam", fed) }
             ).flatten
             Option(tags ++ Tags(newTags))
 
   private def newFideId(newTag: Tag): Option[(Color, FideId)] =
     newTag.name
       .match
-        case Tag.WhiteFideId => Color.White.some
+        case RedFideId | Tag.WhiteFideId => Color.White.some
         case Tag.BlackFideId => Color.Black.some
         case _ => None
       .flatMap(c => FideId.from(newTag.value.toIntOption).map(c -> _))
 
   private def filterRelevant(extraTypes: Set[TagType])(tags: Tags) =
-    tags.map:
+    normalizeRedAliases(tags).map:
       _.filter: t =>
         (relevantTypeSet(t.name) || extraTypes(t.name)) && !unknownValues(t.value)
+
+  private def normalizeRedAliases(tags: Tags): Tags = tags.map:
+    _.map: tag =>
+      redToWhite.get(tag.name).fold(tag)(name => tag.copy(name = name))
 
   private def removeContradictingTermination(tags: Tags) =
     if tags.outcome.isDefined then
@@ -97,11 +124,11 @@ object StudyPgnTags:
   private val sortedTypes: List[TagType] =
     import Tag.*
     List(
-      White,
-      WhiteElo,
-      WhiteTitle,
-      WhiteTeam,
-      WhiteFideId,
+      Red,
+      RedElo,
+      RedTitle,
+      RedTeam,
+      RedFideId,
       Black,
       BlackElo,
       BlackTitle,
@@ -121,11 +148,18 @@ object StudyPgnTags:
 
   val typesToString = sortedTypes.mkString(",")
 
-  private val relevantTypeSet: Set[TagType] = sortedTypes.toSet ++ StudyPlayer.country.tagTypes.toList
+  private val relevantTypeSet: Set[TagType] =
+    sortedTypes.toSet ++ redToWhite.values ++ StudyPlayer.country.tagTypes.toList
+
+  private val relevantTypesByLowercase: Map[String, TagType] =
+    relevantTypeSet.map(tagType => tagType.toString.toLowerCase -> tagType).toMap
 
   private val typePositions: Map[TagType, Int] = sortedTypes.zipWithIndex.toMap
 
   private def sort(tags: Tags) =
     Tags:
       tags.value.sortBy: t =>
-        typePositions.getOrElse(t.name, Int.MaxValue)
+        typePositions
+          .get(t.name)
+          .orElse(whiteToRed.get(t.name).flatMap(typePositions.get))
+          .getOrElse(Int.MaxValue)

@@ -1,69 +1,96 @@
-import { type Classes, type VNode } from 'snabbdom';
+import { h } from 'snabbdom';
 
-import { bind, button, div, h2, img, p } from 'lib/view';
+import { bind } from 'lib/view';
 
-import chessground from '../chessground';
 import type { LearnCtrl } from '../ctrl';
-import type { LevelCtrl } from '../levelCtrl';
 import { mapSideView } from '../mapSideView';
-import { makeStars, progressView } from '../progressView';
-import { promotionView } from '../promotionView';
-import { withLinebreaks } from '../util';
-import congrats from './congrats';
-import type { RunCtrl } from './runCtrl';
-import stageComplete from './stageComplete';
-import stageStarting from './stageStarting';
-
-const renderFailed = (ctrl: RunCtrl): VNode =>
-  div('.result.failed', { hook: bind('click', ctrl.restart) }, [
-    h2(i18n.learn.puzzleFailed),
-    button(i18n.learn.retry),
-  ]);
-
-const renderCompleted = (level: LevelCtrl): VNode =>
-  div(
-    '.result.completed',
-    {
-      class: { next: !!level.blueprint.nextButton },
-      hook: bind('click', level.onComplete),
-    },
-    [
-      h2(congrats()),
-      level.blueprint.nextButton ? button(i18n.learn.next) : makeStars(level.blueprint, level.vm.score),
-    ],
-  );
+import { progressView } from '../progressView';
+import xiangqiBoard from '../xiangqiBoard';
 
 export const runView = (ctrl: LearnCtrl) => {
-  const runCtrl = ctrl.runCtrl;
-  const { stage, levelCtrl } = runCtrl;
-  const rootClass: Classes = {
-    starting: !!levelCtrl.vm.starting,
-    completed: levelCtrl.vm.completed && !levelCtrl.blueprint.nextButton,
-    'last-step': levelCtrl.vm.lastStep,
-    'piece-values': !!levelCtrl.blueprint.showPieceValues,
-  };
-  if (stage.cssClass) rootClass[stage.cssClass] = true;
-  if (levelCtrl.blueprint.cssClass) rootClass[levelCtrl.blueprint.cssClass] = true;
-  return div('.learn.learn--run', { class: rootClass }, [
-    div('.learn__side', mapSideView(ctrl)),
-    div('.learn__main.main-board', { class: { apples: levelCtrl.isAppleLevel() } }, [
-      runCtrl.stageStarting() ? stageStarting(runCtrl) : null,
-      runCtrl.stageCompleted() ? stageComplete(runCtrl) : null,
-      chessground(ctrl.runCtrl),
-      promotionView(ctrl.runCtrl),
-    ]),
-    div('.learn__table', [
-      div('.wrap', [
-        div('.title', [
-          img(stage.image, '')(),
-          div('.text', [h2(stage.title), p('.subtitle', stage.subtitle)]),
+  const run = ctrl.runCtrl;
+  const { stage, level } = run;
+  const boardContent =
+    run.validation === 'ready'
+      ? [
+          xiangqiBoard(run),
+          h('div.learn-board-caption', [
+            h('span', 'Red moves from the bottom · pieces stand on intersections'),
+            level.reading
+              ? h('span.reading-chip', 'Guided reading')
+              : h('span.move-chip', 'Play the gold-star move'),
+          ]),
+        ]
+      : [
+          h(
+            `section.lesson-validation-state.${run.validation}`,
+            { attrs: { 'aria-live': 'polite' } },
+            run.validation === 'loading'
+              ? [
+                  h('span.validation-spinner'),
+                  h('strong', 'Checking this lesson with the Xiangqi rules engine…'),
+                ]
+              : [
+                  h('strong', 'This lesson position was rejected'),
+                  h('p', run.validationError),
+                  h('button.button', { hook: bind('click', run.retryValidation) }, 'Check again'),
+                ],
+          ),
+        ];
+  return h('div.learn.learn--run.xiangqi-learn-run', [
+    h('div.learn__side', mapSideView(ctrl)),
+    h('div.learn__main', boardContent),
+    h('aside.learn__table', [
+      h('div.wrap', [
+        h('header.title', [
+          h('img', { attrs: { src: stage.image, alt: '' } }),
+          h('div.text', [
+            h('span.lesson-code', stage.code),
+            h('h2', stage.title),
+            h('p.subtitle', stage.subtitle),
+          ]),
         ]),
-        levelCtrl.vm.failed
-          ? renderFailed(runCtrl)
-          : levelCtrl.vm.completed
-            ? renderCompleted(levelCtrl)
-            : div('.goal', withLinebreaks(levelCtrl.blueprint.goal)),
-        progressView(runCtrl),
+        h('div.lesson-copy', [
+          h('span.level-kicker', `Lesson ${level.id} of ${stage.levels.length}`),
+          h('h3', level.title),
+          level.notation ? h('code.notation', level.notation) : null,
+          h('p.goal', level.goal),
+          h('p.explanation', level.explanation),
+          level.culture
+            ? h('blockquote.culture-note', [h('strong', 'Culture & language'), h('span', level.culture)])
+            : null,
+        ]),
+        run.validation === 'loading'
+          ? h('div.lesson-validation.pending', { attrs: { 'aria-live': 'polite' } }, 'Validating position…')
+          : run.validation === 'invalid'
+            ? h('div.result.failed', [
+                h('strong', 'Lesson unavailable until its position passes Xiangqi validation.'),
+                h('button.button', { hook: bind('click', run.retryValidation) }, 'Check again'),
+              ])
+            : run.failed
+              ? h('div.result.failed', [
+                  h('strong', 'That path does not match this example.'),
+                  h('button.button', { hook: bind('click', run.restart) }, 'Reset position'),
+                ])
+              : run.completed
+                ? h('div.result.completed', [
+                    h('strong', run.stageCompleted() ? 'Course section complete' : 'Lesson complete'),
+                    h(
+                      'button.button',
+                      { hook: bind('click', run.next) },
+                      run.level.id < stage.levels.length ? 'Next lesson' : 'Next section',
+                    ),
+                  ])
+                : level.reading
+                  ? h(
+                      'div.lesson-action',
+                      h('button.button', { hook: bind('click', run.completeReading) }, 'I understand'),
+                    )
+                  : h('div.lesson-hint', [
+                      h('span.target-star', '★'),
+                      h('span', 'Follow the arrow to the gold star.'),
+                    ]),
+        progressView(run),
       ]),
     ]),
   ]);

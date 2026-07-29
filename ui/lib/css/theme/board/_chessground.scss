@@ -26,7 +26,7 @@ cg-board::before {
     filter: brightness(calc(var(---board-brightness) / 100)) contrast(calc(var(---board-contrast) / 100))
       hue-rotate(calc(var(---board-hue) * 3.6deg));
 
-    @include if-transp {
+    @include if-background {
       opacity: calc(var(---board-opacity) / 100);
       filter: hue-rotate(calc(var(---board-hue) * 3.6deg)) contrast(calc(var(---board-contrast) / 100));
     }
@@ -59,20 +59,8 @@ square {
     background: radial-gradient(transparent 0%, transparent 79%, rgb(20 30 85 / 0.2) 80%);
   }
 
-  body[data-board='green'] .is2d &.last-move,
-  body[data-board='green-plastic'] .is2d &.last-move,
-  body[data-board='marble'] .is2d &.last-move {
-    background-color: rgb(0 155 199 / 0.41);
-  }
-
   &.last-move {
     will-change: transform;
-    background-color: rgb(155 199 0 / 0.41);
-
-    body[data-board='horsey'] .is2d &:not(.move-dest) {
-      background: url('../images/board/horsey.last-move.png');
-      background-size: cover;
-    }
   }
 
   &.check {
@@ -87,31 +75,16 @@ square {
 
   &.selected {
     background-color: rgb(20 85 30 / 0.5);
-
-    body[data-board='horsey'] .is2d & {
-      background: url('../images/board/horsey.selected.png');
-      background-size: cover;
-    }
   }
 
   &.current-premove {
     background-color: rgb(20 30 85 / 0.5) !important;
-
-    body[data-board='horsey'] .is2d & {
-      background: url('../images/board/horsey.current-premove.png');
-      background-size: cover;
-    }
   }
 
   @media (hover: hover) {
     &.move-dest:hover,
     &.move-dest.hover {
       background: rgb(20 85 30 / 0.3);
-
-      body[data-board='horsey'] .is2d & {
-        background: url('../images/board/horsey.move-dest.png');
-        background-size: cover;
-      }
     }
 
     &.premove-dest:hover,
@@ -206,7 +179,7 @@ cg-auto-pieces {
   }
 }
 
-html:not(.transp) body:not(.simple-board) {
+html:not(.has-background) body:not(.simple-board) {
   &.coords-in coord,
   cg-board piece,
   cg-board square,
@@ -216,7 +189,7 @@ html:not(.transp) body:not(.simple-board) {
   }
 }
 
-html.transp body:not(.simple-board) cg-board {
+html.has-background body:not(.simple-board) cg-board {
   piece,
   square {
     opacity: calc(min(1, 0.5 + var(---board-opacity) / 100));
@@ -270,3 +243,5 @@ coords.squares {
     transform: translateX(700%);
   }
 }
+
+@import 'xiangqi';

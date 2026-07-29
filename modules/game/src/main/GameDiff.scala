@@ -1,12 +1,11 @@
 package lila.game
 
-import chess.{ Black, Centis, CheckCount, Clock, Color, White }
+import chess.{ Black, Centis, Clock, Color, White }
 import reactivemongo.api.bson.*
 
 import scala.util.Try
 
 import lila.core.game.{ Game, Player }
-import lila.db.ByteArray
 import lila.db.ByteArray.given
 import lila.db.dsl.given
 import lila.game.Game.BSONFields.*
@@ -57,27 +56,7 @@ object GameDiff:
         byteArrayHandler.writeOpt(BinaryFormat.clockHistory.writeSide(x, y, z))
       }
 
-    if a.variant.standard then dTry(huffmanPgn, _.sans, writeBytes.compose(PgnStorage.Huffman.encode))
-    else
-      val f = PgnStorage.OldBin
-      dTry(oldPgn, _.sans, writeBytes.compose(f.encode))
-      dTry(binaryPieces, _.position.pieces, writeBytes.compose(BinaryFormat.piece.write))
-      d(positionHashes, _.history.positionHashes, ph => w.bytes(ph.value))
-      dTry(unmovedRooks, _.history.unmovedRooks, writeBytes.compose(BinaryFormat.unmovedRooks.write))
-      dTry(castleLastMove, makeCastleLastMove, CastleLastMove.castleLastMoveHandler.writeTry)
-      // since variants are always OldBin
-      if a.variant.threeCheck then
-        dOpt(
-          checkCount,
-          _.history.checkCount,
-          (o: CheckCount) => o.nonEmpty.so { BSONHandlers.checkCountWriter.writeOpt(o) }
-        )
-      if a.variant.crazyhouse then
-        dOpt(
-          crazyData,
-          _.position.crazyData,
-          (o: Option[chess.variant.Crazyhouse.Data]) => o.map(BSONHandlers.crazyhouseDataHandler.write)
-        )
+    dTry(xiangqi, _.xiangqi, BSONHandlers.xiangqiGameHandler.writeTry)
     d(turns, _.ply, ply => w.int(ply.value))
     dOpt(moveTimes, _.binaryMoveTimes, (o: Option[Array[Byte]]) => o.flatMap(arrayByteHandler.writeOpt))
     dOpt(whiteClockHistory, getClockHistory(White), clockHistoryToBytes)
@@ -103,11 +82,3 @@ object GameDiff:
     (setBuilder.toList, unsetBuilder.toList)
 
   private val bTrue = BSONBoolean(true)
-
-  private val writeBytes = byteArrayHandler.writeTry
-
-  private def makeCastleLastMove(g: Game) =
-    CastleLastMove(
-      lastMove = g.history.lastMove,
-      castles = g.history.castles
-    )

@@ -84,13 +84,12 @@ Allow: /game/export/gif/thumbnail/
     s"https://lichess.myspreadshop.$tld/"
 
   val variantsJson =
-    JsArray(chess.variant.Variant.list.all.map { v =>
+    JsArray(List(chess.variant.Standard).map: variant =>
       Json.obj(
-        "id" -> v.id,
-        "key" -> v.key,
-        "name" -> v.name
-      )
-    })
+        "id" -> variant.id,
+        "key" -> variant.key,
+        "name" -> variant.name
+      ))
 
   def legacyQaQuestion(id: Int) =
     val faq = routes.Main.faq.url

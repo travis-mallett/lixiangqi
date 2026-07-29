@@ -1,6 +1,6 @@
 package lila.tournament
 
-import chess.variant.{ FromPosition, Standard, Variant }
+import chess.variant.Variant
 
 import lila.db.dsl.{ *, given }
 
@@ -46,9 +46,8 @@ case class AllWinners(
   lazy val top: List[Winner] = List(
     List(hyperbullet, bullet, superblitz, blitz, rapid).flatMap(_.top),
     List(elite.headOption, marathon.headOption).flatten,
-    WinnersApi.variants.flatMap { v =>
-      variants.get(v.key).flatMap(_.top)
-    }
+    WinnersApi.variants.flatMap: variant =>
+      variants.get(variant.key).flatMap(_.top)
   ).flatten
 
   lazy val userIds =
@@ -67,7 +66,11 @@ final class WinnersApi(
   private given BSONDocumentHandler[Winner] = Macros.handler
   private given BSONDocumentHandler[FreqWinners] = Macros.handler
   private given BSONHandler[Map[Variant.LilaKey, FreqWinners]] = typedMapHandler[Variant.LilaKey, FreqWinners]
-  private given BSONDocumentHandler[AllWinners] = Macros.handler
+  private given BSONDocumentHandler[AllWinners] = Macros
+    .handler[AllWinners]
+    .beforeRead: doc =>
+      if doc.contains("variants") then doc
+      else doc ++ BSONDocument("variants" -> BSONDocument.empty)
 
   private def fetchLastFreq(freq: Freq, since: Instant): Fu[List[Tournament]] =
     tournamentRepo.coll
@@ -114,18 +117,19 @@ final class WinnersApi(
         rapid = standardFreqWinners(Speed.Rapid),
         elite = elites.flatMap(_.winner).take(4),
         marathon = marathons.flatMap(_.winner).take(4),
-        variants = WinnersApi.variants.view.map { v =>
-          v.key -> FreqWinners(
-            yearly = firstVariantWinner(yearlies, v),
-            monthly = firstVariantWinner(monthlies, v),
-            weekly = firstVariantWinner(weeklies, v),
-            daily = firstVariantWinner(dailies, v)
-          )
-        }.toMap
+        variants = WinnersApi.variants.view
+          .map: variant =>
+            variant.key -> FreqWinners(
+              yearly = firstVariantWinner(yearlies, variant),
+              monthly = firstVariantWinner(monthlies, variant),
+              weekly = firstVariantWinner(weeklies, variant),
+              daily = firstVariantWinner(dailies, variant)
+            )
+          .toMap
       )
 
   private val allCache = mongoCache.unit[AllWinners](
-    "tournament:winner:all",
+    "tournament:winner:all:xiangqi:v1",
     59.minutes
   ): loader =>
     _.refreshAfterWrite(1.hour).buildAsyncFuture(loader(_ => fetchAll))
@@ -142,6 +146,4 @@ final class WinnersApi(
 
 object WinnersApi:
 
-  val variants = Variant.list.all.filter:
-    case Standard | FromPosition => false
-    case _ => true
+  val variants: List[Variant] = Nil

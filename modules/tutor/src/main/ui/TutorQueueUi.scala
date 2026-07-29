@@ -1,8 +1,6 @@
 package lila.tutor
 package ui
 
-import chess.format.pgn.PgnStr
-
 import lila.ui.*
 import lila.ui.ScalatagsTemplate.{ *, given }
 
@@ -20,16 +18,18 @@ final class TutorQueueUi(helpers: Helpers, bits: TutorBits):
   def waitingGames(a: TutorQueue.Awaiting) =
     div(cls := "tutor__waiting__games", attrData("tutor-user") := a.config.user):
       div(cls := "tutor__waiting__games__carousel"):
-        a.games.map: (pov, pgn) =>
-          div(
-            cls := "tutor__waiting-game is2d lpv lpv--todo lpv--moves-false lpv--controls-false",
-            st.data("pgn") := pgn,
-            st.data("pov") := pov.color.name
+        a.games.map: pov =>
+          xiangqiGroundMini(
+            pov.game.xiangqi.state.fen,
+            pov.color,
+            pov.game.xiangqi.moves.lastOption.map(_.value)
+          )(
+            div(cls := "tutor__waiting-game is2d")
           )
 
   def whatTutorIsAbout = frag(
     h2("What are your strengths and weaknesses?"),
-    p("Lichess can examine your games and compare your playstyle to other players with similar rating."),
+    p("Lixiangqi can examine your games and compare your playstyle to other players with similar rating."),
     br,
     p(
       "Tutor is all about statistical analysis and comparison to peers.",

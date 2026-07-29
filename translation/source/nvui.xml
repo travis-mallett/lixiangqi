@@ -51,8 +51,8 @@
   <string name="sanCheck" comment="+ in standard notation">check</string>
   <string name="sanCheckmate" comment="# in standard notation">checkmate</string>
   <string name="sanPromotesTo" comment="= in standard notation">promotes to</string>
-  <string name="sanShortCastling" comment="O-O in standard notation">short castling</string>
-  <string name="sanLongCastling" comment="O-O-O in standard notation">long castling</string>
+  <string name="sanShortCastling" comment="O-O in standard notation">short move</string>
+  <string name="sanLongCastling" comment="O-O-O in standard notation">long move</string>
   <string name="sanDroppedOn" comment="crazyhouse @">is dropped on</string>
   <string name="invalidMove">Invalid move</string>
   <string name="premoveCancelled">Premove cancelled</string>

@@ -134,7 +134,6 @@ object Schedule:
 
   private[tournament] def durationFor(s: Schedule): Int =
     import Freq.*, Speed.*
-    import chess.variant.*
 
     (s.freq, s.variant, s.speed) match
 
@@ -143,8 +142,8 @@ object Schedule:
       case (Hourly, _, Rapid) if s.hasMaxRating => 57
       case (Hourly, _, Rapid | Classical) => 117
 
-      case (Daily | Eastern, Standard, SuperBlitz) => 90
-      case (Daily | Eastern, Standard, Blitz) => 120
+      case (Daily | Eastern, chess.variant.Standard, SuperBlitz) => 90
+      case (Daily | Eastern, chess.variant.Standard, Blitz) => 120
       case (Daily | Eastern, _, Blitz | ChillBlitz) => 90
       case (Daily | Eastern, _, Rapid | Classical) => 150
       case (Daily | Eastern, _, _) => 60
@@ -180,7 +179,7 @@ object Schedule:
       case (Yearly, _, Rapid) => 60 * 8
       case (Yearly, _, Classical) => 60 * 10
 
-      case (Marathon, _, _) => 60 * 24 // lol
+      case (Marathon, _, _) => 60 * 24
       case (ExperimentalMarathon, _, _) => 60 * 4
 
       case (Unique, _, _) => 60 * 6
@@ -196,19 +195,15 @@ object Schedule:
 
   private[tournament] def clockFor(s: Schedule) =
     import Freq.*, Speed.*
-    import chess.variant.*
 
     val TC = chess.Clock.Config
 
     (s.freq, s.variant, s.speed) match
       // Special cases.
-      case (Hourly, Standard, Blitz) if blitzInc(s) => TC(3 * 60, 2)
-      case (Hourly, Standard, Rapid) if rapidInc(s) => TC(8 * 60, 2)
-      case (Hourly, Standard, Bullet) if s.hasMaxRating && bottomOfHour(s) => TC(60, 1)
-      case (_, Chess960, ChillBlitz) => TC(5 * 60, 3)
-      case (_, Chess960, Rapid) => TC(10 * 60, 2)
+      case (Hourly, chess.variant.Standard, Blitz) if blitzInc(s) => TC(3 * 60, 2)
+      case (Hourly, chess.variant.Standard, Rapid) if rapidInc(s) => TC(8 * 60, 2)
+      case (Hourly, chess.variant.Standard, Bullet) if s.hasMaxRating && bottomOfHour(s) => TC(60, 1)
       case (_, variant, Blitz) if variant.exotic => TC(3 * 60, 2)
-      case (Hourly, Antichess | Atomic, Bullet) if bottomOfHour(s) => TC(0, 2)
       case (Hourly, variant, HippoBullet) if variant.exotic => TC(60, 2)
 
       case (_, _, UltraBullet) => TC(15, 0)
@@ -244,7 +239,6 @@ object Schedule:
       ).some.filter(0 <).map(Condition.NbRatedGame.apply)
 
       val minRating = ((s.freq, s.variant) match
-        case (Weekend, chess.variant.Crazyhouse) => 2100
         case (Weekend, _) => 2200
         case _ => 0
       ).some.filter(0 <).map(v => Condition.MinRating(IntRating(v)))

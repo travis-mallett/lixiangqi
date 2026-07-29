@@ -16,6 +16,7 @@
     "@types/zxcvbn": "^4.4.5",
     "@yaireo/tagify": "4.17.9",
     "canvas-confetti": "^1.9.4",
+    "chessgroundx": "10.7.5",
     "cropperjs": "1.6.2",
     "crypto-random-string": "^5",
     "debounce-promise": "^3.1.2",

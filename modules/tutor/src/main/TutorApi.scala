@@ -30,7 +30,13 @@ final class TutorApi(
     s"${TutorFullReport.F.perfs}.stats" -> true
   )
   def previews(userId: UserId): Fu[List[TutorFullReport.Preview]] = colls.report:
-    _.find($doc(TutorFullReport.F.user -> userId), previewProjection.some)
+    _.find(
+      $doc(
+        TutorFullReport.F.user -> userId,
+        TutorFullReport.F.version -> TutorFullReport.schemaVersion
+      ),
+      previewProjection.some
+    )
       .sort($sort.desc(TutorFullReport.F.at))
       .cursor[TutorFullReport.Preview]()
       .list(16)
@@ -67,4 +73,6 @@ final class TutorApi(
     _.expireAfterAccess(2.minutes).buildAsyncFuture(findByConfig)
 
   private def findByConfig(config: TutorConfig) = colls.report:
-    _.find($id(config.id)).one[TutorFullReport]
+    _.find(
+      $id(config.id) ++ $doc(TutorFullReport.F.version -> TutorFullReport.schemaVersion)
+    ).one[TutorFullReport]

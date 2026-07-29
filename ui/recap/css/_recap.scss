@@ -155,6 +155,12 @@ body {
   margin: 2em 0;
 }
 
+.recap__brand {
+  font-size: 3em;
+  font-weight: bold;
+  letter-spacing: 0.04em;
+}
+
 .recap--massive {
   @extend %flex-column;
 
@@ -238,6 +244,12 @@ body {
     display: none;
   }
 
+  .logo {
+    font-size: 1.5em;
+    font-weight: bold;
+    letter-spacing: 0.04em;
+  }
+
   .grid {
     display: flex;
     flex-wrap: wrap;
@@ -251,17 +263,6 @@ body {
           margin-right: 0.2em;
         }
       }
-    }
-  }
-
-  .openings {
-    margin-top: 1em;
-    display: flex;
-
-    .stat {
-      flex: 50%;
-      font-size: 0.8em;
-      margin-top: 1em;
     }
   }
 }
@@ -309,14 +310,6 @@ body {
   .recap__shareable {
     .logo {
       height: 40px;
-    }
-
-    .openings {
-      margin-top: 2em;
-
-      .stat {
-        font-size: 1em;
-      }
     }
   }
 }
@@ -400,16 +393,6 @@ body {
 
   .trophy {
     height: 1em;
-  }
-}
-
-@media (max-width: at-most($xx-small)) {
-  .recap__slide--lichess-games {
-    .recap--massive {
-      strong {
-        font-size: 2em;
-      }
-    }
   }
 }
 

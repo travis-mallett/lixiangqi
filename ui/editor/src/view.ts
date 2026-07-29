@@ -1,502 +1,253 @@
-import { dragNewPiece } from '@lichess-org/chessground/drag';
-import type { MouchEvent, NumberPair } from '@lichess-org/chessground/types';
-import { eventPosition, opposite } from '@lichess-org/chessground/util';
-import { lichessRules } from 'chessops/compat';
-import { parseFen } from 'chessops/fen';
-import { parseSquare, makeSquare } from 'chessops/util';
-import { h, type VNode } from 'snabbdom';
+import type { Color, MouchEvent, Piece, Role } from 'chessgroundx/types';
 
-import { fenToEpd } from 'lib/game/chess';
-import { licon, type LiconValue } from 'lib/licon';
-import { copyMeInput, dataIcon, domDialog, enter, optgroup } from 'lib/view';
-import { url as xhrUrl } from 'lib/xhr';
-
-import { fenToChess960Id, isValidPositionId } from './chess960';
-import chessground from './chessground';
+import { dragPiece, makeGround } from './chessground';
 import type EditorCtrl from './ctrl';
-import type { Selected, CastlingToggle, EditorState, EndgamePosition, OpeningPosition } from './interfaces';
+import type { Selected } from './interfaces';
 
-function castleCheckBox(ctrl: EditorCtrl, id: CastlingToggle, label: string, reversed: boolean): VNode {
-  const input = h('input', {
-    class: { 'not-allowed': !ctrl.enabledCastlingToggles[id] },
-    attrs: { type: 'checkbox' },
-    props: {
-      checked: ctrl.castlingToggles[id] && ctrl.enabledCastlingToggles[id],
-      disabled: !ctrl.enabledCastlingToggles[id],
-    },
-    on: {
-      change(e) {
-        ctrl.setCastlingToggle(id, (e.target as HTMLInputElement).checked);
-      },
-    },
-  });
-  return h('label', reversed ? [input, label] : [label, input]);
-}
-
-function studyButton(ctrl: EditorCtrl, state: EditorState): VNode {
-  return h('form', { attrs: { method: 'post', action: '/study/as' } }, [
-    h('input', { attrs: { type: 'hidden', name: 'orientation', value: ctrl.bottomColor() } }),
-    h('input', { attrs: { type: 'hidden', name: 'variant', value: lichessRules(ctrl.variant) } }),
-    h('input', { attrs: { type: 'hidden', name: 'fen', value: state.legalFen || '' } }),
-    h(
-      'button',
-      {
-        attrs: { type: 'submit', 'data-icon': licon.StudyBoard, disabled: !state.legalFen },
-        class: { button: true, 'button-empty': true, text: true, disabled: !state.legalFen },
-      },
-      i18n.site.toStudy,
-    ),
-  ]);
-}
-
-function variant2option(key: VariantKey, name: string, ctrl: EditorCtrl): VNode {
-  return h(
-    'option',
-    { attrs: { value: key, selected: key === ctrl.variant } },
-    `${i18n.site.variant} | ${name}`,
-  );
-}
-
-const allVariants: Array<[VariantKey, string]> = [
-  ['standard', i18n.variant.standard],
-  ['chess960', i18n.variant.chess960],
-  ['kingOfTheHill', i18n.variant.kingOfTheHill],
-  ['threeCheck', i18n.variant.threeCheck],
-  ['crazyhouse', i18n.variant.crazyhouse],
-  ['antichess', i18n.variant.antichess],
-  ['atomic', i18n.variant.atomic],
-  ['horde', i18n.variant.horde],
-  ['racingKings', i18n.variant.racingKings],
+const pieces: Array<{ role: Role; name: string }> = [
+  { role: 'k-piece', name: 'General' },
+  { role: 'a-piece', name: 'Advisor' },
+  { role: 'b-piece', name: 'Elephant' },
+  { role: 'n-piece', name: 'Horse' },
+  { role: 'r-piece', name: 'Chariot' },
+  { role: 'c-piece', name: 'Cannon' },
+  { role: 'p-piece', name: 'Soldier' },
 ];
 
-function controls(ctrl: EditorCtrl, state: EditorState): VNode {
-  const endgamePosition2option = function (pos: EndgamePosition): VNode {
-    return h('option', { attrs: { value: pos.epd || pos.fen, 'data-fen': pos.fen } }, pos.name);
-  };
+export default class EditorView {
+  private fenInput?: HTMLInputElement;
+  private urlInput?: HTMLInputElement;
+  private status?: HTMLElement;
+  private analysisLink?: HTMLAnchorElement;
+  private aiLink?: HTMLAnchorElement;
+  private friendLink?: HTMLAnchorElement;
+  private readonly paletteButtons: HTMLElement[] = [];
 
-  const buttonStart = (icon?: LiconValue) =>
-    h(
-      `button.button.button-empty${icon ? '.text' : ''}`,
-      {
-        on: {
-          click(e) {
-            e.preventDefault();
-            ctrl.startPosition();
-          },
-        },
-        attrs: { type: 'button', ...(icon ? dataIcon(icon) : {}) },
-      },
-      i18n.site.startPosition,
+  constructor(
+    private readonly root: HTMLElement,
+    private readonly ctrl: EditorCtrl,
+  ) {}
+
+  mount(): void {
+    this.root.replaceChildren();
+    const editor = element('div', 'board-editor board-editor--xiangqi');
+    editor.append(this.palette('black', 'top'));
+
+    const board = element('div', 'main-board xiangqi9x10');
+    const wrap = element('div', 'cg-wrap xiangqi9x10');
+    board.append(wrap);
+    editor.append(board);
+
+    editor.append(this.palette('white', 'bottom'));
+    editor.append(this.controls());
+    if (!this.ctrl.cfg.embed) editor.append(this.copyables());
+    this.root.append(editor);
+
+    makeGround(wrap, this.ctrl);
+    this.update();
+  }
+
+  update(): void {
+    const state = this.ctrl.state;
+    if (this.fenInput && document.activeElement !== this.fenInput) this.fenInput.value = state.fen;
+    if (this.urlInput) this.urlInput.value = this.editorUrl();
+    if (this.status)
+      this.status.textContent = state.validating
+        ? 'Validating with the native Xiangqi rules boundary…'
+        : state.legalFen
+          ? state.playable
+            ? 'Playable Xiangqi position'
+            : 'Valid Xiangqi position; the game is already over'
+          : 'Invalid Xiangqi position';
+
+    const legalFen = state.legalFen;
+    this.setLink(
+      this.analysisLink,
+      legalFen ? `/analysis?fen=${encodeURIComponent(legalFen)}&color=${this.ctrl.orientation}` : undefined,
     );
-  const buttonClear = (icon?: LiconValue) =>
-    h(
-      `button.button.button-empty${icon ? '.text' : ''}`,
-      {
-        on: {
-          click(e) {
-            e.preventDefault();
-            ctrl.clearBoard();
-          },
-        },
-        attrs: { type: 'button', ...(icon ? dataIcon(icon) : {}) },
-      },
-      i18n.site.clearBoard,
+    this.setLink(this.aiLink, state.playable ? `/?fen=${encodeURIComponent(legalFen!)}#ai` : undefined);
+    this.setLink(
+      this.friendLink,
+      state.playable ? `/?fen=${encodeURIComponent(legalFen!)}#friend` : undefined,
     );
 
-  const chess960PositionIdSelector =
-    ctrl.variant !== 'chess960'
-      ? null
-      : h('div.metadata', [
-          h('div.chess960-position-row', [
-            h(
-              'label.form-label',
-              {
-                attrs: { for: 'chess960-position-id' },
-              },
-              'Chess960 position',
-            ),
-            h('input#chess960-position-id', {
-              attrs: { minlength: 1, maxlength: 3, type: 'number', min: '0', max: '959' },
-              props: {
-                value: ctrl.chess960PositionId,
-              },
-              on: {
-                change(e) {
-                  const value = (e.target as HTMLSelectElement).value;
-                  if (!/^\d+$/.test(value)) return;
-                  const candidateId = parseInt(value);
-                  if (!isValidPositionId(candidateId)) return;
-                  ctrl.set960Position(candidateId);
-                },
-                keydown: enter(target => target.blur()),
-              },
-            }),
-            h('button.button.button-empty', {
-              attrs: { type: 'button', title: i18n.site.randomChess960Position, ...dataIcon(licon.DieSix) },
-              on: {
-                click(e) {
-                  e.preventDefault();
-                  ctrl.setRandom960Position();
-                },
-              },
-            }),
-          ]),
-        ]);
-
-  return h('div.board-editor__tools', [
-    h('div.metadata', [
-      h(
-        'div.color',
-        h(
-          'select',
-          {
-            on: {
-              change(e) {
-                ctrl.setTurn((e.target as HTMLSelectElement).value as Color);
-              },
-            },
-            props: { value: ctrl.turn },
-          },
-          (['whitePlays', 'blackPlays'] as const).map(function (key) {
-            return h(
-              'option',
-              {
-                attrs: {
-                  value: key.startsWith('w') ? 'white' : 'black',
-                  selected: key.startsWith(ctrl.turn[0]),
-                },
-              },
-              i18n.site[key],
-            );
-          }),
-        ),
-      ),
-      h('div.castling', [
-        h('strong', i18n.site.castling),
-        h('div', [
-          castleCheckBox(ctrl, 'K', i18n.site.whiteCastlingKingside, !!ctrl.options.inlineCastling),
-          castleCheckBox(ctrl, 'Q', 'O-O-O', true),
-        ]),
-        h('div', [
-          castleCheckBox(ctrl, 'k', i18n.site.blackCastlingKingside, !!ctrl.options.inlineCastling),
-          castleCheckBox(ctrl, 'q', 'O-O-O', true),
-        ]),
-      ]),
-      h('div.enpassant', [
-        h('label', { attrs: { for: 'enpassant-select' } }, i18n.site.enPassant),
-        h(
-          'select#enpassant-select',
-          {
-            on: {
-              change(e) {
-                ctrl.setEnPassant(parseSquare((e.target as HTMLSelectElement).value));
-              },
-            },
-            props: { value: ctrl.epSquare ? makeSquare(ctrl.epSquare) : '' },
-          },
-          ['', ...[ctrl.turn === 'black' ? 3 : 6].flatMap(r => 'abcdefgh'.split('').map(f => f + r))].map(
-            key =>
-              h(
-                'option',
-                {
-                  attrs: {
-                    value: key,
-                    selected: (key ? parseSquare(key) : undefined) === ctrl.epSquare,
-                    hidden: Boolean(key && !state.enPassantOptions.includes(key)),
-                    disabled: Boolean(key && !state.enPassantOptions.includes(key)) /*Safari*/,
-                  },
-                },
-                key,
-              ),
-          ),
-        ),
-      ]),
-    ]),
-    ...(ctrl.cfg.embed || !ctrl.cfg.positions || !ctrl.cfg.endgamePositions
-      ? []
-      : [
-          (() => {
-            const positionOption = (pos: OpeningPosition): VNode =>
-              h(
-                'option',
-                { attrs: { value: pos.epd || pos.fen, 'data-fen': pos.fen } },
-                pos.eco ? `${pos.eco} ${pos.name}` : pos.name,
-              );
-            const epd = fenToEpd(state.fen);
-            const value =
-              (
-                ctrl.cfg.positions.find(p => p.fen.startsWith(epd)) ||
-                ctrl.cfg.endgamePositions.find(p => p.epd === epd)
-              )?.epd || '';
-            return h(
-              'select.positions',
-              {
-                props: { value },
-                on: {
-                  insert(vnode) {
-                    (vnode.elm as HTMLSelectElement).value = fenToEpd(state.fen);
-                  },
-                  change(e) {
-                    const el = e.target as HTMLSelectElement;
-                    const value = el.selectedOptions[0].getAttribute('data-fen');
-                    if (!value || !ctrl.setFen(value)) el.value = '';
-                  },
-                },
-              },
-              [
-                h('option', { attrs: { value: '' } }, i18n.site.setTheBoard),
-                optgroup(i18n.site.popularOpenings)(ctrl.cfg.positions.map(positionOption)),
-                optgroup(i18n.site.endgamePositions)(ctrl.cfg.endgamePositions.map(endgamePosition2option)),
-              ],
-            );
-          })(),
-        ]),
-    ...(ctrl.cfg.embed
-      ? [h('div.actions', [chess960PositionIdSelector, buttonStart(), buttonClear()])]
-      : [
-          h('div', [
-            h(
-              'select',
-              {
-                attrs: { id: 'variants' },
-                on: {
-                  change(e) {
-                    const value = (e.target as HTMLSelectElement).value;
-                    if (value === 'chess960') ctrl.setRandom960Position();
-                    ctrl.setVariant(value as VariantKey);
-                  },
-                },
-              },
-              allVariants.map(x => variant2option(x[0], x[1], ctrl)),
-            ),
-          ]),
-          chess960PositionIdSelector,
-          h('div.actions', [
-            buttonStart(licon.Reload),
-            buttonClear(licon.Trash),
-            h(
-              'button.button.button-empty.text',
-              {
-                attrs: { 'data-icon': licon.ChasingArrows },
-                on: {
-                  click() {
-                    ctrl.chessground!.toggleOrientation();
-                    ctrl.onChange();
-                  },
-                },
-              },
-              i18n.site.flipBoard,
-            ),
-            h(
-              'a',
-              {
-                attrs: {
-                  'data-icon': licon.Microscope,
-                  rel: 'nofollow',
-                  ...(state.legalFen
-                    ? { href: ctrl.makeAnalysisUrl(state.legalFen, ctrl.bottomColor()) }
-                    : {}),
-                },
-                class: {
-                  button: true,
-                  'button-empty': true,
-                  text: true,
-                  disabled: !state.legalFen,
-                },
-              },
-              i18n.site.analysis,
-            ),
-            h(
-              'button',
-              {
-                class: { button: true, 'button-empty': true, disabled: !state.playable },
-                attrs: {
-                  disabled: !state.playable,
-                },
-                on: {
-                  click: () => {
-                    if (state.playable)
-                      domDialog({
-                        cash: $('.continue-with'),
-                        modal: true,
-                        easyClose: 'clickOutside',
-                        show: true,
-                      });
-                  },
-                },
-              },
-              [h('span.text', { attrs: dataIcon(licon.Swords) }, i18n.site.continueFromHere)],
-            ),
-            studyButton(ctrl, state),
-          ]),
-          h('div.continue-with.none', [
-            h(
-              'a.button',
-              { attrs: { href: '/?fen=' + state.legalFen + '#ai', rel: 'nofollow' } },
-              i18n.site.playAgainstComputer,
-            ),
-            h(
-              'a.button',
-              { attrs: { href: '/?fen=' + state.legalFen + '#friend', rel: 'nofollow' } },
-              i18n.site.challengeAFriend,
-            ),
-          ]),
-        ]),
-  ]);
-}
-
-function inputs(ctrl: EditorCtrl, fen: FEN): VNode | undefined {
-  if (ctrl.cfg.embed) return;
-
-  return h('div.copyables', [
-    h('p', [
-      h('strong', 'FEN'),
-      copyMeInput(fen, {
-        inputAttrs: { enterkeyhint: 'done' },
-        on: {
-          change(e) {
-            const el = e.target as HTMLInputElement;
-            ctrl.setFen(el.value.trim());
-            el.reportValidity();
-          },
-          input(e) {
-            const el = e.target as HTMLInputElement;
-            const valid = parseFen(el.value.trim()).isOk;
-            el.setCustomValidity(valid ? '' : 'Invalid FEN');
-          },
-          blur(e) {
-            const el = e.target as HTMLInputElement;
-            el.value = ctrl.getFen();
-            el.setCustomValidity('');
-          },
-          keypress: enter<HTMLInputElement>(el => {
-            const candidateChess960Id = fenToChess960Id(el.value.trim());
-            if (candidateChess960Id !== undefined) {
-              ctrl.chess960PositionId = candidateChess960Id;
-            }
-            el.blur();
-          }),
-        },
-      }),
-    ]),
-    h('p', [
-      h('strong.name', 'URL'),
-      copyMeInput(ctrl.makeEditorUrl(fen, ctrl.bottomColor()), { inputAttrs: { readonly: true } }),
-    ]),
-    h(
-      'a',
-      {
-        attrs: {
-          href: xhrUrl(`${site.asset.baseUrl()}/export/fen.gif`, {
-            fen: ctrl.urlFen(fen),
-            color: ctrl.bottomColor(),
-            theme: document.body.dataset.board,
-            piece: document.body.dataset.pieceSet,
-          }),
-          download: true,
-        },
-      },
-      'SCREENSHOT',
-    ),
-  ]);
-}
-
-// can be 'pointer', 'trash', or [color, role]
-function selectedToClass(s: Selected): string {
-  return s === 'pointer' || s === 'trash' ? s : s.join(' ');
-}
-
-let lastTouchMovePos: NumberPair | undefined;
-
-function sparePieces(ctrl: EditorCtrl, color: Color, _orientation: Color, position: 'top' | 'bottom'): VNode {
-  const selectedClass = selectedToClass(ctrl.selected());
-
-  const pieces = ['king', 'queen', 'rook', 'bishop', 'knight', 'pawn'].map(function (role) {
-    return [color, role];
-  });
-
-  return h(
-    'div',
-    { attrs: { class: ['spare', 'spare-' + position, 'spare-' + color].join(' ') } },
-    ['pointer', ...pieces, 'trash'].map((s: Selected) => {
-      const className = selectedToClass(s);
-      const attrs = {
-        class: className,
-        ...(s !== 'pointer' && s !== 'trash'
-          ? {
-              'data-color': s[0],
-              'data-role': s[1],
-            }
-          : {}),
-      };
-      const selectedSquare =
-        selectedClass === className && !ctrl.chessground?.state.draggable.current?.newPiece;
-      return h(
-        'div',
-        {
-          class: {
-            'no-square': true,
-            pointer: s === 'pointer',
-            trash: s === 'trash',
-            'selected-square': selectedSquare,
-          },
-          on: {
-            mousedown: onSelectSparePiece(ctrl, s, 'mouseup'),
-            touchstart: onSelectSparePiece(ctrl, s, 'touchend'),
-            touchmove: e => {
-              lastTouchMovePos = eventPosition(e);
-            },
-          },
-        },
-        [h('div', [h('piece', { attrs })])],
+    this.paletteButtons.forEach(button => {
+      button.classList.toggle(
+        'selected-square',
+        button.dataset.selection === selectionKey(this.ctrl.selected),
       );
-    }),
-  );
+    });
+  }
+
+  destroy(): void {
+    this.ctrl.ground?.destroy();
+    this.root.replaceChildren();
+  }
+
+  private palette(color: Color, position: 'top' | 'bottom'): HTMLElement {
+    const palette = element('div', `spare spare-${position} spare-${color}`);
+    palette.setAttribute('aria-label', `${color === 'white' ? 'Red' : 'Black'} pieces`);
+    palette.append(this.selectionButton('pointer', 'Move pieces'));
+    pieces.forEach(piece => palette.append(this.pieceButton({ color, role: piece.role }, piece.name)));
+    palette.append(this.selectionButton('trash', 'Remove pieces'));
+    return palette;
+  }
+
+  private selectionButton(selected: 'pointer' | 'trash', label: string): HTMLElement {
+    const button = element('button', `no-square ${selected}`);
+    button.type = 'button';
+    button.title = label;
+    button.setAttribute('aria-label', label);
+    button.dataset.selection = selected;
+    const square = element('div');
+    square.append(pieceElement(selected));
+    button.append(square);
+    button.addEventListener('click', () => this.ctrl.select(selected));
+    this.paletteButtons.push(button);
+    return button;
+  }
+
+  private pieceButton(piece: Piece, name: string): HTMLElement {
+    const button = element('button', 'no-square');
+    button.type = 'button';
+    button.title = `${piece.color === 'white' ? 'Red' : 'Black'} ${name}`;
+    button.setAttribute('aria-label', button.title);
+    button.dataset.selection = selectionKey(piece);
+    const square = element('div');
+    square.append(pieceElement(`${piece.role} ${piece.color}`));
+    button.append(square);
+    const selectAndDrag = (event: MouchEvent): void => {
+      this.ctrl.select(piece);
+      if (this.ctrl.ground) dragPiece(this.ctrl.ground, piece, event);
+    };
+    button.addEventListener('mousedown', selectAndDrag);
+    button.addEventListener('touchstart', selectAndDrag, { passive: false });
+    this.paletteButtons.push(button);
+    return button;
+  }
+
+  private controls(): HTMLElement {
+    const tools = element('div', 'board-editor__tools');
+    const metadata = element('div', 'metadata');
+    const turnLabel = document.createElement('label');
+    turnLabel.textContent = 'Side to move';
+    const turn = document.createElement('select');
+    turn.append(option('white', 'Red'), option('black', 'Black'));
+    turn.value = this.ctrl.turn;
+    turn.addEventListener('change', () => this.ctrl.setTurn(turn.value as Color));
+    turnLabel.append(turn);
+    this.status = element('p', 'board-editor__status');
+    this.status.setAttribute('aria-live', 'polite');
+    metadata.append(turnLabel, this.status);
+
+    const actions = element('div', 'actions');
+    actions.append(
+      actionButton('Starting position', () => this.ctrl.startPosition()),
+      actionButton('Clear board', () => this.ctrl.clearBoard()),
+      actionButton('Flip board', () => this.ctrl.flip()),
+    );
+    this.analysisLink = actionLink('Analysis board');
+    this.aiLink = actionLink('Play against computer');
+    this.friendLink = actionLink('Challenge a friend');
+    actions.append(this.analysisLink, this.aiLink, this.friendLink);
+    tools.append(metadata, actions);
+    return tools;
+  }
+
+  private copyables(): HTMLElement {
+    const copyables = element('div', 'copyables');
+    this.fenInput = document.createElement('input');
+    this.fenInput.type = 'text';
+    this.fenInput.spellcheck = false;
+    this.fenInput.addEventListener('change', () => {
+      if (!this.ctrl.setFen(this.fenInput!.value)) {
+        this.fenInput!.setCustomValidity('Use a 9 by 10 Xiangqi FEN');
+        this.fenInput!.reportValidity();
+      } else this.fenInput!.setCustomValidity('');
+    });
+    this.urlInput = document.createElement('input');
+    this.urlInput.type = 'text';
+    this.urlInput.readOnly = true;
+    copyables.append(
+      labelledInput('FEN', this.fenInput, () => copy(this.fenInput!.value)),
+      labelledInput('URL', this.urlInput, () => copy(this.urlInput!.value)),
+    );
+    return copyables;
+  }
+
+  private editorUrl(): string {
+    const fen = this.ctrl.state.legalFen ?? this.ctrl.state.fen;
+    return fen === this.ctrl.cfg.startFen && this.ctrl.orientation === 'white'
+      ? new URL(this.ctrl.cfg.baseUrl, location.href).href
+      : new URL(
+          `${this.ctrl.cfg.baseUrl}/${fen.replace(/ /g, '_')}?color=${this.ctrl.orientation}`,
+          location.href,
+        ).href;
+  }
+
+  private setLink(link: HTMLAnchorElement | undefined, href: string | undefined): void {
+    if (!link) return;
+    link.classList.toggle('disabled', !href);
+    link.toggleAttribute('aria-disabled', !href);
+    if (href) link.href = href;
+    else link.removeAttribute('href');
+  }
 }
 
-function onSelectSparePiece(ctrl: EditorCtrl, s: Selected, upEvent: string): (e: MouchEvent) => void {
-  return function (e: MouchEvent): void {
-    e.preventDefault();
-    if (s === 'pointer' || s === 'trash') {
-      ctrl.selected(s);
-      ctrl.redraw();
-    } else {
-      ctrl.selected('pointer');
-
-      dragNewPiece(ctrl.chessground!.state, { color: s[0], role: s[1] }, e, true);
-
-      document.addEventListener(
-        upEvent,
-        (e: MouchEvent) => {
-          const eventPos = eventPosition(e) || lastTouchMovePos;
-          if (eventPos && ctrl.chessground!.getKeyAtDomPos(eventPos)) ctrl.selected('pointer');
-          else ctrl.selected(s);
-          ctrl.redraw();
-        },
-        { once: true },
-      );
-    }
-  };
+function actionButton(label: string, action: () => void): HTMLButtonElement {
+  const button = element('button', 'button button-empty text');
+  button.type = 'button';
+  button.textContent = label;
+  button.addEventListener('click', action);
+  return button;
 }
 
-function makeCursor(selected: Selected): string {
-  if (selected === 'pointer') return 'pointer';
-
-  const name = selected === 'trash' ? 'trash' : selected.join('-');
-  const url = site.asset.url('cursors/' + name + '.cur');
-
-  return `url('${url}'), default !important`;
+function actionLink(label: string): HTMLAnchorElement {
+  const link = element('a', 'button button-empty text');
+  link.textContent = label;
+  link.rel = 'nofollow';
+  return link;
 }
 
-export default function (ctrl: EditorCtrl): VNode {
-  const state = ctrl.getState();
-  const color = ctrl.bottomColor();
+function labelledInput(label: string, input: HTMLInputElement, copyValue: () => void): HTMLElement {
+  const row = document.createElement('p');
+  const strong = document.createElement('strong');
+  strong.textContent = label;
+  const copyButton = document.createElement('button');
+  copyButton.type = 'button';
+  copyButton.className = 'button button-empty';
+  copyButton.textContent = 'Copy';
+  copyButton.addEventListener('click', copyValue);
+  row.append(strong, input, copyButton);
+  return row;
+}
 
-  return h(`div.board-editor.board-editor--${ctrl.variant}`, [
-    sparePieces(ctrl, opposite(color), color, 'top'),
-    h('div.main-board', { attrs: { style: `cursor: ${makeCursor(ctrl.selected())}` } }, [chessground(ctrl)]),
-    sparePieces(ctrl, color, color, 'bottom'),
-    controls(ctrl, state),
-    inputs(ctrl, state.legalFen || state.fen),
-  ]);
+function option(value: string, label: string): HTMLOptionElement {
+  const item = document.createElement('option');
+  item.value = value;
+  item.textContent = label;
+  return item;
+}
+
+function selectionKey(selected: Selected | Piece): string {
+  return typeof selected === 'string' ? selected : `${selected.color}:${selected.role}`;
+}
+
+function element<K extends keyof HTMLElementTagNameMap>(
+  tag: K,
+  className?: string,
+): HTMLElementTagNameMap[K] {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  return node;
+}
+
+function pieceElement(className: string): HTMLElement {
+  const piece = document.createElement('piece');
+  piece.className = className;
+  return piece;
+}
+
+function copy(value: string): void {
+  void navigator.clipboard?.writeText(value);
 }

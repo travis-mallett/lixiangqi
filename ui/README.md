@@ -138,11 +138,11 @@ When that module is requested by a browser, the lila server injects those inline
 
 The sync object describes filesystem copies performed by ui/build. Sync operations are listed as properties where each key is a source path/glob and its value is a destination folder. In watch mode, ui/build will copy assets to the destination folder whenever they change.
 
-One usage for sync is to copy npm package assets from node_modules to the /public/npm folder where they can be fetched and imported dynamically, often because they are too large to bundle. This example from [/ui/lib/package.json](./lib/package.json) copies assorted stockfish wasms to /public/npm:
+One usage for sync is to copy npm package assets from node_modules to the /public/npm folder where they can be fetched and imported dynamically, often because they are too large to bundle. For example:
 
 ```json
     "sync": {
-      "node_modules/*stockfish*/*.{js,wasm}": "/public/npm"
+      "node_modules/example-runtime/*.{js,wasm}": "/public/npm"
     },
 ```
 
@@ -160,7 +160,7 @@ Hash entries identify files for which a symlink named with their content hash wi
 
 ```json
     "hash": [
-      "/public/lifat/background/montage*.webp",
+      "/public/images/background/*.webp",
       "/public/npm/*",
       "/public/javascripts/**",
     ]

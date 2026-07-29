@@ -27,13 +27,6 @@ object otherTrophies:
           href := routes.Tournament.shields
         )(shield.categ.icon)
       },
-      info.trophies.revolutions.map { revol =>
-        a(
-          cls := "revol_trophy combo-trophy",
-          ariaTitle(s"${revol.variant.name} Revolution"),
-          href := routes.Tournament.show(revol.tourId)
-        )(revol.iconChar.toString)
-      },
       info.trophies.trophies.find(_.kind._id == TrophyKind.zugMiracle).map(zugMiracleTrophy),
       info.trophies.trophies.filter(_.kind.withCustomImage).map { t =>
         maybeLink(t.anyUrl)(
@@ -62,6 +55,6 @@ object otherTrophies:
             "trophy award icon3d streamer" -> true,
             "streaming" -> streaming
           ),
-          ariaTitle(if streaming then "Live now!" else "Lichess Streamer")
+          ariaTitle(if streaming then "Live now!" else "Lixiangqi Streamer")
         )(Icon.Mic)
     )

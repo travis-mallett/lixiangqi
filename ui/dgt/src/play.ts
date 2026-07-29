@@ -530,7 +530,7 @@ export default function (token: string): void {
    * Initialize a ChessBoard when connecting or re-connecting to a game
    *
    * @param {string} gameId - The gameId of the game to store on the board
-   * @param {Object} data - The gameFull event from lichess.org
+   * @param {Object} data - The gameFull event from lixiangqi.org
    */
   function initializeChessBoard(gameId: string, data: { initialFen: string; state: { moves: string } }) {
     try {

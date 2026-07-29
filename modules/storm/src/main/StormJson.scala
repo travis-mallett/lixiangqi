@@ -58,7 +58,6 @@ object StormJson:
       "destination" -> p.destination,
       "moveEvent" -> p.moveEvent,
       "highlight" -> p.highlight,
-      "is3d" -> p.is3d,
       "animation" -> p.animationMillisForSpeedPuzzles,
       "ratings" -> p.showRatings
     )

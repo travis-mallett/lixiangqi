@@ -19,30 +19,31 @@ final private[round] class Drawer(
 
   private given Lang = defaultLang
 
-  def autoThreefold(game: Game): Fu[Option[Pov]] = game.drawable.so:
-    lila.game.Pov
-      .list(game)
-      .map: pov =>
-        if game.playerHasOfferedDrawRecently(pov.color) then fuccess(pov.some)
-        else
-          pov.player.userId
-            .so { uid => prefApi.get(uid, _.autoThreefold) }
-            .map { autoThreefold =>
-              autoThreefold == Pref.AutoThreefold.ALWAYS || {
-                autoThreefold == Pref.AutoThreefold.TIME &&
-                game.clock.so { _.remainingTime(pov.color) < Centis.ofSeconds(30) }
-              } || pov.player.userId.exists(isBotSync)
-            }
-            .map(_.option(pov))
-      .parallel
-      .dmap(_.flatten.headOption)
+  def autoOptionalDraw(game: Game): Fu[Option[Pov]] =
+    (game.drawable && optionalDrawAvailable(game)).so:
+      lila.game.Pov
+        .list(game)
+        .map: pov =>
+          if game.playerHasOfferedDrawRecently(pov.color) then fuccess(pov.some)
+          else
+            pov.player.userId
+              .so { uid => prefApi.get(uid, _.autoThreefold) }
+              .map { autoThreefold =>
+                autoThreefold == Pref.AutoThreefold.ALWAYS || {
+                  autoThreefold == Pref.AutoThreefold.TIME &&
+                  game.clock.so { _.remainingTime(pov.color) < Centis.ofSeconds(30) }
+                } || pov.player.userId.exists(isBotSync)
+              }
+              .map(_.option(pov))
+        .parallel
+        .dmap(_.flatten.headOption)
 
   def apply(pov: Pov, confirm: Boolean)(using GameProxy): Fu[Events] =
     if confirm then yes(pov) else no(pov)
 
   def yes(pov: Pov)(using proxy: GameProxy): Fu[Events] = pov.game.drawable.so:
     pov match
-      case pov if pov.game.history.threefoldRepetition =>
+      case pov if optionalDrawAvailable(pov.game) =>
         finisher.other(pov.game, _.Draw, None)
       case pov if pov.opponent.isOfferingDraw =>
         finisher.other(
@@ -75,7 +76,8 @@ final private[round] class Drawer(
     : Fu[Events]
 
   def claim(pov: Pov)(using GameProxy): Fu[Events] =
-    (pov.game.drawable && pov.game.history.threefoldRepetition).so(finisher.other(pov.game, _.Draw, None))
+    (pov.game.drawable && optionalDrawAvailable(pov.game))
+      .so(finisher.other(pov.game, _.Draw, None))
 
   def force(game: Game)(using GameProxy): Fu[Events] = finisher.other(game, _.Draw, None, None)
 
@@ -94,3 +96,7 @@ final private[round] class Drawer(
         lila.game.actorApi.BoardDrawOffer(game),
         lila.game.actorApi.BoardDrawOffer.makeChan(game.id)
       )
+
+  private def optionalDrawAvailable(game: Game) =
+    game.position.optionalEnd.ended &&
+      game.position.gameResult == lila.xiangqi.Xiangqi.Result.Draw

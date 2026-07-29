@@ -12,7 +12,6 @@ export interface PuzCtrl {
 
 export interface PuzPrefs {
   coords: Coords;
-  is3d: boolean;
   destination: boolean;
   rookCastle: boolean;
   moveEvent: number;

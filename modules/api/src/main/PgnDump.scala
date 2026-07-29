@@ -3,7 +3,6 @@ package lila.api
 import chess.ByColor
 import chess.format.Fen
 import chess.format.pgn.Pgn
-import chess.opening.Opening
 import play.api.i18n.Lang
 
 import lila.analyse.{ Analysis, Annotator }
@@ -24,11 +23,10 @@ final class PgnDump(
       game: Game,
       initialFen: Option[Fen.Full],
       analysis: Option[Analysis],
-      opening: Option[Opening.AtPly],
       flags: WithFlags,
       teams: Option[GameTeams] = None
   ): Fu[Pgn] =
-    dumper(game, initialFen, opening, flags, teams)
+    dumper(game, initialFen, flags, teams)
       .flatMap: pgn =>
         if flags.tags then
           game.simulId
@@ -39,18 +37,15 @@ final class PgnDump(
         else fuccess(pgn)
       .map: pgn =>
         val evaled = analysis.ifTrue(flags.evals).fold(pgn)(annotator.addEvals(pgn, _))
-        if flags.literate then annotator(evaled, game, analysis, opening)
+        if flags.literate then annotator(evaled, game, analysis)
         else evaled
 
   def formatter(
       flags: WithFlags
-  ): (Game, Option[Fen.Full], Option[Analysis], Option[Opening.AtPly], Option[ByColor[TeamId]]) => Fu[
-    String
-  ] =
+  ): (Game, Option[Fen.Full], Option[Analysis], Option[ByColor[TeamId]]) => Fu[String] =
     (
         game: Game,
         initialFen: Option[Fen.Full],
         analysis: Option[Analysis],
-        opening: Option[Opening.AtPly],
         teams: Option[GameTeams]
-    ) => apply(game, initialFen, analysis, opening, flags, teams).map(annotator.toPgnString).dmap(_.value)
+    ) => apply(game, initialFen, analysis, flags, teams).map(annotator.toPgnString).dmap(_.value)

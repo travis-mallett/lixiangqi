@@ -7,16 +7,13 @@ import chess.Rated
 import lila.common.Json.given
 import lila.common.String.html.markdownLinksOrRichText
 import lila.core.config.NetDomain
-import lila.core.team.LightTeam
 import lila.gathering.ui.GatheringUi
 import lila.gathering.Condition.WithVerdicts
 import lila.ui.*
 
 import ScalatagsTemplate.{ *, given }
 
-final class TournamentShow(helpers: Helpers, gathering: GatheringUi)(
-    variantTeamLinks: Map[chess.variant.Variant.LilaKey, (LightTeam, Frag)]
-)(using NetDomain):
+final class TournamentShow(helpers: Helpers, gathering: GatheringUi)(using NetDomain):
   import helpers.{ *, given }
 
   def apply(
@@ -108,7 +105,7 @@ final class TournamentShow(helpers: Helpers, gathering: GatheringUi)(
                 tour.clock.show,
                 separator,
                 variantLink(tour.variant, tour.perfType, shortName = true),
-                tour.position.isDefined.so(s"$separator${trans.site.thematic.txt()}"),
+                tour.position.isDefined.so(s"$separator${trans.site.customPosition.txt()}"),
                 separator,
                 tour.durationString
               ),
@@ -137,15 +134,6 @@ final class TournamentShow(helpers: Helpers, gathering: GatheringUi)(
             )
           ),
           tour.teamBattle.map(teamBattle(tour)),
-          variantTeamLinks
-            .get(tour.variant.key)
-            .filter: (team, _) =>
-              tour.createdBy.is(UserId.lichess) || tour.singleTeamId.has(team.id)
-            .map: (team, link) =>
-              st.section(
-                if isMyTeamSync(team.id) then frag(trans.team.team(), " ", link)
-                else trans.team.joinLichessVariantTeam(link)
-              ),
           div(cls := "scrollable-content")(
             shieldOwner.map: owner =>
               st.section(cls := "description")(
@@ -168,16 +156,13 @@ final class TournamentShow(helpers: Helpers, gathering: GatheringUi)(
               (!tour.isStarted || (tour.isScheduled && tour.position.isDefined))
                 .option(absClientInstant(tour.startsAt))
             ).flatten.nonEmptyOption.map(st.section(_)),
-            tour.startingPosition
-              .map: pos =>
-                st.section(a(href := pos.url)(pos.name))
-              .orElse(tour.position.map { fen =>
-                st.section(
-                  trans.site.customPosition(),
-                  separator,
-                  lila.ui.bits.fenAnalysisLink(fen.into(chess.format.Fen.Full))
-                )
-              })
+            tour.position.map { fen =>
+              st.section(
+                trans.site.customPosition(),
+                separator,
+                lila.ui.bits.fenAnalysisLink(fen.into(chess.format.Fen.Full))
+              )
+            }
           ),
           gathering.verdicts(verdicts, tour.perfType, tour.isEnterable),
           tour.looksLikePrize.option(gathering.userPrizeDisclaimer(tour.createdBy)),
@@ -269,29 +254,6 @@ final class TournamentShow(helpers: Helpers, gathering: GatheringUi)(
         h2(tra.otherRules()),
         p(tra.thereIsACountdown()),
         p(tra.drawingWithinNbMoves.pluralSame(10)),
-        p(tra.drawStreakStandard(30)),
-        p(tra.drawStreakVariants()),
-        table(cls := "slist slist-pad")(
-          thead(
-            tr(
-              th(tra.variant()),
-              th(tra.minimumGameLength())
-            )
-          ),
-          tbody(
-            tr(
-              td(trans.site.standard(), ", Chess960, Horde"),
-              td(30)
-            ),
-            tr(
-              td("Antichess, Crazyhouse, King of the Hill"),
-              td(20)
-            ),
-            tr(
-              td("Three check, Atomic, Racing Kings"),
-              td(10)
-            )
-          )
-        )
+        p(tra.drawStreakStandard(30))
       )
   end faq

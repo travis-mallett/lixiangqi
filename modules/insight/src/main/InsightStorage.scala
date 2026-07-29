@@ -2,7 +2,6 @@ package lila.insight
 
 import reactivemongo.api.bson.*
 
-import lila.common.{ LilaOpeningFamily, SimpleOpening }
 import lila.db.AsyncColl
 import lila.db.dsl.{ *, given }
 import lila.rating.BSONHandlers.perfTypeIdHandler
@@ -23,46 +22,32 @@ final private class InsightStorage(val coll: AsyncColl)(using Executor):
   def count(userId: UserId): Fu[Int] =
     coll(_.countSel(selectUserId(userId)))
 
-  def insert(p: InsightEntry) = coll(_.insert.one(p).void)
+  def insert(p: InsightEntry) = update(p)
 
   def bulkInsert(ps: Seq[InsightEntry]) =
-    coll { _.insert.many(ps) }
+    coll: collection =>
+      val update = collection.update(ordered = false)
+      for
+        elements <- ps.toList.sequentially: entry =>
+          update.element(
+            q = selectId(entry.id),
+            u = bsonWriteDoc(entry),
+            upsert = true
+          )
+        _ <- elements.nonEmpty.so(update.many(elements).void)
+      yield ()
 
   def update(p: InsightEntry) = coll(_.update.one(selectId(p.id), p, upsert = true).void)
 
-  def removeAll(userId: UserId) = coll(_.delete.one(selectUserId(userId)).void)
+  def removeAll(userId: UserId) = coll(_.delete.one($doc(F.userId -> userId)).void)
 
-  def find(id: String) = coll(_.one[InsightEntry](selectId(id)))
-
-  private[insight] def openings(userId: UserId): Fu[(List[LilaOpeningFamily], List[SimpleOpening])] =
-    coll {
-      _.aggregateOne() { framework =>
-        import framework.*
-        Match(selectUserId(userId) ++ $doc(F.opening.$exists(true))) -> List(
-          Sort(Descending(F.date)),
-          Limit(maxGames.value),
-          Facet(
-            List(
-              "families" -> List(
-                PipelineOperator($doc("$sortByCount" -> s"$$${F.openingFamily}")),
-                Limit(24)
-              ),
-              "openings" -> List(PipelineOperator($doc("$sortByCount" -> s"$$${F.opening}")), Limit(64))
-            )
-          )
-        )
-      }.map2 { doc =>
-        def readBest[A: BSONHandler](field: String): List[A] =
-          (~doc.getAsOpt[List[Bdoc]](field)).flatMap(_.getAsOpt[A]("_id"))
-        (readBest[LilaOpeningFamily]("families"), readBest[SimpleOpening]("openings"))
-      }
-    }.map(_ | (Nil -> Nil))
+  def find(id: String) = coll(_.one[InsightEntry](selectCurrentId(id)))
 
   def nbByPerf(userId: UserId): Fu[Map[PerfType, Int]] =
     coll:
       _.aggregateList(lila.rating.PerfType.nonPuzzle.size) { framework =>
         import framework.*
-        Match($doc(F.userId -> userId)) -> List(
+        Match(selectUserId(userId)) -> List(
           GroupField(F.perf)("nb" -> SumAll)
         )
       }.map:
@@ -78,8 +63,11 @@ object InsightStorage:
   import InsightEntry.BSONFields as F
 
   def selectId(id: String) = $doc(F.id -> id)
-  def selectUserId(id: UserId) = $doc(F.userId -> id)
-  def selectPeers(peers: PeersRatingRange) = $doc(F.rating.$inRange(peers.value))
+  def selectCurrentId(id: String) = selectId(id) ++ $doc(F.version -> InsightEntry.schemaVersion)
+  def selectUserId(id: UserId) =
+    $doc(F.userId -> id, F.version -> InsightEntry.schemaVersion)
+  def selectPeers(peers: PeersRatingRange) =
+    $doc(F.rating.$inRange(peers.value), F.version -> InsightEntry.schemaVersion)
   val sortChronological = $sort.asc(F.date)
   val sortAntiChronological = $sort.desc(F.date)
 

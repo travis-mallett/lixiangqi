@@ -1,36 +1,27 @@
-import { init, attributesModule, eventListenersModule, classModule, propsModule } from 'snabbdom';
-
 import menuHover from 'lib/menuHover';
 
 import EditorCtrl from './ctrl';
-import type { LichessEditor, Config } from './interfaces';
-import view from './view';
-
-const patch = init([classModule, attributesModule, propsModule, eventListenersModule]);
+import type { Config, LichessEditor } from './interfaces';
+import EditorView from './view';
 
 export type { LichessEditor } from './interfaces';
 
 export function initModule(config: Config): LichessEditor {
-  const ctrl = new EditorCtrl(config, redraw);
+  const root = config.el ?? document.getElementById('board-editor');
+  if (!root) throw new Error('Missing Xiangqi board editor root');
 
-  const el = config.el || document.getElementById('board-editor')!;
-
-  el.innerHTML = '';
-
-  const inner = document.createElement('div');
-  el.appendChild(inner);
-  let vnode = patch(inner, view(ctrl));
-
-  function redraw() {
-    vnode = patch(vnode, view(ctrl));
-  }
-
+  let updateView = () => {};
+  const ctrl = new EditorCtrl(config, () => updateView());
+  const view = new EditorView(root, ctrl);
+  updateView = () => view.update();
+  view.mount();
   menuHover();
 
   return {
-    getFen: ctrl.getFen.bind(ctrl),
+    getFen: () => ctrl.getFen(),
     setFen: fen => ctrl.setFen(fen),
-    setOrientation: ctrl.setOrientation.bind(ctrl),
-    setVariant: ctrl.setVariant.bind(ctrl),
+    setOrientation: orientation => ctrl.setOrientation(orientation),
+    setVariant: variant => ctrl.setVariant(variant),
+    destroy: () => view.destroy(),
   };
 }

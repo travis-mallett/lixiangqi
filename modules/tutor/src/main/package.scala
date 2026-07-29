@@ -24,4 +24,4 @@ extension (stats: List[InsightPerfStats])
 extension [A](question: Question[A])
   def timeFilter(config: TutorConfig): Question[A] = config.addFilter(question)
 
-type Angle = "skills" | "opening" | "time" | "phases" | "pieces"
+type Angle = "skills" | "time" | "phases" | "pieces"

@@ -7,6 +7,7 @@ const perfIcons: Record<Exclude<Perf, 'fromPosition'>, LiconValue> = {
   rapid: licon.Rabbit,
   classical: licon.Turtle,
   correspondence: licon.PaperAirplane,
+  xiangqi: licon.StudyBoard,
   chess960: licon.DieSix,
   kingOfTheHill: licon.FlagKingHill,
   antichess: licon.Antichess,

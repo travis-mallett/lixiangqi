@@ -172,7 +172,7 @@ final class SimulFormUi(helpers: Helpers)(
           .option:
             form3.checkboxGroup(
               form("featured"),
-              trans.site.simulFeatured("lichess.org/simul"),
-              help = trans.site.simulFeaturedHelp("lichess.org/simul").some
+              trans.site.simulFeatured("lixiangqi.org/simul"),
+              help = trans.site.simulFeaturedHelp("lixiangqi.org/simul").some
             )
     )

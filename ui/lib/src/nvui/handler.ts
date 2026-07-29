@@ -240,6 +240,7 @@ export function possibleMovesHandler(yourColor: Color, cg: CgApi, variant: Varia
     // possible inefficient to reparse fen; but seems to work when it is AND when it is not the users' turn. Also note that this FEN is incomplete as it only contains the piece information.
     // if it is your turn
     const playThroughToFinalDests = (): Dests => {
+      if (variant === 'xiangqi') return cg.state.movable.dests ?? new Map();
       {
         const fromSetup = setupPosition(lichessRules(variant), parseFen(steps[0].fen).unwrap()).unwrap();
         steps.forEach(s => {

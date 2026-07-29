@@ -241,7 +241,7 @@ object Fixtures:
   val pgn3 =
     "1. d4 d5 2. c4 e6 3. Nc3 Nf6 (3... Be7 { A better move, prevent 5. Bg5 } { [%csl Gf2] }) 4. cxd5 exd5 5. Bg5 Be7"
 
-  // https://lichess.org/study/Q41XcI0B/XTMYNVqi
+  // https://lixiangqi.org/study/Q41XcI0B/XTMYNVqi
   val m4 = """
 {"t":"anaMove","d":{"orig":"e2","dest":"e4","fen":"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1","path":"","ch":"XTMYNVqi"}}
 {"t":"anaMove","d":{"orig":"e7","dest":"e6","fen":"rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1","path":"/?","ch":"XTMYNVqi"}}

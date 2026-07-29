@@ -3,7 +3,7 @@ import type { Node as NodeType, Schema as SchemaType } from 'prosemirror-model';
 import type { EditorState as EditorStateType } from 'prosemirror-state';
 import type { EditorView as EditorViewType } from 'prosemirror-view';
 
-import { currentTheme } from 'lib/device';
+import { currentColorScheme } from 'lib/device';
 import { alert, enter } from 'lib/view';
 import { wireMarkdownImgResizers, wrapImg, naturalSize } from 'lib/view/markdownImgResizer';
 import { ValidationError, json as xhrJson } from 'lib/xhr';
@@ -47,7 +47,7 @@ function newToast(el: HTMLElement, initialValue: string, rewire: () => void, edi
     el,
     usageStatistics: false,
     height: editorHeightStyle,
-    theme: currentTheme(),
+    theme: currentColorScheme(),
     initialValue,
     initialEditType: 'wysiwyg',
     hideModeSwitch: true,

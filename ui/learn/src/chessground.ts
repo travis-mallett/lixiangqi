@@ -40,5 +40,4 @@ const makeConfig = (ctrl: RunCtrl): CgConfig => ({
   drawable: { enabled: false },
   draggable: { enabled: true },
   selectable: { enabled: true },
-  addPieceZIndex: ctrl.pref.is3d,
 });

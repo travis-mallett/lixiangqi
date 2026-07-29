@@ -35,7 +35,7 @@ object email:
       def nameAndDomain: Option[(String, Domain)] = domain.map: d =>
         e.takeWhile(_ != '@') -> d
 
-      def isNoReply = e.startsWith("noreply.") && e.endsWith("@lichess.org")
+      def isNoReply = e.startsWith("noreply.") && e.endsWith("@lixiangqi.org")
       def isBlank = e.startsWith("noreply.blanked.")
       def isSendable = !e.isNoReply && !e.isBlank
 

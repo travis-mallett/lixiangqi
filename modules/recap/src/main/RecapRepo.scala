@@ -23,7 +23,8 @@ private final class RecapRepo(colls: RecapColls)(using Executor):
   private given BSONDocumentHandler[RecapPuzzles] = Macros.handler
   private given BSONDocumentHandler[Recap] = Macros.handler
 
-  def get(userId: UserId): Fu[Option[Recap]] = colls.recap.byId[Recap](userId)
+  def get(userId: UserId): Fu[Option[Recap]] =
+    colls.recap.find($id(userId) ++ $doc("v" -> Recap.schemaVersion)).one[Recap]
 
   def insert(recap: Recap): Funit =
-    colls.recap.insert.one(recap).void.recover(lila.db.ignoreDuplicateKey)
+    colls.recap.update.one($id(recap.id), recap, upsert = true).void

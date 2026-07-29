@@ -1,7 +1,7 @@
-import type { MoveMetadata as CgMoveMetadata } from '@lichess-org/chessground/types';
+import type { MoveMetadata as CgMoveMetadata } from 'chessgroundx/types';
 
 import type { ChatOpts as BaseChatOpts, ChatCtrl, ChatPlugin } from 'lib/chat/interfaces';
-import type { GameData, Status, RoundStep } from 'lib/game';
+import type { GameData, Status, RoundStep, XiangqiNotationStyle } from 'lib/game';
 import type { ClockData } from 'lib/game/clock/clockCtrl';
 import * as Prefs from 'lib/prefs';
 import type { EnhanceOpts } from 'lib/richText';
@@ -28,17 +28,10 @@ export interface SocketMove {
   u: Uci;
   b?: 1;
 }
-export interface SocketDrop {
-  role: Role;
-  pos: Key;
-  b?: 1;
-}
-
 export interface EventsWithPayload {
   rep: { n: string };
   flag: Color;
   move: SocketMove;
-  drop: SocketDrop;
 }
 
 export type EventsWithoutPayload =
@@ -74,7 +67,7 @@ export interface RoundSocketSend {
   ): void;
 }
 
-export type EncodedDests = string | Record<string, string>;
+export type EncodedDests = Record<string, string[]>;
 
 export interface RoundData extends GameData {
   clock?: ClockData;
@@ -134,10 +127,11 @@ export interface ChatOpts extends BaseChatOpts {
 }
 
 export interface ApiMove {
-  dests: string | Record<string, string>;
+  dests: EncodedDests;
   ply: number;
   fen: string;
   san: string;
+  sanZh?: string;
   uci: string;
   clock?: {
     white: Seconds;
@@ -195,10 +189,10 @@ export interface Pref {
   destination: boolean;
   enablePremove: boolean;
   highlight: boolean;
-  is3d: boolean;
   keyboardMove: boolean;
   voiceMove: boolean;
   moveEvent: Prefs.MoveEvent;
+  notationStyle: XiangqiNotationStyle;
   ratings: boolean;
   replay: Prefs.Replay;
   rookCastle?: boolean;
@@ -209,8 +203,6 @@ export interface Pref {
 
 export interface MoveMetadata extends CgMoveMetadata {
   preConfirmed?: boolean;
-  justDropped?: Role;
-  justCaptured?: Piece;
 }
 
 export interface RoundTour {

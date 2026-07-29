@@ -35,7 +35,7 @@ final class UserActionMenu(helpers: Helpers):
             MenuItem(
               trans.site.openingExplorer.txt(),
               Icon.Book,
-              s"${routes.UserAnalysis.index}#explorer/${u.username}"
+              routes.UserAnalysis.index.url
             )
           ),
           Some(

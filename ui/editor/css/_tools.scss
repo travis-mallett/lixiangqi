@@ -47,6 +47,18 @@
       padding: 1rem;
       white-space: nowrap;
 
+      label {
+        display: grid;
+        gap: 0.5rem;
+        font-weight: bold;
+      }
+
+      .board-editor__status {
+        margin: 1rem 0 0;
+        color: $c-font-dim;
+        white-space: normal;
+      }
+
       .color {
         margin-bottom: 1em;
       }
@@ -106,7 +118,7 @@
 
     .actions {
       @extend %flex-column;
-      @include backdrop-blur-if-transparent;
+      @include backdrop-blur-if-background;
 
       justify-content: stretch;
 

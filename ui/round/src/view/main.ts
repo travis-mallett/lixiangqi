@@ -1,33 +1,17 @@
-import { render as renderKeyboardMove } from 'keyboard-move';
-import { renderVoiceBar } from 'voice';
-
 import { displayColumns, isTouchDevice } from 'lib/device';
 import { playable } from 'lib/game';
-import { renderMaterialDiffs } from 'lib/game/view/material';
 import { storage } from 'lib/storage';
 import { type VNode, hl, bind } from 'lib/view';
 import { renderBlindfoldToggle } from 'lib/view/blindfold';
 import stepwiseScroll from 'lib/view/stepwiseScroll';
 
-import crazyView from '../crazy/crazyView';
 import type RoundController from '../ctrl';
 import { render as renderGround } from '../ground';
 import { next, prev, view } from '../keyboard';
 import { renderTable } from './table';
 
 export function main(ctrl: RoundController): VNode {
-  const d = ctrl.data,
-    topColor = d[ctrl.flip ? 'player' : 'opponent'].color,
-    bottomColor = d[ctrl.flip ? 'opponent' : 'player'].color,
-    pending = ctrl.pendingStep(),
-    materialDiffs = renderMaterialDiffs(
-      ctrl.data.pref.showCaptured,
-      ctrl.flip ? ctrl.data.opponent.color : ctrl.data.player.color,
-      pending ? pending.fen : ctrl.stepAt(ctrl.ply).fen,
-      !!(ctrl.data.player.checks || ctrl.data.opponent.checks), // showChecks
-      ctrl.data.steps,
-      ctrl.ply,
-    );
+  const d = ctrl.data;
   const hideBoard = ctrl.data.player.blindfold && playable(ctrl.data);
   return ctrl.nvui
     ? ctrl.nvui.render()
@@ -41,7 +25,7 @@ export function main(ctrl: RoundController): VNode {
         [
           renderBlindfoldToggle(ctrl.blindfold),
           hl(
-            'div.round__app__board.main-board' + (hideBoard ? '.blindfold' : ''),
+            'div.round__app__board.main-board.xiangqi9x10' + (hideBoard ? '.blindfold' : ''),
             {
               hook:
                 'ontouchstart' in window || !storage.boolean('scrollMoves').getOrDefault(true)
@@ -60,14 +44,10 @@ export function main(ctrl: RoundController): VNode {
                       false,
                     ),
             },
-            [renderGround(ctrl), ctrl.promotion.view(ctrl.data.game.variant.key === 'antichess')],
+            [renderGround(ctrl)],
           ),
-          ctrl.voiceMove && renderVoiceBar(ctrl.voiceMove.ctrl, ctrl.redraw),
           ctrl.keyboardHelp && view(ctrl),
-          crazyView(ctrl, topColor, 'top') || materialDiffs[0],
           renderTable(ctrl),
-          crazyView(ctrl, bottomColor, 'bottom') || materialDiffs[1],
-          ctrl.keyboardMove && renderKeyboardMove(ctrl.keyboardMove),
         ],
       );
 }

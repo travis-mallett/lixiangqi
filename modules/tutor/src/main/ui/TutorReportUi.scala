@@ -14,7 +14,7 @@ final class TutorReportUi(helpers: Helpers, bits: TutorBits, perfUi: TutorPerfUi
           boxTop(
             h1(
               a(href := routes.Tutor.user(full.user), dataIcon := Icon.LessThan),
-              "Lichess Tutor",
+              "Lixiangqi Tutor",
               bits.beta,
               bits.otherUser(full.user)
             )

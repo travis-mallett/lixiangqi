@@ -5,80 +5,25 @@ import type { GameMode, GameType, Variant } from './interfaces';
 export const variants: Variant[] = [
   {
     id: 1,
-    icon: licon.CrownElite,
+    icon: licon.DiscOutline,
     key: 'standard',
     name: i18n.variant.standard,
     description: i18n.variant.standardTitle,
-  },
-  {
-    id: 2,
-    icon: licon.DieSix,
-    key: 'chess960',
-    name: i18n.variant.chess960,
-    description: i18n.variant.chess960Title,
-  },
-  {
-    id: 4,
-    icon: licon.FlagKingHill,
-    key: 'kingOfTheHill',
-    name: i18n.variant.kingOfTheHill,
-    description: i18n.variant.kingOfTheHillTitle,
-  },
-  {
-    id: 5,
-    icon: licon.ThreeCheckStack,
-    key: 'threeCheck',
-    name: i18n.variant.threeCheck,
-    description: i18n.variant.threeCheckTitle,
-  },
-  {
-    id: 10,
-    icon: licon.Crazyhouse,
-    key: 'crazyhouse',
-    name: i18n.variant.crazyhouse,
-    description: i18n.variant.crazyhouseTitle,
-  },
-  {
-    id: 6,
-    icon: licon.Antichess,
-    key: 'antichess',
-    name: i18n.variant.antichess,
-    description: i18n.variant.antichessTitle,
-  },
-  {
-    id: 7,
-    icon: licon.Atom,
-    key: 'atomic',
-    name: i18n.variant.atomic,
-    description: i18n.variant.atomicTitle,
-  },
-  { id: 8, icon: licon.Keypad, key: 'horde', name: i18n.variant.horde, description: i18n.variant.hordeTitle },
-  {
-    id: 9,
-    icon: licon.FlagRacingKings,
-    key: 'racingKings',
-    name: i18n.variant.racingKings,
-    description: i18n.variant.racingKingsTitle,
   },
   {
     id: 3,
     icon: licon.Pencil,
     key: 'fromPosition',
     name: i18n.variant.fromPosition,
-    description: i18n.variant.fromPositionTitle,
+    description: 'Xiangqi from a custom FEN position',
   },
 ];
 
-export const variantsForGameType = (baseVariants: Variant[], gameType: GameType): Variant[] =>
-  gameType === 'hook' ? baseVariants.filter(({ key }) => key !== 'fromPosition') : baseVariants;
+// From-position is selected by the editor links, not offered as a ruleset.
+export const variantsForGameType = (baseVariants: Variant[], _gameType: GameType): Variant[] =>
+  baseVariants.filter(({ key }) => key === 'standard');
 
-export const variantsWhereWhiteIsBetter: VariantKey[] = [
-  'antichess',
-  'atomic',
-  'horde',
-  'racingKings',
-  'threeCheck',
-];
+export const variantsWhereWhiteIsBetter: VariantKey[] = [];
 
 export const speeds: { key: Speed; name: string; icon: LiconValue }[] = [
   { icon: licon.UltraBullet, key: 'ultraBullet', name: i18n.site.ultraBullet },

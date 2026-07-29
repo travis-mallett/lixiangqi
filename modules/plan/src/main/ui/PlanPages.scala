@@ -19,13 +19,13 @@ final class PlanPages(helpers: Helpers)(fishnetPerDay: Int):
     val check = custom(trans.site.yes())
     def all(content: Frag) = frag(td(content), td(content))
     def tr(value: Frag)(text: Frag*) = st.tr(th(text), all(value))
-    val title = "Lichess features"
+    val title = "Lixiangqi features"
     Page(title)
       .css("bits.feature")
       .graph(
         title = title,
         url = routeUrl(routes.Plan.features),
-        description = "All of Lichess features are free for all and forever. We do it for the chess!"
+        description = "All Lixiangqi features are free for everyone, forever. We do it for Xiangqi!"
       ):
         main(cls := "box box-pad features")(
           table(
@@ -47,31 +47,31 @@ final class PlanPages(helpers: Helpers)(fishnetPerDay: Int):
                 trans.features.correspondenceWithConditionalPremoves()
               ),
               tr(check)(
-                trans.features.standardChessAndX(a(href := routes.Cms.variantHome)(trans.faq.eightVariants()))
+                trans.features.nativeXiangqiGames()
               ),
               tr(custom(trans.features.gamesPerDay.pluralSame(fishnetPerDay)))(
                 trans.features.deepXServerAnalysis(lila.ui.bits.engineFullName)
               ),
               tr(unlimited)(
-                trans.features.boardEditorAndAnalysisBoardWithEngine("Stockfish 16+ NNUE")
+                trans.features.boardEditorAndAnalysisBoardWithEngine(lila.ui.bits.engineFullName)
               ),
               tr(unlimited)(
-                a(href := "https://lichess.org/blog/WN-gLzAAAKlI89Xn/thousands-of-stockfish-analysers")(
+                a(href := "https://github.com/official-pikafish/Pikafish")(
                   trans.features.cloudEngineAnalysis()
                 )
               ),
               tr(unlimited)(
-                a(href := "https://lichess.org/blog/WFvLpiQAACMA8e9D/learn-from-your-mistakes")(
+                a(href := "https://lixiangqi.org/blog/WFvLpiQAACMA8e9D/learn-from-your-mistakes")(
                   trans.site.learnFromYourMistakes()
                 )
               ),
               tr(unlimited)(
-                a(href := "https://lichess.org/blog/V0KrLSkAAMo3hsi4/study-chess-the-lichess-way")(
+                a(href := "https://lixiangqi.org/blog/V0KrLSkAAMo3hsi4/study-chess-the-lichess-way")(
                   trans.features.studies()
                 )
               ),
               tr(unlimited)(
-                a(href := "https://lichess.org/blog/VmZbaigAABACtXQC/chess-insights")(
+                a(href := "https://lixiangqi.org/blog/VmZbaigAABACtXQC/chess-insights")(
                   trans.features.chessInsights()
                 )
               ),
@@ -89,20 +89,20 @@ final class PlanPages(helpers: Helpers)(fishnetPerDay: Int):
                 a(href := routes.Racer.home)("Puzzle Racer")
               ),
               tr(check)(
-                a(href := s"${routes.UserAnalysis.index}#explorer")(
+                a(href := routes.UserAnalysis.index)(
                   trans.features.globalOpeningExplorerInNbGames(6_000_000_000L.localize)
                 )
               ),
               tr(check)(
                 trans.features.personalOpeningExplorerX(
-                  a(href := s"${routes.UserAnalysis.index}#explorer/me")(
+                  a(href := routes.UserAnalysis.index)(
                     trans.features.personalOpeningExplorer()
                   ),
-                  a(href := s"${routes.UserAnalysis.index}#explorer/DrNykterstein")(trans.site.otherPlayers())
+                  a(href := routes.UserAnalysis.index)(trans.site.otherPlayers())
                 )
               ),
               tr(unlimited)(
-                a(href := s"${routes.UserAnalysis.parseArg("QN4n1/6r1/3k4/8/b2K4/8/8/8_b_-_-")}#explorer")(
+                a(href := routes.UserAnalysis.index)(
                   trans.features.endgameTablebase()
                 )
               ),
@@ -134,7 +134,7 @@ final class PlanPages(helpers: Helpers)(fishnetPerDay: Int):
                 a(href := routes.Tournament.home)(trans.arena.arenaTournaments())
               ),
               tr(check)(
-                trans.features.boardEditorAndAnalysisBoardWithEngine("Stockfish 14+")
+                trans.features.boardEditorAndAnalysisBoardWithEngine(lila.ui.bits.engineFullName)
               ),
               tr(unlimited)(
                 a(href := routes.Puzzle.home)(trans.features.tacticalPuzzlesFromUserGames())

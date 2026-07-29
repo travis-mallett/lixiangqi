@@ -44,8 +44,9 @@ trait PrefHelper:
 
   def translatedPieceNotationChoices(using Translate) =
     List(
-      (Pref.PieceNotation.SYMBOL, trans.preferences.chessPieceSymbol.txt()),
-      (Pref.PieceNotation.LETTER, trans.preferences.pgnLetter.txt())
+      (Pref.PieceNotation.AUTO, trans.preferences.automaticNotation.txt()),
+      (Pref.PieceNotation.ENGLISH, trans.preferences.wxfEnglishNotation.txt()),
+      (Pref.PieceNotation.CHINESE, trans.preferences.wxfChineseNotation.txt())
     )
 
   def translatedClockTenthsChoices(using Translate) =

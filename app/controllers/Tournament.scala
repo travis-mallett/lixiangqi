@@ -31,11 +31,14 @@ final class Tournament(env: Env, apiC: => Api)(using org.apache.pekko.stream.Mat
       teamIds <- ctx.userId.so(env.team.cached.teamIdsList)
       (scheduled, visible) <- env.tournament.featuring.tourIndex.get(teamIds)
       scheduleJson <- env.tournament.apiJsonView(visible)
+      enterable <- api.enterable(getInt("page") | 1, teamIds)
       response <- negotiate(
         html = for
           finished <- api.notableFinished
           winners <- env.tournament.winners.all
-          page <- renderPage(views.tournament.list.home(scheduled, finished, winners, scheduleJson))
+          page <- renderPage(
+            views.tournament.list.home(scheduled, enterable, finished, winners, scheduleJson)
+          )
         yield Ok(page).noCache,
         json = Ok(scheduleJson)
       )

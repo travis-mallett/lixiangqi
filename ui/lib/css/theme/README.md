@@ -5,11 +5,16 @@
 - css variables begin with -- (two or more hyphens) and exist at runtime. they are set
   and accessed by the browser when it applies styles and can also be set and accessed by javascript.
 
-## how color themes work
+## how UI themes and backgrounds work
 
-each partial scss file in the `ui/lib/css/theme` directory describes a color theme.
-`_theme.default.scss` (the dark theme) is the foundation from which other named themes
-(`_theme.light.scss`, `_theme.transp.scss`, ...) are extended.
+Each `_theme.<key>.scss` partial in this directory describes one UI theme. The dark
+theme in `_theme.default.scss` supplies the base variables and
+`_theme.light.scss` overrides them under `html.light`.
+
+Backgrounds are an independent appearance component. When one is selected,
+`html.has-background` activates `_theme.background.scss`, which adds translucent
+surface variables to the selected UI theme. A background is not itself a UI
+theme.
 
 themeable colors are defined in html class scopes in those `_theme.*.scss` files. for example:
 
@@ -22,7 +27,7 @@ html.example-theme {
 }
 ```
 
-the build script will generate scss wrapper variables beginning with `$c-` for each of these css
+The build script will generate SCSS wrapper variables beginning with `$c-` for each of these CSS
 variables. your style rules should use the scss forms when possible for type safety.
 
 `ui/lib/css/theme/gen/_wrap.scss` (generated):
@@ -72,6 +77,14 @@ html.ugly {
 
 the values provided here will override those in _theme.default.scss and, crucially, will be
 fed into all colors derived from these variables.
+
+## registering a UI theme
+
+Adding a stylesheet is only the CSS half of a theme. Register its key and color
+scheme in `modules/pref/src/main/Appearance.scala`, then import the partial in
+the relevant `ui/lib/css/build/lib.theme.*.scss` bundles. Theme packs in that
+same Scala registry compose UI themes with backgrounds, boards, pieces, sound
+effects, music, and board display settings.
 
 ## how do i run it?
 

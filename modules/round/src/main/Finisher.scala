@@ -52,7 +52,11 @@ final private class Finisher(
     else if game.player(!game.player.color).isOfferingDraw then
       apply(game, _.Draw, None, Messenger.SystemMessage.Persistent(trans.site.drawOfferAccepted.txt()).some)
     else
-      val winner = Some(!game.player.color).ifFalse(game.position.opponentHasInsufficientMaterial)
+      val winnerColor = !game.turnColor
+      val winnerSide =
+        if winnerColor == chess.White then lila.xiangqi.Xiangqi.Side.Red
+        else lila.xiangqi.Xiangqi.Side.Black
+      val winner = Some(winnerColor).ifFalse(game.position.insufficient(winnerSide))
       for
         events <- apply(game, _.Outoftime, winner)
         _ = winner.foreach: w =>

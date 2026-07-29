@@ -72,7 +72,7 @@ const viewTabData = (ctrl: Ctrl, view: ViewTab) => ({
 function header(ctrl: Ctrl) {
   return hl('header', widthStyle(mainW()), [
     isAtLeastXSmall(mainW())
-      ? hl('h2.text', { attrs: dataIcon(licon.Target) }, 'Chess Insights')
+      ? hl('h2.text', { attrs: dataIcon(licon.Target) }, 'Xiangqi Insights')
       : isAtLeastXXSmall(mainW())
         ? hl('h2.text', { attrs: dataIcon(licon.Target) }, 'Insights')
         : mainW() >= 460 && hl('h2.text', 'Insights'),

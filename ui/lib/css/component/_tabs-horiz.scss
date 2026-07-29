@@ -4,7 +4,7 @@ $c-tabs-hover: $c-accent-cloud !default;
 .tabs-horiz {
   @extend %flex-center-nowrap, %page-text;
   @include prevent-select;
-  @include backdrop-blur-if-transparent;
+  @include backdrop-blur-if-background;
 
   justify-content: center;
   align-items: flex-end;

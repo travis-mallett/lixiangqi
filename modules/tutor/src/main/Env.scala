@@ -20,7 +20,6 @@ final class Env(
     perfStatsApi: lila.insight.InsightPerfStatsApi,
     settingStore: lila.memo.SettingStore.Builder,
     cacheApi: CacheApi,
-    lightUserApi: lila.core.user.LightUserApi,
     notifyApi: lila.core.notify.NotifyApi
 )(using Executor, Scheduler, play.api.Mode, config.RateLimit):
 
@@ -30,7 +29,7 @@ final class Env(
   lazy val nbAnalysisSetting = settingStore[Int](
     "tutorNbAnalysis",
     default = 100,
-    text = "Number of fishnet analysis per tutor build".some
+    text = "Number of Pikafish analyses per tutor build".some
   ).taggedWith[NbAnalysis]
 
   lazy val parallelismSetting = settingStore[Int](

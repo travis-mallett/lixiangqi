@@ -19,14 +19,6 @@ object UserPerfsExt:
       PerfKey.rapid -> p.rapid,
       PerfKey.classical -> p.classical,
       PerfKey.correspondence -> p.correspondence,
-      PerfKey.chess960 -> p.chess960,
-      PerfKey.kingOfTheHill -> p.kingOfTheHill,
-      PerfKey.threeCheck -> p.threeCheck,
-      PerfKey.antichess -> p.antichess,
-      PerfKey.atomic -> p.atomic,
-      PerfKey.horde -> p.horde,
-      PerfKey.racingKings -> p.racingKings,
-      PerfKey.crazyhouse -> p.crazyhouse,
       PerfKey.puzzle -> p.puzzle
     )
 
@@ -128,26 +120,18 @@ object UserPerfs:
   def default(id: UserId) =
     val p = lila.rating.Perf.default
     new UserPerfs(
-      id,
-      p,
-      p,
-      p,
-      p,
-      p,
-      p,
-      p,
-      p,
-      p,
-      p,
-      p,
-      p,
-      p,
-      p,
-      p,
-      p,
-      puzPerfDefault,
-      puzPerfDefault,
-      puzPerfDefault
+      id = id,
+      bullet = p,
+      blitz = p,
+      rapid = p,
+      classical = p,
+      correspondence = p,
+      standard = p,
+      ultraBullet = p,
+      puzzle = p,
+      storm = puzPerfDefault,
+      racer = puzPerfDefault,
+      streak = puzPerfDefault
     )
   def defaultManaged(id: UserId) =
     val managed = lila.rating.Perf.defaultManaged
@@ -170,21 +154,12 @@ object UserPerfs:
       blitz = bot,
       rapid = bot,
       classical = bot,
-      correspondence = bot,
-      chess960 = bot
+      correspondence = bot
     )
 
   def variantLens(variant: chess.variant.Variant): Option[UserPerfs => Perf] =
     variant match
       case chess.variant.Standard => Some(_.standard)
-      case chess.variant.Chess960 => Some(_.chess960)
-      case chess.variant.KingOfTheHill => Some(_.kingOfTheHill)
-      case chess.variant.ThreeCheck => Some(_.threeCheck)
-      case chess.variant.Antichess => Some(_.antichess)
-      case chess.variant.Atomic => Some(_.atomic)
-      case chess.variant.Horde => Some(_.horde)
-      case chess.variant.RacingKings => Some(_.racingKings)
-      case chess.variant.Crazyhouse => Some(_.crazyhouse)
       case _ => none
 
   def speedLens(speed: Speed): UserPerfs => Perf = perfs =>
@@ -217,14 +192,6 @@ object UserPerfs:
       new UserPerfs(
         id = r.get[UserId]("_id"),
         standard = perf("standard"),
-        chess960 = perf("chess960"),
-        kingOfTheHill = perf("kingOfTheHill"),
-        threeCheck = perf("threeCheck"),
-        antichess = perf("antichess"),
-        atomic = perf("atomic"),
-        horde = perf("horde"),
-        racingKings = perf("racingKings"),
-        crazyhouse = perf("crazyhouse"),
         ultraBullet = perf("ultraBullet"),
         bullet = perf("bullet"),
         blitz = perf("blitz"),
@@ -243,14 +210,6 @@ object UserPerfs:
       BSONDocument(
         "id" -> o.id,
         "standard" -> notNew(o.standard),
-        "chess960" -> notNew(o.chess960),
-        "kingOfTheHill" -> notNew(o.kingOfTheHill),
-        "threeCheck" -> notNew(o.threeCheck),
-        "antichess" -> notNew(o.antichess),
-        "atomic" -> notNew(o.atomic),
-        "horde" -> notNew(o.horde),
-        "racingKings" -> notNew(o.racingKings),
-        "crazyhouse" -> notNew(o.crazyhouse),
         "ultraBullet" -> notNew(o.ultraBullet),
         "bullet" -> notNew(o.bullet),
         "blitz" -> notNew(o.blitz),
@@ -268,30 +227,14 @@ object UserPerfs:
       bullet: List[LightPerf],
       blitz: List[LightPerf],
       rapid: List[LightPerf],
-      classical: List[LightPerf],
-      crazyhouse: List[LightPerf],
-      chess960: List[LightPerf],
-      kingOfTheHill: List[LightPerf],
-      threeCheck: List[LightPerf],
-      antichess: List[LightPerf],
-      atomic: List[LightPerf],
-      horde: List[LightPerf],
-      racingKings: List[LightPerf]
+      classical: List[LightPerf]
   )
 
-  val emptyLeaderboards = Leaderboards(Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil)
+  val emptyLeaderboards = Leaderboards(Nil, Nil, Nil, Nil, Nil)
 
   private[rating] val firstRow: List[PerfKey] =
     List(PerfKey.bullet, PerfKey.blitz, PerfKey.rapid, PerfKey.classical)
   private[rating] val secondRow: List[PerfKey] = List(
     PerfKey.correspondence,
-    PerfKey.ultraBullet,
-    PerfKey.crazyhouse,
-    PerfKey.chess960,
-    PerfKey.kingOfTheHill,
-    PerfKey.threeCheck,
-    PerfKey.antichess,
-    PerfKey.atomic,
-    PerfKey.horde,
-    PerfKey.racingKings
+    PerfKey.ultraBullet
   )

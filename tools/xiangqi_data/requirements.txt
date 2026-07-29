@@ -1,0 +1,3 @@
+pypinyin==0.55.0
+pykakasi==2.3.0
+hangulpy==1.4.0

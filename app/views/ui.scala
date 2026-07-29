@@ -15,7 +15,7 @@ val gathering = lila.gathering.ui.GatheringUi(helpers)(env.web.settings.prizeTou
 
 val learn = lila.web.ui.LearnUi(helpers)
 
-val coordinate = lila.coordinate.ui.CoordinateUi(helpers)
+val notation = lila.notation.ui.NotationUi(helpers)
 
 val atomUi = lila.ui.AtomUi(helpers.routeUrl)
 
@@ -71,11 +71,6 @@ object forum:
 
 val timeline = lila.timeline.ui.TimelineUi(helpers)
 
-object opening:
-  val bits = lila.opening.ui.OpeningBits(helpers)
-  val wiki = lila.opening.ui.WikiUi(helpers, bits)
-  val ui = lila.opening.ui.OpeningUi(helpers, bits, wiki)
-
 val video = lila.video.ui.VideoUi(helpers)
 
 val gameSearch = lila.gameSearch.ui.GameSearchUi(helpers)(views.game.widgets(_))
@@ -87,8 +82,6 @@ val racer = lila.racer.ui.RacerUi(helpers)
 val challenge = lila.challenge.ui.ChallengeUi(helpers)
 
 val dev = lila.web.ui.DevUi(helpers)(views.mod.ui.menu)
-
-val jsBot = lila.jsBot.ui.JsBotUi(helpers)
 
 def mobile(p: lila.cms.CmsPage.Render)(using Context) =
   lila.web.ui.mobile(helpers)(cms.render(p))

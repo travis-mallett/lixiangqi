@@ -11,7 +11,6 @@ import lila.core.tournament.Status
 import lila.core.tournament.leaderboard.Ratio
 import lila.db.BSON
 import lila.db.dsl.{ *, given }
-import lila.gathering.Thematic
 import lila.rating.PerfType
 
 object BSONHandlers:
@@ -46,7 +45,6 @@ object BSONHandlers:
         r.getO[Fen.Full]("fen")
           .map(_.opening: Fen.Standard)
           .filter(_ != Fen.Standard.initial)
-          .orElse(r.getO[chess.opening.Eco]("eco").flatMap(Thematic.byEco).map(_.fen)) // for BC
       val startsAt = r.date("startsAt")
       val conditions = r.getD[TournamentCondition.All]("conditions")
       Tournament(

@@ -76,10 +76,9 @@ trait FormHelper:
   object turnstile:
     def widget(hidden: Boolean = false)(using config: TurnstilePublicConfig, ctx: Context) =
       config.enabled.option:
-        val theme = ctx.pref.bg match
-          case 500 => "auto"
-          case 100 => "light"
-          case _ => "dark"
+        val theme =
+          if ctx.pref.uiTheme == "system" then "auto"
+          else ctx.pref.colorScheme
         val widget = div(
           cls := "cf-turnstile form-group",
           attrData("sitekey") := config.key,

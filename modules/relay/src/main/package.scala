@@ -6,7 +6,7 @@ export lila.core.lilaism.Lilaism.{ *, given }
 export lila.common.extensions.*
 export lila.core.id.{ RelayRoundId, RelayTourId, RelayGroupId }
 
-val broadcasterUrl = "https://lichess.org/broadcast/app"
+val broadcasterUrl = "https://lixiangqi.org/broadcast/app"
 
 val monthOfFirstRelay = java.time.YearMonth.of(2020, 1)
 

@@ -115,7 +115,7 @@ final class EmailConfirmByUserSend(
   def workerForm(using Me) = Form:
     mapping(
       "sender" -> securityForm.sendableEmail, // player.email@example.com
-      "to" -> securityForm.anyEmail // username.millis@verify.lichess.org
+      "to" -> securityForm.anyEmail // username.millis@verify.lixiangqi.org
     )(Data.apply)(unapply)
 
   enum Result:
@@ -264,7 +264,7 @@ object EmailConfirm:
                       case None => NoEmail(user.username)
                       case Some(email) =>
                         val sendTo = EmailAddress:
-                          s"${user.username}.${EmailConfirm.creationMillis(user)}@verify.lichess.org"
+                          s"${user.username}.${EmailConfirm.creationMillis(user)}@verify.lixiangqi.org"
                         EmailSent(user.username, email, sendTo)
                   else Confirmed(user.username)
 
@@ -277,5 +277,5 @@ $url
 
 ${trans.common_orPaste.txt()}
 
-${trans.emailConfirm_justIgnore.txt("https://lichess.org")}
+${trans.emailConfirm_justIgnore.txt("https://lixiangqi.org")}
 """

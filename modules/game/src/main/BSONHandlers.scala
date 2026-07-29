@@ -1,21 +1,6 @@
 package lila.game
 
-import chess.format.Fen
-import chess.variant.{ Crazyhouse, Variant }
-import chess.{
-  Board,
-  ByColor,
-  CheckCount,
-  Clock,
-  Color,
-  Game as ChessGame,
-  HalfMoveClock,
-  History as ChessHistory,
-  Rated,
-  Ply,
-  Status,
-  UnmovedRooks
-}
+import chess.{ ByColor, Clock, Color, Rated, Ply, Status }
 import reactivemongo.api.bson.*
 import scalalib.model.Days
 
@@ -35,46 +20,40 @@ import lila.core.game.{
 }
 import lila.db.BSON
 import lila.db.dsl.{ *, given }
+import lila.xiangqi.Xiangqi
 
 object BSONHandlers:
 
   import lila.db.ByteArray.byteArrayHandler
   import lila.game.Game.maxPlies
 
-  private[game] given checkCountWriter: BSONWriter[CheckCount] with
-    def writeTry(cc: CheckCount) = Success(BSONArray(cc.white, cc.black))
-
   given statusHandler: BSONHandler[Status] = tryHandler[Status](
     { case BSONInteger(v) => Status(v).toTry(s"No such status: $v") },
     x => BSONInteger(x.id)
-  )
-
-  private[game] given BSONHandler[UnmovedRooks] = tryHandler[UnmovedRooks](
-    { case bin: BSONBinary => byteArrayHandler.readTry(bin).map(BinaryFormat.unmovedRooks.read) },
-    x => byteArrayHandler.writeTry(BinaryFormat.unmovedRooks.write(x)).get
   )
 
   given BSONHandler[GameRule] = valueMapHandler[String, GameRule](GameRule.byKey)(_.toString)
 
   given sourceHandler: BSONHandler[Source] = valueMapHandler[Int, Source](Source.byId)(_.id)
 
-  private[game] given crazyhouseDataHandler: BSON[Crazyhouse.Data] with
-    import Crazyhouse.*
-    def reads(r: BSON.Reader) =
-      val (white, black) = r.str("p").view.flatMap(chess.Piece.fromChar).to(List).partition(_.is(chess.White))
-      Crazyhouse.Data(
-        pockets = ByColor(white, black).map(pieces => Pocket(pieces.map(_.role))),
-        promoted = chess.Bitboard(r.str("t").view.flatMap(chess.Square.fromChar(_)))
-      )
+  private given BSONHandler[Xiangqi.Uci] = tryHandler[Xiangqi.Uci](
+    { case BSONString(value) => Try(Xiangqi.Uci.unsafe(value)) },
+    value => BSONString(value.value)
+  )
 
-    def writes(w: BSON.Writer, o: Crazyhouse.Data) =
-      def roles = o.pockets.mapWithColor: (color, pocket) =>
-        pocket.flatMap((role, nb) => List.fill(nb)(role.forsythBy(color))).mkString
+  private given BSONHandler[Xiangqi.Side] = tryHandler[Xiangqi.Side](
+    { case BSONString(value) => Try(Xiangqi.Side.fromKey(value).fold(sys.error, identity)) },
+    value => BSONString(value.key)
+  )
 
-      BSONDocument(
-        "p" -> roles.reduce(_ + _),
-        "t" -> o.promoted.map(_.asChar).mkString
-      )
+  private given BSONHandler[Xiangqi.Result] = tryHandler[Xiangqi.Result](
+    { case BSONString(value) => Try(Xiangqi.Result.fromKey(value).fold(sys.error, identity)) },
+    value => BSONString(value.key)
+  )
+
+  private given BSONDocumentHandler[Xiangqi.Ending] = Macros.handler
+  private given BSONDocumentHandler[Xiangqi.State] = Macros.handler
+  private[game] given xiangqiGameHandler: BSONDocumentHandler[Xiangqi.Game] = Macros.handler
 
   private[game] given gameDrawOffersHandler: BSONHandler[GameDrawOffers] = tryHandler[GameDrawOffers](
     { case arr: BSONArray =>
@@ -104,68 +83,20 @@ object BSONHandlers:
       val light = lightGameReader.reads(r)
 
       val startedAtPly = Ply(r.intD(F.startedAtTurn))
-      val ply = r.get[Ply](F.turns).atMost(maxPlies) // unlimited can cause StackOverflowError
-      val turnColor = ply.turn
       val createdAt = r.date(F.createdAt)
-
-      val playedPlies = ply - startedAtPly
 
       val whitePlayer = Player.from(light, Color.white, playerIds, r.getD[Bdoc](F.whitePlayer))
       val blackPlayer = Player.from(light, Color.black, playerIds, r.getD[Bdoc](F.blackPlayer))
-
-      val decoded = r.bytesO(F.huffmanPgn) match
-        case Some(huffPgn) => PgnStorage.Huffman.decode(huffPgn, playedPlies, light.id)
-        case None =>
-          val clm = r.get[CastleLastMove](F.castleLastMove)
-          val sans = PgnStorage.OldBin.decode(r.bytesD(F.oldPgn), playedPlies)
-          val halfMoveClock = HalfMoveClock
-            .from:
-              sans.reverse
-                .indexWhere(san => san.value.contains("x") || san.value.headOption.exists(_.isLower))
-                .some
-            .filter(HalfMoveClock.initial <= _)
-          PgnStorage.Decoded(
-            sans = sans,
-            board = Board.fromMap(BinaryFormat.piece.read(r.bytes(F.binaryPieces), light.variant)),
-            positionHashes =
-              r.getO[Array[Byte]](F.positionHashes).map(chess.PositionHash.apply) | chess.PositionHash.empty,
-            unmovedRooks = r.getO[UnmovedRooks](F.unmovedRooks) | UnmovedRooks.default,
-            lastMove = clm.lastMove,
-            castles = clm.castles,
-            halfMoveClock = halfMoveClock
-              .orElse(r.getO[Fen.Full](F.initialFen).flatMap { fen =>
-                Fen.readHalfMoveClockAndFullMoveNumber(fen)._1
-              })
-              .getOrElse(playedPlies.into(HalfMoveClock))
-          )
-
-      val chessGame = ChessGame(
-        position = chess.Position(
-          board = decoded.board,
-          history = ChessHistory(
-            lastMove = decoded.lastMove,
-            castles = decoded.castles,
-            halfMoveClock = decoded.halfMoveClock,
-            positionHashes = decoded.positionHashes,
-            unmovedRooks = decoded.unmovedRooks,
-            checkCount = if light.variant.threeCheck then
-              val counts = r.intsD(F.checkCount)
-              CheckCount(~counts.headOption, ~counts.lastOption)
-            else emptyCheckCount,
-            crazyData = light.variant.crazyhouse.option(r.get[Crazyhouse.Data](F.crazyData))
-          ),
-          variant = light.variant,
-          color = turnColor
-        ),
-        sans = decoded.sans,
-        clock = r
-          .getO[Color => Clock](F.clock)(using
-            clockBSONReader(createdAt, whitePlayer.berserk, blackPlayer.berserk)
-          )
-          .map(_(turnColor)),
-        ply = ply,
-        startedAtPly = startedAtPly
-      )
+      val schemaVersion = r.intO(F.xiangqiVersion)
+      if !schemaVersion.contains(lila.game.Game.xiangqiSchemaVersion) then
+        throw IllegalStateException(
+          s"Game ${light.id} uses unsupported domain schema ${schemaVersion.fold("legacy")(_.toString)}"
+        )
+      val xiangqi = r.get[Xiangqi.Game](F.xiangqi)
+      if xiangqi.state.ply > maxPlies.value then
+        throw IllegalStateException(s"Game ${light.id} exceeds the maximum Xiangqi ply")
+      val turnColor =
+        if xiangqi.state.turn == Xiangqi.Side.Red then Color.White else Color.Black
 
       val whiteClockHistory = r.bytesO(F.whiteClockHistory)
       val blackClockHistory = r.bytesO(F.blackClockHistory)
@@ -173,7 +104,13 @@ object BSONHandlers:
       Game(
         id = light.id,
         players = ByColor(whitePlayer, blackPlayer),
-        chess = chessGame,
+        xiangqi = xiangqi,
+        clock = r
+          .getO[Color => Clock](F.clock)(using
+            clockBSONReader(createdAt, whitePlayer.berserk, blackPlayer.berserk)
+          )
+          .map(_(turnColor)),
+        startedAtPly = startedAtPly,
         loadClockHistory = clk =>
           for
             bw <- whiteClockHistory
@@ -200,7 +137,8 @@ object BSONHandlers:
           drawOffers = r.getD(F.drawOffers, emptyDrawOffers),
           rules = r.getD(F.rules, Set.empty)
         ),
-        abortedBy = r.getO[Color](F.abortedBy)
+        abortedBy = r.getO[Color](F.abortedBy),
+        variant = light.variant
       )
 
     def writes(w: BSON.Writer, o: Game) =
@@ -218,17 +156,19 @@ object BSONHandlers:
         F.whitePlayer -> w.docO(Player.playerWrite(o.whitePlayer)),
         F.blackPlayer -> w.docO(Player.playerWrite(o.blackPlayer)),
         F.status -> o.status,
-        F.turns -> o.chess.ply,
-        F.startedAtTurn -> w.intO(o.chess.startedAtPly.value),
-        F.clock -> o.chess.clock.flatMap { c =>
+        F.xiangqiVersion -> lila.game.Game.xiangqiSchemaVersion,
+        F.xiangqi -> o.xiangqi,
+        F.turns -> o.ply,
+        F.startedAtTurn -> w.intO(o.startedAtPly.value),
+        F.clock -> o.clock.flatMap { c =>
           clockBSONWrite(o.createdAt, c).toOption
         },
         F.daysPerTurn -> o.daysPerTurn,
         F.moveTimes -> o.binaryMoveTimes,
-        F.whiteClockHistory -> clockHistory(Color.White, o.clockHistory, o.chess.clock, o.flagged),
-        F.blackClockHistory -> clockHistory(Color.Black, o.clockHistory, o.chess.clock, o.flagged),
+        F.whiteClockHistory -> clockHistory(Color.White, o.clockHistory, o.clock, o.flagged),
+        F.blackClockHistory -> clockHistory(Color.Black, o.clockHistory, o.clock, o.flagged),
         F.rated -> w.yesnoO(o.rated),
-        F.variant -> o.position.variant.exotic.option(w(o.position.variant.id)),
+        F.variant -> o.variant.exotic.option(w(o.variant.id)),
         F.bookmarks -> w.intO(o.bookmarks),
         F.createdAt -> w.date(o.createdAt),
         F.movedAt -> w.date(o.movedAt),
@@ -240,22 +180,7 @@ object BSONHandlers:
         F.analysed -> w.boolO(o.metadata.analysed),
         F.rules -> o.metadata.nonEmptyRules,
         F.abortedBy -> o.abortedBy
-      ) ++ {
-        if o.variant.standard then
-          $doc(F.huffmanPgn -> PgnStorage.Huffman.encode(o.sans.take(maxPlies.value)))
-        else
-          val f = PgnStorage.OldBin
-          $doc(
-            F.oldPgn -> f.encode(o.sans.take(maxPlies.value)),
-            F.binaryPieces -> BinaryFormat.piece.write(o.position.pieces),
-            F.positionHashes -> o.history.positionHashes.value,
-            F.unmovedRooks -> o.history.unmovedRooks,
-            F.castleLastMove -> CastleLastMove(castles = o.history.castles, lastMove = o.history.lastMove),
-            F.checkCount -> o.history.checkCount.nonEmpty.option(o.history.checkCount),
-            F.crazyData -> o.position.crazyData
-          )
-      }
-    val emptyCheckCount = CheckCount(0, 0)
+      )
 
   given lightGameReader: lila.db.BSONReadOnly[LightGame] with
 
@@ -279,7 +204,7 @@ object BSONHandlers:
         blackPlayer = makePlayer(F.blackPlayer, Color.Black, blackUid),
         status = r.get[Status](F.status),
         win = winC,
-        variant = Variant.idOrDefault(r.getO[Variant.Id](F.variant))
+        variant = chess.variant.Variant.idOrDefault(r.getO[chess.variant.Variant.Id](F.variant))
       )
 
   private def clockHistory(

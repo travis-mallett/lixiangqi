@@ -1,15 +1,14 @@
 package lila.round
 
-import chess.format.pgn.SanStr
-import chess.format.{ Fen, Uci }
-import chess.{ MoveOrDrop, Ply }
+import chess.Ply
 import play.api.libs.json.*
 
 import lila.common.Json.given
+import lila.xiangqi.Xiangqi
 
 case class Forecast(_id: GameFullId, steps: Forecast.Steps, date: Instant):
 
-  def apply(g: Game, lastMove: MoveOrDrop): Option[(Forecast, Uci)] =
+  def apply(g: Game, lastMove: Xiangqi.Uci): Option[(Forecast, Xiangqi.Uci)] =
     nextMove(g, lastMove).map { move =>
       copy(
         steps = steps.collect {
@@ -23,7 +22,7 @@ case class Forecast(_id: GameFullId, steps: Forecast.Steps, date: Instant):
   // accept up to 30 lines of 30 moves each
   def truncate = copy(steps = steps.take(30).map(_.take(30)))
 
-  private def nextMove(g: Game, last: MoveOrDrop) =
+  private def nextMove(g: Game, last: Xiangqi.Uci) =
     steps.collectFirstSome:
       case fst :: snd :: _ if g.ply == fst.ply && fst.is(last) => snd.uciMove
       case _ => none
@@ -43,15 +42,14 @@ object Forecast:
   case class Step(
       ply: Ply,
       uci: String,
-      san: SanStr,
-      fen: Fen.Full,
+      san: String,
+      fen: String,
       check: Option[Boolean]
   ):
 
-    def is(move: MoveOrDrop) = move.toUci.uci == uci
-    def is(move: Uci) = move.uci == uci
+    def is(move: Xiangqi.Uci) = move.value == uci
 
-    def uciMove = Uci(uci)
+    def uciMove = Xiangqi.Uci.from(uci).toOption
 
   given Format[Step] = Json.format
   given Writes[Forecast] = Json.writes

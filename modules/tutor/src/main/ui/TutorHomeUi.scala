@@ -11,7 +11,7 @@ final class TutorHomeUi(helpers: Helpers, bits: TutorBits, q: TutorQueueUi, rps:
   import helpers.{ *, given }
 
   def apply(home: TutorHome, form: Form[?], limit: RateLimit.Status)(using Context) =
-    Page("Lichess Tutor")
+    Page("Lixiangqi Tutor")
       .css("tutor.home")
       .js(Esm("bits.flatpickr"))
       .js(Esm("tutor"))
@@ -64,7 +64,7 @@ final class TutorHomeUi(helpers: Helpers, bits: TutorBits, q: TutorQueueUi, rps:
         )
 
   private def title(user: UserId)(using Context) =
-    boxTop(h1("Lichess Tutor", bits.beta, bits.otherUser(user)))
+    boxTop(h1("Lixiangqi Tutor", bits.beta, bits.otherUser(user)))
 
   private def firstReportButton(user: UserId) =
     val form = TutorConfig.form.full
@@ -77,7 +77,7 @@ final class TutorHomeUi(helpers: Helpers, bits: TutorBits, q: TutorQueueUi, rps:
   def insufficientGames(user: UserId)(using Context) =
     bits.page(menu = emptyFrag, pageSmall = true)(cls := "tutor__insufficient box"):
       frag(
-        boxTop(h1(bits.otherUser(user), "Lichess Tutor")),
+        boxTop(h1(bits.otherUser(user), "Lixiangqi Tutor")),
         mascotSaysInsufficient
       )
 
@@ -86,6 +86,6 @@ final class TutorHomeUi(helpers: Helpers, bits: TutorBits, q: TutorQueueUi, rps:
       frag(
         strong("Not enough rated games to examine!"),
         br,
-        "Please come back after you have played more chess."
+        "Please come back after you have played more Xiangqi."
       )
     )

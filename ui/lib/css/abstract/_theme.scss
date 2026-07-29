@@ -11,8 +11,8 @@ $outline: 2px solid $c-primary;
   }
 }
 
-@mixin if-transp {
-  html.transp & {
+@mixin if-background {
+  html.has-background & {
     @content;
   }
 }
@@ -23,14 +23,14 @@ $outline: 2px solid $c-primary;
   }
 }
 
-@mixin if-not-transp {
-  html:not(.transp) & {
+@mixin if-no-background {
+  html:not(.has-background) & {
     @content;
   }
 }
 
 @mixin theme-style {
-  html.transp::before {
+  html.has-background::before {
     content: ' ';
     position: fixed;
     width: 100%;

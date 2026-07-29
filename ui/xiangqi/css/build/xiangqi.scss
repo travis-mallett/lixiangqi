@@ -1,0 +1,10 @@
+@import '../../../lib/css/plugin';
+@import '../../../lib/css/layout/uniboard';
+@import '../../../lib/css/component/board-resize';
+@import '../../../lib/css/theme/board/coords';
+@import '../../../lib/css/ceval/pv';
+
+$analyse-block-gap: 0.5rem;
+
+@import '../../../analyse/css/explorer/explorer';
+@import '../xiangqi';

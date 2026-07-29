@@ -1,8 +1,11 @@
 package lila.core
 package pref
 
+import play.api.i18n.Lang
+
 import lila.core.user.User
 import lila.core.userId.UserId
+import lila.xiangqi.Xiangqi
 
 trait Pref:
   val id: UserId
@@ -14,23 +17,29 @@ trait Pref:
   val destination: Boolean
   val moveEvent: Int
   val highlight: Boolean
-  val is3d: Boolean
   val resizeHandle: Int
-  val theme: String
-  val pieceSet: String
+  def boardTheme: String
+  def pieceSet: String
+  def soundSet: String
+  def musicSet: String
+  def uiTheme: String
+  def colorScheme: String
+  def backgroundImage: Option[String]
+  def boardBrightness: Int
+  def boardContrast: Int
+  def boardOpacity: Int
+  def boardHue: Int
   val usingAltSocket: Option[Boolean]
   val blogFilter: ublog.QualityFilter
-  val bg: Int
 
   def hasKeyboardMove: Boolean
   def hasVoice: Boolean
-  def hasSpeech: Boolean
   def hideRatingsInGame: Boolean
   def showRatings: Boolean
   def animationMillis: Int
   def animationMillisForSpeedPuzzles: Int
   def pieceNotationIsLetter: Boolean
-  def currentBg: String
+  def xiangqiNotationStyle(lang: Lang): Xiangqi.NotationStyle
 
 trait PrefApi:
   def followable(userId: UserId): Fu[Boolean]

@@ -169,12 +169,12 @@ object contact:
               )
             ),
             Leaf(
-              "castling",
+              "flying-general",
               illegalCastling(),
               frag(
                 p(castlingPrevented()),
-                p(a(href := "https://en.wikipedia.org/wiki/Castling#Requirements")(castlingRules()), "."),
-                p(a(href := "/learn#/14")(tryCastling()), "."),
+                p(a(href := "https://en.wikipedia.org/wiki/Xiangqi#Rules")(castlingRules()), "."),
+                p(a(href := "/learn")(tryCastling()), "."),
                 p(castlingImported())
               )
             ),
@@ -263,7 +263,7 @@ object contact:
               "GDPR erasure",
               p(
                 "You may request the ",
-                a(href := routes.Account.delete)("complete deletion of your Lichess account.")
+                a(href := routes.Account.delete)("complete deletion of your Lixiangqi account.")
               )
             ),
             Leaf(
@@ -272,19 +272,23 @@ object contact:
               p(
                 a(href := "/dmca")("Complete this form"),
                 " ",
-                "if you are the original copyright holder, or an agent acting on behalf of the copyright holder, and believe Lichess is hosting work(s) you hold the copyright to."
+                "if you are the original copyright holder, or an agent acting on behalf of the copyright holder, and believe Lixiangqi is hosting work(s) you hold the copyright to."
               )
             ),
             Leaf(
               "contact-broadcast",
-              broadcastTournamentOnLichess(),
+              "Broadcast a tournament on Lixiangqi",
               frag(
-                p(ifYouWantToBroadcastClause1()),
                 p(
-                  ifYouWantToBroadcastClause2(
-                    contactEmailLink("broadcast@lichess.org"),
-                    a(href := "https://discord.gg/Syx9CbN8Jv")(ourDiscordServer())
-                  )
+                  "If you want to officially broadcast a tournament on Lixiangqi, ",
+                  "or have any questions about our broadcasts:"
+                ),
+                p(
+                  "Please contact our Broadcast Team at ",
+                  contactEmailLink("broadcast@lixiangqi.org"),
+                  " or on ",
+                  a(href := "https://discord.gg/Syx9CbN8Jv")("our discord"),
+                  "."
                 )
               )
             ),
@@ -301,7 +305,7 @@ object contact:
               "monetize",
               monetizing(),
               frag(
-                p(monetiseNotInterested()),
+                p("We are not interested in any way of monetizing Lixiangqi."),
                 p(
                   monetiseNoAdsTrackingOrTraffic()
                 ),

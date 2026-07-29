@@ -4,9 +4,9 @@
   <string name="coordinateTraining">Coordinate training</string>
   <string name="averageScoreAsWhiteX">Average score as white: %s</string>
   <string name="averageScoreAsBlackX">Average score as black: %s</string>
-  <string name="knowingTheChessBoard">Knowing the chessboard coordinates is a very important skill for several reasons:</string>
-  <string name="mostChessCourses">Most chess courses and exercises use the algebraic notation extensively.</string>
-  <string name="talkToYourChessFriends">It makes it easier to talk to your chess friends, since you both understand the \"language of chess\".</string>
+  <string name="knowingTheChessBoard">Knowing the Xiangqiboard coordinates is a very important skill for several reasons:</string>
+  <string name="mostChessCourses">Most Xiangqi courses and exercises use the algebraic notation extensively.</string>
+  <string name="talkToYourChessFriends">It makes it easier to talk to your Xiangqi friends, since you both understand the \"language of Xiangqi\".</string>
   <string name="youCanAnalyseAGameMoreEffectively">You can analyze a game more effectively if you can quickly recognize coordinates.</string>
   <string name="aCoordinateAppears">A coordinate appears on the board and you must click on the corresponding square.</string>
   <string name="aSquareIsHighlightedExplanation">A square is highlighted on the board and you must enter its coordinate (e.g. \"e4\").</string>

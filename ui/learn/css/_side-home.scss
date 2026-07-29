@@ -2,70 +2,100 @@
   @import '../../bits/css/learn/progress';
   @extend %box-bordered, %flex-column;
 
-  gap: 1em;
-  background: $c-bg-box;
+  position: sticky;
+  top: 1rem;
+  gap: 1rem;
+  overflow: hidden;
+  border-color: color-mix(in oklab, #b9914e 35%, $c-border);
+  border-radius: 9px;
+  padding: 1.25rem;
+  background: linear-gradient(180deg, rgb(145 45 38 / 0.12), transparent 46%), $c-bg-box;
   text-align: center;
-  padding: 1.25em 1.25em 1em;
-
-  @keyframes fat-glide {
-    50% {
-      transform: translateY(-4px);
-    }
-  }
 
   img.decoration {
     display: block;
-    width: 160px;
+    width: 146px;
     aspect-ratio: 1;
-    margin: auto;
-    opacity: 0.7;
-
-    @include if-light {
-      filter: brightness(0.15);
-    }
+    margin: 0 auto;
   }
 
-  &:hover img.decoration {
-    animation: 1.5s fat-glide ease-in-out infinite;
-  }
-
-  &__header {
+  &__header,
+  &__title {
     @extend %flex-column;
 
-    gap: 1em;
+    gap: 0.5rem;
+  }
 
-    .learn__side-home__title {
-      @extend %flex-column;
+  .learn-badge {
+    align-self: center;
+    border: 1px solid rgb(205 165 93 / 0.45);
+    border-radius: 1rem;
+    padding: 0.2rem 0.65rem;
+    color: #cda55d;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+  }
 
-      justify-content: center;
+  h1 {
+    margin: 0;
+    color: $c-font-clear;
+    font-size: 2rem;
+  }
+
+  h2 {
+    margin: 0;
+    color: $c-font-dim;
+    font-size: 1.2rem;
+    font-weight: 400;
+  }
+
+  .side-intro {
+    margin: 0;
+    color: $c-font-dim;
+    line-height: 1.45;
+  }
+
+  .progress {
+    overflow: hidden;
+    border-radius: 5px;
+    background: $c-bg-zebra;
+
+    .text {
+      position: relative;
+      z-index: 1;
+      color: $c-font-clear;
+      font-weight: 700;
     }
 
-    h1 {
-      font-size: 2.5em;
-    }
-
-    h2 {
-      font-size: 1.8em;
-    }
-
-    @media (max-width: $small) {
-      flex-flow: row nowrap;
-      gap: $block-gap;
-      text-align: left;
-
-      img.decoration {
-        width: min(100px, 30vw);
-        margin: 0;
-      }
+    .bar {
+      background: linear-gradient(90deg, #8f2f29, #c39245);
     }
   }
 
-  a {
-    opacity: 0.6;
-    color: $c-font;
+  .confirm {
+    border: 0;
+    background: transparent;
+    color: $c-font-dim;
+    cursor: pointer;
 
     &:hover {
-      opacity: 1;
+      color: $c-font;
+    }
+  }
+
+  @media (max-width: $small) {
+    position: static;
+
+    &__header {
+      flex-flow: row nowrap;
+      align-items: center;
+      text-align: left;
+    }
+
+    img.decoration {
+      width: 92px;
+      margin: 0;
     }
   }
 }

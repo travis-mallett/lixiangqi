@@ -1,12 +1,10 @@
 package lila.game
 
-import chess.format.Uci
 import chess.variant.Variant
-import chess.{ Castles, Centis, Clock, Color, Game as ChessGame, MoveOrDrop, Ply, Speed, Status }
+import chess.{ Centis, Clock, Color, Ply, Speed, Status }
 import scalalib.model.Days
 
 import lila.core.game.{ ClockHistory, Game, Player, Pov, Source }
-import lila.db.ByteArray
 import lila.game.Blurs.addAtMoveIndex
 import lila.rating.PerfType
 
@@ -49,8 +47,7 @@ object GameExt:
 
   def analysable(g: Game) =
     g.replayable && g.playedPlies > 4 &&
-      Game.analysableVariants(g.variant) &&
-      !Game.isOldHorde(g)
+      Game.analysableVariants(g.variant)
 
   extension (clockHistory: ClockHistory)
 
@@ -63,7 +60,7 @@ object GameExt:
 
     def playerIdPov(playerId: GamePlayerId): Option[Pov] = g.playerById(playerId).map(p => Pov(g, p.color))
 
-    def withClock(c: Clock) = Progress(g, g.copy(chess = g.chess.copy(clock = Some(c))))
+    def withClock(c: Clock) = Progress(g, g.copy(clock = Some(c)))
 
     def startClock: Option[Progress] =
       g.clock.map: c =>
@@ -89,7 +86,7 @@ object GameExt:
           Progress(
             g,
             g.copy(
-              chess = g.chess.copy(clock = Some(newClock)),
+              clock = Some(newClock),
               loadClockHistory = _ =>
                 g.clockHistory.map: history =>
                   if history(color).isEmpty then history
@@ -112,27 +109,32 @@ object GameExt:
 
     // apply a move
     def applyMove(
-        game: ChessGame, // new chess.Position
-        moveOrDrop: MoveOrDrop,
+        game: lila.xiangqi.Xiangqi.Game,
+        move: lila.xiangqi.Xiangqi.MoveResult,
+        clock: Option[Clock],
         blur: Boolean = false
     ): Progress =
 
       def copyPlayer(player: Player) =
-        if blur && moveOrDrop.color == player.color then
+        if blur && g.turnColor == player.color then
           player.copy(blurs = player.blurs.addAtMoveIndex(g.playerMoves(player.color)))
         else player
 
       // This must be computed eagerly
       // because it depends on the current time
       val newClockHistory = for
-        clk <- game.clock
+        clk <- g.clock
         ch <- g.clockHistory
       yield ch.recordNewClock(g.turnColor, clk)
 
       val updated = g.copy(
-        players = g.players.map(copyPlayer),
-        chess = game,
-        binaryMoveTimes = (!g.sourceIs(_.Import) && g.chess.clock.isEmpty).option {
+        players = game.state.gameResult.winner.fold(g.players.map(copyPlayer)): side =>
+          val winner = if side == lila.xiangqi.Xiangqi.Side.Red then Color.White else Color.Black
+          g.players.map(copyPlayer).update(winner, _.copy(isWinner = true.some))
+        ,
+        xiangqi = game,
+        clock = clock,
+        binaryMoveTimes = (!g.sourceIs(_.Import) && g.clock.isEmpty).option {
           BinaryFormat.moveTime.write {
             g.binaryMoveTimes.so { t =>
               BinaryFormat.moveTime.read(t, g.playedPlies)
@@ -140,33 +142,30 @@ object GameExt:
           }
         },
         loadClockHistory = _ => newClockHistory,
-        status = game.position.status | g.status,
+        status =
+          if !game.state.ended then g.status
+          else if game.state.gameResult.winner.isDefined then Status.Mate
+          else Status.Draw,
         movedAt = nowInstant
       )
 
       val state = Event.State(
-        turns = game.ply,
+        turns = Ply(game.state.ply),
         status = (g.status != updated.status).option(updated.status),
-        winner = game.position.winner,
+        winner = game.state.gameResult.winner.map:
+          case lila.xiangqi.Xiangqi.Side.Red => Color.White
+          case lila.xiangqi.Xiangqi.Side.Black => Color.Black
+        ,
         whiteOffersDraw = g.whitePlayer.isOfferingDraw,
         blackOffersDraw = g.blackPlayer.isOfferingDraw
       )
 
-      val clockEvent = updated.chess.clock
+      val clockEvent = updated.clock
         .map(Event.Clock.apply)
         .orElse:
           updated.playableCorrespondenceClock.map(Event.CorrespondenceClock.apply)
 
-      val events = moveOrDrop.fold(
-        Event.Move(_, game.position, state, clockEvent, updated.position.crazyData),
-        Event.Drop(_, game.position, state, clockEvent, updated.position.crazyData)
-      ) :: {
-        (updated.position.variant.threeCheck && game.position.check.yes).so(List:
-          Event.CheckCount(
-            white = updated.history.checkCount.white,
-            black = updated.history.checkCount.black
-          ))
-      }
+      val events = Event.Move(move, state, clockEvent) :: Nil
 
       Progress(g, updated, events)
     end applyMove
@@ -176,7 +175,7 @@ object GameExt:
         status = status,
         players = winner.fold(g.players): c =>
           g.players.update(c, _.copy(isWinner = true.some)),
-        chess = g.chess.copy(clock = g.clock.map(_.stop)),
+        clock = g.clock.map(_.stop),
         loadClockHistory = clk =>
           g.clockHistory.map: history =>
             // If not already finished, we're ending due to an event
@@ -197,9 +196,7 @@ object GameExt:
       else 0
 
     def drawReason =
-      if g.variant.isInsufficientMaterial(g.position) then DrawReason.InsufficientMaterial.some
-      else if g.variant.fiftyMoves(g.history) then DrawReason.FiftyMoves.some
-      else if g.history.threefoldRepetition then DrawReason.ThreefoldRepetition.some
+      if g.position.insufficientMaterial then DrawReason.InsufficientMaterial.some
       else if g.drawOffers.normalizedPlies.exists(g.ply <= _) then DrawReason.MutualAgreement.some
       else None
 
@@ -223,8 +220,7 @@ object GameExt:
               case Blitz => 25
               case Rapid => 30
               case _ => 35
-        if g.variant.chess960 then base * 3 / 2
-        else base
+        base
 
     def expirable =
       !g.bothPlayersHaveMoved &&
@@ -247,25 +243,11 @@ object Game:
   val syntheticId = GameId("synthetic")
 
   val maxPlies = Ply(600) // unlimited would be a DoS target
+  val xiangqiSchemaVersion = 1
 
-  val analysableVariants: Set[Variant] = Set(
-    chess.variant.Standard,
-    chess.variant.Crazyhouse,
-    chess.variant.Chess960,
-    chess.variant.KingOfTheHill,
-    chess.variant.ThreeCheck,
-    chess.variant.Antichess,
-    chess.variant.FromPosition,
-    chess.variant.Horde,
-    chess.variant.Atomic,
-    chess.variant.RacingKings
-  )
+  val analysableVariants: Set[Variant] = Set(chess.variant.Standard, chess.variant.FromPosition)
 
   val unanalysableVariants: Set[Variant] = Variant.list.all.toSet -- analysableVariants
-
-  private val hordeWhitePawnsSince = instantOf(2015, 4, 11, 10, 0)
-  def isOldHorde(game: Game) =
-    game.variant == chess.variant.Horde && game.createdAt.isBefore(Game.hordeWhitePawnsSince)
 
   val abandonedDays = Days(21)
   def abandonedDate = nowInstant.minusDays(abandonedDays.value)
@@ -288,26 +270,20 @@ object Game:
 
   object BSONFields:
     export lila.core.game.BSONFields.*
+    val xiangqiVersion = "xv"
+    val xiangqi = "xg"
     val whitePlayer = "p0"
     val blackPlayer = "p1"
     val playerIds = "is"
-    val binaryPieces = "ps"
-    val oldPgn = "pg"
-    val huffmanPgn = "hp"
     val status = "s"
     val startedAtTurn = "st"
     val clock = "c"
-    val positionHashes = "ph"
-    val checkCount = "cc"
-    val castleLastMove = "cl"
-    val unmovedRooks = "ur"
     val daysPerTurn = "cd"
     val moveTimes = "mt"
     val whiteClockHistory = "cw"
     val blackClockHistory = "cb"
     val rated = "ra"
     val variant = "v"
-    val crazyData = "chd"
     val bookmarks = "bm"
     val source = "so"
     val tournamentId = "tid"
@@ -321,22 +297,5 @@ object Game:
     val rules = "rules"
     val abortedBy = "ab"
 
-case class CastleLastMove(castles: Castles, lastMove: Option[Uci])
-
-object CastleLastMove:
-
-  def init = CastleLastMove(Castles.init, None)
-
-  import reactivemongo.api.bson.*
-  import lila.db.dsl.*
-  import lila.db.ByteArray.byteArrayHandler
-
-  private[game] given castleLastMoveHandler: BSONHandler[CastleLastMove] = tryHandler[CastleLastMove](
-    { case bin: BSONBinary =>
-      byteArrayHandler.readTry(bin).map(BinaryFormat.castleLastMove.read)
-    },
-    clmt => byteArrayHandler.writeTry(BinaryFormat.castleLastMove.write(clmt)).get
-  )
-
 enum DrawReason:
-  case MutualAgreement, FiftyMoves, ThreefoldRepetition, InsufficientMaterial
+  case MutualAgreement, InsufficientMaterial

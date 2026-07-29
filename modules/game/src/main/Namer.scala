@@ -18,7 +18,7 @@ object Namer extends lila.core.game.Namer:
 
   private def playerTextUser(player: Player, user: Option[LightUser], withRating: Boolean): String =
     player.aiLevel match
-      case Some(level) => s"Stockfish level $level"
+      case Some(level) => s"Pikafish level $level"
       case None =>
         user.fold(player.name.fold("Anon.")(_.value)): u =>
           ratingString(player)

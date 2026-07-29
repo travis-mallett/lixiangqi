@@ -1,11 +1,11 @@
 package lila.round
 
-import chess.format.Uci
 import reactivemongo.api.bson.*
 
 import lila.db.dsl.{ *, given }
 
 import Forecast.Step
+import lila.xiangqi.Xiangqi
 
 final class ForecastApi(coll: Coll, roundApi: lila.core.round.RoundApi)(using Executor):
 
@@ -39,20 +39,23 @@ final class ForecastApi(coll: Coll, roundApi: lila.core.round.RoundApi)(using Ex
   ): Funit =
     if !pov.isMyTurn then funit
     else
-      Uci
-        .Move(uciMove)
-        .fold[Funit](fufail(lila.core.round.ClientError(s"Invalid move $uciMove on $pov"))): uci =>
-          val promise = Promise[Unit]()
-          roundApi.tell(
-            pov.gameId,
-            HumanPlay(
-              playerId = pov.playerId,
-              uci = uci,
-              blur = true,
-              promise = promise.some
+      Xiangqi.Uci
+        .from(uciMove)
+        .fold(
+          error => fufail(lila.core.round.ClientError(s"$error on $pov")),
+          uci =>
+            val promise = Promise[Unit]()
+            roundApi.tell(
+              pov.gameId,
+              HumanPlay(
+                playerId = pov.playerId,
+                uci = uci,
+                blur = true,
+                promise = promise.some
+              )
             )
-          )
-          saveSteps(pov, steps) >> promise.future
+            saveSteps(pov, steps) >> promise.future
+        )
 
   def loadForDisplay(pov: Pov): Fu[Option[Forecast]] =
     pov.forecastable
@@ -70,7 +73,7 @@ final class ForecastApi(coll: Coll, roundApi: lila.core.round.RoundApi)(using Ex
           if firstStep(fc.steps).exists(_.ply != pov.game.ply) then clearPov(pov).inject(none)
           else fuccess(fc.some)
 
-  def nextMove(g: Game, last: chess.MoveOrDrop): Fu[Option[Uci]] =
+  def nextMove(g: Game, last: Xiangqi.Uci): Fu[Option[Xiangqi.Uci]] =
     g.forecastable.so:
       val pov = Pov(g, g.turnColor)
       loadForPlay(pov).flatMapz: fc =>

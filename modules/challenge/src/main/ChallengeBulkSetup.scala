@@ -151,7 +151,7 @@ final class ChallengeBulkSetupApi(
                     message = data.message,
                     rules = data.rules,
                     scheduledAt = nowInstant,
-                    fen = data.fen.filterNot(_.isInitial)
+                    fen = data.fen.filterNot(_.value == lila.xiangqi.Xiangqi.startFen)
                   )
 
 object ChallengeBulkSetup:
@@ -209,10 +209,12 @@ object ChallengeBulkSetup:
 
     def allowMultiplePairingsPerUser = clock.isEmpty
 
-    def validFen = Variant.isValidInitialFen(variant, fen)
+    def validFen =
+      variant != FromPosition || fen.exists(value => lila.xiangqi.Xiangqi.Fen.isValid(value.value))
 
     def autoVariant =
-      if variant.standard && fen.exists(!_.isInitial) then copy(variant = FromPosition)
+      if variant.standard && fen.exists(_.value != lila.xiangqi.Xiangqi.startFen)
+      then copy(variant = FromPosition, rated = Rated.No)
       else this
 
   def toJson(bulk: ScheduledBulk) =

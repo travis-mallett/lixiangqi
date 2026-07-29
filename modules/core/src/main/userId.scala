@@ -66,7 +66,7 @@ object userId:
     // Matches a lichess username with an '@' prefix if it is used as a single
     // word (i.e. preceded and followed by space or appropriate punctuation):
     // Yes: everyone says @ornicar is a pretty cool guy
-    // No: contact@lichess.org, @1, http://example.com/@happy0, @lichess.org
+    // No: contact@lixiangqi.org, @1, http://example.com/@happy0, @lixiangqi.org
     val atRegex = """@(?<![\w@#/\[]@)([\w-]{2,30}+)(?![@\w-]|\.\w)""".r
 
   // maybe an Id, maybe a Name... something that's probably cased wrong
