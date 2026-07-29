@@ -161,6 +161,8 @@ interface I18n {
     drawingWithinNbMoves: I18nPlural;
     /** Draw streaks: When a player has consecutive draws in an arena, only the first draw scores a point unless the game lasts more than %s moves. The draw streak can only be broken by a win, not a loss or a draw. */
     drawStreakStandard: I18nFormat;
+    /** The minimum game length for drawn games to award points differs by variant. The table below lists the threshold for each variant. */
+    drawStreakVariants: string;
     /** Edit team battle */
     editTeamBattle: string;
     /** Edit tournament */
@@ -191,6 +193,8 @@ interface I18n {
     isRated: string;
     /** medians */
     medians: string;
+    /** Minimum game length */
+    minimumGameLength: string;
     /** My tournaments */
     myTournaments: string;
     /** New Team Battle */
@@ -237,6 +241,8 @@ interface I18n {
     tournamentStats: string;
     /** Tournament winners */
     tournamentWinners: string;
+    /** Variant */
+    variant: string;
     /** View all %s teams */
     viewAllXTeams: I18nPlural;
     /** Which team will you represent in this battle? */
@@ -1263,7 +1269,7 @@ interface I18n {
     threeFoldHasToBeClaimed: I18nFormat;
     /** Threefold repetition */
     threefoldRepetition: string;
-    /** If a position repeats, Xiangqi perpetual-check and perpetual-chase rules may apply. Lixiangqi follows the official WXF rules described in %2$s. */
+    /** In Xiangqi, %1$s may be governed by perpetual-check and perpetual-chase rules rather than an automatic draw. Lixiangqi follows the official WXF rules described in %2$s. */
     threefoldRepetitionExplanation: I18nFormat;
     /** threefold repetition */
     threefoldRepetitionLowerCase: string;

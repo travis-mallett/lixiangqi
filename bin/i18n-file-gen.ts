@@ -73,7 +73,8 @@ function keyListFrom(name: string): KeyList {
 const dbCode = (obj: KeyList) => `  object ${convertObjectName(obj.name)}:\n${obj.code}`;
 
 const objs = xmls.map(keyListFrom);
-const code = `// Generated with bin/i18n-file-gen.ts
+const code =
+  `// Generated with bin/i18n-file-gen.ts
 package lila.core.i18n
 
 opaque type I18nKey = String
@@ -98,7 +99,7 @@ object I18nKey:
 
   // format: OFF
 ${objs.map(dbCode).join('\n')}
-`;
+`.trimEnd() + '\n';
 
 const keyFile = path.resolve(lilaDir, 'modules/coreI18n/src/main/key.scala');
 writeFileSync(keyFile, code);

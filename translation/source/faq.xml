@@ -62,7 +62,7 @@ See the %3$s for practice with core Xiangqi rules and patterns.</string>
   <string name="lichessTraining">Lixiangqi training</string>
   <string name="watchIMRosenCheckmate">Learn how this rule shapes direct attacks on the %s.</string>
   <string name="threefoldRepetition">Threefold repetition</string>
-  <string name="threefoldRepetitionExplanation">If a position repeats, Xiangqi perpetual-check and perpetual-chase rules may apply. Lixiangqi follows the official WXF rules described in %2$s.</string>
+  <string name="threefoldRepetitionExplanation">In Xiangqi, %1$s may be governed by perpetual-check and perpetual-chase rules rather than an automatic draw. Lixiangqi follows the official WXF rules described in %2$s.</string>
   <string name="threefoldRepetitionLowerCase">threefold repetition</string>
   <string name="notRepeatedMoves">We did not repeat moves. Why was the game still drawn by repetition?</string>
   <string name="repeatedPositionsThatMatters">Threefold repetition is about repeated %1$s, not moves. Repetition does not have to occur consecutively.</string>
