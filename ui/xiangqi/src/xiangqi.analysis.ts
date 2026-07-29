@@ -667,19 +667,51 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     update();
     let failure: unknown;
     try {
+      const gameInitialFen = game.initialFen || XIANGQI_START_FEN;
       const imported = await requestXiangqi<ImportedMoveTree>('/api/analysis/import', {
-        initialFen: XIANGQI_START_FEN,
-        notation: game.moves.join(' '),
+        initialFen: gameInitialFen,
+        notation: game.notation?.trim() || game.moves.join(' '),
       });
       syncActiveTab();
       const importedTree = createMoveTreeFromImport(imported, chineseNotation);
+      const mainline = getNodeList(importedTree, mainlineEndPath(importedTree));
+      const nodeAtUciPath = (path: string): XiangqiPositionNode | undefined => {
+        let node: XiangqiPositionNode = importedTree.root;
+        for (const move of path.split(/\s+/).filter(Boolean)) {
+          const child: XiangqiTreeNode | undefined = node.children.find(candidate => candidate.uci === move);
+          if (!child) return undefined;
+          node = child;
+        }
+        return node;
+      };
+      game.witnesses?.forEach(witness =>
+        witness.annotations.forEach(layer =>
+          layer.annotations.forEach(annotation => {
+            if (!annotation.body) return;
+            const target = annotation.path?.trim()
+              ? nodeAtUciPath(annotation.path)
+              : annotation.anchor === 'root' || annotation.anchor === 'record'
+                ? importedTree.root
+                : annotation.ply !== undefined
+                  ? mainline[annotation.ply]
+                  : undefined;
+            if (!target) return;
+            (target.comments ??= []).push({
+              text: annotation.body,
+              source: witness.collectionName,
+              author: layer.annotator,
+              language: layer.language,
+            });
+          }),
+        ),
+      );
       const title = `${game.red.name} – ${game.black.name}`;
       const gameTab: AnalysisTab = {
         id: createTabId(),
         title,
         kind: 'game',
         gameId: game.id,
-        initialFen: XIANGQI_START_FEN,
+        initialFen: gameInitialFen,
         tree: importedTree,
         activePath: mainlineEndPath(importedTree),
       };

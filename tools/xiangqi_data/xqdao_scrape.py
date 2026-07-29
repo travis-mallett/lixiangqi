@@ -23,7 +23,7 @@ from .xqdao_import import STANDARD_BINIT, XqdaoImporter, XqdaoListing
 
 
 BASE_URL = "https://www.xqdao.com"
-INDEX_URL = BASE_URL + "/dashi/?page={page}"
+INDEX_URL = "http://www.xqdao.com/dashi/?page={page}"
 GAME_URL = BASE_URL + "/qipu/show/{game_id}/"
 DEFAULT_DATABASE = source_database_path("xqdao")
 DEFAULT_OUTPUT = DEFAULT_DATABASE.parent / "xqdao-html"
@@ -194,6 +194,8 @@ def discover(
     refresh: bool,
     complete: bool,
     enough: int | None,
+    max_index_pages: int | None = None,
+    max_events: int | None = None,
 ) -> tuple[list[XqdaoListing], dict[str, int], bool]:
     games: dict[str, XqdaoListing] = {}
     seen_events: set[str] = set()
@@ -233,6 +235,8 @@ def discover(
             flush=True,
         )
         for event_url, event_name, source_index_page in events:
+            if max_events is not None and stats["events"] >= max_events:
+                return list(games.values()), stats, False
             if event_url in seen_events:
                 continue
             seen_events.add(event_url)
@@ -283,6 +287,8 @@ def discover(
             if not complete and enough is not None and len(games) >= enough:
                 return list(games.values()), stats, False
         index_page += 1
+        if max_index_pages is not None and index_page > max_index_pages:
+            break
     return list(games.values()), stats, reached_end
 
 
@@ -313,7 +319,7 @@ def _write_manifest(
     partial.replace(destination)
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Download complete public XQDao games into the Lixiangqi catalog"
     )
@@ -329,12 +335,22 @@ def main() -> int:
     parser.add_argument("--download-only", action="store_true")
     parser.add_argument("--refresh-listings", action="store_true")
     parser.add_argument("--overwrite-games", action="store_true")
+    parser.add_argument(
+        "--max-index-pages",
+        type=positive_int,
+        help="stop after this many newest event-index pages (incremental updates)",
+    )
+    parser.add_argument(
+        "--max-events",
+        type=positive_int,
+        help="stop after this many newest event collections (incremental updates)",
+    )
     parser.add_argument("--delay", type=float, default=1.0)
     parser.add_argument("--timeout", type=float, default=45.0)
     parser.add_argument("--retries", type=int, default=4)
     parser.add_argument("--retry-backoff", type=float, default=2.0)
     parser.add_argument("--user-agent", default=DEFAULT_USER_AGENT.replace("DPXQ", "XQDao"))
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     if args.full and args.count != 5:
         parser.error("use --full without --count")
@@ -361,6 +377,8 @@ def main() -> int:
         refresh=args.refresh_listings,
         complete=complete_discovery,
         enough=limit,
+        max_index_pages=args.max_index_pages,
+        max_events=args.max_events,
     )
     manifest_complete = complete_discovery and reached_end and stats["failed"] == 0
     _write_manifest(args.output, games, stats, manifest_complete)
@@ -385,11 +403,6 @@ def main() -> int:
         for number, listing in enumerate(selected, 1):
             if importer and importer.has_record(listing.game_id) and not args.overwrite_games:
                 counts["duplicate"] += 1
-                progress.update(
-                    number,
-                    f"ID {listing.game_id} D {counts['downloaded']} C {counts['cached']} "
-                    f"F {counts['failed']} DB {counts['imported']}/{counts['duplicate']}/{counts['invalid']}",
-                )
                 continue
             path = args.output / "games" / f"{int(listing.game_id):08d}.html"
             try:

@@ -33,7 +33,10 @@ function titleView(ctrl: ExplorerCtrl): HTMLDivElement {
   const title = element('div', 'explorer-title');
   const entries: [ExplorerDb, string][] = [
     ['masters', 'Masters'],
-    ['lixiangqi', 'Lixiangqi'],
+    ['all', 'All'],
+    ['dpxq', 'DPXQ'],
+    ['gdchess', '01xq'],
+    ['xqdao', 'XQDao'],
     ['player', 'Player'],
   ];
   for (const [db, name] of entries) {
@@ -76,7 +79,7 @@ function dataView(ctrl: ExplorerCtrl): HTMLDivElement {
         ? 'The DPXQ master-game export has not been installed.'
         : ctrl.config.db === 'player' && !ctrl.config.player
           ? 'Choose a Lixiangqi player in the preferences menu.'
-          : 'No game found for these filters.';
+          : `No game found in the ${data?.source || ctrl.config.db} database for these filters.`;
     empty.append(heading, explanation);
     wrapper.append(empty);
     return wrapper;

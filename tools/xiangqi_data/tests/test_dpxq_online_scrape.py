@@ -67,10 +67,12 @@ class DpxqOnlineScrapeTest(unittest.TestCase):
                     FROM game_sources
                     """
                 ).fetchone()
-            self.assertEqual(("dpxq_online:n:1", "dpxq_online", "n:1"), game)
+            self.assertTrue(game[0].startswith("g:"))
+            self.assertEqual(("dpxq_online", "n:1"), game[1:])
             self.assertEqual(
-                ("dpxq", "n", "网络赛事", "1", "dpxq_online:n:1"), source
+                ("dpxq", "n", "网络赛事", "1"), source[:-1]
             )
+            self.assertEqual(game[0], source[-1])
 
     def test_duplicate_game_keeps_every_collection_membership(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -161,7 +163,7 @@ class DpxqOnlineScrapeTest(unittest.TestCase):
             with patch.dict(os.environ, {"LIXIANGQI_EXPLORER_DB": str(database)}):
                 masters = explore_games(board, {"database": "masters"})
             self.assertEqual(1, masters["red"])
-            self.assertEqual("90", masters["topGames"][0]["id"])
+            self.assertTrue(masters["topGames"][0]["id"].startswith("g:"))
             self.assertIn("view_m_90.html", masters["topGames"][0]["sourceUrl"])
 
     def test_unowned_ids_are_enumerated_from_the_sparse_listing(self) -> None:

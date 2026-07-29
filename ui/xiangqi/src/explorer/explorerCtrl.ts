@@ -145,8 +145,11 @@ export default class ExplorerCtrl {
     const fallback: ExplorerConfig = { db: 'masters', since: '', until: '', player: '', color: 'red' };
     try {
       const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') as Partial<ExplorerConfig>;
+      const storedDb = stored.db === ('lixiangqi' as ExplorerDb) ? 'all' : stored.db;
       return {
-        db: ['masters', 'lixiangqi', 'player'].includes(stored.db || '') ? stored.db! : fallback.db,
+        db: ['masters', 'all', 'dpxq', 'gdchess', 'xqdao', 'player'].includes(storedDb || '')
+          ? storedDb!
+          : fallback.db,
         since: stored.since || '',
         until: stored.until || '',
         player: stored.player || '',

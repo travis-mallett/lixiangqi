@@ -179,9 +179,12 @@ class DpxqScrapeTest(unittest.TestCase):
                         ).fetchone()[0],
                     )
                     self.assertEqual(
-                        "1",
+                        1,
                         reader.execute(
-                            "SELECT value FROM metadata WHERE key = 'dpxq_game_count'"
+                            """
+                            SELECT count(*) FROM game_sources
+                            WHERE source = 'dpxq' AND collection = 'm'
+                            """
                         ).fetchone()[0],
                     )
 
@@ -276,15 +279,19 @@ class DpxqScrapeTest(unittest.TestCase):
                 ids = {
                     row[0]
                     for row in connection.execute(
-                        "SELECT external_id FROM games WHERE source = 'dpxq'"
+                        "SELECT external_id FROM game_sources WHERE source = 'dpxq'"
                     )
                 }
+                game_count = connection.execute(
+                    "SELECT count(*) FROM games"
+                ).fetchone()[0]
 
         self.assertEqual([42], calls)
         self.assertEqual((1, 2, 0), (counts.downloaded, counts.cached, counts.failed))
         self.assertEqual({"40", "41", "42"}, ids)
+        self.assertEqual(1, game_count)
         self.assertEqual(
-            {"seen": 3, "imported": 2, "duplicate": 1, "invalid": 0},
+            {"seen": 3, "imported": 0, "duplicate": 3, "invalid": 0},
             import_counts,
         )
 

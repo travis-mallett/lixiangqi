@@ -120,6 +120,12 @@ def parse_listing(document: str, event_id: str, listing_url: str) -> list[Gdches
             moves, opening, views, updated = cells[6:10]
         else:
             raise ValueError(f"unsupported 01xq listing row for {game_id}")
+        try:
+            parsed_result = _result(result)
+        except ValueError:
+            if result.strip() in {"?", "-", "*"}:
+                continue
+            raise
         listings.append(
             GdchessListing(
                 game_id=game_id,
@@ -131,7 +137,7 @@ def parse_listing(document: str, event_id: str, listing_url: str) -> list[Gdches
                 table=table,
                 red_english=red,
                 black_english=black,
-                result=_result(result),
+                result=parsed_result,
                 listed_plies=int(moves) if moves.isdigit() else 0,
                 opening_english=opening,
                 views=int(views) if views.isdigit() else None,
@@ -329,7 +335,7 @@ def _progress(processed: int, limit: int | None, game_id: str, counts: dict[str,
     )
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Download complete GDChess/01xq games into the Lixiangqi catalog"
     )
@@ -353,7 +359,7 @@ def main() -> int:
     parser.add_argument("--retries", type=int, default=4)
     parser.add_argument("--retry-backoff", type=float, default=2.0)
     parser.add_argument("--user-agent", default=DEFAULT_USER_AGENT.replace("DPXQ", "GDChess-01xq"))
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     if args.full and args.count != 5:
         parser.error("use --full without --count")
@@ -500,6 +506,19 @@ def main() -> int:
                 if listing.game_id in seen_games:
                     continue
                 seen_games.add(listing.game_id)
+                if (
+                    importer
+                    and (
+                        listing.game_id in importer.existing_records
+                        or (
+                            not args.reconcile
+                            and listing.game_id in importer.rejected_records
+                        )
+                    )
+                    and not args.overwrite_games
+                ):
+                    counts["duplicate"] += 1
+                    continue
                 if fast_resume and _completed_game(
                     args.output,
                     listing.game_id,
@@ -549,8 +568,8 @@ def main() -> int:
         if importer:
             importer.__exit__(None, None, None)
 
-    if processed == 0 and fast_resume and not counts["failed"] and not counts["invalid"]:
-        print("GDChess/01xq collection has no unfinished games.", flush=True)
+    if processed == 0 and seen_games and not counts["failed"] and not counts["invalid"]:
+        print("GDChess/01xq newest events contain no uncommitted games.", flush=True)
         return 0
     if processed == 0:
         print("No GDChess/01xq games were discovered", file=sys.stderr)

@@ -922,8 +922,29 @@
   }
 }
 
-.xiangqi-analysis-page.annotations-hidden .move-eval {
-  display: none;
+.xiangqi-analysis__comments {
+  margin: 0.2rem 0.45rem 0.4rem;
+  border-inline-start: 3px solid color-mix(in oklab, $c-primary 48%, transparent);
+  padding: 0.2rem 0.55rem;
+  color: $c-font;
+  font-size: 0.78em;
+  line-height: 1.35;
+
+  p {
+    margin: 0.18rem 0;
+  }
+
+  strong {
+    color: $c-font-dim;
+    font-size: 0.9em;
+  }
+}
+
+.xiangqi-analysis-page.annotations-hidden {
+  .move-eval,
+  .xiangqi-analysis__comments {
+    display: none;
+  }
 }
 
 .xiangqi-analysis__empty {

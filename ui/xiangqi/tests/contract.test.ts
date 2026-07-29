@@ -478,6 +478,10 @@ test('round-trips the canonical versioned move-tree document', () => {
     chineseNotation: '兵九进一',
     state: state('after b - - 1 1', 'black', 1),
   });
+  tree.root.comments = [{ text: 'Manual introduction', source: 'Ancient manual' }];
+  tree.root.children[0].comments = [
+    { text: 'Preferred continuation', author: 'Manual author', language: 'zh' },
+  ];
   const stored = serializeMoveTree(tree, initialFen, child.path);
   stored.nextId = 1;
   const restored = deserializeMoveTree(JSON.parse(JSON.stringify(stored)), initialFen);
@@ -486,6 +490,8 @@ test('round-trips the canonical versioned move-tree document', () => {
   assert.deepEqual(movesToPath(restored.tree, child.path), ['a4a5']);
   assert.equal(restored.tree.root.children[0].notation, 'P9+1');
   assert.equal(restored.tree.root.children[0].wxfNotation, 'P9+1');
+  assert.equal(restored.tree.root.comments?.[0].text, 'Manual introduction');
+  assert.equal(restored.tree.root.children[0].comments?.[0].author, 'Manual author');
   const restoredChinese = deserializeMoveTree(JSON.parse(JSON.stringify(stored)), initialFen, true);
   assert.equal(restoredChinese.tree.root.children[0].notation, '兵九进一');
   assert.equal(restoredChinese.tree.root.children[0].wxfNotation, 'P9+1');

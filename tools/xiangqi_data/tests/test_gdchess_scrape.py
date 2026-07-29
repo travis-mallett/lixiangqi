@@ -289,6 +289,19 @@ class GdchessScrapeTest(unittest.TestCase):
             games[0].result, games[0].listed_plies, games[0].opening_english
         ))
 
+    def test_event_listing_skips_an_unfinished_result(self) -> None:
+        document = f"""
+        <title>Current Event - Game list - XiangQi Database</title>
+        <table><tr>
+          <th>Match Date</th><th>Round</th><th>Red</th><th>Result</th>
+          <th>Black</th><th>Game</th><th>Moves</th>
+        </tr><tr>
+          <td>20260729</td><td>1</td><td>Red</td><td>?</td><td>Black</td>
+          <td><a href="javascript:g('{GAME_ID}')">view</a></td><td>0</td>
+        </tr></table>
+        """
+        self.assertEqual([], parse_listing(document, "100", "http://example/list"))
+
     def test_game_page_parses_native_metadata_moves_and_analysis_arrays(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / f"{GAME_ID}.html"
@@ -339,6 +352,32 @@ class GdchessScrapeTest(unittest.TestCase):
                 ).fetchone()[0])
                 self.assertEqual("Ma Qing", metadata["redeng"])
                 self.assertEqual("马晴", metadata["red_native"])
+
+    def test_rejected_game_is_quarantined_for_incremental_scans(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / f"{GAME_ID}.html"
+            path.write_text(GAME_HTML, encoding="utf-8")
+            database = root / "explorer.sqlite3"
+
+            with GdchessImporter(database) as importer:
+                importer.validator.validate = lambda _moves: (_ for _ in ()).throw(
+                    ValueError("known invalid line")
+                )
+                self.assertEqual("invalid", importer.import_page(path, listing()))
+
+            with GdchessImporter(database) as importer:
+                self.assertIn(GAME_ID, importer.rejected_records)
+            with closing(sqlite3.connect(database)) as reader:
+                failure = reader.execute(
+                    """
+                    SELECT stage, error, attempts, length(raw_checksum)
+                    FROM ingest_failures
+                    WHERE source = 'gdchess_01xq' AND external_id = ?
+                    """,
+                    (GAME_ID,),
+                ).fetchone()
+            self.assertEqual(("game_import", "known invalid line", 1, 64), failure)
 
 
 if __name__ == "__main__":

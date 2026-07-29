@@ -18,6 +18,9 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/us
 26 * * * * root jobq -q mongo_patron mongosh --quiet 172.16.0.50:27017/lichess /home/lichess/deploy/cron/mongodb-ublog-similar-incremental.js
 * * * * * root jobq -q mongo_fscday25 mongosh --quiet 172.16.0.50:27017/lichess /home/lichess/deploy/cron/mongodb-tournament-participation-trophies.js
 
+### weekly Xiangqi source updates
+17 4 * * 1 lichess /home/lichess/deploy/cron/update-games-database.sh >> /home/lichess/deploy/logs/games-database-update.log 2>&1
+
 ### running on puzzle db
 # m h dom mon dow user  command
 14 */2 * * *  root  jobq -q mongo_puzzles mongosh --quiet rubik:27017/puzzler /home/lichess/deploy/cron/mongodb-puzzle-denormalize-themes.js

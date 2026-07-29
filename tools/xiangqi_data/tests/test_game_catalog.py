@@ -1,15 +1,23 @@
 from __future__ import annotations
 
+import json
 import os
+import sqlite3
 import tempfile
 import unittest
+from contextlib import closing
 from pathlib import Path
 from unittest.mock import patch
 
 from tools.xiangqi_data.dpxq_import import DpxqImporter
 from tools.xiangqi_data.gdchess_import import GdchessImporter
 from external.xiangqi_explorer.game_catalog import get_game, get_source_game, query_games
-from tools.xiangqi_data.split_explorer_database import split_database
+from tools.games_database.provenance import (
+    AnnotationLayer,
+    AnnotationValue,
+    SourceTreeNode,
+    upsert_source_record,
+)
 from tools.xiangqi_data.xqdao_import import XqdaoImporter
 from tools.xiangqi_data.tests.test_dpxq_scrape import record_html
 from tools.xiangqi_data.tests.test_gdchess_scrape import GAME_HTML as GDCHESS_HTML, listing as gdchess_listing
@@ -170,7 +178,7 @@ class GameCatalogTest(unittest.TestCase):
 
     def test_catalog_game_returns_native_analysis_payload(self) -> None:
         game = get_game({"id": "dpxq_online:n:1"})
-        self.assertEqual("dpxq_online:n:1", game["id"])
+        self.assertTrue(game["id"].startswith("g:"))
         self.assertEqual(["h1g3", "h10g8"], game["moves"])
         self.assertEqual(["H2+3", "H8+7"], game["notations"])
         self.assertEqual("Network Red", game["red"]["name"])
@@ -183,43 +191,89 @@ class GameCatalogTest(unittest.TestCase):
         self.assertEqual(["h1g3", "h10g8"], game["moves"])
         self.assertEqual(["H2+3", "H8+7"], game["notations"])
         self.assertEqual("Network Red", game["red"]["name"])
+        master = get_source_game("xiangqi-explorer-dpxq.sqlite3", "100")
+        self.assertIsNotNone(master)
+        assert master is not None
+        self.assertEqual("Master Red", master["red"]["name"])
 
     def test_catalog_game_can_be_resolved_from_an_explicit_database(self) -> None:
         game = get_game(
             {"database": self.database.name, "id": "dpxq_online:n:1"}
         )
-        self.assertEqual("dpxq_online:n:1", game["id"])
+        self.assertTrue(game["id"].startswith("g:"))
         self.assertEqual("Network Red", game["red"]["name"])
 
-    def test_split_source_databases_are_aggregated_without_a_shared_writer(self) -> None:
-        dpxq = self.root / "dpxq.sqlite3"
-        gdchess = self.root / "gdchess.sqlite3"
-        xqdao = self.root / "xqdao.sqlite3"
-        split_database(
-            self.database,
-            (
-                ("DPXQ", "dpxq", dpxq),
-                ("GDChess/01xq", "gdchess_01xq", gdchess),
-                ("XQDao", "xqdao", xqdao),
-            ),
-        )
-        environment = {
-            "LIXIANGQI_DPXQ_DB": str(dpxq),
-            "LIXIANGQI_GDCHESS_DB": str(gdchess),
-            "LIXIANGQI_XQDAO_DB": str(xqdao),
-        }
-        with patch.dict(os.environ, environment):
-            del os.environ["LIXIANGQI_EXPLORER_DB"]
-            result = query_games(
-                {
-                    "sources": ["m", "n", "k", "gd", "xqd"],
-                    "sort": "date",
-                    "direction": "desc",
-                    "page": 1,
-                    "pageSize": 100,
-                }
+    def test_source_witness_preserves_annotations_and_variation_structure(self) -> None:
+        with closing(sqlite3.connect(self.database)) as connection:
+            connection.row_factory = sqlite3.Row
+            witness = connection.execute(
+                """
+                SELECT s.*, g.moves FROM game_sources s
+                JOIN games g ON g.id = s.game_id
+                WHERE s.source = 'dpxq' AND s.collection = 'm'
+                """
+            ).fetchone()
+            assert witness is not None
+            upsert_source_record(
+                connection,
+                source=witness["source"],
+                collection=witness["collection"],
+                collection_name=witness["collection_name"],
+                external_id=witness["external_id"],
+                game_id=witness["game_id"],
+                source_url=witness["source_url"],
+                metadata={},
+                moves=json.loads(witness["moves"]),
+                parser_version="test-manual-v1",
+                notation_text="H2+3 H8+7 (H8+9)",
+                annotation_layers=(
+                    AnnotationLayer(
+                        kind="historical_commentary",
+                        annotator="Manual author",
+                        language="zh",
+                        annotations=(
+                            AnnotationValue(
+                                anchor_kind="variation",
+                                anchor_path="h1g3 b10a8",
+                                annotation_type="comment",
+                                body="The manual prefers this branch.",
+                            ),
+                        ),
+                    ),
+                ),
+                tree_nodes=(
+                    SourceTreeNode(
+                        path="h1g3 b10a8",
+                        ply=2,
+                        move="b10a8",
+                        notation="H8+9",
+                        child_order=1,
+                    ),
+                ),
             )
+            connection.commit()
 
+        game = get_game({"id": "dpxq:100"})
+        self.assertEqual("H2+3 H8+7 (H8+9)", game["notation"])
+        witness_payload = game["witnesses"][0]
+        self.assertEqual(64, len(witness_payload["rawChecksum"]))
+        self.assertTrue(witness_payload["acquiredAt"])
+        self.assertEqual("h1g3 b10a8", witness_payload["treeNodes"][0]["path"])
+        annotation = witness_payload["annotations"][0]["annotations"][0]
+        self.assertEqual("variation", annotation["anchor"])
+        self.assertEqual("h1g3 b10a8", annotation["path"])
+        self.assertEqual("The manual prefers this branch.", annotation["body"])
+
+    def test_one_authoritative_database_exposes_every_source(self) -> None:
+        result = query_games(
+            {
+                "sources": ["m", "n", "k", "gd", "xqd"],
+                "sort": "date",
+                "direction": "desc",
+                "page": 1,
+                "pageSize": 100,
+            }
+        )
         self.assertEqual(5, result["total"])
         self.assertEqual(1, result["sourceCounts"]["gd"])
         self.assertEqual(1, result["sourceCounts"]["xqd"])

@@ -107,6 +107,11 @@ class XiangqiExplorerTest(unittest.TestCase):
                     FROM games
                     """
                 ).fetchone()
+                source_metadata = json.loads(
+                    connection.execute(
+                        "SELECT metadata_json FROM game_sources"
+                    ).fetchone()[0]
+                )
             self.assertEqual(
                 (
                     "Vietnam Red Master", "Vietnam", "Vietnam", "Grandmaster",
@@ -118,9 +123,8 @@ class XiangqiExplorerTest(unittest.TestCase):
                 ),
                 metadata_row[:-1],
             )
-            raw_metadata = json.loads(metadata_row[-1])
-            self.assertEqual("Black resigned after the final move.", raw_metadata["comment0"])
-            self.assertEqual("79677062", raw_metadata["movelist"])
+            self.assertEqual({}, json.loads(metadata_row[-1]))
+            self.assertEqual("79677062", source_metadata["movelist"])
 
             board = PositionRequest().initial_fen
             with patch.dict(os.environ, {"LIXIANGQI_EXPLORER_DB": str(database)}):
@@ -130,7 +134,7 @@ class XiangqiExplorerTest(unittest.TestCase):
             self.assertEqual((1, 0, 0), (data["red"], data["draws"], data["black"]))
             self.assertEqual("h1g3", data["moves"][0]["move"])
             self.assertEqual("H2+3", data["moves"][0]["notation"])
-            self.assertEqual("100", data["recentGames"][0]["id"])
+            self.assertTrue(data["recentGames"][0]["id"].startswith("g:"))
             self.assertEqual(["h1g3", "h10g8"], data["recentGames"][0]["moves"])
             self.assertEqual(["H2+3", "H8+7"], data["recentGames"][0]["notations"])
             game = data["recentGames"][0]
@@ -139,10 +143,7 @@ class XiangqiExplorerTest(unittest.TestCase):
             self.assertEqual("Grandmaster", game["red"]["level"])
             self.assertEqual(2520, game["red"]["rating"])
             self.assertEqual("Hanoi", game["metadata"]["place"])
-            self.assertEqual(
-                {"0": "Black resigned after the final move."},
-                game["metadata"]["comments"],
-            )
+            self.assertNotIn("comments", game["metadata"])
 
     def test_import_rejects_a_game_with_an_illegal_move(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -157,6 +158,34 @@ class XiangqiExplorerTest(unittest.TestCase):
         self.assertEqual(
             {"seen": 1, "imported": 0, "duplicate": 0, "invalid": 1}, counts
         )
+
+    def test_provenance_failure_rolls_back_the_entire_game_record(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            record = root / "view_m_103.html"
+            record.write_text(GAME_HTML, encoding="gb18030")
+            database = root / "explorer.sqlite3"
+
+            with patch(
+                "tools.xiangqi_data.dpxq_import.upsert_source_record",
+                side_effect=ValueError("provenance rejected"),
+            ):
+                counts = import_files([record], database)
+
+            with closing(sqlite3.connect(database)) as connection:
+                stored = tuple(
+                    connection.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
+                    for table in ("games", "game_positions", "game_sources")
+                )
+                failures = connection.execute(
+                    "SELECT count(*) FROM ingest_failures"
+                ).fetchone()[0]
+
+        self.assertEqual(
+            {"seen": 1, "imported": 0, "duplicate": 0, "invalid": 1}, counts
+        )
+        self.assertEqual((0, 0, 0), stored)
+        self.assertEqual(1, failures)
 
     def test_utf8_export_and_sortid_keep_trailing_zeroes(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -245,13 +274,14 @@ class XiangqiExplorerTest(unittest.TestCase):
             with closing(sqlite3.connect(database)) as connection:
                 restored = connection.execute(
                     "SELECT red_name_romanized, red_name_romanization, red_name_key, "
-                    "red_team, metadata_json FROM games"
+                    "red_team, place, metadata_json FROM games"
                 ).fetchone()
             self.assertEqual(
                 ("Wang Tianyi", "zh-Latn-pinyin-auto", "wangtianyi", "Vietnam"),
-                restored[:-1],
+                restored[:-2],
             )
-            self.assertEqual("Hanoi", json.loads(restored[-1])["place"])
+            self.assertEqual("Hanoi", restored[-2])
+            self.assertEqual({}, json.loads(restored[-1]))
 
     def test_missing_database_fails_without_cloud_fallback(self) -> None:
         board = PositionRequest().initial_fen

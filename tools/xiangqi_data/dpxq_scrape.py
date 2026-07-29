@@ -441,7 +441,7 @@ def positive_int(value: str) -> int:
     return parsed
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(
         description="Retrieve public DPXQ master games and build the Lixiangqi explorer index"
     )
@@ -474,7 +474,7 @@ def main() -> None:
         default=100,
         help="records between progress lines when output is redirected (interactive bars update live)",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     if args.delay < 0.25:
         parser.error("--delay must be at least 0.25 seconds")
     if args.timeout <= 0 or args.retries < 0 or args.retry_backoff < 0:

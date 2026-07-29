@@ -31,6 +31,13 @@ export interface NodeEvaluation {
   variation?: string[];
 }
 
+export interface TreeComment {
+  text: string;
+  source?: string;
+  author?: string;
+  language?: string;
+}
+
 export interface ServerAnalysisInfo {
   ply: number;
   cp?: number;
@@ -51,6 +58,7 @@ export interface XiangqiTreeNode {
   forceVariation?: boolean;
   collapsed?: boolean;
   evaluation?: NodeEvaluation;
+  comments?: TreeComment[];
 }
 
 export interface XiangqiTreeRoot {
@@ -60,6 +68,7 @@ export interface XiangqiTreeRoot {
   children: XiangqiTreeNode[];
   collapsed?: boolean;
   evaluation?: NodeEvaluation;
+  comments?: TreeComment[];
 }
 
 export type XiangqiPositionNode = XiangqiTreeRoot | XiangqiTreeNode;
@@ -95,6 +104,7 @@ interface StoredTreeNode {
   forceVariation?: boolean;
   collapsed?: boolean;
   evaluation?: NodeEvaluation;
+  comments?: TreeComment[];
 }
 
 export interface StoredMoveTree {
@@ -107,6 +117,7 @@ export interface StoredMoveTree {
     children: StoredTreeNode[];
     collapsed?: boolean;
     evaluation?: NodeEvaluation;
+    comments?: TreeComment[];
   };
   activePath: string;
   savedAt: string;
@@ -447,6 +458,7 @@ export function serializeMoveTree(
     ...(node.forceVariation ? { forceVariation: true } : {}),
     ...(node.collapsed ? { collapsed: true } : {}),
     ...(node.evaluation ? { evaluation: node.evaluation } : {}),
+    ...(node.comments?.length ? { comments: node.comments } : {}),
   });
 
   return {
@@ -459,6 +471,7 @@ export function serializeMoveTree(
       children: tree.root.children.map(storeNode),
       ...(tree.root.collapsed ? { collapsed: true } : {}),
       ...(tree.root.evaluation ? { evaluation: tree.root.evaluation } : {}),
+      ...(tree.root.comments?.length ? { comments: tree.root.comments } : {}),
     },
     activePath: tree.byPath.has(activePath) ? activePath : ROOT_PATH,
     savedAt: new Date().toISOString(),
@@ -486,6 +499,7 @@ export function deserializeMoveTree(
   const tree = createMoveTree(value.root.state);
   tree.root.collapsed = value.root.collapsed === true || undefined;
   tree.root.evaluation = isNodeEvaluation(value.root.evaluation) ? value.root.evaluation : undefined;
+  tree.root.comments = isTreeComments(value.root.comments) ? value.root.comments : undefined;
   let nodeCount = 0;
   let nextIdFromNodes = 1;
 
@@ -523,6 +537,7 @@ export function deserializeMoveTree(
     child.forceVariation = stored.forceVariation === true || undefined;
     child.collapsed = stored.collapsed === true || undefined;
     child.evaluation = isNodeEvaluation(stored.evaluation) ? stored.evaluation : undefined;
+    child.comments = isTreeComments(stored.comments) ? stored.comments : undefined;
     parent.children.push(child);
     stored.children.forEach(grandchild => restore(child, grandchild));
     return child;
@@ -576,5 +591,19 @@ function isNodeEvaluation(value: unknown): value is NodeEvaluation {
     typeof value.depth === 'number' &&
     typeof value.nodes === 'number' &&
     isRecord(value.score)
+  );
+}
+
+function isTreeComments(value: unknown): value is TreeComment[] {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      comment =>
+        isRecord(comment) &&
+        typeof comment.text === 'string' &&
+        (comment.source === undefined || typeof comment.source === 'string') &&
+        (comment.author === undefined || typeof comment.author === 'string') &&
+        (comment.language === undefined || typeof comment.language === 'string'),
+    )
   );
 }

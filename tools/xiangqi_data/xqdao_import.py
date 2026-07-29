@@ -25,6 +25,12 @@ from .dpxq_import import (
 from external.xiangqi_explorer.name_romanization import name_forms
 from .pikafish_rules import PikafishGameValidator
 from .sqlite_lock_retry import SqliteLockRetry
+from tools.games_database.provenance import (
+    clear_ingest_failure,
+    record_ingest_failure,
+    upsert_source_record,
+)
+from tools.games_database.storage import first_position_occurrences, source_file_provenance
 
 
 SOURCE = "xqdao"
@@ -200,6 +206,7 @@ class XqdaoImporter:
         self.connection: sqlite3.Connection | None = None
         self.validator = PikafishGameValidator()
         self.existing_records: set[str] = set()
+        self.rejected_records: set[str] = set()
         self.existing_hashes: dict[bytes, str] = {}
         self.counts = {"seen": 0, "imported": 0, "duplicate": 0, "invalid": 0}
 
@@ -209,7 +216,7 @@ class XqdaoImporter:
         self.database.parent.mkdir(parents=True, exist_ok=True)
         self.connection = sqlite3.connect(self.database, timeout=0)
 
-        def open_database() -> tuple[set[str], dict[bytes, str]]:
+        def open_database() -> tuple[set[str], set[str], dict[bytes, str]]:
             assert self.connection is not None
             initialize(self.connection)
             self.connection.commit()
@@ -224,11 +231,23 @@ class XqdaoImporter:
                 bytes(row[0]): row[1]
                 for row in self.connection.execute("SELECT canonical_hash, id FROM games")
             }
-            return records, hashes
+            rejected = {
+                row[0]
+                for row in self.connection.execute(
+                    """
+                    SELECT external_id FROM ingest_failures
+                    WHERE source = ? AND collection = ?
+                    """,
+                    (SOURCE, COLLECTION),
+                )
+            }
+            return records, rejected, hashes
 
-        self.existing_records, self.existing_hashes = self.lock_retry.run(
-            open_database, context="opening the catalog"
-        )
+        (
+            self.existing_records,
+            self.rejected_records,
+            self.existing_hashes,
+        ) = self.lock_retry.run(open_database, context="opening the catalog")
         return self
 
     def __exit__(self, *_exc: object) -> None:
@@ -239,7 +258,10 @@ class XqdaoImporter:
         self.validator.close()
 
     def has_record(self, external_id: str) -> bool:
-        return external_id in self.existing_records
+        return (
+            external_id in self.existing_records
+            or external_id in self.rejected_records
+        )
 
     def _execute(self, sql: str, parameters=()):
         if self.connection is None:
@@ -258,33 +280,26 @@ class XqdaoImporter:
             context="indexing game positions",
         )
 
-    def _record_source(self, game: ImportedGame, game_id: str) -> None:
-        self._execute(
-            """
-            INSERT INTO game_sources(
-              source, collection, collection_name, external_id, game_id,
-              source_url, metadata_json
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(source, collection, external_id) DO UPDATE SET
-              collection_name = excluded.collection_name,
-              game_id = excluded.game_id,
-              source_url = excluded.source_url,
-              metadata_json = excluded.metadata_json
-            """,
-            (
-                SOURCE,
-                COLLECTION,
-                COLLECTION_NAME,
-                game.external_id,
-                game_id,
-                game.source_url,
-                json.dumps(
-                    game.source_metadata,
-                    ensure_ascii=False,
-                    sort_keys=True,
-                    separators=(",", ":"),
-                ),
+    def _record_source(self, game: ImportedGame, game_id: str, path: Path) -> None:
+        if self.connection is None:
+            raise RuntimeError("XQDao importer is not open")
+        raw_checksum, acquired_at = source_file_provenance(path)
+        self.lock_retry.run(
+            lambda: upsert_source_record(
+                self.connection,
+                source=SOURCE,
+                collection=COLLECTION,
+                collection_name=COLLECTION_NAME,
+                external_id=game.external_id,
+                game_id=game_id,
+                source_url=game.source_url,
+                metadata=game.source_metadata,
+                moves=game.moves,
+                parser_version="xqdao-dhtmlxq-v2",
+                raw_checksum=raw_checksum,
+                acquired_at=acquired_at,
             ),
+            context="recording source provenance",
         )
         self.existing_records.add(game.external_id)
 
@@ -304,6 +319,7 @@ class XqdaoImporter:
                 name_forms(game.black_name),
                 game_source=SOURCE,
                 storage_external_id=game.external_id,
+                notations=[position[3] for position in positions],
             )
             existing_game_id = self.existing_hashes.get(game.canonical_hash)
             if existing_game_id is None:
@@ -322,7 +338,10 @@ class XqdaoImporter:
                     INSERT INTO game_positions(game_id, ply, position_key, move, notation)
                     VALUES (?, ?, ?, ?, ?)
                     """,
-                    ((game_id, *position) for position in positions),
+                    (
+                        (game_id, *position)
+                        for position in first_position_occurrences(positions)
+                    ),
                 )
                 self.existing_hashes[game.canonical_hash] = game_id
                 self.counts["imported"] += 1
@@ -334,13 +353,37 @@ class XqdaoImporter:
                 ).fetchone()[0]
                 self.counts["duplicate"] += 1
                 status = "duplicate"
-            self._record_source(game, game_id)
+            self._record_source(game, game_id, path)
+            clear_ingest_failure(
+                self.connection,
+                source=SOURCE,
+                collection=COLLECTION,
+                external_id=listing.game_id,
+            )
             self.lock_retry.run(self.connection.commit, context="committing imported games")
             return status
         except (OSError, UnicodeError, ValueError, sqlite3.DatabaseError) as exc:
             self.lock_retry.run(
                 self.connection.rollback, context="rolling back a rejected game"
             )
+            try:
+                raw_checksum, _acquired_at = source_file_provenance(path)
+            except OSError:
+                raw_checksum = ""
+            record_ingest_failure(
+                self.connection,
+                source=SOURCE,
+                collection=COLLECTION,
+                external_id=listing.game_id,
+                stage="game_import",
+                error=exc,
+                parser_version="xqdao-dhtmlxq-v2",
+                raw_checksum=raw_checksum,
+            )
+            self.lock_retry.run(
+                self.connection.commit, context="quarantining a rejected game"
+            )
+            self.rejected_records.add(listing.game_id)
             self.counts["invalid"] += 1
             message = f"Rejected XQDao game {listing.game_id}: {exc}"
             if self.message:

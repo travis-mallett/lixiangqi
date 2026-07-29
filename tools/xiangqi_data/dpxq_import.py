@@ -10,7 +10,6 @@ positions.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import html
 import importlib.util
 import json
@@ -19,9 +18,22 @@ import sqlite3
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Iterable
+from typing import Callable, Iterable, Sequence
 
 from external.xiangqi_explorer.catalog_databases import source_database_path
+from tools.games_database.provenance import (
+    clear_ingest_failure,
+    record_ingest_failure,
+    upsert_source_record,
+)
+from tools.games_database.storage import (
+    canonical_hash as make_canonical_hash,
+    first_position_occurrences,
+    initialize as initialize_database,
+    line_hash,
+    source_file_provenance,
+    stable_game_id,
+)
 from .pikafish_rules import PikafishGameValidator, default_executable, index_validated_line
 from .sqlite_lock_retry import SqliteLockRetry
 
@@ -77,16 +89,12 @@ class ImportedGame:
 
     @property
     def canonical_hash(self) -> bytes:
-        canonical = "\0".join(
-            (
-                self.red_name.casefold().strip(),
-                self.black_name.casefold().strip(),
-                self.played_at[:10],
-                str(self.result),
-                ",".join(self.moves),
-            )
+        return make_canonical_hash(
+            self.moves,
+            red_name=self.red_name,
+            black_name=self.black_name,
+            result=self.result,
         )
-        return hashlib.sha256(canonical.encode("utf-8")).digest()
 
 
 def decode_html(raw: bytes) -> str:
@@ -224,87 +232,7 @@ def validate_and_index(
 
 
 def initialize(connection: sqlite3.Connection) -> None:
-    schema = Path(__file__).with_name("explorer_schema.sql").read_text(encoding="utf-8")
-    connection.executescript(schema)
-    columns = {row[1] for row in connection.execute("PRAGMA table_info(games)")}
-    migrations = {
-        "red_name_romanized": "TEXT",
-        "red_name_romanization": "TEXT",
-        "red_name_key": "TEXT NOT NULL DEFAULT ''",
-        "black_name_romanized": "TEXT",
-        "black_name_romanization": "TEXT",
-        "black_name_key": "TEXT NOT NULL DEFAULT ''",
-        "red_entry": "TEXT NOT NULL DEFAULT ''",
-        "red_team": "TEXT NOT NULL DEFAULT ''",
-        "red_country": "TEXT NOT NULL DEFAULT ''",
-        "red_level": "TEXT NOT NULL DEFAULT ''",
-        "red_name_english": "TEXT NOT NULL DEFAULT ''",
-        "red_time": "TEXT NOT NULL DEFAULT ''",
-        "black_entry": "TEXT NOT NULL DEFAULT ''",
-        "black_team": "TEXT NOT NULL DEFAULT ''",
-        "black_country": "TEXT NOT NULL DEFAULT ''",
-        "black_level": "TEXT NOT NULL DEFAULT ''",
-        "black_name_english": "TEXT NOT NULL DEFAULT ''",
-        "black_time": "TEXT NOT NULL DEFAULT ''",
-        "title": "TEXT NOT NULL DEFAULT ''",
-        "game_type": "TEXT NOT NULL DEFAULT ''",
-        "game_class": "TEXT NOT NULL DEFAULT ''",
-        "group_name": "TEXT NOT NULL DEFAULT ''",
-        "place": "TEXT NOT NULL DEFAULT ''",
-        "time_rule": "TEXT NOT NULL DEFAULT ''",
-        "table_name": "TEXT NOT NULL DEFAULT ''",
-        "end_type": "TEXT NOT NULL DEFAULT ''",
-        "judge": "TEXT NOT NULL DEFAULT ''",
-        "game_record": "TEXT NOT NULL DEFAULT ''",
-        "remark": "TEXT NOT NULL DEFAULT ''",
-        "author": "TEXT NOT NULL DEFAULT ''",
-        "reference": "TEXT NOT NULL DEFAULT ''",
-        "other": "TEXT NOT NULL DEFAULT ''",
-        "added_at": "TEXT NOT NULL DEFAULT ''",
-        "edited_at": "TEXT NOT NULL DEFAULT ''",
-        "metadata_json": "TEXT NOT NULL DEFAULT '{}'",
-    }
-    for column, definition in migrations.items():
-        if column not in columns:
-            connection.execute(f"ALTER TABLE games ADD COLUMN {column} {definition}")
-    connection.execute(
-        "CREATE INDEX IF NOT EXISTS games_by_red_romanized "
-        "ON games(source, red_name_romanized COLLATE NOCASE)"
-    )
-    connection.execute(
-        "CREATE INDEX IF NOT EXISTS games_by_black_romanized "
-        "ON games(source, black_name_romanized COLLATE NOCASE)"
-    )
-    connection.execute(
-        "CREATE INDEX IF NOT EXISTS games_by_red_name_key ON games(source, red_name_key)"
-    )
-    connection.execute(
-        "CREATE INDEX IF NOT EXISTS games_by_black_name_key ON games(source, black_name_key)"
-    )
-    connection.execute(
-        "CREATE INDEX IF NOT EXISTS games_by_red_team "
-        "ON games(source, red_team COLLATE NOCASE)"
-    )
-    connection.execute(
-        "CREATE INDEX IF NOT EXISTS games_by_black_team "
-        "ON games(source, black_team COLLATE NOCASE)"
-    )
-    # Databases created before category-aware imports stored only master games.
-    # Register those existing rows in the normalized source-record table.
-    connection.execute(
-        """
-        INSERT OR IGNORE INTO game_sources(
-          source, collection, collection_name, external_id, game_id,
-          source_url, metadata_json
-        )
-        SELECT 'dpxq', 'm', '大师对局', external_id, id, source_url, metadata_json
-        FROM games
-        WHERE source = 'dpxq'
-        """
-    )
-    connection.execute(
-        "INSERT OR REPLACE INTO metadata(key, value) VALUES ('schema_version', '4')"
-    )
+    initialize_database(connection)
 
 
 def source_files(inputs: Iterable[Path]) -> Iterable[Path]:
@@ -348,6 +276,7 @@ GAME_COLUMNS = (
     "id",
     "external_id",
     "canonical_hash",
+    "line_hash",
     "red_name",
     "red_name_romanized",
     "red_name_romanization",
@@ -395,12 +324,14 @@ GAME_COLUMNS = (
     "edited_at",
     "metadata_json",
     "moves",
+    "notations",
     "source_url",
 )
 BACKFILL_COLUMNS = tuple(
     column
     for column in GAME_COLUMNS
-    if column not in {"id", "external_id", "canonical_hash", "moves"}
+    if column
+    not in {"id", "external_id", "canonical_hash", "line_hash", "moves", "notations"}
 )
 
 
@@ -411,14 +342,16 @@ def _game_row(
     *,
     game_source: str = "dpxq",
     storage_external_id: str | None = None,
+    notations: Sequence[str] = (),
 ) -> dict[str, object]:
     tags = game.source_metadata
     year_text = game.played_at[:4]
     stored_id = storage_external_id or game.external_id
     return {
-        "id": f"{game_source}:{stored_id}",
+        "id": stable_game_id(game.canonical_hash),
         "external_id": stored_id,
         "canonical_hash": game.canonical_hash,
+        "line_hash": line_hash(game.moves),
         "red_name": red_name.native,
         "red_name_romanized": red_name.romanized,
         "red_name_romanization": red_name.system,
@@ -468,10 +401,12 @@ def _game_row(
         "other": _tag(tags, "other"),
         "added_at": _tag(tags, "adddate").replace(" ", "T", 1),
         "edited_at": _tag(tags, "editdate").replace(" ", "T", 1),
-        "metadata_json": json.dumps(
-            tags, ensure_ascii=False, sort_keys=True, separators=(",", ":")
-        ),
+        # Source-owned metadata and annotations live on game_sources. Keeping
+        # the canonical projection empty avoids duplicating large AI arrays or
+        # commentary from whichever witness happened to arrive first.
+        "metadata_json": "{}",
         "moves": json.dumps(game.moves, separators=(",", ":")),
+        "notations": json.dumps(notations, ensure_ascii=False, separators=(",", ":")),
         "source_url": game.source_url,
     }
 
@@ -503,6 +438,7 @@ class DpxqImporter:
         self.counts = {"seen": 0, "imported": 0, "duplicate": 0, "invalid": 0}
         self.name_forms = None
         self.existing_records: set[tuple[str, str]] = set()
+        self.rejected_records: set[tuple[str, str]] = set()
         self.existing_hashes: dict[bytes, str] = {}
 
     def __enter__(self) -> "DpxqImporter":
@@ -514,7 +450,9 @@ class DpxqImporter:
         self.database.parent.mkdir(parents=True, exist_ok=True)
         self.connection = sqlite3.connect(self.database, timeout=0)
 
-        def open_database() -> tuple[set[tuple[str, str]], dict[bytes, str]]:
+        def open_database() -> tuple[
+            set[tuple[str, str]], set[tuple[str, str]], dict[bytes, str]
+        ]:
             assert self.connection is not None
             initialize(self.connection)
             self.connection.commit()
@@ -529,15 +467,25 @@ class DpxqImporter:
                 for row in self.connection.execute(
                     """
                     SELECT canonical_hash, id FROM games
-                    WHERE source IN ('dpxq', 'dpxq_online')
                     """
                 )
             }
-            return records, hashes
+            rejected = {
+                (row[0], row[1])
+                for row in self.connection.execute(
+                    """
+                    SELECT collection, external_id FROM ingest_failures
+                    WHERE source = 'dpxq'
+                    """
+                )
+            }
+            return records, rejected, hashes
 
-        self.existing_records, self.existing_hashes = self.lock_retry.run(
-            open_database, context="opening the catalog"
-        )
+        (
+            self.existing_records,
+            self.rejected_records,
+            self.existing_hashes,
+        ) = self.lock_retry.run(open_database, context="opening the catalog")
         return self
 
     def __exit__(self, *_exc: object) -> None:
@@ -569,36 +517,34 @@ class DpxqImporter:
         if self.connection is not None:
             self.lock_retry.run(self.connection.commit, context="committing imported games")
 
-    def _record_source(self, game: ImportedGame, game_id: str) -> None:
+    def _record_source(self, game: ImportedGame, game_id: str, path: Path) -> None:
         if self.connection is None:
             raise RuntimeError("DPXQ importer session is not open")
-        self._execute(
-            """
-            INSERT INTO game_sources(
-              source, collection, collection_name, external_id, game_id,
-              source_url, metadata_json
-            ) VALUES ('dpxq', ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(source, collection, external_id) DO UPDATE SET
-              collection_name = excluded.collection_name,
-              game_id = excluded.game_id,
-              source_url = excluded.source_url,
-              metadata_json = excluded.metadata_json
-            """,
-            (
-                game.owner,
-                DPXQ_COLLECTIONS[game.owner],
-                game.external_id,
-                game_id,
-                game.source_url,
-                json.dumps(
-                    game.source_metadata,
-                    ensure_ascii=False,
-                    sort_keys=True,
-                    separators=(",", ":"),
-                ),
+        raw_checksum, acquired_at = source_file_provenance(path)
+        self.lock_retry.run(
+            lambda: upsert_source_record(
+                self.connection,
+                source="dpxq",
+                collection=game.owner,
+                collection_name=DPXQ_COLLECTIONS[game.owner],
+                external_id=game.external_id,
+                game_id=game_id,
+                source_url=game.source_url,
+                metadata=game.source_metadata,
+                moves=game.moves,
+                parser_version="dpxq-dhtmlxq-v2",
+                raw_checksum=raw_checksum,
+                acquired_at=acquired_at,
             ),
+            context="recording source provenance",
         )
         self.existing_records.add((game.owner, game.external_id))
+        clear_ingest_failure(
+            self.connection,
+            source="dpxq",
+            collection=game.owner,
+            external_id=game.external_id,
+        )
 
     def import_path(
         self,
@@ -609,7 +555,12 @@ class DpxqImporter:
         if self.connection is None or self.name_forms is None:
             raise RuntimeError("DPXQ importer session is not open")
         self.counts["seen"] += 1
+        savepoint = "dpxq_game_import"
+        savepoint_open = False
+        imported_new = False
         try:
+            self._execute(f"SAVEPOINT {savepoint}")
+            savepoint_open = True
             game = parse_game(
                 path,
                 external_id=external_id,
@@ -625,6 +576,7 @@ class DpxqImporter:
                 black_name,
                 game_source=self.game_source,
                 storage_external_id=storage_external_id,
+                notations=[position[3] for position in positions],
             )
             insert_columns = ", ".join(GAME_COLUMNS)
             insert_values = ", ".join(f":{column}" for column in GAME_COLUMNS)
@@ -644,10 +596,12 @@ class DpxqImporter:
                     INSERT INTO game_positions(game_id, ply, position_key, move, notation)
                     VALUES (?, ?, ?, ?, ?)
                     """,
-                    ((game_id, *position) for position in positions),
+                    (
+                        (game_id, *position)
+                        for position in first_position_occurrences(positions)
+                    ),
                 )
-                self.counts["imported"] += 1
-                self.existing_hashes[game.canonical_hash] = game_id
+                imported_new = True
             else:
                 game_id = existing_game_id or self._execute(
                     "SELECT id FROM games WHERE source = ? AND external_id = ?",
@@ -661,9 +615,37 @@ class DpxqImporter:
                         f"UPDATE games SET {assignments} WHERE id = :id",
                         row,
                     )
+            self._record_source(game, game_id, path)
+            self._execute(f"RELEASE SAVEPOINT {savepoint}")
+            savepoint_open = False
+            if imported_new:
+                self.counts["imported"] += 1
+                self.existing_hashes[game.canonical_hash] = game_id
+            else:
                 self.counts["duplicate"] += 1
-            self._record_source(game, game_id)
         except (OSError, UnicodeError, ValueError, sqlite3.DatabaseError) as exc:
+            if savepoint_open:
+                self._execute(f"ROLLBACK TO SAVEPOINT {savepoint}")
+                self._execute(f"RELEASE SAVEPOINT {savepoint}")
+            identifier = RECORD_ID_PATTERN.search(path.name)
+            failure_owner = owner or (identifier.group(1) if identifier else self.default_collection)
+            failure_external_id = external_id or (identifier.group(2) if identifier else path.stem)
+            self.existing_records.discard((failure_owner, failure_external_id))
+            try:
+                raw_checksum, _acquired_at = source_file_provenance(path)
+            except OSError:
+                raw_checksum = ""
+            record_ingest_failure(
+                self.connection,
+                source="dpxq",
+                collection=failure_owner,
+                external_id=failure_external_id,
+                stage="game_import",
+                error=exc,
+                parser_version="dpxq-dhtmlxq-v2",
+                raw_checksum=raw_checksum,
+            )
+            self.rejected_records.add((failure_owner, failure_external_id))
             self.counts["invalid"] += 1
             rejection = f"Rejected {path}: {exc}"
             if self.message:
@@ -684,7 +666,11 @@ class DpxqImporter:
         """Skip expensive re-import only when a committed row already exists."""
 
         resolved_owner = owner or self.default_collection
-        if (resolved_owner, external_id) in self.existing_records:
+        source_key = (resolved_owner, external_id)
+        if (
+            source_key in self.existing_records
+            or source_key in self.rejected_records
+        ):
             self.counts["seen"] += 1
             self.counts["duplicate"] += 1
             if self.progress:
@@ -701,7 +687,7 @@ class DpxqImporter:
             if game_id is not None:
                 self.counts["seen"] += 1
                 self.counts["duplicate"] += 1
-                self._record_source(game, game_id)
+                self._record_source(game, game_id, path)
                 if self.commit_each:
                     self._commit_visible()
                 if self.progress:
@@ -711,8 +697,11 @@ class DpxqImporter:
             pass
         self.import_path(path, external_id=external_id, owner=resolved_owner)
 
-    def _commit_visible(self) -> None:
+    def _commit_visible(self, *, update_counts: bool = False) -> None:
         if self.connection is None:
+            return
+        if not update_counts:
+            self._commit()
             return
         # A legacy master scraper may still be running while this migration is
         # deployed. Reconcile any rows it committed after ``initialize`` so a
@@ -762,7 +751,7 @@ class DpxqImporter:
             if connection is not None:
                 self.connection = connection
                 try:
-                    self._commit_visible()
+                    self._commit_visible(update_counts=True)
                 finally:
                     self.connection = None
                     connection.close()

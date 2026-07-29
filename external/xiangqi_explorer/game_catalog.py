@@ -1,20 +1,15 @@
-"""Paginated, category-aware queries for the Xiangqi explorer."""
+"""Paginated catalog and complete source-aware game queries."""
 
 from __future__ import annotations
 
+import json
 import re
 import sqlite3
 from typing import Any
 
-from .catalog_databases import (
-    CATALOG_GAME_COLUMNS,
-    catalog_database_id,
-    installed_catalog_database_paths,
-    open_catalog_connection,
-)
+from .catalog_databases import catalog_database_id, open_catalog_connection
 from .explorer import _game
 from .name_romanization import normalized_name_key
-
 
 SOURCE_SPECS = {
     "m": ("dpxq", "m", "Master Games"),
@@ -29,23 +24,30 @@ SOURCE_SPECS = {
     "xqd": ("xqdao", "games", "XQDao"),
 }
 SOURCES = frozenset(SOURCE_SPECS)
-SOURCE_IDS = {(source, collection): source_id for source_id, (source, collection, _label) in SOURCE_SPECS.items()}
+SOURCE_IDS = {
+    (source, collection): source_id
+    for source_id, (source, collection, _label) in SOURCE_SPECS.items()
+}
 ONLINE_SOURCES = ("n", "t", "k", "o", "b", "u", "w")
+CATALOG_ID_PATTERN = re.compile(r"^[a-z0-9:_-]{1,160}$", re.IGNORECASE)
+
 SORTS = {
-    "source": "source_sort",
     "date": "g.played_at",
-    "red": "COALESCE(NULLIF(g.red_name_key, ''), g.red_name)",
-    "black": "COALESCE(NULLIF(g.black_name_key, ''), g.black_name)",
+    "red": "COALESCE(NULLIF(g.red_name_key, ''), g.red_name) COLLATE NOCASE",
+    "black": "COALESCE(NULLIF(g.black_name_key, ''), g.black_name) COLLATE NOCASE",
     "result": "g.result",
     "event": "g.event COLLATE NOCASE",
     "round": "g.round COLLATE NOCASE",
-    "moves": "move_count",
+    "moves": "json_array_length(g.moves)",
 }
-CATALOG_ID_PATTERN = re.compile(r"^[a-z0-9:_-]{1,160}$", re.IGNORECASE)
 
 
 def _integer(value: Any, name: str, minimum: int, maximum: int) -> int:
-    if not isinstance(value, int) or isinstance(value, bool) or not minimum <= value <= maximum:
+    if (
+        not isinstance(value, int)
+        or isinstance(value, bool)
+        or not minimum <= value <= maximum
+    ):
         raise ValueError(f"{name} must be an integer from {minimum} to {maximum}")
     return value
 
@@ -73,24 +75,38 @@ def _search(value: Any) -> str:
     return normalized
 
 
-def _source_rows(connection: sqlite3.Connection, game_ids: list[str]) -> dict[str, list[dict[str, str]]]:
-    sources = {game_id: [] for game_id in game_ids}
+def _source_filter(selected: list[str], alias: str = "selected_source") -> tuple[str, list[str]]:
+    specs = [SOURCE_SPECS[source_id] for source_id in selected]
+    clause = " OR ".join(
+        f"({alias}.source = ? AND {alias}.collection = ?)" for _ in specs
+    )
+    parameters = [
+        value for source, collection, _label in specs for value in (source, collection)
+    ]
+    return clause or "0", parameters
+
+
+def _source_rows(
+    connection: sqlite3.Connection, game_ids: list[str]
+) -> dict[str, list[dict[str, str]]]:
+    result = {game_id: [] for game_id in game_ids}
     if not game_ids:
-        return sources
+        return result
     placeholders = ",".join("?" for _ in game_ids)
     rows = connection.execute(
         f"""
         SELECT game_id, source, collection, external_id, source_url
         FROM game_sources
-        WHERE (source, collection) IN ({",".join("(?, ?)" for _ in SOURCE_IDS)})
-          AND game_id IN ({placeholders})
+        WHERE game_id IN ({placeholders})
         ORDER BY game_id, source, collection, CAST(external_id AS INTEGER), external_id
         """,
-        (*[value for source_pair in SOURCE_IDS for value in source_pair], *game_ids),
+        game_ids,
     ).fetchall()
     for row in rows:
-        source_id = SOURCE_IDS[(row["source"], row["collection"])]
-        sources[row["game_id"]].append(
+        source_id = SOURCE_IDS.get((row["source"], row["collection"]))
+        if source_id is None:
+            continue
+        result[row["game_id"]].append(
             {
                 "id": source_id,
                 "name": SOURCE_SPECS[source_id][2],
@@ -98,7 +114,31 @@ def _source_rows(connection: sqlite3.Connection, game_ids: list[str]) -> dict[st
                 "url": row["source_url"],
             }
         )
-    return sources
+    return result
+
+
+def _source_counts(connection: sqlite3.Connection) -> dict[str, int]:
+    counts = {source_id: 0 for source_id in SOURCE_SPECS}
+    rows = connection.execute(
+        """
+        SELECT source, collection, count(DISTINCT game_id) AS game_count
+        FROM game_sources
+        GROUP BY source, collection
+        """
+    ).fetchall()
+    for row in rows:
+        source_id = SOURCE_IDS.get((row["source"], row["collection"]))
+        if source_id is not None:
+            counts[source_id] = row["game_count"]
+    online_clause, parameters = _source_filter(list(ONLINE_SOURCES), "online_source")
+    counts["online"] = connection.execute(
+        f"""
+        SELECT count(DISTINCT game_id) FROM game_sources online_source
+        WHERE {online_clause}
+        """,
+        parameters,
+    ).fetchone()[0]
+    return counts
 
 
 def _display_name(row: sqlite3.Row, color: str) -> str:
@@ -107,29 +147,31 @@ def _display_name(row: sqlite3.Row, color: str) -> str:
     return f"{romanized} ({native})" if romanized else native
 
 
-def _source_counts(connection: sqlite3.Connection) -> dict[str, int]:
-    counts = {source_id: 0 for source_id in SOURCE_SPECS}
-    rows = connection.execute(
-        f"""
-        SELECT source, collection, count(DISTINCT game_id) AS game_count
-        FROM game_sources
-        WHERE (source, collection) IN ({",".join("(?, ?)" for _ in SOURCE_IDS)})
-        GROUP BY source, collection
-        """,
-        [value for source_pair in SOURCE_IDS for value in source_pair],
-    ).fetchall()
-    for row in rows:
-        counts[SOURCE_IDS[(row["source"], row["collection"])]] = row["game_count"]
-
-    online_specs = [SOURCE_SPECS[source_id] for source_id in ONLINE_SOURCES]
-    online_clause = " OR ".join(
-        "(source = ? AND collection = ?)" for _ in online_specs
-    )
-    counts["online"] = connection.execute(
-        f"SELECT count(DISTINCT game_id) FROM game_sources WHERE {online_clause}",
-        [value for source, collection, _label in online_specs for value in (source, collection)],
-    ).fetchone()[0]
-    return counts
+def _catalog_game(
+    row: sqlite3.Row, sources: list[dict[str, str]]
+) -> dict[str, Any]:
+    return {
+        "id": row["id"],
+        "sources": sources,
+        "red": {
+            "name": _display_name(row, "red"),
+            "nativeName": row["red_name"],
+            "romanizedName": row["red_name_romanized"],
+            "rating": row["red_rating"],
+        },
+        "black": {
+            "name": _display_name(row, "black"),
+            "nativeName": row["black_name"],
+            "romanizedName": row["black_name_romanized"],
+            "rating": row["black_rating"],
+        },
+        "result": row["result"],
+        "playedAt": row["played_at"],
+        "year": row["year"],
+        "event": row["event"],
+        "round": row["round"],
+        "moves": row["move_count"],
+    }
 
 
 def query_games(query: dict[str, Any]) -> dict[str, Any]:
@@ -137,14 +179,12 @@ def query_games(query: dict[str, Any]) -> dict[str, Any]:
     search = _search(query.get("search"))
     sort = query.get("sort", "date")
     direction = query.get("direction", "desc")
-    if sort not in SORTS:
+    if sort not in {*SORTS, "source"}:
         raise ValueError(f"unsupported game sort: {sort}")
     if direction not in {"asc", "desc"}:
         raise ValueError("direction must be asc or desc")
     page = _integer(query.get("page", 1), "page", 1, 100_000)
     page_size = _integer(query.get("pageSize", 100), "pageSize", 1, 100)
-    if search:
-        return _query_games_search(selected, search, sort, direction, page, page_size)
 
     connection = open_catalog_connection()
     if connection is None:
@@ -154,12 +194,15 @@ def query_games(query: dict[str, Any]) -> dict[str, Any]:
             "page": page,
             "pageSize": page_size,
             "games": [],
-            "sourceCounts": {**{source_id: 0 for source_id in SOURCE_SPECS}, "online": 0},
+            "sourceCounts": {
+                **{source_id: 0 for source_id in SOURCE_SPECS},
+                "online": 0,
+            },
             "error": "Games database is not installed",
         }
 
     try:
-        source_counts = _source_counts(connection)
+        counts = _source_counts(connection)
         if not selected:
             return {
                 "available": True,
@@ -167,501 +210,300 @@ def query_games(query: dict[str, Any]) -> dict[str, Any]:
                 "page": page,
                 "pageSize": page_size,
                 "games": [],
-                "sourceCounts": source_counts,
+                "sourceCounts": counts,
             }
-        selected_specs = [SOURCE_SPECS[source_id] for source_id in selected]
-        selected_source_clause = " OR ".join(
-            "(selected_source.source = ? AND selected_source.collection = ?)"
-            for _ in selected_specs
-        )
+        source_clause, source_parameters = _source_filter(selected)
         clauses = [
             "EXISTS (SELECT 1 FROM game_sources selected_source "
-            "WHERE selected_source.game_id = g.id AND "
-            f"({selected_source_clause}))"
+            f"WHERE selected_source.game_id = g.id AND ({source_clause}))"
         ]
-        parameters: list[Any] = [
-            value for source, collection, _label in selected_specs for value in (source, collection)
-        ]
+        parameters: list[Any] = [*source_parameters]
         if search:
-            like = f"%{search}%"
-            normalized_key = normalized_name_key(search)
-            key_like = f"%{normalized_key}%" if normalized_key else "\0"
+            escaped = (
+                search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            )
+            pattern = f"%{escaped}%"
+            key = normalized_name_key(search)
             clauses.append(
-                "("
-                "g.red_name LIKE ? OR g.black_name LIKE ? OR "
-                "g.red_name_romanized LIKE ? COLLATE NOCASE OR "
-                "g.black_name_romanized LIKE ? COLLATE NOCASE OR "
-                "g.red_name_key LIKE ? OR g.black_name_key LIKE ? OR "
-                "g.event LIKE ? OR g.title LIKE ? OR g.game_class LIKE ? OR "
-                "g.group_name LIKE ? OR g.place LIKE ? OR g.opening LIKE ? OR g.round LIKE ?"
-                ")"
+                """
+                (
+                  g.red_name LIKE ? ESCAPE '\\' COLLATE NOCASE OR
+                  g.black_name LIKE ? ESCAPE '\\' COLLATE NOCASE OR
+                  g.red_name_romanized LIKE ? ESCAPE '\\' COLLATE NOCASE OR
+                  g.black_name_romanized LIKE ? ESCAPE '\\' COLLATE NOCASE OR
+                  g.event LIKE ? ESCAPE '\\' COLLATE NOCASE OR
+                  g.opening LIKE ? ESCAPE '\\' COLLATE NOCASE OR
+                  g.place LIKE ? ESCAPE '\\' COLLATE NOCASE OR
+                  g.title LIKE ? ESCAPE '\\' COLLATE NOCASE OR
+                  g.red_name_key = ? OR g.black_name_key = ?
+                )
+                """
             )
-            parameters.extend(
-                (like, like, like, like, key_like, key_like, like, like, like, like, like, like, like)
-            )
+            parameters.extend([pattern] * 8 + [key, key])
         where = " AND ".join(clauses)
         total = connection.execute(
             f"SELECT count(*) FROM games g WHERE {where}", parameters
         ).fetchone()[0]
-        offset = (page - 1) * page_size
-        source_sort = (
-            "(SELECT MIN(CASE "
-            + " ".join(
-                f"WHEN sort_source.source = '{source}' AND sort_source.collection = '{collection}' "
-                f"THEN '{source_id}'"
-                for source_id, (source, collection, _label) in SOURCE_SPECS.items()
+        if sort == "source":
+            order = (
+                "(SELECT min(CASE "
+                + " ".join(
+                    f"WHEN sort_source.source = '{source}' "
+                    f"AND sort_source.collection = '{collection}' THEN {index}"
+                    for index, (_id, (source, collection, _label)) in enumerate(
+                        SOURCE_SPECS.items()
+                    )
+                )
+                + " ELSE 999 END) FROM game_sources sort_source "
+                "WHERE sort_source.game_id = g.id)"
             )
-            + " END) FROM game_sources sort_source WHERE sort_source.game_id = g.id)"
-        )
+        else:
+            order = SORTS[sort]
         rows = connection.execute(
             f"""
-            SELECT g.id, g.red_name, g.red_name_romanized, g.red_rating,
-                   g.black_name, g.black_name_romanized, g.black_rating,
-                   g.result, g.played_at, g.event, g.round, g.opening,
-                   g.game_class, g.group_name, g.place, g.time_rule,
-                   g.move_count,
-                   {source_sort} AS source_sort
+            SELECT g.*, json_array_length(g.moves) AS move_count
             FROM games g
             WHERE {where}
-            ORDER BY {SORTS[sort]} {direction.upper()}, g.id ASC
+            ORDER BY {order} {direction.upper()}, g.id ASC
             LIMIT ? OFFSET ?
             """,
-            (*parameters, page_size, offset),
+            (*parameters, page_size, (page - 1) * page_size),
         ).fetchall()
-        source_map = _source_rows(connection, [row["id"] for row in rows])
-        games = []
-        for row in rows:
-            games.append(
-                {
-                    "id": row["id"],
-                    "sources": source_map[row["id"]],
-                    "red": {
-                        "name": _display_name(row, "red"),
-                        "nativeName": row["red_name"],
-                        "romanizedName": row["red_name_romanized"],
-                        "rating": row["red_rating"],
-                    },
-                    "black": {
-                        "name": _display_name(row, "black"),
-                        "nativeName": row["black_name"],
-                        "romanizedName": row["black_name_romanized"],
-                        "rating": row["black_rating"],
-                    },
-                    "result": row["result"],
-                    "playedAt": "" if row["played_at"].startswith("0000") else row["played_at"],
-                    "event": row["event"],
-                    "round": row["round"],
-                    "opening": row["opening"],
-                    "class": row["game_class"],
-                    "group": row["group_name"],
-                    "place": row["place"],
-                    "timeRule": row["time_rule"],
-                    "moves": row["move_count"],
-                }
-            )
+        ids = [row["id"] for row in rows]
+        sources = _source_rows(connection, ids)
         return {
             "available": True,
             "total": total,
             "page": page,
             "pageSize": page_size,
-            "games": games,
-            "sourceCounts": source_counts,
-        }
-    finally:
-        connection.close()
-
-
-def _query_games_search(
-    selected: list[str],
-    search: str,
-    sort: str,
-    direction: str,
-    page: int,
-    page_size: int,
-) -> dict[str, Any]:
-    """Search source databases directly instead of warming the full catalog.
-
-    A player link always supplies a search term. Applying that predicate inside
-    each source database before cross-source deduplication keeps cold searches
-    below the web request timeout.
-    """
-
-    paths = installed_catalog_database_paths()
-    empty_counts = {**{source_id: 0 for source_id in SOURCE_SPECS}, "online": 0}
-    if not paths:
-        return {
-            "available": False,
-            "total": 0,
-            "page": page,
-            "pageSize": page_size,
-            "games": [],
-            "sourceCounts": empty_counts,
-            "error": "Games database is not installed",
-        }
-    if not selected:
-        return {
-            "available": True,
-            "total": 0,
-            "page": page,
-            "pageSize": page_size,
-            "games": [],
-            "sourceCounts": empty_counts,
-        }
-
-    connection = sqlite3.connect(":memory:", timeout=5)
-    connection.row_factory = sqlite3.Row
-    aliases: list[str] = []
-    try:
-        for index, path in enumerate(paths):
-            alias = f"source_{index}"
-            connection.execute(f"ATTACH DATABASE ? AS {_quoted_identifier(alias)}", (str(path.resolve()),))
-            aliases.append(alias)
-
-        selected_specs = [SOURCE_SPECS[source_id] for source_id in selected]
-        membership = " OR ".join(
-            "(s.source = ? AND s.collection = ?)" for _ in selected_specs
-        )
-        membership_parameters = [
-            value for source, collection, _label in selected_specs for value in (source, collection)
-        ]
-        like = f"%{search}%"
-        normalized_key = normalized_name_key(search)
-        key_like = f"%{normalized_key}%" if normalized_key else "\0"
-        search_parameters = (
-            like,
-            like,
-            like,
-            like,
-            key_like,
-            key_like,
-            like,
-            like,
-            like,
-            like,
-            like,
-            like,
-            like,
-        )
-        search_clause = (
-            "(g.red_name LIKE ? OR g.black_name LIKE ? OR "
-            "g.red_name_romanized LIKE ? COLLATE NOCASE OR "
-            "g.black_name_romanized LIKE ? COLLATE NOCASE OR "
-            "g.red_name_key LIKE ? OR g.black_name_key LIKE ? OR "
-            "g.event LIKE ? OR g.title LIKE ? OR g.game_class LIKE ? OR "
-            "g.group_name LIKE ? OR g.place LIKE ? OR g.opening LIKE ? OR g.round LIKE ?)"
-        )
-        source_case = " ".join(
-            f"WHEN s.source = '{source}' AND s.collection = '{collection}' THEN '{source_id}'"
-            for source_id, (source, collection, _label) in SOURCE_SPECS.items()
-        )
-        columns = ", ".join(f"g.{column}" for column in CATALOG_GAME_COLUMNS)
-        raw_parts: list[str] = []
-        parameters: list[Any] = []
-        for priority, alias in enumerate(aliases):
-            quoted = _quoted_identifier(alias)
-            raw_parts.append(
-                f"""
-                SELECT {columns}, json_array_length(g.moves) AS move_count,
-                       {priority} AS _catalog_priority, '{alias}' AS _catalog_db,
-                       (SELECT MIN(CASE {source_case} END)
-                        FROM {quoted}.game_sources s
-                        WHERE s.game_id = g.id AND ({membership})) AS source_sort
-                FROM {quoted}.games g
-                WHERE EXISTS (
-                  SELECT 1 FROM {quoted}.game_sources s
-                  WHERE s.game_id = g.id AND ({membership})
-                )
-                  AND {search_clause}
-                """
-            )
-            parameters.extend(membership_parameters)
-            parameters.extend(membership_parameters)
-            parameters.extend(search_parameters)
-
-        raw = " UNION ALL ".join(raw_parts)
-        common = f"""
-            WITH raw AS ({raw}),
-            ranked AS (
-              SELECT *, row_number() OVER (
-                PARTITION BY canonical_hash ORDER BY _catalog_priority, id
-              ) AS _catalog_rank
-              FROM raw
-            )
-        """
-        direct_sorts = {
-            "source": "source_sort",
-            "date": "played_at",
-            "red": "COALESCE(NULLIF(red_name_key, ''), red_name)",
-            "black": "COALESCE(NULLIF(black_name_key, ''), black_name)",
-            "result": "result",
-            "event": "event COLLATE NOCASE",
-            "round": "round COLLATE NOCASE",
-            "moves": "move_count",
-        }
-        offset = (page - 1) * page_size
-        rows = connection.execute(
-            common
-            + f"""
-              SELECT *, count(*) OVER () AS _catalog_total
-              FROM ranked
-              WHERE _catalog_rank = 1
-              ORDER BY {direct_sorts[sort]} {direction.upper()}, id ASC
-              LIMIT ? OFFSET ?
-            """,
-            (*parameters, page_size, offset),
-        ).fetchall()
-        total = (
-            rows[0]["_catalog_total"]
-            if rows
-            else (
-                connection.execute(
-                    common + "SELECT count(*) FROM ranked WHERE _catalog_rank = 1",
-                    parameters,
-                ).fetchone()[0]
-                if page > 1
-                else 0
-            )
-        )
-
-        counts = _attached_source_counts(connection, aliases)
-        games = []
-        for row in rows:
-            sources = _attached_source_rows(connection, row["_catalog_db"], row["id"])
-            games.append(
-                {
-                    "id": row["id"],
-                    "sources": sources,
-                    "red": {
-                        "name": _display_name(row, "red"),
-                        "nativeName": row["red_name"],
-                        "romanizedName": row["red_name_romanized"],
-                        "rating": row["red_rating"],
-                    },
-                    "black": {
-                        "name": _display_name(row, "black"),
-                        "nativeName": row["black_name"],
-                        "romanizedName": row["black_name_romanized"],
-                        "rating": row["black_rating"],
-                    },
-                    "result": row["result"],
-                    "playedAt": "" if row["played_at"].startswith("0000") else row["played_at"],
-                    "event": row["event"],
-                    "round": row["round"],
-                    "opening": row["opening"],
-                    "class": row["game_class"],
-                    "group": row["group_name"],
-                    "place": row["place"],
-                    "timeRule": row["time_rule"],
-                    "moves": row["move_count"],
-                }
-            )
-        return {
-            "available": True,
-            "total": total,
-            "page": page,
-            "pageSize": page_size,
-            "games": games,
+            "games": [_catalog_game(row, sources[row["id"]]) for row in rows],
             "sourceCounts": counts,
         }
     finally:
         connection.close()
 
 
-def _quoted_identifier(value: str) -> str:
-    return '"' + value.replace('"', '""') + '"'
-
-
-def _attached_source_rows(
-    connection: sqlite3.Connection, alias: str, game_id: str
-) -> list[dict[str, str]]:
+def _witnesses(connection: sqlite3.Connection, game_id: str) -> list[dict[str, Any]]:
+    witnesses: list[dict[str, Any]] = []
     rows = connection.execute(
-        f"""
-        SELECT source, collection, external_id, source_url
-        FROM {_quoted_identifier(alias)}.game_sources
+        """
+        SELECT * FROM game_sources
         WHERE game_id = ?
         ORDER BY source, collection, CAST(external_id AS INTEGER), external_id
         """,
         (game_id,),
     ).fetchall()
-    sources: list[dict[str, str]] = []
-    for row in rows:
-        source_id = SOURCE_IDS.get((row["source"], row["collection"]))
-        if source_id is not None:
-            sources.append(
+    for source in rows:
+        sets: list[dict[str, Any]] = []
+        set_rows = connection.execute(
+            "SELECT * FROM annotation_sets WHERE source_record_id = ? ORDER BY id",
+            (source["id"],),
+        ).fetchall()
+        for annotation_set in set_rows:
+            annotations = [
                 {
-                    "id": source_id,
-                    "name": SOURCE_SPECS[source_id][2],
-                    "externalId": row["external_id"],
-                    "url": row["source_url"],
+                    "id": item["id"],
+                    "anchor": item["anchor_kind"],
+                    "ply": item["anchor_ply"],
+                    "path": item["anchor_path"],
+                    "type": item["annotation_type"],
+                    "body": item["body"],
+                    "payload": json.loads(item["payload_json"] or "{}"),
+                    "sourceKey": item["source_key"],
+                    "ordinal": item["ordinal"],
+                    "translationOf": item["translation_of"],
+                    "supersedes": item["supersedes"],
+                }
+                for item in connection.execute(
+                    """
+                    SELECT * FROM annotations
+                    WHERE annotation_set_id = ?
+                    ORDER BY ordinal, id
+                    """,
+                    (annotation_set["id"],),
+                ).fetchall()
+            ]
+            series = [
+                {
+                    "type": item["series_type"],
+                    "values": json.loads(item["values_json"]),
+                    "moves": json.loads(item["moves_json"]),
+                    "metadata": json.loads(item["metadata_json"] or "{}"),
+                }
+                for item in connection.execute(
+                    """
+                    SELECT * FROM annotation_series
+                    WHERE annotation_set_id = ? ORDER BY id
+                    """,
+                    (annotation_set["id"],),
+                ).fetchall()
+            ]
+            sets.append(
+                {
+                    "id": annotation_set["id"],
+                    "kind": annotation_set["kind"],
+                    "annotator": annotation_set["annotator"],
+                    "language": annotation_set["language"],
+                    "engine": annotation_set["engine"],
+                    "engineVersion": annotation_set["engine_version"],
+                    "createdAt": annotation_set["created_at"],
+                    "license": annotation_set["license"],
+                    "metadata": json.loads(annotation_set["metadata_json"] or "{}"),
+                    "annotations": annotations,
+                    "series": series,
                 }
             )
-    return sources
+        nodes = [
+            {
+                "id": node["id"],
+                "parentId": node["parent_id"],
+                "path": node["path"],
+                "ply": node["ply"],
+                "move": node["move"],
+                "notation": node["notation"],
+                "positionKey": node["position_key"],
+                "isMainline": bool(node["is_mainline"]),
+                "order": node["child_order"],
+                "canonicalPly": node["canonical_ply"],
+            }
+            for node in connection.execute(
+                """
+                SELECT * FROM source_tree_nodes
+                WHERE source_record_id = ?
+                ORDER BY ply, child_order, id
+                """,
+                (source["id"],),
+            ).fetchall()
+        ]
+        witnesses.append(
+            {
+                "id": source["id"],
+                "source": source["source"],
+                "collection": source["collection"],
+                "collectionName": source["collection_name"],
+                "externalId": source["external_id"],
+                "url": source["source_url"],
+                "editionId": source["edition_id"],
+                "metadata": json.loads(source["metadata_json"] or "{}"),
+                "parserVersion": source["parser_version"],
+                "rawChecksum": source["raw_checksum"],
+                "acquiredAt": source["acquired_at"],
+                "locator": json.loads(source["locator_json"] or "{}"),
+                "matchMethod": source["match_method"],
+                "matchConfidence": source["match_confidence"],
+                "mainlineHash": (
+                    bytes(source["mainline_hash"]).hex()
+                    if source["mainline_hash"] is not None
+                    else ""
+                ),
+                "notation": source["notation_text"],
+                "annotations": sets,
+                "treeNodes": nodes,
+            }
+        )
+    return witnesses
 
 
-def _attached_source_counts(
-    connection: sqlite3.Connection, aliases: list[str]
-) -> dict[str, int]:
-    counts = {source_id: 0 for source_id in SOURCE_SPECS}
-    online_specs = [SOURCE_SPECS[source_id] for source_id in ONLINE_SOURCES]
-    online_clause = " OR ".join("(source = ? AND collection = ?)" for _ in online_specs)
-    online_parameters = [
-        value for source, collection, _label in online_specs for value in (source, collection)
-    ]
-    for alias in aliases:
-        quoted = _quoted_identifier(alias)
-        rows = connection.execute(
-            f"""
-            SELECT source, collection, count(DISTINCT game_id) AS game_count
-            FROM {quoted}.game_sources
-            GROUP BY source, collection
-            """
-        ).fetchall()
-        for row in rows:
-            source_id = SOURCE_IDS.get((row["source"], row["collection"]))
-            if source_id is not None:
-                counts[source_id] += row["game_count"]
-        counts["online"] = counts.get("online", 0) + connection.execute(
-            f"""
-            SELECT count(DISTINCT game_id)
-            FROM {quoted}.game_sources
-            WHERE {online_clause}
-            """,
-            online_parameters,
-        ).fetchone()[0]
-    return {**counts, "online": counts.get("online", 0)}
+def _complete_game(connection: sqlite3.Connection, row: sqlite3.Row) -> dict[str, Any]:
+    game = _game(row, json.loads(row["notations"]))
+    game["id"] = row["id"]
+    game["initialFen"] = row["initial_fen"]
+    game["recordKind"] = row["record_kind"]
+    game["statisticalEligible"] = bool(row["statistical_eligible"])
+    game["sources"] = _source_rows(connection, [row["id"]])[row["id"]]
+    game["witnesses"] = _witnesses(connection, row["id"])
+    game["notation"] = next(
+        (
+            witness["notation"]
+            for witness in game["witnesses"]
+            if witness.get("notation")
+        ),
+        "",
+    )
+    return game
+
+
+def _legacy_source_locator(game_id: str) -> tuple[str, str | None, str] | None:
+    """Resolve storage identifiers emitted before canonical game IDs were introduced."""
+
+    if game_id.startswith("dpxq_online:"):
+        remainder = game_id.removeprefix("dpxq_online:")
+        collection, separator, external_id = remainder.partition(":")
+        if separator and collection in ONLINE_SOURCES and external_id:
+            return "dpxq", collection, external_id
+    for prefix, source in (
+        ("dpxq:", "dpxq"),
+        ("gdchess_01xq:", "gdchess_01xq"),
+        ("xqdao:", "xqdao"),
+    ):
+        if game_id.startswith(prefix):
+            external_id = game_id.removeprefix(prefix)
+            if external_id:
+                return source, None, external_id
+    return None
 
 
 def get_game(query: dict[str, Any]) -> dict[str, Any]:
     game_id = query.get("id")
     if not isinstance(game_id, str) or not CATALOG_ID_PATTERN.fullmatch(game_id):
         raise ValueError("id must be a valid catalog game identifier")
-
-    source_database = query.get("database")
-    if source_database is not None:
-        game = get_source_game(source_database, game_id)
-        if game is None:
-            raise ValueError("Catalog game was not found")
-        return game
-
-    # Analysis links carry the catalog game's stable native ID. Resolve that
-    # indexed row directly before falling back to the deduplicated aggregate
-    # view used by catalog browsing.
-    for path in installed_catalog_database_paths():
-        game = get_source_game(path.name, game_id)
-        if game is not None:
-            return game
-
     connection = open_catalog_connection()
     if connection is None:
         raise ValueError("Games database is not installed")
-
     try:
-        locator = connection.execute(
+        row = connection.execute(
             """
-            SELECT _catalog_db, _catalog_original_id
-            FROM games g
-            WHERE g.id = ?
+            SELECT g.*, COALESCE(json_extract(g.moves, '$[0]'), '') AS move
+            FROM games g WHERE g.id = ?
             """,
             (game_id,),
         ).fetchone()
-        if locator is None:
-            raise ValueError("Catalog game was not found")
-        source_database = locator["_catalog_db"]
-        original_id = locator["_catalog_original_id"]
-        row = connection.execute(
-            f'SELECT g.*, COALESCE(json_extract(g.moves, \'$[0]\'), \'\') AS move '
-            f'FROM "{source_database}".games g WHERE g.id = ?',
-            (original_id,),
-        ).fetchone()
+        if row is None:
+            requested_source = query.get("database")
+            if isinstance(requested_source, str):
+                requested_source = catalog_database_id(requested_source)
+            source_name = {
+                "dpxq": "dpxq",
+                "gdchess": "gdchess_01xq",
+                "xqdao": "xqdao",
+            }.get(requested_source)
+            external_id = game_id
+            requested_collection: str | None = None
+            legacy_locator = _legacy_source_locator(game_id)
+            if legacy_locator is not None:
+                source_name, requested_collection, external_id = legacy_locator
+            parameters: list[Any] = [external_id]
+            condition = ""
+            if source_name:
+                condition = " AND s.source = ?"
+                parameters.append(source_name)
+            if requested_collection:
+                condition += " AND s.collection = ?"
+                parameters.append(requested_collection)
+            row = connection.execute(
+                f"""
+                SELECT g.*, COALESCE(json_extract(g.moves, '$[0]'), '') AS move
+                FROM game_sources s JOIN games g ON g.id = s.game_id
+                WHERE s.external_id = ? {condition}
+                ORDER BY s.id LIMIT 1
+                """,
+                parameters,
+            ).fetchone()
         if row is None:
             raise ValueError("Catalog game was not found")
-        notations = [
-            notation[0]
-            for notation in connection.execute(
-                f'SELECT notation FROM "{source_database}".game_positions '
-                "WHERE game_id = ? ORDER BY ply",
-                (original_id,),
-            ).fetchall()
-        ]
-        game = _game(row, notations)
-        game["id"] = game_id
-        game["sources"] = _source_rows(connection, [game_id])[game_id]
-        return game
+        return _complete_game(connection, row)
     finally:
         connection.close()
 
 
 def get_source_game(source_database: str, game_id: str) -> dict[str, Any] | None:
-    """Load one game directly from the source database recorded by a puzzle.
-
-    Puzzle generation records both the source database filename and its native
-    game ID. Resolving that exact row avoids constructing the aggregated catalog
-    snapshot on every puzzle request while preserving the complete source game.
-    """
+    """Compatibility lookup for puzzle records created before catalog unification."""
 
     if not isinstance(source_database, str) or not source_database:
         raise ValueError("source database is required")
-    if not isinstance(game_id, str) or not CATALOG_ID_PATTERN.fullmatch(game_id):
-        raise ValueError("id must be a valid catalog game identifier")
-
-    path = next(
-        (
-            candidate
-            for candidate in installed_catalog_database_paths()
-            if catalog_database_id(candidate) == source_database
-            or candidate.name == source_database
-        ),
-        None,
-    )
-    if path is None:
-        return None
-
-    connection = sqlite3.connect(f"{path.resolve().as_uri()}?mode=ro", uri=True, timeout=3)
-    connection.row_factory = sqlite3.Row
     try:
-        row = connection.execute(
-            "SELECT g.*, COALESCE(json_extract(g.moves, '$[0]'), '') AS move "
-            "FROM games g WHERE g.id = ?",
-            (game_id,),
-        ).fetchone()
-        if row is None:
+        return get_game({"id": game_id, "database": source_database})
+    except ValueError as error:
+        if str(error) == "Catalog game was not found":
             return None
-        notations = [
-            notation[0]
-            for notation in connection.execute(
-                "SELECT notation FROM game_positions WHERE game_id = ? ORDER BY ply",
-                (game_id,),
-            ).fetchall()
-        ]
-        game = _game(row, notations)
-        game["id"] = game_id
-        game["sources"] = _direct_source_rows(connection, game_id)
-        return game
-    finally:
-        connection.close()
-
-
-def _direct_source_rows(connection: sqlite3.Connection, game_id: str) -> list[dict[str, str]]:
-    rows = connection.execute(
-        """
-        SELECT source, collection, external_id, source_url
-        FROM game_sources
-        WHERE game_id = ?
-        ORDER BY source, collection, CAST(external_id AS INTEGER), external_id
-        """,
-        (game_id,),
-    ).fetchall()
-    sources: list[dict[str, str]] = []
-    for row in rows:
-        source_id = SOURCE_IDS.get((row["source"], row["collection"]))
-        if source_id is None:
-            continue
-        sources.append(
-            {
-                "id": source_id,
-                "name": SOURCE_SPECS[source_id][2],
-                "externalId": row["external_id"],
-                "url": row["source_url"],
-            }
-        )
-    return sources
+        raise

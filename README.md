@@ -30,7 +30,7 @@ node ui\.test\runner.mjs xiangqi
 
 ## Current scope
 
-Normal moves, setup, challenges, tournaments, Swiss, simuls, imports, analysis requests, and native puzzles use the in-process Xiangqi domain. Browser evaluation uses Pikafish Web; server analysis and AI use Lila's Fishnet work boundary. The read-only opening explorer and its catalog query model are independently deployable under `external/xiangqi_explorer`, while ingestion, mining, and comparison-oracle code is under `tools/xiangqi_data`.
+Normal moves, setup, challenges, tournaments, Swiss, simuls, imports, analysis requests, and native puzzles use the in-process Xiangqi domain. Browser evaluation uses Pikafish Web; server analysis and AI use Lila's Fishnet work boundary. The read-only opening explorer is independently deployable under `external/xiangqi_explorer`; canonical catalog ingestion and weekly source updates live under `tools/games_database`; puzzle mining and comparison-oracle code remains under `tools/xiangqi_data`.
 
 With the local site running, `python -m tools.xiangqi_data.validate_native_rules`
 differentially checks native legality, check state, and position transitions

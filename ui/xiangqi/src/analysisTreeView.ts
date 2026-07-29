@@ -9,6 +9,7 @@ import {
   pathIsMainline,
   promote,
   type XiangqiMoveTree,
+  type XiangqiPositionNode,
   type XiangqiTreeNode,
 } from './tree';
 
@@ -39,6 +40,7 @@ export class AnalysisTreeView {
     }
 
     const fragment = document.createDocumentFragment();
+    if (this.opts.tree().root.comments?.length) fragment.append(this.commentBlock(this.opts.tree().root));
     this.renderBranches(children, fragment, 0, true);
     this.opts.element.replaceChildren(fragment);
     if (scrollToActive)
@@ -88,6 +90,7 @@ export class AnalysisTreeView {
     let firstInLine = true;
     while (node) {
       branch.append(this.moveButton(node, firstInLine));
+      if (node.comments?.length) branch.append(this.commentBlock(node));
       if (!node.collapsed)
         siblings.forEach(sibling => branch.append(this.renderBranch(sibling, depth + 1, false)));
       siblings = node.children.slice(1);
@@ -120,6 +123,7 @@ export class AnalysisTreeView {
         rowNumber = move.number;
       }
       row.append(this.moveButton(node, false));
+      if (node.comments?.length) branch.append(this.commentBlock(node));
       if (!node.collapsed)
         siblings.forEach(sibling => branch.append(this.renderBranch(sibling, depth + 1, false)));
       siblings = node.children.slice(1);
@@ -176,6 +180,22 @@ export class AnalysisTreeView {
     for (const eventName of ['pointerup', 'pointercancel', 'pointerleave'] as const)
       button.addEventListener(eventName, () => window.clearTimeout(longPress));
     return button;
+  }
+
+  private commentBlock(node: XiangqiPositionNode): HTMLElement {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'xiangqi-analysis__comments';
+    node.comments?.forEach(comment => {
+      const entry = document.createElement('p');
+      if (comment.source || comment.author) {
+        const attribution = document.createElement('strong');
+        attribution.textContent = [comment.source, comment.author].filter(Boolean).join(' · ');
+        entry.append(attribution, document.createTextNode(' '));
+      }
+      entry.append(document.createTextNode(comment.text));
+      wrapper.append(entry);
+    });
+    return wrapper;
   }
 
   private openMenu(path: string, x: number, y: number): void {
