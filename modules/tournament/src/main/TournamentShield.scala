@@ -25,8 +25,8 @@ final class TournamentShieldApi(
 
   def byCategKey(k: String): Fu[Option[(Category, List[Award])]] =
     Category.byKey.get(k).so { categ =>
-      cache.getUnit.dmap:
-        history => (categ -> history.value.getOrElse(categ, Nil)).some
+      cache.getUnit.dmap: history =>
+        (categ -> history.value.getOrElse(categ, Nil)).some
     }
 
   def currentOwner(tour: Tournament): Fu[Option[UserId]] =

@@ -76,8 +76,7 @@ final class LearnUi(helpers: Helpers):
             ),
             h1(pageTitle),
             p(cls := "ancient-manuals__introduction")(
-              if chinese then
-                "古谱保存了历代棋手学习象棋所依循的战略思想、经典阵法与评注对局。它们的分析早于现代引擎和当代开局理论，却仍是理解象棋战术语言、古典原则与历史传承的重要途径。"
+              if chinese then "古谱保存了历代棋手学习象棋所依循的战略思想、经典阵法与评注对局。它们的分析早于现代引擎和当代开局理论，却仍是理解象棋战术语言、古典原则与历史传承的重要途径。"
               else
                 "Ancient manuals preserve the strategic ideas, named patterns, and annotated examples through which generations learned Xiangqi. Their analysis predates modern engines and current opening theory, but studying them remains invaluable for understanding the game's tactical language, classical principles, and history."
             ),

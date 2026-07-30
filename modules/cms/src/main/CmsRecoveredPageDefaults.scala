@@ -489,15 +489,17 @@ object CmsRecoveredPageDefaults:
   )
 
   def get(key: CmsPageKey): Option[CmsPage] =
-    pages.get(key.value).map: page =>
-      CmsPage(
-        id = CmsPageId(s"built-in-recovered-${key.value}"),
-        key = key,
-        title = page.title,
-        markdown = Markdown(page.markdown),
-        language = defaultLanguage,
-        live = true,
-        canonicalPath = page.canonicalPath.some,
-        by = UserId.lichess,
-        at = Instant.EPOCH
-      )
+    pages
+      .get(key.value)
+      .map: page =>
+        CmsPage(
+          id = CmsPageId(s"built-in-recovered-${key.value}"),
+          key = key,
+          title = page.title,
+          markdown = Markdown(page.markdown),
+          language = defaultLanguage,
+          live = true,
+          canonicalPath = page.canonicalPath.some,
+          by = UserId.lichess,
+          at = Instant.EPOCH
+        )
