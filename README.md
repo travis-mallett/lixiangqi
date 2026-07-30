@@ -1,6 +1,11 @@
 # Lixiangqi
 
-Lixiangqi is a native Xiangqi conversion of the current [Lichess](https://github.com/lichess-org/lila) server. The web shell, accounts, navigation, accessibility, internationalization, game orchestration, ratings, puzzles, and analysis boundaries remain Lila; their game semantics are Standard Xiangqi.
+Lixiangqi is an independent native Xiangqi fork originally derived from
+[Lichess](https://github.com/lichess-org/lila). The web shell, accounts,
+navigation, accessibility, internationalization, game orchestration, ratings,
+puzzles, and analysis boundaries retain that foundation, while their game
+semantics are Standard Xiangqi. Development proceeds independently; Lila
+upstream commits are not imported.
 
 Standard Xiangqi (WXF rules) is the only selectable variant today. Lila's structural variant machinery remains in place so future Xiangqi variants can use the native setup, lobby, challenge, rating, and game abstractions without reconstructing them.
 

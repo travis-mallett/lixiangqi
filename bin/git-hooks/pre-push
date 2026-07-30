@@ -27,21 +27,6 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
   exit 1
 fi
 
-upstream_url=$(git remote get-url upstream 2>/dev/null || true)
-case "$upstream_url" in
-  https://github.com/lichess-org/lila.git | git@github.com:lichess-org/lila.git) ;;
-  *)
-    printf >&2 'Push blocked: the upstream remote is not the official Lila repository.\n'
-    exit 1
-    ;;
-esac
-
-upstream_tip=$(git ls-remote --exit-code upstream refs/heads/master 2>/dev/null | awk 'NR == 1 { print $1 }')
-if ! printf '%s\n' "$upstream_tip" | grep -Eq '^[0-9a-f]{40}$'; then
-  printf >&2 'Push blocked: could not verify the current Lila master revision.\n'
-  exit 1
-fi
-
 updates_file=$(mktemp "${TMPDIR:-/tmp}/lixiangqi-pre-push.XXXXXX")
 trap 'rm -f "$updates_file"' EXIT HUP INT TERM
 cat >"$updates_file"
@@ -56,13 +41,6 @@ while read -r local_ref local_oid remote_ref remote_oid; do
 
   if [ "$local_ref" != refs/heads/master ] || [ "$remote_ref" != refs/heads/master ]; then
     printf >&2 'Push blocked: only refs/heads/master -> refs/heads/master is permitted.\n'
-    exit 1
-  fi
-
-  if ! git merge-base --is-ancestor "$upstream_tip" "$local_oid"; then
-    printf >&2 '%s\n' \
-      'Push blocked: the proposed branch does not contain the current Lila master.' \
-      'Fetch upstream, integrate it, and repeat the validation before pushing.'
     exit 1
   fi
 
