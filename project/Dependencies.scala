@@ -80,7 +80,10 @@ object Dependencies:
   object reactivemongo:
     val rmVersion = "1.1.0-RC20"
     // Use the Pekko actor backend instead of the default Akka one, so the whole app is Akka-free.
-    val driver = ("org.reactivemongo" %% "reactivemongo" % "1.1.0-pekko.noshaded.RC20")
+    // On Windows, isolate the driver from Play's unconditionally published Linux epoll classes.
+    // Without that isolation, the noshaded driver mistakes class presence for epoll availability.
+    val driverVersion = if isWindows then "1.1.0-pekko.RC20" else "1.1.0-pekko.noshaded.RC20"
+    val driver = "org.reactivemongo" %% "reactivemongo" % driverVersion
     val actorsPekko = "org.reactivemongo" %% "reactivemongo-actors-pekko" % rmVersion
     val stream = "org.reactivemongo" %% "reactivemongo-pekkostream" % rmVersion
     val shaded = "org.reactivemongo" % s"reactivemongo-shaded-native-$os-$dashArch" % rmVersion

@@ -91,7 +91,6 @@ final class Env(
   val event: lila.event.Env = wire[lila.event.Env]
   val coach: lila.coach.Env = wire[lila.coach.Env]
   val clas: lila.clas.Env = wire[lila.clas.Env]
-  val practice: lila.practice.Env = wire[lila.practice.Env]
   val irwin: lila.irwin.Env = wire[lila.irwin.Env]
   val ublog: lila.ublog.Env = wire[lila.ublog.Env]
   val activity: lila.activity.Env = wire[lila.activity.Env]

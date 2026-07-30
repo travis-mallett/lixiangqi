@@ -73,8 +73,6 @@ private object BSONHandlers:
 
   given BSONHandler[Learn] = typedMapHandler[LearnStage, Int].as(Learn(_), _.value)
 
-  given BSONHandler[Practice] = typedMapHandler[StudyId, Int].as(Practice(_), _.value)
-
   given BSONDocumentHandler[Corres] = Macros.handler
   given BSONHandler[Patron] = BSONIntegerHandler.as(Patron.apply, _.months)
 
@@ -106,7 +104,6 @@ private object BSONHandlers:
     val racer = "c"
     val streak = "k"
     val learn = "l"
-    val practice = "r"
     val simuls = "s"
     val corres = "o"
     val patron = "a"
@@ -130,7 +127,6 @@ private object BSONHandlers:
       racer = r.getO[Racer](racer),
       streak = r.getO[Streak](streak),
       learn = r.getO[Learn](learn),
-      practice = r.getO[Practice](practice),
       simuls = r.getO[Simuls](simuls),
       corres = r.getO[Corres](corres),
       patron = r.getO[Patron](patron),
@@ -151,7 +147,6 @@ private object BSONHandlers:
       racer -> o.racer,
       streak -> o.streak,
       learn -> o.learn,
-      practice -> o.practice,
       simuls -> o.simuls,
       corres -> o.corres,
       patron -> o.patron,

@@ -18,6 +18,8 @@ POST  /timeline/unsub/:channel         controllers.Timeline.unsub(channel)
 
 # Search
 GET   /games/search                    controllers.Search.index(page: Int ?= 1)
+GET   /games/database/event            controllers.GameCatalog.event(event: String)
+GET   /games/database/player           controllers.GameCatalog.player(player: String)
 GET   /games/database                  controllers.GameCatalog.index
 
 # Game export
@@ -109,12 +111,12 @@ GET   /dasher                          controllers.Dasher.get
 
 
 # Blog/Ublog
-GET   /blog                            controllers.Main.movedPermanently(to = "/@/Lichess/blog")
+GET   /blog                            controllers.Main.movedPermanently(to = "/page/lixiangqi-blog")
 GET   /blog/topic                      controllers.Ublog.topics
 GET   /blog/topic/:topic               controllers.Ublog.topic(topic, filter: Option[BlogQualityFilter] ?= None, by: BlogsBy ?= BlogsBy.newest, page: Int ?= 1)
 GET   /blog/monthly                    controllers.Ublog.thisMonth(filter: Option[BlogQualityFilter] ?= None, by: BlogsBy ?= BlogsBy.newest, page: Int ?= 1)
 GET   /blog/monthly/:year/:month       controllers.Ublog.byMonth(year: Int, month: Int, filter: Option[BlogQualityFilter] ?= None, by: BlogsBy ?= BlogsBy.newest, page: Int ?= 1)
-GET   /blog.atom                       controllers.Main.movedPermanently(to = "/@/Lichess/blog.atom")
+GET   /blog.atom                       controllers.Main.movedPermanently(to = "/blog/community.atom")
 GET   /api/blog/carousel               controllers.Ublog.apiCarousel
 GET   /blog/friends                    controllers.Ublog.friends(page: Int ?= 1)
 GET   /blog/liked                      controllers.Ublog.liked(page: Int ?= 1)
@@ -221,6 +223,7 @@ POST  /api/analysis/import             controllers.UserAnalysis.importNotation
 
 # Study
 GET   /study                           controllers.Study.allDefault(page: Int ?= 1)
+GET   /study/what-are-studies          controllers.Study.whatAreStudies
 GET   /study/staff-picks               controllers.Study.staffPicks
 POST  /study/staff-picks               controllers.Study.staffPicksPost
 GET   /study/all/:order                controllers.Study.all(order: StudyOrder, page: Int ?= 1)
@@ -314,6 +317,7 @@ GET   /$lang<\w\w\w?>/broadcast               controllers.RelayTour.indexLang(la
 
 # Learn
 GET   /learn                           controllers.Learn.index
+GET   /learn/ancient-manuals           controllers.Learn.ancientManuals
 POST  /learn/validate                  controllers.Learn.validate
 POST  /learn/score                     controllers.Learn.score
 POST  /learn/reset                     controllers.Learn.reset
@@ -336,16 +340,6 @@ POST  /patron/paypal/capture/:id       controllers.Plan.payPalCapture(id)
 POST  /api/patron/stripe/checkout      controllers.Plan.apiStripeCheckout
 GET   /api/patron/currencies           controllers.Plan.apiCurrencies
 GET   /features                        controllers.Plan.features
-
-# Practice
-GET   /practice                                   controllers.Practice.index
-GET   /practice/load/:studyId/:chapterId          controllers.Practice.chapter(studyId: StudyId, chapterId: StudyChapterId)
-POST  /practice/reset                             controllers.Practice.reset
-GET   /practice/:sectionId                        controllers.Practice.showSection(sectionId)
-GET   /practice/:sectionId/:studySlug             controllers.Practice.showStudySlug(sectionId, studySlug)
-GET   /practice/:sectionId/:studySlug/:studyId    controllers.Practice.show(sectionId, studySlug, studyId: StudyId)
-GET   /practice/:sectionId/:studySlug/:studyId/:chapterId controllers.Practice.showChapter(sectionId, studySlug, studyId: StudyId, chapterId: StudyChapterId)
-POST  /practice/complete/:chapterId/:moves        controllers.Practice.complete(chapterId: StudyChapterId, moves: Int)
 
 # Streamer
 GET   /streamer                        controllers.Streamer.index(page: Int ?= 1)
@@ -943,6 +937,7 @@ POST  /mobile/unregister               controllers.Push.mobileUnregister
 POST  /push/subscribe                  controllers.Push.webSubscribe
 
 # Pages
+GET   /api                             controllers.Cms.apiPage
 GET   /terms-of-service                controllers.Cms.tos
 GET   /$key<privacy|thanks|about|ads|changelog> controllers.Cms.menuPage(key: CmsPageKey)
 GET   /contact                         controllers.Main.contact
@@ -975,5 +970,6 @@ GET   /robots.txt                      controllers.Main.robots
 
 GET   /mobile                          controllers.Main.mobile
 GET   /$lang<\w\w\w?>/mobile           controllers.Main.mobileLang(lang: Language)
+GET   /$lang<\w\w\w>                   controllers.Lobby.homeLang(lang: Language)
 
 GET   /*path                           controllers.User.redirect(path)

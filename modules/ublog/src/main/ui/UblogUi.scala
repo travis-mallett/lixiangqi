@@ -389,15 +389,18 @@ final class UblogUi(helpers: Helpers, atomUi: AtomUi, modMenu: Context ?=> Frag)
           )(trans.ublog.community()),
           a(
             cls := isActive("by-month"),
-            href := langHref(routes.Ublog.thisMonth())
+            href := routes.Ublog.thisMonth()
           )(trans.ublog.byMonth()),
           a(cls := isActive("topics"), href := routes.Ublog.topics)(
             trans.ublog.byTopic()
           )
         )
       ),
-      a(cls := lichess.option("active"), href := routes.Ublog.index(UserName.lichess))(
-        trans.ublog.byLichess()
+      a(
+        cls := lichess.option("active"),
+        href := routes.Cms.lonePage(lila.core.id.CmsPageKey("lixiangqi-blog"))
+      )(
+        "By Lixiangqi"
       ),
       ctx.kid.no.option(
         frag(

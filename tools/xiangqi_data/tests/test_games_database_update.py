@@ -5,7 +5,14 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from tools.games_database import dpxq_scraper, gdchess_scraper, xqdao_scraper
+from tools.games_database import (
+    dpxq_ancient_manuals,
+    dpxq_scraper,
+    elephantchess_scraper,
+    gdchess_scraper,
+    update,
+    xqdao_scraper,
+)
 
 
 class GamesDatabaseUpdateTest(unittest.TestCase):
@@ -66,6 +73,24 @@ class GamesDatabaseUpdateTest(unittest.TestCase):
         self.assertEqual("4", arguments[arguments.index("--max-index-pages") + 1])
         self.assertEqual("12", arguments[arguments.index("--max-events") + 1])
         self.assertIn("Mozilla/5.0", arguments[arguments.index("--user-agent") + 1])
+
+    def test_weekly_update_includes_elephantchess(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / "games.sqlite3"
+            with (
+                patch.object(dpxq_scraper, "main", return_value=0),
+                patch.object(dpxq_ancient_manuals, "main", return_value=0),
+                patch.object(gdchess_scraper, "main", return_value=0),
+                patch.object(xqdao_scraper, "main", return_value=0),
+                patch.object(elephantchess_scraper, "main", return_value=0) as elephant,
+                patch.object(update, "ensure_explorer_index", return_value=True),
+            ):
+                status = update.main(["--database", str(database)])
+
+        self.assertEqual(0, status)
+        elephant.assert_called_once_with(
+            ["--database", str(database), "--delay", "1.0"]
+        )
 
 
 if __name__ == "__main__":

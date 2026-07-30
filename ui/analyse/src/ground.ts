@@ -67,7 +67,7 @@ export function makeConfig(ctrl: AnalyseCtrl): CgConfig {
     },
     drawable: {
       enabled: true,
-      eraseOnMovablePieceClick: !ctrl.opts.study || !!ctrl.opts.practice,
+      eraseOnMovablePieceClick: !ctrl.opts.study,
       defaultSnapToValidMove: storage.boolean('arrow.snap').getOrDefault(true),
     },
     highlight: {

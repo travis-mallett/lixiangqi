@@ -20,7 +20,17 @@ import { AnalysisTreeView } from '../src/analysisTreeView.ts';
 import { hydrateXiangqiState, requestXiangqi } from '../src/api.ts';
 import { engineProgress } from '../src/engineProgress.ts';
 import { displayedEvaluation, formatEvaluation, NEUTRAL_EVALUATION } from '../src/evaluation.ts';
-import { analysisGameUrl, countedSourceLabel, isCatalogSource, resultLabel } from '../src/gameCatalog.ts';
+import {
+  annotationSourceLabel,
+  analysisGameUrl,
+  countedSourceLabel,
+  databaseEventUrl,
+  databasePlayerUrl,
+  isCatalogSource,
+  resultLabel,
+  sortSourceKeysByCount,
+  sourceLabels,
+} from '../src/gameCatalog.ts';
 import { gaugeDockAtPoint, isGaugeDock } from '../src/gaugeDock.ts';
 import { cgToUci, legalMoveDests, setXiangqiGroundPending, uciMoveToCg, uciToCg } from '../src/groundUtil.ts';
 import { makeXiangqiGround, setXiangqiCoordinates } from '../src/index.ts';
@@ -53,10 +63,20 @@ const state = (fen: string, turn: 'red' | 'black', ply: number): RulesState => (
 test('builds safe native analysis links for catalog games', () => {
   assert.equal(analysisGameUrl('dpxq:1122'), '/analysis?game=dpxq%3A1122');
   assert.equal(analysisGameUrl('source/id?x=1'), '/analysis?game=source%2Fid%3Fx%3D1');
+  assert.equal(
+    databasePlayerUrl('Wang Tianyi (王天一)'),
+    '/games/database/player?player=Wang%20Tianyi%20(%E7%8E%8B%E5%A4%A9%E4%B8%80)',
+  );
+  assert.equal(
+    databaseEventUrl('World Championship 2026'),
+    '/games/database/event?event=World%20Championship%202026',
+  );
   assert.equal(resultLabel(1), '1-0');
   assert.equal(resultLabel(0), '½-½');
   assert.equal(resultLabel(-1), '0-1');
   assert.equal(isCatalogSource('k'), true);
+  assert.equal(isCatalogSource('am'), true);
+  assert.equal(isCatalogSource('ec'), true);
   assert.equal(isCatalogSource('x'), false);
 });
 
@@ -64,6 +84,22 @@ test('formats database source quantities with thousands separators', () => {
   assert.equal(countedSourceLabel('Master Games', 141279), 'Master Games (141,279)');
   assert.equal(countedSourceLabel('DPXQ Online Games', 35455), 'DPXQ Online Games (35,455)');
   assert.equal(countedSourceLabel('Top Blitz Games', 1245), 'Top Blitz Games (1,245)');
+});
+
+test('keeps ancient manual collection labels out of move annotations', () => {
+  assert.equal(sourceLabels.am, 'Ancient Manuals');
+  assert.equal(annotationSourceLabel('ancient_manuals', 'Ancient Manuals'), undefined);
+  assert.equal(annotationSourceLabel('games', 'GDChess/01xq'), 'GDChess/01xq');
+});
+
+test('sorts database sources by dataset size with stable ties', () => {
+  const sources = ['xqd', 'm', 'gd', 'ec'] as const;
+  assert.deepEqual(sortSourceKeysByCount(sources, { m: 141279, gd: 87312, xqd: 20455, ec: 20455 }), [
+    'm',
+    'gd',
+    'xqd',
+    'ec',
+  ]);
 });
 
 test('uses PyChess rank-10 encoding exactly', () => {

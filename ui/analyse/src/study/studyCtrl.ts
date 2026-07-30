@@ -42,8 +42,6 @@ import type {
 import { MultiBoardCtrl } from './multiBoard';
 import { MultiCloudEval } from './multiCloudEval';
 import { NotifCtrl } from './notif';
-import type { StudyPracticeData } from './practice/interfaces';
-import StudyPracticeCtrl from './practice/studyPracticeCtrl';
 import type { RelayData } from './relay/interfaces';
 import RelayCtrl from './relay/relayCtrl';
 import ServerEval from './serverEval';
@@ -111,25 +109,19 @@ export default class StudyCtrl {
   studyDesc: DescriptionCtrl;
   chapterDesc: DescriptionCtrl;
   search: SearchCtrl;
-  practice?: StudyPracticeCtrl;
   gamebookPlay?: GamebookPlayCtrl;
 
   constructor(
     data: StudyDataFromServer,
     readonly ctrl: AnalyseCtrl,
     tagTypes: TagTypes,
-    practiceData?: StudyPracticeData,
     relayData?: RelayData,
   ) {
     this.data = data;
     this.notif = new NotifCtrl(ctrl.redraw);
     const isManualChapter = data.chapter.id !== data.position.chapterId;
     const sticked =
-      data.features.sticky &&
-      !ctrl.initialPath &&
-      ctrl.requestInitialPly === undefined &&
-      !isManualChapter &&
-      !practiceData;
+      data.features.sticky && !ctrl.initialPath && ctrl.requestInitialPly === undefined && !isManualChapter;
     this.vm = {
       loading: false,
       tab: prop<Tab>(!relayData && data.chapters?.[1] ? 'chapters' : 'members'),
@@ -149,7 +141,7 @@ export default class StudyCtrl {
 
     this.members = new StudyMemberCtrl({
       initDict: data.members,
-      myId: practiceData ? undefined : ctrl.opts.userId,
+      myId: ctrl.opts.userId,
       ownerId: data.ownerId,
       send: this.send,
       tab: this.vm.tab,
@@ -234,8 +226,6 @@ export default class StudyCtrl {
       this.relay,
       this.redraw,
     );
-
-    this.practice = practiceData && new StudyPracticeCtrl(ctrl, data, practiceData);
 
     if (this.vm.mode.sticky && !this.isGamebookPlay()) this.ctrl.userJump(this.data.position.path);
     else if (
@@ -341,7 +331,6 @@ export default class StudyCtrl {
   configurePractice = () => {
     if (!this.data.chapter.practice && this.ctrl.practice) this.ctrl.togglePractice();
     if (this.data.chapter.practice) this.ctrl.togglePractice(true);
-    this.practice?.onLoad();
   };
 
   onReload = (d: ReloadData) => {
@@ -414,12 +403,7 @@ export default class StudyCtrl {
     (withChapters = false, immediateCallback: () => void = () => {}) => {
       this.vm.loading = true;
       return xhr
-        .reload(
-          this.practice ? 'practice/load' : 'study',
-          this.data.id,
-          this.vm.mode.sticky ? undefined : this.vm.chapterId,
-          withChapters,
-        )
+        .reload('study', this.data.id, this.vm.mode.sticky ? undefined : this.vm.chapterId, withChapters)
         .then(this.onReload, site.reload)
         .then(immediateCallback);
     },
@@ -555,7 +539,6 @@ export default class StudyCtrl {
   onJump = () => {
     if (this.gamebookPlay) this.gamebookPlay.onJump();
     else this.chapters.localPaths[this.vm.chapterId] = this.ctrl.path; // don't remember position on gamebook
-    this.practice?.onJump();
   };
   onFlip = (flipped: boolean) => {
     if (this.chapters.newForm.isOpen()) return false;
@@ -624,7 +607,6 @@ export default class StudyCtrl {
     if (chapter) this.setChapter(chapter.id);
   };
   goToNextChapter = () => {
-    this.practice?.onComplete();
     const chapter = this.nextChapter();
     if (chapter) this.setChapter(chapter.id);
   };

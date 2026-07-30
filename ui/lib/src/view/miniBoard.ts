@@ -24,6 +24,7 @@ export const initMiniBoard = (node: HTMLElement): void => {
 };
 
 export const initMiniBoardWith = (node: HTMLElement, config: Config): void => {
+  node.classList.add('xiangqi9x10');
   const cgConfig: Config = {
     coordinates: false,
     viewOnly: !node.getAttribute('data-playable'),
@@ -66,7 +67,7 @@ export const initMiniGame = (node: Element): string | null => {
       },
     },
     $el = $(node).removeClass('mini-game--init'),
-    $cg = $el.find('.cg-wrap'),
+    $cg = $el.find('.cg-wrap').addClass('xiangqi9x10'),
     turnColor = fenColor(fen);
 
   domData.set($cg[0] as Element, 'chessground', makeChessground($cg[0] as HTMLElement, config));

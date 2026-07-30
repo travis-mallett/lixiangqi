@@ -115,7 +115,7 @@ export default function (root: AnalyseCtrl): VNode | undefined {
     running
       ? hl(
           'div.comment',
-          (end && !root.study?.practice ? renderNextChapter(root) : null) ||
+          (end ? renderNextChapter(root) : null) ||
             (comment
               ? [
                   hl(

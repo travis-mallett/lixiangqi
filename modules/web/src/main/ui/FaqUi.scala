@@ -241,19 +241,6 @@ final class FaqUi(helpers: Helpers, sitePages: SitePages)(
             trf.canIChangeMyUsername.txt(),
             p(trf.usernamesCannotBeChanged.txt())
           ),
-          question(
-            "trophies",
-            trf.uniqueTrophies.txt(),
-            h4("The Golden Zee"),
-            p(
-              trf.ownerUniqueTrophies(
-                a(href := "/@/ZugAddict")("ZugAddict")
-              )
-            ),
-            p(
-              trf.goldenZeeExplanation()
-            )
-          ),
           h2(trf.lichessRatings()),
           question(
             "ratings",

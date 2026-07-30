@@ -49,7 +49,6 @@ public/sound/standard/{PuzzleStormEnd,PuzzleStormGood}.mp3 | [EdinburghCollectiv
 public/sound/wuxia3/Music.mp3 | [PeriTune, “Wuxia3”](https://peritune.com/blog/2021/05/22/wuxia3/) | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
 public/sound/gentle-ancient/Music.mp3 | [碎碎平安的碎碎, 《温婉的古风音乐》](https://www.ear0.com/sound/show/soundid-43881) | [CC BY 3.0 China](https://creativecommons.org/licenses/by/3.0/cn/)
 
-public/images/practice/_ [game-icons.net](https://game-icons.net/about.html) [CC BY 3.0](http://creativecommons.org/licenses/by/3.0/)
 public/images/puzzle-themes/_ [game-icons.net](https://game-icons.net/about.html) [CC BY 3.0](http://creativecommons.org/licenses/by/3.0/)
 translation/source/puzzleTheme.xml | the lila authors and contributors | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/)
 

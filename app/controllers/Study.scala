@@ -580,6 +580,11 @@ final class Study(
       val featured = isGrantedOpt(_.StudyAdmin).option(env.study.pager.featured.setting.form)
       views.study.staffPicks(page, featured)
 
+  def whatAreStudies = Open:
+    pageHit
+    FoundPage(env.cms.renderKey("what-are-studies")): page =>
+      views.study.whatAreStudies(page)
+
   def staffPicksPost = SecureBody(_.StudyAdmin) { _ ?=> _ ?=>
     bindForm(env.study.pager.featured.setting.form)(
       _ => Redirect(routes.Study.staffPicks),

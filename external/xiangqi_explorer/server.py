@@ -9,7 +9,13 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Callable
 
 from .explorer import explore_games
-from .game_catalog import get_game, query_games
+from .game_catalog import (
+    get_game,
+    query_ancient_manuals,
+    query_event,
+    query_games,
+    query_player,
+)
 
 
 class ExplorerServer(ThreadingHTTPServer):
@@ -35,6 +41,9 @@ class ExplorerHandler(BaseHTTPRequestHandler):
         routes: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
             "/explorer": self._explore,
             "/games": query_games,
+            "/games/ancient-manuals": query_ancient_manuals,
+            "/games/event": query_event,
+            "/games/player": query_player,
             "/games/game": get_game,
         }
         action = routes.get(self.path)

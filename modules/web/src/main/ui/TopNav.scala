@@ -11,7 +11,7 @@ final class TopNav(helpers: Helpers):
   private def linkTitle(url: String, name: Frag)(using ctx: Context) =
     if ctx.blind then h3(name) else a(href := url)(name)
 
-  def apply(seesClassMenu: Boolean)(using ctx: Context) =
+  def apply()(using ctx: Context) =
     st.nav(id := "topnav", cls := "hover")(
       st.section(
         linkTitle(
@@ -49,13 +49,14 @@ final class TopNav(helpers: Helpers):
           Option.when(ctx.noBot):
             frag(
               a(href := langHref(routes.Learn.index))(trans.site.chessBasics()),
-              a(href := routes.Practice.index)(trans.site.practice()),
-              a(href := langHref(routes.Notation.home))(trans.notation.xiangqiNotation())
+              a(href := langHref(routes.Notation.home))(trans.notation.xiangqiNotation()),
+              a(href := routes.Learn.ancientManuals)(
+                if ctx.lang.language == "zh" then "古谱" else "Ancient Manuals"
+              )
             )
           ,
           a(href := langHref(routes.Study.allDefault()))(trans.site.studyMenu()),
-          ctx.kid.no.option(a(href := langHref(routes.Coach.all(1)))(trans.site.coaches())),
-          seesClassMenu.option(a(href := routes.Clas.index)(trans.clas.lichessClasses()))
+          ctx.kid.no.option(a(href := langHref(routes.Coach.all(1)))(trans.site.coaches()))
         )
       ),
       st.section:

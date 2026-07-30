@@ -1,4 +1,4 @@
-import { text as xhrText, json as xhrJson, form as xhrForm, textRaw as xhrRaw, ensureOk } from 'lib/xhr';
+import { json as xhrJson, form as xhrForm, textRaw as xhrRaw, ensureOk } from 'lib/xhr';
 
 import type { StudyChapterConfig, ReloadData, ChapterData } from './interfaces';
 
@@ -21,11 +21,6 @@ export const glyphs = () =>
 
 export const chapterConfig = (studyId: string, chapterId: string): Promise<StudyChapterConfig> =>
   xhrJson(`/study/${studyId}/${chapterId}/config`);
-
-export const practiceComplete = (chapterId: string, nbMoves: number) =>
-  xhrText(`/practice/complete/${chapterId}/${nbMoves}`, {
-    method: 'POST',
-  });
 
 export const importPgn = async (
   studyId: string,

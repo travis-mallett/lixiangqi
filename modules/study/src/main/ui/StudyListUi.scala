@@ -152,7 +152,12 @@ final class StudyListUi(helpers: Helpers, bits: StudyBits):
         pagerNext(pager, np => addQueryParam(url.url, "page", np.toString))
       )
 
-  def menu(active: StudyGroup, order: Option[StudyOrder], topics: List[StudyTopic] = Nil)(using
+  def menu(
+      active: StudyGroup,
+      order: Option[StudyOrder],
+      topics: List[StudyTopic] = Nil,
+      infoActive: Boolean = false
+  )(using
       ctx: Context
   ) =
     def defaultOrder(group: StudyGroup): Option[StudyOrder] =
@@ -164,9 +169,10 @@ final class StudyListUi(helpers: Helpers, bits: StudyBits):
       (if defaultOrder(active).forall(order.contains) then defaultOrder(newGroup) else order)
         .getOrElse(Orders.default)
     def activeCls(group: StudyGroup) = cls := (
-      group match
-        case StudyGroup.topic(None) => active.isTopic
-        case _ => group == active
+      !infoActive &&
+        (group match
+          case StudyGroup.topic(None) => active.isTopic
+          case _ => group == active)
     ).option("active")
     lila.ui.bits.pageMenuSubnav(
       a(activeCls(StudyGroup.all), href := routes.Study.all(newOrder(StudyGroup.all)))(trs.allStudies()),
@@ -180,8 +186,9 @@ final class StudyListUi(helpers: Helpers, bits: StudyBits):
       ,
       a(activeCls(StudyGroup.staffPicks), href := routes.Study.staffPicks)("Staff picks"),
       a(
+        cls := infoActive.option("active"),
         dataIcon := Icon.InfoCircle,
-        href := "/@/lichess/blog/study-chess-the-lichess-way/V0KrLSkA"
+        href := routes.Study.whatAreStudies
       )(trs.whatAreStudies())
     )
 

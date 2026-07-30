@@ -117,8 +117,6 @@ const doRender = (ctrl: AnalyseCtrl): VNode => {
 };
 
 export function render(ctrl: AnalyseCtrl): VNode | undefined {
-  if (ctrl.study?.practice) return undefined;
-
   if (
     !ctrl.data.analysis ||
     !ctrl.settings.showStaticAnalysis ||

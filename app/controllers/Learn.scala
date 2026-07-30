@@ -12,6 +12,8 @@ final class Learn(env: Env) extends LilaController(env):
 
   def index = Open(serveIndex)
   def indexLang = LangPage(routes.Learn.index)(serveIndex)
+  def ancientManuals = Open:
+    Ok.page(views.learn.ancientManualsPage(env.fishnet.explorerEndpoint))
 
   def validate = AnonBodyOf(parse.json): body =>
     body

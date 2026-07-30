@@ -265,10 +265,9 @@ final class Clas(env: Env, authC: Auth) extends LilaController(env):
           Ok.async:
             env.learn.api
               .completionPercent(studentIds)
-              .zip(env.practice.api.progress.completionPercent(studentIds))
               .zip(env.notation.api.bestScores(studentIds))
-              .map { case ((basic, practice), notationScores) =>
-                views.clas.teacherDashboard.learn(clas, students, basic, practice, notationScores)
+              .map { case (basic, notationScores) =>
+                views.clas.teacherDashboard.learn(clas, students, basic, notationScores)
               }
       }
   }

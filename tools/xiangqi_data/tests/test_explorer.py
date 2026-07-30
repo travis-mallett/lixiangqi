@@ -129,6 +129,9 @@ class XiangqiExplorerTest(unittest.TestCase):
             board = PositionRequest().initial_fen
             with patch.dict(os.environ, {"LIXIANGQI_EXPLORER_DB": str(database)}):
                 data = explore_games(board, {"database": "masters"})
+                event_data = explore_games(
+                    board, {"database": "event", "event": "Test Masters"}
+                )
 
             self.assertTrue(data["available"])
             self.assertEqual((1, 0, 0), (data["red"], data["draws"], data["black"]))
@@ -144,6 +147,12 @@ class XiangqiExplorerTest(unittest.TestCase):
             self.assertEqual(2520, game["red"]["rating"])
             self.assertEqual("Hanoi", game["metadata"]["place"])
             self.assertNotIn("comments", game["metadata"])
+            self.assertTrue(event_data["available"])
+            self.assertEqual(
+                (1, 0, 0),
+                (event_data["red"], event_data["draws"], event_data["black"]),
+            )
+            self.assertEqual("h1g3", event_data["moves"][0]["move"])
 
     def test_import_rejects_a_game_with_an_illegal_move(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -291,6 +300,47 @@ class XiangqiExplorerTest(unittest.TestCase):
                 data = explore_games(board, {"database": "masters"})
         self.assertFalse(data["available"])
         self.assertIn("not installed", data["error"])
+
+    def test_shared_positions_use_the_write_time_projection(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            records = []
+            for index in range(8):
+                record = root / f"view_m_{300 + index}.html"
+                record.write_text(
+                    GAME_HTML.replace("Red Master", f"Red Master {index}"),
+                    encoding="gb18030",
+                )
+                records.append(record)
+            database = root / "explorer.sqlite3"
+            counts = import_files(records, database)
+            self.assertEqual(8, counts["imported"])
+
+            with closing(sqlite3.connect(database)) as connection:
+                indexed = connection.execute(
+                    """
+                    SELECT p.game_count, s.all_red, s.masters_red, s.dpxq_red
+                    FROM explorer_positions p
+                    JOIN explorer_stats s ON s.position_id = p.id
+                    WHERE p.position_key = ?
+                    """,
+                    (" ".join(PositionRequest().initial_fen.split()[:2]),),
+                ).fetchone()
+            self.assertEqual((8, 8, 8, 8), indexed)
+
+            with (
+                patch.dict(os.environ, {"LIXIANGQI_EXPLORER_DB": str(database)}),
+                patch(
+                    "external.xiangqi_explorer.explorer._raw_explore",
+                    side_effect=AssertionError("shared position fell back to raw games"),
+                ),
+            ):
+                data = explore_games(
+                    PositionRequest().initial_fen, {"database": "masters"}
+                )
+            self.assertEqual((8, 0, 0), (data["red"], data["draws"], data["black"]))
+            self.assertEqual(4, len(data["topGames"]))
+            self.assertEqual(8, len(data["recentGames"]))
 
 
 if __name__ == "__main__":

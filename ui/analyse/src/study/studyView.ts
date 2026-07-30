@@ -29,7 +29,6 @@ import type { Tab, ToolTab } from './interfaces';
 import { view as inviteFormView } from './inviteForm';
 import { view as multiBoardView } from './multiBoard';
 import { view as notifView } from './notif';
-import * as practiceView from './practice/studyPracticeView';
 import { view as serverEvalView } from './serverEval';
 import { view as chapterView } from './studyChapters';
 import type StudyCtrl from './studyCtrl';
@@ -57,20 +56,18 @@ export function studyView(ctrl: AnalyseCtrl, study: StudyCtrl, deps: typeof stud
     renderUnderboard(ctx),
     ctrl.keyboardMove && renderKeyboardMove(ctrl.keyboardMove),
     trainingView(ctrl),
-    ctrl.study?.practice
-      ? deps?.studyPracticeView.side(study)
-      : hl(
-          'aside.analyse__side',
-          {
-            hook: onInsert(elm => {
-              if (ctrl.opts.$side?.length) {
-                $(elm).replaceWith(ctrl.opts.$side);
-                wikiToggleBox();
-              }
-            }),
-          },
-          deps?.studyView.studySideNodes(study, true),
-        ),
+    hl(
+      'aside.analyse__side',
+      {
+        hook: onInsert(elm => {
+          if (ctrl.opts.$side?.length) {
+            $(elm).replaceWith(ctrl.opts.$side);
+            wikiToggleBox();
+          }
+        }),
+      },
+      deps?.studyView.studySideNodes(study, true),
+    ),
   );
 }
 
@@ -167,7 +164,6 @@ export const overboard = (ctrl: StudyCtrl) =>
               : undefined;
 
 export function underboard(ctrl: AnalyseCtrl): LooseVNodes {
-  if (ctrl.study?.practice) return practiceView.underboard(ctrl.study);
   const study = ctrl.study!,
     toolTab = study.vm.toolTab();
   if (study.gamebookPlay)

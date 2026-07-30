@@ -1,4 +1,4 @@
-export type ExplorerDb = 'masters' | 'all' | 'dpxq' | 'gdchess' | 'xqdao' | 'player';
+export type ExplorerDb = 'masters' | 'all' | 'dpxq' | 'gdchess' | 'xqdao' | 'player' | 'event';
 export type ExplorerColor = 'red' | 'black';
 
 export interface ExplorerPlayer {
@@ -148,6 +148,7 @@ export interface ExplorerConfig {
   since: string;
   until: string;
   player: string;
+  event: string;
   color: ExplorerColor;
 }
 

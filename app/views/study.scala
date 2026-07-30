@@ -31,6 +31,16 @@ def staffPicks(p: lila.cms.CmsPage.Render, featuredForm: Option[Form[?]])(using 
         )
       )
 
+def whatAreStudies(p: lila.cms.CmsPage.Render)(using Context) =
+  Page(p.title)
+    .css("analyse.study.index", "bits.page"):
+      main(cls := "page-menu")(
+        list.menu(lila.study.StudyGroup.all, None, Nil, infoActive = true),
+        div(cls := "page-menu__content box box-pad")(
+          views.cms.pageContent(p)
+        )
+      )
+
 def streamers(streamers: List[UserId])(using Translate) =
   views.streamer.bits.contextual(streamers).map(_(cls := "none"))
 

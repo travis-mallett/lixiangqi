@@ -755,8 +755,7 @@ html.wudang {
   .study__members,
   .study__comments,
   .study__metadata,
-  .study-desc,
-  .practice-side {
+  .study-desc {
     border: 1px solid #aaa294;
     border-radius: var(--wudang-radius-paper);
     background: var(--wudang-paper-field);
@@ -1514,7 +1513,6 @@ html.wudang {
 
   .editor__tools,
   .editor__spare,
-  .practice-app,
   .practice-box {
     border: 1px solid rgb(240 236 226 / 0.13);
     border-radius: var(--wudang-radius-stone);
@@ -1524,7 +1522,6 @@ html.wudang {
   }
 
   .editor__tools .spare,
-  .practice-app__content,
   .practice-box__content {
     margin: 4px;
     background: var(--wudang-paper);

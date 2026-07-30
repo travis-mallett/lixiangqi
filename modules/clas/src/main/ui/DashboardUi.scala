@@ -340,7 +340,6 @@ final class DashboardUi(helpers: Helpers, ui: ClasUi)(using NetDomain):
         c: Clas,
         students: List[Student.WithUser],
         basicCompletion: Map[UserId, Int],
-        practiceCompletion: Map[UserId, Int],
         coordScores: Map[UserId, chess.ByColor[Int]]
     )(using Context) =
       TeacherPage(c, students, "progress")():
@@ -353,7 +352,6 @@ final class DashboardUi(helpers: Helpers, ui: ClasUi)(using NetDomain):
                   th(dataSortDefault)(dataSortAsc)(
                     trans.clas.nbStudents.pluralSame(students.size),
                     thSortNumber(trans.site.chessBasics()),
-                    thSortNumber(trans.site.practice()),
                     thSortNumber(trans.notation.xiangqiNotation())
                   )
                 ),
@@ -364,10 +362,6 @@ final class DashboardUi(helpers: Helpers, ui: ClasUi)(using NetDomain):
                       studentTd(c, s),
                       td(dataSort := basicCompletion.getOrElse(user.id, 0))(
                         basicCompletion.getOrElse(user.id, 0).toString,
-                        "%"
-                      ),
-                      td(dataSort := practiceCompletion.getOrElse(user.id, 0))(
-                        practiceCompletion.getOrElse(user.id, 0).toString,
                         "%"
                       ),
                       td(dataSort := coord.white, cls := "coords")(

@@ -155,7 +155,7 @@ object page:
               challenges = ctx.nbChallenges,
               notifications = ctx.nbNotifications.value,
               error = ctx.data.error,
-              topnav = topnav(seesClassMenu = ctx.seesClassMenu)
+              topnav = topnav()
             )
           ,
           div(

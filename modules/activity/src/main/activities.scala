@@ -57,13 +57,6 @@ object activities:
       def +(stage: LearnStage): Learn = a.value + (stage -> a.value.get(stage).fold(1)(1 +))
     given Zero[Learn] = Zero(Map.empty)
 
-  opaque type Practice = Map[StudyId, Int]
-  object Practice extends TotalWrapper[Practice, Map[StudyId, Int]]:
-    extension (a: Practice)
-      def +(studyId: StudyId): Practice =
-        a.value + (studyId -> a.value.get(studyId).fold(1)(1 +))
-    given Zero[Practice] = Zero(Map.empty)
-
   opaque type Simuls = List[SimulId]
   object Simuls extends TotalWrapper[Simuls, List[SimulId]]:
     extension (a: Simuls) def +(s: SimulId): Simuls = s :: a.value

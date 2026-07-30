@@ -13,7 +13,7 @@ from typing import Iterable, Sequence
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIRECTORY = PROJECT_ROOT / "data" / "local"
 DEFAULT_DATABASE = DATA_DIRECTORY / "xiangqi-games.sqlite3"
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 8
 SCHEMA_PATH = Path(__file__).with_name("schema.sql")
 
 
@@ -75,6 +75,34 @@ def stable_game_id(identity: bytes) -> str:
 
 def initialize(connection: sqlite3.Connection) -> None:
     connection.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
+    connection.execute(
+        """
+        UPDATE game_sources
+        SET collection_name = 'Ancient Manuals'
+        WHERE collection = 'ancient_manuals'
+          AND collection_name <> 'Ancient Manuals'
+        """
+    )
+    connection.execute(
+        """
+        UPDATE editions
+        SET title = replace(title, 'DPXQ online edition', 'online edition')
+        WHERE id LIKE 'dpxq:ancient:%'
+          AND title LIKE '%DPXQ online edition'
+        """
+    )
+    from .explorer_index import (
+        index_is_current,
+        mark_empty_index_current,
+        rebuild,
+    )
+
+    if not index_is_current(connection):
+        has_games = connection.execute("SELECT EXISTS(SELECT 1 FROM games)").fetchone()[0]
+        if has_games:
+            rebuild(connection)
+        else:
+            mark_empty_index_current(connection)
     connection.execute(
         "INSERT OR REPLACE INTO metadata(key, value) VALUES ('schema_version', ?)",
         (str(SCHEMA_VERSION),),

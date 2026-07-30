@@ -98,6 +98,8 @@ def _open_target(path: Path) -> sqlite3.Connection:
         "game_positions_by_position",
         "games_by_line_hash",
         "games_by_date",
+        "games_by_played_at",
+        "games_by_year",
         "games_by_red",
         "games_by_black",
         "games_by_event",
@@ -265,6 +267,12 @@ def _migrate_database(
 
 def _finish(target: sqlite3.Connection, source_paths: list[Path]) -> dict[str, int]:
     target.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
+    from .explorer_index import rebuild as rebuild_explorer_index
+
+    rebuild_explorer_index(target, progress=True)
+    # A one-time rebuild establishes the catalog baseline; only subsequent
+    # incremental inserts are "new this week".
+    target.execute("DELETE FROM catalog_growth_hourly")
     totals = {
         "games": target.execute("SELECT count(*) FROM games").fetchone()[0],
         "positions": target.execute(

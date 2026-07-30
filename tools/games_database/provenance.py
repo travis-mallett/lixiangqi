@@ -413,4 +413,9 @@ def upsert_source_record(
             )
         _replace_source_tree(connection, source_record_id, tree_nodes)
 
+    # Source membership determines the public explorer categories. Merge the
+    # canonical game into newly visible categories in the same transaction.
+    from .explorer_index import update_game
+
+    update_game(connection, game_id)
     return source_record_id

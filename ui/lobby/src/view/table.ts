@@ -6,7 +6,7 @@ import type { GameType } from '@/interfaces';
 
 import renderSetupModal from './setup/modal';
 
-type ButtonInfo = { gameType: GameType | 'dev' | 'bots'; label: string; disabled?: boolean; title?: string };
+type ButtonInfo = { gameType: GameType | 'dev'; label: string; disabled?: boolean; title?: string };
 
 export default function table(ctrl: LobbyController) {
   const { data, opts } = ctrl;
@@ -38,12 +38,6 @@ export default function table(ctrl: LobbyController) {
       disabled: hasOngoingRealTimeGame,
     },
   ];
-  if (opts.bots)
-    lobbyButtons.push({
-      gameType: 'bots',
-      label: 'play bot',
-    });
-
   return hl('div.lobby__table', [
     hl('div.lobby__start', [site.blindMode && hl('h2', i18n.site.play), lobbyButtons.map(makeLobbyButton)]),
     renderSetupModal(ctrl),
@@ -104,8 +98,7 @@ export default function table(ctrl: LobbyController) {
           : bind(
               'click',
               () => {
-                if (gameType === 'bots') location.href = '/bots';
-                else if (gameType === 'dev') location.href = '/bots/dev';
+                if (gameType === 'dev') location.href = '/bots/dev';
                 else ctrl.setupCtrl.openModal(gameType);
               },
               ctrl.redraw,

@@ -518,6 +518,12 @@ final class GameRepo(c: Coll)(using Executor) extends lila.core.game.GameRepo(c)
       .skip(ThreadLocalRandom.nextInt(1000))
       .one[Game]
 
+  def latestStandard: Fu[Option[Game]] =
+    coll
+      .find(Query.variantStandard)
+      .sort(Query.sortCreated)
+      .one[Game]
+
   def lastGameBetween(u1: UserId, u2: UserId, since: Instant): Fu[Option[Game]] =
     coll.one[Game](
       $doc(

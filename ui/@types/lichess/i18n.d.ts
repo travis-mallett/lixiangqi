@@ -45,8 +45,6 @@ interface I18n {
     playedNbMoves: I18nPlural;
     /** Posted %1$s messages in %2$s */
     postedNbMessages: I18nPlural;
-    /** Practised %1$s positions on %2$s */
-    practicedNbPositions: I18nPlural;
     /** Ranked #%1$s in %2$s */
     rankedInSwissTournament: I18nFormat;
     /** Ranked #%1$s (top %2$s%%) with %3$s games in %4$s */
@@ -1609,8 +1607,6 @@ interface I18n {
     lastOne: string;
     /** Learn Xiangqi */
     learnChess: string;
-    /** Learn common Xiangqi positions */
-    learnCommonChessPositions: string;
     /** Let's go! */
     letsGo: string;
     /** Mate in one */
@@ -1677,8 +1673,6 @@ interface I18n {
     playMachine: string;
     /** Play people */
     playPeople: string;
-    /** Practise */
-    practice: string;
     /** Progress: %s */
     progressX: I18nFormat;
     /** Protection */
@@ -5283,7 +5277,7 @@ interface I18n {
     commentThisMove: string;
     /** Comment on this position */
     commentThisPosition: string;
-    /** You can find your <a href='/study/mine/hot'>previous studies</a> on your profile page.<br>There is also a <a href='//lixiangqi.org/blog/V0KrLSkAAMo3hsi4/study-Xiangqi-the-lixiangqi-way'>blog post about studies</a>.<br>Power users might want to press "?" to see keyboard shortcuts.<br>Have fun! */
+    /** You can find your <a href='/study/mine/hot'>previous studies</a> on your profile page.<br>There is also a <a href='/study/what-are-studies'>guide to Lixiangqi studies</a>.<br>Power users might want to press "?" to see keyboard shortcuts.<br>Have fun! */
     conclusionText: string;
     /** Thanks for your time */
     conclusionTitle: string;

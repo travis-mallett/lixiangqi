@@ -30,7 +30,6 @@ final class ActivityUi(helpers: Helpers)(
             h2(semanticDate(a.interval.start)),
             div(cls := "entries")(
               a.patron.map(renderPatron),
-              a.practice.map(renderPractice),
               a.puzzles.map(renderPuzzles(u)),
               a.storm.map(renderStorm),
               a.racer.map(renderRacer),
@@ -64,26 +63,6 @@ final class ActivityUi(helpers: Helpers)(
           trans.activity.supportedNbMonths
             .plural(p.months, p.months, a(href := routes.Plan.index())("Patron"))
       )
-    )
-
-  private def renderPractice(p: Map[lila.core.practice.Study, Int])(using Context) =
-    val ps = p.toSeq.sortBy(-_._2)
-    entryTag(
-      iconTag(Icon.Bullseye),
-      div(
-        ps.headOption.map(onePractice),
-        ps match
-          case _ :: rest if rest.nonEmpty => subTag(rest.map(onePractice))
-          case _ => emptyFrag
-      )
-    )
-
-  private def onePractice(tup: (lila.core.practice.Study, Int))(using Context) =
-    val (study, nb) = tup
-    val href = routes.Practice.show("-", study.slug, study.id)
-    frag(
-      trans.activity.practicedNbPositions.plural(nb, nb, a(st.href := href)(study.name)),
-      br
     )
 
   private def renderPuzzles(u: UserWithPerfs)(p: Puzzles)(using ctx: Context) =

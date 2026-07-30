@@ -10,7 +10,14 @@ import sys
 import traceback
 from pathlib import Path
 
-from . import dpxq_scraper, gdchess_scraper, xqdao_scraper
+from . import (
+    dpxq_ancient_manuals,
+    dpxq_scraper,
+    elephantchess_scraper,
+    gdchess_scraper,
+    xqdao_scraper,
+)
+from .explorer_index import ensure as ensure_explorer_index
 from .storage import database_path
 
 
@@ -46,8 +53,10 @@ def main(argv: list[str] | None = None) -> int:
     common = ["--database", str(args.database), "--delay", str(args.delay)]
     jobs = (
         ("dpxq", dpxq_scraper.main, ["update-new", *common]),
+        ("dpxq_ancient_manuals", dpxq_ancient_manuals.main, common),
         ("gdchess_01xq", gdchess_scraper.main, ["update-new-events", *common]),
         ("xqdao", xqdao_scraper.main, ["update-new-events", *common]),
+        ("elephantchess", elephantchess_scraper.main, common),
     )
     result: dict[str, object] = {}
     failed = False
@@ -67,6 +76,7 @@ def main(argv: list[str] | None = None) -> int:
             if not args.continue_on_error:
                 break
     if not failed:
+        ensure_explorer_index(args.database, progress=True)
         _record_run(args.database, result)
     print(json.dumps(result, ensure_ascii=False, indent=2), flush=True)
     return 1 if failed else 0

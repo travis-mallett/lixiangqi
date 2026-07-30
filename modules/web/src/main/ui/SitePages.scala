@@ -230,12 +230,12 @@ final class SitePages(helpers: Helpers):
                     td(
                       span("Server"),
                       timeTag(v.date),
-                      span(a(href := s"https://github.com/lichess-org/lila/commits/${v.commit}"):
+                      span(a(href := s"https://github.com/travis-mallett/lixiangqi/commits/${v.commit}"):
                         pre(v.commit.take(7)))
                     ),
                     td(v.message),
                     td:
-                      a(href := s"https://github.com/lichess-org/lila/compare/${v.commit}...master"):
+                      a(href := s"https://github.com/travis-mallett/lixiangqi/compare/${v.commit}...master"):
                         pre("...")
                   ),
                 tr(

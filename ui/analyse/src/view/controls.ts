@@ -7,7 +7,7 @@ import { type VNode, type LooseVNode, onInsert, hl } from 'lib/view';
 
 import type AnalyseCtrl from '../ctrl';
 
-type Action = 'first' | 'prev' | 'next' | 'last' | 'opening-explorer' | 'menu' | 'analysis' | 'engine-mode';
+type Action = 'first' | 'prev' | 'next' | 'last' | 'opening-explorer' | 'menu' | 'engine-mode';
 
 type EngineMode = 'ceval' | 'practice' | 'retro';
 
@@ -32,31 +32,23 @@ export function renderControls(ctrl: AnalyseCtrl) {
         jumpButton(licon.GreaterThan, 'next', canJumpNext),
         jumpButton(licon.JumpLast, 'last', ctrl.node !== ctrl.mainline[ctrl.mainline.length - 1]),
       ]),
-      ctrl.study?.practice
-        ? hl('button.fbt', {
-            attrs: { title: i18n.site.analysis, 'data-act': 'analysis', 'data-icon': licon.Microscope },
-          })
-        : [
-            displayColumns() === 1 && ctrl.isCevalAllowed() && renderMobileCevalTab(ctrl),
-            hl('button.fbt', {
-              attrs: {
-                title: i18n.site.openingExplorerAndTablebase,
-                'data-act': 'opening-explorer',
-                'data-icon': licon.Book,
-              },
-              class: {
-                hidden: !ctrl.explorer.allowed() || (!!ctrl.retro && !isMobileUi()),
-                active: ctrl.activeControlBarTool() === 'opening-explorer',
-              },
-            }),
-            displayColumns() > 1 && !ctrl.retro && !ctrl.ongoing && renderPracticeTab(ctrl),
-          ],
-      ctrl.study?.practice
-        ? hl('div.noop')
-        : hl('button.fbt', {
-            class: { active: ctrl.activeControlBarTool() === 'action-menu' },
-            attrs: { title: i18n.site.menu, 'data-act': 'menu', 'data-icon': licon.Hamburger },
-          }),
+      displayColumns() === 1 && ctrl.isCevalAllowed() && renderMobileCevalTab(ctrl),
+      hl('button.fbt', {
+        attrs: {
+          title: i18n.site.openingExplorerAndTablebase,
+          'data-act': 'opening-explorer',
+          'data-icon': licon.Book,
+        },
+        class: {
+          hidden: !ctrl.explorer.allowed() || (!!ctrl.retro && !isMobileUi()),
+          active: ctrl.activeControlBarTool() === 'opening-explorer',
+        },
+      }),
+      displayColumns() > 1 && !ctrl.retro && !ctrl.ongoing && renderPracticeTab(ctrl),
+      hl('button.fbt', {
+        class: { active: ctrl.activeControlBarTool() === 'action-menu' },
+        attrs: { title: i18n.site.menu, 'data-act': 'menu', 'data-icon': licon.Hamburger },
+      }),
     ],
   );
 }
@@ -122,7 +114,6 @@ function clickControl(ctrl: AnalyseCtrl, e: PointerEvent) {
   else if (action === 'last') ctrl.navigate.last();
   else if (action === 'opening-explorer') ctrl.toggleExplorer();
   else if (action === 'menu') ctrl.toggleActionMenu();
-  else if (action === 'analysis') window.open(ctrl.study?.practice?.analysisUrl(), '_blank');
   else if (action === 'engine-mode' && !e.target.closest<HTMLElement>('.cmn-toggle')) {
     const mode = e.target.dataset.mode as EngineMode;
     if (ctrl.activeControlBarTool()) {

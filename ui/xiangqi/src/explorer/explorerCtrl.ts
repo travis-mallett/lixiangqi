@@ -11,6 +11,14 @@ import type {
 
 const STORAGE_KEY = 'lixiangqi.analysis.explorer.v1';
 
+export interface ExplorerCtrlOptions {
+  lockedPlayer?: string;
+  lockedEvent?: string;
+  initialColor?: ExplorerColor;
+  initiallyEnabled?: boolean;
+  configurationEnabled?: boolean;
+}
+
 export default class ExplorerCtrl {
   data?: ExplorerData;
   loading = false;
@@ -26,10 +34,24 @@ export default class ExplorerCtrl {
     readonly play: (move: string) => void,
     readonly loadGame: (game: ExplorerGame) => void,
     private readonly endpoint: string,
+    readonly options: ExplorerCtrlOptions = {},
   ) {
     this.config = this.loadConfig();
+    if (this.options.lockedPlayer?.trim()) {
+      this.config.db = 'player';
+      this.config.player = this.options.lockedPlayer.trim();
+      this.config.color = this.options.initialColor === 'black' ? 'black' : 'red';
+    } else if (this.options.lockedEvent?.trim()) {
+      this.config.db = 'event';
+      this.config.event = this.options.lockedEvent.trim();
+    }
+    this.enabledValue = this.options.initiallyEnabled ?? false;
+    this.element.hidden = !this.enabledValue;
+    this.toggleButton.classList.toggle('active', this.enabledValue);
+    this.toggleButton.setAttribute('aria-pressed', String(this.enabledValue));
     this.toggleButton.addEventListener('click', () => this.toggle());
     this.render();
+    if (this.enabledValue) void this.fetch();
   }
 
   get enabled(): boolean {
@@ -37,6 +59,7 @@ export default class ExplorerCtrl {
   }
 
   setPosition(position: ExplorerPosition): void {
+    if (this.position?.fen === position.fen) return;
     this.position = position;
     if (this.enabledValue) void this.fetch();
   }
@@ -51,6 +74,7 @@ export default class ExplorerCtrl {
   }
 
   selectDb(db: ExplorerDb): void {
+    if (this.options.lockedPlayer || this.options.lockedEvent) return;
     this.config.db = db;
     this.configOpen = db === 'player' && !this.config.player;
     this.saveConfig();
@@ -59,6 +83,7 @@ export default class ExplorerCtrl {
   }
 
   toggleConfig(): void {
+    if (this.options.configurationEnabled === false) return;
     this.configOpen = !this.configOpen;
     this.render();
   }
@@ -70,6 +95,14 @@ export default class ExplorerCtrl {
 
   setColor(color: ExplorerColor): void {
     this.config.color = color;
+    this.render();
+  }
+
+  selectColor(color: ExplorerColor): void {
+    if (this.config.color === color) return;
+    this.config.color = color;
+    if (!this.options.lockedPlayer && !this.options.lockedEvent) this.saveConfig();
+    void this.fetch();
     this.render();
   }
 
@@ -90,7 +123,12 @@ export default class ExplorerCtrl {
   }
 
   private async fetch(): Promise<void> {
-    if (!this.position || !this.enabledValue || (this.config.db === 'player' && !this.config.player)) {
+    if (
+      !this.position ||
+      !this.enabledValue ||
+      (this.config.db === 'player' && !this.config.player) ||
+      (this.config.db === 'event' && !this.config.event)
+    ) {
       this.data = undefined;
       this.render();
       return;
@@ -107,6 +145,7 @@ export default class ExplorerCtrl {
           ...this.position,
           database: this.config.db,
           player: this.config.db === 'player' ? this.config.player : undefined,
+          event: this.config.db === 'event' ? this.config.event : undefined,
           color: this.config.color,
           since: this.config.since || undefined,
           until: this.config.until || undefined,
@@ -142,7 +181,14 @@ export default class ExplorerCtrl {
   }
 
   private loadConfig(): ExplorerConfig {
-    const fallback: ExplorerConfig = { db: 'masters', since: '', until: '', player: '', color: 'red' };
+    const fallback: ExplorerConfig = {
+      db: 'masters',
+      since: '',
+      until: '',
+      player: '',
+      event: '',
+      color: 'red',
+    };
     try {
       const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') as Partial<ExplorerConfig>;
       const storedDb = stored.db === ('lixiangqi' as ExplorerDb) ? 'all' : stored.db;
@@ -153,6 +199,7 @@ export default class ExplorerCtrl {
         since: stored.since || '',
         until: stored.until || '',
         player: stored.player || '',
+        event: '',
         color: stored.color === 'black' ? 'black' : 'red',
       };
     } catch {

@@ -32,28 +32,11 @@ object bits:
 
   val connectLinks: Frag = div(cls := "connect-links")(
     a(
-      href := "https://mastodon.online/@lixiangqi",
-      targetBlank,
-      noFollow,
-      relMe
-    )("Mastodon"),
-    a(
-      href := "https://github.com/lichess-org",
+      href := "https://github.com/travis-mallett/lixiangqi",
       targetBlank,
       noFollow
     )("GitHub"),
-    a(href := "https://discord.gg/lichess", targetBlank, noFollow)("Discord"),
-    a(href := "https://bsky.app/profile/lixiangqi.org", targetBlank, noFollow)("Bluesky"),
-    a(
-      href := "https://youtube.com/@Lixiangqi",
-      targetBlank,
-      noFollow
-    )("YouTube"),
-    a(
-      href := "https://www.twitch.tv/lixiangqi",
-      targetBlank,
-      noFollow
-    )("Twitch")
+    a(href := "https://discord.gg/wCdGwFyCh", targetBlank, noFollow)("Discord")
   )
 
   val logo = raw:

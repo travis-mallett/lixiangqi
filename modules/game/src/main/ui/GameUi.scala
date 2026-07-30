@@ -18,7 +18,7 @@ final class GameUi(helpers: Helpers):
     private val dataLive = attr("data-live")
     private val dataTime = attr("data-time")
     private val dataTimeControl = attr("data-tc")
-    val cgWrap = span(cls := "cg-wrap")(cgWrapContent)
+    val cgWrap = span(cls := "cg-wrap xiangqi9x10")(cgWrapContent)
 
     def apply(
         pov: Pov,

@@ -18,7 +18,6 @@ import type { ExplorerOpts } from './explorer/interfaces';
 import type { ForecastData } from './forecast/interfaces';
 import type { AnalyseSocketSend } from './socket';
 import type { StudyDataFromServer } from './study/interfaces';
-import type { StudyPracticeData, Goal as PracticeGoal } from './study/practice/interfaces';
 import type { RelayData } from './study/relay/interfaces';
 import type * as studyDeps from './study/studyDeps';
 
@@ -46,7 +45,6 @@ export interface AnalyseData {
   forecast?: ForecastData;
   sidelines?: TreeNode[][];
   treeParts: TreeNodeBase[];
-  practiceGoal?: PracticeGoal;
   clock?: Clock;
   pref: AnalysePref;
   userTv?: {
@@ -145,7 +143,6 @@ export interface AnalyseOpts {
   socketSend: AnalyseSocketSend;
   study?: StudyDataFromServer;
   tagTypes?: string;
-  practice?: StudyPracticeData;
   relay?: RelayData;
   $side?: Cash;
   $underboard?: Cash;

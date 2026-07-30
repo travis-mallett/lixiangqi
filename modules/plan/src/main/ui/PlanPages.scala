@@ -4,6 +4,7 @@ package ui
 import lila.ui.*
 import lila.ui.ScalatagsTemplate.{ *, given }
 import lila.core.LightUser
+import lila.core.id.CmsPageKey
 
 final class PlanPages(helpers: Helpers)(fishnetPerDay: Int):
   import helpers.{ *, given }
@@ -38,12 +39,6 @@ final class PlanPages(helpers: Helpers)(fishnetPerDay: Int):
                 a(href := routes.Tournament.home)(trans.arena.arenaTournaments())
               ),
               tr(unlimited)(
-                a(href := routes.Swiss.home)(trans.swiss.swissTournaments())
-              ),
-              tr(unlimited)(
-                a(href := routes.Simul.home)(trans.site.simultaneousExhibitions())
-              ),
-              tr(unlimited)(
                 trans.features.correspondenceWithConditionalPremoves()
               ),
               tr(check)(
@@ -61,17 +56,17 @@ final class PlanPages(helpers: Helpers)(fishnetPerDay: Int):
                 )
               ),
               tr(unlimited)(
-                a(href := "https://lixiangqi.org/blog/WFvLpiQAACMA8e9D/learn-from-your-mistakes")(
+                a(href := routes.Cms.lonePage(CmsPageKey("learn-from-your-mistakes")))(
                   trans.site.learnFromYourMistakes()
                 )
               ),
               tr(unlimited)(
-                a(href := "https://lixiangqi.org/blog/V0KrLSkAAMo3hsi4/study-chess-the-lichess-way")(
+                a(href := routes.Study.whatAreStudies)(
                   trans.features.studies()
                 )
               ),
               tr(unlimited)(
-                a(href := "https://lixiangqi.org/blog/VmZbaigAABACtXQC/chess-insights")(
+                a(href := routes.Cms.lonePage(CmsPageKey("xiangqi-insights")))(
                   trans.features.chessInsights()
                 )
               ),
@@ -80,13 +75,6 @@ final class PlanPages(helpers: Helpers)(fishnetPerDay: Int):
               ),
               tr(unlimited)(
                 a(href := routes.Puzzle.home)(trans.features.tacticalPuzzlesFromUserGames())
-              ),
-              tr(unlimited)(
-                a(href := routes.Puzzle.streak)("Puzzle Streak"),
-                ", ",
-                a(href := routes.Storm.home)("Puzzle Storm"),
-                ", ",
-                a(href := routes.Racer.home)("Puzzle Racer")
               ),
               tr(check)(
                 a(href := routes.UserAnalysis.index)(

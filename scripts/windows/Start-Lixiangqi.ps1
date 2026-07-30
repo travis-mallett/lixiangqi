@@ -253,6 +253,10 @@ if (-not (Test-Port 6379)) {
   Wait-Port 6379 30 'Redis'
 }
 
+Write-Step 'Ensuring the write-time opening explorer index is current'
+& $python -m tools.games_database.explorer_index ensure
+if ($LASTEXITCODE) { throw 'Opening explorer index preparation failed.' }
+
 $env:LIXIANGQI_DOMAIN = $siteDomain
 $env:LIXIANGQI_SOCKET_DOMAIN = "${siteAddress}:9664"
 if (-not (Test-Port 9664)) {

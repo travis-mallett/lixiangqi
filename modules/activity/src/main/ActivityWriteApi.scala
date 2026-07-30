@@ -67,9 +67,6 @@ final class ActivityWriteApi(
   def learn(userId: UserId, stage: String) = update(userId): a =>
     $doc(ActivityFields.learn -> { ~a.learn + LearnStage(stage) })
 
-  def practice(prog: lila.core.practice.OnComplete) = update(prog.userId): a =>
-    $doc(ActivityFields.practice -> { ~a.practice + prog.studyId })
-
   def simul(simul: Simul): Funit =
     (simul.hostId :: simul.playerIds).sequentiallyVoid(simulParticipant(simul, _))
 

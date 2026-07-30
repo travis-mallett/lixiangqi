@@ -185,7 +185,7 @@ export default class AnalyseCtrl implements CevalHandler {
     this.explorer.setNode();
     this.study =
       opts.study && makeStudy
-        ? new makeStudy(opts.study, this, (opts.tagTypes || '').split(','), opts.practice, opts.relay)
+        ? new makeStudy(opts.study, this, (opts.tagTypes || '').split(','), opts.relay)
         : undefined;
 
     if (location.hash === '#practice' || this.study?.data.chapter.practice) this.togglePractice();
@@ -729,7 +729,6 @@ export default class AnalyseCtrl implements CevalHandler {
         this.setAutoShapes();
         if (!isThreat) {
           this.retro?.onCeval();
-          this.study?.practice?.onCeval();
           this.practice?.onCeval();
           this.study?.multiCloudEval?.onLocalCeval(node, ev);
           this.evalCache.onLocalCeval();
@@ -769,7 +768,7 @@ export default class AnalyseCtrl implements CevalHandler {
     !location.search.includes('evals=0');
 
   cevalEnabled = (enable?: boolean): boolean | 'force' => {
-    const force = Boolean(this.study?.practice || this.practice || this.retro?.forceCeval());
+    const force = Boolean(this.practice || this.retro?.forceCeval());
     const unforcedState = this.cevalEnabledProp() && this.isCevalAllowed() && !this.ceval.wasUnloaded;
 
     if (enable === undefined) return force ? 'force' : unforcedState;
@@ -839,15 +838,7 @@ export default class AnalyseCtrl implements CevalHandler {
   };
 
   activeControlMode = () =>
-    this.study?.practice
-      ? 'learn-practice'
-      : this.practice
-        ? 'practice'
-        : this.retro
-          ? 'retro'
-          : this.showCevalProp()
-            ? 'ceval'
-            : false;
+    this.practice ? 'practice' : this.retro ? 'retro' : this.showCevalProp() ? 'ceval' : false;
 
   activeControlBarTool() {
     return this.actionMenu() ? 'action-menu' : this.explorer.enabled() ? 'opening-explorer' : false;
@@ -917,7 +908,7 @@ export default class AnalyseCtrl implements CevalHandler {
   };
 
   private setCevalPracticeOpts() {
-    this.initCeval({ custom: this.study?.practice?.customCeval ?? this.practice?.customCeval });
+    this.initCeval({ custom: this.practice?.customCeval });
   }
 
   gamebookPlay = (): GamebookPlayCtrl | undefined => this.study?.gamebookPlay;

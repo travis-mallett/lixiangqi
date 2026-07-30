@@ -2,7 +2,6 @@ package lila.web
 package ui
 
 import lila.core.i18n.{ I18nKey as trans, Translate }
-import lila.core.id.ForumCategId
 import lila.ui.*
 
 import ScalatagsTemplate.{ *, given }
@@ -36,16 +35,10 @@ object contact:
     frag(
       ul(
         li(
-          a(href := routes.ForumCateg.show(ForumCategId("lichess-feedback")))(reportBugInForum())
+          a(href := "https://github.com/travis-mallett/lixiangqi/issues")(reportWebsiteIssue())
         ),
         li(
-          a(href := "https://github.com/lichess-org/lila/issues")(reportWebsiteIssue())
-        ),
-        li(
-          a(href := "https://github.com/lichess-org/mobile/issues")(reportMobileIssue())
-        ),
-        li(
-          a(href := "https://discord.gg/lichess")(reportBugInDiscord())
+          a(href := "https://discord.gg/wCdGwFyCh")(reportBugInDiscord())
         )
       ),
       p(howToReportBug())
@@ -207,7 +200,7 @@ object contact:
               "Security vulnerability",
               p(
                 "Please refer to our ",
-                a(href := "https://github.com/lichess-org/lila/security/policy")("Security policy"),
+                a(href := "https://github.com/travis-mallett/lixiangqi/security/policy")("Security policy"),
                 "."
               )
             ),

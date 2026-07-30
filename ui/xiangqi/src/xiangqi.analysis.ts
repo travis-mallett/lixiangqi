@@ -30,6 +30,7 @@ import { hydrateXiangqiState, requestXiangqi } from './api';
 import { engineProgress } from './engineProgress';
 import ExplorerCtrl from './explorer/explorerCtrl';
 import type { ExplorerGame } from './explorer/interfaces';
+import { annotationSourceLabel } from './gameCatalog';
 import {
   legalMoveDests,
   makeXiangqiGround,
@@ -75,6 +76,7 @@ interface AnalysisBootstrap {
   notations?: string[];
   chineseNotations?: string[];
   notationStyle?: XiangqiNotationStyle;
+  language?: string;
   states?: RulesState[];
   orientation?: 'white' | 'black';
   analysisInProgress?: boolean;
@@ -698,7 +700,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
             if (!target) return;
             (target.comments ??= []).push({
               text: annotation.body,
-              source: witness.collectionName,
+              source: annotationSourceLabel(witness.collection, witness.collectionName),
               author: layer.annotator,
               language: layer.language,
             });
@@ -739,7 +741,11 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     try {
       const game = await requestXiangqi<ExplorerGame>(
         `${(bootstrap.explorerEndpoint || '').replace(/\/$/, '')}/games/game`,
-        { id: gameId, ...(catalogDatabase ? { database: catalogDatabase } : {}) },
+        {
+          id: gameId,
+          language: bootstrap.language || 'en',
+          ...(catalogDatabase ? { database: catalogDatabase } : {}),
+        },
       );
       if (await loadExplorerGame(game)) {
         const url = new URL(location.href);

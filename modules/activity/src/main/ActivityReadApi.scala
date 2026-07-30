@@ -14,7 +14,6 @@ import lila.mon.extensions.*
 final class ActivityReadApi(
     coll: AsyncCollFailingSilently,
     gameRepo: lila.core.game.GameRepo,
-    getPracticeStudies: lila.core.practice.GetStudies,
     forumPostApi: lila.core.forum.ForumPostApi,
     ublogApi: lila.core.ublog.UblogApi,
     simulApi: lila.core.simul.SimulApi,
@@ -39,11 +38,8 @@ final class ActivityReadApi(
           .list(Activity.recentNb)
       ).dmap(_.filterNot(_.isEmpty))
         .mon(lila.mon.user.segment("activity.raws"))
-    practiceStudies <- activities
-      .exists(_.practice.isDefined)
-      .optionFu(getPracticeStudies())
     views <- activities.sequentially: a =>
-      one(practiceStudies, a).mon(lila.mon.user.segment("activity.view"))
+      one(a).mon(lila.mon.user.segment("activity.view"))
     _ <- preloadAll(views)
   yield addSignup(u.createdAt, views)
 
@@ -52,7 +48,7 @@ final class ActivityReadApi(
     _ <- getTourName.preload(views.flatMap(_.tours.so(_.best.map(_.tourId))))
   yield ()
 
-  private def one(practiceStudies: Option[lila.core.practice.Studies], a: Activity): Fu[ActivityView] =
+  private def one(a: Activity): Fu[ActivityView] =
     for
       allForumPosts <- a.forumPosts.traverse: p =>
         forumPostApi
@@ -70,13 +66,6 @@ final class ActivityReadApi(
             .liveLightsByIds(p.value)
             .mon(lila.mon.user.segment("activity.ublogs"))
         .dmap(_.filter(_.nonEmpty))
-      practice =
-        for
-          p <- a.practice
-          studies <- practiceStudies
-        yield p.value.flatMap { (studyId, nb) =>
-          studies(studyId).map(_ -> nb)
-        }.toMap
       forumPostView = forumPosts
         .map: p =>
           p.groupBy(_.topic)
@@ -129,7 +118,6 @@ final class ActivityReadApi(
       storm = a.storm,
       racer = a.racer,
       streak = a.streak,
-      practice = practice,
       forumPosts = forumPostView,
       ublogPosts = ublogPosts,
       simuls = simuls,

@@ -58,6 +58,7 @@ final class Cms(env: Env) extends LilaController(env):
 
   val help = menuPage(CmsPageKey("help"))
   val tos = menuPage(CmsPageKey("tos"))
+  val apiPage = lonePage(CmsPageKey("api"))
 
   def page(key: CmsPageKey, active: Option[String])(using Context) =
     negotiateCms(key): page =>

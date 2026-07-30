@@ -97,16 +97,6 @@ final class JsonView(
         .add("racer", a.racer)
         .add("streak", a.streak)
         .add("tournaments", a.tours)
-        .add(
-          "practice",
-          a.practice.map(_.toList.sortBy(-_._2).map { (study, nb) =>
-            Json.obj(
-              "url" -> routeUrl(routes.Practice.show("-", study.slug, study.id)),
-              "name" -> study.name,
-              "nbPositions" -> nb
-            )
-          })
-        )
         .add("simuls", a.simuls.map(_.map(simulWrites(user).writes)))
         .add(
           "correspondenceMoves",

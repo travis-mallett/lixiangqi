@@ -69,7 +69,8 @@ object xiangqi:
   private def catalogSource(idValue: String, labelText: String, nested: Boolean = false) =
     label(
       cls := s"games-database__source${if nested then " nested" else ""}",
-      attr("for") := s"games-source-$idValue"
+      attr("for") := s"games-source-$idValue",
+      attr("data-source-item") := idValue
     )(
       input(
         id := s"games-source-$idValue",
@@ -80,10 +81,80 @@ object xiangqi:
       span(attr("data-source-count") := idValue, attr("data-source-label") := labelText)(labelText)
     )
 
-  def gamesDatabase(explorerEndpoint: String)(using @annotation.unused ctx: Context) =
+  private def playerCatalogSource(idValue: String, sourceIds: String, labelText: String) =
+    label(
+      cls := "player-database__source",
+      attr("for") := s"player-source-$idValue"
+    )(
+      input(
+        id := s"player-source-$idValue",
+        tpe := "checkbox",
+        checked := true,
+        attr("data-player-sources") := sourceIds
+      ),
+      span(
+        attr("data-player-source-label") := labelText,
+        attr("data-player-source-count") := idValue
+      )(labelText)
+    )
+
+  private def eventCatalogSource(idValue: String, sourceIds: String, labelText: String) =
+    label(
+      cls := "player-database__source",
+      attr("for") := s"event-source-$idValue"
+    )(
+      input(
+        id := s"event-source-$idValue",
+        tpe := "checkbox",
+        checked := true,
+        attr("data-event-sources") := sourceIds
+      ),
+      span(
+        attr("data-event-source-label") := labelText,
+        attr("data-event-source-count") := idValue
+      )(labelText)
+    )
+
+  private def playerOutcome(idValue: String, titleText: String, description: String) =
+    st.article(cls := "player-database__outcome")(
+      div(cls := "player-database__outcome-heading")(
+        div(
+          h3(titleText),
+          p(description)
+        ),
+        strong(id := s"player-$idValue-games")("—")
+      ),
+      div(
+        id := s"player-$idValue-bar",
+        cls := "player-database__outcome-bar",
+        role := "img",
+        attr("aria-label") := s"$titleText win, draw, and loss percentages"
+      )(
+        span(cls := "wins"),
+        span(cls := "draws"),
+        span(cls := "losses")
+      ),
+      div(cls := "player-database__outcome-legend")(
+        span(cls := "wins")(strong(id := s"player-$idValue-wins")("—"), " win"),
+        span(cls := "draws")(strong(id := s"player-$idValue-draws")("—"), " draw"),
+        span(cls := "losses")(strong(id := s"player-$idValue-losses")("—"), " loss")
+      )
+    )
+
+  def gamesDatabase(explorerEndpoint: String, nativeWeeklyAdded: Int)(using
+      @annotation.unused ctx: Context
+  ) =
     Page("Xiangqi Games Database")
       .css("xiangqi")
-      .js(PageModule("xiangqi.games", Json.obj("explorerEndpoint" -> explorerEndpoint)))
+      .js(
+        PageModule(
+          "xiangqi.games",
+          Json.obj(
+            "explorerEndpoint" -> explorerEndpoint,
+            "nativeWeeklyAdded" -> nativeWeeklyAdded
+          )
+        )
+      )
       .graph(
         title = "Xiangqi Games Database",
         url = routeUrl(routes.GameCatalog.index),
@@ -92,15 +163,40 @@ object xiangqi:
       .body(
         main(cls := "games-database box")(
           header(cls := "games-database__header")(
-            h1("Games Database"),
-            p(
-              "Search master, DPXQ online, GDChess/01xq, and XQDao collections, then open any game in a new Analysis tab."
+            div(cls := "games-database__intro")(
+              h1("Games Database"),
+              p(
+                cls := "games-database__total",
+                attr("aria-live") := "polite",
+                attr("aria-atomic") := "true"
+              )(
+                strong(id := "games-database-total-unique")("—"),
+                span("total unique games")
+              ),
+              p(cls := "games-database__description")(
+                "Search master games, ancient manuals, DPXQ online games, GDChess/01xq, XQDao, and Elephantchess.io collections, then open any record in a new Analysis tab."
+              )
+            ),
+            div(
+              id := "games-database-weekly",
+              cls := "games-database__weekly",
+              title := "Counts new catalog records and Lixiangqi games since Sunday at midnight Pacific time",
+              attr("aria-live") := "polite",
+              attr("aria-atomic") := "true"
+            )(
+              strong(id := "games-database-weekly-count")(nativeWeeklyAdded.toString),
+              span(id := "games-database-weekly-label")(
+                if nativeWeeklyAdded == 1 then "new game added this week!"
+                else "new games added this week!"
+              ),
+              small("Resets weekly · Pacific time")
             )
           ),
           div(cls := "games-database__layout")(
             st.aside(cls := "games-database__filters", attr("aria-label") := "Game sources")(
               h2("Sources"),
               catalogSource("m", "Master Games"),
+              catalogSource("am", "Ancient Manuals"),
               label(cls := "games-database__source parent", attr("for") := "games-source-online")(
                 input(
                   id := "games-source-online",
@@ -123,9 +219,42 @@ object xiangqi:
                 catalogSource("w", "Unassigned Games", nested = true)
               ),
               catalogSource("gd", "GDChess / 01xq"),
-              catalogSource("xqd", "XQDao")
+              catalogSource("xqd", "XQDao"),
+              catalogSource("ec", "Elephantchess.io")
             ),
             st.section(cls := "games-database__results", attr("aria-label") := "Game records")(
+              st.section(
+                cls := "games-database__timeline",
+                attr("aria-labelledby") := "games-database-timeline-title"
+              )(
+                div(cls := "games-database__timeline-header")(
+                  div(
+                    h2(id := "games-database-timeline-title")("Game timeline"),
+                    p(id := "games-database-timeline-summary")(
+                      "Loading the distribution of matching games…"
+                    )
+                  ),
+                  label(cls := "games-database__timeline-unit", attr("for") := "games-database-time-unit")(
+                    span("Time unit"),
+                    select(id := "games-database-time-unit")(
+                      option(value := "month")("Month"),
+                      option(value := "year", selected := true)("Year"),
+                      option(value := "decade")("Decade")
+                    )
+                  )
+                ),
+                div(
+                  id := "games-database-timeline-chart",
+                  cls := "games-database__timeline-chart",
+                  role := "img",
+                  attr("aria-label") := "Timeline of games matching the current source and search filters"
+                ),
+                p(
+                  id := "games-database-timeline-empty",
+                  cls := "games-database__timeline-empty",
+                  attr("hidden") := true
+                )("No dated games match these filters.")
+              ),
               form(id := "games-database-search", cls := "games-database__search")(
                 input(
                   id := "games-database-query",
@@ -175,13 +304,478 @@ object xiangqi:
         )
       )
 
+  def databasePlayer(explorerEndpoint: String, player: String)(using
+      @annotation.unused ctx: Context
+  ) =
+    Page(s"$player — Games Database")
+      .css("xiangqi")
+      .js(
+        PageModule(
+          "xiangqi.player",
+          Json.obj(
+            "explorerEndpoint" -> explorerEndpoint,
+            "player" -> player
+          )
+        )
+      )
+      .graph(
+        title = s"$player — Xiangqi player database",
+        url = routeUrl(routes.GameCatalog.player(player)),
+        description = s"Games, results, timeline, opponents, and opening repertoire for $player."
+      )
+      .body(
+        main(cls := "player-database box")(
+          header(cls := "player-database__header")(
+            div(
+              a(cls := "player-database__back", href := routes.GameCatalog.index.url)("← Games Database"),
+              h1(id := "player-database-name")(player),
+              p(id := "player-database-range", cls := "player-database__range")(
+                "Loading this player’s database record…"
+              )
+            ),
+            div(
+              id := "player-database-status",
+              cls := "player-database__status",
+              role := "status",
+              attr("aria-live") := "polite",
+              attr("aria-atomic") := "true"
+            )("Loading player statistics…")
+          ),
+          div(id := "player-database-content", attr("hidden") := true)(
+            st.section(cls := "player-database__metrics", attr("aria-label") := "Player summary")(
+              st.article(
+                span("Games"),
+                strong(id := "player-metric-games")("—"),
+                small("recorded games")
+              ),
+              st.article(
+                span("Score"),
+                strong(id := "player-metric-score")("—"),
+                small("points won")
+              ),
+              st.article(
+                span("Opponents"),
+                strong(id := "player-metric-opponents")("—"),
+                small("distinct opponents")
+              ),
+              st.article(
+                span("Average rating"),
+                strong(id := "player-metric-rating")("—"),
+                small("when recorded")
+              ),
+              st.article(
+                span("Average length"),
+                strong(id := "player-metric-moves")("—"),
+                small("half-moves")
+              )
+            ),
+            st.section(
+              cls := "player-database__results",
+              attr("aria-labelledby") := "player-results-title"
+            )(
+              div(cls := "player-database__section-heading")(
+                div(
+                  h2(id := "player-results-title")("Results by side"),
+                  p("Every percentage is from the selected player’s perspective.")
+                )
+              ),
+              div(cls := "player-database__outcomes")(
+                playerOutcome("red", "Playing as Red", "The player made the first move"),
+                playerOutcome("black", "Playing as Black", "The player responded to Red")
+              )
+            ),
+            div(cls := "player-database__insights")(
+              st.section(attr("aria-labelledby") := "player-opponents-title")(
+                div(cls := "player-database__section-heading")(
+                  div(
+                    h2(id := "player-opponents-title")("Frequent opponents"),
+                    p("Most common matchups and results from this player’s perspective.")
+                  )
+                ),
+                div(id := "player-opponents", cls := "player-database__ranked-list")
+              ),
+              st.section(attr("aria-labelledby") := "player-openings-title")(
+                div(cls := "player-database__section-heading")(
+                  div(
+                    h2(id := "player-openings-title")("Recorded openings"),
+                    p("Most frequent source-supplied opening classifications.")
+                  )
+                ),
+                div(id := "player-openings", cls := "player-database__ranked-list")
+              )
+            ),
+            st.section(
+              cls := "player-database__timeline",
+              attr("aria-labelledby") := "player-timeline-title"
+            )(
+              div(cls := "player-database__section-heading player-database__timeline-heading")(
+                div(
+                  h2(id := "player-timeline-title")("Game timeline"),
+                  p(id := "player-timeline-summary")("Loading dated games…")
+                ),
+                label(attr("for") := "player-timeline-unit")(
+                  span("Time unit"),
+                  select(id := "player-timeline-unit")(
+                    option(value := "month")("Month"),
+                    option(value := "year", selected := true)("Year"),
+                    option(value := "decade")("Decade")
+                  )
+                )
+              ),
+              div(
+                id := "player-timeline-chart",
+                cls := "player-database__timeline-chart",
+                role := "img",
+                attr("aria-label") := "Timeline of this player’s recorded games"
+              ),
+              p(id := "player-timeline-empty", attr("hidden") := true)(
+                "No precisely dated games are available."
+              )
+            ),
+            st.section(
+              cls := "player-database__repertoire",
+              attr("aria-labelledby") := "player-repertoire-title"
+            )(
+              div(cls := "player-database__section-heading player-database__repertoire-heading")(
+                div(
+                  h2(id := "player-repertoire-title")("Opening repertoire explorer"),
+                  p(id := "player-repertoire-explanation")(
+                    "Choose a side, then play moves to explore this player’s games."
+                  )
+                ),
+                div(
+                  cls := "player-database__side-picker",
+                  role := "group",
+                  attr("aria-label") := "Player side"
+                )(
+                  button(
+                    id := "player-side-red",
+                    cls := "active",
+                    tpe := "button",
+                    attr("aria-pressed") := "true"
+                  )("As Red"),
+                  button(
+                    id := "player-side-black",
+                    tpe := "button",
+                    attr("aria-pressed") := "false"
+                  )("As Black")
+                )
+              ),
+              div(cls := "player-database__explorer-layout")(
+                st.section(cls := "player-database__board main-board xiangqi9x10")(
+                  div(id := "player-xiangqi-board", cls := "cg-wrap xiangqi9x10")
+                ),
+                st.aside(cls := "player-database__explorer-panel")(
+                  div(cls := "player-database__move-header")(
+                    strong("Move list"),
+                    div(
+                      button(
+                        id := "player-explorer-back",
+                        tpe := "button",
+                        title := "Previous position",
+                        attr("aria-label") := "Previous position"
+                      )("←"),
+                      button(
+                        id := "player-explorer-reset",
+                        tpe := "button",
+                        title := "Reset position"
+                      )("Reset")
+                    )
+                  ),
+                  ol(
+                    id := "player-explorer-moves",
+                    cls := "player-database__move-list",
+                    attr("aria-label") := "Explored move sequence"
+                  ),
+                  st.section(
+                    id := "player-opening-explorer",
+                    cls := "explorer-box sub-box",
+                    attr("aria-label") := "Player opening explorer"
+                  ),
+                  button(
+                    id := "player-opening-explorer-toggle",
+                    tpe := "button",
+                    attr("hidden") := true,
+                    attr("aria-pressed") := "false"
+                  )("Opening explorer")
+                )
+              )
+            ),
+            st.section(
+              cls := "player-database__games",
+              attr("aria-labelledby") := "player-games-title"
+            )(
+              div(cls := "player-database__section-heading player-database__games-heading")(
+                div(
+                  h2(id := "player-games-title")("Games"),
+                  p(id := "player-games-summary")("Loading games…")
+                ),
+                div(cls := "player-database__sources", attr("aria-label") := "Game sources")(
+                  playerCatalogSource("m", "m", "Masters"),
+                  playerCatalogSource("online", "n,t,k,o,b,u,w", "DPXQ Online"),
+                  playerCatalogSource("gd", "gd", "GDChess / 01xq"),
+                  playerCatalogSource("xqd", "xqd", "XQDao"),
+                  playerCatalogSource("ec", "ec", "Elephantchess.io")
+                )
+              ),
+              div(cls := "games-database__table-wrap")(
+                table(cls := "slist games-database__table player-database__table")(
+                  thead(
+                    tr(
+                      th(button(tpe := "button", attr("data-player-sort") := "source")("Source")),
+                      th(button(tpe := "button", attr("data-player-sort") := "date")("Date")),
+                      th(button(tpe := "button", attr("data-player-sort") := "red")("Red Player")),
+                      th(button(tpe := "button", attr("data-player-sort") := "black")("Black Player")),
+                      th(button(tpe := "button", attr("data-player-sort") := "result")("Result")),
+                      th(button(tpe := "button", attr("data-player-sort") := "event")("Event")),
+                      th(cls := "games-database__optional")(
+                        button(tpe := "button", attr("data-player-sort") := "round")("Round")
+                      ),
+                      th(cls := "games-database__optional")(
+                        button(tpe := "button", attr("data-player-sort") := "moves")("Moves")
+                      )
+                    )
+                  ),
+                  tbody(id := "player-games-rows")
+                )
+              ),
+              st.nav(cls := "games-database__pagination", attr("aria-label") := "Player games pages")(
+                button(id := "player-games-previous", cls := "button button-empty", tpe := "button")(
+                  "Previous"
+                ),
+                span(id := "player-games-page")("Page 1"),
+                button(id := "player-games-next", cls := "button button-empty", tpe := "button")("Next")
+              )
+            )
+          )
+        )
+      )
+
+  def databaseEvent(explorerEndpoint: String, event: String)(using
+      @annotation.unused ctx: Context
+  ) =
+    Page(s"$event — Games Database")
+      .css("xiangqi")
+      .js(
+        PageModule(
+          "xiangqi.event",
+          Json.obj(
+            "explorerEndpoint" -> explorerEndpoint,
+            "event" -> event
+          )
+        )
+      )
+      .graph(
+        title = s"$event — Xiangqi event database",
+        url = routeUrl(routes.GameCatalog.event(event)),
+        description = s"Standings, rounds, games, results, and opening statistics for $event."
+      )
+      .body(
+        main(cls := "player-database event-database box")(
+          header(cls := "player-database__header")(
+            div(
+              a(cls := "player-database__back", href := routes.GameCatalog.index.url)("← Games Database"),
+              h1(id := "event-database-name")(event),
+              p(id := "event-database-range", cls := "player-database__range")(
+                "Loading this event’s database record…"
+              )
+            ),
+            div(
+              id := "event-database-status",
+              cls := "player-database__status",
+              role := "status",
+              attr("aria-live") := "polite",
+              attr("aria-atomic") := "true"
+            )("Loading event statistics…")
+          ),
+          div(id := "event-database-content", attr("hidden") := true)(
+            st.section(cls := "player-database__metrics", attr("aria-label") := "Event summary")(
+              st.article(
+                span("Games"),
+                strong(id := "event-metric-games")("—"),
+                small("canonical records")
+              ),
+              st.article(
+                span("Players"),
+                strong(id := "event-metric-players")("—"),
+                small("distinct competitors")
+              ),
+              st.article(
+                span("Rounds"),
+                strong(id := "event-metric-rounds")("—"),
+                small("recorded rounds")
+              ),
+              st.article(
+                span("Average length"),
+                strong(id := "event-metric-moves")("—"),
+                small("plies per game")
+              ),
+              st.article(
+                span("Openings"),
+                strong(id := "event-metric-openings")("—"),
+                small("recorded classifications")
+              )
+            ),
+            st.section(
+              cls := "event-database__filters",
+              attr("aria-labelledby") := "event-sources-title"
+            )(
+              div(
+                h2(id := "event-sources-title")("Included sources"),
+                p("The event overview, standings, and round cards update together.")
+              ),
+              div(cls := "player-database__sources", attr("aria-label") := "Event game sources")(
+                eventCatalogSource("m", "m", "Masters"),
+                eventCatalogSource("am", "am", "Ancient manuals"),
+                eventCatalogSource("online", "n,t,k,o,b,u,w", "DPXQ Online"),
+                eventCatalogSource("gd", "gd", "GDChess / 01xq"),
+                eventCatalogSource("xqd", "xqd", "XQDao"),
+                eventCatalogSource("ec", "ec", "Elephantchess.io")
+              )
+            ),
+            div(cls := "event-database__overview")(
+              st.section(
+                cls := "event-database__standings",
+                attr("aria-labelledby") := "event-standings-title"
+              )(
+                div(cls := "player-database__section-heading")(
+                  div(
+                    h2(id := "event-standings-title")("Standings"),
+                    p("Ranked by 2–1–0 score, then wins. Equal scores and wins share a rank.")
+                  )
+                ),
+                div(cls := "games-database__table-wrap")(
+                  table(cls := "slist event-database__standings-table")(
+                    thead(
+                      tr(
+                        th("#"),
+                        th("Player"),
+                        th("Games"),
+                        th("W"),
+                        th("D"),
+                        th("L"),
+                        th("Score")
+                      )
+                    ),
+                    tbody(id := "event-standings-rows")
+                  )
+                )
+              ),
+              st.aside(cls := "event-database__insights")(
+                st.section(attr("aria-labelledby") := "event-results-title")(
+                  div(cls := "player-database__section-heading")(
+                    div(
+                      h2(id := "event-results-title")("Results"),
+                      p("Recorded outcomes by winning side.")
+                    )
+                  ),
+                  div(
+                    id := "event-results-bar",
+                    cls := "event-database__result-bar",
+                    role := "img",
+                    attr("aria-label") := "Red wins, draws, and Black wins"
+                  )(
+                    span(cls := "red"),
+                    span(cls := "draws"),
+                    span(cls := "black")
+                  ),
+                  div(id := "event-results-legend", cls := "event-database__result-legend")
+                ),
+                st.section(attr("aria-labelledby") := "event-openings-title")(
+                  div(cls := "player-database__section-heading")(
+                    div(
+                      h2(id := "event-openings-title")("Recorded openings"),
+                      p("Most frequent source-supplied classifications.")
+                    )
+                  ),
+                  div(id := "event-openings", cls := "player-database__ranked-list")
+                ),
+                st.section(attr("aria-labelledby") := "event-places-title")(
+                  div(cls := "player-database__section-heading")(
+                    div(
+                      h2(id := "event-places-title")("Venues"),
+                      p("Locations attached to event records.")
+                    )
+                  ),
+                  div(id := "event-places", cls := "event-database__places")
+                )
+              )
+            ),
+            st.section(
+              cls := "player-database__repertoire event-database__explorer",
+              attr("aria-labelledby") := "event-explorer-title"
+            )(
+              div(cls := "player-database__section-heading")(
+                div(
+                  h2(id := "event-explorer-title")("Event opening explorer"),
+                  p("Play moves to explore only the games recorded for this event.")
+                )
+              ),
+              div(cls := "player-database__explorer-layout")(
+                st.section(cls := "player-database__board main-board xiangqi9x10")(
+                  div(id := "event-xiangqi-board", cls := "cg-wrap xiangqi9x10")
+                ),
+                st.aside(cls := "player-database__explorer-panel")(
+                  div(cls := "player-database__move-header")(
+                    strong("Move list"),
+                    div(
+                      button(
+                        id := "event-explorer-back",
+                        tpe := "button",
+                        title := "Previous position",
+                        attr("aria-label") := "Previous position"
+                      )("←"),
+                      button(
+                        id := "event-explorer-reset",
+                        tpe := "button",
+                        title := "Reset position"
+                      )("Reset")
+                    )
+                  ),
+                  ol(
+                    id := "event-explorer-moves",
+                    cls := "player-database__move-list",
+                    attr("aria-label") := "Explored move sequence"
+                  ),
+                  st.section(
+                    id := "event-opening-explorer",
+                    cls := "explorer-box sub-box",
+                    attr("aria-label") := "Event opening explorer"
+                  ),
+                  button(
+                    id := "event-opening-explorer-toggle",
+                    tpe := "button",
+                    attr("hidden") := true,
+                    attr("aria-pressed") := "false"
+                  )("Opening explorer")
+                )
+              )
+            ),
+            st.section(
+              cls := "event-database__rounds",
+              attr("aria-labelledby") := "event-rounds-title"
+            )(
+              div(cls := "player-database__section-heading")(
+                div(
+                  h2(id := "event-rounds-title")("Rounds"),
+                  p(id := "event-rounds-summary")("Loading round-by-round results…")
+                )
+              ),
+              div(id := "event-round-list", cls := "event-database__round-list")
+            )
+          )
+        )
+      )
+
   def analysis(bootstrap: play.api.libs.json.JsObject = Json.obj())(using ctx: Context) =
     Page("Xiangqi Analysis Board")
       .css("xiangqi")
       .js(
         PageModule(
           "xiangqi.analysis",
-          bootstrap + ("notationStyle" -> JsString(ctx.pref.xiangqiNotationStyle(ctx.lang).key))
+          bootstrap
+            + ("notationStyle" -> JsString(ctx.pref.xiangqiNotationStyle(ctx.lang).key))
+            + ("language" -> JsString(ctx.lang.code))
         )
       )
       .csp(_.withWebAssembly)

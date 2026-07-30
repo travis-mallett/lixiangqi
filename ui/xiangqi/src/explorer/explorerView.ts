@@ -23,30 +23,46 @@ export function render(ctrl: ExplorerCtrl): void {
   root.classList.toggle('explorer__config', ctrl.configOpen);
   const overlay = element('div', 'overlay');
   root.replaceChildren(overlay, ctrl.configOpen ? configView(ctrl) : dataView(ctrl));
-  const settings = button('', () => ctrl.toggleConfig(), 'fbt toconf');
-  settings.setAttribute('aria-label', ctrl.configOpen ? 'Close configuration' : 'Open configuration');
-  settings.dataset.icon = ctrl.configOpen ? '\ue02a' : '\ue005';
-  root.append(settings);
+  if (ctrl.options.configurationEnabled !== false) {
+    const settings = button('', () => ctrl.toggleConfig(), 'fbt toconf');
+    settings.setAttribute('aria-label', ctrl.configOpen ? 'Close configuration' : 'Open configuration');
+    settings.dataset.icon = ctrl.configOpen ? '\ue02a' : '\ue005';
+    root.append(settings);
+  }
 }
 
 function titleView(ctrl: ExplorerCtrl): HTMLDivElement {
   const title = element('div', 'explorer-title');
-  const entries: [ExplorerDb, string][] = [
-    ['masters', 'Masters'],
-    ['all', 'All'],
-    ['dpxq', 'DPXQ'],
-    ['gdchess', '01xq'],
-    ['xqdao', 'XQDao'],
-    ['player', 'Player'],
-  ];
+  const entries: [ExplorerDb, string][] = ctrl.options.lockedPlayer
+    ? [['player', 'Player']]
+    : ctrl.options.lockedEvent
+      ? [['event', 'Event']]
+      : [
+          ['masters', 'Masters'],
+          ['all', 'All'],
+          ['dpxq', 'DPXQ'],
+          ['gdchess', '01xq'],
+          ['xqdao', 'XQDao'],
+          ['player', 'Player'],
+        ];
   for (const [db, name] of entries) {
     if (ctrl.config.db === db) {
       const active = element('span', `active text ${db}`);
       active.dataset.icon = BOOK_ICON;
       const strong = element('strong');
-      strong.textContent = db === 'player' && ctrl.config.player ? ctrl.config.player : name;
-      active.append(strong, document.createTextNode(db === 'player' ? playerSuffix(ctrl) : ' database'));
-      if (db === 'player' && ctrl.config.player) {
+      strong.textContent =
+        db === 'player' && ctrl.config.player
+          ? ctrl.config.player
+          : db === 'event' && ctrl.config.event
+            ? ctrl.config.event
+            : name;
+      active.append(
+        strong,
+        document.createTextNode(
+          db === 'player' ? playerSuffix(ctrl) : db === 'event' ? ' games' : ' database',
+        ),
+      );
+      if (db === 'player' && ctrl.config.player && !ctrl.options.lockedPlayer) {
         active.classList.add('player');
         active.title = 'Switch sides';
         active.addEventListener('click', () => ctrl.toggleColor());
@@ -79,7 +95,9 @@ function dataView(ctrl: ExplorerCtrl): HTMLDivElement {
         ? 'The DPXQ master-game export has not been installed.'
         : ctrl.config.db === 'player' && !ctrl.config.player
           ? 'Choose a Lixiangqi player in the preferences menu.'
-          : `No game found in the ${data?.source || ctrl.config.db} database for these filters.`;
+          : ctrl.config.db === 'event' && !ctrl.config.event
+            ? 'No event was selected.'
+            : `No game found in the ${data?.source || ctrl.config.db} database for these filters.`;
     empty.append(heading, explanation);
     wrapper.append(empty);
     return wrapper;

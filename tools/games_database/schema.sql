@@ -213,6 +213,79 @@ CREATE TABLE IF NOT EXISTS sync_state (
   PRIMARY KEY (source, scope)
 ) WITHOUT ROWID;
 
+-- The opening explorer follows Lichess's write-time projection model. Common
+-- positions are aggregated into compact month buckets when games are imported;
+-- HTTP reads never rescan and regroup the raw game-position catalog.
+CREATE TABLE IF NOT EXISTS explorer_positions (
+  id INTEGER PRIMARY KEY,
+  position_key TEXT NOT NULL UNIQUE,
+  game_count INTEGER NOT NULL CHECK (game_count >= 0)
+);
+
+CREATE TABLE IF NOT EXISTS explorer_stats (
+  position_id INTEGER NOT NULL REFERENCES explorer_positions(id) ON DELETE CASCADE,
+  month TEXT NOT NULL,
+  move TEXT NOT NULL,
+  notation TEXT NOT NULL,
+  all_red INTEGER NOT NULL DEFAULT 0,
+  all_draws INTEGER NOT NULL DEFAULT 0,
+  all_black INTEGER NOT NULL DEFAULT 0,
+  masters_red INTEGER NOT NULL DEFAULT 0,
+  masters_draws INTEGER NOT NULL DEFAULT 0,
+  masters_black INTEGER NOT NULL DEFAULT 0,
+  dpxq_red INTEGER NOT NULL DEFAULT 0,
+  dpxq_draws INTEGER NOT NULL DEFAULT 0,
+  dpxq_black INTEGER NOT NULL DEFAULT 0,
+  gdchess_red INTEGER NOT NULL DEFAULT 0,
+  gdchess_draws INTEGER NOT NULL DEFAULT 0,
+  gdchess_black INTEGER NOT NULL DEFAULT 0,
+  xqdao_red INTEGER NOT NULL DEFAULT 0,
+  xqdao_draws INTEGER NOT NULL DEFAULT 0,
+  xqdao_black INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (position_id, month, move)
+) WITHOUT ROWID;
+
+-- As in Lichess's packed position entries, only bounded top/recent candidates
+-- are retained for each time bucket. This makes representative-game lookup
+-- independent of the number of games that reached the position.
+CREATE TABLE IF NOT EXISTS explorer_samples (
+  position_id INTEGER NOT NULL REFERENCES explorer_positions(id) ON DELETE CASCADE,
+  database_id INTEGER NOT NULL,
+  month TEXT NOT NULL,
+  game_id TEXT NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+  move TEXT NOT NULL,
+  rating_sum INTEGER NOT NULL,
+  played_at TEXT NOT NULL,
+  sort_id TEXT NOT NULL,
+  PRIMARY KEY (position_id, database_id, month, game_id)
+) WITHOUT ROWID;
+
+-- One marker per category prevents duplicate source witnesses from merging a
+-- canonical game's statistics more than once.
+CREATE TABLE IF NOT EXISTS explorer_indexed_games (
+  game_id TEXT NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+  database_id INTEGER NOT NULL,
+  PRIMARY KEY (game_id, database_id)
+) WITHOUT ROWID;
+
+-- Compact, write-time accounting for newly catalogued canonical games. The
+-- trigger is installed by the shared schema, so every current or future writer
+-- is counted without importer-specific bookkeeping. Hourly UTC buckets keep
+-- the table tiny while allowing exact midnight boundaries in Pacific time.
+CREATE TABLE IF NOT EXISTS catalog_growth_hourly (
+  bucket TEXT PRIMARY KEY,
+  games_added INTEGER NOT NULL DEFAULT 0 CHECK (games_added >= 0)
+) WITHOUT ROWID;
+
+CREATE TRIGGER IF NOT EXISTS games_track_catalog_growth
+AFTER INSERT ON games
+BEGIN
+  INSERT INTO catalog_growth_hourly(bucket, games_added)
+  VALUES (strftime('%Y-%m-%dT%H:00:00Z', 'now'), 1)
+  ON CONFLICT(bucket) DO UPDATE
+  SET games_added = catalog_growth_hourly.games_added + 1;
+END;
+
 -- Invalid source records are quarantined by content checksum. Incremental
 -- scans skip the same rejected payload instead of re-validating it forever;
 -- reconciliation or a changed source file can retry it explicitly.
@@ -235,13 +308,29 @@ CREATE INDEX IF NOT EXISTS game_positions_by_position
   ON game_positions(position_key, game_id);
 CREATE INDEX IF NOT EXISTS games_by_line_hash ON games(line_hash);
 CREATE INDEX IF NOT EXISTS games_by_date ON games(month, played_at);
+CREATE INDEX IF NOT EXISTS games_by_played_at ON games(played_at DESC, id);
+CREATE INDEX IF NOT EXISTS games_by_year ON games(year);
 CREATE INDEX IF NOT EXISTS games_by_red ON games(red_name COLLATE NOCASE);
 CREATE INDEX IF NOT EXISTS games_by_black ON games(black_name COLLATE NOCASE);
+CREATE INDEX IF NOT EXISTS games_by_red_romanized
+  ON games(red_name_romanized COLLATE NOCASE);
+CREATE INDEX IF NOT EXISTS games_by_black_romanized
+  ON games(black_name_romanized COLLATE NOCASE);
+CREATE INDEX IF NOT EXISTS games_by_red_key ON games(red_name_key);
+CREATE INDEX IF NOT EXISTS games_by_black_key ON games(black_name_key);
 CREATE INDEX IF NOT EXISTS games_by_event ON games(event COLLATE NOCASE);
 CREATE INDEX IF NOT EXISTS game_sources_by_collection
   ON game_sources(source, collection, game_id);
 CREATE INDEX IF NOT EXISTS game_sources_by_game
   ON game_sources(game_id, source, collection);
+CREATE INDEX IF NOT EXISTS explorer_samples_by_top
+  ON explorer_samples(
+    position_id, database_id, month, rating_sum DESC, played_at DESC, sort_id DESC
+  );
+CREATE INDEX IF NOT EXISTS explorer_samples_by_recent
+  ON explorer_samples(
+    position_id, database_id, month, played_at DESC, sort_id DESC
+  );
 CREATE INDEX IF NOT EXISTS annotation_sets_by_source
   ON annotation_sets(source_record_id, kind);
 CREATE INDEX IF NOT EXISTS annotations_by_anchor

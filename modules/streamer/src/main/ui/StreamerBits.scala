@@ -125,7 +125,7 @@ final class StreamerBits(helpers: Helpers)(picfitUrl: lila.memo.PicfitUrl):
       a(
         dataIcon := Icon.InfoCircle,
         cls := "text",
-        href := "/blog/Wk5z0R8AACMf6ZwN/join-the-lichess-streamer-community"
+        href := routes.Cms.lonePage(lila.core.id.CmsPageKey("streamer-community"))
       )(
         "Streamer community"
       ),

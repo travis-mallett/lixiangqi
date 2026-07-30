@@ -21,7 +21,7 @@ final class Tv(
     actor
       .ask[Option[GameId]](TvSyncActor.GetGameId(channel, _))
       .flatMapz(gameProxy.game)
-      .orElse(gameRepo.random)
+      .orElse(gameRepo.latestStandard)
 
   def getReplacementGame(channel: Tv.Channel, oldId: GameId, exclude: List[GameId]): Fu[Option[Game]] =
     actor
@@ -34,7 +34,7 @@ final class Tv(
       .flatMap:
         case GameIdAndHistory(gameId, historyIds) =>
           for
-            game <- gameId.so(gameProxy.game).orElse(gameRepo.random)
+            game <- gameId.so(gameProxy.game).orElse(gameRepo.latestStandard)
             games <-
               historyIds
                 .traverse: id =>
@@ -50,7 +50,7 @@ final class Tv(
   def getGameIds(channel: Tv.Channel, max: Int): Fu[List[GameId]] =
     actor.ask[List[GameId]](TvSyncActor.GetGameIds(channel, max, _))
 
-  def getBestGame = getGame(Tv.Channel.Best).orElse(gameRepo.random)
+  def getBestGame = getGame(Tv.Channel.Best)
 
   def getBestAndHistory = getGameAndHistory(Tv.Channel.Best)
 

@@ -112,6 +112,7 @@ service-account*.json
 /scripts/data/local/
 /design-mockups/
 /music-review/
+/tmp/
 
 # Patch, backup, and operating-system debris
 *.bak

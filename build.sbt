@@ -92,7 +92,7 @@ lazy val modules = Seq(
   // and then the smaller ones
   pool, lobby, relation, tv, notation, feed, history, recap,
   shutup, appeal, irc, explorer, learn, event, coach,
-  practice, evalCache, irwin, bot, racer, cms, i18n,
+  evalCache, irwin, bot, racer, cms, i18n,
   socket, bookmark, studySearch, gameSearch, forumSearch, teamSearch, irc
 )
 
@@ -401,11 +401,6 @@ lazy val learn = module("learn",
 
 lazy val evalCache = module("evalCache",
   Seq(tree, memo),
-  Seq()
-)
-
-lazy val practice = module("practice",
-  Seq(study),
   Seq()
 )
 

@@ -64,11 +64,72 @@ game appearing in several selected databases is still counted once. Variations,
 manual examples, and repeated occurrences of the same position in one game do
 not affect empirical win percentages.
 
+### Read-time index
+
+The explorer follows the native Lichess opening-explorer architecture: import
+work is merged into a position-and-time-bucket projection, and HTTP requests
+read those compact aggregates instead of grouping raw games again. The SQLite
+adaptation stores:
+
+- per-move Red/draw/Black totals by position, month, and source;
+- only the bounded top and recent game candidates needed by the response;
+- one canonical-game/source-category marker to prevent duplicate witnesses
+  from changing statistics;
+- a bounded in-process response cache with Lichess-equivalent two/four-hour
+  lifetimes and ten-minute idle expiry.
+
+Positions shared by at least eight games are materialized. A colder position
+has at most seven raw rows, so its indexed fallback is already bounded and
+fast. Player queries start from indexed native, romanized, and normalized-name
+game sets rather than scanning every game at the position.
+
+The launcher ensures the projection is current before starting the explorer.
+Imports update it transactionally. To verify or explicitly rebuild it:
+
+```powershell
+.\.venv\Scripts\python.exe -m tools.games_database.explorer_index ensure
+.\.venv\Scripts\python.exe -m tools.games_database.explorer_index rebuild
+```
+
 The games database page uses the same catalog. It displays all configured source
 collections and opens canonical game IDs on the analysis board. The full game
 response includes every witness and annotation layer. A witness can optionally
 store its original recursive notation so PGN variations are reconstructed by
 the native Xiangqi notation importer.
+
+The page timeline is aggregated in SQLite with the same source and text-search
+predicates as the result list. Its month, year, and decade results are held in a
+bounded 60-second in-process cache, with concurrent misses for the same filter
+coalesced into one query. The timeline aggregate also supplies the filtered
+total, avoiding a second full count scan.
+
+Event names in catalog tables link to
+`/games/database/event?event=...`. The event API resolves an exact,
+case-insensitive event name through the event index and calculates source-aware
+2–1–0 standings, date and venue coverage, result distribution, average game
+length, opening frequencies, and complete round groups from canonical games.
+Player names in standings and rounds link back to player database pages; every
+round record opens its canonical game on the Analysis board. The embedded
+opening explorer uses a raw position query constrained to the selected event,
+so its move frequencies and sample games never include unrelated events.
+
+Player names in the catalog link to the dynamic
+`/games/database/player?player=...` page. Its API resolves exact native,
+romanized, and normalized-name matches through the corresponding game indexes.
+It returns side-relative results, date range, opponent and opening summaries,
+source counts, timeline buckets, and a paginated game list without creating
+per-player records. The embedded repertoire explorer deliberately selects one
+player color at a time: opponent moves remain in the line so that, after an
+opponent move, the next rows represent the selected player's empirical
+responses.
+
+Weekly growth accounting does not depend on scraper or importer code. A schema
+trigger increments compact hourly UTC buckets whenever a new canonical catalog
+game is inserted. Existing catalogs are not backfilled, so tracking starts at
+zero when schema version 6 is first installed. The page combines that value
+with an indexed, one-minute-cached count of native Lixiangqi game records,
+including PGN imports. The reporting week begins Sunday at 00:00 in
+`America/Los_Angeles`, including daylight-saving transitions.
 
 ## Initial migration
 

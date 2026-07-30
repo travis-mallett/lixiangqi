@@ -191,11 +191,11 @@ function relayForm() {
 function setAssetInfo() {
   $('#asset-version-date').text(site.info.date);
   $('#asset-version-commit')
-    .attr('href', 'https://github.com/lichess-org/lila/commits/' + site.info.commit)
+    .attr('href', 'https://github.com/travis-mallett/lixiangqi/commits/' + site.info.commit)
     .find('pre')
     .text(site.info.commit.slice(0, 7));
   $('#asset-version-upcoming')
-    .attr('href', 'https://github.com/lichess-org/lila/compare/' + site.info.commit + '...master')
+    .attr('href', 'https://github.com/travis-mallett/lixiangqi/compare/' + site.info.commit + '...master')
     .find('pre')
     .text('...');
   $('#asset-version-message').text(site.info.message);
