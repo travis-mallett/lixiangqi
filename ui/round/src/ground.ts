@@ -7,7 +7,7 @@ import { h, type VNode } from 'snabbdom';
 
 import resizeHandle from 'lib/chessgroundResize';
 import { XIANGQI_DIMENSIONS, plyColor, xiangqiUciMoveToCg } from 'lib/game';
-import { ShowResizeHandle, Coords, MoveEvent } from 'lib/prefs';
+import { ShowResizeHandle, Coords } from 'lib/prefs';
 import { storage } from 'lib/storage';
 import { onInsert } from 'lib/view';
 
@@ -74,11 +74,11 @@ export function makeConfig(ctrl: RoundController): Config {
       },
     },
     draggable: {
-      enabled: data.pref.moveEvent !== MoveEvent.Click,
-      showGhost: data.pref.highlight,
+      enabled: false,
+      showGhost: false,
     },
     selectable: {
-      enabled: data.pref.moveEvent !== MoveEvent.Drag,
+      enabled: true,
     },
     drawable: {
       enabled: true,

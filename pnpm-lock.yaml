@@ -6,7 +6,7 @@ settings:
 
 patchedDependencies:
   '@toast-ui/editor@3.2.2': 0a324facc984b3c00201cd2ac957c0e51db9ee66ce33c37306031ca67d5aa7ba
-  chessgroundx@10.7.5: 9d65b8bb8febd52d33ef1a3881d61328e6e604afaa1dbe138987b9a96b138d25
+  chessgroundx@10.7.5: b8aaff18c21025d522592c8e3bafff39b7943dd0f0a95f5ad302f49f7973b0c2
 
 importers:
 
@@ -32,7 +32,7 @@ importers:
         version: https://codeload.github.com/lichess-org/ab-stub/tar.gz/e391b56a82b7c71e7663082a797f6fc21b18776d
       chessgroundx:
         specifier: 10.7.5
-        version: 10.7.5(patch_hash=9d65b8bb8febd52d33ef1a3881d61328e6e604afaa1dbe138987b9a96b138d25)
+        version: 10.7.5(patch_hash=b8aaff18c21025d522592c8e3bafff39b7943dd0f0a95f5ad302f49f7973b0c2)
       chessops:
         specifier: ^0.15.1
         version: 0.15.1
@@ -178,7 +178,7 @@ importers:
         version: 1.9.4
       chessgroundx:
         specifier: 10.7.5
-        version: 10.7.5(patch_hash=9d65b8bb8febd52d33ef1a3881d61328e6e604afaa1dbe138987b9a96b138d25)
+        version: 10.7.5(patch_hash=b8aaff18c21025d522592c8e3bafff39b7943dd0f0a95f5ad302f49f7973b0c2)
       cropperjs:
         specifier: 1.6.2
         version: 1.6.2
@@ -285,7 +285,7 @@ importers:
     dependencies:
       chessgroundx:
         specifier: 10.7.5
-        version: 10.7.5(patch_hash=9d65b8bb8febd52d33ef1a3881d61328e6e604afaa1dbe138987b9a96b138d25)
+        version: 10.7.5(patch_hash=b8aaff18c21025d522592c8e3bafff39b7943dd0f0a95f5ad302f49f7973b0c2)
       lib:
         specifier: workspace:*
         version: link:../lib
@@ -351,7 +351,7 @@ importers:
         version: 3.1.9
       chessgroundx:
         specifier: 10.7.5
-        version: 10.7.5(patch_hash=9d65b8bb8febd52d33ef1a3881d61328e6e604afaa1dbe138987b9a96b138d25)
+        version: 10.7.5(patch_hash=b8aaff18c21025d522592c8e3bafff39b7943dd0f0a95f5ad302f49f7973b0c2)
       debounce-promise:
         specifier: ^3.1.2
         version: 3.1.2
@@ -465,7 +465,7 @@ importers:
     dependencies:
       chessgroundx:
         specifier: 10.7.5
-        version: 10.7.5(patch_hash=9d65b8bb8febd52d33ef1a3881d61328e6e604afaa1dbe138987b9a96b138d25)
+        version: 10.7.5(patch_hash=b8aaff18c21025d522592c8e3bafff39b7943dd0f0a95f5ad302f49f7973b0c2)
       keyboard-move:
         specifier: workspace:*
         version: link:../keyboardMove
@@ -560,7 +560,7 @@ importers:
     dependencies:
       chessgroundx:
         specifier: 10.7.5
-        version: 10.7.5(patch_hash=9d65b8bb8febd52d33ef1a3881d61328e6e604afaa1dbe138987b9a96b138d25)
+        version: 10.7.5(patch_hash=b8aaff18c21025d522592c8e3bafff39b7943dd0f0a95f5ad302f49f7973b0c2)
       lib:
         specifier: workspace:*
         version: link:../lib
@@ -2761,7 +2761,7 @@ snapshots:
       undici: 7.27.2
       whatwg-mimetype: 4.0.0
 
-  chessgroundx@10.7.5(patch_hash=9d65b8bb8febd52d33ef1a3881d61328e6e604afaa1dbe138987b9a96b138d25): {}
+  chessgroundx@10.7.5(patch_hash=b8aaff18c21025d522592c8e3bafff39b7943dd0f0a95f5ad302f49f7973b0c2): {}
 
   chessops@0.15.1:
     dependencies:

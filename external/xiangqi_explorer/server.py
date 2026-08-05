@@ -8,6 +8,7 @@ from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Callable
 
+from .catalog_databases import catalog_is_readable
 from .explorer import explore_games
 from .game_catalog import (
     get_game,
@@ -33,7 +34,19 @@ class ExplorerHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:  # noqa: N802
         if self.path == "/health":
-            self._json(HTTPStatus.OK, {"ok": True, "system": "xiangqi-explorer"})
+            try:
+                readable = catalog_is_readable()
+            except Exception:
+                readable = False
+            status = HTTPStatus.OK if readable else HTTPStatus.SERVICE_UNAVAILABLE
+            self._json(
+                status,
+                {
+                    "ok": readable,
+                    "system": "xiangqi-explorer",
+                    **({} if readable else {"error": "games database unavailable"}),
+                },
+            )
         else:
             self._json(HTTPStatus.NOT_FOUND, {"error": "not found"})
 

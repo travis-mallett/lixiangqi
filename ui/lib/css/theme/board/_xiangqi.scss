@@ -20,6 +20,198 @@ body .cg-wrap.xiangqi9x10 {
     height: 10%;
   }
 
+  cg-board > piece {
+    filter: drop-shadow(
+        clamp(1.8px, 0.28vw, 3.6px) clamp(1.8px, 0.28vw, 3.6px) clamp(0.8px, 0.12vw, 1.6px)
+          rgb(35 18 7 / 0.58)
+      )
+      drop-shadow(
+        clamp(2.5px, 0.34vw, 4.4px) clamp(2.5px, 0.34vw, 4.4px) clamp(1.4px, 0.2vw, 2.6px) rgb(35 18 7 / 0.2)
+      );
+  }
+
+  // The last-move glow is part of the destination piece's paint stack. This
+  // lets its natural shadow remain below the glow while the artwork remains
+  // above it, instead of compositing the shadow and face as one filtered layer.
+  cg-board > piece.xiangqi-last-move-piece {
+    isolation: isolate;
+    background-image: none !important;
+    filter: none !important;
+  }
+
+  .xiangqi-rest-shadow,
+  .xiangqi-last-move-highlight,
+  .xiangqi-rest-face {
+    position: absolute;
+    pointer-events: none;
+  }
+
+  .xiangqi-rest-shadow {
+    z-index: 0;
+    inset: 6.25%;
+    border-radius: 50%;
+    background: rgb(35 18 7);
+  }
+
+  .xiangqi-rest-shadow-far {
+    opacity: 0.2;
+    filter: blur(clamp(1.4px, 0.2vw, 2.6px));
+    transform: translate3d(clamp(2.5px, 0.34vw, 4.4px), clamp(2.5px, 0.34vw, 4.4px), 0);
+  }
+
+  .xiangqi-rest-shadow-near {
+    opacity: 0.58;
+    filter: blur(clamp(0.8px, 0.12vw, 1.6px));
+    transform: translate3d(clamp(1.8px, 0.28vw, 3.6px), clamp(1.8px, 0.28vw, 3.6px), 0);
+  }
+
+  .xiangqi-last-move-highlight {
+    z-index: 1;
+    inset: -2%;
+    border-radius: 50%;
+    background: radial-gradient(
+      circle,
+      rgb(255 255 255 / 0.96) 0 58%,
+      rgb(255 255 255 / 0.86) 61%,
+      rgb(255 255 255 / 0.6) 65%,
+      rgb(255 255 255 / 0.32) 68%,
+      rgb(255 255 255 / 0.12) 71%,
+      transparent 74%
+    );
+  }
+
+  .xiangqi-rest-face {
+    z-index: 2;
+    inset: 0;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: contain;
+  }
+
+  cg-board > piece.xiangqi-motion-piece {
+    z-index: 30;
+    isolation: isolate;
+    background-image: none !important;
+    filter: none !important;
+  }
+
+  .xiangqi-motion-shadow {
+    position: absolute;
+    z-index: -1;
+    border-radius: 50%;
+    background: rgb(18 9 4 / 0.62);
+    transform-origin: center;
+    will-change: transform, opacity;
+  }
+
+  .xiangqi-motion-shadow-aerial {
+    position: absolute;
+    z-index: -2;
+    inset: 0;
+    opacity: 0.65;
+    pointer-events: none;
+    will-change: opacity;
+  }
+
+  .xiangqi-motion-shadow-near {
+    top: 56%;
+    left: 17%;
+    width: 70%;
+    height: 31%;
+    filter: blur(clamp(1.2px, 0.15vw, 2px));
+    opacity: 0.58;
+    transform: translate3d(5%, 12%, 0) scale(0.82, 0.42);
+  }
+
+  .xiangqi-motion-shadow-aerial-core {
+    top: 42%;
+    left: 18%;
+    width: 88%;
+    height: 88%;
+    background: radial-gradient(
+      circle at 50% 50%,
+      rgb(29 20 11 / 0.2058) 0%,
+      rgb(29 20 11 / 0.147) 35%,
+      rgb(29 20 11 / 0.0588) 62%,
+      transparent 79%
+    );
+    filter: blur(3.43px);
+    opacity: 0;
+    transform: translate3d(8%, 10%, 0);
+  }
+
+  .xiangqi-motion-shadow-far {
+    top: 30%;
+    left: 4%;
+    width: 130%;
+    height: 130%;
+    background: radial-gradient(
+      circle at 50% 50%,
+      rgb(29 20 11 / 0.34) 0%,
+      rgb(29 20 11 / 0.291) 50.4%,
+      rgb(29 20 11 / 0.2224) 63.14%,
+      transparent 73.92%
+    );
+    filter: blur(4.9px);
+    opacity: 0;
+    transform: translate3d(0, 0, 0);
+  }
+
+  .xiangqi-motion-camera {
+    position: absolute;
+    inset: 0;
+    perspective: var(--xiangqi-piece-perspective);
+    perspective-origin: 50% 50%;
+    transform-style: preserve-3d;
+  }
+
+  .xiangqi-motion-stack {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    transform: translate3d(0, 0%, 0) rotateX(0deg);
+    transform-box: border-box;
+    transform-origin: 50% 50% 0;
+    transform-style: preserve-3d;
+    will-change: transform;
+  }
+
+  .xiangqi-motion-face {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: contain;
+    filter: drop-shadow(0 0.025em 0.018em rgb(255 245 210 / 0.25));
+  }
+
+  .xiangqi-motion-rim {
+    position: absolute;
+    inset: 6.25%;
+    box-sizing: border-box;
+    border: 1px solid rgb(30 16 10 / 0.28);
+    border-radius: 50%;
+    background:
+      linear-gradient(
+        100deg,
+        rgb(0 0 0 / 0.2) 0%,
+        rgb(255 255 255 / 0.2) 28%,
+        transparent 52%,
+        rgb(0 0 0 / 0.26) 100%
+      ),
+      linear-gradient(to bottom, rgb(255 255 255 / 0.1), transparent 42%, rgb(0 0 0 / 0.3)),
+      var(--xiangqi-piece-depth-color, #8f5b3d);
+    box-shadow:
+      inset 0.06em 0.035em 0.07em rgb(255 255 255 / 0.18),
+      inset -0.07em -0.08em 0.11em rgb(0 0 0 / 0.3),
+      0 0.025em 0.025em rgb(0 0 0 / 0.2);
+    opacity: 0;
+    transform: translateY(8.5%);
+    will-change: opacity;
+  }
+
   square {
     &.last-move-origin {
       background: radial-gradient(
@@ -39,7 +231,9 @@ body .cg-wrap.xiangqi9x10 {
       z-index: $z-cg-below-pieces-1;
       background: none;
 
-      &::after {
+      // During carry this underlay travels with the piece. Once it lands, the
+      // equivalent glow is rebuilt inside the piece stack above its shadow.
+      &.xiangqi-motion-underlay::after {
         content: '';
         position: absolute;
         inset: -2%;
@@ -75,6 +269,42 @@ body .cg-wrap.xiangqi9x10 {
           transparent 74%
         );
       }
+    }
+  }
+
+  // Selection feedback belongs to the piece-lift system. Xiangqi therefore
+  // uses the mockup's ring and destination markers instead of Chessground's
+  // legacy filled selection square and occupied-destination treatment.
+  square.xiangqi-lift-origin {
+    z-index: $z-cg-below-pieces-1;
+    background: none;
+
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 12%;
+      border: max(2px, 0.22vw) solid rgb(255 244 191 / 0.9);
+      border-radius: 50%;
+      background: rgb(255 240 157 / 0.12);
+      box-shadow: 0 0 15px rgb(255 229 126 / 0.58);
+    }
+  }
+
+  square.xiangqi-move-dest {
+    z-index: $z-cg-below-pieces-1;
+    background: none;
+    pointer-events: auto;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 41.5%;
+      left: 41.5%;
+      width: 17%;
+      height: 17%;
+      border-radius: 50%;
+      background: rgb(40 105 46 / 0.62);
+      box-shadow: 0 0 0 1px rgb(243 255 226 / 0.35);
     }
   }
 

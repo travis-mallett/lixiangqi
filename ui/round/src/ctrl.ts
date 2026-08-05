@@ -201,6 +201,7 @@ export default class RoundController implements MoveRootCtrl {
   jump = (ply: Ply): boolean => {
     ply = Math.max(util.firstPly(this.data), Math.min(this.lastPly(), ply));
     const isForwardStep = ply === this.ply + 1;
+    const isBackward = ply < this.ply;
     this.ply = ply;
     const s = this.stepAt(ply),
       config: XiangqiGroundConfig = {
@@ -217,7 +218,7 @@ export default class RoundController implements MoveRootCtrl {
         dests: util.parsePossibleMoves(this.data.possibleMoves),
       };
     this.chessground.cancelMove();
-    this.chessground.set(config);
+    this.chessground.set(config, isBackward ? { animation: 'slide' } : undefined);
     if (s.san && isForwardStep) site.sound.move(s);
     this.autoScroll();
     pubsub.emit('ply', ply);

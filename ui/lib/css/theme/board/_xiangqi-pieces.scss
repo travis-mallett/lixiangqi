@@ -2,57 +2,85 @@
 // select the red and black Xiangqi assets exposed by the native piece-set loader.
 
 piece.p-piece.white {
-  background-image: var(---red-soldier);
+  --xiangqi-piece-image: var(---red-soldier);
+
+  background-image: var(--xiangqi-piece-image);
 }
 
 piece.b-piece.white {
-  background-image: var(---red-elephant);
+  --xiangqi-piece-image: var(---red-elephant);
+
+  background-image: var(--xiangqi-piece-image);
 }
 
 piece.n-piece.white {
-  background-image: var(---red-horse);
+  --xiangqi-piece-image: var(---red-horse);
+
+  background-image: var(--xiangqi-piece-image);
 }
 
 piece.r-piece.white {
-  background-image: var(---red-chariot);
+  --xiangqi-piece-image: var(---red-chariot);
+
+  background-image: var(--xiangqi-piece-image);
 }
 
 piece.a-piece.white {
-  background-image: var(---red-advisor);
+  --xiangqi-piece-image: var(---red-advisor);
+
+  background-image: var(--xiangqi-piece-image);
 }
 
 piece.c-piece.white {
-  background-image: var(---red-cannon);
+  --xiangqi-piece-image: var(---red-cannon);
+
+  background-image: var(--xiangqi-piece-image);
 }
 
 piece.k-piece.white {
-  background-image: var(---red-general);
+  --xiangqi-piece-image: var(---red-general);
+
+  background-image: var(--xiangqi-piece-image);
 }
 
 piece.p-piece.black {
-  background-image: var(---black-soldier);
+  --xiangqi-piece-image: var(---black-soldier);
+
+  background-image: var(--xiangqi-piece-image);
 }
 
 piece.b-piece.black {
-  background-image: var(---black-elephant);
+  --xiangqi-piece-image: var(---black-elephant);
+
+  background-image: var(--xiangqi-piece-image);
 }
 
 piece.n-piece.black {
-  background-image: var(---black-horse);
+  --xiangqi-piece-image: var(---black-horse);
+
+  background-image: var(--xiangqi-piece-image);
 }
 
 piece.r-piece.black {
-  background-image: var(---black-chariot);
+  --xiangqi-piece-image: var(---black-chariot);
+
+  background-image: var(--xiangqi-piece-image);
 }
 
 piece.a-piece.black {
-  background-image: var(---black-advisor);
+  --xiangqi-piece-image: var(---black-advisor);
+
+  background-image: var(--xiangqi-piece-image);
 }
 
 piece.c-piece.black {
-  background-image: var(---black-cannon);
+  --xiangqi-piece-image: var(---black-cannon);
+
+  background-image: var(--xiangqi-piece-image);
 }
 
 piece.k-piece.black {
-  background-image: var(---black-general);
+  --xiangqi-piece-image: var(---black-general);
+
+  background-image: var(--xiangqi-piece-image);
 }

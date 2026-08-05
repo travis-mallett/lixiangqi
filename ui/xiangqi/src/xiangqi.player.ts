@@ -609,18 +609,22 @@ async function initializeExplorer(initialSide: ExplorerColor): Promise<void> {
 
   const current = () => positions[positions.length - 1].state;
 
-  function update(): void {
+  function update(syncPosition = true, slide = false): void {
     const position = positions[positions.length - 1];
-    ground.set({
-      fen: position.state.fen,
-      turnColor: turnColor(position.state),
-      lastMove: position.move ? uciMoveToCg(position.move) : undefined,
-      movable: {
-        free: false,
-        color: pending || position.state.gameResult !== '*' ? undefined : turnColor(position.state),
-        dests: pending ? new Map() : legalMoveDests(position.state.legalMoves),
-      },
-    });
+    if (syncPosition)
+      ground.set(
+        {
+          fen: position.state.fen,
+          turnColor: turnColor(position.state),
+          lastMove: position.move ? uciMoveToCg(position.move) : undefined,
+          movable: {
+            free: false,
+            color: pending || position.state.gameResult !== '*' ? undefined : turnColor(position.state),
+            dests: pending ? new Map() : legalMoveDests(position.state.legalMoves),
+          },
+        },
+        slide ? { animation: 'slide' } : undefined,
+      );
     explorer.setPosition({ fen: position.state.fen });
     explorerBackButton.disabled = positions.length === 1 || pending;
     explorerResetButton.disabled = positions.length === 1 || pending;
@@ -634,7 +638,7 @@ async function initializeExplorer(initialSide: ExplorerColor): Promise<void> {
         button.addEventListener('click', () => {
           if (pending) return;
           positions.splice(index + 2);
-          update();
+          update(true, true);
         });
         item.append(button);
         return item;
@@ -646,7 +650,7 @@ async function initializeExplorer(initialSide: ExplorerColor): Promise<void> {
     if (pending) return;
     pending = true;
     setXiangqiGroundPending(ground);
-    update();
+    update(false);
     try {
       const response = await requestXiangqi<MoveResponse>('/api/analysis/move', {
         initialFen: current().fen,
@@ -686,12 +690,12 @@ async function initializeExplorer(initialSide: ExplorerColor): Promise<void> {
   explorerBackButton.addEventListener('click', () => {
     if (pending || positions.length === 1) return;
     positions.pop();
-    update();
+    update(true, true);
   });
   explorerResetButton.addEventListener('click', () => {
     if (pending || positions.length === 1) return;
     positions.splice(1);
-    update();
+    update(true, true);
   });
   selectSide(initialSide);
   update();

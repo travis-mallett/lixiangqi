@@ -85,7 +85,7 @@ export function makeXiangqiGround(element: HTMLElement, options: XiangqiGroundOp
       castle: false,
       premoveFunc: premove('xiangqi', false, XIANGQI_DIMENSIONS),
     },
-    draggable: { enabled: !options.viewOnly, showGhost: true },
+    draggable: { enabled: false, showGhost: false },
     selectable: { enabled: !options.viewOnly },
     highlight: { lastMove: true, check: true },
     animation: { enabled: true, duration: 200 },

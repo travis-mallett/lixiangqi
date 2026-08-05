@@ -60,6 +60,58 @@ const state = (fen: string, turn: 'red' | 'black', ply: number): RulesState => (
   gameResult: '*',
 });
 
+interface RecordedAnimation {
+  element: HTMLElement;
+  keyframes: Keyframe[];
+  options: KeyframeAnimationOptions;
+}
+
+const fixedBoardBounds = (): DOMRect => ({
+  bottom: 1000,
+  height: 1000,
+  left: 0,
+  right: 900,
+  top: 0,
+  width: 900,
+  x: 0,
+  y: 0,
+  toJSON: () => ({}),
+});
+
+function recordAnimations(settled = false): { calls: RecordedAnimation[]; restore: () => void } {
+  const prototype = window.HTMLElement.prototype;
+  const original = Object.getOwnPropertyDescriptor(prototype, 'animate');
+  const calls: RecordedAnimation[] = [];
+
+  Object.defineProperty(prototype, 'animate', {
+    configurable: true,
+    writable: true,
+    value(
+      this: HTMLElement,
+      keyframes: Keyframe[] | PropertyIndexedKeyframes,
+      options?: number | KeyframeAnimationOptions,
+    ): Animation {
+      assert.ok(Array.isArray(keyframes));
+      const normalizedOptions = typeof options === 'number' ? { duration: options } : (options ?? {});
+      calls.push({ element: this, keyframes, options: normalizedOptions });
+
+      const animation = { cancel() {} } as Animation;
+      Object.defineProperty(animation, 'finished', {
+        value: settled ? Promise.resolve(animation) : new Promise<Animation>(() => {}),
+      });
+      return animation;
+    },
+  });
+
+  return {
+    calls,
+    restore() {
+      if (original) Object.defineProperty(prototype, 'animate', original);
+      else delete (prototype as Partial<HTMLElement>).animate;
+    },
+  };
+}
+
 test('builds safe native analysis links for catalog games', () => {
   assert.equal(analysisGameUrl('dpxq:1122'), '/analysis?game=dpxq%3A1122');
   assert.equal(analysisGameUrl('source/id?x=1'), '/analysis?game=source%2Fid%3Fx%3D1');
@@ -169,49 +221,286 @@ test('distinguishes the origin and destination of the last move', () => {
   element.remove();
 });
 
-test('keeps the destination underlay locked to the animated piece through redraws', () => {
+test('replaces Xiangqi selection and ghost feedback with the final lifted piece presentation', () => {
   const originalBounds = window.HTMLElement.prototype.getBoundingClientRect;
-  window.HTMLElement.prototype.getBoundingClientRect = () => ({
-    bottom: 1000,
-    height: 1000,
-    left: 0,
-    right: 900,
-    top: 0,
-    width: 900,
-    x: 0,
-    y: 0,
-    toJSON: () => ({}),
+  window.HTMLElement.prototype.getBoundingClientRect = fixedBoardBounds;
+  const animations = recordAnimations();
+
+  const element = document.createElement('div');
+  document.body.append(element);
+  const ground = makeXiangqiGround(element, {
+    movableColor: 'white',
+    legalMoves: ['h1g3'],
   });
+
+  try {
+    ground.set({ draggable: { enabled: true, showGhost: true }, selectable: { enabled: false } });
+    assert.equal(ground.state.draggable.enabled, false);
+    assert.equal(ground.state.selectable.enabled, true);
+
+    ground.selectSquare('h1');
+    ground.state.dom.redrawNow();
+
+    const selectedPiece = [...element.querySelectorAll<HTMLElement>('cg-board > piece')].find(
+      piece => (piece as HTMLElement & { cgKey?: string }).cgKey === 'h1',
+    );
+    assert.ok(selectedPiece);
+    assert.ok(selectedPiece.classList.contains('xiangqi-motion-piece'));
+    assert.equal(selectedPiece.style.getPropertyValue('--xiangqi-piece-perspective'), '300px');
+    assert.ok(selectedPiece.querySelector('.xiangqi-motion-shadow-near'));
+    assert.ok(selectedPiece.querySelector('.xiangqi-motion-shadow-aerial-core'));
+    assert.ok(selectedPiece.querySelector('.xiangqi-motion-shadow-far'));
+    assert.ok(selectedPiece.querySelector('.xiangqi-motion-rim'));
+    assert.ok(selectedPiece.querySelector('.xiangqi-motion-face'));
+
+    assert.ok(element.querySelector('square.xiangqi-lift-origin'));
+    assert.ok(element.querySelector('square.xiangqi-move-dest'));
+    assert.equal(element.querySelector('square.selected'), null);
+    assert.equal(element.querySelector('square.move-dest'), null);
+    assert.equal(element.querySelector('piece.ghost'), null);
+
+    const stack = selectedPiece.querySelector<HTMLElement>('.xiangqi-motion-stack');
+    const lift = animations.calls.find(call => call.element === stack);
+    assert.ok(lift);
+    assert.equal(lift.options.duration, 33);
+    assert.equal(lift.options.easing, 'linear');
+    assert.equal(lift.options.fill, 'forwards');
+    assert.deepEqual(
+      lift.keyframes.map(frame => frame.transform),
+      ['translate3d(0, 0%, 0.000px) rotateX(0deg)', 'translate3d(0, -7%, 45.763px) rotateX(27deg)'],
+    );
+  } finally {
+    ground.destroy();
+    element.remove();
+    animations.restore();
+    window.HTMLElement.prototype.getBoundingClientRect = originalBounds;
+  }
+});
+
+test('uses the measured layered carry path and keeps its destination underlay attached', () => {
+  const originalBounds = window.HTMLElement.prototype.getBoundingClientRect;
+  window.HTMLElement.prototype.getBoundingClientRect = fixedBoardBounds;
+  const animations = recordAnimations();
 
   const element = document.createElement('div');
   document.body.append(element);
   const ground = makeXiangqiGround(element, { viewOnly: true });
-  const assertLocked = () => {
+
+  try {
+    ground.move('h1', 'g3');
+
     const destination = element.querySelector<HTMLElement>('square.last-move-destination');
-    const movedPiece = [...element.querySelectorAll<HTMLElement>('piece')].find(
+    const movedPiece = [...element.querySelectorAll<HTMLElement>('cg-board > piece')].find(
       piece => (piece as HTMLElement & { cgKey?: string }).cgKey === 'g3',
     );
     assert.ok(destination);
     assert.ok(movedPiece);
     assert.equal(destination.style.transform, movedPiece.style.transform);
-  };
+    assert.ok(movedPiece.classList.contains('xiangqi-motion-piece'));
 
-  try {
-    ground.move('h1', 'g3');
-    assertLocked();
+    const carry = animations.calls.find(call => call.element === movedPiece);
+    assert.ok(carry);
+    assert.equal(carry.options.duration, 150);
+    assert.equal(carry.options.easing, 'linear');
+    assert.equal(carry.options.fill, 'forwards');
+    assert.deepEqual(
+      carry.keyframes.map(frame => [frame.offset, frame.transform]),
+      [
+        [0, 'translate3d(700px,900px,0)'],
+        [0.2, 'translate3d(700px,900px,0)'],
+        [0.4, 'translate3d(668px,836px,0)'],
+        [0.6, 'translate3d(637px,774px,0)'],
+        [0.8, 'translate3d(607px,714px,0)'],
+        [1, 'translate3d(600px,700px,0)'],
+      ],
+    );
 
-    const animation = ground.state.animation.current?.plan.anims.get('g3');
-    assert.ok(animation);
-    animation[2] = 0.4;
-    animation[3] = -1.2;
-    ground.state.dom.redrawNow();
-    assertLocked();
+    const destinationCarry = animations.calls.find(call => call.element === destination);
+    assert.ok(destinationCarry);
+    assert.deepEqual(destinationCarry.keyframes, carry.keyframes);
 
-    ground.redrawAll();
-    assertLocked();
+    const stack = movedPiece.querySelector<HTMLElement>('.xiangqi-motion-stack');
+    const pitch = animations.calls.find(call => call.element === stack);
+    assert.ok(pitch);
+    assert.deepEqual(
+      pitch.keyframes.map(frame => [frame.offset, frame.transform]),
+      [
+        [0, 'translate3d(0, 0%, 0.000px) rotateX(0deg)'],
+        [0.2, 'translate3d(0, -7%, 45.763px) rotateX(27deg)'],
+        [1, 'translate3d(0, -10%, 69.231px) rotateX(27deg)'],
+      ],
+    );
   } finally {
     ground.destroy();
     element.remove();
+    animations.restore();
+    window.HTMLElement.prototype.getBoundingClientRect = originalBounds;
+  }
+});
+
+test('carries a click-selected piece and preserves that motion through authoritative confirmation', () => {
+  const originalBounds = window.HTMLElement.prototype.getBoundingClientRect;
+  window.HTMLElement.prototype.getBoundingClientRect = fixedBoardBounds;
+  const animations = recordAnimations();
+
+  const element = document.createElement('div');
+  document.body.append(element);
+  const ground = makeXiangqiGround(element, {
+    movableColor: 'white',
+    legalMoves: ['h1g3'],
+    onMove: () => undefined,
+  });
+
+  try {
+    ground.selectSquare('h1');
+    ground.state.dom.redrawNow();
+    ground.selectSquare('g3');
+
+    const movedPiece = [...element.querySelectorAll<HTMLElement>('cg-board > piece')].find(
+      piece => (piece as HTMLElement & { cgKey?: string }).cgKey === 'g3',
+    );
+    assert.ok(movedPiece);
+    assert.ok(movedPiece.classList.contains('xiangqi-motion-piece'));
+    assert.ok(animations.calls.some(call => call.element === movedPiece && call.options.duration === 150));
+
+    ground.set({
+      fen: ground.getFen(),
+      lastMove: ['h1', 'g3'],
+      movable: { color: undefined, dests: new Map() },
+    });
+
+    assert.ok(movedPiece.classList.contains('xiangqi-motion-piece'));
+  } finally {
+    ground.destroy();
+    element.remove();
+    animations.restore();
+    window.HTMLElement.prototype.getBoundingClientRect = originalBounds;
+  }
+});
+
+test('uses the measured flat slide only when requested for reverse navigation', () => {
+  const originalBounds = window.HTMLElement.prototype.getBoundingClientRect;
+  window.HTMLElement.prototype.getBoundingClientRect = fixedBoardBounds;
+  const animations = recordAnimations();
+
+  const element = document.createElement('div');
+  document.body.append(element);
+  const initialFen = 'rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR';
+  const ground = makeXiangqiGround(element, {
+    fen: 'rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C4NC1/9/RNBAKAB1R',
+    movableColor: 'white',
+    legalMoves: ['g3h1'],
+  });
+
+  try {
+    ground.selectSquare('g3');
+    ground.state.dom.redrawNow();
+    assert.ok(element.querySelector('piece.xiangqi-motion-piece'));
+    animations.calls.length = 0;
+
+    ground.set({ fen: initialFen, lastMove: undefined }, { animation: 'slide' });
+
+    const movedPiece = [...element.querySelectorAll<HTMLElement>('cg-board > piece')].find(
+      piece => (piece as HTMLElement & { cgKey?: string }).cgKey === 'h1',
+    );
+    assert.ok(movedPiece);
+    assert.equal(ground.state.selectable.selected, undefined);
+    assert.equal(movedPiece.classList.contains('xiangqi-motion-piece'), false);
+    assert.equal(movedPiece.querySelector('.xiangqi-motion-stack'), null);
+
+    const slide = animations.calls.find(
+      call => call.element === movedPiece && call.keyframes.length === 5 && call.keyframes[1].offset === 0.23,
+    );
+    assert.ok(slide);
+    assert.ok(Math.abs(Number(slide.options.duration) - 120.601545) < 0.001);
+    assert.equal(slide.options.easing, 'linear');
+    assert.deepEqual(
+      slide.keyframes.map(frame => [frame.offset, frame.transform]),
+      [
+        [0, 'translate3d(600px,700px,0)'],
+        [0.23, 'translate3d(635px,770px,0)'],
+        [0.47, 'translate3d(667px,834px,0)'],
+        [0.75, 'translate3d(694px,888px,0)'],
+        [1, 'translate3d(700px,900px,0)'],
+      ],
+    );
+  } finally {
+    ground.destroy();
+    element.remove();
+    animations.restore();
+    window.HTMLElement.prototype.getBoundingClientRect = originalBounds;
+  }
+});
+
+test('stacks the destination shadow below its glow and piece face', async () => {
+  const originalBounds = window.HTMLElement.prototype.getBoundingClientRect;
+  window.HTMLElement.prototype.getBoundingClientRect = fixedBoardBounds;
+  const animations = recordAnimations(true);
+
+  const element = document.createElement('div');
+  document.body.append(element);
+  const ground = makeXiangqiGround(element, { viewOnly: true });
+
+  try {
+    ground.move('h1', 'g3');
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    const movedPiece = [...element.querySelectorAll<HTMLElement>('cg-board > piece')].find(
+      piece => (piece as HTMLElement & { cgKey?: string }).cgKey === 'g3',
+    );
+    assert.ok(movedPiece);
+    assert.ok(movedPiece.classList.contains('xiangqi-last-move-piece'));
+    assert.deepEqual(
+      [...movedPiece.children].map(child => child.className),
+      [
+        'xiangqi-rest-shadow xiangqi-rest-shadow-far',
+        'xiangqi-rest-shadow xiangqi-rest-shadow-near',
+        'xiangqi-last-move-highlight',
+        'xiangqi-rest-face',
+      ],
+    );
+  } finally {
+    ground.destroy();
+    element.remove();
+    animations.restore();
+    window.HTMLElement.prototype.getBoundingClientRect = originalBounds;
+  }
+});
+
+test('lands the layered piece with the final measured perspective sequence', async () => {
+  const originalBounds = window.HTMLElement.prototype.getBoundingClientRect;
+  window.HTMLElement.prototype.getBoundingClientRect = fixedBoardBounds;
+  const animations = recordAnimations(true);
+
+  const element = document.createElement('div');
+  document.body.append(element);
+  const ground = makeXiangqiGround(element, { viewOnly: true });
+
+  try {
+    ground.move('h1', 'g3');
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    const landing = animations.calls.find(
+      call => call.element.classList.contains('xiangqi-motion-stack') && call.keyframes.length === 6,
+    );
+    assert.ok(landing);
+    assert.equal(landing.options.duration, 150);
+    assert.deepEqual(
+      landing.keyframes.map(frame => [frame.offset, frame.transform]),
+      [
+        [0, 'translate3d(0, -10%, 69.231px) rotateX(27deg)'],
+        [0.2, 'translate3d(0, -7.5%, 60.000px) rotateX(23deg)'],
+        [0.4, 'translate3d(0, -5%, 45.763px) rotateX(17deg)'],
+        [0.6, 'translate3d(0, -2.8%, 29.730px) rotateX(10deg)'],
+        [0.8, 'translate3d(0, -0.8%, 11.538px) rotateX(3deg)'],
+        [1, 'translate3d(0, 0%, 0.000px) rotateX(0deg)'],
+      ],
+    );
+    assert.equal(element.querySelector('piece.xiangqi-motion-piece'), null);
+  } finally {
+    ground.destroy();
+    element.remove();
+    animations.restore();
     window.HTMLElement.prototype.getBoundingClientRect = originalBounds;
   }
 });

@@ -57,64 +57,10 @@ html.wudang {
     }
   }
 
-  body[data-piece-set='xiangqi-wudang'] cg-board piece {
-    filter: drop-shadow(0 1px 0 rgb(240 236 226 / 0.12)) drop-shadow(0 2px 2px rgb(4 9 10 / 0.34));
-
-    &.dragging {
-      filter: drop-shadow(0 2px 1px rgb(240 236 226 / 0.12)) drop-shadow(0 7px 7px rgb(4 9 10 / 0.42));
-    }
-
-    &.ghost,
-    &.fading {
-      filter: grayscale(0.2) drop-shadow(0 1px 2px rgb(4 9 10 / 0.22));
-    }
-  }
-
-  // Mineral feedback replaces fluorescent chessboard overlays. The geometry
-  // stays centered and exact even where the painted edge appears irregular.
+  // Queued premoves and checks retain Wudang's mineral feedback. Interactive
+  // selection and destination feedback come from the shared piece-lift system.
   body .cg-wrap.xiangqi9x10 {
     square {
-      &.selected {
-        background:
-          radial-gradient(circle, transparent 0 51%, rgb(242 238 228 / 0.72) 52% 54%, transparent 55%),
-          radial-gradient(circle, rgb(102 134 115 / 0.38) 0 62%, transparent 64%);
-      }
-
-      &.move-dest {
-        background: radial-gradient(
-          circle,
-          var(--wudang-jade-dark) 0 13%,
-          rgb(242 238 228 / 0.86) 14% 18%,
-          rgb(102 134 115 / 0.2) 19% 24%,
-          transparent 25%
-        );
-      }
-
-      &.oc.move-dest {
-        background:
-          radial-gradient(circle, transparent 0 54%, rgb(242 238 228 / 0.74) 55% 58%, transparent 59%),
-          radial-gradient(circle, transparent 0 61%, rgb(102 134 115 / 0.72) 62% 68%, transparent 69%);
-      }
-
-      &.premove-dest {
-        background: radial-gradient(
-          circle,
-          var(--wudang-mineral-blue-dark) 0 12%,
-          rgb(242 238 228 / 0.78) 13% 17%,
-          rgb(99 126 134 / 0.18) 18% 24%,
-          transparent 25%
-        );
-      }
-
-      &.oc.premove-dest {
-        background: radial-gradient(
-          circle,
-          transparent 0 59%,
-          rgb(99 126 134 / 0.76) 60% 66%,
-          transparent 67%
-        );
-      }
-
       &.current-premove {
         background:
           linear-gradient(145deg, transparent 24%, rgb(99 126 134 / 0.34) 25% 66%, transparent 68%),
@@ -138,20 +84,6 @@ html.wudang {
           mask: radial-gradient(circle, transparent 0 57%, #000 59% 66%, transparent 68%);
           animation: wudang-check-settle 900ms ease-out 1;
         }
-      }
-    }
-
-    @media (hover: hover) {
-      square.move-dest:hover,
-      square.move-dest.hover {
-        background:
-          radial-gradient(circle, rgb(242 238 228 / 0.38) 0 45%, transparent 47%),
-          radial-gradient(circle, rgb(102 134 115 / 0.52) 0 62%, transparent 65%);
-      }
-
-      square.premove-dest:hover,
-      square.premove-dest.hover {
-        background: radial-gradient(circle, rgb(99 126 134 / 0.46) 0 61%, transparent 64%);
       }
     }
   }

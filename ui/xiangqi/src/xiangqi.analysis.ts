@@ -339,11 +339,12 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     if (!tree.byPath.has(path)) return;
     const navigationTree = tree;
     const fromPath = activePath;
+    const backwards = getNodeList(tree, path).length < getNodeList(tree, fromPath).length;
     activePath = path;
     const destination = currentNode();
     treeView.closeMenu();
     saveDraft();
-    update();
+    update(true, backwards);
     const playSound = () => {
       if (tree === navigationTree && activePath === path)
         playXiangqiTransitionSound(navigationTree, fromPath, path);
@@ -352,22 +353,25 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     else playSound();
   }
 
-  function update(syncPosition = true): void {
+  function update(syncPosition = true, slide = false): void {
     const node = currentNode();
     const state = node.state;
     const lastMove = node.path ? (node as XiangqiTreeNode).uci : undefined;
     if (syncPosition)
-      ground.set({
-        fen: state.fen,
-        turnColor: color(state.turn),
-        check: state.check,
-        lastMove: lastMove ? uciMoveToCg(lastMove) : undefined,
-        movable: {
-          free: false,
-          color: pending || state.gameResult !== '*' ? undefined : color(state.turn),
-          dests: pending ? new Map() : legalMoveDests(state.legalMoves),
+      ground.set(
+        {
+          fen: state.fen,
+          turnColor: color(state.turn),
+          check: state.check,
+          lastMove: lastMove ? uciMoveToCg(lastMove) : undefined,
+          movable: {
+            free: false,
+            color: pending || state.gameResult !== '*' ? undefined : color(state.turn),
+            dests: pending ? new Map() : legalMoveDests(state.legalMoves),
+          },
         },
-      });
+        slide ? { animation: 'slide' } : undefined,
+      );
 
     const turn = state.turn === 'red' ? 'Red' : 'Black';
     statusElement.textContent =

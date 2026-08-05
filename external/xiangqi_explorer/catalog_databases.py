@@ -86,7 +86,7 @@ def catalog_database_id(value: str | Path) -> str:
 
 def _open_readonly(path: Path) -> sqlite3.Connection:
     connection = sqlite3.connect(
-        f"{path.resolve().as_uri()}?mode=ro",
+        f"{path.resolve().as_uri()}?mode=ro&immutable=1",
         uri=True,
         timeout=5,
         check_same_thread=False,
@@ -115,3 +115,15 @@ def open_catalog_connection():
     if not path.is_file():
         return None
     return _open_readonly(path)
+
+
+def catalog_is_readable() -> bool:
+    """Verify that the mounted catalog can serve a real request."""
+
+    connection = open_catalog_connection()
+    if connection is None:
+        return False
+    try:
+        return connection.execute("SELECT 1 FROM games LIMIT 1").fetchone() is not None
+    finally:
+        connection.close()
