@@ -14,6 +14,8 @@
 }
 
 body .cg-wrap.xiangqi9x10 {
+  container-type: inline-size;
+
   square,
   piece {
     width: calc(100% / 9);
@@ -21,13 +23,8 @@ body .cg-wrap.xiangqi9x10 {
   }
 
   cg-board > piece {
-    filter: drop-shadow(
-        clamp(1.8px, 0.28vw, 3.6px) clamp(1.8px, 0.28vw, 3.6px) clamp(0.8px, 0.12vw, 1.6px)
-          rgb(35 18 7 / 0.58)
-      )
-      drop-shadow(
-        clamp(2.5px, 0.34vw, 4.4px) clamp(2.5px, 0.34vw, 4.4px) clamp(1.4px, 0.2vw, 2.6px) rgb(35 18 7 / 0.2)
-      );
+    filter: drop-shadow(calc(3.6cqw / 9) calc(3.6cqw / 9) calc(1.6cqw / 9) rgb(35 18 7 / 0.58))
+      drop-shadow(calc(4.4cqw / 9) calc(4.4cqw / 9) calc(2.6cqw / 9) rgb(35 18 7 / 0.2));
   }
 
   // The last-move glow is part of the destination piece's paint stack. This
@@ -55,14 +52,14 @@ body .cg-wrap.xiangqi9x10 {
 
   .xiangqi-rest-shadow-far {
     opacity: 0.2;
-    filter: blur(clamp(1.4px, 0.2vw, 2.6px));
-    transform: translate3d(clamp(2.5px, 0.34vw, 4.4px), clamp(2.5px, 0.34vw, 4.4px), 0);
+    filter: blur(calc(2.6cqw / 9));
+    transform: translate3d(calc(4.4cqw / 9), calc(4.4cqw / 9), 0);
   }
 
   .xiangqi-rest-shadow-near {
     opacity: 0.58;
-    filter: blur(clamp(0.8px, 0.12vw, 1.6px));
-    transform: translate3d(clamp(1.8px, 0.28vw, 3.6px), clamp(1.8px, 0.28vw, 3.6px), 0);
+    filter: blur(calc(1.6cqw / 9));
+    transform: translate3d(calc(3.6cqw / 9), calc(3.6cqw / 9), 0);
   }
 
   .xiangqi-last-move-highlight {
@@ -118,7 +115,7 @@ body .cg-wrap.xiangqi9x10 {
     left: 17%;
     width: 70%;
     height: 31%;
-    filter: blur(clamp(1.2px, 0.15vw, 2px));
+    filter: blur(calc(2cqw / 9));
     opacity: 0.58;
     transform: translate3d(5%, 12%, 0) scale(0.82, 0.42);
   }
@@ -135,7 +132,7 @@ body .cg-wrap.xiangqi9x10 {
       rgb(29 20 11 / 0.0588) 62%,
       transparent 79%
     );
-    filter: blur(3.43px);
+    filter: blur(calc(3.43cqw / 9));
     opacity: 0;
     transform: translate3d(8%, 10%, 0);
   }
@@ -152,7 +149,7 @@ body .cg-wrap.xiangqi9x10 {
       rgb(29 20 11 / 0.2224) 63.14%,
       transparent 73.92%
     );
-    filter: blur(4.9px);
+    filter: blur(calc(4.9cqw / 9));
     opacity: 0;
     transform: translate3d(0, 0, 0);
   }
@@ -184,7 +181,7 @@ body .cg-wrap.xiangqi9x10 {
     background-position: center;
     background-repeat: no-repeat;
     background-size: contain;
-    filter: drop-shadow(0 0.025em 0.018em rgb(255 245 210 / 0.25));
+    filter: drop-shadow(0 calc(0.4cqw / 9) calc(0.288cqw / 9) rgb(255 245 210 / 0.25));
   }
 
   .xiangqi-motion-rim {
