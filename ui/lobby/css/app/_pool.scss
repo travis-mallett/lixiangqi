@@ -79,4 +79,11 @@
   &.transp {
     opacity: 0.35;
   }
+
+  &.move-time .perf {
+    max-width: 95%;
+    font-size: 0.65em;
+    line-height: 1.15;
+    text-align: center;
+  }
 }

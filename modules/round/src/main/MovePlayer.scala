@@ -141,7 +141,9 @@ final private class MovePlayer(
           .applyMove(move)
           .map: next =>
             steppedClock match
-              case Some(stepped) if stepped.value.outOfTime(game.turnColor, withGrace = false) =>
+              case Some(stepped)
+                  if stepped.value.outOfTime(game.turnColor, withGrace = false) ||
+                    game.moveTimeOutAfterCompensation(stepped.compensated) =>
                 Flagged
               case _ =>
                 MoveApplied(

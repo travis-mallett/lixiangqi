@@ -5,13 +5,14 @@ import chess.variant.{ FromPosition, Variant }
 import chess.{ ByColor, Clock, Ply }
 import scalalib.model.Days
 
-import lila.core.game.{ IdGenerator, NewPlayer, Source }
+import lila.core.game.{ IdGenerator, MoveTimeLimit, NewPlayer, Source }
 import lila.core.user.GameUser
 import lila.lobby.TriColor
 
 final case class ApiAiConfig(
     variant: Variant,
     clock: Option[Clock.Config],
+    moveTimeLimit: Option[MoveTimeLimit],
     daysO: Option[Days],
     color: TriColor,
     level: Int,
@@ -29,6 +30,8 @@ final case class ApiAiConfig(
     if clock.isDefined then TimeMode.RealTime
     else if daysO.isDefined then TimeMode.Correspondence
     else TimeMode.Unlimited
+
+  override def validMoveTimeLimit = moveTimeLimit.isEmpty || clock.isDefined
 
   private def game(user: GameUser)(using
       idGenerator: IdGenerator,
@@ -50,6 +53,7 @@ final case class ApiAiConfig(
             daysPerTurn = makeDaysPerTurn,
             pgnImport = None,
             clock = makeClock.map(_.toClock),
+            moveTimeLimit = makeMoveTimeLimit,
             startedAtPly = Ply(xiangqiGame.state.ply),
             variant = variant
           )
@@ -71,6 +75,7 @@ object ApiAiConfig extends BaseConfig:
       l: Int,
       v: Option[Variant.LilaKey],
       cl: Option[Clock.Config],
+      ml: Option[MoveTimeLimit],
       d: Option[Days],
       c: Option[String],
       pos: Option[Fen.Full]
@@ -78,6 +83,7 @@ object ApiAiConfig extends BaseConfig:
     ApiAiConfig(
       variant = Variant.orDefault(v),
       clock = cl,
+      moveTimeLimit = ml,
       daysO = d,
       color = TriColor.orDefault(~c),
       level = l,

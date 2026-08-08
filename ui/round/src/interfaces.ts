@@ -137,6 +137,7 @@ export interface ApiMove {
     white: Seconds;
     black: Seconds;
     lag?: Centis;
+    moveTime?: Seconds;
   };
   status?: Status;
   winner?: Color;

@@ -1,3 +1,4 @@
+import type { MoveTimeLimit } from 'lib/game';
 import type { LiconValue } from 'lib/licon';
 
 export interface ChallengeOpts {
@@ -24,6 +25,7 @@ export interface TimeControl {
   daysPerTurn?: number;
   limit: number;
   increment: number;
+  moveTime?: MoveTimeLimit;
 }
 
 export interface Challenge {

@@ -14,6 +14,7 @@ import lila.core.game.{
   GameRule,
   LightGame,
   LightPlayer,
+  MoveTimeLimit,
   PgnImport,
   Source,
   emptyDrawOffers
@@ -25,6 +26,7 @@ import lila.xiangqi.Xiangqi
 object BSONHandlers:
 
   import lila.db.ByteArray.byteArrayHandler
+  private given BSONHandler[MoveTimeLimit] = lila.db.BSON.moveTimeLimitHandler
   import lila.game.Game.maxPlies
 
   given statusHandler: BSONHandler[Status] = tryHandler[Status](
@@ -100,16 +102,25 @@ object BSONHandlers:
 
       val whiteClockHistory = r.bytesO(F.whiteClockHistory)
       val blackClockHistory = r.bytesO(F.blackClockHistory)
+      val clock = r
+        .getO[Color => Clock](F.clock)(using
+          clockBSONReader(createdAt, whitePlayer.berserk, blackPlayer.berserk)
+        )
+        .map(_(turnColor))
+      val moveTimeLimit = r.contains(F.moveTimeLimit).option(r.get[MoveTimeLimit](F.moveTimeLimit))
+      val moveTimePaused = r.boolD(F.moveTimePaused)
+      if moveTimeLimit.isDefined && clock.isEmpty then
+        throw IllegalStateException(s"Game ${light.id} has a move-time limit without a real-time clock")
+      if moveTimePaused && moveTimeLimit.isEmpty then
+        throw IllegalStateException(s"Game ${light.id} has a paused move-time limit without a policy")
 
       Game(
         id = light.id,
         players = ByColor(whitePlayer, blackPlayer),
         xiangqi = xiangqi,
-        clock = r
-          .getO[Color => Clock](F.clock)(using
-            clockBSONReader(createdAt, whitePlayer.berserk, blackPlayer.berserk)
-          )
-          .map(_(turnColor)),
+        clock = clock,
+        moveTimeLimit = moveTimeLimit,
+        moveTimePaused = moveTimePaused,
         startedAtPly = startedAtPly,
         loadClockHistory = clk =>
           for
@@ -163,6 +174,8 @@ object BSONHandlers:
         F.clock -> o.clock.flatMap { c =>
           clockBSONWrite(o.createdAt, c).toOption
         },
+        F.moveTimeLimit -> o.moveTimeLimit,
+        F.moveTimePaused -> w.boolO(o.moveTimePaused),
         F.daysPerTurn -> o.daysPerTurn,
         F.moveTimes -> o.binaryMoveTimes,
         F.whiteClockHistory -> clockHistory(Color.White, o.clockHistory, o.clock, o.flagged),

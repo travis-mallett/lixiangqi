@@ -11,6 +11,7 @@ import lila.core.rating.RatingRange
 import lila.core.socket.Sri
 import lila.rating.PerfType
 import lila.core.pool.IsClockCompatible
+import lila.core.game.MoveTimeLimit
 
 // Realtime Xiangqi, kept in memory while advertised in the lobby.
 case class Hook(
@@ -19,6 +20,7 @@ case class Hook(
     sid: Option[String], // owner cookie (used to prevent multiple hooks)
     variant: Variant.Id,
     clock: Clock.Config,
+    moveTimeLimit: Option[MoveTimeLimit],
     rated: Rated,
     color: TriColor,
     user: Option[LobbyUser],
@@ -36,6 +38,7 @@ case class Hook(
       rated == h.rated &&
       variant == h.variant &&
       clock == h.clock &&
+      moveTimeLimit == h.moveTimeLimit &&
       color.compatibleWith(h.color) &&
       ratingRangeCompatibleWith(h) && h.ratingRangeCompatibleWith(this) &&
       (userId.isEmpty || userId != h.userId)
@@ -79,14 +82,19 @@ case class Hook(
     .add("rating" -> rating)
     .add("variant" -> realVariant.exotic.option(realVariant.key))
     .add("ra" -> rated.yes.option(1))
+    .add("moveTime" -> moveTimeLimit.map: limit =>
+      Json
+        .obj("seconds" -> limit.seconds)
+        .add("first" -> limit.first.map: first =>
+          Json.obj("moves" -> first.moves, "seconds" -> first.seconds)))
 
   def seemsCompatibleWithPools = rated.yes && realVariant.standard && color == TriColor.Random
 
   def compatibleWithPools(using isClockCompatible: IsClockCompatible) =
-    seemsCompatibleWithPools && isClockCompatible.exec(clock)
+    seemsCompatibleWithPools && isClockCompatible.exec(clock, moveTimeLimit)
 
-  def compatibleWithPool(poolClock: chess.Clock.Config) =
-    clock == poolClock && seemsCompatibleWithPools
+  def compatibleWithPool(poolClock: chess.Clock.Config, poolMoveTimeLimit: Option[MoveTimeLimit]) =
+    clock == poolClock && moveTimeLimit == poolMoveTimeLimit && seemsCompatibleWithPools
 
   private lazy val speed = Speed(clock)
 
@@ -98,6 +106,7 @@ object Hook:
       sri: Sri,
       variant: chess.variant.Variant,
       clock: Clock.Config,
+      moveTimeLimit: Option[MoveTimeLimit],
       rated: Rated,
       color: TriColor,
       user: Option[UserWithPerfs],
@@ -111,6 +120,7 @@ object Hook:
       sri = sri,
       variant = variant.id,
       clock = clock,
+      moveTimeLimit = moveTimeLimit,
       rated = rated,
       color = color,
       user = user.map(LobbyUser.make(_, blocking)),

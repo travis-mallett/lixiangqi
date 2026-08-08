@@ -3411,6 +3411,10 @@ interface I18n {
     chess960StartPosition: I18nFormat;
     /** Fundamentals of Xiangqi */
     chessBasics: string;
+    /** Chess Performance */
+    chessPerformance: string;
+    /** 棋力评测 */
+    chessPerformanceEvaluationChinese: string;
     /** Choose each part of the site appearance independently. */
     chooseAppearanceParts: string;
     /** Claim a draw */
@@ -3451,6 +3455,8 @@ interface I18n {
     coachManager: string;
     /** Collapse variations */
     collapseVariations: string;
+    /** Coming Soon */
+    comingSoon: string;
     /** Community */
     community: string;
     /** Message */
@@ -3535,6 +3541,8 @@ interface I18n {
     cyclePreviousOrNextVariation: string;
     /** Dark */
     dark: string;
+    /** Dark / Flip Xiangqi */
+    darkFlipXiangqi: string;
     /** Dark interface with the classic Xiangqi board and pieces. */
     darkThemeDescription: string;
     /** Database */
@@ -3563,6 +3571,8 @@ interface I18n {
     description: string;
     /** Device theme */
     deviceTheme: string;
+    /** Different limit for opening moves */
+    differentLimitForOpeningMoves: string;
     /** Disable blind mode */
     disableBlindMode: string;
     /** Disable Kid mode */
@@ -3679,6 +3689,8 @@ interface I18n {
     estimatedStart: string;
     /** Evaluating your move ... */
     evaluatingYourMove: string;
+    /** Evaluation */
+    evaluation: string;
     /** Playing now */
     eventInProgress: string;
     /** Everybody gets all features for free */
@@ -3703,6 +3715,8 @@ interface I18n {
     findBetterMoveForWhite: string;
     /** Finished */
     finished: string;
+    /** First */
+    first: string;
     /** Flair */
     flair: string;
     /** Flip board */
@@ -3991,6 +4005,8 @@ interface I18n {
     minRatingX: I18nFormat;
     /** Minutes per side */
     minutesPerSide: string;
+    /** %s min */
+    minutesShort: I18nFormat;
     /** Mistake */
     mistake: string;
     /** Mix individual appearance options */
@@ -4015,8 +4031,16 @@ interface I18n {
     moveAnnotations: string;
     /** Move list navigation */
     moveListNavigation: string;
+    /** moves */
+    moves: string;
     /** Moves played */
     movesPlayed: string;
+    /** Limit */
+    moveTimeLimit: string;
+    /** %1$ss for first %2$s moves, then %3$ss per move */
+    moveTimeLimitDescription: I18nFormat;
+    /** First %2$s: %1$ss · then %3$ss/move */
+    moveTimeLimitShort: I18nFormat;
     /** Move times */
     moveTimes: string;
     /** Multiple lines */
@@ -4465,6 +4489,12 @@ interface I18n {
     searchTime: string;
     /** Set time to evaluate fresh positions */
     searchTimeDescription: string;
+    /** seconds */
+    seconds: string;
+    /** seconds each */
+    secondsEach: string;
+    /** %s seconds per move */
+    secondsPerMove: I18nFormat;
     /** Security */
     security: string;
     /** See best move */
@@ -4649,6 +4679,8 @@ interface I18n {
     timeControl: string;
     /** Timeline */
     timeline: string;
+    /** Time per move */
+    timePerMove: string;
     /** Time to process a move on Lixiangqi's server */
     timeToProcessAMoveOnLichessServer: string;
     /** Title verification */

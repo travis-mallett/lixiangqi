@@ -51,6 +51,10 @@
       @include inline-end(0);
     }
 
+    &:not(.toggle-filter) {
+      @include inline-start(0);
+    }
+
     &:hover {
       color: $c-accent;
     }

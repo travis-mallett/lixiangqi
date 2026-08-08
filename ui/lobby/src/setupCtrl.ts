@@ -64,6 +64,7 @@ export default class SetupController {
       timeMode: gameType === 'hook' ? 'realTime' : 'unlimited',
       time: 5,
       increment: 3,
+      moveTime: undefined,
       days: 2,
       gameMode: gameType === 'ai' || !this.root.me ? 'casual' : 'rated',
       color: 'random',
@@ -84,6 +85,9 @@ export default class SetupController {
       forceOptions?.time ?? storeProps.time,
       forceOptions?.increment ?? storeProps.increment,
       forceOptions?.days ?? storeProps.days,
+      forceOptions && Object.prototype.hasOwnProperty.call(forceOptions, 'moveTime')
+        ? forceOptions.moveTime
+        : storeProps.moveTime,
       this.onPropChange,
       this.root.pools,
     );
@@ -125,6 +129,7 @@ export default class SetupController {
       timeMode: this.timeControl.mode(),
       time: this.timeControl.time(),
       increment: this.timeControl.increment(),
+      moveTime: this.timeControl.moveTime(),
       days: this.timeControl.days(),
       gameMode: this.gameMode(),
       color: this.color(),
@@ -237,10 +242,10 @@ export default class SetupController {
       this.variant() === 'standard' &&
       this.gameMode() === 'rated' &&
       this.timeControl.isRealTime();
-    const id = this.timeControl.clockStr();
-    return valid && this.root.pools.some(p => p.id === id)
+    const pool = this.root.pools.find(p => this.timeControl.matchesPreset(p));
+    return valid && pool
       ? {
-          id,
+          id: pool.id,
           range: this.ratingRange(),
         }
       : null;
@@ -255,6 +260,15 @@ export default class SetupController {
       time_range: this.timeControl.timeV().toString(),
       increment: this.timeControl.increment().toString(),
       increment_range: this.timeControl.incrementV().toString(),
+      'moveTime.seconds': this.timeControl.isRealTime()
+        ? this.timeControl.moveTime()?.seconds.toString()
+        : undefined,
+      'moveTime.firstMoves': this.timeControl.isRealTime()
+        ? this.timeControl.moveTime()?.first?.moves.toString()
+        : undefined,
+      'moveTime.firstSeconds': this.timeControl.isRealTime()
+        ? this.timeControl.moveTime()?.first?.seconds.toString()
+        : undefined,
       days: this.timeControl.days().toString(),
       days_range: this.timeControl.daysV().toString(),
       mode: this.gameMode() === 'casual' ? '0' : '1',
@@ -287,6 +301,11 @@ export default class SetupController {
       if (this.timeControl.mode() === 'realTime') {
         if (this.invalid(this.forced.time, this.timeControl.time())) return false;
         if (this.invalid(this.forced.increment, this.timeControl.increment())) return false;
+        if (
+          Object.prototype.hasOwnProperty.call(this.forced, 'moveTime') &&
+          JSON.stringify(this.forced.moveTime) !== JSON.stringify(this.timeControl.moveTime())
+        )
+          return false;
       }
       if (this.invalid(this.forced.fen?.replace(/_/g, ' '), this.fen())) return false;
     }

@@ -5,6 +5,8 @@ import type { ClockData } from 'lib/game/clock/clockCtrl';
 import { game as gameRoute } from 'lib/game/router';
 import { licon, type LiconValue } from 'lib/licon';
 import { pubsub } from 'lib/pubsub';
+import type { MoveTimeLimitConfig } from 'lib/setup/interfaces';
+import { poolId } from 'lib/setup/timeControl';
 import {
   spinnerVdom as spinner,
   type LooseVNodes,
@@ -27,8 +29,9 @@ function analysisBoardOrientation(data: RoundData) {
   return data.game.variant.key === 'racingKings' ? 'white' : data.player.color;
 }
 
-function poolUrl(clock: ClockData, blocking?: PlayerUser) {
-  return '/#pool/' + clock.initial / 60 + '+' + clock.increment + (blocking ? '/' + blocking.id : '');
+function poolUrl(clock: ClockData, moveTime?: MoveTimeLimitConfig, blocking?: PlayerUser) {
+  const id = poolId(`${clock.initial / 60}+${clock.increment}`, moveTime);
+  return '/#pool/' + id + (blocking ? '/' + blocking.id : '');
 }
 
 function analysisButton(ctrl: RoundController): VNode | false {
@@ -279,7 +282,8 @@ export function followUp(ctrl: RoundController): VNode {
         {
           hook: bind('click', () => {
             if (d.game.source === 'local') d.local?.newOpponent();
-            else if (d.game.source === 'pool') location.href = poolUrl(d.clock!, d.opponent.user);
+            else if (d.game.source === 'pool')
+              location.href = poolUrl(d.clock!, d.game.moveTime, d.opponent.user);
             else location.href = '/?hook_like=' + d.game.id;
           }),
         },

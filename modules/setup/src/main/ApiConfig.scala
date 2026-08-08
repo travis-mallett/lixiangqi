@@ -7,6 +7,7 @@ import scalalib.model.Days
 
 import lila.core.data.Template
 import lila.core.game.GameRule
+import lila.core.game.MoveTimeLimit
 import lila.lobby.TriColor
 import lila.rating.PerfType
 import lila.xiangqi.Xiangqi
@@ -14,6 +15,7 @@ import lila.xiangqi.Xiangqi
 final case class ApiConfig(
     variant: chess.variant.Variant,
     clock: Option[Clock.Config],
+    moveTimeLimit: Option[MoveTimeLimit],
     days: Option[Days],
     rated: Rated,
     color: TriColor,
@@ -39,6 +41,8 @@ final case class ApiConfig(
 
   def validRated = rated.no || ((clock.isDefined || variant.standard) && variant.fromPosition.not)
 
+  def validMoveTimeLimit = moveTimeLimit.isEmpty || clock.isDefined
+
   def autoVariant =
     if variant.standard && position.exists(_.value != Xiangqi.startFen)
     then copy(variant = FromPosition)
@@ -52,6 +56,7 @@ object ApiConfig extends BaseConfig:
   def from(
       v: Option[Variant.LilaKey],
       cl: Option[Clock.Config],
+      ml: Option[MoveTimeLimit],
       d: Option[Days],
       r: Rated,
       c: Option[String],
@@ -64,6 +69,7 @@ object ApiConfig extends BaseConfig:
     ApiConfig(
       variant = chess.variant.Variant.orDefault(v),
       clock = cl,
+      moveTimeLimit = ml,
       days = d,
       rated = r,
       color = TriColor.orDefault(~c),

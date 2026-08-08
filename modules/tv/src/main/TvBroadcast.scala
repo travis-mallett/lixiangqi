@@ -80,7 +80,7 @@ final private class TvBroadcast(
               .add("user" -> user)
               .add("ai" -> p.aiLevel)
               .add("rating" -> p.rating)
-              .add("seconds" -> game.clock.map(_.remainingTime(pov.color).roundSeconds))
+              .add("seconds" -> game.clock.map(_.remainingTime(p.color).roundSeconds))
         ),
         fen = game.position.fen
       )
@@ -108,6 +108,7 @@ final private class TvBroadcast(
           )
           .add("wc" -> game.clock.map(_.remainingTime(chess.White).roundSeconds))
           .add("bc" -> game.clock.map(_.remainingTime(chess.Black).roundSeconds))
+          .add("mt" -> game.moveTimeRemaining.map(_.roundSeconds))
       )
       clients.foreach(_.queue.offer(msg))
       featured.foreach { f =>

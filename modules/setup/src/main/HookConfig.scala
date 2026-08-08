@@ -9,12 +9,14 @@ import lila.core.perf.UserWithPerfs
 import lila.core.rating.RatingRange
 import lila.lobby.{ Hook, Seek, TriColor }
 import lila.rating.RatingRange.withinLimits
+import lila.core.game.MoveTimeLimit
 
 case class HookConfig(
     variant: chess.variant.Variant,
     timeMode: TimeMode,
     time: Double, // minutes
     increment: Clock.IncrementSeconds,
+    moveTimeLimit: Option[MoveTimeLimit],
     days: Days,
     rated: Rated,
     color: TriColor,
@@ -30,6 +32,7 @@ case class HookConfig(
     timeMode.id,
     time,
     increment,
+    moveTimeLimit,
     days,
     rated.id.some,
     ratingRange.toString.some,
@@ -57,6 +60,7 @@ case class HookConfig(
             sri = sri,
             variant = variant,
             clock = clock,
+            moveTimeLimit = makeMoveTimeLimit,
             rated = if lila.core.game.allowRated(variant, clock.some) then rated else Rated.No,
             color = color,
             user = user,
@@ -82,6 +86,7 @@ case class HookConfig(
       timeMode = TimeMode.ofGame(game),
       time = game.clock.map(_.limitInMinutes) | time,
       increment = game.clock.map(_.incrementSeconds) | increment,
+      moveTimeLimit = game.moveTimeLimit,
       days = game.daysPerTurn | days,
       rated = game.rated
     )
@@ -95,11 +100,14 @@ case class HookConfig(
 
 object HookConfig extends BaseConfig:
 
+  private given reactivemongo.api.bson.BSONHandler[MoveTimeLimit] = lila.db.BSON.moveTimeLimitHandler
+
   def from(
       v: Variant.Id,
       tm: Int,
       t: Double,
       i: Clock.IncrementSeconds,
+      ml: Option[MoveTimeLimit],
       d: Days,
       m: Option[Int],
       e: Option[String],
@@ -110,6 +118,7 @@ object HookConfig extends BaseConfig:
       timeMode = TimeMode(tm).err(s"Invalid time mode $tm"),
       time = t,
       increment = i,
+      moveTimeLimit = ml,
       days = d,
       rated = m.fold(Rated.default)(Rated.orDefault),
       color = TriColor.orDefault(c),
@@ -123,6 +132,7 @@ object HookConfig extends BaseConfig:
     timeMode = TimeMode.RealTime,
     time = 5d,
     increment = Clock.IncrementSeconds(3),
+    moveTimeLimit = None,
     days = Days(2),
     rated = Rated.default,
     ratingRange = RatingRange.default,
@@ -140,6 +150,7 @@ object HookConfig extends BaseConfig:
         timeMode = TimeMode.orDefault(r.int("tm")),
         time = r.double("t"),
         increment = r.get("i"),
+        moveTimeLimit = r.contains("ml").option(r.get[MoveTimeLimit]("ml")),
         days = r.get("d"),
         rated = Rated.orDefault(r.int("m")),
         color = TriColor.Random,
@@ -152,6 +163,7 @@ object HookConfig extends BaseConfig:
         "tm" -> o.timeMode.id,
         "t" -> o.time,
         "i" -> o.increment,
+        "ml" -> o.moveTimeLimit,
         "d" -> o.days,
         "m" -> o.rated.id,
         "e" -> o.ratingRange.toString

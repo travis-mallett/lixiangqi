@@ -121,7 +121,7 @@ final class RoundMobile(
         )
         .add("socket" -> use.socketStatus.map(_.version))
         .add("expiration" -> lila.game.JsonView.expiration(game))
-        .add("clock", game.clock.map(roundJson.clockJson))
+        .add("clock", game.clock.map(_ => roundJson.clockJson(game)))
         .add("correspondence", game.correspondenceClock)
         .add("takebackable" -> takebackable)
         .add("moretimeable" -> moretimeable)

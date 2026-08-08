@@ -31,7 +31,8 @@ final class FishnetPlayer(
         clock = game.clock | defaultClock
         totalTime = clock.estimateTotalTime.centis
         if totalTime > 20 * 100
-        delay = clock.remainingTime(pov.color).centis.atMost(totalTime) * delayFactor
+        delay = (game.effectiveClockRemaining(pov.color) | clock.remainingTime(pov.color)).centis
+          .atMost(totalTime) * delayFactor
         accel = 1 - (game.ply.value - 20).atLeast(0).atMost(100) / 150f
         sleep = (delay * accel).atMost(500)
         if sleep > 25
@@ -61,8 +62,8 @@ final class FishnetPlayer(
                 else level,
               clock = game.clock.map: clock =>
                 Work.Clock(
-                  wtime = clock.remainingTime(White).centis,
-                  btime = clock.remainingTime(Black).centis,
+                  wtime = (game.effectiveClockRemaining(White) | clock.remainingTime(White)).centis,
+                  btime = (game.effectiveClockRemaining(Black) | clock.remainingTime(Black)).centis,
                   inc = clock.incrementSeconds
                 )
             )

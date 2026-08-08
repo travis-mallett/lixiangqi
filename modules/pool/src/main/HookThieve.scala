@@ -6,9 +6,12 @@ final private class HookThieve(using Executor, Scheduler):
 
   import lila.core.pool.HookThieve.*
 
-  def candidates(clock: chess.Clock.Config): Fu[PoolHooks] =
+  def candidates(
+      clock: chess.Clock.Config,
+      moveTimeLimit: Option[lila.core.game.MoveTimeLimit]
+  ): Fu[PoolHooks] =
     Bus
-      .ask[PoolHooks, HookBus](HookBus.GetCandidates(clock, _))
+      .ask[PoolHooks, HookBus](HookBus.GetCandidates(clock, moveTimeLimit, _))
       .logFailure(logger)
       .recoverDefault(PoolHooks(Vector.empty))
 

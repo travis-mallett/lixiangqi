@@ -54,6 +54,7 @@ final class UserGameApi(
       .add("analysed" -> g.metadata.analysed)
       .add("lastMove" -> g.lastMoveKeys)
       .add("clock" -> g.clock)
+      .add("moveTime" -> g.moveTimeLimit)
       .add("correspondence" -> g.daysPerTurn.map { d =>
         Json.obj("daysPerTurn" -> d)
       })

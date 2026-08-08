@@ -70,6 +70,7 @@ object GameDiff:
         }
     )
     dTry(drawOffers, _.drawOffers, BSONHandlers.gameDrawOffersHandler.writeTry)
+    dOpt(moveTimePaused, _.moveTimePaused, w.boolO)
     for i <- 0 to 1 do
       import lila.game.Player.BSONFields.*
       val name = s"p$i."
@@ -78,6 +79,16 @@ object GameDiff:
       dOpt(s"$name$proposeTakebackAt", player(_).proposeTakebackAt, ply => w.intO(ply.value))
       dTry(s"$name$blursBits", player(_).blurs, Blurs.blursHandler.writeTry)
     dTry(movedAt, _.movedAt, instantHandler.writeTry)
+
+    // Keep the background flag check aligned with the effective clock. This is
+    // persisted in the same update as the move, without adding a database write.
+    b.moveTimeRemaining
+      .flatMap(_ => b.effectiveClockRemaining(b.turnColor))
+      .filter(_ => b.clock.exists(_.isRunning))
+      .foreach: remaining =>
+        setBuilder += checkAt -> instantHandler
+          .writeTry(nowInstant.plusMillis((remaining + Centis.ofSeconds(3)).millis))
+          .get
 
     (setBuilder.toList, unsetBuilder.toList)
 

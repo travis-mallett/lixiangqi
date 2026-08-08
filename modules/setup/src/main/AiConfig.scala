@@ -5,7 +5,7 @@ import chess.variant.Variant
 import chess.{ ByColor, Clock, Ply }
 import scalalib.model.Days
 
-import lila.core.game.{ IdGenerator, NewPlayer, Source }
+import lila.core.game.{ IdGenerator, MoveTimeLimit, NewPlayer, Source }
 import lila.core.user.GameUser
 import lila.lobby.TriColor
 
@@ -14,6 +14,7 @@ case class AiConfig(
     timeMode: TimeMode,
     time: Double,
     increment: Clock.IncrementSeconds,
+    moveTimeLimit: Option[MoveTimeLimit],
     days: Days,
     level: Int,
     color: TriColor,
@@ -24,7 +25,7 @@ case class AiConfig(
 
   val strictFen = true
 
-  def >> = (variant.id, timeMode.id, time, increment, days, level, color.name, fen).some
+  def >> = (variant.id, timeMode.id, time, increment, moveTimeLimit, days, level, color.name, fen).some
 
   private def game(user: GameUser)(using
       idGenerator: IdGenerator,
@@ -46,6 +47,7 @@ case class AiConfig(
             daysPerTurn = makeDaysPerTurn,
             pgnImport = None,
             clock = makeClock.map(_.toClock),
+            moveTimeLimit = makeMoveTimeLimit,
             startedAtPly = Ply(xiangqiGame.state.ply),
             variant = variant
           )
@@ -59,11 +61,14 @@ case class AiConfig(
 
 object AiConfig extends BaseConfig:
 
+  private given reactivemongo.api.bson.BSONHandler[MoveTimeLimit] = lila.db.BSON.moveTimeLimitHandler
+
   def from(
       v: Variant.Id,
       tm: Int,
       t: Double,
       i: Clock.IncrementSeconds,
+      ml: Option[MoveTimeLimit],
       d: Days,
       level: Int,
       c: String,
@@ -74,6 +79,7 @@ object AiConfig extends BaseConfig:
       timeMode = TimeMode(tm).err(s"Invalid time mode $tm"),
       time = t,
       increment = i,
+      moveTimeLimit = ml,
       days = d,
       level = level,
       color = TriColor(c).err("Invalid color " + c),
@@ -85,6 +91,7 @@ object AiConfig extends BaseConfig:
     timeMode = TimeMode.Unlimited,
     time = 5d,
     increment = Clock.IncrementSeconds(8),
+    moveTimeLimit = None,
     days = Days(2),
     level = 1,
     color = TriColor.default
@@ -107,6 +114,7 @@ object AiConfig extends BaseConfig:
         timeMode = TimeMode.orDefault(r.int("tm")),
         time = r.double("t"),
         increment = r.get("i"),
+        moveTimeLimit = r.contains("ml").option(r.get[MoveTimeLimit]("ml")),
         days = r.get("d"),
         level = r.int("l"),
         color = TriColor.White,
@@ -119,6 +127,7 @@ object AiConfig extends BaseConfig:
         "tm" -> o.timeMode.id,
         "t" -> o.time,
         "i" -> o.increment,
+        "ml" -> o.moveTimeLimit,
         "d" -> o.days,
         "l" -> o.level,
         "f" -> o.fen

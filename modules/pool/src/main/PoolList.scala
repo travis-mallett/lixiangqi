@@ -4,6 +4,7 @@ import chess.Clock
 import play.api.libs.json.Json
 
 import lila.core.pool.IsClockCompatible
+import lila.core.game.MoveTimeLimit
 
 object PoolList:
 
@@ -13,7 +14,7 @@ object PoolList:
     def ++(increment: Int) = Clock.Config(Clock.LimitSeconds(i * 60), Clock.IncrementSeconds(increment))
     def players = NbPlayers(i)
 
-  val all: List[PoolConfig] = List(
+  val lobby: List[PoolConfig] = List(
     PoolConfig(1 ++ 0, Wave(12.seconds, 40.players)),
     PoolConfig(2 ++ 1, Wave(18.seconds, 30.players)),
     PoolConfig(3 ++ 0, Wave(12.seconds, 40.players)),
@@ -27,9 +28,29 @@ object PoolList:
     PoolConfig(30 ++ 20, Wave(60.seconds, 20.players))
   )
 
-  val clockStringSet: Set[String] = all.view.map(_.clock.show) to Set
+  val homepage: List[PoolConfig] = List(
+    homepagePool(minutes = 15, normalMoveSeconds = 90, wave = Wave(30.seconds, 20.players)),
+    homepagePool(minutes = 5, normalMoveSeconds = 60, wave = Wave(14.seconds, 40.players)),
+    homepagePool(minutes = 10, normalMoveSeconds = 60, wave = Wave(13.seconds, 30.players)),
+    homepagePool(minutes = 20, normalMoveSeconds = 60, wave = Wave(30.seconds, 20.players))
+  )
 
-  given isClockCompatible: IsClockCompatible = IsClockCompatible: clock =>
-    clockStringSet.contains(clock.show)
+  val all: List[PoolConfig] = lobby ::: homepage
 
-  def json(using lila.core.i18n.Translator) = Json.toJson(all)
+  private def homepagePool(minutes: Int, normalMoveSeconds: Int, wave: Wave) =
+    PoolConfig(
+      minutes ++ 0,
+      wave,
+      MoveTimeLimit(
+        normalMoveSeconds,
+        MoveTimeLimit.FirstPhase(moves = 3, seconds = 30).some
+      ).some
+    )
+
+  private val timeControls = all.view.map(p => p.clock -> p.moveTimeLimit).toSet
+
+  given isClockCompatible: IsClockCompatible = IsClockCompatible: (clock, moveTimeLimit) =>
+    timeControls.contains(clock -> moveTimeLimit)
+
+  def json(using lila.core.i18n.Translate) = Json.toJson(lobby)
+  def homepageJson(using lila.core.i18n.Translate) = Json.toJson(homepage)

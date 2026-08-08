@@ -135,7 +135,12 @@ object Event:
 
   sealed trait ClockEvent extends Event
 
-  case class Clock(white: Centis, black: Centis, nextLagComp: Option[Centis] = None) extends ClockEvent:
+  case class Clock(
+      white: Centis,
+      black: Centis,
+      nextLagComp: Option[Centis] = None,
+      moveTime: Option[Centis] = None
+  ) extends ClockEvent:
     def typ = "clock"
     def data =
       Json
@@ -144,13 +149,19 @@ object Event:
           "black" -> black.toSeconds
         )
         .add("lag" -> nextLagComp.filter(_ > Centis(1)))
+        .add("moveTime" -> moveTime.map(_.toSeconds))
   object Clock:
-    def apply(clock: ChessClock): Clock =
+    def apply(clock: ChessClock): Clock = apply(clock, None)
+
+    def apply(clock: ChessClock, moveTime: Option[Centis]): Clock =
       Clock(
         clock.remainingTime(Color.White),
         clock.remainingTime(Color.Black),
-        clock.lagCompEstimate(clock.color)
+        clock.lagCompEstimate(clock.color),
+        moveTime
       )
+
+    def apply(game: Game): Option[Clock] = game.clock.map(apply(_, game.moveTimeRemaining))
 
   case class Berserk(color: Color) extends Event:
     def typ = "berserk"

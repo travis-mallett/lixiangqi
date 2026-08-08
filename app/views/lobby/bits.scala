@@ -4,20 +4,53 @@ import lila.app.UiEnv.{ *, given }
 
 object bits:
 
-  val lobbyApp = div(cls := "lobby__app")(
-    div(cls := "tabs-horiz")(span(nbsp)),
-    div(cls := "lobby__app__content lpools")
-  )
+  // Adapted from WandererXII/lishogi's AGPL-3.0-or-later homepage leaderboard:
+  // https://github.com/WandererXII/lishogi/blob/master/app/views/lobby/bits.scala
+  // Icon colors follow https://github.com/WandererXII/lishogi/commit/6cc0e9e.
+  // Lixiangqi uses its native ranking cache, user links, titles, flags, and routes.
 
-  def underboards(tours: List[lila.tournament.Tournament])(using ctx: Context) =
-    div(cls := "lobby__tournaments-simuls")(
-      div(cls := "lobby__tournaments lobby__box")(
-        a(cls := "lobby__box__top", href := routes.Tournament.home)(
-          h2(cls := "title text", dataIcon := Icon.Trophy)(trans.site.openTournaments()),
-          span(cls := "more")(trans.site.more(), " »")
-        ),
-        div(cls := "lobby__box__content"):
-          views.tournament.ui.enterable(tours)
+  def homepageLeaderboard(
+      leaderboard: List[lila.core.user.LightPerf],
+      flags: Map[UserId, lila.core.user.FlagCode]
+  )(using ctx: Context) =
+    st.section(cls := "lobby__leaderboard lobby__box")(
+      header(cls := "lobby__leaderboard__header")(
+        h2(cls := "text", dataIcon := Icon.BarChart)(trans.site.leaderboard()),
+        a(cls := "more", href := routes.User.list)(trans.site.more(), " »")
+      ),
+      div(cls := "lobby__leaderboard__scroll")(
+        table(
+          tbody(
+            leaderboard.map: entry =>
+              tr(
+                td(cls := "lobby__leaderboard__user")(
+                  lightUserLink(entry.user, truncate = 18.some),
+                  flags
+                    .get(entry.user.id)
+                    .map: code =>
+                      img(
+                        cls := "flag",
+                        src := assetUrl(s"flags/${code.value}.webp"),
+                        alt := "",
+                        aria.hidden := "true"
+                      )
+                ),
+                td(
+                  cls := "lobby__leaderboard__perf text",
+                  dataIcon := entry.perfKey.perfIcon,
+                  title := entry.perfKey.perfTrans
+                ),
+                td(cls := "lobby__leaderboard__rating")(entry.rating),
+                td(cls := "lobby__leaderboard__progress")(
+                  if entry.progress.positive then
+                    span(cls := "is-up text", dataIcon := Icon.ArrowUpRight)(entry.progress.value)
+                  else if entry.progress.negative then
+                    span(cls := "is-down text", dataIcon := Icon.ArrowDownRight)(-entry.progress.value)
+                  else span(cls := "is-flat")("–")
+                )
+              )
+          )
+        )
       )
     )
 
@@ -85,25 +118,5 @@ object bits:
     )
 
   def nopeInfo(content: Modifier*) =
-    frag(
-      div(cls := "lobby__app"),
-      div(cls := "lobby__nope"):
-        st.section(cls := "lobby__app__content")(content)
-    )
-
-  def spotlight(e: lila.event.Event)(using Context) =
-    a(
-      href := (if e.isNow || !e.countdown then e.url else routes.Event.show(e.id).url),
-      cls := List(
-        s"tour-spotlight event-spotlight id_${e.id}" -> true,
-        "invert" -> e.isNowOrSoon
-      )
-    )(
-      views.event.iconOf(e),
-      span(cls := "content")(
-        span(cls := "name")(e.title),
-        span(cls := "headline")(e.headline),
-        span(cls := "more"):
-          if e.isNow then trans.site.eventInProgress() else momentFromNow(e.startsAt)
-      )
-    )
+    div(cls := "lobby__nope lobby__box"):
+      st.section(cls := "lobby__nope__content")(content)

@@ -1,7 +1,7 @@
 import { clockToSpeed } from '@/game';
 import { propWithEffect, type Prop } from '@/index';
 
-import type { ClockConfig, InputValue, RealValue } from './interfaces';
+import type { ClockConfig, InputValue, MoveTimeLimitConfig, RealValue } from './interfaces';
 
 export type TimeMode = 'realTime' | 'correspondence' | 'unlimited';
 
@@ -15,6 +15,7 @@ export class TimeControl {
     readonly timeV: Prop<InputValue>,
     readonly incrementV: Prop<InputValue>,
     readonly daysV: Prop<InputValue>,
+    readonly moveTime: Prop<MoveTimeLimitConfig | undefined>,
     readonly presets: ClockConfig[],
   ) {}
 
@@ -27,7 +28,51 @@ export class TimeControl {
   realTimeValid = (minimumTime = 0): boolean =>
     this.time() >= minimumTime && (this.time() > 0 || this.increment() > 0);
 
-  valid = (minimumTimeIfReal = 0): boolean => !this.isRealTime() || this.realTimeValid(minimumTimeIfReal);
+  valid = (minimumTimeIfReal = 0): boolean =>
+    !this.isRealTime() || (this.realTimeValid(minimumTimeIfReal) && this.moveTimeValid());
+
+  moveTimeValid = (): boolean => {
+    const limit = this.moveTime();
+    return (
+      !limit ||
+      (validMoveSeconds(limit.seconds) &&
+        (!limit.first || (validFirstMoves(limit.first.moves) && validMoveSeconds(limit.first.seconds))))
+    );
+  };
+
+  setMoveTimeEnabled = (enabled: boolean): void => {
+    this.moveTime(enabled ? this.moveTime() || { seconds: 90 } : undefined);
+  };
+
+  setMoveTimeSeconds = (seconds: number): void => {
+    this.moveTime({ ...(this.moveTime() || { seconds: 90 }), seconds });
+  };
+
+  setFirstMoveTimeEnabled = (enabled: boolean): void => {
+    const limit = this.moveTime() || { seconds: 90 };
+    this.moveTime({ ...limit, first: enabled ? limit.first || { moves: 3, seconds: 30 } : undefined });
+  };
+
+  setFirstMoves = (moves: number): void => {
+    const limit = this.moveTime()!;
+    this.moveTime({ ...limit, first: { ...(limit.first || { moves: 3, seconds: 30 }), moves } });
+  };
+
+  setFirstMoveSeconds = (seconds: number): void => {
+    const limit = this.moveTime()!;
+    this.moveTime({ ...limit, first: { ...(limit.first || { moves: 3, seconds: 30 }), seconds } });
+  };
+
+  matchesPreset = (preset: ClockConfig): boolean =>
+    this.time() === preset.lim &&
+    this.increment() === preset.inc &&
+    sameMoveTime(this.moveTime(), preset.moveTime);
+
+  selectPreset = (preset: ClockConfig): void => {
+    this.timeV(sliderInitVal(preset.lim, timeVToTime, 100, 9));
+    this.incrementV(sliderInitVal(preset.inc, incrementVToIncrement, 100, 0));
+    this.moveTime(preset.moveTime);
+  };
 
   initialSeconds = (): Seconds => this.time() * 60;
 
@@ -50,6 +95,7 @@ export const timeControlFromStoredValues = (
   time: RealValue,
   inc: RealValue,
   days: RealValue,
+  moveTime: MoveTimeLimitConfig | undefined,
   onChange: () => void,
   presets: ClockConfig[],
 ): TimeControl =>
@@ -59,8 +105,41 @@ export const timeControlFromStoredValues = (
     propWithEffect(sliderInitVal(time, timeVToTime, 100, 14), onChange),
     propWithEffect(sliderInitVal(inc, incrementVToIncrement, 100, 5), onChange),
     propWithEffect(sliderInitVal(days, daysVToDays, 20, 7), onChange),
+    propWithEffect(moveTime, onChange),
     presets,
   );
+
+const validMoveSeconds = (seconds: number): boolean =>
+  Number.isInteger(seconds) && seconds >= 1 && seconds <= 300;
+
+const validFirstMoves = (moves: number): boolean => Number.isInteger(moves) && moves >= 1 && moves <= 20;
+
+const sameMoveTime = (a?: MoveTimeLimitConfig, b?: MoveTimeLimitConfig): boolean =>
+  a?.seconds === b?.seconds && a?.first?.moves === b?.first?.moves && a?.first?.seconds === b?.first?.seconds;
+
+export const formatMoveTime = (limit: MoveTimeLimitConfig): string =>
+  limit.first
+    ? i18n.site.moveTimeLimitDescription(limit.first.seconds, limit.first.moves, limit.seconds)
+    : i18n.site.secondsPerMove(limit.seconds);
+
+export const formatMoveTimeShort = (limit: MoveTimeLimitConfig): string =>
+  limit.first
+    ? i18n.site.moveTimeLimitShort(limit.first.seconds, limit.first.moves, limit.seconds)
+    : i18n.site.secondsPerMove(limit.seconds);
+
+export const formatMoveTimeCompact = (limit: MoveTimeLimitConfig): string =>
+  limit.first
+    ? `${limit.first.seconds}s × ${limit.first.moves} → ${limit.seconds}s/move`
+    : `${limit.seconds}s/move`;
+
+export const formatClock = (clock: string, moveTime?: MoveTimeLimitConfig): string =>
+  moveTime ? `${clock} · ${formatMoveTimeShort(moveTime)}` : clock;
+
+export const poolId = (clock: string, moveTime?: MoveTimeLimitConfig): string => {
+  if (!moveTime) return clock;
+  const opening = moveTime.first ? `-${moveTime.first.seconds}x${moveTime.first.moves}` : '';
+  return `${clock}-m${moveTime.seconds}${opening}`;
+};
 
 export const timeModes: { id: number; key: TimeMode; name: string }[] = [
   { id: 1, key: 'realTime', name: i18n.site.realTime },

@@ -13,7 +13,7 @@ import scalalib.model.Days
 import scalalib.net.Bearer
 
 import lila.core.data.Template
-import lila.core.game.GameRule
+import lila.core.game.{ GameRule, MoveTimeLimit }
 import lila.game.IdGenerator
 import lila.oauth.{ EndpointScopes, OAuthScope, OAuthServer }
 import lila.common.Form.into
@@ -34,6 +34,7 @@ final class ChallengeBulkSetup(setupForm: lila.core.setup.SetupForm):
         .verifying(s"Too many tokens (max: ${maxGames * 2})", t => extractTokenPairs(t).sizeIs <= maxGames),
       setupForm.variant,
       setupForm.clock,
+      setupForm.moveTimeLimit,
       setupForm.optionalDays,
       "fen" -> optional(lila.common.Form.fen.mapping),
       "rated" -> boolean.into[Rated],
@@ -46,6 +47,7 @@ final class ChallengeBulkSetup(setupForm: lila.core.setup.SetupForm):
           tokens: String,
           variant: Option[Variant.LilaKey],
           clock: Option[Clock.Config],
+          moveTimeLimit: Option[MoveTimeLimit],
           days: Option[Days],
           fen: Option[Fen.Full],
           rated: Rated,
@@ -58,6 +60,7 @@ final class ChallengeBulkSetup(setupForm: lila.core.setup.SetupForm):
           tokens,
           Variant.orDefault(variant),
           clock,
+          moveTimeLimit,
           days,
           rated,
           pairTs.map(millisToInstant),
@@ -70,6 +73,11 @@ final class ChallengeBulkSetup(setupForm: lila.core.setup.SetupForm):
       .verifying(
         "clock or correspondence days required",
         c => c.clock.isDefined || c.days.isDefined
+      )
+      .verifying("Time per move requires a clock", c => c.moveTimeLimit.isEmpty || c.clock.isDefined)
+      .verifying(
+        "Time per move requires a scheduled clock start",
+        c => c.moveTimeLimit.isEmpty || c.startClocksAt.isDefined
       )
       .verifying("invalidFen", _.validFen)
       .verifying(
@@ -138,14 +146,15 @@ final class ChallengeBulkSetupApi(
                 .map:
                   _.map:
                     case (id, (w, b)) => ScheduledGame(id, w, b)
-                .dmap:
+                .dmap: games =>
                   ScheduledBulk(
                     id = ThreadLocalRandom.nextString(8),
                     by = me.id,
-                    _,
-                    data.variant,
-                    data.clockOrDays,
-                    data.rated,
+                    games = games,
+                    variant = data.variant,
+                    clock = data.clockOrDays,
+                    moveTimeLimit = data.moveTimeLimit,
+                    rated = data.rated,
                     pairAt = data.pairAt | nowInstant,
                     startClocksAt = data.startClocksAt,
                     message = data.message,
@@ -172,6 +181,7 @@ object ChallengeBulkSetup:
       games: List[ScheduledGame],
       variant: Variant,
       clock: Either[Clock.Config, Days],
+      moveTimeLimit: Option[MoveTimeLimit] = None,
       rated: Rated,
       pairAt: Instant,
       startClocksAt: Option[Instant],
@@ -197,6 +207,7 @@ object ChallengeBulkSetup:
       tokens: String,
       variant: Variant,
       clock: Option[Clock.Config],
+      moveTimeLimit: Option[MoveTimeLimit],
       days: Option[Days],
       rated: Rated,
       pairAt: Option[Instant],
@@ -244,6 +255,11 @@ object ChallengeBulkSetup:
         ))
       .add("correspondence" -> bulk.clock.toOption.map: days =>
         Json.obj("daysPerTurn" -> days))
+      .add("moveTime" -> moveTimeLimit.map: limit =>
+        Json
+          .obj("seconds" -> limit.seconds)
+          .add("first" -> limit.first.map: first =>
+            Json.obj("moves" -> first.moves, "seconds" -> first.seconds)))
       .add("message" -> message.map(_.value))
       .add("rules" -> nonEmptyRules)
       .add("fen" -> fen)

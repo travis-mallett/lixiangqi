@@ -9,7 +9,7 @@ import scalalib.model.Days
 
 import lila.core.id.ChallengeId
 import lila.core.userId.UserId
-import lila.core.game.Game
+import lila.core.game.{ Game, MoveTimeLimit }
 
 trait Challenge:
   import Challenge.*
@@ -36,10 +36,17 @@ object Challenge:
   object TimeControl:
     case object Unlimited extends TimeControl
     case class Correspondence(days: Days) extends TimeControl
-    case class Clock(config: _root_.chess.Clock.Config) extends TimeControl:
+    case class Clock(
+        config: _root_.chess.Clock.Config,
+        moveTimeLimit: Option[MoveTimeLimit] = None
+    ) extends TimeControl:
       override def realTime = config.some
       // All durations are expressed in seconds
-      export config.{ limit, increment, show }
+      export config.{ limit, increment }
+      def show = moveTimeLimit.fold(config.show): limit =>
+        val movePart = limit.first.fold(s"${limit.seconds}s/move"): first =>
+          s"first ${first.moves}: ${first.seconds}s, then ${limit.seconds}s/move"
+        s"${config.show} · $movePart"
 
   case class Rating(int: IntRating, provisional: RatingProvisional):
     def show = s"$int${if provisional.yes then "?" else ""}"

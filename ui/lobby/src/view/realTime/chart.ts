@@ -2,6 +2,7 @@ import { h, type VNode } from 'snabbdom';
 
 import perfIcons from 'lib/game/perfIcons';
 import { licon } from 'lib/licon';
+import { formatClock } from 'lib/setup/timeControl';
 import { bind, onInsert } from 'lib/view';
 
 import type LobbyController from '@/ctrl';
@@ -78,7 +79,7 @@ function renderHook(ctrl: LobbyController, hook: Hook): string {
     html += '<span class="opponent anon">' + i18n.site.anonymous + '</span>';
   }
   html += '<div class="inner-clickable">';
-  html += `<div>${hook.clock}</div>`;
+  html += `<div>${formatClock(hook.clock, hook.moveTime)}</div>`;
   html +=
     '<icon data-icon="' + perfIcons[hook.perf] + '"> ' + i18n.site[hook.ra ? 'rated' : 'casual'] + '</icon>';
   html += '</div></div>';

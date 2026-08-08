@@ -131,7 +131,7 @@ lazy val markdown = module("markdown",
 
 lazy val db = module("db",
   Seq(common),
-  Seq(hasher) ++ macwire.bundle
+  Seq(hasher) ++ macwire.bundle ++ tests.bundle
 )
 
 lazy val memo = module("memo",
@@ -291,7 +291,7 @@ lazy val round = module("round",
 
 lazy val pool = module("pool",
   Seq(rating),
-  Seq()
+  tests.bundle
 )
 
 lazy val activity = module("activity",

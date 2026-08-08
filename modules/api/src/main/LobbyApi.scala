@@ -30,7 +30,8 @@ final class LobbyApi(
             "counters" -> Json.obj(
               "members" -> lobbySocket.counters.members,
               "rounds" -> lobbySocket.counters.rounds
-            )
+            ),
+            "poolCounts" -> lobbySocket.poolCountsJson
           )
           .add("ratingMap", me.map(_.perfs).map(ratingMap))
           .add(

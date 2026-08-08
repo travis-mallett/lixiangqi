@@ -1,7 +1,7 @@
 package lila.round
 
 import chess.format.Fen
-import chess.{ ByColor, Clock, Color, Speed }
+import chess.{ ByColor, Color, Speed }
 import play.api.libs.json.*
 
 import scala.math
@@ -12,7 +12,7 @@ import lila.core.game.Player as GamePlayer
 import lila.core.net.ApiVersion
 import lila.core.perf.KeyedPerf
 import lila.core.user.{ GameUser, GameUsers, WithPerf }
-import lila.game.GameExt.{ moveTimes, expirable, timeForFirstMove }
+import lila.game.GameExt.{ hasFirstMoveDeadline, moveTimes, timeForFirstMove }
 import lila.game.JsonView.given
 import lila.pref.Pref
 import lila.round.RoundGame.*
@@ -117,12 +117,12 @@ final class JsonView(
             .add("showCaptured" -> pref.captured)
             .add("submitMove" -> submitMovePref(pref, game, flags.nvui))
       )
-      .add("clock" -> game.clock.map(clockJson))
+      .add("clock" -> game.clock.map(_ => clockJson(game)))
       .add("correspondence" -> game.correspondenceClock)
       .add("takebackable" -> takebackable)
       .add("moretimeable" -> moretimeable)
       .add("possibleMoves" -> possibleMoves(pov))
-      .add("expiration" -> game.expirable.option:
+      .add("expiration" -> game.hasFirstMoveDeadline.option:
         Json.obj(
           "idleMillis" -> (nowMillis - game.movedAt.toMillis),
           "millisToMove" -> game.timeForFirstMove.millis
@@ -170,7 +170,7 @@ final class JsonView(
             .add("moveCentis" -> (flags.movetimes.so(game.moveTimes.map(_.map(_.centis)))))
             .add("division" -> flags.division.option(divider.forGame(game)))
             .add("importedBy" -> game.pgnImport.flatMap(_.user)),
-          "clock" -> game.clock.map(clockJson),
+          "clock" -> game.clock.map(_ => clockJson(game)),
           "correspondence" -> game.correspondenceClock,
           "player" -> {
             commonWatcherJson(game, player, users(pov.color), flags) ++ Json
@@ -282,8 +282,9 @@ final class JsonView(
         ("percent" -> JsNumber(game.playerBlurPercent(player.color)))
 
   private val moretimeJson = ("moretime" -> JsNumber(lila.core.round.Moretime.defaultDuration.toSeconds))
-  private[round] def clockJson(clock: Clock): JsObject =
-    Json.toJsObject(clock) + moretimeJson
+  private[round] def clockJson(game: Game): JsObject =
+    Json.toJsObject(game.clock.get) + moretimeJson ++
+      Json.obj().add("moveTime" -> game.moveTimeRemaining.map(_.toSeconds))
 
   private def possibleMoves(pov: Pov): Option[JsValue] =
     pov.game

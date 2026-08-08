@@ -139,8 +139,8 @@ final class PlaybanApi(
             yield feedback.noStart(Pov(game, !w))
           else
             game.clock
-              .filter:
-                _.remainingTime(loser.color) < Centis(1000) &&
+              .filter: _ =>
+                game.effectiveClockRemaining(loser.color).exists(_ < Centis(1000)) &&
                   game.turnOf(loser) &&
                   status.is(_.Resign)
               .map: c =>

@@ -100,6 +100,7 @@ final private class Rematcher(
       sloppy = lila.core.game.newGame(
         xiangqi = newXiangqi,
         clock = pov.game.clock.map(c => Clock(c.config)),
+        moveTimeLimit = pov.game.moveTimeLimit,
         startedAtPly = chess.Ply(newXiangqi.states.head.ply),
         players = ByColor(returnPlayer(pov.game, _, users)),
         rated = if users.exists(_.exists(_.user.lame)) then Rated.No else pov.game.rated,

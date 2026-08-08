@@ -4,7 +4,7 @@ import org.apache.pekko.actor.*
 import org.apache.pekko.pattern.pipe
 import scalalib.ThreadLocalRandom
 
-import lila.core.pool.{ HookThieve, PoolMember, PoolFrom }
+import lila.core.pool.{ HookThieve, PoolCount, PoolMember, PoolFrom }
 import lila.core.socket.Sris
 
 final private class PoolActor(
@@ -32,6 +32,11 @@ final private class PoolActor(
 
   scheduleWave()
 
+  private def updateMembers(next: Vector[PoolMember]): Unit =
+    val previousSize = members.size
+    members = next
+    if members.size != previousSize then lila.common.Bus.pub(PoolCount(config.id, members.size))
+
   def receive =
 
     case Join(joiner) if lastPairedUserIds(joiner.userId) =>
@@ -40,12 +45,12 @@ final private class PoolActor(
     case Join(joiner) =>
       members.find(m => joiner.userId.is(m.userId)) match
         case None =>
-          members = members :+ joiner
+          updateMembers(members :+ joiner)
           // #TODO #FIXME race condition. several full waves can be sent here.
           if members.sizeIs >= config.wave.players.value then self ! FullWave
         case Some(existing) if existing.ratingRange != joiner.ratingRange =>
-          members = members.map: m =>
-            if m == existing then m.withRange(joiner.ratingRange) else m
+          updateMembers(members.map: m =>
+            if m == existing then m.withRange(joiner.ratingRange) else m)
         case _ => // no change
       members
 
@@ -53,7 +58,7 @@ final private class PoolActor(
       members
         .find(_.userId == userId)
         .foreach: member =>
-          members = members.filterNot(_ == member)
+          updateMembers(members.filterNot(_ == member))
 
     case ScheduledWave =>
       monitor.scheduled(monId).increment()
@@ -66,7 +71,7 @@ final private class PoolActor(
     case RunWave =>
       nextWave.cancel()
       // #TODO #FIXME race condition.
-      hookThieve.candidates(config.clock).pipeTo(self)
+      hookThieve.candidates(config.clock, config.moveTimeLimit).pipeTo(self)
 
     case HookThieve.PoolHooks(hooks) =>
       monitor.withRange(monId).record(members.count(_.hasRange))
@@ -83,7 +88,7 @@ final private class PoolActor(
         monId
       )
 
-      members = members.diff(pairedMembers).map(_.incMisses)
+      updateMembers(members.diff(pairedMembers).map(_.incMisses))
 
       gameStarter(config, pairings)
 
@@ -100,8 +105,10 @@ final private class PoolActor(
     // lila-ws sends us the list of sris currently connected through WS
     // so we can cleanup members that are not connected anymore
     case Sris(sris) =>
-      members = members.filter: member =>
-        member.from != PoolFrom.Socket || sris.contains(member.sri)
+      updateMembers(
+        members.filter: member =>
+          member.from != PoolFrom.Socket || sris.contains(member.sri)
+      )
 
   val monitor = lila.mon.lobby.pool.wave
   val monId = config.id.value.replace('+', '_')

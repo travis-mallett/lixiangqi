@@ -20,6 +20,7 @@ export interface ClockData extends ClockConfig {
   running: boolean;
   white: Seconds;
   black: Seconds;
+  moveTime?: Seconds;
 }
 export interface ClockPref {
   clockTenths: ShowClockTenths;
@@ -29,6 +30,7 @@ export interface ClockPref {
 interface Times {
   white: Millis;
   black: Millis;
+  moveTime?: Millis;
   activeColor?: Color;
   lastUpdate: Millis;
 }
@@ -36,6 +38,8 @@ interface Times {
 export interface ClockElements {
   time?: HTMLElement;
   clock?: HTMLElement;
+  moveTime?: HTMLElement;
+  moveClock?: HTMLElement;
   bar?: HTMLElement;
   barAnim?: Animation;
 }
@@ -53,6 +57,7 @@ interface EmergSound {
 export interface SetData {
   white: Seconds;
   black: Seconds;
+  moveTime?: Seconds;
   ticking?: Color;
   delay?: Centis; // network lag to visually compensate
 }
@@ -74,6 +79,8 @@ export class ClockCtrl {
   barTime: number;
   timeRatioDivisor: number;
   emergMs: Millis;
+  readonly moveEmergMs = 10000;
+  hasMoveTime = false;
   alarmAction?: { seconds: Seconds; fire: () => void };
   elements: ByColor<ClockElements> = { white: {}, black: {} };
 
@@ -104,6 +111,7 @@ export class ClockCtrl {
     this.setClock({
       white: data.white,
       black: data.black,
+      moveTime: data.moveTime,
       ticking,
     });
   }
@@ -112,15 +120,21 @@ export class ClockCtrl {
 
   setClock = (d: SetData): void => {
     const delayMs = (d.delay || 0) * 10;
+    if (d.moveTime !== undefined) this.hasMoveTime = true;
 
     this.times = {
       white: d.white * 1000,
       black: d.black * 1000,
+      moveTime: d.moveTime === undefined ? undefined : d.moveTime * 1000,
       activeColor: d.ticking,
       lastUpdate: performance.now() + delayMs,
     };
 
-    if (d.ticking) this.scheduleTick(this.times[d.ticking], delayMs);
+    if (d.ticking)
+      this.scheduleTick(
+        Math.min(this.times[d.ticking], this.times.moveTime ?? Number.POSITIVE_INFINITY),
+        delayMs,
+      );
   };
 
   addTime = (color: Color, time: Centis): void => {
@@ -132,12 +146,16 @@ export class ClockCtrl {
     if (color) {
       const curElapse = this.elapsed();
       this.times[color] = Math.max(0, this.times[color] - curElapse);
+      this.times.moveTime = undefined;
       this.times.activeColor = undefined;
       return curElapse;
     }
   };
 
-  hardStopClock = (): void => (this.times.activeColor = undefined);
+  hardStopClock = (): void => {
+    this.times.activeColor = undefined;
+    this.times.moveTime = undefined;
+  };
 
   private readonly scheduleTick = (time: Millis, extraDelay: Millis) => {
     if (this.tickTimeout !== undefined) clearTimeout(this.tickTimeout);
@@ -162,24 +180,31 @@ export class ClockCtrl {
     if (color === undefined) return;
 
     const now = performance.now();
-    const millis = Math.max(0, this.times[color] - this.elapsed(now));
+    const bankMillis = this.millisOf(color, now);
+    const moveMillis = this.moveTimeMillis(now);
+    const effectiveMillis = Math.min(bankMillis, moveMillis ?? Number.POSITIVE_INFINITY);
 
-    this.scheduleTick(millis, 0);
-    if (millis === 0) this.opts.onFlag();
-    else updateElements(this, this.elements[color], millis);
+    this.scheduleTick(effectiveMillis, 0);
+    updateElements(this, this.elements[color], bankMillis, moveMillis);
+    if (effectiveMillis === 0) this.opts.onFlag();
 
     if (this.opts.alarmColor === color) {
-      if (this.alarmAction && millis < this.alarmAction.seconds * 1000) {
+      if (this.alarmAction && bankMillis < this.alarmAction.seconds * 1000) {
         this.alarmAction.fire();
         this.alarmAction = undefined;
       }
+      const inTimeTrouble =
+        bankMillis < this.emergMs || (moveMillis !== undefined && moveMillis < this.moveEmergMs);
       if (this.emergSound.playable[color]) {
-        if (millis < this.emergMs && !(now < this.emergSound.next!)) {
+        if (inTimeTrouble && !(now < this.emergSound.next!)) {
           this.emergSound.play();
           this.emergSound.next = now + this.emergSound.delay;
           this.emergSound.playable[color] = false;
         }
-      } else if (millis > 1.5 * this.emergMs) {
+      } else if (
+        bankMillis > 1.5 * this.emergMs &&
+        (moveMillis === undefined || moveMillis > 1.5 * this.moveEmergMs)
+      ) {
         this.emergSound.playable[color] = true;
       }
     }
@@ -187,8 +212,15 @@ export class ClockCtrl {
 
   elapsed = (now: number = performance.now()): number => Math.max(0, now - this.times.lastUpdate);
 
-  millisOf = (color: Color): Millis =>
-    this.times.activeColor === color ? Math.max(0, this.times[color] - this.elapsed()) : this.times[color];
+  millisOf = (color: Color, now: number = performance.now()): Millis => {
+    if (this.times.activeColor !== color) return this.times[color];
+    return Math.max(0, this.times[color] - this.elapsed(now));
+  };
+
+  moveTimeMillis = (now: number = performance.now()): Millis | undefined => {
+    if (this.times.activeColor === undefined || this.times.moveTime === undefined) return undefined;
+    return Math.max(0, this.times.moveTime - this.elapsed(now));
+  };
 
   isRunning = (): boolean => this.times.activeColor !== undefined;
 

@@ -413,12 +413,21 @@ final class GameRepo(c: Coll)(using Executor) extends lila.core.game.GameRepo(c)
       g2.fromPosition.option(xiangqiInitialFen)
     val checkInHours =
       if g2.isPgnImport then none
+      // Scheduled bulk clocks can remain intentionally paused for up to seven days.
+      else if g2.moveTimePaused then some(24 * 10)
       else if g2.sourceIs(_.Api) then some(24 * 7)
       else if g2.hasClock then 1.some
       else some(24 * 10)
+    val checkAt =
+      if g2.isPgnImport then none
+      else
+        g2.moveTimeRemaining
+          .flatMap(_ => g2.effectiveClockRemaining(g2.turnColor))
+          .map(remaining => nowInstant.plusMillis((remaining + chess.Centis.ofSeconds(3)).millis))
+          .orElse(checkInHours.map(nowInstant.plusHours(_)))
     val bson = gameHandler.write(g2) ++ $doc(
       F.initialFen -> fen,
-      F.checkAt -> checkInHours.map(nowInstant.plusHours(_)),
+      F.checkAt -> checkAt,
       F.playingUids -> (g2.started && userIds.nonEmpty).option(userIds)
     )
     coll.insert

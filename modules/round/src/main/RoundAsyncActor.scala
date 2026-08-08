@@ -377,7 +377,7 @@ final private class RoundAsyncActor(
                   if millis <= 0 then
                     notifyGone(pov, gone = true)
                     publishBoardBotGone(pov, 0L.some)
-                  else if g.clock.exists(_.remainingTime(c).millis > millis + 3000)
+                  else if g.effectiveClockRemaining(c).exists(_.millis > millis + 3000)
                   then
                     notifyGoneIn(pov, millis)
                     publishBoardBotGone(pov, millis.some)

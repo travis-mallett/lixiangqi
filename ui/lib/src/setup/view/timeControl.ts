@@ -6,8 +6,6 @@ import { option } from '../option';
 import {
   timeModes,
   sliderTimes,
-  sliderInitVal,
-  timeVToTime,
   incrementVToIncrement,
   daysVToDays,
   type TimeControl,
@@ -56,6 +54,7 @@ const blindModeTimePickers = (tc: TimeControl) => {
           ),
         ),
       ]),
+    tc.mode() === 'realTime' && renderMoveTime(tc),
     tc.mode() === 'correspondence' &&
       hl('div.days-choice', [
         hl('label', { attrs: { for: 'sf_days' } }, i18n.site.daysPerTurn),
@@ -106,6 +105,50 @@ const inputRange = (min: number, max: number, prop: Prop<InputValue>, classes?: 
     },
     on: { input: (e: Event) => prop(parseFloat((e.target as HTMLInputElement).value)) },
   });
+
+const numberInput = (id: string, value: number, min: number, max: number, set: (value: number) => void) =>
+  hl(`input#${id}.move-time-number`, {
+    attrs: { type: 'number', min, max, value },
+    props: { value },
+    on: { input: (e: Event) => set(Number((e.target as HTMLInputElement).value)) },
+  });
+
+const checkbox = (id: string, checked: boolean, set: (checked: boolean) => void) =>
+  hl(`input#${id}`, {
+    attrs: { type: 'checkbox' },
+    props: { checked },
+    on: { change: (e: Event) => set((e.target as HTMLInputElement).checked) },
+  });
+
+const renderMoveTime = (tc: TimeControl): VNode => {
+  const limit = tc.moveTime();
+  return hl('div.move-time-control', { class: { failure: !tc.moveTimeValid() } }, [
+    hl('label.move-time-toggle', { attrs: { for: 'sf_move_time' } }, [
+      checkbox('sf_move_time', !!limit, tc.setMoveTimeEnabled),
+      hl('span', i18n.site.timePerMove),
+    ]),
+    limit &&
+      hl('div.move-time-fields', [
+        hl('label.move-time-field', { attrs: { for: 'sf_move_time_seconds' } }, [
+          hl('span', i18n.site.moveTimeLimit),
+          numberInput('sf_move_time_seconds', limit.seconds, 1, 300, tc.setMoveTimeSeconds),
+          hl('span', i18n.site.seconds),
+        ]),
+        hl('label.move-time-toggle.opening', { attrs: { for: 'sf_move_time_first' } }, [
+          checkbox('sf_move_time_first', !!limit.first, tc.setFirstMoveTimeEnabled),
+          hl('span', i18n.site.differentLimitForOpeningMoves),
+        ]),
+        limit.first &&
+          hl('div.move-time-opening', [
+            hl('label', { attrs: { for: 'sf_move_time_first_moves' } }, i18n.site.first),
+            numberInput('sf_move_time_first_moves', limit.first.moves, 1, 20, tc.setFirstMoves),
+            hl('span', i18n.site.moves),
+            numberInput('sf_move_time_first_seconds', limit.first.seconds, 1, 300, tc.setFirstMoveSeconds),
+            hl('label', { attrs: { for: 'sf_move_time_first_seconds' } }, i18n.site.secondsEach),
+          ]),
+      ]),
+  ]);
+};
 
 export const timePickerAndSliders = (tc: TimeControl, minimumTimeRequiredIfReal = 0): VNode => {
   if (site.blindMode) return hl('div.config-group', blindModeTimePickers(tc));
@@ -163,19 +206,17 @@ export const timePickerAndSliders = (tc: TimeControl, minimumTimeRequiredIfReal 
             'button.preset-btn',
             {
               class: {
-                active: tcTime === p.lim && tcIncrement === p.inc,
+                active: tc.matchesPreset(p),
               },
               on: {
-                click: () => {
-                  tc.timeV(sliderInitVal(p.lim, timeVToTime, 100, 9));
-                  tc.incrementV(sliderInitVal(p.inc, incrementVToIncrement, 100, 0));
-                },
+                click: () => tc.selectPreset(p),
               },
             },
             `${showTime(p.lim)}+${p.inc}`,
           ),
         ),
       ),
+      renderMoveTime(tc),
     ]);
   } else if (activeMode === 'correspondence') {
     panelContent = hl('div.time-panel', [

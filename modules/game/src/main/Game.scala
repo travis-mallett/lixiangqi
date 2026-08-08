@@ -63,8 +63,10 @@ object GameExt:
     def withClock(c: Clock) = Progress(g, g.copy(clock = Some(c)))
 
     def startClock: Option[Progress] =
-      g.clock.map: c =>
-        g.start.withClock(c.start)
+      g.clock
+        .filter(c => !c.isRunning || g.moveTimePaused)
+        .map: c =>
+          Progress(g, g.start.copy(clock = Some(c.start), moveTimePaused = false))
 
     def playerHasOfferedDrawRecently(color: Color) =
       g.drawOffers.lastBy(color).exists(_ >= g.ply - 20)
@@ -95,7 +97,7 @@ object GameExt:
           ) ++
             List(
               Event.ClockInc(color, -c.config.berserkPenalty, newClock),
-              Event.Clock(newClock), // BC
+              Event.Clock(newClock, g.moveTimeRemaining), // BC
               Event.Berserk(color)
             )
 
@@ -160,8 +162,8 @@ object GameExt:
         blackOffersDraw = g.blackPlayer.isOfferingDraw
       )
 
-      val clockEvent = updated.clock
-        .map(Event.Clock.apply)
+      val clockEvent = Event
+        .Clock(updated)
         .orElse:
           updated.playableCorrespondenceClock.map(Event.CorrespondenceClock.apply)
 
@@ -205,22 +207,20 @@ object GameExt:
     def timeForFirstMove: Centis =
       Centis.ofSeconds:
         import chess.Speed.*
-        val base =
-          if g.isTournament then
-            g.speed match
-              case UltraBullet => 11
-              case Bullet => 16
-              case Blitz => 21
-              case Rapid => 25
-              case _ => 30
-          else
-            g.speed match
-              case UltraBullet => 15
-              case Bullet => 20
-              case Blitz => 25
-              case Rapid => 30
-              case _ => 35
-        base
+        if g.isTournament then
+          g.speed match
+            case UltraBullet => 11
+            case Bullet => 16
+            case Blitz => 21
+            case Rapid => 25
+            case _ => 30
+        else
+          g.speed match
+            case UltraBullet => 15
+            case Bullet => 20
+            case Blitz => 25
+            case Rapid => 30
+            case _ => 35
 
     def expirable =
       !g.bothPlayersHaveMoved &&
@@ -228,6 +228,8 @@ object GameExt:
         g.playable &&
         g.nonAi &&
         g.clock.exists(!_.isRunning)
+
+    def hasFirstMoveDeadline = g.expirable
 
   end extension
 
@@ -278,6 +280,8 @@ object Game:
     val status = "s"
     val startedAtTurn = "st"
     val clock = "c"
+    val moveTimeLimit = "ml"
+    val moveTimePaused = "mp"
     val daysPerTurn = "cd"
     val moveTimes = "mt"
     val whiteClockHistory = "cw"

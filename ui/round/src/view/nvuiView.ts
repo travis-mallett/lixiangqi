@@ -6,6 +6,7 @@ import { type Player, type TopOrBottom, playable, xiangqiCgToUci, xiangqiUciMove
 import { plyToTurn } from 'lib/game/chess';
 import { renderClock } from 'lib/game/clock/clockView';
 import { renderSetting } from 'lib/nvui/setting';
+import { formatClock as formatClockName } from 'lib/setup/timeControl';
 import { type LooseVNodes, type VNode, hl, onInsert } from 'lib/view';
 
 import renderCorresClock from '../corresClock/corresClockView';
@@ -148,7 +149,13 @@ function gameInfo({ ctrl }: RoundNvuiContext): VNode {
       `${ctrl.data.game.rated ? i18n.site.rated : i18n.site.casual} ${transGamePerf(ctrl.data.game.perf)}`,
     ),
     ctrl.data.clock
-      ? hl('p', `${i18n.site.clock}: ${ctrl.data.clock.initial / 60} + ${ctrl.data.clock.increment}`)
+      ? hl(
+          'p',
+          `${i18n.site.clock}: ${formatClockName(
+            `${ctrl.data.clock.initial / 60}+${ctrl.data.clock.increment}`,
+            ctrl.data.game.moveTime,
+          )}`,
+        )
       : undefined,
     hl('h2', i18n.nvui.gameStatus),
     hl(

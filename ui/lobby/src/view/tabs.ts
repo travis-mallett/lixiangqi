@@ -26,11 +26,9 @@ export default function (ctrl: LobbyController) {
     isBot ? undefined : tab(ctrl, 'pools', active, [i18n.site.quickPairing]),
     isBot ? undefined : tab(ctrl, 'real_time', active, [i18n.site.lobby]),
     isBot ? undefined : tab(ctrl, 'seeks', active, [i18n.site.correspondence]),
-    active === 'now_playing' || nbPlaying || isBot
-      ? tab(ctrl, 'now_playing', active, [
-          ...i18n.site.nbGamesInPlay.asArray(nbPlaying, nbPlaying >= 100 ? '99+' : nbPlaying.toString()),
-          nbMyTurn > 0 ? h('icon.unread', nbMyTurn >= 100 ? '99+' : nbMyTurn) : null,
-        ])
-      : null,
+    tab(ctrl, 'now_playing', active, [
+      ...i18n.site.nbGamesInPlay.asArray(nbPlaying, nbPlaying >= 100 ? '99+' : nbPlaying.toString()),
+      nbMyTurn > 0 ? h('icon.unread', nbMyTurn >= 100 ? '99+' : nbMyTurn) : null,
+    ]),
   ];
 }

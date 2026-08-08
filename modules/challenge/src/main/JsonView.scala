@@ -67,13 +67,19 @@ final class JsonView(
         "rated" -> c.rated,
         "speed" -> c.speed.key,
         "timeControl" -> c.timeControl.match
-          case TimeControl.Clock(clock) =>
-            Json.obj(
-              "type" -> "clock",
-              "limit" -> clock.limitSeconds,
-              "increment" -> clock.incrementSeconds,
-              "show" -> clock.show
-            )
+          case TimeControl.Clock(clock, moveTimeLimit) =>
+            Json
+              .obj(
+                "type" -> "clock",
+                "limit" -> clock.limitSeconds,
+                "increment" -> clock.incrementSeconds,
+                "show" -> TimeControl.Clock(clock, moveTimeLimit).show
+              )
+              .add("moveTime" -> moveTimeLimit.map: limit =>
+                Json
+                  .obj("seconds" -> limit.seconds)
+                  .add("first" -> limit.first.map: first =>
+                    Json.obj("moves" -> first.moves, "seconds" -> first.seconds)))
           case TimeControl.Correspondence(d) =>
             Json.obj(
               "type" -> "correspondence",

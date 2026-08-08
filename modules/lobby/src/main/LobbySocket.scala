@@ -7,8 +7,9 @@ import chess.IntRating
 
 import lila.common.Json.given
 import lila.common.Bus
-import lila.core.game.ChangeFeatured
-import lila.core.pool.{ PoolConfigId, PoolMember, PoolFrom }
+import lila.core.game.{ ActiveGameSnapshot, ChangeFeatured, FinishGame, Game, Source, StartGame }
+import lila.core.id.GameId
+import lila.core.pool.{ HomepageGameCounts, PoolConfigId, PoolCount, PoolMember, PoolFrom }
 import lila.core.security.{ UserTrust, UserTrustApi }
 import lila.core.socket.{ protocol as P, * }
 import lila.core.timeline.*
@@ -22,6 +23,7 @@ final class LobbySocket(
     gameApi: lila.core.game.GameApi,
     socketKit: SocketKit,
     lobby: LobbySyncActor,
+    seekApi: SeekApi,
     relationApi: lila.core.relation.RelationApi,
     poolApi: lila.core.pool.PoolApi,
     userTrustApi: UserTrustApi
@@ -33,6 +35,30 @@ final class LobbySocket(
 
   private var lastCounters = LobbyCounters(0, 0)
   def counters = lastCounters
+  @volatile private var lastPoolWaiters = Map.empty[PoolConfigId, Int]
+  @volatile private var lastHookPools = Map.empty[String, Option[PoolConfigId]]
+  @volatile private var lastSeekIds = Set.empty[String]
+  @volatile private var lastGameCounts =
+    HomepageGameCounts(Map.empty, friendGames = 0, aiGames = 0, lobbyPlayers = 0)
+
+  private def poolOccupancy(poolId: PoolConfigId): Int =
+    lastGameCounts.poolPlayers(
+      poolId,
+      lastPoolWaiters.getOrElse(poolId, 0) + lastHookPools.values.count(_.contains(poolId))
+    )
+
+  private def lobbyOccupancy: Int =
+    lastPoolWaiters.iterator.collect {
+      case (poolId, count) if !poolApi.homepagePoolIds(poolId) => count
+    }.sum + lastHookPools.values.count(_.isEmpty) + lastSeekIds.size + lastGameCounts.lobbyPlayers
+
+  def poolCountsJson =
+    JsObject:
+      poolApi.homepagePoolIds.map(poolId => poolId.value -> JsNumber(poolOccupancy(poolId))).toMap ++ Map(
+        LobbySocket.lobbyCountKey -> JsNumber(lobbyOccupancy),
+        LobbySocket.friendCountKey -> JsNumber(lastGameCounts.friendPlayers),
+        LobbySocket.aiCountKey -> JsNumber(lastGameCounts.aiPlayers)
+      )
 
   private val actor: SyncActor = new SyncActor:
 
@@ -42,6 +68,13 @@ final class LobbySocket(
     private val idleSris = collection.mutable.Set[SriStr]()
     private val hookSubscriberSris = collection.mutable.Set[SriStr]()
     private val removedHookIds = new collection.mutable.StringBuilder(1024)
+    private var activeGameIds = Set.empty[GameId]
+    private var startsBeforeSnapshot = Map.empty[GameId, Game]
+    private var finishesBeforeSnapshot = Set.empty[GameId]
+    private var hasGameSnapshot = false
+    private var seekAddsBeforeSnapshot = Set.empty[String]
+    private var seekRemovesBeforeSnapshot = Set.empty[String]
+    private var hasSeekSnapshot = false
 
     val process: SyncActor.Receive =
 
@@ -64,10 +97,21 @@ final class LobbySocket(
         members.invalidateAll()
         idleSris.clear()
         hookSubscriberSris.clear()
+        lastPoolWaiters = Map.empty
+        lastHookPools = Map.empty
+        activeGameIds = Set.empty
+        startsBeforeSnapshot = Map.empty
+        finishesBeforeSnapshot = Set.empty
+        hasGameSnapshot = false
+        lastGameCounts = HomepageGameCounts(Map.empty, friendGames = 0, aiGames = 0, lobbyPlayers = 0)
+        tellActive(makeMessage("poolCounts", poolCountsJson))
 
       case ReloadTimelines(users) => send.exec(Out.tellLobbyUsers(users, makeMessage("reload_timeline")))
 
       case SetupBus.AddHook(hook) =>
+        val homePoolId = poolApi.homepagePoolOf(hook.clock, hook.moveTimeLimit)
+        lastHookPools = lastHookPools.updated(hook.id, homePoolId)
+        tellRoomOrLobby(homePoolId)
         send.exec(
           P.Out.tellSris(
             hookSubscriberSris
@@ -80,7 +124,13 @@ final class LobbySocket(
           )
         )
 
-      case RemoveHook(hookId) => removedHookIds.append(hookId)
+      case RemoveHook(hookId) =>
+        lastHookPools
+          .get(hookId)
+          .foreach: homePoolId =>
+            lastHookPools = lastHookPools.removed(hookId)
+            tellRoomOrLobby(homePoolId)
+        removedHookIds.append(hookId)
 
       case SendHookRemovals =>
         if removedHookIds.nonEmpty then
@@ -100,9 +150,49 @@ final class LobbySocket(
 
       case lila.core.pool.Pairings(pairings) => send.exec(Out.pairings(pairings))
 
+      case PoolCount(poolId, nbMembers) =>
+        lastPoolWaiters = lastPoolWaiters.updated(poolId, nbMembers)
+        tellRoomOrLobby(poolId.some.filter(poolApi.homepagePoolIds))
+
+      case StartGame(game, _) => startGame(game)
+
+      case FinishGame(game, _) => finishGame(game)
+
+      case ActiveGameSnapshot(games) =>
+        val snapshot = games.iterator.map(game => game.id -> game).toMap
+        val activeGames = (snapshot -- finishesBeforeSnapshot) ++ startsBeforeSnapshot
+        activeGameIds = activeGames.keySet
+        lastGameCounts = HomepageGameCounts(Map.empty, friendGames = 0, aiGames = 0, lobbyPlayers = 0)
+        activeGames.values.foreach(game => updateGameCounts(game, 1, notify = false))
+        startsBeforeSnapshot = Map.empty
+        finishesBeforeSnapshot = Set.empty
+        hasGameSnapshot = true
+        tellActive(makeMessage("poolCounts", poolCountsJson))
+
       case HookIds(ids) => tellActiveHookSubscribers(makeMessage("hli", ids.mkString("")))
 
-      case SetupBus.AddSeek(_) | RemoveSeek(_) => tellActive(makeMessage("reload_seeks"))
+      case SetupBus.AddSeek(seek) =>
+        if !hasSeekSnapshot then
+          seekAddsBeforeSnapshot = seekAddsBeforeSnapshot + seek.id
+          seekRemovesBeforeSnapshot = seekRemovesBeforeSnapshot - seek.id
+        lastSeekIds = lastSeekIds + seek.id
+        tellLobbyCount()
+        tellActive(makeMessage("reload_seeks"))
+
+      case RemoveSeek(seekId) =>
+        if !hasSeekSnapshot then
+          seekAddsBeforeSnapshot = seekAddsBeforeSnapshot - seekId
+          seekRemovesBeforeSnapshot = seekRemovesBeforeSnapshot + seekId
+        lastSeekIds = lastSeekIds - seekId
+        tellLobbyCount()
+        tellActive(makeMessage("reload_seeks"))
+
+      case SeekIds(ids) =>
+        lastSeekIds = (ids -- seekRemovesBeforeSnapshot) ++ seekAddsBeforeSnapshot
+        seekAddsBeforeSnapshot = Set.empty
+        seekRemovesBeforeSnapshot = Set.empty
+        hasSeekSnapshot = true
+        tellLobbyCount()
 
       case ChangeFeatured(msg) => tellActive(msg)
 
@@ -117,10 +207,67 @@ final class LobbySocket(
     Bus.subscribeActor[ReloadTimelines](this)
     Bus.subscribeActor[ChangeFeatured](this)
     Bus.subscribeActor[lila.core.pool.Pairings](this)
+    Bus.subscribeActor[PoolCount](this)
+    Bus.subscribeActor[StartGame](this)
+    Bus.subscribeActor[FinishGame](this)
+    Bus.subscribeActor[ActiveGameSnapshot](this)
     scheduler.scheduleOnce(7.seconds)(this ! SendHookRemovals)
     scheduler.scheduleWithFixedDelay(31.seconds, 31.seconds)(() => this ! Cleanup)
 
     private def tellActive(msg: JsObject): Unit = send.exec(Out.tellLobbyActive(msg))
+
+    private def tellPoolCounts(poolIds: Iterable[PoolConfigId]): Unit =
+      tellActive:
+        makeMessage(
+          "poolCounts",
+          JsObject(poolIds.iterator.map(id => id.value -> JsNumber(poolOccupancy(id))).toMap)
+        )
+
+    private def tellLobbyCount(): Unit =
+      tellActive(makeMessage("poolCounts", Json.obj(LobbySocket.lobbyCountKey -> lobbyOccupancy)))
+
+    private def tellRoomOrLobby(homePoolId: Option[PoolConfigId]): Unit =
+      homePoolId.fold(tellLobbyCount())(id => tellPoolCounts(id :: Nil))
+
+    private def startGame(game: Game): Unit =
+      if !hasGameSnapshot then
+        startsBeforeSnapshot = startsBeforeSnapshot.updated(game.id, game)
+        finishesBeforeSnapshot = finishesBeforeSnapshot - game.id
+      if !activeGameIds(game.id) then
+        activeGameIds = activeGameIds + game.id
+        updateGameCounts(game, 1)
+
+    private def finishGame(game: Game): Unit =
+      if !hasGameSnapshot then
+        startsBeforeSnapshot = startsBeforeSnapshot - game.id
+        finishesBeforeSnapshot = finishesBeforeSnapshot + game.id
+      if activeGameIds(game.id) then
+        activeGameIds = activeGameIds - game.id
+        updateGameCounts(game, -1)
+
+    private def updateGameCounts(game: Game, delta: Int, notify: Boolean = true): Unit =
+      val homePoolId = game.clockConfig.flatMap(poolApi.homepagePoolOf(_, game.moveTimeLimit))
+      val humanPlayers = if game.hasAi then 1 else 2
+      lastGameCounts = lastGameCounts.updateActiveGame(homePoolId, humanPlayers, delta)
+
+      game.source.foreach:
+        case Source.Friend =>
+          lastGameCounts = lastGameCounts.copy(
+            friendGames = (lastGameCounts.friendGames + delta).max(0)
+          )
+        case Source.Ai =>
+          lastGameCounts = lastGameCounts.copy(aiGames = (lastGameCounts.aiGames + delta).max(0))
+        case _ =>
+
+      if notify then
+        val updates = homePoolId
+          .map(id => Json.obj(id.value -> poolOccupancy(id)))
+          .getOrElse(Json.obj(LobbySocket.lobbyCountKey -> lobbyOccupancy)) ++
+          Json.obj(
+            LobbySocket.friendCountKey -> lastGameCounts.friendPlayers,
+            LobbySocket.aiCountKey -> lastGameCounts.aiPlayers
+          )
+        tellActive(makeMessage("poolCounts", updates))
 
     private def tellActiveHookSubscribers(msg: JsObject): Unit =
       send.exec(P.Out.tellSris(hookSubscriberSris.diff(idleSris).map { Sri(_) }, msg))
@@ -142,6 +289,8 @@ final class LobbySocket(
       hookSubscriberSris -= sri.value
 
   end actor
+
+  seekApi.activeIds.foreach(ids => actor ! SeekIds(ids))
 
   // solve circular reference
   lobby ! LobbySyncActor.SetSocket(actor)
@@ -273,6 +422,10 @@ final class LobbySocket(
   private val send = socketKit.send("lobby-out")
 
 private object LobbySocket:
+
+  val lobbyCountKey = "lobby"
+  val friendCountKey = "friend"
+  val aiCountKey = "ai"
 
   type SriStr = String
 

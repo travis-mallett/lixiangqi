@@ -60,7 +60,7 @@ final class ChallengeMaker(
       .initialFen(pov.game)
       .map: initialFen =>
         val timeControl = (pov.game.clock, pov.game.daysPerTurn) match
-          case (Some(clock), _) => TimeControl.Clock(clock.config)
+          case (Some(clock), _) => TimeControl.Clock(clock.config, pov.game.moveTimeLimit)
           case (_, Some(days)) => TimeControl.Correspondence(days)
           case _ => TimeControl.Unlimited
         val alternateColor = rematchAlternatesColor(pov.game, List(challenger.map(_.user), dest.user.some))

@@ -38,6 +38,7 @@ final class BotJsonView(
         "initialFen" -> game.xiangqi.initialFen
       )
       .add("clock" -> game.clock.map(_.config))
+      .add("moveTime" -> game.moveTimeLimit)
       .add("daysPerTurn" -> game.daysPerTurn)
       .add("tournamentId" -> game.tournamentId)
 
@@ -60,6 +61,7 @@ final class BotJsonView(
         .add("btakeback" -> game.blackPlayer.isProposingTakeback)
         .add("winner" -> game.winnerColor.map(sideName))
         .add("rematch" -> rematches.getAcceptedId(game.id))
+        .add("moveTime" -> game.moveTimeRemaining.map(_.millis.toInt))
         .add("expiration" -> lila.game.JsonView.expiration(game))
     )
 

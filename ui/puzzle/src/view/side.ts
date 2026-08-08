@@ -1,6 +1,7 @@
 import perfIcons from 'lib/game/perfIcons';
 import { numberFormat } from 'lib/i18n';
 import { licon } from 'lib/licon';
+import { formatClock } from 'lib/setup/timeControl';
 import { type VNode, dataIcon, onInsert, type MaybeVNode, hl } from 'lib/view';
 import { cmnToggleWrap } from 'lib/view/cmn-toggle';
 import { userLink } from 'lib/view/userLink';
@@ -63,7 +64,9 @@ function gameInfos(ctrl: PuzzleCtrl): VNode {
   const { game, puzzle } = ctrl.data;
   const gameName =
     game.event ||
-    (game.clock && game.perf ? `${game.clock} • ${game.perf.name}` : game.perf?.name || 'import');
+    (game.clock && game.perf
+      ? `${formatClock(game.clock, game.moveTime)} • ${game.perf.name}`
+      : game.perf?.name || 'import');
   const gameUrl = game.url || `/${game.id}/${ctrl.pov}#${puzzle.initialPly}`;
   return hl('div.infos', { attrs: game.perf && dataIcon(perfIcons[game.perf.key]) }, [
     hl('div', [

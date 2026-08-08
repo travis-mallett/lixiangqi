@@ -89,6 +89,7 @@ export interface PuzzleGame {
   players: [PuzzlePlayer, PuzzlePlayer];
   pgn: string;
   clock?: string;
+  moveTime?: import('lib/game').MoveTimeLimit;
   initialFen?: string;
   moves?: string[];
   notations?: string[];

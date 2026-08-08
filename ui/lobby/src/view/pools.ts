@@ -1,5 +1,6 @@
 import { h, type Hooks } from 'snabbdom';
 
+import { formatMoveTime, formatMoveTimeCompact } from 'lib/setup/timeControl';
 import { spinnerVdom, onInsert } from 'lib/view';
 
 import type LobbyController from '../ctrl';
@@ -15,7 +16,7 @@ const createHandler = (ctrl: LobbyController) => (e: Event) => {
   const id =
     (e.target as HTMLElement).dataset['id'] ||
     ((e.target as HTMLElement).parentNode as HTMLElement).dataset['id'];
-  if (id === 'custom') ctrl.setupCtrl.openModal('hook');
+  if (id === 'custom') ctrl.openSetupFromLobby('hook');
   else if (id) ctrl.clickPool(id);
 
   ctrl.redraw();
@@ -35,8 +36,13 @@ export function render({ pools, poolMember, opts }: LobbyController) {
       return h(
         'div.lpool',
         {
-          class: { active, transp: !!poolMember && !active },
-          attrs: { role: 'button', 'data-id': pool.id, tabindex: '0' },
+          class: { active, transp: !!poolMember && !active, 'move-time': !!pool.moveTime },
+          attrs: {
+            role: 'button',
+            'data-id': pool.id,
+            tabindex: '0',
+            ...(pool.moveTime ? { title: formatMoveTime(pool.moveTime) } : {}),
+          },
         },
         [
           h('div.clock', `${pool.lim}+${pool.inc}`),
@@ -44,7 +50,7 @@ export function render({ pools, poolMember, opts }: LobbyController) {
             ? poolMember.range && opts.showRatings
               ? h('div.range', poolMember.range.replace('-', '–'))
               : spinnerVdom()
-            : h('div.perf', pool.perf),
+            : h('div.perf', pool.moveTime ? formatMoveTimeCompact(pool.moveTime) : pool.perf),
         ],
       );
     })

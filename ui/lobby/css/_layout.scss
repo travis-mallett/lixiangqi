@@ -1,182 +1,76 @@
 .lobby {
-  ---cols: 1; // ui/lobby/src/main.ts
+  --lobby-feature-height: clamp(124px, 9vw, 136px);
 
   grid-area: main;
   display: grid;
-  grid-template-areas: 'app' 'table' 'side' 'blog' 'support' 'feed' 'tv' 'puzzle' 'tours' 'timeline' 'about';
-  gap: $block-gap;
+  grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+  grid-template-areas: 'rail gameplay';
+  align-items: start;
+  gap: 18px;
+  min-width: 0;
 
-  &__tournaments-simuls {
+  &__rail {
+    grid-area: rail;
+    display: flex;
     min-width: 0;
-    max-width: 100%;
+    flex-direction: column;
+    gap: 14px;
   }
 
-  &__tournaments,
-  &__simuls {
-    max-height: 30em;
+  &__gameplay {
+    grid-area: gameplay;
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(250px, 3fr);
+    gap: 24px;
+    min-width: 0;
   }
 
-  &__start {
-    margin: 0 $block-gap;
-  }
-
-  @include mq-at-least-col2 {
-    ---cols: 2; // ui/lobby/src/main.ts
-
-    grid-template-columns: repeat(2, 1fr);
-    grid-template-rows: auto fit-content(0) repeat(3, min-content) 20em;
-    grid-template-areas:
-      'app      app'
-      'side     table'
-      'blog     blog'
-      'tv       puzzle'
-      'support  support'
-      'feed     feed'
-      'tours    tours'
-      'timeline timeline'
-      'about    about';
-
-    &__support {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 2%;
-    }
-
-    &__start {
-      margin-inline: 0 $block-gap;
-
-      &__button {
-        padding-inline: 1em;
-      }
-    }
-  }
-
-  @include mq-at-least-col3 {
-    ---cols: 3; // ui/lobby/src/main.ts
-
-    grid-template-columns: 34% 1fr;
-    grid-template-rows:
-      minmax(12em, auto) fit-content(0) min-content 1fr fit-content(15em) repeat(2, fit-content(0))
-      minmax(0, 1fr);
-    grid-template-areas:
-      'table  app'
-      'side   app'
-      'tv     blog'
-      'tv     support'
-      'puzzle feed'
-      'tours  tours'
-      'about  about';
-
-    &__start {
-      margin: 2em 0 0 0;
-      font-weight: bold;
-    }
-
-    &__counters {
-      display: flex;
-    }
-
-    &__blog {
-      margin-top: 1.65em;
-    }
-
-    &__support {
-      margin-bottom: 1.65em;
-    }
-
-    &__side,
-    &__timeline {
-      margin-inline-start: 0;
-    }
-  }
-
-  @include mq-at-least-col4 {
-    ---cols: 4; // ui/lobby/src/main.ts
-
-    grid-template-columns: repeat(4, 1fr);
-    grid-template-rows: fit-content(0) fit-content(0);
-    grid-template-areas:
-      'side   app     app     table'
-      'tv     feed    feed    puzzle'
-      'tv     blog    blog    puzzle'
-      'about  about   tours   tours';
-
-    &__start {
-      margin: 0;
-      justify-content: center;
-    }
-
-    &__side {
-      margin-top: 2em;
-    }
-
-    &__counters {
-      flex-flow: column;
-      align-items: flex-start;
-      position: absolute;
-      bottom: 0;
-    }
-
-    &__blog {
-      margin-top: 0;
-    }
-
-    &__support {
-      display: none;
-    }
-
-    &__tv .lobby__support-link,
-    &__puzzle .lobby__support-link {
-      display: flex;
-    }
-  }
-
-  &__side {
-    grid-area: side;
-  }
-
-  &__app,
-  &__nope {
-    grid-area: app;
-  }
-
+  &__standard,
+  &__variants,
   &__table {
-    grid-area: table;
+    display: grid;
+    align-content: start;
+    gap: 12px;
+    min-width: 0;
   }
 
-  &__tv {
-    grid-area: tv;
+  @media (max-width: 1200px) {
+    --lobby-feature-height: 132px;
+
+    grid-template-columns: minmax(250px, 310px) minmax(0, 1fr);
+
+    &__gameplay {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    &__quick-rooms {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    &__actions {
+      grid-template-columns: minmax(0, 1fr);
+    }
   }
 
-  &__puzzle {
-    grid-area: puzzle;
+  @media (max-width: 800px) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'gameplay'
+      'rail';
+
+    &__rail {
+      width: min(100%, 430px);
+      justify-self: center;
+    }
   }
 
-  &__tournaments-simuls {
-    grid-area: tours;
-  }
+  @media (max-width: 600px) {
+    --lobby-feature-height: 128px;
 
-  &__simuls {
-    margin-top: $block-gap;
-  }
+    gap: 12px;
 
-  &__blog {
-    grid-area: blog;
-  }
-
-  &__support {
-    grid-area: support;
-  }
-
-  &__feed {
-    grid-area: feed;
-  }
-
-  &__about {
-    grid-area: about;
-  }
-
-  &__timeline {
-    grid-area: timeline;
+    &__gameplay {
+      gap: 18px;
+    }
   }
 }

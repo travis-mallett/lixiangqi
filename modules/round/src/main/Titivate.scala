@@ -101,12 +101,19 @@ final private class Titivate(
         case game =>
           game.clock match
 
-            case Some(clock) if clock.isRunning =>
-              val minutes = clock.estimateTotalSeconds / 60
-              gameRepo.setCheckAt(game, nowInstant.plusMinutes(minutes)).void
-
-            case Some(_) =>
-              gameRepo.setCheckAt(game, nowInstant.plusDays(unplayedDays)).void
+            case Some(clock) =>
+              game.moveTimeRemaining.flatMap(_ => game.effectiveClockRemaining(game.turnColor)) match
+                case Some(remaining) =>
+                  gameRepo
+                    .setCheckAt(
+                      game,
+                      nowInstant.plusMillis((remaining + chess.Centis.ofSeconds(3)).millis)
+                    )
+                    .void
+                case None if clock.isRunning =>
+                  val minutes = clock.estimateTotalSeconds / 60
+                  gameRepo.setCheckAt(game, nowInstant.plusMinutes(minutes)).void
+                case None => gameRepo.setCheckAt(game, nowInstant.plusDays(unplayedDays)).void
 
             case None =>
               val days = game.daysPerTurn | lila.game.Game.abandonedDays

@@ -1,139 +1,214 @@
 @import 'defs';
 @import 'app/app';
 @import 'app/playing';
-@import 'table';
-@import 'stream';
-@import 'spotlight';
-@import 'clas';
-@import 'timeline';
 @import 'box';
+@import 'table';
 @import 'support';
-@import 'about';
 @import 'feed';
-@import 'carousel';
 @import 'layout';
 
 body {
-  /* improves preload */
   overflow-y: scroll;
 }
 
 #main-wrap {
-  ---main-max-width: 1400px;
+  ---main-max-width: 1540px;
 }
 
-%lobby-side-more {
-  @extend %roboto;
+.lobby {
+  &__tv {
+    @extend %box-neat;
 
-  font-size: 0.9em;
-  margin: 0.5em 1em 0.5em 0;
-  display: block;
-  text-align: right;
-  color: $c-font-dim;
+    min-width: 0;
+    overflow: hidden;
+    background: $c-bg-box;
 
-  &:hover {
-    color: $c-link;
-  }
-}
+    .mini-game {
+      width: 100%;
+      overflow: visible;
+    }
 
-.lobby__side {
-  @extend %flex-column;
-  @include backdrop-blur-if-background;
-
-  gap: $block-gap;
-  overflow: hidden;
-}
-
-.lobby__nope {
-  @include lobby-app-size;
-
-  text-align: center;
-
-  .lobby__app__content {
-    @extend %flex-column;
-
-    height: 100%;
-    align-items: center;
-    padding-top: 2em;
-
-    &.lobby__app__content {
-      justify-content: center;
+    .mini-game__player {
+      padding-top: 0;
     }
   }
 
-  ul {
-    margin: 0.6em auto;
-    display: inline-block;
-    text-align: left;
+  &__feed {
+    min-width: 0;
+    min-height: 220px;
+    max-height: 360px;
+    padding: clamp(14px, 2vw, 24px);
   }
 
-  li {
-    list-style: disc outside;
-    font-size: 1.1em;
-  }
-}
+  &__nope {
+    padding: 1.25rem;
+    text-align: center;
 
-.about-side {
-  @extend %page-text-shadow !optional;
-
-  margin-top: $block-gap;
-}
-
-.lobby__tv .mini-game {
-  overflow: visible;
-
-  &__player {
-    padding-top: 0;
-  }
-}
-
-.lobby__puzzle .text {
-  @extend %page-text-shadow !optional;
-
-  color: $c-font-dim;
-  display: block;
-  text-align: right;
-  margin-inline-end: 1ch;
-
-  @include mq-at-least-col2 {
-    min-height: 19px;
+    &__content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.8rem;
+    }
   }
 
-  @include mq-at-least-col3 {
-    min-height: 21px;
-  }
-}
-
-.lobby__blog {
-  gap: $block-gap;
-  font-size: 0.9em;
-
-  h2 {
-    @extend %page-text-shadow !optional;
-    @include line-clamp(3);
-
-    font-size: 1.3em;
-  }
-
-  .ublog-post-card {
+  &__leaderboard {
+    display: flex;
+    min-width: 0;
+    max-height: 420px;
+    flex-direction: column;
+    overflow: hidden;
     background: $c-bg-box;
 
-    &:hover {
-      @extend %box-shadow;
+    &__header {
+      display: flex;
+      min-height: 56px;
+      flex: 0 0 auto;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 14px;
+      border-bottom: $border;
 
+      h2 {
+        margin: 0;
+        color: $c-font-dim;
+        font-size: 1.25rem;
+
+        &::before {
+          color: $c-bad;
+        }
+      }
+
+      .more {
+        color: $c-font-dim;
+        white-space: nowrap;
+
+        &:hover {
+          color: $c-link;
+        }
+      }
+    }
+
+    &__scroll {
+      min-height: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+      scrollbar-width: thin;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    tr:nth-child(even) {
       background: $c-bg-zebra;
     }
 
-    .user-link {
-      border-radius: $box-radius-size 0 0 0;
+    td {
+      height: 50px;
+      max-width: none;
+      padding: 7px 6px;
+      border-bottom: $border;
+      font-variant-numeric: tabular-nums;
+    }
+
+    &__user {
+      width: auto;
+      overflow: hidden;
+
+      .user-link {
+        display: inline-block;
+        max-width: calc(100% - 30px);
+        overflow: hidden;
+        color: $c-font;
+        font-weight: 600;
+        text-overflow: ellipsis;
+        vertical-align: middle;
+        white-space: nowrap;
+      }
+
+      .flag {
+        width: 20px;
+        height: 14px;
+        margin-inline-start: 5px;
+        object-fit: cover;
+        vertical-align: middle;
+      }
+    }
+
+    &__perf {
+      width: 34px;
+      color: $c-font-dim;
+      text-align: center;
+
+      &::before {
+        margin: 0;
+      }
+    }
+
+    &__rating {
+      width: 54px;
+      color: $c-font-dim;
+      text-align: end;
+    }
+
+    &__progress {
+      width: 48px;
+      text-align: end;
+
+      .is-up {
+        color: $c-good;
+      }
+
+      .is-down {
+        color: $c-bad;
+      }
+
+      .is-flat {
+        color: $c-font-dimmer;
+      }
+
+      .text::before {
+        margin-inline-end: 2px;
+      }
     }
   }
-}
 
-.lobby__support {
-  visibility: hidden;
-}
+  &__overlay {
+    box-sizing: border-box;
+    width: min(92vw, 780px);
+    height: min(82vh, 640px);
+    padding: 14px;
 
-.tour-team-icon {
-  color: $c-brag;
+    .lobby__app {
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      max-height: none;
+    }
+
+    .tabs-horiz button {
+      min-width: 0;
+    }
+  }
+
+  @media (max-width: 600px) {
+    &__leaderboard {
+      max-height: 380px;
+    }
+
+    &__overlay {
+      width: calc(100vw - 16px);
+      height: calc(var(---viewport-height) - 16px);
+      padding: 8px;
+
+      .tabs-horiz button {
+        padding-inline: 5px;
+        font-size: 0.72rem;
+      }
+    }
+  }
 }

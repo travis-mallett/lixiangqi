@@ -6,4 +6,13 @@ export type RealValue = number;
 export interface ClockConfig {
   lim: number;
   inc: number;
+  moveTime?: MoveTimeLimitConfig;
+}
+
+export interface MoveTimeLimitConfig {
+  seconds: number;
+  first?: {
+    moves: number;
+    seconds: number;
+  };
 }

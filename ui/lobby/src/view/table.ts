@@ -1,110 +1,170 @@
 import { numberFormat } from 'lib/i18n';
-import { bind, onInsert, hl, thunk } from 'lib/view';
+import { licon } from 'lib/licon';
+import { formatMoveTime } from 'lib/setup/timeControl';
+import { bind, hl, spinnerVdom } from 'lib/view';
 
 import type LobbyController from '@/ctrl';
-import type { GameType } from '@/interfaces';
+import type { GameType, Pool } from '@/interfaces';
 
 import renderSetupModal from './setup/modal';
 
-type ButtonInfo = { gameType: GameType | 'dev'; label: string; disabled?: boolean; title?: string };
+type ActionInfo = { gameType: Exclude<GameType, 'hook'>; label: string; disabled: boolean };
 
 export default function table(ctrl: LobbyController) {
-  const { data, opts } = ctrl;
-  const isWudang = document.body.dataset.uiTheme === 'wudang';
+  const { opts } = ctrl;
   const hasOngoingRealTimeGame = ctrl.hasOngoingRealTimeGame(true);
-  const hookDisabled =
-    opts.playban || opts.hasUnreadLichessMessage || ctrl.me?.isBot || hasOngoingRealTimeGame;
-  const { members, rounds } = data.counters;
-  const lobbyButtons: ButtonInfo[] = [
-    {
-      gameType: 'hook',
-      label: i18n.site.createLobbyGame,
-      disabled: hookDisabled,
-      title: 'Create a custom game that any online player can join.',
-    },
-    {
-      gameType: 'friend',
-      label: i18n.site.challengeAFriend,
-      disabled: hasOngoingRealTimeGame,
-      title: $trim`
-        Create a custom game and choose your opponent.
-
-        You will receive a challenge link to share via email or text, as well as a QR code
-        that someone nearby can scan.`,
-    },
-    {
-      gameType: 'ai',
-      label: i18n.site.playAgainstComputer,
-      disabled: hasOngoingRealTimeGame,
-    },
+  const quickDisabled =
+    opts.playban || opts.hasUnreadLichessMessage || !!ctrl.me?.isBot || hasOngoingRealTimeGame;
+  const performance = ctrl.homePools.find(pool => pool.lim === 15)!;
+  const quickRooms = ctrl.homePools.filter(pool => pool.lim !== 15).sort((a, b) => a.lim - b.lim);
+  const actions: ActionInfo[] = [
+    { gameType: 'friend', label: i18n.site.challengeAFriend, disabled: hasOngoingRealTimeGame },
+    { gameType: 'ai', label: i18n.site.playAgainstComputer, disabled: hasOngoingRealTimeGame },
   ];
+
   return hl('div.lobby__table', [
-    hl('div.lobby__start', [site.blindMode && hl('h2', i18n.site.play), lobbyButtons.map(makeLobbyButton)]),
+    featurePoolButton(performance),
+    hl('div.lobby__quick-rooms', [
+      ...quickRooms.map(compactPoolButton),
+      hl(
+        'button.lobby__quick-room.lobby__quick-room--lobby',
+        {
+          attrs: { type: 'button' },
+          hook: bind('click', ctrl.openLobbyOverlay),
+        },
+        [hl('strong', i18n.site.lobby), occupancy(ctrl.poolCount('lobby'))],
+      ),
+    ]),
+    hl('div.lobby__actions', actions.map(actionButton)),
     renderSetupModal(ctrl),
-    site.blindMode
-      ? undefined
-      : // Use a thunk here so that snabbdom does not rerender; we will do so manually after insert
-        thunk(
-          'div.lobby__counters',
-          () =>
-            hl('div.lobby__counters', [
-              hl(
-                'a',
-                { attrs: { href: '/player' } },
-                i18n.site.nbPlayers.asArray(
-                  members,
-                  hl(
-                    'strong',
-                    {
-                      attrs: { 'data-count': members },
-                      hook: onInsert<HTMLAnchorElement>(elm => {
-                        ctrl.spreadPlayersNumber = ctrl.initNumberSpreader(elm, 10, members);
-                      }),
-                    },
-                    numberFormat(members),
-                  ),
-                ),
-              ),
-              hl(
-                'a',
-                { attrs: { href: '/games' } },
-                i18n.site.nbGamesInPlay.asArray(
-                  rounds,
-                  hl(
-                    'strong',
-                    {
-                      attrs: { 'data-count': rounds },
-                      hook: onInsert<HTMLAnchorElement>(elm => {
-                        ctrl.spreadGamesNumber = ctrl.initNumberSpreader(elm, 8, rounds);
-                      }),
-                    },
-                    numberFormat(rounds),
-                  ),
-                ),
-              ),
-            ]),
-          [],
-        ),
   ]);
 
-  function makeLobbyButton({ gameType, label, disabled, title }: ButtonInfo) {
+  function featurePoolButton(pool: Pool) {
+    const active = ctrl.isPoolSeeking(pool.id);
     return hl(
-      `button.button.button-metal.lobby__start__button.lobby__start__button--${gameType}`,
+      'button.lobby__feature-card.lobby__feature-card--evaluation',
       {
-        class: { active: ctrl.setupCtrl.gameType === gameType, disabled: !!disabled },
-        attrs: { type: 'button', title: title ?? '', 'aria-disabled': disabled ? 'true' : 'false' },
-        hook: disabled
-          ? {}
-          : bind(
-              'click',
-              () => {
-                if (gameType === 'dev') location.href = '/bots/dev';
-                else ctrl.setupCtrl.openModal(gameType);
-              },
-              ctrl.redraw,
-            ),
+        class: {
+          active,
+          'bar-glider': active,
+          transp: ctrl.hasPoolSeeking() && !active,
+          disabled: quickDisabled && !active,
+        },
+        attrs: {
+          type: 'button',
+          disabled: quickDisabled && !active,
+          'aria-pressed': active ? 'true' : 'false',
+          'aria-label': `${i18n.site.chessPerformance} ${i18n.site.evaluation} (${i18n.site.chessPerformanceEvaluationChinese}). ${formatMoveTime(pool.moveTime!)}`,
+        },
+        hook: quickDisabled && !active ? {} : bind('click', () => clickPool(pool.id)),
       },
-      isWudang ? hl('span.lobby__start__label', label) : label,
+      [
+        hl('img.lobby__feature-card__image', {
+          attrs: {
+            src: site.asset.url('images/homepage/xiangqi-evaluation-mode.webp'),
+            alt: '',
+            'aria-hidden': 'true',
+            width: '384',
+            height: '384',
+          },
+        }),
+        hl('span.lobby__feature-card__body', [
+          hl('strong.lobby__feature-card__title', [
+            hl('span', i18n.site.chessPerformance),
+            hl('span', i18n.site.evaluation),
+          ]),
+          hl('span.lobby__feature-card__subtitle', i18n.site.chessPerformanceEvaluationChinese),
+          hl('span.lobby__feature-card__meta', [
+            hl('span.lobby__feature-card__time', i18n.site.minutesShort(pool.lim)),
+            occupancy(ctrl.poolCount(pool.id)),
+          ]),
+          active ? waitingStatus() : null,
+        ]),
+      ],
     );
+  }
+
+  function compactPoolButton(pool: Pool) {
+    const active = ctrl.isPoolSeeking(pool.id);
+    return hl(
+      'button.lobby__quick-room',
+      {
+        class: {
+          active,
+          'bar-glider': active,
+          transp: ctrl.hasPoolSeeking() && !active,
+          disabled: quickDisabled && !active,
+        },
+        attrs: {
+          type: 'button',
+          disabled: quickDisabled && !active,
+          title: formatMoveTime(pool.moveTime!),
+          'aria-pressed': active ? 'true' : 'false',
+        },
+        hook: quickDisabled && !active ? {} : bind('click', () => clickPool(pool.id)),
+      },
+      [
+        hl('span.lobby__quick-room__summary', [
+          hl('strong', i18n.site.minutesShort(pool.lim)),
+          occupancy(ctrl.poolCount(pool.id)),
+        ]),
+        active ? waitingStatus() : null,
+      ],
+    );
+  }
+
+  function actionButton(action: ActionInfo) {
+    return hl(
+      `button.button.button-metal.lobby__action.lobby__action--${action.gameType}`,
+      {
+        class: { active: ctrl.setupCtrl.gameType === action.gameType, disabled: action.disabled },
+        attrs: {
+          type: 'button',
+          disabled: action.disabled,
+          'aria-disabled': action.disabled ? 'true' : 'false',
+        },
+        hook: action.disabled
+          ? {}
+          : bind('click', () => ctrl.setupCtrl.openModal(action.gameType), ctrl.redraw),
+      },
+      [
+        action.gameType === 'friend'
+          ? hl('span.lobby__action__icon.text', {
+              attrs: { 'data-icon': licon.User, 'aria-hidden': 'true' },
+            })
+          : hl('span.lobby__action__icon.lobby__action__icon--ai', {
+              attrs: { 'aria-hidden': 'true' },
+            }),
+        hl('span.lobby__action__label', action.label),
+        occupancy(ctrl.poolCount(action.gameType)),
+      ],
+    );
+  }
+
+  function waitingStatus() {
+    return hl('span.lobby__seeking', { attrs: { role: 'status', 'aria-live': 'polite' } }, [
+      spinnerVdom(),
+      hl('span', i18n.site.waitingForOpponent),
+    ]);
+  }
+
+  function occupancy(count: number) {
+    const formatted = numberFormat(count);
+    return hl(
+      'span.lobby__occupancy.text',
+      {
+        attrs: {
+          'data-icon': licon.Group,
+          title: i18n.site.nbPlayers(count, formatted),
+          'aria-label': i18n.site.nbPlayers(count, formatted),
+        },
+      },
+      formatted,
+    );
+  }
+
+  function clickPool(id: string) {
+    if (ctrl.redirecting) return;
+    ctrl.clickPool(id);
   }
 }

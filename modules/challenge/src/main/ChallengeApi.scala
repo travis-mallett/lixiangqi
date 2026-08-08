@@ -37,7 +37,7 @@ final class ChallengeApi(
     val c = Challenge.make(
       variant = config.variant,
       initialFen = config.position,
-      timeControl = Challenge.makeTimeControl(config.clock, config.days),
+      timeControl = Challenge.makeTimeControl(config.clock, config.days, config.moveTimeLimit),
       rated = config.rated,
       color = "random",
       challenger = Challenger.Open,

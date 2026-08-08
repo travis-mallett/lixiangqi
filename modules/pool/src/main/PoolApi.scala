@@ -30,6 +30,8 @@ final class PoolApi(
       config.id -> config.perfKey
     .toMap
 
+  val homepagePoolIds: Set[PoolConfigId] = PoolList.homepage.iterator.map(_.id).toSet
+
   def join(poolId: PoolConfigId, member: PoolMember): Unit =
     hasCurrentPlayban(member.userId).foreach:
       case false =>
@@ -42,8 +44,11 @@ final class PoolApi(
 
   def leave(poolId: PoolConfigId, userId: UserId) = sendTo(poolId, Leave(userId))
 
-  def poolOf(clock: chess.Clock.Config): Option[PoolConfigId] =
-    configs.find(_.clock == clock).map(_.id)
+  def poolOf(
+      clock: chess.Clock.Config,
+      moveTimeLimit: Option[lila.core.game.MoveTimeLimit]
+  ): Option[PoolConfigId] =
+    configs.find(p => p.clock == clock && p.moveTimeLimit == moveTimeLimit).map(_.id)
 
   def setOnlineSris(ids: Sris): Unit = actors.values.foreach(_ ! ids)
 

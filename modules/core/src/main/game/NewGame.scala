@@ -23,6 +23,8 @@ def newImportedGame(
     daysPerTurn: Option[Days] = None,
     rules: Set[GameRule] = Set.empty,
     clock: Option[Clock] = None,
+    moveTimeLimit: Option[MoveTimeLimit] = None,
+    moveTimePaused: Boolean = false,
     startedAtPly: Ply = Ply.initial,
     variant: Variant = Standard
 ): ImportedGame =
@@ -36,6 +38,8 @@ def newImportedGame(
       daysPerTurn,
       rules,
       clock,
+      moveTimeLimit,
+      moveTimePaused,
       startedAtPly,
       variant
     )
@@ -55,6 +59,8 @@ def newGame(
     daysPerTurn: Option[Days] = None,
     rules: Set[GameRule] = Set.empty,
     clock: Option[Clock] = None,
+    moveTimeLimit: Option[MoveTimeLimit] = None,
+    moveTimePaused: Boolean = false,
     startedAtPly: Ply = Ply.initial,
     variant: Variant = Standard
 ): NewGame =
@@ -68,6 +74,8 @@ def newGame(
       daysPerTurn,
       rules,
       clock,
+      moveTimeLimit,
+      moveTimePaused,
       startedAtPly,
       variant
     )
@@ -82,6 +90,8 @@ private def newSloppy(
     daysPerTurn: Option[Days] = None,
     rules: Set[GameRule] = Set.empty,
     clock: Option[Clock] = None,
+    moveTimeLimit: Option[MoveTimeLimit] = None,
+    moveTimePaused: Boolean = false,
     startedAtPly: Ply = Ply.initial,
     variant: Variant = Standard
 ): Game =
@@ -91,6 +101,8 @@ private def newSloppy(
     players = players,
     xiangqi = xiangqi,
     clock = clock,
+    moveTimeLimit = moveTimeLimit,
+    moveTimePaused = moveTimePaused,
     startedAtPly = startedAtPly,
     status = Status.Created,
     daysPerTurn = daysPerTurn,

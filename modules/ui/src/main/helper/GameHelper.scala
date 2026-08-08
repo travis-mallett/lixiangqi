@@ -3,7 +3,7 @@ package lila.ui
 import chess.{ Clock, Color, Rated, Outcome }
 
 import lila.core.LightUser
-import lila.core.game.{ Game, LightPlayer, Namer, Player }
+import lila.core.game.{ Game, LightPlayer, MoveTimeLimit, Namer, Player }
 import lila.ui.ScalatagsTemplate.{ *, given }
 
 trait GameHelper:
@@ -11,8 +11,12 @@ trait GameHelper:
 
   protected val namer: Namer
 
-  def titleGame(g: Game) =
-    val speed = chess.Speed(g.clock.map(_.config)).name
+  def titleGame(g: Game)(using Translate) =
+    val speedName = chess.Speed(g.clock.map(_.config)).name
+    val speed = g.clock
+      .flatMap(clock => g.moveTimeLimit.map(clock.config -> _))
+      .fold(speedName): (clock, limit) =>
+        s"$speedName (${clock.show} · ${shortMoveTimeLimitName(limit)})"
     val variant = g.variant.exotic.so(s" ${g.variant.name}")
     s"$speed$variant Xiangqi • ${playerText(g.whitePlayer)} vs ${playerText(g.blackPlayer)}"
 
@@ -21,10 +25,22 @@ trait GameHelper:
 
   def shortClockName(clock: Clock.Config): Frag = raw(clock.show)
 
+  def moveTimeLimitName(limit: MoveTimeLimit)(using Translate): String =
+    limit.first.fold(trans.site.secondsPerMove.txt(limit.seconds)): first =>
+      trans.site.moveTimeLimitDescription.txt(first.seconds, first.moves, limit.seconds)
+
+  def shortMoveTimeLimitName(limit: MoveTimeLimit)(using Translate): String =
+    limit.first.fold(trans.site.secondsPerMove.txt(limit.seconds)): first =>
+      trans.site.moveTimeLimitShort.txt(first.seconds, first.moves, limit.seconds)
+
+  def shortClockName(clock: Clock.Config, moveTimeLimit: Option[MoveTimeLimit])(using Translate): Frag =
+    moveTimeLimit.fold(shortClockName(clock)): limit =>
+      abbr(title := moveTimeLimitName(limit))(s"${clock.show} · ${shortMoveTimeLimitName(limit)}")
+
   def shortClockName(game: Game)(using Translate): Frag =
     game.correspondenceClock
       .map(c => trans.site.nbDays(c.daysPerTurn))
-      .orElse(game.clock.map(_.config).map(shortClockName))
+      .orElse(game.clock.map(_.config).map(shortClockName(_, game.moveTimeLimit)))
       .getOrElse(trans.site.unlimited())
 
   def ratedName(rated: Rated)(using Translate): String =

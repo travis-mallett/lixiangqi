@@ -38,6 +38,7 @@ import { scanDirectionsHandler } from 'lib/nvui/directionScan';
 import { liveText } from 'lib/nvui/notify';
 import { renderSetting } from 'lib/nvui/setting';
 import { pubsub } from 'lib/pubsub';
+import { formatClock as formatClockName } from 'lib/setup/timeControl';
 import { ops, path as treePath } from 'lib/tree/tree';
 import type { ClientEval, PvData } from 'lib/tree/types';
 import { type VNode, type LooseVNodes, type VNodeChildren, hl, bind, noTrans, onInsert } from 'lib/view';
@@ -116,7 +117,12 @@ export function renderNvui(ctx: AnalyseNvuiContext): VNode {
       hl('h2', i18n.nvui.gameInfo),
       ...COLORS.map(color => hl('p', [`${i18n.site[color]}: `, renderPlayer(ctrl, playerByColor(d, color))])),
       hl('p', `${i18n.site[d.game.rated ? 'rated' : 'casual']} ${d.game.perf || d.game.variant.name}`),
-      d.clock ? hl('p', `Clock: ${d.clock.initial / 60} + ${d.clock.increment}`) : null,
+      d.clock
+        ? hl(
+            'p',
+            `Clock: ${formatClockName(`${d.clock.initial / 60}+${d.clock.increment}`, d.game.moveTime)}`,
+          )
+        : null,
       hl('h2', i18n.nvui.moveList),
       hl('p.moves', { attrs: { role: 'log', 'aria-live': 'off' } }, renderCurrentLine(ctx)),
       [

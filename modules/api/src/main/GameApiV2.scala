@@ -354,6 +354,7 @@ final class GameApiV2(
         "increment" -> clock.incrementSeconds,
         "totalTime" -> clock.estimateTotalSeconds
       ))
+    .add("moveTime" -> g.moveTimeLimit)
     .add("lastFen" -> flags.lastFen.option(g.position.fen))
     .add("lastMove" -> flags.lastFen.option(g.lastMoveKeys))
     .add("division" -> division)

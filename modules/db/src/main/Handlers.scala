@@ -208,6 +208,33 @@ trait Handlers:
       )
   )
 
+  val moveTimeLimitHandler = tryHandler[lila.core.game.MoveTimeLimit](
+    { case doc: BSONDocument =>
+      import lila.core.game.MoveTimeLimit
+      for
+        seconds <- doc.getAsTry[Int]("s")
+        firstMoves <- doc.get("m").traverse(value => summon[BSONReader[Int]].readTry(value))
+        firstSeconds <- doc.get("f").traverse(value => summon[BSONReader[Int]].readTry(value))
+        _ <-
+          if MoveTimeLimit.validSeconds(seconds) then Success(())
+          else Failure(IllegalArgumentException(s"Invalid move-time limit: $seconds"))
+        _ <-
+          if firstMoves.isDefined == firstSeconds.isDefined then Success(())
+          else Failure(IllegalArgumentException("Incomplete first-move time limit"))
+        first <- (firstMoves, firstSeconds).tupled.traverse: (moves, seconds) =>
+          if MoveTimeLimit.validFirstMoves(moves) && MoveTimeLimit.validSeconds(seconds)
+          then Success(MoveTimeLimit.FirstPhase(moves, seconds))
+          else Failure(IllegalArgumentException(s"Invalid first-move time limit: $moves/$seconds"))
+      yield MoveTimeLimit(seconds, first).normalized
+    },
+    limit =>
+      BSONDocument(
+        "s" -> limit.seconds,
+        "m" -> limit.first.map(_.moves),
+        "f" -> limit.first.map(_.seconds)
+      )
+  )
+
   val langByCodeHandler: BSONHandler[play.api.i18n.Lang] =
     stringAnyValHandler(_.code, play.api.i18n.Lang.apply)
 

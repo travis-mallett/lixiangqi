@@ -75,7 +75,7 @@ final class GameUi(helpers: Helpers):
           withRating.option(span(cls := "rating")(lila.game.Namer.ratingString(pov.player)))
         ),
         if pov.game.finished then renderResult(pov)
-        else pov.game.clock.map { renderClock(_, pov.color) }
+        else pov.game.clock.map(renderClock(_, pov.color))
       )
 
     private def renderResult(pov: Pov) =
@@ -363,7 +363,7 @@ final class GameUi(helpers: Helpers):
     def showClock(game: Game)(using Context) =
       game.clock
         .map: clock =>
-          frag(clock.config.show)
+          shortClockName(clock.config, game.moveTimeLimit)
         .getOrElse:
           game.daysPerTurn
             .map: days =>

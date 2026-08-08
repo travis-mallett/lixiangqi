@@ -5,6 +5,7 @@ import lila.core.socket.{ Sri, Sris }
 private case class SaveSeek(msg: SetupBus.AddSeek)
 private case class RemoveHook(hookId: String)
 private case class RemoveSeek(seekId: String)
+private case class SeekIds(ids: Set[String])
 private case class RemoveHooks(hooks: Set[Hook])
 private case class CancelHook(sri: Sri)
 private case class CancelSeek(seekId: String, user: LobbyUser)

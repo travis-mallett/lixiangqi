@@ -72,6 +72,7 @@ final private class GameStarter(
         source = Source.Pool,
         pgnImport = None,
         clock = pool.clock.toClock.some,
+        moveTimeLimit = pool.moveTimeLimit,
         variant = chess.variant.Standard
       )
       .withId(id)

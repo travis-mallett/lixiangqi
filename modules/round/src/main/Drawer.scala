@@ -31,7 +31,7 @@ final private[round] class Drawer(
               .map { autoThreefold =>
                 autoThreefold == Pref.AutoThreefold.ALWAYS || {
                   autoThreefold == Pref.AutoThreefold.TIME &&
-                  game.clock.so { _.remainingTime(pov.color) < Centis.ofSeconds(30) }
+                  game.effectiveClockRemaining(pov.color).exists(_ < Centis.ofSeconds(30))
                 } || pov.player.userId.exists(isBotSync)
               }
               .map(_.option(pov))

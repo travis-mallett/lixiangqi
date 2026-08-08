@@ -7,6 +7,7 @@ import lila.common.Bus
 import lila.common.Json.given
 import lila.core.game.{ FinishGame, Game, StartGame, WithInitialFen }
 import lila.core.LightUser
+import lila.game.JsonView.given
 
 final class GamesByUsersStream(gameRepo: lila.game.GameRepo)(using
     org.apache.pekko.stream.Materializer,
@@ -76,4 +77,5 @@ object GameStream:
           "initial" -> clock.limitSeconds,
           "increment" -> clock.incrementSeconds
         ))
+      .add("moveTime" -> g.moveTimeLimit)
       .add("daysPerTurn" -> g.daysPerTurn)

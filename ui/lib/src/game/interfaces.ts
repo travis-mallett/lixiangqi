@@ -38,6 +38,12 @@ export interface Game {
   rated?: boolean;
   perf: string;
   rules?: GameRule[];
+  moveTime?: MoveTimeLimit;
+}
+
+export interface MoveTimeLimit {
+  seconds: number;
+  first?: { moves: number; seconds: number };
 }
 
 export declare type GameRule = 'noAbort' | 'noRematch' | 'noGiveTime' | 'noClaimWin';

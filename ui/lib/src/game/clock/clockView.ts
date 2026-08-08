@@ -11,31 +11,60 @@ export function renderClock(
   onTheSide: (color: Color, position: TopOrBottom) => LooseVNodes,
 ): VNode {
   const millis = ctrl.millisOf(color),
-    isRunning = color === ctrl.times.activeColor;
+    isRunning = color === ctrl.times.activeColor,
+    showMoveTime = ctrl.hasMoveTime && ctrl.isRunning();
   const update = (el: HTMLElement) => {
     const els = ctrl.elements[color],
       millis = ctrl.millisOf(color),
       isRunning = color === ctrl.times.activeColor;
     els.time = el;
-    els.clock = el.parentElement!;
+    els.clock = el.closest('.rclock') as HTMLElement;
     el.innerHTML = formatClockTime(millis, ctrl.showTenths(millis), isRunning);
   };
   const timeHook: Hooks = {
     insert: vnode => update(vnode.elm as HTMLElement),
     postpatch: (_, vnode) => update(vnode.elm as HTMLElement),
   };
+  const time = hl('div.time', {
+    attrs: { role: 'timer' },
+    class: { hour: millis > 3600 * 1000 },
+    hook: timeHook,
+  });
+  const clockTimes = showMoveTime ? hl('div.rclock__times', [time, renderMoveTime(ctrl, color)]) : time;
   return hl(
     // the player.color class ensures that when the board is flipped, the clock is redrawn. solves bug where clock
     // would be incorrectly latched to red color: https://github.com/lichess-org/lila/issues/10774
     `div.rclock.rclock-${position}.rclock-${color}`,
     { class: { outoftime: millis <= 0, running: isRunning, emerg: millis < ctrl.emergMs } },
     site.blindMode
-      ? [hl('div.time', { attrs: { role: 'timer' }, hook: timeHook })]
+      ? [clockTimes]
       : [
           ctrl.showBar && ctrl.opts.bothPlayersHavePlayed() ? showBar(ctrl, color) : undefined,
-          hl('div.time', { class: { hour: millis > 3600 * 1000 }, hook: timeHook }),
+          clockTimes,
           onTheSide(color, position),
         ],
+  );
+}
+
+function renderMoveTime(ctrl: ClockCtrl, color: Color): VNode {
+  const update = (el: HTMLElement) => {
+    const els = ctrl.elements[color],
+      active = color === ctrl.times.activeColor,
+      millis = active ? ctrl.moveTimeMillis() : undefined;
+    els.moveClock = el;
+    els.moveTime = el.firstElementChild as HTMLElement;
+    updateMoveTimeElement(ctrl, els, millis);
+  };
+  return hl(
+    'div.rclock-move',
+    {
+      attrs: { title: i18n.site.timePerMove },
+      hook: {
+        insert: vnode => update(vnode.elm as HTMLElement),
+        postpatch: (_, vnode) => update(vnode.elm as HTMLElement),
+      },
+    },
+    [hl('div.rclock-move__time', { attrs: { role: 'timer', 'aria-label': i18n.site.timePerMove } })],
   );
 }
 
@@ -139,11 +168,25 @@ function showBar(ctrl: ClockCtrl, color: Color) {
  * This function is used to update the active clock (and bar) during ticks.
  * For larger updates (such as after a move), a redraw is expected.
  */
-export function updateElements(clock: ClockCtrl, els: ClockElements, millis: Millis): void {
+export function updateElements(
+  clock: ClockCtrl,
+  els: ClockElements,
+  millis: Millis,
+  moveMillis?: Millis,
+): void {
   if (els.time) els.time.innerHTML = formatClockTime(millis, clock.showTenths(millis), true);
   if (els.clock) {
     const cl = els.clock.classList;
     if (millis < clock.emergMs) cl.add('emerg');
     else if (cl.contains('emerg')) cl.remove('emerg');
   }
+  updateMoveTimeElement(clock, els, moveMillis);
+}
+
+function updateMoveTimeElement(clock: ClockCtrl, els: ClockElements, millis?: Millis): void {
+  if (!els.moveTime || !els.moveClock) return;
+  els.moveClock.classList.toggle('active', millis !== undefined);
+  els.moveClock.classList.toggle('emerg', millis !== undefined && millis <= 10000);
+  els.moveClock.classList.toggle('outoftime', millis === 0);
+  if (millis !== undefined) els.moveTime.innerHTML = formatClockTime(millis, clock.showTenths(millis), true);
 }

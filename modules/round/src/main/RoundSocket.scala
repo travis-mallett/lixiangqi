@@ -258,26 +258,27 @@ final class RoundSocket(
       .map: ids =>
         roundDependencies.gameRepo
           .byIdsCursor(GameId.from(ids))
-          .foldWhile(Set.empty[GameId])(
-            (ids, game) =>
-              Cursor.Cont[Set[GameId]]:
+          .foldWhile(Map.empty[GameId, Game])(
+            (games, game) =>
+              Cursor.Cont[Map[GameId, Game]]:
                 gamePromises.get(game.id).foreach(_.success(game.some))
-                ids + game.id
+                games.updated(game.id, game)
             ,
             Cursor.ContOnError { (_, err) => bootLog.error("Can't load round game", err) }
           )
           .recover { case e: Exception =>
             bootLog.error(s"RoundSocket Can't load ${ids.size} round games", e)
-            Set.empty
+            Map.empty
           }
           .chronometer
-          .log(bootLog)(loadedIds => s"RoundSocket Loaded ${loadedIds.size}/${ids.size} round games")
+          .log(bootLog)(loaded => s"RoundSocket Loaded ${loaded.size}/${ids.size} round games")
           .result
       .parallel
-      .map(_.flatten.toSet)
+      .map(_.flatten.toMap)
       .andThen:
-        case scala.util.Success(loadedIds) =>
-          val missingIds = gamePromises.keySet -- loadedIds
+        case scala.util.Success(loadedGames) =>
+          Bus.pub(lila.core.game.ActiveGameSnapshot(loadedGames.values))
+          val missingIds = gamePromises.keySet -- loadedGames.keySet
           if missingIds.nonEmpty then
             bootLog.warn:
               s"RoundSocket ${missingIds.size} round games could not be loaded: ${missingIds.take(20).mkString(" ")}"
@@ -286,7 +287,7 @@ final class RoundSocket(
         case scala.util.Failure(err) =>
           bootLog.error(s"RoundSocket Can't load ${gamePromises.size} round games", err)
       .chronometer
-      .log(bootLog)(ids => s"RoundSocket Done loading ${ids.size}/${gamePromises.size} round games")
+      .log(bootLog)(games => s"RoundSocket Done loading ${games.size}/${gamePromises.size} round games")
 
 object RoundSocket:
 

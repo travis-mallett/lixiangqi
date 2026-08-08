@@ -26,6 +26,7 @@ final class ChallengeBulkApi(
   private given BSONDocumentHandler[ScheduledGame] = Macros.handler
   private given BSONHandler[chess.variant.Variant] = variantByKeyHandler
   private given BSONHandler[Clock.Config] = clockConfigHandler
+  private given BSONHandler[lila.core.game.MoveTimeLimit] = moveTimeLimitHandler
   private given BSONHandler[Either[Clock.Config, Days]] = eitherHandler[Clock.Config, Days]
   private given BSONDocumentHandler[ScheduledBulk] = Macros.handler
 
@@ -85,8 +86,10 @@ final class ChallengeBulkApi(
           coll.updateField($id(bulk.id), "startedClocksAt", nowInstant).void
 
   private def makePairings(bulk: ScheduledBulk): Funit =
-    def timeControl =
-      bulk.clock.fold(Challenge.TimeControl.Clock.apply, Challenge.TimeControl.Correspondence.apply)
+    def timeControl = bulk.clock.fold(
+      Challenge.TimeControl.Clock(_, bulk.moveTimeLimit),
+      Challenge.TimeControl.Correspondence.apply
+    )
     XiangqiRules
       .initialGame:
         bulk.fen
@@ -113,6 +116,8 @@ final class ChallengeBulkApi(
                 pgnImport = None,
                 rules = bulk.rules,
                 clock = timeControl.realTime.map(_.toClock),
+                moveTimeLimit = bulk.moveTimeLimit,
+                moveTimePaused = bulk.moveTimeLimit.isDefined,
                 startedAtPly = chess.Ply(xiangqiGame.state.ply),
                 variant = bulk.variant
               )

@@ -34,6 +34,8 @@ final class SeekApi(
 
   def forAnon = cache.get(ForAnon)
 
+  def activeIds: Fu[Set[String]] = coll.distinct[String, Set]("_id", Some($empty))
+
   def forMe(using me: User | UserWithPerfs): Fu[List[Seek]] = for
     user <- me match
       case u: UserWithPerfs => fuccess(u)

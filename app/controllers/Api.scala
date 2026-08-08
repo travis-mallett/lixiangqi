@@ -11,6 +11,7 @@ import lila.common.Json.given
 import lila.core.chess.MultiPv
 import lila.core.net.IpAddress
 import lila.core.{ LightUser, id }
+import lila.game.JsonView.given
 import lila.security.{ Mobile, UserAgentParser }
 import lila.web.ConcurrencyLimit
 
@@ -112,6 +113,7 @@ final class Api(env: Env, gameC: => Game) extends LilaController(env):
                       Json
                         .obj("id" -> g.id)
                         .add("clock", g.clock.map(_.config.show))
+                        .add("moveTime", g.moveTimeLimit)
                         .add("variant", g.variant.exotic.option(g.variant.key))
                   )
               .some
@@ -132,7 +134,6 @@ final class Api(env: Env, gameC: => Game) extends LilaController(env):
   def crosstable(name1: UserStr, name2: UserStr) = ApiRequest:
     limit.crosstable(req.ipAddress, fuccess(ApiResult.Limited), cost = 1):
       val (u1, u2) = (name1.id, name2.id)
-      import lila.game.JsonView.given
       for
         ct <- env.game.crosstableApi(u1, u2)
         matchup <- (ct.results.nonEmpty && getBool("matchup"))

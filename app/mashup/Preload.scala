@@ -5,106 +5,67 @@ import play.api.libs.json.*
 
 import lila.core.game.Game
 import lila.core.perf.UserWithPerfs
-import lila.event.Event
+import lila.core.user.LightPerf
+import lila.core.user.{ FlagCode, LightUserApi, UserApi }
 import lila.playban.TempBan
-import lila.streamer.LiveStreams
-import lila.timeline.Entry
-import lila.tournament.Tournament
-import lila.ublog.UblogPost
-import lila.user.{ LightUserApi, Me, User }
+import lila.user.Me
 import lila.mon.extensions.*
-import lila.round.UrgentGames
 
 final class Preload(
     tv: lila.tv.Tv,
     gameRepo: lila.game.GameRepo,
     perfsRepo: lila.user.UserPerfsRepo,
-    timelineApi: lila.timeline.EntryApi,
-    liveStreamApi: lila.streamer.LiveApi,
-    dailyPuzzle: lila.puzzle.DailyPuzzle.Try,
     lobbyApi: lila.api.LobbyApi,
     playbanApi: lila.playban.PlaybanApi,
     lightUserApi: LightUserApi,
+    userApi: UserApi,
+    userCached: lila.user.Cached,
     roundProxy: lila.round.GameProxyRepo,
     getLastUpdates: lila.feed.Feed.GetLastUpdates,
-    ublogApi: lila.ublog.UblogApi,
     unreadCount: lila.msg.MsgUnreadCount,
-    relayHome: lila.relay.RelayHomeApi,
-    notifyApi: lila.notify.NotifyApi,
-    clasApi: lila.clas.ClasApi
+    notifyApi: lila.notify.NotifyApi
 )(using Executor):
 
   import Preload.*
 
-  def apply(
-      tours: Fu[List[Tournament]],
-      events: Fu[List[Event]],
-      streamerSpots: Int
-  )(using ctx: Context): Fu[Homepage] = for
+  def apply()(using ctx: Context): Fu[Homepage] = for
     nbNotifications <- ctx.me.so(notifyApi.unreadCount(_))
     withPerfs <- ctx.user.traverse(perfsRepo.withPerfs)
     given Option[UserWithPerfs] = withPerfs
-    (
-      (
-        (
-          (
-            (
-              ((((((data, povs), tours), events), feat), entries), puzzle),
-              streams
-            ),
-            playban
-          ),
-          blindGames
-        ),
-        ublogPosts
-      ),
-      lichessMsg
-    ) <- lobbyApi.get
-      .mon(lila.mon.lobby.segment("lobbyApi"))
-      .zip(tours.mon(lila.mon.lobby.segment("tours")))
-      .zip(events.mon(lila.mon.lobby.segment("events")))
-      .zip(tv.getBestGame.mon(lila.mon.lobby.segment("tvBestGame")))
-      .zip((ctx.userId.so(timelineApi.userEntries)).mon(lila.mon.lobby.segment("timeline")))
-      .zip((ctx.noBot.so(dailyPuzzle())).mon(lila.mon.lobby.segment("puzzle")))
-      .zip:
-        ctx.kid.no.so:
-          liveStreamApi.all
-            .dmap(_.homepage(streamerSpots, ctx.acceptLanguages).withTitles(lightUserApi))
-            .mon(lila.mon.lobby.segment("streams"))
-      .zip((ctx.userId.so(playbanApi.currentBan)).mon(lila.mon.lobby.segment("playban")))
-      .zip(ctx.blind.so(ctx.me).so(roundProxy.urgentGames))
-      .zip(ublogApi.myCarousel)
-      .zip:
-        ctx.userId
-          .ifTrue(nbNotifications > 0)
-          .filterNot(liveStreamApi.isStreaming)
-          .so(unreadCount.hasLichessMsg)
+    (data, povs) <- lobbyApi.get.mon(lila.mon.lobby.segment("lobbyApi"))
+    featured <- tv.getBestGame.mon(lila.mon.lobby.segment("tvBestGame"))
+    playban <- ctx.userId.so(playbanApi.currentBan).mon(lila.mon.lobby.segment("playban"))
+    lichessMsg <- ctx.userId.ifTrue(nbNotifications > 0).so(unreadCount.hasLichessMsg)
+    leaderboards <- userCached.top10.get({}).mon(lila.mon.lobby.segment("leaderboard"))
+    leaderboard = homepageLeaderboard(leaderboards)
+    leaderboardUsers <- userApi.byIds(leaderboard.map(_.user.id))
+    leaderboardFlags = leaderboardUsers
+      .flatMap: user =>
+        user.profile.flatMap(_.flag).map(user.id -> _)
+      .toMap
     (currentGame, _) <- ctx.me
       .soUse(currentGameMyTurn(povs, lightUserApi.sync))
       .mon(lila.mon.lobby.segment("currentGame"))
-      .zip:
-        lightUserApi
-          .preloadMany(entries.flatMap(_.userIds).toList)
-          .mon(lila.mon.lobby.segment("lightUsers"))
-    classes <- ctx.myId.so(me => clasApi.isStudent(me).so(clasApi.clas.ofStudent(me, 4)))
+      .zip(lightUserApi.preloadMany(leaderboard.map(_.user.id)))
   yield Homepage(
     data,
-    entries,
-    tours,
-    events,
-    relayHome.spotlight.get,
-    feat,
-    puzzle,
-    streams.excludeUsers(events.flatMap(_.hostedBy)),
+    featured,
     playban,
     currentGame,
-    blindGames,
     getLastUpdates(),
-    ublogPosts,
-    classes,
-    withPerfs,
+    leaderboard,
+    leaderboardFlags,
     hasUnreadLichessMessage = lichessMsg
   )
+
+  private def homepageLeaderboard(leaderboards: lila.rating.UserPerfs.Leaderboards): List[LightPerf] =
+    (leaderboards.rapid.take(6) ::: leaderboards.classical.take(4) ::: leaderboards.blitz.take(2))
+      .groupBy(_.user.id)
+      .values
+      .map(_.maxBy(_.rating.value))
+      .toList
+      .sortBy(-_.rating.value)
+      .take(8)
 
   def currentGameMyTurn(using me: Me): Fu[Option[CurrentGame]] =
     gameRepo
@@ -128,20 +89,12 @@ object Preload:
 
   case class Homepage(
       data: JsObject,
-      userTimeline: Vector[Entry],
-      tours: List[Tournament],
-      events: List[Event],
-      relays: List[lila.relay.RelayCard],
       featured: Option[Game],
-      puzzle: Option[lila.puzzle.DailyPuzzle.WithHtml],
-      streams: LiveStreams.WithTitles,
       playban: Option[TempBan],
       currentGame: Option[Preload.CurrentGame],
-      blindGames: UrgentGames,
       lastUpdates: List[lila.feed.Feed.Update],
-      ublogPosts: List[UblogPost.PreviewPost],
-      classes: List[lila.clas.Clas],
-      me: Option[UserWithPerfs],
+      leaderboard: List[LightPerf],
+      leaderboardFlags: Map[UserId, FlagCode],
       hasUnreadLichessMessage: Boolean
   )
 

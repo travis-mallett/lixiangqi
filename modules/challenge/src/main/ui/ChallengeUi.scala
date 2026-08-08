@@ -39,8 +39,10 @@ final class ChallengeUi(helpers: Helpers):
       .css("challenge.page")
 
   private def challengeTitle(c: Challenge)(using ctx: Context) =
-    val speed = c.clock.map(_.config).fold(chess.Speed.Correspondence.name) { clock =>
-      s"${chess.Speed(clock).name} (${clock.show})"
+    val speed = c.clock.fold(chess.Speed.Correspondence.name) { clock =>
+      val clockName = clock.moveTimeLimit.fold(clock.config.show): limit =>
+        s"${clock.config.show} · ${shortMoveTimeLimitName(limit)}"
+      s"${chess.Speed(clock.config).name} ($clockName)"
     }
     val variant = c.variant.exotic.so(s" ${c.variant.name}")
     val challenger = c.challengerUser.fold(trans.site.anonymous.txt()): reg =>
@@ -64,7 +66,10 @@ final class ChallengeUi(helpers: Helpers):
             br,
             span(cls := "clock"):
               c.daysPerTurn
-                .fold(shortClockName(c.clock.map(_.config))): days =>
+                .fold(
+                  c.clock.fold(shortClockName(none[chess.Clock.Config])): clock =>
+                    shortClockName(clock.config, clock.moveTimeLimit)
+                ): days =>
                   if days.value == 1 then trans.site.oneDay()
                   else trans.site.nbDays.pluralSame(days.value)
           )
@@ -316,11 +321,16 @@ final class ChallengeUi(helpers: Helpers):
           "gameMode" -> rated.name
         ),
         timeControl.match
-          case Challenge.TimeControl.Clock(config) =>
+          case Challenge.TimeControl.Clock(config, moveTimeLimit) =>
             List(
               "minutesPerSide" -> config.limitInMinutes.toString,
               "increment" -> config.increment.roundSeconds.toString
-            )
+            ) ::: moveTimeLimit.toList.flatMap: limit =>
+              List("moveTime" -> limit.seconds.toString) ::: limit.first.toList.flatMap: first =>
+                List(
+                  "moveTimeFirstMoves" -> first.moves.toString,
+                  "moveTimeFirstSeconds" -> first.seconds.toString
+                )
           case Challenge.TimeControl.Correspondence(days) => List("days" -> days.value.toString)
           case Challenge.TimeControl.Unlimited => List("time" -> "unlimited"),
         initialFen.map(f => "fen" -> f.value),

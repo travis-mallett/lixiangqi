@@ -6,12 +6,14 @@ import chess.variant.{ FromPosition, Variant }
 import scalalib.model.Days
 
 import lila.core.game.GameRule
+import lila.core.game.MoveTimeLimit
 import lila.xiangqi.Xiangqi
 
 final case class OpenConfig(
     name: Option[String],
     variant: chess.variant.Variant,
     clock: Option[Clock.Config],
+    moveTimeLimit: Option[MoveTimeLimit],
     days: Option[Days],
     rated: Rated,
     position: Option[Fen.Full],
@@ -26,6 +28,8 @@ final case class OpenConfig(
     if variant == FromPosition then position.exists(fen => Xiangqi.Fen.isValid(fen.value))
     else position.forall(_.value == Xiangqi.startFen)
 
+  def validMoveTimeLimit = moveTimeLimit.isEmpty || clock.isDefined
+
   def autoVariant =
     if variant.standard && position.exists(_.value != Xiangqi.startFen)
     then copy(variant = FromPosition)
@@ -37,6 +41,7 @@ object OpenConfig:
       n: Option[String],
       v: Option[Variant.LilaKey],
       cl: Option[Clock.Config],
+      ml: Option[MoveTimeLimit],
       days: Option[Days],
       rated: Rated,
       pos: Option[Fen.Full],
@@ -48,6 +53,7 @@ object OpenConfig:
       name = n.map(_.trim).filter(_.nonEmpty),
       variant = Variant.orDefault(v),
       clock = cl,
+      moveTimeLimit = ml,
       days = days,
       rated = rated,
       position = pos,

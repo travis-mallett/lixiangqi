@@ -1,6 +1,6 @@
 import type { LiconValue } from 'lib/licon';
 import type { ColorChoice } from 'lib/setup/color';
-import type { ClockConfig } from 'lib/setup/interfaces';
+import type { ClockConfig, MoveTimeLimitConfig } from 'lib/setup/interfaces';
 import type { TimeMode } from 'lib/setup/timeControl';
 
 export type Sort = 'rating' | 'time';
@@ -24,6 +24,7 @@ export interface Hook {
   t: number; // time
   s: number; // speed
   i: number; // increment
+  moveTime?: MoveTimeLimitConfig;
   variant: VariantKey;
   perf: Exclude<Perf, 'fromPosition'>;
   prov?: true; // is rating provisional
@@ -58,6 +59,7 @@ export interface LobbyOpts {
   tableElement: HTMLElement;
   socketSend: SocketSend;
   pools: Pool[];
+  homePools: Pool[];
   hasUnreadLichessMessage: boolean;
   playban: boolean;
   showRatings: boolean;
@@ -79,6 +81,7 @@ export interface LobbyData {
   nowPlaying: NowPlaying[];
   ratingMap: Record<Perf, RatingWithProvisional> | null;
   counters: { members: number; rounds: number };
+  poolCounts: Record<string, number>;
 }
 
 type RatingWithProvisional = number;
@@ -129,6 +132,7 @@ export interface SetupStore {
   time: number;
   increment: number;
   days: number;
+  moveTime?: MoveTimeLimitConfig;
 }
 
 export interface ForceSetupOptions {
@@ -138,6 +142,7 @@ export interface ForceSetupOptions {
   time?: number;
   increment?: number;
   days?: number;
+  moveTime?: MoveTimeLimitConfig;
   mode?: GameMode;
   color?: ColorChoice;
 }

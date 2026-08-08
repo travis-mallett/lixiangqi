@@ -27,12 +27,14 @@ object SetupForm:
       "timeMode" -> timeMode,
       "time" -> time,
       "increment" -> increment,
+      moveTimeLimit,
       "days" -> days,
       "level" -> level,
       "color" -> color,
       "fen" -> fenField
     )(AiConfig.from)(_.>>)
       .verifying("invalidFen", _.validFen)
+      .verifying("Time per move requires a real-time clock", _.validMoveTimeLimit)
       .verifying("Can't play that time control from a position", _.timeControlFromPosition)
 
   def friendFilled(fen: Option[Fen.Full])(using Option[Me]): Form[FriendConfig] =
@@ -45,12 +47,14 @@ object SetupForm:
       "timeMode" -> timeMode,
       "time" -> time,
       "increment" -> increment,
+      moveTimeLimit,
       "days" -> days,
       "mode" -> mode(withRated = me.isDefined),
       "color" -> color,
       "fen" -> fenField
     )(FriendConfig.from)(_.>>)
       .verifying("Invalid clock", _.validClock)
+      .verifying("Time per move requires a real-time clock", _.validMoveTimeLimit)
       .verifying("Invalid speed", _.validSpeed(me.exists(_.isBot)))
       .verifying("Can't create rated unlimited game", !_.isRatedUnlimited)
       .verifying("invalidFen", _.validFen)
@@ -64,29 +68,33 @@ object SetupForm:
       "timeMode" -> timeMode,
       "time" -> time,
       "increment" -> increment,
+      moveTimeLimit,
       "days" -> days,
       "mode" -> mode(me.isDefined),
       "ratingRange" -> optional(ratingRange),
       "color" -> lila.common.Form.empty
     )(HookConfig.from)(_.>>)
       .verifying("Invalid clock", _.validClock)
+      .verifying("Time per move requires a real-time clock", _.validMoveTimeLimit)
       .verifying("Can't create rated unlimited game", !_.isRatedUnlimited)
 
   private lazy val boardApiHookBase: Mapping[HookConfig] =
     mapping(
       "time" -> optional(time),
       "increment" -> optional(increment),
+      moveTimeLimit,
       "days" -> optional(days),
       "variant" -> optional(boardApiVariantKeys),
       "rated" -> optional(boolean.into[Rated]),
       "ratingRange" -> optional(ratingRange),
       "color" -> optional(color)
-    )((t, i, d, v, r, g, c) =>
+    )((t, i, ml, d, v, r, g, c) =>
       HookConfig(
         variant = Variant.orDefault(v),
         timeMode = if d.isDefined then TimeMode.Correspondence else TimeMode.RealTime,
         time = t | 10,
         increment = i | Clock.IncrementSeconds(5),
+        moveTimeLimit = ml,
         days = d | Days(7),
         rated = r | Rated.No,
         ratingRange = g.fold(RatingRange.default)(RatingRange.orDefault),
@@ -94,6 +102,7 @@ object SetupForm:
       )
     )(_ => none)
       .verifying("Invalid clock", _.validClock)
+      .verifying("Time per move requires a real-time clock", _.validMoveTimeLimit)
 
   def boardApiHook(allowFastGames: Boolean) = Form:
     boardApiHookBase.verifying(
@@ -116,6 +125,8 @@ object SetupForm:
         .verifying("Invalid clock", _.estimateTotalTime.nonZero)
 
     lazy val clock = "clock" -> optional(clockMapping)
+
+    lazy val moveTimeLimit = Mappings.moveTimeLimit
 
     lazy val optionalDays = "days" -> optional(days)
 
@@ -145,6 +156,7 @@ object SetupForm:
       mapping(
         variant,
         clock,
+        moveTimeLimit,
         optionalDays,
         "rated" -> boolean.into[Rated],
         "color" -> optional(color),
@@ -155,6 +167,7 @@ object SetupForm:
         "onlyIfOpponentFollowsMe" -> optional(boolean)
       )(ApiConfig.from)(_ => none)
         .verifying("invalidFen", _.validFen)
+        .verifying("Time per move requires a clock", _.validMoveTimeLimit)
         .verifying("can't be rated", _.validRated)
 
     lazy val ai = Form:
@@ -162,10 +175,13 @@ object SetupForm:
         "level" -> level,
         variant,
         clock,
+        moveTimeLimit,
         optionalDays,
         "color" -> optional(color),
         "fen" -> fenField
-      )(ApiAiConfig.from)(_ => none).verifying("invalidFen", _.validFen)
+      )(ApiAiConfig.from)(_ => none)
+        .verifying("invalidFen", _.validFen)
+        .verifying("Time per move requires a clock", _.validMoveTimeLimit)
 
     def open(isAdmin: Boolean) = Form:
       openMapping.verifying(
@@ -177,6 +193,7 @@ object SetupForm:
       "name" -> optional(LilaForm.cleanNonEmptyText(maxLength = 200)),
       variant,
       clock,
+      moveTimeLimit,
       optionalDays,
       "rated" -> boolean.into[Rated],
       "fen" -> fenField,
@@ -192,4 +209,5 @@ object SetupForm:
           .verifying("Open challenges must expire within 2 weeks", _.isBefore(nowInstant.plusWeeks(2)))
     )(OpenConfig.from)(_ => none)
       .verifying("invalidFen", _.validFen)
+      .verifying("Time per move requires a clock", _.validMoveTimeLimit)
       .verifying("rated without a clock", c => c.clock.isDefined || c.days.isDefined || c.rated.no)

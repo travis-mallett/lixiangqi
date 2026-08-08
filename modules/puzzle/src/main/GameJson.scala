@@ -63,6 +63,7 @@ final private class GameJson(
         "notationsZh" -> game.xiangqi.chineseWxf.take(moveCount)
       )
       .add("clock", game.clock.map(_.config.show))
+      .add("moveTime", game.moveTimeLimit.map(moveTimeJson))
 
   private def perfJson(game: Game) =
     Json.obj(
@@ -105,3 +106,10 @@ final private class GameJson(
               .add("uci", game.xiangqi.moves.lift(moveCount - 1).map(_.value))
       )
       .add("clock", game.clock.map(_.config.show))
+      .add("moveTime", game.moveTimeLimit.map(moveTimeJson))
+
+  private def moveTimeJson(limit: lila.core.game.MoveTimeLimit) =
+    Json
+      .obj("seconds" -> limit.seconds)
+      .add("first" -> limit.first.map: first =>
+        Json.obj("moves" -> first.moves, "seconds" -> first.seconds))

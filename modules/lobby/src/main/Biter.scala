@@ -71,6 +71,7 @@ final private class Biter(
       source = lila.core.game.Source.Lobby,
       pgnImport = None,
       clock = hook.clock.toClock.some,
+      moveTimeLimit = hook.moveTimeLimit,
       variant = hook.realVariant
     )
     .start

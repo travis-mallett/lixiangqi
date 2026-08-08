@@ -4,13 +4,11 @@ import play.api.libs.json.Json
 
 import lila.app.UiEnv.{ *, given }
 import lila.app.mashup.Preload.Homepage
-import lila.core.perf.UserWithPerfs
 
 object home:
 
   def apply(homepage: Homepage)(using ctx: Context) =
     import homepage.*
-    val isWudang = ctx.pref.uiTheme == lila.pref.UiThemes.wudang.key
     val donateLink =
       a(cls := "lobby__support-link", href := routes.Plan.index())(
         iconTag(patronIconChar),
@@ -36,6 +34,8 @@ object home:
           Json
             .obj(
               "data" -> data,
+              "pools" -> lila.pool.PoolList.json(using ctx.translate),
+              "homePools" -> lila.pool.PoolList.homepageJson(using ctx.translate),
               "showRatings" -> ctx.pref.showRatings
             )
             .add("hasUnreadLichessMessage", hasUnreadLichessMessage)
@@ -53,100 +53,54 @@ object home:
         )
       )
       .hrefLangs(lila.ui.LangPath("/")):
-        given Option[UserWithPerfs] = homepage.me
         main(
           cls := List(
             "lobby" -> true,
-            "lobby-nope" -> (playban.isDefined || currentGame.isDefined || homepage.hasUnreadLichessMessage)
+            "lobby-nope" -> (playban.isDefined || currentGame.isDefined || hasUnreadLichessMessage)
           )
         )(
-          div(cls := "lobby__side")(
-            ctx.blind.option(h2(trans.nvui.featuredEvents())),
-            ctx.kid.no.option(views.streamer.bits.liveStreams(streams)),
-            div(cls := "lobby__spotlights"):
-              val eventTags = events.map(bits.spotlight)
-              val relayTags = views.relay.ui.spotlight(relays)
-              frag(
-                eventTags,
-                relayTags,
-                ctx.noBot.option {
-                  val nbManual = eventTags.size + relayTags.size
-                  val tourBBBs = if nbManual >= 3 then 0 else 3 - nbManual
-                  lila.tournament.Spotlight.select(tours, tourBBBs).map {
-                    views.tournament.list.homepageSpotlight(_)
-                  }
-                }
-              )
+          st.aside(cls := "lobby__rail", attr("aria-label") := "Homepage highlights")(
+            div(cls := "lobby__site-counters"),
+            donateLink,
+            featured.map: game =>
+              div(cls := "lobby__tv"):
+                views.game.mini(Pov.naturalOrientation(game), tv = true)
             ,
-            classes.nonEmpty.option:
-              div(cls := "lobby__classes"):
-                classes.map: clas =>
-                  a(href := routes.Clas.show(clas.id), dataIcon := Icon.Group)(clas.name)
-            ,
-            if ctx.isAuth then
-              div(cls := "lobby__timeline")(
-                ctx.blind.option(h2(trans.site.timeline())),
-                views.timeline.entries(userTimeline),
-                userTimeline.nonEmpty.option:
-                  a(cls := "more", href := routes.Timeline.home)(trans.site.more(), " »")
-              )
-            else
-              Option.unless(isWudang):
-                div(cls := "about-side")(
-                  ctx.blind.option(h2(trans.site.about())),
-                  trans.site.xIsAFreeYLibreOpenSourceChessServer(
-                    "Lixiangqi",
-                    a(cls := "blue", href := routes.Plan.features)(trans.site.really.txt())
-                  ),
-                  " ",
-                  a(href := "/about")(trans.site.aboutX("Lixiangqi"), "...")
+            swagLink
+          ),
+          div(cls := "lobby__gameplay")(
+            st.section(cls := "lobby__standard", attr("aria-label") := "Standard Xiangqi")(
+              div(cls := "lobby__table"),
+              currentGame
+                .map(bits.currentGameInfo)
+                .orElse(hasUnreadLichessMessage.option(bits.showUnreadLichessMessage))
+                .orElse(playban.map(bits.playbanInfo)),
+              div(cls := "lobby__feed"):
+                views.feed.lobbyUpdates(lastUpdates)
+            ),
+            st.aside(cls := "lobby__variants", attr("aria-label") := "Xiangqi variants")(
+              button(
+                cls := "lobby__feature-card lobby__feature-card--variant",
+                tpe := "button",
+                attr("disabled") := true,
+                aria.disabled := "true"
+              )(
+                span(cls := "lobby__coming-soon")(trans.site.comingSoon()),
+                img(
+                  cls := "lobby__feature-card__image",
+                  src := assetUrl("images/homepage/xiangqi-dark-flip-mode.webp"),
+                  alt := "",
+                  aria.hidden := "true",
+                  widthA := 384,
+                  heightA := 384
+                ),
+                span(cls := "lobby__feature-card__body")(
+                  strong(cls := "lobby__feature-card__title")(trans.site.darkFlipXiangqi()),
+                  span(cls := "lobby__feature-card__subtitle")("揭棋"),
+                  span(cls := "lobby__occupancy text", dataIcon := Icon.Group)("0")
                 )
-          ),
-          currentGame
-            .map(bits.currentGameInfo)
-            .orElse:
-              hasUnreadLichessMessage.option(bits.showUnreadLichessMessage)
-            .orElse:
-              playban.map(bits.playbanInfo)
-            .getOrElse:
-              if ctx.blind then blindLobby(blindGames) else bits.lobbyApp
-          ,
-          div(cls := "lobby__table")(
-            div(cls := "lobby__start")(
-              button(cls := "button button-metal lobby__start__button lobby__start__button--hook")(
-                trans.site.createLobbyGame()
               ),
-              button(cls := "button button-metal lobby__start__button lobby__start__button--friend")(
-                trans.site.challengeAFriend()
-              ),
-              button(cls := "button button-metal lobby__start__button lobby__start__button--ai")(
-                trans.site.playAgainstComputer()
-              )
+              bits.homepageLeaderboard(leaderboard, leaderboardFlags)
             )
-          ),
-          Option.unless(isWudang)(div(cls := "lobby__support")(donateLink, swagLink)),
-          div(cls := "lobby__tv")(
-            Option.unless(isWudang)(donateLink),
-            featured.map(g => views.game.mini(Pov.naturalOrientation(g), tv = true))
-          ),
-          div(cls := "lobby__puzzle")(
-            Option.unless(isWudang)(swagLink),
-            puzzle.map(p => views.puzzle.bits.dailyLink(p)())
-          ),
-          views.ublog.ui.homeCarousel(ublogPosts),
-          div(cls := "lobby__feed"):
-            views.feed.lobbyUpdates(lastUpdates)
-          ,
-          ctx.noBot.option(bits.underboards(tours)),
-          div(cls := "lobby__about")(
-            ctx.blind.option(h2(trans.site.about())),
-            a(href := "/about")(trans.site.aboutX("Lixiangqi")),
-            a(href := "/faq")(trans.faq.faqAbbreviation()),
-            a(href := "/contact")(trans.contact.contact()),
-            a(href := routes.Cms.tos)(trans.site.termsOfService()),
-            a(href := "/privacy")(trans.site.privacy()),
-            a(href := "/source")(trans.site.sourceCode()),
-            a(href := "/ads")("Ads"),
-            views.bits.connectLinks
           )
         )

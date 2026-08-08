@@ -16,17 +16,23 @@ export default class LobbySocket {
     this.handlers = {
       had(hook: Hook) {
         hookRepo.add(ctrl, hook);
-        if (hook.action === 'cancel') ctrl.flushHooks(true);
+        if (hook.action === 'cancel') {
+          ctrl.onOwnHookAdded(hook);
+          ctrl.flushHooks(true);
+        }
         ctrl.redraw();
       },
       hrm(ids: string) {
         ids.match(/.{8}/g)!.forEach(function (id) {
+          const hook = hookRepo.find(ctrl, id);
+          if (hook?.action === 'cancel') ctrl.onOwnHookRemoved(hook);
           hookRepo.remove(ctrl, id);
         });
         ctrl.redraw();
       },
       hooks(hooks: Hook[]) {
         hookRepo.setAll(ctrl, hooks);
+        ctrl.syncOwnHookPool();
         ctrl.flushHooks(true);
         ctrl.redraw();
       },
@@ -36,6 +42,10 @@ export default class LobbySocket {
       },
       reload_seeks() {
         if (ctrl.tab === 'seeks') ctrl.fetchSeeks();
+      },
+      poolCounts(counts: Record<string, number>) {
+        Object.assign(ctrl.data.poolCounts, counts);
+        ctrl.redraw();
       },
     };
 

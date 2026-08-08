@@ -10,6 +10,7 @@ import scalalib.model.Days
 
 import lila.core.challenge as hub
 import lila.core.game.GameRule
+import lila.core.game.MoveTimeLimit
 import lila.core.i18n.I18nKey
 import lila.core.id.GameFullId
 import lila.core.user.{ GameUser, WithPerf }
@@ -153,7 +154,7 @@ object Challenge:
           else none
 
   private def speedOf(timeControl: TimeControl) = timeControl match
-    case TimeControl.Clock(config) => Speed(config)
+    case TimeControl.Clock(config, _) => Speed(config)
     case _ => Speed.Correspondence
 
   private def perfTypeOf(variant: Variant, timeControl: TimeControl): PerfType =
@@ -167,9 +168,13 @@ object Challenge:
 
   def randomColor = Color.fromWhite(ThreadLocalRandom.nextBoolean())
 
-  def makeTimeControl(clock: Option[chess.Clock.Config], days: Option[Days]): TimeControl =
+  def makeTimeControl(
+      clock: Option[chess.Clock.Config],
+      days: Option[Days],
+      moveTimeLimit: Option[MoveTimeLimit] = None
+  ): TimeControl =
     clock
-      .map(TimeControl.Clock.apply)
+      .map(TimeControl.Clock(_, moveTimeLimit))
       .orElse(days.map(TimeControl.Correspondence.apply))
       .getOrElse(TimeControl.Unlimited)
 
@@ -193,7 +198,7 @@ object Challenge:
       case "black" => ColorChoice.Black -> chess.Black
       case _ => ColorChoice.Random -> randomColor
     val finalRated = timeControl match
-      case TimeControl.Clock(clock) if !lila.core.game.allowRated(variant, clock.some) => Rated.No
+      case TimeControl.Clock(clock, _) if !lila.core.game.allowRated(variant, clock.some) => Rated.No
       case _ => rated
     val isOpen = challenger == Challenge.Challenger.Open
     new Challenge(

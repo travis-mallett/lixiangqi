@@ -30,6 +30,8 @@ case class Game(
     players: ByColor[Player],
     xiangqi: Xiangqi.Game,
     clock: Option[Clock],
+    moveTimeLimit: Option[MoveTimeLimit] = None,
+    moveTimePaused: Boolean = false,
     startedAtPly: Ply = Ply.initial,
     loadClockHistory: Clock => Option[ClockHistory] = _ => ClockHistory.empty.some,
     status: Status,
@@ -43,6 +45,9 @@ case class Game(
     abortedBy: Option[Color] = None,
     variant: Variant = Standard
 ):
+
+  require(moveTimeLimit.isEmpty || clock.isDefined, "A move-time limit requires a real-time clock")
+  require(!moveTimePaused || moveTimeLimit.isDefined, "A paused move-time limit requires a policy")
 
   export metadata.{ tournamentId, simulId, swissId, drawOffers, source, pgnImport, hasRule }
   export players.{ white as whitePlayer, black as blackPlayer, apply as player }
@@ -120,10 +125,13 @@ case class Game(
   def start =
     if started then this
     else
-      copy(
+      val startedGame = copy(
         status = Status.Started,
         rated = rated.map(_ && userIds.distinct.size == 2)
       )
+      if moveTimeLimit.isDefined && !moveTimePaused then
+        startedGame.copy(clock = startedGame.clock.map(_.start))
+      else startedGame
 
   def correspondenceClock: Option[CorrespondenceClock] =
     daysPerTurn.map(d => CorrespondenceClock(d.value, turnColor, movedAt))
@@ -203,10 +211,45 @@ case class Game(
   private def outoftimeClock(withGrace: Boolean): Boolean =
     clock.exists: c =>
       started && playable && {
-        c.outOfTime(turnColor, withGrace) || {
+        c.outOfTime(turnColor, withGrace) || moveTimeOut(c, withGrace) || {
           !c.isRunning && c.players.exists(_.elapsed.centis > 0)
         }
       }
+
+  private def moveTimeOut(clock: Clock, withGrace: Boolean): Boolean =
+    moveTimeLimit.exists: limit =>
+      currentMoveElapsed(clock).exists: elapsed =>
+        val grace =
+          if withGrace then clock.players(turnColor).lag.quota.atMost(Centis.ofSeconds(2))
+          else Centis(0)
+        elapsed - grace >= Centis.ofSeconds(limit.limitForMove(playerMoves(turnColor) + 1))
+
+  def moveTimeOutAfterCompensation(compensatedLag: Option[Centis]): Boolean =
+    (for
+      limit <- moveTimeLimit
+      clk <- clock
+      elapsed <- currentMoveElapsed(clk)
+    yield elapsed - compensatedLag.getOrElse(Centis(0)) >=
+      Centis.ofSeconds(limit.limitForMove(playerMoves(turnColor) + 1))).getOrElse(false)
+
+  def moveTimeRemaining: Option[Centis] =
+    for
+      limit <- moveTimeLimit
+      clk <- clock
+      elapsed <- currentMoveElapsed(clk)
+    yield
+      val full = Centis.ofSeconds(limit.limitForMove(playerMoves(turnColor) + 1))
+      (full - elapsed).nonNeg
+
+  private def currentMoveElapsed(clock: Clock): Option[Centis] =
+    if moveTimePaused then None else clock.timer.map(clock.timestamper.toNow)
+
+  /** Time until the player flags from either their bank or the current move ceiling. */
+  def effectiveClockRemaining(color: Color): Option[Centis] =
+    clock.map: clk =>
+      val bank = clk.remainingTime(color)
+      if color == turnColor then moveTimeRemaining.fold(bank)(remaining => bank.atMost(remaining))
+      else bank
 
   private def outoftimeCorrespondence: Boolean =
     playableCorrespondenceClock.exists(_.outoftime(turnColor))

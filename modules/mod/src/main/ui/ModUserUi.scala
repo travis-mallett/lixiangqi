@@ -469,7 +469,7 @@ final class ModUserUi(helpers: Helpers, modUi: ModUi, mailerEventsUrl: Url):
                       a(href := routes.Round.watcher(p.gameId, p.color))(
                         p.game.isTournament.option(iconTag(Icon.Trophy)),
                         iconTag(p.game.perfKey.perfIcon)(cls := "text"),
-                        shortClockName(p.game.clock.map(_.config))
+                        shortClockName(p.game)
                       )
                 ),
                 td(

@@ -382,6 +382,7 @@ export default class RoundController implements MoveRootCtrl {
         this.clock.setClock({
           white: oc.white,
           black: oc.black,
+          moveTime: oc.moveTime,
           ticking: this.tickingClockColor(),
           delay,
         });
@@ -431,6 +432,7 @@ export default class RoundController implements MoveRootCtrl {
       this.clock.setClock({
         white: d.clock!.white,
         black: d.clock!.black,
+        moveTime: d.clock!.moveTime,
         ticking: this.tickingClockColor(),
       });
     if (this.corresClock) this.corresClock.update(d.correspondence!.white, d.correspondence!.black);

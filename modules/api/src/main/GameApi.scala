@@ -14,6 +14,7 @@ import lila.core.config.*
 import lila.db.dsl.{ *, given }
 import lila.db.paginator.Adapter
 import lila.game.BSONHandlers.given
+import lila.game.JsonView.given
 import lila.game.Game.BSONFields as G
 
 final private[api] class GameApi(
@@ -161,6 +162,7 @@ final private[api] class GameApi(
             "totalTime" -> clock.estimateTotalSeconds
           )
         },
+        "moveTime" -> g.moveTimeLimit,
         "daysPerTurn" -> g.daysPerTurn,
         "players" -> JsObject(g.players.mapList { p =>
           sideName(p.color) -> Json

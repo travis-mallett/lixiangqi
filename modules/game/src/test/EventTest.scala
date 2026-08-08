@@ -41,6 +41,14 @@ class EventTest extends munit.ScalaCheckSuite:
   test("possible moves with empty vector"):
     assertEquals(Event.PossibleMoves.json(Vector.empty), JsNull)
 
+  test("clock event includes the current move deadline"):
+    val event = Event.Clock(
+      white = chess.Centis.ofSeconds(900),
+      black = chess.Centis.ofSeconds(900),
+      moveTime = chess.Centis.ofSeconds(30).some
+    )
+    assertEquals(event.data.int("moveTime"), 30.some)
+
   test("redirect owner contract"):
     forAll: (event: Event.RedirectOwner) =>
       assertEquals(event.data.str("id"), event.id.value.some)

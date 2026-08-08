@@ -6,12 +6,14 @@ import _root_.chess.{ Rated, Clock, format }
 import scalalib.model.Days
 
 import lila.core.game.GameRule
+import lila.core.game.MoveTimeLimit
 import lila.core.userId.UserId
 
 trait OpenConfig:
   val name: Option[String]
   val variant: Variant
   val clock: Option[Clock.Config]
+  val moveTimeLimit: Option[MoveTimeLimit]
   val days: Option[Days]
   val rated: Rated
   val position: Option[format.Fen.Full]
@@ -25,5 +27,6 @@ trait SetupForm:
   def variant: Named[Option[Variant.LilaKey]]
   def message: Named[Option[String]]
   def clock: Named[Option[Clock.Config]]
+  def moveTimeLimit: Named[Option[MoveTimeLimit]]
   def optionalDays: Named[Option[Days]]
   def rules: Named[Option[Set[GameRule]]]

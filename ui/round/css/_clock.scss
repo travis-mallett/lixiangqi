@@ -1,6 +1,64 @@
 @import '../../lib/css/game/clock';
 
 .rclock {
+  &__times {
+    display: flex;
+    gap: 0.18em;
+    direction: ltr;
+  }
+
+  &-move {
+    @extend %roboto, %box-shadow;
+
+    display: flex;
+    visibility: hidden;
+    align-items: flex-end;
+    justify-content: center;
+    min-width: 3.2em;
+    padding: 0 calc($block-gap * 0.65);
+    background: color-mix(in oklab, $c-good 22%, $c-bg);
+    color: $c-font-clearer;
+    font-size: 2.2em;
+    line-height: $col1-player-clock-height;
+    white-space: nowrap;
+
+    &.active {
+      visibility: visible;
+    }
+
+    &.emerg,
+    &.outoftime {
+      background: color-mix(in oklab, $c-bad 55%, $c-bg);
+    }
+
+    @include mq-is-col1 {
+      border-radius: 0;
+      box-shadow: none;
+    }
+
+    @include mq-at-least-col2 {
+      line-height: 1.2em;
+    }
+
+    @media (min-width: at-least($xx-small)) and (min-height: at-least($tall)) {
+      font-size: 2.8em;
+      letter-spacing: 0.06em;
+    }
+
+    &__time {
+      display: flex;
+      direction: ltr;
+    }
+  }
+
+  &-top &-move {
+    @extend %box-radius-top;
+  }
+
+  &-bottom &-move {
+    @extend %box-radius-bottom;
+  }
+
   &-correspondence .time {
     font-size: 1.6em;
     letter-spacing: inherit;

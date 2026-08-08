@@ -2,7 +2,7 @@ import type { VNode } from 'snabbdom';
 
 import type { ExternalEngineInfo } from 'lib/ceval';
 import type { ChatCtrl, ChatPlugin, ChatOpts } from 'lib/chat/interfaces';
-import type { Player, Status, Source, Clock, XiangqiNotationStyle } from 'lib/game';
+import type { Player, Status, Source, Clock, MoveTimeLimit, XiangqiNotationStyle } from 'lib/game';
 import type { Coords, MoveEvent } from 'lib/prefs';
 import type { EnhanceOpts } from 'lib/richText';
 import type {
@@ -108,6 +108,7 @@ export interface Game {
   perf: string;
   rated?: boolean;
   threefold?: boolean;
+  moveTime?: MoveTimeLimit;
 }
 
 export interface Division {

@@ -3,7 +3,7 @@ package http
 
 import play.api.mvc.*
 
-import lila.app.{ *, given }
+import lila.app.*
 import lila.mon.extensions.*
 
 final class KeyPages(val env: Env)(using Executor)
@@ -19,14 +19,7 @@ final class KeyPages(val env: Env)(using Executor)
 
   def homeHtml(using ctx: Context): Fu[lila.ui.RenderedPage] =
     env
-      .preloader(
-        tours = ctx.userId
-          .so(env.team.cached.teamIdsList)
-          .flatMap(env.tournament.featuring.homepage.get)
-          .recoverDefault,
-        events = env.event.api.promoteTo(ctx.acceptLanguages).recoverDefault,
-        streamerSpots = env.streamer.homepageMaxSetting.get()
-      )
+      .preloader()
       .mon(lila.mon.lobby.segment("preloader.total"))
       .flatMap: h =>
         ctx.me.filter(_.hasTitle).foreach(env.msg.systemMsg.twoFactorReminder(_))

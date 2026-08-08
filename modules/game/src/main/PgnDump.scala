@@ -123,6 +123,12 @@ final class PgnDump(
       game.daysPerTurn
         .map(dpt => Tag(_.TimeControl, s"$dpt day${if dpt.value > 1 then "s" else ""} per move"))
         .orElse(Tag.timeControl(game.clock.map(_.config)).some),
+      game.moveTimeLimit.map: limit =>
+        Tag(
+          "MoveTimeLimit",
+          limit.first.fold(s"${limit.seconds}"): first =>
+            s"${first.seconds}/${first.moves}:${limit.seconds}"
+        ),
       Tag(
         _.Termination, {
           import chess.Status.*

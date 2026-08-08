@@ -56,6 +56,7 @@ private object ChallengeJoiner:
         pgnImport = None,
         rules = c.rules,
         clock = c.timeControl.realTime.map(_.toClock),
+        moveTimeLimit = c.clock.flatMap(_.moveTimeLimit),
         startedAtPly = chess.Ply(xiangqiGame.state.ply),
         variant = c.variant
       )

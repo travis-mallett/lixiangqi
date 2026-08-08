@@ -40,9 +40,13 @@ export default class LobbyController {
   stepping = false;
   redirecting = false;
   poolMember?: PoolMember;
+  seekingPoolId?: string;
   pools: Pool[];
+  homePools: Pool[];
   filter: Filter;
   setupCtrl: SetupController;
+
+  private anonPoolRequest?: { id: string; cancelled: boolean };
 
   private readonly poolInStorage: LichessStorage;
   private flushHooksTimeout?: number;
@@ -56,9 +60,11 @@ export default class LobbyController {
       ...opts.data,
       hooks: [],
       seeks: [],
+      poolCounts: opts.data.poolCounts ?? {},
     };
     this.me = opts.data.me;
     this.pools = opts.pools;
+    this.homePools = opts.homePools;
     this.playban = opts.playban;
     this.filter = new Filter(storage.make('lobby.filter'), this);
     this.setupCtrl = new SetupController(this);
@@ -95,6 +101,7 @@ export default class LobbyController {
       const days = urlParams.get('days');
       const minutesPerSide = urlParams.get('minutesPerSide');
       const increment = urlParams.get('increment');
+      const moveTime = urlParams.get('moveTime');
 
       if (!timeMode) {
         if (days) timeMode = 'correspondence';
@@ -109,6 +116,17 @@ export default class LobbyController {
         forceOptions.timeMode = 'realTime';
         if (minutesPerSide) forceOptions.time = parseFloat(minutesPerSide);
         if (increment) forceOptions.increment = parseInt(increment);
+        forceOptions.moveTime = undefined;
+        if (moveTime) {
+          const seconds = parseInt(moveTime);
+          const firstMoves = parseInt(urlParams.get('moveTimeFirstMoves') || '');
+          const firstSeconds = parseInt(urlParams.get('moveTimeFirstSeconds') || '');
+          if (seconds >= 1 && seconds <= 300) {
+            forceOptions.moveTime = { seconds };
+            if (firstMoves >= 1 && firstMoves <= 20 && firstSeconds >= 1 && firstSeconds <= 300)
+              forceOptions.moveTime.first = { moves: firstMoves, seconds: firstSeconds };
+          }
+        }
         if (locationHash === 'hook') this.tab = 'real_time';
       } else if (timeMode === 'unlimited') {
         if (locationHash === 'hook') this.tab = 'seeks';
@@ -169,6 +187,15 @@ export default class LobbyController {
 
   spreadPlayersNumber?: (nb: number) => void;
   spreadGamesNumber?: (nb: number) => void;
+  openLobbyOverlay: () => void = () => {};
+  openSetupFromLobby: (gameType: Exclude<GameType, 'local'>) => void = gameType => {
+    this.setupCtrl.openModal(gameType);
+    this.redraw();
+  };
+
+  poolCount = (id: string): number => this.data.poolCounts[id] ?? 0;
+  isPoolSeeking = (id: string): boolean => this.poolMember?.id === id || this.seekingPoolId === id;
+  hasPoolSeeking = (): boolean => !!this.poolMember || !!this.seekingPoolId;
   initNumberSpreader = (elm: HTMLAnchorElement, nbSteps: number, initialCount: number) => {
     let previous = initialCount;
     let timeouts: number[] = [];
@@ -256,13 +283,60 @@ export default class LobbyController {
     this.redraw();
   };
 
-  clickPool = (id: string) => {
+  clickPool = async (id: string) => {
     if (!this.me) {
-      xhr.anonPoolSeek(this.pools.find(p => p.id === id)!);
+      if (this.seekingPoolId === id) {
+        if (this.anonPoolRequest?.id === id) this.anonPoolRequest.cancelled = true;
+        const ownHook = this.data.hooks.find(hook => hook.action === 'cancel');
+        if (ownHook) this.socket.send('cancel', ownHook.id);
+        this.seekingPoolId = undefined;
+        this.redraw();
+        return;
+      }
+      const pool = [...this.pools, ...this.homePools].find(p => p.id === id);
+      if (!pool) return;
+      const ownHook = this.data.hooks.find(hook => hook.action === 'cancel');
+      if (ownHook) this.socket.send('cancel', ownHook.id);
+      const request = { id, cancelled: false };
+      this.anonPoolRequest = request;
+      this.seekingPoolId = id;
       this.setTab('real_time');
+      this.redraw();
+      try {
+        await xhr.anonPoolSeek(pool);
+        if (request.cancelled) this.socket.send('cancel', id);
+      } catch (_) {
+        if (this.anonPoolRequest === request) {
+          this.seekingPoolId = undefined;
+          this.redraw();
+        }
+      } finally {
+        if (this.anonPoolRequest === request) this.anonPoolRequest = undefined;
+      }
     } else if (this.poolMember?.id === id) this.leavePool();
     else this.enterPool({ id });
     this.redraw();
+  };
+
+  onOwnHookAdded = (hook: Hook) => {
+    const id = this.poolIdForHook(hook);
+    if (this.homePools.some(pool => pool.id === id)) this.seekingPoolId = id;
+  };
+
+  onOwnHookRemoved = (hook: Hook) => {
+    if (this.seekingPoolId === this.poolIdForHook(hook)) this.seekingPoolId = undefined;
+  };
+
+  syncOwnHookPool = () => {
+    const ownHook = this.data.hooks.find(hook => hook.action === 'cancel');
+    if (ownHook) this.onOwnHookAdded(ownHook);
+    else if (!this.anonPoolRequest) this.seekingPoolId = undefined;
+  };
+
+  private readonly poolIdForHook = (hook: Hook): string => {
+    if (!hook.moveTime) return hook.clock;
+    const first = hook.moveTime.first;
+    return `${hook.clock}-m${hook.moveTime.seconds}${first ? `-${first.seconds}x${first.moves}` : ''}`;
   };
 
   enterPool = (member: PoolMember) => {
@@ -335,7 +409,7 @@ export default class LobbyController {
   // also handles onboardink link for anon users
   private readonly joinPoolFromLocationHash = () => {
     if (location.hash.startsWith('#pool/')) {
-      const regex = /^#pool\/(\d+\+\d+)(?:\/(.+))?$/,
+      const regex = /^#pool\/(\d+\+\d+(?:-m\d+(?:-\d+x\d+)?)?)(?:\/(.+))?$/,
         match = regex.exec(location.hash),
         member: PoolMember = { id: match![1], blocking: match![2] },
         range = poolRangeStorage.get(this.me?.username, member.id);

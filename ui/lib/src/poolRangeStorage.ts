@@ -1,6 +1,7 @@
 import type { GameData } from '@/game';
 
 import { defined } from './index';
+import { poolId } from './setup/timeControl';
 import { storage } from './storage';
 
 const makeKey = (username: string | undefined, poolId: string) =>
@@ -25,10 +26,10 @@ export const shiftRangeAfter = (game: GameData): void => {
     defined(game.clock?.initial) &&
     defined(game.clock?.increment)
   ) {
-    const poolId = `${game.clock.initial / 60}+${game.clock.increment}`;
-    const currRange = get(username, poolId);
+    const id = poolId(`${game.clock.initial / 60}+${game.clock.increment}`, game.game.moveTime);
+    const currRange = get(username, id);
     if (!currRange) return;
     const [min, max] = currRange.split('-').map(Number);
-    set(username, poolId, `${min + delta}-${max + delta}`);
+    set(username, id, `${min + delta}-${max + delta}`);
   }
 };

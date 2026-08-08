@@ -291,6 +291,46 @@ $c-slider: $c-setup;
       .slider-separator {
         line-height: 1.7;
       }
+
+      .move-time-control {
+        @extend %flex-column, %box-radius;
+
+        gap: 0.7rem;
+        padding: 0.8rem 1rem;
+        background: $c-bg-low;
+
+        .move-time-toggle,
+        .move-time-field,
+        .move-time-opening {
+          @extend %flex-center-nowrap;
+
+          gap: 0.55rem;
+        }
+
+        .move-time-toggle {
+          width: fit-content;
+          font-weight: 600;
+          cursor: pointer;
+
+          &.opening {
+            font-weight: normal;
+            color: $c-font-dim;
+          }
+        }
+
+        .move-time-fields {
+          @extend %flex-column;
+
+          gap: 0.7rem;
+          padding-inline-start: 1.4rem;
+        }
+
+        .move-time-number {
+          width: 4.5rem;
+          padding: 0.35rem 0.5rem;
+          text-align: center;
+        }
+      }
     }
   }
 

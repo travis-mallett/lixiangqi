@@ -12,6 +12,7 @@ private object BSONHandlers:
 
   import Challenge.*
   import lila.game.BSONHandlers.given
+  private given BSONHandler[lila.core.game.MoveTimeLimit] = lila.db.BSON.moveTimeLimitHandler
 
   given BSONHandler[ColorChoice] =
     val map = Map(
@@ -26,13 +27,17 @@ private object BSONHandlers:
     def reads(r: Reader) =
       (r.getO[Clock.LimitSeconds]("l"), r.getO[Clock.IncrementSeconds]("i"))
         .mapN: (limit, inc) =>
-          TimeControl.Clock(chess.Clock.Config(limit, inc))
+          TimeControl.Clock(
+            chess.Clock.Config(limit, inc),
+            r.contains("m").option(r.get[lila.core.game.MoveTimeLimit]("m"))
+          )
         .orElse:
           r.getO[Days]("d").map(TimeControl.Correspondence.apply)
         .getOrElse(TimeControl.Unlimited)
     def writes(w: Writer, t: TimeControl) =
       t match
-        case TimeControl.Clock(chess.Clock.Config(l, i)) => $doc("l" -> l, "i" -> i)
+        case TimeControl.Clock(chess.Clock.Config(l, i), moveTimeLimit) =>
+          $doc("l" -> l, "i" -> i, "m" -> moveTimeLimit)
         case TimeControl.Correspondence(d) => $doc("d" -> d)
         case TimeControl.Unlimited => $empty
   given BSONHandler[Variant] = variantByIdHandler

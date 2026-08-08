@@ -7,6 +7,7 @@ import scalalib.model.Days
 
 import lila.lobby.TriColor
 import lila.rating.PerfType
+import lila.core.game.MoveTimeLimit
 import lila.xiangqi.{ Xiangqi, XiangqiRules }
 
 private[setup] trait Config:
@@ -20,6 +21,9 @@ private[setup] trait Config:
   // Clock increment in seconds
   val increment: Clock.IncrementSeconds
 
+  // Optional hard ceiling on the time spent on any one move.
+  val moveTimeLimit: Option[MoveTimeLimit]
+
   // Correspondence days per turn
   val days: Days
 
@@ -29,6 +33,10 @@ private[setup] trait Config:
   def hasClock = timeMode == TimeMode.RealTime
 
   def validClock = !hasClock || clockHasTime
+
+  def validMoveTimeLimit = moveTimeLimit.isEmpty || hasClock
+
+  def makeMoveTimeLimit = hasClock.so(moveTimeLimit)
 
   def validSpeed(isBot: Boolean) =
     !isBot || makeClock.forall: c =>
