@@ -44,6 +44,8 @@ case class ChangeFeatured(mgs: JsObject)
 
 case class StartGame(game: Game, users: ByColor[Option[LightUser]])
 case class ActiveGameSnapshot(games: Iterable[Game])
+case class ActivateGame(game: Game)
+case class DeactivateGame(gameId: GameId)
 case class FinishGame(
     game: Game,
     // users and perfs BEFORE the game result is applied

@@ -4,10 +4,8 @@ import cats.derived.*
 import chess.Clock.{ IncrementSeconds, LimitSeconds }
 import chess.format.Fen
 import chess.variant.Variant
-import chess.IntRating
 
 import lila.core.i18n.{ I18nKey, Translate }
-import lila.gathering.Condition
 
 case class Scheduled(freq: Schedule.Freq, at: LocalDateTime)
 
@@ -216,42 +214,7 @@ object Schedule:
       case (_, _, Rapid) => TC(10 * 60, 0)
       case (_, _, Classical) => TC(20 * 60, 10)
 
-  private[tournament] def withConditions(s: Schedule) = s.copy(conditions = conditionFor(s))
-
-  private[tournament] def conditionFor(s: Schedule) =
-    if s.conditions.nonEmpty then s.conditions
-    else
-      import Freq.*, Speed.*
-
-      val nbRatedGame = ((s.freq, s.variant, s.speed) match
-        case (Hourly, variant, _) if variant.exotic => 0
-
-        case (Hourly | Daily | Eastern, _, HyperBullet | Bullet) => 20
-        case (Hourly | Daily | Eastern, _, HippoBullet | SuperBlitz | Blitz | ChillBlitz) => 15
-        case (Hourly | Daily | Eastern, _, Rapid) => 10
-
-        case (Weekly | Weekend | Monthly | Shield, _, HyperBullet | Bullet) => 30
-        case (Weekly | Weekend | Monthly | Shield, _, HippoBullet | SuperBlitz | Blitz | ChillBlitz) => 20
-        case (Weekly | Weekend | Monthly | Shield, _, Rapid) => 15
-        case (Weekly | Weekend | Monthly | Shield, _, Classical) => 5
-
-        case _ => 0
-      ).some.filter(0 <).map(Condition.NbRatedGame.apply)
-
-      val minRating = ((s.freq, s.variant) match
-        case (Weekend, _) => 2200
-        case _ => 0
-      ).some.filter(0 <).map(v => Condition.MinRating(IntRating(v)))
-
-      if nbRatedGame.isEmpty && minRating.isEmpty then TournamentCondition.All.empty
-      else
-        TournamentCondition.All(
-          nbRatedGame = nbRatedGame,
-          minRating = minRating,
-          maxRating = none,
-          titled = none,
-          teamMember = none,
-          accountAge = none,
-          allowList = none,
-          bots = none
-        )
+  // Native recurring tournaments are open to everyone. TournamentSetup still
+  // carries user-selected conditions for custom tournaments.
+  private[tournament] def withConditions(s: Schedule) =
+    s.copy(conditions = TournamentCondition.All.empty)

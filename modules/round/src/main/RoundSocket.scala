@@ -136,8 +136,12 @@ final class RoundSocket(
     case Protocol.In.PlayerOnlines(onlines) =>
       onlines.foreach:
         case (gameId, Some(on)) =>
+          val wasLoaded = rounds.exists(gameId)
           rounds.tell(gameId, on)
           terminationDelay.cancel(gameId)
+          if !wasLoaded then
+            gameIfPresent(gameId).foreach:
+              _.foreach(game => Bus.pub(lila.core.game.ActivateGame(game)))
         case (gameId, _) =>
           if rounds.exists(gameId) then terminationDelay.schedule(gameId)
     case Protocol.In.Bye(fullId) => rounds.tell(fullId.gameId, ByePlayer(fullId.playerId))
@@ -164,6 +168,7 @@ final class RoundSocket(
       rounds.tellAll(RoundAsyncActor.WsBoot)
 
   private def finishRound(gameId: GameId): Unit =
+    Bus.pub(lila.core.game.DeactivateGame(gameId))
     rounds.terminate(gameId, _ ! RoundAsyncActor.Stop)
 
   private val send: ParallelSocketSend = socketKit.send("r-out", 16)

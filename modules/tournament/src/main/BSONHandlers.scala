@@ -46,11 +46,23 @@ object BSONHandlers:
           .map(_.opening: Fen.Standard)
           .filter(_ != Fen.Standard.initial)
       val startsAt = r.date("startsAt")
-      val conditions = r.getD[TournamentCondition.All]("conditions")
+      val status = r.get[Status]("status")
+      val schedule = for
+        doc <- r.getO[Bdoc]("schedule")
+        freq <- doc.getAsOpt[Schedule.Freq]("freq")
+        at = doc.getAsOpt[LocalDateTime]("at") | startsAt.dateTime
+      yield Scheduled(freq, at)
+      val storedConditions = r.getD[TournamentCondition.All]("conditions")
+      // Deployments preserve the live tournament collection. Open scheduled
+      // tournaments that have not started yet, while leaving tournament
+      // history and events already in progress unchanged.
+      val conditions =
+        if schedule.isDefined && status == Status.created then TournamentCondition.All.empty
+        else storedConditions
       Tournament(
         id = r.get[TourId]("_id"),
         name = r.str("name"),
-        status = r.get[Status]("status"),
+        status = status,
         clock = r.get[chess.Clock.Config]("clock"),
         minutes = r.int("minutes"),
         variant = variant,
@@ -61,11 +73,7 @@ object BSONHandlers:
         teamBattle = r.getO[TeamBattle]("teamBattle"),
         noBerserk = r.boolD("noBerserk"),
         noStreak = r.boolD("noStreak"),
-        schedule = for
-          doc <- r.getO[Bdoc]("schedule")
-          freq <- doc.getAsOpt[Schedule.Freq]("freq")
-          at = doc.getAsOpt[LocalDateTime]("at") | startsAt.dateTime
-        yield Scheduled(freq, at),
+        schedule = schedule,
         nbPlayers = r.int("nbPlayers"),
         createdAt = r.date("createdAt"),
         createdBy = r.getO[UserId]("createdBy") | UserId.lichess,

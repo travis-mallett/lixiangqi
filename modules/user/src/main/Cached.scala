@@ -28,6 +28,11 @@ final class Cached(
     _.refreshAfterWrite(2.minutes).buildAsyncTimeout(2.minutes): _ =>
       rankingApi.fetchLeaderboard(10).monSuccess(lila.mon.user.leaderboardCompute)
 
+  def nbRegistered: Fu[Long] = nbRegisteredCache.getUnit
+
+  private val nbRegisteredCache = cacheApi.unit[Long]("user.nbRegistered"):
+    _.refreshAfterWrite(5.minutes).buildAsyncFuture(_ => userRepo.countAll)
+
   private val topPerfFirstPage = mongoCache[PerfKey, Seq[LightPerf]](
     PerfType.leaderboardable.size,
     "user:top:perf:firstPage",

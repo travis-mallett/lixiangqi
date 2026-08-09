@@ -265,7 +265,7 @@ object help:
               row(voice("blindfold"), "Toggle blindfold mode"),
               row(voice("clock"), "Read out clocks"),
               row(voice("pieces"), "Read out pieces"),
-              row(voice("white-pieces"), "Read out white pieces"),
+              row(voice("white-pieces"), "Read out red pieces"),
               row(voice("next"), trans.puzzle.nextPuzzle()),
               row(voice("upvote"), trans.puzzle.upVote()),
               row(voice("solve"), showPuzzleSolution()),

@@ -28,7 +28,7 @@ export default function (): void {
     '(=)': 'Game ends in draw',
     'O-O-O': 'Castles queenside',
     'O-O': 'Castles kingside',
-    white: 'White',
+    white: 'Red',
     black: 'Black',
     'wins by': 'wins by',
     timeout: 'timeout',

@@ -1,16 +1,20 @@
 .lobby__site-counters {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   min-width: 0;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 0.35em 12px;
   padding-inline: 4px;
   color: $c-font-dim;
   font-size: 0.95rem;
 
-  a {
+  > * {
     @extend %nowrap-ellipsis;
 
+    min-width: 0;
+  }
+
+  a {
     color: $c-font-dim;
 
     &:hover,
@@ -23,6 +27,10 @@
     color: $c-font-clear;
     font-weight: normal;
     font-variant-numeric: tabular-nums;
+  }
+
+  .lobby__site-counter--wide {
+    grid-column: 1 / -1;
   }
 }
 

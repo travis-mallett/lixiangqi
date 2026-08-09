@@ -139,7 +139,7 @@ object Pref:
     val BLACK = 3
 
     val choices = Seq(
-      WHITE -> "White",
+      WHITE -> "Red",
       RANDOM -> "Random",
       BLACK -> "Black"
     )

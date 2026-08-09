@@ -363,6 +363,9 @@ test('carries a click-selected piece and preserves that motion through authorita
     assert.ok(movedPiece.classList.contains('xiangqi-motion-piece'));
     assert.ok(animations.calls.some(call => call.element === movedPiece && call.options.duration === 150));
 
+    // A live game acknowledges the optimistic user move through the public move API.
+    // Since the source is already empty, that acknowledgment must remain a true no-op.
+    ground.move('h1', 'g3');
     ground.set({
       fen: ground.getFen(),
       lastMove: ['h1', 'g3'],

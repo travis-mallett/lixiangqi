@@ -10,6 +10,11 @@ class SchedulerTest extends munit.FunSuite:
   def _printSnapshot(plans: List[?]) =
     println(plans.mkString("      List(\"\"\"", "\"\"\",\n        \"\"\"", "\"\"\").mkString(\"\\n\")"))
 
+  test("recurring tournaments have no entry conditions"):
+    val plans = TournamentScheduler.allWithConflicts(LocalDateTime.of(2026, 8, 5, 12, 0))
+    assert(plans.nonEmpty)
+    assert(plans.forall(_.schedule.conditions.list.isEmpty))
+
   test("2024-09 - no usurps, correct daily scheduling"):
     import chess.variant.Standard
     import lila.tournament.Schedule.Speed.*
@@ -155,41 +160,6 @@ class SchedulerTest extends munit.FunSuite:
         """2023-01-06T16:00:00Z Shield standard classical(20+10) Conditions() standard""",
         """2023-01-06T17:00:00Z Weekly standard classical(20+10) Conditions() standard""",
         """2023-02-03T17:00:00Z Monthly standard classical(20+10) Conditions() standard""",
-        """2023-05-19T17:00:00Z Yearly standard classical(20+10) Conditions() standard""",
-        """2022-12-31T22:00:00Z Hourly standard bullet(1+0) Conditions(NbRatedGame(20),MaxRating(1700)) standard""",
-        """2022-12-31T22:30:00Z Hourly standard bullet(1+1) Conditions(NbRatedGame(20),MaxRating(1700)) standard""",
-        """2022-12-31T23:00:00Z Hourly standard bullet(1+0) Conditions(NbRatedGame(20),MaxRating(2000)) standard""",
-        """2022-12-31T23:30:00Z Hourly standard bullet(1+1) Conditions(NbRatedGame(20),MaxRating(2000)) standard""",
-        """2023-01-01T00:00:00Z Hourly standard bullet(1+0) Conditions(NbRatedGame(20),MaxRating(1300)) standard""",
-        """2023-01-01T00:30:00Z Hourly standard bullet(1+1) Conditions(NbRatedGame(20),MaxRating(1300)) standard""",
-        """2023-01-01T01:00:00Z Hourly standard bullet(1+0) Conditions(NbRatedGame(20),MaxRating(1500)) standard""",
-        """2023-01-01T01:30:00Z Hourly standard bullet(1+1) Conditions(NbRatedGame(20),MaxRating(1500)) standard""",
-        """2023-01-01T02:00:00Z Hourly standard bullet(1+0) Conditions(NbRatedGame(20),MaxRating(1700)) standard""",
-        """2023-01-01T02:30:00Z Hourly standard bullet(1+1) Conditions(NbRatedGame(20),MaxRating(1700)) standard""",
-        """2023-01-01T03:00:00Z Hourly standard bullet(1+0) Conditions(NbRatedGame(20),MaxRating(2000)) standard""",
-        """2023-01-01T03:30:00Z Hourly standard bullet(1+1) Conditions(NbRatedGame(20),MaxRating(2000)) standard""",
-        """2022-12-31T22:00:00Z Hourly standard superBlitz(3+0) Conditions(NbRatedGame(20),MaxRating(1500)) standard""",
-        """2022-12-31T23:00:00Z Hourly standard superBlitz(3+0) Conditions(NbRatedGame(20),MaxRating(1700)) standard""",
-        """2023-01-01T00:00:00Z Hourly standard superBlitz(3+0) Conditions(NbRatedGame(20),MaxRating(2000)) standard""",
-        """2023-01-01T01:00:00Z Hourly standard superBlitz(3+0) Conditions(NbRatedGame(20),MaxRating(1300)) standard""",
-        """2023-01-01T02:00:00Z Hourly standard superBlitz(3+0) Conditions(NbRatedGame(20),MaxRating(1500)) standard""",
-        """2023-01-01T03:00:00Z Hourly standard superBlitz(3+0) Conditions(NbRatedGame(20),MaxRating(1700)) standard""",
-        """2023-01-01T04:00:00Z Hourly standard superBlitz(3+0) Conditions(NbRatedGame(20),MaxRating(2000)) standard""",
-        """2022-12-31T22:00:00Z Hourly standard blitz(5+0) Conditions(NbRatedGame(20),MaxRating(1300)) standard""",
-        """2022-12-31T23:00:00Z Hourly standard blitz(5+0) Conditions(NbRatedGame(20),MaxRating(1500)) standard""",
-        """2023-01-01T00:00:00Z Hourly standard blitz(5+0) Conditions(NbRatedGame(20),MaxRating(1700)) standard""",
-        """2023-01-01T01:00:00Z Hourly standard blitz(3+2) Conditions(NbRatedGame(20),MaxRating(2000)) standard""",
-        """2023-01-01T02:00:00Z Hourly standard blitz(5+0) Conditions(NbRatedGame(20),MaxRating(1300)) standard""",
-        """2023-01-01T03:00:00Z Hourly standard blitz(5+0) Conditions(NbRatedGame(20),MaxRating(1500)) standard""",
-        """2023-01-01T04:00:00Z Hourly standard blitz(5+0) Conditions(NbRatedGame(20),MaxRating(1700)) standard""",
-        """2023-01-01T05:00:00Z Hourly standard blitz(5+0) Conditions(NbRatedGame(20),MaxRating(2000)) standard""",
-        """2022-12-31T23:00:00Z Hourly standard rapid(10+0) Conditions(NbRatedGame(20),MaxRating(1300)) standard""",
-        """2023-01-01T00:00:00Z Hourly standard rapid(10+0) Conditions(NbRatedGame(20),MaxRating(1500)) standard""",
-        """2023-01-01T01:00:00Z Hourly standard rapid(10+0) Conditions(NbRatedGame(20),MaxRating(1700)) standard""",
-        """2023-01-01T02:00:00Z Hourly standard rapid(8+2) Conditions(NbRatedGame(20),MaxRating(2000)) standard""",
-        """2023-01-01T03:00:00Z Hourly standard rapid(10+0) Conditions(NbRatedGame(20),MaxRating(1300)) standard""",
-        """2023-01-01T04:00:00Z Hourly standard rapid(10+0) Conditions(NbRatedGame(20),MaxRating(1500)) standard""",
-        """2023-01-01T05:00:00Z Hourly standard rapid(10+0) Conditions(NbRatedGame(20),MaxRating(1700)) standard""",
-        """2023-01-01T06:00:00Z Hourly standard rapid(10+0) Conditions(NbRatedGame(20),MaxRating(2000)) standard"""
+        """2023-05-19T17:00:00Z Yearly standard classical(20+10) Conditions() standard"""
       ).mkString("\n")
     )

@@ -20,6 +20,7 @@ final class Preload(
     lightUserApi: LightUserApi,
     userApi: UserApi,
     userCached: lila.user.Cached,
+    gameCached: lila.game.Cached,
     roundProxy: lila.round.GameProxyRepo,
     getLastUpdates: lila.feed.Feed.GetLastUpdates,
     unreadCount: lila.msg.MsgUnreadCount,
@@ -32,7 +33,16 @@ final class Preload(
     nbNotifications <- ctx.me.so(notifyApi.unreadCount(_))
     withPerfs <- ctx.user.traverse(perfsRepo.withPerfs)
     given Option[UserWithPerfs] = withPerfs
-    (data, povs) <- lobbyApi.get.mon(lila.mon.lobby.segment("lobbyApi"))
+    ((data, povs), (gameStats, nbRegistered)) <- lobbyApi.get
+      .mon(lila.mon.lobby.segment("lobbyApi"))
+      .zip(gameCached.homepageStats.zip(userCached.nbRegistered))
+    dataWithStats = data + (
+      "stats" -> Json.obj(
+        "gamesPlayedToday" -> gameStats.gamesPlayedToday,
+        "registeredUsers" -> nbRegistered,
+        "gamesPlayedAllTime" -> gameStats.gamesPlayedAllTime
+      )
+    )
     featured <- tv.getBestGame.mon(lila.mon.lobby.segment("tvBestGame"))
     playban <- ctx.userId.so(playbanApi.currentBan).mon(lila.mon.lobby.segment("playban"))
     lichessMsg <- ctx.userId.ifTrue(nbNotifications > 0).so(unreadCount.hasLichessMsg)
@@ -48,7 +58,7 @@ final class Preload(
       .mon(lila.mon.lobby.segment("currentGame"))
       .zip(lightUserApi.preloadMany(leaderboard.map(_.user.id)))
   yield Homepage(
-    data,
+    dataWithStats,
     featured,
     playban,
     currentGame,

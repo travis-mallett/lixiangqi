@@ -1881,7 +1881,7 @@ interface I18n {
     announceLastMove: string;
     /** Announce piece captured in last move. */
     announceLastMoveCapture: string;
-    /** Announce locations of pieces. Example: p capital N for white knights, p lowercase k for black king, p capital A for all white pieces. */
+    /** Announce locations of pieces. Example: p capital N for Red knights, p lowercase k for Black king, p capital A for all Red pieces. */
     announcePieceLocations: string;
     /** Announce pieces on a rank or a file. Example: s a, s 1. */
     announcePiecesOnRankOrFile: string;
@@ -1981,17 +1981,17 @@ interface I18n {
     sanSymbols: string;
     /** takes */
     sanTakes: string;
-    /** white bishop */
+    /** Red bishop */
     whiteBishop: string;
-    /** white king */
+    /** Red king */
     whiteKing: string;
-    /** white knight */
+    /** Red knight */
     whiteKnight: string;
-    /** white pawn */
+    /** Red pawn */
     whitePawn: string;
-    /** white queen */
+    /** Red queen */
     whiteQueen: string;
-    /** white rook */
+    /** Red rook */
     whiteRook: string;
     /** Your clock */
     yourClock: string;
@@ -4075,6 +4075,10 @@ interface I18n {
     nbGames: I18nPlural;
     /** %s games in play */
     nbGamesInPlay: I18nPlural;
+    /** %s games played all-time */
+    nbGamesPlayedAllTime: I18nPlural;
+    /** %s games played today */
+    nbGamesPlayedToday: I18nPlural;
     /** %s games with you */
     nbGamesWithYou: I18nPlural;
     /** %s hours */
@@ -4099,6 +4103,8 @@ interface I18n {
     nbPuzzles: I18nPlural;
     /** %s rated */
     nbRated: I18nPlural;
+    /** %s registered users */
+    nbRegisteredUsers: I18nPlural;
     /** %s seconds */
     nbSeconds: I18nPlural;
     /** %s seconds to play the first move */
@@ -5145,7 +5151,7 @@ interface I18n {
     xRuns: I18nPlural;
     /** You play the black pieces in all puzzles */
     youPlayTheBlackPiecesInAllPuzzles: string;
-    /** You play the white pieces in all puzzles */
+    /** You play the Red pieces in all puzzles */
     youPlayTheWhitePiecesInAllPuzzles: string;
     /** Your rank: %s */
     yourRankX: I18nFormat;
@@ -5273,7 +5279,7 @@ interface I18n {
     automatic: string;
     /** Back */
     back: string;
-    /** Black defeat, but White can't win */
+    /** Black defeat, but Red can't win */
     blackDefeatWhiteCanNotWin: string;
     /** Black is better */
     blackIsBetter: string;
@@ -5593,13 +5599,13 @@ interface I18n {
     whatWouldYouPlay: string;
     /** Where do you want to study that? */
     whereDoYouWantToStudyThat: string;
-    /** White defeat, but Black can't win */
+    /** Red defeat, but Black can't win */
     whiteDefeatBlackCanNotWin: string;
-    /** White is better */
+    /** Red is better */
     whiteIsBetter: string;
-    /** White is slightly better */
+    /** Red is slightly better */
     whiteIsSlightlyBetter: string;
-    /** White is winning */
+    /** Red is winning */
     whiteIsWinning: string;
     /** With compensation */
     withCompensation: string;

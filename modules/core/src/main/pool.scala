@@ -12,7 +12,7 @@ import lila.core.rating.RatingRange
 import lila.core.socket.Sri
 import lila.core.userId.*
 import lila.core.id.GameFullId
-import lila.core.game.MoveTimeLimit
+import lila.core.game.{ MoveTimeLimit, Source }
 
 opaque type Blocking = Set[UserId]
 object Blocking extends TotalWrapper[Blocking, Set[UserId]]:
@@ -39,13 +39,16 @@ case class HomepageGameCounts(
   def aiPlayers: Int = aiGames
   def updateActiveGame(
       homepagePoolId: Option[PoolConfigId],
+      source: Option[Source],
       humanPlayers: Int,
       delta: Int
-  ): HomepageGameCounts = homepagePoolId match
-    case Some(poolId) =>
+  ): HomepageGameCounts = (source, homepagePoolId) match
+    case (Some(Source.Friend), _) => copy(friendGames = (friendGames + delta).max(0))
+    case (Some(Source.Ai), _) => copy(aiGames = (aiGames + delta).max(0))
+    case (_, Some(poolId)) =>
       val next = (poolGames.getOrElse(poolId, 0) + delta).max(0)
       copy(poolGames = poolGames.updated(poolId, next))
-    case None => copy(lobbyPlayers = (lobbyPlayers + humanPlayers * delta).max(0))
+    case _ => copy(lobbyPlayers = (lobbyPlayers + humanPlayers * delta).max(0))
 
 opaque type IsClockCompatible = (Clock.Config, Option[MoveTimeLimit]) => Boolean
 object IsClockCompatible

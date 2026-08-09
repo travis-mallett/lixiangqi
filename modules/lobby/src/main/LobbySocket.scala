@@ -7,7 +7,15 @@ import chess.IntRating
 
 import lila.common.Json.given
 import lila.common.Bus
-import lila.core.game.{ ActiveGameSnapshot, ChangeFeatured, FinishGame, Game, Source, StartGame }
+import lila.core.game.{
+  ActivateGame,
+  ActiveGameSnapshot,
+  ChangeFeatured,
+  DeactivateGame,
+  FinishGame,
+  Game,
+  StartGame
+}
 import lila.core.id.GameId
 import lila.core.pool.{ HomepageGameCounts, PoolConfigId, PoolCount, PoolMember, PoolFrom }
 import lila.core.security.{ UserTrust, UserTrustApi }
@@ -68,7 +76,7 @@ final class LobbySocket(
     private val idleSris = collection.mutable.Set[SriStr]()
     private val hookSubscriberSris = collection.mutable.Set[SriStr]()
     private val removedHookIds = new collection.mutable.StringBuilder(1024)
-    private var activeGameIds = Set.empty[GameId]
+    private var activeGames = Map.empty[GameId, Game]
     private var startsBeforeSnapshot = Map.empty[GameId, Game]
     private var finishesBeforeSnapshot = Set.empty[GameId]
     private var hasGameSnapshot = false
@@ -99,7 +107,7 @@ final class LobbySocket(
         hookSubscriberSris.clear()
         lastPoolWaiters = Map.empty
         lastHookPools = Map.empty
-        activeGameIds = Set.empty
+        activeGames = Map.empty
         startsBeforeSnapshot = Map.empty
         finishesBeforeSnapshot = Set.empty
         hasGameSnapshot = false
@@ -156,14 +164,22 @@ final class LobbySocket(
 
       case StartGame(game, _) => startGame(game)
 
+      case ActivateGame(game) => startGame(game)
+
       case FinishGame(game, _) => finishGame(game)
+
+      case DeactivateGame(gameId) =>
+        if !hasGameSnapshot then
+          startsBeforeSnapshot = startsBeforeSnapshot - gameId
+          finishesBeforeSnapshot = finishesBeforeSnapshot + gameId
+        deactivateGame(gameId)
 
       case ActiveGameSnapshot(games) =>
         val snapshot = games.iterator.map(game => game.id -> game).toMap
-        val activeGames = (snapshot -- finishesBeforeSnapshot) ++ startsBeforeSnapshot
-        activeGameIds = activeGames.keySet
+        val nextActiveGames = (snapshot -- finishesBeforeSnapshot) ++ startsBeforeSnapshot
+        activeGames = nextActiveGames
         lastGameCounts = HomepageGameCounts(Map.empty, friendGames = 0, aiGames = 0, lobbyPlayers = 0)
-        activeGames.values.foreach(game => updateGameCounts(game, 1, notify = false))
+        nextActiveGames.values.foreach(game => updateGameCounts(game, 1, notify = false))
         startsBeforeSnapshot = Map.empty
         finishesBeforeSnapshot = Set.empty
         hasGameSnapshot = true
@@ -209,7 +225,9 @@ final class LobbySocket(
     Bus.subscribeActor[lila.core.pool.Pairings](this)
     Bus.subscribeActor[PoolCount](this)
     Bus.subscribeActor[StartGame](this)
+    Bus.subscribeActor[ActivateGame](this)
     Bus.subscribeActor[FinishGame](this)
+    Bus.subscribeActor[DeactivateGame](this)
     Bus.subscribeActor[ActiveGameSnapshot](this)
     scheduler.scheduleOnce(7.seconds)(this ! SendHookRemovals)
     scheduler.scheduleWithFixedDelay(31.seconds, 31.seconds)(() => this ! Cleanup)
@@ -233,31 +251,27 @@ final class LobbySocket(
       if !hasGameSnapshot then
         startsBeforeSnapshot = startsBeforeSnapshot.updated(game.id, game)
         finishesBeforeSnapshot = finishesBeforeSnapshot - game.id
-      if !activeGameIds(game.id) then
-        activeGameIds = activeGameIds + game.id
+      if !activeGames.contains(game.id) then
+        activeGames = activeGames.updated(game.id, game)
         updateGameCounts(game, 1)
 
     private def finishGame(game: Game): Unit =
       if !hasGameSnapshot then
         startsBeforeSnapshot = startsBeforeSnapshot - game.id
         finishesBeforeSnapshot = finishesBeforeSnapshot + game.id
-      if activeGameIds(game.id) then
-        activeGameIds = activeGameIds - game.id
-        updateGameCounts(game, -1)
+      deactivateGame(game.id)
+
+    private def deactivateGame(gameId: GameId): Unit =
+      activeGames
+        .get(gameId)
+        .foreach: game =>
+          activeGames = activeGames.removed(gameId)
+          updateGameCounts(game, -1)
 
     private def updateGameCounts(game: Game, delta: Int, notify: Boolean = true): Unit =
       val homePoolId = game.clockConfig.flatMap(poolApi.homepagePoolOf(_, game.moveTimeLimit))
       val humanPlayers = if game.hasAi then 1 else 2
-      lastGameCounts = lastGameCounts.updateActiveGame(homePoolId, humanPlayers, delta)
-
-      game.source.foreach:
-        case Source.Friend =>
-          lastGameCounts = lastGameCounts.copy(
-            friendGames = (lastGameCounts.friendGames + delta).max(0)
-          )
-        case Source.Ai =>
-          lastGameCounts = lastGameCounts.copy(aiGames = (lastGameCounts.aiGames + delta).max(0))
-        case _ =>
+      lastGameCounts = lastGameCounts.updateActiveGame(homePoolId, game.source, humanPlayers, delta)
 
       if notify then
         val updates = homePoolId

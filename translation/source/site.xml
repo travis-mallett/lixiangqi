@@ -575,6 +575,18 @@
     <item quantity="one">%s game in play</item>
     <item quantity="other">%s games in play</item>
   </plurals>
+  <plurals name="nbGamesPlayedToday">
+    <item quantity="one">%s game played today</item>
+    <item quantity="other">%s games played today</item>
+  </plurals>
+  <plurals name="nbRegisteredUsers">
+    <item quantity="one">%s registered user</item>
+    <item quantity="other">%s registered users</item>
+  </plurals>
+  <plurals name="nbGamesPlayedAllTime">
+    <item quantity="one">%s game played all-time</item>
+    <item quantity="other">%s games played all-time</item>
+  </plurals>
   <string name="automaticallyProceedToNextGameAfterMoving">Automatically proceed to next game after moving</string>
   <string name="autoSwitch">Auto switch</string>
   <string name="puzzles">Puzzles</string>

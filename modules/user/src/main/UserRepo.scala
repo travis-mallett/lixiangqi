@@ -28,6 +28,8 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
   def topNbGame(nb: Int): Fu[List[User]] =
     coll.find(enabledNoBotSelect ++ notLame).sort($sort.desc("count.game")).cursor[User]().list(nb)
 
+  def countAll: Fu[Long] = coll.countAll
+
   def byId[U: UserIdOf](u: U): Fu[Option[User]] =
     u.id.noGhost.so:
       recoverDeleted:

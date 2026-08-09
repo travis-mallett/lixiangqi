@@ -1,7 +1,5 @@
 package lila.tournament
 
-import chess.IntRating
-
 import java.time.DayOfWeek.*
 import java.time.Month.*
 import java.time.temporal.TemporalAdjusters
@@ -9,7 +7,6 @@ import java.time.{ LocalDate, LocalDateTime, LocalTime }
 
 import lila.common.LilaScheduler
 import lila.core.i18n.Translator
-import lila.gathering.Condition
 
 final private class TournamentScheduler(tournamentRepo: TournamentRepo)(using
     Executor,
@@ -208,37 +205,7 @@ Thank you all, you rock!""".some,
           }
         }
         .map(_.plan),
-      // hourly limited tournaments!
-      (-1 to 6).toList
-        .flatMap { hourDelta =>
-          val when = atTopOfHour(rightNow, hourDelta)
-          val speed = when.getHour % 4 match
-            case 0 => Bullet
-            case 1 => SuperBlitz
-            case 2 => Blitz
-            case _ => Rapid
-          List(1300, 1500, 1700, 2000).map(IntRating(_)).zipWithIndex.flatMap { (rating, hourDelay) =>
-            val conditions = TournamentCondition.All(
-              nbRatedGame = Condition.NbRatedGame(20).some,
-              maxRating = Condition.MaxRating(rating).some,
-              minRating = none,
-              titled = none,
-              teamMember = none,
-              accountAge = none,
-              allowList = none,
-              bots = none
-            )
-            val finalWhen = when.plusHours(hourDelay)
-            List(Schedule(Hourly, speed, Standard, none, finalWhen, conditions).plan) :::
-              (speed == Bullet).so:
-                List(Schedule(Hourly, Bullet, Standard, none, finalWhen.plusMinutes(30), conditions).plan)
-          }
-        }
-        .map {
-          // No berserk for rating-limited tournaments
-          // Because berserking lowers the player rating
-          _.map { _.copy(noBerserk = true) }
-        }
+      Nil // Entry-restricted hourly tournaments are not part of the open recurring schedule.
     ).flatten.filter(_.schedule.at.isAfter(rightNow))
 
   private def atTopOfHour(rightNow: LocalDateTime, hourDelta: Int): LocalDateTime =

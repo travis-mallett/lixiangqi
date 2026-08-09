@@ -5,12 +5,38 @@ import java.time.LocalDateTime
 import Schedule.Freq.*
 import Schedule.Speed.*
 import chess.variant.*
+import lila.core.tournament.Status
+import lila.gathering.Condition
 
 class PlanBuilderTest extends munit.FunSuite:
 
   import lila.core.i18n.*
   given Translator = TranslatorStub
   given play.api.i18n.Lang = defaultLang
+
+  test("scheduled tournaments discard explicit entry conditions"):
+    val dt = LocalDateTime.of(2026, 8, 5, 12, 0)
+    val conditions = TournamentCondition.All.empty.copy(nbRatedGame = Condition.NbRatedGame(20).some)
+    val tournament = Schedule(Daily, Blitz, Standard, None, dt, conditions).plan.build
+    assert(tournament.conditions.list.isEmpty)
+
+  test("only upcoming scheduled records discard stored entry conditions"):
+    val dt = LocalDateTime.of(2026, 8, 5, 12, 0)
+    val conditions = TournamentCondition.All.empty.copy(nbRatedGame = Condition.NbRatedGame(20).some)
+    val base = Schedule(Daily, Blitz, Standard, None, dt).plan.build
+    val handler = BSONHandlers.tourHandler
+
+    val upcoming = handler.read(handler.write(base.copy(conditions = conditions)))
+    assert(upcoming.conditions.list.isEmpty)
+
+    val inProgress = handler.read(handler.write(base.copy(status = Status.started, conditions = conditions)))
+    assertEquals(inProgress.conditions, conditions)
+
+    val completed = handler.read(handler.write(base.copy(status = Status.finished, conditions = conditions)))
+    assertEquals(completed.conditions, conditions)
+
+    val custom = handler.read(handler.write(base.copy(schedule = None, conditions = conditions)))
+    assertEquals(custom.conditions, conditions)
 
   test("tourney building with stagger"):
     // Test that tourneys are scheduled based on the startAt field of the plan.

@@ -33,7 +33,7 @@ export default function (token: string): void {
     '(=)': 'Game ends in draw',
     'O-O-O': 'Castles queenside',
     'O-O': 'Castles kingside',
-    white: 'White',
+    white: 'Red',
     black: 'Black',
     'wins by': 'wins by',
     timeout: 'timeout',
@@ -684,7 +684,7 @@ export default function (token: string): void {
       console.log('');
       const innerTable =
         `<table class="dgt-table"><tr><th> - </th><th>Title</th><th>Username</th><th>Rating</th><th>Timer</th><th>Last Move</th><th>gameId: ${gameInfo.id}</th></tr>` +
-        `<tr><td>White</td><td>${gameInfo.white.title ? gameInfo.white.title : '@'}</td><td>${
+        `<tr><td>Red</td><td>${gameInfo.white.title ? gameInfo.white.title : '@'}</td><td>${
           gameInfo.white.name
         }</td><td>${gameInfo.white.rating}</td><td>${formattedTimer(gameState.wtime)}</td><td>${
           lastMove.player === 'white' ? lastMove.move : '?'
@@ -776,7 +776,7 @@ export default function (token: string): void {
       ttsSay(padBeforeNumbers(lastMove.move));
     }
     if (lastMove.player === 'white') {
-      console.log(`<span class="dgt-white-move">${moveText} by White</span>`);
+      console.log(`<span class="dgt-white-move">${moveText} by Red</span>`);
     } else {
       console.log(`<span class="dgt-black-move">${moveText} by Black</span>`);
     }
@@ -792,7 +792,7 @@ export default function (token: string): void {
 
   function announceInvalidMove() {
     if (currentGameColor === 'white') {
-      console.warn('  [ X X ]  - Illegal move by white.');
+      console.warn('  [ X X ]  - Illegal move by Red.');
     } else {
       console.warn('  [ X X ]  - Illegal move by black.');
     }

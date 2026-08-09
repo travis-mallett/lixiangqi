@@ -81,6 +81,7 @@ export interface LobbyData {
   nowPlaying: NowPlaying[];
   ratingMap: Record<Perf, RatingWithProvisional> | null;
   counters: { members: number; rounds: number };
+  stats?: { gamesPlayedToday: number; registeredUsers: number; gamesPlayedAllTime: number };
   poolCounts: Record<string, number>;
 }
 

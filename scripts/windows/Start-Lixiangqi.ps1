@@ -292,21 +292,26 @@ if (-not (Test-Port 9663)) {
 Write-Step 'Waiting for the full website (first startup can take several minutes)'
 $siteUrl = "http://$siteDomain/"
 $healthUrl = 'http://127.0.0.1:9663/'
-$deadline = (Get-Date).AddMinutes(6)
+$startupTimeoutMinutes = 15
+$deadline = (Get-Date).AddMinutes($startupTimeoutMinutes)
+$websiteReady = $false
 do {
   try {
     $response = Invoke-WebRequest -Uri $healthUrl -Headers @{ Host = $siteDomain } -UseBasicParsing -TimeoutSec 5
-    if ($response.StatusCode -eq 200) { break }
+    if ($response.StatusCode -eq 200) {
+      $websiteReady = $true
+      break
+    }
   } catch {
     Start-Sleep -Seconds 1
   }
 } while ((Get-Date) -lt $deadline)
 
-if ((Get-Date) -ge $deadline) {
+if (-not $websiteReady) {
   Write-Host "Lixiangqi did not become ready. Recent server output:" -ForegroundColor Red
   Get-Content (Join-Path $logsDir 'lixiangqi.stderr.log') -Tail 40 -ErrorAction SilentlyContinue
   Get-Content (Join-Path $logsDir 'lixiangqi.stdout.log') -Tail 40 -ErrorAction SilentlyContinue
-  throw "Website startup timed out. See $logsDir"
+  throw "Website startup timed out after $startupTimeoutMinutes minutes. See $logsDir"
 }
 
 Write-Host "Lixiangqi is ready: $siteUrl" -ForegroundColor Green
