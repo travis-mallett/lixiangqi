@@ -20,8 +20,8 @@ object Query:
 
   val started: Bdoc = F.status.$gte(Status.Started.id)
 
-  /** Games that were started on Lixiangqi. Imported games have a started-or-later
-    * status too, but were played elsewhere and should not contribute to site totals.
+  /** Games that were started on Lixiangqi. Imported games have a started-or-later status too, but were played
+    * elsewhere and should not contribute to site totals.
     */
   val playedOnSite: Bdoc =
     started ++ F.source.$nin(List(Source.Import.id, Source.ImportLive.id))
