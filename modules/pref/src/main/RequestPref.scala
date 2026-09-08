@@ -23,8 +23,9 @@ object RequestPref:
     base.copy(
       uiTheme = read("uiTheme").filter(UiThemes.contains) | base.uiTheme,
       background = background,
-      backgroundUrl =
-        Option.when(background == Backgrounds.customKey)(read("backgroundUrl").orElse(base.backgroundUrl)).flatten,
+      backgroundUrl = Option
+        .when(background == Backgrounds.customKey)(read("backgroundUrl").orElse(base.backgroundUrl))
+        .flatten,
       boardTheme = read("boardTheme").filter(BoardThemes.contains) | base.boardTheme,
       pieceSet = read("pieceSet").filter(PieceSets.contains) | base.pieceSet,
       soundSet = read("soundSet").filter(SoundSets.contains) | base.soundSet,

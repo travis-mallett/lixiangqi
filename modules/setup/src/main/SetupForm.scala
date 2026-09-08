@@ -204,7 +204,8 @@ object SetupForm:
       rules,
       "expiresAt" -> optional:
         inTheFuture(ISOInstantOrTimestamp.mapping)
-          .verifying("Open challenges must expire within 2 weeks", _.isBefore(nowInstant.plusWeeks(2))),
+          .verifying("Open challenges must expire within 2 weeks", _.isBefore(nowInstant.plusWeeks(2)))
+      ,
       adjudicationRules
     )(OpenConfig.from)(_ => none)
       .verifying("invalidFen", _.validFen)

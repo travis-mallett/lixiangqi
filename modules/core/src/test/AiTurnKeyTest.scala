@@ -18,9 +18,14 @@ class AiTurnKeyTest extends munit.FunSuite:
       Some("7a1db703beeda4a3b9871eae7b6dd66025e95bbd0663b172d975bd02e1126d49")
     )
     assertNotEquals(AiTurnKey.from(initial), AiTurnKey.from(replayed))
-    assertNotEquals(AiTurnKey.from(initial), AiTurnKey.from(initial.copy(
-      xiangqi = initial.xiangqi.copy(ruleset = lila.xiangqi.adjudication.Ruleset.Unrestricted)
-    )))
+    assertNotEquals(
+      AiTurnKey.from(initial),
+      AiTurnKey.from(
+        initial.copy(
+          xiangqi = initial.xiangqi.copy(ruleset = lila.xiangqi.adjudication.Ruleset.Unrestricted)
+        )
+      )
+    )
     assertEquals(AiTurnKey.from(initial).map(_.value.length), Some(64))
 
   test("the effective worker level is part of the key"):

@@ -232,7 +232,8 @@ private[tournament] case class TournamentSetup(
     old
       .copy(
         name = name | old.name,
-        ruleset = if old.isCreated && old.nbPlayers == 0 && ruleset.isDefined then realRuleset else old.ruleset,
+        ruleset =
+          if old.isCreated && old.nbPlayers == 0 && ruleset.isDefined then realRuleset else old.ruleset,
         clock = if old.isCreated then clockConfig else old.clock,
         minutes = minutes,
         rated = realRated,
@@ -258,7 +259,8 @@ private[tournament] case class TournamentSetup(
     old
       .copy(
         name = name | old.name,
-        ruleset = if old.isCreated && old.nbPlayers == 0 && ruleset.isDefined then realRuleset else old.ruleset,
+        ruleset =
+          if old.isCreated && old.nbPlayers == 0 && ruleset.isDefined then realRuleset else old.ruleset,
         clock = if old.isCreated then clockConfig else old.clock,
         minutes = minutes,
         rated = Rated.No,

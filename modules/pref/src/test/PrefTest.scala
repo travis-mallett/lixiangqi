@@ -119,7 +119,8 @@ class PrefTest extends FunSuite:
       backgroundUrl = "https://example.test/background.jpg".some,
       boardTheme = BoardThemes.tournament.key,
       musicSet = MusicSets.wuxia3.key,
-      board = Appearance.BoardSettings(brightness = 80, contrast = 120, saturation = 60, opacity = 70, hue = 15)
+      board =
+        Appearance.BoardSettings(brightness = 80, contrast = 120, saturation = 60, opacity = 70, hue = 15)
     )
     assertEquals(appearance.sessionValues.keySet, Appearance.sessionKeys)
     assertEquals(appearance.sessionValues("uiTheme"), UiThemes.light.key)

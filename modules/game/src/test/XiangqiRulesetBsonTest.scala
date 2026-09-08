@@ -18,9 +18,12 @@ class XiangqiRulesetBsonTest extends munit.FunSuite:
 
   test("old records without a ruleset keep unrestricted semantics"):
     val current = xiangqiGameHandler.writeTry(Xiangqi.Game.initial).get
-    val oldStates = current.getAsOpt[Vector[BSONDocument]]("states").get.map(
-      _ -- "adjudication" -- "termination" -- "variation"
-    )
+    val oldStates = current
+      .getAsOpt[Vector[BSONDocument]]("states")
+      .get
+      .map(
+        _ -- "adjudication" -- "termination" -- "variation"
+      )
     val bson = (current -- "ruleset" -- "states") ++ BSONDocument("states" -> oldStates)
     val restored = xiangqiGameHandler.readDocument(bson).get
     assertEquals(restored.ruleset, Ruleset.Unrestricted)

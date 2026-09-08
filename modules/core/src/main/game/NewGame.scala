@@ -147,7 +147,8 @@ private def newSloppy(
 ): Game =
   val createdAt = nowInstant
   val authorizedRankTrack =
-    RankedGame.authorize(rankTrack, source, variant, clock.map(_.config), moveTimeLimit, players)
+    RankedGame
+      .authorize(rankTrack, source, variant, clock.map(_.config), moveTimeLimit, players)
       .filter(_ => xiangqi.ruleset == lila.xiangqi.adjudication.Ruleset.Tiantian)
   new Game(
     id = IdGenerator.uncheckedGame,

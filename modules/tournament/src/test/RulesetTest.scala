@@ -6,11 +6,20 @@ import lila.xiangqi.adjudication.Ruleset
 
 class RulesetTest extends munit.FunSuite:
   private def tournament = Tournament(
-    id = TourId("rules001"), name = "Rules test", status = Status.created,
+    id = TourId("rules001"),
+    name = "Rules test",
+    status = Status.created,
     clock = Clock.Config(Clock.LimitSeconds(300), Clock.IncrementSeconds(0)),
-    minutes = 45, variant = chess.variant.Standard, position = None, rated = Rated.No,
-    conditions = TournamentCondition.All.empty, schedule = None, nbPlayers = 0,
-    createdAt = nowInstant, createdBy = UserId.lichess, startsAt = nowInstant.plusMinutes(10)
+    minutes = 45,
+    variant = chess.variant.Standard,
+    position = None,
+    rated = Rated.No,
+    conditions = TournamentCondition.All.empty,
+    schedule = None,
+    nbPlayers = 0,
+    createdAt = nowInstant,
+    createdBy = UserId.lichess,
+    startsAt = nowInstant.plusMinutes(10)
   )
 
   test("tournaments default to Tiantian and freeze selection before play"):

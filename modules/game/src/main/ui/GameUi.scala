@@ -172,13 +172,14 @@ final class GameUi(helpers: Helpers):
           case Some(MutualAgreement) => trans.site.drawByMutualAgreement.txt()
           case Some(InsufficientMaterial) =>
             trans.site.insufficientMaterial.txt() + " • " + trans.site.draw.txt()
-          case _ => game.position.termination match
-            case Some("repetition") => "Draw by fivefold repetition"
-            case Some("mutual-check") => "Draw by mutual perpetual check"
-            case Some("mutual-chase") => "Draw by mutual perpetual chase"
-            case Some("no-capture") => "Draw after 120 counted plies without a capture"
-            case Some("move-limit") => "Draw at 400 plies"
-            case _ => trans.site.draw.txt()
+          case _ =>
+            game.position.termination match
+              case Some("repetition") => "Draw by fivefold repetition"
+              case Some("mutual-check") => "Draw by mutual perpetual check"
+              case Some("mutual-chase") => "Draw by mutual perpetual chase"
+              case Some("no-capture") => "Draw after 120 counted plies without a capture"
+              case Some("move-limit") => "Draw at 400 plies"
+              case _ => trans.site.draw.txt()
       case S.InsufficientMaterialClaim =>
         trans.site.drawClaimed.txt() + " • " + trans.site.insufficientMaterial.txt()
       case S.Outoftime =>

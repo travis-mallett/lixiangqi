@@ -128,7 +128,8 @@ case class Game(
   def start =
     if started then this
     else if position.ended then
-      val winner = position.gameResult.winner.map(side => if side == Xiangqi.Side.Red then Color.White else Color.Black)
+      val winner =
+        position.gameResult.winner.map(side => if side == Xiangqi.Side.Red then Color.White else Color.Black)
       copy(
         status = if winner.isDefined then Status.Mate else Status.Draw,
         players = winner.fold(players)(c => players.update(c, _.copy(isWinner = Some(true)))),

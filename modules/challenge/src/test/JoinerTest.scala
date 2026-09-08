@@ -13,9 +13,15 @@ final class JoinerTest extends munit.FunSuite:
   test("challenge creation resolves and persists Tiantian or the explicit override"):
     val default = makeChallenge(Standard, None)
     assertEquals(default.ruleset, Some(lila.xiangqi.adjudication.Ruleset.Tiantian))
-    assertEquals(ChallengeJoiner.gameSetup(default).toOption.get.ruleset, lila.xiangqi.adjudication.Ruleset.Tiantian)
+    assertEquals(
+      ChallengeJoiner.gameSetup(default).toOption.get.ruleset,
+      lila.xiangqi.adjudication.Ruleset.Tiantian
+    )
     val custom = default.copy(ruleset = Some(lila.xiangqi.adjudication.Ruleset.Unrestricted))
-    assertEquals(ChallengeJoiner.gameSetup(custom).toOption.get.ruleset, lila.xiangqi.adjudication.Ruleset.Unrestricted)
+    assertEquals(
+      ChallengeJoiner.gameSetup(custom).toOption.get.ruleset,
+      lila.xiangqi.adjudication.Ruleset.Unrestricted
+    )
 
   test("standard challenge starts from the native Xiangqi root"):
     val challenge = makeChallenge(Standard, None)

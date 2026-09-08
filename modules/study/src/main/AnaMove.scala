@@ -25,13 +25,12 @@ case class AnaMove(
         .left
         .map(ErrorStr.apply)
       treeUci <- Uci(s"${orig.key}${dest.key}").toRight(ErrorStr(s"Invalid Xiangqi move: $nativeUci"))
-    yield
-        Branch(
-          ply = chess.Ply(result.ply),
-          move = Uci.WithSan(treeUci, SanStr(result.notation)),
-          fen = Fen.Full(result.fen),
-          crazyData = none
-        )
+    yield Branch(
+      ply = chess.Ply(result.ply),
+      move = Uci.WithSan(treeUci, SanStr(result.notation)),
+      fen = Fen.Full(result.fen),
+      crazyData = none
+    )
 
 object AnaMove:
 

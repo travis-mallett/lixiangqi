@@ -19,8 +19,12 @@ class TiantianExamplesTest extends munit.FunSuite:
       for side <- Side.values do
         val generals = board.pieces.filter((_, piece) => piece == Piece(side, Role.General))
         assertEquals(generals.size, 1)
-        assert(generals.keys.forall(s => s.file >= 3 && s.file <= 5 &&
-          (if side == Side.Red then s.rank >= 1 && s.rank <= 3 else s.rank >= 8 && s.rank <= 10)))
+        assert(
+          generals.keys.forall(s =>
+            s.file >= 3 && s.file <= 5 &&
+              (if side == Side.Red then s.rank >= 1 && s.rank <= 3 else s.rank >= 8 && s.rank <= 10)
+          )
+        )
         assert(XiangqiRules.checkingPieces(board, side).isEmpty)
         for role <- Vector(Role.Chariot, Role.Horse, Role.Cannon) do
           assert(board.pieces.values.count(_ == Piece(side, role)) <= 2)
@@ -28,16 +32,19 @@ class TiantianExamplesTest extends munit.FunSuite:
       assertEquals(example.moves.size, acceptedPlies + 1)
       var live = XiangqiRules.initialGame(Some(example.initialFen), example.ruleset).fold(fail(_), identity)
       assert(!live.state.ended)
-      example.moves.take(acceptedPlies).zipWithIndex.foreach: (uci, index) =>
-        assert(live.state.legalMoves.contains(uci), s"ply ${index + 1}: ${uci.value}")
-        val result = XiangqiRules.move(live, uci).fold(fail(_), identity)
-        assert(!result.capture, s"ply ${index + 1} must not reset the streak")
-        live = live.applyMove(result).fold(fail(_), identity)
-        assert(!live.state.ended, s"premature ending at ply ${index + 1}")
-        val fact = live.state.adjudication.get.fact.get
-        assertEquals(fact.side, if index % 2 == 0 then Side.Red else Side.Black)
-        assertEquals(fact.check, index % 2 == 0, s"check classification at ply ${index + 1}")
-        assertEquals(live.state.check, fact.check)
+      example.moves
+        .take(acceptedPlies)
+        .zipWithIndex
+        .foreach: (uci, index) =>
+          assert(live.state.legalMoves.contains(uci), s"ply ${index + 1}: ${uci.value}")
+          val result = XiangqiRules.move(live, uci).fold(fail(_), identity)
+          assert(!result.capture, s"ply ${index + 1} must not reset the streak")
+          live = live.applyMove(result).fold(fail(_), identity)
+          assert(!live.state.ended, s"premature ending at ply ${index + 1}")
+          val fact = live.state.adjudication.get.fact.get
+          assertEquals(fact.side, if index % 2 == 0 then Side.Red else Side.Black)
+          assertEquals(fact.check, index % 2 == 0, s"check classification at ply ${index + 1}")
+          assertEquals(live.state.check, fact.check)
 
       val redFacts = live.states.flatMap(_.adjudication.flatMap(_.fact)).filter(_.side == Side.Red)
       assertEquals(redFacts.size, checks)
@@ -67,12 +74,17 @@ class TiantianExamplesTest extends munit.FunSuite:
         wxf = live.wxf.dropRight(2),
         states = live.states.dropRight(2)
       )
-      val restored = live.moves.takeRight(2).foldLeft(rewind): (game, move) =>
-        XiangqiRules.move(game, move).flatMap(game.applyMove).fold(fail(_), identity)
+      val restored = live.moves
+        .takeRight(2)
+        .foldLeft(rewind): (game, move) =>
+          XiangqiRules.move(game, move).flatMap(game.applyMove).fold(fail(_), identity)
       assertEquals(restored, live)
       val varying = live.state.legalMoves.iterator.flatMap: move =>
-        XiangqiRules.move(live, move).toOption.filter: result =>
-          !result.state.ended && result.adjudication.flatMap(_.fact).exists(f => !f.forcing && !f.capture)
+        XiangqiRules
+          .move(live, move)
+          .toOption
+          .filter: result =>
+            !result.state.ended && result.adjudication.flatMap(_.fact).exists(f => !f.forcing && !f.capture)
       val variation = varying.take(1).toList.headOption.getOrElse(fail("No legal quiet variation remains"))
       val varied = live.applyMove(variation).fold(fail(_), identity)
       assert(!varied.state.ended)

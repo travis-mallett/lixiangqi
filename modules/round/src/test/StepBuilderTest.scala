@@ -7,7 +7,10 @@ class StepBuilderTest extends munit.FunSuite:
 
   test("a checking move that reaches the natural draw limit never becomes replay checkmate"):
     val root = XiangqiRules
-      .initialGame(Some(SpecialRulesExamples.singlePiece.initialFen), SpecialRulesExamples.singlePiece.ruleset)
+      .initialGame(
+        Some(SpecialRulesExamples.singlePiece.initialFen),
+        SpecialRulesExamples.singlePiece.ruleset
+      )
       .toOption
       .get
     val seeded = root.copy(states =

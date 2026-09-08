@@ -26,7 +26,8 @@ case class AiConfig(
 
   val strictFen = true
 
-  def >> = (variant.id, timeMode.id, time, increment, moveTimeLimit, days, level, color.name, fen, ruleset).some
+  def >> =
+    (variant.id, timeMode.id, time, increment, moveTimeLimit, days, level, color.name, fen, ruleset).some
 
   private def game(user: GameUser)(using
       idGenerator: IdGenerator,

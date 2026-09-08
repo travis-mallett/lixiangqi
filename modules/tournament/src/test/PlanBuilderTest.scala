@@ -6,7 +6,6 @@ import Schedule.Freq.*
 import Schedule.Speed.*
 import chess.variant.*
 import lila.core.tournament.Status
-import lila.gathering.Condition
 
 class PlanBuilderTest extends munit.FunSuite:
 
@@ -16,13 +15,13 @@ class PlanBuilderTest extends munit.FunSuite:
 
   test("scheduled tournaments discard explicit entry conditions"):
     val dt = LocalDateTime.of(2026, 8, 5, 12, 0)
-    val conditions = TournamentCondition.All.empty.copy(nbRatedGame = Condition.NbRatedGame(20).some)
+    val conditions = TournamentCondition.All.empty.copy(titled = lila.gathering.Condition.Titled.some)
     val tournament = Schedule(Daily, Blitz, Standard, None, dt, conditions).plan.build
     assert(tournament.conditions.list.isEmpty)
 
   test("only upcoming scheduled records discard stored entry conditions"):
     val dt = LocalDateTime.of(2026, 8, 5, 12, 0)
-    val conditions = TournamentCondition.All.empty.copy(nbRatedGame = Condition.NbRatedGame(20).some)
+    val conditions = TournamentCondition.All.empty.copy(titled = lila.gathering.Condition.Titled.some)
     val base = Schedule(Daily, Blitz, Standard, None, dt).plan.build
     val handler = BSONHandlers.tourHandler
 

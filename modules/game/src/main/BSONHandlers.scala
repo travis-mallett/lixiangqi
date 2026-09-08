@@ -58,7 +58,9 @@ object BSONHandlers:
 
   private given BSONDocumentHandler[Xiangqi.Ending] = Macros.handler
   given BSONHandler[Ruleset] = tryHandler[Ruleset](
-    { case BSONString(value) => Ruleset.fromKey(value).fold(s => scala.util.Failure(Exception(s)), Success(_)) },
+    { case BSONString(value) =>
+      Ruleset.fromKey(value).fold(s => scala.util.Failure(Exception(s)), Success(_))
+    },
     value => BSONString(value.key)
   )
   private given BSONDocumentHandler[MoveFact] = Macros.handler

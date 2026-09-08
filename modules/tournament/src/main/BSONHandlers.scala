@@ -16,7 +16,6 @@ import lila.rating.XiangqiRank
 
 object BSONHandlers:
 
-
   private[tournament] given BSONHandler[Status] = valueMapHandler(Status.byId)(_.id)
 
   private[tournament] given BSONHandler[Schedule.Freq] = tryHandler(
@@ -113,8 +112,8 @@ object BSONHandlers:
         hasChat = r.boolO("chat").getOrElse(true),
         ruleset = if r.contains("ruleset") then
           lila.xiangqi.adjudication.Ruleset.fromKey(r.str("ruleset")).fold(sys.error, identity)
-          else if status == Status.created then lila.xiangqi.adjudication.Ruleset.default
-          else lila.xiangqi.adjudication.Ruleset.Unrestricted
+        else if status == Status.created then lila.xiangqi.adjudication.Ruleset.default
+        else lila.xiangqi.adjudication.Ruleset.Unrestricted
       )
     def writes(w: BSON.Writer, o: Tournament) =
       $doc(

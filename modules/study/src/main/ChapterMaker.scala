@@ -103,7 +103,9 @@ final private class ChapterMaker(
       data.fen.filter(f => Xiangqi.Fen.isValid(f.value)) match
         case Some(game) =>
           Root(
-            ply = XiangqiRules.position(Xiangqi.Position(initialFen = game.value)).fold(_ => chess.Ply(0), s => chess.Ply(s.ply)),
+            ply = XiangqiRules
+              .position(Xiangqi.Position(initialFen = game.value))
+              .fold(_ => chess.Ply(0), s => chess.Ply(s.ply)),
             fen = game,
             clock = none,
             crazyData = none,
