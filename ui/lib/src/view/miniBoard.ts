@@ -161,12 +161,14 @@ export const initMiniGame = (node: Element): string | null => {
       notation: Notation.XIANGQI_HANNUM,
       kingRoles: ['k-piece'],
       autoCastle: false,
-      animation: replay
+      ...(replay
         ? {
-            enabled: replay.animationMillis > 0,
-            duration: replay.animationMillis,
+            animation: {
+              enabled: replay.animationMillis > 0,
+              duration: replay.animationMillis,
+            },
           }
-        : undefined,
+        : {}),
       drawable: {
         enabled: false,
         visible: false,

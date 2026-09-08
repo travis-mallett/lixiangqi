@@ -5,12 +5,7 @@ import { randomId } from 'lib/algo';
 import { PikafishBrowserEngine, type EngineAnalysis, type PikafishStatus } from 'lib/ceval';
 import { selectXiangqiNotation, type XiangqiNotationStyle } from 'lib/game';
 import { formatMs } from 'lib/game/clock/clockWidget';
-import {
-  isRecordedClockTimeline,
-  RecordedClockPlayback,
-  type RecordedClockFrame,
-  type RecordedClockTimeline,
-} from 'lib/game/replay/recordedClockPlayback';
+import { isRecordedClockTimeline, type RecordedClockTimeline } from 'lib/game/replay/recordedClockPlayback';
 import { ShowResizeHandle } from 'lib/prefs';
 import { storage } from 'lib/storage';
 import stepwiseScroll from 'lib/view/stepwiseScroll';
@@ -110,7 +105,6 @@ const lastButton = requiredElement<HTMLButtonElement>('#xiangqi-last');
 const recordedClocksElement = requiredElement('#xiangqi-recorded-clocks');
 const recordedWhiteClockElement = requiredElement('#xiangqi-recorded-clock-white');
 const recordedBlackClockElement = requiredElement('#xiangqi-recorded-clock-black');
-const recordedPlaybackButton = requiredElement<HTMLButtonElement>('#xiangqi-recorded-playback');
 const evalElement = requiredElement('#xiangqi-eval');
 const engineEnabledElement = requiredElement<HTMLInputElement>('#xiangqi-engine-enabled');
 const analyseLineButton = requiredElement<HTMLButtonElement>('#xiangqi-analyse-line');
@@ -188,7 +182,9 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     },
   ];
   let activeTabId = tabs[0].id;
-  let recordedPlayback: RecordedClockPlayback | undefined;
+  const recordedClock = isRecordedClockTimeline(bootstrap.recordedClock)
+    ? bootstrap.recordedClock
+    : undefined;
   const currentNode = (): XiangqiPositionNode => nodeAtPath(tree, activePath) ?? tree.root;
   const currentState = (): RulesState => currentNode().state;
   let pending = false;
@@ -234,7 +230,6 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     notationLayout: () => interfaceSettings.notationLayout,
     navigate,
     commit: () => {
-      syncRecordedPlayback(activePath);
       saveDraft(true);
       update();
     },
@@ -350,13 +345,12 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     }
   }
 
-  function navigate(path: string, fromPlayback = false): void {
+  function navigate(path: string): void {
     if (!tree.byPath.has(path)) return;
     const navigationTree = tree;
     const fromPath = activePath;
     const backwards = getNodeList(tree, path).length < getNodeList(tree, fromPath).length;
     activePath = path;
-    if (!fromPlayback) syncRecordedPlayback(path);
     const destination = currentNode();
     treeView.closeMenu();
     saveDraft();
@@ -408,7 +402,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     firstButton.disabled = previousButton.disabled = pending || activePath === '';
     nextButton.disabled = pending || nextPath === undefined;
     lastButton.disabled = pending || activePath === endPath;
-    updateRecordedClockAvailability();
+    renderRecordedClocks();
     if (document.activeElement !== notationInput)
       notationInput.value = renderXiangqiNotation(tree, initialFen);
     suggestions.setEvaluation(node.evaluation?.score);
@@ -596,7 +590,6 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     initialFen = selected.initialFen;
     tree = selected.tree;
     activePath = selected.activePath;
-    syncRecordedPlayback(activePath);
     toolsFen = '';
     suggestions.clearResults();
     suggestions.resetEvaluation();
@@ -938,7 +931,6 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
   renderSuggestionArrows();
   Object.assign(window, { lixiangqiGround: ground });
   Object.defineProperty(window, 'lixiangqiTree', { configurable: true, get: () => tree });
-  initRecordedPlayback();
   setFenUrl(initialFen);
   tabsView.render();
   bindAnalysisInterfaceControls({
@@ -964,7 +956,6 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     if (next) navigate(next.path);
   });
   lastButton.addEventListener('click', () => navigate(currentLineEndPath(tree, activePath)));
-  recordedPlaybackButton.addEventListener('click', () => recordedPlayback?.toggle());
   analyseLineButton.addEventListener('click', () => void analyseCurrentLine());
   engineEnabledElement.addEventListener('change', () => {
     toolsFen = '';
@@ -1020,7 +1011,6 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     'pagehide',
     () => {
       saveDraft();
-      recordedPlayback?.destroy();
       browserEngine.destroy();
     },
     { once: true },
@@ -1073,26 +1063,6 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
   update();
   if (catalogGameId) await loadCatalogGame(catalogGameId);
 
-  function initRecordedPlayback(): void {
-    if (!isRecordedClockTimeline(bootstrap.recordedClock)) return;
-    const timeline = bootstrap.recordedClock;
-    const initialPosition = recordedPositionAtPath(activePath) ?? 0;
-    recordedPlayback = new RecordedClockPlayback(timeline, {
-      currentPosition: () => initialPosition,
-      goToPosition: position => {
-        const path = recordedPathAtPosition(position);
-        if (path !== undefined) navigate(path, true);
-      },
-      renderClock: renderRecordedClock,
-      stateChanged: playing => {
-        recordedPlaybackButton.setAttribute('aria-pressed', String(playing));
-        recordedPlaybackButton.title = playing ? 'Stop realtime replay' : 'Play realtime replay';
-        recordedPlaybackButton.setAttribute('aria-label', recordedPlaybackButton.title);
-      },
-    });
-    updateRecordedClockAvailability();
-  }
-
   function recordedPositionAtPath(path: string): number | undefined {
     if (!bootstrap.gameId || tabs.find(tab => tab.id === activeTabId)?.gameId !== bootstrap.gameId) return;
     const nodes = getNodeList(tree, path).slice(1) as XiangqiTreeNode[];
@@ -1100,41 +1070,20 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     return nodes.every((node, index) => node.uci === bootstrap.moves?.[index]) ? nodes.length : undefined;
   }
 
-  function recordedPathAtPosition(position: number): string | undefined {
-    if (position === 0) return '';
-    let node: XiangqiPositionNode = tree.root;
-    for (let index = 0; index < position; index++) {
-      const child: XiangqiTreeNode | undefined = node.children.find(
-        candidate => candidate.uci === bootstrap.moves?.[index],
-      );
-      if (!child) return;
-      node = child;
-    }
-    return node.path;
-  }
-
-  function syncRecordedPlayback(path: string): void {
-    const position = recordedPositionAtPath(path);
-    if (position === undefined) recordedPlayback?.stop();
-    else recordedPlayback?.select(position);
-    updateRecordedClockAvailability();
-  }
-
-  function updateRecordedClockAvailability(): void {
+  function renderRecordedClocks(): void {
     const position = recordedPositionAtPath(activePath);
-    const playback = recordedPlayback;
-    const available = !!playback && position !== undefined;
-    if (!available) playback?.stop();
-    else if (!playback.isPlaying() && playback.currentPosition() !== position) playback.select(position);
-    recordedClocksElement.hidden = !available;
-    recordedPlaybackButton.hidden = !available;
+    const clockPosition = position === undefined ? undefined : recordedClock?.positions[position];
+    if (!clockPosition) {
+      recordedClocksElement.hidden = true;
+      return;
+    }
+    recordedClocksElement.hidden = false;
+    renderRecordedClock(clockPosition);
   }
 
-  function renderRecordedClock(frame: RecordedClockFrame): void {
-    recordedWhiteClockElement.textContent = formatMs(frame.white);
-    recordedBlackClockElement.textContent = formatMs(frame.black);
-    recordedWhiteClockElement.parentElement?.classList.toggle('running', frame.activeColor === 'white');
-    recordedBlackClockElement.parentElement?.classList.toggle('running', frame.activeColor === 'black');
+  function renderRecordedClock(position: { white: number; black: number }): void {
+    recordedWhiteClockElement.textContent = formatMs(position.white * 10);
+    recordedBlackClockElement.textContent = formatMs(position.black * 10);
   }
 
   function liveEngineStatus(node: XiangqiPositionNode): string {

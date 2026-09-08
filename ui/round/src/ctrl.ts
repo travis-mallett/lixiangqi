@@ -207,7 +207,7 @@ export default class RoundController implements MoveRootCtrl {
   replaying = (): boolean => this.ply !== this.lastPly() && !this.data.local;
 
   canToggleRecordedClockPlayback = (): boolean =>
-    !!this.recordedClockPlayback && !!this.data.tv && this.data.player.spectator === true && this.replaying();
+    util.canToggleRecordedClockPlayback(this.data, this.recordedClockPlayback);
 
   toggleRecordedClockPlayback = (): void => this.recordedClockPlayback?.toggle();
 

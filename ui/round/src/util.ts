@@ -1,8 +1,12 @@
 import type { Dests } from 'chessgroundx/types';
 
 import { selectXiangqiNotation, xiangqiLegalMoveDests } from 'lib/game';
+import type { RecordedClockPlayback } from 'lib/game/replay/recordedClockPlayback';
 
 import type { EncodedDests, RoundData, Step } from './interfaces';
+
+export const canToggleRecordedClockPlayback = (d: RoundData, playback?: RecordedClockPlayback): boolean =>
+  !!playback && playback.timeline.delays.length > 0 && !!d.tv && d.player.spectator === true;
 
 export function parsePossibleMoves(dests?: EncodedDests): Dests {
   if (!dests) return new Map();

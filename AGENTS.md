@@ -227,6 +227,52 @@ If deployment requires a migration or other server-side step, integrate it into 
 
 Do not modify deployment tooling when the change has no deployment implications.
 
+## GitHub contribution verification
+
+Any task that prepares a commit, pull request, or push must complete the local checks that correspond to the GitHub workflows before the contribution is handed off. Formatting must happen before the final build, and every formatter or linter fix must be followed by the checks again.
+
+From the repository root, install dependencies if needed, then run the frontend checks when the change touches frontend code or shared assets:
+
+```powershell
+pnpm install
+pnpm format
+pnpm run lint
+pnpm run check-format
+```
+
+For changes touching `ui/`, `public/`, or the asset build, also run the asset workflow's checks. These are Bash/WSL commands, matching `assets.yml`:
+
+```bash
+./ui/build --no-install -p
+./ui/test
+```
+
+From PowerShell on the prepared Windows checkout, run the same commands through Bash:
+
+```powershell
+bash -lc './ui/build --no-install -p'
+bash -lc './ui/test'
+```
+
+These checks use the repository versions of Node 24 and pnpm 11 declared by `.node-version` and `package.json`.
+
+Frontend formatting uses Oxfmt (`pnpm format` / `pnpm run check-format`); Scala formatting uses Scalafmt and requires its own checks. On Windows, use the repository's bundled Java 21 and SBT launcher because global `sbt.bat` is unreliable when the checkout path contains spaces. The prepared checkout uses:
+
+```powershell
+& .tools\jdk-21\jdk-21.0.11+10\bin\java.exe '-Dsbt.server.autostart=false' -jar .tools\sbt\sbt-launch-2.0.3.jar scalafmtAll
+& .tools\jdk-21\jdk-21.0.11+10\bin\java.exe '-Dsbt.server.autostart=false' -jar .tools\sbt\sbt-launch-2.0.3.jar scalafmtCheckAll
+& .tools\jdk-21\jdk-21.0.11+10\bin\java.exe '-Dsbt.server.autostart=false' -jar .tools\sbt\sbt-launch-2.0.3.jar -Depoll=true 'test;stage'
+```
+
+If the bundled JDK directory has a different patch version, discover the current `java.exe` below `.tools\jdk-21` and preserve the same launcher form. `-Depoll=true` and `test;stage` are SBT arguments after `-jar` and the launcher path. `scalafmtCheckAll` must pass after formatting, and `test;stage` is the backend build parity check from `server.yml`. For broad release or GitHub preparation, run all applicable frontend and asset checks as well as the Scala checks above. Before committing, stage the intended files, then run the staged lint checks plus staged-diff validation:
+
+```powershell
+pnpm exec lint-staged
+git diff --cached --check
+```
+
+Do not use a blanket staging command; stage only the intended files. Inspect the cached diff and status after these checks. If any check changes files or fails, fix the files, stage the result, and rerun the complete relevant sequence. Stop project-owned services started during verification with `scripts/windows/Start-Lixiangqi.ps1 -StopOnly` before finishing.
+
 ## Local service hygiene
 
 Do not leave project-owned development services or launchers running after verification.

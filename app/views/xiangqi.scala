@@ -939,18 +939,6 @@ object xiangqi:
                 dataIcon := Icon.LessThan
               ),
               button(
-                id := "xiangqi-recorded-playback",
-                cls := "xiangqi-icon-button xiangqi-analysis__playback",
-                attr("type") := "button",
-                attr("hidden") := true,
-                title := "Play realtime replay",
-                attr("aria-label") := "Play realtime replay",
-                attr("aria-pressed") := "false"
-              )(
-                span(cls := "play-icon", dataIcon := Icon.PlayTriangle, attr("aria-hidden") := "true"),
-                span(cls := "stop-icon", attr("aria-hidden") := "true")
-              ),
-              button(
                 id := "xiangqi-next",
                 cls := "xiangqi-icon-button",
                 attr("type") := "button",
