@@ -13,8 +13,8 @@ object home:
       a(cls := "lobby__support-link", href := routes.Plan.index())(
         iconTag(patronIconChar),
         span(cls := "lobby__support-link__text")(
-          strong(trans.patron.donate()),
-          span(trans.patron.becomePatron())
+          strong("Donate"),
+          span("Become a patron")
         )
       )
     val swagLink =
@@ -22,9 +22,25 @@ object home:
         iconTag(Icon.Tshirt),
         span(cls := "lobby__support-link__text")(
           strong("Swag Store"),
-          span(trans.site.playChessInStyle())
+          span("Play Xiangqi in style")
         )
       )
+    def variantCard(icon: String, chinese: String, english: String) =
+      st.article(cls := "lobby__variant-card", attr("aria-disabled") := "true")(
+        span(cls := "lobby__coming-soon")(trans.site.comingSoon()),
+        img(
+          cls := "lobby__variant-icon",
+          src := assetUrl(s"images/homepage/variants/$icon.png"),
+          alt := "",
+          aria.hidden := "true",
+          widthA := 224,
+          heightA := 224,
+          attr("loading") := "lazy",
+          attr("decoding") := "async"
+        ),
+        span(cls := "lobby__variant-card__label lobby__label-en")(s"$english ($chinese)")
+      )
+    val meHref = ctx.me.fold(routes.Auth.login.url)(me => routes.User.show(me.username).url)
     Page("")
       .copy(fullTitle = s"$siteName • ${trans.site.freeOnlineChess.txt()}".some)
       .i18n(_.variant)
@@ -34,9 +50,8 @@ object home:
           Json
             .obj(
               "data" -> data,
-              "pools" -> lila.pool.PoolList.json(using ctx.translate),
-              "homePools" -> lila.pool.PoolList.homepageJson(using ctx.translate),
-              "showRatings" -> ctx.pref.showRatings
+              "pools" -> lila.pool.PoolList.json,
+              "homePools" -> lila.pool.PoolList.homepageJson
             )
             .add("hasUnreadLichessMessage", hasUnreadLichessMessage)
             .add("bots", Granter.opt(_.Beta))
@@ -59,48 +74,99 @@ object home:
             "lobby-nope" -> (playban.isDefined || currentGame.isDefined || hasUnreadLichessMessage)
           )
         )(
-          st.aside(cls := "lobby__rail", attr("aria-label") := "Homepage highlights")(
-            div(cls := "lobby__site-counters"),
-            donateLink,
+          st.aside(cls := "lobby__left-rail", attr("aria-label") := "Site activity and support")(
+            st.section(cls := "lobby__site-stats lobby__rail-card", attr("aria-label") := "Site statistics")(
+              div(cls := "lobby__site-counters")
+            ),
             featured.map: game =>
-              div(cls := "lobby__tv"):
-                views.game.mini(Pov.naturalOrientation(game), tv = true)
-            ,
+              st.section(
+                cls := "lobby__tv lobby__rail-card",
+                attr("aria-labelledby") := "lobby-tv-title",
+                attr("data-mini-game-animation") := ctx.pref.animationMillis
+              )(
+                h2(id := "lobby-tv-title", cls := "lobby__rail-title")(
+                  iconTag(Icon.AnalogTv),
+                  "Lixiangqi TV"
+                ),
+                views.game.mini(Pov.naturalOrientation(game), tv = true, replayFinished = true)
+              ),
+            donateLink,
             swagLink
           ),
-          div(cls := "lobby__gameplay")(
+          div(cls := "lobby__center-rail")(
             st.section(cls := "lobby__standard", attr("aria-label") := "Standard Xiangqi")(
               div(cls := "lobby__table"),
               currentGame
                 .map(bits.currentGameInfo)
                 .orElse(hasUnreadLichessMessage.option(bits.showUnreadLichessMessage))
-                .orElse(playban.map(bits.playbanInfo)),
-              div(cls := "lobby__feed"):
-                views.feed.lobbyUpdates(lastUpdates)
+                .orElse(playban.map(bits.playbanInfo))
             ),
-            st.aside(cls := "lobby__variants", attr("aria-label") := "Xiangqi variants")(
-              button(
-                cls := "lobby__feature-card lobby__feature-card--variant",
-                tpe := "button",
-                attr("disabled") := true,
-                aria.disabled := "true"
-              )(
-                span(cls := "lobby__coming-soon")(trans.site.comingSoon()),
-                img(
-                  cls := "lobby__feature-card__image",
-                  src := assetUrl("images/homepage/xiangqi-dark-flip-mode.webp"),
-                  alt := "",
-                  aria.hidden := "true",
-                  widthA := 384,
-                  heightA := 384
-                ),
-                span(cls := "lobby__feature-card__body")(
-                  strong(cls := "lobby__feature-card__title")(trans.site.darkFlipXiangqi()),
-                  span(cls := "lobby__feature-card__subtitle")("揭棋"),
-                  span(cls := "lobby__occupancy text", dataIcon := Icon.Group)("0")
-                )
+            st.section(cls := "lobby__variants", attr("aria-labelledby") := "lobby-variants-title")(
+              h2(id := "lobby-variants-title", cls := "lobby__section-title")(
+                span(cls := "lobby__svg-icon lobby__svg-icon--variants", aria.hidden := true),
+                span(cls := "lobby__label-en lobby__label-en--primary")("Variants")
               ),
-              bits.homepageLeaderboard(leaderboard, leaderboardFlags)
+              div(cls := "lobby__variant-grid")(
+                variantCard("jieqi", "揭棋", "Jieqi / Reveal Chess"),
+                variantCard("banqi", "暗棋", "Banqi / Dark Chess"),
+                variantCard("mini-xiangqi", "迷你象棋", "Mini Xiangqi"),
+                variantCard("three-player", "三人象棋", "Three-Player Xiangqi"),
+                variantCard("manchu", "满洲棋", "Manchu Chess"),
+                variantCard("other", "其他变体", "Other Variants")
+              )
+            )
+          ),
+          st.aside(cls := "lobby__right-rail", attr("aria-label") := "Community highlights")(
+            bits.homepageLeaderboard(leaderboard, leaderboardFlags),
+            st.section(cls := "lobby__feed", attr("aria-labelledby") := "lobby-updates-title")(
+              h2(id := "lobby-updates-title", cls := "lobby__feed__title")(
+                iconTag(Icon.RssFeed),
+                "Updates"
+              ),
+              views.feed.lobbyUpdates(lastUpdates)
+            ),
+            puzzle.map: daily =>
+              st.section(
+                cls := "lobby__daily-puzzle lobby__rail-card",
+                attr("aria-labelledby") := "daily-puzzle-title"
+              )(
+                h2(id := "daily-puzzle-title", cls := "lobby__rail-title")(
+                  iconTag(Icon.Target),
+                  "Puzzle of the day"
+                ),
+                a(
+                  cls := "lobby__daily-puzzle__link",
+                  href := routes.Puzzle.daily,
+                  title := trans.puzzle.clickToSolve.txt()
+                )(
+                  daily.html,
+                  span(cls := "lobby__daily-puzzle__turn")(
+                    daily.puzzle.color.fold("Red to play", "Black to play"),
+                    " ›"
+                  )
+                )
+              )
+          ),
+          st.nav(cls := "lobby__mobile-nav", attr("aria-label") := "Primary")(
+            a(
+              cls := "lobby__mobile-nav__item active",
+              href := routes.Lobby.home,
+              attr("aria-current") := "page"
+            )(
+              span(cls := "lobby__svg-icon lobby__svg-icon--home", aria.hidden := true),
+              span(cls := "lobby__label-en")("Home")
+            ),
+            a(cls := "lobby__mobile-nav__item", href := routes.Learn.index)(
+              span(cls := "lobby__svg-icon lobby__svg-icon--learn", aria.hidden := true),
+              span(cls := "lobby__label-en")("Learn")
+            ),
+            a(cls := "lobby__mobile-nav__item", href := routes.User.list)(
+              span(cls := "lobby__svg-icon lobby__svg-icon--community", aria.hidden := true),
+              span(cls := "lobby__label-en")("Community")
+            ),
+            a(cls := "lobby__mobile-nav__item", href := meHref)(
+              span(cls := "lobby__svg-icon lobby__svg-icon--user", aria.hidden := true),
+              span(cls := "lobby__label-en")("Me")
             )
           )
         )

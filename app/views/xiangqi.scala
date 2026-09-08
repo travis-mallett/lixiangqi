@@ -304,9 +304,7 @@ object xiangqi:
         )
       )
 
-  def databasePlayer(explorerEndpoint: String, player: String)(using
-      @annotation.unused ctx: Context
-  ) =
+  def databasePlayer(explorerEndpoint: String, player: String)(using ctx: Context) =
     Page(s"$player — Games Database")
       .css("xiangqi")
       .js(
@@ -314,7 +312,10 @@ object xiangqi:
           "xiangqi.player",
           Json.obj(
             "explorerEndpoint" -> explorerEndpoint,
-            "player" -> player
+            "player" -> player,
+            "animationDuration" -> ctx.pref.animationMillis,
+            "moveEvent" -> ctx.pref.moveEvent,
+            "highlight" -> ctx.pref.highlight
           )
         )
       )
@@ -551,9 +552,7 @@ object xiangqi:
         )
       )
 
-  def databaseEvent(explorerEndpoint: String, event: String)(using
-      @annotation.unused ctx: Context
-  ) =
+  def databaseEvent(explorerEndpoint: String, event: String)(using ctx: Context) =
     Page(s"$event — Games Database")
       .css("xiangqi")
       .js(
@@ -561,7 +560,10 @@ object xiangqi:
           "xiangqi.event",
           Json.obj(
             "explorerEndpoint" -> explorerEndpoint,
-            "event" -> event
+            "event" -> event,
+            "animationDuration" -> ctx.pref.animationMillis,
+            "moveEvent" -> ctx.pref.moveEvent,
+            "highlight" -> ctx.pref.highlight
           )
         )
       )
@@ -776,6 +778,9 @@ object xiangqi:
           bootstrap
             + ("notationStyle" -> JsString(ctx.pref.xiangqiNotationStyle(ctx.lang).key))
             + ("language" -> JsString(ctx.lang.code))
+            + ("animationDuration" -> Json.toJson(ctx.pref.animationMillis))
+            + ("moveEvent" -> Json.toJson(ctx.pref.moveEvent))
+            + ("highlight" -> Json.toJson(ctx.pref.highlight))
         )
       )
       .csp(_.withWebAssembly)
@@ -873,6 +878,21 @@ object xiangqi:
                 dataIcon := Icon.DownTriangle
               )
             ),
+            div(
+              id := "xiangqi-recorded-clocks",
+              cls := "xiangqi-analysis__recorded-clocks",
+              attr("hidden") := true,
+              attr("aria-label") := "Recorded game clocks"
+            )(
+              div(cls := "xiangqi-analysis__recorded-clock")(
+                span(cls := "label")("Red"),
+                strong(id := "xiangqi-recorded-clock-white", attr("role") := "timer")("0:00")
+              ),
+              div(cls := "xiangqi-analysis__recorded-clock")(
+                span(cls := "label")("Black"),
+                strong(id := "xiangqi-recorded-clock-black", attr("role") := "timer")("0:00")
+              )
+            ),
             div(cls := "xiangqi-analysis__position-status")(
               span(id := "xiangqi-status", attr("aria-live") := "polite")("Loading Xiangqi position…"),
               span(
@@ -917,6 +937,18 @@ object xiangqi:
                 title := "Previous move",
                 attr("aria-label") := "Previous move",
                 dataIcon := Icon.LessThan
+              ),
+              button(
+                id := "xiangqi-recorded-playback",
+                cls := "xiangqi-icon-button xiangqi-analysis__playback",
+                attr("type") := "button",
+                attr("hidden") := true,
+                title := "Play realtime replay",
+                attr("aria-label") := "Play realtime replay",
+                attr("aria-pressed") := "false"
+              )(
+                span(cls := "play-icon", dataIcon := Icon.PlayTriangle, attr("aria-hidden") := "true"),
+                span(cls := "stop-icon", attr("aria-hidden") := "true")
               ),
               button(
                 id := "xiangqi-next",

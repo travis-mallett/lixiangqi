@@ -1,0 +1,5 @@
+numpy>=1.26,<3
+opencv-python>=4.9,<5
+Pillow>=10,<12
+pywin32>=306
+windows-capture>=1.4,<2

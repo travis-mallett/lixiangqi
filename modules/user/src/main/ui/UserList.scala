@@ -1,30 +1,28 @@
 package lila.user
 package ui
 
-import lila.core.perf.{ UserPerfs, UserWithPerfs }
-import lila.core.user.LightPerf
-import lila.rating.PerfType
+import lila.core.perf.UserWithPerfs
+import lila.core.rank.RankCode.*
+import lila.core.user.LightRank
+import lila.rating.UserPerfsExt.*
 import lila.ui.*
 
 import ScalatagsTemplate.{ *, given }
-import scalalib.paginator.Paginator
 
 final class UserList(helpers: Helpers, bits: UserBits):
   import helpers.{ *, given }
 
   def page(
       online: List[UserWithPerfs],
-      leaderboards: lila.rating.UserPerfs.Leaderboards,
-      nbAllTime: List[LightCount],
-      tournamentWinners: Frag
+      leaderboard: List[LightRank]
   )(using ctx: Context) =
     Page(trans.site.players.txt())
       .css("user.list")
       .flag(_.fullScreen)
       .graph(
-        title = "Xiangqi players and leaderboards",
+        title = "Xiangqi players and leaderboard",
         url = routeUrl(routes.User.list),
-        description = "Best Xiangqi players in bullet, blitz, rapid, and classical time controls"
+        description = "The native Xiangqi rank leaderboard, from 学1-1 through 专3-3"
       ):
         main(cls := "page-menu")(
           bits.communityMenu("leaderboard"),
@@ -35,96 +33,26 @@ final class UserList(helpers: Helpers, bits: UserBits):
                 online.map: u =>
                   li(
                     userLink(u),
-                    ctx.pref.showRatings.option(showBestPerf(u.perfs))
+                    u.perfs.xiangqiRankCode.map(code => span(cls := "rank")(code.value))
                   )
             ),
             div(cls := "community__leaders")(
               h2(trans.site.leaderboard()),
-              div(cls := "leaderboards")(
-                userTopPerf(leaderboards.bullet, PerfKey.bullet),
-                userTopPerf(leaderboards.blitz, PerfKey.blitz),
-                userTopPerf(leaderboards.rapid, PerfKey.rapid),
-                userTopPerf(leaderboards.classical, PerfKey.classical),
-                userTopPerf(leaderboards.ultraBullet, PerfKey.ultraBullet),
-                userTopActive(nbAllTime, trans.site.activePlayers(), icon = Icon.Swords.some),
-                st.section(cls := "user-top")(
-                  h2(cls := "text", dataIcon := Icon.Trophy)(
-                    a(href := routes.Tournament.leaderboard)(trans.site.tournament())
-                  ),
-                  tournamentWinners
-                )
+              st.section(cls := "user-top user-top--xiangqi")(
+                h2(cls := "text", dataIcon := Icon.Crown)("Xiangqi"),
+                ol:
+                  leaderboard.zipWithIndex.map: (entry, index) =>
+                    li(
+                      span(cls := "leaderboard-position")(s"${index + 1}."),
+                      lightUserLink(entry.user),
+                      span(cls := "rank")(entry.rank.value)
+                    )
               )
             )
           )
         )
 
-  private def userTopPerf(users: List[LightPerf], pk: PerfKey)(using ctx: Context) =
-    st.section(cls := "user-top")(
-      h2(cls := "text", dataIcon := pk.perfIcon)(
-        a(href := routes.User.top(pk))(pk.perfTrans)
-      ),
-      ol(users.map: l =>
-        li(
-          lightUserLink(l.user),
-          ctx.pref.showRatings.option(l.rating)
-        ))
-    )
-
-  private def userTopActive(users: List[LightCount], hTitle: Frag, icon: Option[Icon])(using Context) =
-    st.section(cls := "user-top")(
-      h2(cls := "text", dataIcon := icon.map(_.toString))(hTitle),
-      ol(users.map: u =>
-        li(
-          lightUserLink(u.user),
-          span(title := trans.site.gamesPlayed.txt())(s"#${u.count.localize}")
-        ))
-    )
-
-  def top(perf: PerfKey, pager: Paginator[LightPerf])(using ctx: Context) =
-    import PerfType.given
-    val from = (pager.currentPage - 1) * pager.maxPerPage.value + 1
-    val title = s"${perf.trans} top"
-    Page(title)
-      .css("bits.slist")
-      .js(infiniteScrollEsmInit)
-      .graph(
-        title = s"Leaderboard of ${perf.trans}",
-        url = routeUrl(routes.User.top(perf.key)),
-        description = s"The top rated players in ${perf.trans}, sorted by rating"
-      ):
-        main(cls := "page-small box")(
-          boxTop(h1(a(href := routes.User.list, dataIcon := Icon.LessThan, cls := "text"), title)),
-          table(cls := "slist slist-pad slist-invert slist-leaderboard")(
-            tbody(cls := "infinite-scroll")(
-              pager.currentPageResults.mapWithIndex: (u, i) =>
-                val rank = from + i
-                tr(
-                  td(
-                    leaderboardTrophy(perf, rank),
-                    span(cls := "lb__rank-num")(rank)
-                  ),
-                  td(lightUserLink(u.user)),
-                  ctx.pref.showRatings.option(
-                    frag(
-                      td(u.rating),
-                      td(ratingProgress(u.progress))
-                    )
-                  )
-                )
-              ,
-              pagerNextTable(pager, np => routes.User.top(perf, np).url)
-            )
-          )
-        )
-
-  private def leaderboardTrophy(perf: PerfType, rank: Int)(using Translate) =
-    bits
-      .trophyMeta(perf, rank)
-      .map: (css, titleText, imgPath) =>
-        span(cls := s"$css lb__trophy trophy--small", title := titleText):
-          img(src := assetUrl(imgPath), alt := s"Trophy for $title")
-
-  def bots(users: List[UserWithPerfs], bestPerfs: UserPerfs => List[PerfKey])(using Context) =
+  def bots(users: List[UserWithPerfs])(using Context) =
     val title = s"${users.size} Online bots"
     val aboutLink = a(href := routes.Cms.lonePage(lila.core.id.CmsPageKey("bot-accounts")))("About bots")
     val (featured, community) = users.partition(_.isVerified)
@@ -138,30 +66,25 @@ final class UserList(helpers: Helpers, bits: UserBits):
             div(cls := "box box-pad bots__categ")(
               boxTop(h1("Featured bots")),
               h3("Try playing these innovative Xiangqi engines! These are our favourites."),
-              div(cls := "bots__featured")(
-                botGrid(featured, bestPerfs)
-              )
+              div(cls := "bots__featured")(botGrid(featured))
             ),
             div(cls := "box box-pad bots__categ")(
               boxTop(h1("Community bots"), aboutLink),
               h3(
                 "More Xiangqi engines created by the Lixiangqi community. They are hosted by their creators, and as such might not always be online."
               ),
-              botGrid(community, bestPerfs)
+              botGrid(community)
             )
           )
         )
 
-  private def botGrid(users: List[UserWithPerfs], bestPerfs: UserPerfs => List[PerfKey])(using
-      ctx: Context
-  ) = div(cls := "bots__list")(
+  private def botGrid(users: List[UserWithPerfs])(using ctx: Context) = div(cls := "bots__list")(
     users.map: u =>
       div(cls := "bots__list__entry")(
         div(cls := "bots__list__entry__head")(
           userLink(u, withTitle = false, withOnline = u.isPatron),
-          ctx.pref.showRatings.option:
-            div(cls := "bots__list__entry__rating"):
-              bestPerfs(u.perfs).map(u.perfs.keyed).filter(_._2.provisional.no).map(showPerfRating)
+          u.perfs.xiangqiRankCode.map: code =>
+            div(cls := "bots__list__entry__rating rank")(code.value)
         ),
         u.profile
           .ifTrue(ctx.kid.no)

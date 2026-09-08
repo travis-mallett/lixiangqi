@@ -26,7 +26,6 @@ object PrefForm:
     number.verifying(Pref.BooleanPref.verify)
 
   object fields:
-    val appearancePack = "appearancePack" -> text.verifying(ThemePacks.contains)
     val uiTheme = "uiTheme" -> text.verifying(UiThemes.contains)
     val background = "background" -> text.verifying(Backgrounds.contains)
     val backgroundUrl = "backgroundUrl" -> text(maxLength = 400).verifying(
@@ -41,6 +40,7 @@ object PrefForm:
     val voice = "voice" -> booleanNumber
     val keyboardMove = "keyboardMove" -> booleanNumber
     val autoQueen = "autoQueen" -> checkedNumber(Pref.AutoQueen.choices)
+    val boardAnimations = "boardAnimations" -> number.verifying(Pref.BoardAnimation.valid)
     val premove = "premove" -> booleanNumber
     val takeback = "takeback" -> checkedNumber(Pref.Takeback.choices)
     val autoThreefold = "autoThreefold" -> checkedNumber(Pref.AutoThreefold.choices)
@@ -58,6 +58,7 @@ object PrefForm:
     object board:
       val brightness = "boardBrightness" -> number(20, 140)
       val contrast = "boardContrast" -> number(40, 200)
+      val saturation = "boardSaturation" -> number(0, 200)
       val opacity = "boardOpacity" -> number(0, 100)
       val hue = "boardHue" -> number(0, 100)
     val sayGG = "sayGG" -> checkedNumber(Pref.SayGG.choices)
@@ -66,6 +67,7 @@ object PrefForm:
     mapping(
       "display" -> mapping(
         "animation" -> numberIn(Set(0, 1, 2, 3)),
+        fields.boardAnimations,
         "captured" -> booleanNumber,
         "highlight" -> booleanNumber,
         "destination" -> booleanNumber,
@@ -110,6 +112,7 @@ object PrefForm:
 
   case class DisplayData(
       animation: Int,
+      boardAnimations: Int,
       captured: Int,
       highlight: Int,
       destination: Int,
@@ -173,6 +176,7 @@ object PrefForm:
         studyInvite = studyInvite | Pref.default.studyInvite,
         premove = behavior.premove == 1,
         animation = display.animation,
+        boardAnimations = display.boardAnimations,
         submitMove = behavior.submitMove.getOrElse(0),
         insightShare = insightShare,
         confirmResign = behavior.confirmResign,
@@ -196,6 +200,7 @@ object PrefForm:
           highlight = if pref.highlight then 1 else 0,
           destination = if pref.destination then 1 else 0,
           animation = pref.animation,
+          boardAnimations = pref.boardAnimations,
           coords = pref.coords,
           replay = pref.replay,
           captured = if pref.captured then 1 else 0,

@@ -35,10 +35,11 @@ trait UserHelper:
 
   def renderRating(perf: Perf): Frag = frag(" (", perf.intRating, perf.provisional.yes.option("?"), ")")
 
-  // UserPerfs selects the best perf
+  // A full UserPerfs value no longer implies a chess-style "best rating". Native rank titles are
+  // rendered by rank-aware user/profile components; Perf remains available for puzzle surfaces.
   def userRating(perf: Perf | UserPerfs): Frag = perf match
     case p: Perf => renderRating(p)
-    case p: UserPerfs => ratingApi.bestRated(p).map(_.perf).so(renderRating)
+    case _: UserPerfs => frag()
 
   def anonUserSpan(cssClass: Option[String] = None, modIcon: Boolean = false) =
     span(cls := List("offline" -> true, "user-link" -> true, ~cssClass -> cssClass.isDefined))(

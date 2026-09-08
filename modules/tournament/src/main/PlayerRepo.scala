@@ -9,6 +9,7 @@ import lila.core.user.WithPerf
 import lila.core.userId.UserSearch
 import lila.mon.extensions.*
 import lila.db.dsl.{ *, given }
+import lila.rating.XiangqiRank
 import lila.tournament.BSONHandlers.given
 
 final class PlayerRepo(private[tournament] val coll: Coll)(using Executor):
@@ -126,8 +127,7 @@ final class PlayerRepo(private[tournament] val coll: Coll)(using Executor):
               "agg" -> List(
                 Group(BSONNull)(
                   "nb" -> SumAll,
-                  "rating" -> AvgField("r"),
-                  "perf" -> Avg($doc("$cond" -> $arr("$e", "$e", "$r"))),
+                  "rank" -> AvgField("xr.o"),
                   "score" -> AvgField("s")
                 )
               ),
@@ -141,12 +141,14 @@ final class PlayerRepo(private[tournament] val coll: Coll)(using Executor):
           aggs <- doc.getAsOpt[List[Bdoc]]("agg")
           agg <- aggs.headOption
           nbPlayers <- agg.int("nb")
-          rating = agg.double("rating").so(math.round)
-          perf = agg.double("perf").so(math.round)
+          avgRank = agg
+            .double("rank")
+            .flatMap(value => XiangqiRank.catalog.levels.lift(math.round(value).toInt))
+            .map(_.code)
           score = agg.double("score").so(math.round)
           topPlayers <- doc.getAsOpt[List[Player]]("topPlayers")
-        yield TeamBattle.TeamInfo(teamId, nbPlayers, rating.toInt, perf.toInt, score.toInt, topPlayers)
-      .dmap(_ | TeamBattle.TeamInfo(teamId, 0, 0, 0, 0, Nil))
+        yield TeamBattle.TeamInfo(teamId, nbPlayers, avgRank, score.toInt, topPlayers)
+      .dmap(_ | TeamBattle.TeamInfo(teamId, 0, none, 0, Nil))
 
   def bestTeamPlayers(tourId: TourId, teamId: TeamId, nb: Int): Fu[List[Player]] =
     coll.find($doc("tid" -> tourId, "t" -> teamId)).sort($sort.desc("m")).cursor[Player]().list(nb)
@@ -212,7 +214,8 @@ final class PlayerRepo(private[tournament] val coll: Coll)(using Executor):
       team: Option[TeamId],
       prev: Option[Player]
   ) = prev match
-    case Some(p) if p.withdraw => coll.update.one($id(p._id), $unset("w"))
+    case Some(p) if p.withdraw =>
+      update(p.copy(withdraw = false, rank = user.rank.getOrElse(XiangqiRank.initialSnapshot)))
     case Some(_) => funit
     case None => coll.insert.one(Player.make(tourId, user, team, user.user.isBot))
 
@@ -220,7 +223,7 @@ final class PlayerRepo(private[tournament] val coll: Coll)(using Executor):
     coll.update.one(selectTourUser(tourId, userId), $set("w" -> true)).void
 
   private[tournament] def withPoints(tourId: TourId): Fu[List[Player]] =
-    coll.list[Player](selectTour(tourId) ++ $doc("m".$gt(0)))
+    coll.list[Player](selectTour(tourId) ++ $doc("s".$gt(0)))
 
   private[tournament] def nbActivePlayers(tourId: TourId): Fu[Int] =
     coll.countSel(selectTour(tourId) ++ selectActive)
@@ -264,16 +267,6 @@ final class PlayerRepo(private[tournament] val coll: Coll)(using Executor):
 
   def computeRankOf(player: Player): Fu[Rank] =
     Rank.from(coll.countSel(selectTour(player.tourId) ++ $doc("m".$gt(player.magicScore))))
-
-  // expensive, cache it
-  private[tournament] def averageRating(tourId: TourId): Fu[Int] =
-    coll
-      .aggregateWith[Bdoc](): framework =>
-        import framework.*
-        List(Match(selectTour(tourId)), Group(BSONNull)("rating" -> AvgField("r")))
-      .headOption
-      .map:
-        ~_.flatMap(_.double("rating").map(_.toInt))
 
   def byTourAndUserIds(tourId: TourId, userIds: Iterable[UserId]): Fu[List[Player]] =
     coll

@@ -81,12 +81,12 @@ final class SitePages(helpers: Helpers):
                 copyMeInput(s"""<iframe src="$netBaseUrl/tv/frame?theme=brown&bg=dark" $args></iframe>"""),
                 parameters(),
                 p(
-                  "You can also show the channel for a specific variant or time control by adding the channel key to the URL, corresponding to the channels available at ",
+                  "You can also show a specific TV channel by adding its key to the URL, corresponding to the channels available at ",
                   a(href := "/tv")("lixiangqi.org/tv"),
-                  ". If not included, the top rated game will be shown."
+                  ". If no key is included, the leading ranked Xiangqi game will be shown."
                 ),
                 copyMeInput(
-                  s"""<iframe src="$netBaseUrl/tv/rapid/frame?theme=brown&bg=dark" $args></iframe>"""
+                  s"""<iframe src="$netBaseUrl/tv/bot/frame?theme=brown&bg=dark" $args></iframe>"""
                 )
               )
             )

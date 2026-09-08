@@ -1,41 +1,58 @@
-// Wudang shares the native homepage structure and only supplies theme surfaces.
+// The homepage keeps its native structure while Wudang supplies stone and paper surfaces.
 html.wudang {
-  .lobby__table {
-    border: 0;
-    border-radius: 0;
-    padding: 0;
-    background: transparent;
-    box-shadow: none;
-  }
-
   .site-title-nav__donate {
     color: var(--wudang-temple-gold);
   }
 
   .lobby__feature-card,
+  .lobby__time-controls__summary,
   .lobby__quick-room,
   .lobby__action,
+  .lobby__variant-card,
   .lobby__support-link,
   .lobby__leaderboard,
-  .lobby__tv {
+  .lobby__rail-card,
+  .lobby__site-stats,
+  .lobby__mobile-nav {
+    --c-font: var(--wudang-text-on-dark);
+    --c-font-clear: var(--wudang-text-on-dark);
+    --c-font-dim: var(--wudang-muted-on-dark);
+
     border-color: rgb(213 189 132 / 0.26);
     background: var(--wudang-stone-field);
-    color: var(--wudang-text-on-dark);
     box-shadow: var(--wudang-shadow-stone-small);
+    color: var(--wudang-text-on-dark);
   }
 
   .lobby__feature-card:not(:disabled):hover,
+  .lobby__time-controls__summary:hover,
   .lobby__quick-room:not(:disabled):hover,
   .lobby__action:not(:disabled):hover,
   .lobby__support-link:hover {
     background: #203538;
   }
 
+  .lobby__feature-card--evaluation.active,
+  .lobby__quick-room.active,
+  .lobby__action.active {
+    border-color: var(--wudang-mineral-blue);
+    background: color-mix(in oklab, var(--wudang-mineral-blue) 16%, var(--wudang-ink-850));
+  }
+
   .lobby__feed {
     border: 1px solid #b6ad9d;
     background: var(--wudang-paper-field);
-    color: var(--wudang-text-on-paper);
     box-shadow: var(--wudang-shadow-paper);
+    color: var(--wudang-text-on-paper);
+
+    .daily-feed__update__day,
+    .daily-feed__update h1,
+    .daily-feed__update h2,
+    .daily-feed__update h3,
+    .daily-feed__update h4,
+    .daily-feed__update p {
+      color: var(--wudang-text-on-paper);
+    }
   }
 
   .lobby__leaderboard tr:nth-child(even) {
@@ -43,6 +60,6 @@ html.wudang {
   }
 
   .lobby__coming-soon {
-    background: #265fb2;
+    --c-font-dim: var(--wudang-muted-on-paper);
   }
 }

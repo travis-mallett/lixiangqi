@@ -142,11 +142,11 @@ function gameInfo({ ctrl }: RoundNvuiContext): VNode {
   const clocks = [anyClock(ctrl, 'bottom'), anyClock(ctrl, 'top')];
   return hl('section.game-info', [
     hl('h2', i18n.nvui.gameInfo),
-    hl('p', [noTrans('Red: '), playerHtml(ctrl, ctrl.playerByColor('white'))]),
-    hl('p', [noTrans('Black: '), playerHtml(ctrl, ctrl.playerByColor('black'))]),
+    hl('p', [noTrans('Red: '), playerHtml(ctrl.playerByColor('white'))]),
+    hl('p', [noTrans('Black: '), playerHtml(ctrl.playerByColor('black'))]),
     hl(
       'p',
-      `${ctrl.data.game.rated ? i18n.site.rated : i18n.site.casual} ${transGamePerf(ctrl.data.game.perf)}`,
+      `${ctrl.data.game.ranked ? i18n.site.ranked : i18n.site.casual} ${transGamePerf(ctrl.data.game.perf)}`,
     ),
     ctrl.data.clock
       ? hl(
@@ -286,10 +286,10 @@ function anyClock(ctrl: RoundController, position: TopOrBottom): VNode | undefin
   );
 }
 
-function playerHtml(ctrl: RoundController, player: Player): VNode | string {
+function playerHtml(player: Player): VNode | string {
   if (player.ai) return i18n.site.aiNameLevelAiLevel('Pikafish', player.ai);
   const user = player.user;
-  const rating = player.rating ?? user?.perfs[ctrl.data.game.perf]?.rating;
+  const rank = player.rank ?? user?.rank ?? user?.perfs.xiangqi?.rank;
   if (!user) return i18n.site.anonymous;
   return hl('span', [
     hl(
@@ -297,7 +297,7 @@ function playerHtml(ctrl: RoundController, player: Player): VNode | string {
       { attrs: { href: `/@/${user.username}` } },
       `${user.title ? `${user.title} ` : ''}${user.username}`,
     ),
-    rating ? ` ${rating}` : '',
+    rank ? ` ${rank}` : '',
   ]);
 }
 
@@ -309,7 +309,7 @@ function gameText(ctrl: RoundController): string {
         ? `You play ${playerSide}`
         : 'Spectating'
       : i18n.site.gameOver,
-    ctrl.data.game.rated ? i18n.site.rated : i18n.site.casual,
+    ctrl.data.game.ranked ? i18n.site.ranked : i18n.site.casual,
     transGamePerf(ctrl.data.game.perf),
   ].join(' ');
 }

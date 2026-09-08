@@ -48,7 +48,7 @@ def meta(
                 frag(
                   ui.widgets.showClock(game),
                   separator,
-                  ratedName(game.rated),
+                  rankedName(game.ranked),
                   separator,
                   variantLink(game.variant, game.perfType, initialFen, shortName = true)
                 )

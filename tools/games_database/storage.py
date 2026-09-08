@@ -13,7 +13,7 @@ from typing import Iterable, Sequence
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIRECTORY = PROJECT_ROOT / "data" / "local"
 DEFAULT_DATABASE = DATA_DIRECTORY / "xiangqi-games.sqlite3"
-SCHEMA_VERSION = 8
+SCHEMA_VERSION = 9
 SCHEMA_PATH = Path(__file__).with_name("schema.sql")
 
 
@@ -91,12 +91,14 @@ def initialize(connection: sqlite3.Connection) -> None:
           AND title LIKE '%DPXQ online edition'
         """
     )
+    from .catalog_index import ensure_current as ensure_catalog_index
     from .explorer_index import (
         index_is_current,
         mark_empty_index_current,
         rebuild,
     )
 
+    ensure_catalog_index(connection)
     if not index_is_current(connection):
         has_games = connection.execute("SELECT EXISTS(SELECT 1 FROM games)").fetchone()[0]
         if has_games:

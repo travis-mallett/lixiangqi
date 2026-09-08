@@ -13,6 +13,14 @@ trait PrefHelper:
       (Pref.Animation.SLOW, trans.site.slow.txt())
     )
 
+  def boardAnimationChoices(using Translate) =
+    List(
+      (Pref.BoardAnimation.OPENING, trans.preferences.openingAnimation.txt()),
+      (Pref.BoardAnimation.CAPTURE, trans.preferences.captureAnimation.txt()),
+      (Pref.BoardAnimation.CHECK, trans.preferences.checkAnimation.txt()),
+      (Pref.BoardAnimation.CHECKMATE, trans.preferences.checkmateAnimation.txt())
+    )
+
   def translatedZenChoices(using Translate) =
     List(
       (Pref.Zen.NO, trans.site.no.txt()),
@@ -115,10 +123,6 @@ trait PrefHelper:
   def translatedChallengeChoices(using Translate) =
     List(
       (lila.core.pref.Challenge.NEVER, trans.site.never.txt()),
-      (
-        lila.core.pref.Challenge.RATING,
-        trans.site.ifRatingIsPlusMinusX.txt(Pref.Challenge.ratingThreshold)
-      ),
       (lila.core.pref.Challenge.FRIEND, trans.site.onlyFriends.txt()),
       (lila.core.pref.Challenge.REGISTERED, trans.site.ifRegistered.txt()),
       (lila.core.pref.Challenge.ALWAYS, trans.site.always.txt())

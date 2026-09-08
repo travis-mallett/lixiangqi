@@ -22,6 +22,16 @@ enum RoundBus extends NotBuseable:
   case BotPlay(playerId: GamePlayerId, uci: Xiangqi.Uci, promise: Option[Promise[Unit]] = None)
   case Draw(playerId: GamePlayerId, draw: Boolean)
   case FishnetPlay(uci: Xiangqi.Uci, sign: String)
+  case FishnetPlayV2(
+      uci: Xiangqi.Uci,
+      turnKey: lila.core.fishnet.AiTurnKey,
+      requestId: lila.core.fishnet.AiMoveRequestId
+  )
+  case FishnetFailureV2(
+      turnKey: lila.core.fishnet.AiTurnKey,
+      requestId: lila.core.fishnet.AiMoveRequestId,
+      code: String
+  )
   case IsOnGame(color: Color, promise: Promise[Boolean])
   case QuietFlagCheck
   case Rematch(playerId: GamePlayerId, rematch: Boolean)

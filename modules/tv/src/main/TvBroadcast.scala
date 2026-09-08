@@ -10,6 +10,7 @@ import lila.common.actorBus.*
 import lila.common.Json.given
 import lila.core.LightUser
 import lila.core.game.TvSelect
+import lila.core.rank.RankCode.*
 import lila.core.socket.makeMessage
 import lila.game.actorApi.MoveGameEvent
 
@@ -79,7 +80,7 @@ final private class TvBroadcast(
               .obj("color" -> p.color.name)
               .add("user" -> user)
               .add("ai" -> p.aiLevel)
-              .add("rating" -> p.rating)
+              .add("rank" -> p.rank.flatMap(_.publicCode).map(_.value))
               .add("seconds" -> game.clock.map(_.remainingTime(p.color).roundSeconds))
         ),
         fen = game.position.fen

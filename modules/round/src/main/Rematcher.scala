@@ -103,7 +103,7 @@ final private class Rematcher(
         moveTimeLimit = pov.game.moveTimeLimit,
         startedAtPly = chess.Ply(newXiangqi.states.head.ply),
         players = ByColor(returnPlayer(pov.game, _, users)),
-        rated = if users.exists(_.exists(_.user.lame)) then Rated.No else pov.game.rated,
+        rated = Rated.No,
         source = pov.game.source | lila.core.game.Source.Lobby,
         daysPerTurn = pov.game.daysPerTurn,
         pgnImport = None,
@@ -126,7 +126,16 @@ final private class Rematcher(
     val fromColor = if rematchAlternatesColor(game, users.mapList(_.map(_.user))) then !color else color
     game.opponent(color).aiLevel match
       case Some(ai) => lila.game.Player.makeAnon(color, ai.some)
-      case None => lila.game.Player.make(color, users(fromColor))
+      case None =>
+        game
+          .player(fromColor)
+          .userId
+          .fold(lila.game.Player.makeAnon(color)): userId =>
+            game
+              .player(fromColor)
+              .rank
+              .fold(lila.game.Player.makeAnon(color)): rank =>
+                lila.game.Player.make(color, userId, rank.copy(diff = None))
 
   def redirectEvents(game: Game): Events =
     val ownerRedirects = ByColor: color =>
@@ -141,5 +150,6 @@ private[round] object Rematcher:
       initialFen = game.initialFen,
       moves = Vector.empty,
       wxf = Vector.empty,
-      states = Vector(game.states.head)
+      states = Vector(game.states.head),
+      ruleset = game.ruleset
     )

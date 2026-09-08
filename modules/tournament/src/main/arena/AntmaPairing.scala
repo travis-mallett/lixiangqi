@@ -28,7 +28,7 @@ private object AntmaPairing:
         else
           Some:
             Math.abs(a.rank.value - b.rank.value) * rankFactor(a, b) +
-              Math.abs(a.player.rating.value - b.player.rating.value)
+              Math.abs(a.player.rank.ordinal - b.player.rank.ordinal)
 
       def battleScore(a: RPlayer, b: RPlayer): Option[Int] =
         (a.player.team != b.player.team).so(pairScore(a, b))

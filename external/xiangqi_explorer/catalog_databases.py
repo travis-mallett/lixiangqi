@@ -6,6 +6,7 @@ import os
 import sqlite3
 from pathlib import Path
 
+from tools.games_database.catalog_index import INDEX_VERSION as CATALOG_INDEX_VERSION
 from tools.games_database.storage import DATA_DIRECTORY, DEFAULT_DATABASE
 
 GAMES_DATABASE = DEFAULT_DATABASE
@@ -105,6 +106,20 @@ def _open_readonly(path: Path) -> sqlite3.Connection:
     if not set(CATALOG_GAME_COLUMNS).issubset(columns):
         connection.close()
         raise sqlite3.DatabaseError("games database schema is missing or obsolete")
+    index_metadata = dict(
+        connection.execute(
+            """
+            SELECT key, value FROM metadata
+            WHERE key IN ('catalog_index_version', 'catalog_index_state')
+            """
+        ).fetchall()
+    )
+    if (
+        index_metadata.get("catalog_index_version") != str(CATALOG_INDEX_VERSION)
+        or index_metadata.get("catalog_index_state") != "ready"
+    ):
+        connection.close()
+        raise sqlite3.DatabaseError("games database read index is missing or obsolete")
     return connection
 
 

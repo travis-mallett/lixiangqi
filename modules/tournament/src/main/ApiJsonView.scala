@@ -5,10 +5,7 @@ import play.api.libs.json.*
 import lila.common.Json.given
 import lila.core.config.RouteUrl
 import lila.core.i18n.Translate
-import lila.gathering.Condition
-import lila.gathering.ConditionHandlers.JSONHandlers.given
 import lila.gathering.GatheringJson.*
-import lila.rating.PerfType
 
 final class ApiJsonView(lightUserApi: lila.core.user.LightUserApi, routeUrl: RouteUrl)(using Executor):
 
@@ -42,11 +39,11 @@ final class ApiJsonView(lightUserApi: lila.core.user.LightUserApi, routeUrl: Rou
     Json
       .obj(
         "id" -> tour.id,
+        "ruleset" -> tour.ruleset.key,
         "createdBy" -> tour.createdBy,
         "system" -> "arena", // BC
         "minutes" -> tour.minutes,
         "clock" -> tour.clock,
-        "rated" -> tour.rated,
         "fullName" -> tour.name(),
         "nbPlayers" -> tour.nbPlayers,
         "variant" -> Json.obj(
@@ -57,13 +54,9 @@ final class ApiJsonView(lightUserApi: lila.core.user.LightUserApi, routeUrl: Rou
         "startsAt" -> tour.startsAt,
         "finishesAt" -> tour.finishesAt,
         "status" -> tour.status.id,
-        "perf" -> perfJson(tour.perfType)
+        "perf" -> nativePerfJson
       )
       .add("secondsToStart", tour.secondsToStart.some.filter(_.nonZero))
-      .add("hasMaxRating", tour.conditions.maxRating.isDefined) // BC
-      .add[Condition.RatingCondition]("maxRating", tour.conditions.maxRating)
-      .add[Condition.RatingCondition]("minRating", tour.conditions.minRating)
-      .add("minRatedGames", tour.conditions.nbRatedGame)
       .add("onlyTitled", tour.conditions.titled.isDefined)
       .add("teamMember", tour.singleTeamId)
       .add("private", tour.isPrivate)
@@ -94,19 +87,10 @@ final class ApiJsonView(lightUserApi: lila.core.user.LightUserApi, routeUrl: Rou
           "score" -> e.entry.score,
           "rank" -> e.entry.rank
         )
-        .add("performance" -> e.performance)
     )
 
-  private val perfPositions: Map[PerfKey, Int] = {
-    import PerfKey.*
-    List(bullet, blitz, rapid, classical, ultraBullet) ::: lila.rating.PerfType.variants
-  }.zipWithIndex.toMap
-
-  private def perfJson(p: PerfType)(using Translate) =
-    Json
-      .obj(
-        "key" -> p.key,
-        "name" -> p.trans,
-        "position" -> { ~perfPositions.get(p): Int }
-      )
-      .add("icon" -> mobileBcIcons.get(p)) // mobile BC only
+  private val nativePerfJson = Json.obj(
+    "key" -> "xiangqi",
+    "name" -> "Xiangqi",
+    "position" -> 0
+  )

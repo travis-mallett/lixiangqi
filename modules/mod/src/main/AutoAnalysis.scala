@@ -8,6 +8,5 @@ object AutoAnalysis:
     case WhiteMoveTime
     case BlackMoveTime
     case Blurs
-    case WinnerRatingProgress
     case NewPlayerWin
     case TitledPlayer

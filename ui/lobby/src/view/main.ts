@@ -30,8 +30,7 @@ export default function (ctrl: LobbyController) {
         body = renderPlaying(ctrl);
         break;
     }
-  const contentKey = ctrl.tab === 'real_time' ? `${ctrl.tab}-${ctrl.mode}` : ctrl.tab;
-  return h(`div.lobby__app.lobby__app-${ctrl.tab}.lck-${contentKey}`, [
+  return h(`div.lobby__app.lobby__app-${ctrl.tab}.lck-${ctrl.tab}`, [
     h('div.tabs-horiz', { attrs: { role: 'tablist' } }, renderTabs(ctrl)),
     h(`div.lobby__app__content.l${redirBlock ? 'redir' : ctrl.tab}`, data, body),
   ]);

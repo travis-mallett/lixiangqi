@@ -62,7 +62,6 @@ object header:
             )
           case None => h1(userDom(u)),
         div(cls := "trophies")(
-          views.user.bits.perfTrophies(u, info.ranks),
           otherTrophies(info),
           u.plan.active.option(
             a(
@@ -220,13 +219,6 @@ object header:
                     )
                   )
                 )
-              ),
-              info.insightVisible.option(
-                a(cls := "insight", href := routes.Insight.index(u.username), dataIcon := Icon.Target):
-                  span(
-                    strong("Xiangqi Insights"),
-                    em("Analytics from ", if ctx.is(u) then "your" else s"${u.username}'s", " games")
-                  )
               )
             )
           )

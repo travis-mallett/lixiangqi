@@ -48,9 +48,6 @@ final private class PoolActor(
           updateMembers(members :+ joiner)
           // #TODO #FIXME race condition. several full waves can be sent here.
           if members.sizeIs >= config.wave.players.value then self ! FullWave
-        case Some(existing) if existing.ratingRange != joiner.ratingRange =>
-          updateMembers(members.map: m =>
-            if m == existing then m.withRange(joiner.ratingRange) else m)
         case _ => // no change
       members
 
@@ -74,8 +71,6 @@ final private class PoolActor(
       hookThieve.candidates(config.clock, config.moveTimeLimit).pipeTo(self)
 
     case HookThieve.PoolHooks(hooks) =>
-      monitor.withRange(monId).record(members.count(_.hasRange))
-
       val candidates = members ++ hooks.map(_.member)
 
       val pairings = MatchMaking(candidates)
@@ -96,7 +91,7 @@ final private class PoolActor(
       monitor.paired(monId).record(pairedMembers.size)
       monitor.missed(monId).record(members.size)
       pairings.foreach: p =>
-        monitor.ratingDiff(monId).record(p.ratingDiff.value)
+        monitor.ratingDiff(monId).record(p.rankDistance)
 
       lastPairedUserIds = pairedMembers.view.map(_.userId).toSet
 

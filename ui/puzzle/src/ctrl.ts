@@ -69,6 +69,8 @@ interface XiangqiMoveResponse extends RulesState {
   chineseNotation: string;
 }
 
+const XIANGQI_REPLY_DELAY_MS = 1250;
+
 export default class PuzzleCtrl implements CevalHandler {
   data: PuzzleData;
   next: Deferred<PuzzleData | ReplayEnd> = defer<PuzzleData>();
@@ -417,6 +419,9 @@ export default class PuzzleCtrl implements CevalHandler {
       legalMoves: canMove ? state.legalMoves : [],
       lastMove: node.uci,
       coordinates: true,
+      animationDuration: this.pref.animation.duration,
+      moveEvent: this.pref.moveEvent,
+      highlight: this.pref.highlight,
       viewOnly: false,
       ply: node.ply,
     };
@@ -584,13 +589,16 @@ export default class PuzzleCtrl implements CevalHandler {
       this.lastFeedback = 'good';
       setTimeout(
         () => {
-          if ('uci' in progress) void this.playXiangqiUciAt(progress.path, progress.uci);
-          else {
+          if ('uci' in progress) {
+            if (this.path === progress.path) void this.playXiangqiUciAt(progress.path, progress.uci);
+          } else {
             const pos = Chess.fromSetup(parseFen(progress.fen).unwrap()).unwrap();
             this.sendMoveAt(progress.path, pos, progress.move);
           }
         },
-        this.opts.pref.animation.duration * (this.autoNext() ? 1 : 1.5),
+        this.isXiangqi
+          ? XIANGQI_REPLY_DELAY_MS
+          : this.opts.pref.animation.duration * (this.autoNext() ? 1 : 1.5),
       );
     }
   };

@@ -1,4 +1,4 @@
-export function idleTimer(delay: number, onIdle: () => void, onWakeUp: () => void): void {
+export function idleTimer(delay: number, onIdle: () => void, onWakeUp: () => void): () => void {
   const events = ['mousemove', 'touchstart'];
 
   let listening = false,
@@ -29,7 +29,7 @@ export function idleTimer(delay: number, onIdle: () => void, onWakeUp: () => voi
     }
   };
 
-  setInterval(() => {
+  const interval = setInterval(() => {
     if (active && performance.now() - lastSeenActive > delay) {
       // console.log('Idle mode');
       onIdle();
@@ -37,6 +37,11 @@ export function idleTimer(delay: number, onIdle: () => void, onWakeUp: () => voi
     }
     startListening();
   }, 10000);
+
+  return () => {
+    clearInterval(interval);
+    stopListening();
+  };
 }
 
 export class Janitor {

@@ -13,6 +13,7 @@ def toJson(p: Pref, lichobileCompat: Boolean) = Json.obj(
   "clockSound" -> p.clockSound,
   "premove" -> p.premove,
   "animation" -> p.animation,
+  "boardAnimations" -> p.boardAnimations,
   "pieceNotation" -> p.pieceNotation,
   "captured" -> p.captured,
   "follow" -> p.follow,

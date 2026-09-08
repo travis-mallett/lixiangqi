@@ -1,0 +1,181 @@
+.round {
+  &__matchmaking-side {
+    @extend %box-radius, %box-shadow;
+
+    display: grid;
+    align-content: start;
+    gap: 14px;
+    padding: 18px;
+    background: $c-bg-box;
+
+    h1 {
+      margin: 0;
+      font-size: 1.35rem;
+    }
+  }
+
+  &__matchmaking-back {
+    width: fit-content;
+    color: $c-font-dim;
+
+    &:hover,
+    &:focus-visible {
+      color: $c-link;
+    }
+  }
+
+  &__matchmaking-board {
+    position: relative;
+  }
+
+  &__matchmaking-panel,
+  &__matchmaking-status {
+    position: absolute;
+    z-index: $z-cg__board_overlay-100;
+    top: 50%;
+    left: 50%;
+    width: min(calc(100% - 36px), 430px);
+    border: 1px solid color-mix(in oklab, $c-border 75%, $c-brag);
+    border-radius: 14px;
+    background: color-mix(in oklab, $c-bg-box 94%, transparent);
+    box-shadow: 0 12px 38px rgb(0 0 0 / 0.32);
+    backdrop-filter: blur(12px);
+    transform: translate(-50%, -50%);
+  }
+
+  &__matchmaking-panel {
+    display: grid;
+    gap: 14px;
+    padding: clamp(18px, 4vw, 30px);
+    text-align: center;
+
+    h2 {
+      margin: -5px 0 0;
+      font-size: clamp(1.25rem, 3vw, 1.65rem);
+    }
+  }
+
+  &__matchmaking-eyebrow {
+    color: $c-brag;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  &__matchmaking-details {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 14px;
+    border-radius: 9px;
+    background: color-mix(in oklab, $c-bg-zebra 88%, transparent);
+
+    div {
+      display: grid;
+      grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+      gap: 12px;
+      text-align: start;
+    }
+
+    dt {
+      color: $c-font-dim;
+    }
+
+    dd {
+      margin: 0;
+      color: $c-font-clear;
+      font-weight: 600;
+    }
+  }
+
+  &__matchmaking-start {
+    min-height: 50px;
+    font-size: 1.08rem;
+  }
+
+  &__matchmaking-cancel {
+    justify-self: center;
+    border: 0;
+    background: none;
+    color: $c-font-dim;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      color: $c-link;
+      text-decoration: underline;
+    }
+  }
+
+  &__matchmaking-status {
+    display: grid;
+    min-height: 58px;
+    width: min(calc(100% - 44px), 360px);
+    grid-template-columns: auto 4ch;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 20px;
+    color: $c-font-clear;
+    font-size: 1.05rem;
+    font-weight: 600;
+  }
+
+  &__matchmaking-dots {
+    display: inline-block;
+    width: 1ch;
+    overflow: hidden;
+    animation: round-matching-dots 1.25s steps(3, end) infinite;
+    text-align: start;
+    white-space: nowrap;
+  }
+
+  &__matchmaking-table {
+    min-height: 12rem;
+  }
+
+  &__matchmaking-user {
+    color: $c-font-dim;
+  }
+
+  &__matchmaking-clock {
+    align-self: center;
+    padding: 0 0.35em;
+    color: $c-font-dim;
+    font-size: 2.2em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+  }
+
+  @include mq-is-col1 {
+    &__matchmaking-side {
+      margin-top: $block-gap;
+    }
+
+    &__matchmaking-panel {
+      gap: 10px;
+    }
+
+    &__matchmaking-details {
+      padding: 10px;
+      font-size: 0.82rem;
+    }
+  }
+}
+
+@keyframes round-matching-dots {
+  from {
+    width: 1ch;
+  }
+
+  to {
+    width: 4ch;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .round__matchmaking-dots {
+    width: 3ch;
+    animation: none;
+  }
+}

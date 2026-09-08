@@ -1,9 +1,12 @@
 package lila.ui
 
-import chess.{ Clock, Color, Rated, Outcome }
+import chess.{ Clock, Color, Outcome }
 
 import lila.core.LightUser
 import lila.core.game.{ Game, LightPlayer, MoveTimeLimit, Namer, Player }
+import lila.core.rank.RankDiff
+import lila.core.rank.RankCode.value
+import lila.core.rank.RankDiff.value
 import lila.ui.ScalatagsTemplate.{ *, given }
 
 trait GameHelper:
@@ -43,9 +46,9 @@ trait GameHelper:
       .orElse(game.clock.map(_.config).map(shortClockName(_, game.moveTimeLimit)))
       .getOrElse(trans.site.unlimited())
 
-  def ratedName(rated: Rated)(using Translate): String =
-    if rated.yes
-    then trans.site.rated.txt()
+  def rankedName(ranked: Boolean)(using Translate): String =
+    if ranked
+    then trans.site.ranked.txt()
     else trans.site.casual.txt()
 
   def playerUsername(
@@ -62,14 +65,7 @@ trait GameHelper:
             user.name,
             user.flair.map(userFlair),
             withRating.option(
-              span(cls := "rating")(
-                " (",
-                player.rating.fold(frag("?")): rating =>
-                  if player.provisional.yes then
-                    abbr(title := trans.perfStat.notEnoughRatedGames.txt())(rating, "?")
-                  else rating,
-                ")"
-              )
+              player.rank.flatMap(_.publicCode).map(rank => span(cls := "rank")(" (", rank.value, ")"))
             )
           )
     ): level =>
@@ -104,7 +100,7 @@ trait GameHelper:
             case (_, Some(name)) => name
             case _ => trans.site.anonymous()
           ,
-          player.rating.ifTrue(withRating && ctx.pref.showRatings).map { rating => s" ($rating)" },
+          player.rank.filter(_ => withRating).flatMap(_.publicCode).map { rank => s" (${rank.value})" },
           statusIcon
         )
       case Some(user) =>
@@ -118,15 +114,20 @@ trait GameHelper:
             playerUsername(
               player.light,
               user.some,
-              withRating = withRating && ctx.pref.showRatings
+              withRating = withRating
             ),
-            (player.ratingDiff.ifTrue(withDiff && ctx.pref.showRatings)).map { d =>
-              frag(" ", showRatingDiff(d))
+            (player.rank.flatMap(_.diff).ifTrue(withDiff)).map { d =>
+              frag(" ", showRankDiff(d))
             },
             engine.option(span(cls := "tos_violation", title := trans.site.thisAccountViolatedTos.txt()))
           ),
           statusIcon
         )
+
+  private def showRankDiff(diff: RankDiff): Frag =
+    if diff.value == 0 then span("±0")
+    else if diff.value > 0 then goodTag(s"+${diff.value}")
+    else badTag(s"−${-diff.value}")
 
   def gameResult(game: Game) =
     Outcome.showResult(game.finished.option(Outcome(game.winnerColor)))
@@ -177,6 +178,7 @@ trait GameHelper:
         name = (if shortName && variant == chess.variant.KingOfTheHill then variant.shortName
                 else variant.variantTrans.txt()).toUpperCase
       )
+    else if variant.standard then span(title := variant.variantTitleTrans.txt())(variant.variantTrans.txt())
     else if pk == PerfKey.correspondence then
       link(
         href = s"${routes.Main.faq}#correspondence",

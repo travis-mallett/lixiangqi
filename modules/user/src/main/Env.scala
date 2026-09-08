@@ -12,7 +12,6 @@ final class Env(
     db: lila.db.Db,
     getFile: lila.common.config.GetRelativeFile,
     yoloDb: lila.db.AsyncDb @@ lila.db.YoloDb,
-    mongoCache: lila.memo.MongoCache.Api,
     cacheApi: lila.memo.CacheApi,
     isOnline: lila.core.socket.IsOnline,
     onlineIds: lila.core.socket.OnlineIds
@@ -42,9 +41,9 @@ final class Env(
   private lazy val rankingColl = yoloDb(CollName("ranking")).failingSilently()
 
   lazy val rankingApi = wire[RankingApi]
+  lazy val xiangqiRankingApi = wire[XiangqiRankingApi]
 
   lazy val cached: Cached = wire[Cached]
-  def rankingsOf: UserId => lila.core.rating.UserRankMap = cached.rankingsOf
 
   lazy val forms = wire[UserForm]
 

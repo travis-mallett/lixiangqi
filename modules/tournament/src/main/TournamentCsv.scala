@@ -11,9 +11,8 @@ object TournamentCsv:
           "Rank",
           "Title",
           "Username",
-          "Rating",
+          "Xiangqi rank",
           "Score",
-          "Performance",
           "Team",
           "Sheet"
         )
@@ -26,9 +25,8 @@ object TournamentCsv:
       rank.toString,
       lightUser.title.so(_.toString),
       lightUser.name.value,
-      player.rating.toString,
+      player.showRank,
       player.score.toString,
-      player.performance.so(_.toString),
       ~player.team.map(_.value),
       sheet.so(_.scoresToString)
     )

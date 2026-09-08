@@ -5,7 +5,7 @@ import play.api.libs.json.*
 
 import lila.core.game.Game
 import lila.core.perf.UserWithPerfs
-import lila.core.user.LightPerf
+import lila.core.user.LightRank
 import lila.core.user.{ FlagCode, LightUserApi, UserApi }
 import lila.playban.TempBan
 import lila.user.Me
@@ -23,6 +23,7 @@ final class Preload(
     gameCached: lila.game.Cached,
     roundProxy: lila.round.GameProxyRepo,
     getLastUpdates: lila.feed.Feed.GetLastUpdates,
+    tryDailyPuzzle: lila.puzzle.DailyPuzzle.Try,
     unreadCount: lila.msg.MsgUnreadCount,
     notifyApi: lila.notify.NotifyApi
 )(using Executor):
@@ -44,10 +45,10 @@ final class Preload(
       )
     )
     featured <- tv.getBestGame.mon(lila.mon.lobby.segment("tvBestGame"))
+    puzzle <- tryDailyPuzzle().mon(lila.mon.lobby.segment("dailyPuzzle"))
     playban <- ctx.userId.so(playbanApi.currentBan).mon(lila.mon.lobby.segment("playban"))
     lichessMsg <- ctx.userId.ifTrue(nbNotifications > 0).so(unreadCount.hasLichessMsg)
-    leaderboards <- userCached.top10.get({}).mon(lila.mon.lobby.segment("leaderboard"))
-    leaderboard = homepageLeaderboard(leaderboards)
+    leaderboard <- userCached.top10Ranks.get({}).mon(lila.mon.lobby.segment("leaderboard"))
     leaderboardUsers <- userApi.byIds(leaderboard.map(_.user.id))
     leaderboardFlags = leaderboardUsers
       .flatMap: user =>
@@ -60,6 +61,7 @@ final class Preload(
   yield Homepage(
     dataWithStats,
     featured,
+    puzzle,
     playban,
     currentGame,
     getLastUpdates(),
@@ -67,15 +69,6 @@ final class Preload(
     leaderboardFlags,
     hasUnreadLichessMessage = lichessMsg
   )
-
-  private def homepageLeaderboard(leaderboards: lila.rating.UserPerfs.Leaderboards): List[LightPerf] =
-    (leaderboards.rapid.take(6) ::: leaderboards.classical.take(4) ::: leaderboards.blitz.take(2))
-      .groupBy(_.user.id)
-      .values
-      .map(_.maxBy(_.rating.value))
-      .toList
-      .sortBy(-_.rating.value)
-      .take(8)
 
   def currentGameMyTurn(using me: Me): Fu[Option[CurrentGame]] =
     gameRepo
@@ -100,10 +93,11 @@ object Preload:
   case class Homepage(
       data: JsObject,
       featured: Option[Game],
+      puzzle: Option[lila.puzzle.DailyPuzzle.WithHtml],
       playban: Option[TempBan],
       currentGame: Option[Preload.CurrentGame],
       lastUpdates: List[lila.feed.Feed.Update],
-      leaderboard: List[LightPerf],
+      leaderboard: List[LightRank],
       leaderboardFlags: Map[UserId, FlagCode],
       hasUnreadLichessMessage: Boolean
   )

@@ -33,6 +33,21 @@ final class Setup(
             }
         )
 
+  def aiStats = Open:
+    env.setup.aiStats
+      .get(ctx.userId)
+      .map: levels =>
+        Ok:
+          Json.obj(
+            "levels" -> levels.map: level =>
+              Json
+                .obj(
+                  "level" -> level.level,
+                  "registered" -> statsJson(level.registered)
+                )
+                .add("mine", level.mine.map(statsJson))
+          )
+
   def friend(userId: Option[UserStr]) =
     OpenBody: ctx ?=>
       limit.setupPost(ctx.ip, rateLimited):
@@ -73,7 +88,8 @@ final class Setup(
                         color = config.color.name,
                         challenger = challenger,
                         destUser = destUser,
-                        rematchOf = none
+                        rematchOf = none,
+                        ruleset = config.effectiveRuleset
                       )
                       env.challenge.api
                         .create(challenge)
@@ -110,10 +126,9 @@ final class Setup(
               limit.setupAnonHook(req.ipAddress, rateLimited, cost = ctx.isAnon.so(1)):
                 for
                   me <- ctx.user.traverse(env.user.api.withPerfs)
-                  given Perf = me.fold(lila.rating.Perf.default)(_.perfs(userConfig.perfType))
                   blocking <- ctx.userId.so(env.relation.api.fetchBlocking)
                   res <- processor.hook(
-                    userConfig.withinLimits,
+                    userConfig,
                     sri,
                     req.sid,
                     lila.core.pool.Blocking(blocking)
@@ -130,17 +145,9 @@ final class Setup(
               orig <- ctx.user.traverse(env.user.api.withPerfs)
               blocking <- ctx.userId.so(env.relation.api.fetchBlocking)
               hookConfig = lila.setup.HookConfig.default(ctx.isAuth)
-              hookConfigWithRating = get("rr")
-                .fold(
-                  hookConfig.withRatingRange(
-                    orig.fold(lila.rating.Perf.default)(_.perfs(game.perfKey)).intRating.some,
-                    get("deltaMin"),
-                    get("deltaMax")
-                  )
-                )(hookConfig.withRatingRange)
-                .updateFrom(game)
+              updatedHookConfig = hookConfig.updateFrom(game)
               allBlocking = lila.core.pool.Blocking(blocking ++ game.userIds)
-              hookResult <- processor.hook(hookConfigWithRating, sri, ctx.req.sid, allBlocking)(using orig)
+              hookResult <- processor.hook(updatedHookConfig, sri, ctx.req.sid, allBlocking)(using orig)
             yield hookResponse(hookResult)
 
   def boardApiHook = WithBoardApiHookAuthor { (author, reqSri) => ctx ?=>
@@ -209,9 +216,6 @@ final class Setup(
               case Some(sri) => f(Left(sri), reqSri)
               case None => JsonBadRequest("Authentication required")
 
-  def filterForm = Open:
-    Ok.snip(views.setup.filter(forms.filter))
-
   def validateFen = Open:
     get("fen").map(_.trim).filter(Xiangqi.Fen.isValid) match
       case None => fuccess(BadRequest)
@@ -252,3 +256,11 @@ final class Setup(
           httpOnly = false.some
         )
       )
+
+  private def statsJson(stats: lila.setup.AiStats) =
+    Json.obj(
+      "wins" -> stats.wins,
+      "draws" -> stats.draws,
+      "losses" -> stats.losses,
+      "games" -> stats.games
+    )

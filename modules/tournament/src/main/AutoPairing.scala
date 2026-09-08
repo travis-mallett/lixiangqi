@@ -1,11 +1,9 @@
 package lila.tournament
 
 import chess.{ Black, ByColor, Color, White }
-import chess.IntRating
 import monocle.syntax.all.*
 
 import lila.core.game.Source
-import alleycats.Zero
 import lila.xiangqi.XiangqiRules
 
 final class AutoPairing(
@@ -17,13 +15,13 @@ final class AutoPairing(
 )(using Executor):
 
   def apply(tour: Tournament, pairing: Pairing.WithPlayers, ranking: Ranking): Fu[Game] = for
-    xiangqiGame <- XiangqiRules.initialGame(tour.position.map(_.value)).fold(fufail, fuccess)
+    xiangqiGame <- XiangqiRules.initialGame(tour.position.map(_.value), tour.ruleset).fold(fufail, fuccess)
     clock = tour.clock.toClock
     game = lila.core.game
       .newGame(
         xiangqi = xiangqiGame,
         players = ByColor(makePlayer(White, pairing.player1), makePlayer(Black, pairing.player2)),
-        rated = tour.rated,
+        rated = chess.Rated.No,
         source = Source.Arena,
         pgnImport = None,
         clock = clock.some,
@@ -37,17 +35,16 @@ final class AutoPairing(
     _ <- gameRepo.insertDenormalized(game)
     _ =
       onStart.exec(game.id)
-      given Zero[IntRating] = Zero(IntRating(0))
       duelStore.add(
         tour = tour.id,
         game = game.id,
-        p1 = usernameOf(pairing.player1) -> ~game.whitePlayer.rating,
-        p2 = usernameOf(pairing.player2) -> ~game.blackPlayer.rating,
+        p1 = usernameOf(pairing.player1) -> pairing.player1.rank,
+        p2 = usernameOf(pairing.player2) -> pairing.player2.rank,
         ranking = ranking
       )
   yield game
 
   private def makePlayer(color: Color, player: Player) =
-    newPlayer(color, player.userId, player.rating, player.provisional)
+    newPlayer(color, player.userId, player.rank)
 
   private def usernameOf(player: Player) = lightUserApi.syncFallback(player.userId).name

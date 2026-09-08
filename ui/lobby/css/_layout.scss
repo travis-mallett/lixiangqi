@@ -1,76 +1,110 @@
 .lobby {
-  --lobby-feature-height: clamp(124px, 9vw, 136px);
-
   grid-area: main;
   display: grid;
-  grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
-  grid-template-areas: 'rail gameplay';
+  width: min(100%, 1480px);
+  min-width: 0;
+  margin-inline: auto;
+  grid-template-areas:
+    'center'
+    'right'
+    'left';
   align-items: start;
   gap: 18px;
-  min-width: 0;
 
-  &__rail {
-    grid-area: rail;
-    display: flex;
+  &__center-rail,
+  &__left-rail,
+  &__right-rail {
+    display: grid;
     min-width: 0;
-    flex-direction: column;
-    gap: 14px;
+    align-content: start;
+    gap: 18px;
   }
 
-  &__gameplay {
-    grid-area: gameplay;
-    display: grid;
-    grid-template-columns: minmax(0, 7fr) minmax(250px, 3fr);
-    gap: 24px;
-    min-width: 0;
+  &__center-rail {
+    grid-area: center;
+    gap: 22px;
+  }
+
+  &__left-rail {
+    grid-area: left;
+  }
+
+  &__right-rail {
+    grid-area: right;
   }
 
   &__standard,
-  &__variants,
   &__table {
     display: grid;
-    align-content: start;
-    gap: 12px;
     min-width: 0;
+    align-content: start;
+    gap: 18px;
   }
 
-  @media (max-width: 1200px) {
-    --lobby-feature-height: 132px;
-
-    grid-template-columns: minmax(250px, 310px) minmax(0, 1fr);
-
-    &__gameplay {
-      grid-template-columns: minmax(0, 1fr);
-    }
-
-    &__quick-rooms {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    &__actions {
-      grid-template-columns: minmax(0, 1fr);
-    }
+  &__variants {
+    display: grid;
+    min-width: 0;
+    gap: 12px;
   }
 
   @media (max-width: 800px) {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      'gameplay'
-      'rail';
+    padding-bottom: calc(84px + env(safe-area-inset-bottom));
 
-    &__rail {
-      width: min(100%, 430px);
-      justify-self: center;
+    &__center-rail,
+    &__left-rail,
+    &__right-rail {
+      gap: 16px;
+    }
+
+    &__left-rail .lobby__site-stats {
+      order: 99;
     }
   }
 
-  @media (max-width: 600px) {
-    --lobby-feature-height: 128px;
+  @media (min-width: 801px) {
+    --lobby-top-card-height: calc(
+      var(--lobby-site-counter-height) + var(--lobby-site-counter-height) + var(--lobby-site-counter-height) +
+        2px
+    );
 
-    gap: 12px;
+    &__site-stats,
+    &__feature-card--evaluation {
+      height: var(--lobby-top-card-height);
+    }
 
-    &__gameplay {
-      gap: 18px;
+    &__feature-card--evaluation {
+      min-height: 0;
+      padding-block: 10px;
+    }
+  }
+
+  @media (min-width: 801px) and (max-width: 1099px) {
+    grid-template-columns: minmax(210px, 250px) minmax(0, 1fr);
+    grid-template-areas:
+      'left center'
+      'left right';
+
+    &__left-rail {
+      position: sticky;
+      top: var(---site-header-height);
+    }
+
+    &__right-rail {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+
+      .lobby__daily-puzzle {
+        grid-column: 1 / -1;
+      }
+    }
+  }
+
+  @media (min-width: 1100px) {
+    grid-template-columns: minmax(210px, 250px) minmax(520px, 1fr) minmax(260px, 310px);
+    grid-template-areas: 'left center right';
+
+    &__left-rail {
+      position: sticky;
+      top: var(---site-header-height);
     }
   }
 }

@@ -2,34 +2,35 @@ package lila.study
 
 import chess.ErrorStr
 import chess.format.{ Fen, Uci, UciPath }
-import chess.variant.Variant
+import chess.format.pgn.SanStr
 import play.api.libs.json.*
 
 import lila.common.Json.given
 import lila.tree.Branch
-
-trait AnaAny:
-  def branch(variant: Variant, fen: Fen.Full): Either[ErrorStr, Branch]
-  def chapterId: Option[StudyChapterId]
-  def path: UciPath
+import lila.xiangqi.{ Xiangqi, XiangqiRules }
 
 case class AnaMove(
     orig: chess.Square,
     dest: chess.Square,
     path: UciPath,
-    chapterId: Option[StudyChapterId],
-    promotion: Option[chess.PromotableRole]
-) extends AnaAny:
+    chapterId: Option[StudyChapterId]
+):
 
-  def branch(variant: Variant, fen: Fen.Full): Either[ErrorStr, Branch] =
-    chess
-      .Game(variant.some, fen.some)(orig, dest, promotion)
-      .map: (game, move) =>
+  def branch(fen: Fen.Full): Either[ErrorStr, Branch] =
+    val nativeUci = s"${orig.key}${dest.key}".replace(":", "10")
+    for
+      uci <- Xiangqi.Uci.from(nativeUci).left.map(ErrorStr.apply)
+      result <- XiangqiRules
+        .move(Xiangqi.Position(initialFen = fen.value), uci)
+        .left
+        .map(ErrorStr.apply)
+      treeUci <- Uci(s"${orig.key}${dest.key}").toRight(ErrorStr(s"Invalid Xiangqi move: $nativeUci"))
+    yield
         Branch(
-          ply = game.ply,
-          move = Uci.WithSan(Uci(move), move.toSanStr),
-          fen = chess.format.Fen.write(game),
-          crazyData = game.position.crazyData
+          ply = chess.Ply(result.ply),
+          move = Uci.WithSan(treeUci, SanStr(result.notation)),
+          fen = Fen.Full(result.fen),
+          crazyData = none
         )
 
 object AnaMove:
@@ -44,6 +45,5 @@ object AnaMove:
       orig = orig,
       dest = dest,
       path = path,
-      chapterId = d.get[StudyChapterId]("ch"),
-      promotion = d.str("promotion").flatMap(chess.Role.promotable)
+      chapterId = d.get[StudyChapterId]("ch")
     )

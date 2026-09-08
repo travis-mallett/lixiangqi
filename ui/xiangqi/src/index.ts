@@ -4,7 +4,8 @@ import { premove } from 'chessgroundx/premove';
 import { Notation, type Color } from 'chessgroundx/types';
 
 import resizeHandle from 'lib/chessgroundResize';
-import { ShowResizeHandle, type ShowResizeHandle as ShowResizeHandlePref } from 'lib/prefs';
+import { MoveEvent, ShowResizeHandle, type ShowResizeHandle as ShowResizeHandlePref } from 'lib/prefs';
+import { preloadXiangqiBoardAnimations } from 'lib/xiangqiBoardAnimation';
 
 import {
   cgToUci,
@@ -33,7 +34,13 @@ export {
   type XiangqiMoveSound,
 } from './sound';
 
-export interface XiangqiGroundOptions {
+export interface XiangqiGroundPreferences {
+  animationDuration?: number;
+  moveEvent?: MoveEvent;
+  highlight?: boolean;
+}
+
+export interface XiangqiGroundOptions extends XiangqiGroundPreferences {
   fen?: string;
   orientation?: Color;
   turnColor?: Color;
@@ -49,7 +56,12 @@ export interface XiangqiGroundOptions {
 }
 
 export function makeXiangqiGround(element: HTMLElement, options: XiangqiGroundOptions = {}): Api {
+  preloadXiangqiBoardAnimations();
+  element.classList.add('cg-wrap', 'xiangqi9x10');
   const movableColor = options.viewOnly ? undefined : options.movableColor;
+  const moveEvent = options.moveEvent ?? MoveEvent.Click;
+  const animationDuration = options.animationDuration ?? 200;
+  const highlight = options.highlight ?? true;
   const ground = Chessground(element, {
     fen: options.fen ?? XIANGQI_START_FEN,
     dimensions: XIANGQI_DIMENSIONS,
@@ -85,10 +97,15 @@ export function makeXiangqiGround(element: HTMLElement, options: XiangqiGroundOp
       castle: false,
       premoveFunc: premove('xiangqi', false, XIANGQI_DIMENSIONS),
     },
-    draggable: { enabled: false, showGhost: false },
-    selectable: { enabled: !options.viewOnly },
-    highlight: { lastMove: true, check: true },
-    animation: { enabled: true, duration: 200 },
+    draggable: {
+      enabled: !options.viewOnly && moveEvent !== MoveEvent.Click,
+      showGhost: highlight,
+    },
+    selectable: {
+      enabled: !options.viewOnly && moveEvent !== MoveEvent.Drag,
+    },
+    highlight: { lastMove: highlight, check: highlight },
+    animation: { enabled: animationDuration > 0, duration: animationDuration },
     drawable: { enabled: true, defaultSnapToValidMove: true },
     disableContextMenu: true,
   });

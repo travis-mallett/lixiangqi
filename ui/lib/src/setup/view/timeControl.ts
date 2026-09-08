@@ -19,9 +19,9 @@ const showTime = (v: number) => {
   return v.toString();
 };
 
-const blindModeTimePickers = (tc: TimeControl) => {
+const blindModeTimePickers = (tc: TimeControl, visibleModes: TimeMode[]) => {
   return [
-    renderTimeModePicker(tc),
+    renderTimeModePicker(tc, visibleModes),
     tc.mode() === 'realTime' &&
       hl('div.time-choice', [
         hl('label', { attrs: { for: 'sf_time' } }, i18n.site.minutesPerSide),
@@ -75,7 +75,7 @@ const blindModeTimePickers = (tc: TimeControl) => {
   ];
 };
 
-const renderTimeModePicker = (tc: TimeControl) =>
+const renderTimeModePicker = (tc: TimeControl, visibleModes: TimeMode[]) =>
   tc.canSelectMode() &&
   hl('div.label-select', [
     hl('label', { attrs: { for: 'sf_timeMode' } }, i18n.site.timeControl),
@@ -89,7 +89,7 @@ const renderTimeModePicker = (tc: TimeControl) =>
           },
         },
       },
-      timeModes.filter(m => tc.modes.includes(m.key)).map(timeMode => option(timeMode, tc.mode())),
+      timeModes.filter(m => visibleModes.includes(m.key)).map(timeMode => option(timeMode, tc.mode())),
     ),
   ]);
 
@@ -150,8 +150,12 @@ const renderMoveTime = (tc: TimeControl): VNode => {
   ]);
 };
 
-export const timePickerAndSliders = (tc: TimeControl, minimumTimeRequiredIfReal = 0): VNode => {
-  if (site.blindMode) return hl('div.config-group', blindModeTimePickers(tc));
+export const timePickerAndSliders = (
+  tc: TimeControl,
+  minimumTimeRequiredIfReal = 0,
+  visibleModes: TimeMode[] = tc.modes,
+): VNode => {
+  if (site.blindMode) return hl('div.config-group', blindModeTimePickers(tc, visibleModes));
 
   const activeMode = tc.mode();
   const showTabs = tc.canSelectMode();
@@ -162,7 +166,7 @@ export const timePickerAndSliders = (tc: TimeControl, minimumTimeRequiredIfReal 
         {
           attrs: { role: 'tablist' },
         },
-        tc.modes.map(mode =>
+        visibleModes.map(mode =>
           hl(
             'button',
             {

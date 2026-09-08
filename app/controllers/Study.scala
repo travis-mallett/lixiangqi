@@ -223,10 +223,13 @@ final class Study(
       withMembers = !study.isRelay || isGrantedOpt(_.StudyAdmin) || ctx.me.exists(study.isMember)
       studyJson <- env.study.jsonView.full(study, chapter, previews, withMembers = withMembers)
       lichobile = HTTPRequest.isLichobile(ctx.req)
+      nativeTree = env.study.jsonView.xiangqiTree(partitionTreeWriter(chapter.root, lichobile = lichobile))
+      nativeGame = (baseData \ "game").as[JsObject] +
+        ("variant" -> Json.obj("key" -> "xiangqi", "name" -> "Xiangqi"))
     yield WithChapter(study, chapter) -> JsData(
       study = studyJson,
-      analysis = baseData
-        .add("treeParts" -> partitionTreeWriter(chapter.root, lichobile = lichobile).some)
+      analysis = (baseData + ("game" -> nativeGame))
+        .add("treeParts" -> nativeTree.some)
         .add("analysis" -> analysis.map { env.analyse.jsonView.bothPlayers(chapter.root.ply, _) })
     )
 

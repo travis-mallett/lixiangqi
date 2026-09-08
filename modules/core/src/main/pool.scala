@@ -2,13 +2,11 @@ package lila.core
 package pool
 
 import _root_.chess.{ Clock, ByColor }
-import _root_.chess.IntRating
 import alleycats.Zero
 
 import scalalib.bus.NotBuseable
 
-import lila.core.perf.PerfKey
-import lila.core.rating.RatingRange
+import lila.core.rank.{ RankSnapshot, RankTrackId }
 import lila.core.socket.Sri
 import lila.core.userId.*
 import lila.core.id.GameFullId
@@ -61,9 +59,7 @@ case class PoolMember(
     userId: UserId,
     sri: Sri,
     from: PoolFrom,
-    rating: IntRating,
-    provisional: Boolean,
-    ratingRange: Option[RatingRange],
+    rank: RankSnapshot,
     lame: Boolean,
     blocking: Blocking,
     rageSitCounter: Int = 0,
@@ -90,7 +86,7 @@ object HookThieve:
 
 trait PoolApi:
   def setOnlineSris(ids: socket.Sris): Unit
-  def poolPerfKeys: Map[PoolConfigId, PerfKey]
+  def poolRankTracks: Map[PoolConfigId, Option[RankTrackId]]
   def homepagePoolIds: Set[PoolConfigId]
   def join(poolId: PoolConfigId, member: PoolMember): Unit
   def leave(poolId: PoolConfigId, user: UserId): Unit

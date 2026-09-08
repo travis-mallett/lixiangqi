@@ -39,10 +39,6 @@
     margin: 1.15rem 0 0;
     color: $c-font-dimmer;
     font-size: 0.9rem;
-
-    &.error {
-      color: $c-bad;
-    }
   }
 
   &__library,
@@ -79,7 +75,7 @@
 
   &__grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 11.5rem), 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
     gap: clamp(0.75rem, 2vw, 1.35rem);
   }
 }
@@ -120,45 +116,18 @@
   }
 
   &__cover {
-    position: relative;
     display: grid;
     place-items: center;
-    min-height: 10rem;
-    padding: 0.25rem 0.75rem 0.8rem;
-    container-type: inline-size;
+    min-height: 14rem;
+    padding: 0 0 0.65rem;
 
     img {
       display: block;
-      width: min(100%, 10rem);
+      width: min(100%, 14rem);
       aspect-ratio: 1;
       object-fit: contain;
       filter: drop-shadow(0 0.6rem 0.55rem rgb(0 0 0 / 0.2));
       transition: transform 180ms ease;
-    }
-  }
-
-  &__inscription {
-    position: absolute;
-    z-index: 1;
-    top: 17%;
-    left: 65.5%;
-    display: block;
-    height: 59%;
-    color: #263548;
-    font-family: KaiTi, STKaiti, 'Noto Serif SC', 'Songti SC', fangsong, serif;
-    font-size: clamp(0.48rem, 6cqi, 0.78rem);
-    font-weight: 500;
-    line-height: 1;
-    letter-spacing: 0.07em;
-    text-orientation: upright;
-    text-shadow: 0 1px rgb(255 255 255 / 0.38);
-    transform: translateX(-50%);
-    writing-mode: vertical-rl;
-    pointer-events: none;
-
-    &.long {
-      font-size: clamp(0.42rem, 5cqi, 0.66rem);
-      letter-spacing: 0;
     }
   }
 
@@ -383,8 +352,11 @@
     padding: 0.65rem;
 
     &__cover {
-      min-height: 7.5rem;
-      padding-inline: 0.25rem;
+      min-height: 10rem;
+
+      img {
+        width: min(calc(100% + 2rem), 12rem);
+      }
     }
 
     &__title {

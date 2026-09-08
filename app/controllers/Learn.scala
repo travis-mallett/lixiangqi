@@ -3,17 +3,50 @@ package controllers
 import play.api.libs.json.*
 
 import lila.app.*
+import lila.core.rank.RankCode
 import lila.xiangqi.{ Xiangqi, XiangqiRules }
 import lila.xiangqi.XiangqiJson.given
 
 final class Learn(env: Env) extends LilaController(env):
 
   import lila.learn.LearnHandlers.given
+  import RankCode.*
 
   def index = Open(serveIndex)
   def indexLang = LangPage(routes.Learn.index)(serveIndex)
+  def specialRules = Open:
+    Ok.page(views.learn.specialRulesPage)
+
+  def specialRulesExample(id: String, ply: Int) = Open:
+    import lila.xiangqi.SpecialRulesExamples
+    val response = for
+      example <- SpecialRulesExamples.get(id).toRight("Unknown special rules example")
+      playback <- example.at(ply)
+      labels <- example.labels
+    yield Json.obj(
+      "ruleset" -> example.ruleset.key,
+      "state" -> playback.game.state,
+      "acceptedPly" -> playback.game.moves.size,
+      "lastMove" -> playback.game.moves.lastOption,
+      "rejected" -> playback.rejected
+        .map(a => Json.obj("ply" -> a.ply, "move" -> a.move, "error" -> a.error)),
+      "script" -> labels.map { (move, english, chinese) =>
+        Json.obj("move" -> move, "english" -> english, "chinese" -> chinese)
+      }
+    )
+    fuccess(
+      response.fold(
+        error => BadRequest(Json.obj("error" -> error)),
+        json => Ok(json).withHeaders("Cache-Control" -> "no-store")
+      )
+    )
+
   def ancientManuals = Open:
-    Ok.page(views.learn.ancientManualsPage(env.fishnet.explorerEndpoint))
+    Ok.page(views.learn.ancientManualsPage)
+  def xiangqiRankings = Open:
+    val levels = lila.rating.XiangqiRank.catalog.levels.map: level =>
+      level.code.value -> level.threshold.value
+    Ok.page(views.learn.xiangqiRankingsPage(levels))
 
   def validate = AnonBodyOf(parse.json): body =>
     body

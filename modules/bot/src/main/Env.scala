@@ -20,7 +20,6 @@ final class Env(
     Executor,
     org.apache.pekko.actor.ActorSystem,
     Scheduler,
-    lila.core.i18n.Translator,
     lila.core.config.RateLimit
 ):
 

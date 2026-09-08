@@ -1,6 +1,7 @@
 import { h } from 'snabbdom';
 
 import { abortable, playable, drawableSwiss, resignable, takebackable, type TopOrBottom } from 'lib/game';
+import { renderAdjudication } from 'lib/game/view/adjudication';
 import { licon, type LiconValue } from 'lib/licon';
 import { type LooseVNodes, hl, bind, toggleButton as boardMenuToggleButton, dataIcon } from 'lib/view';
 
@@ -26,10 +27,13 @@ const isLoading = (ctrl: RoundController): boolean => ctrl.loading || ctrl.redir
 
 const loader = () => h('icon.ddloader');
 
-const renderTableWith = (ctrl: RoundController, buttons: LooseVNodes[]) => [
-  renderReplay(ctrl),
-  buttons.find(x => !!x) && hl('div.rcontrols', buttons),
-];
+const renderTableWith = (ctrl: RoundController, buttons: LooseVNodes[]) => {
+  const notice = renderAdjudication(ctrl.data.game, !ctrl.replaying());
+  return [
+    renderReplay(ctrl),
+    (notice || buttons.find(x => !!x)) && hl('div.rcontrols', [notice, ...buttons]),
+  ];
+};
 
 export const renderTableEnd = (ctrl: RoundController): LooseVNodes =>
   renderTableWith(ctrl, [
@@ -120,6 +124,7 @@ export const renderTablePlay = (ctrl: RoundController): LooseVNodes => {
   return [
     renderReplay(ctrl),
     hl('div.rcontrols', [
+      renderAdjudication(ctrl.data.game, !ctrl.replaying()),
       hl(
         'div.ricons',
         { class: { confirm: !!(ctrl.drawConfirm || ctrl.resignConfirm), empty: !icons.length } },

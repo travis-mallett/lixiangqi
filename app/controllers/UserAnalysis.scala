@@ -152,31 +152,36 @@ object UserAnalysis:
       analysisInProgress: Boolean = false
   ): JsObject =
     import lila.xiangqi.XiangqiJson.given
-    Json.obj(
-      "gameId" -> pov.gameId,
-      "title" -> s"${pov.game.whitePlayer.name} – ${pov.game.blackPlayer.name}",
-      "initialFen" -> pov.game.xiangqi.initialFen,
-      "moves" -> pov.game.xiangqi.moves,
-      "notations" -> pov.game.xiangqi.wxf,
-      "chineseNotations" -> pov.game.xiangqi.chineseWxf,
-      "states" -> pov.game.xiangqi.states,
-      "variant" -> pov.game.variant.key.value,
-      "orientation" -> pov.color.name,
-      "analysisInProgress" -> analysisInProgress,
-      "analysisRequestUrl" ->
-        (analysis.isEmpty && lila.game.GameExt.analysable(pov.game))
-          .option(routes.Analyse.requestAnalysis(pov.gameId).url),
-      "analysis" -> analysis.map: value =>
-        Json.obj(
-          "id" -> value.id.value,
-          "infos" -> value.infos.map: info =>
-            Json
-              .obj(
-                "ply" -> info.ply.value,
-                "variation" -> info.variation.map(_.toString)
-              )
-              .add("cp", info.cp.map(_.value))
-              .add("mate", info.mate.map(_.value))
-              .add("best", info.best)
-        )
-    )
+    Json
+      .obj(
+        "gameId" -> pov.gameId,
+        "title" -> s"${pov.game.whitePlayer.name} – ${pov.game.blackPlayer.name}",
+        "initialFen" -> pov.game.xiangqi.initialFen,
+        "moves" -> pov.game.xiangqi.moves,
+        "notations" -> pov.game.xiangqi.wxf,
+        "chineseNotations" -> pov.game.xiangqi.chineseWxf,
+        "states" -> pov.game.xiangqi.states,
+        "variant" -> pov.game.variant.key.value,
+        "orientation" -> pov.color.name,
+        "analysisInProgress" -> analysisInProgress,
+        "analysisRequestUrl" ->
+          (analysis.isEmpty && lila.game.GameExt.analysable(pov.game))
+            .option(routes.Analyse.requestAnalysis(pov.gameId).url),
+        "analysis" -> analysis.map: value =>
+          Json.obj(
+            "id" -> value.id.value,
+            "infos" -> value.infos.map: info =>
+              Json
+                .obj(
+                  "ply" -> info.ply.value,
+                  "variation" -> info.variation.map(_.toString)
+                )
+                .add("cp", info.cp.map(_.value))
+                .add("mate", info.mate.map(_.value))
+                .add("best", info.best)
+          )
+      )
+      .add(
+        "recordedClock" ->
+          (if pov.game.finished then lila.game.RecordedClockTimeline(pov.game) else None).map(_.json)
+      )

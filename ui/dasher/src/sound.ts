@@ -34,24 +34,48 @@ export class SoundCtrl extends PaneCtrl {
           }),
         }),
         h('div.settings', [
-          h('div.subs', [
-            h(
-              'button.sub.music-entry',
-              {
-                attrs: { ...dataIcon(licon.GreaterThan), type: 'button' },
-                hook: bind('click', this.openMusic),
-              },
-              [h('span', i18n.site.backgroundMusic), h('small', this.selectedMusicName())],
-            ),
-          ]),
           h('div.selector.categories', [
-            cmnToggleWrap({
-              id: 'sound-soundEffects',
-              name: i18n.site.soundEffects,
-              checked: site.sound.isSoundEnabled(),
-              change: enabled => this.setCategory('soundEffects', enabled),
-              redraw: this.redraw,
-            }),
+            h('div.sound-category', [
+              cmnToggleWrap({
+                id: 'sound-backgroundMusic',
+                name: i18n.site.backgroundMusic,
+                checked: site.sound.isMusicEnabled(),
+                change: enabled => this.setCategory('backgroundMusic', enabled),
+                redraw: this.redraw,
+              }),
+              site.sound.isMusicEnabled()
+                ? h('div.sound-category__children', [
+                    h(
+                      'button.sub.music-entry',
+                      {
+                        attrs: { ...dataIcon(licon.GreaterThan), type: 'button' },
+                        hook: bind('click', this.openMusic),
+                      },
+                      [h('span', i18n.site.backgroundMusicStyle), h('small', this.selectedMusicName())],
+                    ),
+                  ])
+                : null,
+            ]),
+            h('div.sound-category', [
+              cmnToggleWrap({
+                id: 'sound-soundEffects',
+                name: i18n.site.soundEffects,
+                checked: site.sound.isSoundEnabled(),
+                change: enabled => this.setCategory('soundEffects', enabled),
+                redraw: this.redraw,
+              }),
+              site.sound.isSoundEnabled()
+                ? h('div.sound-category__children', [
+                    cmnToggleWrap({
+                      id: 'sound-voiceSoundEffects',
+                      name: i18n.site.captureCheckAndCheckmateVoiceSoundEffects,
+                      checked: site.sound.isVoiceSoundEnabled(),
+                      change: site.sound.setVoiceSoundEnabled,
+                      redraw: this.redraw,
+                    }),
+                  ])
+                : null,
+            ]),
           ]),
         ]),
       ]),
@@ -59,17 +83,8 @@ export class SoundCtrl extends PaneCtrl {
 
   private readonly renderMusic = (): VNode =>
     h('div.sub.sound.music', [
-      header(i18n.site.backgroundMusic, this.closeMusic),
+      header(i18n.site.backgroundMusicStyle, this.closeMusic),
       h('div.music-content', [
-        h('div.music-toggle', [
-          cmnToggleWrap({
-            id: 'sound-backgroundMusic',
-            name: i18n.site.backgroundMusic,
-            checked: site.sound.isMusicEnabled(),
-            change: enabled => this.setCategory('backgroundMusic', enabled),
-            redraw: this.redraw,
-          }),
-        ]),
         h(
           'div.selector.music-tracks',
           this.root.data.appearance.musicSets.map(track =>

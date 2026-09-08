@@ -76,6 +76,8 @@ final class RoundSocket(
   def flushIfPresent(gameId: GameId): Funit =
     rounds.getIfPresent(gameId).so(_.flushGame())
 
+  def ensureAiTurn(gameId: GameId): Unit = rounds.tell(gameId, RoundAsyncActor.ReconcileAiTurn)
+
   val rounds = AsyncActorConcMap[GameId, RoundAsyncActor](
     mkAsyncActor = id =>
       makeRoundActor(id, SocketVersion(0), roundDependencies.gameRepo.game(id).recoverDefault(none[Game])),

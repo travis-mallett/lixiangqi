@@ -286,6 +286,262 @@ BEGIN
   SET games_added = catalog_growth_hourly.games_added + 1;
 END;
 
+-- The Games Database page is backed by a materialized read model. Source
+-- membership is encoded as a bitmask so arbitrary source selections can read
+-- compact, pre-aggregated date buckets without rescanning the raw catalog.
+CREATE TABLE IF NOT EXISTS catalog_source_types (
+  id TEXT PRIMARY KEY,
+  source TEXT NOT NULL,
+  collection TEXT NOT NULL,
+  source_bit INTEGER NOT NULL UNIQUE CHECK (source_bit > 0),
+  UNIQUE (source, collection)
+) WITHOUT ROWID;
+
+CREATE TABLE IF NOT EXISTS catalog_game_facets (
+  game_id TEXT PRIMARY KEY REFERENCES games(id) ON DELETE CASCADE,
+  source_mask INTEGER NOT NULL DEFAULT 0 CHECK (source_mask >= 0),
+  year_bucket INTEGER NOT NULL DEFAULT 0,
+  month_bucket TEXT NOT NULL DEFAULT ''
+) WITHOUT ROWID;
+
+CREATE TABLE IF NOT EXISTS catalog_timeline_stats (
+  source_mask INTEGER NOT NULL,
+  year_bucket INTEGER NOT NULL,
+  month_bucket TEXT NOT NULL,
+  game_count INTEGER NOT NULL CHECK (game_count >= 0),
+  PRIMARY KEY (source_mask, year_bucket, month_bucket)
+) WITHOUT ROWID;
+
+-- Trigram indexing preserves the catalog's case-insensitive substring search
+-- semantics without evaluating every wide games row. The stable canonical ID
+-- is stored with the indexed fields so VACUUM and rowid changes are harmless.
+CREATE VIRTUAL TABLE IF NOT EXISTS catalog_search USING fts5(
+  game_id UNINDEXED,
+  red_name,
+  black_name,
+  red_name_romanized,
+  black_name_romanized,
+  red_name_key,
+  black_name_key,
+  event,
+  opening,
+  place,
+  title,
+  tokenize = 'trigram'
+);
+
+-- FTS rowids provide the efficient mutation key. Keeping their assignment in
+-- a normal table avoids scans of the UNINDEXED canonical ID and remains stable
+-- if SQLite rewrites games rowids during VACUUM.
+CREATE TABLE IF NOT EXISTS catalog_search_documents (
+  search_id INTEGER PRIMARY KEY,
+  game_id TEXT NOT NULL UNIQUE REFERENCES games(id) ON DELETE CASCADE
+);
+
+CREATE TRIGGER IF NOT EXISTS catalog_facets_track_insert
+AFTER INSERT ON catalog_game_facets
+WHEN coalesce((
+  SELECT value FROM metadata WHERE key = 'catalog_index_state'
+), '') <> 'building'
+BEGIN
+  INSERT INTO catalog_timeline_stats(
+    source_mask, year_bucket, month_bucket, game_count
+  ) VALUES (NEW.source_mask, NEW.year_bucket, NEW.month_bucket, 1)
+  ON CONFLICT(source_mask, year_bucket, month_bucket) DO UPDATE SET
+    game_count = catalog_timeline_stats.game_count + 1;
+END;
+
+CREATE TRIGGER IF NOT EXISTS catalog_facets_track_delete
+AFTER DELETE ON catalog_game_facets
+WHEN coalesce((
+  SELECT value FROM metadata WHERE key = 'catalog_index_state'
+), '') <> 'building'
+BEGIN
+  UPDATE catalog_timeline_stats
+  SET game_count = game_count - 1
+  WHERE source_mask = OLD.source_mask
+    AND year_bucket = OLD.year_bucket
+    AND month_bucket = OLD.month_bucket;
+  DELETE FROM catalog_timeline_stats
+  WHERE source_mask = OLD.source_mask
+    AND year_bucket = OLD.year_bucket
+    AND month_bucket = OLD.month_bucket
+    AND game_count = 0;
+END;
+
+CREATE TRIGGER IF NOT EXISTS catalog_facets_track_update
+AFTER UPDATE OF source_mask, year_bucket, month_bucket ON catalog_game_facets
+WHEN coalesce((
+    SELECT value FROM metadata WHERE key = 'catalog_index_state'
+  ), '') <> 'building'
+  AND (
+    OLD.source_mask <> NEW.source_mask
+    OR OLD.year_bucket <> NEW.year_bucket
+    OR OLD.month_bucket <> NEW.month_bucket
+  )
+BEGIN
+  UPDATE catalog_timeline_stats
+  SET game_count = game_count - 1
+  WHERE source_mask = OLD.source_mask
+    AND year_bucket = OLD.year_bucket
+    AND month_bucket = OLD.month_bucket;
+  DELETE FROM catalog_timeline_stats
+  WHERE source_mask = OLD.source_mask
+    AND year_bucket = OLD.year_bucket
+    AND month_bucket = OLD.month_bucket
+    AND game_count = 0;
+  INSERT INTO catalog_timeline_stats(
+    source_mask, year_bucket, month_bucket, game_count
+  ) VALUES (NEW.source_mask, NEW.year_bucket, NEW.month_bucket, 1)
+  ON CONFLICT(source_mask, year_bucket, month_bucket) DO UPDATE SET
+    game_count = catalog_timeline_stats.game_count + 1;
+END;
+
+CREATE TRIGGER IF NOT EXISTS catalog_games_track_insert
+AFTER INSERT ON games
+BEGIN
+  INSERT INTO catalog_game_facets(game_id, source_mask, year_bucket, month_bucket)
+  VALUES (
+    NEW.id,
+    0,
+    CASE WHEN NEW.year BETWEEN 1 AND 9999 THEN NEW.year ELSE 0 END,
+    CASE
+      WHEN length(NEW.month) = 7
+        AND NEW.month GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]'
+        AND CAST(substr(NEW.month, 1, 4) AS INTEGER) BETWEEN 1 AND 9999
+        AND CAST(substr(NEW.month, 6, 2) AS INTEGER) BETWEEN 1 AND 12
+      THEN NEW.month ELSE ''
+    END
+  );
+END;
+
+CREATE TRIGGER IF NOT EXISTS catalog_games_track_date_update
+AFTER UPDATE OF year, month ON games
+BEGIN
+  UPDATE catalog_game_facets
+  SET year_bucket = CASE
+        WHEN NEW.year BETWEEN 1 AND 9999 THEN NEW.year ELSE 0
+      END,
+      month_bucket = CASE
+        WHEN length(NEW.month) = 7
+          AND NEW.month GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]'
+          AND CAST(substr(NEW.month, 1, 4) AS INTEGER) BETWEEN 1 AND 9999
+          AND CAST(substr(NEW.month, 6, 2) AS INTEGER) BETWEEN 1 AND 12
+        THEN NEW.month ELSE ''
+      END
+  WHERE game_id = NEW.id;
+END;
+
+DROP TRIGGER IF EXISTS catalog_search_games_insert;
+DROP TRIGGER IF EXISTS catalog_search_games_delete;
+DROP TRIGGER IF EXISTS catalog_search_games_update;
+
+CREATE TRIGGER catalog_search_games_insert
+AFTER INSERT ON games
+BEGIN
+  INSERT INTO catalog_search_documents(game_id) VALUES (NEW.id);
+  INSERT INTO catalog_search(
+    rowid, game_id, red_name, black_name, red_name_romanized, black_name_romanized,
+    red_name_key, black_name_key, event, opening, place, title
+  ) SELECT
+    search_id, NEW.id, NEW.red_name, NEW.black_name, NEW.red_name_romanized,
+    NEW.black_name_romanized, NEW.red_name_key, NEW.black_name_key,
+    NEW.event, NEW.opening, NEW.place, NEW.title
+  FROM catalog_search_documents WHERE game_id = NEW.id;
+END;
+
+CREATE TRIGGER catalog_search_games_delete
+BEFORE DELETE ON games
+BEGIN
+  DELETE FROM catalog_search
+  WHERE rowid = (
+    SELECT search_id FROM catalog_search_documents WHERE game_id = OLD.id
+  );
+END;
+
+CREATE TRIGGER catalog_search_games_update
+AFTER UPDATE OF
+  red_name, black_name, red_name_romanized, black_name_romanized,
+  red_name_key, black_name_key, event, opening, place, title
+ON games
+BEGIN
+  DELETE FROM catalog_search
+  WHERE rowid = (
+    SELECT search_id FROM catalog_search_documents WHERE game_id = OLD.id
+  );
+  INSERT INTO catalog_search(
+    rowid, game_id, red_name, black_name, red_name_romanized, black_name_romanized,
+    red_name_key, black_name_key, event, opening, place, title
+  ) SELECT
+    search_id, NEW.id, NEW.red_name, NEW.black_name, NEW.red_name_romanized,
+    NEW.black_name_romanized, NEW.red_name_key, NEW.black_name_key,
+    NEW.event, NEW.opening, NEW.place, NEW.title
+  FROM catalog_search_documents WHERE game_id = NEW.id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS catalog_sources_track_insert
+AFTER INSERT ON game_sources
+BEGIN
+  UPDATE catalog_game_facets
+  SET source_mask = coalesce((
+    SELECT sum(source_type.source_bit)
+    FROM catalog_source_types source_type
+    WHERE EXISTS (
+      SELECT 1 FROM game_sources source
+      WHERE source.game_id = NEW.game_id
+        AND source.source = source_type.source
+        AND source.collection = source_type.collection
+    )
+  ), 0)
+  WHERE game_id = NEW.game_id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS catalog_sources_track_delete
+AFTER DELETE ON game_sources
+BEGIN
+  UPDATE catalog_game_facets
+  SET source_mask = coalesce((
+    SELECT sum(source_type.source_bit)
+    FROM catalog_source_types source_type
+    WHERE EXISTS (
+      SELECT 1 FROM game_sources source
+      WHERE source.game_id = OLD.game_id
+        AND source.source = source_type.source
+        AND source.collection = source_type.collection
+    )
+  ), 0)
+  WHERE game_id = OLD.game_id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS catalog_sources_track_update
+AFTER UPDATE OF source, collection, game_id ON game_sources
+BEGIN
+  UPDATE catalog_game_facets
+  SET source_mask = coalesce((
+    SELECT sum(source_type.source_bit)
+    FROM catalog_source_types source_type
+    WHERE EXISTS (
+      SELECT 1 FROM game_sources source
+      WHERE source.game_id = OLD.game_id
+        AND source.source = source_type.source
+        AND source.collection = source_type.collection
+    )
+  ), 0)
+  WHERE game_id = OLD.game_id;
+  UPDATE catalog_game_facets
+  SET source_mask = coalesce((
+    SELECT sum(source_type.source_bit)
+    FROM catalog_source_types source_type
+    WHERE EXISTS (
+      SELECT 1 FROM game_sources source
+      WHERE source.game_id = NEW.game_id
+        AND source.source = source_type.source
+        AND source.collection = source_type.collection
+    )
+  ), 0)
+  WHERE game_id = NEW.game_id;
+END;
+
 -- Invalid source records are quarantined by content checksum. Incremental
 -- scans skip the same rejected payload instead of re-validating it forever;
 -- reconciliation or a changed source file can retry it explicitly.

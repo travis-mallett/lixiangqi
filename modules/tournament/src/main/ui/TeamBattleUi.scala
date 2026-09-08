@@ -4,6 +4,7 @@ package ui
 import play.api.data.Form
 
 import lila.core.team.LightTeam
+import lila.core.rank.RankCode.*
 import lila.ui.*
 
 import ScalatagsTemplate.{ *, given }
@@ -85,12 +86,7 @@ final class TeamBattleUi(helpers: Helpers):
           table(cls := "slist slist-pad")(
             tbody(
               tr(th("Players"), td(info.nbPlayers)),
-              ctx.pref.showRatings.option(
-                frag(
-                  tr(th(trans.site.averageElo()), td(info.avgRating)),
-                  tr(th(trans.arena.averagePerformance()), td(info.avgPerf))
-                )
-              ),
+              info.avgRank.map(rank => tr(th("Average Xiangqi rank"), td(rank.value))),
               tr(th(trans.arena.averageScore()), td(info.avgScore))
             )
           ),
@@ -100,7 +96,7 @@ final class TeamBattleUi(helpers: Helpers):
                 th(trans.site.rank()),
                 th(trans.site.player()),
                 th(trans.site.tournamentPoints()),
-                ctx.pref.showRatings.option(th(trans.site.performance()))
+                th("Xiangqi rank")
               )
             ),
             tbody(
@@ -112,7 +108,7 @@ final class TeamBattleUi(helpers: Helpers):
                     userIdLink(player.userId.some)
                   ),
                   td(player.score),
-                  ctx.pref.showRatings.option(td(player.performance))
+                  td(player.showRank)
                 )
             )
           )

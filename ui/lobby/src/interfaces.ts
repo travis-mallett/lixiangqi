@@ -3,11 +3,8 @@ import type { ColorChoice } from 'lib/setup/color';
 import type { ClockConfig, MoveTimeLimitConfig } from 'lib/setup/interfaces';
 import type { TimeMode } from 'lib/setup/timeControl';
 
-export type Sort = 'rating' | 'time';
-export type Mode = 'list' | 'chart';
 export type Tab = 'pools' | 'real_time' | 'seeks' | 'now_playing';
 export type GameType = 'hook' | 'friend' | 'ai';
-export type GameMode = 'casual' | 'rated';
 
 export interface Variant {
   id: number;
@@ -22,15 +19,12 @@ export interface Hook {
   sri: string;
   clock: string;
   t: number; // time
-  s: number; // speed
   i: number; // increment
   moveTime?: MoveTimeLimitConfig;
   variant: VariantKey;
-  perf: Exclude<Perf, 'fromPosition'>;
-  prov?: true; // is rating provisional
+  perf: string;
   u?: string; // username
-  rating?: number;
-  ra?: 1; // rated
+  rank?: string;
   action: 'cancel' | 'join';
   disabled?: boolean;
 }
@@ -38,20 +32,25 @@ export interface Hook {
 export interface Seek {
   id: string;
   username: string;
-  rating: number;
-  mode: number;
+  rank: string;
   days?: number;
   perf: {
-    key: Exclude<Perf, 'fromPosition'>;
+    key: string;
   };
-  provisional?: boolean;
   variant?: { key: VariantKey };
   action: 'joinSeek' | 'cancelSeek';
 }
 
 export interface Pool extends ClockConfig {
   id: PoolId;
-  perf: string;
+  name: string;
+  ranked: boolean;
+  rankTrack?: string;
+}
+
+export interface HomepageRoom {
+  pool: Pool;
+  liveGamesHtml: string;
 }
 
 export interface LobbyOpts {
@@ -62,7 +61,6 @@ export interface LobbyOpts {
   homePools: Pool[];
   hasUnreadLichessMessage: boolean;
   playban: boolean;
-  showRatings: boolean;
   data: LobbyData;
   bots?: boolean;
 }
@@ -79,13 +77,10 @@ export interface LobbyData {
   nbNowPlaying: number;
   nbMyTurn: number;
   nowPlaying: NowPlaying[];
-  ratingMap: Record<Perf, RatingWithProvisional> | null;
   counters: { members: number; rounds: number };
   stats?: { gamesPlayedToday: number; registeredUsers: number; gamesPlayedAllTime: number };
   poolCounts: Record<string, number>;
 }
-
-type RatingWithProvisional = number;
 
 export interface NowPlaying {
   fullId: string;
@@ -100,12 +95,12 @@ export interface NowPlaying {
   };
   speed: string;
   perf: string;
-  rated: boolean;
+  ranked: boolean;
   hasMoved: boolean;
   opponent: {
     id: string;
     username: string;
-    rating?: number;
+    rank?: string;
     ai?: number;
   };
   isMyTurn: boolean;
@@ -114,26 +109,38 @@ export interface NowPlaying {
 
 export interface PoolMember {
   id: PoolId;
-  range?: PoolRange;
   blocking?: string;
 }
 
 export type PoolId = string;
-export type PoolRange = string;
-
 export interface SetupStore {
   variant: VariantKey;
   fen: FEN;
   timeMode: TimeMode;
-  gameMode: GameMode;
   color: ColorChoice;
-  ratingMin: number;
-  ratingMax: number;
   aiLevel: number;
+  aiTimeControls?: boolean;
   time: number;
   increment: number;
   days: number;
   moveTime?: MoveTimeLimitConfig;
+}
+
+export interface AiStatsCounts {
+  wins: number;
+  draws: number;
+  losses: number;
+  games: number;
+}
+
+export interface AiLevelStats {
+  level: number;
+  registered: AiStatsCounts;
+  mine?: AiStatsCounts;
+}
+
+export interface AiStatsResponse {
+  levels: AiLevelStats[];
 }
 
 export interface ForceSetupOptions {
@@ -144,6 +151,5 @@ export interface ForceSetupOptions {
   increment?: number;
   days?: number;
   moveTime?: MoveTimeLimitConfig;
-  mode?: GameMode;
   color?: ColorChoice;
 }

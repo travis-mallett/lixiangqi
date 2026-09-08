@@ -34,7 +34,6 @@ final class TournamentForm:
       variant = chess.variant.Standard.id.toString.some,
       position = None,
       password = None,
-      rated = Rated.Yes.some,
       conditions = TournamentCondition.All.empty,
       teamBattleByTeam = teamBattleId,
       berserkable = forClas.not.some,
@@ -57,7 +56,6 @@ final class TournamentForm:
       startDate = tour.startsAt.some,
       variant = tour.variant.id.toString.some,
       position = tour.position.map(_.into(Fen.Full)),
-      rated = tour.rated.some,
       password = tour.password,
       conditions = tour.conditions,
       teamBattleByTeam = none,
@@ -65,7 +63,8 @@ final class TournamentForm:
       streakable = tour.streakable.some,
       description = tour.description,
       payouts = tour.payouts,
-      hasChat = tour.hasChat.some
+      hasChat = tour.hasChat.some,
+      ruleset = tour.ruleset.key.some
     )
 
   private def form(leaderTeams: List[LightTeam], prev: Option[Tournament])(using Me) =
@@ -73,6 +72,10 @@ final class TournamentForm:
       val m = makeMapping(leaderTeams, prev)
       prev.fold(m): tour =>
         m
+          .verifying(
+            "Can't change ruleset after players have joined or play has started",
+            d => d.ruleset.forall(_ == tour.ruleset.key) || (tour.isCreated && tour.nbPlayers == 0)
+          )
           .verifying(
             "Can't change variant after players have joined",
             _.realVariant == tour.variant || tour.nbPlayers == 0
@@ -110,7 +113,6 @@ final class TournamentForm:
       "startDate" -> optional(inTheFuture(ISOInstantOrTimestamp.mapping)),
       "variant" -> optional(text.verifying(v => guessVariant(v).isDefined)),
       "position" -> optional(lila.common.Form.fen.playableStrict),
-      "rated" -> optional(boolean.into[Rated]),
       "password" -> optional(cleanNonEmptyText),
       "conditions" -> TournamentCondition.form.all(leaderTeams),
       "teamBattleByTeam" -> optional(of[TeamId].verifying(id => leaderTeams.exists(_.id == id))),
@@ -118,11 +120,11 @@ final class TournamentForm:
       "streakable" -> optional(boolean),
       "description" -> optional(cleanNonEmptyText),
       "payouts" -> (if manager then optional(cleanNonEmptyText.into[Payouts]) else ignored(none)),
-      "hasChat" -> optional(boolean)
+      "hasChat" -> optional(boolean),
+      "ruleset" -> optional(text.verifying(v => lila.xiangqi.adjudication.Ruleset.fromKey(v).isRight))
     )(TournamentSetup.apply)(unapply)
       .verifying("Invalid clock", _.validClock(prev))
       .verifying("Invalid clock for bot games", _.validClockForBots(prev))
-      .verifying("15s and 0+1 variant games cannot be rated", _.validRatedVariant(prev))
       .verifying("Increase tournament duration, or decrease game clock", _.sufficientDuration(prev))
       .verifying("Reduce tournament duration, or increase game clock", _.excessiveDuration(prev))
 
@@ -173,7 +175,6 @@ private[tournament] case class TournamentSetup(
     startDate: Option[Instant],
     variant: Option[String],
     position: Option[Fen.Full],
-    rated: Option[Rated],
     password: Option[String],
     conditions: TournamentCondition.All,
     teamBattleByTeam: Option[TeamId],
@@ -181,8 +182,11 @@ private[tournament] case class TournamentSetup(
     streakable: Option[Boolean],
     description: Option[String],
     payouts: Option[Payouts],
-    hasChat: Option[Boolean]
+    hasChat: Option[Boolean],
+    ruleset: Option[String] = None
 ):
+  def realRuleset = ruleset.fold(lila.xiangqi.adjudication.Ruleset.default): key =>
+    lila.xiangqi.adjudication.Ruleset.fromKey(key).fold(sys.error, identity)
   def validClock(prev: Option[Tournament]) =
     sameClock(prev) ||
       (clockTime + clockIncrement.value) > 0
@@ -197,9 +201,7 @@ private[tournament] case class TournamentSetup(
   private def sameBots(prev: Option[Tournament]) =
     prev.exists(_.conditions.allowsBots == conditions.allowsBots)
 
-  def realRated: Rated =
-    if realPosition.isDefined then Rated.No
-    else rated | Rated.Yes
+  def realRated: Rated = Rated.No
 
   def realVariant = variant.flatMap(TournamentForm.guessVariant) | chess.variant.Standard
 
@@ -208,10 +210,6 @@ private[tournament] case class TournamentSetup(
   def clockConfig = Clock.Config(LimitSeconds((clockTime * 60).toInt), clockIncrement)
 
   def speed = chess.Speed(clockConfig)
-
-  def validRatedVariant(prev: Option[Tournament]) =
-    (prev.exists(p => p.rated == realRated && p.variant == realVariant) && sameClock(prev)) ||
-      realRated.no || lila.core.game.allowRated(realVariant, clockConfig.some)
 
   def sufficientDuration(prev: Option[Tournament]) =
     sameClockAndDuration(prev) || estimateNumberOfGamesOneCanPlay >= 3
@@ -234,6 +232,7 @@ private[tournament] case class TournamentSetup(
     old
       .copy(
         name = name | old.name,
+        ruleset = if old.isCreated && old.nbPlayers == 0 && ruleset.isDefined then realRuleset else old.ruleset,
         clock = if old.isCreated then clockConfig else old.clock,
         minutes = minutes,
         rated = realRated,
@@ -259,9 +258,10 @@ private[tournament] case class TournamentSetup(
     old
       .copy(
         name = name | old.name,
+        ruleset = if old.isCreated && old.nbPlayers == 0 && ruleset.isDefined then realRuleset else old.ruleset,
         clock = if old.isCreated then clockConfig else old.clock,
         minutes = minutes,
-        rated = if rated.isDefined then realRated else old.rated,
+        rated = Rated.No,
         variant = newVariant,
         startsAt = startDate | old.startsAt,
         password = password.fold(old.password)(_.nonEmptyOption),

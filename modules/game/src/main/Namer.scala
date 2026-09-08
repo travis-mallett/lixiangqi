@@ -2,6 +2,7 @@ package lila.game
 
 import lila.core.LightUser
 import lila.core.game.{ Game, Player }
+import lila.core.rank.RankCode.*
 
 object Namer extends lila.core.game.Namer:
 
@@ -21,7 +22,7 @@ object Namer extends lila.core.game.Namer:
       case Some(level) => s"Pikafish level $level"
       case None =>
         user.fold(player.name.fold("Anon.")(_.value)): u =>
-          ratingString(player)
+          rankString(player)
             .ifTrue(withRating)
             .fold(u.titleName): rating =>
               s"${u.titleName} ($rating)"
@@ -36,6 +37,4 @@ object Namer extends lila.core.game.Namer:
       s"${playerTextUser(game.whitePlayer, wu, withRatings)} - ${playerTextUser(game.blackPlayer, bu, withRatings)}"
     }
 
-  def ratingString(p: Player): Option[String] =
-    p.rating.map: rating =>
-      s"$rating${p.provisional.yes.so("?")}"
+  def rankString(p: Player): Option[String] = p.rank.flatMap(_.publicCode).map(_.value)

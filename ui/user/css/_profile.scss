@@ -57,60 +57,6 @@
     }
   }
 
-  .insight {
-    @extend %flex-center-nowrap;
-
-    flex: 0 0 auto;
-    padding: 0.3em 1em;
-    border-top: $border;
-    color: $c-link;
-
-    strong {
-      display: block;
-      font-weight: normal;
-      font-size: 1.5em;
-    }
-
-    em {
-      display: block;
-    }
-
-    &::before {
-      font-size: 2.5em;
-      margin-inline-end: 1rem;
-    }
-
-    &:hover {
-      @include transition;
-
-      background: $c-primary;
-      color: $c-over;
-    }
-  }
-
-  .tutor-link {
-    @extend %flex-center;
-
-    padding: 0.3em 1em;
-    border-top: $border;
-    gap: 1em;
-
-    img {
-      height: 2.5em;
-    }
-
-    strong {
-      font-weight: normal;
-      font-size: 1.5em;
-    }
-
-    > span {
-      @extend %flex-column;
-    }
-
-    background: color-mix(in oklab, $c-primary 10%, $c-bg);
-  }
-
   .col2 {
     display: flex;
     flex-flow: row wrap;

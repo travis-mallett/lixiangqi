@@ -22,6 +22,7 @@ object FormCompatLayer:
         )
       )
       .pipe(addMissing("clock.moretime", pref.moretime.toString))
+      .pipe(addMissing("display.boardAnimations", pref.boardAnimations.toString))
       .pipe(
         moveTo(
           "behavior",
@@ -42,6 +43,7 @@ object FormCompatLayer:
           "display",
           List(
             "animation",
+            "boardAnimations",
             "captured",
             "highlight",
             "destination",

@@ -1,0 +1,230 @@
+{
+  "catalog_version": 4,
+  "generated_at": "2026-06-29T11:09:46-artwork-centered-masks",
+  "templates": [
+    {
+      "coord": "b7",
+      "side": "black",
+      "piece_type": "c",
+      "patch_file": "black_c_b7.png",
+      "mask_file": "black_c_b7_mask.png"
+    },
+    {
+      "coord": "h7",
+      "side": "black",
+      "piece_type": "c",
+      "patch_file": "black_c_h7.png",
+      "mask_file": "black_c_h7_mask.png"
+    },
+    {
+      "coord": "d9",
+      "side": "black",
+      "piece_type": "g",
+      "patch_file": "black_g_d9.png",
+      "mask_file": "black_g_d9_mask.png"
+    },
+    {
+      "coord": "f9",
+      "side": "black",
+      "piece_type": "g",
+      "patch_file": "black_g_f9.png",
+      "mask_file": "black_g_f9_mask.png"
+    },
+    {
+      "coord": "e9",
+      "side": "black",
+      "piece_type": "k",
+      "patch_file": "black_k_e9.png",
+      "mask_file": "black_k_e9_mask.png"
+    },
+    {
+      "coord": "c9",
+      "side": "black",
+      "piece_type": "m",
+      "patch_file": "black_m_c9.png",
+      "mask_file": "black_m_c9_mask.png"
+    },
+    {
+      "coord": "g9",
+      "side": "black",
+      "piece_type": "m",
+      "patch_file": "black_m_g9.png",
+      "mask_file": "black_m_g9_mask.png"
+    },
+    {
+      "coord": "b9",
+      "side": "black",
+      "piece_type": "n",
+      "patch_file": "black_n_b9.png",
+      "mask_file": "black_n_b9_mask.png"
+    },
+    {
+      "coord": "h9",
+      "side": "black",
+      "piece_type": "n",
+      "patch_file": "black_n_h9.png",
+      "mask_file": "black_n_h9_mask.png"
+    },
+    {
+      "coord": "a6",
+      "side": "black",
+      "piece_type": "p",
+      "patch_file": "black_p_a6.png",
+      "mask_file": "black_p_a6_mask.png"
+    },
+    {
+      "coord": "c6",
+      "side": "black",
+      "piece_type": "p",
+      "patch_file": "black_p_c6.png",
+      "mask_file": "black_p_c6_mask.png"
+    },
+    {
+      "coord": "e6",
+      "side": "black",
+      "piece_type": "p",
+      "patch_file": "black_p_e6.png",
+      "mask_file": "black_p_e6_mask.png"
+    },
+    {
+      "coord": "g6",
+      "side": "black",
+      "piece_type": "p",
+      "patch_file": "black_p_g6.png",
+      "mask_file": "black_p_g6_mask.png"
+    },
+    {
+      "coord": "i6",
+      "side": "black",
+      "piece_type": "p",
+      "patch_file": "black_p_i6.png",
+      "mask_file": "black_p_i6_mask.png"
+    },
+    {
+      "coord": "a9",
+      "side": "black",
+      "piece_type": "r",
+      "patch_file": "black_r_a9.png",
+      "mask_file": "black_r_a9_mask.png"
+    },
+    {
+      "coord": "i9",
+      "side": "black",
+      "piece_type": "r",
+      "patch_file": "black_r_i9.png",
+      "mask_file": "black_r_i9_mask.png"
+    },
+    {
+      "coord": "b2",
+      "side": "red",
+      "piece_type": "c",
+      "patch_file": "red_c_b2.png",
+      "mask_file": "red_c_b2_mask.png"
+    },
+    {
+      "coord": "h2",
+      "side": "red",
+      "piece_type": "c",
+      "patch_file": "red_c_h2.png",
+      "mask_file": "red_c_h2_mask.png"
+    },
+    {
+      "coord": "d0",
+      "side": "red",
+      "piece_type": "g",
+      "patch_file": "red_g_d0.png",
+      "mask_file": "red_g_d0_mask.png"
+    },
+    {
+      "coord": "f0",
+      "side": "red",
+      "piece_type": "g",
+      "patch_file": "red_g_f0.png",
+      "mask_file": "red_g_f0_mask.png"
+    },
+    {
+      "coord": "e0",
+      "side": "red",
+      "piece_type": "k",
+      "patch_file": "red_k_e0.png",
+      "mask_file": "red_k_e0_mask.png"
+    },
+    {
+      "coord": "c0",
+      "side": "red",
+      "piece_type": "m",
+      "patch_file": "red_m_c0.png",
+      "mask_file": "red_m_c0_mask.png"
+    },
+    {
+      "coord": "g0",
+      "side": "red",
+      "piece_type": "m",
+      "patch_file": "red_m_g0.png",
+      "mask_file": "red_m_g0_mask.png"
+    },
+    {
+      "coord": "b0",
+      "side": "red",
+      "piece_type": "n",
+      "patch_file": "red_n_b0.png",
+      "mask_file": "red_n_b0_mask.png"
+    },
+    {
+      "coord": "h0",
+      "side": "red",
+      "piece_type": "n",
+      "patch_file": "red_n_h0.png",
+      "mask_file": "red_n_h0_mask.png"
+    },
+    {
+      "coord": "a3",
+      "side": "red",
+      "piece_type": "p",
+      "patch_file": "red_p_a3.png",
+      "mask_file": "red_p_a3_mask.png"
+    },
+    {
+      "coord": "c3",
+      "side": "red",
+      "piece_type": "p",
+      "patch_file": "red_p_c3.png",
+      "mask_file": "red_p_c3_mask.png"
+    },
+    {
+      "coord": "e3",
+      "side": "red",
+      "piece_type": "p",
+      "patch_file": "red_p_e3.png",
+      "mask_file": "red_p_e3_mask.png"
+    },
+    {
+      "coord": "g3",
+      "side": "red",
+      "piece_type": "p",
+      "patch_file": "red_p_g3.png",
+      "mask_file": "red_p_g3_mask.png"
+    },
+    {
+      "coord": "i3",
+      "side": "red",
+      "piece_type": "p",
+      "patch_file": "red_p_i3.png",
+      "mask_file": "red_p_i3_mask.png"
+    },
+    {
+      "coord": "a0",
+      "side": "red",
+      "piece_type": "r",
+      "patch_file": "red_r_a0.png",
+      "mask_file": "red_r_a0_mask.png"
+    },
+    {
+      "coord": "i0",
+      "side": "red",
+      "piece_type": "r",
+      "patch_file": "red_r_i0.png",
+      "mask_file": "red_r_i0_mask.png"
+    }
+  ]
+}

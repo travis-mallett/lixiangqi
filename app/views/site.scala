@@ -8,10 +8,7 @@ val ui = lila.web.ui.SitePages(helpers)
 
 object page:
 
-  private val faqUi = lila.web.ui.FaqUi(helpers, ui)(
-    standardRankableDeviation = lila.rating.Glicko.standardRankableDeviation,
-    variantRankableDeviation = lila.rating.Glicko.variantRankableDeviation
-  )
+  private val faqUi = lila.web.ui.FaqUi(helpers, ui)
 
   def faq(using Context) = faqUi.apply.js(esmInitBit("faq"))
 

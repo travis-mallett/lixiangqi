@@ -1,5 +1,7 @@
 package lila.push
 
+import lila.core.rank.RankCode.*
+
 import org.apache.pekko.actor.*
 import play.api.libs.json.*
 import scalalib.data.LazyFu
@@ -249,7 +251,8 @@ final private class PushApi(
               PrefEvent.challenge,
               LazyFu.sync:
                 Data(
-                  title = s"${lightChallenger.titleName} (${challenger.rating.show}) challenges you!",
+                  title =
+                    s"${lightChallenger.titleName} (${challenger.rank.fold("Unranked")(_.value)}) challenges you!",
                   body = describeChallenge(c),
                   key = Key.challengeCreate,
                   urgency = Urgency.Normal,
@@ -403,7 +406,7 @@ final private class PushApi(
   private def describeChallenge(c: Challenge) =
     import lila.core.challenge.Challenge.TimeControl.*
     List(
-      if c.rated.yes then "Rated" else "Casual",
+      "Casual",
       c.timeControl match
         case Unlimited => "Unlimited"
         case Correspondence(d) => s"$d days"

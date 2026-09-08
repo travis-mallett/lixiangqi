@@ -38,7 +38,7 @@ final class IrwinStream:
         "id" -> req.suspect.user.id,
         "titled" -> req.suspect.user.hasTitle,
         "engine" -> req.suspect.user.marks.engine,
-        "games" -> req.suspect.user.count.rated
+        "games" -> req.suspect.user.count.ranked
       ),
       "games" -> req.games.map: (game, analysis) =>
         val moveTimes = game.clockHistory.isDefined.so(game.moveTimes.map(_.map(_.centis)))

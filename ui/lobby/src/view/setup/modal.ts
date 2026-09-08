@@ -1,14 +1,15 @@
+import { h } from 'snabbdom';
+
 import { timePickerAndSliders } from 'lib/setup/view/timeControl';
 import { hl, type VNode, type LooseVNodes, snabDialog, spinnerVdom } from 'lib/view';
 
 import type LobbyController from '@/ctrl';
 
+import { aiHistory } from './components/aiHistory';
+import { aiTimeControls } from './components/aiTimeControls';
 import { colorButtons } from './components/colorButtons';
 import { fenInput } from './components/fenInput';
-import { gameModeButtons } from './components/gameModeButtons';
 import { levelButtons } from './components/levelButtons';
-import { ratingDifferenceSliders } from './components/ratingDifferenceSliders';
-import { ratingView } from './components/ratingView';
 import { variantPicker } from './components/variantPicker';
 
 export default function setupModal(ctrl: LobbyController): VNode[] | null {
@@ -17,13 +18,13 @@ export default function setupModal(ctrl: LobbyController): VNode[] | null {
   const buttonText = {
     hook: i18n.site.createLobbyGame,
     friend: setupCtrl.friendUser ? i18n.site.challengeX(setupCtrl.friendUser) : i18n.site.challengeAFriend,
-    ai: i18n.site.playAgainstComputer,
+    ai: i18n.site.startTheChallenge,
   }[setupCtrl.gameType];
   const disabled = !setupCtrl.valid() || setupCtrl.loading;
   return [
     snabDialog({
       attrs: { dialog: { 'aria-labelledBy': 'lobby-setup-modal-title', 'aria-modal': 'true' } },
-      class: 'game-setup',
+      class: `game-setup game-setup--${setupCtrl.gameType}`,
       css: [{ hashed: 'lobby.setup' }],
       onClose: () => {
         setupCtrl.closeModal = undefined;
@@ -60,23 +61,51 @@ const views = {
   hook: (ctrl: LobbyController): LooseVNodes => [
     variantPicker(ctrl.setupCtrl),
     timePickerAndSliders(ctrl.setupCtrl.timeControl, 0),
-    gameModeButtons(ctrl),
-    ratingView(ctrl),
-    ratingDifferenceSliders(ctrl),
     colorButtons(ctrl.setupCtrl),
   ],
   friend: (ctrl: LobbyController): LooseVNodes => [
+    rulesetPicker(ctrl),
     variantPicker(ctrl.setupCtrl),
     fenInput(ctrl.setupCtrl),
     timePickerAndSliders(ctrl.setupCtrl.timeControl, 0),
-    gameModeButtons(ctrl),
     colorButtons(ctrl.setupCtrl),
   ],
-  ai: ({ setupCtrl }: LobbyController): LooseVNodes => [
-    variantPicker(setupCtrl),
-    fenInput(setupCtrl),
-    timePickerAndSliders(setupCtrl.timeControl, setupCtrl.minimumTimeIfReal()),
-    levelButtons(setupCtrl),
-    colorButtons(setupCtrl),
+  ai: (ctrl: LobbyController): LooseVNodes => [
+    rulesetPicker(ctrl),
+    variantPicker(ctrl.setupCtrl),
+    fenInput(ctrl.setupCtrl),
+    levelButtons(ctrl.setupCtrl),
+    aiTimeControls(ctrl.setupCtrl),
+    aiHistory(ctrl.setupCtrl, ctrl),
   ],
 };
+
+function rulesetPicker(ctrl: LobbyController) {
+  return h('label.ruleset-picker', [
+    'Xiangqi rules ',
+    h(
+      'select',
+      {
+        attrs: { 'aria-label': 'Xiangqi rules' },
+        on: {
+          change: (event: Event) => {
+            ctrl.setupCtrl.ruleset = (event.target as HTMLSelectElement).value;
+            ctrl.redraw();
+          },
+        },
+      },
+      [
+        h(
+          'option',
+          { attrs: { value: 'tiantian-v1', selected: ctrl.setupCtrl.ruleset === 'tiantian-v1' } },
+          'Tiantian',
+        ),
+        h(
+          'option',
+          { attrs: { value: 'unrestricted-v1', selected: ctrl.setupCtrl.ruleset === 'unrestricted-v1' } },
+          'Unrestricted (no repetition adjudication)',
+        ),
+      ],
+    ),
+  ]);
+}

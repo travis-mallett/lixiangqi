@@ -1111,7 +1111,7 @@ interface I18n {
     canIChangeMyUsername: string;
     /** configure */
     configure: string;
-    /** I lost a game due to lag/disconnection. Can I get my rating points back? */
+    /** I lost a game due to lag/disconnection. Can I get my rank points back? */
     connexionLostCanIGetMyRatingBack: string;
     /** desktop */
     desktop: string;
@@ -1247,7 +1247,7 @@ interface I18n {
     ratingDeviationMorethanOneHundredTen: string;
     /** rating leaderboard */
     ratingLeaderboards: string;
-    /** One minute after a player is marked, their 40 latest rated games in the last 5 days are taken. If you were their opponent in one of those games, you lost rating (because of a loss or a draw), and your rating was not provisional, you get a rating refund. The refund is capped based on your peak rating and your rating progress after the game. (For example, if your rating greatly increased after that game, you might get no refund or only a partial refund.) A refund will never exceed 150 points. */
+    /** One minute after a player is marked, their 40 latest ranked games from the last 5 days are checked. Every Xiangqi rank point that those games actually deducted from an opponent is restored. A floor-clamped loss of zero points needs no restoration. */
     ratingRefundExplanation: string;
     /** Ratings are calculated using the Glicko-2 rating method developed by Mark Glickman. This is a very popular rating method, and is used by a significant number of board-game organisations. */
     ratingSystemUsedByLichess: string;
@@ -1285,7 +1285,7 @@ interface I18n {
     viewSiteInformationPopUp: string;
     /** Learn how this rule shapes direct attacks on the %s. */
     watchIMRosenCheckmate: I18nFormat;
-    /** Unfortunately, we cannot give back rating points for games lost due to lag or disconnection, regardless of whether the problem was at your end or our end. The latter is very rare though. Also note that when Lixiangqi restarts and you lose on time because of that, we abort the game to prevent an unfair loss. */
+    /** Unfortunately, we cannot give back rank points for games lost due to lag or disconnection, regardless of whether the problem was at your end or our end. The latter is very rare though. Also note that when Lixiangqi restarts and you lose on time because of that, we abort the game to prevent an unfair loss. */
     weCannotDoThatEvenIfItIsServerSideButThatsRare: string;
     /** We repeated a position three times. Why was the game not drawn? */
     weRepeatedthreeTimesPosButNoDraw: string;
@@ -1295,7 +1295,7 @@ interface I18n {
     whatIsProvisionalRating: string;
     /** What can my username be? */
     whatUsernameCanIchoose: string;
-    /** When am I eligible for the automatic rating refund from cheaters? */
+    /** When are Xiangqi rank points automatically restored after fair-play action? */
     whenAmIEligibleRatinRefund: string;
     /** What rating system does Lixiangqi use? */
     whichRatingSystemUsedByLichess: string;
@@ -2353,20 +2353,34 @@ interface I18n {
     bellNotificationSound: string;
     /** Blindfold */
     blindfold: string;
+    /** Custom */
+    boardAnimationsCustom: string;
+    /** Off */
+    boardAnimationsOff: string;
+    /** On */
+    boardAnimationsOn: string;
     /** Board coordinates (1-9, 一-九) */
     boardCoordinates: string;
+    /** Opening, capture, check, and checkmate animations */
+    boardEventAnimations: string;
     /** Board highlights (last move and check) */
     boardHighlights: string;
     /** Board */
     boardSettings: string;
     /** Either */
     bothClicksAndDrag: string;
+    /** Capture */
+    captureAnimation: string;
     /** Move onto the target piece */
     castleByMovingOntoTheRook: string;
     /** Special move method */
     castleByMovingTheKingTwoSquaresOrOntoTheRook: string;
     /** Move king two squares */
     castleByMovingTwoSquares: string;
+    /** Check */
+    checkAnimation: string;
+    /** Checkmate */
+    checkmateAnimation: string;
     /** Xiangqi clock */
     chessClock: string;
     /** Xiangqi piece symbol */
@@ -2395,7 +2409,7 @@ interface I18n {
     explainCanThenBeTemporarilyDisabled: string;
     /** Hold the <ctrl> key to temporarily disable auto-promotion */
     explainPromoteToQueenAutomatically: string;
-    /** Hides all ratings from Lixiangqi, to help you focus on the game. */
+    /** Hides player rank titles from Lixiangqi, to help you focus on the game. */
     explainShowPlayerRatings: string;
     /** Game behaviour */
     gameBehavior: string;
@@ -2469,6 +2483,8 @@ interface I18n {
     notifyWeb: string;
     /** Only on initial position */
     onlyOnInitialPosition: string;
+    /** Opening */
+    openingAnimation: string;
     /** Letter (K, Q, R, B, N) */
     pgnLetter: string;
     /** Move notation */
@@ -2507,7 +2523,7 @@ interface I18n {
     showMoveAnnotationsOnBoard: string;
     /** Show pinned pieces */
     showPinnedPieces: string;
-    /** Show player ratings */
+    /** Show player ranks */
     showPlayerRatings: string;
     /** Show server analysis */
     showServerAnalysis: string;
@@ -3195,8 +3211,6 @@ interface I18n {
     accountRegisteredWithoutEmail: I18nFormat;
     /** Accuracy */
     accuracy: string;
-    /** Active */
-    active: string;
     /** Active players */
     activePlayers: string;
     /** Add current variation */
@@ -3211,6 +3225,26 @@ interface I18n {
     agreementMultipleAccounts: I18nFormat;
     /** I agree that I will always be respectful to other players. */
     agreementNice: string;
+    /** AI difficulty */
+    aiDifficulty: string;
+    /** Advanced (高级) */
+    aiLevelAdvanced: string;
+    /** Elementary (初级) */
+    aiLevelElementary: string;
+    /** Elite (精英) */
+    aiLevelElite: string;
+    /** Grandmaster (特级大师) */
+    aiLevelGrandmaster: string;
+    /** Initiate (入门) */
+    aiLevelInitiate: string;
+    /** Intermediate (中级) */
+    aiLevelIntermediate: string;
+    /** Master (大师) */
+    aiLevelMaster: string;
+    /** Newcomer (小白) */
+    aiLevelNewcomer: string;
+    /** Rookie (菜鸟) */
+    aiLevelRookie: string;
     /** %1$s level %2$s */
     aiNameLevelAiLevel: I18nFormat;
     /** All information is public and optional. */
@@ -3235,8 +3269,6 @@ interface I18n {
     anonymous: string;
     /** Another was %s */
     anotherWasX: I18nFormat;
-    /** Appearance categories */
-    appearanceCategories: string;
     /** Submit */
     apply: string;
     /** as black */
@@ -3261,12 +3293,18 @@ interface I18n {
     averageRatingX: I18nFormat;
     /** Background */
     background: string;
+    /** Background Image */
+    backgroundImage: string;
     /** Background image URL: */
     backgroundImageUrl: string;
     /** Background Music */
     backgroundMusic: string;
+    /** Music Style */
+    backgroundMusicStyle: string;
     /** Back to game */
     backToGame: string;
+    /** Back to homepage */
+    backToHomepage: string;
     /** Back to tournament */
     backToTournament: string;
     /** Best move arrow */
@@ -3337,8 +3375,12 @@ interface I18n {
     board: string;
     /** Board editor */
     boardEditor: string;
+    /** Board Pieces */
+    boardPieces: string;
     /** Reset colours to default */
     boardReset: string;
+    /** Board Style */
+    boardStyle: string;
     /** Bookmark this game */
     bookmarkThisGame: string;
     /** Brightness */
@@ -3367,6 +3409,8 @@ interface I18n {
     'captcha.fail': string;
     /** Capture */
     capture: string;
+    /** Voice Sound Effects */
+    captureCheckAndCheckmateVoiceSoundEffects: string;
     /** Special move rights */
     castling: string;
     /** Casual */
@@ -3415,8 +3459,6 @@ interface I18n {
     chessPerformance: string;
     /** 棋力评测 */
     chessPerformanceEvaluationChinese: string;
-    /** Choose each part of the site appearance independently. */
-    chooseAppearanceParts: string;
     /** Claim a draw */
     claimADraw: string;
     /** Classical */
@@ -3531,8 +3573,6 @@ interface I18n {
     currentPassword: string;
     /** Custom */
     custom: string;
-    /** Custom Combination */
-    customCombination: string;
     /** Custom image URL */
     customImageUrl: string;
     /** Custom position */
@@ -3543,8 +3583,6 @@ interface I18n {
     dark: string;
     /** Dark / Flip Xiangqi */
     darkFlipXiangqi: string;
-    /** Dark interface with the classic Xiangqi board and pieces. */
-    darkThemeDescription: string;
     /** Database */
     database: string;
     /** Days per turn */
@@ -3573,6 +3611,8 @@ interface I18n {
     deviceTheme: string;
     /** Different limit for opening moves */
     differentLimitForOpeningMoves: string;
+    /** Difficulty */
+    difficulty: string;
     /** Disable blind mode */
     disableBlindMode: string;
     /** Disable Kid mode */
@@ -3773,6 +3813,8 @@ interface I18n {
     goodPractice: string;
     /** Graph */
     graph: string;
+    /** Graphical Symbols */
+    graphicalSymbols: string;
     /** Hang on! */
     hangOn: string;
     /** Help: */
@@ -3915,7 +3957,7 @@ interface I18n {
     letOtherPlayersMessageYou: string;
     /** Level */
     level: string;
-    /** Rated games played on Lixiangqi */
+    /** Ranked games played on Lixiangqi */
     lichessDbExplanation: string;
     /** Lixiangqi is a charity and entirely free/libre open source software. We depend on user donations to support our operating costs, development, and content. Without our generous community, we would not be able to keep the site running. Thank you for joining us! */
     lichessPatronInfo: string;
@@ -3925,8 +3967,6 @@ interface I18n {
     lifetimeScore: string;
     /** Light */
     light: string;
-    /** Light interface with the classic Xiangqi board and pieces. */
-    lightThemeDescription: string;
     /** Like */
     like: string;
     /** Liked */
@@ -3935,6 +3975,8 @@ interface I18n {
     list: string;
     /** List players you have blocked */
     listBlockedPlayers: string;
+    /** Live ranked games */
+    liveRatedGames: string;
     /** Loading engine... */
     loadingEngine: string;
     /** Load position */
@@ -3959,6 +4001,8 @@ interface I18n {
     lossSavedBy50MoveRule: string;
     /** You lost rating points to someone who violated the Lixiangqi TOS */
     lostAgainstTOSViolator: string;
+    /** You lost Xiangqi rank points to someone who violated the Lixiangqi TOS */
+    lostRankPointsToTOSViolator: string;
     /** For safekeeping and sharing, consider making a study. */
     makeAStudy: string;
     /** Make main line */
@@ -3971,6 +4015,8 @@ interface I18n {
     markdownIsAvailable: I18nFormat;
     /** OTB games of %1$s+ WXF-rated players from %2$s to %3$s */
     masterDbExplanation: I18nFormat;
+    /** Matching opponent */
+    matchingOpponent: string;
     /** Mate in %s half-moves */
     mateInXHalfMoves: I18nPlural;
     /** Max depth reached! */
@@ -4009,8 +4055,6 @@ interface I18n {
     minutesShort: I18nFormat;
     /** Mistake */
     mistake: string;
-    /** Mix individual appearance options */
-    mixAppearanceOptions: string;
     /** Mobile */
     mobile: string;
     /** Mobile App */
@@ -4101,6 +4145,8 @@ interface I18n {
     nbPlaying: I18nPlural;
     /** %s puzzles */
     nbPuzzles: I18nPlural;
+    /** %s ranked games */
+    nbRanked: I18nPlural;
     /** %s rated */
     nbRated: I18nPlural;
     /** %s registered users */
@@ -4245,10 +4291,14 @@ interface I18n {
     other: string;
     /** other players */
     otherPlayers: string;
+    /** Other Time Controls */
+    otherTimeControls: string;
     /** Our tips for organising events */
     ourEventTips: string;
     /** Outside the board */
     outsideTheBoard: string;
+    /** Pass rate */
+    passRate: string;
     /** Password */
     password: string;
     /** Password reset */
@@ -4277,6 +4327,8 @@ interface I18n {
     play: string;
     /** Play against computer */
     playAgainstComputer: string;
+    /** Play Casual Xiangqi */
+    playCasualXiangqi: string;
     /** Play Xiangqi everywhere */
     playChessEverywhere: string;
     /** Play Xiangqi in style */
@@ -4295,6 +4347,8 @@ interface I18n {
     playFirstOpeningEndgameExplorerMove: string;
     /** Playing right now */
     playingRightNow: string;
+    /** Play Rated Xiangqi */
+    playRatedXiangqi: string;
     /** play selected move */
     playSelectedMove: string;
     /** Play a variation to create conditional premoves */
@@ -4351,12 +4405,16 @@ interface I18n {
     quote: string;
     /** Race finished */
     raceFinished: string;
+    /** Random */
+    random: string;
     /** Randomized start position */
     randomChess960Position: string;
     /** Random side */
     randomColor: string;
     /** Rank */
     rank: string;
+    /** Ranked */
+    ranked: string;
     /** Rank is updated every %s minutes */
     rankIsUpdatedEveryNbMinutes: I18nPlural;
     /** Rank: %s */
@@ -4407,6 +4465,8 @@ interface I18n {
     refreshInboxAfterFiveMinutes: string;
     /** Refund: %1$s %2$s rating points. */
     refundXpointsTimeControlY: I18nFormat;
+    /** Restored: %s Xiangqi rank points. */
+    refundXrankPoints: I18nFormat;
     /** Rematch */
     rematch: string;
     /** Rematch offer accepted */
@@ -4481,6 +4541,8 @@ interface I18n {
     revokeAllSessions: string;
     /** Pick a very safe name for the tournament. */
     safeTournamentName: string;
+    /** Saturation */
+    saturation: string;
     /** Save */
     save: string;
     /** Screenshot current position */
@@ -4535,6 +4597,10 @@ interface I18n {
     side: string;
     /** Sign in */
     signIn: string;
+    /** Sign in or register to track your win rate */
+    signInOrRegisterToTrackWinRate: string;
+    /** Sign-in to play rated games. */
+    signInToPlayRatedXiangqi: string;
     /** Register */
     signUp: string;
     /** We will only send you emails about your account and never share your email. */
@@ -4597,6 +4663,8 @@ interface I18n {
     stalemate: string;
     /** Standard */
     standard: string;
+    /** Standard match history against %1$s · %2$s */
+    standardHistoryAgainst: I18nFormat;
     /** Stand by %s, pairing players, get ready! */
     standByX: I18nFormat;
     /** Standings */
@@ -4607,8 +4675,14 @@ interface I18n {
     starting: string;
     /** Starting in */
     startingIn: string;
+    /** Start */
+    startMatchmaking: string;
     /** Starting position */
     startPosition: string;
+    /** Start the challenge */
+    startTheChallenge: string;
+    /** Statistics are temporarily unavailable */
+    statisticsUnavailable: string;
     /** Stats */
     stats: string;
     /** Streamer manager */
@@ -4651,8 +4725,8 @@ interface I18n {
     theForumEtiquette: string;
     /** The game is a draw. */
     theGameIsADraw: string;
-    /** Theme */
-    theme: string;
+    /** Theme default */
+    themeDefault: string;
     /** No results for "%s" */
     thereAreNoResultsForX: I18nFormat;
     /** The Lixiangqi Terms of Service were violated on this account */
@@ -4683,6 +4757,8 @@ interface I18n {
     timeBeforeTournamentStarts: string;
     /** Time control */
     timeControl: string;
+    /** Time controls */
+    timeControls: string;
     /** Timeline */
     timeline: string;
     /** Time per move */
@@ -4735,7 +4811,7 @@ interface I18n {
     tournamentEntryCode: string;
     /** Arena tournament FAQ */
     tournamentFAQ: string;
-    /** Play fast-paced Xiangqi tournaments! Join an official scheduled tournament, or create your own. Bullet, Blitz, Classical, and more options available for endless Xiangqi fun. */
+    /** Play casual Xiangqi tournaments! Join an official scheduled tournament or create your own event with the clock you prefer. */
     tournamentHomeDescription: string;
     /** Xiangqi tournaments featuring various time controls and variants */
     tournamentHomeTitle: string;
@@ -4757,6 +4833,8 @@ interface I18n {
     tpTimeSpentOnTV: I18nFormat;
     /** Time spent playing: %s */
     tpTimeSpentPlaying: I18nFormat;
+    /** Traditional */
+    traditional: string;
     /** Transparent */
     transparent: string;
     /** Troll */
@@ -4771,7 +4849,7 @@ interface I18n {
     tryToWin: string;
     /** Type private notes here */
     typePrivateNotesHere: string;
-    /** UI theme */
+    /** UI Theme */
     uiTheme: string;
     /** UltraBullet */
     ultraBullet: string;
@@ -4955,6 +5033,8 @@ interface I18n {
     xCreatedTeamY: I18nFormat;
     /** %1$s hosts %2$s */
     xHostsY: I18nFormat;
+    /** Empty Xiangqi board, ready to play */
+    xiangqiBoardReady: string;
     /** %1$s invited you to "%2$s". */
     xInvitedYouToY: I18nFormat;
     /** %1$s is a free (%2$s), libre, no-ads, open source Xiangqi server. */

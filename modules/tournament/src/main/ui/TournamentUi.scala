@@ -4,7 +4,6 @@ package ui
 import play.api.i18n.Lang
 
 import lila.core.i18n.Translate
-import lila.rating.PerfType
 import lila.ui.*
 import lila.ui.ScalatagsTemplate.{ *, given }
 import lila.common.ClientName
@@ -54,10 +53,10 @@ final class TournamentUi(helpers: Helpers)(getTourName: GetTourName):
           span(
             t.clock.show,
             " • ",
-            if t.variant.exotic then t.variant.name else t.perfType.trans,
+            if t.variant.exotic then t.variant.name else "Xiangqi",
             t.position.isDefined.option(frag(" • ", trans.site.customPosition())),
             " • ",
-            lila.gathering.ui.translateRated(t.rated),
+            trans.site.casual(),
             " • ",
             t.durationString
           )
@@ -130,10 +129,10 @@ final class TournamentUi(helpers: Helpers)(getTourName: GetTourName):
           span(cls := "setup")(
             t.clock.show,
             " • ",
-            if t.variant.exotic then t.variant.name else t.perfType.trans,
+            if t.variant.exotic then t.variant.name else "Xiangqi",
             t.position.isDefined.option(frag(" • ", trans.site.customPosition())),
             " • ",
-            lila.gathering.ui.translateRated(t.rated),
+            trans.site.casual(),
             " • ",
             t.durationString
           )
@@ -150,23 +149,8 @@ final class TournamentUi(helpers: Helpers)(getTourName: GetTourName):
     )
 
   object scheduledTournamentNameShortHtml:
-    private def icon(c: Icon) = s"""<span data-icon="$c"></span>"""
-    private val replacements =
-      given lila.core.i18n.Translate = transDefault
-      List(
-        "Lichess " -> "",
-        "Marathon" -> icon(Icon.Globe),
-        "HyperBullet" -> s"H${icon(PerfType.Bullet.icon)}",
-        "SuperBlitz" -> s"S${icon(PerfType.Blitz.icon)}"
-      ) ::: lila.rating.PerfType.leaderboardable
-        .filterNot(lila.rating.PerfType.translated.contains)
-        .map(PerfType(_))
-        .map: pt =>
-          pt.trans -> icon(pt.icon)
-    def apply(name: String): Frag = raw:
-      replacements.foldLeft(name):
-        case (n, (from, to)) => n.replace(from, to)
+    def apply(name: String): Frag = raw(name.replace("Lichess ", ""))
 
   def tournamentIcon(tour: Tournament): Icon =
     if tour.isMarathon then Icon.Globe
-    else tour.spotlight.flatMap(_.iconFont) | tour.perfType.icon
+    else tour.spotlight.flatMap(_.iconFont) | Icon.Trophy

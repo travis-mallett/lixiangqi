@@ -1,11 +1,12 @@
 package lila.tv
 
 import chess.Color
-import chess.IntRating
 import scalalib.actor.SyncActor
 import scalalib.HeapSort.topNToList
 
 import lila.core.LightUser
+import lila.core.rank.RankScore.*
+import lila.rating.XiangqiRank
 
 final private class ChannelSyncActor(
     channel: Tv.Channel,
@@ -25,10 +26,10 @@ final private class ChannelSyncActor(
 
   private def oneId = history.headOption
 
-  // the list of candidates by descending rating order
+  // The list of candidates by descending native Xiangqi rank score.
   private var manyIds = List.empty[GameId]
 
-  private val candidateIds = scalalib.cache.ExpireSetMemo[GameId](3.minutes)
+  private val candidateIds = scalalib.cache.ExpireSetMemo[GameId](channel.candidateLifetime)
 
   protected val process: SyncActor.Receive =
 
@@ -44,7 +45,7 @@ final private class ChannelSyncActor(
     case SetGame(game) =>
       onSelect(TvSyncActor.Selected(channel, game))
       history = game.id :: history.take(2)
-      lila.mon.tv.selector.rating(channel.name).record(game.averageUsersRating.so(_.value))
+      lila.mon.tv.selector.rating(channel.name).record(averageRankScore(game))
 
     case TvSyncActor.Select =>
       lila.mon.tv.selector.candidates(channel.name).record(candidateIds.count)
@@ -55,13 +56,13 @@ final private class ChannelSyncActor(
 
   def addCandidate(game: Game): Unit = candidateIds.put(game.id)
 
-  private val ratingOrdering = Ordering.by[Game, Int](_.averageUsersRating.so(_.value))
+  private val rankOrdering = Ordering.by[Game, Int](averageRankScore)
 
   private def doSelectNow(): Fu[(Option[Game], List[GameId])] = for
     allCandidates <- candidateIds.keys.parallel(gameProxy.gameIfPresent)
     freshCandidates = allCandidates.view.collect:
       case Some(g) if channel.isFresh(g) => g
-    sortedCandidates = topNToList(freshCandidates, 64)(using ratingOrdering)
+    sortedCandidates = topNToList(freshCandidates, 64)(using rankOrdering)
     cheaters <- userApi.filterEngines(sortedCandidates.flatMap(_.userIds))
     candidates = sortedCandidates.filterNot(_.userIds.toSet.intersect(cheaters).nonEmpty)
     _ = lila.mon.tv.selector.cheats(channel.name).record(sortedCandidates.size - candidates.size)
@@ -93,21 +94,25 @@ final private class ChannelSyncActor(
   private type Heuristic = Game => Int
 
   private val heuristics: List[Heuristic] = List(
-    ratingHeuristic(Color.White),
-    ratingHeuristic(Color.Black),
+    rankHeuristic(Color.White),
+    rankHeuristic(Color.Black),
     titleHeuristic(Color.White),
     titleHeuristic(Color.Black)
   )
 
-  private def ratingHeuristic(color: Color): Heuristic =
-    game => game.player(color).stableRating.fold(1300)(_.value)
+  private def rankHeuristic(color: Color): Heuristic =
+    game => game.player(color).rank.fold(XiangqiRank.catalog.initialScore.value)(_.score.value)
+
+  private def averageRankScore(game: Game): Int =
+    val scores = game.players.flatMap(_.rank.map(_.score.value))
+    if scores.isEmpty then XiangqiRank.catalog.initialScore.value else scores.sum / scores.size
 
   private def titleHeuristic(color: Color): Heuristic = game =>
     ~game
       .player(color)
       .some
       .flatMap: p =>
-        p.stableRating.exists(_ > IntRating(2100)).so(p.userId)
+        p.rank.exists(_.score.value >= 2100).so(p.userId)
       .flatMap(lightUserSync)
       .flatMap(_.title)
       .flatMap(Tv.titleScores.get)

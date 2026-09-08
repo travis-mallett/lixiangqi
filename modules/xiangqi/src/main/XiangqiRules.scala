@@ -5,6 +5,7 @@ import scala.util.Try
 import scala.util.matching.Regex
 
 import lila.xiangqi.Xiangqi.*
+import lila.xiangqi.adjudication.Ruleset
 
 /** Native Standard Xiangqi rules and position transitions.
   *
@@ -30,40 +31,87 @@ object XiangqiRules:
       if side == Side.Red then red else black
 
   def position(input: Position): Either[String, State] =
-    replay(input).map(stateOf)
+    if input.ruleset == Ruleset.Unrestricted then replay(input).map(stateOf)
+    else game(input).map(_.state)
 
-  def initialGame(initialFen: Option[String] = None): Either[String, Game] =
-    game(Position(initialFen = normalizedInitialFen(initialFen)))
+  def initialGame(
+      initialFen: Option[String] = None,
+      ruleset: Ruleset = Ruleset.default
+  ): Either[String, Game] =
+    game(Position(initialFen = normalizedInitialFen(initialFen), ruleset = ruleset))
 
   def game(input: Position): Either[String, Game] =
     decode(input.initialFen).flatMap: initial =>
       input.moves
-        .foldLeft[Either[String, (Game, Decoded)]](
+        .foldLeft[Either[String, Game]](
           Right(
             Game(
               initialFen = input.initialFen,
               moves = Vector.empty,
               wxf = Vector.empty,
-              states = Vector(stateOf(initial))
-            ) -> initial
+              states = Vector(
+                input.ruleset.policy.fold(stateOf(initial))(_.initial(stateOf(initial)))
+              ),
+              ruleset = input.ruleset
+            )
           )
         ): (result, uci) =>
-          result.flatMap: (game, current) =>
-            move(current, uci).flatMap: (move, next) =>
-              game.applyMove(move).map(_ -> next)
-        .map(_._1)
+          result.flatMap: game =>
+            move(game, uci).flatMap(game.applyMove)
 
   def move(input: Position, uci: Uci): Either[String, MoveResult] =
-    replay(input).flatMap(move(_, uci)).map(_._1)
+    if input.ruleset == Ruleset.Unrestricted then replay(input).flatMap(move(_, uci)).map(_._1)
+    else game(input).flatMap(move(_, uci))
 
   /** Apply one move to the current immutable game state.
     *
-    * Live games use this overload so move cost is independent of game length. Historical coordinate moves
-    * remain available for persistence and repetition adjudication, but are not replayed to validate every new
-    * move.
+    * Live games use this overload to avoid replaying board transitions. Adjudication examines the persisted
+    * history of position snapshots and forcing facts.
     */
   def move(game: Game, uci: Uci): Either[String, MoveResult] =
-    decode(game.state.fen).flatMap(move(_, uci)).map(_._1)
+    if game.ruleset == Ruleset.Unrestricted then boardMove(game.state.fen, uci)
+    else if game.state.ended then Left("This Xiangqi game has ended")
+    else if !game.state.legalMoves.contains(uci) then
+      Left(game.state.variation.fold(s"Illegal Xiangqi move: ${uci.value}"): reason =>
+        s"Must vary: $reason")
+    else
+      boardMove(game.state.fen, uci).map: result =>
+        val state = game.ruleset.policy.get.afterMove(game, result)
+        result.copy(
+          legalMoves = state.legalMoves,
+          insufficientMaterial = state.insufficientMaterial,
+          gameResult = state.gameResult,
+          immediateEnd = state.immediateEnd,
+          optionalEnd = state.optionalEnd,
+          adjudication = state.adjudication,
+          termination = state.termination,
+          variation = state.variation
+        )
+
+  private[xiangqi] def boardMove(fen: String, uci: Uci): Either[String, MoveResult] =
+    decode(fen).flatMap(move(_, uci)).map(_._1)
+
+  /** Board-level captures, including discovered attacks; never consult adjudication here. */
+  private[xiangqi] def captures(board: Board, side: Side): Vector[Uci] =
+    legalMoves(Decoded(board, side, 0, 1)).filter: uci =>
+      board.pieceAt(uci.dest).exists(_.side != side)
+
+  /** Short-circuit recapture test using the same king-safety rules as legal move generation. */
+  private[xiangqi] def canCaptureAt(board: Board, side: Side, target: Square): Boolean =
+    board.pieceAt(target).exists(_.side != side) && board.pieces.iterator.exists:
+      case (orig, piece) =>
+        piece.side == side && pseudoMoves(board, orig, piece).contains(target) &&
+        leavesGeneralSafe(Decoded(board, side, 0, 1), orig, target, piece)
+
+  private[xiangqi] def checkingPieces(board: Board, side: Side): Vector[String] =
+    generalSquare(board, !side).toVector.flatMap: king =>
+      board.pieces.iterator
+        .collect:
+          case (square, piece)
+              if piece.side == side &&
+                pseudoMoves(board, square, piece, attacksOnly = true).contains(king) =>
+            squareKey(square)
+        .toVector
 
   def legalMoves(fen: String): Either[String, Vector[Uci]] =
     decode(fen).map(legalMoves)
@@ -105,7 +153,8 @@ object XiangqiRules:
         insufficientMaterial = state.insufficientMaterial,
         gameResult = state.gameResult,
         immediateEnd = state.immediateEnd,
-        optionalEnd = state.optionalEnd
+        optionalEnd = state.optionalEnd,
+        termination = state.termination
       ) -> transition.next
 
   private def notation(board: Board, uci: Uci, style: NotationStyle): String =
@@ -167,7 +216,8 @@ object XiangqiRules:
       insufficientMaterial = false,
       gameResult = result,
       immediateEnd = Ending(ended = ended, result = if ended then 1 else 0),
-      optionalEnd = Ending(ended = false, result = 0)
+      optionalEnd = Ending(ended = false, result = 0),
+      termination = Option.when(ended)(if check then "checkmate" else "stalemate")
     )
 
   private def legalMoves(position: Decoded): Vector[Uci] =

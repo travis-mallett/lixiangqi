@@ -99,21 +99,12 @@ final class UserTournament(helpers: Helpers, ui: TournamentUi):
             )
           ),
           tbody(
-            data.perfResults.map { case (pt, res) =>
-              tr(
-                th(iconTag(pt.icon, pt.trans)),
-                td(res.nb.localize),
-                td(res.points.median.map(_.toInt)),
-                td(res.points.sum.localize),
-                td(res.rankPercentMedian, "%")
-              )
-            },
             tr(
-              th(trans.arena.total()),
-              td(data.allPerfResults.nb.localize),
-              td(data.allPerfResults.points.median.map(_.toInt)),
-              td(data.allPerfResults.points.sum.localize),
-              td(data.allPerfResults.rankPercentMedian, "%")
+              th("Xiangqi"),
+              td(data.result.nb.localize),
+              td(data.result.points.median.map(_.toInt)),
+              td(data.result.points.sum.localize),
+              td(data.result.rankPercentMedian, "%")
             )
           )
         )
@@ -149,7 +140,7 @@ final class UserTournament(helpers: Helpers, ui: TournamentUi):
                     span(cls := "setup")(
                       e.tour.clock.show,
                       " • ",
-                      if e.tour.variant.exotic then e.tour.variant.name else e.tour.perfType.trans,
+                      "Xiangqi",
                       " • ",
                       momentFromNow(e.tour.startsAt)
                     )

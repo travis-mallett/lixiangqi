@@ -15,17 +15,23 @@ import { makeVoiceMove, type VoiceMove } from 'voice';
 
 import { defined, type Toggle, type Prop, toggle, requestIdleCallbackSafe, memoize } from 'lib';
 import * as game from 'lib/game';
-import { plyOpponentColor, xiangqiCgToUci, xiangqiUciMoveToCg } from 'lib/game';
+import { isXiangqiCapture, plyOpponentColor, xiangqiCgToUci, xiangqiUciMoveToCg } from 'lib/game';
+import { isXiangqiCheckmate } from 'lib/game/adjudication';
 import { plyToTurn, plyColor } from 'lib/game/chess';
 import { ClockCtrl, type ClockOpts } from 'lib/game/clock/clockCtrl';
 import type { MoveRootCtrl } from 'lib/game/moveRootCtrl';
 import { PromotionCtrl } from 'lib/game/promotion';
+import {
+  isRecordedClockTimeline,
+  RecordedClockPlayback,
+  type RecordedClockFrame,
+  type RecordedClockPosition,
+} from 'lib/game/replay/recordedClockPlayback';
 import { game as gameRoute } from 'lib/game/router';
 import { playing } from 'lib/game/status';
 import viewStatus from 'lib/game/view/status';
 import { licon } from 'lib/licon';
 import notify from 'lib/notification';
-import * as poolRangeStorage from 'lib/poolRangeStorage';
 import { Replay } from 'lib/prefs';
 import { pubsub } from 'lib/pubsub';
 import { type SocketSendOpts } from 'lib/socket';
@@ -67,6 +73,14 @@ export default class RoundController implements MoveRootCtrl {
   socket: RoundSocket;
   chessground: XiangqiGroundApi;
   clock?: ClockCtrl;
+  recordedClockPlayback?: RecordedClockPlayback;
+  private latestClock?: {
+    white: number;
+    black: number;
+    moveTime?: number;
+    ticking?: Color;
+    updatedAt: number;
+  };
   corresClock?: CorresClockController;
   keyboardMove?: KeyboardMove;
   voiceMove?: VoiceMove;
@@ -115,6 +129,11 @@ export default class RoundController implements MoveRootCtrl {
     this.blindfoldStorage = storage.boolean(`blindfold.${this.data.player.user?.id ?? 'anon'}`);
 
     this.updateClockCtrl();
+    this.captureLatestClock(d.clock);
+    setTimeout(() => {
+      this.initRecordedClockPlayback();
+      this.redraw();
+    });
     this.promotion = new PromotionCtrl(
       f => f(this.chessground as unknown as CgApi),
       () => {
@@ -145,6 +164,7 @@ export default class RoundController implements MoveRootCtrl {
     // at the end:
     pubsub.on('jump', ply => {
       this.jump(parseInt(ply));
+      this.syncRecordedClockForPly();
       this.redraw();
     });
 
@@ -165,8 +185,8 @@ export default class RoundController implements MoveRootCtrl {
     this.sendMove(orig, dest, meta);
   };
 
-  private readonly onMove = (_orig: XiangqiKey, _dest: XiangqiKey, captured?: XiangqiPiece) => {
-    site.sound.move({ capture: !!captured });
+  private readonly onMove = (_orig: XiangqiKey, _dest: XiangqiKey, _captured?: XiangqiPiece) => {
+    site.sound.move({ capture: false });
   };
 
   private readonly onPremove = () => {};
@@ -186,12 +206,18 @@ export default class RoundController implements MoveRootCtrl {
 
   replaying = (): boolean => this.ply !== this.lastPly() && !this.data.local;
 
+  canToggleRecordedClockPlayback = (): boolean =>
+    !!this.recordedClockPlayback && !!this.data.tv && this.data.player.spectator === true && this.replaying();
+
+  toggleRecordedClockPlayback = (): void => this.recordedClockPlayback?.toggle();
+
   userJump = (ply: Ply): void => {
     this.toSubmit = undefined;
     this.promotion.dismiss();
     this.chessground.selectSquare(null);
     if (ply !== this.ply && this.jump(ply)) site.sound.saySan(this.stepAt(this.ply).san, true);
     else this.redraw();
+    this.syncRecordedClockForPly();
   };
 
   userJumpPlyDelta = (plyDelta: Ply): void => this.userJump(this.ply + plyDelta);
@@ -202,6 +228,7 @@ export default class RoundController implements MoveRootCtrl {
     ply = Math.max(util.firstPly(this.data), Math.min(this.lastPly(), ply));
     const isForwardStep = ply === this.ply + 1;
     const isBackward = ply < this.ply;
+    const previousFen = this.stepAt(this.ply).fen;
     this.ply = ply;
     const s = this.stepAt(ply),
       config: XiangqiGroundConfig = {
@@ -219,7 +246,11 @@ export default class RoundController implements MoveRootCtrl {
       };
     this.chessground.cancelMove();
     this.chessground.set(config, isBackward ? { animation: 'slide' } : undefined);
-    if (s.san && isForwardStep) site.sound.move(s);
+    if (s.san && isForwardStep)
+      site.sound.move({
+        ...s,
+        capture: s.capture ?? isXiangqiCapture(previousFen, s.fen),
+      });
     this.autoScroll();
     pubsub.emit('ply', ply);
     this.pluginUpdate(s.fen);
@@ -331,6 +362,8 @@ export default class RoundController implements MoveRootCtrl {
     const d = this.data;
     const playing = this.isPlaying();
     d.game.turns = o.ply;
+    d.game.variation = o.variation;
+    d.game.termination = o.termination;
     d.game.player = plyColor(o.ply);
     const playedColor = plyOpponentColor(o.ply);
     const activeColor = d.player.color === d.game.player;
@@ -353,10 +386,12 @@ export default class RoundController implements MoveRootCtrl {
         check: !!o.check,
       });
       if (this.googlyEyes) this.chessground.setAutoShapes(this.googlyEyes());
-      if (o.status?.name === 'mate') {
+      if (isXiangqiCheckmate(o.status?.name, o.termination, o.check)) {
         site.sound.play('checkmate', o.volume);
       } else if (o.check) {
         site.sound.play('check', o.volume);
+      } else if (o.capture) {
+        site.sound.play('capture', o.volume);
       }
       blur.onMove();
       pubsub.emit('ply', this.ply);
@@ -369,6 +404,8 @@ export default class RoundController implements MoveRootCtrl {
       san: game.selectXiangqiNotation(o.san, o.sanZh, d.pref.notationStyle),
       uci: o.uci,
       check: o.check,
+      capture: o.capture,
+      mate: isXiangqiCheckmate(o.status?.name, o.termination, o.check),
     };
     d.steps.push(step);
     if (this.ply === step.ply && this.chessground.getFen() !== step.fen) ground.sync(this, step, playing);
@@ -378,7 +415,13 @@ export default class RoundController implements MoveRootCtrl {
       this.shouldSendMoveTime = true;
       const oc = o.clock,
         delay = playing && activeColor ? 0 : oc.lag || 1;
-      if (this.clock)
+      this.captureLatestClock(oc, delay);
+      if (d.clock) {
+        d.clock.white = oc.white;
+        d.clock.black = oc.black;
+      }
+      this.appendRecordedClock(oc, playedColor);
+      if (this.clock && !this.replaying())
         this.clock.setClock({
           white: oc.white,
           black: oc.black,
@@ -428,7 +471,9 @@ export default class RoundController implements MoveRootCtrl {
     this.data = d;
     this.shouldSendMoveTime = false;
     this.updateClockCtrl();
-    if (this.clock)
+    this.captureLatestClock(d.clock);
+    this.initRecordedClockPlayback();
+    if (this.clock && !this.replaying())
       this.clock.setClock({
         white: d.clock!.white,
         black: d.clock!.black,
@@ -452,6 +497,8 @@ export default class RoundController implements MoveRootCtrl {
     const d = this.data;
     d.game.winner = o.winner;
     d.game.status = o.status;
+    if (o.termination !== undefined) d.game.termination = o.termination;
+    d.game.variation = undefined;
     d.game.abortedBy = o.abortedBy;
     d.game.boosted = o.boosted;
     d.player.blindfold = false;
@@ -467,15 +514,15 @@ export default class RoundController implements MoveRootCtrl {
     }
     this.promotion.cancel();
     this.chessground.stop();
-    if (o.ratingDiff) {
-      d.player.ratingDiff = o.ratingDiff[d.player.color];
-      d.opponent.ratingDiff = o.ratingDiff[d.opponent.color];
+    if (o.rank) {
+      d.player.rank = o.rank[d.player.color];
+      d.opponent.rank = o.rank[d.opponent.color];
     }
     if (!d.player.spectator && d.game.turns > 1) {
-      poolRangeStorage.shiftRangeAfter(d);
       const key = o.winner ? (d.player.color === o.winner ? 'victory' : 'defeat') : 'draw';
-      // Delay 'victory' & 'defeat' sounds to avoid overlapping with 'checkmate' sound
-      if (o.status.name === 'mate') site.sound.playAndDelayMateResultIfNecessary(key);
+      // The sound service suppresses result sounds for checkmate, which has dedicated audio.
+      if (isXiangqiCheckmate(o.status.name, d.game.termination, util.lastStep(d).check))
+        site.sound.playAndDelayMateResultIfNecessary(key);
       else site.sound.play(key);
     }
     this.onTimeTrouble(false);
@@ -490,6 +537,12 @@ export default class RoundController implements MoveRootCtrl {
         black: o.clock.bc * 0.01,
         ticking: undefined,
       });
+    if (o.clock)
+      this.latestClock = {
+        white: o.clock.wc * 0.01,
+        black: o.clock.bc * 0.01,
+        updatedAt: performance.now(),
+      };
     this.redraw();
     this.autoScroll();
     this.onChange();
@@ -537,8 +590,93 @@ export default class RoundController implements MoveRootCtrl {
     }
   }
 
+  private initRecordedClockPlayback(): void {
+    this.recordedClockPlayback?.destroy();
+    this.recordedClockPlayback = undefined;
+    const timeline = this.data.recordedClock;
+    if (!isRecordedClockTimeline(timeline) || !this.clock || !this.data.tv || !this.data.player.spectator)
+      return;
+    this.recordedClockPlayback = new RecordedClockPlayback(timeline, {
+      currentPosition: () => this.recordedPositionForPly(this.ply),
+      goToPosition: position => {
+        this.jump(timeline.startPly + position);
+        this.autoScroll();
+      },
+      renderClock: this.renderRecordedClock,
+      stateChanged: this.redraw,
+      ended: this.restoreLatestClock,
+    });
+    if (!this.replaying()) this.restoreLatestClock();
+  }
+
+  private recordedPositionForPly(ply: number): number {
+    const timeline = this.data.recordedClock;
+    return timeline ? Math.max(0, Math.min(timeline.positions.length - 1, ply - timeline.startPly)) : 0;
+  }
+
+  private syncRecordedClockForPly(): void {
+    if (!this.recordedClockPlayback) return;
+    this.recordedClockPlayback.select(this.recordedPositionForPly(this.ply));
+    if (this.ply === this.lastPly()) this.restoreLatestClock();
+  }
+
+  private readonly renderRecordedClock = (frame: RecordedClockFrame): void => {
+    this.clock?.setClock({
+      white: frame.white / 1000,
+      black: frame.black / 1000,
+      ticking: frame.activeColor,
+    });
+    this.redraw();
+  };
+
+  private readonly restoreLatestClock = (): void => {
+    if (!this.clock || !this.latestClock) return;
+    const latest = this.latestClock;
+    const elapsed = latest.ticking ? Math.max(0, performance.now() - latest.updatedAt) / 1000 : 0;
+    const white = latest.ticking === 'white' ? Math.max(0, latest.white - elapsed) : latest.white;
+    const black = latest.ticking === 'black' ? Math.max(0, latest.black - elapsed) : latest.black;
+    this.clock.setClock({
+      white,
+      black,
+      moveTime: latest.moveTime === undefined ? undefined : Math.max(0, latest.moveTime - elapsed),
+      ticking: latest.ticking,
+    });
+    this.redraw();
+  };
+
+  private captureLatestClock(
+    clock: { white: number; black: number; moveTime?: number } | undefined,
+    delay = 0,
+  ): void {
+    this.latestClock = clock
+      ? {
+          white: clock.white,
+          black: clock.black,
+          moveTime: clock.moveTime,
+          ticking: this.tickingClockColor(),
+          updatedAt: performance.now() + delay * 10,
+        }
+      : undefined;
+  }
+
+  private appendRecordedClock(clock: { white: number; black: number }, mover: Color): void {
+    const playback = this.recordedClockPlayback;
+    const timeline = this.data.recordedClock;
+    if (!playback || !timeline || timeline.positions.length !== this.data.steps.length - 1) return;
+    const previous = timeline.positions[timeline.positions.length - 1];
+    const position: RecordedClockPosition = {
+      white: Math.max(0, Math.round(clock.white * 100)),
+      black: Math.max(0, Math.round(clock.black * 100)),
+    };
+    const increment = timeline.delays.length > 1 ? (this.data.clock?.increment ?? 0) * 100 : 0;
+    const delay = Math.max(0, previous[mover] + increment - position[mover]);
+    playback.append(position, delay);
+  }
+
   private readonly makeClockOpts: () => ClockOpts = () => ({
-    onFlag: this.socket.outoftime,
+    onFlag: () => {
+      if (!this.recordedClockPlayback?.isPlaying()) this.socket.outoftime();
+    },
     bothPlayersHavePlayed: () => game.bothPlayersHavePlayed(this.data),
     hasGoneBerserk: this.hasGoneBerserk,
     alarmColor:

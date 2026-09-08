@@ -46,7 +46,6 @@ object PlanBuilder:
         else
           (
             s1.variant.exotic || // overlapping non-standard variant
-              s1.hasMaxRating || // overlapping same rating limit
               Schedule.Speed.similar(s1.speed, s2.speed) // overlapping similar speed
           ) && s1.conditions.similar(s2.conditions) && overlaps(si2)
       )

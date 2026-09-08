@@ -15,17 +15,18 @@ case class FriendConfig(
     increment: Clock.IncrementSeconds,
     moveTimeLimit: Option[MoveTimeLimit],
     days: Days,
-    rated: Rated,
     color: TriColor,
-    fen: Option[Fen.Full] = None
+    fen: Option[Fen.Full] = None,
+    override val ruleset: Option[String] = None
 ) extends HumanConfig
     with Positional
     with WithColor:
 
   val strictFen = false
+  val rated = Rated.No
 
   def >> =
-    (variant.id, timeMode.id, time, increment, moveTimeLimit, days, rated.id.some, color.name, fen).some
+    (variant.id, timeMode.id, time, increment, moveTimeLimit, days, color.name, fen, ruleset).some
 
   def isPersistent = timeMode == TimeMode.Unlimited || timeMode == TimeMode.Correspondence
 
@@ -40,9 +41,9 @@ object FriendConfig extends BaseConfig:
       i: Clock.IncrementSeconds,
       ml: Option[MoveTimeLimit],
       d: Days,
-      m: Option[Int],
       c: String,
-      fen: Option[Fen.Full]
+      fen: Option[Fen.Full],
+      ruleset: Option[String] = None
   ) =
     new FriendConfig(
       variant = chess.variant.Variant.orDefault(v),
@@ -51,9 +52,9 @@ object FriendConfig extends BaseConfig:
       increment = i,
       moveTimeLimit = ml,
       days = d,
-      rated = m.fold(Rated.default)(Rated.orDefault),
       color = TriColor(c).err("Invalid color " + c),
-      fen = fen
+      fen = fen,
+      ruleset = ruleset
     )
 
   val default = FriendConfig(
@@ -63,7 +64,6 @@ object FriendConfig extends BaseConfig:
     increment = Clock.IncrementSeconds(8),
     moveTimeLimit = None,
     days = Days(2),
-    rated = Rated.default,
     color = TriColor.default
   )
 
@@ -80,9 +80,9 @@ object FriendConfig extends BaseConfig:
         increment = r.get("i"),
         moveTimeLimit = r.contains("ml").option(r.get[MoveTimeLimit]("ml")),
         days = r.get("d"),
-        rated = Rated.orDefault(r.int("m")),
         color = TriColor.White,
-        fen = r.getO[Fen.Full]("f").filter(_.value.nonEmpty)
+        fen = r.getO[Fen.Full]("f").filter(_.value.nonEmpty),
+        ruleset = r.strO("ruleset")
       )
 
     def writes(w: BSON.Writer, o: FriendConfig) =
@@ -93,6 +93,6 @@ object FriendConfig extends BaseConfig:
         "i" -> o.increment,
         "ml" -> o.moveTimeLimit,
         "d" -> o.days,
-        "m" -> o.rated.id,
-        "f" -> o.fen
+        "f" -> o.fen,
+        "ruleset" -> o.ruleset
       )

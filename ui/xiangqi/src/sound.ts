@@ -1,4 +1,6 @@
-import { nodeAtPath, type RulesState, type XiangqiMoveTree } from './tree';
+import { isXiangqiCapture } from 'lib/game';
+
+import { nodeAtPath, parentPath, type RulesState, type XiangqiMoveTree } from './tree';
 
 export interface XiangqiMoveSound {
   capture: boolean;
@@ -19,10 +21,14 @@ export function xiangqiTransitionSound(
   fromPath: string,
   toPath: string,
 ): XiangqiMoveSound | undefined {
-  if (fromPath === toPath || !tree.byPath.has(fromPath)) return undefined;
+  if (parentPath(toPath) !== fromPath || !tree.byPath.has(fromPath)) return undefined;
+  const origin = nodeAtPath(tree, fromPath);
   const destination = nodeAtPath(tree, toPath);
-  if (!destination) return undefined;
-  return xiangqiMoveSound(destination === tree.root ? undefined : destination.state);
+  if (!origin || !destination || destination === tree.root) return undefined;
+  return xiangqiMoveSound({
+    ...destination.state,
+    capture: destination.state.capture ?? isXiangqiCapture(origin.state.fen, destination.state.fen),
+  });
 }
 
 export function playXiangqiMoveSound(state: RulesState): void {

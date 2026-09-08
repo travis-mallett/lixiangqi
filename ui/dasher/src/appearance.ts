@@ -1,9 +1,9 @@
-import { type Prop, prop } from 'lib';
 import { debounce } from 'lib/async';
 import { prefersLightThemeQuery } from 'lib/device';
 import { licon } from 'lib/licon';
 import { pubsub } from 'lib/pubsub';
-import { bind, dataIcon, hl, onInsert, snabDialog, type VNode } from 'lib/view';
+import { bind, dataIcon, hl, onInsert, type VNode } from 'lib/view';
+import { cmnToggleWrap } from 'lib/view/cmn-toggle';
 import { form as xhrForm, text as xhrText } from 'lib/xhr';
 
 import type { DasherCtrl } from '@/ctrl';
@@ -13,64 +13,116 @@ import type {
   BoardThemeData,
   CatalogItem,
   PieceSetData,
-  ThemePackData,
+  UiThemeData,
 } from '@/interfaces';
 
 import { PaneCtrl } from './interfaces';
 import { header } from './util';
 
-type AppearanceTab = 'ui' | 'background' | 'board' | 'pieces';
 type BoardSetting = keyof AppearanceState['board'];
 type Range = { min: number; max: number; step: number };
 
-const customPack = 'custom';
 const customBackground = 'custom';
-const none = 'none';
+const noBackground = 'none';
 
-export class AppearanceCtrl extends PaneCtrl {
-  private dialogOpen = false;
-  private readonly tab: Prop<AppearanceTab> = prop('ui');
+export class AppearanceCtrl {
   private sliderKey = Date.now();
   private selectionVersion = 0;
   private backgroundVersion = 0;
+  private backgroundPickerOpen: boolean;
   private readonly settingPosts = new Map<string, (value: string, version: number) => void>();
   private saveQueue: Promise<unknown> = Promise.resolve();
 
-  constructor(root: DasherCtrl) {
-    super(root);
+  constructor(private readonly root: DasherCtrl) {
+    this.backgroundPickerOpen = this.current.background !== noBackground;
     this.apply();
   }
 
-  render = (): VNode =>
-    hl('div.sub.appearance', [
-      header(i18n.site.theme, this.close),
-      hl(
-        'div.theme-pack-list',
-        this.data.packs.map(pack => this.packCard(pack)),
+  renderUiTheme = (): VNode[] => [
+    hl(
+      'div.ui-theme-grid',
+      this.uiThemes.map(theme =>
+        hl(
+          'button.ui-theme-card',
+          {
+            key: theme.key,
+            attrs: {
+              ...dataIcon(licon.Checkmark),
+              type: 'button',
+              title: this.catalogName(theme),
+            },
+            class: { active: this.current.uiTheme === theme.key },
+            hook: bind('click', () => this.setComponent('uiTheme', theme.key)),
+          },
+          [
+            hl(`span.ui-theme-preview.${theme.key}`, { attrs: this.uiThemePreviewStyle(theme) }, [
+              hl('span.panel-preview'),
+              hl('span.panel-preview-low'),
+              hl('span.button-preview'),
+            ]),
+            hl('strong', this.catalogName(theme)),
+          ],
+        ),
       ),
-      hl(
-        'button.text.custom-combination',
-        {
-          attrs: { ...dataIcon(licon.Gear), type: 'button' },
-          class: { active: this.current.pack === customPack },
-          hook: bind('click', this.openDialog),
-        },
-        [
-          hl('span', i18n.site.customCombination),
-          hl('small', this.current.pack === customPack ? i18n.site.active : i18n.site.mixAppearanceOptions),
-        ],
-      ),
-      this.dialogOpen ? this.dialog() : null,
-    ]);
+    ),
+    hl('div.background-image-setting', [
+      cmnToggleWrap({
+        id: 'appearance-backgroundImage',
+        name: i18n.site.backgroundImage,
+        checked: this.backgroundPickerOpen,
+        change: this.toggleBackground,
+        redraw: this.root.redraw,
+      }),
+      this.backgroundPickerOpen ? this.backgroundPicker() : null,
+    ]),
+  ];
 
-  selectPack = (key: string): void => {
-    const pack = this.data.packs.find(candidate => candidate.key === key);
-    if (pack) this.setPack(pack);
-  };
+  renderBoardStyle = (): VNode[] => [
+    hl('div.board-settings', [
+      this.sizeSlider(),
+      this.boardSlider('opacity', i18n.site.opacity, { min: 0, max: 100, step: 1 }),
+      this.boardSlider('brightness', i18n.site.brightness, { min: 20, max: 140, step: 1 }),
+      this.boardSlider('contrast', i18n.site.contrast, { min: 40, max: 200, step: 2 }),
+      this.boardSlider('saturation', i18n.site.saturation, { min: 0, max: 200, step: 2 }),
+      this.boardSlider('hue', i18n.site.hue, { min: 0, max: 100, step: 1 }, value => `${value * 3.6}°`),
+      hl(
+        'button.text.board-reset',
+        {
+          attrs: { ...dataIcon(licon.Back), type: 'button' },
+          hook: bind('click', this.resetBoard),
+        },
+        i18n.site.boardReset,
+      ),
+    ]),
+    hl(
+      'div.board-style-list',
+      this.data.boards.map(board => this.boardCard(board)),
+    ),
+  ];
+
+  renderBoardPieces = (): VNode[] => [
+    this.pieceSection(
+      i18n.site.traditional,
+      this.data.pieceSets.filter(pieceSet => pieceSet.category === 'traditional'),
+    ),
+    this.pieceSection(
+      i18n.site.graphicalSymbols,
+      this.data.pieceSets.filter(pieceSet => pieceSet.category === 'graphicalSymbols'),
+    ),
+    this.pieceSection(
+      i18n.site.other,
+      this.data.pieceSets.filter(pieceSet => pieceSet.category === 'other'),
+    ),
+  ];
 
   selectMusicSet = (key: string): void => {
     if (this.data.musicSets.some(track => track.key === key) && key !== this.current.musicSet)
       this.setComponent('musicSet', key);
+  };
+
+  selectUiTheme = (key: string): void => {
+    if (this.data.uiThemes.some(theme => theme.key === key) && key !== this.current.uiTheme)
+      this.setComponent('uiTheme', key);
   };
 
   private get data() {
@@ -85,189 +137,31 @@ export class AppearanceCtrl extends PaneCtrl {
     this.data.current = value;
   }
 
-  private readonly normalize = (candidate: AppearanceState): AppearanceState => {
-    const pack = this.data.packs.find(({ appearance }) => sameCombination(appearance, candidate));
-    return pack ? copyAppearance(pack.appearance) : { ...candidate, pack: customPack };
-  };
-
-  private readonly packCard = (pack: ThemePackData): VNode =>
-    hl(
-      'button.theme-pack-card',
-      {
-        key: pack.key,
-        attrs: { type: 'button', title: this.packDescription(pack) },
-        class: { active: this.current.pack === pack.key },
-        hook: bind('click', () => this.setPack(pack)),
-      },
-      [
-        hl(
-          `span.theme-pack-preview.${pack.appearance.uiTheme}`,
-          {
-            attrs: this.packPreviewStyle(pack.appearance),
-          },
-          [
-            hl(
-              'span.board-preview',
-              {
-                attrs: this.boardPreviewStyle(pack.appearance.boardTheme),
-              },
-              [
-                hl('span.piece-marker', {
-                  attrs: {
-                    style: `background-image:url(${this.pieceAsset(
-                      pack.appearance.pieceSet,
-                      '---red-horse',
-                    )})`,
-                  },
-                }),
-              ],
-            ),
-            hl('span.panel-preview'),
-            hl('span.button-preview'),
-          ],
-        ),
-        hl('strong', this.packName(pack)),
-        hl('small', this.packDescription(pack)),
-      ],
-    );
-
-  private readonly packPreviewStyle = (appearance: AppearanceState): Record<string, string> => {
-    const background = this.data.backgrounds.find(item => item.key === appearance.background)?.image;
-    const uiTheme = this.data.uiThemes.find(item => item.key === appearance.uiTheme)!;
-    const properties = [
-      `--preview-bg:${uiTheme.previewBackground}`,
-      `--preview-panel:${uiTheme.previewPanel}`,
-      `--preview-panel-low:${uiTheme.previewPanelLow}`,
-      `--preview-accent:${uiTheme.previewAccent}`,
-    ];
-    if (background) properties.push(`background-image:url(${assetPath(background)})`);
-    return { style: properties.join(';') };
-  };
-
-  private readonly boardPreviewStyle = (key: string): Record<string, string> => {
-    const board = this.data.boards.find(candidate => candidate.key === key)!;
-    return { style: `background-image:url(${site.asset.url(`images/board/${board.file}`)})` };
-  };
-
-  private readonly pieceAsset = (key: string, variable: string): string => {
-    const pieceSet = this.data.pieceSets.find(candidate => candidate.key === key)!;
-    return site.asset.url(pieceSet.assets[variable]);
-  };
-
-  private readonly packName = (pack: ThemePackData): string =>
-    pack.key === 'dark' ? i18n.site.dark : pack.key === 'light' ? i18n.site.light : pack.name;
-
-  private readonly packDescription = (pack: ThemePackData): string =>
-    pack.key === 'dark'
-      ? i18n.site.darkThemeDescription
-      : pack.key === 'light'
-        ? i18n.site.lightThemeDescription
-        : pack.description;
-
-  private readonly setPack = (pack: ThemePackData): void => {
-    this.selectionVersion++;
-    this.backgroundVersion++;
-    this.current = copyAppearance(pack.appearance);
-    this.apply();
-    this.post('appearancePack', pack.key);
-    this.redraw();
-  };
-
-  private readonly openDialog = (): void => {
-    this.dialogOpen = true;
-    this.redraw();
-  };
-
-  private readonly dialog = (): VNode =>
-    snabDialog({
-      class: 'appearance-dialog',
-      attrs: { dialog: { 'aria-labelledby': 'appearance-dialog-title' } },
-      modal: true,
-      easyClose: 'clickOutside',
-      onClose: () => {
-        this.dialogOpen = false;
-        this.redraw();
-      },
-      vnodes: [
-        hl('div.appearance-dialog__header', [
-          hl('h2#appearance-dialog-title', i18n.site.customCombination),
-          hl('p', i18n.site.chooseAppearanceParts),
-        ]),
-        hl(
-          'div.appearance-dialog__tabs',
-          {
-            attrs: { role: 'tablist', 'aria-label': i18n.site.appearanceCategories },
-          },
-          (
-            [
-              ['ui', i18n.site.uiTheme],
-              ['background', i18n.site.background],
-              ['board', i18n.site.board],
-              ['pieces', i18n.site.pieceSet],
-            ] as const
-          ).map(([key, label]) =>
-            hl(
-              'button',
-              {
-                attrs: {
-                  type: 'button',
-                  role: 'tab',
-                  'aria-selected': this.tab() === key ? 'true' : 'false',
-                },
-                class: { active: this.tab() === key },
-                hook: bind('click', () => {
-                  this.tab(key);
-                  this.redraw();
-                }),
-              },
-              label,
-            ),
-          ),
-        ),
-        hl('div.appearance-dialog__content', { attrs: { role: 'tabpanel' } }, this.renderTab()),
-      ],
-    });
-
-  private renderTab(): VNode[] {
-    switch (this.tab()) {
-      case 'ui':
-        return [
-          this.optionGrid(this.data.uiThemes, this.current.uiTheme, item =>
-            this.setComponent('uiTheme', item.key),
-          ),
-        ];
-      case 'background':
-        return this.backgroundTab();
-      case 'board':
-        return this.boardTab();
-      case 'pieces':
-        return [this.pieceGrid()];
-    }
+  private get uiThemes() {
+    const order = ['system', 'dark', 'light', 'wood', 'wudang'];
+    return [...this.data.uiThemes].sort((a, b) => order.indexOf(a.key) - order.indexOf(b.key));
   }
 
-  private readonly backgroundTab = (): VNode[] => [
-    hl(
-      'div.background-grid',
-      this.data.backgrounds.map(background => this.backgroundCard(background)),
-    ),
-    hl('div.custom-background', [
-      hl('label', { attrs: { for: 'appearance-background-url' } }, i18n.site.customImageUrl),
-      hl('input#appearance-background-url', {
-        attrs: {
-          type: 'url',
-          inputmode: 'url',
-          placeholder: 'https://',
-          value: this.current.background === customBackground ? this.current.backgroundUrl || '' : '',
-        },
-        hook: onInsert<HTMLInputElement>(input => {
-          const save = debounce((url: string, version: number) => {
-            if (version === this.backgroundVersion && isBackgroundUrl(url)) this.setBackgroundUrl(url);
-          }, 350);
-          input.addEventListener('input', () => save(input.value.trim(), this.backgroundVersion));
-        }),
-      }),
-    ]),
-  ];
+  private readonly uiThemePreviewStyle = (theme: UiThemeData): Record<string, string> => ({
+    style: [
+      `--preview-bg:${theme.previewBackground}`,
+      `--preview-panel:${theme.previewPanel}`,
+      `--preview-panel-low:${theme.previewPanelLow}`,
+      `--preview-accent:${theme.previewAccent}`,
+    ].join(';'),
+  });
+
+  private readonly backgroundPicker = (): VNode =>
+    hl('div.background-picker', [
+      hl('div.background-list', [
+        this.backgroundCard(this.data.backgrounds.find(background => background.key === noBackground)!),
+        ...this.data.backgrounds
+          .filter(background => background.key !== noBackground)
+          .map(background => this.backgroundCard(background)),
+        this.customBackgroundCard(),
+      ]),
+      this.current.background === customBackground ? this.customBackgroundInput() : null,
+    ]);
 
   private readonly backgroundCard = (background: BackgroundData): VNode =>
     hl(
@@ -276,120 +170,115 @@ export class AppearanceCtrl extends PaneCtrl {
         key: background.key,
         attrs: { type: 'button', title: background.name },
         class: { active: this.current.background === background.key },
-        hook: bind('click', () => this.setBackground(background)),
+        hook: bind('click', () => this.setBackground(background.key)),
       },
       [
         background.image
           ? hl('img', { attrs: { src: assetPath(background.image), alt: '' } })
-          : hl('span.no-background-preview', { attrs: dataIcon(licon.X) }),
+          : hl('span.background-placeholder'),
         hl('strong', this.catalogName(background)),
       ],
     );
 
-  private readonly setBackground = (background: BackgroundData): void => {
+  private readonly customBackgroundCard = (): VNode =>
+    hl(
+      'button.background-card.custom',
+      {
+        key: customBackground,
+        attrs: { type: 'button', title: i18n.site.customImageUrl },
+        class: { active: this.current.background === customBackground },
+        hook: bind('click', () => this.setBackground(customBackground)),
+      },
+      [
+        hl('span.background-placeholder', { attrs: dataIcon(licon.UploadCloud) }),
+        hl('strong', i18n.site.custom),
+      ],
+    );
+
+  private readonly customBackgroundInput = (): VNode =>
+    hl('div.custom-background', [
+      hl('label', { attrs: { for: 'appearance-background-url' } }, i18n.site.backgroundImageUrl),
+      hl('input#appearance-background-url', {
+        attrs: {
+          type: 'url',
+          inputmode: 'url',
+          placeholder: 'https://',
+          value: this.current.backgroundUrl || '',
+        },
+        hook: onInsert<HTMLInputElement>(input => {
+          const save = debounce((url: string, version: number) => {
+            if (version === this.backgroundVersion && isBackgroundUrl(url)) this.setBackgroundUrl(url);
+          }, 350);
+          input.addEventListener('input', () => save(input.value.trim(), this.backgroundVersion));
+        }),
+      }),
+    ]);
+
+  private readonly toggleBackground = (enabled: boolean): void => {
+    this.backgroundPickerOpen = enabled;
+    if (!enabled && this.current.background !== noBackground) this.setBackground(noBackground);
+  };
+
+  private readonly setBackground = (key: string): void => {
+    if (key !== customBackground && !this.data.backgrounds.some(background => background.key === key)) return;
     this.backgroundVersion++;
-    this.current = this.normalize({
+    this.current = {
       ...this.current,
-      background: background.key,
-      backgroundUrl: undefined,
-    });
+      background: key,
+      backgroundUrl: key === customBackground ? this.current.backgroundUrl : undefined,
+    };
     this.apply();
-    this.post('background', background.key);
-    this.redraw();
+    this.post('background', key);
+    this.root.redraw();
   };
 
   private readonly setBackgroundUrl = (url: string): void => {
-    this.current = this.normalize({
-      ...this.current,
-      background: customBackground,
-      backgroundUrl: url,
-    });
+    this.current = { ...this.current, background: customBackground, backgroundUrl: url };
     this.apply();
     this.post('backgroundUrl', url);
-    this.redraw();
+    this.root.redraw();
   };
-
-  private readonly boardTab = (): VNode[] => [
-    hl('div.board-settings', [
-      this.sizeSlider(),
-      this.boardSlider('brightness', i18n.site.brightness, { min: 20, max: 140, step: 1 }),
-      this.boardSlider('contrast', i18n.site.contrast, { min: 40, max: 200, step: 2 }),
-      this.boardSlider('hue', i18n.site.hue, { min: 0, max: 100, step: 1 }, value => `${value * 3.6}°`),
-      this.boardSlider('opacity', i18n.site.opacity, { min: 0, max: 100, step: 1 }),
-      hl(
-        'button.text.board-reset',
-        {
-          attrs: { ...dataIcon(licon.Back), type: 'button' },
-          hook: bind('click', this.resetBoard),
-        },
-        i18n.site.boardReset,
-      ),
-    ]),
-    hl(
-      'div.board-grid.d2',
-      this.data.boards.map(board => this.boardCard(board)),
-    ),
-  ];
 
   private readonly boardCard = (board: BoardThemeData): VNode =>
     hl(
       'button',
       {
         key: board.key,
-        attrs: {
-          type: 'button',
-          title: board.name,
-        },
+        attrs: { type: 'button', title: board.name, 'aria-label': board.name },
         class: { active: this.current.boardTheme === board.key },
         hook: bind('click', () => this.setComponent('boardTheme', board.key)),
       },
-      [hl('span', { attrs: this.boardPreviewStyle(board.key) }), hl('strong', board.name)],
+      hl('span', { attrs: this.boardPreviewStyle(board.key) }),
     );
 
-  private readonly pieceGrid = (): VNode =>
-    hl(
-      'div.piece-grid',
-      this.data.pieceSets.map(pieceSet => this.pieceCard(pieceSet)),
-    );
+  private readonly boardPreviewStyle = (key: string): Record<string, string> => {
+    const board = this.data.boards.find(candidate => candidate.key === key)!;
+    return { style: `background-image:url(${site.asset.url(`images/board/${board.file}`)})` };
+  };
+
+  private readonly pieceSection = (name: string, pieceSets: PieceSetData[]): VNode =>
+    hl('section.piece-section', [
+      hl('h3', name),
+      hl(
+        'div.piece-list',
+        pieceSets.map(pieceSet => this.pieceCard(pieceSet)),
+      ),
+    ]);
 
   private readonly pieceCard = (pieceSet: PieceSetData): VNode =>
     hl(
       'button',
       {
         key: pieceSet.key,
-        attrs: { type: 'button', title: pieceSet.name },
+        attrs: { type: 'button', title: pieceSet.name, 'aria-label': pieceSet.name },
         class: { active: this.current.pieceSet === pieceSet.key },
         hook: bind('click', () => this.setComponent('pieceSet', pieceSet.key)),
       },
-      [
-        hl('span.piece-preview', {
-          attrs: {
-            style: `background-image:url(${site.asset.url(pieceSet.assets['---red-horse'])})`,
-          },
-        }),
-        hl('strong', pieceSet.name),
-      ],
-    );
-
-  private readonly optionGrid = (
-    items: CatalogItem[],
-    selected: string,
-    select: (item: CatalogItem) => void,
-  ): VNode =>
-    hl(
-      'div.appearance-option-grid',
-      items.map(item =>
-        hl(
-          'button',
-          {
-            key: item.key,
-            attrs: { ...dataIcon(licon.Checkmark), type: 'button' },
-            class: { active: selected === item.key },
-            hook: bind('click', () => select(item)),
-          },
-          this.catalogName(item),
-        ),
-      ),
+      hl('span', {
+        attrs: {
+          style: `background-image:url(${site.asset.url(pieceSet.assets['---red-horse'])})`,
+        },
+      }),
     );
 
   private readonly sizeSlider = (): VNode => {
@@ -413,10 +302,10 @@ export class AppearanceCtrl extends PaneCtrl {
       this.current.board[setting],
       range,
       value => {
-        this.current = this.normalize({
+        this.current = {
           ...this.current,
           board: { ...this.current.board, [setting]: value },
-        });
+        };
         this.applyBoardSettings();
         this.debouncedPost(`board${capitalize(setting)}`, String(value));
       },
@@ -433,24 +322,16 @@ export class AppearanceCtrl extends PaneCtrl {
   ): VNode =>
     hl(`div.range-control.${key}`, { attrs: { title: title ? title(value) : `${value}%` } }, [
       hl('label', { attrs: { for: `appearance-${key}` } }, label),
-      hl('output', String(value)),
       hl('input.range', {
         key: this.sliderKey + key,
-        attrs: {
-          id: `appearance-${key}`,
-          type: 'range',
-          value,
-          ...range,
-        },
+        attrs: { id: `appearance-${key}`, type: 'range', value, ...range },
         hook: onInsert<HTMLInputElement>(input => {
           const set = (next: number) => {
             if (next < range.min || next > range.max) return;
             update(next);
-            const output = input.parentElement?.querySelector('output');
-            if (output) output.textContent = String(next);
           };
           input.addEventListener('input', () => set(parseInt(input.value)));
-          input.addEventListener('change', this.redraw);
+          input.addEventListener('change', this.root.redraw);
           input.addEventListener(
             'wheel',
             event => {
@@ -466,35 +347,33 @@ export class AppearanceCtrl extends PaneCtrl {
     ]);
 
   private readonly resetBoard = (): void => {
-    this.current = this.normalize({
+    this.selectionVersion++;
+    this.current = {
       ...this.current,
-      board: { brightness: 100, contrast: 100, opacity: 100, hue: 0 },
-    });
+      board: { brightness: 100, contrast: 100, saturation: 100, opacity: 100, hue: 0 },
+    };
     this.applyBoardSettings();
     this.sliderKey = Date.now();
     for (const [field, value] of [
       ['boardBrightness', '100'],
       ['boardContrast', '100'],
+      ['boardSaturation', '100'],
       ['boardOpacity', '100'],
       ['boardHue', '0'],
-    ]) {
+    ])
       this.post(field, value);
-    }
-    this.redraw();
+    this.root.redraw();
   };
 
   private readonly setComponent = (
-    field: 'uiTheme' | 'boardTheme' | 'pieceSet' | 'soundSet' | 'musicSet',
+    field: 'uiTheme' | 'boardTheme' | 'pieceSet' | 'musicSet',
     value: string,
   ): void => {
-    this.current = this.normalize({ ...this.current, [field]: value });
-    if (value === none) {
-      if (field === 'soundSet') site.sound.setSoundEnabled(false);
-      else if (field === 'musicSet') site.sound.setMusicEnabled(false);
-    }
+    this.selectionVersion++;
+    this.current = { ...this.current, [field]: value };
     this.apply();
     this.post(field, value);
-    this.redraw();
+    this.root.redraw();
   };
 
   private apply(): void {
@@ -504,9 +383,8 @@ export class AppearanceCtrl extends PaneCtrl {
       uiTheme.key === 'system' ? (prefersLightThemeQuery().matches ? 'light' : 'dark') : uiTheme.colorScheme;
     const themeClass = uiTheme.key === 'system' ? colorScheme : uiTheme.key;
 
-    for (const theme of this.data.uiThemes) {
+    for (const theme of this.data.uiThemes)
       if (theme.key !== 'system') document.documentElement.classList.remove(theme.key);
-    }
     document.documentElement.classList.remove('light', 'dark');
     document.documentElement.classList.add(themeClass);
     document.body.dataset.uiTheme = uiTheme.key;
@@ -532,13 +410,13 @@ export class AppearanceCtrl extends PaneCtrl {
 
   private readonly applyBoardSettings = (): void => {
     const settings = this.current.board;
-    for (const [key, value] of Object.entries(settings)) {
+    for (const [key, value] of Object.entries(settings))
       document.body.style.setProperty(`---board-${key}`, String(value));
-    }
     document.body.classList.toggle(
       'simple-board',
       settings.brightness === 100 &&
         settings.contrast === 100 &&
+        settings.saturation === 100 &&
         settings.opacity === 100 &&
         settings.hue === 0,
     );
@@ -557,9 +435,8 @@ export class AppearanceCtrl extends PaneCtrl {
 
   private readonly applyPieceSet = (key: string): void => {
     const pieceSet = this.data.pieceSets.find(candidate => candidate.key === key)!;
-    for (const [variable, path] of Object.entries(pieceSet.assets)) {
+    for (const [variable, path] of Object.entries(pieceSet.assets))
       document.body.style.setProperty(variable, `url(${site.asset.url(path, { pathOnly: true })})`);
-    }
   };
 
   private readonly backgroundUrl = (): string | undefined => {
@@ -618,7 +495,7 @@ export class AppearanceCtrl extends PaneCtrl {
       case 'system':
         return i18n.site.deviceTheme;
       case 'none':
-        return i18n.site.none;
+        return i18n.site.themeDefault;
       case 'standard':
         return i18n.site.standard;
       default:
@@ -627,23 +504,26 @@ export class AppearanceCtrl extends PaneCtrl {
   };
 }
 
-const copyAppearance = (appearance: AppearanceState): AppearanceState => ({
-  ...appearance,
-  board: { ...appearance.board },
-});
+export class UiThemeCtrl extends PaneCtrl {
+  render = (): VNode =>
+    hl('div.sub.ui-theme', [header(i18n.site.uiTheme, this.close), ...this.root.appearance.renderUiTheme()]);
+}
 
-const sameCombination = (a: AppearanceState, b: AppearanceState): boolean =>
-  a.uiTheme === b.uiTheme &&
-  a.background === b.background &&
-  (a.backgroundUrl ?? null) === (b.backgroundUrl ?? null) &&
-  a.boardTheme === b.boardTheme &&
-  a.pieceSet === b.pieceSet &&
-  a.soundSet === b.soundSet &&
-  a.musicSet === b.musicSet &&
-  a.board.brightness === b.board.brightness &&
-  a.board.contrast === b.board.contrast &&
-  a.board.opacity === b.board.opacity &&
-  a.board.hue === b.board.hue;
+export class BoardStyleCtrl extends PaneCtrl {
+  render = (): VNode =>
+    hl('div.sub.board-style', [
+      header(i18n.site.boardStyle, this.close),
+      ...this.root.appearance.renderBoardStyle(),
+    ]);
+}
+
+export class BoardPiecesCtrl extends PaneCtrl {
+  render = (): VNode =>
+    hl('div.sub.board-pieces', [
+      header(i18n.site.boardPieces, this.close),
+      ...this.root.appearance.renderBoardPieces(),
+    ]);
+}
 
 const assetPath = (path: string): string =>
   path.startsWith('/assets/') ? site.asset.url(path.slice('/assets/'.length)) : path;

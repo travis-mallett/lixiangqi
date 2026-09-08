@@ -35,6 +35,7 @@ object page:
       s"---board-opacity:${ctx.pref.boardOpacity};" +
       s"---board-brightness:${ctx.pref.boardBrightness};" +
       s"---board-contrast:${ctx.pref.boardContrast};" +
+      s"---board-saturation:${ctx.pref.boardSaturation};" +
       s"---board-hue:${ctx.pref.boardHue};" +
       zoomable.so(s"---zoom:$pageZoom;")
 
@@ -135,6 +136,7 @@ object page:
           dataColorScheme := pref.colorScheme,
           dataBoard := pref.boardTheme,
           dataPieceSet := pref.pieceSet,
+          attr("data-board-animations") := pref.boardAnimations,
           dataAnnounce := lila.web.AnnounceApi.get.map(a => safeJsonValue(a.json)),
           attr("data-i18n-catalog") := assetHelper.manifest
             .js(s"i18n/${ctx.lang.code}")

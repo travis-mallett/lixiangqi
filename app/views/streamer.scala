@@ -5,7 +5,7 @@ import play.api.libs.json.*
 
 import lila.app.UiEnv.{ *, given }
 import lila.core.perf.{ UserPerfs, UserWithPerfs }
-import lila.rating.UserPerfsExt.best6Perfs
+import lila.rating.{ UserPerfsExt, XiangqiRank }
 import lila.streamer.{ Streamer, Platform }
 import lila.common.Json.given
 
@@ -16,9 +16,12 @@ export ui.index
 def show(s: Streamer.WithUserAndStream, perfs: UserPerfs, activities: Seq[lila.activity.ActivityView])(using
     Context
 ) =
+  import UserPerfsExt.*
   ui.show(
     s,
-    perfRatings = perfs.best6Perfs.map { showPerfRating(perfs, _) },
+    perfRatings = strong(
+      perfs.xiangqiRank.fold("Unranked")(rank => XiangqiRank.catalog.code(rank.score).value)
+    ),
     activities = views.activity(UserWithPerfs(s.user, perfs), activities)
   )
 

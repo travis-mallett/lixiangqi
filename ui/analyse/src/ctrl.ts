@@ -24,7 +24,7 @@ import {
 import { CevalCtrl, isFirstEvalBetter, sanIrreversible, type CevalHandler, type CevalOpts } from 'lib/ceval';
 import { ChatCtrl } from 'lib/chat/chatCtrl';
 import { displayColumns } from 'lib/device';
-import { playable, playedTurns, fenToEpd, validUci } from 'lib/game';
+import { playable, playedTurns, fenToEpd, isXiangqiCapture, validUci } from 'lib/game';
 import { plyColor } from 'lib/game/chess';
 import { PromotionCtrl } from 'lib/game/promotion';
 import { pubsub } from 'lib/pubsub';
@@ -426,6 +426,7 @@ export default class AnalyseCtrl implements CevalHandler {
   jump(path: TreePath): void {
     const pathChanged = path !== this.path,
       isForwardStep = pathChanged && path.length === this.path.length + 2;
+    const previousNode = this.node;
     if (this.path !== path)
       this.treeView.requestAutoScroll(treeOps.distance(this.path, path) > 8 ? 'instant' : 'smooth');
     this.setPath(path);
@@ -435,7 +436,13 @@ export default class AnalyseCtrl implements CevalHandler {
       if (isForwardStep) {
         const isAtomicCapture = this.data.game.variant.key === 'atomic' && !!this.node.san?.includes('x');
         if (isAtomicCapture) site.sound.play('explosion');
-        else site.sound.move({ san: this.node.san });
+        else
+          site.sound.move({
+            san: this.node.san,
+            ...(this.data.game.variant.key === 'xiangqi'
+              ? { capture: isXiangqiCapture(previousNode.fen, this.node.fen) }
+              : {}),
+          });
       }
       this.threatMode(false);
       this.ceval?.reset();
@@ -559,13 +566,6 @@ export default class AnalyseCtrl implements CevalHandler {
       this.justPlayed = roleToChar(piece.role).toUpperCase() + '@' + pos;
       this.justDropped = piece.role;
       this.justCaptured = undefined;
-      const drop = {
-        role: piece.role,
-        pos,
-        variant: this.data.game.variant.key,
-        path: this.path,
-      };
-      if (this.study) this.socket.sendAnaDrop(drop);
       this.addNodeLocally({
         role: piece.role,
         to: parseSquare(pos)!,
@@ -576,6 +576,7 @@ export default class AnalyseCtrl implements CevalHandler {
   userMove = (orig: Key, dest: Key, capture?: JustCaptured): void => {
     this.justPlayed = orig;
     this.justDropped = undefined;
+    if (this.variantKey === 'xiangqi') return this.sendMove(orig, dest, capture);
     if (
       !this.promotion.start(orig, dest, {
         submit: (orig, dest, prom) => this.sendMove(orig, dest, capture, prom),
@@ -588,13 +589,14 @@ export default class AnalyseCtrl implements CevalHandler {
     const move: AnaMove = {
       orig,
       dest,
-      variant: this.data.game.variant.key,
       path: this.path,
     };
-    if (prom) move.promotion = prom;
     if (capture) this.justCaptured = capture;
     if (this.practice) this.practice.onUserMove();
     if (this.study) this.socket.sendAnaMove(move);
+    // Study nodes are authoritative server data. Native Xiangqi positions cannot be
+    // reconstructed with chessops, so wait for the collaborative addNode event.
+    if (this.study && this.variantKey === 'xiangqi') return;
     this.addNodeLocally({
       from: parseSquare(orig)!,
       to: parseSquare(dest)!,

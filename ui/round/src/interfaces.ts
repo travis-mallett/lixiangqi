@@ -3,6 +3,7 @@ import type { MoveMetadata as CgMoveMetadata } from 'chessgroundx/types';
 import type { ChatOpts as BaseChatOpts, ChatCtrl, ChatPlugin } from 'lib/chat/interfaces';
 import type { GameData, Status, RoundStep, XiangqiNotationStyle } from 'lib/game';
 import type { ClockData } from 'lib/game/clock/clockCtrl';
+import type { RecordedClockTimeline } from 'lib/game/replay/recordedClockPlayback';
 import * as Prefs from 'lib/prefs';
 import type { EnhanceOpts } from 'lib/richText';
 import type { NodeCrazy } from 'lib/tree/types';
@@ -71,6 +72,7 @@ export type EncodedDests = Record<string, string[]>;
 
 export interface RoundData extends GameData {
   clock?: ClockData;
+  recordedClock?: RecordedClockTimeline;
   pref: Pref;
   steps: RoundStep[];
   possibleMoves?: EncodedDests;
@@ -127,6 +129,8 @@ export interface ChatOpts extends BaseChatOpts {
 }
 
 export interface ApiMove {
+  variation?: string | null;
+  termination?: string | null;
   dests: EncodedDests;
   ply: number;
   fen: string;
@@ -142,6 +146,7 @@ export interface ApiMove {
   status?: Status;
   winner?: Color;
   check?: boolean;
+  capture?: boolean;
   threefold?: boolean;
   fiftyMoves?: boolean;
   wDraw?: boolean;
@@ -166,10 +171,11 @@ export interface ApiMove {
 export interface ApiEnd {
   winner?: Color;
   status: Status;
+  termination?: string | null;
   abortedBy?: Color;
-  ratingDiff?: {
-    white: number;
-    black: number;
+  rank?: {
+    white?: string;
+    black?: string;
   };
   boosted: boolean;
   clock?: {

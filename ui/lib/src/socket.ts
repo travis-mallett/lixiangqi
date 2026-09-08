@@ -63,11 +63,12 @@ export function wsConnect<T extends string = Tpe>(
   version: number | false,
   settings: Partial<Settings<T>> = {},
 ): WsSocket {
+  siteSocket?.dispose();
   return (siteSocket = new WsSocket(url, version, settings));
 }
 
 export function wsDestroy(): void {
-  siteSocket?.destroy();
+  siteSocket?.dispose();
   siteSocket = undefined;
 }
 
@@ -106,6 +107,8 @@ class WsSocket {
   private lastPingTime: number = performance.now();
   private pongCount = 0;
   private tryOtherUrl = false;
+  private idleCleanup?: () => void;
+  private idleDisconnectTimeout?: Timeout;
   private readonly storage: LichessStorage = storage.make('surl18', 30 * 60 * 1000);
   private _sign?: string;
   private resendWhenOpen: [string, Payload, Partial<SocketSendOpts>][] = [];
@@ -327,6 +330,14 @@ class WsSocket {
     this.ws = undefined;
   };
 
+  dispose = (): void => {
+    this.destroy();
+    this.idleCleanup?.();
+    this.idleCleanup = undefined;
+    clearTimeout(this.idleDisconnectTimeout);
+    pubsub.off('socket.send', this.send);
+  };
+
   private readonly disconnect = (): void => {
     const ws = this.ws;
     if (ws) {
@@ -355,19 +366,18 @@ class WsSocket {
   };
 
   private readonly onSuccess = (): void => {
-    if (pubsub.past('socket.hasConnected')) return;
+    if (!pubsub.past('socket.hasConnected')) pubsub.complete('socket.hasConnected');
+    if (this.idleCleanup) return;
 
-    pubsub.complete('socket.hasConnected');
-    let disconnectTimeout: Timeout | undefined;
-    idleTimer(
+    this.idleCleanup = idleTimer(
       10 * 60 * 1000,
       () => {
         this.options.idle = true;
-        disconnectTimeout = setTimeout(this.destroy, 2 * 60 * 60 * 1000);
+        this.idleDisconnectTimeout = setTimeout(this.destroy, 2 * 60 * 60 * 1000);
       },
       () => {
         this.options.idle = false;
-        if (this.ws) clearTimeout(disconnectTimeout);
+        if (this.ws) clearTimeout(this.idleDisconnectTimeout);
         else if (this.options.reloadOnResume) location.reload();
       },
     );

@@ -15,8 +15,8 @@ import lila.core.id.Flair
 import lila.core.perf.{ KeyedPerf, Perf, PerfKey, UserPerfs, UserWithPerfs }
 import lila.core.userId.*
 import lila.core.plan.{ PatronMonths, PatronTier, PatronColorChoice }
-import lila.core.rating.UserRankMap
 import lila.core.data.Url
+import lila.core.rank.{ RankCode, RankDiff, RankScore, RankSnapshot, RankTrackId }
 
 object user:
 
@@ -166,12 +166,22 @@ object user:
     given UserIdOf[User] = _.id
     given AtInstant[User] = _.createdAt
 
-  case class Count(draw: Int, game: Int, loss: Int, rated: Int, win: Int)
+  case class Count(draw: Int, game: Int, loss: Int, rated: Int, win: Int):
+    /** Native ranked-game count; `rated` is retained only as the live BSON field name. */
+    def ranked: Int = rated
 
-  case class WithPerf(user: User, perf: Perf):
+  case class WithPerf(user: User, perf: Perf, rank: Option[RankSnapshot] = None):
     export user.{ id, createdAt, hasTitle, light }
 
   case class LightPerf(user: LightUser, perfKey: PerfKey, rating: IntRating, progress: IntRatingDiff)
+
+  case class LightRank(
+      user: LightUser,
+      track: RankTrackId,
+      score: RankScore,
+      rank: RankCode,
+      progress: RankDiff
+  )
 
   case class ChangeEmail(id: UserId, email: EmailAddress)
 
@@ -384,6 +394,5 @@ object user:
     def full(
         u: User,
         perfs: Option[UserPerfs | KeyedPerf],
-        withProfile: Boolean,
-        rankMap: Option[UserRankMap] = None
+        withProfile: Boolean
     ): JsObject

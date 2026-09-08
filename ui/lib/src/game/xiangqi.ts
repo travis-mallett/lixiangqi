@@ -17,6 +17,11 @@ export const xiangqiCgToUci = (move: string): string => move.replace(/:/g, '10')
 export const xiangqiKeyToCg = (key: string): Key => xiangqiUciToCg(key) as Key;
 export const xiangqiCgKeyToUci = (key: Key): string => xiangqiCgToUci(key);
 
+const xiangqiPieceCount = (fen: string): number => fen.split(/\s/, 1)[0].split(/[a-z]/i).length - 1;
+
+export const isXiangqiCapture = (before: string, after: string): boolean =>
+  xiangqiPieceCount(after) < xiangqiPieceCount(before);
+
 export function xiangqiUciMoveToCg(move: string): Move {
   const encoded = xiangqiUciToCg(move);
   return [encoded.slice(0, 2) as Orig, encoded.slice(2, 4) as Key];

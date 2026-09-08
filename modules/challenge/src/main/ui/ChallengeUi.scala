@@ -6,6 +6,7 @@ import play.api.libs.json.{ JsObject, Json }
 import lila.challenge.Challenge.Status
 import lila.core.LightUser
 import lila.core.game.GameRule
+import lila.core.rank.RankCode.*
 import lila.core.user.WithPerf
 import lila.core.relation.Relation
 import lila.ui.*
@@ -39,20 +40,19 @@ final class ChallengeUi(helpers: Helpers):
       .css("challenge.page")
 
   private def challengeTitle(c: Challenge)(using ctx: Context) =
-    val speed = c.clock.fold(chess.Speed.Correspondence.name) { clock =>
-      val clockName = clock.moveTimeLimit.fold(clock.config.show): limit =>
+    val clockDescription = c.clock.fold(chess.Speed.Correspondence.name) { clock =>
+      clock.moveTimeLimit.fold(clock.config.show): limit =>
         s"${clock.config.show} · ${shortMoveTimeLimitName(limit)}"
-      s"${chess.Speed(clock.config).name} ($clockName)"
     }
     val variant = c.variant.exotic.so(s" ${c.variant.name}")
     val challenger = c.challengerUser.fold(trans.site.anonymous.txt()): reg =>
-      s"${titleNameOrId(reg.id)}${ctx.pref.showRatings.so(s" (${reg.rating.show})")}"
+      s"${titleNameOrId(reg.id)} (${reg.rank.fold("Unranked")(_.value)})"
     val players =
       if c.isOpen then "Open challenge"
       else
         c.destUser.fold(s"Challenge from $challenger"): dest =>
-          s"$challenger challenges ${titleNameOrId(dest.id)}${ctx.pref.showRatings.so(s" (${dest.rating.show})")}"
-    s"$speed$variant ${c.rated.name} Xiangqi • $players"
+          s"$challenger challenges ${titleNameOrId(dest.id)} (${dest.rank.fold("Unranked")(_.value)})"
+    s"$clockDescription$variant ${trans.site.casual.txt()} Xiangqi • $players"
 
   private def details(c: Challenge, requestedColor: Option[Color])(using ctx: Context) =
     div(cls := "details-wrapper")(
@@ -78,7 +78,9 @@ final class ChallengeUi(helpers: Helpers):
           c.open.fold(c.colorChoice.some)(_.colorFor(requestedColor)).map { colorChoice =>
             frag(colorChoice.trans(), br)
           },
-          ratedName(c.rated)
+          trans.site.casual(),
+          br,
+          span(cls := "ruleset")(c.effectiveRuleset.label)
         )
       ),
       c.rules.nonEmpty.option(
@@ -246,7 +248,9 @@ final class ChallengeUi(helpers: Helpers):
                     user.fold[Frag]("Anonymous"): u =>
                       frag(
                         userLink(u.user),
-                        ctx.pref.showRatings.option(frag(" (", u.perf.glicko.display, ")"))
+                        " (",
+                        u.rank.fold("Unranked")(_.code.value),
+                        ")"
                       )
               ,
               details(c, color),
@@ -264,25 +268,10 @@ final class ChallengeUi(helpers: Helpers):
                   // very rare message, don't translate
                   s"You have the wrong color link for this open challenge. The ${color.so(_.name)} player has already joined."
                 )
-              else if c.rated.no || ctx.isAuth then
-                frag(
-                  (c.rated.yes && c.unlimited)
-                    .option(badTag(trans.site.bewareTheGameIsRatedButHasNoClock())),
-                  postForm(cls := "accept", action := routes.Challenge.accept(c.id, color))(
-                    submitButton(cls := "text button button-fat", dataIcon := Icon.PlayTriangle)(
-                      trans.site.joinTheGame()
-                    )
-                  )
-                )
               else
-                frag(
-                  hr,
-                  badTag(
-                    p(trans.site.thisGameIsRated()),
-                    a(
-                      cls := "button",
-                      href := s"${routes.Auth.login}?referrer=${routes.Round.watcher(c.gameId, Color.white)}"
-                    )(trans.site.signIn())
+                postForm(cls := "accept", action := routes.Challenge.accept(c.id, color))(
+                  submitButton(cls := "text button button-fat", dataIcon := Icon.PlayTriangle)(
+                    trans.site.joinTheGame()
                   )
                 )
             )
@@ -313,12 +302,12 @@ final class ChallengeUi(helpers: Helpers):
 
   private def genericUrl(c: Challenge): Option[Url] =
     c.challengerUser.map: user =>
-      import c.{ initialFen, rated, timeControl, variant, colorChoice }
+      import c.{ initialFen, timeControl, variant, colorChoice }
       val params: Map[String, String] = List(
         List(
           "user" -> user.id.value,
           "variant" -> variant.key.value,
-          "gameMode" -> rated.name
+          "gameMode" -> "casual"
         ),
         timeControl.match
           case Challenge.TimeControl.Clock(config, moveTimeLimit) =>

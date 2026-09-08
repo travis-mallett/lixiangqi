@@ -1,4 +1,3 @@
-import { parseFen } from 'chessops/fen';
 import type { LichessEditor } from 'editor';
 import { chess960IdToFEN, randomPositionId } from 'editor/chess960';
 
@@ -44,6 +43,23 @@ export const modeChoices = [
 
 export const fieldValue = (e: Event, id: string) =>
   ((e.target as HTMLElement).querySelector('#chapter-' + id) as HTMLInputElement)?.value;
+
+const isValidXiangqiFen = (fen: string): boolean => {
+  const parts = fen.trim().split(/\s+/),
+    ranks = parts[0]?.split('/') ?? [];
+  return (
+    parts.length === 6 &&
+    ['w', 'b'].includes(parts[1]) &&
+    parts[2] === '-' &&
+    parts[3] === '-' &&
+    ranks.length === 10 &&
+    ranks.every(
+      rank =>
+        /^[kabnrcpKABNRCP1-9]+$/.test(rank) &&
+        [...rank].reduce((width, char) => width + (char >= '1' && char <= '9' ? Number(char) : 1), 0) === 9,
+    )
+  );
+};
 
 export class StudyChapterNewForm {
   readonly multiPgnMax = 64;
@@ -287,7 +303,7 @@ export function view(ctrl: StudyChapterNewForm): VNode {
                 hook: onInsert((el: HTMLInputElement) => {
                   el.addEventListener('change', () => el.reportValidity());
                   el.addEventListener('input', _ => {
-                    if (parseFen(el.value.trim()).isOk) {
+                    if (isValidXiangqiFen(el.value.trim())) {
                       el.setCustomValidity('');
                       ctrl.root.node.fen = el.value;
                     } else el.setCustomValidity('Invalid FEN');

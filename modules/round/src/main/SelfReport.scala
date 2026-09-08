@@ -4,11 +4,12 @@ import com.softwaremill.tagging.*
 import scalalib.ThreadLocalRandom
 import scalalib.net.IpAddressStr
 import scala.util.matching.Regex
-import chess.IntRating
 
 import lila.core.net.IpAddress
 import lila.memo.SettingStore
-import lila.rating.UserPerfsExt.bestRating
+import lila.core.rank.RankTrackId
+import lila.core.rank.RankScore.*
+import lila.rating.XiangqiRank
 import lila.user.UserApi
 
 final class SelfReport(
@@ -44,12 +45,15 @@ final class SelfReport(
               .get()
               .matches(name)
               .option:
-                val rating = pov.player.rating | u.perfs.bestRating
+                val score = pov.player.rank
+                  .map(_.score)
+                  .getOrElse:
+                    u.perfs.rank(RankTrackId.xiangqi).getOrElse(XiangqiRank.initial).score
                 val delayBase =
-                  if rating > IntRating(2500) then 2
-                  else if rating > IntRating(2300) then 10
-                  else if rating > IntRating(2000) then 30
-                  else if rating > IntRating(1800) then 60
+                  if score.value >= 2100 then 2
+                  else if score.value >= 1200 then 10
+                  else if score.value >= 600 then 30
+                  else if score.value >= 150 then 60
                   else 120
                 delayBase.minutes + ThreadLocalRandom.nextInt(delayBase * 60).seconds
             val msg = s"Self-report $name on $gameUrl, " +

@@ -262,6 +262,9 @@ final class ModlogApi(repo: ModlogRepo, userRepo: UserRepo, ircApi: IrcApi, pres
   def cli(command: String)(using by: MyId) = add:
     Modlog(none, Modlog.cli, command.some)
 
+  def video(action: String, videoId: String, title: String)(using MyId) = add:
+    Modlog(none, action, s"$videoId: ${title.take(140)}".some).indexAs("video")
+
   def garbageCollect(sus: Suspect)(using MyId) = add:
     Modlog.make(sus, Modlog.garbageCollect)
 

@@ -748,6 +748,45 @@
   }
 }
 
+.xiangqi-analysis__recorded-clocks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-bottom: 1px solid $c-border;
+  background: color-mix(in oklab, $c-bg-box 88%, $c-bg-zebra);
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.xiangqi-analysis__recorded-clock {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.35rem 0.65rem;
+
+  & + & {
+    border-inline-start: 1px solid $c-border;
+  }
+
+  .label {
+    color: $c-font-dim;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  strong {
+    font-size: 1.15rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &.running strong {
+    color: $c-accent;
+  }
+}
+
 #xiangqi-moves {
   display: block;
 }
@@ -960,6 +999,10 @@
   flex: 0 0 3.1rem;
   border-top: 1px solid $c-border;
 
+  &:has(.xiangqi-analysis__playback:not([hidden])) {
+    grid-template-columns: repeat(6, 1fr) 1.18fr;
+  }
+
   .xiangqi-icon-button {
     border-inline-end: 1px solid color-mix(in oklab, $c-border 70%, transparent);
     font-size: 1.45rem;
@@ -973,6 +1016,30 @@
   .xiangqi-analysis__menu-button {
     border-inline-end: 0;
     font-size: 1.25rem;
+  }
+
+  .xiangqi-analysis__playback {
+    .play-icon::before {
+      content: attr(data-icon);
+    }
+
+    .stop-icon {
+      display: none;
+      width: 0.72rem;
+      height: 0.72rem;
+      border-radius: 1px;
+      background: currentcolor;
+    }
+
+    &[aria-pressed='true'] {
+      .play-icon {
+        display: none;
+      }
+
+      .stop-icon {
+        display: inline-block;
+      }
+    }
   }
 }
 

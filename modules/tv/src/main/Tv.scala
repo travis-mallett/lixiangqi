@@ -1,10 +1,11 @@
 package lila.tv
 
 import chess.PlayerTitle
-import chess.IntRating
 import scalalib.actor.SyncActor
 
 import lila.core.LightUser
+import lila.core.rank.{ RankCode, RankTrackId }
+import lila.core.rank.RankCode.*
 import lila.game.GameRepo
 import lila.ui.Icon
 
@@ -58,16 +59,21 @@ final class Tv(
     actor.ask[Champions](TvSyncActor.GetChampions.apply)
 
 object Tv:
-  import chess.{ variant as V, Speed as S }
-  import lila.rating.PerfType as P
+  import chess.variant as V
 
-  case class Champion(user: LightUser, rating: IntRating, gameId: GameId, color: Color)
+  case class Champion(user: LightUser, rank: Option[RankCode], gameId: GameId, color: Color)
   case class Champions(channels: Map[Channel, Champion]):
     export channels.get
 
   import play.api.libs.json.*
   import lila.common.Json.given
-  given Writes[lila.tv.Tv.Champion] = Json.writes
+  given Writes[lila.tv.Tv.Champion] = Writes: champion =>
+    Json.obj(
+      "user" -> champion.user,
+      "rank" -> champion.rank.map(_.value),
+      "gameId" -> champion.gameId,
+      "color" -> champion.color
+    )
 
   private[tv] case class Candidate(game: Game, hasBot: Boolean)
 
@@ -76,94 +82,49 @@ object Tv:
       val icon: Icon,
       val secondsSinceLastMove: Int,
       filters: Seq[Candidate => Boolean],
-      val speed: Option[S] = None,
-      val variant: Option[V.Variant] = None
+      val listed: Boolean = true,
+      val candidateLifetime: FiniteDuration = 3.minutes
   ):
     def isFresh(g: Game): Boolean = fresh(secondsSinceLastMove, g)
     def filter(c: Candidate): Boolean = filters.forall { _(c) } && isFresh(c.game)
     val key = lila.common.String.lcfirst(toString)
     case Best
         extends Channel(
-          name = "Top Rated",
+          name = "Ranked Xiangqi",
           icon = Icon.CrownElite,
-          secondsSinceLastMove = freshBlitz,
-          filters = Seq(rated(2150), standard, noBot)
-        )
-    case Bullet
-        extends Channel(
-          name = S.Bullet.name,
-          icon = P.Bullet.icon,
-          secondsSinceLastMove = 35,
-          filters = Seq(speed(S.Bullet), rated(2000), standard, noBot),
-          speed = Some(S.Bullet)
-        )
-    case Blitz
-        extends Channel(
-          name = S.Blitz.name,
-          icon = P.Blitz.icon,
-          secondsSinceLastMove = freshBlitz,
-          filters = Seq(speed(S.Blitz), rated(2000), standard, noBot),
-          speed = Some(S.Blitz)
-        )
-    case Rapid
-        extends Channel(
-          name = S.Rapid.name,
-          icon = P.Rapid.icon,
-          secondsSinceLastMove = 60 * 5,
-          filters = Seq(speed(S.Rapid), rated(1800), standard, noBot),
-          speed = Some(S.Rapid)
-        )
-    case Classical
-        extends Channel(
-          name = S.Classical.name,
-          icon = P.Classical.icon,
-          secondsSinceLastMove = 60 * 8,
-          filters = Seq(speed(S.Classical), rated(1650), standard, noBot),
-          speed = Some(S.Classical)
-        )
-    case UltraBullet
-        extends Channel(
-          name = S.UltraBullet.name,
-          icon = P.UltraBullet.icon,
-          secondsSinceLastMove = 20,
-          filters = Seq(speed(S.UltraBullet), rated(1600), standard, noBot),
-          speed = Some(S.UltraBullet)
+          secondsSinceLastMove = 60 * 3,
+          filters = Seq(rankedXiangqi, standard, noBot),
+          candidateLifetime = 45.minutes
         )
     case Bot
         extends Channel(
           name = "Bot",
           icon = Icon.Cogs,
-          secondsSinceLastMove = freshBlitz,
+          secondsSinceLastMove = 60 * 2,
           filters = Seq(standard, hasBot)
         )
     case Computer
         extends Channel(
           name = "Computer",
           icon = Icon.Cogs,
-          secondsSinceLastMove = freshBlitz,
+          secondsSinceLastMove = 60 * 2,
           filters = Seq(computerFromInitialPosition)
         )
 
   object Channel:
-    val list = values.toList
-    val byKey = values.mapBy(_.key)
+    val list = values.filter(_.listed).toList
+    val byKey = list.mapBy(_.key)
 
-  private def rated(min: Int) = (c: Candidate) => c.game.rated.yes && hasMinRating(c.game, IntRating(min))
-  private def speed(speed: chess.Speed) = (c: Candidate) => c.game.speed == speed
+  private val rankedXiangqi = (c: Candidate) => c.game.rankTrack.contains(RankTrackId.xiangqi)
   private def variant(variant: chess.variant.Variant) = (c: Candidate) => c.game.variant == variant
   private val standard = variant(V.Standard)
-  private val freshBlitz = 60 * 2
   private def computerFromInitialPosition(c: Candidate) = c.game.hasAi && !c.game.fromPosition
   private def hasBot(c: Candidate) = c.hasBot
   private def noBot(c: Candidate) = !c.hasBot
-
   private def olderThan(g: Game, seconds: Int) = g.movedAt.isBefore(nowInstant.minusSeconds(seconds))
   private def fresh(seconds: Int, game: Game): Boolean =
     (game.isBeingPlayed && !olderThan(game, seconds)) ||
       (game.finished && !olderThan(game, 7)) // rematch time
-
-  private def hasMinRating(g: Game, min: IntRating) =
-    g.players.exists(_.rating.exists(_ >= min))
 
   private[tv] val titleScores: Map[PlayerTitle, Int] = Map(
     PlayerTitle.GM -> 600,

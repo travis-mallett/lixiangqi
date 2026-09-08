@@ -9,6 +9,7 @@ export type AnyUser = {
   title?: string;
   flair?: Flair;
   ratingDiff?: number;
+  rank?: string;
   line?: boolean; // display i.line, true by default
   patronColor?: PatronColor; // turn i.line into a patron wing
   moderator?: boolean; // turn i.line into a mod icon
@@ -18,7 +19,15 @@ export type AnyUser = {
 };
 
 export const userLink = (u: AnyUser): VNode =>
-  h('a', userLinkData(u), [userLine(u), ...fullName(u), u.rating && ` ${userRating(u)} `]);
+  h('a', userLinkData(u), [
+    userLine(u),
+    ...fullName(u),
+    u.rank
+      ? h('span.user-rank', ` (${u.rank}) `)
+      : u.rating
+        ? h('span.rating', ` ${userRating(u)} `)
+        : undefined,
+  ]);
 
 export const userLinkData = (u: AnyUser): VNodeData => ({
   // can't be inlined because of thunks

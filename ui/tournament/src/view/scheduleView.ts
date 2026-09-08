@@ -49,8 +49,6 @@ function laneGrouper(t: Tournament): number {
     return -1;
   } else if (t.variant.key !== 'standard') {
     return 99;
-  } else if (t.schedule && t.hasMaxRating) {
-    return 50 + parseInt(t.fullName.slice(1, 5)) / 10000;
   } else if (t.schedule?.speed === 'superBlitz') {
     return t.perf.position - 0.5;
   } else if (t.schedule?.speed === 'hyperBullet') {
@@ -117,14 +115,12 @@ function tournamentClass(tour: Tournament): Classes {
   const finished = tour.status === 30,
     userCreated = tour.createdBy !== 'lichess',
     classes = {
-      'tsht-rated': tour.rated,
-      'tsht-casual': !tour.rated,
+      'tsht-casual': true,
       'tsht-finished': finished,
       'tsht-joinable': !finished,
       'tsht-user-created': userCreated,
       'tsht-position': !!tour.position,
       'tsht-short': tour.minutes <= 30,
-      'tsht-max-rating': !userCreated && tour.hasMaxRating,
       'tsht-variant': tour.variant.key !== 'standard' && tour.variant.key !== 'fromPosition',
     } as Classes;
   if (tour.schedule) classes['tsht-' + tour.schedule.freq] = true;
@@ -181,7 +177,7 @@ function renderTournament(tour: Tournament) {
           h('span.text', [
             displayClock(tour.clock) + ' ',
             tour.position ? 'Custom position ' : null,
-            i18n.site[tour.rated ? 'ratedTournament' : 'casualTournament'],
+            i18n.site.casualTournament,
           ]),
           tour.nbPlayers ? h('span.nb-players', { attrs: dataIcon(licon.User) }, tour.nbPlayers) : null,
         ]),

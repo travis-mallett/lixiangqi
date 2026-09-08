@@ -8,8 +8,7 @@ object Sorting:
 
   def fields(using Translate) = List(
     Fields.date -> trans.search.date.txt(),
-    Fields.turns -> trans.search.nbTurns.txt(),
-    Fields.averageRating -> trans.site.rating.txt()
+    Fields.turns -> trans.search.nbTurns.txt()
   )
 
   def orders(using Translate) = List(

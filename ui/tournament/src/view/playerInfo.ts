@@ -14,7 +14,7 @@ const playerTitle = (player: Player, tourId: string) =>
     player.rank
       ? hl('a.rank', { attrs: { href: `/tournament/${tourId}?player=${player.id}` } }, `${player.rank}. `)
       : '',
-    renderPlayer(player, true, false, false),
+    renderPlayer(player, true, false),
   ]);
 
 function setup(vnode: VNode) {
@@ -30,10 +30,7 @@ export default function (ctrl: TournamentController): VNode {
   if (!data || data.player.id !== ctrl.playerInfo.id)
     return hl(tag, [hl('div.stats', [playerTitle(ctrl.playerInfo.player!, ctrl.data.id), spinner()])]);
   const nb = data.player.nb,
-    pairingsLen = data.pairings.length,
-    avgOp = pairingsLen
-      ? Math.round(data.pairings.reduce((a, b) => a + b.op.rating, 0) / pairingsLen)
-      : undefined;
+    pairingsLen = data.pairings.length;
   return hl(tag, { hook: { insert: setup, postpatch: (_, vnode) => setup(vnode) } }, [
     hl('button.close', {
       attrs: dataIcon(licon.X),
@@ -46,14 +43,10 @@ export default function (ctrl: TournamentController): VNode {
           teamName(ctrl.data.teamBattle!, data.player.team),
         ]),
       hl('table', [
-        ctrl.opts.showRatings &&
-          data.player.performance &&
-          numberRow(i18n.site.performance, data.player.performance + (nb.game < 3 ? '?' : ''), 'raw'),
         numberRow(i18n.site.gamesPlayed, nb.game),
         nb.game > 0 && [
           numberRow(i18n.site.winRate, [nb.win, nb.game], 'percent'),
           numberRow(i18n.arena.berserkRate, [nb.berserk, nb.game], 'percent'),
-          ctrl.opts.showRatings && numberRow(i18n.site.averageOpponent, avgOp, 'raw'),
         ],
       ]),
     ]),
@@ -80,7 +73,7 @@ export default function (ctrl: TournamentController): VNode {
             [
               hl('th', Math.max(nb.game, pairingsLen) - i),
               hl('td', fullName(p.op)),
-              ctrl.opts.showRatings ? hl('td', `${p.op.rating}`) : null,
+              hl('td.rank-title', p.op.rankTitle || ''),
               berserkTd(!!p.op.berserk),
               hl('td.is.color-icon.' + p.color),
               hl('td.result', score),

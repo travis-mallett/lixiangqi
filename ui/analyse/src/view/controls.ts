@@ -1,9 +1,8 @@
 import { repeater, blurIfPrimaryClick } from 'lib';
 import { renderEval, view as cevalView } from 'lib/ceval';
 import { displayColumns, isTouchDevice } from 'lib/device';
-import { licon, type LiconValue } from 'lib/licon';
-import { addPointerListeners } from 'lib/pointer';
-import { type VNode, type LooseVNode, onInsert, hl } from 'lib/view';
+import { licon } from 'lib/licon';
+import { type LooseVNode, hl, renderReplayControls } from 'lib/view';
 
 import type AnalyseCtrl from '../ctrl';
 
@@ -15,23 +14,17 @@ export function renderControls(ctrl: AnalyseCtrl) {
   const canJumpPrev = ctrl.path !== '',
     canJumpNext = !!ctrl.node.children[0];
 
-  return hl(
-    'div.analyse__controls.analyse-controls',
-    {
-      hook: onInsert(el =>
-        addPointerListeners(el, {
-          click: e => clickControl(ctrl, e),
-          hold: e => holdControl(ctrl, e),
-        }),
-      ),
+  return renderReplayControls({
+    selector: 'div.analyse__controls',
+    enabled: {
+      first: canJumpPrev,
+      prev: canJumpPrev,
+      next: canJumpNext,
+      last: ctrl.node !== ctrl.mainline[ctrl.mainline.length - 1],
     },
-    [
-      hl('div.jumps', [
-        jumpButton(licon.JumpFirst, 'first', canJumpPrev),
-        jumpButton(licon.LessThan, 'prev', canJumpPrev),
-        jumpButton(licon.GreaterThan, 'next', canJumpNext),
-        jumpButton(licon.JumpLast, 'last', ctrl.node !== ctrl.mainline[ctrl.mainline.length - 1]),
-      ]),
+    onClick: (action, event) => clickControl(ctrl, action as Action, event),
+    onHold: (action, event) => holdControl(ctrl, action as Action, event),
+    controls: [
       displayColumns() === 1 && ctrl.isCevalAllowed() && renderMobileCevalTab(ctrl),
       hl('button.fbt', {
         attrs: {
@@ -50,7 +43,7 @@ export function renderControls(ctrl: AnalyseCtrl) {
         attrs: { title: i18n.site.menu, 'data-act': 'menu', 'data-icon': licon.Hamburger },
       }),
     ],
-  );
+  });
 }
 
 const renderPracticeTab = (ctrl: AnalyseCtrl): LooseVNode =>
@@ -93,20 +86,17 @@ function renderMobileCevalTab(ctrl: AnalyseCtrl): LooseVNode {
   );
 }
 
-function holdControl(ctrl: AnalyseCtrl, e: PointerEvent) {
-  if (!(e.target instanceof HTMLElement)) return;
-  const action = e.target.closest<HTMLElement>('[data-act]')?.dataset.act as Action;
+function holdControl(ctrl: AnalyseCtrl, action: Action, e: PointerEvent) {
   if (action === 'prev' || action === 'next') {
     repeater(() => {
       ctrl.navigate[action]();
       ctrl.redraw();
     });
-  } else clickControl(ctrl, e);
+  } else clickControl(ctrl, action, e);
 }
 
-function clickControl(ctrl: AnalyseCtrl, e: PointerEvent) {
+function clickControl(ctrl: AnalyseCtrl, action: Action, e: PointerEvent) {
   if (!(e.target instanceof HTMLElement)) return;
-  const action = e.target.closest<HTMLElement>('[data-act]')?.dataset.act as Action;
   if (!action) return;
   if (action === 'prev') ctrl.navigate.prev();
   else if (action === 'next') ctrl.navigate.next();
@@ -128,8 +118,5 @@ function clickControl(ctrl: AnalyseCtrl, e: PointerEvent) {
   blurIfPrimaryClick(e);
   ctrl.redraw();
 }
-
-const jumpButton = (icon: LiconValue, effect: string, enabled: boolean): VNode =>
-  hl('button.fbt.move', { attrs: { disabled: !enabled, 'data-act': effect, 'data-icon': icon } });
 
 const isMobileUi = (): boolean => displayColumns() === 1 && isTouchDevice();

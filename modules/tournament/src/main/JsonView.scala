@@ -3,19 +3,20 @@ package lila.tournament
 import com.softwaremill.tagging.*
 import play.api.i18n.Lang
 import play.api.libs.json.*
-import chess.IntRating
 
 import lila.common.Json.given
 import lila.common.Json.lightUser.writeNoId
 import lila.common.Uptime
 import lila.core.LightUser
 import lila.core.chess.Rank
+import lila.core.rank.RankSnapshot
+import lila.core.rank.RankCode.*
 import scalalib.data.Preload
 import lila.core.game.LightPov
 import lila.core.i18n.Translate
 import lila.core.socket.SocketVersion
 import lila.core.user.LightUserApi
-import lila.gathering.{ Condition, ConditionHandlers, GreatPlayer }
+import lila.gathering.{ Condition, GreatPlayer }
 import lila.gathering.GatheringJson.*
 import lila.memo.CacheApi.*
 import lila.memo.SettingStore
@@ -40,7 +41,7 @@ final class JsonView(
 )(using Executor, lila.core.i18n.Translator):
 
   import JsonView.{ *, given }
-  import lila.gathering.ConditionHandlers.JSONHandlers.{ *, given }
+  import lila.gathering.ConditionHandlers.JSONHandlers.*
   private given Ordering[TeamId] = stringOrdering
 
   def apply(
@@ -107,10 +108,9 @@ final class JsonView(
             "system" -> "arena", // BC
             "fullName" -> tour.name(),
             "minutes" -> tour.minutes,
-            "perf" -> tour.perfType,
+            "perf" -> Json.obj("key" -> "xiangqi"),
             "clock" -> tour.clock,
-            "variant" -> tour.variant.key,
-            "rated" -> tour.rated
+            "variant" -> tour.variant.key
           )
           .add("spotlight" -> tour.spotlight)
           .add("berserkable" -> tour.berserkable)
@@ -136,9 +136,6 @@ final class JsonView(
           .add("description" -> withDescription.so(tour.description))
           .add("payouts" -> tour.payouts)
           .add("myUsername" -> me.map(_.username))
-          .add[Condition.RatingCondition]("minRating", tour.conditions.minRating)
-          .add[Condition.RatingCondition]("maxRating", tour.conditions.maxRating)
-          .add("minRatedGames", tour.conditions.nbRatedGame)
           .add("botsAllowed", tour.conditions.allowsBots)
           .add("minAccountAgeInDays", tour.conditions.accountAge.map(_.days))
           .add("onlyTitled", tour.conditions.titled.isDefined)
@@ -186,14 +183,12 @@ final class JsonView(
       "player" -> {
         Json.toJsObject(user) ++ Json
           .obj(
-            "rating" -> player.rating,
+            "rankTitle" -> player.rank.publicCode.map(_.value),
             "score" -> player.score,
             "fire" -> player.fire,
             "nb" -> sheetNbs(sheet)
           )
-          .add("performance" -> player.performance)
           .add("rank" -> ranking.ranking.get(user.id).map(_ + 1))
-          .add("provisional" -> player.provisional)
           .add("withdraw" -> player.withdraw)
           .add("team" -> player.team)
       },
@@ -202,7 +197,7 @@ final class JsonView(
           .obj(
             "id" -> pov.gameId,
             "color" -> pov.color.name,
-            "op" -> gameUserJson(pov.opponent.userId, pov.opponent.rating, pov.opponent.berserk),
+            "op" -> gameUserJson(pov.opponent.userId, pov.opponent.rank, pov.opponent.berserk),
             "win" -> score.flatMap(_.isWin),
             "status" -> pov.game.status.id,
             "score" -> score.map(_.value)
@@ -241,7 +236,7 @@ final class JsonView(
     )
 
   private def duelsJson(tourId: TourId): Fu[(List[Duel], JsArray)] =
-    val duels = duelStore.bestRated(tourId, 6)
+    val duels = duelStore.bestRanked(tourId, 6)
     (duels.map(duelJson).parallel: Fu[List[JsObject]]).map: jsons =>
       (duels, JsArray(jsons))
 
@@ -276,7 +271,7 @@ final class JsonView(
         Json
           .obj(
             "rank" -> rp.rank,
-            "rating" -> rp.player.rating
+            "rankTitle" -> rp.player.rank.publicCode.map(_.value)
           )
           .add("berserk" -> p.berserk)
     Json
@@ -309,10 +304,14 @@ final class JsonView(
       .add("fullId", i.fullId)
       .add("pauseDelay", delay)
 
-  private def gameUserJson(userId: Option[UserId], rating: Option[IntRating], berserk: Boolean): JsObject =
+  private def gameUserJson(
+      userId: Option[UserId],
+      rank: Option[RankSnapshot],
+      berserk: Boolean
+  ): JsObject =
     userId.flatMap(lightUserApi.sync).so(writeNoId) ++
       Json
-        .obj("rating" -> rating)
+        .obj("rankTitle" -> rank.flatMap(_.publicCode).map(_.value))
         .add("berserk" -> berserk)
 
   private val podiumJsonCache = cacheApi[TourId, Option[JsArray]](128, "tournament.podiumJson"):
@@ -342,9 +341,7 @@ final class JsonView(
                       streakable = tour.streakable,
                       withScores = false
                     )
-                  yield json ++ Json
-                    .obj("nb" -> sheetNbs(sheet))
-                    .add("performance" -> rp.player.performance)
+                  yield json ++ Json.obj("nb" -> sheetNbs(sheet))
               .map: l =>
                 JsArray(l).some
 
@@ -355,8 +352,8 @@ final class JsonView(
         Json
           .obj(
             "n" -> u.name,
-            "r" -> p.rating.value,
-            "k" -> p.rank.value
+            "c" -> p.rank.publicCode.fold("Unranked")(_.value),
+            "k" -> p.tournamentRank.value
           )
           .add("t" -> u.title)
 
@@ -432,8 +429,7 @@ final class JsonView(
                   .obj(
                     "id" -> teamId,
                     "nbPlayers" -> info.nbPlayers,
-                    "rating" -> info.avgRating,
-                    "perf" -> info.avgPerf,
+                    "rank" -> info.avgRank.map(_.value),
                     "score" -> info.avgScore,
                     "topPlayers" -> info.topPlayers.flatMap: p =>
                       lightUserApi
@@ -442,7 +438,7 @@ final class JsonView(
                           writeNoId(u) ++
                             Json
                               .obj(
-                                "rating" -> p.rating,
+                                "rankTitle" -> p.rank.publicCode.map(_.value),
                                 "score" -> p.score
                               )
                               .add("fire" -> p.fire)
@@ -504,13 +500,12 @@ object JsonView:
         .obj(
           "rank" -> rank,
           "score" -> player.score,
-          "rating" -> player.rating,
+          "rankTitle" -> player.rank.publicCode.map(_.value),
           "username" -> user.name
         )
         .add("title" -> user.title)
         .add("flair" -> user.flair)
         .add("patronColor" -> user.patronAndColor.map(_.color))
-        .add("performance" -> player.performance)
         .add("withdraw" -> player.withdraw)
         .add("team" -> player.team)
         .add("sheet", sheet.map(sheetJson(streakFire = false, withScores = true)))
@@ -544,11 +539,10 @@ object JsonView:
           Json
             .obj(
               "rank" -> rankedPlayer.rank,
-              "rating" -> p.rating,
+              "rankTitle" -> p.rank.publicCode.map(_.value),
               "score" -> p.score
             )
             .add("sheet", sheet.map(sheetJson(streakFire = streakable, withScores = withScores)))
-            .add("provisional" -> p.provisional)
             .add("withdraw" -> p.withdraw)
             .add("team" -> p.team)
 

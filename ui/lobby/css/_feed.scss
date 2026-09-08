@@ -1,78 +1,180 @@
 .lobby__feed {
-  @extend %box-neat;
-  @include hoverflow;
+  display: grid;
+  min-width: 0;
+  min-height: 76px;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 22px;
+  overflow: hidden;
+  border: $border;
+  border-radius: 12px;
+  padding: 12px 18px;
+  background: color-mix(in oklab, $c-bg-box 96%, transparent);
+  box-shadow: 0 3px 12px rgb(0 0 0 / 0.12);
 
-  background: $c-bg-box;
-  min-height: 16em;
-}
+  &__title {
+    display: flex;
+    min-width: 0;
+    align-items: baseline;
+    gap: 10px;
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 400;
+    white-space: nowrap;
+    color: $c-brag;
 
-.daily-feed {
-  &__updates {
-    margin-inline-start: 24px;
-    border-inline-start: 2px solid $c-contours;
-    margin-bottom: 1.5em;
+    icon {
+      color: $c-brag;
+      font-size: 1.65rem;
+    }
   }
 
-  &__update {
-    padding-inline-start: 25px;
-    margin-top: 1.5em;
+  .daily-feed__updates {
+    min-width: 0;
+  }
 
-    table {
-      display: none;
+  .daily-feed__update {
+    display: none;
+
+    &:first-child {
+      display: block;
+      min-width: 0;
     }
 
     &__marker {
-      float: inline-start;
-      width: 32px;
-      height: 32px;
-      padding: 5px;
-      transform: translateY(-5px);
-      margin-inline-start: -42px;
-      background-color: $c-contours;
-      border: 3px solid $c-bg-box;
-      border-radius: 50%;
+      display: none;
+    }
 
-      &.nobg {
-        background: $c-bg-box;
-        border: 2px solid $c-contours;
+    > div {
+      display: flex;
+      min-width: 0;
+      align-items: baseline;
+      gap: 14px;
+      overflow: hidden;
+
+      > :not(.daily-feed__update__day) {
+        min-width: 0;
+        margin: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
     }
 
     &__day {
-      @extend %flex-center;
-
-      display: inline;
-      font-size: 1.15em;
-      font-weight: bold;
-      color: $c-contours;
-
-      time {
-        font-size: 1em;
-        opacity: 1;
-      }
-
-      &:hover {
-        color: $c-brag;
-      }
-    }
-
-    @include rendered-markdown(
-      $element-margin: 0.6em,
-      $h1: false,
-      $h2: false,
-      $table: false,
-      $img: false,
-      $list: false
-    );
-
-    h3 {
-      font-size: 1.2em;
+      flex: 0 0 auto;
       color: $c-font-dim;
-      border-bottom: $border;
+      font-size: 0.83rem;
+      white-space: nowrap;
+
+      &:hover,
+      &:focus-visible {
+        color: $c-primary;
+      }
     }
 
-    h4 {
-      font-size: 1.15em;
+    h1,
+    h2,
+    h3,
+    h4,
+    p {
+      display: inline;
+      margin: 0;
+      border: 0;
+      color: $c-font;
+      font-size: 0.95rem;
+      font-weight: 400;
+      line-height: 1.3;
+    }
+  }
+
+  @media (max-width: 600px) {
+    min-height: 64px;
+    gap: 12px;
+    border-radius: 10px;
+    padding: 10px 12px;
+
+    &__title {
+      gap: 7px;
+
+      icon {
+        align-self: center;
+        font-size: 1.35rem;
+      }
+    }
+
+    .daily-feed__update {
+      > div {
+        display: block;
+      }
+
+      &__day {
+        display: block;
+        margin-bottom: 2px;
+        font-size: 0.7rem;
+      }
+
+      h1,
+      h2,
+      h3,
+      h4,
+      p {
+        font-size: 0.78rem;
+      }
+    }
+  }
+}
+
+.lobby__right-rail .lobby__feed {
+  display: block;
+  min-height: 0;
+  padding: 0 14px 14px;
+
+  .lobby__feed__title {
+    min-height: 54px;
+    margin-inline: -14px;
+    padding: 11px 14px;
+    border-bottom: $border;
+  }
+
+  .daily-feed__updates {
+    margin: 0;
+  }
+
+  .daily-feed__update {
+    display: block;
+    padding: 11px 0;
+    border-bottom: $border;
+
+    &:nth-child(n + 4) {
+      display: none;
+    }
+
+    &:last-child {
+      border-bottom: 0;
+    }
+
+    > div {
+      display: block;
+    }
+
+    &__day {
+      display: block;
+      margin-bottom: 3px;
+      font-size: 0.7rem;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    p {
+      display: -webkit-box;
+      overflow: hidden;
+      font-size: 0.8rem;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      white-space: normal;
     }
   }
 }

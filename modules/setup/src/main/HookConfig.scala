@@ -2,13 +2,10 @@ package lila.setup
 
 import chess.variant.Variant
 import chess.{ Clock, Rated }
-import chess.IntRating
 import scalalib.model.Days
 
 import lila.core.perf.UserWithPerfs
-import lila.core.rating.RatingRange
 import lila.lobby.{ Hook, Seek, TriColor }
-import lila.rating.RatingRange.withinLimits
 import lila.core.game.MoveTimeLimit
 
 case class HookConfig(
@@ -18,14 +15,10 @@ case class HookConfig(
     increment: Clock.IncrementSeconds,
     moveTimeLimit: Option[MoveTimeLimit],
     days: Days,
-    rated: Rated,
-    color: TriColor,
-    ratingRange: RatingRange
+    color: TriColor
 ) extends HumanConfig:
 
-  def withinLimits(using me: Option[Me], perf: Perf): HookConfig =
-    if me.isEmpty then this
-    else copy(ratingRange = ratingRange.withinLimits(perf.intRating, 500))
+  val rated = Rated.No
 
   def >> = (
     variant.id,
@@ -34,8 +27,6 @@ case class HookConfig(
     increment,
     moveTimeLimit,
     days,
-    rated.id.some,
-    ratingRange.toString.some,
     color.name.some
   ).some
 
@@ -61,12 +52,10 @@ case class HookConfig(
             variant = variant,
             clock = clock,
             moveTimeLimit = makeMoveTimeLimit,
-            rated = if lila.core.game.allowRated(variant, clock.some) then rated else Rated.No,
             color = color,
             user = user,
             blocking = blocking,
-            sid = sid,
-            ratingRange = ratingRange
+            sid = sid
           )
       case _ =>
         Right:
@@ -74,10 +63,8 @@ case class HookConfig(
             Seek.make(
               variant = variant,
               daysPerTurn = makeDaysPerTurn,
-              rated = rated,
               user = u,
-              blocking = blocking,
-              ratingRange = ratingRange
+              blocking = blocking
             )
 
   def updateFrom(game: Game) =
@@ -87,16 +74,9 @@ case class HookConfig(
       time = game.clock.map(_.limitInMinutes) | time,
       increment = game.clock.map(_.incrementSeconds) | increment,
       moveTimeLimit = game.moveTimeLimit,
-      days = game.daysPerTurn | days,
-      rated = game.rated
+      days = game.daysPerTurn | days
     )
-    val h2 = if h1.isRatedUnlimited then h1.copy(rated = Rated.No) else h1
-    if !h2.validClock then h2.copy(time = 1) else h2
-
-  def withRatingRange(ratingRange: String) =
-    copy(ratingRange = RatingRange.orDefault(ratingRange))
-  def withRatingRange(rating: Option[IntRating], deltaMin: Option[String], deltaMax: Option[String]) =
-    copy(ratingRange = lila.rating.RatingRange.orDefault(rating, deltaMin, deltaMax))
+    if !h1.validClock then h1.copy(time = 1) else h1
 
 object HookConfig extends BaseConfig:
 
@@ -109,8 +89,6 @@ object HookConfig extends BaseConfig:
       i: Clock.IncrementSeconds,
       ml: Option[MoveTimeLimit],
       d: Days,
-      m: Option[Int],
-      e: Option[String],
       c: Option[String]
   ) =
     new HookConfig(
@@ -120,12 +98,10 @@ object HookConfig extends BaseConfig:
       increment = i,
       moveTimeLimit = ml,
       days = d,
-      rated = m.fold(Rated.default)(Rated.orDefault),
-      color = TriColor.orDefault(c),
-      ratingRange = e.fold(RatingRange.default)(RatingRange.orDefault)
+      color = TriColor.orDefault(c)
     )
 
-  def default(auth: Boolean): HookConfig = default.copy(rated = Rated(auth))
+  def default(@annotation.unused auth: Boolean): HookConfig = default
 
   private val default = HookConfig(
     variant = variantDefault,
@@ -134,8 +110,6 @@ object HookConfig extends BaseConfig:
     increment = Clock.IncrementSeconds(3),
     moveTimeLimit = None,
     days = Days(2),
-    rated = Rated.default,
-    ratingRange = RatingRange.default,
     color = TriColor.default
   )
 
@@ -152,9 +126,7 @@ object HookConfig extends BaseConfig:
         increment = r.get("i"),
         moveTimeLimit = r.contains("ml").option(r.get[MoveTimeLimit]("ml")),
         days = r.get("d"),
-        rated = Rated.orDefault(r.int("m")),
-        color = TriColor.Random,
-        ratingRange = r.strO("e").flatMap(RatingRange.parse).getOrElse(RatingRange.default)
+        color = TriColor.Random
       )
 
     def writes(w: BSON.Writer, o: HookConfig) =
@@ -164,7 +136,5 @@ object HookConfig extends BaseConfig:
         "t" -> o.time,
         "i" -> o.increment,
         "ml" -> o.moveTimeLimit,
-        "d" -> o.days,
-        "m" -> o.rated.id,
-        "e" -> o.ratingRange.toString
+        "d" -> o.days
       )

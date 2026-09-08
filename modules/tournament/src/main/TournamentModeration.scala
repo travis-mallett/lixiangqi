@@ -18,8 +18,6 @@ final class TournamentModeration(playerRepo: PlayerRepo, userRepo: UserRepo)(usi
     val players = view match
       case View.recentlyCreated => aggregate(tourId, ordering = some(_.Descending("user.createdAt")))
       case View.fewGamesPlayed => aggregate(tourId, ordering = some(_.Ascending("user.count.game")))
-      case View.provisional =>
-        aggregate(tourId, playerSelect = $doc("pr" -> true).some, ordering = some(_.Descending("r")))
     players.map(view -> _)
 
   private def aggregate(
@@ -54,4 +52,3 @@ object TournamentModeration:
   enum View(val name: String):
     case recentlyCreated extends View("Recently created")
     case fewGamesPlayed extends View("Few games played")
-    case provisional extends View("Provisional rating")

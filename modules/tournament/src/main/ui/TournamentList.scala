@@ -4,7 +4,6 @@ package ui
 import play.api.libs.json.*
 import scalalib.paginator.Paginator
 
-import lila.rating.PerfType
 import lila.tournament.Schedule.Freq
 import lila.ui.*
 
@@ -227,53 +226,9 @@ final class TournamentList(helpers: Helpers, ui: TournamentUi)(
 
   object leaderboard:
 
-    private def freqWinner(w: Winner, freq: String)(using Translate) =
-      li(
-        userIdLink(w.userId.some),
-        a(title := w.tourName, href := routes.Tournament.show(w.tourId))(freq)
-      )
-
     private val section = st.section(cls := "tournament-leaderboards__item")
 
-    private def freqWinners(fws: FreqWinners, perfType: PerfType, name: String)(using Translate) =
-      section(
-        h2(cls := "text", dataIcon := perfType.icon)(name),
-        ul(
-          fws.yearly.map: w =>
-            freqWinner(w, "Yearly"),
-          fws.monthly.map: w =>
-            freqWinner(w, "Monthly"),
-          fws.weekly.map: w =>
-            freqWinner(w, "Weekly"),
-          fws.daily.map: w =>
-            freqWinner(w, "Daily")
-        )
-      )
-
     def apply(winners: AllWinners)(using Context) =
-      def eliteWinners = section(
-        h2(cls := "text", dataIcon := Icon.CrownElite)("Elite Arena"),
-        ul(
-          winners.elite.map: w =>
-            li(
-              userIdLink(w.userId.some),
-              a(title := w.tourName, href := routes.Tournament.show(w.tourId))(showDate(w.date))
-            )
-        )
-      )
-      def marathonWinners = section(
-        h2(cls := "text", dataIcon := Icon.Globe)("Marathon"),
-        ul(
-          winners.marathon.map { w =>
-            li(
-              userIdLink(w.userId.some),
-              a(title := w.tourName, href := routes.Tournament.show(w.tourId))(
-                w.tourName.replace(" Marathon", "")
-              )
-            )
-          }
-        )
-      )
       Page("Tournament leaderboard")
         .css("tournament.leaderboard")
         .flag(_.fullScreen):
@@ -282,20 +237,20 @@ final class TournamentList(helpers: Helpers, ui: TournamentUi)(
             div(cls := "page-menu__content box box-pad")(
               h1(cls := "box__top")(trans.arena.tournamentWinners()),
               div(cls := "tournament-leaderboards")(
-                eliteWinners,
-                freqWinners(winners.hyperbullet, PerfType.Bullet, "HyperBullet"),
-                freqWinners(winners.bullet, PerfType.Bullet, "Bullet"),
-                freqWinners(winners.superblitz, PerfType.Blitz, "SuperBlitz"),
-                freqWinners(winners.blitz, PerfType.Blitz, "Blitz"),
-                freqWinners(winners.rapid, PerfType.Rapid, "Rapid"),
-                marathonWinners,
-                lila.tournament.WinnersApi.variants.map: variant =>
-                  PerfKey
-                    .byVariant(variant)
-                    .map: perfKey =>
-                      winners.variants
-                        .get(chess.variant.Variant.LilaKey(perfKey.value))
-                        .map(freqWinners(_, perfKey, variant.name))
+                section(
+                  h2(cls := "text", dataIcon := Icon.Trophy)("Recent Xiangqi tournament winners"),
+                  ul(
+                    winners.recent
+                      .take(30)
+                      .map: winner =>
+                        li(
+                          userIdLink(winner.userId.some),
+                          a(title := winner.tourName, href := routes.Tournament.show(winner.tourId))(
+                            showDate(winner.date)
+                          )
+                        )
+                  )
+                )
               )
             )
           )

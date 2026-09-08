@@ -35,6 +35,17 @@ final class AccountPref(helpers: Helpers, helper: PrefHelper, bits: AccountUi):
               "pieceAnimation"
             ),
             setting(
+              trp.boardEventAnimations(),
+              boardAnimationPicker(
+                form("display.boardAnimations"),
+                trp.boardAnimationsOn.txt(),
+                trp.boardAnimationsOff.txt(),
+                trp.boardAnimationsCustom.txt(),
+                boardAnimationChoices
+              ),
+              "boardEventAnimations"
+            ),
+            setting(
               trp.materialDifference(),
               radios(form("display.captured"), booleanChoices),
               "materialDifference"
@@ -213,11 +224,6 @@ final class AccountPref(helpers: Helpers, helper: PrefHelper, bits: AccountUi):
               trans.site.letOtherPlayersInviteYouToStudy(),
               radios(form("studyInvite"), translatedStudyInviteChoices),
               "letOtherPlayersInviteYouToStudy"
-            ),
-            setting(
-              trans.site.shareYourInsightsData(),
-              radios(form("insightShare"), translatedInsightShareChoices),
-              "shareYourInsightsData"
             )
           ),
           p(cls := "saved text none", dataIcon := Icon.Checkmark)(trp.yourPreferencesHaveBeenSaved())

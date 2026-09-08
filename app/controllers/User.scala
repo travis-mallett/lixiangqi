@@ -10,13 +10,11 @@ import scalalib.paginator.Paginator
 import lila.app.{ *, given }
 import lila.common.HTTPRequest
 import lila.common.Json.given
-import lila.core.user.LightPerf
+import lila.core.user.LightRank
 import lila.core.userId.UserSearch
 import lila.core.security.IsProxy
 import lila.game.GameFilter
 import lila.mod.UserWithModlog
-import lila.rating.PerfType
-import lila.rating.UserPerfsExt.best8Perfs
 import lila.security.UserLogins
 import lila.user.WithPerfsAndEmails
 import lila.mon.extensions.*
@@ -200,7 +198,7 @@ final class User(
                   Ok:
                     Json.obj(
                       "crosstable" -> crosstable,
-                      "perfs" -> lila.user.JsonView.perfsJson(user.perfs, user.perfs.best8Perfs)
+                      "perfs" -> lila.user.JsonView.perfsJson(user.perfs)
                     )
               )
           else Ok(views.user.bits.miniClosed(user.user, relation))
@@ -216,13 +214,8 @@ final class User(
               .map: u =>
                 env.user.jsonView.full(u.user, u.perfs.some, withProfile = true)
 
-  def ratingHistory(username: UserStr) = Open:
-    EnabledUser(username): u =>
-      env.history
-        .ratingChartApi(u)
-        .dmap: // send an empty JSON array if no history JSON is available
-          _ | lila.core.data.SafeJsonStr("[]")
-        .dmap(jsonStr => Ok(jsonStr).as(JSON))
+  def ratingHistory(@annotation.unused username: UserStr) = Open:
+    fuccess(Ok("[]").as(JSON))
 
   private def userGames(
       u: UserModel,
@@ -245,52 +238,30 @@ final class User(
       yield pag
 
   def list = Open:
-    env.user.cached.top10.get {}.flatMap { leaderboards =>
+    env.user.xiangqiRankingApi.top(100).flatMap { leaderboard =>
       negotiate(
         html = for
-          nbAllTime <- env.user.cached.top10NbGame.get {}
-          tourneyWinners <- env.tournament.winners.all.map(_.top)
           topOnline <- env.user.cached.getTop50Online
-          _ <- lightUserApi.preloadMany(tourneyWinners.map(_.userId))
           page <- renderPage:
-            views.user.list(tourneyWinners, topOnline, leaderboards, nbAllTime)
+            views.user.list(topOnline, leaderboard)
         yield Ok(page),
-        json =
-          given OWrites[LightPerf] = OWrites(env.user.jsonView.lightPerfIsOnline)
-          import lila.user.JsonView.leaderboardsWrites
-          JsonOk(leaderboards)
+        json = JsonOk(Json.obj("xiangqi" -> leaderboard.map(env.user.jsonView.lightRankIsOnline)))
       )
     }
 
   def apiList = Anon:
-    env.user.cached.top10.get {}.map { leaderboards =>
-      import env.user.jsonView.lightPerfIsOnlineWrites
-      import lila.user.JsonView.leaderboardsWrites
-      JsonOk(leaderboards)
-    }
+    env.user.xiangqiRankingApi
+      .top(100)
+      .map(entries => JsonOk(Json.obj("xiangqi" -> entries.map(env.user.jsonView.lightRankIsOnline))))
 
-  def top(perfKey: PerfKey, page: Int) = Open:
-    Reasonable(page, Max(20)):
-      env.user.cached
-        .topPerfPager(perfKey, page)
-        .flatMap: pager =>
-          negotiate(
-            Ok.page(views.user.list.top(perfKey, pager)),
-            topNbJson(pager.currentPageResults)
-          )
+  def top(@annotation.unused perfKey: PerfKey, @annotation.unused page: Int) = Open:
+    fuccess(Redirect(routes.User.list))
 
-  def topNbApi(nb: Int, perfKey: PerfKey) = Anon:
-    if nb == 1 && perfKey == PerfKey.standard then
-      env.user.cached.top10.get {}.map { leaderboards =>
-        import env.user.jsonView.lightPerfIsOnlineWrites
-        import lila.user.JsonView.leaderboardStandardTopOneWrites
-        JsonOk(leaderboards)
-      }
-    else env.user.cached.firstPageOf(perfKey).dmap(_.take(nb)).map(topNbJson)
+  def topNbApi(nb: Int, @annotation.unused perfKey: PerfKey) = Anon:
+    env.user.xiangqiRankingApi.top(nb.atLeast(0).atMost(100)).map(topNbJson)
 
-  private def topNbJson(users: Seq[LightPerf]) =
-    given OWrites[LightPerf] = OWrites(env.user.jsonView.lightPerfIsOnline)
-    Ok(Json.obj("users" -> users))
+  private def topNbJson(users: Seq[LightRank]) =
+    Ok(Json.obj("users" -> users.map(env.user.jsonView.lightRankIsOnline)))
 
   def mod(username: UserStr) = Secure(_.UserModView) { ctx ?=> _ ?=>
     modZoneOrRedirect(username)
@@ -536,22 +507,14 @@ final class User(
   }
 
   def perfStat(username: UserStr, perfKey: PerfKey) = Open:
-    val canCompute = req.client.isHuman && ctx.isAuth
-    Found(env.perfStat.api.data(username, perfKey, computeIfNeeded = canCompute)): data =>
-      negotiate(
-        Ok.async:
-          env.history
-            .ratingChartApi(data.user.user)
-            .map:
-              views.user.perfStatPage(data, _)
-        ,
-        JsonOk:
-          getBool("graph")
-            .optionFu:
-              env.history.ratingChartApi.singlePerf(data.user.user, data.stat.perfType.key)
-            .map: graph =>
-              env.perfStat.jsonView(data).add("graph", graph)
-      )
+    if perfKey != PerfKey.puzzle then fuccess(Redirect(routes.User.show(username)))
+    else
+      val canCompute = req.client.isHuman && ctx.isAuth
+      Found(env.perfStat.api.data(username, perfKey, computeIfNeeded = canCompute)): data =>
+        negotiate(
+          Ok.async(fuccess(views.user.perfStatPage(data, none))),
+          JsonOk(env.perfStat.jsonView(data))
+        )
 
   def autocomplete = OpenOrScoped(): ctx ?=>
     NoTor:
@@ -604,20 +567,11 @@ final class User(
                 else fuccess(Json.toJson(userIds))
             yield JsonOk(result)
 
-  def ratingDistribution(perfKey: PerfKey, username: Option[UserStr] = None) = Open:
-    Found(perfKey.some.filter(lila.rating.PerfType.isLeaderboardable)): perfKey =>
-      env.perfStat.api
-        .weeklyRatingDistribution(perfKey)
-        .flatMap: data =>
-          WithMyPerfs:
-            username match
-              case Some(name) =>
-                EnabledUser(name): u =>
-                  env.user.perfsRepo
-                    .withPerfs(u)
-                    .flatMap: u =>
-                      Ok.page(views.user.perfStat.ratingDistribution(perfKey, data, u.some))
-              case _ => Ok.page(views.user.perfStat.ratingDistribution(perfKey, data, none))
+  def ratingDistribution(
+      @annotation.unused perfKey: PerfKey,
+      @annotation.unused username: Option[UserStr] = None
+  ) = Open:
+    fuccess(Redirect(routes.User.list))
 
   def redirect(path: String) = Open:
     staticRedirect(path) |

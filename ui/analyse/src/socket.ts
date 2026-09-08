@@ -3,7 +3,7 @@ import type { Shape } from 'lib/tree/types';
 
 import type AnalyseCtrl from './ctrl';
 import type { EvalGetData, EvalPutData, ServerEvalData } from './interfaces';
-import type { AnaDrop, AnaMove, ChapterData, EditChapterData } from './study/interfaces';
+import type { AnaMove, ChapterData, EditChapterData } from './study/interfaces';
 import type { FormData as StudyFormData } from './study/studyForm';
 
 interface MoveOpts {
@@ -47,7 +47,6 @@ export interface StudySocketSendParams {
   sortChapters: (chapterIds: string[]) => void;
   setTag: (d: { chapterId: string; name: string; value: string }) => void;
   anaMove: (d: AnaMove & MoveOpts) => void;
-  anaDrop: (d: AnaDrop & MoveOpts) => void;
   like: (d: { liked: boolean }) => void;
   kick: (username: string) => void;
   editStudy: (d: StudyFormData) => void;
@@ -79,7 +78,6 @@ export interface Socket {
   send: AnalyseSocketSend;
   receive(type: string, data: any): boolean;
   sendAnaMove(d: AnaMove): void;
-  sendAnaDrop(d: AnaDrop): void;
 }
 
 export function make(send: AnalyseSocketSend, ctrl: AnalyseCtrl): Socket {
@@ -100,24 +98,9 @@ export function make(send: AnalyseSocketSend, ctrl: AnalyseCtrl): Socket {
     evalHit: ctrl.evalCache.onCloudEval,
   };
 
-  function withoutStandardVariant(obj: { variant?: VariantKey }) {
-    if (obj.variant === 'standard') delete obj.variant;
-  }
-
   function sendAnaMove(req: AnaMove) {
     const studyData = ctrl.study?.socketSendNodeData();
-    if (studyData) {
-      withoutStandardVariant(req);
-      send('anaMove', { ...req, ...studyData });
-    }
-  }
-
-  function sendAnaDrop(req: AnaDrop) {
-    const studyData = ctrl.study?.socketSendNodeData();
-    if (studyData) {
-      withoutStandardVariant(req);
-      send('anaDrop', { ...req, ...studyData });
-    }
+    if (studyData) send('anaMove', { ...req, ...studyData });
   }
 
   return {
@@ -130,7 +113,6 @@ export function make(send: AnalyseSocketSend, ctrl: AnalyseCtrl): Socket {
       return !!ctrl.study?.socketHandler(type, data);
     },
     sendAnaMove,
-    sendAnaDrop,
     send,
   };
 }

@@ -30,17 +30,8 @@ export default function (ctrl: TournamentController): VNode | undefined {
       h('h2', h('a', { attrs: { href: `/team/${data.id}` } }, teamTag)),
       h('table', [
         numberRow(i18n.site.players, data.nbPlayers),
-        ...(data.rating
-          ? [
-              ctrl.opts.showRatings ? numberRow(i18n.site.averageElo, data.rating, 'raw') : null,
-              ...(data.perf
-                ? [
-                    ctrl.opts.showRatings ? numberRow(i18n.arena.averagePerformance, data.perf, 'raw') : null,
-                    numberRow(i18n.arena.averageScore, data.score, 'raw'),
-                  ]
-                : []),
-            ]
-          : []),
+        data.rank ? numberRow('Average Xiangqi rank', data.rank, 'raw') : null,
+        numberRow(i18n.arena.averageScore, data.score, 'raw'),
       ]),
       data.joined
         ? 'You are part of this team'
@@ -61,7 +52,7 @@ export default function (ctrl: TournamentController): VNode | undefined {
         data.topPlayers.map((p, i) =>
           h('tr', { key: p.name, hook: bind('click', () => ctrl.jumpToPageOf(p.name)) }, [
             h('th', i + 1),
-            h('td', renderPlayer(p, false, ctrl.opts.showRatings, false, i < nbLeaders)),
+            h('td', renderPlayer(p, false, false, i < nbLeaders)),
             h('td.total', [
               p.fire && !ctrl.data.isFinished
                 ? h('strong.is-gold', { attrs: dataIcon(licon.Fire) }, p.score)

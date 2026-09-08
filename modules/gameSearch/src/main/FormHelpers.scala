@@ -2,8 +2,6 @@ package lila.gameSearch
 
 import chess.Status
 
-import lila.core.rating.RatingRange
-
 object FormHelpers:
 
   import lila.common.Form.*
@@ -54,20 +52,16 @@ object FormHelpers:
     v.id -> v.name.capitalize
   }
 
-  def modes(using Translate) = List(0 -> trans.site.casual.txt(), 1 -> trans.site.rated.txt())
+  def modes(using Translate) = List(0 -> trans.site.casual.txt(), 1 -> trans.site.ranked.txt())
 
   val turns = options(
     (1 to 5) ++ (10 to 45 by 5) ++ (50 to 90 by 10) ++ (100 to 300 by 25),
     _.toString
   )
 
-  val averageRatings = (RatingRange.min.value to RatingRange.max.value by 100).toList.map { e =>
-    e -> e.toString
-  }
-
   def hasAis(using Translate) = List(0 -> trans.site.human.txt(), 1 -> trans.site.computer.txt())
 
-  val aiLevels = (1 to 8).map { l =>
+  val aiLevels = (1 to 9).map { l =>
     l -> s"level $l"
   }
 

@@ -1,7 +1,11 @@
+import { end as endDrag, start as startDrag } from 'chessgroundx/drag';
+import { computeSquareCenter } from 'chessgroundx/util';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { engineMoveToUi, parsePikafishInfo, PikafishProtocol } from 'lib/ceval';
+import { isXiangqiCapture } from 'lib/game';
+import { MoveEvent } from 'lib/prefs';
 
 import {
   ENGINE_SETTINGS_KEY,
@@ -17,6 +21,7 @@ import {
   type AnalysisTab,
 } from '../src/analysisTabs.ts';
 import { AnalysisTreeView } from '../src/analysisTreeView.ts';
+import { ancientManuals } from '../src/ancientManuals.ts';
 import { hydrateXiangqiState, requestXiangqi } from '../src/api.ts';
 import { engineProgress } from '../src/engineProgress.ts';
 import { displayedEvaluation, formatEvaluation, NEUTRAL_EVALUATION } from '../src/evaluation.ts';
@@ -50,6 +55,7 @@ import {
   serializeMoveTree,
   type RulesState,
 } from '../src/tree.ts';
+import initAncientManuals from '../src/xiangqi.manuals.ts';
 
 const state = (fen: string, turn: 'red' | 'black', ply: number): RulesState => ({
   fen,
@@ -144,6 +150,49 @@ test('keeps ancient manual collection labels out of move annotations', () => {
   assert.equal(annotationSourceLabel('games', 'GDChess/01xq'), 'GDChess/01xq');
 });
 
+test('bundles the complete ancient manuals page catalog', () => {
+  const games = ancientManuals.flatMap(manual => manual.chapters.flatMap(chapter => chapter.games));
+  assert.equal(ancientManuals.length, 13);
+  assert.equal(games.length, 419);
+  assert.equal(ancientManuals[0].title.zh, '自出洞来无敌手');
+  assert.equal(ancientManuals[0].title.en, 'The Invincible Xiangqi Manual');
+  assert.ok(games.every(game => game.id && game.finalFen));
+});
+
+test('opens a bundled ancient manual without a network request', () => {
+  const originalFetch = globalThis.fetch;
+  const originalMatchMedia = window.matchMedia;
+  const originalScrollIntoView = window.HTMLElement.prototype.scrollIntoView;
+  globalThis.fetch = () => {
+    throw new Error('unexpected ancient manuals request');
+  };
+  window.matchMedia = () => ({ matches: true }) as MediaQueryList;
+  window.HTMLElement.prototype.scrollIntoView = () => undefined;
+  document.body.innerHTML = `
+    <section class="ancient-manuals__library">
+      <div id="ancient-manuals-list">
+        <button class="ancient-manual-card" data-manual-slug="zichudonglaiwudishou" aria-expanded="false"></button>
+      </div>
+    </section>
+    <section id="ancient-manual-detail" hidden></section>
+  `;
+
+  try {
+    initAncientManuals({ language: 'en' });
+    document.querySelector<HTMLButtonElement>('.ancient-manual-card')!.click();
+
+    const detail = document.querySelector<HTMLElement>('#ancient-manual-detail')!;
+    assert.equal(detail.hidden, false);
+    assert.equal(detail.querySelector('h2')?.textContent, 'The Invincible Xiangqi Manual');
+    assert.equal(detail.querySelectorAll('.ancient-manual-chapter').length, 7);
+  } finally {
+    globalThis.fetch = originalFetch;
+    window.matchMedia = originalMatchMedia;
+    window.HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
+    document.body.replaceChildren();
+  }
+});
+
 test('sorts database sources by dataset size with stable ties', () => {
   const sources = ['xqd', 'm', 'gd', 'ec'] as const;
   assert.deepEqual(sortSourceKeysByCount(sources, { m: 141279, gd: 87312, xqd: 20455, ec: 20455 }), [
@@ -189,6 +238,8 @@ test('renders traditional Xiangqi file numbers and redraws them when toggled or 
   document.body.append(element);
   const ground = makeXiangqiGround(element, { viewOnly: true });
 
+  assert.ok(element.classList.contains('cg-wrap'));
+  assert.ok(element.classList.contains('xiangqi9x10'));
   assert.equal(element.querySelector('coords.top')?.textContent, '123456789');
   assert.equal(element.querySelector('coords.bottom')?.textContent, '一二三四五六七八九');
   assert.ok(element.querySelector('coords.bottom')?.classList.contains('backward'));
@@ -221,7 +272,7 @@ test('distinguishes the origin and destination of the last move', () => {
   element.remove();
 });
 
-test('replaces Xiangqi selection and ghost feedback with the final lifted piece presentation', () => {
+test('keeps the Lixiangqi lifted presentation for click-to-move', () => {
   const originalBounds = window.HTMLElement.prototype.getBoundingClientRect;
   window.HTMLElement.prototype.getBoundingClientRect = fixedBoardBounds;
   const animations = recordAnimations();
@@ -234,7 +285,6 @@ test('replaces Xiangqi selection and ghost feedback with the final lifted piece 
   });
 
   try {
-    ground.set({ draggable: { enabled: true, showGhost: true }, selectable: { enabled: false } });
     assert.equal(ground.state.draggable.enabled, false);
     assert.equal(ground.state.selectable.enabled, true);
 
@@ -247,9 +297,8 @@ test('replaces Xiangqi selection and ghost feedback with the final lifted piece 
     assert.ok(selectedPiece);
     assert.ok(selectedPiece.classList.contains('xiangqi-motion-piece'));
     assert.equal(selectedPiece.style.getPropertyValue('--xiangqi-piece-perspective'), '300px');
-    assert.ok(selectedPiece.querySelector('.xiangqi-motion-shadow-near'));
-    assert.ok(selectedPiece.querySelector('.xiangqi-motion-shadow-aerial-core'));
-    assert.ok(selectedPiece.querySelector('.xiangqi-motion-shadow-far'));
+    assert.ok(selectedPiece.querySelector('.xiangqi-motion-shadow-contact'));
+    assert.ok(selectedPiece.querySelector('.xiangqi-motion-shadow-airborne'));
     assert.ok(selectedPiece.querySelector('.xiangqi-motion-rim'));
     assert.ok(selectedPiece.querySelector('.xiangqi-motion-face'));
 
@@ -269,6 +318,139 @@ test('replaces Xiangqi selection and ghost feedback with the final lifted piece 
       lift.keyframes.map(frame => frame.transform),
       ['translate3d(0, 0%, 0.000px) rotateX(0deg)', 'translate3d(0, -7%, 45.763px) rotateX(27deg)'],
     );
+  } finally {
+    ground.destroy();
+    element.remove();
+    animations.restore();
+    window.HTMLElement.prototype.getBoundingClientRect = originalBounds;
+  }
+});
+
+test('respects the standard Chessground click, drag, and either interaction configurations', () => {
+  const modes = [
+    { moveEvent: MoveEvent.Click, draggable: false, selectable: true },
+    { moveEvent: MoveEvent.Drag, draggable: true, selectable: false },
+    { moveEvent: MoveEvent.ClickOrDrag, draggable: true, selectable: true },
+  ];
+
+  for (const mode of modes) {
+    const element = document.createElement('div');
+    document.body.append(element);
+    const ground = makeXiangqiGround(element, {
+      movableColor: 'white',
+      legalMoves: ['h1g3'],
+      moveEvent: mode.moveEvent,
+      highlight: true,
+    });
+
+    try {
+      assert.equal(ground.state.draggable.enabled, mode.draggable);
+      assert.equal(ground.state.draggable.showGhost, true);
+      assert.equal(ground.state.selectable.enabled, mode.selectable);
+      if (mode.moveEvent === MoveEvent.ClickOrDrag) {
+        ground.selectSquare('h1');
+        assert.equal(ground.state.selectable.selected, 'h1');
+      }
+    } finally {
+      ground.destroy();
+      element.remove();
+    }
+  }
+});
+
+test('moves a Xiangqi piece through the standard Chessground drag path in drag and either modes', () => {
+  const originalBounds = window.HTMLElement.prototype.getBoundingClientRect;
+  window.HTMLElement.prototype.getBoundingClientRect = fixedBoardBounds;
+
+  try {
+    for (const moveEvent of [MoveEvent.Drag, MoveEvent.ClickOrDrag]) {
+      const element = document.createElement('div');
+      document.body.append(element);
+      const ground = makeXiangqiGround(element, {
+        movableColor: 'white',
+        legalMoves: ['h1g3'],
+        moveEvent,
+      });
+
+      try {
+        assert.equal(ground.state.draggable.enabled, true);
+        assert.equal(ground.state.selectable.enabled, moveEvent === MoveEvent.ClickOrDrag);
+        const bounds = fixedBoardBounds();
+        const orig = computeSquareCenter('h1', true, bounds, ground.state.dimensions);
+        const dest = computeSquareCenter('g3', true, bounds, ground.state.dimensions);
+        const piece = [...element.querySelectorAll<HTMLElement>('cg-board > piece')].find(
+          candidate => (candidate as HTMLElement & { cgKey?: string }).cgKey === 'h1',
+        );
+        assert.ok(piece);
+
+        startDrag(ground.state, {
+          isTrusted: true,
+          button: 0,
+          clientX: orig[0],
+          clientY: orig[1],
+          cancelable: true,
+          ctrlKey: false,
+          preventDefault() {},
+          target: piece,
+          type: 'mousedown',
+        } as unknown as Parameters<typeof startDrag>[1]);
+        assert.ok(ground.state.draggable.current);
+        assert.ok(piece.classList.contains('dragging'));
+        assert.equal(element.querySelector('.xiangqi-motion-piece'), null);
+
+        ground.state.draggable.current.started = true;
+        ground.state.draggable.current.pos = dest;
+        endDrag(ground.state, {
+          button: 0,
+          clientX: dest[0],
+          clientY: dest[1],
+          cancelable: true,
+          ctrlKey: false,
+          preventDefault() {},
+          target: piece,
+          type: 'mouseup',
+        } as unknown as Parameters<typeof endDrag>[1]);
+
+        assert.equal(ground.state.boardState.pieces.has('h1'), false);
+        assert.ok(ground.state.boardState.pieces.has('g3'));
+        assert.equal(ground.state.draggable.current, undefined);
+      } finally {
+        ground.destroy();
+        element.remove();
+      }
+    }
+  } finally {
+    window.HTMLElement.prototype.getBoundingClientRect = originalBounds;
+  }
+});
+
+test('renders Xiangqi moves immediately when piece animation is disabled', () => {
+  const originalBounds = window.HTMLElement.prototype.getBoundingClientRect;
+  window.HTMLElement.prototype.getBoundingClientRect = fixedBoardBounds;
+  const animations = recordAnimations();
+
+  const element = document.createElement('div');
+  document.body.append(element);
+  const ground = makeXiangqiGround(element, {
+    movableColor: 'white',
+    legalMoves: ['h1g3'],
+    animationDuration: 0,
+  });
+
+  try {
+    assert.equal(ground.state.animation.enabled, false);
+
+    ground.selectSquare('h1');
+    ground.state.dom.redrawNow();
+    assert.ok(element.querySelector('square.selected'));
+    assert.ok(element.querySelector('square.move-dest'));
+    assert.equal(element.querySelector('square.xiangqi-lift-origin'), null);
+    assert.equal(element.querySelector('square.xiangqi-move-dest'), null);
+    ground.move('h1', 'g3');
+
+    assert.equal(element.querySelector('.xiangqi-motion-piece'), null);
+    assert.equal(ground.state.animation.current, undefined);
+    assert.equal(animations.calls.length, 0);
   } finally {
     ground.destroy();
     element.remove();
@@ -455,12 +637,7 @@ test('stacks the destination shadow below its glow and piece face', async () => 
     assert.ok(movedPiece.classList.contains('xiangqi-last-move-piece'));
     assert.deepEqual(
       [...movedPiece.children].map(child => child.className),
-      [
-        'xiangqi-rest-shadow xiangqi-rest-shadow-far',
-        'xiangqi-rest-shadow xiangqi-rest-shadow-near',
-        'xiangqi-last-move-highlight',
-        'xiangqi-rest-face',
-      ],
+      ['xiangqi-last-move-highlight'],
     );
   } finally {
     ground.destroy();
@@ -784,16 +961,19 @@ test('keeps capture metadata and derives transition sounds from the destination 
     check: true,
     mate: false,
   });
-  assert.deepEqual(xiangqiTransitionSound(captureTree, capture.path, ''), {
-    capture: false,
-    check: false,
-    mate: false,
-  });
+  assert.equal(xiangqiTransitionSound(captureTree, capture.path, ''), undefined);
   assert.equal(xiangqiTransitionSound(captureTree, capture.path, capture.path), undefined);
   assert.deepEqual(xiangqiMoveSound({ ...capture.state, checkmate: true }), {
     capture: true,
     check: true,
     mate: true,
+  });
+  capture.state.capture = undefined;
+  assert.equal(isXiangqiCapture(captureTree.root.state.fen, capture.state.fen), true);
+  assert.deepEqual(xiangqiTransitionSound(captureTree, '', capture.path), {
+    capture: true,
+    check: true,
+    mate: false,
   });
 });
 

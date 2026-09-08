@@ -7,6 +7,7 @@ import lila.ui.*
 import lila.ui.ScalatagsTemplate.{ *, given }
 import lila.game.ui.GameUi
 import lila.core.i18n.Translate
+import lila.core.rank.RankCode.value
 import lila.common.ClientName
 
 final class TvUi(helpers: lila.ui.Helpers)(
@@ -17,14 +18,9 @@ final class TvUi(helpers: lila.ui.Helpers)(
 
   extension (channel: Tv.Channel)
     private def translate(using Context): String =
-      (channel.speed.map(_.key) orElse channel.variant.map(_.key))
-        .flatMap(k => PerfKey(k.toString))
-        .map(_.perfTrans)
-        .getOrElse {
-          channel match
-            case Tv.Channel.Computer => trans.site.computer
-            case _ => channel.name
-        }
+      channel match
+        case Tv.Channel.Computer => trans.site.computer.txt()
+        case _ => channel.name
 
   def index(
       channel: Tv.Channel,
@@ -89,7 +85,7 @@ final class TvUi(helpers: lila.ui.Helpers)(
               div(cls := "setup")(
                 gameUi.widgets.showClock(game),
                 separator,
-                ratedName(game.rated),
+                rankedName(game.ranked),
                 separator,
                 variantLink(game.variant, game.perfKey, shortName = true)
               )
@@ -125,10 +121,8 @@ final class TvUi(helpers: lila.ui.Helpers)(
                     .fold[Frag](raw(" - ")): p =>
                       frag(
                         p.user.title.fold[Frag](p.user.name)(t => frag(t, nbsp, p.user.name)),
-                        ratingTag(
-                          " ",
-                          p.rating
-                        )
+                        " ",
+                        span(cls := "rank")(p.rank.fold("Unranked")(_.value))
                       )
                 )
               )

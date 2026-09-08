@@ -13,6 +13,7 @@ import lila.core.user.{ GameUsers, UserMark, WithEmails, WithPerf, KidMode, SetK
 import lila.db.dsl.{ *, given }
 import lila.memo.CacheApi
 import lila.rating.PerfType
+import lila.core.rank.{ RankPerf, RankTrackId }
 import lila.user.BSONHandlers.userHandler
 
 final class UserApi(userRepo: UserRepo, perfsRepo: UserPerfsRepo, cacheApi: CacheApi)(using
@@ -106,6 +107,11 @@ final class UserApi(userRepo: UserRepo, perfsRepo: UserPerfsRepo, cacheApi: Cach
     for _ <- ups.all.map(perfsRepo.updatePerfs).parallelVoid
     yield gamePlayers.cache.invalidate(ups.map(_._1.id.some).toPair -> gamePerfType)
 
+  def updateRankAtomically(userId: UserId, track: RankTrackId, initial: RankPerf)(
+      transition: RankPerf => RankPerf
+  ): Fu[(UserPerfs, UserPerfs)] =
+    perfsRepo.updateRankAtomically(userId, track, initial)(transition)
+
   def withPerfs[U: UserIdOf](u: U): Fu[Option[UserWithPerfs]] = u.id
     .isnt(UserId.undefined)
     .so:
@@ -172,7 +178,8 @@ final class UserApi(userRepo: UserRepo, perfsRepo: UserPerfsRepo, cacheApi: Cach
           doc <- docs
           user <- doc.asOpt[User]
           perf = perfsRepo.aggregate.readFirst(doc, pk)
-        yield WithPerf(user, perf)
+          rank = perfsRepo.aggregate.readRank(doc)
+        yield WithPerf(user, perf, rank.some)
 
   def pairWithPerf(userIds: ByColor[Option[UserId]], pt: PerfType): Fu[ByColor[Option[WithPerf]]] =
     listWithPerf(userIds.flatten, pt).map: users =>
@@ -183,7 +190,7 @@ final class UserApi(userRepo: UserRepo, perfsRepo: UserPerfsRepo, cacheApi: Cach
       .byIdOrGhost(id)
       .flatMapz:
         case Left(g) => fuccess(g.some)
-        case Right(u) => perfsRepo.perfOf(u.id, pt).dmap(p => u.withPerf(p).some)
+        case Right(u) => perfsRepo.withPerf(u, pt).dmap(_.some)
 
   def withIntRatingIn(userId: UserId, perf: PerfKey): Fu[Option[(User, IntRating)]] =
     byId(userId).flatMapz: user =>

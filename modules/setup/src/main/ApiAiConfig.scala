@@ -16,7 +16,8 @@ final case class ApiAiConfig(
     daysO: Option[Days],
     color: TriColor,
     level: Int,
-    fen: Option[Fen.Full] = None
+    fen: Option[Fen.Full] = None,
+    override val ruleset: Option[String] = None
 ) extends Config
     with Positional
     with WithColor:
@@ -78,7 +79,8 @@ object ApiAiConfig extends BaseConfig:
       ml: Option[MoveTimeLimit],
       d: Option[Days],
       c: Option[String],
-      pos: Option[Fen.Full]
+      pos: Option[Fen.Full],
+      ruleset: Option[String] = None
   ) =
     ApiAiConfig(
       variant = Variant.orDefault(v),
@@ -87,5 +89,6 @@ object ApiAiConfig extends BaseConfig:
       daysO = d,
       color = TriColor.orDefault(~c),
       level = l,
-      fen = pos
+      fen = pos,
+      ruleset = ruleset
     ).autoVariant

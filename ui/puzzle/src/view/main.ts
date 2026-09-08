@@ -4,16 +4,15 @@ import { renderVoiceBar } from 'voice';
 
 import { view as cevalView } from 'lib/ceval';
 import { dispatchChessgroundResize } from 'lib/chessgroundResize';
-import { licon, type LiconValue } from 'lib/licon';
-import { addPointerListeners } from 'lib/pointer';
+import { licon } from 'lib/licon';
 import { Coords } from 'lib/prefs';
 import { storage } from 'lib/storage';
 import {
   toggleButton as boardMenuToggleButton,
-  onInsert,
   bindNonPassive,
   hl,
   type MaybeVNode,
+  renderReplayControls,
 } from 'lib/view';
 import { renderBlindfoldToggle } from 'lib/view/blindfold';
 import stepwiseScroll from 'lib/view/stepwiseScroll';
@@ -31,46 +30,26 @@ import { render as treeView } from './tree';
 
 const renderAnalyse = (ctrl: PuzzleCtrl): VNode => hl('div.puzzle__moves.areplay', [treeView(ctrl)]);
 
-function dataAct(e: Event): string | null {
-  const target = e.target as HTMLElement;
-  return target.getAttribute('data-act') || (target.parentNode as HTMLElement).getAttribute('data-act');
-}
-
-function jumpButton(icon: LiconValue, effect: string, disabled: boolean, glowing = false): VNode {
-  return hl('button.fbt', { class: { glowing }, attrs: { disabled, 'data-act': effect, 'data-icon': icon } });
-}
-
 function controls(ctrl: PuzzleCtrl): VNode {
   const node = ctrl.node;
   const nextNode = node.children[0];
   const notOnLastMove = ctrl.mode === 'play' && nextNode && nextNode.puzzle !== 'fail';
-  return hl('div.puzzle__controls.analyse-controls', [
-    hl(
-      'div.jumps',
-      {
-        hook: onInsert(el =>
-          addPointerListeners(el, {
-            click: e => {
-              const action = dataAct(e);
-              if (action === 'prev') control.prev(ctrl);
-              else if (action === 'next') control.next(ctrl);
-              else if (action === 'first') control.first(ctrl);
-              else if (action === 'last') control.last(ctrl);
-              ctrl.redraw();
-            },
-          }),
-        ),
-      },
-      [
-        jumpButton(licon.JumpFirst, 'first', !node.ply),
-        jumpButton(licon.JumpPrev, 'prev', !node.ply),
-        jumpButton(licon.JumpNext, 'next', !nextNode),
-        jumpButton(licon.JumpLast, 'last', !nextNode, notOnLastMove),
-        boardMenuToggleButton(ctrl.menu, i18n.site.menu),
-      ],
-    ),
-    boardMenu(ctrl),
-  ]);
+  return renderReplayControls({
+    selector: 'div.puzzle__controls',
+    enabled: { first: !!node.ply, prev: !!node.ply, next: !!nextNode, last: !!nextNode },
+    previousIcon: licon.JumpPrev,
+    nextIcon: licon.JumpNext,
+    glowingLast: !!notOnLastMove,
+    extraJumps: boardMenuToggleButton(ctrl.menu, i18n.site.menu),
+    controls: boardMenu(ctrl),
+    onClick: action => {
+      if (action === 'prev') control.prev(ctrl);
+      else if (action === 'next') control.next(ctrl);
+      else if (action === 'first') control.first(ctrl);
+      else if (action === 'last') control.last(ctrl);
+      ctrl.redraw();
+    },
+  });
 }
 
 let cevalShown = false;

@@ -7,7 +7,7 @@ import scalalib.paginator.Paginator
 import lila.core.config.NetDomain
 import lila.core.data.RichText
 import lila.core.user.{ Flag, Profile }
-import lila.rating.UserPerfsExt.{ best6Perfs, hasEstablishedRating }
+import lila.rating.{ UserPerfsExt, XiangqiRank }
 import lila.ui.*
 
 import ScalatagsTemplate.{ *, given }
@@ -21,6 +21,7 @@ final class CoachUi(helpers: Helpers)(
 )(using NetDomain):
   import helpers.{ *, given }
   import trans.coach as trc
+  import UserPerfsExt.*
 
   def titleName(c: Coach.WithUser) =
     frag(c.user.title.map(t => s"$t "), c.user.realNameOrUsername)
@@ -75,15 +76,15 @@ final class CoachUi(helpers: Helpers)(
               td(c.coach.languages.map(langList.name).mkString(", "))
             ),
             tr(cls := "rating")(
-              th(trc.rating()),
+              th(trans.site.rank()),
               td(
                 profile.fideRating.map { r =>
                   frag("FIDE: ", r)
                 },
                 a(href := routes.User.show(c.user.username))(
-                  c.user.perfs.best6Perfs
-                    .filter(c.user.perfs.hasEstablishedRating)
-                    .map(showPerfRating(c.user.perfs, _))
+                  c.user.perfs.xiangqiRank.fold("Unranked")(rank =>
+                    XiangqiRank.catalog.code(rank.score).value
+                  )
                 )
               )
             ),

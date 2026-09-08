@@ -115,7 +115,7 @@ final class GameApiV2(
           .fold(Query.nowPlaying(config.user.id)):
             Query.nowPlayingVs(config.user.id, _)
     val requiresElasticSearch =
-      config.perfKey.nonEmpty || config.analysed.nonEmpty || config.color.nonEmpty || config.rated.nonEmpty
+      config.analysed.nonEmpty || config.color.nonEmpty || config.ranked.nonEmpty
     val gameSource: Source[Game, ?] =
       if requiresElasticSearch then
         import lila.search.Size
@@ -140,6 +140,9 @@ final class GameApiV2(
           .take(config.max.fold(Int.MaxValue)(_.value))
 
     gameSource
+      // The search index keeps its historical boolean field for compatibility. The persisted
+      // rank track is authoritative, so never let a legacy rated game satisfy `ranked=true`.
+      .filter(game => config.ranked.forall(_ == game.ranked))
       .via(upgradeOngoingGame)
       .via(preparationFlow(config))
 
@@ -316,10 +319,10 @@ final class GameApiV2(
     .obj(
       "id" -> g.id,
       "initialFen" -> g.xiangqi.initialFen,
-      "rated" -> g.rated,
+      "ranked" -> g.ranked,
       "variant" -> g.variant.key,
       "speed" -> g.speed.key,
-      "perf" -> g.perfKey,
+      "perf" -> "xiangqi",
       "createdAt" -> g.createdAt,
       "lastMoveAt" -> g.movedAt,
       "status" -> g.status.name,
@@ -402,8 +405,7 @@ object GameApiV2:
       since: Option[Instant] = None,
       until: Option[Instant] = None,
       max: Option[Max] = None,
-      rated: Option[Boolean] = None,
-      perfKey: Set[PerfKey],
+      ranked: Option[Boolean] = None,
       analysed: Option[Boolean] = None,
       color: Option[Color],
       flags: WithFlags,
@@ -435,8 +437,7 @@ object GameApiV2:
         sort = toSorting.some
       ).query.copy(
         date = DateRange(since.map(ts), until.map(ts)),
-        perf = perfKey.view.map(_.id.value).toList,
-        rated = rated
+        rated = ranked
       )
 
   case class ByIdsConfig(

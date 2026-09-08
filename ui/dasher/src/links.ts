@@ -13,7 +13,9 @@ export class LinksCtrl extends PaneCtrl {
       hl('div.subs', [
         hl('button.sub', modeCfg('langs'), i18n.site.language),
         hl('button.sub', modeCfg('sound'), i18n.site.sound),
-        hl('button.sub', modeCfg('appearance'), i18n.site.theme),
+        hl('button.sub', modeCfg('uiTheme'), i18n.site.uiTheme),
+        hl('button.sub', modeCfg('boardStyle'), i18n.site.boardStyle),
+        hl('button.sub', modeCfg('boardPieces'), i18n.site.boardPieces),
         this.root.opts.zenable &&
           hl('div.zen.selector', [
             hl(

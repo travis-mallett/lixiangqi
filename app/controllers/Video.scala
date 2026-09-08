@@ -32,7 +32,7 @@ final class Video(env: Env) extends LilaController(env):
           case None =>
             api.video
               .byTags(ctx.me, control.filter.tags, getInt("page") | 1)
-              .zip(api.video.count.apply)
+              .zip(api.video.count)
               .map: (videos, count) =>
                 views.video.index(videos, count, control)
 
@@ -41,7 +41,7 @@ final class Video(env: Env) extends LilaController(env):
   private def serveShow(id: String)(using ctx: Context) =
     WithUserControl: control =>
       api.video
-        .find(id)
+        .findVisible(id, isGrantedOpt(_.ManageVideos))
         .flatMap:
           case None => NotFound.page(views.video.notFound(control))
           case Some(video) =>

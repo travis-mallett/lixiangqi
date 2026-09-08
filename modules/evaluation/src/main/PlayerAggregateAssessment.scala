@@ -1,10 +1,9 @@
 package lila.evaluation
 
 import scala.math.sqrt
-import chess.IntRating
-
 import lila.core.perf.UserWithPerfs
-import lila.rating.UserPerfsExt.bestRating
+import lila.core.rank.RankScore.*
+import lila.rating.UserPerfsExt.xiangqiRank
 
 case class PlayerAggregateAssessment(
     user: UserWithPerfs,
@@ -27,7 +26,7 @@ case class PlayerAggregateAssessment(
       (scoreCheatingGames(8) || scoreLikelyCheatingGames(16))
 
     val reportable: Boolean = isWorthLookingAt &&
-      (cheatingSum >= 2 || cheatingSum + likelyCheatingSum >= (if isNewRatedUser then 2
+      (cheatingSum >= 2 || cheatingSum + likelyCheatingSum >= (if isNewRankedUser then 2
                                                                else 4)) &&
       (scoreCheatingGames(5) || scoreLikelyCheatingGames(10))
 
@@ -98,11 +97,11 @@ case class PlayerAggregateAssessment(
   val sfAvgHold = sfAvgGiven(_.basics.hold)
   val sfAvgNoHold = sfAvgGiven(!_.basics.hold)
 
-  def isGreatUser = user.perfs.bestRating > IntRating(2500) && user.count.rated >= 100
+  def isGreatUser = user.perfs.xiangqiRank.exists(_.score.value >= 2500) && user.count.ranked >= 100
 
-  def isNewRatedUser = user.count.rated < 10
+  def isNewRankedUser = user.count.ranked < 10
 
-  def isWorthLookingAt = user.count.rated >= 2
+  def isWorthLookingAt = user.count.ranked >= 2
 
   def reportText(maxGames: Int = 10): String =
     val gameLinks: String = playerAssessments

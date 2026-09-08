@@ -97,11 +97,27 @@ response includes every witness and annotation layer. A witness can optionally
 store its original recursive notation so PGN variations are reconstructed by
 the native Xiangqi notation importer.
 
-The page timeline is aggregated in SQLite with the same source and text-search
-predicates as the result list. Its month, year, and decade results are held in a
-bounded 60-second in-process cache, with concurrent misses for the same filter
-coalesced into one query. The timeline aggregate also supplies the filtered
-total, avoiding a second full count scan.
+The unsearched catalog is a materialized read model, not a raw-table report.
+Each canonical game has one compact source-bitmask/date facet, and exact source
+membership/date combinations are rolled up persistently. Schema triggers update
+both layers in the writer's transaction whenever a game, date, or source witness
+changes. The initial page, source filters, total count, per-source counts, and
+month/year/decade timelines therefore read a small aggregate table whose work is
+independent of the raw catalog size. Catalog text fields use a transactionally
+maintained FTS5 trigram index, preserving case-insensitive substring search
+without scanning the wide game records. Player and event pages remain dynamic
+because they operate on a user-selected subset; concurrent aggregate misses for
+those views and explicit searches are coalesced in a bounded process cache.
+
+The catalog projection is versioned and rebuilt once during a schema upgrade,
+before the read service starts. It never rebuilds during an HTTP request and the
+service rejects an obsolete projection rather than falling back to a full scan.
+To verify or explicitly rebuild it:
+
+```powershell
+.\.venv\Scripts\python.exe -m tools.games_database.catalog_index ensure
+.\.venv\Scripts\python.exe -m tools.games_database.catalog_index rebuild
+```
 
 Event names in catalog tables link to
 `/games/database/event?event=...`. The event API resolves an exact,

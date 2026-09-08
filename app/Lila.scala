@@ -168,6 +168,7 @@ final class LilaComponents(
   lazy val userAnalysis: UserAnalysis = wire[UserAnalysis]
   lazy val userTournament: UserTournament = wire[UserTournament]
   lazy val video: Video = wire[Video]
+  lazy val videoAdmin: VideoAdmin = wire[VideoAdmin]
   lazy val swiss: Swiss = wire[Swiss]
   lazy val dgt: DgtCtrl = wire[DgtCtrl]
   lazy val storm: Storm = wire[Storm]

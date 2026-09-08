@@ -5,6 +5,7 @@ import play.api.mvc.*
 
 import lila.app.*
 import lila.common.Json.given
+import lila.tv.Tv.Channel
 import scalalib.model.Language
 
 final class Lobby(env: Env) extends LilaController(env):
@@ -12,7 +13,7 @@ final class Lobby(env: Env) extends LilaController(env):
   private lazy val lobbyJson = Json.obj(
     "lobby" -> Json.obj(
       "version" -> 0,
-      "pools" -> lila.pool.PoolList.json(using env.translator.toDefault)
+      "pools" -> lila.pool.PoolList.json
     ),
     "assets" -> Json.obj(
       "domain" -> env.net.assetDomain
@@ -46,6 +47,14 @@ final class Lobby(env: Env) extends LilaController(env):
       ctx.me.fold(env.lobby.seekApi.forAnon)(me => env.lobby.seekApi.forMe(using me)).map { seeks =>
         Ok(JsArray(seeks.map(_.render))).headerCacheSeconds(10)
       }
+
+  def liveGames15 = Open:
+    env.tv.tv
+      .getGames(Channel.Best, 12)
+      .map: games =>
+        val ranked = games.filter: game =>
+          game.isBeingPlayed && game.rankTrack.contains(lila.core.rank.RankTrackId.xiangqi)
+        Ok.snip(views.game.mini.many(ranked)).noCache
 
   def timeline = Auth { _ ?=> me ?=>
     Ok.snipAsync:

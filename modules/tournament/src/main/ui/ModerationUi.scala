@@ -33,9 +33,8 @@ final class ModerationUi(helpers: Helpers, ui: TournamentUi):
                 th("User"),
                 th("Games"),
                 th("Created"),
-                th("Rating"),
-                th("Points"),
-                th("Performance")
+                th("Xiangqi rank"),
+                th("Points")
               )
             ),
             tbody(
@@ -45,9 +44,8 @@ final class ModerationUi(helpers: Helpers, ui: TournamentUi):
                   td(userLink(user)),
                   td(user.count.game.localize),
                   td(pastMomentServer(user.createdAt)),
-                  td(player.showRating),
-                  td(player.score),
-                  td(player.performance)
+                  td(player.showRank),
+                  td(player.score)
                 )
             )
           )

@@ -2,7 +2,6 @@ package lila.tournament
 package ui
 
 import play.api.libs.json.*
-import chess.Rated
 
 import lila.common.Json.given
 import lila.common.String.html.markdownLinksOrRichText
@@ -33,8 +32,7 @@ final class TournamentShow(helpers: Helpers, gathering: GatheringUi)(using NetDo
           Json.obj(
             "data" -> data,
             "userId" -> ctx.userId,
-            "chat" -> chat._2F,
-            "showRatings" -> ctx.pref.showRatings
+            "chat" -> chat._2F
           )
         )
       .csp(_.withLilaHttp):
@@ -44,7 +42,7 @@ final class TournamentShow(helpers: Helpers, gathering: GatheringUi)(using NetDo
           ,
           div(cls := "tour__main")(div(cls := "box")),
           tour.isCreated.option(div(cls := "tour__faq"):
-            faq(tour.rated.some, tour.isPrivate.option(tour.id)))
+            faq(tour.isPrivate.option(tour.id)))
         )
 
   def restricted(tour: Tournament)(using ctx: Context) =
@@ -66,7 +64,7 @@ final class TournamentShow(helpers: Helpers, gathering: GatheringUi)(using NetDo
             )
         ),
         tour.isCreated.option(div(cls := "tour__faq"):
-          faq(tour.rated.some, tour.isPrivate.option(tour.id)))
+          faq(tour.isPrivate.option(tour.id)))
       )
 
   private def basePage(tour: Tournament)(using ctx: Context) =
@@ -77,11 +75,11 @@ final class TournamentShow(helpers: Helpers, gathering: GatheringUi)(using NetDo
         if tour.isTeamBattle then "tournament.show.team-battle"
         else "tournament.show"
       .graph(
-        title = s"${tour.name()}: ${tour.variant.name} ${tour.clock.show} ${tour.rated.name} #${tour.id}",
+        title = s"${tour.name()}: ${tour.variant.name} ${tour.clock.show} Casual #${tour.id}",
         url = routeUrl(routes.Tournament.show(tour.id)),
         description =
           s"${tour.nbPlayers} players compete in the ${showEnglishDate(tour.startsAt)} ${tour.name()}. " +
-            s"${tour.clock.show} ${tour.rated.name} games are played during ${tour.minutes} minutes. " +
+            s"${tour.clock.show} casual games are played during ${tour.minutes} minutes. " +
             tour.winnerId.fold("Winner is not yet decided."): winnerId =>
               s"${titleNameOrId(winnerId)} takes the prize home!"
       )
@@ -99,17 +97,19 @@ final class TournamentShow(helpers: Helpers, gathering: GatheringUi)(using NetDo
     )(using ctx: Context) =
       frag(
         div(cls := "tour__meta")(
-          st.section(cls := "tour__meta__head", dataIcon := tour.perfType.icon.toString)(
+          st.section(cls := "tour__meta__head", dataIcon := Icon.Trophy.toString)(
             div(
               p(
                 tour.clock.show,
                 separator,
-                variantLink(tour.variant, tour.perfType, shortName = true),
+                tour.ruleset.label,
+                separator,
+                if tour.variant.standard then "Xiangqi" else tour.variant.name,
                 tour.position.isDefined.so(s"$separator${trans.site.customPosition.txt()}"),
                 separator,
                 tour.durationString
               ),
-              lila.gathering.ui.translateRated(tour.rated),
+              trans.site.casual(),
               separator,
               trans.arena.arena(),
               (Granter.opt(_.ManageTournament) || ctx.is(tour.createdBy)).option(
@@ -228,7 +228,7 @@ final class TournamentShow(helpers: Helpers, gathering: GatheringUi)(using NetDo
         div(cls := "body")(apply())
       )
 
-    def apply(rated: Option[Rated] = None, privateId: Option[TourId] = None)(using Context) =
+    def apply(privateId: Option[TourId] = None)(using Context) =
       frag(
         privateId.map: id =>
           frag(
@@ -236,11 +236,8 @@ final class TournamentShow(helpers: Helpers, gathering: GatheringUi)(using NetDo
             p(trans.arena.shareUrl(routeUrl(routes.Tournament.show(id))))
           ),
         p(trans.arena.willBeNotified()),
-        h2(trans.arena.isItRated()),
-        p:
-          rated.fold(trans.arena.someRated()): r =>
-            if r.yes then trans.arena.isRated() else trans.arena.isNotRated()
-        ,
+        h2("Do tournament games affect my Xiangqi rank?"),
+        p("No. Tournament games are casual and do not change Xiangqi rank points."),
         h2(tra.howAreScoresCalculated()),
         p(tra.howAreScoresCalculatedAnswer()),
         h2(tra.berserk()),

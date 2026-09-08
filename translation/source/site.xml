@@ -3,6 +3,32 @@
   <string name="gameSetup">Game setup</string>
   <string name="challengeAFriend" comment="be mindful how 'friend' translates in gendered languages. look for a more neutral term if there's an issue, or base your translation on a different phrase like 'invite to a game'. keep it short and convey the button's meaning without offense.">Challenge a friend</string>
   <string name="playAgainstComputer">Play against computer</string>
+  <string name="startTheChallenge">Start the challenge</string>
+  <string name="aiDifficulty">AI difficulty</string>
+  <string name="difficulty">Difficulty</string>
+  <string name="passRate" comment="Percentage of completed games that registered human players won against a computer difficulty level.">Pass rate</string>
+  <string name="aiLevelNewcomer">Newcomer (小白)</string>
+  <string name="aiLevelRookie">Rookie (菜鸟)</string>
+  <string name="aiLevelInitiate">Initiate (入门)</string>
+  <string name="aiLevelElementary">Elementary (初级)</string>
+  <string name="aiLevelIntermediate">Intermediate (中级)</string>
+  <string name="aiLevelAdvanced">Advanced (高级)</string>
+  <string name="aiLevelElite">Elite (精英)</string>
+  <string name="aiLevelMaster">Master (大师)</string>
+  <string name="aiLevelGrandmaster">Grandmaster (特级大师)</string>
+  <string name="timeControls">Time controls</string>
+  <string name="standardHistoryAgainst">Standard match history against %1$s · %2$s</string>
+  <string name="signInOrRegisterToTrackWinRate">Sign in or register to track your win rate</string>
+  <string name="statisticsUnavailable">Statistics are temporarily unavailable</string>
+  <string name="otherTimeControls">Other Time Controls</string>
+  <string name="playRatedXiangqi">Play Rated Xiangqi</string>
+  <string name="signInToPlayRatedXiangqi">Sign-in to play rated games.</string>
+  <string name="playCasualXiangqi">Play Casual Xiangqi</string>
+  <string name="liveRatedGames">Live ranked games</string>
+  <string name="backToHomepage">Back to homepage</string>
+  <string name="startMatchmaking">Start</string>
+  <string name="matchingOpponent">Matching opponent</string>
+  <string name="xiangqiBoardReady">Empty Xiangqi board, ready to play</string>
   <string name="chessPerformance">Chess Performance</string>
   <string name="evaluation">Evaluation</string>
   <string name="chessPerformanceEvaluationChinese">棋力评测</string>
@@ -31,6 +57,7 @@
   <string name="black">Black</string>
   <string name="asWhite">as Red</string>
   <string name="asBlack">as black</string>
+  <string name="random">Random</string>
   <string name="randomColor">Random side</string>
   <string name="createAGame">Create a game</string>
   <string name="createTheGame">Create the game</string>
@@ -333,6 +360,7 @@
   <string name="unlimitedDescription">Take all the time you need</string>
   <string name="mode">Mode</string>
   <string name="casual">Casual</string>
+  <string name="ranked">Ranked</string>
   <string name="rated">Rated</string>
   <string name="casualTournament">Casual</string>
   <string name="ratedTournament">Rated</string>
@@ -359,6 +387,10 @@
   <plurals name="nbRated">
     <item quantity="one">%s rated</item>
     <item quantity="other">%s rated</item>
+  </plurals>
+  <plurals name="nbRanked">
+    <item quantity="one">%s ranked game</item>
+    <item quantity="other">%s ranked games</item>
   </plurals>
   <plurals name="nbWins">
     <item quantity="one">%s win</item>
@@ -654,7 +686,9 @@
   <string name="letOtherPlayersInviteYouToStudy">Let other players invite you to study</string>
   <string name="sound">Sound</string>
   <string name="backgroundMusic">Background Music</string>
+  <string name="backgroundMusicStyle">Music Style</string>
   <string name="soundEffects">Sound effects</string>
+  <string name="captureCheckAndCheckmateVoiceSoundEffects">Voice Sound Effects</string>
   <string name="none">None</string>
   <string name="fast">Fast</string>
   <string name="normal">Normal</string>
@@ -779,7 +813,7 @@
   <string name="playSelectedMove">play selected move</string>
   <string name="newTournament">New tournament</string>
   <string name="tournamentHomeTitle">Xiangqi tournaments featuring various time controls and variants</string>
-  <string name="tournamentHomeDescription">Play fast-paced Xiangqi tournaments! Join an official scheduled tournament, or create your own. Bullet, Blitz, Classical, and more options available for endless Xiangqi fun.</string>
+  <string name="tournamentHomeDescription">Play casual Xiangqi tournaments! Join an official scheduled tournament or create your own event with the clock you prefer.</string>
   <string name="tournamentNotFound">Tournament not found</string>
   <string name="tournamentDoesNotExist">This tournament does not exist.</string>
   <string name="tournamentMayHaveBeenCanceled">The tournament may have been cancelled if all players left before it started.</string>
@@ -861,16 +895,12 @@
   <string name="dark">Dark</string>
   <string name="transparent">Transparent</string>
   <string name="deviceTheme">Device theme</string>
-  <string name="theme">Theme</string>
-  <string name="customCombination">Custom Combination</string>
-  <string name="mixAppearanceOptions">Mix individual appearance options</string>
-  <string name="active">Active</string>
-  <string name="uiTheme">UI theme</string>
-  <string name="chooseAppearanceParts">Choose each part of the site appearance independently.</string>
-  <string name="appearanceCategories">Appearance categories</string>
+  <string name="uiTheme">UI Theme</string>
+  <string name="boardStyle">Board Style</string>
+  <string name="boardPieces">Board Pieces</string>
+  <string name="backgroundImage">Background Image</string>
+  <string name="themeDefault">Theme default</string>
   <string name="customImageUrl">Custom image URL</string>
-  <string name="darkThemeDescription">Dark interface with the classic Xiangqi board and pieces.</string>
-  <string name="lightThemeDescription">Light interface with the classic Xiangqi board and pieces.</string>
   <string name="failedToSaveAppearancePreference">Failed to save %s preference</string>
   <string name="backgroundImageUrl">Background image URL:</string>
   <string name="board">Board</string>
@@ -878,9 +908,12 @@
   <string name="opacity">Opacity</string>
   <string name="brightness">Brightness</string>
   <string name="contrast">Contrast</string>
+  <string name="saturation">Saturation</string>
   <string name="hue">Hue</string>
   <string name="boardReset">Reset colours to default</string>
   <string name="pieceSet">Piece set</string>
+  <string name="traditional">Traditional</string>
+  <string name="graphicalSymbols">Graphical Symbols</string>
   <string name="embedInYourWebsite">Embed in your website</string>
   <string name="usernameAlreadyUsed">This username is already in use, please try another one.</string>
   <string name="usernamePrefixInvalid">The username must start with a letter.</string>
@@ -1015,6 +1048,8 @@
   <string name="resVsX">%1$s vs %2$s</string>
   <string name="lostAgainstTOSViolator">You lost rating points to someone who violated the Lixiangqi TOS</string>
   <string name="refundXpointsTimeControlY">Refund: %1$s %2$s rating points.</string>
+  <string name="lostRankPointsToTOSViolator">You lost Xiangqi rank points to someone who violated the Lixiangqi TOS</string>
+  <string name="refundXrankPoints">Restored: %s Xiangqi rank points.</string>
   <string name="timeAlmostUp">Time is almost up!</string>
   <string name="clickToRevealEmailAddress">[Click to reveal email address]</string>
   <string name="download">Download</string>
@@ -1069,7 +1104,7 @@ Leave empty to start games from the normal initial position.</string>
   <string name="youCantStartNewGame">You can't start a new game while it's your turn.</string>
   <string name="since">Since</string>
   <string name="until">Until</string>
-  <string name="lichessDbExplanation">Rated games played on Lixiangqi</string>
+  <string name="lichessDbExplanation">Ranked games played on Lixiangqi</string>
   <string name="switchSides">Switch sides</string>
   <string name="closingAccountWithdrawAppeal">Closing your account will withdraw your appeal</string>
   <string name="ourEventTips">Our tips for organising events</string>

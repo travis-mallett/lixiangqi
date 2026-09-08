@@ -110,6 +110,7 @@ final private[api] class RoundApi(
         .compose(withNote(note))
         .compose(withBookmark(bookmarked))
         .compose(withSteps(pov))
+        .compose(withRecordedClock(pov, tv.isDefined))
     )(json)
   }.mon(lila.mon.round.api.watcher)
 
@@ -197,6 +198,11 @@ final private[api] class RoundApi(
 
   private def withSteps(pov: Pov)(obj: JsObject) =
     obj + ("steps" -> lila.round.StepBuilder(pov.game))
+
+  private def withRecordedClock(pov: Pov, enabled: Boolean)(obj: JsObject) =
+    obj.add(
+      "recordedClock" -> enabled.so(lila.game.RecordedClockTimeline(pov.game)).map(_.json)
+    )
 
   private def withNote(note: String)(json: JsObject) =
     if note.isEmpty then json else json + ("note" -> JsString(note))

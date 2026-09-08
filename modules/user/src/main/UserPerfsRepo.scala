@@ -2,19 +2,29 @@ package lila.user
 
 import reactivemongo.api.*
 import reactivemongo.api.bson.*
+import reactivemongo.api.commands.WriteResult
 import chess.IntRating
 import chess.rating.glicko.Glicko
 
 import lila.core.perf.{ UserPerfs, UserWithPerfs }
 import lila.core.user.WithPerf
 import lila.db.dsl.{ *, given }
+import lila.db.isDuplicateKey
 import lila.rating.{ Perf, PerfType, UserPerfs }
+import lila.core.rank.{ RankPerf, RankSnapshot, RankTrackId }
+import lila.core.rank.RankTrackId.*
 
 final class UserPerfsRepo(c: Coll)(using Executor) extends lila.core.user.PerfsRepo(c):
 
   import lila.rating.UserPerfs.userPerfsHandler
+  import lila.rating.UserPerfs.rankPerfHandler
   import lila.rating.Perf.perfHandler
   import lila.rating.Glicko.glickoHandler
+
+  private def rankSnapshot(perfs: UserPerfs): RankSnapshot =
+    lila.rating.XiangqiRank.snapshot(
+      perfs.rank(RankTrackId.xiangqi).getOrElse(lila.rating.XiangqiRank.initial)
+    )
 
   def glickoField(perf: PerfKey) = s"$perf.gl"
 
@@ -51,19 +61,60 @@ final class UserPerfsRepo(c: Coll)(using Executor) extends lila.core.user.PerfsR
 
   def withPerfs(us: PairOf[User], primary: Boolean): Fu[PairOf[UserWithPerfs]] =
     perfsOf(us, primary).dmap: (x, y) =>
-      UserWithPerfs(us._1, y) -> UserWithPerfs(us._2, x)
+      UserWithPerfs(us._1, x) -> UserWithPerfs(us._2, y)
 
   def withPerfs(us: Seq[User], readPref: ReadPref = _.sec): Fu[List[UserWithPerfs]] =
     idsMap(us, readPref).map: perfs =>
       us.view.map(u => lila.rating.UserWithPerfs(u, perfs.get(u.id))).toList
 
   def updatePerfs(prev: UserPerfs, cur: UserPerfs) =
-    val diff = for
-      pt <- PerfType.all
+    val perfDiff = for
+      pt <- List(PerfType.Puzzle)
       if cur(pt).nb != prev(pt).nb
       bson <- summon[BSONWriter[Perf]].writeOpt(cur(pt))
     yield BSONElement(pt.key.value, bson)
+    val diff = perfDiff
     diff.nonEmpty.so(coll.update.one($id(cur.id), $doc("$set" -> $doc(diff*)), upsert = true).void)
+
+  /** Optimistic compare-and-set for one native rank account. Concurrent game completions retry from primary
+    * storage instead of overwriting each other. The supplied transition must be pure.
+    */
+  def updateRankAtomically(
+      userId: UserId,
+      track: RankTrackId,
+      initial: RankPerf
+  )(transition: RankPerf => RankPerf): Fu[(UserPerfs, UserPerfs)] =
+    val field = s"ranks.${track.value}"
+
+    def loop(attempt: Int): Fu[(UserPerfs, UserPerfs)] =
+      coll
+        .byId[UserPerfs](userId)
+        .flatMap: stored =>
+          val previous = stored.getOrElse(lila.rating.UserPerfs.default(userId))
+          val previousRank = previous.rank(track).getOrElse(initial)
+          val nextRank = transition(previousRank)
+          val next = previous.withRank(track, nextRank)
+          if nextRank == previousRank then fuccess(previous -> next)
+          else
+            val expected = previous
+              .rank(track)
+              .fold(
+                $doc(s"$field" -> $doc("$exists" -> false))
+              ): rank =>
+                $doc(s"$field.s" -> rank.score.value, s"$field.nb" -> rank.games)
+            coll.update
+              .one($id(userId) ++ expected, $set(field -> nextRank), upsert = stored.isEmpty)
+              .flatMap: result =>
+                if result.n == 1 then fuccess(previous -> next)
+                else if attempt < 12 then loop(attempt + 1)
+                else fufail(s"Could not update $track rank for $userId after concurrent writes")
+              .recoverWith:
+                case wr: WriteResult if isDuplicateKey(wr) && attempt < 12 => loop(attempt + 1)
+
+    loop(0)
+
+  def setRank(userId: UserId, track: RankTrackId, rank: RankPerf): Funit =
+    coll.update.one($id(userId), $set(s"ranks.${track.value}" -> rank), upsert = true).void
 
   def setManagedUserInitialPerfs(id: UserId) =
     coll.update.one($id(id), lila.rating.UserPerfs.defaultManaged(id), upsert = true).void
@@ -135,15 +186,21 @@ final class UserPerfsRepo(c: Coll)(using Executor) extends lila.core.user.PerfsR
     coll.find($inIds(ids)).cursor[UserPerfs]().listAll().map(_.mapBy(_.id))
 
   def withPerf(users: List[User], perfKey: PerfKey): Fu[List[WithPerf]] =
-    perfOf(users.map(_.id), perfKey).map: perfs =>
-      users.map(u => u.withPerf(perfs.getOrElse(u.id, Perf.default)))
+    idsMap(users, _.sec).map: allPerfs =>
+      users.map: user =>
+        val perfs = allPerfs.getOrElse(user.id, lila.rating.UserPerfs.default(user.id))
+        WithPerf(user, perfs(perfKey), rankSnapshot(perfs).some)
 
   def withPerf(user: User, perfKey: PerfKey): Fu[WithPerf] =
-    perfOf(user.id, perfKey).dmap(user.withPerf)
+    perfsOf(user).dmap: perfs =>
+      WithPerf(user, perfs(perfKey), rankSnapshot(perfs).some)
 
   def withPerf(us: PairOf[User], perfKey: PerfKey, readPref: ReadPref): Fu[PairOf[WithPerf]] =
-    perfOf(us, perfKey, readPref).dmap: (x, y) =>
-      WithPerf(us._1, x) -> WithPerf(us._2, y)
+    idsMap(List(us._1, us._2), readPref).dmap: allPerfs =>
+      def one(user: User) =
+        val perfs = allPerfs.getOrElse(user.id, lila.rating.UserPerfs.default(user.id))
+        WithPerf(user, perfs(perfKey), rankSnapshot(perfs).some)
+      one(us._1) -> one(us._2)
 
   def perfOf[U: UserIdOf](us: PairOf[U], perfKey: PerfKey, readPref: ReadPref): Fu[PairOf[Perf]] =
     val (x, y) = us
@@ -160,16 +217,16 @@ final class UserPerfsRepo(c: Coll)(using Executor) extends lila.core.user.PerfsR
   def intRatingOf(userId: UserId, pk: PerfKey): Fu[IntRating] =
     perfOf(userId, pk).map(_.intRating)
 
-  def dubiousPuzzle(id: UserId, puzzle: Perf): Fu[Boolean] =
-    (puzzle.glicko.rating >= 2500).so:
-      perfOptionOf(id, PerfType.Standard).map:
-        _.forall(lila.rating.UserPerfs.dubiousPuzzle(puzzle, _))
+  def dubiousPuzzle(
+      @annotation.unused id: UserId,
+      @annotation.unused puzzle: Perf
+  ): Fu[Boolean] = fuccess(false)
 
   object aggregate:
     val lookup = $lookup.simple(coll, "perfs", "_id", "_id")
 
     def lookup(pk: PerfKey): Bdoc =
-      val pipe = List($doc("$project" -> $doc(pk.value -> true)))
+      val pipe = List($doc("$project" -> $doc(pk.value -> true, "ranks" -> true)))
       $lookup.simple(coll, "perfs", "_id", "_id", pipe)
 
     def readFirst[U: UserIdOf](root: Bdoc, u: U): UserPerfs =
@@ -183,6 +240,16 @@ final class UserPerfsRepo(c: Coll)(using Executor) extends lila.core.user.PerfsR
       perfs <- perfs.headOption
       perf <- perfs.getAsOpt[Perf](pk.value)
     yield perf).getOrElse(Perf.default)
+
+    def readRank(root: Bdoc): RankSnapshot =
+      val rank = for
+        perfs <- root.getAsOpt[List[Bdoc]]("perfs")
+        doc <- perfs.headOption
+        ranks <- doc.getAsOpt[BSONDocument]("ranks")
+        rankDoc <- ranks.getAsOpt[BSONDocument](RankTrackId.xiangqi.value)
+        rank <- rankDoc.asOpt[RankPerf]
+      yield rank
+      lila.rating.XiangqiRank.snapshot(rank.getOrElse(lila.rating.XiangqiRank.initial))
 
     def readFrom[U: UserIdOf](doc: Bdoc, u: U): UserPerfs =
       doc.asOpt[UserPerfs].getOrElse(lila.rating.UserPerfs.default(u.id))

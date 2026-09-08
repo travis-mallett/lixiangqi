@@ -21,7 +21,7 @@ final class Env(
 
   lazy val tv = wire[Tv]
 
-  val channelBroadcasts: Map[Channel, ActorRef] = Tv.Channel.values.map { c =>
+  val channelBroadcasts: Map[Channel, ActorRef] = Tv.Channel.list.map { c =>
     c -> system.actorOf(Props(wire[TvBroadcast]))
   }.toMap
 

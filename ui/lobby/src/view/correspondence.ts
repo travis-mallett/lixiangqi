@@ -1,14 +1,13 @@
 import { h } from 'snabbdom';
 
-import perfIcons from 'lib/game/perfIcons';
-import { bind, type MaybeVNodes, confirm, dataIcon } from 'lib/view';
+import { bind, type MaybeVNodes, confirm } from 'lib/view';
 
 import type LobbyController from '@/ctrl';
 import type { Seek } from '@/interfaces';
 
-import { tds, perfNames } from './util';
+import { tds } from './util';
 
-function renderSeek(ctrl: LobbyController, seek: Seek) {
+function renderSeek(seek: Seek) {
   const klass = seek.action === 'joinSeek' ? 'join' : 'cancel';
   return h(
     'tr.seek.' + klass,
@@ -16,23 +15,14 @@ function renderSeek(ctrl: LobbyController, seek: Seek) {
       key: seek.id,
       attrs: {
         role: 'button',
-        title:
-          seek.action === 'joinSeek'
-            ? i18n.site.joinTheGame + ' - ' + (perfNames[seek.perf.key] ?? seek.perf.key)
-            : i18n.site.cancel,
+        title: seek.action === 'joinSeek' ? i18n.site.joinTheGame : i18n.site.cancel,
         'data-id': seek.id,
       },
     },
     tds([
-      seek.rating
-        ? h('span.ulpt', { attrs: { 'data-href': '/@/' + seek.username } }, seek.username)
-        : 'Anonymous',
-      seek.rating && ctrl.opts.showRatings ? seek.rating + (seek.provisional ? '?' : '') : '',
+      h('span.ulpt', { attrs: { 'data-href': `/@/${seek.username}` } }, seek.username),
+      seek.rank,
       seek.days ? i18n.site.nbDays(seek.days) : '∞',
-      h('span', [
-        h('span.varicon', { attrs: dataIcon(perfIcons[seek.perf.key]) }),
-        seek.mode === 1 ? i18n.site.rated : i18n.site.casual,
-      ]),
     ]),
   );
 }
@@ -62,7 +52,7 @@ export default function (ctrl: LobbyController): MaybeVNodes {
         'thead',
         h(
           'tr',
-          (['player', 'rating', 'time', 'mode'] as const).map(k => h('th', i18n.site[k])),
+          [i18n.site.player, i18n.site.rank, i18n.site.time].map(label => h('th', label)),
         ),
       ),
       h(
@@ -83,7 +73,7 @@ export default function (ctrl: LobbyController): MaybeVNodes {
             } while (el.nodeName !== 'TABLE');
           }),
         },
-        ctrl.data.seeks.map(s => renderSeek(ctrl, s)),
+        ctrl.data.seeks.map(renderSeek),
       ),
     ]),
     createSeek(ctrl),

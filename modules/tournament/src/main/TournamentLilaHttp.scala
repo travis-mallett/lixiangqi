@@ -9,6 +9,7 @@ import scalalib.cache.{ ExpireSetMemo, FrequencyThreshold }
 import lila.common.Json.given
 import lila.common.{ LilaScheduler, LilaStream }
 import lila.core.chess.Rank
+import lila.core.rank.RankCode.*
 
 final class TournamentLilaHttp(
     tournamentRepo: TournamentRepo,
@@ -91,14 +92,13 @@ final class TournamentLilaHttp(
         Json
           .obj(
             "name" -> light.name,
-            "rating" -> p.rating,
+            "rankTitle" -> p.rank.publicCode.map(_.value),
             "score" -> p.score,
             "sheet" -> sheet.scoresToString
           )
           .add("title" -> light.title)
           .add("flair" -> light.flair)
           .add("patronColor" -> light.patronAndColor.map(_.color))
-          .add("provisional" -> p.provisional)
           .add("withdraw" -> p.withdraw)
           .add("team" -> p.team)
           .add("fire" -> p.fire)

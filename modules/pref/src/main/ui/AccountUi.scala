@@ -71,6 +71,56 @@ final class AccountUi(helpers: Helpers):
         .toList
     )
 
+  def boardAnimationPicker(
+      field: play.api.data.Field,
+      onLabel: String,
+      offLabel: String,
+      customLabel: String,
+      options: Iterable[(Int, String)]
+  ) =
+    val value = ~field.value.flatMap(_.toIntOption)
+    val custom = Pref.BoardAnimation.isCustom(value)
+    val mask = Pref.BoardAnimation.mask(value)
+    def mode(value: String, labelText: String, selected: Boolean) =
+      val inputId = s"ir${field.id}_$value"
+      div(
+        input(
+          st.id := inputId,
+          selected.option(st.checked),
+          tpe := "radio",
+          st.value := value,
+          name := "_boardAnimationMode",
+          attr("data-board-animation-mode") := value
+        ),
+        label(`for` := inputId)(labelText)
+      )
+    st.group(cls := "board-animation-picker")(
+      input(
+        tpe := "hidden",
+        st.value := value,
+        name := field.name,
+        attr("data-board-animation-value") := true
+      ),
+      st.group(cls := "radio")(
+        mode("on", onLabel, value == Pref.BoardAnimation.ALL),
+        mode("off", offLabel, value == 0),
+        mode("custom", customLabel, custom)
+      ),
+      st.group(cls := List("radio board-animation-custom" -> true, "none" -> !custom)):
+        options.toList.map: (bit, labelText) =>
+          val inputId = s"ir${field.id}_custom_$bit"
+          div(
+            input(
+              st.id := inputId,
+              ((mask & bit) == bit).option(st.checked),
+              tpe := "checkbox",
+              st.value := bit,
+              attr("data-board-animation-bit") := true
+            ),
+            label(`for` := inputId)(labelText)
+          )
+    )
+
   def menu(active: String)(using ctx: Context) =
     def activeCls(c: String) = cls := active.activeO(c)
     ctx.me

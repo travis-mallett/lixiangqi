@@ -55,11 +55,16 @@
     }
   }
 
-  .rating {
+  .rating,
+  .user-rank {
     body.no-rating & {
       display: none;
     }
   }
+}
+
+body.no-rating .rank-title {
+  display: none;
 }
 
 a.user-link {

@@ -201,7 +201,7 @@ pnpm lint:fix
 - **Asset compilation**: The `./ui/build` system is sophisticated - study `/ui/README.md` for details
 - **Hot reloading**: Backend changes require manual restart, frontend has watch mode
 - **Module dependencies**: Check `build.sbt` before adding cross-module dependencies
-- **Database**: Uses MongoDB - no migrations, but schema assumptions in code
+- **Database**: Uses MongoDB. Production schema changes use the guarded migration scripts and deployment integration documented in `doc/data-and-migrations.md` and `doc/deployment.md`.
 - **Performance**: This is a high-traffic production system - consider performance impact
 
 **Trust these instructions** - they are validated and comprehensive. Only search for additional information if these instructions are incomplete or incorrect for your specific task.

@@ -13,7 +13,6 @@ final class Env(
     gameRepo: lila.core.game.GameRepo,
     userApi: lila.core.user.UserApi,
     rankingRepo: lila.core.user.RankingRepo,
-    rankingsOf: UserId => lila.core.rating.UserRankMap,
     yoloDb: lila.db.AsyncDb @@ lila.db.YoloDb
 )(using Executor, Scheduler):
 
@@ -25,12 +24,6 @@ final class Env(
   lazy val api = wire[PerfStatApi]
 
   lazy val jsonView = wire[JsonView]
-
-  lila.common.Bus.sub[lila.core.game.FinishGame]:
-    case lila.core.game.FinishGame(game, _) if !game.aborted =>
-      indexer.addGame(game).addFailureEffect { e =>
-        lila.log("perfStat").error(s"index game ${game.id}", e)
-      }
 
   lila.common.Bus.sub[lila.core.user.UserDelete]: del =>
     storage.deleteAllFor(del.id)

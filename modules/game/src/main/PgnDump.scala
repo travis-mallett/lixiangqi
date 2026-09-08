@@ -3,14 +3,13 @@ package lila.game
 import chess.format.pgn.{ InitialComments, Parser, Pgn, PgnTree, SanStr, Tag, Tags }
 import chess.format.{ Fen, pgn as chessPgn }
 import chess.{ ByColor, Centis, Color, Outcome, Ply, Tree }
-import chess.rating.IntRatingDiff
 
 import lila.core.LightUser
 import lila.core.config.RouteUrl
 import lila.core.game.PgnDump.WithFlags
 import lila.core.game.{ Game, Player }
-import lila.game.GameExt.perfType
 import lila.game.Player.nameSplit
+import lila.core.rank.RankTrackId.*
 
 final class PgnDump(
     routeUrl: RouteUrl,
@@ -57,7 +56,7 @@ final class PgnDump(
   private def gameLightUsers(game: Game): Fu[GameUsers] =
     game.players.traverse(_.userId.so(lightUserApi.async))
 
-  private def rating(p: Player) = p.rating.orElse(p.nameSplit.flatMap(_._2)).fold("?")(_.toString)
+  private def rank(p: Player) = p.rank.flatMap(_.publicCode).fold("Unranked")(_.value)
 
   def player(p: Player, u: Option[LightUser]): String | UserName =
     p.aiLevel.fold(
@@ -65,14 +64,10 @@ final class PgnDump(
     )("lichess AI level " + _)
 
   private def eventOf(game: Game) =
-    val perf = game.perfType.nameKey
     game.tournamentId
-      .map(id => s"${game.rated.name} $perf tournament ${routeUrl(routes.Tournament.show(id))}")
-      .orElse(game.simulId.map(id => s"$perf simul ${routeUrl(routes.Simul.show(id))}"))
-      .getOrElse(s"${game.rated.name} $perf game")
-
-  private def ratingDiffTag(p: Player, tag: String) =
-    p.ratingDiff.map(rd => Tag(tag, s"${if !rd.negative then "+" else ""}$rd"))
+      .map(id => s"Xiangqi tournament ${routeUrl(routes.Tournament.show(id))}")
+      .orElse(game.simulId.map(id => s"Xiangqi simul ${routeUrl(routes.Simul.show(id))}"))
+      .getOrElse(if game.ranked then "Ranked Xiangqi game" else "Casual Xiangqi game")
 
   def tags(
       game: Game,
@@ -106,10 +101,9 @@ final class PgnDump(
       importedDate.isEmpty.option:
         Tag(_.UTCTime, importedTags.flatMap(_.apply(_.UTCTime)) | Tag.UTCTime.format.print(game.createdAt))
       ,
-      withRating.option(Tag("RedElo", rating(game.whitePlayer))),
-      withRating.option(Tag("BlackElo", rating(game.blackPlayer))),
-      withRating.so(ratingDiffTag(game.whitePlayer, "RedRatingDiff")),
-      withRating.so(ratingDiffTag(game.blackPlayer, "BlackRatingDiff")),
+      withRating.option(Tag("RedRank", rank(game.whitePlayer))),
+      withRating.option(Tag("BlackRank", rank(game.blackPlayer))),
+      withRating.so(game.rankTrack.map(track => Tag("RankTrack", track.value))),
       users.white.flatMap(_.title).map(Tag("RedTitle", _)),
       users.black.flatMap(_.title).map(Tag("BlackTitle", _)),
       fideIds.white.map(Tag("RedFideId", _)),
@@ -120,6 +114,8 @@ final class PgnDump(
       game.blackPlayer.berserk.option(Tag("BlackBerserk", game.blackPlayer.berserk)),
       Tag(_.Variant, "Xiangqi").some,
       Tag("MoveFormat", "WXF").some,
+      Tag("Ruleset", game.xiangqi.ruleset.key).some,
+      game.position.termination.map(Tag("Adjudication", _)),
       game.daysPerTurn
         .map(dpt => Tag(_.TimeControl, s"$dpt day${if dpt.value > 1 then "s" else ""} per move"))
         .orElse(Tag.timeControl(game.clock.map(_.config)).some),

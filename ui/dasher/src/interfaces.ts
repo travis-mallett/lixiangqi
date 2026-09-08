@@ -42,18 +42,19 @@ export interface BoardThemeData extends CatalogItem {
 }
 
 export interface PieceSetData extends CatalogItem {
+  category: 'traditional' | 'graphicalSymbols' | 'other';
   assets: Record<string, string>;
 }
 
 export interface BoardSettings {
   brightness: number;
   contrast: number;
+  saturation: number;
   opacity: number;
   hue: number;
 }
 
 export interface AppearanceState {
-  pack: string;
   uiTheme: string;
   background: string;
   backgroundUrl?: string | null;
@@ -64,14 +65,8 @@ export interface AppearanceState {
   board: BoardSettings;
 }
 
-export interface ThemePackData extends CatalogItem {
-  description: string;
-  appearance: AppearanceState;
-}
-
 export interface AppearanceData {
   current: AppearanceState;
-  packs: ThemePackData[];
   uiThemes: UiThemeData[];
   backgrounds: BackgroundData[];
   boards: BoardThemeData[];
@@ -88,7 +83,7 @@ export interface DasherData {
   streamer: boolean;
 }
 
-export type Mode = 'links' | 'langs' | 'sound' | 'appearance';
+export type Mode = 'links' | 'langs' | 'sound' | 'uiTheme' | 'boardStyle' | 'boardPieces';
 
 export interface DasherOpts {
   playing: boolean;

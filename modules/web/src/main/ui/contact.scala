@@ -181,10 +181,10 @@ object contact:
             ),
             Leaf(
               "casual",
-              noRatingPoints(),
+              "Why didn't my Xiangqi rank change?",
               frag(
-                p(ratedGame()),
-                botRatingAbuse()
+                p("Only completed games from the ranked 15-minute home-page room affect Xiangqi rank."),
+                p("Challenges, custom games, rematches, AI games, API games, and tournaments are casual.")
               )
             ),
             Leaf(

@@ -21,7 +21,10 @@ import lila.core.game.{
 }
 import lila.db.BSON
 import lila.db.dsl.{ *, given }
+import lila.core.rank.RankTrackId
+import lila.core.rank.RankTrackId.*
 import lila.xiangqi.Xiangqi
+import lila.xiangqi.adjudication.{ Ruleset, MoveFact, AdjudicationState }
 
 object BSONHandlers:
 
@@ -54,8 +57,29 @@ object BSONHandlers:
   )
 
   private given BSONDocumentHandler[Xiangqi.Ending] = Macros.handler
+  given BSONHandler[Ruleset] = tryHandler[Ruleset](
+    { case BSONString(value) => Ruleset.fromKey(value).fold(s => scala.util.Failure(Exception(s)), Success(_)) },
+    value => BSONString(value.key)
+  )
+  private given BSONDocumentHandler[MoveFact] = Macros.handler
+  private given BSONDocumentHandler[AdjudicationState] = Macros.handler
   private given BSONDocumentHandler[Xiangqi.State] = Macros.handler
-  private[game] given xiangqiGameHandler: BSONDocumentHandler[Xiangqi.Game] = Macros.handler
+  private[game] given xiangqiGameHandler: BSON[Xiangqi.Game] with
+    def reads(r: BSON.Reader) = Xiangqi.Game(
+      initialFen = r.str("initialFen"),
+      moves = r.get[Vector[Xiangqi.Uci]]("moves"),
+      wxf = r.get[Vector[String]]("wxf"),
+      states = r.get[Vector[Xiangqi.State]]("states"),
+      // A missing identifier is historical behavior, never the mutable new-game default.
+      ruleset = if r.contains("ruleset") then r.get[Ruleset]("ruleset") else Ruleset.Unrestricted
+    )
+    def writes(w: BSON.Writer, game: Xiangqi.Game) = BSONDocument(
+      "initialFen" -> game.initialFen,
+      "moves" -> game.moves,
+      "wxf" -> game.wxf,
+      "states" -> game.states,
+      "ruleset" -> game.ruleset
+    )
 
   private[game] given gameDrawOffersHandler: BSONHandler[GameDrawOffers] = tryHandler[GameDrawOffers](
     { case arr: BSONArray =>
@@ -95,7 +119,7 @@ object BSONHandlers:
           s"Game ${light.id} uses unsupported domain schema ${schemaVersion.fold("legacy")(_.toString)}"
         )
       val xiangqi = r.get[Xiangqi.Game](F.xiangqi)
-      if xiangqi.state.ply > maxPlies.value then
+      if xiangqi.moves.size > maxPlies.value then
         throw IllegalStateException(s"Game ${light.id} exceeds the maximum Xiangqi ply")
       val turnColor =
         if xiangqi.state.turn == Xiangqi.Side.Red then Color.White else Color.Black
@@ -135,6 +159,7 @@ object BSONHandlers:
         daysPerTurn = r.getO[Days](F.daysPerTurn),
         binaryMoveTimes = r.getO[Array[Byte]](F.moveTimes),
         rated = r.yesnoD(F.rated),
+        rankTrack = r.strO(F.rankTrack).flatMap(RankTrackId.from),
         bookmarks = r.intD(F.bookmarks),
         createdAt = createdAt,
         movedAt = r.dateD(F.movedAt, createdAt),
@@ -181,6 +206,7 @@ object BSONHandlers:
         F.whiteClockHistory -> clockHistory(Color.White, o.clockHistory, o.clock, o.flagged),
         F.blackClockHistory -> clockHistory(Color.Black, o.clockHistory, o.clock, o.flagged),
         F.rated -> w.yesnoO(o.rated),
+        F.rankTrack -> o.rankTrack.map(_.value),
         F.variant -> o.variant.exotic.option(w(o.variant.id)),
         F.bookmarks -> w.intO(o.bookmarks),
         F.createdAt -> w.date(o.createdAt),

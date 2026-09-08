@@ -64,7 +64,9 @@ private object ChallengeJoiner:
       .start
 
   def gameSetup(c: Challenge): Either[String, Xiangqi.Game] =
-    XiangqiRules.initialGame:
+    XiangqiRules.initialGame(
       c.initialFen
         .filter(_ => c.variant.fromPosition)
-        .map(_.value)
+        .map(_.value),
+      c.effectiveRuleset
+    )

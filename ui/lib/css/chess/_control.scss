@@ -62,3 +62,19 @@
     }
   }
 }
+
+.replay-controls {
+  @extend %flex-center;
+
+  position: relative;
+  height: $col3-uniboard-controls;
+
+  .jumps {
+    position: relative;
+    flex: 1 1 auto;
+  }
+
+  .fbt {
+    @extend %page-text;
+  }
+}

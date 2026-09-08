@@ -5,9 +5,10 @@ import play.api.libs.json.*
 import lila.common.Json.given
 import lila.core.LightUser
 import lila.core.perf.{ KeyedPerf, Perf, PuzPerf, UserPerfs }
-import lila.core.user.{ LightPerf, PlayTime, Profile }
-import lila.core.rating.UserRankMap
-import lila.rating.UserPerfsExt.perfsList
+import lila.core.user.{ LightPerf, LightRank, PlayTime, Profile }
+import lila.core.rank.RankCode.*
+import lila.rating.XiangqiRank
+import lila.rating.UserPerfsExt.*
 
 final class JsonView(isOnline: lila.core.socket.IsOnline) extends lila.core.user.JsonView:
 
@@ -17,12 +18,11 @@ final class JsonView(isOnline: lila.core.socket.IsOnline) extends lila.core.user
   def full(
       u: User,
       perfs: Option[UserPerfs | KeyedPerf],
-      withProfile: Boolean,
-      rankMap: Option[UserRankMap] = None
+      withProfile: Boolean
   ): JsObject =
     if u.enabled.no then disabled(u.light)
     else
-      base(u, perfs, rankMap) ++ Json
+      base(u, perfs) ++ Json
         .obj("createdAt" -> u.createdAt)
         .add(
           "profile" -> u.profile
@@ -32,17 +32,20 @@ final class JsonView(isOnline: lila.core.socket.IsOnline) extends lila.core.user
         .add("seenAt" -> u.seenAt)
         .add("playTime" -> u.playTime)
 
-  def roundPlayer(u: User, perf: Option[KeyedPerf]) =
+  def roundPlayer(u: User, rank: Option[lila.core.rank.RankCode]) =
     if u.enabled.no then disabled(u.light)
-    else base(u, perf).add("online" -> isOnline.exec(u.id))
+    else
+      base(u, none)
+        .add("rank" -> rank.map(_.value))
+        .add("online" -> isOnline.exec(u.id))
 
-  def base(u: User, perfs: Option[UserPerfs | KeyedPerf], rankMap: Option[UserRankMap] = None) =
+  def base(u: User, perfs: Option[UserPerfs | KeyedPerf]) =
     Json
       .obj(
         "id" -> u.id,
         "username" -> u.username,
         "perfs" -> perfs.fold(Json.obj()):
-          case p: UserPerfs => perfsJson(p, rankMap)
+          case p: UserPerfs => perfsJson(p)
           case p: KeyedPerf => keyedPerfJson(p)
       )
       .add("title" -> u.title)
@@ -54,6 +57,18 @@ final class JsonView(isOnline: lila.core.socket.IsOnline) extends lila.core.user
 
   def lightPerfIsOnline(lp: LightPerf) =
     lightPerfWrites.writes(lp).add("online" -> isOnline.exec(lp.user.id))
+
+  def lightRankIsOnline(entry: LightRank): JsObject =
+    Json
+      .obj(
+        "id" -> entry.user.id,
+        "username" -> entry.user.name,
+        "rank" -> entry.rank.value,
+        "online" -> isOnline.exec(entry.user.id)
+      )
+      .add("title" -> entry.user.title)
+      .add("patron" -> entry.user.isPatron)
+      .add("patronColor" -> entry.user.patronAndColor.map(_.color))
 
   given lightPerfIsOnlineWrites: OWrites[LightPerf] = OWrites(lightPerfIsOnline)
 
@@ -93,16 +108,21 @@ object JsonView:
       .add("prov", o.glicko.provisional)
 
   def keyedPerfJson(p: KeyedPerf): JsObject =
-    Json.obj(p.key.value -> p.perf)
+    if p.key == PerfKey.puzzle then Json.obj(p.key.value -> p.perf)
+    else Json.obj()
 
-  def perfsJson(p: UserPerfs, rankMap: Option[UserRankMap] = None): JsObject =
-    JsObject:
-      p.perfsList.collect:
-        case (key, perf) if perf.nb > 0 || lila.rating.PerfType.standardSet(key) =>
-          key.value -> perfWrites
-            .writes(perf)
-            .add("rank" -> rankMap.flatMap(_.get(key)))
-    .add("storm", p.storm.option)
+  def perfsJson(p: UserPerfs): JsObject =
+    Json
+      .obj(
+        "xiangqi" -> p.xiangqiRank.map: perf =>
+          Json.obj(
+            "games" -> perf.games,
+            "rank" -> XiangqiRank.catalog.code(perf.score).value
+          ),
+        "puzzle" -> p.puzzle.nonEmpty.option(perfWrites.writes(p.puzzle))
+      )
+      .noNull
+      .add("storm", p.storm.option)
       .add("racer", p.racer.option)
       .add("streak", p.streak.option)
 
@@ -111,11 +131,6 @@ object JsonView:
       "runs" -> p.runs,
       "score" -> p.score
     )
-
-  def perfsJson(perfs: UserPerfs, onlyPerfs: List[PerfKey]) =
-    JsObject:
-      onlyPerfs.map: key =>
-        key.value -> perfWrites.writes(perfs(key))
 
   def notes(ns: List[Note])(using lightUser: LightUserApi) =
     lightUser
@@ -131,25 +146,3 @@ object JsonView:
             )
             .add("mod", note.mod)
             .add("dox", note.dox))
-
-  given leaderboardsWrites(using OWrites[LightPerf]): OWrites[lila.rating.UserPerfs.Leaderboards] =
-    OWrites: leaderboards =>
-      Json.obj(
-        "bullet" -> leaderboards.bullet,
-        "blitz" -> leaderboards.blitz,
-        "rapid" -> leaderboards.rapid,
-        "classical" -> leaderboards.classical,
-        "ultraBullet" -> leaderboards.ultraBullet
-      )
-
-  given leaderboardStandardTopOneWrites(using
-      OWrites[LightPerf]
-  ): OWrites[lila.rating.UserPerfs.Leaderboards] =
-    OWrites: leaderboards =>
-      Json.obj(
-        "bullet" -> leaderboards.bullet.headOption,
-        "blitz" -> leaderboards.blitz.headOption,
-        "rapid" -> leaderboards.rapid.headOption,
-        "classical" -> leaderboards.classical.headOption,
-        "ultraBullet" -> leaderboards.ultraBullet.headOption
-      )

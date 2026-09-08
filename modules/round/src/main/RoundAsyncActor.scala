@@ -1,6 +1,7 @@
 package lila.round
 
 import chess.{ ByColor, Centis, Color }
+import org.apache.pekko.actor.Scheduler
 import play.api.libs.json.*
 import scalalib.actor.AsyncActor
 
@@ -18,7 +19,7 @@ final private class RoundAsyncActor(
     socketSend: SocketSend,
     putUserLag: userLag.Put,
     private var version: SocketVersion
-)(using Executor)(using proxy: GameProxy)
+)(using Executor, Scheduler)(using proxy: GameProxy)
     extends AsyncActor(RoundAsyncActor.monitor):
 
   import RoundSocket.Protocol
@@ -26,6 +27,15 @@ final private class RoundAsyncActor(
   import dependencies.*
 
   private var takebackBoard: Option[TakebackBoard] = None
+
+  private lazy val aiTurns = AiTurnCoordinator(
+    scheduleDue = scheduleAiMove,
+    tooManyPlies = () => this ! TooManyPlies
+  )
+
+  private def scheduleAiMove(delay: FiniteDuration, key: lila.core.fishnet.AiTurnKey): Unit =
+    summon[Scheduler].scheduleOnce(delay):
+      this ! AiMoveDue(key)
 
   private var mightBeSimul = true // until proven otherwise
 
@@ -97,7 +107,7 @@ final private class RoundAsyncActor(
           player.userId = game.player(color).userId
           player.goneWeight = goneWeights(color)
         mightBeSimul = game.isSimul
-        if game.playableByAi then player.requestFishnet(game, this)
+        aiTurns.observe(game)
 
     // socket stuff
 
@@ -193,6 +203,23 @@ final private class RoundAsyncActor(
       handle: game =>
         player.fishnet(game, hash, uci)
       .mon(lila.mon.round.move.time)
+
+    case RoundBus.FishnetPlayV2(uci, turnKey, requestId) =>
+      handle: game =>
+        if aiTurns.accepts(game, turnKey, requestId) then player.fishnetV2(game, turnKey, uci)
+        else
+          lila.mon.fishnet.aiMove.staleResult.increment()
+          logger.debug(s"Ignoring stale AI result ${turnKey.value.take(12)} for $gameId")
+          fuccess(Nil)
+      .mon(lila.mon.round.move.time)
+
+    case RoundBus.FishnetFailureV2(turnKey, requestId, code) =>
+      proxy.withGame: game =>
+        fuccess:
+          if aiTurns.accepts(game, turnKey, requestId) then
+            lila.mon.fishnet.aiMove.failure.increment()
+            logger.warn(s"AI work ${requestId.value} failed for $gameId: $code")
+            aiTurns.failed(game, turnKey, requestId, retryImmediately = code != "lease_busy")
 
     case RoundBus.Abort(playerId) =>
       handle(playerId): pov =>
@@ -300,6 +327,7 @@ final private class RoundAsyncActor(
       handle(playerId): pov =>
         takebacker(~takebackBoard)(pov, takeback).map: (events, board) =>
           takebackBoard = board.some
+          this ! ReconcileAiTurn
           events
 
     case lila.game.actorApi.NotifyRematch(_, newGame) =>
@@ -364,10 +392,19 @@ final private class RoundAsyncActor(
 
     case FishnetStart =>
       proxy.withGame: g =>
-        fuccess(g.playableByAi.so(player.requestFishnet(g, this)))
+        fuccess(aiTurns.observe(g, force = true))
+
+    case ReconcileAiTurn =>
+      proxy.withGame: g =>
+        fuccess(aiTurns.observe(g))
+
+    case AiMoveDue(key) =>
+      proxy.withGame: g =>
+        fuccess(aiTurns.due(g, key))
 
     case Tick =>
       proxy.withGameOptionSync { g =>
+        aiTurns.tick(g)
         g.forceResignableNow.so(fuccess:
           Color.all.foreach: c =>
             if !players(c).isOnline && players(!c).isOnline then
@@ -468,6 +505,8 @@ object RoundAsyncActor:
   case class HasUserId(userId: UserId, promise: Promise[Boolean])
   case class SetGameInfo(game: Game, goneWeights: ByColor[Float])
   case object Tick
+  case object ReconcileAiTurn
+  case class AiMoveDue(key: lila.core.fishnet.AiTurnKey)
   case object Stop
   case object WsBoot
   case class LilaStop(promise: Promise[Unit])

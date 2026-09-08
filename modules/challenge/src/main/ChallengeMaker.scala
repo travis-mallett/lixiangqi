@@ -76,5 +76,6 @@ final class ChallengeMaker(
             .fold(Challenge.Challenger.Anonymous(""))(Challenge.toRegistered),
           destUser = dest.some,
           rematchOf = pov.gameId.some,
-          id = nextId.some
+          id = nextId.some,
+          ruleset = pov.game.xiangqi.ruleset
         )

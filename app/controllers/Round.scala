@@ -24,6 +24,33 @@ final class Round(
 ) extends LilaController(env)
     with lila.web.TheftPrevention:
 
+  private case class PlayerPageData(
+      simul: Option[lila.simul.Simul],
+      chat: Option[Chat.GameOrEvent],
+      cross: Option[lila.game.Crosstable.WithMatchup],
+      playing: UrgentGames,
+      bookmarked: Boolean,
+      round: JsObject
+  )
+
+  private def playerPageData(
+      pov: Pov,
+      tour: Option[lila.tournament.GameView],
+      users: Preload[lila.core.user.GameUsers]
+  )(using ctx: Context): Fu[PlayerPageData] =
+    for (simul, chat, cross, playing, bookmarked, data) <-
+        (
+          pov.game.simulId.so(env.simul.repo.find),
+          getPlayerChat(pov.game, tour.map(_.tour)),
+          ctx.noBlind.so(env.game.crosstableApi.withMatchup(pov.game)),
+          pov.game.isSwitchable.so(otherPovs(pov.game)),
+          env.bookmark.api.exists(pov.game, ctx.me),
+          env.api.roundApi.player(pov, users, tour)
+        ).tupled
+    yield
+      simul.foreach(env.simul.api.onPlayerConnection(pov.game, ctx.me))
+      PlayerPageData(simul, chat, cross, playing, bookmarked, data)
+
   private def renderPlayer(pov: Pov)(using ctx: Context): Fu[Result] =
     for
       tour <- env.tournament.api.gameView.player(pov)
@@ -35,26 +62,17 @@ final class Round(
           else
             PreventTheft(pov):
               for
-                (simul, chatOption, crosstable, playing, bookmarked, data) <-
-                  (
-                    pov.game.simulId.so(env.simul.repo.find),
-                    getPlayerChat(pov.game, tour.map(_.tour)),
-                    ctx.noBlind.so(env.game.crosstableApi.withMatchup(pov.game)),
-                    pov.game.isSwitchable.so(otherPovs(pov.game)),
-                    env.bookmark.api.exists(pov.game, ctx.me),
-                    env.api.roundApi.player(pov, Preload(users), tour)
-                  ).tupled
-                _ = simul.foreach(env.simul.api.onPlayerConnection(pov.game, ctx.me))
+                pageData <- playerPageData(pov, tour, Preload(users))
                 page <- renderPage(
                   views.round.player(
                     pov,
-                    data,
+                    pageData.round,
                     tour = tour,
-                    simul = simul,
-                    cross = crosstable,
-                    playing = playing,
-                    chatOption = chatOption,
-                    bookmarked = bookmarked
+                    simul = pageData.simul,
+                    cross = pageData.cross,
+                    playing = pageData.playing,
+                    chatOption = pageData.chat,
+                    bookmarked = pageData.bookmarked
                   )
                 )
               yield Ok(page).noCache
@@ -75,6 +93,40 @@ final class Round(
       .flatMap:
         case Some(pov) => renderPlayer(pov)
         case None => userC.tryRedirect(fullId.into(UserStr)).getOrElse(notFound)
+
+  def matchmaking(poolId: String) = Open:
+    NoBot:
+      NoPlaybanOrCurrent:
+        lila.pool.PoolList.homepage
+          .find(_.id.value == poolId)
+          .fold(notFound): pool =>
+            if pool.ranked && ctx.isAnon then fuccess(Redirect(routes.Auth.login))
+            else Ok.page(views.round.matchmaking(pool)).map(_.noCache)
+
+  def playerBootstrap(fullId: GameFullId) = Open:
+    env.round.proxyRepo
+      .pov(fullId)
+      .flatMap:
+        case Some(pov) if pov.game.started =>
+          PreventTheft(pov):
+            for
+              tour <- env.tournament.api.gameView.player(pov)
+              users <- env.user.api.gamePlayers(pov.game.userIdPair, pov.game.perfKey)
+              _ = gameC.preloadUsers(users)
+              pageData <- playerPageData(pov, tour, Preload(users))
+            yield Ok(
+              views.round.playerBootstrap(
+                pov,
+                pageData.round,
+                tour,
+                pageData.simul,
+                pageData.cross,
+                pageData.playing,
+                pageData.chat,
+                pageData.bookmarked
+              )
+            ).noCache
+        case _ => notFound
 
   private def otherPovs(game: GameModel)(using ctx: Context) =
     ctx.me.so: user =>

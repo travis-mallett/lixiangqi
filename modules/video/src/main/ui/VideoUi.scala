@@ -4,6 +4,7 @@ package ui
 import scalalib.paginator.Paginator
 
 import lila.core.config.NetDomain
+import lila.core.perm.Granter
 import lila.ui.*
 
 import ScalatagsTemplate.{ *, given }
@@ -16,19 +17,31 @@ final class VideoUi(helpers: Helpers)(using NetDomain):
     Page(title)
       .css("bits.video")
       .js(infiniteScrollEsmInit)
+      .csp(csp => csp.copy(frameSrc = "https://player.bilibili.com" :: csp.frameSrc))
       .flag(_.fullScreen)
       .wrap: body =>
         main(cls := "video page-menu force-ltr")(
           menu(control),
-          div(cls := "page-menu__content box")(body)
+          div(cls := "page-menu__content box")(adminTools, body)
         )
+
+  private def adminTools(using Context) = Granter
+    .opt(_.ManageVideos)
+    .option:
+      st.nav(cls := "video-admin-tools", aria.label := "Video library administration")(
+        a(cls := "button button-green text", dataIcon := Icon.PlusButton, href := routes.VideoAdmin.form)(
+          "Add video"
+        ),
+        a(cls := "button button-empty", href := routes.VideoAdmin.index())("Manage videos"),
+        a(cls := "button button-empty", href := routes.VideoAdmin.reorder)("Reorder")
+      )
 
   def show(video: Video, similar: Seq[VideoView], control: UserControl)(using ctx: Context) =
     page(s"${video.title} • ${trv.freeChessVideos.txt()}", control)
       .graph(
         OpenGraph(
           title = trv.xByY.txt(video.title, video.author),
-          description = shorten(~video.metadata.description, 152),
+          description = shorten(~video.effectiveDescription, 152),
           url = pathUrl(langHref(routes.Video.show(video.id))),
           `type` = "video"
         )
@@ -36,14 +49,21 @@ final class VideoUi(helpers: Helpers)(using NetDomain):
         div(cls := "show")(
           div(cls := "embed")(
             iframe(
-              id := "ytplayer",
+              id := "video-player",
               tpe := "text/html",
-              src := s"https://www.youtube-nocookie.com/embed/${video.id}?autoplay=1&origin=https://lixiangqi.org&start=${video.startTime}",
+              src := video.source.embedUrl(video.startTime),
               st.frameborder := "0",
               frame.allowfullscreen,
               frame.credentialless
             )
           ),
+          (!video.isPublished).option:
+            div(cls := "video-status-banner")(
+              strong(video.status.label),
+              " — visible only to video editors. ",
+              a(href := routes.VideoAdmin.edit(video.id))("Edit video")
+            )
+          ,
           h1(cls := "box__pad")(
             a(
               cls := "is4 text",
@@ -66,7 +86,7 @@ final class VideoUi(helpers: Helpers)(using NetDomain):
                 dataIcon := Icon.Tag,
                 href := s"${langHref(routes.Video.index)}?tags=${tag.replace(" ", "+")}"
               )(tag.capitalize),
-            video.metadata.description.map: desc =>
+            video.effectiveDescription.map: desc =>
               p(cls := "description")(richText(desc))
           ),
           div(cls := "similar list box__pad"):
@@ -85,6 +105,7 @@ final class VideoUi(helpers: Helpers)(using NetDomain):
         url = pathUrl(s"${langHref(routes.Video.index)}?${control.queryString}")
       ):
         frag(
+          standardFlash,
           boxTop(
             h1(
               if control.filter.tags.nonEmpty then
@@ -162,9 +183,15 @@ final class VideoUi(helpers: Helpers)(using NetDomain):
       href := s"${langHref(routes.Video.show(vv.video.id))}?${control.queryStringUnlessBot}"
     )(
       vv.view.option(span(cls := "view")("watched")),
-      span(cls := "img", style := s"background-image: url(${vv.video.thumbnail})"),
+      span(
+        cls := List("img" -> true, "missing" -> vv.video.thumbnail.isEmpty),
+        vv.video.thumbnail.map(url => style := s"background-image: url($url)")
+      )(
+        vv.video.durationString.map(span(cls := "duration")(_))
+      ),
       span(cls := "info")(
-        span(cls := "title")(vv.video.title)
+        span(cls := "title")(vv.video.title),
+        span(cls := "byline")(vv.video.author)
       ),
       span(cls := "reveal")(
         span(cls := "full-title")(vv.video.title),

@@ -48,13 +48,11 @@ function challenge(ctrl: ChallengeCtrl, dir: ChallengeDirection) {
       [
         h('div.content', [
           h('div.content__text', { attrs: { id: `challenge-text-${c.id}` } }, [
-            h('span.head', [renderUser(opponent, ctrl.showRatings), renderLag(opponent)]),
+            h('span.head', [renderUser(opponent), renderLag(opponent)]),
             h('span.desc', [
               h('span.is.color-icon.' + myColor),
               ' • ',
-              [i18n.site[c.rated ? 'rated' : 'casual'], timeControl(c.timeControl), c.variant.name].join(
-                ' • ',
-              ),
+              [i18n.site.casual, timeControl(c.timeControl), c.variant.name].join(' • '),
             ]),
           ]),
           icon(c.perf.icon)('.perf'),
@@ -134,10 +132,8 @@ function timeControl(c: TimeControl): string {
   }
 }
 
-const renderUser = (u: ChallengeUser | undefined, showRating: boolean): VNode =>
-  u
-    ? userLink({ ...u, line: true, rating: showRating ? u.rating : undefined, attrs: { 'data-pt-pos': 'w' } })
-    : h('span', 'Open challenge');
+const renderUser = (u: ChallengeUser | undefined): VNode =>
+  u ? userLink({ ...u, line: true, attrs: { 'data-pt-pos': 'w' } }) : h('span', 'Open challenge');
 
 const renderLag = (u?: ChallengeUser) =>
   u &&

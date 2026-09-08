@@ -29,7 +29,7 @@ final class TutorReportUi(helpers: Helpers, bits: TutorBits, perfUi: TutorPerfUi
               ):
                 button(tpe := "submit")(trans.site.delete)
             ),
-            if full.perfs.isEmpty then p("Not enough rated games to examine!")
+            if full.perfs.isEmpty then p("Not enough ranked games to examine!")
             else
               p(
                 "Each aspect of your playstyle is compared to other players of similar rating, called \"peers\".",

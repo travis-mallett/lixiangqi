@@ -7,6 +7,7 @@ import play.api.libs.json.*
 import lila.common.Json.{ *, given }
 import lila.core.LightUser
 import lila.core.game.{ Blurs, Game, Player, Pov, Source }
+import lila.core.rank.RankTrackId.*
 import lila.game.GameExt.{ hasFirstMoveDeadline, timeForFirstMove }
 
 final class JsonView(rematches: Rematches):
@@ -17,14 +18,16 @@ final class JsonView(rematches: Rematches):
     Json
       .obj(
         "id" -> game.id,
+        "ruleset" -> game.xiangqi.ruleset.key,
         "variant" -> game.variant,
         "speed" -> game.speed.key,
-        "perf" -> game.perfKey,
-        "rated" -> game.rated,
+        "perf" -> "xiangqi",
+        "ranked" -> game.ranked,
         "source" -> game.source,
         "createdAt" -> game.createdAt
       )
       .add("moveTime" -> game.moveTimeLimit)
+      .add("rankTrack" -> game.rankTrack.map(_.value))
       .add("startedAtTurn" -> game.startedAtPly.some.filter(_ > 0))
       .add("initialFen" -> initialFen)
       .add("tournamentId" -> game.tournamentId)
@@ -35,6 +38,8 @@ final class JsonView(rematches: Rematches):
     immutable(game, initialFen) ++ Json
       .obj(
         "fen" -> game.position.fen,
+        "variation" -> game.position.variation,
+        "termination" -> game.position.termination,
         "turns" -> game.ply,
         "status" -> game.status
       )
@@ -65,8 +70,8 @@ final class JsonView(rematches: Rematches):
         "status" -> pov.game.status,
         "variant" -> pov.game.variant,
         "speed" -> pov.game.speed.key,
-        "perf" -> pov.game.perfKey,
-        "rated" -> pov.game.rated,
+        "perf" -> "xiangqi",
+        "ranked" -> pov.game.ranked,
         "hasMoved" -> pov.hasMoved,
         "opponent" -> Json
           .obj(
@@ -74,8 +79,7 @@ final class JsonView(rematches: Rematches):
             "username" -> lila.game.Namer
               .playerTextBlocking(pov.opponent, withRating = false)
           )
-          .add("rating" -> pov.opponent.rating)
-          .add("ratingDiff" -> pov.opponent.ratingDiff)
+          .add("rank" -> pov.opponent.rank.flatMap(_.publicCode).map(_.value))
           .add("ai" -> pov.opponent.aiLevel),
         "isMyTurn" -> pov.isMyTurn
       )
@@ -83,8 +87,7 @@ final class JsonView(rematches: Rematches):
       .add("tournamentId" -> pov.game.tournamentId)
       .add("swissId" -> pov.game.swissId)
       .add("winner" -> pov.game.winnerColor)
-      .add("rating" -> pov.player.rating)
-      .add("ratingDiff" -> pov.player.ratingDiff)
+      .add("rank" -> pov.player.rank.flatMap(_.publicCode).map(_.value))
 
   def maybeFen(pov: Pov): Fen.Full =
     Fen.Full(if pov.player.blindfold then "9/9/9/9/9/9/9/9/9/9 w - - 0 1" else pov.game.position.fen)
@@ -93,10 +96,8 @@ final class JsonView(rematches: Rematches):
     Json
       .obj()
       .add("user", user)
-      .add("rating", p.rating)
-      .add("ratingDiff", p.ratingDiff)
+      .add("rank", p.rank.flatMap(_.publicCode).map(_.value))
       .add("name", p.name)
-      .add("provisional" -> p.provisional)
       .add("aiLevel" -> p.aiLevel)
       .add("blindfold" -> p.blindfold)
 

@@ -1,44 +1,12 @@
 import { initMiniBoardWith } from 'lib/view';
 
-import { requestXiangqi } from './api';
+import {
+  ancientManuals,
+  type AncientManual,
+  type AncientManualChapter,
+  type LocalizedText,
+} from './ancientManuals';
 import { analysisGameUrl } from './gameCatalog';
-import { createMoveTreeFromUciMainline, mainlineEndPath, nodeAtPath } from './tree';
-
-interface AncientManualGame {
-  id: string;
-  externalId: string;
-  title: string;
-  order: number;
-  sourceUrl: string;
-  initialFen: string;
-  moves: string[];
-}
-
-interface AncientManualChapter {
-  title: string;
-  order: number;
-  sourceUrl: string;
-  games: AncientManualGame[];
-}
-
-interface AncientManual {
-  slug: string;
-  title: string;
-  nativeTitle: string;
-  order: number;
-  expectedGames: number;
-  gameCount: number;
-  sourceUrl: string;
-  chapters: AncientManualChapter[];
-}
-
-interface AncientManualResult {
-  available: boolean;
-  totalGames: number;
-  manuals: AncientManual[];
-}
-
-const BOOK_ASSET = site.asset.url('images/learn/ancient-manual-book.png');
 
 function textElement<K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -55,12 +23,11 @@ function quantity(count: number, singular: string, plural = `${singular}s`): str
   return `${count.toLocaleString()} ${count === 1 ? singular : plural}`;
 }
 
-function finalFen(game: AncientManualGame): string {
-  const tree = createMoveTreeFromUciMainline(game.initialFen, game.moves);
-  return nodeAtPath(tree, mainlineEndPath(tree))?.state.fen || game.initialFen;
+function localized(text: LocalizedText, chinese: boolean): string {
+  return chinese ? text.zh : text.en;
 }
 
-function renderGames(container: HTMLElement, chapter: AncientManualChapter): void {
+function renderGames(container: HTMLElement, chapter: AncientManualChapter, chinese: boolean): void {
   if (container.dataset.rendered) return;
   container.dataset.rendered = 'true';
 
@@ -73,12 +40,12 @@ function renderGames(container: HTMLElement, chapter: AncientManualChapter): voi
     board.className = 'ancient-manual-game__board mini-board cg-wrap is2d';
     board.setAttribute('aria-hidden', 'true');
 
-    const title = textElement('span', game.title, 'ancient-manual-game__title');
+    const title = textElement('span', localized(game.title, chinese), 'ancient-manual-game__title');
     link.append(board, title);
     container.append(link);
 
     initMiniBoardWith(board, {
-      fen: finalFen(game),
+      fen: game.finalFen,
       orientation: 'white',
     });
   });
@@ -90,7 +57,7 @@ function renderChapter(chapter: AncientManualChapter, chinese: boolean): HTMLDet
 
   const summary = document.createElement('summary');
   summary.append(
-    textElement('span', chapter.title, 'ancient-manual-chapter__title'),
+    textElement('span', localized(chapter.title, chinese), 'ancient-manual-chapter__title'),
     textElement(
       'span',
       quantity(chapter.games.length, chinese ? '局' : 'game', chinese ? '局' : 'games'),
@@ -102,7 +69,7 @@ function renderChapter(chapter: AncientManualChapter, chinese: boolean): HTMLDet
   games.className = 'ancient-manual-games';
   details.append(summary, games);
   details.addEventListener('toggle', () => {
-    if (details.open) renderGames(games, chapter);
+    if (details.open) renderGames(games, chapter, chinese);
   });
   return details;
 }
@@ -148,7 +115,7 @@ function renderManualDetail(
   const titleGroup = document.createElement('div');
   titleGroup.append(
     textElement('p', chinese ? '所选古谱' : 'Selected manual', 'ancient-manual-detail__eyebrow'),
-    textElement('h2', manual.title),
+    textElement('h2', localized(manual.title, chinese)),
     textElement(
       'p',
       chinese
@@ -161,7 +128,7 @@ function renderManualDetail(
     textElement(
       'span',
       `${quantity(manual.chapters.length, chinese ? '章' : 'chapter', chinese ? '章' : 'chapters')} · ${quantity(
-        manual.gameCount,
+        manual.chapters.reduce((count, chapter) => count + chapter.games.length, 0),
         chinese ? '局' : 'game',
         chinese ? '局' : 'games',
       )}`,
@@ -177,11 +144,7 @@ function renderManualDetail(
 
   const chapters = document.createElement('div');
   chapters.className = 'ancient-manual-chapters';
-  if (manual.chapters.length) {
-    manual.chapters.forEach(chapter => chapters.append(renderChapter(chapter, chinese)));
-  } else {
-    chapters.append(textElement('p', chinese ? '尚未导入棋局。' : 'No games imported yet.'));
-  }
+  manual.chapters.forEach(chapter => chapters.append(renderChapter(chapter, chinese)));
 
   detail.replaceChildren(back, heading, chapters);
   detail.hidden = false;
@@ -194,78 +157,19 @@ function renderManualDetail(
   back.focus({ preventScroll: true });
 }
 
-function renderLibrary(result: AncientManualResult, chinese: boolean): void {
+function bindLibrary(chinese: boolean): void {
   const list = document.querySelector<HTMLElement>('#ancient-manuals-list');
   const detail = document.querySelector<HTMLElement>('#ancient-manual-detail');
   const library = list?.closest<HTMLElement>('.ancient-manuals__library');
   if (!list || !detail || !library) return;
-  list.replaceChildren();
 
-  result.manuals.forEach(manual => {
-    const card = document.createElement('button');
-    card.className = 'ancient-manual-card';
-    card.type = 'button';
-    card.dataset.manualSlug = manual.slug;
-    card.setAttribute('aria-expanded', 'false');
-    card.setAttribute('aria-controls', 'ancient-manual-detail');
-
-    const cover = document.createElement('span');
-    cover.className = 'ancient-manual-card__cover';
-    const image = document.createElement('img');
-    image.src = BOOK_ASSET;
-    image.alt = '';
-    image.setAttribute('aria-hidden', 'true');
-    image.loading = 'lazy';
-    const inscription = textElement('span', manual.nativeTitle, 'ancient-manual-card__inscription');
-    inscription.lang = 'zh';
-    inscription.setAttribute('aria-hidden', 'true');
-    if (manual.nativeTitle.length > 7) inscription.classList.add('long');
-    cover.append(image, inscription);
-
-    const copy = document.createElement('span');
-    copy.className = 'ancient-manual-card__copy';
-    copy.append(
-      textElement('strong', manual.title, 'ancient-manual-card__title'),
-      textElement(
-        'span',
-        `${quantity(manual.gameCount, chinese ? '局' : 'game', chinese ? '局' : 'games')} · ${quantity(
-          manual.chapters.length,
-          chinese ? '章' : 'chapter',
-          chinese ? '章' : 'chapters',
-        )}`,
-        'ancient-manual-card__meta',
-      ),
-    );
-    card.append(cover, copy);
+  const manualsBySlug = new Map(ancientManuals.map(manual => [manual.slug, manual]));
+  list.querySelectorAll<HTMLButtonElement>('.ancient-manual-card').forEach(card => {
+    const manual = manualsBySlug.get(card.dataset.manualSlug!)!;
     card.addEventListener('click', () => renderManualDetail(detail, library, manual, chinese, card));
-    list.append(card);
   });
-  detail.hidden = true;
-  library.hidden = false;
 }
 
-export default async function init(
-  opts: { explorerEndpoint?: string; language?: string } = {},
-): Promise<void> {
-  const status = document.querySelector<HTMLElement>('#ancient-manuals-status');
-  if (!status) return;
-  try {
-    const endpoint = (opts.explorerEndpoint || '').replace(/\/$/, '');
-    const language = opts.language || 'en';
-    const chinese = language.toLowerCase().startsWith('zh');
-    const result = await requestXiangqi<AncientManualResult>(`${endpoint}/games/ancient-manuals`, {
-      language,
-    });
-    renderLibrary(result, chinese);
-    status.textContent = result.available
-      ? chinese
-        ? `已导入 ${result.totalGames.toLocaleString()} 局`
-        : `${result.totalGames.toLocaleString()} imported games`
-      : chinese
-        ? '棋谱数据库尚不可用。'
-        : 'The games database is not available yet.';
-  } catch (error) {
-    status.textContent = error instanceof Error ? error.message : String(error);
-    status.classList.add('error');
-  }
+export default function init(opts: { language: string }): void {
+  bindLibrary(opts.language.toLowerCase().startsWith('zh'));
 }

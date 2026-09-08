@@ -11,7 +11,7 @@ import { onInsert } from 'lib/view';
 import type AnalyseCtrl from './ctrl';
 
 export const render = (ctrl: AnalyseCtrl): VNode =>
-  h('div.cg-wrap.cgv' + ctrl.cgVersion.js, {
+  h(`div.cg-wrap.cgv${ctrl.cgVersion.js}${ctrl.variantKey === 'xiangqi' ? '.xiangqi9x10' : ''}`, {
     hook: onInsert(elem => ctrl.setChessground(makeChessground(elem, makeConfig(ctrl)))),
   });
 

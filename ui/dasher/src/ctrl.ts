@@ -1,7 +1,7 @@
 import { type Prop, prop } from 'lib';
 import type { MaybeVNode } from 'lib/view';
 
-import { AppearanceCtrl } from './appearance';
+import { AppearanceCtrl, BoardPiecesCtrl, BoardStyleCtrl, UiThemeCtrl } from './appearance';
 import type { DasherData, Mode, PaneCtrl } from './interfaces';
 import { LangsCtrl } from './langs';
 import { LinksCtrl } from './links';
@@ -17,6 +17,9 @@ export class DasherCtrl implements ModeIndexed {
   langs: LangsCtrl;
   sound: SoundCtrl;
   appearance: AppearanceCtrl;
+  uiTheme: UiThemeCtrl;
+  boardStyle: BoardStyleCtrl;
+  boardPieces: BoardPiecesCtrl;
   links: LinksCtrl;
 
   opts: { playing: boolean; zenable: boolean } = {
@@ -32,6 +35,9 @@ export class DasherCtrl implements ModeIndexed {
     this.langs = new LangsCtrl(this);
     this.sound = new SoundCtrl(this);
     this.appearance = new AppearanceCtrl(this);
+    this.uiTheme = new UiThemeCtrl(this);
+    this.boardStyle = new BoardStyleCtrl(this);
+    this.boardPieces = new BoardPiecesCtrl(this);
     this.links = new LinksCtrl(this);
   }
 

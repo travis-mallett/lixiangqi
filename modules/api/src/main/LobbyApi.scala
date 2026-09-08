@@ -1,11 +1,10 @@
 package lila.api
 
-import play.api.libs.json.{ JsObject, Json, Writes }
+import play.api.libs.json.{ JsObject, Json }
 
 import lila.common.Json.given
-import lila.core.perf.{ UserPerfs, UserWithPerfs }
+import lila.core.perf.UserWithPerfs
 import lila.lobby.LobbySocket
-import lila.rating.UserPerfsExt.perfsList
 import lila.mon.extensions.*
 
 final class LobbyApi(
@@ -33,7 +32,6 @@ final class LobbyApi(
             ),
             "poolCounts" -> lobbySocket.poolCountsJson
           )
-          .add("ratingMap", me.map(_.perfs).map(ratingMap))
           .add(
             "me",
             me.map: u =>
@@ -41,12 +39,3 @@ final class LobbyApi(
           ) -> displayedPovs
 
   def nowPlaying(pov: Pov): JsObject = gameJson.ownerPreview(pov)(using lightUserApi.sync)
-
-  private def ratingMap(perfs: UserPerfs): JsObject =
-    Writes
-      .keyMapWrites[PerfKey, Int, Map]
-      .writes(
-        perfs.perfsList.view.map { (pk, perf) =>
-          pk -> (perf.intRating.value * (if perf.glicko.provisional.yes then -1 else 1))
-        }.toMap
-      )

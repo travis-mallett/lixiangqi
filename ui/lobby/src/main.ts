@@ -55,6 +55,8 @@ export default function main(opts: LobbyOpts) {
 
   opts.tableElement.innerHTML = '';
   let tableVNode = patch(opts.tableElement, tableView(ctrl));
+  const centerRailElement = opts.tableElement.closest('.lobby__center-rail');
+  syncHomepageRoomLayout();
 
   const siteCountersElement = document.querySelector('.lobby__site-counters') as HTMLElement;
   siteCountersElement.innerHTML = '';
@@ -63,6 +65,11 @@ export default function main(opts: LobbyOpts) {
   function redraw() {
     appVNode = patch(appVNode, appView(ctrl));
     tableVNode = patch(tableVNode, tableView(ctrl));
+    syncHomepageRoomLayout();
+  }
+
+  function syncHomepageRoomLayout() {
+    centerRailElement?.classList.toggle('lobby__center-rail--homepage-room', !!ctrl.homepageRoom);
   }
   return ctrl;
 }

@@ -40,13 +40,12 @@ object TeamBattle:
       else that.magicScore - this.magicScore
 
   case class TeamLeader(userId: UserId, magicScore: Int):
-    def score: Int = magicScore / 10000
+    def score: Int = magicScore / Player.magicScoreBase
 
   case class TeamInfo(
       teamId: TeamId,
       nbPlayers: Int,
-      avgRating: Int,
-      avgPerf: Int,
+      avgRank: Option[lila.core.rank.RankCode],
       avgScore: Int,
       topPlayers: List[Player]
   )

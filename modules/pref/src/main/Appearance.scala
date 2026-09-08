@@ -3,7 +3,6 @@ package lila.pref
 import play.api.libs.json.*
 
 case class Appearance(
-    pack: String,
     uiTheme: String,
     background: String,
     backgroundUrl: Option[String],
@@ -14,24 +13,20 @@ case class Appearance(
     board: Appearance.BoardSettings
 ):
 
-  def customized: Appearance =
-    if pack == ThemePacks.customKey then this else copy(pack = ThemePacks.customKey)
-
   def sessionValues: Map[String, String] =
-    if pack != ThemePacks.customKey then Map("appearancePack" -> pack)
-    else
-      Map(
-        "uiTheme" -> uiTheme,
-        "background" -> background,
-        "boardTheme" -> boardTheme,
-        "pieceSet" -> pieceSet,
-        "soundSet" -> soundSet,
-        "musicSet" -> musicSet,
-        "boardBrightness" -> board.brightness.toString,
-        "boardContrast" -> board.contrast.toString,
-        "boardOpacity" -> board.opacity.toString,
-        "boardHue" -> board.hue.toString
-      ) ++ backgroundUrl.map("backgroundUrl" -> _)
+    Map(
+      "uiTheme" -> uiTheme,
+      "background" -> background,
+      "boardTheme" -> boardTheme,
+      "pieceSet" -> pieceSet,
+      "soundSet" -> soundSet,
+      "musicSet" -> musicSet,
+      "boardBrightness" -> board.brightness.toString,
+      "boardContrast" -> board.contrast.toString,
+      "boardSaturation" -> board.saturation.toString,
+      "boardOpacity" -> board.opacity.toString,
+      "boardHue" -> board.hue.toString
+    ) ++ backgroundUrl.map("backgroundUrl" -> _)
 
   def backgroundImage: Option[String] =
     if background == Backgrounds.customKey then backgroundUrl
@@ -42,7 +37,6 @@ case class Appearance(
 object Appearance:
 
   val sessionKeys: Set[String] = Set(
-    "appearancePack",
     "uiTheme",
     "background",
     "backgroundUrl",
@@ -52,6 +46,7 @@ object Appearance:
     "musicSet",
     "boardBrightness",
     "boardContrast",
+    "boardSaturation",
     "boardOpacity",
     "boardHue"
   )
@@ -59,21 +54,34 @@ object Appearance:
   case class BoardSettings(
       brightness: Int,
       contrast: Int,
+      saturation: Int,
       opacity: Int,
       hue: Int
   ):
     def isDefault: Boolean =
-      brightness == 100 && contrast == 100 && opacity == 100 && hue == 0
+      brightness == 100 && contrast == 100 && saturation == 100 && opacity == 100 && hue == 0
 
   val defaultBoardSettings = BoardSettings(
     brightness = 100,
     contrast = 100,
+    saturation = 100,
     opacity = 100,
     hue = 0
   )
 
   given OWrites[BoardSettings] = Json.writes[BoardSettings]
   given OWrites[Appearance] = Json.writes[Appearance]
+
+  val default = Appearance(
+    uiTheme = UiThemes.dark.key,
+    background = Backgrounds.none.key,
+    backgroundUrl = None,
+    boardTheme = BoardThemes.lixiangqiDefault.key,
+    pieceSet = PieceSets.wikipedia.key,
+    soundSet = SoundSets.standard.key,
+    musicSet = MusicSets.gentleAncient.key,
+    board = defaultBoardSettings
+  )
 
 enum ColorScheme(val key: String):
   case Light extends ColorScheme("light")
@@ -157,7 +165,7 @@ object Backgrounds:
   )
 
   val customKey = "custom"
-  val all = List(none, greenScreen, pangu, peachBlossom, wudang, pagoda, wood)
+  val all = List(none, wudang, peachBlossom, pangu, pagoda, wood, greenScreen)
   private val byKey = all.mapBy(_.key)
 
   def get(key: String): Option[Background] = byKey.get(key)
@@ -177,6 +185,20 @@ object BoardThemes:
   private val coordinateLight = "#fff4dc"
   private val coordinateDark = "#2f160c"
 
+  val lixiangqiDefault = BoardTheme(
+    "lixiangqi-default",
+    "Lixiangqi Default",
+    "svg/lixiangqi-default.svg",
+    coordinateLight,
+    coordinateDark
+  )
+  val paperBoard = BoardTheme(
+    "paper-board",
+    "Paper Board",
+    "svg/paper-board.svg",
+    coordinateLight,
+    coordinateDark
+  )
   val wikipedia = BoardTheme(
     "xiangqi-wikipedia",
     "Classic Xiangqi",
@@ -199,22 +221,32 @@ object BoardThemes:
     "#152022"
   )
 
-  val all = List(wikipedia, tournament, wudang)
+  val all = List(lixiangqiDefault, paperBoard, wikipedia, tournament, wudang)
   private val byKey = all.mapBy(_.key)
 
   def apply(key: String): BoardTheme = byKey(key)
-  def get(key: Option[String]): BoardTheme = key.flatMap(byKey.get) | wikipedia
+  def get(key: Option[String]): BoardTheme = key.flatMap(byKey.get) | lixiangqiDefault
   def contains(key: String): Boolean = byKey.contains(key)
 
   given Writes[BoardTheme] = Json.writes[BoardTheme]
 
-case class PieceSet(key: String, name: String)
+enum PieceSetCategory(val key: String):
+  case Traditional extends PieceSetCategory("traditional")
+  case GraphicalSymbols extends PieceSetCategory("graphicalSymbols")
+  case Other extends PieceSetCategory("other")
+
+case class PieceSet(key: String, name: String, category: PieceSetCategory)
 
 object PieceSets:
-  val wikipedia = PieceSet("xiangqi-wikipedia", "Classic Xiangqi")
-  val wudang = PieceSet("xiangqi-wudang", "Wudang Brush Seals")
+  import PieceSetCategory.*
 
-  val all = List(wikipedia, wudang)
+  val wikipedia = PieceSet("xiangqi-wikipedia", "Classic Xiangqi", Traditional)
+  val paper = PieceSet("xiangqi-paper", "Paper Xiangqi", Traditional)
+  val wudang = PieceSet("xiangqi-wudang", "Wudang Brush Seals", Traditional)
+  val international = PieceSet("xiangqi-international", "International Symbols", GraphicalSymbols)
+  val western = PieceSet("xiangqi-western", "Western Outlines", Other)
+
+  val all = List(wikipedia, paper, wudang, international, western)
   private val byKey = all.mapBy(_.key)
 
   private val files = List(
@@ -235,8 +267,9 @@ object PieceSets:
   )
 
   def assets(key: String): List[(String, String)] =
+    val extension = "svg"
     files.map: (file, variable) =>
-      s"piece/$key/$file.svg" -> variable
+      s"piece/$key/$file.$extension" -> variable
 
   def get(key: Option[String]): PieceSet = key.flatMap(byKey.get) | wikipedia
   def contains(key: String): Boolean = byKey.contains(key)
@@ -245,6 +278,7 @@ object PieceSets:
     Json.obj(
       "key" -> pieceSet.key,
       "name" -> pieceSet.name,
+      "category" -> pieceSet.category.key,
       "assets" -> JsObject(
         assets(pieceSet.key).map: (path, variable) =>
           variable -> JsString(path)
@@ -287,77 +321,3 @@ object MusicSets:
   def contains(key: String): Boolean = byKey.contains(key)
 
   given Writes[MusicSet] = Json.writes[MusicSet]
-
-case class ThemePack(
-    key: String,
-    name: String,
-    description: String,
-    appearance: Appearance
-)
-
-object ThemePacks:
-  val customKey = "custom"
-
-  private def appearance(key: String, uiTheme: String, background: String = Backgrounds.none.key) =
-    Appearance(
-      pack = key,
-      uiTheme = uiTheme,
-      background = background,
-      backgroundUrl = None,
-      boardTheme = BoardThemes.wikipedia.key,
-      pieceSet = PieceSets.wikipedia.key,
-      soundSet = SoundSets.standard.key,
-      musicSet = MusicSets.gentleAncient.key,
-      board = Appearance.defaultBoardSettings
-    )
-
-  val dark = ThemePack(
-    "dark",
-    "Dark",
-    "Dark interface with the classic Xiangqi board and pieces.",
-    appearance("dark", UiThemes.dark.key)
-  )
-  val light = ThemePack(
-    "light",
-    "Light",
-    "Light interface with the classic Xiangqi board and pieces.",
-    appearance("light", UiThemes.light.key)
-  )
-  val wood = ThemePack(
-    "wood",
-    "Wood",
-    "Warm xuan-paper surfaces over a quiet wood background, with the classic Xiangqi board and pieces.",
-    appearance("wood", UiThemes.wood.key, Backgrounds.wood.key)
-  )
-  val wudang = ThemePack(
-    "wudang",
-    "Seeking the Dao at Wudang",
-    "Inkstone instruments and mounted xuan-paper ledgers before the misted peaks of Wudang.",
-    Appearance(
-      pack = "wudang",
-      uiTheme = UiThemes.wudang.key,
-      background = Backgrounds.wudang.key,
-      backgroundUrl = None,
-      boardTheme = BoardThemes.wudang.key,
-      pieceSet = PieceSets.wudang.key,
-      soundSet = SoundSets.standard.key,
-      musicSet = MusicSets.gentleAncient.key,
-      board = Appearance.defaultBoardSettings
-    )
-  )
-
-  val all = List(dark, light, wood, wudang)
-  private val byKey = all.mapBy(_.key)
-
-  val default: ThemePack = dark
-
-  def get(key: String): Option[ThemePack] = byKey.get(key)
-  def contains(key: String): Boolean = byKey.contains(key)
-  def isValidSelection(key: String): Boolean = key == customKey || contains(key)
-  def normalize(candidate: Appearance): Appearance =
-    val combination = candidate.copy(pack = customKey)
-    all
-      .find(pack => pack.appearance.copy(pack = customKey) == combination)
-      .fold(combination)(_.appearance)
-
-  given Writes[ThemePack] = Json.writes[ThemePack]

@@ -1,7 +1,6 @@
 package lila.study
 
 import chess.format.{ Fen, UciPath }
-import chess.variant.Variant
 import lila.tree.Branch
 
 private case class ExplorerGame(ch: StudyChapterId, path: UciPath, gameId: GameId, insert: Boolean):
@@ -17,7 +16,7 @@ case class IsOfficialRelay(studyId: StudyId, promise: Promise[Boolean])
 case class AddNode(
     studyId: StudyId,
     positionRef: Position.Ref,
-    node: (Variant, Fen.Full) => Either[chess.ErrorStr, Branch],
+    node: Fen.Full => Either[chess.ErrorStr, Branch],
     opts: MoveOpts,
     relay: Option[Chapter.Relay] = None
 )(using val who: Who)

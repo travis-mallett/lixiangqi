@@ -18,8 +18,12 @@ import lila.common.Form.{
   given
 }
 import lila.core.study.Visibility
+import lila.xiangqi.Xiangqi
 
 object StudyForm:
+
+  private val xiangqiFen = lila.common.Form.fen.mapping
+    .verifying("Invalid Xiangqi position", fen => Xiangqi.Fen.isValid(fen.value))
 
   private given Formatter[ChapterMaker.Mode] =
     formatter.stringOptionFormatter(_.key, ChapterMaker.Mode.apply)
@@ -80,7 +84,7 @@ object StudyForm:
       mapping(
         "gameId" -> optional(of[GameId]),
         "orientation" -> optional(of[ChapterMaker.Orientation]),
-        "fen" -> optional(lila.common.Form.fen.playable(strict = false)),
+        "fen" -> optional(xiangqiFen),
         "pgn" -> optional(nonEmptyText.into[PgnStr]),
         "variant" -> optional(
           of[Variant].verifying(v => v == chess.variant.Standard || v == chess.variant.FromPosition)

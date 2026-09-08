@@ -67,6 +67,7 @@ object forum:
 val timeline = lila.timeline.ui.TimelineUi(helpers)
 
 val video = lila.video.ui.VideoUi(helpers)
+val videoAdmin = lila.video.ui.VideoAdminUi(helpers)
 
 val gameSearch = lila.gameSearch.ui.GameSearchUi(helpers)(views.game.widgets(_))
 

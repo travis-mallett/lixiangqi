@@ -15,9 +15,7 @@ import type { Ctrl, Lanes } from '../tournament.calendar';
 
 function tournamentClass(tour: Tournament, day: Date): Classes {
   const classes = {
-    rated: tour.rated,
-    casual: !tour.rated,
-    'max-rating': tour.hasMaxRating,
+    casual: true,
     yesterday: tour.bounds.start < day,
   } as Classes;
   if (tour.schedule) classes[tour.schedule.freq] = true;

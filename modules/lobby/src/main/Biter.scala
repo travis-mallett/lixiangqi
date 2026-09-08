@@ -3,7 +3,6 @@ package lila.lobby
 import chess.ByColor
 
 import lila.core.socket.Sri
-import lila.core.user.{ GameUsers, WithPerf }
 import lila.xiangqi.Xiangqi
 
 final private class Biter(
@@ -24,8 +23,7 @@ final private class Biter(
 
   private def join(hook: Hook, sri: Sri, lobbyUserOption: Option[LobbyUser]): Fu[JoinHook] =
     for
-      users <- userApi.gamePlayersAny(ByColor(lobbyUserOption.map(_.id), hook.userId), hook.perfType)
-      (joiner, owner) = users.toPair
+      (joiner, owner) = lobbyUserOption -> hook.user
       ownerColor <- assignCreatorColor(owner, joiner, hook.color)
       game <- idGenerator.withUniqueId:
         makeGame(
@@ -39,10 +37,7 @@ final private class Biter(
 
   private def join(seek: Seek, lobbyUser: LobbyUser): Fu[JoinSeek] =
     for
-      users <- userApi
-        .gamePlayersLoggedIn(ByColor(lobbyUser.id, seek.user.id), seek.perfType)
-        .orFail(s"No such seek users: $seek")
-      (joiner, owner) = users.toPair
+      (joiner, owner) = lobbyUser -> seek.user
       ownerColor <- assignCreatorColor(owner.some, joiner.some, TriColor.Random)
       game <- idGenerator.withUniqueId:
         makeGame(
@@ -53,8 +48,8 @@ final private class Biter(
     yield JoinSeek(joiner.id, seek, game, ownerColor)
 
   private def assignCreatorColor(
-      creator: Option[WithPerf],
-      joiner: Option[WithPerf],
+      creator: Option[LobbyUser],
+      joiner: Option[LobbyUser],
       color: TriColor
   ): Fu[Color] =
     color match
@@ -63,11 +58,12 @@ final private class Biter(
         creator.map(_.id).foreach(userApi.incColor(_, fixed.resolve()))
         fuccess(fixed.resolve())
 
-  private def makeGame(hook: Hook, users: GameUsers) = lila.core.game
+  private def makeGame(hook: Hook, users: ByColor[Option[LobbyUser]]) = lila.core.game
     .newGame(
       xiangqi = Xiangqi.Game.initial,
-      players = users.mapWithColor(newPlayer.apply),
-      rated = hook.rated,
+      players = users.mapWithColor: (color, user) =>
+        user.fold(newPlayer.anon(color))(u => newPlayer(color, u.id, u.rank)),
+      rated = chess.Rated.No,
       source = lila.core.game.Source.Lobby,
       pgnImport = None,
       clock = hook.clock.toClock.some,
@@ -76,11 +72,12 @@ final private class Biter(
     )
     .start
 
-  private def makeGame(seek: Seek, users: GameUsers) = lila.core.game
+  private def makeGame(seek: Seek, users: ByColor[Option[LobbyUser]]) = lila.core.game
     .newGame(
       xiangqi = Xiangqi.Game.initial,
-      players = users.mapWithColor(newPlayer.apply),
-      rated = seek.rated,
+      players = users.mapWithColor: (color, user) =>
+        user.fold(newPlayer.anon(color))(u => newPlayer(color, u.id, u.rank)),
+      rated = chess.Rated.No,
       source = lila.core.game.Source.Lobby,
       daysPerTurn = seek.daysPerTurn,
       pgnImport = None,
@@ -93,16 +90,13 @@ final private class Biter(
       u.lame == hook.lame &&
         !hook.userId.contains(u.id) &&
         !hook.userId.so(u.blocking.value.contains) &&
-        !hook.user.so(_.blocking).value.contains(u.id) &&
-        hook.ratingRangeOrDefault.contains(u.ratingAt(hook.perfType))
+        !hook.user.so(_.blocking).value.contains(u.id)
 
   def canJoin(seek: Seek, user: LobbyUser): Boolean =
     seek.user.id != user.id &&
       (user.lame == seek.user.lame) &&
       !(user.blocking.value contains seek.user.id) &&
-      !(seek.user.blocking.value contains user.id) &&
-      seek.realRatingRange.forall:
-        _.contains(user.ratingAt(seek.perfType))
+      !(seek.user.blocking.value contains user.id)
 
   def showHookTo(hook: Hook, member: LobbySocket.Member): Boolean =
     hook.sri == member.sri || canJoin(hook, member.user)

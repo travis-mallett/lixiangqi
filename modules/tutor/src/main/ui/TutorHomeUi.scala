@@ -84,7 +84,7 @@ final class TutorHomeUi(helpers: Helpers, bits: TutorBits, q: TutorQueueUi, rps:
   def mascotSaysInsufficient =
     bits.mascotSays(
       frag(
-        strong("Not enough rated games to examine!"),
+        strong("Not enough ranked games to examine!"),
         br,
         "Please come back after you have played more Xiangqi."
       )

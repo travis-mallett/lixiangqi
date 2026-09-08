@@ -5,11 +5,9 @@ object PrefSingleChange:
   type Change[A] = lila.common.Form.SingleChange.Change[Pref, A]
   private def changing[A] = lila.common.Form.SingleChange.changing[Pref, PrefForm.fields.type, A]
   private def changeAppearance(update: Appearance => Appearance)(pref: Pref): Pref =
-    pref.copy(appearance = ThemePacks.normalize(update(pref.appearance)))
+    pref.copy(appearance = update(pref.appearance))
 
   val changes: Map[String, Change[?]] = List[Change[?]](
-    changing(_.appearancePack): v =>
-      pref => ThemePacks.get(v).fold(pref)(pack => pref.copy(appearance = pack.appearance)),
     changing(_.uiTheme): v =>
       changeAppearance(_.copy(uiTheme = v)),
     changing(_.background): v =>
@@ -41,6 +39,8 @@ object PrefSingleChange:
       _.copy(keyboardMove = v | Pref.KeyboardMove.NO),
     changing(_.autoQueen): v =>
       _.copy(autoQueen = v),
+    changing(_.boardAnimations): v =>
+      _.copy(boardAnimations = v),
     changing(_.premove): v =>
       _.copy(premove = v == 1),
     changing(_.takeback): v =>
@@ -71,6 +71,8 @@ object PrefSingleChange:
       changeAppearance(appearance => appearance.copy(board = appearance.board.copy(brightness = v))),
     changing(_.board.contrast): v =>
       changeAppearance(appearance => appearance.copy(board = appearance.board.copy(contrast = v))),
+    changing(_.board.saturation): v =>
+      changeAppearance(appearance => appearance.copy(board = appearance.board.copy(saturation = v))),
     changing(_.board.opacity): v =>
       changeAppearance(appearance => appearance.copy(board = appearance.board.copy(opacity = v))),
     changing(_.board.hue): v =>

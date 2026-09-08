@@ -25,6 +25,12 @@ class PoolListTest extends munit.FunSuite:
     assert(PoolList.lobby.forall(_.moveTimeLimit.isEmpty))
     assertEquals(PoolList.all, PoolList.lobby ::: PoolList.homepage)
 
+  test("only the 15-minute homepage room carries the Xiangqi rank track"):
+    val ranked = PoolList.homepage.filter(_.ranked)
+    assertEquals(ranked.map(_.clock.limitInMinutes), List(15d))
+    assertEquals(ranked.flatMap(_.rankTrack), List(lila.core.rank.RankTrackId.xiangqi))
+    assert(PoolList.lobby.forall(pool => !pool.ranked))
+
   test("homepage room identities require an exact clock and move-time match"):
     val ids = PoolList.homepage.iterator.map(_.id).toSet
 

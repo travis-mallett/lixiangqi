@@ -75,6 +75,7 @@ enum Permission(val key: String, val alsoGrants: List[Permission], val name: Str
   case ManageTeam extends Permission("MANAGE_TEAM", "Manage teams")
   case ManageTournament extends Permission("MANAGE_TOURNAMENT", "Manage tournaments")
   case ManageEvent extends Permission("MANAGE_EVENT", "Manage events")
+  case ManageVideos extends Permission("MANAGE_VIDEOS", "Manage video library")
   case ManageSimul extends Permission("MANAGE_SIMUL", "Manage simuls")
   case ChangePermission extends Permission("CHANGE_PERMISSION", "Change permissions")
   case PublicMod extends Permission("PUBLIC_MOD", "Mod badge")
@@ -233,6 +234,7 @@ enum Permission(val key: String, val alsoGrants: List[Permission], val name: Str
           ManageTournament,
           ManageSimul,
           ManageEvent,
+          ManageVideos,
           PuzzleCurator,
           OpeningWiki,
           Presets,

@@ -2,8 +2,6 @@ package lila.lobby
 
 import play.api.libs.json.*
 import scalalib.actor.SyncActor
-import scalalib.Maths.boxedNormalDistribution
-import chess.IntRating
 
 import lila.common.Json.given
 import lila.common.Bus
@@ -18,10 +16,8 @@ import lila.core.game.{
 }
 import lila.core.id.GameId
 import lila.core.pool.{ HomepageGameCounts, PoolConfigId, PoolCount, PoolMember, PoolFrom }
-import lila.core.security.{ UserTrust, UserTrustApi }
 import lila.core.socket.{ protocol as P, * }
 import lila.core.timeline.*
-import lila.rating.{ Glicko, RatingRange }
 
 case class LobbyCounters(members: Int, rounds: Int)
 
@@ -33,8 +29,7 @@ final class LobbySocket(
     lobby: LobbySyncActor,
     seekApi: SeekApi,
     relationApi: lila.core.relation.RelationApi,
-    poolApi: lila.core.pool.PoolApi,
-    userTrustApi: UserTrustApi
+    poolApi: lila.core.pool.PoolApi
 )(using ec: Executor, scheduler: Scheduler)(using lila.core.config.RateLimit):
 
   import LobbySocket.*
@@ -48,6 +43,7 @@ final class LobbySocket(
   @volatile private var lastSeekIds = Set.empty[String]
   @volatile private var lastGameCounts =
     HomepageGameCounts(Map.empty, friendGames = 0, aiGames = 0, lobbyPlayers = 0)
+  @volatile private var lastPuzzlePlayers = 0
 
   private def poolOccupancy(poolId: PoolConfigId): Int =
     lastGameCounts.poolPlayers(
@@ -65,8 +61,12 @@ final class LobbySocket(
       poolApi.homepagePoolIds.map(poolId => poolId.value -> JsNumber(poolOccupancy(poolId))).toMap ++ Map(
         LobbySocket.lobbyCountKey -> JsNumber(lobbyOccupancy),
         LobbySocket.friendCountKey -> JsNumber(lastGameCounts.friendPlayers),
-        LobbySocket.aiCountKey -> JsNumber(lastGameCounts.aiPlayers)
+        LobbySocket.aiCountKey -> JsNumber(lastGameCounts.aiPlayers),
+        LobbySocket.puzzleCountKey -> JsNumber(lastPuzzlePlayers)
       )
+
+  def registerPuzzlePlayer(sri: Sri, userId: Option[UserId]): Unit =
+    actor ! PuzzleIn(sri, userId)
 
   private val actor: SyncActor = new SyncActor:
 
@@ -83,6 +83,12 @@ final class LobbySocket(
     private var seekAddsBeforeSnapshot = Set.empty[String]
     private var seekRemovesBeforeSnapshot = Set.empty[String]
     private var hasSeekSnapshot = false
+    private val puzzlePlayers = new PuzzlePlayerRegistry
+
+    private def updatePuzzleCount(count: Option[Int]): Unit =
+      count.foreach: next =>
+        lastPuzzlePlayers = next
+        tellActive(makeMessage("poolCounts", Json.obj(LobbySocket.puzzleCountKey -> next)))
 
     val process: SyncActor.Receive =
 
@@ -97,6 +103,10 @@ final class LobbySocket(
         val membersMap = members.asMap()
         idleSris.filterInPlace(membersMap.contains)
         hookSubscriberSris.filterInPlace(membersMap.contains)
+        updatePuzzleCount(puzzlePlayers.expire(nowMillis - puzzlePresenceTimeout.toMillis))
+
+      case PuzzleIn(sri, userId) =>
+        updatePuzzleCount(puzzlePlayers.enter(sri, userId, nowMillis))
 
       case Join(member) => members.put(member.sri.value, member)
 
@@ -112,6 +122,8 @@ final class LobbySocket(
         finishesBeforeSnapshot = Set.empty
         hasGameSnapshot = false
         lastGameCounts = HomepageGameCounts(Map.empty, friendGames = 0, aiGames = 0, lobbyPlayers = 0)
+        puzzlePlayers.clear()
+        lastPuzzlePlayers = 0
         tellActive(makeMessage("poolCounts", poolCountsJson))
 
       case ReloadTimelines(users) => send.exec(Out.tellLobbyUsers(users, makeMessage("reload_timeline")))
@@ -353,29 +365,21 @@ final class LobbySocket(
           user <- member.user
           d <- o.obj("d")
           id <- d.str("id")
-          perf <- poolApi.poolPerfKeys.get(PoolConfigId(id))
-          ratingRange = d.str("range").flatMap(RatingRange.parse)
+          _ <- poolApi.poolRankTracks.get(PoolConfigId(id))
           blocking = d.get[UserId]("blocking")
         yield
           lobby ! CancelHook(member.sri) // in case there's one...
-          for
-            glicko <- userApi.glicko(user.id, perf)
-            trust <-
-              if glicko.exists(_.established) then fuccess(UserTrust.Yes) else userTrustApi.get(user.id)
-          do
-            poolApi.join(
-              PoolConfigId(id),
-              PoolMember(
-                userId = user.id,
-                sri = member.sri,
-                from = PoolFrom.Socket,
-                rating = toJoinRating(glicko, trust),
-                provisional = glicko.forall(_.provisional.yes),
-                ratingRange = ratingRange,
-                lame = user.lame,
-                blocking = user.blocking.map(_ ++ blocking)
-              )
+          poolApi.join(
+            PoolConfigId(id),
+            PoolMember(
+              userId = user.id,
+              sri = member.sri,
+              from = PoolFrom.Socket,
+              rank = user.rank,
+              lame = user.lame,
+              blocking = user.blocking.map(_ ++ blocking)
             )
+          )
     // leaving a pool
     case ("poolOut", o) =>
       HookPoolLimit(member, cost = 1, msg = s"poolOut $o"):
@@ -389,7 +393,6 @@ final class LobbySocket(
         lobby ! HookSub(member, value = true)
     // leaving the hooks view
     case ("hookOut", _) => actor ! HookSub(member, value = false)
-
   private def getOrConnect(sri: Sri, userOpt: Option[UserId]): Fu[Member] =
     actor
       .ask[Option[Member]](GetMember(sri, _))
@@ -440,6 +443,8 @@ private object LobbySocket:
   val lobbyCountKey = "lobby"
   val friendCountKey = "friend"
   val aiCountKey = "ai"
+  val puzzleCountKey = "puzzle"
+  val puzzlePresenceTimeout = 45.seconds
 
   type SriStr = String
 
@@ -447,13 +452,6 @@ private object LobbySocket:
     def bot = user.exists(_.bot)
     def userId = user.map(_.id)
     def isAuth = userId.isDefined
-
-  def toJoinRating(g: Option[chess.rating.glicko.Glicko], trust: UserTrust) =
-    val glicko = g | Glicko.pairingDefault
-    glicko.establishedIntRating | IntRating:
-      if trust.yes
-      then boxedNormalDistribution(glicko.intRating.value, glicko.intDeviation, 0.3)
-      else boxedNormalDistribution(glicko.intRating.value - 100, glicko.intDeviation / 2, 0.3)
 
   object Protocol:
     object In:
@@ -480,3 +478,4 @@ private object LobbySocket:
   case class GetMember(sri: Sri, promise: Promise[Option[Member]])
   object SendHookRemovals
   case class SetIdle(sri: Sri, value: Boolean)
+  case class PuzzleIn(sri: Sri, userId: Option[UserId])

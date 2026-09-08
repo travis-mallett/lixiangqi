@@ -10,8 +10,8 @@ import lila.common.Json.given
 import scalalib.data.Preload
 import lila.core.game.Player as GamePlayer
 import lila.core.net.ApiVersion
-import lila.core.perf.KeyedPerf
 import lila.core.user.{ GameUser, GameUsers, WithPerf }
+import lila.core.rank.RankCode.*
 import lila.game.GameExt.{ hasFirstMoveDeadline, moveTimes, timeForFirstMove }
 import lila.game.JsonView.given
 import lila.pref.Pref
@@ -38,14 +38,11 @@ final class JsonView(
     Json
       .obj("color" -> p.color.name)
       .add("user" -> user.match
-        case Some(WithPerf(user, perf)) =>
-          val p = withFlags.rating.option(KeyedPerf(g.perfKey, perf))
-          userJsonView.roundPlayer(user, p).some
+        case Some(WithPerf(user, _, _)) =>
+          userJsonView.roundPlayer(user, p.rank.flatMap(_.publicCode)).some
         case _ if p.hasUser => userJsonView.ghost.some
         case _ => none)
-      .add("rating" -> p.rating.ifTrue(withFlags.rating))
-      .add("ratingDiff" -> p.ratingDiff.ifTrue(withFlags.rating))
-      .add("provisional" -> (p.provisional.yes && withFlags.rating))
+      .add("rank" -> p.rank.flatMap(_.publicCode).map(_.value))
       .add("offeringRematch" -> isOfferingRematch.exec(Pov(g, p).ref))
       .add("offeringDraw" -> p.isOfferingDraw)
       .add("proposingTakeback" -> p.isProposingTakeback)
@@ -140,14 +137,12 @@ final class JsonView(
         "name" -> p.name
       )
       .add("user" -> user.match
-        case Some(WithPerf(user, perf)) =>
-          userJsonView.roundPlayer(user, withFlags.rating.option(KeyedPerf(g.perfKey, perf))).some
+        case Some(WithPerf(user, _, _)) =>
+          userJsonView.roundPlayer(user, p.rank.flatMap(_.publicCode)).some
         case _ if p.hasUser => userJsonView.ghost.some
         case _ => none)
       .add("ai" -> p.aiLevel)
-      .add("rating" -> p.rating.ifTrue(withFlags.rating))
-      .add("ratingDiff" -> p.ratingDiff.ifTrue(withFlags.rating))
-      .add("provisional" -> (p.provisional.yes && withFlags.rating))
+      .add("rank" -> p.rank.flatMap(_.publicCode).map(_.value))
       .add("berserk" -> p.berserk)
       .add("blurs" -> (withFlags.blurs.so(blurs(g, p))))
 

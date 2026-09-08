@@ -1,24 +1,21 @@
 import { numberFormat } from 'lib/i18n';
-import * as poolRangeStorage from 'lib/poolRangeStorage';
 import { pubsub } from 'lib/pubsub';
 import { colors, type ColorChoice } from 'lib/setup/color';
 import { wsPingInterval } from 'lib/socket';
 import { storage, type LichessStorage } from 'lib/storage';
 
-import Filter from './filter';
 import * as hookRepo from './hookRepo';
 import type {
   LobbyOpts,
   LobbyData,
   Tab,
-  Mode,
-  Sort,
   Hook,
   Pool,
   PoolMember,
   GameType,
   ForceSetupOptions,
   LobbyMe,
+  HomepageRoom,
 } from './interfaces';
 import * as seekRepo from './seekRepo';
 import SetupController from './setupCtrl';
@@ -34,8 +31,6 @@ export default class LobbyController {
   socket: LobbySocket;
   stores: Stores;
   tab: Tab;
-  mode: Mode;
-  sort: Sort;
   stepHooks: Hook[] = [];
   stepping = false;
   redirecting = false;
@@ -43,10 +38,11 @@ export default class LobbyController {
   seekingPoolId?: string;
   pools: Pool[];
   homePools: Pool[];
-  filter: Filter;
   setupCtrl: SetupController;
+  homepageRoom?: HomepageRoom;
 
   private anonPoolRequest?: { id: string; cancelled: boolean };
+  private homepageRoomRequest = 0;
 
   private readonly poolInStorage: LichessStorage;
   private flushHooksTimeout?: number;
@@ -66,7 +62,6 @@ export default class LobbyController {
     this.pools = opts.pools;
     this.homePools = opts.homePools;
     this.playban = opts.playban;
-    this.filter = new Filter(storage.make('lobby.filter'), this);
     this.setupCtrl = new SetupController(this);
     hookRepo.initAll(this);
     seekRepo.initAll(this);
@@ -80,9 +75,6 @@ export default class LobbyController {
       else if (this.hasOngoingRealTimeGame(false)) this.stores.tab.set('now_playing');
       this.tab = this.stores.tab.get();
     }
-    this.mode = this.stores.mode.get();
-    this.sort = this.me ? this.stores.sort.get() : 'time';
-
     const locationHash = location.hash.replace('#', '');
     if (['ai', 'friend', 'hook'].includes(locationHash)) {
       const forceOptions: ForceSetupOptions = {};
@@ -131,14 +123,6 @@ export default class LobbyController {
       } else if (timeMode === 'unlimited') {
         if (locationHash === 'hook') this.tab = 'seeks';
         forceOptions.timeMode = 'unlimited';
-        forceOptions.mode = 'casual';
-      }
-
-      if (locationHash === 'hook' || locationHash === 'friend') {
-        const gameMode = urlParams.get('gameMode');
-        if (gameMode === 'casual' || gameMode === 'rated') {
-          forceOptions.mode = gameMode;
-        }
       }
 
       const color = urlParams.get('color');
@@ -196,7 +180,44 @@ export default class LobbyController {
   poolCount = (id: string): number => this.data.poolCounts[id] ?? 0;
   isPoolSeeking = (id: string): boolean => this.poolMember?.id === id || this.seekingPoolId === id;
   hasPoolSeeking = (): boolean => !!this.poolMember || !!this.seekingPoolId;
-  initNumberSpreader = (elm: HTMLAnchorElement, nbSteps: number, initialCount: number) => {
+
+  openHomepagePool = (pool: Pool) => {
+    if (this.redirecting) return;
+    if (pool.lim !== 15) return this.openHomepageMatchmaking(pool);
+
+    const request = ++this.homepageRoomRequest;
+    void xhr
+      .homepageLiveGames()
+      .then(html => {
+        if (request !== this.homepageRoomRequest) return;
+        if (html.trim()) {
+          this.homepageRoom = { pool, liveGamesHtml: html };
+          this.redraw();
+        } else this.openHomepageMatchmaking(pool);
+      })
+      .catch(() => {
+        if (request !== this.homepageRoomRequest) return;
+        this.openHomepageMatchmaking(pool);
+      });
+  };
+
+  enterHomepageMatchmaking = () => {
+    if (this.homepageRoom) this.openHomepageMatchmaking(this.homepageRoom.pool);
+  };
+
+  closeHomepageRoom = () => {
+    ++this.homepageRoomRequest;
+    this.homepageRoom = undefined;
+    this.redraw();
+  };
+
+  private openHomepageMatchmaking(pool: Pool) {
+    ++this.homepageRoomRequest;
+    this.redirecting = true;
+    site.redirect(`/play/room/${encodeURIComponent(pool.id)}`);
+  }
+
+  initNumberSpreader = (elm: HTMLElement, nbSteps: number, initialCount: number) => {
     let previous = initialCount;
     let timeouts: number[] = [];
     const display = (prev: number, cur: number, it: number) => {
@@ -246,21 +267,6 @@ export default class LobbyController {
       this.tab = this.stores.tab.set(tab);
       this.redraw();
     }
-    this.filter.open = false;
-  };
-
-  setMode = (mode: Mode) => {
-    this.mode = this.stores.mode.set(mode);
-    this.filter.open = false;
-  };
-
-  setSort = (sort: Sort) => {
-    this.sort = this.stores.sort.set(sort);
-  };
-
-  onSetFilter = () => {
-    this.flushHooks(true);
-    if (this.tab !== 'real_time') this.redraw();
   };
 
   clickHook = async (id: string) => {
@@ -340,7 +346,6 @@ export default class LobbyController {
   };
 
   enterPool = (member: PoolMember) => {
-    poolRangeStorage.set(this.me?.username, member.id, member.range);
     this.setTab('pools');
     this.poolMember = member;
     this.poolIn();
@@ -411,9 +416,7 @@ export default class LobbyController {
     if (location.hash.startsWith('#pool/')) {
       const regex = /^#pool\/(\d+\+\d+(?:-m\d+(?:-\d+x\d+)?)?)(?:\/(.+))?$/,
         match = regex.exec(location.hash),
-        member: PoolMember = { id: match![1], blocking: match![2] },
-        range = poolRangeStorage.get(this.me?.username, member.id);
-      if (range) member.range = range;
+        member: PoolMember = { id: match![1], blocking: match![2] };
       if (match) {
         this.setTab('pools');
         if (this.me) this.enterPool(member);

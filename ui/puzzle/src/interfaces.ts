@@ -5,7 +5,7 @@ import type { RulesState } from 'xiangqi';
 import type { ExternalEngineInfo } from 'lib/ceval';
 import type { XiangqiNotationStyle } from 'lib/game';
 import perfIcons from 'lib/game/perfIcons';
-import type { Coords } from 'lib/prefs';
+import type { Coords, MoveEvent } from 'lib/prefs';
 import type { TreePath } from 'lib/tree/types';
 
 export type PuzzleId = string;
@@ -40,7 +40,7 @@ export interface PuzzlePrefs {
   coords: Coords;
   destination: boolean;
   rookCastle: boolean;
-  moveEvent: number;
+  moveEvent: MoveEvent;
   highlight: boolean;
   animation: {
     duration: number;

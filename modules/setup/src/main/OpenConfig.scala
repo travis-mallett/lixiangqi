@@ -19,7 +19,8 @@ final case class OpenConfig(
     position: Option[Fen.Full],
     userIds: Option[(UserId, UserId)],
     rules: Set[GameRule] = Set.empty,
-    expiresAt: Option[Instant]
+    expiresAt: Option[Instant],
+    override val ruleset: Option[String] = None
 ) extends lila.core.setup.OpenConfig:
 
   def perfType = lila.rating.PerfType(variant, chess.Speed(clock))
@@ -47,7 +48,8 @@ object OpenConfig:
       pos: Option[Fen.Full],
       usernames: Option[List[UserStr]],
       rules: Option[Set[GameRule]],
-      expiresAt: Option[Instant]
+      expiresAt: Option[Instant],
+      ruleset: Option[String] = None
   ) =
     OpenConfig(
       name = n.map(_.trim).filter(_.nonEmpty),
@@ -61,5 +63,6 @@ object OpenConfig:
         (w, b)
       },
       rules = ~rules,
-      expiresAt = expiresAt
+      expiresAt = expiresAt,
+      ruleset = ruleset
     ).autoVariant

@@ -43,6 +43,15 @@ case class AllWinners(
     variants: Map[Variant.LilaKey, FreqWinners]
 ):
 
+  private def entries(winners: FreqWinners) =
+    List(winners.yearly, winners.monthly, winners.weekly, winners.daily).flatten
+
+  lazy val recent: List[Winner] =
+    (List(hyperbullet, bullet, superblitz, blitz, rapid).flatMap(entries) ::: elite ::: marathon :::
+      variants.values.toList.flatMap(entries))
+      .distinctBy(_.tourId)
+      .sortWith((a, b) => a.date.isAfter(b.date))
+
   lazy val top: List[Winner] = List(
     List(hyperbullet, bullet, superblitz, blitz, rapid).flatMap(_.top),
     List(elite.headOption, marathon.headOption).flatten,

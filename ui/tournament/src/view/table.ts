@@ -4,16 +4,16 @@ import { licon } from 'lib/licon';
 import { type VNode, bind, onInsert, hl, initMiniGames, icon } from 'lib/view';
 
 import type TournamentController from '../ctrl';
-import type { Duel, DuelPlayer, FeaturedGame, TournamentOpts } from '../interfaces';
+import type { Duel, DuelPlayer, FeaturedGame } from '../interfaces';
 import { teamName } from './battle';
 import { player as renderPlayer } from './util';
 
-function featuredPlayer(game: FeaturedGame, color: Color, opts: TournamentOpts) {
+function featuredPlayer(game: FeaturedGame, color: Color) {
   const player = game[color];
   return hl('span.mini-game__player', [
     hl('span.mini-game__user', [
       hl('strong', '#' + player.rank),
-      renderPlayer(player, true, opts.showRatings, false),
+      renderPlayer(player, true, false),
       player.berserk && icon(licon.Berserk)('.berserk', { title: 'Berserk' }),
     ]),
     game.c
@@ -24,7 +24,7 @@ function featuredPlayer(game: FeaturedGame, color: Color, opts: TournamentOpts) 
   ]);
 }
 
-function featured(game: FeaturedGame, opts: TournamentOpts): VNode {
+function featured(game: FeaturedGame): VNode {
   return hl(
     `div.tour__featured.mini-game.mini-game-${game.id}.mini-game--init.is2d`,
     {
@@ -32,17 +32,17 @@ function featured(game: FeaturedGame, opts: TournamentOpts): VNode {
       hook: onInsert(site.powertip.manualUserIn),
     },
     [
-      featuredPlayer(game, opposite(game.orientation), opts),
+      featuredPlayer(game, opposite(game.orientation)),
       hl('a.cg-wrap', { attrs: { href: `/${game.id}/${game.orientation}` } }),
-      featuredPlayer(game, game.orientation, opts),
+      featuredPlayer(game, game.orientation),
     ],
   );
 }
 
-const duelPlayerMeta = (p: DuelPlayer, ctrl: TournamentController) => [
+const duelPlayerMeta = (p: DuelPlayer) => [
   hl('em.rank', '#' + p.k),
   p.t && hl('em.utitle', p.t),
-  ctrl.opts.showRatings && hl('em.rating', p.r),
+  hl('em.rank-title', p.c),
 ];
 
 function renderDuel(ctrl: TournamentController) {
@@ -59,8 +59,8 @@ function renderDuel(ctrl: TournamentController) {
             return teamId && teamName(battle, teamId);
           }),
         ),
-      hl('line.a', [hl('strong', d.p[0].n), hl('span', duelPlayerMeta(d.p[1], ctrl).reverse())]),
-      hl('line.b', [hl('span', duelPlayerMeta(d.p[0], ctrl)), hl('strong', d.p[1].n)]),
+      hl('line.a', [hl('strong', d.p[0].n), hl('span', duelPlayerMeta(d.p[1]).reverse())]),
+      hl('line.b', [hl('span', duelPlayerMeta(d.p[0])), hl('strong', d.p[1].n)]),
     ]);
 }
 
@@ -68,7 +68,7 @@ const initMiniGame = (node: VNode) => initMiniGames(node.elm as HTMLElement);
 
 export default function (ctrl: TournamentController): VNode {
   return hl('div.tour__table', { hook: { insert: initMiniGame, postpatch: initMiniGame } }, [
-    ctrl.data.featured && featured(ctrl.data.featured, ctrl.opts),
+    ctrl.data.featured && featured(ctrl.data.featured),
     ctrl.data.duels.length > 0 &&
       hl(
         'section.tour__duels',

@@ -6,11 +6,16 @@ import scalalib.HeapSort.*
 
 import lila.core.perf.{ KeyedPerf, Perf, PuzPerf, UserPerfs }
 import lila.core.user.LightPerf
+import lila.core.rank.{ RankDiff, RankPerf, RankScore, RankSettlement, RankTrackId }
+import lila.core.rank.RankTrackId.*
 import lila.rating.PerfExt.*
 
 object UserPerfsExt:
 
   extension (p: UserPerfs)
+
+    def xiangqiRank: Option[RankPerf] = p.rank(RankTrackId.xiangqi).filter(_.established)
+    def xiangqiRankCode = xiangqiRank.map(rank => XiangqiRank.catalog.code(rank.score))
 
     def perfsList: List[(PerfKey, Perf)] = List(
       PerfKey.ultraBullet -> p.ultraBullet,
@@ -107,13 +112,8 @@ object UserPerfsExt:
 
 object UserPerfs:
 
-  def dubiousPuzzle(perfs: UserPerfs): Boolean = dubiousPuzzle(perfs.puzzle, perfs.standard)
-
-  def dubiousPuzzle(puzzle: Perf, standard: Perf): Boolean =
-    puzzle.glicko.rating > 3000 && !standard.glicko.establishedIntRating.exists(_ > IntRating(2100)) ||
-      puzzle.glicko.rating > 2900 && !standard.glicko.establishedIntRating.exists(_ > IntRating(2000)) ||
-      puzzle.glicko.rating > 2700 && !standard.glicko.establishedIntRating.exists(_ > IntRating(1900)) ||
-      puzzle.glicko.rating > 2500 && !standard.glicko.establishedIntRating.exists(_ > IntRating(1800))
+  /** Puzzle Glicko is independent of native Xiangqi rank and has no cross-rating suspicion rule. */
+  def dubiousPuzzle(@annotation.unused perfs: UserPerfs): Boolean = false
 
   private val puzPerfDefault = PuzPerf(0, 0)
 
@@ -131,7 +131,8 @@ object UserPerfs:
       puzzle = p,
       storm = puzPerfDefault,
       racer = puzPerfDefault,
-      streak = puzPerfDefault
+      streak = puzPerfDefault,
+      ranks = Map.empty
     )
   def defaultManaged(id: UserId) =
     val managed = lila.rating.Perf.defaultManaged
@@ -183,9 +184,69 @@ object UserPerfs:
     yield (id, perf)
   }
 
+  private given rankSettlementHandler: BSONDocumentHandler[RankSettlement] = new BSON[RankSettlement]:
+    def reads(r: BSON.Reader): RankSettlement = RankSettlement(
+      gameId = r.get[GameId]("g"),
+      diff = RankDiff(r.int("d"))
+    )
+
+    def writes(w: BSON.Writer, o: RankSettlement) = BSONDocument(
+      "g" -> o.gameId,
+      "d" -> o.diff.value
+    )
+
+  given rankPerfHandler: BSONDocumentHandler[RankPerf] = new BSON[RankPerf]:
+    def reads(r: BSON.Reader): RankPerf = RankPerf(
+      score = RankScore(r.int("s")),
+      games = r.intD("nb"),
+      wins = r.intD("w"),
+      draws = r.intD("d"),
+      losses = r.intD("l"),
+      recent = ~r.getO[List[Int]]("re").map(_.map(RankScore.apply)),
+      latest = r.dateO("la"),
+      catalogVersion = r.getO[Int]("cv").getOrElse(XiangqiRank.firstCatalogVersion),
+      policyVersion = r.getO[Int]("pv").getOrElse(XiangqiRank.firstPolicyVersion),
+      settlements = r.getD[List[RankSettlement]]("st", Nil),
+      restoredGames = r.getD[List[GameId]]("rf", Nil)
+    )
+
+    def writes(w: BSON.Writer, o: RankPerf) = BSONDocument(
+      "s" -> o.score.value,
+      "nb" -> o.games,
+      "w" -> w.intO(o.wins),
+      "d" -> w.intO(o.draws),
+      "l" -> w.intO(o.losses),
+      "re" -> w.listO(o.recent.map(_.value)),
+      "la" -> o.latest.map(w.date),
+      "cv" -> o.catalogVersion,
+      "pv" -> o.policyVersion,
+      "st" -> w.listO(o.settlements),
+      "rf" -> w.listO(o.restoredGames)
+    )
+
   given userPerfsHandler: BSONDocumentHandler[UserPerfs] = new BSON[UserPerfs]:
 
     import lila.rating.Perf.given
+
+    private def readRanks(r: BSON.Reader): Map[RankTrackId, RankPerf] =
+      r.getO[BSONDocument]("ranks")
+        .fold(Map.empty): doc =>
+          doc.elements
+            .flatMap: element =>
+              for
+                track <- RankTrackId.from(element.name)
+                rankDoc <- element.value.asOpt[BSONDocument]
+                rank <- rankDoc.asOpt[RankPerf]
+              yield track -> rank
+            .toMap
+
+    private def writeRanks(ranks: Map[RankTrackId, RankPerf]): Option[BSONDocument] =
+      ranks.nonEmpty.option:
+        BSONDocument(
+          ranks.toList.map { case (track, rank) =>
+            BSONElement(track.value, summon[BSONWriter[RankPerf]].writeTry(rank).get)
+          }*
+        )
 
     def reads(r: BSON.Reader): UserPerfs =
       inline def perf(key: String) = r.getO[Perf](key).getOrElse(lila.rating.Perf.default)
@@ -201,7 +262,8 @@ object UserPerfs:
         puzzle = perf("puzzle"),
         storm = r.getD[PuzPerf]("storm", puzPerfDefault),
         racer = r.getD[PuzPerf]("racer", puzPerfDefault),
-        streak = r.getD[PuzPerf]("streak", puzPerfDefault)
+        streak = r.getD[PuzPerf]("streak", puzPerfDefault),
+        ranks = readRanks(r)
       )
 
     private inline def notNew(p: Perf): Option[Perf] = p.nonEmpty.option(p)
@@ -209,17 +271,11 @@ object UserPerfs:
     def writes(w: BSON.Writer, o: UserPerfs) =
       BSONDocument(
         "id" -> o.id,
-        "standard" -> notNew(o.standard),
-        "ultraBullet" -> notNew(o.ultraBullet),
-        "bullet" -> notNew(o.bullet),
-        "blitz" -> notNew(o.blitz),
-        "rapid" -> notNew(o.rapid),
-        "classical" -> notNew(o.classical),
-        "correspondence" -> notNew(o.correspondence),
         "puzzle" -> notNew(o.puzzle),
         "storm" -> o.storm.nonEmpty.option(o.storm),
         "racer" -> o.racer.nonEmpty.option(o.racer),
-        "streak" -> o.streak.nonEmpty.option(o.streak)
+        "streak" -> o.streak.nonEmpty.option(o.streak),
+        "ranks" -> writeRanks(o.ranks)
       )
 
   case class Leaderboards(

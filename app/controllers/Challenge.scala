@@ -349,7 +349,9 @@ final class Challenge(env: Env) extends LilaController(env):
           challenger = ChallengeModel.toRegistered(orig),
           destUser = dest.some,
           rematchOf = none,
-          rules = config.rules
+          rules = config.rules,
+          ruleset = config.ruleset.fold(lila.xiangqi.adjudication.Ruleset.default): key =>
+            lila.xiangqi.adjudication.Ruleset.fromKey(key).fold(sys.error, identity)
         )
 
   def openCreate = AnonOrScopedBody(parse.anyContent)(_.Challenge.Write, _.Web.Mobile, _.Web.Takex3): ctx ?=>

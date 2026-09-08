@@ -15,7 +15,13 @@ object UserWithPerfs:
     def lightPerf(key: PerfKey) =
       val perf = p.perfs(key)
       LightPerf(p.light, key, perf.intRating, perf.progress)
-    def only(pk: PerfKey) = WithPerf(p.user, p.perfs(pk))
+    def only(pk: PerfKey) = WithPerf(
+      p.user,
+      p.perfs(pk),
+      XiangqiRank
+        .snapshot(p.perfs.rank(lila.core.rank.RankTrackId.xiangqi).getOrElse(XiangqiRank.initial))
+        .some
+    )
 
   def apply(user: User, perfs: Option[UserPerfs]): UserWithPerfs =
     new UserWithPerfs(user, perfs | lila.rating.UserPerfs.default(user.id))

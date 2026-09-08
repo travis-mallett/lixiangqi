@@ -1,6 +1,6 @@
 import debounce from 'debounce-promise';
 
-import { json as xhrJson, form } from 'lib/xhr';
+import { json as xhrJson, form, text as xhrText } from 'lib/xhr';
 
 import type { NowPlaying, Pool, Seek } from './interfaces';
 
@@ -12,6 +12,8 @@ type NowPlayingRes = {
 };
 
 export const nowPlaying = () => xhrJson<NowPlayingRes>('/account/now-playing');
+
+export const homepageLiveGames = () => xhrText('/lobby/live-games/15');
 
 export const anonPoolSeek = (pool: Pool) =>
   xhrJson('/setup/hook/' + site.sri, {

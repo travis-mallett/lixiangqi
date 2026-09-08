@@ -2,7 +2,6 @@ package lila.tournament
 
 import scalalib.HeapSort.topN
 
-import lila.core.LightUser
 import lila.core.perf.UserWithPerfs
 import lila.ui.Icon
 
@@ -52,14 +51,7 @@ object Spotlight:
         case Monthly | Shield | Marathon | Yearly => true
         case ExperimentalMarathon => false
 
-  private def canMaybeJoinLimited(tour: Tournament)(using me: UserWithPerfs): Boolean =
-    given LightUser.Me = LightUser.Me(me.user.light)
-    given Perf = me.perfs(tour.perfType)
-    tour.conditions.isRatingLimited &&
-    tour.conditions.nbRatedGame.forall { c =>
-      c(tour.perfType).accepted
-    } &&
-    tour.conditions.minRating.forall { c =>
-      c(tour.perfType).accepted
-    } &&
-    tour.conditions.maxRating.forall(_.maybe)
+  private def canMaybeJoinLimited(
+      @annotation.unused tour: Tournament
+  )(using @annotation.unused me: UserWithPerfs): Boolean =
+    false

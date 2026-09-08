@@ -7,6 +7,7 @@ import scalalib.paginator.Paginator
 
 import lila.common.Json.given
 import lila.core.game.Game
+import lila.core.rank.RankDiff.*
 import lila.game.JsonView.given
 import lila.ui.Context
 
@@ -28,10 +29,10 @@ final class UserGameApi(
     Json
       .obj(
         "id" -> g.id,
-        "rated" -> g.rated,
+        "ranked" -> g.ranked,
         "variant" -> g.variant,
         "speed" -> g.speed.key,
-        "perf" -> g.perfKey,
+        "perf" -> "xiangqi",
         "timestamp" -> g.createdAt,
         "turns" -> g.ply,
         "status" -> g.status,
@@ -45,8 +46,8 @@ final class UserGameApi(
             )
             .add("id" -> as.exists(p.isUser).option(p.id))
             .add("aiLevel" -> p.aiLevel)
-            .add("rating" -> p.rating)
-            .add("ratingDiff" -> p.ratingDiff)),
+            .add("rank" -> p.rank.flatMap(_.publicCode).map(_.value))
+            .add("rankDiff" -> p.rank.flatMap(_.diff).map(_.value))),
         "fen" -> g.position.fen,
         "winner" -> g.winnerColor.map(_.name),
         "bookmarks" -> g.bookmarks

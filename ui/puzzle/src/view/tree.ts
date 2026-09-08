@@ -3,22 +3,18 @@ import type { VNode, Classes } from 'snabbdom';
 import { defined } from 'lib';
 import { throttle } from 'lib/async';
 import { renderEval as normalizeEval } from 'lib/ceval';
-import { plyToTurn } from 'lib/game/chess';
+import { renderColumnTree, renderIndex as renderTreeIndex } from 'lib/tree/columnView';
 import { path as treePath } from 'lib/tree/tree';
 import type { TreeNode, TreePath } from 'lib/tree/types';
 import { type MaybeVNode, type LooseVNodes, hl, onInsert } from 'lib/view';
 
 import type PuzzleCtrl from '@/ctrl';
 
+export const renderIndex = renderTreeIndex;
+
 interface Ctx {
   ctrl: PuzzleCtrl;
   showComputer: boolean;
-}
-
-interface RenderOpts {
-  parentPath: string;
-  isMainline: boolean;
-  withIndex?: boolean;
 }
 
 interface Glyph {
@@ -37,64 +33,19 @@ const autoScroll = throttle(150, (ctrl: PuzzleCtrl, el: HTMLElement) => {
   cont.scrollTop = targetOffset - cont.offsetHeight / 2 + target.offsetHeight;
 });
 
-export function renderIndex(ply: number, withDots: boolean): VNode {
-  return hl('index', plyToTurn(ply) + (withDots ? (ply % 2 === 1 ? '.' : '...') : ''));
-}
-
-function renderChildrenOf(ctx: Ctx, node: TreeNode, opts: RenderOpts): LooseVNodes {
-  const cs = node.children;
-  const main = cs[0];
-  if (!main) return [];
-  if (opts.isMainline) {
-    const isWhite = main.ply % 2 === 1;
-    if (!cs[1])
-      return [
-        isWhite && renderIndex(main.ply, false),
-        renderMoveAndChildrenOf(ctx, main, { parentPath: opts.parentPath, isMainline: true }),
-      ];
-    const mainChildren = renderChildrenOf(ctx, main, {
-        parentPath: opts.parentPath + main.id,
-        isMainline: true,
-      }),
-      passOpts = { parentPath: opts.parentPath, isMainline: true };
-    return [
-      isWhite && renderIndex(main.ply, false),
-      renderMoveOf(ctx, main, passOpts),
-      isWhite && emptyMove(),
-      hl('interrupt', renderLines(ctx, cs.slice(1), { parentPath: opts.parentPath, isMainline: true })),
-      isWhite && mainChildren && [renderIndex(main.ply, false), emptyMove()],
-      mainChildren,
-    ];
-  }
-  return cs[1] ? [renderLines(ctx, cs, opts)] : renderMoveAndChildrenOf(ctx, main, opts);
-}
-
-function renderLines(ctx: Ctx, nodes: TreeNode[], opts: RenderOpts): VNode {
-  return hl(
-    'lines',
-    { class: { single: !!nodes[1] } },
-    nodes.map(function (n) {
-      return hl(
-        'line',
-        renderMoveAndChildrenOf(ctx, n, { parentPath: opts.parentPath, isMainline: false, withIndex: true }),
-      );
-    }),
-  );
-}
-
-function renderMoveOf(ctx: Ctx, node: TreeNode, opts: RenderOpts): VNode {
-  return opts.isMainline ? renderMainlineMoveOf(ctx, node, opts) : renderVariationMoveOf(ctx, node, opts);
-}
-
-function renderMainlineMoveOf(ctx: Ctx, node: TreeNode, opts: RenderOpts): VNode {
-  const path = opts.parentPath + node.id;
+function renderMove(ctx: Ctx, node: TreeNode, path: string, isMainline: boolean, withIndex: boolean): VNode {
   const classes: Classes = {
     active: path === ctx.ctrl.path,
-    current: path === ctx.ctrl.initialPath,
-    hist: node.ply < ctx.ctrl.initialNode.ply,
   };
+  if (isMainline) {
+    classes.current = path === ctx.ctrl.initialPath;
+    classes.hist = node.ply < ctx.ctrl.initialNode.ply;
+  }
   if (node.puzzle) classes[node.puzzle] = true;
-  return hl('move', { attrs: { p: path }, class: classes }, renderMove(node));
+  return hl('move', { attrs: { p: path }, class: classes }, [
+    withIndex && renderTreeIndex(node.ply, true),
+    renderMoveContents(node, isMainline),
+  ]);
 }
 
 const renderGlyph = (glyph: Glyph): VNode => hl('glyph', { attrs: { title: glyph.name } }, glyph.symbol);
@@ -116,39 +67,15 @@ function puzzleGlyph(node: TreeNode): MaybeVNode {
   }
 }
 
-function renderMove(node: TreeNode): LooseVNodes {
+function renderMoveContents(node: TreeNode, isMainline: boolean): LooseVNodes {
   const ev = node.eval || node.ceval;
   return [
     node.san,
-    ev && (defined(ev.cp) ? renderEval(normalizeEval(ev.cp)) : defined(ev.mate) && renderEval('#' + ev.mate)),
+    isMainline &&
+      ev &&
+      (defined(ev.cp) ? renderEval(normalizeEval(ev.cp)) : defined(ev.mate) && renderEval('#' + ev.mate)),
     puzzleGlyph(node),
   ];
-}
-
-function renderVariationMoveOf(ctx: Ctx, node: TreeNode, opts: RenderOpts): VNode {
-  const path = opts.parentPath + node.id;
-  const classes: Classes = { active: path === ctx.ctrl.path };
-
-  if (node.puzzle) classes[node.puzzle] = true;
-
-  const withIndex = opts.withIndex || node.ply % 2 === 1;
-
-  return hl('move', { attrs: { p: path }, class: classes }, [
-    withIndex && renderIndex(node.ply, true),
-    node.san,
-    puzzleGlyph(node),
-  ]);
-}
-
-function renderMoveAndChildrenOf(ctx: Ctx, node: TreeNode, opts: RenderOpts): LooseVNodes {
-  return [
-    renderMoveOf(ctx, node, opts),
-    renderChildrenOf(ctx, node, { parentPath: opts.parentPath + node.id, isMainline: opts.isMainline }),
-  ];
-}
-
-function emptyMove(): VNode {
-  return hl('move.empty', '...');
 }
 
 function renderEval(e: string): VNode {
@@ -162,35 +89,30 @@ function eventPath(e: Event): TreePath | null {
 
 export function render(ctrl: PuzzleCtrl): VNode {
   const root = ctrl.tree.root;
-  const ctx: Ctx = { ctrl, showComputer: false };
-  return hl(
-    'div.tview2.tview2-column',
-    {
-      hook: {
-        ...onInsert(el => {
-          if (ctrl.path !== treePath.root) autoScroll(ctrl, el);
-          el.addEventListener('mousedown', (e: MouseEvent) => {
-            if (defined(e.button) && e.button !== 0) return; // only touch or left click
-            const path = eventPath(e);
-            if (path) ctrl.userJump(path);
-            ctrl.redraw();
-          });
-        }),
-        postpatch: (_, vnode) => {
-          if (ctrl.autoScrollNow) {
-            autoScroll(ctrl, vnode.elm as HTMLElement);
-            ctrl.autoScrollNow = false;
-            ctrl.autoScrollRequested = false;
-          } else if (ctrl.autoScrollRequested) {
-            if (ctrl.path !== treePath.root) autoScroll(ctrl, vnode.elm as HTMLElement);
-            ctrl.autoScrollRequested = false;
-          }
-        },
+  return renderColumnTree({
+    root,
+    renderMove: (node, context) =>
+      renderMove({ ctrl, showComputer: false }, node, context.path, context.isMainline, context.withIndex),
+    hooks: {
+      ...onInsert(el => {
+        if (ctrl.path !== treePath.root) autoScroll(ctrl, el);
+        el.addEventListener('mousedown', (e: MouseEvent) => {
+          if (defined(e.button) && e.button !== 0) return; // only touch or left click
+          const path = eventPath(e);
+          if (path) ctrl.userJump(path);
+          ctrl.redraw();
+        });
+      }),
+      postpatch: (_, vnode) => {
+        if (ctrl.autoScrollNow) {
+          autoScroll(ctrl, vnode.elm as HTMLElement);
+          ctrl.autoScrollNow = false;
+          ctrl.autoScrollRequested = false;
+        } else if (ctrl.autoScrollRequested) {
+          if (ctrl.path !== treePath.root) autoScroll(ctrl, vnode.elm as HTMLElement);
+          ctrl.autoScrollRequested = false;
+        }
       },
     },
-    [
-      root.ply % 2 === 1 && [renderIndex(root.ply, false), emptyMove()],
-      renderChildrenOf(ctx, root, { parentPath: '', isMainline: true }),
-    ],
-  );
+  });
 }

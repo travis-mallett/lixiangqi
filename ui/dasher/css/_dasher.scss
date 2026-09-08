@@ -190,9 +190,8 @@
 
     .categories {
       display: grid;
-      gap: 0.7rem;
+      gap: 1rem;
       padding: 1rem;
-      border-top: $border;
 
       .cmn-toggle-wrap {
         justify-content: space-between;
@@ -200,24 +199,46 @@
 
       .cmn-toggle {
         order: 2;
+      }
+
+      .sound-category {
+        display: grid;
+        gap: 0.45rem;
+      }
+
+      .sound-category__children {
+        display: grid;
+        gap: 0.55rem;
+        margin-inline-start: 0.35rem;
+        padding-inline-start: 0.75rem;
+        border-inline-start: $border;
+
+        .cmn-toggle-wrap {
+          min-height: 2.5rem;
+          font-size: 0.9em;
+          line-height: 1.25;
+        }
+      }
+
+      .music-entry {
+        padding: 0.45rem 0.5rem;
+        border-radius: 3px;
+
+        &::before {
+          color: $c-font-dim;
+          opacity: 0.65;
+        }
+
+        &:hover::before,
+        &:focus-visible::before {
+          color: $c-over;
+          opacity: 1;
+        }
       }
     }
 
     .music-content {
       padding: 0.5rem 0;
-    }
-
-    .music-toggle {
-      padding: 0.7rem 1rem 1rem;
-      border-bottom: $border;
-
-      .cmn-toggle-wrap {
-        justify-content: space-between;
-      }
-
-      .cmn-toggle {
-        order: 2;
-      }
     }
 
     .music-tracks {

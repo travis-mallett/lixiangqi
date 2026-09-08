@@ -1,7 +1,6 @@
 package lila.mod
 
 import lila.core.notify.{ NotifyApi, NotificationContent }
-import lila.rating.PerfType
 import lila.report.Suspect
 
 final private class ModNotifier(
@@ -9,7 +8,7 @@ final private class ModNotifier(
     reportApi: lila.report.ReportApi,
     pmPresets: ModPresetsApi,
     msgApi: lila.core.msg.MsgApi
-)(using Executor, lila.core.i18n.Translator):
+)(using Executor):
 
   def reporters(mod: ModId, sus: Suspect): Funit =
     reportApi
@@ -19,9 +18,8 @@ final private class ModNotifier(
           .parallelVoid: reporterId =>
             notifyApi.notifyOne(reporterId, NotificationContent.ReportedBanned)
 
-  def refund(user: User, pt: PerfType, points: Int): Funit =
-    given play.api.i18n.Lang = user.realLang | lila.core.i18n.defaultLang
-    notifyApi.notifyOne(user, NotificationContent.RatingRefund(perf = pt.trans, points))
+  def rankRefund(user: User, points: Int): Funit =
+    notifyApi.notifyOne(user, NotificationContent.RankRefund(points))
 
   def notifyKidMode(mod: ModId, user: User): Funit =
     pmPresets.setKidModePreset match

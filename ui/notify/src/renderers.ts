@@ -125,6 +125,14 @@ export default function makeRenderers(): Renderers {
         generic(n, '/patron', licon.Wings, [h('span', [h('strong', 'Patron account expired'), drawTime(n)])]),
       text: _ => 'Patron account expired',
     },
+    rankRefund: {
+      html: n =>
+        generic(n, '/faq#rank-refund', licon.InfoCircle, [
+          h('span', [h('strong', i18n.site.lostRankPointsToTOSViolator), drawTime(n)]),
+          h('span', i18n.site.refundXrankPoints(n.content.points)),
+        ]),
+      text: n => i18n.site.refundXrankPoints(n.content.points),
+    },
     ratingRefund: {
       html: n =>
         generic(n, '/faq#rating-refund', licon.InfoCircle, [

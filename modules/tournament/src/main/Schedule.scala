@@ -22,12 +22,8 @@ case class Schedule(
 
   def sameSpeed(other: Schedule) = speed == other.speed
 
-  def sameMaxRating(other: Schedule) = conditions.sameMaxRating(other.conditions)
-
   def sameDay(other: Schedule) = day == other.day
   private def day = at.withTimeAtStartOfDay
-
-  def hasMaxRating = conditions.maxRating.isDefined
 
   def perfKey: PerfKey = PerfKey.byVariant(variant) | Schedule.Speed.toPerfKey(speed)
 
@@ -137,7 +133,6 @@ object Schedule:
 
       case (Hourly, _, UltraBullet | HyperBullet | Bullet) => 27
       case (Hourly, _, HippoBullet | SuperBlitz | Blitz | ChillBlitz) => 57
-      case (Hourly, _, Rapid) if s.hasMaxRating => 57
       case (Hourly, _, Rapid | Classical) => 117
 
       case (Daily | Eastern, chess.variant.Standard, SuperBlitz) => 90
@@ -186,7 +181,6 @@ object Schedule:
   private val rapidIncHours = Set(2)
   private def blitzInc(s: Schedule) = blitzIncHours(s.at.getHour)
   private def rapidInc(s: Schedule) = rapidIncHours(s.at.getHour)
-  private def bottomOfHour(s: Schedule) = s.at.getMinute > 29
 
   private given Conversion[Int, LimitSeconds] = LimitSeconds(_)
   private given Conversion[Int, IncrementSeconds] = IncrementSeconds(_)
@@ -200,7 +194,6 @@ object Schedule:
       // Special cases.
       case (Hourly, chess.variant.Standard, Blitz) if blitzInc(s) => TC(3 * 60, 2)
       case (Hourly, chess.variant.Standard, Rapid) if rapidInc(s) => TC(8 * 60, 2)
-      case (Hourly, chess.variant.Standard, Bullet) if s.hasMaxRating && bottomOfHour(s) => TC(60, 1)
       case (_, variant, Blitz) if variant.exotic => TC(3 * 60, 2)
       case (Hourly, variant, HippoBullet) if variant.exotic => TC(60, 2)
 

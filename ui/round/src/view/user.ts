@@ -3,15 +3,14 @@ import type { Player, TopOrBottom } from 'lib/game';
 import { licon } from 'lib/licon';
 import { wsAverageLag } from 'lib/socket';
 import { dataIcon, hl, type VNode } from 'lib/view';
-import { ratingDiff, userLink } from 'lib/view/userLink';
+import { userLink } from 'lib/view/userLink';
 
 import type RoundController from '../ctrl';
 
 export function userHtml(ctrl: RoundController, player: Player, position: TopOrBottom): VNode {
   const d = ctrl.data,
     user = player.user,
-    perf = user?.perfs?.[d.game.perf],
-    rating = player.rating || perf?.rating,
+    rank = player.rank || user?.rank || user?.perfs?.xiangqi?.rank,
     showSignals = defined(d.opponentSignal) && defined(user?.id) && ctrl.isPlaying(),
     signal = showSignals
       ? user.id === d.opponent.user?.id
@@ -52,13 +51,14 @@ export function userHtml(ctrl: RoundController, player: Player, position: TopOrB
         userLink({
           name: user.username,
           ...user,
+          // The round layout renders the rank in its dedicated rank element below.
+          rank: undefined,
           attrs: { 'data-pt-pos': 's', ...(ctrl.isPlaying() ? { target: '_blank' } : {}) },
           online: false,
           line: false,
         }),
         !!signal && signalBars(signal),
-        !!rating && hl('rating', rating + (player.provisional ? '?' : '')),
-        !!rating && ratingDiff(player),
+        !!rank && hl('rank', rank),
         player.engine &&
           hl('span', {
             attrs: { ...dataIcon(licon.CautionCircle), title: i18n.site.thisAccountViolatedTos },

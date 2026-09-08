@@ -11,6 +11,8 @@ import lila.db.dsl.{ *, given }
 private object BSONHandlers:
 
   import Challenge.*
+  import lila.core.rank.RankCode
+  import lila.core.rank.RankCode.*
   import lila.game.BSONHandlers.given
   private given BSONHandler[lila.core.game.MoveTimeLimit] = lila.db.BSON.moveTimeLimitHandler
 
@@ -44,19 +46,12 @@ private object BSONHandlers:
   given BSONHandler[Status] = valueMapHandler(Status.byId)(_.id)
   given BSONHandler[DeclineReason] = valueMapHandler(DeclineReason.byKey)(_.key)
 
-  given BSON[Rating] with
-    def reads(r: Reader) = Rating(r.get("i"), r.yesnoD("p"))
-    def writes(w: Writer, r: Rating) =
-      $doc(
-        "i" -> r.int,
-        "p" -> w.boolO(r.provisional.yes)
-      )
   given registeredHandler: BSON[Challenger.Registered] with
-    def reads(r: Reader) = Challenger.Registered(r.get[UserId]("id"), r.get[Rating]("r"))
+    def reads(r: Reader) = Challenger.Registered(r.get[UserId]("id"), r.strO("x").map(RankCode.apply))
     def writes(w: Writer, r: Challenger.Registered) =
       $doc(
         "id" -> r.id,
-        "r" -> r.rating
+        "x" -> r.rank.map(_.value)
       )
   given anonHandler: BSON[Challenger.Anonymous] with
     def reads(r: Reader) = Challenger.Anonymous(r.str("s"))

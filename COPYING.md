@@ -43,6 +43,7 @@ ui/lib/src/game/xiangqi.ts, ui/xiangqi | [PyChess Variants authors](https://gith
 public/images/board/svg/158871-wood-grain.svg | [Lazur, "wood grain filter pack 4"](https://openclipart.org/detail/256780/wood-grain-filter-pack-4) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/)
 public/images/board/svg/xiangqi-{wikipedia,tournament,file-coordinates}.svg, public/piece/xiangqi-wikipedia | [Wj654cj86](https://commons.wikimedia.org/wiki/User:Wj654cj86) and Lixiangqi contributors | Public-domain source artwork; Lixiangqi modifications are AGPLv3+
 public/piece/xiangqi-wudang | Lixiangqi contributors, derived from Wj654cj86's public-domain Xiangqi pieces | AGPLv3+
+public/piece/xiangqi-{international,western} | [PyChess Variants authors](https://github.com/gbtami/pychess-variants/tree/10f48bc32658f856628da5fb8b3ed723e0e089d6/static/images/pieces/xiangqi) | [AGPLv3](https://www.gnu.org/licenses/agpl-3.0.html)
 public/pikafish-web/pikafish.{js,wasm}, public/pikafish-web/COPYING.txt | [Pikafish authors](https://github.com/official-pikafish/Pikafish/tree/ce0679e00ee196f7ba17f6ec18941b9a5036f8cf) and Lixiangqi contributors | [GPLv3](https://www.gnu.org/licenses/gpl-3.0.html)
 public/sound/standard/{LearnCapture,NewChatMessage}.mp3 | [Enigmahack](https://github.com/Enigmahack) | AGPLv3+
 public/sound/standard/{PuzzleStormEnd,PuzzleStormGood}.mp3 | [EdinburghCollective](http://lichess.org/@/EdinburghCollective) | [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)

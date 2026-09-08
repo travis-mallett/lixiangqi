@@ -2,12 +2,14 @@ package lila.activity
 package ui
 
 import lila.activity.activities.*
+import lila.activity.Score.plus
 import lila.core.chess.Rank
 import lila.core.forum.{ ForumPostMini, ForumTopicMini }
 import lila.core.i18n.Translate
 import lila.core.perf.UserWithPerfs
 import lila.core.rating.{ RatingProg, Score }
 import lila.core.game.{ LightPlayer, LightPov }
+import lila.core.rank.RankCode.value
 import lila.rating.UserPerfsExt.dubiousPuzzle
 import lila.ui.*
 import lila.ui.ScalatagsTemplate.{ *, given }
@@ -106,17 +108,12 @@ final class ActivityUi(helpers: Helpers)(
     )
 
   private def renderGames(games: Games)(using Context) =
-    games.value.toSeq.sortBy(-_._2.size).map { (pk, score) =>
-      val pt = lila.rating.PerfType(pk)
-      entryTag(
-        iconTag(pt.icon),
-        div(
-          trans.activity.playedNbGames.plural(score.size, score.size, pt.trans),
-          score.rp.filterNot(_.isEmpty).map(ratingProgFrag)
-        ),
-        scoreFrag(score)
-      )
-    }
+    val score = games.value.values.foldLeft(lila.activity.Score.empty)(_.plus(_))
+    entryTag(
+      iconTag(Icon.Crown),
+      div(trans.activity.playedNbGames.plural(score.size, score.size, "Xiangqi")),
+      scoreFrag(score.copy(rp = none))
+    )
 
   private def renderForumPosts(posts: Map[ForumTopicMini, List[ForumPostMini]])(using
       ctx: Context
@@ -183,7 +180,6 @@ final class ActivityUi(helpers: Helpers)(
         iconTag(if pk == PerfKey.correspondence then Icon.PaperAirplane else pt.icon),
         div(
           text,
-          score.rp.filterNot(_.isEmpty).map(ratingProgFrag),
           scoreFrag(score),
           subTag(
             povs.map: pov =>
@@ -365,7 +361,7 @@ final class ActivityUi(helpers: Helpers)(
       case None =>
         span(cls := "user-link")(
           player.aiLevel.fold(trans.site.anonymous())(aiNameFrag),
-          player.rating.ifTrue(ctx.pref.showRatings).map { rating => s" ($rating)" }
+          player.rank.flatMap(_.publicCode).map { rank => s" (${rank.value})" }
         )
       case Some(user) =>
         a(
@@ -377,6 +373,6 @@ final class ActivityUi(helpers: Helpers)(
           playerUsername(
             player,
             user.some,
-            withRating = ctx.pref.showRatings
+            withRating = true
           )
         )

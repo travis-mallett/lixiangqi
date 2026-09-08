@@ -114,6 +114,8 @@ interface SoundI {
   setVolume(v: number): void;
   isSoundEnabled(): boolean;
   setSoundEnabled(enabled: boolean): void;
+  isVoiceSoundEnabled(): boolean;
+  setVoiceSoundEnabled(enabled: boolean): void;
   isMusicEnabled(): boolean;
   setMusicEnabled(enabled: boolean): void;
   speech(): boolean;

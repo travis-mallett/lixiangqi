@@ -218,7 +218,7 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
 
   def incNbGames(
       id: UserId,
-      rated: chess.Rated,
+      ranked: Boolean,
       result: Int,
       totalTime: Option[Int],
       tvTime: Option[Int],
@@ -226,7 +226,7 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
   ) =
     val incs: List[BSONElement] = List(
       "count.game".some,
-      rated.yes.option("count.rated"),
+      ranked.option("count.rated"),
       (result match
         case -1 => "count.loss".some
         case 1 => "count.win".some

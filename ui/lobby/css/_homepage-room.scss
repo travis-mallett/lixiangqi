@@ -1,0 +1,172 @@
+.lobby {
+  &__center-rail--homepage-room > &__variants {
+    display: none;
+  }
+
+  &__table--homepage-room {
+    gap: 0;
+  }
+
+  &__homepage-room {
+    display: grid;
+    min-width: 0;
+    gap: 16px;
+
+    &__header {
+      display: grid;
+      min-height: 54px;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      align-items: center;
+      gap: 12px;
+      padding: 7px 10px;
+      border: $border;
+      border-radius: 12px;
+      background: color-mix(in oklab, $c-bg-box 96%, transparent);
+      box-shadow: 0 3px 12px rgb(0 0 0 / 0.12);
+    }
+
+    &__back {
+      display: inline-flex;
+      width: fit-content;
+      min-height: 38px;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 9px;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: $c-font-dim;
+      cursor: pointer;
+
+      &::before {
+        margin: 0;
+      }
+
+      &:hover,
+      &:focus-visible {
+        background: $c-bg-zebra;
+        color: $c-link;
+      }
+
+      &:focus-visible {
+        outline: 2px solid $c-primary;
+      }
+    }
+
+    &__title {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+
+      strong {
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      span {
+        color: $c-brag;
+        font-variant-numeric: tabular-nums;
+      }
+    }
+  }
+
+  &__live-games {
+    display: grid;
+    min-width: 0;
+    gap: 18px;
+    padding: clamp(16px, 3vw, 28px);
+    border: $border;
+    border-radius: 12px;
+    background: color-mix(in oklab, $c-bg-box 96%, transparent);
+    box-shadow: 0 3px 12px rgb(0 0 0 / 0.12);
+
+    &__heading {
+      text-align: center;
+
+      h2 {
+        margin: 2px 0 0;
+        color: $c-font-clear;
+        font-size: clamp(1.35rem, 3vw, 2rem);
+      }
+
+      p {
+        margin: 3px 0 0;
+        color: $c-font-dim;
+      }
+    }
+
+    &__eyebrow {
+      color: $c-brag;
+      font-family: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', STSong, Georgia, serif;
+      font-size: 1.15rem;
+      letter-spacing: 0.08em;
+    }
+
+    &__grid.now-playing {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+
+      .mini-game {
+        padding: 12px;
+        border: $border;
+        border-radius: 10px;
+        background: $c-bg-zebra;
+        box-shadow: 0 2px 7px rgb(0 0 0 / 0.12);
+        transition:
+          border-color 150ms ease,
+          box-shadow 150ms ease,
+          transform 150ms ease;
+
+        &:hover,
+        &:focus-visible {
+          border-color: color-mix(in oklab, $c-primary 70%, $c-border);
+          box-shadow: 0 5px 16px rgb(0 0 0 / 0.18);
+          transform: translateY(-2px);
+        }
+
+        .cg-wrap {
+          margin-block: 5px;
+        }
+      }
+    }
+
+    &__play {
+      width: min(100%, 420px);
+      min-height: 52px;
+      margin-inline: auto;
+      font-size: 1.05rem;
+    }
+  }
+
+  @media (max-width: 600px) {
+    &__homepage-room {
+      &__header {
+        grid-template-columns: auto minmax(0, 1fr);
+        border-radius: 10px;
+      }
+
+      &__back {
+        width: 40px;
+        overflow: hidden;
+        padding-inline: 10px;
+        white-space: nowrap;
+      }
+
+      &__title {
+        justify-self: end;
+        font-size: 0.9rem;
+      }
+    }
+
+    &__live-games {
+      border-radius: 10px;
+
+      &__grid.now-playing {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+  }
+}

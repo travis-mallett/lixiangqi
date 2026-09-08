@@ -211,29 +211,39 @@ class GameCatalogTest(unittest.TestCase):
         self.assertEqual("Volume I", english_meihuaquan["chapters"][0]["title"])
 
     def test_timeline_uses_the_same_source_and_search_filters(self) -> None:
-        all_selected = query_games(
-            {
-                "sources": ["m", "n", "k"],
-                "timelineUnit": "year",
-                "page": 1,
-                "pageSize": 100,
-            }
-        )
+        # An unsearched catalog request must use the persistent read model and
+        # never regress to grouping the raw games table.
+        with patch(
+            "external.xiangqi_explorer.game_catalog._timeline",
+            side_effect=AssertionError("raw timeline scan"),
+        ):
+            all_selected = query_games(
+                {
+                    "sources": ["m", "n", "k"],
+                    "timelineUnit": "year",
+                    "page": 1,
+                    "pageSize": 100,
+                }
+            )
         self.assertEqual(
             [{"start": "2024", "count": 3}],
             all_selected["timeline"]["buckets"],
         )
         self.assertEqual(0, all_selected["timeline"]["undated"])
 
-        searched = query_games(
-            {
-                "sources": ["m", "n", "k"],
-                "search": "Online Cup",
-                "timelineUnit": "month",
-                "page": 1,
-                "pageSize": 100,
-            }
-        )
+        with patch(
+            "external.xiangqi_explorer.game_catalog._timeline",
+            side_effect=AssertionError("raw timeline scan"),
+        ):
+            searched = query_games(
+                {
+                    "sources": ["m", "n", "k"],
+                    "search": "Online Cup",
+                    "timelineUnit": "month",
+                    "page": 1,
+                    "pageSize": 100,
+                }
+            )
         self.assertEqual(1, searched["total"])
         self.assertEqual(
             [{"start": "2024-05", "count": 1}],
@@ -359,6 +369,44 @@ class GameCatalogTest(unittest.TestCase):
         )
         self.assertEqual(3, paged["total"])
         self.assertEqual("Master Red", paged["games"][0]["red"]["name"])
+
+    def test_search_index_tracks_catalog_text_updates(self) -> None:
+        with closing(sqlite3.connect(self.database)) as connection:
+            connection.execute(
+                "UPDATE games SET event = 'Renamed Invitational' "
+                "WHERE red_name = 'Network Red'"
+            )
+            connection.commit()
+
+        renamed = query_games(
+            {
+                "sources": ["n"],
+                "search": "Renamed Invitational",
+                "page": 1,
+                "pageSize": 100,
+            }
+        )
+        old_name = query_games(
+            {
+                "sources": ["n"],
+                "search": "Online Cup",
+                "page": 1,
+                "pageSize": 100,
+            }
+        )
+        short_query = query_games(
+            {
+                "sources": ["m"],
+                "search": "Ma",
+                "page": 1,
+                "pageSize": 100,
+            }
+        )
+
+        self.assertEqual(1, renamed["total"])
+        self.assertEqual("Renamed Invitational", renamed["games"][0]["event"])
+        self.assertEqual(0, old_name["total"])
+        self.assertEqual(1, short_query["total"])
 
     def test_player_profile_is_exact_side_relative_and_source_filterable(self) -> None:
         with closing(sqlite3.connect(self.database)) as connection:

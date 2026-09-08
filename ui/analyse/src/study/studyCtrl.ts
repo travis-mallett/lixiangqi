@@ -687,7 +687,7 @@ export default class StudyCtrl {
         if (sticky && !this.vm.mode.sticky) this.redraw();
         return;
       }
-      if (sticky && who?.s === site.sri) {
+      if (sticky && who?.s === site.sri && this.ctrl.variantKey !== 'xiangqi') {
         this.data.position.path = position.path + node.id;
         return;
       }

@@ -267,8 +267,10 @@ def _migrate_database(
 
 def _finish(target: sqlite3.Connection, source_paths: list[Path]) -> dict[str, int]:
     target.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
+    from .catalog_index import rebuild as rebuild_catalog_index
     from .explorer_index import rebuild as rebuild_explorer_index
 
+    rebuild_catalog_index(target, progress=True)
     rebuild_explorer_index(target, progress=True)
     # A one-time rebuild establishes the catalog baseline; only subsequent
     # incremental inserts are "new this week".

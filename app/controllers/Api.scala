@@ -46,7 +46,6 @@ final class Api(env: Env, gameC: => Game) extends LilaController(env):
             withTrophies = getBool("trophies"),
             withCanChallenge = getBool("challenge"),
             withProfile = getBoolOpt("profile") | true,
-            withRank = getBool("rank"),
             withFideId = getBool("fideId")
           )
         )
@@ -60,7 +59,6 @@ final class Api(env: Env, gameC: => Game) extends LilaController(env):
       else if ctx.isAuth then 6
       else 3
     }
-    val withRanks = getBool("rank")
     limit.apiUsers(req.ipAddress, rateLimited, cost = cost.atLeast(1)):
       lila.mon.api.users.increment(cost.toLong)
       env.user.api
@@ -70,8 +68,7 @@ final class Api(env: Env, gameC: => Game) extends LilaController(env):
             env.user.jsonView.full(
               u.user,
               u.perfs.some,
-              withProfile = getBoolOpt("profile") | true,
-              rankMap = withRanks.option(env.user.rankingsOf(u.user.id))
+              withProfile = getBoolOpt("profile") | true
             )
         .map(toApiResult)
         .map(toHttp)
@@ -333,11 +330,11 @@ final class Api(env: Env, gameC: => Game) extends LilaController(env):
       if ctx.is(UserId.t3) then jsOptToNdJson(source)
       else ApiMoveStreamGlobalConcurrencyLimitPerIP(req.ipAddress)(source)(jsOptToNdJson)
 
-  def perfStat(username: UserStr, perfKey: PerfKey) = ApiRequest:
-    env.perfStat.api
-      .data(username, perfKey, computeIfNeeded = true)
-      .map:
-        _.fold[ApiResult](ApiResult.NoData) { data => ApiResult.Data(env.perfStat.jsonView(data)) }
+  def perfStat(
+      @annotation.unused username: UserStr,
+      @annotation.unused perfKey: PerfKey
+  ) = ApiRequest:
+    fuccess(ApiResult.NoData)
 
   def mobileGames = Scoped(_.Web.Mobile, _.Web.Takex3) { _ ?=> _ ?=>
     val ids = get("ids").so(_.split(',').take(50).toList).map(GameId.take)

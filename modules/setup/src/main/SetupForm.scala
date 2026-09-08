@@ -9,13 +9,14 @@ import scalalib.model.Days
 
 import lila.common.Form as LilaForm
 import lila.common.Form.{ *, given }
-import lila.core.rating.RatingRange
 
 object SetupForm:
 
   import Mappings.*
 
-  val filter = Form(single("local" -> text))
+  private val adjudicationRules = "ruleset" -> optional(
+    text.verifying("Unsupported Xiangqi ruleset", v => lila.xiangqi.adjudication.Ruleset.fromKey(v).isRight)
+  )
 
   def aiFilled(fen: Option[Fen.Full]): Form[AiConfig] =
     ai.fill(fen.foldLeft(AiConfig.default): (config, f) =>
@@ -31,7 +32,8 @@ object SetupForm:
       "days" -> days,
       "level" -> level,
       "color" -> color,
-      "fen" -> fenField
+      "fen" -> fenField,
+      adjudicationRules
     )(AiConfig.from)(_.>>)
       .verifying("invalidFen", _.validFen)
       .verifying("Time per move requires a real-time clock", _.validMoveTimeLimit)
@@ -49,9 +51,9 @@ object SetupForm:
       "increment" -> increment,
       moveTimeLimit,
       "days" -> days,
-      "mode" -> mode(withRated = me.isDefined),
       "color" -> color,
-      "fen" -> fenField
+      "fen" -> fenField,
+      adjudicationRules
     )(FriendConfig.from)(_.>>)
       .verifying("Invalid clock", _.validClock)
       .verifying("Time per move requires a real-time clock", _.validMoveTimeLimit)
@@ -62,7 +64,7 @@ object SetupForm:
   def hookFilled(timeModeString: Option[String])(using me: Option[Me]): Form[HookConfig] =
     hook.fill(HookConfig.default(me.isDefined).withTimeModeString(timeModeString))
 
-  def hook(using me: Option[Me]) = Form:
+  def hook(using @annotation.unused me: Option[Me]) = Form:
     mapping(
       "variant" -> variantWithVariants,
       "timeMode" -> timeMode,
@@ -70,8 +72,6 @@ object SetupForm:
       "increment" -> increment,
       moveTimeLimit,
       "days" -> days,
-      "mode" -> mode(me.isDefined),
-      "ratingRange" -> optional(ratingRange),
       "color" -> lila.common.Form.empty
     )(HookConfig.from)(_.>>)
       .verifying("Invalid clock", _.validClock)
@@ -85,10 +85,8 @@ object SetupForm:
       moveTimeLimit,
       "days" -> optional(days),
       "variant" -> optional(boardApiVariantKeys),
-      "rated" -> optional(boolean.into[Rated]),
-      "ratingRange" -> optional(ratingRange),
       "color" -> optional(color)
-    )((t, i, ml, d, v, r, g, c) =>
+    )((t, i, ml, d, v, c) =>
       HookConfig(
         variant = Variant.orDefault(v),
         timeMode = if d.isDefined then TimeMode.Correspondence else TimeMode.RealTime,
@@ -96,8 +94,6 @@ object SetupForm:
         increment = i | Clock.IncrementSeconds(5),
         moveTimeLimit = ml,
         days = d | Days(7),
-        rated = r | Rated.No,
-        ratingRange = g.fold(RatingRange.default)(RatingRange.orDefault),
         color = lila.lobby.TriColor.orDefault(c)
       )
     )(_ => none)
@@ -164,7 +160,8 @@ object SetupForm:
         message,
         "keepAliveStream" -> optional(boolean),
         rules,
-        "onlyIfOpponentFollowsMe" -> optional(boolean)
+        "onlyIfOpponentFollowsMe" -> optional(boolean),
+        adjudicationRules
       )(ApiConfig.from)(_ => none)
         .verifying("invalidFen", _.validFen)
         .verifying("Time per move requires a clock", _.validMoveTimeLimit)
@@ -178,7 +175,8 @@ object SetupForm:
         moveTimeLimit,
         optionalDays,
         "color" -> optional(color),
-        "fen" -> fenField
+        "fen" -> fenField,
+        adjudicationRules
       )(ApiAiConfig.from)(_ => none)
         .verifying("invalidFen", _.validFen)
         .verifying("Time per move requires a clock", _.validMoveTimeLimit)
@@ -206,8 +204,9 @@ object SetupForm:
       rules,
       "expiresAt" -> optional:
         inTheFuture(ISOInstantOrTimestamp.mapping)
-          .verifying("Open challenges must expire within 2 weeks", _.isBefore(nowInstant.plusWeeks(2)))
+          .verifying("Open challenges must expire within 2 weeks", _.isBefore(nowInstant.plusWeeks(2))),
+      adjudicationRules
     )(OpenConfig.from)(_ => none)
       .verifying("invalidFen", _.validFen)
       .verifying("Time per move requires a clock", _.validMoveTimeLimit)
-      .verifying("rated without a clock", c => c.clock.isDefined || c.days.isDefined || c.rated.no)
+      .verifying("Only the 15-minute Xiangqi pool is ranked", _.rated.no)

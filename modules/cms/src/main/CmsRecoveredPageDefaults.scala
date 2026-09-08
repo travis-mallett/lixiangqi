@@ -230,16 +230,16 @@ object CmsRecoveredPageDefaults:
       "/page/network-administrators"
     ),
     "rating-systems" -> DefaultPage(
-      "Lixiangqi rating systems",
-      """Lixiangqi uses Glicko-2 ratings. A rating is an estimate, not a permanent score.
+      "Lixiangqi ranks",
+      """Ranked Xiangqi uses the native rank system familiar from Chinese online Xiangqi. Players begin at 学1-3 with -160 points, and the public identity of the result is the rank title rather than an Elo number.
         |
-        |Each rating includes a central estimate and a rating deviation that represents uncertainty. New or inactive ratings have greater uncertainty and can move more quickly. Regular play reduces uncertainty.
+        |Against a player at the same rank, a win gains 10 points and a loss costs 10. Against a player one rank apart, the lower-ranked player gains 15 for an upset and loses 5; the higher-ranked player gains 5 or loses 15. Draws do not change either score. Ranked matchmaking only pairs players at the same or an adjacent rank.
         |
-        |Ratings are separated by speed or competition pool where the site presents separate leaderboards. A rating from another server, federation, or time control is not directly interchangeable.
+        |The score cannot fall below -250 (学1-1). Crossing a published threshold changes the displayed title, through the student 学, amateur 业, and professional 专 levels. The title remains 专3-3 above 7000 points. Your exact point total is available in your own detailed profile; public lists primarily show the rank title.
         |
-        |The provisional marker indicates that uncertainty is still high. It disappears after enough relevant results and may return after a long period without games.
+        |There is one Xiangqi rank, earned only in the ranked 15-minute room on the home page. Other clocks, challenges, rematches, tournaments, correspondence games, computer games, and custom positions are casual and cannot change it.
         |
-        |Ratings are recalculated from results and opponent estimates; moderators may also reverse or adjust results affected by abuse or fair-play violations.
+        |Puzzles are separate. Puzzle performance continues to use Glicko-2 and never affects a player's Xiangqi rank. Future game variants may have their own named rank track and threshold table without changing the Xiangqi track.
         |""".stripMargin,
       "/page/rating-systems"
     ),
@@ -294,11 +294,11 @@ object CmsRecoveredPageDefaults:
     ),
     "xiangqi-insights" -> DefaultPage(
       "Xiangqi Insights",
-      """Insights explores patterns across your rated Lixiangqi games.
+      """Insights explores patterns across your ranked Lixiangqi games.
         |
         |Choose a question, a metric, and filters such as colour, result, opponent strength, clock, or date. The result is an aggregate view of your own game history, not a judgment about a single move.
         |
-        |Useful questions include whether performance changes by colour, which time controls produce the most time trouble, and how results vary against different rating ranges.
+        |Useful questions include whether performance changes by colour, which clocks produce the most time trouble, and how results vary against different rank levels.
         |
         |Insights requires an account with enough completed games. [Sign in to open Insights](/login?referrer=/insights).
         |""".stripMargin,

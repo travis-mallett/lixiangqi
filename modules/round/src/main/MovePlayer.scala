@@ -30,7 +30,7 @@ final private class MovePlayer(
       pov: Pov
   )(using proxy: GameProxy): Fu[Events] =
     import pov.{ game, color }
-    if game.ply > lila.game.Game.maxPlies then
+    if game.playedPlies >= lila.game.Game.maxPlies then
       round ! TooManyPlies
       fuccess(Nil)
     else if game.playableBy(color) then
@@ -53,7 +53,7 @@ final private class MovePlayer(
       round: RoundAsyncActor
   )(pov: Pov)(using proxy: GameProxy): Fu[Events] =
     import pov.{ game, color }
-    if game.ply > lila.game.Game.maxPlies then
+    if game.playedPlies >= lila.game.Game.maxPlies then
       round ! TooManyPlies
       fuccess(Nil)
     else if game.playableBy(color) then
@@ -78,7 +78,7 @@ final private class MovePlayer(
     notifyMove(move, progress.game)
     if progress.game.finished then moveFinish(progress.game).dmap { progress.events ::: _ }
     else
-      if progress.game.playableByAi then requestFishnet(progress.game, round)
+      if progress.game.playableByAi then round ! RoundAsyncActor.ReconcileAiTurn
       if pov.opponent.isOfferingDraw then round ! RoundBus.Draw(pov.player.id, false)
       if pov.opponent.isProposingTakeback then round ! RoundBus.Takeback(pov.player.id, false)
       if progress.game.forecastable then round ! ForecastPlay(move.move)
@@ -98,31 +98,40 @@ final private class MovePlayer(
             fufail:
               FishnetError:
                 s"Invalid game hash: $sign id: ${game.id} playable: ${game.playable} player: ${game.player}"
-          else
-            applyUci(game, uci, blur = false, metrics = fishnetLag)
-              .fold(error => fufail(ClientError(error)), fuccess)
-              .flatMap:
-                case Flagged => finisher.outOfTime(game)
-                case MoveApplied(progress, move, _) =>
-                  for
-                    _ <- proxy.save(progress)
-                    _ =
-                      uciMemo.add(progress.game, move.move)
-                      lila.mon.fishnet.move(~game.aiLevel).increment()
-                      notifyMove(move, progress.game)
-                    events <-
-                      if progress.game.finished then moveFinish(progress.game).dmap { progress.events ::: _ }
-                      else fuccess(progress.events)
-                  yield events
+          else applyFishnetMove(game, uci)
     else
       fufail:
         FishnetError:
           s"Not AI turn move: ${uci.value} id: ${game.id} playable: ${game.playable} player: ${game.player}"
 
-  private[round] def requestFishnet(game: Game, round: RoundAsyncActor): Unit =
-    game.playableByAi.so:
-      if game.ply <= lila.core.fishnet.maxPlies then Bus.pub(lila.core.fishnet.FishnetMoveRequest(game))
-      else round ! ResignAi
+  private[round] def fishnetV2(
+      game: Game,
+      turnKey: lila.core.fishnet.AiTurnKey,
+      uci: Xiangqi.Uci
+  )(using proxy: GameProxy): Fu[Events] =
+    if game.playable && game.player.isAi && lila.core.fishnet.AiTurnKey.from(game).contains(turnKey) then
+      applyFishnetMove(game, uci)
+    else
+      fufail:
+        FishnetError:
+          s"Stale AI turn ${turnKey.value.take(12)} move: ${uci.value} id: ${game.id}"
+
+  private def applyFishnetMove(game: Game, uci: Xiangqi.Uci)(using proxy: GameProxy): Fu[Events] =
+    applyUci(game, uci, blur = false, metrics = fishnetLag)
+      .fold(error => fufail(ClientError(error)), fuccess)
+      .flatMap:
+        case Flagged => finisher.outOfTime(game)
+        case MoveApplied(progress, move, _) =>
+          for
+            _ <- proxy.save(progress)
+            _ =
+              uciMemo.add(progress.game, move.move)
+              lila.mon.fishnet.move(~game.aiLevel).increment()
+              notifyMove(move, progress.game)
+            events <-
+              if progress.game.finished then moveFinish(progress.game).dmap { progress.events ::: _ }
+              else fuccess(progress.events)
+          yield events
 
   private val fishnetLag = MoveMetrics(clientLag = Centis(5).some)
   private val botLag = MoveMetrics(clientLag = Centis(0).some)

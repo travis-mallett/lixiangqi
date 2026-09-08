@@ -7,7 +7,8 @@ import lila.app.UiEnv.{ *, given }
 import lila.app.mashup.UserInfo
 import lila.core.data.SafeJsonStr
 import lila.game.GameFilter
-import lila.rating.UserWithPerfs.titleUsernameWithBestRating
+import lila.core.rank.RankCode.*
+import lila.rating.UserPerfsExt.*
 
 lazy val ui = lila.user.ui.UserShow(helpers, bits)
 
@@ -27,7 +28,7 @@ object page:
       .graph(
         OpenGraph(
           image = staticAssetUrl("logo/lichess-tile-wide.png").some,
-          title = u.titleUsernameWithBestRating,
+          title = u.perfs.xiangqiRankCode.fold(u.titleUsername)(code => s"${code.value} ${u.titleUsername}"),
           url = routeUrl(routes.User.show(u.username)),
           description = ui.describeUser(u)
         )
@@ -39,7 +40,7 @@ object page:
       .css(isGranted(_.UserModView).option("mod.user"))
       .flag(_.noRobots, !indexable(u)):
         main(cls := "page-menu", ui.dataUsername := u.username)(
-          st.aside(cls := "page-menu__menu")(side(u, info.ranks, none)),
+          st.aside(cls := "page-menu__menu")(side(u, none)),
           div(cls := "page-menu__content box user-show")(
             views.user.show.header(u, info, UserInfo.Angle.Activity, social),
             div(cls := "angle-content")(views.activity(u, activities))
@@ -64,7 +65,7 @@ object page:
       .css(isGranted(_.UserModView).option("mod.user"))
       .flag(_.noRobots, !indexable(u)):
         main(cls := "page-menu", ui.dataUsername := u.username)(
-          st.aside(cls := "page-menu__menu")(side(u, info.ranks, none)),
+          st.aside(cls := "page-menu__menu")(side(u, none)),
           div(cls := "page-menu__content box user-show")(
             views.user.show.header(u, info, UserInfo.Angle.Games(searchForm), social),
             div(cls := "angle-content"):
@@ -105,7 +106,7 @@ object page:
     filter match
       case GameFilter.all => transLocalize(trans.site.nbGames, u.count.game)
       case GameFilter.me => nbs.withMe.so { transLocalize(trans.site.nbGamesWithYou, _) }
-      case GameFilter.rated => transLocalize(trans.site.nbRated, u.count.rated)
+      case GameFilter.ranked => transLocalize(trans.site.nbRanked, u.count.ranked)
       case GameFilter.win => transLocalize(trans.site.nbWins, u.count.win)
       case GameFilter.loss => transLocalize(trans.site.nbLosses, u.count.loss)
       case GameFilter.draw => transLocalize(trans.site.nbDraws, u.count.draw)

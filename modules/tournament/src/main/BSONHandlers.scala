@@ -3,17 +3,19 @@ package lila.tournament
 import chess.Rated
 import chess.format.Fen
 import chess.variant.Variant
-import chess.IntRating
 import reactivemongo.api.bson.*
 
 import lila.core.id.TourPlayerId
+import lila.core.rank.{ RankCode, RankDiff, RankScore, RankSnapshot, RankTrackId }
+import lila.core.rank.RankTrackId.*
 import lila.core.tournament.Status
 import lila.core.tournament.leaderboard.Ratio
 import lila.db.BSON
 import lila.db.dsl.{ *, given }
-import lila.rating.PerfType
+import lila.rating.XiangqiRank
 
 object BSONHandlers:
+
 
   private[tournament] given BSONHandler[Status] = valueMapHandler(Status.byId)(_.id)
 
@@ -37,6 +39,31 @@ object BSONHandlers:
   )
 
   import TournamentCondition.bsonHandler
+
+  private given BSON[RankSnapshot] with
+    def reads(r: BSON.Reader) = RankSnapshot(
+      track = r.strO("t").flatMap(RankTrackId.from).getOrElse(RankTrackId.xiangqi),
+      score = RankScore(r.int("s")),
+      code = RankCode(r.str("c")),
+      ordinal = r.int("o"),
+      catalogVersion = r.intO("cv").orElse(r.intO("v")).getOrElse(XiangqiRank.firstCatalogVersion),
+      policyVersion = r.intO("pv").getOrElse(XiangqiRank.firstPolicyVersion),
+      established = r.boolD("e"),
+      diff = r.intO("d").map(RankDiff.apply),
+      after = r.strO("a").map(RankCode.apply)
+    )
+
+    def writes(w: BSON.Writer, rank: RankSnapshot) = $doc(
+      "t" -> rank.track.value,
+      "s" -> rank.score.value,
+      "c" -> rank.code.value,
+      "o" -> rank.ordinal,
+      "cv" -> rank.catalogVersion,
+      "pv" -> rank.policyVersion,
+      "e" -> rank.established.option(true),
+      "d" -> rank.diff.map(_.value),
+      "a" -> rank.after.map(_.value)
+    )
 
   given tourHandler: BSON[Tournament] with
     def reads(r: BSON.Reader) =
@@ -67,7 +94,7 @@ object BSONHandlers:
         minutes = r.int("minutes"),
         variant = variant,
         position = position,
-        rated = r.intO("mode").flatMap(Rated.apply).getOrElse(Rated.Yes),
+        rated = Rated.No,
         password = r.strO("password"),
         conditions = conditions,
         teamBattle = r.getO[TeamBattle]("teamBattle"),
@@ -83,7 +110,11 @@ object BSONHandlers:
         spotlight = r.getO[Spotlight]("spotlight"),
         description = r.strO("description"),
         payouts = r.getO[Payouts]("payouts"),
-        hasChat = r.boolO("chat").getOrElse(true)
+        hasChat = r.boolO("chat").getOrElse(true),
+        ruleset = if r.contains("ruleset") then
+          lila.xiangqi.adjudication.Ruleset.fromKey(r.str("ruleset")).fold(sys.error, identity)
+          else if status == Status.created then lila.xiangqi.adjudication.Ruleset.default
+          else lila.xiangqi.adjudication.Ruleset.Unrestricted
       )
     def writes(w: BSON.Writer, o: Tournament) =
       $doc(
@@ -94,7 +125,6 @@ object BSONHandlers:
         "minutes" -> o.minutes,
         "variant" -> o.variant.some.filterNot(_.standard).map(_.id),
         "fen" -> o.position,
-        "mode" -> o.rated.some.filter(_.no).map(_.id),
         "password" -> o.password,
         "conditions" -> o.conditions.nonEmpty.option(o.conditions),
         "teamBattle" -> o.teamBattle,
@@ -110,7 +140,8 @@ object BSONHandlers:
         "spotlight" -> o.spotlight,
         "description" -> o.description,
         "payouts" -> o.payouts,
-        "chat" -> (!o.hasChat).option(false)
+        "chat" -> (!o.hasChat).option(false),
+        "ruleset" -> o.ruleset.key
       )
 
   given BSON[Player] with
@@ -119,12 +150,10 @@ object BSONHandlers:
         _id = r.get[TourPlayerId]("_id"),
         tourId = r.get("tid"),
         userId = r.get("uid"),
-        rating = r.get("r"),
-        provisional = r.yesnoD("pr"),
+        rank = r.getO[RankSnapshot]("xr").getOrElse(XiangqiRank.initialSnapshot),
         withdraw = r.boolD("w"),
         score = r.intD("s"),
         fire = r.boolD("f"),
-        performance = r.getO[IntRating]("e"),
         team = r.getO[TeamId]("t"),
         bot = r.boolD("bot")
       )
@@ -133,13 +162,11 @@ object BSONHandlers:
         "_id" -> o._id,
         "tid" -> o.tourId,
         "uid" -> o.userId,
-        "r" -> o.rating,
-        "pr" -> w.yesnoO(o.provisional),
+        "xr" -> o.rank,
         "w" -> w.boolO(o.withdraw),
         "s" -> w.intO(o.score),
         "m" -> o.magicScore,
         "f" -> w.boolO(o.fire),
-        "e" -> o.performance,
         "t" -> o.team,
         "bot" -> w.boolO(o.bot)
       )
@@ -185,8 +212,6 @@ object BSONHandlers:
         score = r.int("s"),
         rank = r.get("r"),
         rankRatio = r.get("w"),
-        freq = r.intO("f").flatMap(Schedule.Freq.byId.get),
-        perf = PerfType.byId.get(r.get("v")).err("Invalid leaderboard perf"),
         date = r.date("d")
       )
 
@@ -199,9 +224,5 @@ object BSONHandlers:
         "s" -> o.score,
         "r" -> o.rank,
         "w" -> o.rankRatio,
-        "f" -> o.freq.map(_.id),
-        "v" -> o.perf.id,
         "d" -> w.date(o.date)
       )
-
-  given leaderboardAggResult: BSONDocumentHandler[LeaderboardApi.ChartData.AggregationResult] = Macros.handler

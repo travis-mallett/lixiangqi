@@ -17,7 +17,6 @@ import lila.common.autoconfig.given
 final class Env(
     appConfig: Configuration,
     db: lila.db.Db,
-    perfStat: lila.core.perf.PerfStatApi,
     settingStore: lila.memo.SettingStore.Builder,
     reportApi: lila.report.ReportApi,
     lightUserApi: lila.user.LightUserApi,
@@ -29,17 +28,14 @@ final class Env(
     userRepo: lila.user.UserRepo,
     userApi: lila.user.UserApi,
     userJsonView: lila.user.JsonView,
-    perfsRepo: lila.user.UserPerfsRepo,
     chatApi: lila.chat.ChatApi,
     notifyApi: lila.core.notify.NotifyApi,
-    historyApi: lila.core.history.HistoryApi,
     prefApi: lila.core.pref.PrefApi,
-    rankingApi: lila.user.RankingApi,
     noteApi: lila.user.NoteApi,
     cacheApi: lila.memo.CacheApi,
     ircApi: lila.core.irc.IrcApi,
     msgApi: lila.core.msg.MsgApi
-)(using Executor, Scheduler, lila.core.i18n.Translator, org.apache.pekko.stream.Materializer):
+)(using Executor, Scheduler, org.apache.pekko.stream.Materializer):
 
   val mailerEventsUrl = appConfig.get[Url]("mailer.events.url")
 
@@ -55,7 +51,7 @@ final class Env(
 
   private lazy val notifier = wire[ModNotifier]
 
-  private lazy val ratingRefund = wire[RatingRefund]
+  private lazy val rankRefund = wire[RankRefund]
 
   lazy val publicChat = wire[PublicChat]
 

@@ -2,17 +2,11 @@ import { h } from 'snabbdom';
 
 import { licon } from 'lib/licon';
 import { dataIcon } from 'lib/view';
-import { fullName, userLine, userRating } from 'lib/view/userLink';
+import { fullName, userLine } from 'lib/view/userLink';
 
 import type { SimplePlayer } from '../interfaces';
 
-export const player = (
-  p: SimplePlayer,
-  asLink: boolean,
-  withRating: boolean,
-  defender = false,
-  leader = false,
-) =>
+export const player = (p: SimplePlayer, asLink: boolean, defender = false, leader = false) =>
   h(
     'a.ulpt.user-link.online' + (((p.title || '') + p.name).length > 15 ? '.long' : ''),
     {
@@ -25,6 +19,6 @@ export const player = (
         defender ? { attrs: dataIcon(licon.Shield) } : leader ? { attrs: dataIcon(licon.Crown) } : {},
         [p.patronColor && userLine({ patronColor: p.patronColor }), ...fullName(p)],
       ),
-      withRating ? h('span.rating', userRating({ ...p, brackets: false })) : null,
+      p.rankTitle ? h('span.rank-title', p.rankTitle) : null,
     ],
   );

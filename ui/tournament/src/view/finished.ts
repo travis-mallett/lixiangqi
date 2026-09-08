@@ -25,7 +25,6 @@ function stats(ctrl: TournamentController): VNode | undefined {
   const data = ctrl.data;
   if (!data.stats) return undefined;
   const tableData = [
-    ctrl.opts.showRatings ? numberRow(i18n.site.averageElo, data.stats.averageRating, 'raw') : null,
     numberRow(i18n.site.gamesPlayed, data.stats.games),
     numberRow(i18n.site.movesPlayed, data.stats.moves),
     numberRow(i18n.site.whiteWins, [data.stats.whiteWins, data.stats.games], 'percent'),

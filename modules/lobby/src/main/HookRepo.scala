@@ -56,14 +56,3 @@ final private class HookRepo:
   def hooksToCleanup: Set[Hook] =
     val limit = nowInstant.minusMinutes(15)
     hooks.values.view.filter(_.createdAt.isBefore(limit)).toSet
-
-  // O(n)
-  // invoked regularly when stealing hooks for pools
-  def poolCandidates(
-      clock: chess.Clock.Config,
-      moveTimeLimit: Option[lila.core.game.MoveTimeLimit]
-  ): Vector[lila.core.pool.HookThieve.PoolHook] =
-    hooks.values
-      .withFilter(_.compatibleWithPool(clock, moveTimeLimit))
-      .flatMap(Hook.asPoolHook)
-      .toVector

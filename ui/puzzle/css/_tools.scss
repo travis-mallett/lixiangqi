@@ -1,5 +1,7 @@
+@import '../../lib/css/component/replay-panel';
+
 .puzzle__tools {
-  @extend %box-neat-force, %flex-column;
+  @extend %box-neat-force, %replay-panel;
 
   background: $c-bg-box;
 
@@ -17,12 +19,10 @@
 }
 
 .puzzle__moves {
+  @extend %replay-moves;
   @include prevent-select;
 
   flex: 2 1 auto;
-  overflow: auto;
-  border-bottom: $border;
-  position: relative;
 
   /* required by line::before */
 
@@ -56,6 +56,7 @@
 }
 
 .puzzle__feedback {
+  @extend %replay-feedback;
   @extend %flex-column;
 
   flex: 1 0 9rem;

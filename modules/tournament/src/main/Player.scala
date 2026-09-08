@@ -1,22 +1,21 @@
 package lila.tournament
 
 import scalalib.ThreadLocalRandom
-import chess.IntRating
-import chess.rating.RatingProvisional
 
 import lila.core.LightUser
+import lila.core.rank.{ RankCode, RankSnapshot }
+import lila.core.rank.RankCode.*
 import lila.core.user.WithPerf
+import lila.rating.XiangqiRank
 
 case class Player(
     _id: TourPlayerId, // random
     tourId: TourId,
     userId: UserId,
-    rating: IntRating,
-    provisional: RatingProvisional,
+    rank: RankSnapshot,
     withdraw: Boolean = false,
     score: Int = 0,
     fire: Boolean = false,
-    performance: Option[IntRating] = None,
     team: Option[TeamId] = None,
     bot: Boolean = false
 ):
@@ -28,11 +27,15 @@ case class Player(
   def doWithdraw = copy(withdraw = true)
   def unWithdraw = copy(withdraw = false)
 
-  def magicScore = score * 10000 + (performance | rating).value
+  def magicScore = score * Player.magicScoreBase + rank.ordinal
 
-  def showRating = s"$rating${provisional.yes.so("?")}"
+  def rankTitle: Option[RankCode] = rank.publicCode
+  def showRank: String = rank.publicCode.fold("Unranked")(_.value)
 
 object Player:
+
+  /** Tournament points always dominate the native-rank tie-breaker. */
+  val magicScoreBase = 100000
 
   given UserIdOf[Player] = _.userId
 
@@ -49,8 +52,7 @@ object Player:
     _id = TourPlayerId(ThreadLocalRandom.nextString(8)),
     tourId = tourId,
     userId = user.id,
-    rating = user.perf.intRating,
-    provisional = user.perf.provisional,
+    rank = user.rank.getOrElse(XiangqiRank.initialSnapshot),
     team = team,
     bot = bot
   )

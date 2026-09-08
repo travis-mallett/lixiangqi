@@ -235,16 +235,6 @@ export interface AnaMove {
   orig: string;
   dest: string;
   path: string;
-  variant?: VariantKey;
-  ch?: string;
-  promotion?: Role;
-}
-
-export interface AnaDrop {
-  role: Role;
-  pos: Key;
-  variant?: VariantKey;
-  path: string;
   ch?: string;
 }
 export interface ServerNodeMsg extends WithWhoAndPos {

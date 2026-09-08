@@ -34,6 +34,9 @@ enum NotificationContent(val key: String):
       icon: String // should be lila.ui.Icon
   ) extends NotificationContent("genericLink")
   case ReportedBanned extends NotificationContent("reportedBanned")
+  case RankRefund(points: Int) extends NotificationContent("rankRefund")
+
+  /** Read-only compatibility for notifications created before native Xiangqi ranking. */
   case RatingRefund(perf: String, points: Int) extends NotificationContent("ratingRefund")
   case GameEnd(gameId: GameFullId, opponentId: Option[UserId], win: Option[Boolean])
       extends NotificationContent("gameEnd")

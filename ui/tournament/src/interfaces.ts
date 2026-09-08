@@ -28,7 +28,6 @@ export interface TournamentOpts {
   $faq: Cash;
   userId?: string;
   chat?: any;
-  showRatings: boolean;
 }
 
 export interface TournamentData {
@@ -90,7 +89,6 @@ export interface TournamentData {
     blackWins: number;
     draws: number;
     berserks: number;
-    averageRating: number;
   };
   duels: Duel[];
   duelTeams?: DuelTeams;
@@ -115,10 +113,9 @@ export interface FeaturedGame {
 
 export interface SimplePlayer {
   name: string;
-  rating: number;
+  rankTitle?: string;
   title?: string;
   flair?: string;
-  provisional?: boolean;
   patronColor?: PatronColor;
 }
 
@@ -160,7 +157,6 @@ export interface Player extends SimplePlayer {
   rank: number;
   score: number;
   nb: Nb;
-  performance?: number;
   withdraw?: boolean;
   team?: string;
 }
@@ -169,7 +165,7 @@ export interface Pairing {
   id: string;
   color: Color;
   op: {
-    rating: number;
+    rankTitle?: string;
     name: string;
     title?: string;
     berserk?: boolean;
@@ -188,8 +184,7 @@ export interface PlayerInfo {
 export interface TeamInfo {
   id: string;
   nbPlayers: number;
-  rating: number;
-  perf: number;
+  rank?: string;
   score: number;
   topPlayers: TeamPlayer[];
   joined?: boolean;
@@ -197,7 +192,7 @@ export interface TeamInfo {
 
 export interface TeamPlayer {
   name: string;
-  rating: number;
+  rankTitle?: string;
   score: number;
   fire: boolean;
   title?: string;
@@ -210,7 +205,7 @@ export interface Duel {
 
 export interface DuelPlayer {
   n: string; // name
-  r: number; // rating
+  c: string; // Xiangqi rank title
   k: number; // rank
   t?: string; // title
 }
@@ -218,7 +213,7 @@ export interface DuelPlayer {
 export type DuelTeams = Record<string, string>;
 
 export interface PodiumPlayer extends LightUser {
-  performance?: number;
+  rankTitle?: string;
   nb: Nb;
 }
 
@@ -244,13 +239,11 @@ export interface Tournament {
     position: number;
     name: string;
   };
-  hasMaxRating: boolean;
   variant: Variant;
   startsAt: number;
   finishesAt: number;
   status: number;
   position: number;
-  rated: boolean;
   minutes: number;
   createdBy: string;
   clock: Clock;

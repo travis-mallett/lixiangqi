@@ -126,7 +126,10 @@ export function renderMain(
 
 export const renderBoard = ({ ctrl, study, playerBars, playerStrips }: ViewContext): VNode =>
   hl(
-    addChapterId(study, 'div.analyse__board.main-board'),
+    addChapterId(
+      study,
+      `div.analyse__board.main-board${ctrl.variantKey === 'xiangqi' ? '.xiangqi9x10' : ''}`,
+    ),
     {
       hook:
         'ontouchstart' in window || !storage.boolean('scrollMoves').getOrDefault(true)

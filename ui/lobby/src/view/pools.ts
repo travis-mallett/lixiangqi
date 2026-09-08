@@ -29,7 +29,7 @@ export const hooks = (ctrl: LobbyController): Hooks =>
     el.addEventListener('keydown', handler);
   });
 
-export function render({ pools, poolMember, opts }: LobbyController) {
+export function render({ pools, poolMember }: LobbyController) {
   return pools
     .map(pool => {
       const active = poolMember?.id === pool.id;
@@ -47,10 +47,8 @@ export function render({ pools, poolMember, opts }: LobbyController) {
         [
           h('div.clock', `${pool.lim}+${pool.inc}`),
           active
-            ? poolMember.range && opts.showRatings
-              ? h('div.range', poolMember.range.replace('-', '–'))
-              : spinnerVdom()
-            : h('div.perf', pool.moveTime ? formatMoveTimeCompact(pool.moveTime) : pool.perf),
+            ? spinnerVdom()
+            : h('div.perf', pool.moveTime ? formatMoveTimeCompact(pool.moveTime) : pool.name),
         ],
       );
     })

@@ -272,6 +272,23 @@ class XiangqiTest extends FunSuite:
     assertEquals(first.children.map(_.state.ply), Vector(2, 2))
     assertEquals(first.children.map(_.children.head.move.value), Vector("c4c5", "c4c5"))
 
+  test("imported repetition remains unrestricted and replays with the same policy"):
+    val notation = Vector.fill(5)("b1c3 b10c8 c3b1 c8b10").mkString(" ")
+    val imported = XiangqiRules.Notation
+      .importTree(NotationImport(notation = notation))
+      .fold(fail(_), identity)
+      .mainline
+    assertEquals(imported.ruleset, lila.xiangqi.adjudication.Ruleset.Unrestricted)
+    assertEquals(imported.moves.size, 20)
+    assert(!imported.state.ended)
+    assertEquals(XiangqiRules.game(imported.position), Right(imported))
+
+  test("a standalone snapshot does not invent a Tiantian history"):
+    val state = XiangqiRules.position(Position()).fold(fail(_), identity)
+    val game = Game.fromState(startFen, state).fold(fail(_), identity)
+    assertEquals(game.ruleset, lila.xiangqi.adjudication.Ruleset.Unrestricted)
+    assertEquals(game.state.adjudication, None)
+
   test("native notation import accepts WXF Chinese"):
     val tree = XiangqiRules.Notation
       .importTree(NotationImport(notation = "1. 兵九进一 卒1进1"))

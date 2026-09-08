@@ -246,15 +246,17 @@ final class Clas(env: Env, authC: Auth) extends LilaController(env):
   }
 
   def progress(id: ClasId, perfKey: PerfKey, days: Days) = Secure(_.Teacher) { ctx ?=> me ?=>
-    WithClass(id): clas =>
-      env.clas.api.student.activeWithUsers(clas).flatMap { students =>
-        Reasonable(clas, students, "progress"):
-          for
-            progress <- env.clas.progressApi(perfKey, days, students)
-            students <- env.clas.api.student.withPerf(students, perfKey)
-            page <- renderPage(views.clas.teacherDashboard.progress(clas, students, progress))
-          yield Ok(page)
-      }
+    if perfKey != PerfKey.puzzle then fuccess(Redirect(routes.Clas.progress(id, PerfKey.puzzle, days)))
+    else
+      WithClass(id): clas =>
+        env.clas.api.student.activeWithUsers(clas).flatMap { students =>
+          Reasonable(clas, students, "progress"):
+            for
+              progress <- env.clas.progressApi(perfKey, days, students)
+              students <- env.clas.api.student.withPerf(students, perfKey)
+              page <- renderPage(views.clas.teacherDashboard.progress(clas, students, progress))
+            yield Ok(page)
+        }
   }
 
   def learn(id: ClasId) = Secure(_.Teacher) { ctx ?=> me ?=>

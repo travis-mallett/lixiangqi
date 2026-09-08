@@ -6,16 +6,27 @@
     <encoder><pattern>%d{HH:mm:ss.SSS} %coloredLevel %logger{30} - %message%n%xException{20}</pattern></encoder>
   </appender>
 
-  <appender name="ALL_FILE" class="ch.qos.logback.core.FileAppender">
+  <appender name="ALL_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
     <file>${application.home:-.}/logs/all.log</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+      <fileNamePattern>${application.home:-.}/logs/all.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+      <maxFileSize>10MB</maxFileSize>
+      <maxHistory>14</maxHistory>
+      <totalSizeCap>200MB</totalSizeCap>
+    </rollingPolicy>
     <encoder><pattern>%date %-5level %logger{30} %message%n%xException{60}</pattern></encoder>
   </appender>
 
-  <!-- uncapped stacktraces for error logs - looking for stack overflows -->
-  <!-- requires -XX:MaxJavaStackTraceDepth=100000 -->
-  <appender name="ERROR_FILE" class="ch.qos.logback.core.FileAppender">
+  <!-- Keep full error stacktraces while bounding retained log files. -->
+  <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
     <filter class="ch.qos.logback.classic.filter.ThresholdFilter"><level>ERROR</level></filter>
     <file>${application.home:-.}/logs/error.log</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+      <fileNamePattern>${application.home:-.}/logs/error.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+      <maxFileSize>10MB</maxFileSize>
+      <maxHistory>14</maxHistory>
+      <totalSizeCap>200MB</totalSizeCap>
+    </rollingPolicy>
     <encoder><pattern>%date %-5level %logger %message%n%xException</pattern></encoder>
   </appender>
 

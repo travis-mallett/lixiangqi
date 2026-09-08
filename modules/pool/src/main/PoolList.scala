@@ -4,7 +4,8 @@ import chess.Clock
 import play.api.libs.json.Json
 
 import lila.core.pool.IsClockCompatible
-import lila.core.game.MoveTimeLimit
+import lila.core.game.{ MoveTimeLimit, RankedGame }
+import lila.core.rank.RankTrackId
 
 object PoolList:
 
@@ -29,7 +30,12 @@ object PoolList:
   )
 
   val homepage: List[PoolConfig] = List(
-    homepagePool(minutes = 15, normalMoveSeconds = 90, wave = Wave(30.seconds, 20.players)),
+    PoolConfig(
+      clock = RankedGame.xiangqiClock,
+      wave = Wave(30.seconds, 20.players),
+      moveTimeLimit = RankedGame.xiangqiMoveTime.some,
+      rankTrack = RankTrackId.xiangqi.some
+    ),
     homepagePool(minutes = 5, normalMoveSeconds = 60, wave = Wave(14.seconds, 40.players)),
     homepagePool(minutes = 10, normalMoveSeconds = 60, wave = Wave(13.seconds, 30.players)),
     homepagePool(minutes = 20, normalMoveSeconds = 60, wave = Wave(30.seconds, 20.players))
@@ -37,14 +43,20 @@ object PoolList:
 
   val all: List[PoolConfig] = lobby ::: homepage
 
-  private def homepagePool(minutes: Int, normalMoveSeconds: Int, wave: Wave) =
+  private def homepagePool(
+      minutes: Int,
+      normalMoveSeconds: Int,
+      wave: Wave,
+      rankTrack: Option[RankTrackId] = None
+  ) =
     PoolConfig(
       minutes ++ 0,
       wave,
       MoveTimeLimit(
         normalMoveSeconds,
         MoveTimeLimit.FirstPhase(moves = 3, seconds = 30).some
-      ).some
+      ).some,
+      rankTrack = rankTrack
     )
 
   private val timeControls = all.view.map(p => p.clock -> p.moveTimeLimit).toSet
@@ -52,5 +64,5 @@ object PoolList:
   given isClockCompatible: IsClockCompatible = IsClockCompatible: (clock, moveTimeLimit) =>
     timeControls.contains(clock -> moveTimeLimit)
 
-  def json(using lila.core.i18n.Translate) = Json.toJson(lobby)
-  def homepageJson(using lila.core.i18n.Translate) = Json.toJson(homepage)
+  def json = Json.toJson(lobby)
+  def homepageJson = Json.toJson(homepage)

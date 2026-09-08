@@ -4,6 +4,8 @@ import chess.{ ByColor, Color, IntRating, PlayerName, Ply }
 import chess.rating.RatingProvisional
 
 import lila.core.game.{ Blurs, LightGame, Player }
+import lila.core.rank.{ RankCode, RankDiff, RankScore, RankSnapshot, RankTrackId }
+import lila.core.rank.RankTrackId.*
 import lila.core.user.WithPerf
 import lila.game.Blurs.{ nonEmpty, given }
 
@@ -47,8 +49,22 @@ object Player:
       provisional = provisional
     )
 
+  def make(color: Color, userId: UserId, rank: RankSnapshot): Player =
+    new Player(
+      id = IdGenerator.player(color),
+      color = color,
+      aiLevel = none,
+      userId = userId.some,
+      rank = rank.some
+    )
+
   def make(color: Color, user: Option[WithPerf]): Player =
-    user.fold(makeAnon(color))(u => make(color, u.user.id -> u.perf))
+    user.fold(makeAnon(color)): u =>
+      make(
+        color,
+        u.id,
+        u.rank.getOrElse(lila.rating.XiangqiRank.snapshot(lila.rating.XiangqiRank.initial))
+      )
 
   def makeImported(
       color: Color,
@@ -84,6 +100,7 @@ object Player:
     val rating = "e"
     val ratingDiff = "d"
     val provisional = "p"
+    val rank = "rk"
     val blursBits = "l"
     val holdAlert = "h"
     val berserk = "be"
@@ -101,6 +118,7 @@ object Player:
       isOfferingDraw = doc.booleanLike(isOfferingDraw).getOrElse(false),
       proposeTakebackAt = Ply(doc.int(proposeTakebackAt).getOrElse(0)),
       userId = p.userId,
+      rank = rankRead(doc),
       rating = p.rating,
       ratingDiff = p.ratingDiff,
       provisional = p.provisional,
@@ -116,10 +134,45 @@ object Player:
       aiLevel -> p.aiLevel,
       isOfferingDraw -> p.isOfferingDraw.option(true),
       proposeTakebackAt -> p.proposeTakebackAt.some.filter(_ > 0),
+      rank -> p.rank.map(rankWrite),
       rating -> p.rating,
       ratingDiff -> p.ratingDiff,
       provisional -> p.provisional.yes.option(true),
       blursBits -> p.blurs.nonEmpty.so(p.blurs),
       blindfold -> p.blindfold,
       name -> p.name
+    )
+
+  private[game] def rankRead(doc: Bdoc): Option[RankSnapshot] =
+    for
+      rank <- doc.getAsOpt[Bdoc](BSONFields.rank)
+      trackValue <- rank.getAsOpt[String]("t")
+      track <- RankTrackId.from(trackValue)
+      score <- rank.getAsOpt[Int]("s")
+      code <- rank.getAsOpt[String]("c")
+      ordinal <- rank.getAsOpt[Int]("o")
+      catalogVersion <- rank.getAsOpt[Int]("cv")
+    yield RankSnapshot(
+      track = track,
+      score = RankScore(score),
+      code = RankCode(code),
+      ordinal = ordinal,
+      catalogVersion = catalogVersion,
+      policyVersion = rank.getAsOpt[Int]("pv").getOrElse(lila.rating.XiangqiRank.firstPolicyVersion),
+      established = rank.booleanLike("e").getOrElse(false),
+      diff = rank.getAsOpt[Int]("d").map(RankDiff.apply),
+      after = rank.getAsOpt[String]("a").map(RankCode.apply)
+    )
+
+  private[game] def rankWrite(rank: RankSnapshot): Bdoc =
+    $doc(
+      "t" -> rank.track.value,
+      "s" -> rank.score.value,
+      "c" -> rank.code.value,
+      "o" -> rank.ordinal,
+      "cv" -> rank.catalogVersion,
+      "pv" -> rank.policyVersion,
+      "e" -> rank.established.option(true),
+      "d" -> rank.diff.map(_.value),
+      "a" -> rank.after.map(_.value)
     )

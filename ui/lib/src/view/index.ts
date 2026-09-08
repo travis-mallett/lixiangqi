@@ -5,3 +5,4 @@ export * from './dialogs';
 export * from './snabbdom';
 export * from './snabbdomElements';
 export * from './miniBoard';
+export * from './replayControls';

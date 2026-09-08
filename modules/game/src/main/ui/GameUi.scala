@@ -2,9 +2,11 @@ package lila.game
 package ui
 
 import chess.format.Fen
+import play.api.libs.json.Json
 
 import lila.core.game.{ Game, Player }
 import lila.core.i18n.I18nKey
+import lila.core.rank.RankCode.value
 import lila.game.GameExt.*
 import lila.ui.*
 import lila.ui.ScalatagsTemplate.{ *, given }
@@ -18,17 +20,26 @@ final class GameUi(helpers: Helpers):
     private val dataLive = attr("data-live")
     private val dataTime = attr("data-time")
     private val dataTimeControl = attr("data-tc")
+    private val dataReplayMoves = attr("data-replay-moves")
+    private val dataReplayChecks = attr("data-replay-checks")
+    private val dataReplayMate = attr("data-replay-mate")
+    private val dataReplayInitialFen = attr("data-replay-initial-fen")
+    private val dataReplayAnimation = attr("data-replay-animation")
+    private val dataRecordedClock = attr("data-recorded-clock")
     val cgWrap = span(cls := "cg-wrap xiangqi9x10")(cgWrapContent)
 
     def apply(
         pov: Pov,
         ownerLink: Boolean = false,
-        tv: Boolean = false
+        tv: Boolean = false,
+        replayFinished: Boolean = false
     )(using ctx: Context): Tag =
       renderMini(
         pov,
         gameLink(pov.game, pov.color, ownerLink, tv),
-        showRatings = ctx.pref.showRatings
+        showRatings = ctx.pref.showRatings,
+        replayFinished = replayFinished,
+        animationMillis = ctx.pref.animationMillis.some
       )
 
     def many(games: List[Game])(using Context): Frag =
@@ -39,7 +50,7 @@ final class GameUi(helpers: Helpers):
     def noCtx(pov: Pov, tv: Boolean = false, channelKey: Option[String] = None): Tag =
       val link = if tv then channelKey.fold(routes.Tv.index)(routes.Tv.onChannel)
       else routes.Round.watcher(pov.gameId, pov.color)
-      renderMini(pov, link.url)(using transDefault, None)
+      renderMini(pov, link.url, replayFinished = tv)(using transDefault, None)
 
     def renderState(pov: Pov)(using me: Option[Me]) =
       val fen =
@@ -53,30 +64,59 @@ final class GameUi(helpers: Helpers):
     private def renderMini(
         pov: Pov,
         link: String,
-        showRatings: Boolean = true
+        showRatings: Boolean = true,
+        replayFinished: Boolean = false,
+        animationMillis: Option[Int] = None
     )(using Translate, Option[Me]): Tag =
       import pov.game
+      val recordedClock =
+        (replayFinished && game.finished).so(RecordedClockTimeline(game))
+      val replay = recordedClock.isDefined && game.xiangqi.moves.nonEmpty
+      val replayChecks = game.xiangqi.states
+        .drop(1)
+        .zipWithIndex
+        .collect:
+          case (state, index) if state.check => index
       a(
         href := link,
         cls := s"mini-game mini-game-${game.id} mini-game--init ${game.variant.key} is2d",
         dataLive := game.isBeingPlayed.option(game.id),
         dataTimeControl := game.clock.map(_.config).fold("correspondence")(showTimeControl),
+        dataReplayMoves := replay.option(game.xiangqi.moves.map(_.value).mkString(" ")),
+        dataRecordedClock := recordedClock.map(timeline => Json.stringify(timeline.json)),
+        dataReplayChecks := replay.option(replayChecks.mkString(",")),
+        dataReplayMate := replay.option(game.xiangqi.state.check && game.xiangqi.state.immediateEnd.ended),
+        dataReplayInitialFen := replay.option(game.xiangqi.initialFen),
+        dataReplayAnimation := replay.option(animationMillis).flatten,
         renderState(pov)
       )(
-        renderPlayer(!pov, withRating = showRatings),
+        renderPlayer(!pov, withRating = showRatings, recordedClock),
         cgWrap,
-        renderPlayer(pov, withRating = showRatings)
+        renderPlayer(pov, withRating = showRatings, recordedClock)
       )
 
-    private def renderPlayer(pov: Pov, withRating: Boolean)(using Translate) =
+    private def renderPlayer(
+        pov: Pov,
+        withRating: Boolean,
+        recordedClock: Option[RecordedClockTimeline]
+    )(using Translate) =
       span(cls := "mini-game__player")(
         span(cls := "mini-game__user")(
           playerUsername(pov.player.light, pov.player.userId.flatMap(lightUserSync), withRating = false),
-          withRating.option(span(cls := "rating")(lila.game.Namer.ratingString(pov.player)))
+          withRating.option(span(cls := "rank")(lila.game.Namer.rankString(pov.player)))
         ),
-        if pov.game.finished then renderResult(pov)
+        if recordedClock.isDefined then renderRecordedClock(pov.color, recordedClock.get)
+        else if pov.game.finished then renderResult(pov)
         else pov.game.clock.map(renderClock(_, pov.color))
       )
+
+    private def renderRecordedClock(color: Color, timeline: RecordedClockTimeline) =
+      val centis = timeline.positions.head(color).centis
+      span(
+        cls := s"mini-game__clock mini-game__clock--${color.name}",
+        dataTime := centis / 100d
+      ):
+        f"${centis / 6000}:${(centis / 100) % 60}%02d"
 
     private def renderResult(pov: Pov) =
       span(cls := "mini-game__result"):
@@ -110,6 +150,9 @@ final class GameUi(helpers: Helpers):
     import chess.{ White, Black, Status as S }
     import lila.game.GameExt.drawReason
     game.status match
+      case S.VariantEnd if game.position.termination.contains("forced-variation") =>
+        "No permitted continuation after forced variation"
+      case S.Mate if game.position.termination.contains("stalemate") => trans.site.stalemate.txt()
       case S.Aborted => abortReason(game).txt()
       case S.Mate => trans.site.checkmate.txt()
       case S.Resign =>
@@ -129,7 +172,13 @@ final class GameUi(helpers: Helpers):
           case Some(MutualAgreement) => trans.site.drawByMutualAgreement.txt()
           case Some(InsufficientMaterial) =>
             trans.site.insufficientMaterial.txt() + " • " + trans.site.draw.txt()
-          case _ => trans.site.draw.txt()
+          case _ => game.position.termination match
+            case Some("repetition") => "Draw by fivefold repetition"
+            case Some("mutual-check") => "Draw by mutual perpetual check"
+            case Some("mutual-chase") => "Draw by mutual perpetual chase"
+            case Some("no-capture") => "Draw after 120 counted plies without a capture"
+            case Some("move-limit") => "Draw at 400 plies"
+            case _ => trans.site.draw.txt()
       case S.InsufficientMaterialClaim =>
         trans.site.drawClaimed.txt() + " • " + trans.site.insufficientMaterial.txt()
       case S.Outoftime =>
@@ -292,30 +341,21 @@ final class GameUi(helpers: Helpers):
           frag(
             showClock(g),
             separator,
-            if g.fromPosition then g.variant.name else g.perfType.trans,
+            if g.fromPosition then g.variant.name else "Xiangqi",
             separator,
-            ratedName(g.rated)
+            rankedName(g.ranked)
           )
       )
 
     private def gamePlayer(player: Player)(using ctx: Context) =
       div(cls := s"player ${player.color.name}"):
         player.userId
-          .flatMap: uid =>
-            player.rating.map { (uid, _) }
-          .map: (userId, rating) =>
+          .map: userId =>
             frag(
               userIdLink(userId.some, withOnline = false),
               br,
               player.berserk.option(berserkIconSpan),
-              ctx.pref.showRatings.option(
-                frag(
-                  rating,
-                  player.provisional.yes.option("?"),
-                  player.ratingDiff.map: d =>
-                    frag(" ", showRatingDiff(d))
-                )
-              )
+              ctx.pref.showRatings.option(player.rank.flatMap(_.publicCode).map(_.value))
             )
           .getOrElse:
             player.aiLevel

@@ -70,7 +70,10 @@ object Work:
       _id: Work.Id,
       game: Game,
       level: Int,
-      clock: Option[Work.Clock]
+      clock: Option[Work.Clock],
+      turnKey: lila.core.fishnet.AiTurnKey,
+      ruleset: lila.xiangqi.adjudication.Ruleset = lila.xiangqi.adjudication.Ruleset.Unrestricted,
+      legalMoves: Vector[Xiangqi.Uci] = Vector.empty
   )
 
   enum Origin(val nodesPerMove: Int, val slowOk: Boolean):

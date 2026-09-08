@@ -8,6 +8,7 @@ import lila.core.i18n.Translate
 import lila.core.socket.Sri
 import lila.tree.Node.Shape
 import lila.core.pref.Pref
+import lila.xiangqi.{ Xiangqi, XiangqiRules }
 
 final class JsonView(
     studyRepo: StudyRepo,
@@ -15,6 +16,42 @@ final class JsonView(
 )(using Executor):
 
   import JsonView.given
+
+  /** Add the native rules data consumed by the shared analysis tree. */
+  def xiangqiNode(js: JsObject, parentFen: Option[String] = none): JsObject =
+    val withNotation =
+      (parentFen, js.str("uci"))
+        .mapN: (fen, encodedUci) =>
+          Xiangqi.Uci
+            .from(encodedUci.replace(":", "10"))
+            .flatMap(XiangqiRules.chinese(fen, _))
+            .toOption
+            .fold(js)(sanZh => js + ("sanZh" -> JsString(sanZh)))
+        .getOrElse(js)
+    withNotation
+      .str("fen")
+      .flatMap(fen => XiangqiRules.position(Xiangqi.Position(initialFen = fen)).toOption)
+      .fold(withNotation): state =>
+        withNotation ++ Json.obj(
+          "xiangqiLegalMoves" -> state.legalMoves.map(_.value),
+          "xiangqiCheck" -> state.check
+        )
+
+  def xiangqiTree(js: JsValue): JsValue = enrichXiangqiTree(js, none)
+
+  private def enrichXiangqiTree(js: JsValue, parentFen: Option[String]): JsValue = js match
+    case array: JsArray =>
+      var previousFen = parentFen
+      JsArray:
+        array.value.map: value =>
+          val enriched = enrichXiangqiTree(value, previousFen)
+          previousFen = enriched.asOpt[JsObject].flatMap(_.str("fen")).orElse(previousFen)
+          enriched
+    case obj: JsObject =>
+      val currentFen = obj.str("fen")
+      val children = obj.value.get("children").map(enrichXiangqiTree(_, currentFen))
+      xiangqiNode(children.fold(obj)(value => obj + ("children" -> value)), parentFen)
+    case other => other
 
   def full(
       study: Study,

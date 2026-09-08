@@ -96,6 +96,11 @@ case class Modlog(
     case Modlog.imagePass => "approve flagged image"
     case Modlog.imagePurge => "purge flagged image"
     case Modlog.studyUnfeature => "unfeature study"
+    case Modlog.videoCreate => "create video"
+    case Modlog.videoEdit => "edit video"
+    case Modlog.videoStatus => "change video status"
+    case Modlog.videoRefresh => "refresh video metadata"
+    case Modlog.videoReorder => "reorder video library"
     case a => a
 
   override def toString = s"$mod $showAction $user $details"
@@ -246,6 +251,11 @@ object Modlog:
   val imagePass = "imagePass"
   val imagePurge = "imagePurge"
   val studyUnfeature = "studyUnfeature"
+  val videoCreate = "videoCreate"
+  val videoEdit = "videoEdit"
+  val videoStatus = "videoStatus"
+  val videoRefresh = "videoRefresh"
+  val videoReorder = "videoReorder"
 
   private val explainRegex = """^[\w-]{3,}+: (.++)$""".r
   def explain(e: Modlog) = e.index.has("team").so(~e.details) match

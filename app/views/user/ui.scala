@@ -4,7 +4,6 @@ import lila.app.UiEnv.{ *, given }
 import lila.core.data.SafeJsonStr
 import lila.core.perf.UserWithPerfs
 import lila.perfStat.PerfStatData
-import lila.rating.UserPerfsExt.best8Perfs
 import lila.user.Profile.flagInfo
 
 val bits = lila.user.ui.UserBits(helpers)
@@ -36,15 +35,14 @@ def mini(
   val playing = playingGame.map(views.game.mini(_))
   def userMarks = views.mod.user.userMarks(u.user, None)
   val flag = u.profileOrDefault.flagInfo
-  val perfs = u.perfs.best8Perfs
   val nameFrag = realName.map(frag(_))
-  show.ui.mini(u, playing, blocked, ping, rel, crosstable, flag, nameFrag, perfs, userMarks)
+  show.ui.mini(u, playing, blocked, ping, rel, crosstable, flag, nameFrag, userMarks)
 
 val perfStat = lila.perfStat.PerfStatUi(helpers)(views.user.bits.communityMenu("ratings"))
 def perfStatPage(data: PerfStatData, ratingChart: Option[SafeJsonStr])(using Context) =
   perfStat.page(
     data,
     ratingChart,
-    side = show.page.side(data.user, data.ranks, data.perfKey.some),
-    perfTrophies = bits.perfTrophies(data.user, data.ranks.view.filterKeys(data.perfKey == _).toMap)
+    side = show.page.side(data.user, data.perfKey.some),
+    perfTrophies = frag()
   )

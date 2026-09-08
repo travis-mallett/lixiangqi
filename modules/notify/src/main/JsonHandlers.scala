@@ -51,6 +51,7 @@ final class JSONHandlers(getLightUser: LightUser.GetterSync):
           )
         case _: PlanStart => Json.obj()
         case _: PlanExpire => Json.obj()
+        case RankRefund(points) => Json.obj("points" -> points)
         case RatingRefund(perf, points) =>
           Json.obj(
             "perf" -> perf,

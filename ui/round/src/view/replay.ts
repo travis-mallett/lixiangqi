@@ -12,6 +12,7 @@ import {
   type LooseVNodes,
   type LooseVNode,
   hl,
+  bind,
   onInsert,
   dataIcon,
 } from 'lib/view';
@@ -158,7 +159,7 @@ function renderButtons(ctrl: RoundController) {
   const firstPly = util.firstPly(ctrl.data),
     lastPly = util.lastPly(ctrl.data);
   return hl(rbuttonsTag, [
-    analysisButton(ctrl) || hl('div.noop'),
+    recordedClockPlaybackButton(ctrl) || analysisButton(ctrl) || hl('div.noop'),
     [
       ['JumpFirst', firstPly],
       ['JumpPrev', ctrl.ply - 1],
@@ -182,6 +183,22 @@ function renderButtons(ctrl: RoundController) {
     }),
     boardMenuToggleButton(ctrl.menu, i18n.site.menu),
   ]);
+}
+
+function recordedClockPlaybackButton(ctrl: RoundController): LooseVNode {
+  if (!ctrl.canToggleRecordedClockPlayback()) return;
+  const playing = ctrl.recordedClockPlayback?.isPlaying() ?? false;
+  const label = playing ? 'Stop realtime replay' : 'Play realtime replay';
+  return hl('button.fbt.recorded-clock-playback', {
+    class: { playing },
+    attrs: {
+      title: label,
+      'aria-label': label,
+      'aria-pressed': String(playing),
+      ...(playing ? {} : { 'data-icon': licon.PlayTriangle }),
+    },
+    hook: bind('click', ctrl.toggleRecordedClockPlayback, ctrl.redraw),
+  });
 }
 
 function initMessage(ctrl: RoundController) {

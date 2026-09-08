@@ -76,13 +76,7 @@ final private class StudySocket(
           AnaMove
             .parse(o)
             .foreach: move =>
-              applyWho(moveOrDrop(studyId, move, MoveOpts.parse(o))(using _))
-
-        case "anaDrop" =>
-          AnaDrop
-            .parse(o)
-            .foreach: drop =>
-              applyWho(moveOrDrop(studyId, drop, MoveOpts.parse(o))(using _))
+              applyWho(addMove(studyId, move, MoveOpts.parse(o))(using _))
 
         case "deleteNode" =>
           reading[AtPosition](o): position =>
@@ -256,7 +250,7 @@ final private class StudySocket(
     chatBusChan = _.study
   )
 
-  private def moveOrDrop(studyId: StudyId, m: AnaAny, opts: MoveOpts)(using Who) =
+  private def addMove(studyId: StudyId, m: AnaMove, opts: MoveOpts)(using Who) =
     m.chapterId.foreach: chapterId =>
       api.addNode(AddNode(studyId, Position.Ref(chapterId, m.path), m.branch, opts))
 
@@ -281,12 +275,11 @@ final private class StudySocket(
   def addNode(
       pos: Position.Ref,
       node: Branch,
-      variant: chess.variant.Variant,
+      parentFen: chess.format.Fen.Full,
       sticky: Boolean,
       relay: Option[Chapter.Relay],
       who: Who
   ) =
-    AnaDests(variant, node.fen, pos.path.toString, pos.chapterId.some)
     val relayPathDedup = relay
       .map(_.path)
       .map: path =>
@@ -296,7 +289,7 @@ final private class StudySocket(
       "addNode",
       Json
         .obj(
-          "n" -> defaultNodeJsonWriter.writes(node),
+          "n" -> jsonView.xiangqiNode(defaultNodeJsonWriter.writes(node).as[JsObject], parentFen.value.some),
           "p" -> pos,
           "s" -> sticky
         )

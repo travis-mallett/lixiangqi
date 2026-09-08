@@ -14,6 +14,7 @@ trait Pref:
   val voice: Option[Int]
   val rookCastle: Int
   val animation: Int
+  val boardAnimations: Int
   val destination: Boolean
   val moveEvent: Int
   val highlight: Boolean
@@ -27,6 +28,7 @@ trait Pref:
   def backgroundImage: Option[String]
   def boardBrightness: Int
   def boardContrast: Int
+  def boardSaturation: Int
   def boardOpacity: Int
   def boardHue: Int
   val usingAltSocket: Option[Boolean]

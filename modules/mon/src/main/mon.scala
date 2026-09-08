@@ -637,6 +637,11 @@ object push:
   def firebaseStatus(project: String, typ: String, status: Int) =
     counter("push.firebase.status").withTags(tags("status" -> status, "project" -> project, "type" -> typ))
 object fishnet:
+  object aiMove:
+    val request = counter("fishnet.aiMove.request").withoutTags()
+    val retry = counter("fishnet.aiMove.retry").withoutTags()
+    val staleResult = counter("fishnet.aiMove.staleResult").withoutTags()
+    val failure = counter("fishnet.aiMove.failure").withoutTags()
   object client:
     object result:
       private val c = counter("fishnet.client.result")

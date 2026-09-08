@@ -1,12 +1,12 @@
 package lila.round
 
 import chess.{ ByColor, Color, DecayingStats, Status }
-import chess.rating.IntRatingDiff
 
 import lila.common.{ Bus, Uptime }
 import lila.core.game.{ AbortedBy, FinishGame }
 import lila.core.i18n.{ I18nKey as trans, Translator, defaultLang }
 import lila.core.perf.UserWithPerfs
+import lila.core.rank.RankChange
 import lila.game.GameExt.finish
 import lila.playban.PlaybanApi
 import lila.user.{ UserApi, UserRepo }
@@ -129,7 +129,7 @@ final private class Finisher(
     import prog.game
     if game.nonAi && game.isCorrespondence then Color.all.foreach(notifier.gameEnd(prog.game))
     lila.mon.game
-      .finish(game.variant, game.speed, game.source, game.rated, status)
+      .finish(game.variant, game.speed, game.source, chess.Rated(game.ranked), status)
       .increment()
     recordLagStats(game)
     for
@@ -142,7 +142,7 @@ final private class Finisher(
         abortBy = abortBy
       )
       users <- userApi.pairWithPerfs(game.userIdPair)
-      ratingDiffs <- updateCountAndPerfs(game, users)
+      rankChanges <- updateCountAndPerfs(game, users)
     yield
       message.foreach { messenger(game, _) }
       gameRepo.game(game.id).foreach { newGame =>
@@ -152,12 +152,12 @@ final private class Finisher(
         game.userIds.foreach: userId =>
           Bus.publishDyn(finish, s"userFinishGame:$userId")
       }
-      List(lila.game.Event.EndData(game.copy(abortedBy = abortBy.orElse(game.abortedBy)), ratingDiffs))
+      List(lila.game.Event.EndData(game.copy(abortedBy = abortBy.orElse(game.abortedBy)), rankChanges))
 
   private def updateCountAndPerfs(
       game: Game,
       users: ByColor[Option[UserWithPerfs]]
-  ): Fu[Option[ByColor[IntRatingDiff]]] =
+  ): Fu[Option[ByColor[RankChange]]] =
     val isVsSelf = users.tupled.so((w, b) => w._1.is(b._1))
     (!isVsSelf && !game.aborted).so:
       users.sequence
@@ -178,7 +178,7 @@ final private class Finisher(
       userRepo
         .incNbGames(
           user.id,
-          game.rated,
+          game.ranked,
           result = result,
           totalTime = totalTime,
           tvTime = tvTime,

@@ -8,10 +8,7 @@ import ScalatagsTemplate.{ *, given }
 val fideHandbookUrl =
   "https://www.wxf-xiangqi.org/index.php?Itemid=291&id=269&lang=en&option=com_content&view=article"
 
-final class FaqUi(helpers: Helpers, sitePages: SitePages)(
-    standardRankableDeviation: Int,
-    variantRankableDeviation: Int
-):
+final class FaqUi(helpers: Helpers, sitePages: SitePages):
   import helpers.{ given, * }
   import trans.faq as trf
 
@@ -94,13 +91,6 @@ final class FaqUi(helpers: Helpers, sitePages: SitePages)(
           ),
           h2(trf.fairPlay()),
           question(
-            "rating-refund",
-            trf.whenAmIEligibleRatinRefund.txt(),
-            p(
-              trf.ratingRefundExplanation()
-            )
-          ),
-          question(
             "leaving",
             trf.preventLeavingGameWithoutResigning.txt(),
             p(
@@ -125,20 +115,6 @@ final class FaqUi(helpers: Helpers, sitePages: SitePages)(
             )
           ),
           h2(trf.gameplay()),
-          question(
-            "time-controls",
-            trf.howBulletBlitzEtcDecided.txt(),
-            p(
-              trf.basedOnGameDuration(strong(trf.durationFormula()))
-            ),
-            ul(
-              li(trf.inferiorThanXsEqualYtimeControl(29, "UltraBullet")),
-              li(trf.inferiorThanXsEqualYtimeControl(179, trans.site.bullet())),
-              li(trf.inferiorThanXsEqualYtimeControl(479, trans.site.blitz())),
-              li(trf.inferiorThanXsEqualYtimeControl(1499, trans.site.rapid())),
-              li(trf.superiorThanXsEqualYtimeControl(1500, trans.site.classical()))
-            )
-          ),
           question(
             "acpl",
             trf.whatIsACPL.txt(),
@@ -241,84 +217,52 @@ final class FaqUi(helpers: Helpers, sitePages: SitePages)(
             trf.canIChangeMyUsername.txt(),
             p(trf.usernamesCannotBeChanged.txt())
           ),
-          h2(trf.lichessRatings()),
+          h2("Xiangqi ranks"),
           question(
-            "ratings",
-            trf.whichRatingSystemUsedByLichess.txt(),
+            "xiangqi-ranks",
+            "How does the Lixiangqi rank system work?",
             p(
-              trf.ratingSystemUsedByLichess()
+              "The ranked 15-minute Xiangqi room uses the native 学, 业, and 专 rank ladder. " +
+                "Players begin at -160 points (学1-3); the public site presents the rank title rather than the point total."
             ),
             p(
-              a(href := cmsPageUrl("rating-systems"))("More about rating systems")
+              "A game between players in the same rank moves 10 points. Against an adjacent rank, " +
+                "the lower-ranked player gains 15 for an upset or loses 5 to the favorite. The score cannot fall below -250."
             )
           ),
           question(
-            "provisional",
-            trf.whatIsProvisionalRating.txt(),
-            p(trf.provisionalRatingExplanation()),
-            ul(
-              li(
-                trf.notPlayedEnoughRatedGamesAgainstX(
-                  em(trf.similarOpponents())
-                )
-              ),
-              li(
-                trf.notPlayedRecently()
-              )
-            ),
+            "ranked-games",
+            "Which games affect my rank?",
+            p("Only games entered through the ranked 15-minute room affect Xiangqi rank."),
             p(
-              trf.ratingDeviationMorethanOneHundredTen()
+              "Challenges, custom and correspondence games, rematches, AI games, API games, and tournaments are casual."
             )
           ),
           question(
             "leaderboards",
-            trf.howDoLeaderoardsWork.txt(),
+            "How does the leaderboard work?",
             p(
-              trf.inOrderToAppearsYouMust(
-                a(href := routes.User.list)(trf.ratingLeaderboards())
-              )
-            ),
-            ol(
-              li(trf.havePlayedMoreThanThirtyGamesInThatRating()),
-              li(trf.havePlayedARatedGameAtLeastOneWeekAgo()),
-              li(
-                trf.ratingDeviationLowerThanXinChessYinVariants(
-                  standardRankableDeviation,
-                  variantRankableDeviation
-                )
-              ),
-              li(trf.beInTopTen())
-            ),
-            p(
-              trf.secondRequirementToStopOldPlayersTrustingLeaderboards()
+              "There is one ",
+              a(href := routes.User.list)("Xiangqi leaderboard"),
+              ". Eligible accounts appear after establishing a rank in the ranked room."
             )
           ),
           question(
-            "high-ratings",
-            trf.whyAreRatingHigher.txt(),
+            "rank-refund",
+            "When are Xiangqi rank points restored?",
             p(
-              trf.whyAreRatingHigherExplanation()
+              "If an opponent is later confirmed to have violated the Terms of Service, points you lost " +
+                "to that opponent in recent ranked games are restored automatically."
             ),
             p(
-              a(href := cmsPageUrl("rating-systems"))("More about rating systems")
+              "Rank points are not restored for lag, disconnections, or ordinary game outcomes. " +
+                "A server restart aborts affected games when possible so no rank change is applied."
             )
           ),
           question(
-            "hide-ratings",
-            trf.howToHideRatingWhilePlaying.txt(),
-            p(
-              trf.enableZenMode(
-                a(href := routes.Pref.form("game-display"))(trf.displayPreferences()),
-                em("z")
-              )
-            )
-          ),
-          question(
-            "disconnection-loss",
-            trf.connexionLostCanIGetMyRatingBack.txt(),
-            p(
-              trf.weCannotDoThatEvenIfItIsServerSideButThatsRare()
-            )
+            "puzzle-rating",
+            "Do puzzles use Xiangqi ranks?",
+            p("No. Puzzle difficulty and puzzle performance remain an independent Glicko rating system.")
           ),
           h2(trf.howToThreeDots()),
           question(

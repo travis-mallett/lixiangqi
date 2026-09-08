@@ -3,11 +3,10 @@ package challenge
 
 import _root_.chess.variant.Variant
 import _root_.chess.{ Color, Rated }
-import _root_.chess.rating.RatingProvisional
-import _root_.chess.IntRating
 import scalalib.model.Days
 
 import lila.core.id.ChallengeId
+import lila.core.rank.RankCode
 import lila.core.userId.UserId
 import lila.core.game.{ Game, MoveTimeLimit }
 
@@ -48,11 +47,8 @@ object Challenge:
           s"first ${first.moves}: ${first.seconds}s, then ${limit.seconds}s/move"
         s"${config.show} · $movePart"
 
-  case class Rating(int: IntRating, provisional: RatingProvisional):
-    def show = s"$int${if provisional.yes then "?" else ""}"
-
   enum Challenger:
-    case Registered(id: UserId, rating: Rating)
+    case Registered(id: UserId, rank: Option[RankCode])
     case Anonymous(secret: String)
     case Open
 

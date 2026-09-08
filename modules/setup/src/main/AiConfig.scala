@@ -18,14 +18,15 @@ case class AiConfig(
     days: Days,
     level: Int,
     color: TriColor,
-    fen: Option[Fen.Full] = None
+    fen: Option[Fen.Full] = None,
+    override val ruleset: Option[String] = None
 ) extends Config
     with Positional
     with WithColor:
 
   val strictFen = true
 
-  def >> = (variant.id, timeMode.id, time, increment, moveTimeLimit, days, level, color.name, fen).some
+  def >> = (variant.id, timeMode.id, time, increment, moveTimeLimit, days, level, color.name, fen, ruleset).some
 
   private def game(user: GameUser)(using
       idGenerator: IdGenerator,
@@ -72,7 +73,8 @@ object AiConfig extends BaseConfig:
       d: Days,
       level: Int,
       c: String,
-      fen: Option[Fen.Full]
+      fen: Option[Fen.Full],
+      ruleset: Option[String] = None
   ) =
     new AiConfig(
       variant = chess.variant.Variant.orDefault(v),
@@ -83,7 +85,8 @@ object AiConfig extends BaseConfig:
       days = d,
       level = level,
       color = TriColor(c).err("Invalid color " + c),
-      fen = fen
+      fen = fen,
+      ruleset = ruleset
     )
 
   val default = AiConfig(
@@ -97,7 +100,7 @@ object AiConfig extends BaseConfig:
     color = TriColor.default
   )
 
-  val levels = (1 to 8).toList
+  val levels = (1 to 9).toList
 
   val levelChoices = levels.map { l =>
     (l.toString, l.toString, none)
@@ -118,7 +121,8 @@ object AiConfig extends BaseConfig:
         days = r.get("d"),
         level = r.int("l"),
         color = TriColor.White,
-        fen = r.getO[Fen.Full]("f").filter(_.value.nonEmpty)
+        fen = r.getO[Fen.Full]("f").filter(_.value.nonEmpty),
+        ruleset = r.strO("ruleset")
       )
 
     def writes(w: BSON.Writer, o: AiConfig) =
@@ -130,5 +134,6 @@ object AiConfig extends BaseConfig:
         "ml" -> o.moveTimeLimit,
         "d" -> o.days,
         "l" -> o.level,
-        "f" -> o.fen
+        "f" -> o.fen,
+        "ruleset" -> o.ruleset
       )

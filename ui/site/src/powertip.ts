@@ -52,6 +52,26 @@ const gamePowertip = (el: HTMLElement) =>
       popupId: 'miniGame',
     });
 
+const sitePowertip = (el: HTMLElement) => {
+  if ('displayController' in el) return;
+  const content = document.getElementById(el.dataset.tooltipId || '');
+  if (!content) return;
+  $(el).powerTip({
+    popupId: 'siteTooltip',
+    placement: (el.dataset.ptPos as PowerTip.Placement) || 'n',
+    defaultSize: [336, 190],
+    preRender() {
+      const tip = document.getElementById('siteTooltip')!;
+      tip.className = el.dataset.tooltipClass || '';
+      tip.innerHTML = content.innerHTML;
+      tip.setAttribute('role', 'tooltip');
+      $.powerTip.reposition(el);
+    },
+  });
+};
+
+const useDesktopSiteTooltips = () => window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
 function powerTipWith(el: HTMLElement, ev: Event, f: (el: HTMLElement) => void) {
   if ('ontouchstart' in window && !el.classList.contains('mobile-powertip')) return;
   f(el);
@@ -75,6 +95,27 @@ const powertip: LichessPowertip = {
       const t = e.target as HTMLElement;
       if (t.classList.contains('ulpt')) powerTipWith(t, e, userPowertip);
       else if (t.classList.contains('glpt')) powerTipWith(t, e, gamePowertip);
+      else if (t.classList.contains('site-tooltip-trigger') && useDesktopSiteTooltips())
+        powerTipWith(t, e, sitePowertip);
+    });
+    document.body.addEventListener('focusin', e => {
+      const t = e.target as HTMLElement;
+      if (!t.classList.contains('site-tooltip-trigger') || !useDesktopSiteTooltips()) return;
+      sitePowertip(t);
+      $.powerTip.show(t);
+    });
+    document.body.addEventListener('focusout', e => {
+      const t = e.target as HTMLElement;
+      if (
+        t.classList.contains('site-tooltip-trigger') &&
+        useDesktopSiteTooltips() &&
+        'displayController' in t
+      )
+        $.powerTip.hide(t);
+    });
+    document.body.addEventListener('click', e => {
+      const t = e.target as HTMLElement;
+      if (t.classList.contains('site-tooltip-trigger') && useDesktopSiteTooltips()) e.preventDefault();
     });
   },
   manualGameIn(parent: HTMLElement) {

@@ -34,10 +34,13 @@ case class Challenge(
     open: Option[Challenge.Open] = None,
     name: Option[String] = None,
     declineReason: Option[Challenge.DeclineReason] = None,
-    rules: Set[GameRule] = Set.empty
+    rules: Set[GameRule] = Set.empty,
+    ruleset: Option[lila.xiangqi.adjudication.Ruleset] = None
 ) extends hub.Challenge:
 
   import Challenge.*
+
+  def effectiveRuleset = ruleset.getOrElse(lila.xiangqi.adjudication.Ruleset.default)
 
   def gameId = id.into(GameId)
 
@@ -164,7 +167,7 @@ object Challenge:
   private def randomId = ChallengeId(ThreadLocalRandom.nextString(idSize))
 
   def toRegistered(u: WithPerf): Challenger.Registered =
-    Challenger.Registered(u.id, Rating(u.perf.intRating, u.perf.provisional))
+    Challenger.Registered(u.id, u.rank.flatMap(_.publicCode))
 
   def randomColor = Color.fromWhite(ThreadLocalRandom.nextBoolean())
 
@@ -182,7 +185,7 @@ object Challenge:
       variant: Variant,
       initialFen: Option[Fen.Full],
       timeControl: TimeControl,
-      rated: Rated,
+      @annotation.unused rated: Rated,
       color: String,
       challenger: Challenger,
       destUser: GameUser,
@@ -191,15 +194,14 @@ object Challenge:
       id: Option[GameId] = None,
       openToUserIds: Option[(UserId, UserId)] = None,
       rules: Set[GameRule] = Set.empty,
-      expiresAt: Option[Instant] = None
+      expiresAt: Option[Instant] = None,
+      ruleset: lila.xiangqi.adjudication.Ruleset = lila.xiangqi.adjudication.Ruleset.default
   ): Challenge =
     val (colorChoice, finalColor) = color match
       case "white" => ColorChoice.White -> chess.White
       case "black" => ColorChoice.Black -> chess.Black
       case _ => ColorChoice.Random -> randomColor
-    val finalRated = timeControl match
-      case TimeControl.Clock(clock, _) if !lila.core.game.allowRated(variant, clock.some) => Rated.No
-      case _ => rated
+    val finalRated = Rated.No
     val isOpen = challenger == Challenge.Challenger.Open
     new Challenge(
       id = id.fold(randomId)(_.into(ChallengeId)),
@@ -220,5 +222,6 @@ object Challenge:
       },
       open = isOpen.option(Open(openToUserIds)),
       name = name,
-      rules = rules
+      rules = rules,
+      ruleset = Some(ruleset)
     )

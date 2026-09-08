@@ -7,7 +7,6 @@ import play.api.data.format.Formats.doubleFormat
 import scalalib.model.Days
 
 import lila.common.Form.{ *, given }
-import lila.core.rating.RatingRange
 import lila.core.game.MoveTimeLimit
 import lila.lobby.TriColor
 
@@ -54,7 +53,6 @@ private object Mappings:
     number
       .verifying(Rated.byId.contains)
       .verifying(_ == Rated.No.id || withRated)
-  val ratingRange = text.verifying(RatingRange.isValid)
   val color = text.verifying(TriColor.names contains _)
   val level = number.verifying(AiConfig.levels contains _)
   val speed = number.verifying(Config.speeds contains _)

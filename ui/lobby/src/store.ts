@@ -1,6 +1,6 @@
 import { storage } from 'lib/storage';
 
-import type { Tab, Mode, Sort } from './interfaces';
+import type { Tab } from './interfaces';
 
 interface Store<A> {
   set(v: string): A;
@@ -9,8 +9,6 @@ interface Store<A> {
 
 export interface Stores {
   tab: Store<Tab>;
-  mode: Store<Mode>;
-  sort: Store<Sort>;
 }
 
 interface Config<A> {
@@ -25,21 +23,6 @@ const tab: Config<Tab> = {
     return 'pools';
   },
 };
-const mode: Config<Mode> = {
-  key: 'lobby.mode',
-  fix(m: string | null): Mode {
-    if (<Mode>m) return m as Mode;
-    return 'list';
-  },
-};
-const sort: Config<Sort> = {
-  key: 'lobby.sort',
-  fix(s: string | null): Sort {
-    if (<Sort>s) return s as Sort;
-    return 'rating';
-  },
-};
-
 function makeStore<A>(conf: Config<A>, userId?: string): Store<A> {
   const fullKey = conf.key + ':' + (userId || '-');
   return {
@@ -57,7 +40,5 @@ function makeStore<A>(conf: Config<A>, userId?: string): Store<A> {
 export function make(userId?: string): Stores {
   return {
     tab: makeStore<Tab>(tab, userId),
-    mode: makeStore<Mode>(mode, userId),
-    sort: makeStore<Sort>(sort, userId),
   };
 }

@@ -13,8 +13,7 @@ type ChallengeStatus = 'created' | 'offline' | 'canceled' | 'declined' | 'accept
 export type ChallengeDirection = 'in' | 'out';
 
 export interface ChallengeUser extends LightUser {
-  rating: number;
-  provisional?: boolean;
+  rank?: string;
   online?: boolean;
   lag?: number;
 }
@@ -37,7 +36,6 @@ export interface Challenge {
   rules?: unknown[];
   variant: Variant;
   initialFen: FEN;
-  rated: boolean;
   timeControl: TimeControl;
   color: Color | 'random';
   finalColor: Color;

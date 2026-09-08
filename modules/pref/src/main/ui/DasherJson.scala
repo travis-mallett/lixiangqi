@@ -15,13 +15,11 @@ object DasherJson:
     import MusicSets.given
     import PieceSets.given
     import SoundSets.given
-    import ThemePacks.given
     import UiThemes.given
     Json.obj(
       "user" -> ctx.me.map(_.light),
       "appearance" -> Json.obj(
         "current" -> pref.appearance,
-        "packs" -> ThemePacks.all,
         "uiThemes" -> UiThemes.all,
         "backgrounds" -> Backgrounds.all,
         "boards" -> BoardThemes.all,

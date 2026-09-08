@@ -1,6 +1,7 @@
 package views.lobby
 
 import lila.app.UiEnv.{ *, given }
+import lila.core.rank.RankScore.*
 
 object bits:
 
@@ -10,16 +11,61 @@ object bits:
   // Lixiangqi uses its native ranking cache, user links, titles, flags, and routes.
 
   def homepageLeaderboard(
-      leaderboard: List[lila.core.user.LightPerf],
+      leaderboard: List[lila.core.user.LightRank],
       flags: Map[UserId, lila.core.user.FlagCode]
   )(using ctx: Context) =
     st.section(cls := "lobby__leaderboard lobby__box")(
       header(cls := "lobby__leaderboard__header")(
-        h2(cls := "text", dataIcon := Icon.BarChart)(trans.site.leaderboard()),
-        a(cls := "more", href := routes.User.list)(trans.site.more(), " »")
+        h2(
+          span(cls := "lobby__leaderboard__icon", aria.hidden := true),
+          "Leaderboard"
+        ),
+        a(cls := "more", href := routes.User.list)("More ›")
       ),
       div(cls := "lobby__leaderboard__scroll")(
         table(
+          colgroup(
+            col(cls := "lobby__leaderboard__player-column"),
+            col(cls := "lobby__leaderboard__rating-column"),
+            col(cls := "lobby__leaderboard__rank-column")
+          ),
+          thead(
+            tr(
+              th(cls := "lobby__leaderboard__player-heading", attr("scope") := "col")("Player"),
+              th(cls := "lobby__leaderboard__rating-heading", attr("scope") := "col")(
+                span("Rating"),
+                span(cls := "lobby__leaderboard__rating-help")(
+                  button(
+                    cls := "lobby__leaderboard__rating-info site-tooltip-trigger text",
+                    tpe := "button",
+                    dataIcon := Icon.InfoCircle,
+                    attr("popovertarget") := "xiangqi-rating-help",
+                    attrData("tooltip-id") := "xiangqi-rating-help",
+                    attrData("tooltip-class") := "lobby__leaderboard__rating-popup-content",
+                    attrData("pt-pos") := "n",
+                    aria.label := "How Xiangqi ratings change",
+                    attr("aria-describedby") := "xiangqi-rating-help"
+                  )
+                )
+              ),
+              th(cls := "lobby__leaderboard__rank-heading", attr("scope") := "col")(
+                span("Rank"),
+                span(cls := "lobby__leaderboard__rating-help")(
+                  button(
+                    cls := "lobby__leaderboard__rating-info site-tooltip-trigger text",
+                    tpe := "button",
+                    dataIcon := Icon.InfoCircle,
+                    attr("popovertarget") := "xiangqi-rank-help",
+                    attrData("tooltip-id") := "xiangqi-rank-help",
+                    attrData("tooltip-class") := "lobby__leaderboard__rating-popup-content",
+                    attrData("pt-pos") := "n",
+                    aria.label := "About Xiangqi ranks",
+                    attr("aria-describedby") := "xiangqi-rank-help"
+                  )
+                )
+              )
+            )
+          ),
           tbody(
             leaderboard.map: entry =>
               tr(
@@ -35,21 +81,49 @@ object bits:
                         aria.hidden := "true"
                       )
                 ),
-                td(
-                  cls := "lobby__leaderboard__perf text",
-                  dataIcon := entry.perfKey.perfIcon,
-                  title := entry.perfKey.perfTrans
-                ),
-                td(cls := "lobby__leaderboard__rating")(entry.rating),
-                td(cls := "lobby__leaderboard__progress")(
-                  if entry.progress.positive then
-                    span(cls := "is-up text", dataIcon := Icon.ArrowUpRight)(entry.progress.value)
-                  else if entry.progress.negative then
-                    span(cls := "is-down text", dataIcon := Icon.ArrowDownRight)(-entry.progress.value)
-                  else span(cls := "is-flat")("–")
-                )
+                td(cls := "lobby__leaderboard__rating")(entry.score.value),
+                td(cls := "lobby__leaderboard__rank")(entry.rank.value)
               )
           )
+        )
+      ),
+      div(
+        id := "xiangqi-rating-help",
+        cls := "lobby__leaderboard__rating-popup lobby__leaderboard__rating-popup-content",
+        attr("popover") := "auto",
+        aria.label := "How Xiangqi ratings change"
+      )(
+        p("Ratings are zero-sum: points gained by one player are lost by the other."),
+        ul(
+          li("Same-rank win: +10 / −10"),
+          li("Lower rank beats an adjacent rank: +15 / −15"),
+          li("Higher rank beats an adjacent rank: +5 / −5"),
+          li("Draw: no change")
+        ),
+        p(cls := "lobby__leaderboard__rating-more")(
+          a(href := routes.Learn.xiangqiRankings)("Learn More")
+        )
+      ),
+      div(
+        id := "xiangqi-rank-help",
+        cls := "lobby__leaderboard__rating-popup lobby__leaderboard__rating-popup-content",
+        attr("popover") := "auto",
+        aria.label := "About Xiangqi ranks"
+      )(
+        p("Xiangqi ranks are categorized into three levels:"),
+        dl(
+          div(dt("学"), dd("Student Rank")),
+          div(dt("业"), dd("Amateur Rank")),
+          div(dt("专"), dd("Professional Rank"))
+        ),
+        p("Each level is divided into multiple sub-levels:"),
+        ul(
+          li("学1-1 to 学3-3"),
+          li("业1-1 to 业9-3"),
+          li("专1-1 to 专3-3")
+        ),
+        p(cls := "lobby__leaderboard__rating-more")(
+          a(href := routes.Learn.xiangqiRankings)("Learn More")
         )
       )
     )

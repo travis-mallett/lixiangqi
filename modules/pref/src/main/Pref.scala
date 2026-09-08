@@ -17,6 +17,7 @@ case class Pref(
     clockSound: Boolean,
     premove: Boolean,
     animation: Int,
+    boardAnimations: Int,
     captured: Boolean,
     follow: Boolean,
     highlight: Boolean,
@@ -56,6 +57,7 @@ case class Pref(
   def backgroundImage = appearance.backgroundImage
   def boardBrightness = appearance.board.brightness
   def boardContrast = appearance.board.contrast
+  def boardSaturation = appearance.board.saturation
   def boardOpacity = appearance.board.opacity
   def boardHue = appearance.board.hue
 
@@ -117,7 +119,7 @@ case class Pref(
     appearance.board.isDefault
 
   def forceDarkTheme = copy(
-    appearance = appearance.customized.copy(uiTheme = UiThemes.dark.key)
+    appearance = appearance.copy(uiTheme = UiThemes.dark.key)
   )
 
 object Pref:
@@ -279,6 +281,27 @@ object Pref:
       SLOW -> "Slow"
     )
 
+  object BoardAnimation:
+    val OPENING = 1
+    val CAPTURE = 2
+    val CHECK = 4
+    val CHECKMATE = 8
+    val ALL = OPENING | CAPTURE | CHECK | CHECKMATE
+    val CUSTOM = 16
+
+    val choices = Seq(
+      OPENING -> "Opening",
+      CAPTURE -> "Capture",
+      CHECK -> "Check",
+      CHECKMATE -> "Checkmate"
+    )
+
+    def mask(value: Int): Int = value & ALL
+    def isCustom(value: Int): Boolean = (value & CUSTOM) != 0
+    def custom(mask: Int): Int = CUSTOM | (mask & ALL)
+    def valid(value: Int): Boolean =
+      value == 0 || value == ALL || (isCustom(value) && (value & ~(CUSTOM | ALL)) == 0)
+
   object Coords:
     val NONE = 0
     val INSIDE = 1
@@ -324,11 +347,10 @@ object Pref:
   object Challenge:
     import lila.core.pref.Challenge.*
 
-    val ratingThreshold = 300
-
     val choices = Seq(
       NEVER -> "Never",
-      RATING -> s"If rating is ± $ratingThreshold",
+      // Keep the persisted legacy value readable, but give it native challenge semantics.
+      RATING -> "If registered",
       FRIEND -> "Only friends",
       REGISTERED -> "If registered",
       ALWAYS -> "Always"
@@ -411,7 +433,7 @@ object Pref:
 
   lazy val default = Pref(
     id = UserId(""),
-    appearance = ThemePacks.default.appearance,
+    appearance = Appearance.default,
     autoQueen = AutoQueen.PREMOVE,
     autoThreefold = AutoThreefold.ALWAYS,
     takeback = Takeback.ALWAYS,
@@ -420,6 +442,7 @@ object Pref:
     clockSound = true,
     premove = true,
     animation = Animation.NORMAL,
+    boardAnimations = BoardAnimation.ALL,
     captured = true,
     follow = true,
     highlight = true,

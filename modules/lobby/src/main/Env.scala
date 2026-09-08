@@ -16,13 +16,11 @@ final class Env(
     newPlayer: lila.core.game.NewPlayer,
     poolApi: lila.core.pool.PoolApi,
     cacheApi: lila.memo.CacheApi,
-    userTrustApi: lila.core.security.UserTrustApi,
     socketKit: lila.core.socket.SocketKit
 )(using
     Executor,
     Scheduler,
     lila.core.game.IdGenerator,
-    lila.core.pool.IsClockCompatible,
     lila.core.config.RateLimit
 ):
 

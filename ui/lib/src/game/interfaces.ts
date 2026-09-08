@@ -16,6 +16,9 @@ export interface GameData {
 }
 
 export interface Game {
+  ruleset?: string;
+  variation?: string | null;
+  termination?: string | null;
   id: string;
   status: Status;
   player: Color;
@@ -35,7 +38,7 @@ export interface Game {
   fiftyMoves?: boolean;
   boosted?: boolean;
   rematch?: string;
-  rated?: boolean;
+  ranked?: boolean;
   perf: string;
   rules?: GameRule[];
   moveTime?: MoveTimeLimit;
@@ -64,6 +67,7 @@ export interface Player {
   lastDrawOfferAtPly?: Ply;
   isGone: number | boolean;
   blurs?: Blurs;
+  rank?: string;
   hold?: Hold;
   ratingDiff?: number;
   checks?: number;
@@ -135,11 +139,13 @@ export interface PlayerUser {
   patronColor?: PatronColor;
   title?: string;
   flair?: Flair;
+  rank?: string;
   perfs: Record<string, Perf>;
 }
 
 export interface Perf {
   games: number;
+  rank?: string;
   rating: number;
   rd: number;
   prog: number;
@@ -184,5 +190,7 @@ export interface RoundStep {
   sanZh?: San;
   uci: Uci;
   check?: boolean;
+  capture?: boolean;
+  mate?: boolean;
   crazy?: Record<string, any>;
 }

@@ -14,13 +14,15 @@ import {
 import {
   legalMoveDests,
   makeXiangqiGround,
+  playXiangqiMoveSound,
   setXiangqiGroundPending,
   uciMoveToCg,
   XIANGQI_START_FEN,
   type RulesState,
+  type XiangqiGroundPreferences,
 } from './index';
 
-interface EventPageBootstrap {
+interface EventPageBootstrap extends XiangqiGroundPreferences {
   explorerEndpoint?: string;
   event?: string;
 }
@@ -373,7 +375,7 @@ async function loadEvent(): Promise<void> {
   }
 }
 
-async function initializeExplorer(): Promise<void> {
+async function initializeExplorer(bootstrap: EventPageBootstrap): Promise<void> {
   const initialState = await requestXiangqi<RulesState>('/api/analysis/position', {
     initialFen: XIANGQI_START_FEN,
     moves: [],
@@ -387,6 +389,9 @@ async function initializeExplorer(): Promise<void> {
     turnColor: turnColor(initialState),
     movableColor: turnColor(initialState),
     legalMoves: initialState.legalMoves,
+    animationDuration: bootstrap.animationDuration,
+    moveEvent: bootstrap.moveEvent,
+    highlight: bootstrap.highlight,
     onMove: move => void play(move),
   });
   const explorer = new ExplorerCtrl(
@@ -444,6 +449,7 @@ async function initializeExplorer(): Promise<void> {
     pending = true;
     setXiangqiGroundPending(ground);
     update(false);
+    let completedState: RulesState | undefined;
     try {
       const response = await requestXiangqi<MoveResponse>('/api/analysis/move', {
         initialFen: current().fen,
@@ -451,6 +457,7 @@ async function initializeExplorer(): Promise<void> {
         move,
       });
       positions.push({ state: response, move, notation: response.notation || move });
+      completedState = response;
     } catch (error) {
       ground.set({ fen: current().fen });
       pageStatus.textContent = error instanceof Error ? error.message : String(error);
@@ -459,6 +466,7 @@ async function initializeExplorer(): Promise<void> {
       pending = false;
       update();
     }
+    if (completedState) playXiangqiMoveSound(completedState);
   }
 
   explorerBackButton.addEventListener('click', () => {
@@ -486,7 +494,7 @@ export default function init(bootstrap: EventPageBootstrap = {}): void {
   restoreUrlState();
   sourceInputs.forEach(input => input.addEventListener('change', () => void loadEvent()));
   void loadEvent();
-  void initializeExplorer().catch(error => {
+  void initializeExplorer(bootstrap).catch(error => {
     pageStatus.textContent = error instanceof Error ? error.message : String(error);
     pageStatus.classList.add('error');
   });

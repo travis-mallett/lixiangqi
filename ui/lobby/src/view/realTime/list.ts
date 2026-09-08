@@ -1,122 +1,78 @@
 import { h } from 'snabbdom';
 
-import perfIcons from 'lib/game/perfIcons';
-import { licon } from 'lib/licon';
 import { formatClock } from 'lib/setup/timeControl';
-import { bind, dataIcon } from 'lib/view';
+import { bind } from 'lib/view';
 
 import type LobbyController from '@/ctrl';
 import * as hookRepo from '@/hookRepo';
 import type { Hook } from '@/interfaces';
 
-import { tds, perfNames } from '../util';
+import { tds } from '../util';
 
 function renderHook(ctrl: LobbyController, hook: Hook) {
   return h(
-    'tr.hook.' + hook.action,
+    `tr.hook.${hook.action}`,
     {
       key: hook.id,
       class: { disabled: !!hook.disabled },
       attrs: {
         role: 'button',
-        title: hook.disabled
-          ? ''
-          : hook.action === 'join'
-            ? i18n.site.joinTheGame + ' | ' + perfNames[hook.perf]
-            : i18n.site.cancel,
+        title: hook.disabled ? '' : hook.action === 'join' ? i18n.site.joinTheGame : i18n.site.cancel,
         'data-id': hook.id,
       },
     },
     tds([
       ctrl.me
-        ? h('span.ulink.ulpt.mobile-powertip', { attrs: { 'data-href': '/@/' + hook.u } }, hook.u)
+        ? h('span.ulink.ulpt.mobile-powertip', { attrs: { 'data-href': `/@/${hook.u}` } }, hook.u)
         : i18n.site.anonymous,
-      ...(!ctrl.me ? [] : !ctrl.opts.showRatings ? [''] : [hook.rating + (hook.prov ? '?' : '')]),
+      hook.rank || '',
       formatClock(hook.clock, hook.moveTime),
-      h('span', { attrs: dataIcon(perfIcons[hook.perf]) }, i18n.site[hook.ra ? 'rated' : 'casual']),
     ]),
   );
 }
 
 const isMine = (hook: Hook) => hook.action === 'cancel';
-
 const isStandard = (value: boolean) => (hook: Hook) => (hook.variant === 'standard') === value;
-
 const isNotMine = (hook: Hook) => !isMine(hook);
 
-export const toggle = (ctrl: LobbyController) =>
-  h('button.toggle', {
-    key: 'set-mode-chart',
-    attrs: { title: i18n.site.graph, 'data-icon': licon.LineGraph },
-    hook: bind('click', _ => ctrl.setMode('chart'), ctrl.redraw),
-  });
-
 export const render = (ctrl: LobbyController, allHooks: Hook[]) => {
-  const mine = allHooks.find(isMine),
-    max = mine ? 13 : 14,
-    hooks = allHooks.slice(0, max),
-    render = (hook: Hook) => renderHook(ctrl, hook),
-    standards = hooks.filter(isNotMine).filter(isStandard(true));
-  hookRepo.sort(ctrl, standards);
+  const mine = allHooks.find(isMine);
+  const max = mine ? 13 : 14;
+  const hooks = allHooks.slice(0, max);
+  const standards = hooks.filter(isNotMine).filter(isStandard(true));
+  hookRepo.sort(standards);
   const variants = hooks
     .filter(isNotMine)
     .filter(isStandard(false))
     .slice(0, Math.max(0, max - standards.length - 1));
-  hookRepo.sort(ctrl, variants);
+  hookRepo.sort(variants);
+
   const renderedHooks = [
-    ...standards.map(render),
+    ...standards.map(hook => renderHook(ctrl, hook)),
     variants.length
       ? h('tr.variants', { key: 'variants' }, [
-          h('td', { attrs: { colspan: 5 } }, '— ' + i18n.site.variant + ' —'),
+          h('td', { attrs: { colspan: 3 } }, `— ${i18n.site.variant} —`),
         ])
       : null,
-    ...variants.map(render),
+    ...variants.map(hook => renderHook(ctrl, hook)),
   ];
-  if (mine) renderedHooks.unshift(render(mine));
+  if (mine) renderedHooks.unshift(renderHook(ctrl, mine));
 
   return h('table.hooks__list', [
-    h(
-      'thead',
-      h('tr', [
-        h('th'),
-        ctrl.me
-          ? h(
-              'th',
-              {
-                class: { sortable: true, sort: ctrl.sort === 'rating' },
-                hook: bind('click', _ => ctrl.setSort('rating'), ctrl.redraw),
-              },
-              [h('icon.is'), i18n.site.rating],
-            )
-          : null,
-        h(
-          'th',
-          ctrl.me
-            ? {
-                key: 'time-header-with-rating',
-                class: { sortable: true, sort: ctrl.sort === 'time' },
-                hook: bind('click', _ => ctrl.setSort('time'), ctrl.redraw),
-              }
-            : {
-                key: 'time-header-without-rating',
-              },
-          [h('icon.is'), i18n.site.time],
-        ),
-        h('th', [h('icon.is'), i18n.site.mode]),
-      ]),
-    ),
+    h('thead', h('tr', [h('th', i18n.site.player), h('th', i18n.site.rank), h('th', i18n.site.time)])),
     h(
       'tbody',
       {
         class: { stepping: ctrl.stepping },
         hook: bind(
           'click',
-          async e => {
+          e => {
             let el = e.target as HTMLElement;
             do {
               el = el.parentNode as HTMLElement;
               if (el.nodeName === 'TR') return ctrl.clickHook(el.dataset['id']!);
             } while (el.nodeName !== 'TABLE');
+            return undefined;
           },
           ctrl.redraw,
         ),

@@ -8,6 +8,7 @@ import monocle.syntax.all.*
 import monocle.syntax.AppliedPLens
 
 import lila.core.userId.{ UserId, UserIdOf }
+import lila.core.rank.{ KeyedRankPerf, RankPerf, RankTrackId }
 
 object perf:
 
@@ -106,8 +107,13 @@ object perf:
       puzzle: Perf,
       storm: PuzPerf,
       racer: PuzPerf,
-      streak: PuzPerf
+      streak: PuzPerf,
+      ranks: Map[RankTrackId, RankPerf] = Map.empty
   ):
+    def rank(track: RankTrackId): Option[RankPerf] = ranks.get(track)
+    def keyedRank(track: RankTrackId): Option[KeyedRankPerf] = rank(track).map(KeyedRankPerf(track, _))
+    def withRank(track: RankTrackId, perf: RankPerf): UserPerfs = copy(ranks = ranks.updated(track, perf))
+
     def apply(key: PerfKey): Perf = key match
       case "bullet" => bullet
       case "blitz" => blitz

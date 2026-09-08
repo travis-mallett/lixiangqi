@@ -1,7 +1,6 @@
 package lila.mod
 
 import chess.{ Black, ByColor, Color, White }
-import chess.rating.IntRatingDiff
 import reactivemongo.api.bson.*
 import scalalib.ThreadLocalRandom
 
@@ -126,7 +125,7 @@ final class AssessApi(
         Statistics.moderatelyConsistentMoveTimes(Pov(game, player))
       val shouldAssess =
         if !game.source.exists(assessableSources.contains) then false
-        else if game.rated.no then false
+        else if !game.ranked then false
         else if lila.game.Player.HoldAlert.suspicious(holdAlerts) then true
         else if game.isCorrespondence then false
         else if game.playedPlies < PlayerAssessment.minPlies then false
@@ -175,14 +174,11 @@ final class AssessApi(
     def manyBlurs(player: Player) =
       game.playerBlurPercent(player.color) >= 70
 
-    def winnerGreatProgress(player: Player): Boolean =
-      game.winner.has(player) && players(player.color).perf.progress >= IntRatingDiff(80)
-
     def noFastCoefVariation(player: Player): Option[Float] =
       Statistics.noFastMoves(Pov(game, player)).so(Statistics.moveTimeCoefVariation(Pov(game, player)))
 
     def winnerUserOption = game.winnerColor.map(players(_))
-    def winnerNbGames = winnerUserOption.map(_.perf.nb)
+    def winnerNbGames = winnerUserOption.map(_.user.count.ranked)
 
     def suspCoefVariation(c: Color): Boolean =
       val x = noFastCoefVariation(game.player(c))
@@ -191,9 +187,9 @@ final class AssessApi(
     def isUpset = ~(for
       winner <- game.winner
       loser <- game.loser
-      wR <- winner.rating
-      lR <- loser.stableRating
-    yield wR <= lR.map(_ - 250))
+      wRank <- winner.rank
+      lRank <- loser.rank
+    yield wRank.ordinal < lRank.ordinal)
 
     val shouldAnalyse: Fu[Option[AutoAnalysis.Reason]] =
       if !gameApi.analysable(game) then fuccess(none)
@@ -207,7 +203,7 @@ final class AssessApi(
       // stop here for long games
       else if game.playedPlies > 95 then fuccess(none)
       // stop here for casual games
-      else if game.rated.no then fuccess(none)
+      else if !game.ranked then fuccess(none)
       // discard old games
       else if game.createdAt.isBefore(bottomDate) then fuccess(none)
       else if isUpset then fuccess(Upset.some)
@@ -223,8 +219,6 @@ final class AssessApi(
           else if game.speed == chess.Speed.Bullet && randomPercent(70) then none
           // someone blurs a lot
           else if game.players.exists(manyBlurs) then Blurs.some
-          // the winner shows a great rating progress
-          else if game.players.exists(winnerGreatProgress) then WinnerRatingProgress.some
           // analyse some tourney games
           // else if (game.isTournament) randomPercent(20) option "Tourney random"
           /// analyse new player games

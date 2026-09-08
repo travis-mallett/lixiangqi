@@ -22,8 +22,11 @@ final class TopNav(helpers: Helpers):
           )
         ),
         div(role := "group")(
-          if ctx.noBot then a(href := s"${langHref("/")}?any#hook")(trans.site.createLobbyGame())
-          else a(href := "/?any#friend")(trans.site.challengeAFriend()),
+          a(href := routes.Round.matchmaking("15+0-m90-30x3"))(
+            if !ctx.isAuth then frag(trans.site.playRatedXiangqi(), " (sign-in required)")
+            else trans.site.playRatedXiangqi()
+          ),
+          a(href := s"${langHref("/")}?any#ai")(trans.site.playAgainstComputer()),
           Option.when(ctx.noBot):
             frag(
               a(href := langHref(routes.Tournament.home))(trans.site.tournaments()),
@@ -44,15 +47,17 @@ final class TopNav(helpers: Helpers):
         )
       ,
       st.section(
-        linkTitle(routes.Learn.index.url, trans.site.learnMenu()),
+        linkTitle(routes.Notation.home.url, trans.site.learnMenu()),
         div(role := "group")(
           Option.when(ctx.noBot):
             frag(
-              a(href := langHref(routes.Learn.index))(trans.site.chessBasics()),
               a(href := langHref(routes.Notation.home))(trans.notation.xiangqiNotation()),
               a(href := routes.Learn.ancientManuals)(
                 if ctx.lang.language == "zh" then "古谱" else "Ancient Manuals"
-              )
+              ),
+              a(href := routes.Learn.xiangqiRankings)("About Xiangqi Rankings"),
+              a(href := routes.Learn.specialRules)(if ctx.lang.language == "zh" then "特殊规则"
+              else "Special Rules")
             )
           ,
           a(href := langHref(routes.Study.allDefault()))(trans.site.studyMenu()),
@@ -60,14 +65,12 @@ final class TopNav(helpers: Helpers):
         )
       ),
       st.section:
-        val broadcastUrl = langHref(routes.RelayTour.index())
+        val tvUrl = langHref(routes.Tv.index.url)
         frag(
-          linkTitle(broadcastUrl, trans.site.watch()),
+          linkTitle(tvUrl, trans.site.watch()),
           div(role := "group")(
-            a(href := routes.RelayTour.index())(trans.broadcast.broadcasts()),
-            a(href := langHref(routes.Tv.index))("Lixiangqi TV"),
+            a(href := tvUrl)("Lixiangqi TV"),
             a(href := routes.Tv.games)(trans.site.currentGames()),
-            (ctx.kid.no && ctx.noBot).option(a(href := routes.Streamer.index())(trans.site.streamersMenu())),
             ctx.noBot.option(a(href := langHref(routes.Video.index))(trans.site.videoLibrary()))
           )
         )

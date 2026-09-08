@@ -6,6 +6,7 @@ import play.api.libs.json.*
 import lila.common.Bus
 import lila.common.Json.given
 import lila.core.game.{ FinishGame, Game, StartGame, WithInitialFen }
+import lila.core.rank.RankDiff.*
 import lila.core.LightUser
 import lila.game.JsonView.given
 
@@ -48,10 +49,10 @@ object GameStream:
     Json
       .obj(
         "id" -> g.id,
-        "rated" -> g.rated,
+        "ranked" -> g.ranked,
         "variant" -> g.variant.key,
         "speed" -> g.speed.key,
-        "perf" -> g.perfKey,
+        "perf" -> "xiangqi",
         "createdAt" -> g.createdAt,
         "status" -> g.status.id,
         "statusName" -> g.status.name,
@@ -64,10 +65,10 @@ object GameStream:
           p.color.name -> Json
             .obj(
               "userId" -> p.userId,
-              "rating" -> p.rating
+              "rank" -> p.rank.flatMap(_.publicCode).map(_.value)
             )
             .add("name" -> user.map(_.name))
-            .add("provisional" -> p.provisional)
+            .add("rankDiff" -> p.rank.flatMap(_.diff).map(_.value))
             .add("ai" -> p.aiLevel))
       )
       .add("winner" -> g.winnerColor.map(_.name))

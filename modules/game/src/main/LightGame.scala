@@ -42,6 +42,7 @@ object LightPlayer:
         color = color,
         aiLevel = doc.int(aiLevel),
         userId = userId,
+        rank = Player.rankRead(doc),
         rating = doc.getAsOpt[IntRating](rating).flatMap(ratingRange),
         ratingDiff = doc.getAsOpt[IntRatingDiff](ratingDiff).flatMap(ratingDiffRange),
         provisional = ~doc.getAsOpt[RatingProvisional](provisional),

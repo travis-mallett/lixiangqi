@@ -7,6 +7,8 @@ import cats.kernel.Eq
 
 import lila.core.id.GamePlayerId
 import lila.core.perf.Perf
+import lila.core.rank.RankSnapshot
+import lila.core.rank.RankScore.*
 import lila.core.user.WithPerf
 import lila.core.userId.{ UserId, UserIdOf }
 
@@ -18,6 +20,7 @@ case class Player(
     isOfferingDraw: Boolean = false,
     proposeTakebackAt: Ply = Ply.initial, // ply when takeback was proposed
     userId: Option[UserId] = None,
+    rank: Option[RankSnapshot] = None,
     rating: Option[IntRating] = None,
     ratingDiff: Option[IntRatingDiff] = None,
     provisional: RatingProvisional = RatingProvisional.No,
@@ -37,11 +40,16 @@ case class Player(
   def isProposingTakeback = proposeTakebackAt > 0
 
   def before(other: Player) =
-    ((rating, id), (other.rating, other.id)) match
-      case ((Some(a), _), (Some(b), _)) if a != b => a.value > b.value
-      case ((Some(_), _), (None, _)) => true
-      case ((None, _), (Some(_), _)) => false
-      case ((_, a), (_, b)) => a.value < b.value
+    ((rank.map(_.score.value), rating, id), (other.rank.map(_.score.value), other.rating, other.id)) match
+      case ((Some(a), _, _), (Some(b), _, _)) if a != b => a > b
+      case ((Some(_), _, _), (None, _, _)) => true
+      case ((None, _, _), (Some(_), _, _)) => false
+      case ((_, Some(a), _), (_, Some(b), _)) if a != b => a.value > b.value
+      case ((_, Some(_), _), (_, None, _)) => true
+      case ((_, None, _), (_, Some(_), _)) => false
+      case ((_, _, a), (_, _, b)) => a.value < b.value
+
+  def rankAfter = rank.flatMap(_.scoreAfter)
 
   def ratingAfter = for
     r <- rating
@@ -55,13 +63,14 @@ case class Player(
     d <- ratingDiff
   yield r.map(_ + d.value)
 
-  def light = LightPlayer(color, aiLevel, userId, rating, ratingDiff, provisional, berserk)
+  def light = LightPlayer(color, aiLevel, userId, rank, rating, ratingDiff, provisional, berserk)
 
 object Player:
   given Eq[Player] = Eq.by(p => (p.id, p.userId))
 
 trait NewPlayer:
   def apply(color: Color, user: Option[WithPerf]): Player
+  def apply(color: Color, userId: UserId, rank: RankSnapshot): Player
   def apply(color: Color, userId: UserId, rating: IntRating, provisional: RatingProvisional): Player
   def apply(color: Color, userPerf: (UserId, Perf)): Player
   def anon(color: Color, aiLevel: Option[Int] = None): Player

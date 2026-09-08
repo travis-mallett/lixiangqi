@@ -41,7 +41,6 @@ final class Env(
   private lazy val redis = FishnetRedis(
     RedisClient.create(RedisURI.create(config.redisUri)),
     "fishnet-in",
-    "fishnet-out",
     shutdown
   )
 
@@ -114,4 +113,4 @@ final class Env(
     case req: lila.core.fishnet.Bus.StudyChapterOrphan => analysisRepo.setOrphans(req.chapterIds)
 
   Bus.sub[lila.core.fishnet.FishnetMoveRequest]: req =>
-    player(req.game)
+    player(req)

@@ -7,6 +7,7 @@ import chess.variant.Variant
 import lila.core.game.Namer
 import lila.core.id.GameFullId
 import lila.tree.{ Branches, Root }
+import lila.xiangqi.{ Xiangqi, XiangqiRules }
 
 final private class ChapterMaker(
     net: lila.core.config.NetConfig,
@@ -99,16 +100,23 @@ final private class ChapterMaker(
   def fromFenOrBlank(study: Study, data: Data, order: Int, userId: UserId): Chapter =
     val variant = data.variant | Variant.default
     val (root, isFromFen) =
-      data.fen.filterNot(_.isInitial).flatMap { Fen.readWithMoveNumber(variant, _) } match
+      data.fen.filter(f => Xiangqi.Fen.isValid(f.value)) match
         case Some(game) =>
           Root(
-            ply = game.ply,
-            fen = Fen.write(game),
+            ply = XiangqiRules.position(Xiangqi.Position(initialFen = game.value)).fold(_ => chess.Ply(0), s => chess.Ply(s.ply)),
+            fen = game,
             clock = none,
-            crazyData = game.position.crazyData,
+            crazyData = none,
             children = Branches.empty
           ) -> true
-        case None => Root.default(variant) -> false
+        case None =>
+          Root(
+            ply = chess.Ply(0),
+            fen = Fen.Full(Xiangqi.startFen),
+            clock = none,
+            crazyData = none,
+            children = Branches.empty
+          ) -> false
     Chapter.make(
       studyId = study.id,
       name = data.name,
@@ -124,7 +132,8 @@ final private class ChapterMaker(
       ownerId = userId,
       practice = data.isPractice,
       gamebook = data.isGamebook,
-      conceal = data.isConceal.option(root.ply)
+      conceal = data.isConceal.option(root.ply),
+      relay = none
     )
 
   private def fromGame(

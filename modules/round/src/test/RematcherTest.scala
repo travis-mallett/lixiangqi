@@ -4,6 +4,10 @@ import lila.xiangqi.Xiangqi
 
 class RematcherTest extends munit.FunSuite:
 
+  test("rematch keeps an explicit nondefault ruleset"):
+    val game = Xiangqi.Game.initial.copy(ruleset = lila.xiangqi.adjudication.Ruleset.Unrestricted)
+    assertEquals(Rematcher.reset(game).ruleset, game.ruleset)
+
   test("rematch resets a standard Xiangqi game to its canonical root"):
     val moved = Xiangqi.Game.initial.copy(
       moves = Vector(Xiangqi.Uci.unsafe("a4a5")),

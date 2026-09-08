@@ -4,8 +4,7 @@ import play.api.libs.json.*
 
 import lila.common.Json.given
 import lila.core.game.{ Game, GameRepo, Pov, WithInitialFen }
-import lila.core.i18n.Translate
-import lila.game.GameExt.perfType
+import lila.core.rank.RankCode.*
 import lila.game.JsonView.given
 
 final class BotJsonView(
@@ -14,24 +13,25 @@ final class BotJsonView(
     rematches: lila.game.Rematches
 )(using Executor):
 
-  def gameFull(game: Game)(using Translate): Fu[JsObject] = gameRepo.withInitialFen(game).flatMap(gameFull)
+  def gameFull(game: Game): Fu[JsObject] = gameRepo.withInitialFen(game).flatMap(gameFull)
 
-  def gameFull(wf: WithInitialFen)(using Translate): Fu[JsObject] =
+  def gameFull(wf: WithInitialFen): Fu[JsObject] =
     gameState(wf).map: state =>
       gameImmutable(wf) ++ Json.obj(
         "type" -> "gameFull",
         "state" -> state
       )
 
-  def gameImmutable(wf: WithInitialFen)(using Translate): JsObject =
+  def gameImmutable(wf: WithInitialFen): JsObject =
     import wf.*
     Json
       .obj(
         "id" -> game.id,
+        "ruleset" -> game.xiangqi.ruleset.key,
         "variant" -> game.variant,
         "speed" -> game.speed.key,
-        "perf" -> Json.obj("name" -> game.perfType.trans),
-        "rated" -> game.rated,
+        "perf" -> Json.obj("name" -> "Xiangqi"),
+        "ranked" -> game.ranked,
         "createdAt" -> game.createdAt,
         "red" -> playerJson(game.pov(Color.white)),
         "black" -> playerJson(game.pov(Color.black)),
@@ -48,6 +48,10 @@ final class BotJsonView(
       Json
         .obj(
           "type" -> "gameState",
+          "ruleset" -> game.xiangqi.ruleset.key,
+          "legalMoves" -> game.position.legalMoves.map(_.value),
+          "variation" -> game.position.variation,
+          "termination" -> game.position.termination,
           "moves" -> game.xiangqi.moves.map(_.value).mkString(" "),
           "rtime" -> millisRemaining(game, Color.white),
           "btime" -> millisRemaining(game, Color.black),
@@ -97,8 +101,7 @@ final class BotJsonView(
       .add("id" -> light.map(_.id))
       .add("name" -> light.map(_.name))
       .add("title" -> light.map(_.title))
-      .add("rating" -> pov.player.rating)
-      .add("provisional" -> pov.player.provisional)
+      .add("rank" -> pov.player.rank.flatMap(_.publicCode).map(_.value))
 
   private given OWrites[chess.Clock.Config] = OWrites: c =>
     Json.obj(

@@ -3,6 +3,14 @@
 The authoritative local catalog is `data/local/xiangqi-games.sqlite3`. Database
 files and downloaded source pages are intentionally excluded from Git.
 
+The public Games Database reads a transactionally maintained catalog projection
+for global totals, source facets, timeline buckets, and trigram-indexed text
+search. Verify the projection after moving or restoring a database with:
+
+```powershell
+python -m tools.games_database.catalog_index ensure
+```
+
 Run the bounded weekly update:
 
 ```powershell

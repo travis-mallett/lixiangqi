@@ -5,6 +5,14 @@
   <string name="privacy">Privacy</string>
   <string name="notifications">Notifications</string>
   <string name="pieceAnimation">Piece animation</string>
+  <string name="boardEventAnimations">Opening, capture, check, and checkmate animations</string>
+  <string name="boardAnimationsOn">On</string>
+  <string name="boardAnimationsOff">Off</string>
+  <string name="boardAnimationsCustom">Custom</string>
+  <string name="openingAnimation">Opening</string>
+  <string name="captureAnimation">Capture</string>
+  <string name="checkAnimation">Check</string>
+  <string name="checkmateAnimation">Checkmate</string>
   <string name="materialDifference">Material difference</string>
   <string name="boardHighlights">Board highlights (last move and check)</string>
   <string name="pieceDestinations">Piece destinations (valid moves and premoves)</string>
@@ -17,10 +25,10 @@
   <string name="chessPieceSymbol">Xiangqi piece symbol</string>
   <string name="pgnLetter">Letter (K, Q, R, B, N)</string>
   <string name="zenMode" comment="zenMode&#10;&#10;This is not the religious meaning. Turning this option on takes away make elements of the user interface.&#10;&#10;Can also translate as 'Focus mode' as one example.">Zen mode</string>
-  <string name="showPlayerRatings">Show player ratings</string>
+  <string name="showPlayerRatings">Show player ranks</string>
   <string name="showFlairs">Show player flairs</string>
-  <string name="explainShowPlayerRatings">Hides all ratings from Lixiangqi, to help you focus on the game.
-This setting only affects what you see. Rated games will still impact your rating.</string>
+  <string name="explainShowPlayerRatings">Hides player rank titles from Lixiangqi, to help you focus on the game.
+This setting only affects what you see. Ranked games will still affect your Xiangqi rank.</string>
   <string name="displayBoardResizeHandle">Show board resize handle</string>
   <string name="onlyOnInitialPosition">Only on initial position</string>
   <string name="inGameOnly">In-game only</string>

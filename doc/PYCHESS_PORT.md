@@ -64,6 +64,11 @@ Wj654cj86 and released into the public domain:
   Wikimedia pieces retained in the referenced PyChess revision's
   `static/images/pieces/xiangqi/wikim/` directory, renamed to Lixiangqi's
   piece-file contract.
+- `public/piece/xiangqi-international/*.svg` and
+  `public/piece/xiangqi-western/*.svg` are unchanged artwork from the
+  `2dintl` and `Ka` directories, respectively, at PyChess Variants revision
+  [`10f48bc32658f856628da5fb8b3ed723e0e089d6`](https://github.com/gbtami/pychess-variants/tree/10f48bc32658f856628da5fb8b3ed723e0e089d6/static/images/pieces/xiangqi).
+  Only the filenames were mapped to Lixiangqi's fourteen-piece asset contract.
 
 Source description pages:
 

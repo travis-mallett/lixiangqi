@@ -3,6 +3,7 @@ package lila.xiangqi
 import play.api.libs.json.*
 
 import Xiangqi.*
+import lila.xiangqi.adjudication.{ Ruleset, MoveFact, AdjudicationState }
 
 object XiangqiJson:
 
@@ -23,7 +24,13 @@ object XiangqiJson:
     Writes.StringWrites.contramap(_.key)
   )
 
-  given OFormat[Position] = Json.format
+  given Format[Ruleset] = Format(
+    Reads.StringReads.flatMapResult(value => Ruleset.fromKey(value).fold(JsError(_), JsSuccess(_))),
+    Writes.StringWrites.contramap(_.key)
+  )
+  given OFormat[MoveFact] = Json.format
+  given OFormat[AdjudicationState] = Json.format
+  given OFormat[Position] = Json.using[Json.WithDefaultValues].format
   given OFormat[ExplorerQuery] = Json.format
   given OFormat[GamesQuery] = Json.format
   given OFormat[CatalogGameQuery] = Json.format

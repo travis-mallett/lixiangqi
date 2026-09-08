@@ -5,7 +5,6 @@ import reactivemongo.api.bson.*
 import lila.db.dsl.*
 
 final class TournamentStatsApi(
-    playerRepo: PlayerRepo,
     pairingRepo: PairingRepo,
     mongoCache: lila.memo.MongoCache.Api
 )(using Executor):
@@ -21,10 +20,7 @@ final class TournamentStatsApi(
       .buildAsyncFuture(loader(fetch))
 
   private def fetch(tournamentId: TourId): Fu[TournamentStats] =
-    for
-      rating <- playerRepo.averageRating(tournamentId)
-      rawStats <- pairingRepo.rawStats(tournamentId)
-    yield TournamentStats.readAggregation(rating)(rawStats)
+    pairingRepo.rawStats(tournamentId).map(TournamentStats.readAggregation)
 
 case class TournamentStats(
     games: Int,
@@ -32,8 +28,7 @@ case class TournamentStats(
     whiteWins: Int,
     blackWins: Int,
     draws: Int,
-    berserks: Int,
-    averageRating: Int
+    berserks: Int
 )
 
 private object TournamentStats:
@@ -41,7 +36,7 @@ private object TournamentStats:
   private case class ColorStats(games: Int, moves: Int, b1: Int, b2: Int):
     def berserks = b1 + b2
 
-  def readAggregation(rating: Int)(docs: List[Bdoc]): TournamentStats =
+  def readAggregation(docs: List[Bdoc]): TournamentStats =
     val colorStats: Map[Option[Color], ColorStats] = docs.view.map { doc =>
       doc.getAsOpt[Boolean]("_id").map(Color.fromWhite(_)) ->
         ColorStats(
@@ -57,6 +52,5 @@ private object TournamentStats:
       whiteWins = colorStats.get(Color.White.some).so(_.games),
       blackWins = colorStats.get(Color.Black.some).so(_.games),
       draws = colorStats.get(none).so(_.games),
-      berserks = colorStats.foldLeft(0)(_ + _._2.berserks),
-      averageRating = rating
+      berserks = colorStats.foldLeft(0)(_ + _._2.berserks)
     )

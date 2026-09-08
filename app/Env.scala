@@ -67,7 +67,6 @@ final class Env(
   val forum: lila.forum.Env = wire[lila.forum.Env]
   val forumSearch: lila.forumSearch.Env = wire[lila.forumSearch.Env]
   val pool: lila.pool.Env = wire[lila.pool.Env]
-  import pool.given
   val lobby: lila.lobby.Env = wire[lila.lobby.Env]
   val setup: lila.setup.Env = wire[lila.setup.Env]
   val simul: lila.simul.Env = wire[lila.simul.Env]
@@ -105,6 +104,7 @@ final class Env(
   val web: lila.web.Env = wire[lila.web.Env]
   val api: lila.api.Env = wire[lila.api.Env]
 
+  val tryDailyPuzzle = puzzle.tryDailyPuzzle
   val preloader = wire[mashup.Preload]
   val socialInfo = wire[mashup.UserInfo.SocialApi]
   val userNbGames = wire[mashup.UserInfo.NbGamesApi]

@@ -36,7 +36,8 @@ case class Tournament(
     spotlight: Option[Spotlight] = None,
     description: Option[String] = None,
     payouts: Option[Payouts] = None,
-    hasChat: Boolean = true
+    hasChat: Boolean = true,
+    ruleset: lila.xiangqi.adjudication.Ruleset = lila.xiangqi.adjudication.Ruleset.default
 ) extends lila.core.tournament.Tournament:
 
   def isCreated = status == Status.created
@@ -199,7 +200,8 @@ object Tournament:
         setup.startDate | nowInstant.plusMinutes(setup.waitMinutes | TournamentForm.waitMinuteDefault),
       description = setup.description,
       payouts = setup.payouts,
-      hasChat = setup.hasChat | true
+      hasChat = setup.hasChat | true,
+      ruleset = setup.realRuleset
     )
 
   def scheduleAs(sched: Schedule, startsAt: Instant, minutes: Int)(using Translate) =
@@ -214,7 +216,7 @@ object Tournament:
       nbPlayers = 0,
       variant = sched.variant,
       position = sched.position,
-      rated = Rated.Yes,
+      rated = Rated.No,
       conditions = sched.conditions,
       schedule = Scheduled(sched.freq, sched.at).some,
       startsAt = startsAt

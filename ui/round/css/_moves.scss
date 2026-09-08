@@ -37,6 +37,15 @@ $buttons-height: 2.5rem;
     text-align: center;
   }
 
+  .recorded-clock-playback.playing::before {
+    content: '';
+    display: inline-block;
+    width: 0.72em;
+    height: 0.72em;
+    border-radius: 1px;
+    background: currentcolor;
+  }
+
   #{$moves-tag},
   .message {
     flex: 0 0 7.4rem;

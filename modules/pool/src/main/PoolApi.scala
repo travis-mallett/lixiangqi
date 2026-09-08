@@ -25,9 +25,9 @@ final class PoolApi(
         )
     .toMap
 
-  val poolPerfKeys: Map[PoolConfigId, PerfKey] = configs
+  val poolRankTracks = configs
     .map: config =>
-      config.id -> config.perfKey
+      config.id -> config.rankTrack
     .toMap
 
   val homepagePoolIds: Set[PoolConfigId] = PoolList.homepage.iterator.map(_.id).toSet

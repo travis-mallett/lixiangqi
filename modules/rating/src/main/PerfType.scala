@@ -92,7 +92,7 @@ enum PerfType(
 
 object PerfType:
 
-  // all rated game speeds
+  // Legacy speed groups retained for casual/deferred subsystems; they are not Xiangqi rank tracks.
   type GamePerf = Bullet.type | Blitz.type | Rapid.type | Classical.type | UltraBullet.type |
     Correspondence.type
 
@@ -121,7 +121,7 @@ object PerfType:
   // No non-standard Xiangqi rating pool is registered yet.
   val variants: List[PerfKey] = Nil
 
-  def variantOf(@annotation.unused perfKey: PerfKey): variant.Variant = variant.Standard
+  def variantOf(perfKey: PerfKey): variant.Variant = variant.Standard
 
   def iconByVariant(variant: chess.variant.Variant): Icon =
     PerfKey.byVariant(variant).fold(Icon.CrownElite)(_.icon)

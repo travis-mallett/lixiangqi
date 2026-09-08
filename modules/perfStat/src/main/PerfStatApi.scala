@@ -3,7 +3,6 @@ package lila.perfStat
 import chess.IntRating
 import lila.core.perf.{ PerfId, UserWithPerfs }
 import lila.core.perm.Granter
-import lila.core.rating.UserRankMap
 import lila.rating.Glicko.minRating
 import lila.rating.PerfExt.established
 import lila.rating.PerfType
@@ -12,13 +11,11 @@ import lila.rating.PerfType.GamePerf
 case class PerfStatData(
     user: UserWithPerfs,
     stat: PerfStat,
-    ranks: UserRankMap,
     percentile: Option[Double],
     percentileLow: Option[Double],
     percentileHigh: Option[Double]
 ):
   export stat.perfKey
-  def rank = ranks.get(stat.perfType.key)
 
 final class PerfStatApi(
     storage: PerfStatStorage,
@@ -26,7 +23,6 @@ final class PerfStatApi(
     mongoCache: lila.memo.MongoCache.Api,
     userApi: lila.core.user.UserApi,
     rankingRepo: lila.core.user.RankingRepo,
-    rankingsOf: UserId => UserRankMap,
     lightUserApi: lila.core.user.LightUserApi
 )(using Executor)
     extends lila.core.perf.PerfStatApi:
@@ -53,7 +49,7 @@ final class PerfStatApi(
                 percentileHigh = perfStat.highest.flatMap { r => calcPercentile(distribution, r.int) }
                 _ = lightUserApi.preloadUser(u.user)
                 _ <- lightUserApi.preloadMany(perfStat.userIds)
-              yield PerfStatData(u, perfStat, rankingsOf(u.id), percentile, percentileLow, percentileHigh)
+              yield PerfStatData(u, perfStat, percentile, percentileLow, percentileHigh)
       case _ => fuccess(none)
 
   private def calcPercentile(wrd: Option[List[Int]], intRating: IntRating): Option[Double] =

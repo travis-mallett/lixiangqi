@@ -2,7 +2,8 @@
 param(
   [switch]$NoBrowser,
   [switch]$SkipBuild,
-  [switch]$LanAccess
+  [switch]$LanAccess,
+  [switch]$StopOnly
 )
 
 $ErrorActionPreference = 'Stop'
@@ -61,8 +62,53 @@ function Start-Background(
   [string]$workingDirectory = $projectRoot
 ) {
   Write-Step "Starting $name"
-  Start-Process -FilePath $executable -ArgumentList $arguments -WorkingDirectory $workingDirectory `
-    -RedirectStandardOutput $stdout -RedirectStandardError $stderr -WindowStyle Hidden | Out-Null
+  return Start-Process -FilePath $executable -ArgumentList $arguments -WorkingDirectory $workingDirectory `
+    -RedirectStandardOutput $stdout -RedirectStandardError $stderr -WindowStyle Hidden -PassThru
+}
+
+function Build-WindowsSelectorPatch([string]$javaExecutable) {
+  # Windows 11 build 26200 can advertise AF_UNIX support while connect() fails
+  # with WSAEINVAL. JDK selectors prefer AF_UNIX for their internal wakeup pipe,
+  # so every Netty event loop then fails before the application can bind a port.
+  # Recompile the bundled JDK's matching PipeImpl with its TCP fallback selected.
+  $jdkRoot = Split-Path (Split-Path $javaExecutable -Parent) -Parent
+  $jdkSources = Join-Path $jdkRoot 'lib\src.zip'
+  $javac = Join-Path $jdkRoot 'bin\javac.exe'
+  if (-not (Test-Path $jdkSources) -or -not (Test-Path $javac)) {
+    throw 'The bundled JDK sources or Java compiler are missing.'
+  }
+
+  $patchRoot = Join-Path $dataDir 'jdk-selector-patch'
+  $sourceRoot = Join-Path $patchRoot 'src'
+  $classesRoot = Join-Path $patchRoot 'classes'
+  $sourceFile = Join-Path $sourceRoot 'sun\nio\ch\PipeImpl.java'
+  New-Item -ItemType Directory -Force -Path (Split-Path $sourceFile -Parent), $classesRoot | Out-Null
+
+  Add-Type -AssemblyName System.IO.Compression.FileSystem
+  $archive = [IO.Compression.ZipFile]::OpenRead($jdkSources)
+  try {
+    $entry = $archive.GetEntry('java.base/sun/nio/ch/PipeImpl.java')
+    if (-not $entry) { throw 'PipeImpl.java is missing from the bundled JDK sources.' }
+    $reader = [IO.StreamReader]::new($entry.Open())
+    try { $source = $reader.ReadToEnd() } finally { $reader.Dispose() }
+  } finally {
+    $archive.Dispose()
+  }
+
+  $original = 'Initializer initializer = new Initializer(sp, preferAfUnix);'
+  $replacement = 'Initializer initializer = new Initializer(sp, false);'
+  if (-not $source.Contains($original)) {
+    throw 'The bundled JDK PipeImpl source is incompatible with the Windows selector patch.'
+  }
+  [IO.File]::WriteAllText(
+    $sourceFile,
+    $source.Replace($original, $replacement),
+    [Text.UTF8Encoding]::new($false)
+  )
+
+  & $javac '--patch-module' "java.base=$sourceRoot" '-d' $classesRoot $sourceFile
+  if ($LASTEXITCODE) { throw 'Could not build the Windows JDK selector compatibility patch.' }
+  return $classesRoot
 }
 
 function Stop-LocalService([int]$port, [string]$name, [string[]]$commandPatterns) {
@@ -90,7 +136,9 @@ function Stop-LocalService([int]$port, [string]$name, [string[]]$commandPatterns
     throw "Port $port is occupied by another process. Stop it before starting Lixiangqi."
   }
 
-  Write-Step "Restarting $name so source and asset changes take effect"
+  $action = if ($StopOnly) { 'Stopping' } else { 'Restarting' }
+  $reason = if ($StopOnly) { '' } else { ' so source and asset changes take effect' }
+  Write-Step "$action $name$reason"
   Stop-Process -Id $process.ProcessId -Force
   if ($parent -and $parent.ProcessId -ne $PID -and $belongsToProject) {
     Stop-Process -Id $parent.ProcessId -Force -ErrorAction SilentlyContinue
@@ -102,17 +150,65 @@ function Stop-LocalService([int]$port, [string]$name, [string[]]$commandPatterns
   if (Test-Port $port) { throw "$name did not stop on port $port." }
 }
 
-function Stop-LocalProcess([string]$name, [string]$commandPattern) {
-  $processes = Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
+function Get-LocalProcesses([string[]]$commandPatterns) {
+  return @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
     Where-Object {
-      $_.CommandLine -like $commandPattern -and
-      $_.ExecutablePath -and
-      $_.ExecutablePath.StartsWith($projectRoot, [StringComparison]::OrdinalIgnoreCase)
+      $process = $_
+      $matchesCommand = [bool]($commandPatterns | Where-Object { $process.CommandLine -like $_ })
+      $matchesCommand -and
+      $process.ExecutablePath -and
+      $process.ExecutablePath.StartsWith($projectRoot, [StringComparison]::OrdinalIgnoreCase)
+    })
+}
+
+function Stop-LocalProcess([string]$name, [string[]]$commandPatterns) {
+  $processes = @(Get-LocalProcesses $commandPatterns)
+  if (-not $processes.Count) { return }
+
+  $action = if ($StopOnly) { 'Stopping' } else { 'Restarting' }
+  $reason = if ($StopOnly) { '' } else { ' so source changes take effect' }
+  Write-Step "$action $name$reason"
+  $deadline = (Get-Date).AddSeconds(15)
+  do {
+    foreach ($process in $processes) {
+      try {
+        Stop-Process -Id $process.ProcessId -Force -ErrorAction Stop
+      } catch [Microsoft.PowerShell.Commands.ProcessCommandException] {
+        # A parent and its forked child can exit together. Ignore only processes
+        # that disappeared between the CIM snapshot and Stop-Process.
+        if (Get-Process -Id $process.ProcessId -ErrorAction SilentlyContinue) { throw }
+      }
     }
-  foreach ($process in $processes) {
-    Write-Step "Restarting $name so source changes take effect"
-    Stop-Process -Id $process.ProcessId -Force
+
+    Start-Sleep -Milliseconds 250
+    # Rescan by checkout path and command line instead of trusting stale PIDs.
+    # This also catches an SBT launcher that replaces its forked JVM while the
+    # cleanup is in progress.
+    $processes = @(Get-LocalProcesses $commandPatterns)
+  } while ($processes.Count -and (Get-Date) -lt $deadline)
+
+  if ($processes.Count) {
+    $details = ($processes | ForEach-Object { "$($_.Name) PID $($_.ProcessId)" }) -join ', '
+    throw "$name did not stop: $details."
   }
+}
+
+function Remove-StaleSbtBackgroundJobs {
+  # SBT creates an isolated target tree for every forked `run`. Force-stopping a
+  # preview (which is necessary on Windows when restarting it) can prevent SBT
+  # from deleting that tree. Repeated previews can otherwise fill the drive with
+  # duplicate dependency jars and compiled classes.
+  $expectedPath = [IO.Path]::GetFullPath((Join-Path $projectRoot 'target\bg-jobs'))
+  if (-not (Test-Path -LiteralPath $expectedPath)) { return }
+
+  $resolvedPath = (Resolve-Path -LiteralPath $expectedPath).Path
+  if (-not $resolvedPath.Equals($expectedPath, [StringComparison]::OrdinalIgnoreCase) -or
+      -not $resolvedPath.StartsWith("$projectRoot\target\", [StringComparison]::OrdinalIgnoreCase)) {
+    throw "Refusing to remove unexpected SBT background-job path: $resolvedPath"
+  }
+
+  Write-Step 'Removing stale SBT background-job files'
+  Remove-Item -LiteralPath $resolvedPath -Recurse -Force
 }
 
 Set-Location $projectRoot
@@ -206,7 +302,7 @@ if ($applicationTextWithSockets -ne $applicationText) {
   )
 }
 
-if (-not $SkipBuild) {
+if (-not $SkipBuild -and -not $StopOnly) {
   Write-Step 'Building the Lichess asset manifest, browser bundles, and styles'
   & node ui\.build\src\main.ts --no-install
   if ($LASTEXITCODE) { throw 'Lichess asset build failed.' }
@@ -223,14 +319,44 @@ Stop-LocalService 9664 'Lila websocket service' @(
   '*lila-ws*'
 )
 Stop-LocalService 9002 'Xiangqi explorer' @('*external.xiangqi_explorer.server*')
+
+# A failed forked JVM can leave its SBT parent (and Windows named-pipe boot
+# lock) alive without a listening port. Port-based cleanup cannot see that
+# state, so also remove only launchers and children whose command lines and
+# executables identify them as belonging to this checkout.
+Stop-LocalProcess 'orphaned Lichess/Lixiangqi web application' @(
+  '*lila.app.Lila*'
+  '*-Xms512m*-Xmx6g*sbt-launch-2.0.3.jar*run*'
+)
+Stop-LocalProcess 'orphaned Lila websocket service' @(
+  "*-Dconfig.file=$lilaWsConf*"
+  '*lila.ws.LilaWs*'
+)
+Stop-LocalProcess 'orphaned Xiangqi explorer' '*external.xiangqi_explorer.server*'
 Stop-LocalProcess 'Pikafish AI worker' '*external.pikafish_worker.ai*'
+
+# All project-owned SBT launchers and forked JVMs are stopped at this point, so
+# none of these generated per-run directories can still be in use.
+Remove-StaleSbtBackgroundJobs
+
+if ($StopOnly) {
+  Write-Step 'Project-owned application services are stopped'
+  return
+}
+
+if ([Environment]::OSVersion.Version.Build -eq 26200) {
+  Write-Step 'Applying the Windows 11 Java selector compatibility patch'
+  $selectorPatch = Build-WindowsSelectorPatch $java
+  $selectorPatchOption = "--patch-module=java.base=`"$selectorPatch`""
+  $env:JAVA_TOOL_OPTIONS = "$($env:JAVA_TOOL_OPTIONS) $selectorPatchOption".Trim()
+}
 
 $mongoData = Join-Path $dataDir 'mongodb'
 $redisData = Join-Path $dataDir 'redis'
 New-Item -ItemType Directory -Force -Path $mongoData, $redisData | Out-Null
 
 if (-not (Test-Port 27017)) {
-  Start-Background 'MongoDB' $mongo @(
+  $null = Start-Background 'MongoDB' $mongo @(
     '--bind_ip', '127.0.0.1', '--port', '27017', '--dbpath', $mongoData,
     '--logpath', (Join-Path $logsDir 'mongodb.log'), '--logappend'
   ) (Join-Path $logsDir 'mongodb.stdout.log') (Join-Path $logsDir 'mongodb.stderr.log')
@@ -246,44 +372,55 @@ if (Test-Path $puzzleDatabase) {
 
 if (-not (Test-Port 6379)) {
   $redisPath = $redisData.Replace('\', '/')
-  Start-Background 'Redis' $redis @(
+  $null = Start-Background 'Redis' $redis @(
     '--bind', '127.0.0.1', '--port', '6379', '--protected-mode', 'yes',
     '--dir', $redisPath, '--dbfilename', 'lixiangqi.rdb', '--appendonly', 'no'
   ) (Join-Path $logsDir 'redis.stdout.log') (Join-Path $logsDir 'redis.stderr.log')
   Wait-Port 6379 30 'Redis'
 }
 
-Write-Step 'Ensuring the write-time opening explorer index is current'
+Write-Step 'Ensuring the write-time games database indexes are current'
 & $python -m tools.games_database.explorer_index ensure
-if ($LASTEXITCODE) { throw 'Opening explorer index preparation failed.' }
+if ($LASTEXITCODE) { throw 'Games database index preparation failed.' }
 
 $env:LIXIANGQI_DOMAIN = $siteDomain
 $env:LIXIANGQI_SOCKET_DOMAIN = "${siteAddress}:9664"
 if (-not (Test-Port 9664)) {
-  Start-Background 'Lila websocket service' $java @(
+  $null = Start-Background 'Lila websocket service' $java @(
     '-Xms32m', '-Xmx512m', '-Dsbt.supershell=false', '-Dsbt.color=false',
     "-Dconfig.file=$lilaWsConf", '-jar', $sbt, 'run'
   ) (Join-Path $logsDir 'lila-ws.stdout.log') (Join-Path $logsDir 'lila-ws.stderr.log') $lilaWsDir
-  Wait-Port 9664 180 'Lila websocket service'
+  try {
+    Wait-Port 9664 180 'Lila websocket service'
+  } catch {
+    # SBT can stay alive after its forked websocket JVM fails. Never leave that
+    # launcher or a partially initialized replacement behind for the next run.
+    Stop-LocalProcess 'failed Lila websocket service' @(
+      "*-Dconfig.file=$lilaWsConf*"
+      '*lila.ws.LilaWs*'
+    )
+    throw
+  }
 }
 
 if (-not (Test-Port 9002)) {
-  Start-Background 'Xiangqi opening explorer' $python @(
+  $null = Start-Background 'Xiangqi opening explorer' $python @(
     '-m', 'external.xiangqi_explorer.server', '--host', '127.0.0.1', '--port', '9002'
   ) (Join-Path $logsDir 'xiangqi-explorer.stdout.log') (Join-Path $logsDir 'xiangqi-explorer.stderr.log')
   Wait-Port 9002 30 'Xiangqi explorer'
 }
 
-Start-Background 'Pikafish AI worker' $python @(
+$null = Start-Background 'Pikafish AI worker' $python @(
   '-m', 'external.pikafish_worker.ai'
 ) (Join-Path $logsDir 'pikafish-worker.stdout.log') (Join-Path $logsDir 'pikafish-worker.stderr.log')
 
+$webProcess = $null
 if (-not (Test-Port 9663)) {
   # Typesafe Config gives JVM system properties precedence over application.conf.
   # JAVA_TOOL_OPTIONS reaches both SBT and its forked application JVM, allowing
   # local access without changing the application's checked-in domain settings.
   $env:JAVA_TOOL_OPTIONS = "$($env:JAVA_TOOL_OPTIONS) -Dnet.domain=$siteDomain".Trim()
-  Start-Background 'Lichess/Lixiangqi web application' $java @(
+  $webProcess = Start-Background 'Lichess/Lixiangqi web application' $java @(
     '-Xms512m', '-Xmx6g', '-Dsbt.supershell=false', '-Dsbt.color=false',
     '-jar', $sbt, 'run'
   ) (Join-Path $logsDir 'lixiangqi.stdout.log') (Join-Path $logsDir 'lixiangqi.stderr.log')
@@ -296,6 +433,15 @@ $startupTimeoutMinutes = 15
 $deadline = (Get-Date).AddMinutes($startupTimeoutMinutes)
 $websiteReady = $false
 do {
+  if ($webProcess) {
+    $webProcess.Refresh()
+    if ($webProcess.HasExited) {
+      Write-Host "Lixiangqi exited during startup (exit code $($webProcess.ExitCode)). Recent server output:" -ForegroundColor Red
+      Get-Content (Join-Path $logsDir 'lixiangqi.stderr.log') -Tail 40 -ErrorAction SilentlyContinue
+      Get-Content (Join-Path $logsDir 'lixiangqi.stdout.log') -Tail 40 -ErrorAction SilentlyContinue
+      throw 'Website process exited before it became ready.'
+    }
+  }
   try {
     $response = Invoke-WebRequest -Uri $healthUrl -Headers @{ Host = $siteDomain } -UseBasicParsing -TimeoutSec 5
     if ($response.StatusCode -eq 200) {

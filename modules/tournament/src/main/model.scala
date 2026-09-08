@@ -5,6 +5,7 @@ import chess.ByColor
 
 import lila.core.chess.Rank
 import lila.core.id.GameFullId
+import lila.core.rank.RankCode.*
 
 final class LeaderboardRepo(val coll: lila.db.dsl.Coll)
 
@@ -74,7 +75,7 @@ case class RankedPlayer(rank: Rank, player: Player):
   def withColorHistory(getHistory: TourPlayerId => ColorHistory) =
     RankedPlayerWithColorHistory(rank, player, getHistory(player.id))
 
-  override def toString = s"$rank. ${player.userId}[${player.rating}]"
+  override def toString = s"$rank. ${player.userId}[${player.showRank}]"
 
 object RankedPlayer:
 
@@ -86,7 +87,7 @@ object RankedPlayer:
 case class RankedPlayerWithColorHistory(rank: Rank, player: Player, colorHistory: ColorHistory):
   def is(other: RankedPlayer) = player.is(other.player)
   def sameTeamAs(other: RankedPlayerWithColorHistory) = player.team.exists(other.player.team.contains)
-  override def toString = s"$rank. ${player.userId}[${player.rating}]"
+  override def toString = s"$rank. ${player.userId}[${player.showRank}]"
 
 case class FeaturedGame(
     game: Game,

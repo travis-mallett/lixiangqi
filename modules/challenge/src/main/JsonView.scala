@@ -4,6 +4,7 @@ import play.api.libs.json.*
 import lila.common.Json.given
 import lila.core.i18n.Translate
 import lila.core.id.GameFullId
+import lila.core.rank.RankCode.*
 import lila.core.socket.{ SocketVersion, userLag }
 import lila.game.JsonView.given
 import lila.ui.Icon
@@ -20,8 +21,7 @@ final class JsonView(
   private given OWrites[Challenger.Registered] = OWrites: r =>
     Json.toJsObject(getLightUser(r.id)) ++
       Json
-        .obj("rating" -> r.rating.int)
-        .add("provisional" -> r.rating.provisional)
+        .obj("rank" -> r.rank.map(_.value))
         .add("online" -> isOnline.exec(r.id))
         .add("lag" -> getLagRating(r.id))
 
@@ -64,8 +64,6 @@ final class JsonView(
         "challenger" -> c.challengerUser,
         "destUser" -> c.destUser,
         "variant" -> c.variant,
-        "rated" -> c.rated,
-        "speed" -> c.speed.key,
         "timeControl" -> c.timeControl.match
           case TimeControl.Clock(clock, moveTimeLimit) =>
             Json
@@ -90,8 +88,8 @@ final class JsonView(
         "color" -> c.colorChoice.toString.toLowerCase,
         "finalColor" -> c.finalColor.toString.toLowerCase,
         "perf" -> Json.obj(
-          "icon" -> iconOf(c),
-          "name" -> c.perfType.trans
+          "icon" -> (if c.variant == chess.variant.FromPosition then Icon.Feather else Icon.CrownElite),
+          "name" -> "Xiangqi"
         )
       )
       .add("rematchOf" -> c.rematchOf)
@@ -101,13 +99,9 @@ final class JsonView(
       .add("declineReasonKey" -> c.declineReason.map(_.key))
       .add("open" -> c.open)
       .add("rules" -> c.nonEmptyRules)
+      .add("ruleset" -> Some(c.effectiveRuleset.key))
 
   def all(challenges: AllChallenges)(using Translate) = Json.obj(
     "in" -> challenges.in.map(apply(Direction.In.some)),
     "out" -> challenges.out.map(apply(Direction.Out.some))
   )
-
-  private def iconOf(c: Challenge): Icon =
-    if c.variant == chess.variant.FromPosition
-    then Icon.Feather
-    else c.perfType.icon

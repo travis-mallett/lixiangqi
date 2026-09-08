@@ -20,6 +20,7 @@ trait OpenConfig:
   val userIds: Option[PairOf[UserId]]
   val rules: Set[game.GameRule]
   val expiresAt: Option[Instant]
+  def ruleset: Option[String] = None
 
 trait SetupForm:
   import play.api.data.Mapping

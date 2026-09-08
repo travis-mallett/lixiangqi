@@ -1,6 +1,5 @@
 import { type Prop, propWithEffect, toggle } from 'lib';
 import { debounce } from 'lib/async';
-import { XIANGQI_START_FEN } from 'lib/game';
 import type { ColorChoice, ColorProp } from 'lib/setup/color';
 import {
   allTimeModeKeys,
@@ -13,11 +12,8 @@ import { alert } from 'lib/view';
 import * as xhr from 'lib/xhr';
 
 import type LobbyController from './ctrl';
-import type { ForceSetupOptions, GameMode, GameType, PoolMember, SetupStore } from './interfaces';
+import type { AiStatsResponse, ForceSetupOptions, GameType, SetupStore } from './interfaces';
 import { keyToId, variants } from './options';
-
-const getPerf = (variant: VariantKey, tc: TimeControl): Perf =>
-  variant !== 'standard' && variant !== 'fromPosition' ? variant : tc.speed();
 
 export default class SetupController {
   root: LobbyController;
@@ -27,15 +23,19 @@ export default class SetupController {
   fenError = false;
   friendUser = '';
   loading = false;
+  aiStats?: AiStatsResponse;
+  aiStatsLoading = false;
+  aiStatsFailed = false;
+  aiTimeControls = false;
+  ruleset = 'tiantian-v1';
+  private aiTimedMode: 'realTime' | 'correspondence' = 'realTime';
+  private aiStatsRequest = 0;
   color: ColorProp;
   forced?: ForceSetupOptions;
 
   // Store props
   variant: Prop<VariantKey>;
   fen: Prop<string>;
-  gameMode: Prop<GameMode>;
-  ratingMin: Prop<number>;
-  ratingMax: Prop<number>;
   aiLevel: Prop<number>;
 
   variantMenuOpen = toggle(false);
@@ -66,11 +66,9 @@ export default class SetupController {
       increment: 3,
       moveTime: undefined,
       days: 2,
-      gameMode: gameType === 'ai' || !this.root.me ? 'casual' : 'rated',
       color: 'random',
-      ratingMin: -500,
-      ratingMax: 500,
       aiLevel: 1,
+      aiTimeControls: false,
     }));
 
   private readonly loadPropsFromStore = (forceOptions?: ForceSetupOptions) => {
@@ -79,8 +77,13 @@ export default class SetupController {
     this.variant = propWithEffect(forceOptions?.variant || storeProps.variant, this.onDropdownChange);
     this.fen = this.propWithApply(forceOptions?.fen || storeProps.fen);
     const canChangeTimeMode = !!this.root.me || this.gameType !== 'hook';
+    const requestedTimeMode =
+      forceOptions?.timeMode ||
+      (this.gameType === 'ai' && storeProps.aiTimeControls !== true ? 'unlimited' : storeProps.timeMode);
+    this.aiTimeControls = this.gameType === 'ai' && requestedTimeMode !== 'unlimited';
+    this.aiTimedMode = requestedTimeMode === 'correspondence' ? 'correspondence' : 'realTime';
     this.timeControl = timeControlFromStoredValues(
-      propWithEffect(forceOptions?.timeMode || storeProps.timeMode, this.onDropdownChange),
+      propWithEffect(requestedTimeMode, this.onDropdownChange),
       canChangeTimeMode ? allTimeModeKeys : ['realTime'],
       forceOptions?.time ?? storeProps.time,
       forceOptions?.increment ?? storeProps.increment,
@@ -91,9 +94,6 @@ export default class SetupController {
       this.onPropChange,
       this.root.pools,
     );
-    this.gameMode = this.propWithApply(forceOptions?.mode ?? storeProps.gameMode);
-    this.ratingMin = this.propWithApply(storeProps.ratingMin);
-    this.ratingMax = this.propWithApply(storeProps.ratingMax);
     this.aiLevel = this.propWithApply(storeProps.aiLevel);
     this.color(forceOptions?.color || storeProps.color || 'random');
 
@@ -109,16 +109,6 @@ export default class SetupController {
 
     // replace underscores with spaces in FEN
     if (this.variant() === 'fromPosition') this.fen = this.propWithApply(this.fen().replace(/_/g, ' '));
-
-    if (this.gameMode() === 'rated' && this.ratedModeDisabled()) {
-      this.gameMode = this.propWithApply('casual');
-    }
-
-    this.ratingMin = this.propWithApply(Math.min(0, this.ratingMin()));
-    this.ratingMax = this.propWithApply(Math.max(0, this.ratingMax()));
-    if (this.ratingMin() === 0 && this.ratingMax() === 0) {
-      this.ratingMax = this.propWithApply(50);
-    }
   };
 
   private readonly savePropsToStore = (override: Partial<SetupStore> = {}) =>
@@ -131,44 +121,20 @@ export default class SetupController {
       increment: this.timeControl.increment(),
       moveTime: this.timeControl.moveTime(),
       days: this.timeControl.days(),
-      gameMode: this.gameMode(),
       color: this.color(),
-      ratingMin: this.ratingMin(),
-      ratingMax: this.ratingMax(),
       aiLevel: this.aiLevel(),
+      aiTimeControls: this.gameType === 'ai' ? this.aiTimeControls : undefined,
       ...override,
     });
 
-  private readonly savePropsToStoreExceptRating = () =>
-    this.gameType &&
-    this.savePropsToStore({
-      ratingMin: this.store[this.gameType]().ratingMin,
-      ratingMax: this.store[this.gameType]().ratingMax,
-    });
-
-  myRating = () => this.root.data.ratingMap && Math.abs(this.root.data.ratingMap[this.selectedPerf()]);
-  isProvisional = () => (this.root.data.ratingMap ? this.root.data.ratingMap[this.selectedPerf()] < 0 : true);
-
   private readonly onPropChange = () => {
-    if (this.isProvisional()) this.savePropsToStoreExceptRating();
-    else this.savePropsToStore();
+    this.savePropsToStore();
     this.root.redraw();
   };
 
   private readonly onDropdownChange = () => {
-    // Handle rating update here
     this.enforcePropRules();
-    if (this.isProvisional()) {
-      this.ratingMin(-500);
-      this.ratingMax(500);
-      this.savePropsToStoreExceptRating();
-    } else {
-      if (this.gameType) {
-        this.ratingMin(this.store[this.gameType]().ratingMin);
-        this.ratingMax(this.store[this.gameType]().ratingMax);
-      }
-      this.savePropsToStore();
-    }
+    this.savePropsToStore();
     this.root.redraw();
   };
 
@@ -188,6 +154,35 @@ export default class SetupController {
     this.variantMenuOpen(false);
     this.forced = forceOptions;
     this.loadPropsFromStore(forceOptions);
+    if (gameType === 'ai') void this.loadAiStats();
+  };
+
+  setAiTimeControls = (enabled: boolean) => {
+    if (enabled === this.aiTimeControls) return;
+    if (!enabled && this.timeControl.mode() !== 'unlimited') {
+      this.aiTimedMode = this.timeControl.mode() as 'realTime' | 'correspondence';
+    }
+    this.aiTimeControls = enabled;
+    this.timeControl.mode(enabled ? this.aiTimedMode : 'unlimited');
+  };
+
+  private readonly loadAiStats = async () => {
+    const request = ++this.aiStatsRequest;
+    this.aiStats = undefined;
+    this.aiStatsLoading = true;
+    this.aiStatsFailed = false;
+    this.root.redraw();
+    try {
+      const response = await xhr.json<AiStatsResponse>('/setup/ai/stats');
+      if (request === this.aiStatsRequest) this.aiStats = response;
+    } catch (_) {
+      if (request === this.aiStatsRequest) this.aiStatsFailed = true;
+    } finally {
+      if (request === this.aiStatsRequest) {
+        this.aiStatsLoading = false;
+        this.root.redraw();
+      }
+    }
   };
 
   closeModal?: () => void; // managed by view/setup/modal.ts
@@ -220,37 +215,6 @@ export default class SetupController {
       );
   }, 300);
 
-  ratedModeDisabled = () =>
-    // anonymous games cannot be rated
-    !this.root.me ||
-    this.timeControl.mode() === 'unlimited' ||
-    (this.variant() === 'fromPosition' && this.fen() !== XIANGQI_START_FEN) ||
-    // variants with very low time cannot be rated
-    (this.variant() !== 'standard' && this.timeControl.notForRatedVariant());
-
-  selectedPerf = (): Perf => getPerf(this.variant(), this.timeControl);
-
-  ratingRange = (): string => {
-    const rating = this.myRating();
-    return rating ? `${Math.max(100, rating + this.ratingMin())}-${rating + this.ratingMax()}` : '';
-  };
-
-  hookToPoolMember = (color: ColorChoice): PoolMember | null => {
-    const valid =
-      color === 'random' &&
-      this.gameType === 'hook' &&
-      this.variant() === 'standard' &&
-      this.gameMode() === 'rated' &&
-      this.timeControl.isRealTime();
-    const pool = this.root.pools.find(p => this.timeControl.matchesPreset(p));
-    return valid && pool
-      ? {
-          id: pool.id,
-          range: this.ratingRange(),
-        }
-      : null;
-  };
-
   propsToFormData = (color: ColorChoice) =>
     xhr.form({
       variant: keyToId(this.variant(), variants).toString(),
@@ -271,11 +235,8 @@ export default class SetupController {
         : undefined,
       days: this.timeControl.days().toString(),
       days_range: this.timeControl.daysV().toString(),
-      mode: this.gameMode() === 'casual' ? '0' : '1',
-      ratingRange: this.ratingRange(),
-      ratingRange_range_min: this.ratingMin().toString(),
-      ratingRange_range_max: this.ratingMax().toString(),
       level: this.aiLevel().toString(),
+      ruleset: this.gameType === 'hook' ? undefined : this.ruleset,
       color,
     });
 
@@ -290,7 +251,6 @@ export default class SetupController {
   private readonly validConstraints = () => {
     if (this.forced) {
       if (this.invalid(this.forced.variant, this.variant())) return false;
-      if (this.invalid(this.forced.mode, this.gameMode())) return false;
       if (this.invalid(this.forced.timeMode, this.timeControl.mode())) return false;
       if (this.invalid(this.forced.color, this.color())) return false;
       if (
@@ -316,13 +276,6 @@ export default class SetupController {
 
   submit = async () => {
     const color = this.color();
-    const poolMember = this.hookToPoolMember(color);
-    if (poolMember) {
-      this.root.enterPool(poolMember);
-      this.closeModal?.();
-      return;
-    }
-
     if (this.gameType === 'hook') this.root.setTab(this.timeControl.isRealTime() ? 'real_time' : 'seeks');
     this.loading = true;
     this.root.redraw();

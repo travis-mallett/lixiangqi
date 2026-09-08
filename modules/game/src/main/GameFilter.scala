@@ -2,12 +2,12 @@ package lila.game
 
 enum GameFilter:
   val name = toString
-  case all, me, rated, win, loss, draw, playing, bookmark, imported, search
+  case all, me, ranked, win, loss, draw, playing, bookmark, imported, search
 
 object GameFilter:
 
   val list: NonEmptyList[GameFilter] =
-    NonEmptyList.of(all, me, rated, win, loss, draw, playing, bookmark, imported, search)
+    NonEmptyList.of(all, me, ranked, win, loss, draw, playing, bookmark, imported, search)
 
   def apply(name: String) =
     list.find(_.name == name) | list.head

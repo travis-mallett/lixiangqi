@@ -1,13 +1,10 @@
 import { blindModeColorPicker, colorButtons as renderButtons } from 'lib/setup/view/color';
 import { hl } from 'lib/view';
 
-import { variantsWhereWhiteIsBetter } from '@/options';
 import type SetupController from '@/setupCtrl';
 
-export const colorButtons = ({ gameMode, gameType, variant, color }: SetupController) => {
-  const randomColorOnly =
-    gameType === 'hook' ||
-    (gameType !== 'ai' && gameMode() === 'rated' && variantsWhereWhiteIsBetter.includes(variant()));
+export const colorButtons = ({ gameType, color }: SetupController) => {
+  const randomColorOnly = gameType === 'hook';
 
   return randomColorOnly
     ? undefined

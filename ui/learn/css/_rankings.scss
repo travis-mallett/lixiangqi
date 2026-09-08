@@ -1,0 +1,286 @@
+.xiangqi-rankings {
+  &__header {
+    max-width: 52rem;
+    margin-bottom: 1.15rem;
+
+    p {
+      color: $c-font-dim;
+      font-size: 1.05em;
+    }
+  }
+
+  &__nav {
+    display: flex;
+    max-width: 52rem;
+    gap: clamp(1.25rem, 5vw, 2.75rem);
+    overflow-x: auto;
+    margin-bottom: 1.15rem;
+    border-bottom: $border;
+    scrollbar-width: none;
+
+    a {
+      flex: 0 0 auto;
+      padding: 0.55rem 0 0.5rem;
+      border-bottom: 2px solid transparent;
+      color: $c-font-dim;
+
+      &:hover,
+      &:focus-visible,
+      &.active {
+        color: $c-primary;
+      }
+
+      &.active {
+        border-bottom-color: $c-primary;
+      }
+    }
+  }
+
+  &__summary {
+    display: grid;
+    max-width: 52rem;
+    grid-template-columns: auto 1fr;
+    gap: 1rem;
+    margin-bottom: 1.75rem;
+    padding: 1rem 1.2rem;
+    border: 1px solid color-mix(in oklab, $c-primary 70%, $c-border);
+    border-radius: 6px;
+    background: color-mix(in oklab, $c-primary 7%, $c-bg-box);
+
+    h2 {
+      margin: 0 0 0.25rem;
+      font-size: 1.15rem;
+    }
+
+    ul {
+      margin: 0;
+      padding-inline-start: 1.15rem;
+    }
+
+    li {
+      margin: 0;
+
+      &::marker {
+        color: $c-primary;
+      }
+    }
+  }
+
+  &__summary-icon {
+    display: grid;
+    place-items: center;
+    width: 1.8rem;
+    height: 1.8rem;
+    border-radius: 50%;
+    color: $c-over;
+    background: $c-primary;
+    font-weight: bold;
+    line-height: 1;
+  }
+
+  section {
+    max-width: 52rem;
+    scroll-margin-top: 1rem;
+  }
+
+  h2,
+  h3 {
+    scroll-margin-top: 1rem;
+  }
+
+  &__concepts,
+  &__scoring,
+  &__meaning-list,
+  &__rank-groups {
+    margin: 0.75rem 0;
+  }
+
+  &__concepts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin: 0.9rem 0 1.7rem;
+
+    div {
+      padding: 1rem 1.15rem;
+      border: $border;
+      border-top: 3px solid $c-primary;
+      border-radius: 5px;
+      background: color-mix(in oklab, $c-bg-zebra 52%, transparent);
+    }
+
+    dt {
+      margin-bottom: 0.2rem;
+      color: $c-font-clear;
+      font-size: 1.05rem;
+      font-weight: 700;
+    }
+
+    dd {
+      margin: 0;
+      line-height: 1.5;
+    }
+  }
+
+  &__scoring,
+  &__meaning-list {
+    padding-inline-start: 1.4rem;
+
+    li::marker {
+      color: $c-primary;
+    }
+
+    li + li {
+      margin-top: 0.25rem;
+    }
+  }
+
+  &__rank-groups {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.8rem;
+    padding: 0;
+    list-style: none;
+
+    li {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: center;
+      gap: 0.9rem;
+      min-width: 0;
+      padding: 0.85rem 1rem;
+      border: $border;
+      border-radius: 5px;
+      background: color-mix(in oklab, $c-bg-zebra 45%, transparent);
+    }
+
+    strong {
+      display: block;
+      color: $c-font-clear;
+      white-space: nowrap;
+    }
+
+    small {
+      display: block;
+      color: $c-font-dim;
+      font-size: 0.85em;
+      white-space: nowrap;
+    }
+  }
+
+  &__rank-symbol {
+    color: $c-primary;
+    font-size: 2.5rem;
+    font-weight: bold;
+    line-height: 1;
+  }
+
+  &__table-wrap {
+    margin-top: 1.45rem;
+    border: $border;
+    border-radius: 6px;
+    scroll-margin-top: 1rem;
+  }
+
+  &__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+
+    caption {
+      padding: 0 0 0.5rem;
+      color: $c-font-clear;
+      font-size: 1.25rem;
+      font-weight: 700;
+      text-align: start;
+    }
+
+    th,
+    td {
+      padding: 0.55rem 0.75rem;
+      border-bottom: $border;
+      text-align: start;
+      white-space: nowrap;
+    }
+
+    th {
+      background: $c-bg-zebra;
+      color: $c-font;
+      font-size: 0.82rem;
+    }
+
+    .xiangqi-rankings__rating-column {
+      text-align: end;
+    }
+
+    tbody tr:nth-child(even) {
+      background: color-mix(in oklab, $c-bg-zebra 65%, transparent);
+    }
+
+    tbody tr:last-child td {
+      border-bottom: 0;
+    }
+  }
+
+  &__figure {
+    margin: 1.25rem 0 0;
+
+    a {
+      display: block;
+      overflow: hidden;
+      border: $border;
+      border-radius: 8px;
+      background: $c-bg-zebra;
+
+      &:focus-visible {
+        outline: 3px solid $c-primary;
+        outline-offset: 3px;
+      }
+    }
+
+    img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    figcaption {
+      margin-top: 0.55rem;
+      color: $c-font-dim;
+      font-size: 0.85rem;
+      line-height: 1.45;
+    }
+  }
+
+  &__note {
+    padding: 0.8rem 1rem;
+    border-inline-start: 3px solid $c-primary;
+    background: color-mix(in oklab, $c-primary 7%, transparent);
+  }
+
+  @media (max-width: 760px) {
+    &__rank-groups {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 600px) {
+    padding: 1.25rem 1rem;
+
+    &__header {
+      margin-bottom: 1.5rem;
+    }
+
+    &__concepts {
+      grid-template-columns: 1fr;
+      gap: 0.65rem;
+    }
+
+    &__table {
+      th,
+      td {
+        padding: 0.5rem 0.6rem;
+      }
+    }
+  }
+}

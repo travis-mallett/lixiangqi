@@ -15,6 +15,7 @@ private object PrefHandlers:
       Appearance.BoardSettings(
         brightness = r.getD("brightness", d.brightness),
         contrast = r.getD("contrast", d.contrast),
+        saturation = r.getD("saturation", d.saturation),
         opacity = r.getD("opacity", d.opacity),
         hue = r.getD("hue", d.hue)
       )
@@ -23,6 +24,7 @@ private object PrefHandlers:
       $doc(
         "brightness" -> o.brightness,
         "contrast" -> o.contrast,
+        "saturation" -> o.saturation,
         "opacity" -> o.opacity,
         "hue" -> o.hue
       )
@@ -38,41 +40,47 @@ private object PrefHandlers:
       r.strO(name).filter(valid) | default
 
     def reads(r: BSON.Reader): Appearance =
-      val d = ThemePacks.default.appearance
-      val pack = key(r, "pack", d.pack, ThemePacks.isValidSelection)
-      ThemePacks.get(pack) match
-        case Some(themePack) => themePack.appearance
-        case None =>
-          val background = key(r, "background", d.background, Backgrounds.contains)
-          Appearance(
-            pack = ThemePacks.customKey,
-            uiTheme = key(r, "uiTheme", d.uiTheme, UiThemes.contains),
-            background = background,
-            backgroundUrl = Option
-              .when(background == Backgrounds.customKey)(r.strO("backgroundUrl"))
-              .flatten
-              .filterNot(_.isBlank),
-            boardTheme = key(r, "boardTheme", d.boardTheme, BoardThemes.contains),
-            pieceSet = key(r, "pieceSet", d.pieceSet, PieceSets.contains),
-            soundSet = key(r, "soundSet", d.soundSet, SoundSets.contains),
-            musicSet = key(r, "musicSet", d.musicSet, MusicSets.contains),
-            board = r.getD("board", d.board)
-          )
+      // Expand legacy compact appearance records before reading independently stored fields.
+      val d = r
+        .strO("pack")
+        .fold(Appearance.default):
+          case "light" => Appearance.default.copy(uiTheme = UiThemes.light.key)
+          case "wood" =>
+            Appearance.default.copy(uiTheme = UiThemes.wood.key, background = Backgrounds.wood.key)
+          case "wudang" =>
+            Appearance.default.copy(
+              uiTheme = UiThemes.wudang.key,
+              background = Backgrounds.wudang.key,
+              boardTheme = BoardThemes.wudang.key,
+              pieceSet = PieceSets.wudang.key
+            )
+          case _ => Appearance.default
+      val background = key(r, "background", d.background, Backgrounds.contains)
+      Appearance(
+        uiTheme = key(r, "uiTheme", d.uiTheme, UiThemes.contains),
+        background = background,
+        backgroundUrl = Option
+          .when(background == Backgrounds.customKey)(r.strO("backgroundUrl"))
+          .flatten
+          .filterNot(_.isBlank),
+        boardTheme = key(r, "boardTheme", d.boardTheme, BoardThemes.contains),
+        pieceSet = key(r, "pieceSet", d.pieceSet, PieceSets.contains),
+        soundSet = key(r, "soundSet", d.soundSet, SoundSets.contains),
+        musicSet = key(r, "musicSet", d.musicSet, MusicSets.contains),
+        board = r.getD("board", d.board)
+      )
 
     def writes(w: BSON.Writer, o: Appearance) =
-      if o.pack != ThemePacks.customKey then $doc("pack" -> o.pack)
-      else
-        $doc(
-          "pack" -> o.pack,
-          "uiTheme" -> o.uiTheme,
-          "background" -> o.background,
-          "backgroundUrl" -> o.backgroundUrl,
-          "boardTheme" -> o.boardTheme,
-          "pieceSet" -> o.pieceSet,
-          "soundSet" -> o.soundSet,
-          "musicSet" -> o.musicSet,
-          "board" -> o.board
-        )
+      $doc(
+        "uiTheme" -> o.uiTheme,
+        "background" -> o.background,
+        "backgroundUrl" -> o.backgroundUrl,
+        "boardTheme" -> o.boardTheme,
+        "pieceSet" -> o.pieceSet,
+        "soundSet" -> o.soundSet,
+        "musicSet" -> o.musicSet,
+        "board" -> o.board
+      )
 
   given BSONDocumentHandler[Pref] = new BSON[Pref]:
 
@@ -90,6 +98,8 @@ private object PrefHandlers:
         clockSound = r.getD("clockSound", d.clockSound),
         premove = r.getD("premove", d.premove),
         animation = r.getD("animation", d.animation),
+        boardAnimations =
+          r.getO[Int]("boardAnimations").filter(Pref.BoardAnimation.valid) | d.boardAnimations,
         captured = r.getD("captured", d.captured),
         follow = r.getD("follow", d.follow),
         highlight = r.getD("highlight", d.highlight),
@@ -131,6 +141,7 @@ private object PrefHandlers:
         "clockSound" -> o.clockSound,
         "premove" -> o.premove,
         "animation" -> o.animation,
+        "boardAnimations" -> o.boardAnimations,
         "captured" -> o.captured,
         "follow" -> o.follow,
         "highlight" -> o.highlight,

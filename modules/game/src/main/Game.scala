@@ -10,7 +10,12 @@ import lila.rating.PerfType
 
 object GameExt:
 
-  def computeMoveTimes(g: Game, color: Color): Option[List[Centis]] = {
+  /** Move times derived strictly from a real-time clock history.
+    *
+    * Unlike [[computeMoveTimes]], this never falls back to the `mt` field used by games without a clock.
+    * Recorded-clock replay relies on that distinction.
+    */
+  def computeClockMoveTimes(g: Game, color: Color): Option[List[Centis]] =
     for
       clk <- g.clock
       inc = clk.incrementOf(color)
@@ -39,11 +44,13 @@ object GameExt:
           }.nonNeg
         .toList
     }
-  }.orElse(g.binaryMoveTimes.map: binary =>
-    // TODO: make movetime.read return List after writes are disabled.
-    val base = BinaryFormat.moveTime.read(binary, g.playedPlies)
-    val mts = if color == g.startColor then base else base.drop(1)
-    everyOther(mts.toList))
+
+  def computeMoveTimes(g: Game, color: Color): Option[List[Centis]] =
+    computeClockMoveTimes(g, color).orElse(g.binaryMoveTimes.map: binary =>
+      // TODO: make movetime.read return List after writes are disabled.
+      val base = BinaryFormat.moveTime.read(binary, g.playedPlies)
+      val mts = if color == g.startColor then base else base.drop(1)
+      everyOther(mts.toList))
 
   def analysable(g: Game) =
     g.replayable && g.playedPlies > 4 &&
@@ -109,6 +116,11 @@ object GameExt:
       b <- GameExt.computeMoveTimes(g, !g.startColor)
     yield lila.core.game.interleave(a, b)
 
+    def clockMoveTimes: Option[Vector[Centis]] = for
+      a <- GameExt.computeClockMoveTimes(g, g.startColor)
+      b <- GameExt.computeClockMoveTimes(g, !g.startColor)
+    yield lila.core.game.interleave(a, b)
+
     // apply a move
     def applyMove(
         game: lila.xiangqi.Xiangqi.Game,
@@ -146,6 +158,7 @@ object GameExt:
         loadClockHistory = _ => newClockHistory,
         status =
           if !game.state.ended then g.status
+          else if game.state.termination.contains("forced-variation") then Status.VariantEnd
           else if game.state.gameResult.winner.isDefined then Status.Mate
           else Status.Draw,
         movedAt = nowInstant
@@ -287,6 +300,7 @@ object Game:
     val whiteClockHistory = "cw"
     val blackClockHistory = "cb"
     val rated = "ra"
+    val rankTrack = "rt"
     val variant = "v"
     val bookmarks = "bm"
     val source = "so"

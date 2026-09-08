@@ -1,26 +1,22 @@
 package lila.lobby
 
-import chess.IntRating
-import chess.rating.RatingProvisional
 import chess.variant.Variant
-import chess.{ Rated, Speed }
+import chess.Rated
 import play.api.libs.json.*
 import scalalib.ThreadLocalRandom
 import scalalib.model.Days
 
 import lila.common.Json.given
 import lila.core.perf.UserWithPerfs
-import lila.core.rating.RatingRange
-import lila.rating.PerfType
+import lila.core.rank.{ RankCode, RankDiff, RankScore, RankSnapshot, RankTrackId }
+import lila.core.rank.RankTrackId.*
 
 // Correspondence Xiangqi, persisted while advertised in the lobby.
 case class Seek(
     _id: String,
     variant: Variant.Id,
     daysPerTurn: Option[Days],
-    rated: Rated,
     user: LobbyUser,
-    ratingRange: RatingRange,
     createdAt: Instant
 ):
   inline def id = _id
@@ -29,33 +25,21 @@ case class Seek(
 
   def compatibleWith(h: Seek) =
     user.id != h.user.id &&
-      compatibilityProperties == h.compatibilityProperties &&
-      ratingRangeCompatibleWith(h) && h.ratingRangeCompatibleWith(this)
+      compatibilityProperties == h.compatibilityProperties
 
-  private def ratingRangeCompatibleWith(s: Seek) =
-    realRatingRange.forall(_.contains(s.rating))
-
-  private def compatibilityProperties = (variant, rated, daysPerTurn)
-
-  lazy val realRatingRange: Option[RatingRange] = ratingRange.ifNotDefault
-
-  lazy val perfType = PerfType(realVariant, Speed.Correspondence)
-
-  def perf = user.perfAt(perfType)
-  def rating = perf.rating
+  private def compatibilityProperties = (variant, daysPerTurn)
 
   def render: JsObject =
     Json
       .obj(
         "id" -> _id,
         "username" -> user.username,
-        "rating" -> rating,
+        "rank" -> user.rank.publicCode.map(_.value),
         "variant" -> Json.obj("key" -> realVariant.key),
-        "perf" -> Json.obj("key" -> perfType.key),
-        "mode" -> rated.id // must keep BC
+        "perf" -> Json.obj("key" -> "xiangqi"),
+        "mode" -> Rated.No.id // protocol compatibility; correspondence challenges are casual
       )
       .add("days" -> daysPerTurn)
-      .add("provisional" -> perf.provisional.yes)
 
 object Seek:
 
@@ -67,17 +51,13 @@ object Seek:
   def make(
       variant: chess.variant.Variant,
       daysPerTurn: Option[Days],
-      rated: Rated,
       user: UserWithPerfs,
-      ratingRange: RatingRange,
       blocking: lila.core.pool.Blocking
   ): Seek = Seek(
     _id = makeId,
     variant = variant.id,
     daysPerTurn = daysPerTurn,
-    rated = rated,
     user = LobbyUser.make(user, blocking),
-    ratingRange = ratingRange,
     createdAt = nowInstant
   )
 
@@ -85,22 +65,38 @@ object Seek:
     _id = makeId,
     variant = seek.variant,
     daysPerTurn = seek.daysPerTurn,
-    rated = seek.rated,
     user = seek.user,
-    ratingRange = seek.ratingRange,
     createdAt = nowInstant
   )
 
   import reactivemongo.api.bson.*
   import lila.db.dsl.{ *, given }
-  private given BSONHandler[RatingRange] = tryHandler[RatingRange](
-    { case BSONString(s) => RatingRange.parse(s).toTry(s"Invalid rating range: $s") },
-    r => BSONString(r.toString)
-  )
-  given BSONHandler[LobbyPerf] = BSONIntegerHandler.as[LobbyPerf](
-    b => LobbyPerf(IntRating(b.abs), RatingProvisional(b < 0)),
-    x => x.rating.value * (if x.provisional.yes then -1 else 1)
-  )
-  private given BSONHandler[Map[PerfKey, LobbyPerf]] = typedMapHandlerIso[PerfKey, LobbyPerf]
+  import lila.db.BSON
+
+  private given BSON[RankSnapshot] with
+    def reads(r: BSON.Reader): RankSnapshot = RankSnapshot(
+      track = RankTrackId.from(r.str("track")).getOrElse(RankTrackId.xiangqi),
+      score = RankScore(r.int("score")),
+      code = RankCode(r.str("code")),
+      ordinal = r.int("ordinal"),
+      catalogVersion = r.int("catalogVersion"),
+      policyVersion = r.intO("policyVersion").getOrElse(lila.rating.XiangqiRank.firstPolicyVersion),
+      established = r.boolD("established"),
+      diff = r.intO("diff").map(RankDiff.apply),
+      after = r.strO("after").map(RankCode.apply)
+    )
+
+    def writes(w: BSON.Writer, rank: RankSnapshot) = $doc(
+      "track" -> rank.track.value,
+      "score" -> rank.score.value,
+      "code" -> rank.code.value,
+      "ordinal" -> rank.ordinal,
+      "catalogVersion" -> rank.catalogVersion,
+      "policyVersion" -> rank.policyVersion,
+      "established" -> rank.established.option(true),
+      "diff" -> rank.diff.map(_.value),
+      "after" -> rank.after.map(_.value)
+    )
+
   private[lobby] given BSONDocumentHandler[LobbyUser] = Macros.handler
   private[lobby] given BSONDocumentHandler[Seek] = Macros.handler

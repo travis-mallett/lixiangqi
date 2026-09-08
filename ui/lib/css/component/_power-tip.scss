@@ -1,4 +1,5 @@
 #powerTip,
+#siteTooltip,
 #miniGame,
 #miniBoard {
   @extend %box-radius-force, %popup-shadow;
@@ -17,6 +18,11 @@
       @include padding-direction(0.3em, 0.5em, 3px, 0.7em);
     }
   }
+}
+
+#siteTooltip {
+  width: min(21rem, calc(100vw - 2rem));
+  min-height: 0;
 }
 
 .upt {
@@ -64,7 +70,8 @@
       text-align: center;
     }
 
-    &__ratings {
+    &__ratings,
+    &__ranks {
       @extend %flex-between;
 
       margin-top: 3px;

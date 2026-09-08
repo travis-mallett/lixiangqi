@@ -8,7 +8,7 @@ import play.api.libs.json.*
 import scalalib.paginator.Paginator
 import scalalib.Debouncer
 import scalalib.model.Minutes
-import chess.{ IntRating, ByColor }
+import chess.ByColor
 import alleycats.Zero
 
 import lila.common.Bus
@@ -468,38 +468,16 @@ final class TournamentApi(
               withdrawNonMover(game)
 
   private def updatePlayerAfterGame(tour: Tournament, game: Game, pairing: Pairing)(userId: UserId): Funit =
-    tour.rated.yes
-      .so:
-        userApi.perfOptionOf(userId, tour.perfType)
-      .flatMap: perf =>
-        playerRepo.update(tour.id, userId): player =>
-          for
-            sheet <- cached.sheet.addResult(tour, userId, pairing)
-            newPlayer = player.copy(
-              score = sheet.total,
-              fire = tour.streakable && sheet.isOnFire,
-              rating = perf.fold(player.rating)(_.intRating),
-              provisional = perf.fold(player.provisional)(_.provisional),
-              performance = {
-                for
-                  performance <- performanceOf(game, userId).map(_.value.toDouble)
-                  nbGames = sheet.scores.size
-                  if nbGames > 0
-                yield IntRating:
-                  Math.round {
-                    (player.performance.so(_.value) * (nbGames - 1) + performance) / nbGames
-                  }.toInt
-              }.orElse(player.performance)
-            )
-            _ = game.whitePlayer.userId.foreach: whiteUserId =>
-              colorHistoryApi.inc(player.id, Color.fromWhite(player.is(whiteUserId)))
-          yield newPlayer
-
-  private def performanceOf(g: Game, userId: UserId): Option[IntRating] = for
-    opponent <- g.opponentOf(userId)
-    opponentRating <- opponent.rating
-    multiplier = g.winnerUserId.so(winner => if winner == userId then 1 else -1)
-  yield opponentRating.map(_ + 500 * multiplier)
+    playerRepo.update(tour.id, userId): player =>
+      for
+        sheet <- cached.sheet.addResult(tour, userId, pairing)
+        newPlayer = player.copy(
+          score = sheet.total,
+          fire = tour.streakable && sheet.isOnFire
+        )
+        _ = game.whitePlayer.userId.foreach: whiteUserId =>
+          colorHistoryApi.inc(player.id, Color.fromWhite(player.is(whiteUserId)))
+      yield newPlayer
 
   private def withdrawNonMover(game: Game): Unit =
     if game.status == chess.Status.NoStart then
@@ -556,17 +534,14 @@ final class TournamentApi(
           publish()
 
   private def recomputePlayerAndSheet(tour: Tournament)(userId: UserId): Funit =
-    tour.rated.yes.so { userApi.perfOptionOf(userId, tour.perfType) }.flatMap { perf =>
-      playerRepo.update(tour.id, userId): player =>
-        cached.sheet.recompute(tour, userId).map { sheet =>
+    playerRepo.update(tour.id, userId): player =>
+      cached.sheet
+        .recompute(tour, userId)
+        .map: sheet =>
           player.copy(
             score = sheet.total,
-            fire = tour.streakable && sheet.isOnFire,
-            rating = perf.fold(player.rating)(_.intRating),
-            provisional = perf.fold(player.provisional)(_.provisional)
+            fire = tour.streakable && sheet.isOnFire
           )
-        }
-    }
 
   private[tournament] def recomputeEntireTournament(id: TourId): Funit =
     tournamentRepo.byId(id).flatMapz { tour =>

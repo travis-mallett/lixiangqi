@@ -3,6 +3,8 @@
 @import 'app/playing';
 @import 'box';
 @import 'table';
+@import 'homepage-room';
+@import 'correspondence-deck';
 @import 'support';
 @import 'feed';
 @import 'layout';
@@ -12,79 +14,203 @@ body {
 }
 
 #main-wrap {
-  ---main-max-width: 1540px;
+  ---main-max-width: 1520px;
 }
 
 .lobby {
-  &__tv {
-    @extend %box-neat;
+  --lobby-site-counter-height: 64px;
 
+  &__rail-card,
+  &__site-stats {
     min-width: 0;
     overflow: hidden;
-    background: $c-bg-box;
+    border: $border;
+    border-radius: 12px;
+    background: color-mix(in oklab, $c-bg-box 96%, transparent);
+    box-shadow: 0 3px 12px rgb(0 0 0 / 0.12);
+  }
 
-    .mini-game {
-      width: 100%;
-      overflow: visible;
-    }
+  &__rail-title {
+    display: flex;
+    min-height: 54px;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 12px 14px;
+    border-bottom: $border;
+    font-size: 1rem;
+    font-weight: 400;
 
-    .mini-game__player {
-      padding-top: 0;
+    icon {
+      display: inline-grid;
+      place-items: center;
+      color: $c-font-dim;
+      font-size: 1.3rem;
+      line-height: 1;
     }
   }
 
-  &__feed {
+  &__site-counters {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  &__site-counter {
+    display: flex;
     min-width: 0;
-    min-height: 220px;
-    max-height: 360px;
-    padding: clamp(14px, 2vw, 24px);
+    min-height: var(--lobby-site-counter-height);
+    align-items: flex-start;
+    justify-content: center;
+    flex-direction: column;
+    padding: 8px 12px;
+    border-right: $border;
+    border-bottom: $border;
+    color: $c-font;
+
+    &:nth-child(even) {
+      border-right: 0;
+    }
+
+    &:hover {
+      background: $c-bg-zebra;
+    }
+
+    strong {
+      overflow: hidden;
+      max-width: 100%;
+      margin-bottom: 1px;
+      color: $c-font;
+      font-size: clamp(1.1rem, 1.6vw, 1.35rem);
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    &--online strong {
+      color: $c-good;
+    }
+
+    .lobby__label-en {
+      overflow: hidden;
+      max-width: 100%;
+      font-size: 0.72rem;
+      line-height: 1.2;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    &--wide {
+      grid-column: 1 / -1;
+      border-right: 0;
+      border-bottom: 0;
+    }
+  }
+
+  &__tv {
+    padding-bottom: 12px;
+
+    .lobby__rail-title icon {
+      color: $c-brag;
+    }
+
+    .mini-game {
+      display: block;
+      margin: 12px auto 0;
+      width: calc(100% - 24px);
+      overflow: visible;
+
+      &__player {
+        padding-top: 0;
+      }
+    }
+  }
+
+  &__daily-puzzle {
+    &__link {
+      display: block;
+      padding: 12px;
+      color: $c-font;
+
+      &:hover .lobby__daily-puzzle__turn,
+      &:focus-visible .lobby__daily-puzzle__turn {
+        color: $c-link;
+      }
+    }
+
+    .mini-board {
+      width: min(100%, 270px);
+      margin-inline: auto;
+    }
+
+    &__turn {
+      display: block;
+      margin-top: 9px;
+      color: $c-font-dim;
+      font-size: 0.82rem;
+      text-align: end;
+    }
   }
 
   &__nope {
     padding: 1.25rem;
-    text-align: center;
 
     &__content {
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 0.8rem;
+      text-align: center;
     }
   }
 
   &__leaderboard {
+    --leaderboard-cell-padding-inline: 9px;
+    --leaderboard-status-width: 1.5rem;
+
     display: flex;
     min-width: 0;
-    max-height: 420px;
+    max-height: 430px;
     flex-direction: column;
     overflow: hidden;
-    background: $c-bg-box;
+    border: $border;
+    border-radius: 12px;
+    background: color-mix(in oklab, $c-bg-box 96%, transparent);
+    box-shadow: 0 3px 12px rgb(0 0 0 / 0.12);
 
     &__header {
       display: flex;
-      min-height: 56px;
+      min-height: 64px;
       flex: 0 0 auto;
       align-items: center;
       justify-content: space-between;
-      gap: 10px;
-      padding: 10px 14px;
+      gap: 12px;
+      padding: 10px 18px;
       border-bottom: $border;
 
       h2 {
+        display: flex;
+        align-items: center;
+        gap: 10px;
         margin: 0;
-        color: $c-font-dim;
-        font-size: 1.25rem;
+        font-size: 1rem;
+        font-weight: 400;
+      }
 
-        &::before {
-          color: $c-bad;
-        }
+      .lobby__leaderboard__icon {
+        width: 1.414rem;
+        height: 1.414rem;
+        flex: 0 0 auto;
+        background-color: $c-bad;
+        mask: url('../images/icons/leaderboard.svg') center / contain no-repeat;
       }
 
       .more {
         color: $c-font-dim;
         white-space: nowrap;
 
-        &:hover {
+        &:hover,
+        &:focus-visible {
           color: $c-link;
         }
       }
@@ -98,9 +224,24 @@ body {
     }
 
     table {
+      position: relative;
       width: 100%;
       border-collapse: collapse;
       table-layout: fixed;
+    }
+
+    th {
+      height: 36px;
+      padding: 7px var(--leaderboard-cell-padding-inline);
+      border-bottom: $border;
+      color: $c-font-dim;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-align: start;
+
+      &.lobby__leaderboard__player-heading {
+        padding-inline-start: calc(var(--leaderboard-cell-padding-inline) + var(--leaderboard-status-width));
+      }
     }
 
     tr:nth-child(even) {
@@ -110,7 +251,7 @@ body {
     td {
       height: 50px;
       max-width: none;
-      padding: 7px 6px;
+      padding: 7px var(--leaderboard-cell-padding-inline);
       border-bottom: $border;
       font-variant-numeric: tabular-nums;
     }
@@ -118,6 +259,10 @@ body {
     &__user {
       width: auto;
       overflow: hidden;
+
+      .line {
+        width: var(--leaderboard-status-width);
+      }
 
       .user-link {
         display: inline-block;
@@ -139,42 +284,147 @@ body {
       }
     }
 
-    &__perf {
-      width: 34px;
+    &__player-column {
+      width: auto;
+    }
+
+    &__rating-column {
+      width: 84px;
+    }
+
+    &__rank-column {
+      width: 76px;
+    }
+
+    &__rating-heading,
+    &__rank-heading {
+      text-align: start;
+      white-space: nowrap;
+    }
+
+    &__rating-help {
+      position: static;
+      display: inline-block;
+      margin-inline-start: 4px;
+    }
+
+    &__rating-info {
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      border: 0;
+      background: transparent;
       color: $c-font-dim;
-      text-align: center;
+      cursor: help;
+      font-size: 0.9rem;
+      line-height: 24px;
+      transition: color 120ms ease;
 
       &::before {
         margin: 0;
       }
+
+      &:hover,
+      &:focus-visible {
+        color: $c-link;
+        outline: none;
+      }
+    }
+
+    &__rating,
+    &__rank {
+      text-align: start;
     }
 
     &__rating {
-      width: 54px;
       color: $c-font-dim;
-      text-align: end;
+      font-weight: 600;
     }
 
-    &__progress {
-      width: 48px;
-      text-align: end;
+    &__rank {
+      color: $c-font;
+      font-weight: 700;
+    }
+  }
 
-      .is-up {
-        color: $c-good;
-      }
+  &__leaderboard__rating-popup {
+    @extend %box-radius-force, %popup-shadow;
 
-      .is-down {
-        color: $c-bad;
-      }
+    position: fixed;
+    inset: 50% auto auto 50%;
+    width: min(21rem, calc(100vw - 2rem));
+    max-height: calc(100dvh - 2rem);
+    margin: 0;
+    transform: translate(-50%, -50%);
+    overflow: auto;
+    border: $border;
+    background: $c-bg-popup;
 
-      .is-flat {
-        color: $c-font-dimmer;
-      }
+    @supports (position-area: block-start) {
+      inset: auto;
+      position-area: block-start;
+      position-try: flip-block;
+      margin-block-end: 10px;
+      transform: none;
+    }
+  }
 
-      .text::before {
-        margin-inline-end: 2px;
+  &__leaderboard__rating-popup-content {
+    padding: 12px 14px;
+    color: $c-font;
+    font-size: 0.78rem;
+    font-weight: 400;
+    line-height: 1.4;
+    text-align: start;
+    white-space: normal;
+
+    p {
+      margin: 0;
+
+      + p {
+        margin-top: 8px;
       }
     }
+
+    dl {
+      margin: 7px 0;
+
+      div {
+        display: grid;
+        grid-template-columns: 1.5em 1fr;
+        gap: 6px;
+      }
+
+      dt {
+        font-weight: 700;
+      }
+
+      dd {
+        margin: 0;
+      }
+    }
+
+    ul {
+      margin: 6px 0 0;
+      padding-inline-start: 1.25em;
+    }
+
+    .lobby__leaderboard__rating-more {
+      margin-top: 9px;
+      padding-top: 8px;
+      border-top: $border;
+      font-size: 0.75rem;
+      text-align: center;
+
+      a {
+        color: $c-link;
+        font-weight: 600;
+      }
+    }
+  }
+
+  &__mobile-nav {
+    display: none;
   }
 
   &__overlay {
@@ -195,9 +445,153 @@ body {
     }
   }
 
+  @media (max-width: 800px) {
+    --lobby-site-counter-height: 60px;
+
+    &__mobile-nav {
+      position: fixed;
+      z-index: 110;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      display: grid;
+      min-height: 72px;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      padding-bottom: env(safe-area-inset-bottom);
+      border-top: $border;
+      background: color-mix(in oklab, $c-bg-page 94%, transparent);
+      box-shadow: 0 -5px 18px rgb(0 0 0 / 0.16);
+      backdrop-filter: blur(16px);
+
+      &__item {
+        position: relative;
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 1px;
+        padding: 8px 4px 6px;
+        color: $c-font-dim;
+        text-align: center;
+
+        &::before {
+          position: absolute;
+          top: -1px;
+          right: 15%;
+          left: 15%;
+          height: 2px;
+          border-radius: 0 0 2px 2px;
+          background: transparent;
+          content: '';
+        }
+
+        .lobby__svg-icon {
+          width: 27px;
+          height: 27px;
+          margin-bottom: 1px;
+        }
+
+        .lobby__label-en {
+          color: inherit;
+          font-size: 0.68rem;
+          line-height: 1.1;
+        }
+
+        &:hover,
+        &:focus-visible,
+        &.active {
+          color: $c-primary;
+        }
+
+        &.active::before {
+          background: $c-primary;
+        }
+      }
+    }
+
+    &__rail-card,
+    &__site-stats {
+      border-radius: 10px;
+    }
+  }
+
+  @media (max-width: 500px) {
+    &__site-counters {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    &__site-counter strong {
+      font-size: 1.2rem;
+    }
+  }
+
+  @media (min-width: 1100px) {
+    &__right-rail &__leaderboard {
+      --leaderboard-cell-padding-inline: 6px;
+
+      max-height: 390px;
+
+      &__header {
+        min-height: 56px;
+        padding-inline: 13px;
+
+        h2 {
+          gap: 6px;
+          font-size: 0.9rem;
+        }
+      }
+
+      td {
+        height: 42px;
+        padding: 5px var(--leaderboard-cell-padding-inline);
+      }
+
+      &__rating {
+        width: 48px;
+      }
+
+      &__progress {
+        width: 44px;
+      }
+    }
+  }
+
+  @media (min-width: 390px) and (max-width: 499.3px) {
+    @at-root body:has(#{&}) .site-title {
+      display: flex;
+      gap: 0.55rem;
+      padding-inline: 0.5rem;
+
+      .site-icon,
+      .site-name {
+        display: block;
+      }
+
+      .site-icon {
+        font-size: 30px;
+      }
+
+      .site-name {
+        font-size: 22px;
+      }
+    }
+  }
+
   @media (max-width: 600px) {
     &__leaderboard {
-      max-height: 380px;
+      max-height: 390px;
+      border-radius: 10px;
+
+      &__header {
+        min-height: 56px;
+        padding-inline: 14px;
+
+        .lobby__leaderboard__icon {
+          width: 1.157rem;
+          height: 1.157rem;
+        }
+      }
     }
 
     &__overlay {

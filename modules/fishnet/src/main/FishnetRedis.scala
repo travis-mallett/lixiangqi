@@ -12,7 +12,6 @@ import lila.xiangqi.Xiangqi
 final class FishnetRedis(
     client: RedisClient,
     chanIn: String,
-    chanOut: String,
     shutdown: CoordinatedShutdown
 )(using Executor):
 
@@ -21,35 +20,40 @@ final class FishnetRedis(
   private var stopping = false
 
   def request(work: Work.Move): Unit =
-    if !stopping then connOut.async.publish(chanOut, writeWork(work))
+    if !stopping then connOut.async.publish(AiMoveProtocol.requestChannel, AiMoveProtocol.write(work))
 
-  connIn.async.subscribe(chanIn)
+  connIn.async.subscribe(chanIn, AiMoveProtocol.resultChannel)
   connIn.addListener:
     new RedisPubSubAdapter[String, String]:
       override def message(chan: String, msg: String): Unit =
-        msg.split(' ') match
-          case Array("start") => Bus.pub(FishnetStart)
-          case Array(gameId, sign, uci) =>
-            Xiangqi.Uci
-              .from(uci)
-              .foreach: move =>
-                Bus.pub(Tell(GameId(gameId), RoundBus.FishnetPlay(move, sign)))
-          case _ => ()
+        if chan == AiMoveProtocol.resultChannel then readV2(msg)
+        else readLegacy(msg)
+
+  private def readLegacy(msg: String): Unit =
+    msg.split(' ') match
+      case Array("start") => Bus.pub(FishnetStart)
+      case Array(gameId, sign, uci) =>
+        Xiangqi.Uci
+          .from(uci)
+          .foreach: move =>
+            Bus.pub(Tell(GameId(gameId), RoundBus.FishnetPlay(move, sign)))
+      case _ => ()
+
+  private def readV2(msg: String): Unit =
+    AiMoveProtocol
+      .read(msg)
+      .fold(
+        error => logger.warn(s"Ignoring malformed AI worker message: $error"),
+        {
+          case AiMoveProtocol.Result.WorkerReady => Bus.pub(FishnetStart)
+          case AiMoveProtocol.Result.Move(gameId, requestId, turnKey, uci) =>
+            Bus.pub(Tell(gameId, RoundBus.FishnetPlayV2(uci, turnKey, requestId)))
+          case AiMoveProtocol.Result.Failure(gameId, requestId, turnKey, code) =>
+            Bus.pub(Tell(gameId, RoundBus.FishnetFailureV2(turnKey, requestId, code)))
+        }
+      )
 
   Lilakka.shutdown(shutdown, _.PhaseServiceUnbind, "Stopping the fishnet redis pool"): () =>
     Future:
       stopping = true
       client.shutdown()
-
-  private def writeWork(work: Work.Move): String =
-    List(
-      work.game.id,
-      work.level,
-      work.clock.fold("")(writeClock),
-      "xiangqi",
-      work.game.initialFen.fold(Xiangqi.startFen)(_.value),
-      work.game.moves
-    ).mkString(";")
-
-  private def writeClock(clock: Work.Clock): String =
-    List(clock.wtime, clock.btime, clock.inc).mkString(" ")

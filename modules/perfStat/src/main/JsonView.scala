@@ -31,7 +31,6 @@ final class JsonView(getLightUser: LightUser.GetterSyncFallback):
     Json.obj(
       "user" -> data.user.user,
       "perf" -> data.user.perfs(data.stat.perfType),
-      "rank" -> data.rank,
       "percentile" -> data.percentile,
       "stat" -> data.stat
     )

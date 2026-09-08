@@ -1,10 +1,9 @@
 package lila.mod
 
 import com.github.blemale.scaffeine.Cache
-import chess.rating.IntRatingDiff
-import chess.IntRating
 
 import lila.core.msg.{ MsgApi, MsgPreset }
+import lila.core.rank.RankScore.*
 import lila.report.ReportApi
 
 final private class SandbagWatch(
@@ -20,7 +19,7 @@ final private class SandbagWatch(
 
   def apply(game: Game): Unit = for
     loser <- game.loser.map(_.color)
-    if game.rated.yes && !game.sourceIs(_.Api)
+    if game.ranked && !game.sourceIs(_.Api)
     userId <- game.userIds
   do
     (records.getIfPresent(userId), outcomeOf(game, loser, userId)) match
@@ -82,20 +81,14 @@ final private class SandbagWatch(
 
   private def isSandbagOrBoost(game: Game): Boolean = !isCorrespondenceTimeout(game) && {
 
-    def loserRatingGt(r: Int) = game.loser.flatMap(_.rating).exists(_ > IntRating(r))
+    def loserRankAtLeast(score: Int) = game.loser.flatMap(_.rank).exists(_.score.value >= score)
 
     val baseMinTurns =
-      if loserRatingGt(1800) then 20
-      else if loserRatingGt(1600) then 12
+      if loserRankAtLeast(1200) then 20
+      else if loserRankAtLeast(240) then 12
       else 8
 
-    import chess.variant.*
-    val minTurns = game.variant match
-      case Atomic => baseMinTurns / 4
-      case KingOfTheHill | ThreeCheck => baseMinTurns / 2
-      case _ => baseMinTurns
-
-    game.playedPlies <= minTurns && game.winner.exists(_.ratingDiff.exists(_.positive))
+    game.playedPlies <= baseMinTurns && game.winner.exists(_.rank.flatMap(_.diff).exists(_.value > 0))
   }
 
 private object SandbagWatch:
@@ -140,21 +133,21 @@ private object SandbagWatch:
 
     lazy val sandbagAuto = MsgPreset(
       name = "Warning: possible sandbagging",
-      text = """Our system noticed that you lost a couple of rated games very quickly. We understand this can happen for many reasons, from a poor connection, to an opponent's clever opening trap, or simply making a mistake and resigning early.
+      text = """Our system noticed that you lost a couple of ranked games very quickly. We understand this can happen for many reasons, from a poor connection, to an opponent's clever opening trap, or simply making a mistake and resigning early.
 
-  We're writing because this pattern can also be a sign of "sandbagging," losing games on purpose to lower one's rating. To ensure a fair and enjoyable experience for everyone, our policy requires that players try their best to win every rated game.
+  We're writing because this pattern can also be a sign of "sandbagging," losing games on purpose to lower one's rank. To ensure a fair and enjoyable experience for everyone, our policy requires that players try their best to win every ranked game.
 
   If these quick losses were unintentional, please don't worry. This is just a friendly reminder about our Fair Play policy.
 
-  Thank you for helping keep Lichess fun and fair."""
+  Thank you for helping keep Lixiangqi fun and fair."""
     )
     lazy val boostAuto = MsgPreset(
       name = "Warning: possible boosting",
-      """Our system noticed that you won a couple of rated games very quickly. We understand this can happen for many reasons, perhaps your opponent has a poor connection, fell for a clever opening trap, or simply made a mistake and resigned early.
+      """Our system noticed that you won a couple of ranked games very quickly. We understand this can happen for many reasons, perhaps your opponent has a poor connection, fell for a clever opening trap, or simply made a mistake and resigned early.
 
-  We're writing because this pattern can also be a sign of "boosting," where one player benefits from an opponent who is losing on purpose. To ensure a fair and enjoyable experience for everyone, our policy requires that both players try their best to win every rated game.
+  We're writing because this pattern can also be a sign of "boosting," where one player benefits from an opponent who is losing on purpose. To ensure a fair and enjoyable experience for everyone, our policy requires that both players try their best to win every ranked game.
 
   If your quick wins were the result of fair play, please don't worry. This is just a friendly reminder about our Fair Play policy.
 
-  Thank you for helping keep Lichess fun and fair."""
+  Thank you for helping keep Lixiangqi fun and fair."""
     )

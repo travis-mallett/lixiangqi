@@ -10,9 +10,9 @@ object Query:
 
   import Game.BSONFields as F
 
-  val rated: Bdoc = F.rated.$eq(true)
+  val ranked: Bdoc = F.rankTrack.$eq(lila.core.rank.RankTrackId.xiangqi.value)
 
-  def rated(u: UserId): Bdoc = user(u) ++ rated
+  def ranked(u: UserId): Bdoc = user(u) ++ ranked
 
   def status(s: Status) = F.status.$eq(s.id)
 

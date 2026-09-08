@@ -1,0 +1,40 @@
+// Opt-in typography and spacing for long-form About, Learn, and reference pages.
+.article-page {
+  width: min(100%, 60rem);
+  margin-inline: auto;
+  color: $c-font;
+  font-size: clamp(1rem, 0.96rem + 0.15vw, 1.0625rem);
+  line-height: 1.62;
+
+  h1,
+  h2,
+  h3 {
+    color: $c-font-clear;
+    font-weight: 700;
+    line-height: 1.18;
+  }
+
+  h1 {
+    margin: 0 0 0.55em;
+    font-size: clamp(2rem, 1.65rem + 1.25vw, 2.75rem);
+    letter-spacing: -0.025em;
+  }
+
+  h2 {
+    margin: 0 0 0.6em;
+    font-size: clamp(1.55rem, 1.4rem + 0.5vw, 1.9rem);
+  }
+
+  h3 {
+    margin: 1.7em 0 0.45em;
+    font-size: clamp(1.2rem, 1.1rem + 0.3vw, 1.45rem);
+  }
+
+  p {
+    margin: 0 0 1em;
+  }
+
+  section + section {
+    margin-top: clamp(2.25rem, 5vw, 3.5rem);
+  }
+}

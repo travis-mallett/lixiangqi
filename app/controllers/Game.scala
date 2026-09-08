@@ -70,8 +70,7 @@ final class Game(env: Env, apiC: => Api) extends LilaController(env):
                   since = getTimestamp("since"),
                   until = getTimestamp("until"),
                   max = getIntAs[Max]("max").map(_.atLeast(1)),
-                  rated = getBoolOpt("rated"),
-                  perfKey = get("perfType").orZero.split(",").flatMap { PerfKey(_) }.toSet,
+                  ranked = getBoolOpt("ranked"),
                   color = getColor(),
                   analysed = getBoolOpt("analysed"),
                   flags = requestPgnFlags(extended = false),
@@ -184,4 +183,4 @@ final class Game(env: Env, apiC: => Api) extends LilaController(env):
     env.user.lightUserApi.preloadMany(game.userIds)
   private[controllers] def preloadUsers(users: lila.core.user.GameUsers): Unit =
     env.user.lightUserApi.preloadUsers(users.all.collect:
-      case Some(lila.core.user.WithPerf(u, _)) => u)
+      case Some(lila.core.user.WithPerf(u, _, _)) => u)

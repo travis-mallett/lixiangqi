@@ -8,7 +8,6 @@ import scalalib.paginator.{ AdapterLike, Paginator }
 import lila.app.{ *, given }
 import lila.core.LightUser
 import lila.core.perf.UserWithPerfs
-import lila.rating.UserPerfsExt.bestRatedPerf
 import lila.relation.Related
 
 final class Relation(env: Env, apiC: => Api) extends LilaController(env):
@@ -133,8 +132,7 @@ final class Relation(env: Env, apiC: => Api) extends LilaController(env):
     Json.obj("paginator" -> pag.mapResults: r =>
       Json.toJsObject(r) ++ Json
         .obj:
-          "perfs" -> r.user.perfs.bestRatedPerf.map:
-            lila.user.JsonView.keyedPerfJson
+          "perfs" -> lila.user.JsonView.perfsJson(r.user.perfs)
         .add("online" -> env.socket.isOnline.exec(r.user.id)))
 
   def blocks(page: Int) = Auth { ctx ?=> me ?=>

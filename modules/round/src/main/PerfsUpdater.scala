@@ -1,110 +1,86 @@
 package lila.round
 
-import chess.{ ByColor, IntRating }
-import chess.rating.{ IntRatingDiff, RatingProvisional }
-import chess.rating.glicko.{ Glicko, Player }
-import chess.variant.Variant
+import chess.ByColor
 
-import lila.core.perf.{ UserPerfs, UserWithPerfs }
-import lila.rating.PerfExt.addOrReset
-import lila.rating.{ PerfType, RatingRegulator }
-import lila.user.{ RankingApi, UserApi }
-import lila.rating.PerfExt.toGlickoPlayer
+import lila.core.perf.UserWithPerfs
+import lila.core.rank.{ RankChange, RankDiff, RankTrackId }
+import lila.rating.XiangqiRank
+import lila.user.UserApi
 
+/** Settles the native Xiangqi assessment attached to a ranked game. Puzzle Glicko is unrelated. */
 final class PerfsUpdater(
     gameRepo: lila.game.GameRepo,
     userApi: UserApi,
-    rankingApi: RankingApi,
     farming: FarmBoostDetection
 )(using Executor):
 
-  def save(game: Game, users: ByColor[UserWithPerfs]): Fu[Option[ByColor[IntRatingDiff]]] =
-    (game.rated.yes && game.finished && (game.playedPlies >= 2 || game.isTournament)).so:
+  def save(game: Game, users: ByColor[UserWithPerfs]): Fu[Option[ByColor[RankChange]]] =
+    if !game.rankTrack.contains(RankTrackId.xiangqi) || !game.finished || game.playedPlies < 2 then
+      fuccess(none)
+    else persistedChanges(game).fold(settle(game, users))(changes => fuccess(changes.some))
+
+  private def persistedChanges(game: Game): Option[ByColor[RankChange]] =
+    game.players.traverse: player =>
       for
-        isBotFarming <- farming.botFarming(game)
-        isBoosting <- farming.newAccountBoosting(game, users)
-        result <- (!isBotFarming && !isBoosting).so:
-          calculateRatingAndPerfs(game, users).so:
-            saveRatings(game.id, users)
-      yield result
+        snapshot <- player.rank
+        diff <- snapshot.diff
+        after <- snapshot.after
+      yield RankChange(diff, after)
 
-  private def calculateRatingAndPerfs(game: Game, users: ByColor[UserWithPerfs]): Option[
-    (ByColor[IntRatingDiff], ByColor[UserWithPerfs], PerfKey)
-  ] = for
+  private def settle(game: Game, users: ByColor[UserWithPerfs]): Fu[Option[ByColor[RankChange]]] =
+    for
+      isBotFarming <- farming.botFarming(game)
+      isBoosting <- farming.newAccountBoosting(game, users)
+      result <- (!isBotFarming && !isBoosting).so:
+        calculate(game, users).so(diffs => persist(game, users, diffs))
+    yield result
+
+  /** The result value comes exclusively from immutable game-start snapshots. */
+  private def calculate(game: Game, users: ByColor[UserWithPerfs]): Option[ByColor[RankDiff]] = for
     outcome <- game.outcome
-    perfKey <-
-      if game.variant.fromPosition
-      then game.isTournament.option(PerfKey(game.ratingVariant, game.speed))
-      else game.perfKey.some
     if !users.exists(_.user.lame)
-    prevPerfs = users.map(_.perfs)
-    prevPlayers = prevPerfs.map(_(perfKey).toGlickoPlayer)
-    computedPlayers <- computeGlicko(game, prevPlayers, outcome)
-  yield
-    val newGlickos = RatingRegulator(
-      perfKey,
-      prevPlayers.map(_.glicko),
-      computedPlayers.map(_.glicko),
-      users.map(_.isBot)
-    )
-    val newPerfs = prevPerfs.zip(newGlickos, (perfs, gl) => addToPerfs(game, perfs, perfKey, gl))
-    val ratingDiffs =
-      def ratingOf(perfs: UserPerfs) = perfs(perfKey).glicko.intRating.value
-      prevPerfs.zip(newPerfs, (prev, next) => IntRatingDiff(ratingOf(next) - ratingOf(prev)))
-    val newUsers = users.zip(newPerfs, (user, perfs) => user.copy(perfs = perfs))
-    lila.common.Bus.pub(lila.core.game.PerfsUpdate(game, newUsers))
-    (ratingDiffs, newUsers, perfKey)
-
-  private def computeGlicko(game: Game, prevPlayers: ByColor[Player], outcome: chess.Outcome) =
-    val gameId = game.id
-    PerfsUpdater
-      .withCalculator(game.variant)
-      .computeGame(chess.rating.glicko.Game(prevPlayers, outcome), skipDeviationIncrease = true)
-      .onError: err =>
-        scala.util.Success(logger.warn(s"Error computing Glicko2 for game $gameId", err))
+    snapshots <- game.players.traverse(_.rank)
+    if snapshots.forall(_.track == RankTrackId.xiangqi)
+    settlement <- XiangqiRank
+      .settle(snapshots.white, snapshots.black, outcome)
+      .left
+      .map(message => logger.warn(s"Cannot settle native rank for game ${game.id}: $message"))
       .toOption
+  yield ByColor(settlement.red, settlement.black)
 
-  private def saveRatings(gameId: GameId, prevUsers: ByColor[UserWithPerfs])(
-      ratingDiffs: ByColor[IntRatingDiff],
-      newUsers: ByColor[UserWithPerfs],
-      perfKey: PerfKey
-  ): Fu[Option[ByColor[IntRatingDiff]]] =
-    gameRepo
-      .setRatingDiffs(gameId, ratingDiffs)
-      .zip(userApi.updatePerfs(prevUsers.map(_.perfs).zip(newUsers.map(_.perfs)), perfKey))
-      .zip(rankingApi.save(newUsers, perfKey))
-      .inject(ratingDiffs.some)
-
-  private def addToPerfs(game: Game, perfs: UserPerfs, perfKey: PerfKey, player: Glicko) =
-    val newPerfs = perfs
-      .focusKey(perfKey)
-      .modify:
-        _.addOrReset(lila.mon.round.error.glicko, s"game ${game.id}")(player, game.movedAt)
-    if game.ratingVariant.standard
-    then updateStandard(newPerfs)
-    else newPerfs
-
-  private def updateStandard(p: UserPerfs) =
-    p.copy(
-      standard =
-        val subs = List(p.bullet, p.blitz, p.rapid, p.classical, p.correspondence).filter(_.provisional.no)
-        subs.maxByOption(_.latest.fold(0L)(_.toMillis)).flatMap(_.latest).fold(p.standard) { date =>
-          val nb = subs.map(_.nb).sum
-          val glicko = Glicko(
-            rating = subs.map(s => s.glicko.rating * (s.nb / nb.toDouble)).sum,
-            deviation = subs.map(s => s.glicko.deviation * (s.nb / nb.toDouble)).sum,
-            volatility = subs.map(s => s.glicko.volatility * (s.nb / nb.toDouble)).sum
+  private def persist(
+      game: Game,
+      users: ByColor[UserWithPerfs],
+      diffs: ByColor[RankDiff]
+  ): Fu[Option[ByColor[RankChange]]] =
+    val drawn = game.outcome.exists(_.winner.isEmpty)
+    users
+      .mapWithColor: (color, user) =>
+        userApi.updateRankAtomically(user.id, RankTrackId.xiangqi, XiangqiRank.initial): perf =>
+          XiangqiRank.applyResult(
+            perf = perf,
+            delta = diffs(color),
+            won = game.winnerColor.contains(color),
+            drawn = drawn,
+            at = game.movedAt,
+            gameId = game.id
           )
-          Perf(
-            glicko = glicko,
-            nb = nb,
-            recent = Nil,
-            latest = date.some
-          )
-        }
-    )
-
-object PerfsUpdater:
-  def withCalculator(variant: Variant) =
-    if variant.standard then lila.rating.Glicko.calculatorWithStandardAdvantage
-    else lila.rating.Glicko.calculator
+      .sequence
+      .flatMap: updates =>
+        val current = updates.map(_._2)
+        val actualDiffs = current.map: perfs =>
+          perfs
+            .rank(RankTrackId.xiangqi)
+            .flatMap(_.settlement(game.id))
+            .getOrElse(RankDiff.zero)
+        val updatedUsers = users.zip(current, (user, perfs) => user.copy(perfs = perfs))
+        val changes = actualDiffs.zip(
+          current,
+          (diff, perfs) =>
+            RankChange(
+              diff,
+              XiangqiRank.catalog.code(perfs.rank(RankTrackId.xiangqi).getOrElse(XiangqiRank.initial).score)
+            )
+        )
+        lila.common.Bus.pub(lila.core.game.PerfsUpdate(game, updatedUsers))
+        gameRepo.setRankChanges(game.id, changes).inject(changes.some)

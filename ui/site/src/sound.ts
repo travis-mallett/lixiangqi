@@ -3,11 +3,16 @@ import { throttle } from 'lib/async';
 import { isIos } from 'lib/device';
 import { speakable } from 'lib/game/sanWriter';
 import { storage } from 'lib/storage';
+import { playXiangqiBoardAnimation } from 'lib/xiangqiBoardAnimation';
 
 import { BackgroundMusic } from './backgroundMusic';
 
 type Name = string;
 type Path = string;
+
+const CHECKMATE_EFFECT_NAME = 'checkmateAnimationEffect';
+const CHECKMATE_EFFECT_PATH = 'standard/Checkmate_sound_effect.mp3';
+const CHECKMATE_EFFECT_VOLUME = 0.8;
 
 class SoundService implements SoundI {
   ctx?: AudioContext;
@@ -20,6 +25,7 @@ class SoundService implements SoundI {
   musicSet = document.body.dataset.musicSet!;
   volumeStorage = storage.make('sound-volume');
   soundEnabledStorage = storage.make('sound-enabled');
+  voiceSoundEnabledStorage = storage.make('voice-sound-enabled');
   musicEnabledStorage = storage.make('music-enabled');
   musicSetStorage = storage.make('music-set');
   backgroundMusic = new BackgroundMusic();
@@ -87,9 +93,43 @@ class SoundService implements SoundI {
   }
 
   async play(name: Name, volume = 1): Promise<void> {
+    if (name === 'checkmate') return this.playCheckmate(volume);
+    if (name === 'capture' || name === 'check') playXiangqiBoardAnimation(name);
     if (!this.effectsEnabled()) return;
+    if ((name === 'capture' || name === 'check') && !this.isVoiceSoundEnabled()) return;
     const sound = await this.load(name);
     if (sound && (await this.resumeWithTest())) await sound.play(this.getVolume() * volume);
+  }
+
+  private async playCheckmate(volume: number): Promise<void> {
+    if (!this.effectsEnabled()) {
+      playXiangqiBoardAnimation('checkmate');
+      return;
+    }
+
+    const [spoken, effect] = await Promise.all([
+      this.isVoiceSoundEnabled() ? this.load('checkmate').catch(() => undefined) : Promise.resolve(undefined),
+      this.load(CHECKMATE_EFFECT_NAME, this.url(CHECKMATE_EFFECT_PATH)).catch(() => undefined),
+    ]);
+    if (!(await this.resumeWithTest())) {
+      playXiangqiBoardAnimation('checkmate');
+      return;
+    }
+
+    const outputVolume = this.getVolume() * volume;
+    await new Promise<void>(resolve => {
+      const start = () => {
+        playXiangqiBoardAnimation('checkmate');
+        const playback = [
+          spoken?.play(outputVolume),
+          effect?.play(outputVolume * CHECKMATE_EFFECT_VOLUME),
+        ].filter((promise): promise is Promise<void> => promise !== undefined);
+        Promise.allSettled(playback).then(() => resolve());
+      };
+
+      if (document.visibilityState === 'visible') window.requestAnimationFrame(start);
+      else start();
+    });
   }
 
   throttled = (name: Name, volume: number): void => {
@@ -106,14 +146,17 @@ class SoundService implements SoundI {
     if (o?.name) return this.throttled(o.name, volume);
 
     this.throttled('move', volume);
-    if (o?.capture || o?.san?.includes('x')) this.throttled('capture', volume);
-    if (o?.mate || o?.san?.includes('#')) this.throttled('checkmate', volume);
-    else if (o?.check || o?.san?.includes('+')) this.throttled('check', volume);
+    const mate = o?.mate ?? o?.san?.includes('#');
+    const check = o?.check ?? o?.san?.includes('+');
+    const capture = o?.capture ?? o?.san?.includes('x');
+    if (mate) this.throttled('checkmate', volume);
+    else if (check) this.throttled('check', volume);
+    else if (capture) this.throttled('capture', volume);
   }
 
-  async playAndDelayMateResultIfNecessary(name: Name): Promise<void> {
-    if (this.soundSet === 'standard') this.play(name);
-    else setTimeout(() => this.play(name), 600);
+  async playAndDelayMateResultIfNecessary(_name: Name): Promise<void> {
+    // Checkmate has its own complete audio cue. Suppress the secondary game-result
+    // sound here so every caller gets only the spoken and stylized mate effects.
   }
 
   async countdown(count: number, interval = 500): Promise<void> {
@@ -158,6 +201,12 @@ class SoundService implements SoundI {
 
   setSoundEnabled = (enabled: boolean) => {
     this.soundEnabledStorage.set(enabled ? '1' : '0');
+  };
+
+  isVoiceSoundEnabled = () => this.voiceSoundEnabledStorage.get() !== '0';
+
+  setVoiceSoundEnabled = (enabled: boolean) => {
+    this.voiceSoundEnabledStorage.set(enabled ? '1' : '0');
   };
 
   isMusicEnabled = () => this.musicEnabledStorage.get() === '1';
@@ -242,7 +291,11 @@ class SoundService implements SoundI {
   };
 
   preloadBoardSounds() {
-    for (const name of ['move', 'capture', 'check', 'checkmate', 'genericNotify']) this.load(name);
+    for (const name of ['move', 'genericNotify']) this.load(name);
+    if (this.isVoiceSoundEnabled()) {
+      for (const name of ['capture', 'check', 'checkmate']) this.load(name);
+    }
+    this.load(CHECKMATE_EFFECT_NAME, this.url(CHECKMATE_EFFECT_PATH));
   }
 
   async resumeWithTest(): Promise<boolean> {

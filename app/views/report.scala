@@ -1,8 +1,8 @@
 package views.report
 
-import lila.app.UiEnv.{ *, given }
+import lila.app.UiEnv.*
 import lila.report.ui.PendingCounts
-import lila.rating.UserPerfsExt.bestPerfs
+import lila.rating.{ UserPerfsExt, XiangqiRank }
 import lila.report.Report.WithSuspect
 import lila.report.Room
 
@@ -16,6 +16,13 @@ def list(
 )(using Context, Me) =
   ui.list.layout(s"Reports: $filter", filter, scores, pending)(views.mod.ui.reportMenu):
     ui.list.reportTable(reports)(
-      bestPerfs = _.perfs.bestPerfs(2).map(showPerfRating),
+      bestPerfs = suspect =>
+        import UserPerfsExt.*
+        List(
+          strong(
+            suspect.perfs.xiangqiRank.fold("Unranked")(rank => XiangqiRank.catalog.code(rank.score).value)
+          )
+        )
+      ,
       userMarks = views.mod.user.userMarks(_, none)
     )

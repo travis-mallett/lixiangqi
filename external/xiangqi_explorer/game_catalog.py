@@ -14,6 +14,12 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from tools.games_database.catalog_index import (
+    ONLINE_SOURCE_IDS,
+    SOURCE_BITS,
+    source_mask,
+)
+
 from .ancient_manual_localization import is_chinese, localized_value
 from .ancient_manual_localization import language as manual_language
 from .ancient_manual_localization import manual_title as localize_manual_title
@@ -45,7 +51,7 @@ SOURCE_IDS = {
     (source, collection): source_id
     for source_id, (source, collection, _label) in SOURCE_SPECS.items()
 }
-ONLINE_SOURCES = ("n", "t", "k", "o", "b", "u", "w")
+ONLINE_SOURCES = ONLINE_SOURCE_IDS
 ANCIENT_MANUAL_ROOT = (
     "http://www.dpxq.com/hldcg/share/"
     "chess_%E8%B1%A1%E6%A3%8B%E8%B0%B1%E5%A4%A7%E5%85%A8/"
@@ -73,9 +79,9 @@ PACIFIC_TIME = ZoneInfo("America/Los_Angeles")
 AGGREGATE_CACHE_SECONDS = 60.0
 AGGREGATE_CACHE_SIZE = 256
 
-# Timeline queries can scan a large filtered result set. Cache only aggregates,
-# not paginated records, and coalesce concurrent misses for the same filter so
-# a traffic burst performs one SQLite query.
+# Player, event, and explicit text-search aggregates are scoped by a user query.
+# Coalesce concurrent misses for those dynamic views. The unsearched catalog
+# uses the persistent materialized read model and never enters this cache.
 _aggregate_cache: OrderedDict[tuple[Any, ...], tuple[float, Any]] = OrderedDict()
 _aggregate_inflight: dict[tuple[Any, ...], threading.Event] = {}
 _aggregate_lock = threading.Lock()
@@ -226,60 +232,154 @@ def _source_rows(
     return result
 
 
-def _source_counts(connection: sqlite3.Connection) -> dict[str, int]:
-    counts = {source_id: 0 for source_id in SOURCE_SPECS}
-    rows = connection.execute(
-        """
-        SELECT source, collection, count(DISTINCT game_id) AS game_count
-        FROM game_sources
-        GROUP BY source, collection
-        """
-    ).fetchall()
-    for row in rows:
-        source_id = SOURCE_IDS.get((row["source"], row["collection"]))
-        if source_id is not None:
-            counts[source_id] = row["game_count"]
-    online_clause, parameters = _source_filter(list(ONLINE_SOURCES), "online_source")
-    counts["online"] = connection.execute(
+def _catalog_overview(connection: sqlite3.Connection) -> tuple[int, dict[str, int]]:
+    """Read global counts from the persistent catalog aggregate."""
+
+    source_totals = ",\n".join(
+        "coalesce(sum(CASE WHEN (source_mask & "
+        f"{SOURCE_BITS[source_id]}) <> 0 THEN game_count ELSE 0 END), 0) "
+        f'AS "{source_id}"'
+        for source_id in SOURCE_SPECS
+    )
+    online_mask = source_mask(ONLINE_SOURCES)
+    row = connection.execute(
         f"""
-        SELECT count(DISTINCT game_id) FROM game_sources online_source
-        WHERE {online_clause}
+        SELECT
+          coalesce(sum(game_count), 0) AS total_games,
+          {source_totals},
+          coalesce(sum(CASE WHEN (source_mask & {online_mask}) <> 0
+                       THEN game_count ELSE 0 END), 0) AS online
+        FROM catalog_timeline_stats
+        """
+    ).fetchone()
+    return int(row["total_games"]), {
+        **{source_id: int(row[source_id]) for source_id in SOURCE_SPECS},
+        "online": int(row["online"]),
+    }
+
+
+def _catalog_timeline(
+    connection: sqlite3.Connection, selected: list[str], unit: str
+) -> dict[str, Any]:
+    """Read a source-filtered timeline from materialized date buckets."""
+
+    bucket_sql = {
+        "month": "NULLIF(month_bucket, '')",
+        "year": "NULLIF(year_bucket, 0)",
+        "decade": (
+            "CASE WHEN year_bucket BETWEEN 1 AND 9999 "
+            "THEN (year_bucket / 10) * 10 END"
+        ),
+    }[unit]
+    rows = connection.execute(
+        f"""
+        SELECT {bucket_sql} AS bucket, sum(game_count) AS game_count
+        FROM catalog_timeline_stats
+        WHERE (source_mask & ?) <> 0
+        GROUP BY bucket
+        ORDER BY bucket
         """,
-        parameters,
-    ).fetchone()[0]
-    return counts
+        (source_mask(selected),),
+    ).fetchall()
+    buckets: list[dict[str, Any]] = []
+    undated = 0
+    for row in rows:
+        count = int(row["game_count"])
+        if row["bucket"] in (None, ""):
+            undated += count
+        else:
+            buckets.append({"start": str(row["bucket"]), "count": count})
+    return {"unit": unit, "buckets": buckets, "undated": undated}
 
 
-def _game_filter(selected: list[str], search: str) -> tuple[str, list[Any]]:
+def _game_filter(selected: list[str]) -> tuple[str, list[Any]]:
     source_clause, source_parameters = _source_filter(selected)
-    clauses = [
+    return (
         "EXISTS (SELECT 1 FROM game_sources selected_source "
-        f"WHERE selected_source.game_id = g.id AND ({source_clause}))"
-    ]
-    parameters: list[Any] = [*source_parameters]
-    if search:
+        f"WHERE selected_source.game_id = g.id AND ({source_clause}))",
+        [*source_parameters],
+    )
+
+
+def _fts_phrase(value: str) -> str:
+    escaped = value.replace('"', '""')
+    return f'"{escaped}"'
+
+
+def _catalog_search_where(selected: list[str], search: str) -> tuple[str, list[Any]]:
+    clauses = ["(catalog_facet.source_mask & ?) <> 0"]
+    parameters: list[Any] = [source_mask(selected)]
+    key = normalized_name_key(search)
+    if len(search) >= 3:
+        match = _fts_phrase(search)
+        if len(key) >= 3 and key.casefold() != search.casefold():
+            match += f" OR {_fts_phrase(key)}"
+        clauses.append("catalog_search MATCH ?")
+        parameters.append(match)
+    else:
         escaped = (
             search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
         )
         pattern = f"%{escaped}%"
-        key = normalized_name_key(search)
-        clauses.append(
-            """
-            (
-              g.red_name LIKE ? ESCAPE '\\' COLLATE NOCASE OR
-              g.black_name LIKE ? ESCAPE '\\' COLLATE NOCASE OR
-              g.red_name_romanized LIKE ? ESCAPE '\\' COLLATE NOCASE OR
-              g.black_name_romanized LIKE ? ESCAPE '\\' COLLATE NOCASE OR
-              g.event LIKE ? ESCAPE '\\' COLLATE NOCASE OR
-              g.opening LIKE ? ESCAPE '\\' COLLATE NOCASE OR
-              g.place LIKE ? ESCAPE '\\' COLLATE NOCASE OR
-              g.title LIKE ? ESCAPE '\\' COLLATE NOCASE OR
-              g.red_name_key = ? OR g.black_name_key = ?
-            )
-            """
+        searchable_columns = (
+            "red_name",
+            "black_name",
+            "red_name_romanized",
+            "black_name_romanized",
+            "event",
+            "opening",
+            "place",
+            "title",
         )
-        parameters.extend([pattern] * 8 + [key, key])
+        clauses.append(
+            "("
+            + " OR ".join(
+                f"catalog_search.{column} LIKE ? ESCAPE '\\' COLLATE NOCASE"
+                for column in searchable_columns
+            )
+            + " OR catalog_search.red_name_key = ?"
+            + " OR catalog_search.black_name_key = ?)"
+        )
+        parameters.extend([pattern] * len(searchable_columns) + [key, key])
     return " AND ".join(clauses), parameters
+
+
+def _catalog_search_timeline(
+    connection: sqlite3.Connection,
+    selected: list[str],
+    search: str,
+    unit: str,
+) -> dict[str, Any]:
+    bucket_sql = {
+        "month": "NULLIF(catalog_facet.month_bucket, '')",
+        "year": "NULLIF(catalog_facet.year_bucket, 0)",
+        "decade": (
+            "CASE WHEN catalog_facet.year_bucket BETWEEN 1 AND 9999 "
+            "THEN (catalog_facet.year_bucket / 10) * 10 END"
+        ),
+    }[unit]
+    where, parameters = _catalog_search_where(selected, search)
+    rows = connection.execute(
+        f"""
+        SELECT {bucket_sql} AS bucket, count(*) AS game_count
+        FROM catalog_search
+        JOIN catalog_game_facets catalog_facet
+          ON catalog_facet.game_id = catalog_search.game_id
+        WHERE {where}
+        GROUP BY bucket
+        ORDER BY bucket
+        """,
+        parameters,
+    ).fetchall()
+    buckets: list[dict[str, Any]] = []
+    undated = 0
+    for row in rows:
+        count = int(row["game_count"])
+        if row["bucket"] in (None, ""):
+            undated += count
+        else:
+            buckets.append({"start": str(row["bucket"]), "count": count})
+    return {"unit": unit, "buckets": buckets, "undated": undated}
 
 
 def _timeline(
@@ -1201,15 +1301,7 @@ def query_games(query: dict[str, Any]) -> dict[str, Any]:
         }
 
     try:
-        database_key = str(games_database_path())
-        counts = _cached_aggregate(
-            (database_key, "source-counts"),
-            lambda: _source_counts(connection),
-        )
-        total_unique_games = _cached_aggregate(
-            (database_key, "total-unique-games"),
-            lambda: int(connection.execute("SELECT count(*) FROM games").fetchone()[0]),
-        )
+        total_unique_games, counts = _catalog_overview(connection)
         weekly_added = _weekly_growth(connection)
         if not selected:
             return {
@@ -1227,17 +1319,30 @@ def query_games(query: dict[str, Any]) -> dict[str, Any]:
                 },
                 "weeklyAdded": weekly_added,
             }
-        where, parameters = _game_filter(selected, search)
-        timeline = _cached_aggregate(
-            (
-                database_key,
-                "timeline",
-                tuple(selected),
-                search,
-                timeline_unit,
-            ),
-            lambda: _timeline(connection, where, parameters, timeline_unit),
-        )
+        if search:
+            timeline = _cached_aggregate(
+                (
+                    str(games_database_path()),
+                    "catalog-search-timeline",
+                    tuple(selected),
+                    search,
+                    timeline_unit,
+                ),
+                lambda: _catalog_search_timeline(
+                    connection, selected, search, timeline_unit
+                ),
+            )
+            where, parameters = _catalog_search_where(selected, search)
+            from_sql = """
+                catalog_search
+                JOIN catalog_game_facets catalog_facet
+                  ON catalog_facet.game_id = catalog_search.game_id
+                JOIN games g ON g.id = catalog_search.game_id
+            """
+        else:
+            timeline = _catalog_timeline(connection, selected, timeline_unit)
+            where, parameters = _game_filter(selected)
+            from_sql = "games g"
         total = timeline["undated"] + sum(
             bucket["count"] for bucket in timeline["buckets"]
         )
@@ -1259,7 +1364,7 @@ def query_games(query: dict[str, Any]) -> dict[str, Any]:
         rows = connection.execute(
             f"""
             SELECT g.*, json_array_length(g.moves) AS move_count
-            FROM games g
+            FROM {from_sql}
             WHERE {where}
             ORDER BY {order} {direction.upper()}, g.id ASC
             LIMIT ? OFFSET ?

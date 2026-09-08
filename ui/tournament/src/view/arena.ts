@@ -51,7 +51,7 @@ function playerTr(ctrl: TournamentController, player: StandingPlayer) {
     [
       h('td.rank', player.withdraw ? icon(licon.Pause)({ title: i18n.site.pause }) : player.rank),
       h('td.player', [
-        renderPlayer(player, false, ctrl.opts.showRatings, userId === ctrl.data.defender),
+        renderPlayer(player, false, userId === ctrl.data.defender),
         ...(battle && player.team ? [' ', teamName(battle, player.team)] : []),
       ]),
       h('td.sheet', renderScoreString(player.sheet.scores, !ctrl.data.noStreak)),
@@ -64,12 +64,9 @@ function playerTr(ctrl: TournamentController, player: StandingPlayer) {
   );
 }
 
-function podiumStats(p: PodiumPlayer, berserkable: boolean, ctrl: TournamentController): VNode {
+function podiumStats(p: PodiumPlayer, berserkable: boolean): VNode {
   const nb = p.nb;
   return h('table.stats', [
-    p.performance && ctrl.opts.showRatings
-      ? h('tr', [h('th', i18n.site.performance), h('td', p.performance)])
-      : null,
     h('tr', [h('th', i18n.site.gamesPlayed), h('td', nb.game)]),
     ...(nb.game
       ? [
@@ -92,9 +89,9 @@ export function podium(ctrl: TournamentController) {
             ...p,
             line: defined(p.patronColor),
             online: defined(p.patronColor),
-            rating: undefined,
           }),
-          podiumStats(p, ctrl.data.berserkable, ctrl),
+          p.rankTitle ? h('span.rank-title', p.rankTitle) : null,
+          podiumStats(p, ctrl.data.berserkable),
         ])
       : undefined;
   return h('div.podium', [

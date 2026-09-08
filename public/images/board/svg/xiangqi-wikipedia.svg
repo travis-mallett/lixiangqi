@@ -68,10 +68,19 @@
 </g>
 
 	<defs>
+		<!-- Embedded from xiangqi-file-coordinates.svg so this CSS background
+		     remains self-contained when browsers load it in SVG image mode. -->
+		<g id="xiangqi-coordinate-borders" fill="none" stroke="#000">
+			<rect width="816" height="916" x="-408" y="-458" stroke-width="6"/>
+			<rect width="800" height="900" x="-400" y="-450" stroke-width="3"/>
+		</g>
+		<path id="xiangqi-coordinate-grid-line" d="M0,0V400" stroke-width="3" stroke="#000"/>
+		<path id="xiangqi-coordinate-diagonal" d="M0,300 100,200" stroke-width="3" stroke="#000"/>
+		<path id="xiangqi-coordinate-mark" d="M18,6H6V18" fill="none" stroke-width="3" stroke="#000"/>
 		<g id="mark4">
 			<g id="mark2R">
-				<path id="mark" d="M30,10H10V30" fill="none" stroke-width="4" stroke="#000"/>
-				<use xlink:href="#mark" transform="rotate(-90,0,0)"/>
+				<use xlink:href="#xiangqi-coordinate-mark"/>
+				<use xlink:href="#xiangqi-coordinate-mark" transform="rotate(-90,0,0)"/>
 			</g>
 			<g id="mark2L">
 				<use xlink:href="#mark2R" transform="rotate(180)"/>
@@ -80,18 +89,18 @@
 		<g id="mino32">
 			<g id="mino16">
 				<g id="line4">
-					<path id="line" d="M0,0V400" stroke-width="4" stroke="#000"/>
-					<use xlink:href="#line" x="100"/>
-					<use xlink:href="#line" x="200"/>
-					<use xlink:href="#line" x="300"/>
+					<use xlink:href="#xiangqi-coordinate-grid-line"/>
+					<use xlink:href="#xiangqi-coordinate-grid-line" x="100"/>
+					<use xlink:href="#xiangqi-coordinate-grid-line" x="200"/>
+					<use xlink:href="#xiangqi-coordinate-grid-line" x="300"/>
 				</g>
 				<use xlink:href="#line4" transform="rotate(90,200,200)"/>
 				<use xlink:href="#mark2R" x="0" y="100"/>
 				<use xlink:href="#mark4" x="200" y="100"/>
 				<use xlink:href="#mark4" x="300" y="200"/>
 				<use xlink:href="#mark2L" x="400" y="100"/>
-				<path id="diagonal" d="M0,300 100,200" stroke-width="4" stroke="#000"/>
-				<use xlink:href="#diagonal" transform="rotate(90,0,300)"/>
+				<use xlink:href="#xiangqi-coordinate-diagonal"/>
+				<use xlink:href="#xiangqi-coordinate-diagonal" transform="rotate(90,0,300)"/>
 			</g>
 			<use xlink:href="#mino16" transform="scale(-1,1)"/>
 		</g>
@@ -123,10 +132,7 @@
 		</g>
 	</defs>
 <g aria-label="Burned board ink" opacity="1">
-<g fill="none" stroke-width="4" stroke="#000">
-		<rect width="816" height="916" x="-408" y="-458"/>
-		<rect width="800" height="900" x="-400" y="-450"/>
-	</g>
+	<use xlink:href="#xiangqi-coordinate-borders"/>
 	<use xlink:href="#board"/>
 <g transform="scale(0.333)">
 		<g transform="translate(-736,0)">

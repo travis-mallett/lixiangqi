@@ -497,6 +497,9 @@ def ensure(path: Path, *, progress: bool = False) -> bool:
         connection.execute("PRAGMA synchronous = NORMAL")
         connection.execute("PRAGMA temp_store = MEMORY")
         connection.execute("PRAGMA cache_size = -262144")
+        from .catalog_index import ensure_current as ensure_catalog_index
+
+        ensure_catalog_index(connection, progress=progress)
         if not index_is_current(connection):
             rebuild(connection, progress=progress)
         else:
@@ -518,6 +521,9 @@ def main(argv: list[str] | None = None) -> int:
         connection.execute("PRAGMA synchronous = NORMAL")
         connection.execute("PRAGMA temp_store = MEMORY")
         connection.execute("PRAGMA cache_size = -262144")
+        from .catalog_index import ensure_current as ensure_catalog_index
+
+        ensure_catalog_index(connection, progress=True)
         if args.command == "rebuild" or not index_is_current(connection):
             rebuild(connection, progress=True)
         else:

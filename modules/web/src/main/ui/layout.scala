@@ -309,7 +309,10 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
             if ctx.kid.yes then span(title := trans.site.kidMode.txt(), cls := "kiddo")(":)")
             else ctx.isBot.option(botImage),
             div(cls := "site-icon")(lila.web.ui.bits.logo),
-            div(cls := "site-name")(siteNameFrag)
+            div(cls := "site-name")(
+              span(cls := "site-name__primary")(siteNameFrag),
+              (siteName == "lixiangqi.org").option(span(cls := "site-name__subtitle")("li象棋"))
+            )
           ),
           (!isAppealUser).option(
             frag(

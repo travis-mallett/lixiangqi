@@ -56,13 +56,13 @@ final class SiteMessage(helpers: Helpers):
 
   def insightNoGames(u: User)(using Context) =
     apply(
-      title = s"${u.username} has not played a rated game yet!",
+      title = s"${u.username} has not played ranked Xiangqi yet!",
       back = routes.User.show(u.id).url.some
     ):
       p(
         "Before using Xiangqi insights,",
         userLink(u),
-        " has to play at least one rated game."
+        " has to play at least one ranked Xiangqi game."
       )
 
   def teamCreateLimit = apply("Cannot create a team"):

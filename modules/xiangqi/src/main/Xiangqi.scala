@@ -1,5 +1,7 @@
 package lila.xiangqi
 
+import lila.xiangqi.adjudication.{ AdjudicationState, Ruleset }
+
 object Xiangqi:
   val startFen =
     "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1"
@@ -159,7 +161,12 @@ object Xiangqi:
     def fromKey(value: String): Either[String, Result] =
       Result.values.find(_.key == value).toRight(s"Invalid Xiangqi result: $value")
 
-  final case class Position(initialFen: String = startFen, moves: Vector[Uci] = Vector.empty)
+  // Standalone analysis/imports are unrestricted unless an actual game's policy is supplied.
+  final case class Position(
+      initialFen: String = startFen,
+      moves: Vector[Uci] = Vector.empty,
+      ruleset: Ruleset = Ruleset.Unrestricted
+  )
   final case class ExplorerQuery(
       initialFen: String = startFen,
       moves: Vector[Uci] = Vector.empty,
@@ -204,7 +211,10 @@ object Xiangqi:
       insufficientMaterial: Boolean,
       gameResult: Result,
       immediateEnd: Ending,
-      optionalEnd: Ending
+      optionalEnd: Ending,
+      adjudication: Option[AdjudicationState] = None,
+      termination: Option[String] = None,
+      variation: Option[String] = None
   ):
     def ended = gameResult != Result.Ongoing
     def insufficient(side: Side) =
@@ -227,7 +237,10 @@ object Xiangqi:
       insufficientMaterial: Boolean,
       gameResult: Result,
       immediateEnd: Ending,
-      optionalEnd: Ending
+      optionalEnd: Ending,
+      adjudication: Option[AdjudicationState] = None,
+      termination: Option[String] = None,
+      variation: Option[String] = None
   ):
     def state = State(
       variant = variant,
@@ -241,7 +254,10 @@ object Xiangqi:
       insufficientMaterial = insufficientMaterial,
       gameResult = gameResult,
       immediateEnd = immediateEnd,
-      optionalEnd = optionalEnd
+      optionalEnd = optionalEnd,
+      adjudication = adjudication,
+      termination = termination,
+      variation = variation
     )
 
   /** Canonical immutable state of a native Lixiangqi game.
@@ -253,7 +269,8 @@ object Xiangqi:
       initialFen: String,
       moves: Vector[Uci],
       wxf: Vector[String],
-      states: Vector[State]
+      states: Vector[State],
+      ruleset: Ruleset = Ruleset.default
   ):
     require(initialFen.nonEmpty, "A Xiangqi game requires an initial FEN")
     require(moves.size == wxf.size, "Every Xiangqi move requires one WXF value")
@@ -282,16 +299,17 @@ object Xiangqi:
         s"Invalid Xiangqi transition from ply ${state.ply} to ${result.ply}"
       )
 
-    def position = Position(initialFen, moves)
+    def position = Position(initialFen, moves, ruleset)
 
   object Game:
     lazy val initial: Game =
       XiangqiRules.initialGame().fold(error => throw IllegalStateException(error), identity)
 
+    /** A standalone snapshot has no adjudication history. Use XiangqiRules.initialGame for live games. */
     def fromState(initialFen: String, state: State): Either[String, Game] =
       Either.cond(
         initialFen.nonEmpty && state.ply >= 0,
-        Game(initialFen, Vector.empty, Vector.empty, Vector(state)),
+        Game(initialFen, Vector.empty, Vector.empty, Vector(state), Ruleset.Unrestricted),
         "Invalid initial Xiangqi game state"
       )
   final case class LessonValidation(positions: Vector[State], notations: Vector[String])
@@ -364,7 +382,7 @@ object Xiangqi:
           states: Vector[State]
       ): Game =
         children.headOption match
-          case None => Game(initialFen, moves, wxf, states)
+          case None => Game(initialFen, moves, wxf, states, Ruleset.Unrestricted)
           case Some(node) =>
             collect(node.children, moves :+ node.move, wxf :+ node.notation, states :+ node.state)
       collect(children, Vector.empty, Vector.empty, Vector(state))

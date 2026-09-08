@@ -16,6 +16,16 @@
 body .cg-wrap.xiangqi9x10 {
   container-type: inline-size;
 
+  --xiangqi-rest-shadow-image: url('../piece/effects/xiangqi-rest-shadow.png');
+  --xiangqi-airborne-shadow-image: url('../piece/effects/xiangqi-airborne-shadow.png');
+
+  // Xiangqi board artwork defines its own edge treatment. Do not impose the
+  // site's generic board rounding on top of the asset.
+  cg-board,
+  cg-board::before {
+    border-radius: 0;
+  }
+
   square,
   piece {
     width: calc(100% / 9);
@@ -23,46 +33,38 @@ body .cg-wrap.xiangqi9x10 {
   }
 
   cg-board > piece {
-    filter: drop-shadow(calc(3.6cqw / 9) calc(3.6cqw / 9) calc(1.6cqw / 9) rgb(35 18 7 / 0.58))
-      drop-shadow(calc(4.4cqw / 9) calc(4.4cqw / 9) calc(2.6cqw / 9) rgb(35 18 7 / 0.2));
-  }
-
-  // The last-move glow is part of the destination piece's paint stack. This
-  // lets its natural shadow remain below the glow while the artwork remains
-  // above it, instead of compositing the shadow and face as one filtered layer.
-  cg-board > piece.xiangqi-last-move-piece {
     isolation: isolate;
     background-image: none !important;
-    filter: none !important;
+    filter: none;
   }
 
-  .xiangqi-rest-shadow,
-  .xiangqi-last-move-highlight,
-  .xiangqi-rest-face {
+  cg-board > piece::before,
+  cg-board > piece::after {
+    content: '';
     position: absolute;
     pointer-events: none;
   }
 
-  .xiangqi-rest-shadow {
+  // The pre-rendered contact shadow replaces the former per-piece Gaussian
+  // filters. Its generous transparent bounds keep the soft edge unclipped.
+  cg-board > piece::before {
     z-index: 0;
-    inset: 6.25%;
-    border-radius: 50%;
-    background: rgb(35 18 7);
+    inset: -50%;
+    background: var(--xiangqi-rest-shadow-image) center / 100% 100% no-repeat;
   }
 
-  .xiangqi-rest-shadow-far {
-    opacity: 0.2;
-    filter: blur(calc(2.6cqw / 9));
-    transform: translate3d(calc(4.4cqw / 9), calc(4.4cqw / 9), 0);
-  }
-
-  .xiangqi-rest-shadow-near {
-    opacity: 0.58;
-    filter: blur(calc(1.6cqw / 9));
-    transform: translate3d(calc(3.6cqw / 9), calc(3.6cqw / 9), 0);
+  cg-board > piece::after {
+    z-index: 2;
+    inset: 0;
+    background-image: var(--xiangqi-piece-image);
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: contain;
+    filter: var(--cg-piece-brightness, none);
   }
 
   .xiangqi-last-move-highlight {
+    position: absolute;
     z-index: 1;
     inset: -2%;
     border-radius: 50%;
@@ -75,87 +77,45 @@ body .cg-wrap.xiangqi9x10 {
       rgb(255 255 255 / 0.12) 71%,
       transparent 74%
     );
-  }
-
-  .xiangqi-rest-face {
-    z-index: 2;
-    inset: 0;
-    background-position: center;
-    background-repeat: no-repeat;
-    background-size: contain;
+    pointer-events: none;
   }
 
   cg-board > piece.xiangqi-motion-piece {
     z-index: 30;
-    isolation: isolate;
-    background-image: none !important;
-    filter: none !important;
   }
 
-  .xiangqi-motion-shadow {
+  cg-board > piece.xiangqi-motion-piece::before,
+  cg-board > piece.xiangqi-motion-piece::after {
+    content: none;
+  }
+
+  .xiangqi-motion-shadow-contact,
+  .xiangqi-motion-shadow-airborne {
     position: absolute;
-    z-index: -1;
-    border-radius: 50%;
-    background: rgb(18 9 4 / 0.62);
+    z-index: 0;
+    inset: -50%;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    pointer-events: none;
     transform-origin: center;
     will-change: transform, opacity;
   }
 
-  .xiangqi-motion-shadow-aerial {
-    position: absolute;
-    z-index: -2;
-    inset: 0;
-    opacity: 0.65;
-    pointer-events: none;
-    will-change: opacity;
+  .xiangqi-motion-shadow-contact {
+    background-image: var(--xiangqi-rest-shadow-image);
+    opacity: 1;
   }
 
-  .xiangqi-motion-shadow-near {
-    top: 56%;
-    left: 17%;
-    width: 70%;
-    height: 31%;
-    filter: blur(calc(2cqw / 9));
-    opacity: 0.58;
-    transform: translate3d(5%, 12%, 0) scale(0.82, 0.42);
-  }
-
-  .xiangqi-motion-shadow-aerial-core {
-    top: 42%;
-    left: 18%;
-    width: 88%;
-    height: 88%;
-    background: radial-gradient(
-      circle at 50% 50%,
-      rgb(29 20 11 / 0.2058) 0%,
-      rgb(29 20 11 / 0.147) 35%,
-      rgb(29 20 11 / 0.0588) 62%,
-      transparent 79%
-    );
-    filter: blur(calc(3.43cqw / 9));
-    opacity: 0;
-    transform: translate3d(8%, 10%, 0);
-  }
-
-  .xiangqi-motion-shadow-far {
-    top: 30%;
-    left: 4%;
-    width: 130%;
-    height: 130%;
-    background: radial-gradient(
-      circle at 50% 50%,
-      rgb(29 20 11 / 0.34) 0%,
-      rgb(29 20 11 / 0.291) 50.4%,
-      rgb(29 20 11 / 0.2224) 63.14%,
-      transparent 73.92%
-    );
-    filter: blur(calc(4.9cqw / 9));
+  .xiangqi-motion-shadow-airborne {
+    background-image: var(--xiangqi-airborne-shadow-image);
     opacity: 0;
     transform: translate3d(0, 0, 0);
   }
 
   .xiangqi-motion-camera {
     position: absolute;
+    z-index: 1;
     inset: 0;
     perspective: var(--xiangqi-piece-perspective);
     perspective-origin: 50% 50%;
@@ -181,7 +141,7 @@ body .cg-wrap.xiangqi9x10 {
     background-position: center;
     background-repeat: no-repeat;
     background-size: contain;
-    filter: drop-shadow(0 calc(0.4cqw / 9) calc(0.288cqw / 9) rgb(255 245 210 / 0.25));
+    filter: var(--cg-piece-brightness, none);
   }
 
   .xiangqi-motion-rim {
@@ -369,5 +329,27 @@ body .cg-wrap.xiangqi9x10 {
     coords.bottom {
       background-position: center top;
     }
+  }
+}
+
+.xiangqi-board-animation {
+  position: absolute;
+  z-index: $z-cg__board_overlay-100;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  pointer-events: none;
+
+  &__image {
+    display: block;
+    width: 45%;
+    height: auto;
+    user-select: none;
+  }
+
+  &--checkmate &__image {
+    width: 90%;
   }
 }

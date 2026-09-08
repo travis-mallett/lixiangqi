@@ -2,7 +2,6 @@ package lila.bot
 
 import org.apache.pekko.actor.*
 import org.apache.pekko.stream.scaladsl.*
-import play.api.i18n.Lang
 import play.api.libs.json.*
 import scalalib.ThreadLocalRandom
 import scalalib.net.UserAgent
@@ -26,7 +25,7 @@ import lila.bot.OnlineApiUsers.*
 final class GameStateStream(
     onlineApiUsers: OnlineApiUsers,
     jsonView: BotJsonView
-)(using system: ActorSystem)(using Executor, lila.core.i18n.Translator):
+)(using system: ActorSystem)(using Executor):
 
   import GameStateStream.*
 
@@ -34,7 +33,6 @@ final class GameStateStream(
     Source.queue[Option[JsObject]](32, org.apache.pekko.stream.OverflowStrategy.dropHead)
 
   def apply(init: WithInitialFen, as: Color)(using
-      lang: Lang,
       ua: UserAgent,
       me: Me
   ): Source[Option[JsObject], ?] =
@@ -60,7 +58,7 @@ final class GameStateStream(
       as: Color,
       user: User,
       queue: SourceQueueWithComplete[Option[JsObject]]
-  )(using Lang, UserAgent): Actor = new:
+  )(using UserAgent): Actor = new:
 
     import init.game.id
 

@@ -5,6 +5,7 @@ import scalalib.actor.SyncActor
 
 import lila.common.Bus
 import lila.common.Json.given
+import lila.core.rank.RankScore.*
 
 final private class TvSyncActor(
     lightUserApi: lila.core.user.LightUserApi,
@@ -62,43 +63,49 @@ final private class TvSyncActor(
     case s @ TvSyncActor.Select => channelActors.foreach(_._2 ! s)
 
     case Selected(channel, game) =>
-      import lila.core.socket.makeMessage
-      given Ordering[lila.core.game.Player] = Ordering.by: p =>
-        p.rating.fold(0)(_.value) + ~p.userId
-          .flatMap(lightUserApi.sync)
-          .flatMap(_.title)
-          .flatMap(Tv.titleScores.get)
-      val player = game.players.all.sorted.lastOption | game.player(game.naturalOrientation)
-      val user = player.userId.flatMap(lightUserApi.sync)
-      (user, player.rating).mapN: (u, r) =>
-        channelChampions += (channel -> Tv.Champion(u, r, game.id, game.naturalOrientation))
-      onTvGame(game)
-      val data = Json.obj(
-        "channel" -> channel.key,
-        "id" -> game.id,
-        "color" -> game.naturalOrientation.name,
-        "player" -> user.map: u =>
-          Json.obj(
-            "name" -> u.name,
-            "title" -> u.title,
-            "rating" -> player.rating
-          )
-      )
-      Bus.pub(lila.core.game.TvSelect(game.id, game.speed, channel.key, data))
-      if channel == Tv.Channel.Best then
-        lila.common.Bus
-          .ask[Html, RenderFeaturedJs](RenderFeaturedJs(game, _))
-          .foreach: html =>
-            Bus.pub:
-              lila.core.game.ChangeFeatured:
-                makeMessage(
-                  "featured",
-                  Json.obj(
-                    "html" -> html,
-                    "color" -> game.naturalOrientation.name,
-                    "id" -> game.id
+      if channel.listed then
+        import lila.core.socket.makeMessage
+        given Ordering[lila.core.game.Player] = Ordering.by: p =>
+          p.rank.fold(Int.MinValue)(_.score.value) + ~p.userId
+            .flatMap(lightUserApi.sync)
+            .flatMap(_.title)
+            .flatMap(Tv.titleScores.get)
+        val player = game.players.all.sorted.lastOption | game.player(game.naturalOrientation)
+        val user = player.userId.flatMap(lightUserApi.sync)
+        user.foreach: u =>
+          channelChampions += (channel -> Tv.Champion(
+            u,
+            player.rank.flatMap(_.publicCode),
+            game.id,
+            player.color
+          ))
+        onTvGame(game)
+        val data = Json.obj(
+          "channel" -> channel.key,
+          "id" -> game.id,
+          "color" -> game.naturalOrientation.name,
+          "player" -> user.map: u =>
+            Json.obj(
+              "name" -> u.name,
+              "title" -> u.title,
+              "rank" -> player.rank.flatMap(_.publicCode).map(_.value)
+            )
+        )
+        Bus.pub(lila.core.game.TvSelect(game.id, game.speed, channel.key, data))
+        if channel == Tv.Channel.Best then
+          lila.common.Bus
+            .ask[Html, RenderFeaturedJs](RenderFeaturedJs(game, _))
+            .foreach: html =>
+              Bus.pub:
+                lila.core.game.ChangeFeatured:
+                  makeMessage(
+                    "featured",
+                    Json.obj(
+                      "html" -> html,
+                      "color" -> game.naturalOrientation.name,
+                      "id" -> game.id
+                    )
                   )
-                )
 
 private object TvSyncActor:
 

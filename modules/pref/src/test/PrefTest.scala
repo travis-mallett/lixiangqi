@@ -21,32 +21,31 @@ class PrefTest extends FunSuite:
     assertEquals(english.xiangqiNotationStyle(lang("zh-CN")), NotationStyle.English)
     assertEquals(chinese.xiangqiNotationStyle(lang("es-ES")), NotationStyle.Chinese)
 
-  test("dark is the default complete theme pack"):
+  test("board animation preferences distinguish on, off, and custom selections"):
+    import Pref.BoardAnimation.*
+
+    assert(valid(0))
+    assert(valid(ALL))
+    assert(valid(custom(CHECK | CHECKMATE)))
+    assertEquals(mask(custom(CHECK | CHECKMATE)), CHECK | CHECKMATE)
+    assert(isCustom(custom(0)))
+    assert(isCustom(custom(ALL)))
+    assert(!valid(CAPTURE | CHECK))
+    assert(!valid(64))
+
+  test("default appearance independently identifies every selected component"):
     val appearance = Pref.default.appearance
-    assertEquals(appearance, ThemePacks.dark.appearance)
-    assertEquals(appearance.pack, "dark")
+    assertEquals(appearance, Appearance.default)
     assertEquals(appearance.uiTheme, UiThemes.dark.key)
     assertEquals(appearance.background, Backgrounds.none.key)
-    assertEquals(appearance.boardTheme, BoardThemes.wikipedia.key)
+    assertEquals(appearance.boardTheme, BoardThemes.lixiangqiDefault.key)
     assertEquals(appearance.pieceSet, PieceSets.wikipedia.key)
     assertEquals(appearance.soundSet, SoundSets.standard.key)
     assertEquals(appearance.musicSet, MusicSets.gentleAncient.key)
     assert(appearance.board.isDefault)
 
-  test("every theme pack only references registered appearance assets"):
-    ThemePacks.all.foreach: pack =>
-      val appearance = pack.appearance
-      assertEquals(appearance.pack, pack.key)
-      assert(UiThemes.contains(appearance.uiTheme))
-      assert(Backgrounds.contains(appearance.background))
-      assert(BoardThemes.contains(appearance.boardTheme))
-      assert(PieceSets.contains(appearance.pieceSet))
-      assert(SoundSets.contains(appearance.soundSet))
-      assert(MusicSets.contains(appearance.musicSet))
-
   test("appearance catalogs use unique stable keys"):
     List(
-      ThemePacks.all.map(_.key),
       UiThemes.all.map(_.key),
       Backgrounds.all.map(_.key),
       BoardThemes.all.map(_.key),
@@ -55,6 +54,20 @@ class PrefTest extends FunSuite:
       MusicSets.all.map(_.key)
     ).foreach: keys =>
       assertEquals(keys.distinct, keys)
+
+  test("background catalog follows the appearance picker order"):
+    assertEquals(
+      Backgrounds.all.map(_.key),
+      List(
+        Backgrounds.none.key,
+        Backgrounds.wudang.key,
+        Backgrounds.peachBlossom.key,
+        Backgrounds.pangu.key,
+        Backgrounds.pagoda.key,
+        Backgrounds.wood.key,
+        Backgrounds.greenScreen.key
+      )
+    )
 
   test("background music catalog contains only the licensed selectable tracks"):
     assertEquals(
@@ -76,60 +89,54 @@ class PrefTest extends FunSuite:
       assertEquals(assets.map(_._2).distinct, assets.map(_._2))
       assert(assets.forall((path, variable) => path.endsWith(".svg") && variable.startsWith("---")))
 
-  test("manual appearance changes become a custom combination"):
-    val customized = ThemePacks.normalize(
-      ThemePacks.light.appearance.copy(boardTheme = BoardThemes.tournament.key)
-    )
-    assertEquals(customized.pack, ThemePacks.customKey)
-    assertEquals(customized.uiTheme, UiThemes.light.key)
-    assertEquals(customized.boardTheme, BoardThemes.tournament.key)
+  test("piece sets are assigned to the board-piece menu categories"):
+    import PieceSetCategory.*
 
-  test("a custom combination matching a pack resolves back to that pack"):
-    val customized = ThemePacks.dark.appearance.customized
-    assertEquals(ThemePacks.normalize(customized), ThemePacks.dark.appearance)
-
-  test("restoring a pack default through a component preference restores the pack identity"):
-    val musicChange =
-      PrefSingleChange.changes("musicSet").asInstanceOf[PrefSingleChange.Change[String]]
-    val custom = Pref.default.copy(
-      appearance = ThemePacks.dark.appearance.customized.copy(musicSet = MusicSets.wuxia3.key)
-    )
     assertEquals(
-      musicChange.update(MusicSets.gentleAncient.key)(custom).appearance,
-      ThemePacks.dark.appearance
+      PieceSets.all.map(pieceSet => pieceSet.key -> pieceSet.category),
+      List(
+        PieceSets.wikipedia.key -> Traditional,
+        PieceSets.paper.key -> Traditional,
+        PieceSets.wudang.key -> Traditional,
+        PieceSets.international.key -> GraphicalSymbols,
+        PieceSets.western.key -> Other
+      )
     )
 
-  test("named theme packs replace custom appearance session values atomically"):
-    assertEquals(
-      ThemePacks.light.appearance.sessionValues,
-      Map("appearancePack" -> ThemePacks.light.key)
-    )
+  test("appearance component changes leave other selections unchanged"):
+    val boardChange =
+      PrefSingleChange.changes("boardTheme").asInstanceOf[PrefSingleChange.Change[String]]
+    val changed = boardChange.update(BoardThemes.tournament.key)(Pref.default).appearance
+    assertEquals(changed.uiTheme, Appearance.default.uiTheme)
+    assertEquals(changed.background, Appearance.default.background)
+    assertEquals(changed.boardTheme, BoardThemes.tournament.key)
+    assertEquals(changed.pieceSet, Appearance.default.pieceSet)
 
-  test("custom combinations persist every appearance component without a pack overlay"):
-    val custom = ThemePacks.light.appearance.customized.copy(
+  test("sessions persist every appearance component independently"):
+    val appearance = Appearance.default.copy(
+      uiTheme = UiThemes.light.key,
       background = Backgrounds.customKey,
       backgroundUrl = "https://example.test/background.jpg".some,
       boardTheme = BoardThemes.tournament.key,
-      musicSet = MusicSets.gentleAncient.key,
-      board = Appearance.BoardSettings(brightness = 80, contrast = 120, opacity = 70, hue = 15)
+      musicSet = MusicSets.wuxia3.key,
+      board = Appearance.BoardSettings(brightness = 80, contrast = 120, saturation = 60, opacity = 70, hue = 15)
     )
-    assertEquals(custom.sessionValues.keySet, Appearance.sessionKeys - "appearancePack")
-    assertEquals(custom.sessionValues("uiTheme"), UiThemes.light.key)
-    assertEquals(custom.sessionValues("backgroundUrl"), "https://example.test/background.jpg")
-    assertEquals(custom.sessionValues("boardBrightness"), "80")
+    assertEquals(appearance.sessionValues.keySet, Appearance.sessionKeys)
+    assertEquals(appearance.sessionValues("uiTheme"), UiThemes.light.key)
+    assertEquals(appearance.sessionValues("backgroundUrl"), "https://example.test/background.jpg")
+    assertEquals(appearance.sessionValues("boardBrightness"), "80")
+    assertEquals(appearance.sessionValues("boardSaturation"), "60")
 
   test("background selection resolves registered and custom images"):
-    assertEquals(ThemePacks.dark.appearance.backgroundImage, None)
+    assertEquals(Appearance.default.backgroundImage, None)
     assertEquals(Backgrounds.greenScreen.image, "/assets/images/background/green-screen.svg".some)
     assertEquals(
-      ThemePacks.dark.appearance.customized
-        .copy(background = Backgrounds.pangu.key)
-        .backgroundImage,
+      Appearance.default.copy(background = Backgrounds.pangu.key).backgroundImage,
       Backgrounds.pangu.image
     )
     val customUrl = "https://example.test/background.jpg"
     assertEquals(
-      ThemePacks.dark.appearance.customized
+      Appearance.default
         .copy(background = Backgrounds.customKey, backgroundUrl = customUrl.some)
         .backgroundImage,
       customUrl.some

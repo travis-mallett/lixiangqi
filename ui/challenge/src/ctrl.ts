@@ -8,8 +8,6 @@ export default class ChallengeCtrl {
   redirecting = false;
   reasons: Reasons = {};
 
-  showRatings = !document.body.classList.contains('no-rating');
-
   constructor(
     readonly opts: ChallengeOpts,
     data: ChallengeData,

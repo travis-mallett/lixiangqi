@@ -145,7 +145,7 @@ export interface LichessStorage {
   get(): string | null;
   set(v: any): void;
   remove(): void;
-  listen(f: (e: LichessStorageEvent) => void): void;
+  listen(f: (e: LichessStorageEvent) => void): () => void;
   fire(v?: string): void;
 }
 
@@ -205,8 +205,8 @@ function builder(storage: Storage): LichessStorageHelper {
         },
         fire: (v?: string) => api.fire(k, v),
         remove,
-        listen: (f: (e: LichessStorageEvent) => void) =>
-          window.addEventListener('storage', e => {
+        listen: (f: (e: LichessStorageEvent) => void) => {
+          const listener = (e: StorageEvent) => {
             if (e.key !== k || e.storageArea !== storage || e.newValue === null) return;
             let parsed: LichessStorageEvent | null;
             try {
@@ -217,7 +217,10 @@ function builder(storage: Storage): LichessStorageHelper {
             // check sri, because Safari fires events also in the original
             // document when there are multiple tabs
             if (parsed?.sri && parsed.sri !== site.sri) f(parsed);
-          }),
+          };
+          window.addEventListener('storage', listener);
+          return () => window.removeEventListener('storage', listener);
+        },
       };
     },
     boolean: (k: string) => ({

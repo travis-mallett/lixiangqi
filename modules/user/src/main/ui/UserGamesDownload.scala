@@ -24,7 +24,6 @@ final class UserGamesDownload(helpers: Helpers):
               opponent,
               mode,
               analysis,
-              perfToggles,
               includeToggles,
               amount,
               user.enabled.yes.option:
@@ -101,7 +100,7 @@ final class UserGamesDownload(helpers: Helpers):
   )
 
   private def mode(using Context): Frag =
-    selectTr("rated", trans.site.mode(), List("false" -> trans.site.casual, "true" -> trans.site.rated))
+    selectTr("ranked", trans.site.mode(), List("false" -> trans.site.casual, "true" -> trans.site.ranked))
 
   private def analysis(using Context): Frag =
     val label = frag(
@@ -110,26 +109,6 @@ final class UserGamesDownload(helpers: Helpers):
       span(cls := "help", title := trans.search.onlyAnalysed.txt())("(?)")
     )
     selectTr("analysed", label, List("true" -> trans.site.yes, ("false" -> trans.site.no)))
-
-  private def perfToggles(using Context): Frag =
-    tr(
-      th(cls := "top")(label(`for` := "dl-perfs")(trans.site.variants())),
-      td(
-        div(id := "dl-perfs", cls := "toggle-columns")(
-          lila.rating.PerfType.nonPuzzle.map(_.key).map(perfToggle)
-        )
-      )
-    )
-
-  private def perfToggle(pk: PerfKey)(using Context): Frag = div(cls := "form-check__container")(
-    form3.nativeCheckbox(
-      s"dl-perf-${pk}",
-      "",
-      true,
-      value = pk
-    ),
-    label(`for` := s"dl-perf-${pk}", cls := "form-label")(pk.perfTrans)
-  )
 
   private def includeToggle(name: String, checked: Boolean, text: Frag): Frag =
     div(cls := "form-check__container")(

@@ -107,6 +107,13 @@ db.note.createIndex(
 );
 db.irwin_report.createIndex({ date: -1 });
 db.user4.createIndex({ 'count.game': -1 });
+db.user_perf.createIndex(
+  { 'ranks.xiangqi.s': -1, 'ranks.xiangqi.la': -1 },
+  {
+    name: 'native_xiangqi_leaderboard',
+    partialFilterExpression: { 'ranks.xiangqi.nb': { $gt: 0 } },
+  },
+);
 db.user4.createIndex({ title: 1 }, { partialFilterExpression: { title: { $exists: 1 } } });
 db.user4.createIndex({ email: 1 }, { unique: true, partialFilterExpression: { email: { $exists: 1 } } });
 db.user4.createIndex({ roles: 1 }, { partialFilterExpression: { roles: { $exists: 1 } } });
@@ -239,17 +246,17 @@ db.forecast.createIndex({ date: 1 }, { expireAfterSeconds: 1296000 });
 db.msg_thread.createIndex({ users: 1, 'lastMsg.date': -1 });
 db.msg_thread.createIndex({ users: 1 }, { partialFilterExpression: { 'lastMsg.read': false } });
 db.msg_thread.createIndex({ users: 1, 'maskWith.date': -1 });
-db.video.createIndex({ 'metadata.refreshedAt': -1 });
-db.video.createIndex({ tags: 1, 'metadata.refreshedAt': -1 });
-db.video.createIndex({ author: 1, 'metadata.publishedAt': -1 });
 db.video.createIndex(
-  { _fts: 'text', _ftsx: 1 },
-  {
-    weights: { author: 3, description: 1, tags: 5, title: 10 },
-    default_language: 'english',
-    language_override: 'language',
-    textIndexVersion: 2,
-  },
+  { 'source.provider': 1, 'source.externalId': 1 },
+  { unique: true, partialFilterExpression: { 'source.externalId': { $exists: true } } },
+);
+db.video.createIndex({ status: 1, sortOrder: 1, createdAt: -1 });
+db.video.createIndex({ status: 1, tags: 1, sortOrder: 1 });
+db.video.createIndex({ status: 1, author: 1, sortOrder: 1 });
+db.video.createIndex({ status: 1, 'metadata.refreshedAt': 1 });
+db.video.createIndex(
+  { title: 'text', author: 'text', description: 'text', tags: 'text' },
+  { weights: { title: 10, tags: 5, author: 3, description: 1 }, default_language: 'english' },
 );
 db.team_request.createIndex({ team: 1 });
 db.team_request.createIndex({ user: 1 });
@@ -294,6 +301,7 @@ db.team_member.createIndex({ team: 1, perms: 1 }, { partialFilterExpression: { p
 db.email_domains.createIndex({ nb: -1 });
 db.game5.createIndex({ ca: -1 });
 db.game5.createIndex({ us: 1, ca: -1 });
+db.game5.createIndex({ us: 1, rt: 1, ca: -1 }, { name: 'native_xiangqi_games_by_user' });
 db.game5.createIndex({ 'pgni.user': 1, 'pgni.ca': -1 }, { sparse: 1 });
 db.game5.createIndex({ ck: 1 }, { sparse: 1 });
 db.game5.createIndex({ pl: 1 }, { sparse: true });
@@ -357,6 +365,3 @@ db.puzzle2_path.createIndex({ min: 1, max: -1 });
 
 // you may want to run these on the yolo database
 db.relay_delay.createIndex({ at: 1 }, { expireAfterSeconds: 7200 });
-db.ranking.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
-db.ranking.createIndex({ perf: 1, rating: -1 }, { partialFilterExpression: { stable: true } });
-db.ranking.createIndex({ perf: 1, rating: -1, expiresAt: -1 }, { partialFilterExpression: { stable: true } });

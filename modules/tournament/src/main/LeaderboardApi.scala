@@ -5,17 +5,13 @@ import reactivemongo.api.bson.*
 import reactivemongo.pekkostream.cursorProducer
 import scalalib.Maths
 import scalalib.paginator.{ AdapterLike, Paginator }
-import chess.IntRating
 
 import lila.core.chess.Rank
-import lila.core.perf.PerfId
 import lila.db.dsl.{ *, given }
-import lila.rating.PerfType
 
 final class LeaderboardApi(
     repo: LeaderboardRepo,
-    tournamentRepo: TournamentRepo,
-    playerRepo: PlayerRepo
+    tournamentRepo: TournamentRepo
 )(using Executor, org.apache.pekko.stream.Materializer)
     extends lila.core.tournament.leaderboard.Api:
 
@@ -44,23 +40,17 @@ final class LeaderboardApi(
       .aggregateList(Int.MaxValue, _.sec): framework =>
         import framework.*
         Match($doc("u" -> user.id)) -> List(
-          GroupField("v")("nb" -> SumAll, "points" -> PushField("s"), "ratios" -> PushField("w"))
+          Group(BSONNull)("nb" -> SumAll, "points" -> PushField("s"), "ratios" -> PushField("w"))
         )
       .map:
-        _.flatMap(leaderboardAggResult.readOpt)
-      .map: aggs =>
-        ChartData:
-          aggs
-            .flatMap: agg =>
-              PerfType.byId
-                .get(agg._id)
-                .map:
-                  _ -> ChartData.PerfResult(
-                    nb = agg.nb,
-                    points = ChartData.Ints(agg.points),
-                    rank = ChartData.Ints(agg.ratios)
-                  )
-            .sortLike(lila.rating.PerfType.leaderboardable, _._1)
+        _.headOption.fold(ChartData.empty): doc =>
+          ChartData(
+            ChartData.PerfResult(
+              nb = ~doc.int("nb"),
+              points = ChartData.Ints(doc.getAsOpt[List[Int]]("points") | Nil),
+              rank = ChartData.Ints(doc.getAsOpt[List[Int]]("ratios") | Nil)
+            )
+          )
 
   def getAndDeleteRecent(userId: UserId, since: Instant): Fu[List[TourId]] = for
     entries <- repo.coll.list[Entry]($doc("u" -> userId, "d".$gt(since)))
@@ -70,13 +60,13 @@ final class LeaderboardApi(
 
   def byPlayerStream(
       userId: UserId,
-      withPerformance: Boolean,
+      @annotation.unused withPerformance: Boolean,
       perSecond: MaxPerSecond,
       nb: Int
   ): Source[TourEntry, ?] =
     repo.coll
       .aggregateWith[Bdoc](): fw =>
-        aggregateByPlayer(userId, fw, fw.Descending("d"), withPerformance, nb, offset = 0).toList
+        aggregateByPlayer(userId, fw, fw.Descending("d"), nb, offset = 0).toList
       .documentSource()
       .mapConcat(readTourEntry)
       .throttle(perSecond.value, 1.second)
@@ -85,7 +75,6 @@ final class LeaderboardApi(
       userId: UserId,
       framework: repo.coll.AggregationFramework.type,
       sort: framework.SortOrder,
-      withPerformance: Boolean,
       nb: Int,
       offset: Int
   ): NonEmptyList[framework.PipelineOperator] =
@@ -106,20 +95,6 @@ final class LeaderboardApi(
         ),
         UnwindField("tour")
       )
-      .concat:
-        withPerformance.so:
-          List(
-            PipelineOperator:
-              $lookup.simple(
-                from = playerRepo.coll,
-                as = "player",
-                local = "_id",
-                foreign = "_id",
-                pipe = List($doc("$project" -> $doc("_id" -> false, "e" -> true)))
-              )
-            ,
-            AddFields($doc("perf" -> $doc("$first" -> "$player.e")))
-          )
 
   private def paginator(user: User, page: Int, sortBest: Boolean): Fu[Paginator[TourEntry]] =
     Paginator(
@@ -132,7 +107,7 @@ final class LeaderboardApi(
           repo.coll
             .aggregateList(length, _.sec): framework =>
               val sort = if sortBest then framework.Ascending("w") else framework.Descending("d")
-              val pipe = aggregateByPlayer(user.id, framework, sort, false, length, offset)
+              val pipe = aggregateByPlayer(user.id, framework, sort, length, offset)
               pipe.head -> pipe.tail
             .map(_.flatMap(readTourEntry))
     )
@@ -140,8 +115,7 @@ final class LeaderboardApi(
   private def readTourEntry(doc: Bdoc): Option[TourEntry] = for
     entry <- doc.asOpt[Entry]
     tour <- doc.getAsOpt[Tournament]("tour")
-    performance = doc.getAsOpt[IntRating]("perf")
-  yield TourEntry(tour, entry, performance)
+  yield TourEntry(tour, entry)
 
 object LeaderboardApi:
 
@@ -149,7 +123,7 @@ object LeaderboardApi:
 
   private val rankRatioMultiplier = 100 * 1000
 
-  case class TourEntry(tour: Tournament, entry: Entry, performance: Option[IntRating])
+  case class TourEntry(tour: Tournament, entry: Entry)
 
   case class Entry(
       id: TourPlayerId,
@@ -159,35 +133,19 @@ object LeaderboardApi:
       score: Int,
       rank: Rank,
       rankRatio: Ratio, // ratio * rankRatioMultiplier. function of rank and tour.nbPlayers. less is better.
-      freq: Option[Schedule.Freq],
-      perf: PerfType,
       date: Instant
   ) extends lila.core.tournament.leaderboard.Entry
 
-  case class ChartData(perfResults: List[(PerfType, ChartData.PerfResult)]):
-    import ChartData.*
-    lazy val allPerfResults: PerfResult = perfResults._2F match
-      case head :: tail =>
-        tail.foldLeft(head) { case (acc, res) =>
-          PerfResult(
-            nb = acc.nb + res.nb,
-            points = res.points ::: acc.points,
-            rank = res.rank ::: acc.rank
-          )
-        }
-      case Nil => PerfResult(0, Ints(Nil), Ints(Nil))
+  case class ChartData(result: ChartData.PerfResult)
 
   object ChartData:
 
+    val empty = ChartData(PerfResult(0, Ints(Nil), Ints(Nil)))
+
     case class Ints(v: List[Int]):
-      def mean = Maths.mean(v)
       def median = Maths.median(v)
       def sum = v.sum
-      def :::(i: Ints) = Ints(v ::: i.v)
 
     case class PerfResult(nb: Int, points: Ints, rank: Ints):
       private def rankPercent(n: Double) = (n * 100 / rankRatioMultiplier).toInt
-      def rankPercentMean = rank.mean.map(rankPercent)
       def rankPercentMedian = rank.median.map(rankPercent)
-
-    case class AggregationResult(_id: PerfId, nb: Int, points: List[Int], ratios: List[Int])

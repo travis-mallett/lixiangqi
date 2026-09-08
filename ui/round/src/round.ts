@@ -69,11 +69,7 @@ async function boot(
         if (data.tv?.channel === channel) site.reload();
         else
           $(`.tv-channels .${channel} .champion`).html(
-            player
-              ? [player.title, player.name, data.pref.ratings ? player.rating : '']
-                  .filter(x => x)
-                  .join('&nbsp')
-              : 'Anonymous',
+            player ? [player.title, player.name, player.rank].filter(x => x).join('&nbsp') : 'Anonymous',
           );
       },
       endData() {
@@ -172,5 +168,5 @@ type TVOptions = {
   channel: string;
   gameId: string;
   color: Color;
-  player?: { title?: string; name: string; rating?: number };
+  player?: { title?: string; name: string; rank?: string };
 };

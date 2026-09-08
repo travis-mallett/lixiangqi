@@ -2,7 +2,10 @@ package lila.user
 package ui
 
 import lila.core.perf.UserWithPerfs
+import lila.core.rank.RankCode.*
 import lila.core.user.Flag
+import lila.rating.XiangqiRank
+import lila.rating.UserPerfsExt.*
 import lila.ui.*
 
 import ScalatagsTemplate.{ *, given }
@@ -19,7 +22,6 @@ final class UserShow(helpers: Helpers, bits: UserBits):
       crosstable: UserId => Option[Frag],
       flag: Option[Flag],
       realName: Option[Frag],
-      best8Perfs: List[PerfKey],
       userMarks: => Frag
   )(using ctx: Context) =
     frag(
@@ -43,8 +45,12 @@ final class UserShow(helpers: Helpers, bits: UserBits):
         if u.lame && ctx.isnt(u) && !Granter.opt(_.AccountInfo)
         then div(cls := "upt__info__warning")(trans.site.thisAccountViolatedTos())
         else
-          ctx.pref.showRatings.option:
-            div(cls := "upt__info__ratings")(best8Perfs.map(showPerfRating(u.perfs, _)))
+          div(cls := "upt__info__ranks")(
+            u.perfs.xiangqiRank.map: perf =>
+              span(cls := "upt__rank", dataIcon := Icon.Crown)(
+                XiangqiRank.catalog.code(perf.score).value
+              )
+          )
       ),
       ctx.userId.map: myId =>
         frag(
@@ -119,13 +125,11 @@ final class UserShow(helpers: Helpers, bits: UserBits):
   def transLocalize(key: lila.core.i18n.I18nKey, number: Int)(using Translate) =
     key.pluralSameTxt(number)
 
-  def describeUser(user: lila.core.perf.UserWithPerfs)(using Translate) =
-    import lila.rating.UserPerfsExt.bestRatedPerf
+  def describeUser(user: lila.core.perf.UserWithPerfs)(using @annotation.unused translate: Translate) =
     val name = user.titleUsername
     val nbGames = user.count.game
     val createdAt = showEnglishDate(user.createdAt)
-    val currentRating = user.perfs.bestRatedPerf.so: p =>
-      s" Current ${p.key.perfTrans} rating: ${p.perf.intRating}."
-    s"$name played $nbGames games since $createdAt.$currentRating"
+    val currentRank = user.perfs.xiangqiRankCode.so(code => s" Current Xiangqi rank: ${code.value}.")
+    s"$name played $nbGames games since $createdAt.$currentRank"
 
   val dataUsername = attr("data-username")

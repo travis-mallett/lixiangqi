@@ -1,11 +1,12 @@
 package lila.game
 
-import chess.rating.IntRatingDiff
 import chess.{ Centis, Clock as ChessClock, Color, Ply, Status }
 import play.api.libs.json.*
 
 import lila.common.Json.given
 import lila.core.game.{ Event, Game }
+import lila.core.rank.RankChange
+import lila.core.rank.RankCode.*
 import lila.xiangqi.Xiangqi
 
 import JsonView.given
@@ -35,7 +36,9 @@ object Event:
           "dests" -> PossibleMoves.json(result.legalMoves),
           "legalMoves" -> result.legalMoves.map(_.value),
           "check" -> result.check,
-          "capture" -> result.capture
+          "capture" -> result.capture,
+          "variation" -> result.variation,
+          "termination" -> result.termination
         )
         .add("clock" -> clock.map(_.data))
         .add("status" -> state.status)
@@ -80,12 +83,13 @@ object Event:
     override def watcher = w
     override def owner = !w
 
-  case class EndData(game: Game, ratingDiff: Option[chess.ByColor[IntRatingDiff]]) extends Event:
+  case class EndData(game: Game, rankChanges: Option[chess.ByColor[RankChange]]) extends Event:
     def typ = "endData"
     def data =
       Json
         .obj(
           "winner" -> game.winnerColor,
+          "termination" -> game.position.termination,
           "status" -> game.status
         )
         .add("abortedBy" -> game.abortedBy)
@@ -94,10 +98,10 @@ object Event:
             "wc" -> c.remainingTime(Color.White).centis,
             "bc" -> c.remainingTime(Color.Black).centis
           ))
-        .add("ratingDiff" -> ratingDiff.map: rds =>
+        .add("rank" -> rankChanges.map: changes =>
           Json.obj(
-            Color.White.name -> rds.white,
-            Color.Black.name -> rds.black
+            Color.White.name -> changes.white.rank.value,
+            Color.Black.name -> changes.black.rank.value
           ))
         .add("boosted" -> game.boosted)
 

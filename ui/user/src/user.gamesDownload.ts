@@ -23,12 +23,6 @@ function generateSearchParams(): string {
     }
   });
 
-  const perfToggles = $('#dl-perfs input[type="checkbox"]');
-  const perfTogglesChecked = perfToggles.filter(':checked').get() as HTMLInputElement[];
-  // don't add parameter if all or no perf types are selected
-  if (perfTogglesChecked.length > 0 && perfTogglesChecked.length < perfToggles.length)
-    searchParams.append('perfType', perfTogglesChecked.map(e => e.value).join(','));
-
   return searchParams.toString();
 }
 

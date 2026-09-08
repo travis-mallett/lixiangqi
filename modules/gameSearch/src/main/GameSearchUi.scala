@@ -43,11 +43,9 @@ final class GameSearchUi(helpers: Helpers)(
               f.colors(hide = true),
               f.winner(hide = true),
               f.loser(hide = true),
-              f.rating,
               f.hasAi,
               f.aiLevel,
               source,
-              f.perf,
               f.mode,
               f.turns,
               f.duration,
@@ -115,12 +113,10 @@ final class GameSearchUi(helpers: Helpers)(
     )(f.dataReqs)(
       table(
         f.date,
-        f.rating,
         f.turns,
         f.duration,
         f.clock,
         f.source,
-        f.perf,
         f.mode
       ),
       table(
@@ -190,21 +186,6 @@ final class SearchForm(helpers: Helpers)(form: Form[?])(using Translate):
       td(emptySelect(field))
     )
 
-  def rating =
-    tr(
-      th(
-        label(
-          trans.site.rating(),
-          " ",
-          span(cls := "help", title := trs.ratingExplanation.txt())("(?)")
-        )
-      ),
-      td(cls := "two-columns")(
-        div(trs.from(), " ", form3.select(form("ratingMin"), FormHelpers.averageRatings, "".some)),
-        div(trs.to(), " ", form3.select(form("ratingMax"), FormHelpers.averageRatings, "".some))
-      )
-    )
-
   def hasAi =
     tr(
       th(
@@ -230,19 +211,6 @@ final class SearchForm(helpers: Helpers)(form: Form[?])(using Translate):
     tr(
       th(label(`for` := form3.id(form("source")))(trans.search.source())),
       td(form3.select(form("source"), FormHelpers.sources, "".some))
-    )
-
-  def perf =
-    tr(
-      th(label(`for` := form3.id(form("perf")))(trans.site.variant())),
-      td(
-        form3.select(
-          form("perf"),
-          perfKeys.map: v =>
-            v.id -> v.perfTrans,
-          "".some
-        )
-      )
     )
 
   def mode =

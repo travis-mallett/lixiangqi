@@ -3,6 +3,7 @@
 # Lobby
 GET   /                                controllers.Lobby.home
 GET   /lobby/seeks                     controllers.Lobby.seeks
+GET   /lobby/live-games/15             controllers.Lobby.liveGames15
 
 # 2-letter routes, then lang route
 GET   /tv                              controllers.Tv.index
@@ -161,6 +162,7 @@ GET   /$lang<\w\w\w?>/training/notation controllers.Notation.homeLang(lang: Lang
 
 # Training - Puzzle
 GET   /training                        controllers.Puzzle.home
+POST  /training/presence/:sri          controllers.Puzzle.presence(sri: Sri)
 GET   /training/daily                  controllers.Puzzle.daily
 GET   /training/frame                  controllers.Puzzle.frame
 GET   /training/help                   controllers.Puzzle.help
@@ -317,7 +319,10 @@ GET   /$lang<\w\w\w?>/broadcast               controllers.RelayTour.indexLang(la
 
 # Learn
 GET   /learn                           controllers.Learn.index
+GET   /learn/special-rules             controllers.Learn.specialRules
+GET   /learn/special-rules/example/:id/:ply controllers.Learn.specialRulesExample(id: String, ply: Int)
 GET   /learn/ancient-manuals           controllers.Learn.ancientManuals
+GET   /learn/xiangqi-rankings           controllers.Learn.xiangqiRankings
 POST  /learn/validate                  controllers.Learn.validate
 POST  /learn/score                     controllers.Learn.score
 POST  /learn/reset                     controllers.Learn.reset
@@ -368,6 +373,8 @@ GET   /bots                           controllers.UserAnalysis.index
 GET   /bots/dev                       controllers.UserAnalysis.index
 
 # Round
+GET   /play/room/:poolId                         controllers.Round.matchmaking(poolId: String)
+GET   /round/bootstrap/$fullId<\w{12}>          controllers.Round.playerBootstrap(fullId: GameFullId)
 GET   /$gameId<\w{8}>                            controllers.Round.watcher(gameId: GameId, color: Color = Color.white)
 GET   /$gameId<\w{8}>/$color<white|black>        controllers.Round.watcher(gameId: GameId, color: Color)
 GET   /$fullId<\w{12}>                           controllers.Round.player(fullId: GameFullId)
@@ -510,10 +517,10 @@ POST  /account/preferences/notification       controllers.Pref.notifyFormApply
 
 # Setup
 POST  /setup/ai                        controllers.Setup.ai
+GET   /setup/ai/stats                  controllers.Setup.aiStats
 POST  /setup/friend                    controllers.Setup.friend(user: Option[UserStr] ?= None)
 POST  /setup/hook/:sri/like/:gameId    controllers.Setup.like(sri: Sri, gameId: GameId)
 POST  /setup/hook/:sri                 controllers.Setup.hook(sri: Sri)
-GET   /setup/filter                    controllers.Setup.filterForm
 GET   /setup/validate-fen              controllers.Setup.validateFen
 
 # Challenge
@@ -530,6 +537,16 @@ GET  /notify                           controllers.Notify.recent(page: Int ?= 1)
 POST /notify/clear                     controllers.Notify.clear
 
 # Video
+GET   /video/admin                           controllers.VideoAdmin.index(page: Int ?= 1)
+GET   /video/admin/new                       controllers.VideoAdmin.form
+POST  /video/admin                           controllers.VideoAdmin.create
+GET   /video/admin/preview                   controllers.VideoAdmin.preview
+GET   /video/admin/reorder                   controllers.VideoAdmin.reorder
+POST  /video/admin/reorder                   controllers.VideoAdmin.reorderApply
+GET   /video/admin/:id/edit                  controllers.VideoAdmin.edit(id)
+POST  /video/admin/:id                       controllers.VideoAdmin.update(id)
+POST  /video/admin/:id/status/:status        controllers.VideoAdmin.status(id, status)
+POST  /video/admin/:id/refresh               controllers.VideoAdmin.refresh(id)
 GET   /video                                 controllers.Video.index
 GET   /video/tags                            controllers.Video.tags
 GET   /video/author/:author                  controllers.Video.author(author)

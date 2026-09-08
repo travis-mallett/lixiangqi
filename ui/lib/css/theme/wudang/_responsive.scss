@@ -58,7 +58,6 @@ html.wudang {
     .tabs-horiz > button,
     .subnav a,
     .page-menu__menu a,
-    .appearance-dialog__tabs button,
     .xiangqi-analysis__nav button,
     .analyse__controls button,
     .puzzle__controls button {
@@ -136,17 +135,6 @@ html.wudang {
     .chat__members {
       border-inline: 0;
       border-radius: 0;
-    }
-
-    .theme-pack-list {
-      grid-template-columns: 1fr !important;
-    }
-
-    .appearance-option-grid,
-    .background-grid,
-    .board-grid,
-    .piece-grid {
-      grid-template-columns: repeat(auto-fill, minmax(125px, 1fr));
     }
 
     .puzzle-themes__link img {

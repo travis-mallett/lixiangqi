@@ -66,6 +66,7 @@ object Permission:
     "Content" -> List(
       Pages,
       ManageEvent,
+      ManageVideos,
       ManageTournament,
       ManageSimul,
       PuzzleCurator,

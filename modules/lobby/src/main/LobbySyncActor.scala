@@ -3,7 +3,7 @@ package lila.lobby
 import scalalib.actor.SyncActor
 
 import lila.common.Bus
-import lila.core.pool.{ HookThieve, IsClockCompatible }
+import lila.core.pool.HookThieve
 import lila.core.socket.{ Sri, Sris }
 import lila.mon.extensions.*
 
@@ -14,7 +14,7 @@ final private class LobbySyncActor(
     hasCurrentPlayban: lila.core.playban.HasCurrentPlayban,
     poolApi: lila.core.pool.PoolApi,
     onStart: lila.core.game.OnStart
-)(using Executor, IsClockCompatible)
+)(using Executor)
     extends SyncActor:
 
   import LobbySyncActor.*
@@ -38,7 +38,7 @@ final private class LobbySyncActor(
       hookRepo.bySri(hook.sri).foreach(remove)
       hook.sid.so: sid =>
         hookRepo.bySid(sid).foreach(remove)
-      (!hook.compatibleWithPools).so(findCompatible(hook)) match
+      findCompatible(hook) match
         case Some(h) =>
           biteHook(h.id, hook.sri, hook.user)
           publishRemoveHook(hook)
@@ -128,8 +128,9 @@ final private class LobbySyncActor(
     case HookSub(member, true) =>
       socket ! AllHooksFor(member, hookRepo.filter { biter.showHookTo(_, member) }.toSeq)
 
-    case HookThieve.HookBus.GetCandidates(clock, moveTimeLimit, promise) =>
-      promise.success(HookThieve.PoolHooks(hookRepo.poolCandidates(clock, moveTimeLimit)))
+    case HookThieve.HookBus.GetCandidates(_, _, promise) =>
+      // Only explicit homepage-pool joins can create ranked Xiangqi games.
+      promise.success(HookThieve.PoolHooks(Vector.empty))
 
     case HookThieve.HookBus.StolenHookIds(ids) =>
       hookRepo.byIds(ids.toSet).foreach(remove)

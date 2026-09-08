@@ -57,7 +57,7 @@ final private class TutorQueue(
     all <- gameRepo.recentPovsByUserFromSecondary(
       user,
       60,
-      lila.game.Query.turnsGt(10) ++ lila.game.Query.rated
+      lila.game.Query.turnsGt(10) ++ lila.game.Query.ranked
     )
     povs = scalalib.ThreadLocalRandom.shuffle(all).take(30)
   yield povs

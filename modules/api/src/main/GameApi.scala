@@ -11,6 +11,8 @@ import scalalib.paginator.Paginator
 import lila.analyse.{ Analysis, JsonView as analysisJson }
 import lila.common.Json.given
 import lila.core.config.*
+import lila.core.rank.RankCode.value
+import lila.core.rank.RankDiff.value
 import lila.db.dsl.{ *, given }
 import lila.db.paginator.Adapter
 import lila.game.BSONHandlers.given
@@ -36,7 +38,7 @@ final private[api] class GameApi(
 
   def byUsersVs(
       users: (User, User),
-      rated: Option[Boolean],
+      ranked: Option[Boolean],
       playing: Option[Boolean],
       analysed: Option[Boolean],
       withFlags: WithFlags,
@@ -57,8 +59,8 @@ final private[api] class GameApi(
               }
             )
         } ++ $doc(
-          G.rated -> rated.map[BSONValue] {
-            if _ then BSONBoolean(true)
+          G.rankTrack -> ranked.map[BSONValue] {
+            if _ then BSONString("xiangqi")
             else $doc("$exists" -> false)
           }
         ),
@@ -79,7 +81,7 @@ final private[api] class GameApi(
 
   def byUsersVs(
       userIds: Iterable[UserId],
-      rated: Option[Boolean],
+      ranked: Option[Boolean],
       playing: Option[Boolean],
       analysed: Option[Boolean],
       withFlags: WithFlags,
@@ -101,8 +103,8 @@ final private[api] class GameApi(
               }
             )
         } ++ $doc(
-          G.rated -> rated.map[BSONValue] {
-            if _ then BSONBoolean(true)
+          G.rankTrack -> ranked.map[BSONValue] {
+            if _ then BSONString("xiangqi")
             else $doc("$exists" -> false)
           },
           G.createdAt.$gte(since)
@@ -146,10 +148,10 @@ final private[api] class GameApi(
       .obj(
         "id" -> g.id,
         "initialFen" -> g.xiangqi.initialFen,
-        "rated" -> g.rated,
+        "ranked" -> g.ranked,
         "variant" -> g.variant.key,
         "speed" -> g.speed.key,
-        "perf" -> g.perfKey,
+        "perf" -> "xiangqi",
         "createdAt" -> g.createdAt,
         "lastMoveAt" -> g.movedAt,
         "turns" -> g.ply,
@@ -168,11 +170,10 @@ final private[api] class GameApi(
           sideName(p.color) -> Json
             .obj(
               "userId" -> p.userId,
-              "rating" -> p.rating,
-              "ratingDiff" -> p.ratingDiff
+              "rank" -> p.rank.flatMap(_.publicCode).map(_.value),
+              "rankDiff" -> p.rank.flatMap(_.diff).map(_.value)
             )
             .add("name", p.name)
-            .add("provisional" -> p.provisional)
             .add("moveCentis" -> withFlags.moveTimes.so:
               lila.game.GameExt.computeMoveTimes(g, p.color).map(_.map(_.centis)))
             .add("blurs" -> withFlags.blurs.option(p.blurs.nb))

@@ -12,10 +12,10 @@ import lila.core.config.*
 private final class VideoConfig(
     @ConfigName("collection.video") val videoColl: CollName,
     @ConfigName("collection.view") val viewColl: CollName,
-    @ConfigName("sheet.url") val sheetUrl: String,
     @ConfigName("youtube.url") val youtubeUrl: String,
     @ConfigName("youtube.api_key") val youtubeApiKey: Secret,
-    @ConfigName("youtube.max") val youtubeMax: Max
+    @ConfigName("metadata.refresh_max") val metadataRefreshMax: Max,
+    @ConfigName("bilibili.url") val bilibiliUrl: String
 )
 
 final class Env(
@@ -35,23 +35,18 @@ final class Env(
     viewColl = db(config.viewColl)
   )
 
-  private lazy val sheet = VideoSheet(ws, config.sheetUrl, api)
-
-  private lazy val youtube = Youtube(
+  private lazy val youtube = YoutubeProvider(
     ws = ws,
-    url = config.youtubeUrl,
-    apiKey = config.youtubeApiKey,
-    max = config.youtubeMax,
-    api = api
+    apiUrl = config.youtubeUrl,
+    apiKey = config.youtubeApiKey
   )
 
-  lila.common.Cli.handle:
-    case "video" :: "sheet" :: Nil =>
-      sheet.fetchAll.map { nb => s"Processed $nb videos" }
+  private lazy val bilibili = BilibiliProvider(ws, config.bilibiliUrl)
+
+  private lazy val providers = VideoProviderRegistry(youtube, bilibili)
+
+  lazy val adminApi = VideoAdminApi(api, providers)
 
   if mode.isProd then
-    scheduler.scheduleWithFixedDelay(6.hours, 6.hours): () =>
-      sheet.fetchAll.logFailure(logger)
-
-    scheduler.scheduleWithFixedDelay(98.minutes, 98.minutes): () =>
-      youtube.updateMany.logFailure(logger)
+    scheduler.scheduleWithFixedDelay(10.minutes, 1.day): () =>
+      adminApi.refreshStale(config.metadataRefreshMax.value).logFailure(logger)

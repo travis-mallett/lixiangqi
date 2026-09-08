@@ -130,7 +130,7 @@ final class AppealTreeUi(helpers: Helpers, ui: AppealUi)(
     val deny =
       "I deny having manipulated my rating."
     val denyFull =
-      "I deny having manipulated my rating. I have never lost rated games on purpose, or played several games with someone who does."
+      "I deny having manipulated my rank. I have never lost ranked games on purpose, or played several games with someone who does."
     Branch(
       "root",
       tap.boosterMarked(),
@@ -330,7 +330,7 @@ final class AppealTreeUi(helpers: Helpers, ui: AppealUi)(
             ul(
               li("Don't send a challenge if you don't want to play and then abort the game."),
               li(
-                "If you don't want to face lower or higher rated opponents, set a rating range on your seek."
+                "The ranked room only pairs players at the same or an adjacent rank. Use a casual challenge when you want to choose a particular opponent."
               ),
               li(
                 "Don't abort games if you want to have a particular color, you have to play with both colors."

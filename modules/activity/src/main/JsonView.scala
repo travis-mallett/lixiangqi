@@ -4,8 +4,10 @@ import play.api.i18n.Lang
 import play.api.libs.json.*
 
 import lila.activity.activities.*
+import lila.activity.Score.plus
 import lila.common.Json.{ *, given }
 import lila.core.game.LightPov
+import lila.core.rank.RankCode.value
 import lila.core.rating.{ RatingProg, Score }
 import lila.core.simul.Simul
 import lila.core.tournament.leaderboard.Ratio
@@ -24,11 +26,14 @@ final class JsonView(
     given Writes[RatingProg] = Json.writes
     given Writes[Score] = Json.writes
     given OWrites[Games] = OWrites: games =>
-      JsObject:
-        games.value.toList
-          .sortBy((_, s) => -s.size)
-          .map: (pk, score) =>
-            pk.value -> Json.toJson(score)
+      val score = games.value.values.foldLeft(lila.activity.Score.empty)(_.plus(_))
+      Json.obj("xiangqi" -> scoreWithoutRating(score))
+
+    def scoreWithoutRating(score: Score) = Json.obj(
+      "win" -> score.win,
+      "loss" -> score.loss,
+      "draw" -> score.draw
+    )
 
     given Writes[chess.variant.Variant] = writeAs(_.key)
 
@@ -66,7 +71,7 @@ final class JsonView(
         .obj()
         .add("aiLevel" -> p.aiLevel)
         .add("user" -> p.userId)
-        .add("rating" -> p.rating)
+        .add("rank" -> p.rank.flatMap(_.publicCode).map(_.value))
 
     given OWrites[lila.core.game.Player] = lightPlayerWrites.contramap(_.light)
 
@@ -107,7 +112,7 @@ final class JsonView(
           "correspondenceEnds",
           a.corresEnds.map:
             _.map { case (pk, (score, povs)) =>
-              pk.value -> Json.obj("score" -> score, "games" -> povs)
+              pk.value -> Json.obj("score" -> Writers.scoreWithoutRating(score), "games" -> povs)
             }
         )
         .add("follows" -> a.follows)

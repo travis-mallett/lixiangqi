@@ -35,8 +35,10 @@ site.load.then(() => {
       $form = $(form),
       showSaved = () => $form.find('.saved').removeClass('none');
     computeBitChoices($form, 'behavior.submitMove');
+    computeBoardAnimationChoice($form);
     $form.find('input').on('change', function (this: HTMLInputElement) {
       computeBitChoices($form, 'behavior.submitMove');
+      computeBoardAnimationChoice($form, this);
       localPrefs.forEach(([categ, name, storeKey]) => {
         if (this.name === `${categ}.${name}`) {
           storage.boolean(storeKey).set(this.value === '1');
@@ -104,4 +106,25 @@ function computeBitChoices($form: Cash, name: string) {
     sum |= parseInt(this.value);
   });
   $form.find(`input[type="hidden"][name="${name}"]`).val(sum.toString());
+}
+
+function computeBoardAnimationChoice($form: Cash, changed?: HTMLInputElement) {
+  const $picker = $form.find('.board-animation-picker');
+  if (!$picker.length) return;
+
+  if (changed?.hasAttribute('data-board-animation-bit')) {
+    $picker.find('[data-board-animation-mode="custom"]').prop('checked', true);
+  }
+
+  const mode = $picker.find('[data-board-animation-mode]:checked').val();
+  const $custom = $picker.find('.board-animation-custom').toggleClass('none', mode !== 'custom');
+  let value = mode === 'on' ? 15 : 0;
+  if (mode === 'custom') {
+    value = 16;
+    $custom.find('[data-board-animation-bit]:checked').each(function (this: HTMLInputElement) {
+      value |= parseInt(this.value);
+    });
+  }
+  $picker.find('[data-board-animation-value]').val(value.toString());
+  document.body.dataset.boardAnimations = value.toString();
 }

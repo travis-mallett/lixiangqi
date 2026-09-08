@@ -1,5 +1,3 @@
-import { myUserId } from 'lib';
-import { licon } from 'lib/licon';
 import { pubsub } from 'lib/pubsub';
 import { alert, makeLinkPopups } from 'lib/view';
 import * as xhr from 'lib/xhr';
@@ -11,7 +9,6 @@ export async function initModule(): Promise<void> {
   makeLinkPopups($('.social_links'));
   makeLinkPopups($('.user-infos .bio'));
 
-  tmpRandomTutorLink();
   updatePackedTrophies();
   window.addEventListener('resize', updatePackedTrophies);
 
@@ -77,26 +74,6 @@ export async function initModule(): Promise<void> {
   setTimeout(() => {
     if (gamesAngle) gamesAngle.style.visibility = 'visible'; // FOUC
   });
-}
-
-function tmpRandomTutorLink() {
-  const me = myUserId(),
-    userId = $('main.page-menu').data('username').toLowerCase();
-  if (!me || !userId || me !== userId) return;
-  const getNbGames = (icon: string) => {
-    const text = $(`.sub-ratings a[data-icon=${icon}] rating span:last-child`).text();
-    return Number.parseInt(text.replaceAll(/\D/g, ''));
-  };
-  const enoughGames = [licon.Bullet, licon.FlameBlitz, licon.Rabbit, licon.Turtle].some(
-    icon => getNbGames(icon) > 100,
-  );
-  if (!enoughGames) return;
-  const buttonHtml = `
-  <a href="/tutor" class="tutor-link">
-    <img src="${site.asset.flairSrc('nature.octopus-howard')}" />
-    <span><strong>Try out Tutor</strong><em>Compare to your peers!</em></span>
-  </a>`;
-  $(buttonHtml).insertBefore('.profile-side .insight');
 }
 
 function updatePackedTrophies() {

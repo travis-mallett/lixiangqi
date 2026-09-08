@@ -16,3 +16,14 @@ test('keeps Xiangqi file coordinates player-relative in both board orientations'
     'Black view must show Red 1..9 at the top and Black 9..1 at the bottom',
   );
 });
+
+test("fits Xiangqi file coordinates inside the beveled edge using the river's rendered ink color", () => {
+  const sprite = readFileSync(
+    new URL('../../../public/images/board/svg/xiangqi-file-coordinates.svg', import.meta.url),
+    'utf8',
+  );
+
+  assert.match(sprite, /<svg[^>]*\bfill="#866855"/);
+  assert.equal(sprite.match(/scale\(\.10528\)/g)?.length, 18);
+  assert.doesNotMatch(sprite, /scale\(\.112\)/);
+});

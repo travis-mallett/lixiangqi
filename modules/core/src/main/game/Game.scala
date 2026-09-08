@@ -20,6 +20,7 @@ import scalalib.model.Days
 
 import lila.core.id.{ GameFullId, GameId, GamePlayerId }
 import lila.core.perf.PerfKey
+import lila.core.rank.RankTrackId
 import lila.core.user.User
 import lila.core.userId.{ UserId, UserIdOf }
 import lila.core.game.ClockHistory.bothClockStates
@@ -38,6 +39,7 @@ case class Game(
     daysPerTurn: Option[Days],
     binaryMoveTimes: Option[Array[Byte]] = None,
     rated: Rated = Rated.default,
+    rankTrack: Option[RankTrackId] = None,
     bookmarks: Int = 0,
     createdAt: Instant = nowInstant,
     movedAt: Instant = nowInstant,
@@ -48,6 +50,7 @@ case class Game(
 
   require(moveTimeLimit.isEmpty || clock.isDefined, "A move-time limit requires a real-time clock")
   require(!moveTimePaused || moveTimeLimit.isDefined, "A paused move-time limit requires a policy")
+  require(rankTrack.isEmpty || rated.yes, "A rank track requires a ranked game")
 
   export metadata.{ tournamentId, simulId, swissId, drawOffers, source, pgnImport, hasRule }
   export players.{ white as whitePlayer, black as blackPlayer, apply as player }
@@ -124,10 +127,20 @@ case class Game(
 
   def start =
     if started then this
+    else if position.ended then
+      val winner = position.gameResult.winner.map(side => if side == Xiangqi.Side.Red then Color.White else Color.Black)
+      copy(
+        status = if winner.isDefined then Status.Mate else Status.Draw,
+        players = winner.fold(players)(c => players.update(c, _.copy(isWinner = Some(true)))),
+        clock = clock.map(_.stop),
+        rated = Rated.No,
+        rankTrack = None
+      )
     else
       val startedGame = copy(
         status = Status.Started,
-        rated = rated.map(_ && userIds.distinct.size == 2)
+        rated = rated.map(_ && userIds.distinct.size == 2),
+        rankTrack = rankTrack.filter(_ => userIds.distinct.size == 2)
       )
       if moveTimeLimit.isDefined && !moveTimePaused then
         startedGame.copy(clock = startedGame.clock.map(_.start))
@@ -140,6 +153,9 @@ case class Game(
     if playable then correspondenceClock else none
 
   def perfKey: PerfKey = PerfKey(variant, speed)
+
+  /** Native competitive identity. Legacy `rated` remains readable for historical games. */
+  def ranked: Boolean = rankTrack.isDefined
 
   def ratingVariant: Variant =
     if isTournament && variant.fromPosition then Standard else variant
@@ -164,7 +180,7 @@ case class Game(
   def swissPreventsDraw = isSwiss && playedPlies < 60
   def rulePreventsDraw = hasRule(_.noEarlyDraw) && playedPlies < 60
 
-  def boosted = rated.yes && finished && bothPlayersHaveMoved && playedPlies < 10
+  def boosted = ranked && finished && bothPlayersHaveMoved && playedPlies < 10
 
   def abortable = status == Status.Started && playedPlies < 2 && nonMandatory
   def abortableByUser = abortable && !hasRule(_.noAbort)

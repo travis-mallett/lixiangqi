@@ -258,7 +258,7 @@ final class StudyApi(
       .nodeAt(position.path)
       .so: fromNode =>
         args
-          .node(position.chapter.setup.variant, fromNode.fen)
+          .node(fromNode.fen)
           .map(_.withoutChildren)
           .fold(
             err => fufail(err.toString),
@@ -287,7 +287,7 @@ final class StudyApi(
                             _.addNode(
                               position.ref,
                               node,
-                              chapter.setup.variant,
+                              parent.fen,
                               sticky = opts.sticky,
                               relay,
                               who

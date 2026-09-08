@@ -5,7 +5,6 @@ import play.api.data.Form
 import lila.app.UiEnv.{ *, given }
 import lila.core.chess.Rank
 import lila.evaluation.PlayerAssessment
-import lila.game.GameExt.*
 import lila.mod.GameMod
 import lila.mod.ui.ModUserTableUi.sortNoneTh
 import lila.tournament.LeaderboardApi.TourEntry
@@ -27,12 +26,6 @@ def games(
             form(method := "get", action := routes.GameMod.index(user.id), cls := "mod-games__filter-form")(
               form3.input(filterForm("opponents"))(placeholder := "Opponents"),
               form3.input(filterForm("nbGamesOpt"))(placeholder := "Nb games"),
-              form3.select(
-                filterForm("perf"),
-                lila.rating.PerfType.nonPuzzle.map: p =>
-                  p.key -> p.trans,
-                "Variant".some
-              ),
               form3.select(
                 filterForm("arena"),
                 arenas.map: t =>
@@ -77,7 +70,7 @@ def games(
                   )
                 ),
                 thSortNumber("Opponent"),
-                thSortNumber("Speed"),
+                thSortNumber("Time control"),
                 th(iconTag(Icon.Trophy)),
                 thSortNumber("Moves"),
                 thSortNumber("Result"),
@@ -100,7 +93,7 @@ def games(
                           st.value := pov.gameId
                         )
                     ,
-                    td(dataSort := pov.opponent.rating.so(_.value))(
+                    td(dataSort := pov.opponent.rank.fold(Int.MinValue)(_.score.value))(
                       playerLink(pov.opponent, withDiff = false, mod = true)
                     ),
                     td(
@@ -108,7 +101,6 @@ def games(
                         pov.game.correspondenceClock.fold(Int.MaxValue)(_.daysPerTurn * 3600 * 24)
                       )(_.config.estimateTotalSeconds)
                     )(
-                      iconTag(pov.game.perfType.icon)(cls := "text"),
                       shortClockName(pov.game)
                     ),
                     td(dataSort := pov.game.tournamentId.so(_.value))(
@@ -126,15 +118,15 @@ def games(
                         )
                     ),
                     td(dataSort := pov.moves)(pov.moves),
-                    td(dataSort := ~pov.player.ratingDiff)(
+                    td(dataSort := pov.player.rank.flatMap(_.diff).fold(0)(_.value))(
                       pov.win match
                         case Some(true) => goodTag(cls := "result")("1")
                         case Some(false) => badTag(cls := "result")("0")
                         case None => span(cls := "result")("½")
                       ,
-                      pov.player.ratingDiff match
-                        case Some(d) if d.positive => goodTag(s"+$d")
-                        case Some(d) if d.negative => badTag(d)
+                      pov.player.rank.flatMap(_.diff) match
+                        case Some(d) if d.value > 0 => goodTag(s"+${d.value}")
+                        case Some(d) if d.value < 0 => badTag(d.value)
                         case _ => span("-")
                     ),
                     assessment match

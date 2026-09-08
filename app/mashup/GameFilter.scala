@@ -19,7 +19,7 @@ object GameFilterMenu:
       GameFilter.all,
       List(
         (~nbs.withMe > 0).option(GameFilter.me),
-        (user.count.rated > 0).option(GameFilter.rated),
+        (user.count.ranked > 0).option(GameFilter.ranked),
         (user.count.win > 0).option(GameFilter.win),
         (user.count.loss > 0).option(GameFilter.loss),
         (user.count.draw > 0).option(GameFilter.draw),
@@ -42,7 +42,7 @@ object GameFilterMenu:
       case GameFilter.imported => nbs.map(_.imported)
       case GameFilter.all => user.count.game.some
       case GameFilter.me => nbs.flatMap(_.withMe)
-      case GameFilter.rated => user.count.rated.some
+      case GameFilter.ranked => user.count.ranked.some
       case GameFilter.win => user.count.win.some
       case GameFilter.loss => user.count.loss.some
       case GameFilter.draw => user.count.draw.some
@@ -77,7 +77,7 @@ object GameFilterMenu:
           std(Query.started(user.id)).flatMap:
             _.mapFutureResults(gameProxyRepo.upgradeIfPresent)
         case GameFilter.me => std(Query.opponents(user, meOpt.fold(user)(_.value)))
-        case GameFilter.rated => std(Query.rated(user.id))
+        case GameFilter.ranked => std(Query.ranked(user.id))
         case GameFilter.win => std(Query.win(user.id))
         case GameFilter.loss => std(Query.loss(user.id))
         case GameFilter.draw => std(Query.draw(user.id))

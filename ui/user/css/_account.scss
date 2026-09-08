@@ -270,6 +270,11 @@
     }
   }
 
+  .board-animation-custom {
+    margin-block-start: 0.8rem;
+    margin-inline-start: 1.5rem;
+  }
+
   .active-soft,
   .active-soft:hover {
     @extend %active-soft;

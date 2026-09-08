@@ -37,7 +37,6 @@ final class Env(
     userJsonView: lila.user.JsonView,
     gameJsonView: lila.game.JsonView,
     gameCache: lila.game.Cached,
-    rankingApi: lila.user.RankingApi,
     notifyApi: lila.core.notify.NotifyApi,
     uciMemo: lila.game.UciMemo,
     rematches: lila.game.Rematches,
@@ -116,7 +115,7 @@ final class Env(
             Bus.pub(sg)
             game.userIds.foreach: userId =>
               Bus.publishDyn(sg, s"userStartGame:$userId")
-            if game.playableByAi then Bus.pub(lila.core.fishnet.FishnetMoveRequest(game))
+            if game.playableByAi then roundSocket.ensureAiTurn(game.id)
 
   lazy val proxyRepo: GameProxyRepo = wire[GameProxyRepo]
 

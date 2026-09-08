@@ -74,6 +74,10 @@ trait Positional:
 
   def strictFen: Boolean
 
+  def ruleset: Option[String] = None
+  def effectiveRuleset = ruleset.fold(lila.xiangqi.adjudication.Ruleset.default): key =>
+    lila.xiangqi.adjudication.Ruleset.fromKey(key).fold(sys.error, identity)
+
   lazy val validFen =
     variant != FromPosition || fen.exists(value => Xiangqi.Fen.isValid(value.value))
 
@@ -81,10 +85,12 @@ trait Positional:
 
   def fenGame(builder: Xiangqi.Game => Fu[Game]): Fu[Game] =
     XiangqiRules
-      .initialGame:
+      .initialGame(
         fen
           .filter(_ => variant == FromPosition)
-          .map(_.value)
+          .map(_.value),
+        effectiveRuleset
+      )
       .fold(fufail, builder)
 
 object Config extends BaseConfig

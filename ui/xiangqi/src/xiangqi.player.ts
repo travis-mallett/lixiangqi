@@ -20,13 +20,15 @@ import {
 import {
   legalMoveDests,
   makeXiangqiGround,
+  playXiangqiMoveSound,
   setXiangqiGroundPending,
   uciMoveToCg,
   XIANGQI_START_FEN,
   type RulesState,
+  type XiangqiGroundPreferences,
 } from './index';
 
-interface PlayerPageBootstrap {
+interface PlayerPageBootstrap extends XiangqiGroundPreferences {
   explorerEndpoint?: string;
   player?: string;
 }
@@ -576,7 +578,7 @@ function loadExplorerGame(game: ExplorerGame): void {
   location.assign(analysisGameUrl(game.id));
 }
 
-async function initializeExplorer(initialSide: ExplorerColor): Promise<void> {
+async function initializeExplorer(initialSide: ExplorerColor, bootstrap: PlayerPageBootstrap): Promise<void> {
   const initialState = await requestXiangqi<RulesState>('/api/analysis/position', {
     initialFen: XIANGQI_START_FEN,
     moves: [],
@@ -591,6 +593,9 @@ async function initializeExplorer(initialSide: ExplorerColor): Promise<void> {
     turnColor: turnColor(initialState),
     movableColor: turnColor(initialState),
     legalMoves: initialState.legalMoves,
+    animationDuration: bootstrap.animationDuration,
+    moveEvent: bootstrap.moveEvent,
+    highlight: bootstrap.highlight,
     onMove: move => void play(move),
   });
   const explorer = new ExplorerCtrl(
@@ -651,6 +656,7 @@ async function initializeExplorer(initialSide: ExplorerColor): Promise<void> {
     pending = true;
     setXiangqiGroundPending(ground);
     update(false);
+    let completedState: RulesState | undefined;
     try {
       const response = await requestXiangqi<MoveResponse>('/api/analysis/move', {
         initialFen: current().fen,
@@ -658,6 +664,7 @@ async function initializeExplorer(initialSide: ExplorerColor): Promise<void> {
         move,
       });
       positions.push({ state: response, move, notation: response.notation || move });
+      completedState = response;
     } catch (error) {
       ground.set({ fen: current().fen });
       pageStatus.textContent = error instanceof Error ? error.message : String(error);
@@ -666,6 +673,7 @@ async function initializeExplorer(initialSide: ExplorerColor): Promise<void> {
       pending = false;
       update();
     }
+    if (completedState) playXiangqiMoveSound(completedState);
   }
 
   function selectSide(side: ExplorerColor): void {
@@ -748,7 +756,7 @@ export default function init(bootstrap: PlayerPageBootstrap = {}): void {
     }, 120);
   });
   void loadProfile();
-  void initializeExplorer(initialSide).catch(error => {
+  void initializeExplorer(initialSide, bootstrap).catch(error => {
     pageStatus.textContent = error instanceof Error ? error.message : String(error);
     pageStatus.classList.add('error');
   });

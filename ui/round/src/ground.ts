@@ -7,9 +7,10 @@ import { h, type VNode } from 'snabbdom';
 
 import resizeHandle from 'lib/chessgroundResize';
 import { XIANGQI_DIMENSIONS, plyColor, xiangqiUciMoveToCg } from 'lib/game';
-import { ShowResizeHandle, Coords } from 'lib/prefs';
+import { ShowResizeHandle, Coords, MoveEvent } from 'lib/prefs';
 import { storage } from 'lib/storage';
 import { onInsert } from 'lib/view';
+import { preloadXiangqiBoardAnimations } from 'lib/xiangqiBoardAnimation';
 
 import type RoundController from './ctrl';
 import type { RoundData, Step } from './interfaces';
@@ -61,7 +62,7 @@ export function makeConfig(ctrl: RoundController): Config {
       },
     },
     animation: {
-      enabled: true,
+      enabled: data.pref.animationDuration > 0,
       duration: data.pref.animationDuration,
     },
     premovable: {
@@ -74,11 +75,11 @@ export function makeConfig(ctrl: RoundController): Config {
       },
     },
     draggable: {
-      enabled: false,
-      showGhost: false,
+      enabled: data.pref.moveEvent !== MoveEvent.Click,
+      showGhost: data.pref.highlight,
     },
     selectable: {
-      enabled: true,
+      enabled: data.pref.moveEvent !== MoveEvent.Drag,
     },
     drawable: {
       enabled: true,
@@ -109,7 +110,10 @@ export const boardOrientation = (data: RoundData, flip: boolean): Color =>
 
 export const render = (ctrl: RoundController): VNode =>
   h('div.cg-wrap.xiangqi9x10', {
-    hook: onInsert(el => ctrl.setChessground(Chessground(el, makeConfig(ctrl)))),
+    hook: onInsert(el => {
+      preloadXiangqiBoardAnimations();
+      ctrl.setChessground(Chessground(el, makeConfig(ctrl)));
+    }),
   });
 
 export type RoundGround = Api;

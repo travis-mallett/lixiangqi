@@ -1,0 +1,18 @@
+%replay-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+%replay-moves {
+  flex: 2 1 0;
+  min-height: 0;
+  overflow: auto;
+  position: relative;
+  border-bottom: $border;
+}
+
+%replay-feedback {
+  min-height: 0;
+  background: $c-bg-zebra;
+}

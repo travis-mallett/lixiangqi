@@ -48,16 +48,16 @@ final private class InsightIndexer(
 
   private def gameQuery(user: User) =
     Query.user(user.id) ++
-      Query.rated ++
+      Query.ranked ++
       Query.finished ++
       Query.turnsGt(10) ++
       Query.notFromPosition ++
       Query.createdSince(minDate)
 
   private def fetchFirstGame(user: User): Fu[Option[Game]] =
-    if user.count.rated == 0 then fuccess(none)
+    if user.count.ranked == 0 then fuccess(none)
     else
-      (maxGames < user.count.rated)
+      (maxGames < user.count.ranked)
         .so:
           gameRepo.coll
             .find(gameQuery(user))

@@ -19,8 +19,3 @@ final class Env(
   lazy val api = wire[CoachApi]
 
   lazy val pager = wire[CoachPager]
-
-  lila.common.Bus.sub[lila.core.game.FinishGame]:
-    case lila.core.game.FinishGame(game, users) if game.rated.yes =>
-      if lila.rating.PerfType.standardSet(game.perfKey)
-      then users.foreach(u => u.foreach(u => api.updateRatingFromDb(u._1)))

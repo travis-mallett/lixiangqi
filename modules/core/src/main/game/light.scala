@@ -6,6 +6,7 @@ import _root_.chess.variant.Variant
 import _root_.chess.rating.{ IntRatingDiff, RatingProvisional }
 
 import lila.core.id.GameId
+import lila.core.rank.RankSnapshot
 import lila.core.userId.UserId
 
 case class LightGame(
@@ -28,6 +29,7 @@ case class LightPlayer(
     color: Color,
     aiLevel: Option[Int],
     userId: Option[UserId] = None,
+    rank: Option[RankSnapshot] = None,
     rating: Option[IntRating] = None,
     ratingDiff: Option[IntRatingDiff] = None,
     provisional: RatingProvisional = RatingProvisional.No,

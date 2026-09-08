@@ -6,7 +6,8 @@ import scalalib.model.Days
 
 import lila.core.config.NetDomain
 import lila.core.perf.UserPerfs
-import lila.rating.UserPerfsExt.{ bestAny3Perfs, bestRating }
+import lila.core.rank.RankScore.*
+import lila.rating.{ UserPerfsExt, XiangqiRank }
 import lila.ui.*
 import lila.ui.ScalatagsTemplate.{ *, given }
 
@@ -37,7 +38,7 @@ final class DashboardUi(helpers: Helpers, ui: ClasUi)(using NetDomain):
               a(cls := active.active("wall"), href := routes.Clas.wall(c.id))(trans.clas.news()),
               a(
                 cls := active.active("progress"),
-                href := routes.Clas.progress(c.id, PerfKey.blitz, Days(7))
+                href := routes.Clas.progress(c.id, PerfKey.puzzle, Days(7))
               )(trans.clas.progress()),
               a(cls := active.active("edit"), href := routes.Clas.edit(c.id))(trans.site.edit()),
               a(cls := active.active("students"), href := routes.Clas.students(c.id))(
@@ -383,14 +384,7 @@ final class DashboardUi(helpers: Helpers, ui: ClasUi)(using NetDomain):
         div(cls := "progress-perf")(
           label(trans.site.variant()),
           div(cls := "progress-choices")(
-            List(
-              PerfKey.bullet,
-              PerfKey.blitz,
-              PerfKey.rapid,
-              PerfKey.classical,
-              PerfKey.correspondence,
-              PerfKey.puzzle
-            ).map { pk =>
+            List(PerfKey.puzzle).map { pk =>
               a(
                 cls := progress.map(_.perfType.key.value.active(pk.value)),
                 href := routes.Clas.progress(c.id, pk, progress.fold(Days(7))(_.days))
@@ -457,7 +451,7 @@ final class DashboardUi(helpers: Helpers, ui: ClasUi)(using NetDomain):
           thead:
             tr(
               th(dataSortDefault)(dataSortAsc)(trans.clas.nbStudents(students.size)),
-              thSortNumber(trans.site.rating()),
+              thSortNumber(trans.site.rank()),
               thSortNumber(trans.site.games()),
               thSortNumber(trans.site.puzzles()),
               thSortNumber(trans.clas.lastActiveDate()),
@@ -545,7 +539,7 @@ final class DashboardUi(helpers: Helpers, ui: ClasUi)(using NetDomain):
         thead:
           tr(
             th(dataSortDefault)(dataSortAsc)(trans.clas.nbStudents(students.size)),
-            thSortNumber(trans.site.rating()),
+            thSortNumber(trans.site.rank()),
             thSortNumber(trans.site.games()),
             thSortNumber(trans.site.puzzles()),
             th
@@ -586,7 +580,9 @@ final class DashboardUi(helpers: Helpers, ui: ClasUi)(using NetDomain):
           )(trans.site.play())
         )
 
-  private def perfsTd(perfs: UserPerfs)(using Context) =
-    td(dataSort := perfs.bestRating, cls := "rating")(
-      perfs.bestAny3Perfs.map(showPerfRating(perfs, _))
+  private def perfsTd(perfs: UserPerfs) =
+    import UserPerfsExt.*
+    val rank = perfs.xiangqiRank
+    td(dataSort := rank.fold(Int.MinValue)(_.score.value), cls := "rating rank")(
+      rank.fold("Unranked")(perf => XiangqiRank.catalog.code(perf.score).value)
     )

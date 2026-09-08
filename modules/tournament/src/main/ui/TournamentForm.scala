@@ -97,6 +97,7 @@ final class TournamentForm(val helpers: Helpers, showUi: TournamentShow)(
       ),
       form3.fieldset("Games", toggle = true.some, disabled = fields.frozen)(
         fields.clock,
+        rulesetField(form),
         form3.split(fields.variant, fields.startPosition)
       ),
       fields.waitStart,
@@ -116,6 +117,7 @@ final class TournamentForm(val helpers: Helpers, showUi: TournamentShow)(
       ),
       form3.fieldset("Games", toggle = false.some, disabled = fields.frozen)(
         fields.clock,
+        rulesetField(form),
         form3.split(fields.variant, fields.startPosition)
       ),
       fields.waitStart,
@@ -124,6 +126,10 @@ final class TournamentForm(val helpers: Helpers, showUi: TournamentShow)(
     )
 
   private val gatheringFormUi = GatheringFormUi(helpers)
+
+  private def rulesetField(form: Form[?])(using Context, FormPrefix) =
+    form3.group(form.prefix("ruleset"), raw("Xiangqi rules")):
+      form3.select(_, lila.xiangqi.adjudication.Ruleset.values.toList.map(r => r.key -> r.label))
 
   def conditionFields(
       form: Form[?],
@@ -150,14 +156,7 @@ final class TournamentForm(val helpers: Helpers, showUi: TournamentShow)(
             form3.select(_, List(("", trans.site.noRestriction.txt())) ::: teams.map(_.pair))
         }
       ),
-      form3.split(
-        gatheringFormUi.nbRatedGame(form.prefix("conditions.nbRatedGame.nb")),
-        gatheringFormUi.accountAge(form.prefix("conditions.accountAge"))
-      ),
-      form3.split(
-        gatheringFormUi.minRating(form.prefix("conditions.minRating.rating")),
-        gatheringFormUi.maxRating(form.prefix("conditions.maxRating.rating"))
-      ),
+      gatheringFormUi.accountAge(form.prefix("conditions.accountAge")),
       form3.split(
         gatheringFormUi.allowList(form.prefix("conditions.allowList")),
         (ctx.me.exists(_.hasTitle) || Granter.opt(_.ManageTournament)).option:
@@ -186,13 +185,6 @@ final class TournamentForm(val helpers: Helpers, showUi: TournamentShow)(
         form3.hiddenFalse(form.prefix("streakable"))
       ),
       form3.split(
-        form3.checkboxGroup(
-          form.prefix("rated"),
-          trans.site.rated(),
-          help = trans.site.ratedFormHelp().some,
-          half = true
-        ),
-        form3.hiddenFalse(form.prefix("rated")),
         form3.checkboxGroup(
           form.prefix("hasChat"),
           trans.site.chatRoom(),

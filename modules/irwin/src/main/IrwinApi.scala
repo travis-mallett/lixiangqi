@@ -117,7 +117,7 @@ final class IrwinApi(
     private def baseQuery(suspect: Suspect) =
       Query.finished ++
         Query.variantStandard ++
-        Query.rated ++
+        Query.ranked ++
         Query.user(suspect.id.value) ++
         Query.turnsGt(20) ++
         Query.createdSince(nowInstant.minusMonths(6))

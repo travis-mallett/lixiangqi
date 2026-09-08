@@ -2,7 +2,8 @@ package lila.game
 
 import chess.format.Fen
 import chess.{ ByColor, Color, Status }
-import chess.rating.IntRatingDiff
+import lila.core.rank.RankChange
+import lila.core.rank.RankDiff.*
 import reactivemongo.pekkostream.{ PekkoStreamCursor, cursorProducer }
 import reactivemongo.api.bson.*
 import reactivemongo.api.commands.WriteResult
@@ -127,7 +128,7 @@ final class GameRepo(c: Coll)(using Executor) extends lila.core.game.GameRepo(c)
     coll
       .find(
         Query.finished
-          ++ Query.rated
+          ++ Query.ranked
           ++ Query.user(userId)
           ++ Query.analysed(true)
           ++ Query.turnsGt(20)
@@ -141,7 +142,7 @@ final class GameRepo(c: Coll)(using Executor) extends lila.core.game.GameRepo(c)
     coll
       .find(
         Query.finished
-          ++ Query.rated
+          ++ Query.ranked
           ++ Query.user(userId)
           ++ Query.turnsGt(22)
           ++ Query.variantStandard
@@ -214,14 +215,18 @@ final class GameRepo(c: Coll)(using Executor) extends lila.core.game.GameRepo(c)
   private def nonEmptyMod(mod: String, doc: Bdoc) =
     if doc.isEmpty then $empty else $doc(mod -> doc)
 
-  def setRatingDiffs(id: GameId, diffs: ByColor[IntRatingDiff]) =
-    coll.update.one(
-      $id(id),
-      $set(
-        s"${F.whitePlayer}.${PF.ratingDiff}" -> diffs.white,
-        s"${F.blackPlayer}.${PF.ratingDiff}" -> diffs.black
+  def setRankChanges(id: GameId, changes: ByColor[RankChange]) =
+    coll.update
+      .one(
+        $id(id),
+        $set(
+          s"${F.whitePlayer}.${PF.rank}.d" -> changes.white.diff.value,
+          s"${F.whitePlayer}.${PF.rank}.a" -> changes.white.rank.value,
+          s"${F.blackPlayer}.${PF.rank}.d" -> changes.black.diff.value,
+          s"${F.blackPlayer}.${PF.rank}.a" -> changes.black.rank.value
+        )
       )
-    )
+      .void
 
   // Use Env.round.proxy.urgentGames to get in-heap states!
   def urgentPovsUnsorted[U: UserIdOf](user: U): Fu[List[Pov]] =
@@ -403,9 +408,8 @@ final class GameRepo(c: Coll)(using Executor) extends lila.core.game.GameRepo(c)
 
   def insertDenormalized(g: Game, initialFen: Option[Fen.Full] = None): Funit =
     val g2 =
-      if g.rated.yes && (g.userIds.distinct.size != 2 ||
-          !lila.core.game.allowRated(g.variant, g.clock.map(_.config)))
-      then g.copy(rated = chess.Rated.No)
+      if g.ranked && !lila.core.game.RankedGame.isAuthorized(g)
+      then lila.core.game.RankedGame.asCasual(g)
       else g
     val userIds = g2.userIds.distinct
     val xiangqiInitialFen: Fen.Full = Fen.Full(g2.xiangqi.initialFen)
@@ -565,7 +569,7 @@ final class GameRepo(c: Coll)(using Executor) extends lila.core.game.GameRepo(c)
     coll
       .find(
         Query.finished
-          ++ Query.rated
+          ++ Query.ranked
           ++ Query.user(userId)
           ++ Query.turnsGt(20)
       )

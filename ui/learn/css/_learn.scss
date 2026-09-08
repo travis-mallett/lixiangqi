@@ -1,4 +1,6 @@
 @import 'layout';
+@import '../../lib/css/chess/control';
+@import '../../lib/css/tree/tree';
 @import 'map';
 @import 'table';
 @import 'board';
@@ -6,6 +8,8 @@
 @import 'side-map';
 @import 'side-home';
 @import 'manuals';
+@import 'rankings';
+@import 'special-rules';
 
 #main-wrap:has(.xiangqi-learn-run) {
   ---main-max-width: 1360px;

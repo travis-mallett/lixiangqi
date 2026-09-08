@@ -12,17 +12,19 @@ import lila.rating.PerfType
 object TournamentCondition:
 
   case class All(
-      nbRatedGame: Option[NbRatedGame],
-      maxRating: Option[MaxRating],
-      minRating: Option[MinRating],
       titled: Option[Titled.type],
       teamMember: Option[TeamMember],
       accountAge: Option[AccountAge],
       allowList: Option[AllowList],
       bots: Option[Bots]
   ) extends ConditionList(
-        List(nbRatedGame, maxRating, minRating, titled, teamMember, accountAge, allowList, bots)
+        List(titled, teamMember, accountAge, allowList, bots)
       ):
+
+    // Arena entry no longer supports numeric rating gates. These satisfy the shared gathering
+    // contract while keeping the tournament condition schema entirely rank-system agnostic.
+    override val maxRating: Option[MaxRating] = none
+    override val minRating: Option[MinRating] = none
 
     private def listWithBots = if bots.isDefined then list else Bots(false) :: list
 
@@ -53,7 +55,7 @@ object TournamentCondition:
           case c => fuccess(WithVerdict(c, Accepted))
         .dmap(WithVerdicts.apply)
 
-    def similar(other: All) = sameRatings(other) && titled == other.titled && teamMember == other.teamMember
+    def similar(other: All) = titled == other.titled && teamMember == other.teamMember
 
     // if the new allowList is empty, assume the tournament is open to all, kick nobody
     def removedFromAllowList(prev: All): Set[UserId] =
@@ -66,7 +68,7 @@ object TournamentCondition:
     def allowsBots = bots.exists(_.allowed)
 
   object All:
-    val empty = All(none, none, none, none, none, none, none, none)
+    val empty = All(none, none, none, none, none)
     given zero: Zero[All] = Zero(empty)
 
   object form:
@@ -74,15 +76,12 @@ object TournamentCondition:
     import lila.gathering.ConditionForm.*
     def all(leaderTeams: List[LightTeam]) =
       mapping(
-        "nbRatedGame" -> nbRatedGame,
-        "maxRating" -> maxRating,
-        "minRating" -> minRating,
         "titled" -> titled,
         "teamMember" -> teamMember(leaderTeams),
         "accountAge" -> accountAge,
         "allowList" -> allowList,
         "bots" -> bots
-      )(All.apply)(unapply).verifying("Invalid ratings", _.validRatings)
+      )(All.apply)(unapply)
 
   final class Verify(historyApi: HistoryApi, userApi: UserApi)(using Executor):
 

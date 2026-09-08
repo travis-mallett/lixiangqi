@@ -1,12 +1,15 @@
 package lila.round
 
 import scalalib.future.FutureAfter
-import chess.{ ByColor, IntRating }
+import chess.ByColor
 
 import lila.core.LightUser.IsBotSync
 import lila.core.perf.UserWithPerfs
 import lila.game.{ CrosstableApi, GameRepo }
 import lila.core.game.reasonableMinimumNumberOfMoves
+import lila.core.rank.RankTrackId
+import lila.core.rank.RankScore.*
+import lila.rating.XiangqiRank
 
 final private class FarmBoostDetection(
     gameRepo: GameRepo,
@@ -20,11 +23,11 @@ final private class FarmBoostDetection(
 
   /* true if
    * - at least one bot
-   * - rated
+   * - ranked
    * - recent game in same matchup has same first SAME_PLIES and same winner
    */
   def botFarming(g: Game): Fu[Boolean] =
-    (g.finished && g.rated.yes && g.userIds.exists(isBotSync))
+    (g.finished && g.ranked && g.userIds.exists(isBotSync))
       .so(g.twoUserIds)
       .so: (u1, u2) =>
         crosstableApi(u1, u2).flatMap: ct =>
@@ -42,10 +45,11 @@ final private class FarmBoostDetection(
 
   private def newAccountBoostingDraw(g: Game, users: ByColor[UserWithPerfs]): Fu[Boolean] =
     (g.status == chess.Status.Draw).so:
-      users.zipColor
-        .find: (c, u) =>
-          u.perfs(g.perfKey).intRating < (users(!c).perfs(g.perfKey).intRating - IntRating(150))
-        ._1F // color of the lower rated player
+      g.players.zipColor
+        .find: (c, player) =>
+          player.rank.exists: rank =>
+            g.player(!c).rank.exists(_.score.value > rank.score.value)
+        ._1F // color of the lower-ranked player
         .so(newAccountBoostingInFavorOf(g, users, _))
 
   private def newAccountBoostingWin(g: Game, users: ByColor[UserWithPerfs]): Fu[Boolean] =
@@ -54,20 +58,15 @@ final private class FarmBoostDetection(
   private def newAccountBoostingInFavorOf(g: Game, users: ByColor[UserWithPerfs], favor: Color): Fu[Boolean] =
     (!users(favor).user.createdSinceDays(7))
       .so:
-        val perf = users(favor).perfs(g.perfKey)
-        val minSeconds = linearInterpolation(perf.nb)(0 -> 90, 5 -> 60)
+        val rank = users(favor).perfs.rank(RankTrackId.xiangqi).getOrElse(XiangqiRank.initial)
+        val minSeconds = linearInterpolation(rank.games)(0 -> 90, 5 -> 60)
         def minPliesForPerfNb =
           if g.variant.standard
-          then linearInterpolation(perf.nb)(0 -> 40, 5 -> 20)
+          then linearInterpolation(rank.games)(0 -> 40, 5 -> 20)
           else reasonableMinimumNumberOfMoves(g.variant)
-        def minPliesForLoserRating =
-          g.variant.standard
-            .so(g.loser.flatMap(_.rating))
-            .map: rating =>
-              linearInterpolation(rating.value)(1500 -> 10, 2500 -> 40)
         (
-          perf.provisional.yes &&
-            (g.playedPlies < minPliesForPerfNb || minPliesForLoserRating.exists(g.playedPlies < _)) &&
+          rank.games < 6 &&
+            g.playedPlies < minPliesForPerfNb &&
             g.durationSeconds.exists(_ < minSeconds)
         ) || g.playedPlies < 10
       .so(arePlayersRelated(g))

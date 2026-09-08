@@ -16,6 +16,7 @@ private object BSONHandlers:
   private given BSONDocumentHandler[TitledTournamentInvitation] = Macros.handler
   private given BSONDocumentHandler[PlanStart] = Macros.handler
   private given BSONDocumentHandler[PlanExpire] = Macros.handler
+  private given BSONDocumentHandler[RankRefund] = Macros.handler
   private given BSONDocumentHandler[RatingRefund] = Macros.handler
   private given BSONDocumentHandler[CorresAlarm] = Macros.handler
   private given BSONDocumentHandler[IrwinDone] = Macros.handler
@@ -38,6 +39,7 @@ private object BSONHandlers:
         case x: GameEnd => summon[BSONHandler[GameEnd]].writeTry(x).get
         case x: PlanStart => summon[BSONHandler[PlanStart]].writeTry(x).get
         case x: PlanExpire => summon[BSONHandler[PlanExpire]].writeTry(x).get
+        case x: RankRefund => summon[BSONHandler[RankRefund]].writeTry(x).get
         case x: RatingRefund => summon[BSONHandler[RatingRefund]].writeTry(x).get
         case ReportedBanned => $empty
         case CoachReview => $empty
@@ -59,6 +61,7 @@ private object BSONHandlers:
         case "gameEnd" => reader.as[GameEnd]
         case "planStart" => reader.as[PlanStart]
         case "planExpire" => reader.as[PlanExpire]
+        case "rankRefund" => reader.as[RankRefund]
         case "ratingRefund" => reader.as[RatingRefund]
         case "reportedBanned" => ReportedBanned
         case "coachReview" => CoachReview

@@ -1,0 +1,145 @@
+@import '../../lib/css/component/adjudication';
+@import '../../lib/css/component/replay-panel';
+
+.special-rules {
+  // Keep the article typography shared with long-form Learn pages while
+  // allowing the examples to use the wider board-and-playback layout.
+  width: min(100%, 85rem);
+  max-width: 1360px;
+
+  &__main {
+    min-width: 0;
+  }
+
+  &__panel {
+    display: none;
+    padding: clamp(1rem, 4vw, 3rem);
+    scroll-margin-top: 1rem;
+
+    &:target,
+    &--overview {
+      display: block;
+    }
+  }
+
+  &:has(.special-rules__panel:not(.special-rules__panel--overview):target) .special-rules__panel--overview {
+    display: none;
+  }
+
+  &__intro {
+    font-size: 1.15em;
+  }
+
+  &__example {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+    align-items: stretch;
+  }
+
+  &__board {
+    width: 100%;
+    height: auto;
+    padding-bottom: 0;
+    align-self: start;
+    aspect-ratio: 9 / 10;
+    position: relative;
+  }
+
+  &__board .cg-wrap {
+    width: 100%;
+    height: 100%;
+  }
+
+  &__playback {
+    @extend %replay-panel;
+
+    min-width: 0;
+    height: var(---cg-height, 100%);
+    max-height: var(---cg-height, none);
+  }
+
+  &__moves {
+    @extend %replay-moves;
+
+    min-width: 0;
+  }
+
+  &__feedback {
+    @extend %replay-feedback;
+
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: auto;
+    padding: 1rem;
+  }
+
+  @media (max-width: 700px) {
+    &__example {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0.5rem;
+    }
+
+    &__playback {
+      height: auto;
+      max-height: none;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      column-gap: 0.5rem;
+    }
+
+    &__feedback {
+      grid-column: 1 / -1;
+      grid-row: 2;
+    }
+
+    &__moves {
+      grid-column: 2;
+      grid-row: 1;
+      width: 100%;
+      overflow-x: auto;
+      overflow-y: hidden;
+      white-space: nowrap;
+
+      .tview2-column {
+        display: flex;
+        flex-wrap: nowrap;
+        width: max-content;
+
+        > index,
+        > move {
+          flex: 0 0 auto;
+          width: auto;
+          height: 2.5rem;
+        }
+      }
+    }
+
+    &__controls {
+      grid-column: 1 / -1;
+      grid-row: 1;
+      display: contents;
+
+      .jumps {
+        display: contents;
+      }
+
+      .move[data-act='prev'] {
+        grid-column: 1;
+        grid-row: 1;
+      }
+
+      .move[data-act='next'] {
+        grid-column: 3;
+        grid-row: 1;
+      }
+
+      .move[data-act='first'],
+      .move[data-act='last'] {
+        display: none;
+      }
+    }
+  }
+}

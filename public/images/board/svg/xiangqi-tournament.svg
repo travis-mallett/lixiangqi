@@ -70,7 +70,7 @@
 	<defs>
 		<g id="mark4">
 			<g id="mark2R">
-				<path id="mark" d="M30,10H10V30" fill="none" stroke-width="4" stroke="#000"/>
+				<path id="mark" d="M15,5H5V15" fill="none" stroke-width="2" stroke="#000"/>
 				<use xlink:href="#mark" transform="rotate(-90,0,0)"/>
 			</g>
 			<g id="mark2L">
@@ -80,7 +80,7 @@
 		<g id="mino32">
 			<g id="mino16">
 				<g id="line4">
-					<path id="line" d="M0,0V400" stroke-width="4" stroke="#000"/>
+					<path id="line" d="M0,0V400" stroke-width="2" stroke="#000"/>
 					<use xlink:href="#line" x="100"/>
 					<use xlink:href="#line" x="200"/>
 					<use xlink:href="#line" x="300"/>
@@ -90,7 +90,7 @@
 				<use xlink:href="#mark4" x="200" y="100"/>
 				<use xlink:href="#mark4" x="300" y="200"/>
 				<use xlink:href="#mark2L" x="400" y="100"/>
-				<path id="diagonal" d="M0,300 100,200" stroke-width="4" stroke="#000"/>
+				<path id="diagonal" d="M0,300 100,200" stroke-width="2" stroke="#000"/>
 				<use xlink:href="#diagonal" transform="rotate(90,0,300)"/>
 			</g>
 			<use xlink:href="#mino16" transform="scale(-1,1)"/>
@@ -124,8 +124,7 @@
 	</defs>
 <g aria-label="Burned board ink" opacity="1">
 <g fill="none" stroke-width="4" stroke="#000">
-		<rect width="816" height="916" x="-408" y="-458"/>
-		<rect width="800" height="900" x="-400" y="-450"/>
+		<rect width="800" height="900" x="-400" y="-450" stroke-width="2"/>
 	</g>
 	<use xlink:href="#board"/>
 <g transform="scale(0.333)" display="none">

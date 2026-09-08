@@ -50,15 +50,12 @@
     @extend %ellipsis;
   }
 
-  .rating {
+  .rating,
+  .rank {
     @extend %roboto;
 
     margin-inline-start: 1ch;
     font-size: 0.9em;
-
-    body.no-rating & {
-      display: none;
-    }
   }
 
   &__clock {

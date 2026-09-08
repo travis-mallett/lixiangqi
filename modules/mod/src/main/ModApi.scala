@@ -18,7 +18,7 @@ final class ModApi(
     prefApi: lila.core.pref.PrefApi,
     notifier: ModNotifier,
     lightUserApi: LightUserApi,
-    refunder: RatingRefund
+    refunder: RankRefund
 )(using Executor)
     extends lila.core.mod.ModApi:
 

@@ -1,8 +1,11 @@
 package lila.user
 package ui
 
-import lila.core.perf.{ PuzPerf, UserWithPerfs }
+import lila.core.perf.UserWithPerfs
+import lila.core.rank.RankScore.*
 import lila.ui.*
+import lila.rating.XiangqiRank
+import lila.rating.UserPerfsExt.*
 
 import ScalatagsTemplate.{ *, given }
 import scalalib.model.Days
@@ -12,12 +15,32 @@ final class UserShowSide(helpers: Helpers):
 
   def apply(
       u: UserWithPerfs,
-      rankMap: lila.core.rating.UserRankMap,
       active: Option[PerfKey]
   )(using ctx: Context) =
 
-    def showNonEmptyPerf(perf: Perf, pk: PerfKey) =
-      perf.nonEmpty.option(showPerf(perf, pk))
+    def showXiangqiRank =
+      val rank = u.perfs.xiangqiRank
+      div(
+        dataIcon := Icon.Crown,
+        cls := List("xiangqi-rank" -> true, "empty" -> rank.isEmpty)
+      )(
+        span(
+          h3("Xiangqi"),
+          st.rating(
+            strong(rank.fold("Unranked")(perf => XiangqiRank.catalog.code(perf.score).value)),
+            ctx
+              .is(u)
+              .option:
+                rank.map: perf =>
+                  span(cls := "rank-detail")(
+                    " ",
+                    perf.score.value,
+                    " points · ",
+                    s"${perf.wins}-${perf.draws}-${perf.losses}"
+                  )
+          )
+        )
+      )
 
     def showPerf(perf: Perf, pk: PerfKey) =
       val isPuzzle = pk == PerfKey.puzzle
@@ -60,12 +83,6 @@ final class UserShowSide(helpers: Helpers):
                 else trans.site.nbGames.plural(perf.nb, perf.nb.localize)
               )
             )
-          ,
-          rankMap.get(pk).ifTrue(ctx.pref.showRatings).map { rank =>
-            span(cls := "rank", title := trans.site.rankIsUpdatedEveryNbMinutes.pluralSameTxt(15))(
-              trans.site.rankX(rank.localize)
-            )
-          }
         ),
         ctx.pref.showRatings.option(iconTag(Icon.PlayTriangle))
       )
@@ -73,87 +90,13 @@ final class UserShowSide(helpers: Helpers):
     div(cls := "side sub-ratings")(
       (!u.lame || ctx.is(u) || Granter.opt(_.AccountInfo)).option(
         frag(
-          showNonEmptyPerf(u.perfs.ultraBullet, PerfKey.ultraBullet),
-          showPerf(u.perfs.bullet, PerfKey.bullet),
-          showPerf(u.perfs.blitz, PerfKey.blitz),
-          showPerf(u.perfs.rapid, PerfKey.rapid),
-          showPerf(u.perfs.classical, PerfKey.classical),
-          showPerf(u.perfs.correspondence, PerfKey.correspondence),
+          showXiangqiRank,
           u.noBot.option(
             frag(
               hr,
-              showPerf(u.perfs.puzzle, PerfKey.puzzle),
-              showStorm(u.perfs.storm, u),
-              showRacer(u.perfs.racer),
-              showStreak(u.perfs.streak)
+              showPerf(u.perfs.puzzle, PerfKey.puzzle)
             )
           )
         )
       )
-    )
-
-  private def showStorm(storm: PuzPerf, user: User)(using Translate) =
-    a(
-      dataIcon := Icon.Storm,
-      cls := List(
-        "empty" -> !storm.nonEmpty
-      ),
-      href := routes.Storm.dashboardOf(user.username),
-      span(
-        h3("Puzzle Storm"),
-        st.rating(
-          strong(storm.score),
-          storm.nonEmpty.option(
-            frag(
-              " ",
-              span(trans.storm.xRuns.plural(storm.runs, storm.runs.localize))
-            )
-          )
-        )
-      ),
-      iconTag(Icon.PlayTriangle)
-    )
-
-  private def showRacer(racer: PuzPerf)(using Translate) =
-    a(
-      dataIcon := Icon.FlagChessboard,
-      cls := List(
-        "empty" -> !racer.nonEmpty
-      ),
-      href := routes.Racer.home,
-      span(
-        h3("Puzzle Racer"),
-        st.rating(
-          strong(racer.score),
-          racer.nonEmpty.option(
-            frag(
-              " ",
-              span(trans.storm.xRuns.plural(racer.runs, racer.runs.localize))
-            )
-          )
-        )
-      ),
-      iconTag(Icon.PlayTriangle)
-    )
-
-  private def showStreak(streak: PuzPerf)(using Translate) =
-    a(
-      dataIcon := Icon.ArrowThruApple,
-      cls := List(
-        "empty" -> !streak.nonEmpty
-      ),
-      href := routes.Puzzle.streak,
-      span(
-        h3("Puzzle Streak"),
-        st.rating(
-          strong(streak.score),
-          streak.nonEmpty.option(
-            frag(
-              " ",
-              span(trans.storm.xRuns.plural(streak.runs, streak.runs.localize))
-            )
-          )
-        )
-      ),
-      iconTag(Icon.PlayTriangle)
     )

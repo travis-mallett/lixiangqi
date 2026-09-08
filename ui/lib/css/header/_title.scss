@@ -30,6 +30,24 @@
 
   .site-name {
     display: none;
+
+    &__primary,
+    &__subtitle {
+      display: block;
+    }
+
+    &__primary {
+      color: inherit;
+    }
+
+    &__subtitle {
+      margin-top: -0.1em;
+      color: $c-font-dim;
+      font-size: 0.48em;
+      font-weight: normal;
+      letter-spacing: 0.03em;
+      line-height: 1;
+    }
   }
 
   .site-icon {
