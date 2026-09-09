@@ -48,7 +48,7 @@ const opts = (): PuzzleOpts => ({
     blindfold: false,
     keyboardMove: false,
     voiceMove: false,
-  } as any,
+  },
   settings: { difficulty: 'normal' },
   showRatings: false,
   externalEngineEndpoint: '',
