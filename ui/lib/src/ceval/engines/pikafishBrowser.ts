@@ -26,6 +26,7 @@ export class PikafishBrowserEngine {
   readonly protocol: PikafishProtocol;
 
   private module?: PikafishModule;
+  private destroyed = false;
 
   constructor(private readonly status: (status: PikafishStatus) => void) {
     this.protocol = new PikafishProtocol(computing => {
@@ -36,6 +37,7 @@ export class PikafishBrowserEngine {
   }
 
   start(work: Omit<PikafishWork, 'stopRequested'>): void {
+    if (this.destroyed) throw new Error('Pikafish engine has been destroyed');
     this.protocol.compute({ ...work, stopRequested: false });
   }
 
@@ -44,6 +46,7 @@ export class PikafishBrowserEngine {
   }
 
   destroy(): void {
+    this.destroyed = true;
     this.stop();
     this.module?.uci('quit');
     this.module = undefined;
@@ -66,21 +69,26 @@ export class PikafishBrowserEngine {
         pathVersion: true,
       });
       const imported = (await import(scriptUrl)) as { default: ModuleFactory };
+      if (this.destroyed) return;
       const module = await imported.default({
         wasmMemory: sharedWasmMemory(1024),
         locateFile: file => site.asset.url(`${root}/${file}`, { pathVersion: true }),
         mainScriptUrlOrBlob: scriptUrl,
       });
+      if (this.destroyed) {
+        module.uci('quit');
+        return;
+      }
+      this.module = module;
       module.listen = data => this.protocol.received(data);
       module.onError = message => this.fail(message);
       const network = module.getRecommendedNnue() ?? 'pikafish.nnue';
       const networkUrl = site.asset.url(`${root}/${network}`, { pathVersion: true });
-      module.setNnueBuffer(
-        await bigFileStorage().get(networkUrl, (bytes, total) =>
-          this.status({ state: 'downloading', bytes, total }),
-        ),
-      );
-      this.module = module;
+      const buffer = await bigFileStorage().get(networkUrl, (bytes, total) => {
+        if (!this.destroyed) this.status({ state: 'downloading', bytes, total });
+      });
+      if (this.destroyed) return;
+      module.setNnueBuffer(buffer);
       this.protocol.connected(command => module.uci(command));
       this.status({ state: 'ready' });
     } catch (error) {
@@ -89,7 +97,7 @@ export class PikafishBrowserEngine {
   }
 
   private fail(message: string): void {
-    this.status({ state: 'error', error: message });
+    if (!this.destroyed) this.status({ state: 'error', error: message });
   }
 }
 

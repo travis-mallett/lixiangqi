@@ -1319,6 +1319,14 @@ object I18nKey:
     val `hoverOverSettingLabelsForHelp`: I18nKey = "preferences:hoverOverSettingLabelsForHelp"
 
   object puzzle:
+    val `advantageLost`: I18nKey = "puzzle:advantageLost"
+    val `tryAgain`: I18nKey = "puzzle:tryAgain"
+    val `thisIsTheBestMove`: I18nKey = "puzzle:thisIsTheBestMove"
+    val `notMostEfficientMove`: I18nKey = "puzzle:notMostEfficientMove"
+    val `continuationAllowed`: I18nKey = "puzzle:continuationAllowed"
+    val `forcedMateLost`: I18nKey = "puzzle:forcedMateLost"
+    val `moveAllowanceExceeded`: I18nKey = "puzzle:moveAllowanceExceeded"
+    val `alternativeEvaluationUnavailable`: I18nKey = "puzzle:alternativeEvaluationUnavailable"
     val `puzzles`: I18nKey = "puzzle:puzzles"
     val `puzzleThemes`: I18nKey = "puzzle:puzzleThemes"
     val `recommended`: I18nKey = "puzzle:recommended"
@@ -1388,6 +1396,8 @@ object I18nKey:
     val `noPuzzlesToShow`: I18nKey = "puzzle:noPuzzlesToShow"
     val `improvementAreasDescription`: I18nKey = "puzzle:improvementAreasDescription"
     val `strengthDescription`: I18nKey = "puzzle:strengthDescription"
+    val `solvedInMoves`: I18nKey = "puzzle:solvedInMoves"
+    val `efficientSolutionMoves`: I18nKey = "puzzle:efficientSolutionMoves"
     val `playedXTimes`: I18nKey = "puzzle:playedXTimes"
     val `nbPointsBelowYourPuzzleRating`: I18nKey = "puzzle:nbPointsBelowYourPuzzleRating"
     val `nbPointsAboveYourPuzzleRating`: I18nKey = "puzzle:nbPointsAboveYourPuzzleRating"

@@ -10,6 +10,7 @@ import { ShowResizeHandle } from 'lib/prefs';
 import { storage } from 'lib/storage';
 import stepwiseScroll from 'lib/view/stepwiseScroll';
 
+import { readAnalysisUrl } from './analysisHandoff';
 import { bindAnalysisInterfaceControls } from './analysisInterfaceControls';
 import {
   applyInterfaceSettingsClasses,
@@ -139,16 +140,21 @@ if (!('site' in window)) init();
 
 async function main(bootstrap: AnalysisBootstrap): Promise<void> {
   const chineseNotation = bootstrap.notationStyle === 'chinese';
+  const handoff = readAnalysisUrl(location.hash, chineseNotation);
+  const orientation = handoff?.orientation ?? bootstrap.orientation;
   const notationOf = (move: MoveResponse): string =>
     selectXiangqiNotation(move.notation, move.chineseNotation, bootstrap.notationStyle || 'english');
   const urlParams = new URLSearchParams(location.search);
   const urlFen = urlParams.get('fen')?.trim();
   const catalogGameId = urlParams.get('game')?.trim();
   const catalogDatabase = urlParams.get('database')?.trim();
-  let initialFen = urlFen || bootstrap.initialFen || XIANGQI_START_FEN;
+  let initialFen = handoff?.initialFen || urlFen || bootstrap.initialFen || XIANGQI_START_FEN;
   const nativeStates =
-    !urlFen && bootstrap.states?.length === (bootstrap.moves?.length ?? 0) + 1 ? bootstrap.states : undefined;
+    !handoff && !urlFen && bootstrap.states?.length === (bootstrap.moves?.length ?? 0) + 1
+      ? bootstrap.states
+      : undefined;
   const authoritativeRoot =
+    handoff?.tree.root.state ??
     nativeStates?.[0] ??
     (await requestXiangqi<RulesState>('/api/analysis/position', {
       initialFen,
@@ -157,18 +163,20 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
   initialFen = authoritativeRoot.fen;
   const suggestions = new AnalysisSuggestions(
     initialFen,
-    () => ground?.state.orientation ?? bootstrap.orientation ?? 'white',
+    () => ground?.state.orientation ?? orientation ?? 'white',
   );
-  let tree: XiangqiMoveTree = nativeStates
-    ? createMoveTreeFromStates(
-        nativeStates,
-        bootstrap.moves ?? [],
-        bootstrap.notations ?? [],
-        bootstrap.chineseNotations ?? [],
-        chineseNotation,
-        bootstrap.analysis?.infos,
-      )
-    : createMoveTree(authoritativeRoot);
+  let tree: XiangqiMoveTree =
+    handoff?.tree ??
+    (nativeStates
+      ? createMoveTreeFromStates(
+          nativeStates,
+          bootstrap.moves ?? [],
+          bootstrap.notations ?? [],
+          bootstrap.chineseNotations ?? [],
+          chineseNotation,
+          bootstrap.analysis?.infos,
+        )
+      : createMoveTree(authoritativeRoot));
   let activePath = nativeStates ? mainlineEndPath(tree) : '';
   let tabs: AnalysisTab[] = [
     {
@@ -281,7 +289,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     previousEngineProgressPercent = progress.percent;
   }
 
-  restoreWorkspace();
+  if (!handoff) restoreWorkspace();
 
   const color = (turn: RulesState['turn']) => (turn === 'red' ? 'white' : 'black');
 
@@ -850,6 +858,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
 
   function setFenUrl(fen: string): void {
     const url = new URL(location.href);
+    if (handoff) url.hash = '';
     if (fen === XIANGQI_START_FEN) url.searchParams.delete('fen');
     else url.searchParams.set('fen', fen);
     history.replaceState(null, '', url);
@@ -862,7 +871,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
 
   const ground = makeXiangqiGround(boardElement, {
     fen: currentState().fen,
-    orientation: bootstrap.orientation,
+    orientation,
     turnColor: color(currentState().turn),
     movableColor: color(currentState().turn),
     legalMoves: currentState().legalMoves,

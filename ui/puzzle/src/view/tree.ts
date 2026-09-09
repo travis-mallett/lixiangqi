@@ -9,6 +9,7 @@ import type { TreeNode, TreePath } from 'lib/tree/types';
 import { type MaybeVNode, type LooseVNodes, hl, onInsert } from 'lib/view';
 
 import type PuzzleCtrl from '@/ctrl';
+import type { XiangqiPuzzleNode } from '@/xiangqi';
 
 export const renderIndex = renderTreeIndex;
 
@@ -51,6 +52,18 @@ function renderMove(ctx: Ctx, node: TreeNode, path: string, isMainline: boolean,
 const renderGlyph = (glyph: Glyph): VNode => hl('glyph', { attrs: { title: glyph.name } }, glyph.symbol);
 
 function puzzleGlyph(node: TreeNode): MaybeVNode {
+  if ('xiangqi' in node && (node.puzzle === 'good' || node.puzzle === 'win'))
+    return renderGlyph({
+      name:
+        node.puzzle === 'win'
+          ? i18n.puzzle.puzzleComplete
+          : i18n.puzzle[
+              (node as XiangqiPuzzleNode).puzzleBestMove === false
+                ? 'notMostEfficientMove'
+                : 'thisIsTheBestMove'
+            ],
+      symbol: '✓',
+    });
   switch (node.puzzle) {
     case 'good':
     case 'win':

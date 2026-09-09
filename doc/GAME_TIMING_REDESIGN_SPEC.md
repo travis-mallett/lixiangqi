@@ -288,14 +288,14 @@ Historical clock playback must never send moves, timeout messages, or socket clo
 
 ### 7.2 Surface capability matrix and related bug fixes
 
-| Surface | Recorded clocks | Play/Stop | Required behavior |
-| --- | --- | --- | --- |
-| Free Analysis Board `/analysis` | No | **No** | Exploratory/editing surface only. Do not render or bootstrap playback capability. |
-| Game analysis `/$id/.../analysis` | May retain ordinary annotations, but no playback clock UI | **No** | Engine/tree analysis only, even for a finished timed game. |
-| Finished-game viewer `/$id` | Yes when a usable real-time projection exists | Yes | Static clock at selected mainline ply; shared real-time playback. |
-| Full `/tv` | Yes for the selected real-time game | Yes after at least one transition | Available at latest/final and earlier plies; works at desktop, intermediate, and mobile widths. |
-| Front-page LiXiangQiTV | Yes when timing is usable | No full move-list control required | Live games remain socket-driven; non-live games automatically show and replay their move history. |
-| Generic mini boards/history cards | No new behavior by default | No | Replay is an explicit surface capability, not a side effect of `tv=true` or of using `gameUi.mini`. |
+| Surface                           | Recorded clocks                                           | Play/Stop                          | Required behavior                                                                                   |
+| --------------------------------- | --------------------------------------------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Free Analysis Board `/analysis`   | No                                                        | **No**                             | Exploratory/editing surface only. Do not render or bootstrap playback capability.                   |
+| Game analysis `/$id/.../analysis` | May retain ordinary annotations, but no playback clock UI | **No**                             | Engine/tree analysis only, even for a finished timed game.                                          |
+| Finished-game viewer `/$id`       | Yes when a usable real-time projection exists             | Yes                                | Static clock at selected mainline ply; shared real-time playback.                                   |
+| Full `/tv`                        | Yes for the selected real-time game                       | Yes after at least one transition  | Available at latest/final and earlier plies; works at desktop, intermediate, and mobile widths.     |
+| Front-page LiXiangQiTV            | Yes when timing is usable                                 | No full move-list control required | Live games remain socket-driven; non-live games automatically show and replay their move history.   |
+| Generic mini boards/history cards | No new behavior by default                                | No                                 | Replay is an explicit surface capability, not a side effect of `tv=true` or of using `gameUi.mini`. |
 
 Fix these three bugs as part of the implementation, not as unrelated page patches:
 

@@ -16,10 +16,13 @@ import {
   XIANGQI_START_FEN,
 } from './groundUtil';
 
-export { hydrateXiangqiState, requestXiangqi } from './api';
+export { hydrateXiangqiState, requestXiangqi, XiangqiRequestError } from './api';
+export { createAnalysisUrl } from './analysisHandoff';
 export * from './groundUtil';
 export {
   createMoveTreeFromUciMainline,
+  createMoveTree,
+  addOrSelectChild,
   createMoveTreeFromStates,
   type RulesState,
   type XiangqiMoveTree,

@@ -26,8 +26,14 @@ export interface EngineAnalysis {
   lines: EngineLine[];
 }
 
+export interface PikafishHistory {
+  initialFen: string;
+  moves: readonly string[];
+}
+
 export interface PikafishWork {
   fen: string;
+  history?: PikafishHistory;
   depth: number;
   multiPv: number;
   threads: number;
@@ -78,6 +84,8 @@ export class PikafishProtocol {
   }
 
   compute(nextWork?: PikafishWork): void {
+    // Reject malformed history before stopping or replacing an active search.
+    nextWork?.history?.moves.forEach(uiMoveToEngine);
     this.nextWork = nextWork;
     this.stop();
     this.swapWork();
@@ -118,15 +126,14 @@ export class PikafishProtocol {
           : this.lines;
     const ordered = [...source.values()].sort((a, b) => a.multipv - b.multipv);
     const primary = ordered[0];
-    if (!primary) throw new Error('Pikafish produced no principal variation');
     return {
       engine: this.engineName,
       bestMove,
-      depth: primary.depth,
-      nodes: primary.nodes,
-      nps: primary.nps,
-      timeMs: primary.timeMs,
-      score: primary.score,
+      depth: primary?.depth ?? 0,
+      nodes: primary?.nodes ?? 0,
+      nps: primary?.nps ?? 0,
+      timeMs: primary?.timeMs ?? 0,
+      score: primary?.score ?? {},
       lines: ordered,
     };
   }
@@ -135,8 +142,10 @@ export class PikafishProtocol {
     const work = this.work;
     this.work = undefined;
     this.setComputing(false);
-    if (work && !work.stopRequested && this.lines.size) {
+    if (work && !work.stopRequested) {
       const move = bestMove && !['(none)', '0000'].includes(bestMove) ? engineMoveToUi(bestMove) : undefined;
+      // Completion without a usable PV is still completion. Consumers decide
+      // whether the result qualifies; it must not masquerade as a timeout.
       work.emit(this.snapshot(move), true);
     }
     this.swapWork();
@@ -164,7 +173,11 @@ export class PikafishProtocol {
     this.setOption('Threads', this.work.threads);
     this.setOption('Hash', this.work.hashSize);
     this.setOption('MultiPV', Math.max(1, this.work.multiPv));
-    this.send(`position fen ${this.work.fen}`);
+    const history = this.work.history;
+    const moves = history?.moves.map(uiMoveToEngine);
+    this.send(
+      `position fen ${history?.initialFen ?? this.work.fen}${moves?.length ? ` moves ${moves.join(' ')}` : ''}`,
+    );
     this.send(`go depth ${this.work.depth}`);
   }
 
@@ -239,6 +252,12 @@ export function engineMoveToUi(move: string): string | undefined {
   const match = /^([a-i])([0-9])([a-i])([0-9])$/i.exec(move);
   if (!match) return;
   return `${match[1].toLowerCase()}${Number(match[2]) + 1}${match[3].toLowerCase()}${Number(match[4]) + 1}`;
+}
+
+function uiMoveToEngine(move: string): string {
+  const match = /^([a-i])(10|[1-9])([a-i])(10|[1-9])$/.exec(move);
+  if (!match) throw new Error(`Invalid Xiangqi history move: ${move}`);
+  return `${match[1]}${Number(match[2]) - 1}${match[3]}${Number(match[4]) - 1}`;
 }
 
 export function toLocalEval(analysis: EngineAnalysis, fen: string): LocalEval {

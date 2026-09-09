@@ -1,6 +1,8 @@
 import { Result } from '@badrap/result';
 import {
   createMoveTreeFromUciMainline,
+  createMoveTree,
+  addOrSelectChild,
   legalMoveDests,
   type RulesState,
   type XiangqiPositionNode,
@@ -12,9 +14,36 @@ import { path as pathOps } from 'lib/tree/tree';
 import type { TreeNode } from 'lib/tree/types';
 
 import type PuzzleCtrl from './ctrl';
-import type { PuzzleData, XiangqiMoveTest } from './interfaces';
+import type { PuzzleData } from './interfaces';
 
-export type XiangqiPuzzleNode = TreeNode & { xiangqi: RulesState };
+export type XiangqiPuzzleNode = TreeNode & {
+  xiangqi: RulesState;
+  puzzleBestMove?: boolean;
+  played?: { notation: string; chineseNotation: string; result?: TreeNode['puzzle'] };
+};
+
+export function puzzleAnalysisTree(initialNode: TreeNode) {
+  const tree = createMoveTree((initialNode as XiangqiPuzzleNode).xiangqi);
+  const append = (source: TreeNode, target: XiangqiPositionNode): void => {
+    const children = (source.children as XiangqiPuzzleNode[]).filter(node => node.played);
+    const priority = (node: XiangqiPuzzleNode) =>
+      node.played?.result === 'fail' ? 2 : node.played?.result ? 0 : 1;
+    children.sort((a, b) => priority(a) - priority(b));
+    for (const child of children) {
+      const move = addOrSelectChild(tree, target.path, {
+        uci: child.uci!,
+        notation: child.played!.notation,
+        chineseNotation: child.played!.chineseNotation,
+        state: child.xiangqi,
+      });
+      const added = tree.byPath.get(move.path)! as XiangqiTreeNode;
+      added.forceVariation = child.played?.result === 'fail' || undefined;
+      append(child, added);
+    }
+  };
+  append(initialNode, tree.root);
+  return tree;
+}
 
 const unavailablePosition = () => Result.err(new Error('Xiangqi positions are provided by Pikafish'));
 
@@ -63,7 +92,7 @@ export function makeXiangqiNode(
   notation: string,
   siblingIndex: number,
 ): XiangqiPuzzleNode {
-  const id = `x${String.fromCharCode(65 + (siblingIndex % 26))}`;
+  const id = `x${String.fromCharCode(65 + siblingIndex)}`;
   return {
     id,
     ply: state.ply,
@@ -80,30 +109,11 @@ export function makeXiangqiNode(
   };
 }
 
-export function xiangqiMoveTest(ctrl: PuzzleCtrl): undefined | 'fail' | 'win' | XiangqiMoveTest {
-  if (ctrl.mode === 'view' || !pathOps.contains(ctrl.path, ctrl.initialPath)) return;
-  const played = ctrl.nodeList.slice(pathOps.size(ctrl.initialPath) + 1).map(node => node.uci as string);
-
-  for (let i = 0; i < played.length; i++) {
-    if (played[i] !== ctrl.data.puzzle.solution[i]) return (ctrl.node.puzzle = 'fail');
-  }
-  if (played.length >= ctrl.data.puzzle.solution.length) return (ctrl.node.puzzle = 'win');
-
-  // The solver moves first. After each solver move, play the forced reply.
-  if (played.length % 2 === 1) {
-    ctrl.node.puzzle = 'good';
-    return {
-      uci: ctrl.data.puzzle.solution[played.length],
-      path: ctrl.path,
-    };
-  }
-  return undefined;
-}
-
 export function nextXiangqiMove(ctrl: PuzzleCtrl): string | undefined {
   if (ctrl.mode === 'view' || !pathOps.contains(ctrl.path, ctrl.initialPath)) return;
-  const played = ctrl.nodeList.length - pathOps.size(ctrl.initialPath) - 1;
-  return ctrl.data.puzzle.solution[played];
+  const played = ctrl.nodeList.slice(pathOps.size(ctrl.initialPath) + 1).map(node => node.uci);
+  if (played.some((uci, i) => uci !== ctrl.xiangqiContinuation[i])) return;
+  return ctrl.xiangqiContinuation[played.length];
 }
 
 export function splitXiangqiUci(uci: string): [string, string] | undefined {

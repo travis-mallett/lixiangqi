@@ -2559,12 +2559,18 @@ interface I18n {
     addAnotherTheme: string;
     /** Advanced */
     advanced: string;
+    /** Advantage Lost */
+    advantageLost: string;
+    /** This move could not be checked. Please try again or view the solution. Your result has not changed. */
+    alternativeEvaluationUnavailable: string;
     /** Best move! */
     bestMove: string;
     /** By openings */
     byOpenings: string;
     /** Click to solve */
     clickToSolve: string;
+    /** But continuation allowed. */
+    continuationAllowed: string;
     /** Continue the streak */
     continueTheStreak: string;
     /** Continue training */
@@ -2581,6 +2587,8 @@ interface I18n {
     easier: string;
     /** Easiest */
     easiest: string;
+    /** Most efficient solution: %s moves. */
+    efficientSolutionMoves: I18nPlural;
     /** Example */
     example: string;
     /** incorrect */
@@ -2589,6 +2597,8 @@ interface I18n {
     findTheBestMoveForBlack: string;
     /** Find the best move for red. */
     findTheBestMoveForWhite: string;
+    /** Lost the forced mate */
+    forcedMateLost: string;
     /** From game %s */
     fromGameLink: I18nFormat;
     /** From my games */
@@ -2613,7 +2623,7 @@ interface I18n {
     improvementAreasDescription: string;
     /** Jump to next puzzle immediately */
     jumpToNextPuzzleImmediately: string;
-    /** Keep going… */
+    /** Keep going. */
     keepGoing: string;
     /** Lengths */
     lengths: string;
@@ -2625,6 +2635,8 @@ interface I18n {
     mateThemes: string;
     /** Motifs */
     motifs: string;
+    /** Move allowance exceeded */
+    moveAllowanceExceeded: string;
     /** %s played */
     nbPlayed: I18nPlural;
     /** %s points above your puzzle rating */
@@ -2641,6 +2653,8 @@ interface I18n {
     noPuzzlesToShow: string;
     /** Normal */
     normal: string;
+    /** Not the most efficient move */
+    notMostEfficientMove: string;
     /** That's not the move! */
     notTheMove: string;
     /** Openings you played the most in rated games */
@@ -2681,6 +2695,8 @@ interface I18n {
     searchPuzzles: string;
     /** solved */
     solved: string;
+    /** Puzzle solved in %s moves. */
+    solvedInMoves: I18nPlural;
     /** Special moves */
     specialMoves: string;
     /** Solve progressively harder puzzles and build a win streak. There is no clock, so take your time. One wrong move, and it's game over! But you can skip one move per session. */
@@ -2691,8 +2707,12 @@ interface I18n {
     strengthDescription: string;
     /** Strengths */
     strengths: string;
+    /** This is the best move */
+    thisIsTheBestMove: string;
     /** To get personalised puzzles: */
     toGetPersonalizedPuzzles: string;
+    /** Try again */
+    tryAgain: string;
     /** Try something else. */
     trySomethingElse: string;
     /** Great puzzle! */

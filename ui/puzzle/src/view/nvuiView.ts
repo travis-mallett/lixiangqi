@@ -172,10 +172,12 @@ function renderTouchDeviceCommands({ notify, ctrl }: PuzzleNvuiContext): LooseVN
     ctrl.mode !== 'view' &&
       touchDeviceButton('last-move', 'Last move', () => notify.set($('.lastMove').text())),
     ctrl.mode !== 'view' &&
-      touchDeviceButton('touch-hint', i18n.site.getAHint, () => {
-        const hint = nextCorrectMove(ctrl);
-        if (hint) notify.set(makeSquare(hint.from));
-      }),
+      (ctrl.moveAllowanceExceeded()
+        ? touchDeviceButton('touch-retry', i18n.site.retry, ctrl.retryPuzzle)
+        : touchDeviceButton('touch-hint', i18n.site.getAHint, () => {
+            const hint = nextCorrectMove(ctrl);
+            if (hint) notify.set(makeSquare(hint.from));
+          })),
     ctrl.mode !== 'view' && touchDeviceButton('touch-solution', i18n.site.viewTheSolution, ctrl.viewSolution),
     ctrl.mode === 'view' &&
       touchDeviceButton('touch-continue', i18n.puzzle.continueTraining, ctrl.nextPuzzle),
@@ -243,6 +245,11 @@ function onSubmit(
       const uci = nv.inputToMove(input, ctrl.node.fen, ground);
       if (uci && typeof uci === 'string') {
         ctrl.playUci(uci);
+        // Xiangqi is adjudicated asynchronously; its live status announces the result.
+        if (ctrl.isXiangqi) {
+          $input.val('');
+          return;
+        }
         const fback = ctrl.lastFeedback;
         if (fback === 'fail') notify(i18n.puzzle.notTheMove);
         else if (fback === 'good') notify(i18n.puzzle.bestMove);
@@ -300,9 +307,19 @@ const renderStreak = ({ streak }: PuzzleCtrl): VNode[] =>
   !streak ? [] : [hl('h2', 'Puzzle streak'), hl('p', streak.data.index || i18n.puzzle.streakDescription)];
 
 function renderStatus(ctrl: PuzzleCtrl): string {
+  if (ctrl.xiangqiEngineError) return i18n.puzzle.alternativeEvaluationUnavailable;
+  if (ctrl.mode !== 'view' && ctrl.lastFeedback === 'fail' && ctrl.xiangqiFailure)
+    return ctrl.moveAllowanceExceeded()
+      ? i18n.puzzle[ctrl.xiangqiFailure]
+      : `${i18n.puzzle[ctrl.xiangqiFailure]}. ${ctrl.xiangqiFailure === 'advantageLost' ? i18n.puzzle.tryAgain : i18n.puzzle.trySomethingElse}`;
+  if (ctrl.mode !== 'view' && ctrl.isXiangqi && ctrl.lastFeedback === 'good')
+    return ctrl.xiangqiBestMove
+      ? `${i18n.puzzle.thisIsTheBestMove}. ${i18n.puzzle.keepGoing}`
+      : `${i18n.puzzle.notMostEfficientMove}. ${i18n.puzzle.continuationAllowed}`;
   if (ctrl.mode !== 'view') return 'Solving';
   else if (ctrl.streak) return `GAME OVER. ${i18n.puzzle.yourStreakX(ctrl.streak.data.index)}`;
-  else if (ctrl.lastFeedback === 'win') return i18n.puzzle.puzzleSuccess;
+  else if (ctrl.lastFeedback === 'win')
+    return ctrl.isXiangqi ? ctrl.solvedMessage() : i18n.puzzle.puzzleSuccess;
   else return i18n.puzzle.puzzleComplete;
 }
 
@@ -320,12 +337,14 @@ const playActions = ({ ctrl, notify }: PuzzleNvuiContext): VNode => {
         button(cat.skip, ctrl.skip, i18n.puzzle.streakSkipExplanation, !ctrl.streak?.data.skip),
       )
     : hl('div.actions-play', [
-        button(i18n.site.getAHint, () => {
-          const hint = nextCorrectMove(ctrl);
-          if (hint) {
-            notify.set(makeSquare(hint.from));
-          }
-        }),
+        ctrl.moveAllowanceExceeded()
+          ? button(i18n.site.retry, ctrl.retryPuzzle)
+          : button(i18n.site.getAHint, () => {
+              const hint = nextCorrectMove(ctrl);
+              if (hint) {
+                notify.set(makeSquare(hint.from));
+              }
+            }),
         button(i18n.site.viewTheSolution, ctrl.viewSolution),
       ]);
 };

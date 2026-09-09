@@ -1,7 +1,10 @@
+import { createAnalysisUrl } from 'xiangqi';
+
 import { licon } from 'lib/licon';
 import { type VNode, type MaybeVNodes, bind, hl, icon } from 'lib/view';
 
 import type PuzzleCtrl from '../ctrl';
+import { puzzleAnalysisTree } from '../xiangqi';
 
 const renderVote = (ctrl: PuzzleCtrl): VNode =>
   hl(
@@ -45,7 +48,12 @@ export default function (ctrl: PuzzleCtrl): VNode {
     ctrl.streak && !win
       ? renderStreak(ctrl)
       : [
-          hl('div.complete', i18n.puzzle[win ? 'puzzleSuccess' : 'puzzleComplete']),
+          hl(
+            'div.complete',
+            win && ctrl.isXiangqi
+              ? ctrl.solvedMessage()
+              : i18n.puzzle[win ? 'puzzleSuccess' : 'puzzleComplete'],
+          ),
           hl('button.continue', { hook: bind('click', ctrl.nextPuzzle) }, [
             icon(licon.PlayTriangle)(),
             i18n.puzzle[ctrl.streak ? 'continueTheStreak' : 'continueTraining'],
@@ -64,8 +72,8 @@ export default function (ctrl: PuzzleCtrl): VNode {
                 ? hl('a.practice.button.button-empty', {
                     attrs: {
                       'data-icon': licon.Bullseye,
-                      href: `/analysis?fen=${encodeURIComponent(ctrl.node.fen)}`,
-                      title: 'Open this position in Xiangqi analysis',
+                      href: createAnalysisUrl(puzzleAnalysisTree(ctrl.initialNode), ctrl.pov),
+                      title: i18n.site.analysis,
                       target: '_blank',
                     },
                   })

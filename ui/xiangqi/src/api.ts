@@ -4,6 +4,15 @@ interface ErrorResponse {
   error?: string;
 }
 
+export class XiangqiRequestError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+  }
+}
+
 /** The shared browser boundary for every Xiangqi rules and engine request. */
 export async function requestXiangqi<T>(path: string, body: object, signal?: AbortSignal): Promise<T> {
   const response = await fetch(path, {
@@ -23,7 +32,11 @@ export async function requestXiangqi<T>(path: string, body: object, signal?: Abo
     // Upstream failures must not leak a low-level JSON parser exception into
     // board UIs. The status remains the useful part of this failed contract.
   }
-  if (!response.ok) throw new Error(json?.error ?? `Native Xiangqi request failed (${response.status})`);
+  if (!response.ok)
+    throw new XiangqiRequestError(
+      json?.error ?? `Native Xiangqi request failed (${response.status})`,
+      response.status,
+    );
   if (json === undefined) throw new Error('Xiangqi service returned an invalid response');
   return json;
 }

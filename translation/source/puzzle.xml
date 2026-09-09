@@ -1,6 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <resources>
+  <string name="advantageLost">Advantage Lost</string>
+  <string name="tryAgain">Try again</string>
+  <string name="thisIsTheBestMove">This is the best move</string>
+  <string name="notMostEfficientMove">Not the most efficient move</string>
+  <string name="continuationAllowed">But continuation allowed.</string>
+  <plurals name="solvedInMoves">
+    <item quantity="one">Puzzle solved in %s move.</item>
+    <item quantity="other">Puzzle solved in %s moves.</item>
+  </plurals>
+  <plurals name="efficientSolutionMoves">
+    <item quantity="one">Most efficient solution: %s move.</item>
+    <item quantity="other">Most efficient solution: %s moves.</item>
+  </plurals>
+  <string name="forcedMateLost">Lost the forced mate</string>
+  <string name="moveAllowanceExceeded">Move allowance exceeded</string>
+  <string name="alternativeEvaluationUnavailable">This move could not be checked. Please try again or view the solution. Your result has not changed.</string>
   <string name="puzzles">Puzzles</string>
   <string name="puzzleThemes">Puzzle Themes</string>
   <string name="recommended">Recommended</string>
@@ -26,7 +42,7 @@
   <string name="clickToSolve">Click to solve</string>
   <string name="goodMove">Good move</string>
   <string name="bestMove">Best move!</string>
-  <string name="keepGoing">Keep going…</string>
+  <string name="keepGoing">Keep going.</string>
   <string name="puzzleSuccess">Success!</string>
   <string name="puzzleComplete">Puzzle complete!</string>
   <string name="byOpenings">By openings</string>

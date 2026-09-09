@@ -41,7 +41,7 @@ class PikafishCevalEngine implements CevalEngine {
       threads: work.threads,
       hashSize: work.hashSize ?? 16,
       emit: analysis => {
-        if (!this.started || work.stopRequested) return;
+        if (!this.started || work.stopRequested || !analysis.lines.length) return;
         work.emit(toLocalEval(analysis, work.currentFen), work);
       },
     });
