@@ -110,6 +110,11 @@ body {
   &__tv {
     padding-bottom: 12px;
 
+    .lobby__rail-title {
+      font-size: 1em;
+      font-weight: bold;
+    }
+
     .lobby__rail-title icon {
       color: $c-brag;
     }
@@ -168,6 +173,7 @@ body {
     --leaderboard-cell-padding-inline: 9px;
     --leaderboard-status-width: 1.5rem;
 
+    container-type: inline-size;
     display: flex;
     min-width: 0;
     max-height: 430px;
@@ -193,8 +199,8 @@ body {
         align-items: center;
         gap: 10px;
         margin: 0;
-        font-size: 1rem;
-        font-weight: 400;
+        font-size: 1em;
+        font-weight: bold;
       }
 
       .lobby__leaderboard__icon {
@@ -289,11 +295,33 @@ body {
     }
 
     &__rating-column {
-      width: 84px;
+      width: 76px;
     }
 
     &__rank-column {
-      width: 76px;
+      width: 66px;
+    }
+
+    &__place-column {
+      width: 52px;
+    }
+
+    &__place-heading,
+    &__place {
+      text-align: end;
+    }
+
+    tr.is-me {
+      background: color-mix(in oklab, $c-link 12%, $c-bg-box);
+    }
+
+    &__footer {
+      margin: 0;
+      padding: 10px 14px;
+      border-top: $border;
+      color: $c-font-dim;
+      font-size: 0.82rem;
+      text-align: center;
     }
 
     &__rating-heading,
@@ -344,6 +372,38 @@ body {
     &__rank {
       color: $c-font;
       font-weight: 700;
+    }
+
+    @container (max-width: 360px) {
+      &__scroll {
+        --leaderboard-cell-padding-inline: 6px;
+      }
+
+      &__rating-column {
+        width: 60px;
+      }
+
+      &__rank-column {
+        width: 54px;
+      }
+
+      &__place-column {
+        width: 44px;
+      }
+
+      th {
+        height: auto;
+      }
+
+      &__rating-heading,
+      &__rank-heading {
+        vertical-align: top;
+      }
+
+      &__rating-help {
+        display: block;
+        margin-inline-start: 0;
+      }
     }
   }
 
@@ -538,7 +598,6 @@ body {
 
         h2 {
           gap: 6px;
-          font-size: 0.9rem;
         }
       }
 

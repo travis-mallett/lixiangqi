@@ -1,7 +1,7 @@
 package lila.game
 
 import lila.core.LightUser
-import lila.core.game.{ Game, Player }
+import lila.core.game.{ AiLevel, Game, Player }
 import lila.core.rank.RankCode.*
 
 object Namer extends lila.core.game.Namer:
@@ -19,7 +19,7 @@ object Namer extends lila.core.game.Namer:
 
   private def playerTextUser(player: Player, user: Option[LightUser], withRating: Boolean): String =
     player.aiLevel match
-      case Some(level) => s"Pikafish level $level"
+      case Some(level) => AiLevel.displayName(level)
       case None =>
         user.fold(player.name.fold("Anon.")(_.value)): u =>
           rankString(player)

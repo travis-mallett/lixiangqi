@@ -485,6 +485,9 @@
   <string name="apply">Submit</string>
   <string name="save">Save</string>
   <string name="leaderboard">Leaderboard</string>
+  <string name="loginToSeeYourRanking">Login to see your ranking</string>
+  <string name="playRatedGameToGetRanked">Play a rated game to get ranked</string>
+  <string name="place">Place</string>
   <string name="screenshotCurrentPosition">Screenshot current position</string>
   <string name="gameAsGIF">Game as GIF</string>
   <string name="playerNames">Player names</string>
@@ -547,6 +550,9 @@
   <string name="tournamentCalendar">Tournament calendar</string>
   <string name="conditionOfEntry">Entry requirements:</string>
   <string name="advancedSettings">Advanced settings</string>
+  <string name="xiangqiRules">Xiangqi rules</string>
+  <string name="xiangqiRulesTiantian">Lixiangqi default rules</string>
+  <string name="xiangqiRulesUnrestricted">Unrestricted (no repetition adjudication)</string>
   <string name="safeTournamentName">Pick a very safe name for the tournament.</string>
   <string name="inappropriateNameWarning">Anything even slightly inappropriate could get your account closed.</string>
   <string name="emptyTournamentName">Leave empty to name the tournament after a notable Xiangqi player.</string>
@@ -1090,6 +1096,8 @@ Leave empty to start games from the normal initial position.</string>
   <string name="toggleAllAnalysis">Toggle all computer analysis</string>
   <string name="playComputerMove">Play best computer move</string>
   <string name="analysisOptions">Analysis options</string>
+  <string name="arrowUpdates">Arrow updates</string>
+  <string name="arrowUpdatesDescription">Show arrows after depth 5, then at evenly spaced depths up to the target; 1 update shows arrows only at the final depth</string>
   <string name="focusChat">Focus chat</string>
   <string name="showHelpDialog">View this help overlay</string>
   <string name="reopenYourAccount">Reopen your account</string>

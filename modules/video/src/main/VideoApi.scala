@@ -10,11 +10,13 @@ import lila.memo.CacheApi.*
 final private[video] class VideoApi(
     videoColl: Coll,
     viewColl: Coll,
+    tagColl: Coll,
     cacheApi: lila.memo.CacheApi
-)(using Executor, Scheduler):
+)(using Executor):
 
   import BsonHandlers.given
   private given BSONDocumentHandler[TagNb] = Macros.handler
+  private given BSONDocumentHandler[VideoTag] = Macros.handler
   import View.given
 
   private val publishedSelector = $or(
@@ -26,10 +28,31 @@ final private[video] class VideoApi(
     if status == VideoStatus.Published then publishedSelector
     else $doc("status" -> status.key)
 
-  private val publicSort = $doc("sortOrder" -> 1, "createdAt" -> -1)
+  private val publicSort = $doc("sortOrder" -> 1, "createdAt" -> -1, "_id" -> 1)
 
-  private val countCache = cacheApi.unit[Long]("video.count"):
-    _.refreshAfterWrite(3.hours).buildAsyncTimeout()(_ => videoColl.countSel(publishedSelector).map(_.toLong))
+  private val catalogueCache = cacheApi.unit[List[Video]]("video.catalogue"):
+    _.refreshAfterWrite(10.minutes).buildAsyncFuture: _ =>
+      videoColl.find(publishedSelector).sort(publicSort).cursor[Video]().list(Int.MaxValue)
+
+  private val tagSettingsCache = cacheApi.unit[List[VideoTag]]("video.tags"):
+    _.refreshAfterWrite(10.minutes).buildAsyncFuture: _ =>
+      tagColl.find($empty).cursor[VideoTag]().list(Int.MaxValue)
+
+  private val viewCountsCache = cacheApi.unit[Map[String, Int]]("video.viewCounts"):
+    _.refreshAfterWrite(10.minutes).buildAsyncFuture: _ =>
+      viewColl
+        .aggregateList(Int.MaxValue, _.sec): framework =>
+          import framework.*
+          GroupField(View.BSONFields.videoId)("nb" -> SumAll) -> Nil
+        .map(_.flatMap(_.asOpt[TagNb]).map(v => v._id -> v.nb).toMap)
+
+  private def orderedTags(videos: List[Video], settings: List[VideoTag]): List[VideoTag] =
+    val saved = settings.map(t => t.name -> t).toMap
+    videos
+      .flatMap(_.tags)
+      .distinct
+      .map(t => saved.getOrElse(t, VideoTag.defaultTag(t)))
+      .sortBy(t => (t.sortOrder, VideoTag.naturalOrder(t.name)))
 
   private val pathsCache = cacheApi[List[Tag], List[TagNb]](32, "video.paths"):
     _.expireAfterAccess(10.minutes).buildAsyncFuture(computeTagPaths)
@@ -48,9 +71,9 @@ final private[video] class VideoApi(
         .map(_.flatMap(_.asOpt[TagNb]))
 
   private def invalidateListings(): Unit =
-    countCache.invalidateUnit()
     pathsCache.invalidateAll()
     popularTagsCache.invalidateUnit()
+    catalogueCache.invalidateUnit()
 
   private def videoViews(userOption: Option[UserId])(videos: Seq[Video]): Fu[Seq[VideoView]] =
     userOption match
@@ -62,6 +85,44 @@ final private[video] class VideoApi(
             videos.map(v => VideoView(v, ids.contains(v.id)))
 
   object video:
+
+    def home(user: Option[UserId]): Fu[List[VideoSection]] =
+      for
+        videos <- catalogueCache.getUnit
+        settings <- tagSettingsCache.getUnit
+        grouped = videos.flatMap(v => v.tags.distinct.map(_ -> v)).groupMap(_._1)(_._2)
+        sections = orderedTags(videos, settings).map: t =>
+          val matching = VideoOrdering(grouped.getOrElse(t.name, Nil), VideoSort.Curated, t.videoIds)
+          (t, matching.take(18), matching.size)
+        previews <- videoViews(user)(sections.flatMap(_._2))
+      yield
+        val byId = previews.map(v => v.video.id -> v).toMap
+        sections.map((t, vs, count) => VideoSection(t, vs.map(v => byId(v.id)), count))
+
+    def byTag(user: Option[UserId], name: Tag, sort: VideoSort, page: Int): Fu[Paginator[VideoView]] =
+      categoryPager(user, List(name), sort, page)
+
+    private def categoryPager(
+        user: Option[UserId],
+        tags: List[Tag],
+        sort: VideoSort,
+        page: Int
+    ): Fu[Paginator[VideoView]] =
+      for
+        videos <- catalogueCache.getUnit
+        settings <- tagSettingsCache.getUnit
+        counts <- if sort == VideoSort.Views then viewCountsCache.getUnit else fuccess(Map.empty[String, Int])
+        curatedIds = tags match
+          case name :: Nil => settings.find(_.name == name).fold(List.empty[Video.ID])(_.videoIds)
+          case _ => Nil
+        matching = videos.filter(v => tags.forall(v.tags.contains))
+        sorted = VideoOrdering(matching, sort, curatedIds, counts)
+        pager <- Paginator(
+          adapter = new lila.db.paginator.StaticAdapter(sorted).mapFutureList(videoViews(user)),
+          currentPage = page,
+          maxPerPage = maxPerPage
+        )
+      yield pager
 
     private val maxPerPage = MaxPerPage(18)
     private val maxAdminPerPage = MaxPerPage(40)
@@ -85,12 +146,13 @@ final private[video] class VideoApi(
         maxPerPage = maxPerPage
       )
 
-    def popular(user: Option[UserId], page: Int): Fu[Paginator[VideoView]] =
-      publicPager(user, publishedSelector, page)
-
-    def byTags(user: Option[UserId], tags: List[Tag], page: Int): Fu[Paginator[VideoView]] =
-      if tags.isEmpty then popular(user, page)
-      else publicPager(user, publishedSelector ++ $doc("tags".$all(tags)), page)
+    def byTags(
+        user: Option[UserId],
+        tags: List[Tag],
+        page: Int,
+        sort: VideoSort = VideoSort.Curated
+    ): Fu[Paginator[VideoView]] =
+      categoryPager(user, tags, sort, page)
 
     def byAuthor(user: Option[UserId], author: String, page: Int): Fu[Paginator[VideoView]] =
       publicPager(user, publishedSelector ++ $doc("author" -> author), page)
@@ -127,8 +189,6 @@ final private[video] class VideoApi(
         .map(_.flatMap(_.asOpt[Video]))
         .flatMap(videoViews(user))
 
-    def count: Fu[Long] = countCache.getUnit
-
     def admin(
         status: Option[VideoStatus],
         needsAttention: Boolean,
@@ -155,7 +215,7 @@ final private[video] class VideoApi(
       )
 
     def publishedForReorder: Fu[List[Video]] =
-      videoColl.find(publishedSelector).sort(publicSort).cursor[Video]().list(5000)
+      videoColl.find(publishedSelector).sort(publicSort).cursor[Video]().list(Int.MaxValue)
 
     def stale(limit: Int): Fu[List[Video]] =
       videoColl
@@ -212,6 +272,7 @@ final private[video] class VideoApi(
           $set("metadata" -> BsonHandlers.metadataDocument(metadata), "updatedAt" -> nowInstant)
         )
         .void
+        .map(_ => catalogueCache.invalidateUnit())
 
     def reorder(ids: List[Video.ID])(using me: MyId): Funit =
       val update = videoColl.update(ordered = true)
@@ -243,6 +304,34 @@ final private[video] class VideoApi(
       )
 
   object tag:
+
+    def all: Fu[List[VideoTag]] = catalogueCache.getUnit.zip(tagSettingsCache.getUnit).map(orderedTags)
+
+    def find(name: Tag): Fu[Option[VideoTag]] = all.map(_.find(_.name == name))
+
+    def save(value: VideoTag): Funit =
+      tagColl.update
+        .one(
+          $id(value.name),
+          $set("description" -> value.description, "videoIds" -> value.videoIds) ++
+            $doc("$setOnInsert" -> $doc("sortOrder" -> value.sortOrder)),
+          upsert = true
+        )
+        .void
+        .map: _ =>
+          tagSettingsCache.invalidateUnit()
+
+    def setOrder(value: VideoTag, index: Int): Funit =
+      tagColl.update
+        .one(
+          $id(value.name),
+          $set("sortOrder" -> index) ++
+            $doc("$setOnInsert" -> $doc("description" -> value.description, "videoIds" -> value.videoIds)),
+          upsert = true
+        )
+        .void
+        .map: _ =>
+          tagSettingsCache.invalidateUnit()
 
     def paths(filterTags: List[Tag]): Fu[List[TagNb]] = pathsCache.get(filterTags.sorted)
     def allPopular: Fu[List[TagNb]] = popularTagsCache.getUnit

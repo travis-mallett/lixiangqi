@@ -436,21 +436,23 @@ final class LearnUi(helpers: Helpers):
           )
         )
   def xiangqiRankingsPage(levels: Vector[(String, Int)]) =
+    val (introductoryLevels, remainingLevels) = levels.span(_._1 != "业2-2")
+    val (intermediateLevels, highestLevels) = remainingLevels.span(_._1 != "专3-1")
     val forumUrl =
       "https://chesshomeh5.qqchess.qq.com/#/sub_package/community/info/topic_detail/index?id=1671904&uHotType=1"
     val videoUrl = "https://www.youtube.com/watch?v=4CfsnZQAj8k"
     val previewImage = staticAssetUrl("images/learn/rankings/tiantian-rankings-preview.webp")
     val fullImage = staticAssetUrl("images/learn/rankings/tiantian-rankings-full.png")
-    Page("About Xiangqi Rankings")
+    Page("Ranking System")
       .css("learn")
       .graph(
-        title = "About Xiangqi Rankings",
+        title = "Ranking System",
         description = "How Xiangqi rank titles relate to rating points, practical skill, and Western Elo.",
         url = routeUrl(routes.Learn.xiangqiRankings)
       ):
         main(cls := "article-page xiangqi-rankings box box-pad")(
           header(id := "overview", cls := "xiangqi-rankings__header")(
-            h1("About Xiangqi Rankings"),
+            h1("Ranking System"),
             p(
               "Major Chinese-language Xiangqi apps, including Tiantian Xiangqi (天天象棋) and JJ Xiangqi, use broadly similar named ranks instead of presenting strength only as a Western-style rating. These apps account for a large share of online Xiangqi, although no audited cross-platform data supports a precise percentage and the details vary by app."
             ),
@@ -526,7 +528,37 @@ final class LearnUi(helpers: Helpers):
                   )
                 ),
                 tbody(
-                  levels.map: (rank, rating) =>
+                  introductoryLevels.map: (rank, rating) =>
+                    tr(
+                      td(rank),
+                      td(cls := "xiangqi-rankings__rating-column")(rating)
+                    ),
+                  tr(cls := "xiangqi-rankings__collapsed-row")(
+                    td(attr("colspan") := 2)(
+                      details(cls := "xiangqi-rankings__collapsed")(
+                        summary(
+                          span(cls := "xiangqi-rankings__show-ranks")(
+                            s"Show ${intermediateLevels.size} intermediate ranks"
+                          ),
+                          span(cls := "xiangqi-rankings__hide-ranks")("Hide intermediate ranks"),
+                          small("业2-2–专2-3")
+                        ),
+                        table(
+                          cls := "xiangqi-rankings__table xiangqi-rankings__table--nested",
+                          attr("aria-label") := "Intermediate rank ratings"
+                        )(
+                          tbody(
+                            intermediateLevels.map: (rank, rating) =>
+                              tr(
+                                td(rank),
+                                td(cls := "xiangqi-rankings__rating-column")(rating)
+                              )
+                          )
+                        )
+                      )
+                    )
+                  ),
+                  highestLevels.map: (rank, rating) =>
                     tr(
                       td(rank),
                       td(cls := "xiangqi-rankings__rating-column")(rating)

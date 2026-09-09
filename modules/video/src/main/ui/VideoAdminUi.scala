@@ -9,6 +9,7 @@ import ScalatagsTemplate.{ *, given }
 
 final class VideoAdminUi(helpers: Helpers):
   import helpers.{ *, given }
+  import trans.video as trv
 
   private val dataPreviewUrl = attr("data-preview-url")
   private val dataVideoId = attr("data-video-id")
@@ -38,6 +39,7 @@ final class VideoAdminUi(helpers: Helpers):
           div(cls := "box__top__actions")(
             a(cls := "button button-empty", href := routes.Video.index, dataIcon := Icon.Eye)("View library"),
             a(cls := "button button-empty", href := routes.VideoAdmin.reorder)("Reorder"),
+            a(cls := "button button-empty", href := routes.VideoAdmin.tags)(trv.manageTags()),
             a(
               cls := "button button-green text",
               dataIcon := Icon.PlusButton,
@@ -405,6 +407,101 @@ final class VideoAdminUi(helpers: Helpers):
               )
         )
       )
+
+  def tags(tags: List[VideoTag])(using Context) =
+    page(trv.manageTags.txt()):
+      frag(
+        boxTop(
+          div(cls := "video-admin-heading")(h1(trv.manageTags()), p(trv.tagOrderHelp())),
+          a(cls := "button button-empty", href := routes.VideoAdmin.index())(trv.backToVideos())
+        ),
+        standardFlash,
+        div(cls := "video-admin-reorder box-pad")(
+          postForm(action := routes.VideoAdmin.tagsReorder)(
+            input(
+              tpe := "hidden",
+              id := "video-order-value",
+              name := "order",
+              value := tags.map(_.name).mkString(",")
+            ),
+            ol(cls := "video-reorder-list video-tag-reorder-list")(
+              tags.map: tag =>
+                li(dataVideoId := tag.name)(
+                  span(cls := "video-reorder-handle", dataIcon := Icon.Move, aria.hidden := "true"),
+                  span(cls := "video-reorder-copy")(
+                    a(href := routes.VideoAdmin.tagEdit(tag.name))(strong(tag.name)),
+                    small(tag.description)
+                  ),
+                  a(cls := "button button-empty", href := routes.VideoAdmin.tagEdit(tag.name))(trv.editTag()),
+                  reorderButtons
+                )
+            ),
+            div(cls := "form-actions single")(
+              button(cls := "button submit", tpe := "submit", tags.isEmpty.option(disabled := true))(
+                trv.saveOrder()
+              )
+            )
+          )
+        )
+      )
+
+  def tagEdit(tag: VideoTag, form: Form[(String, String)], videos: List[Video])(using Context) =
+    val positions = form("order").value.toList.flatMap(_.split(',')).map(_.trim).zipWithIndex.toMap
+    val ordered = videos.sortBy(video => positions.getOrElse(video.id, Int.MaxValue))
+    page(tag.name):
+      frag(
+        boxTop(
+          h1(tag.name),
+          a(cls := "button button-empty", href := routes.VideoAdmin.tags)(trv.manageTags())
+        ),
+        standardFlash,
+        div(cls := "video-admin-reorder box-pad")(
+          postForm(cls := "form3", action := routes.VideoAdmin.tagUpdate(tag.name))(
+            form3.globalError(form),
+            form3.group(form("description"), trv.tagDescription())(
+              form3.textarea(_)(rows := 3, maxlength := 2000)
+            ),
+            h2(trv.reorderVideos()),
+            p(trv.videoOrderHelp()),
+            input(
+              tpe := "hidden",
+              id := "video-order-value",
+              name := "order",
+              value := ordered.map(_.id).mkString(",")
+            ),
+            ol(cls := "video-reorder-list")(
+              ordered.map: video =>
+                li(dataVideoId := video.id)(
+                  span(cls := "video-reorder-handle", dataIcon := Icon.Move, aria.hidden := "true"),
+                  div(cls := "video-reorder-thumbnail")(
+                    video.thumbnail.map(url => img(src := url, alt := ""))
+                  ),
+                  span(cls := "video-reorder-copy")(strong(video.title), small(video.author)),
+                  reorderButtons
+                )
+            ),
+            div(cls := "form-actions single")(
+              button(cls := "button submit", tpe := "submit")(trans.site.save())
+            )
+          )
+        )
+      )
+
+  private def reorderButtons(using Context) =
+    span(cls := "video-reorder-buttons")(
+      button(
+        cls := "button button-empty video-reorder-up",
+        tpe := "button",
+        dataIcon := Icon.UpTriangle,
+        aria.label := trv.moveUp.txt()
+      ),
+      button(
+        cls := "button button-empty video-reorder-down",
+        tpe := "button",
+        dataIcon := Icon.DownTriangle,
+        aria.label := trv.moveDown.txt()
+      )
+    )
 
   def reorder(videos: List[Video])(using Context) =
     page("Reorder video library"):

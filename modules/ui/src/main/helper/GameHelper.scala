@@ -3,7 +3,7 @@ package lila.ui
 import chess.{ Clock, Color, Outcome }
 
 import lila.core.LightUser
-import lila.core.game.{ Game, LightPlayer, MoveTimeLimit, Namer, Player }
+import lila.core.game.{ AiLevel, Game, LightPlayer, MoveTimeLimit, Namer, Player }
 import lila.core.rank.RankDiff
 import lila.core.rank.RankCode.value
 import lila.core.rank.RankDiff.value
@@ -148,7 +148,17 @@ trait GameHelper:
   def gameLink(pov: Pov)(using Context): String = gameLink(pov.game, pov.color)
 
   def aiName(level: Int)(using Translate): String =
-    trans.site.aiNameLevelAiLevel.txt("Pikafish", level)
+    level match
+      case 1 => trans.site.aiLevelNewcomer.txt()
+      case 2 => trans.site.aiLevelRookie.txt()
+      case 3 => trans.site.aiLevelInitiate.txt()
+      case 4 => trans.site.aiLevelElementary.txt()
+      case 5 => trans.site.aiLevelIntermediate.txt()
+      case 6 => trans.site.aiLevelAdvanced.txt()
+      case 7 => trans.site.aiLevelElite.txt()
+      case 8 => trans.site.aiLevelMaster.txt()
+      case 9 => trans.site.aiLevelGrandmaster.txt()
+      case _ => AiLevel.displayName(level)
 
   def aiNameFrag(level: Int)(using Translate) =
     raw(aiName(level).replace(" ", "&nbsp;"))

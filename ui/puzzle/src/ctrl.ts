@@ -28,6 +28,7 @@ import { selectXiangqiNotation } from 'lib/game';
 import { plyColor } from 'lib/game/chess';
 import { type WithGround } from 'lib/game/ground';
 import { PromotionCtrl } from 'lib/game/promotion';
+import { playMoveNavigationSound } from 'lib/game/replay/moveNavigationSound';
 import { pubsub } from 'lib/pubsub';
 import { type StoredProp, storedBooleanProp, storedBooleanPropWithEffect, storage } from 'lib/storage';
 import { makeTree, treeOps, treePath, type TreeWrapper } from 'lib/tree';
@@ -1004,18 +1005,18 @@ export default class PuzzleCtrl implements CevalHandler {
   outcome = (): Outcome | undefined => (this.isXiangqi ? undefined : this.position().outcome());
 
   jump = (path: TreePath): void => {
-    const pathChanged = path !== this.path,
-      isForwardStep = pathChanged && path.length === this.path.length + 2;
+    const pathChanged = path !== this.path;
+    const previousPly = this.node.ply;
     this.setPath(path);
     this.withGround(this.showGround);
     if (pathChanged) {
-      if (isForwardStep) {
+      playMoveNavigationSound(previousPly, this.node.ply, () => {
         if (this.isXiangqi) this.playXiangqiSound(path);
         else {
           site.sound.saySan(this.node.san);
           site.sound.move({ san: this.node.san });
         }
-      }
+      });
       this.threatMode(false);
       this.ceval.reset();
       this.startCeval();

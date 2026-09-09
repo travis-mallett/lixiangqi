@@ -3,18 +3,31 @@ package controllers
 import scalalib.model.Language
 
 import lila.app.{ *, given }
-import lila.video.{ Filter, UserControl, View }
+import lila.video.{ Filter, UserControl, VideoSort, View }
 
 final class Video(env: Env) extends LilaController(env):
 
   import env.video.api
 
-  private def WithUserControl[A](f: UserControl => Fu[A])(using Context): Fu[A] =
-    val reqTags = get("tags").so(_.split('/').toList.map(_.trim.toLowerCase))
+  private def WithUserControl[A](f: UserControl => Fu[A])(using ctx: Context): Fu[A] =
+    val reqTags = ctx.req.queryString
+      .get("tag")
+      .fold(
+        get("tags").so(_.split('/').toList)
+      )(_.toList)
+      .map(_.trim.toLowerCase(java.util.Locale.ROOT))
+      .filter(_.nonEmpty)
+      .distinct
     api.tag
       .paths(reqTags)
       .map: tags =>
-        UserControl(filter = Filter(reqTags), tags = tags, query = get("q"))
+        UserControl(
+          filter = Filter(reqTags),
+          tags = tags,
+          query = get("q").filter(_.trim.nonEmpty),
+          sort = VideoSort.byKey(get("sort").getOrElse("")),
+          allVideos = getBool("all")
+        )
       .flatMap(f)
 
   def index = Open(serveIndex)
@@ -29,12 +42,18 @@ final class Video(env: Env) extends LilaController(env):
               .search(ctx.me, query, getInt("page") | 1)
               .map:
                 views.video.search(_, control)
+          case None if control.filter.tags.isEmpty && !control.allVideos =>
+            api.video.home(ctx.me).map(views.video.home(_, control))
+          case None if control.filter.tags.size == 1 =>
+            api.video
+              .byTag(ctx.me, control.filter.tags.head, control.sort, getInt("page") | 1)
+              .zip(api.tag.find(control.filter.tags.head))
+              .map: (videos, category) =>
+                views.video.index(videos, control, category)
           case None =>
             api.video
-              .byTags(ctx.me, control.filter.tags, getInt("page") | 1)
-              .zip(api.video.count)
-              .map: (videos, count) =>
-                views.video.index(videos, count, control)
+              .byTags(ctx.me, control.filter.tags, getInt("page") | 1, control.sort)
+              .map(views.video.index(_, control))
 
   def show(id: String) = Open(serveShow(id))
   def showLang(lang: Language, id: String) = LangPage(routes.Video.show(id))(serveShow(id))(lang)

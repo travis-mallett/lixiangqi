@@ -3,7 +3,6 @@ package ui
 
 import lila.core.perf.UserWithPerfs
 import lila.core.rank.RankCode.*
-import lila.core.user.LightRank
 import lila.rating.UserPerfsExt.*
 import lila.ui.*
 
@@ -14,10 +13,11 @@ final class UserList(helpers: Helpers, bits: UserBits):
 
   def page(
       online: List[UserWithPerfs],
-      leaderboard: List[LightRank]
+      leaderboard: Frag
   )(using ctx: Context) =
     Page(trans.site.players.txt())
       .css("user.list")
+      .css("lobby")
       .flag(_.fullScreen)
       .graph(
         title = "Xiangqi players and leaderboard",
@@ -37,17 +37,7 @@ final class UserList(helpers: Helpers, bits: UserBits):
                   )
             ),
             div(cls := "community__leaders")(
-              h2(trans.site.leaderboard()),
-              st.section(cls := "user-top user-top--xiangqi")(
-                h2(cls := "text", dataIcon := Icon.Crown)("Xiangqi"),
-                ol:
-                  leaderboard.zipWithIndex.map: (entry, index) =>
-                    li(
-                      span(cls := "leaderboard-position")(s"${index + 1}."),
-                      lightUserLink(entry.user),
-                      span(cls := "rank")(entry.rank.value)
-                    )
-              )
+              leaderboard
             )
           )
         )

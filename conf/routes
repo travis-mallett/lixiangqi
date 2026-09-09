@@ -541,6 +541,10 @@ GET   /video/admin                           controllers.VideoAdmin.index(page: 
 GET   /video/admin/new                       controllers.VideoAdmin.form
 POST  /video/admin                           controllers.VideoAdmin.create
 GET   /video/admin/preview                   controllers.VideoAdmin.preview
+GET   /video/admin/tags                      controllers.VideoAdmin.tags
+POST  /video/admin/tags/order                controllers.VideoAdmin.tagsReorder
+GET   /video/admin/tags/edit                 controllers.VideoAdmin.tagEdit(tag: String)
+POST  /video/admin/tags/edit                 controllers.VideoAdmin.tagUpdate(tag: String)
 GET   /video/admin/reorder                   controllers.VideoAdmin.reorder
 POST  /video/admin/reorder                   controllers.VideoAdmin.reorderApply
 GET   /video/admin/:id/edit                  controllers.VideoAdmin.edit(id)

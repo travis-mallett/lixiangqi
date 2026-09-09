@@ -20,4 +20,23 @@
   <string name="videoNotFound">Video not found!</string>
   <string name="xByY">%1$s by %2$s</string>
   <string name="allNbVideoTags">All %s video tags</string>
+  <string name="seeAll">See all</string>
+  <string name="curatedOrder">Recommended order</string>
+  <string name="uploadNewest">Upload date (newest)</string>
+  <string name="uploadOldest">Upload date (oldest)</string>
+  <string name="mostViewed">Most viewed on LiXiangQi</string>
+  <string name="titleOrder">Title</string>
+  <string name="libraryViewsHelp">Views count signed-in viewers on LiXiangQi.</string>
+  <string name="browseByLevel">Explore videos by level and topic.</string>
+  <string name="manageTags">Manage tags</string>
+  <string name="tagDescription">Tag description</string>
+  <string name="editTag">Edit tag</string>
+  <string name="tagOrderHelp">Arrange the sections on the Videos page. Drag rows by their handles or use the arrow buttons. Select a tag to edit its description and video order.</string>
+  <string name="saveOrder">Save order</string>
+  <string name="backToVideos">Back to videos</string>
+  <string name="reorderVideos">Reorder videos</string>
+  <string name="videoOrderHelp">Set the recommended order within this tag. Drag rows by their handles or use the arrow buttons.</string>
+  <string name="moveUp">Move up</string>
+  <string name="moveDown">Move down</string>
+  <string name="uploadDateHelp">Videos with an unknown upload date appear last.</string>
 </resources>

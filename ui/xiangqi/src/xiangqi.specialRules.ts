@@ -1,6 +1,7 @@
 import { attributesModule, classModule, h, init, type VNode } from 'snabbdom';
 
 import { isXiangqiCapture } from 'lib/game';
+import { playMoveNavigationSound } from 'lib/game/replay/moveNavigationSound';
 import { renderAdjudication } from 'lib/game/view/adjudication';
 import { licon } from 'lib/licon';
 import { ShowResizeHandle } from 'lib/prefs';
@@ -79,13 +80,15 @@ async function initExample(root: HTMLElement, endpoint: string, animationDuratio
         movable: { free: false, dests: legalMoveDests(data.state.legalMoves) },
       });
       boardElement.style.visibility = 'visible';
-      if (before && data.acceptedPly === before.acceptedPly + 1) {
-        site.sound.move({
-          capture: isXiangqiCapture(before.state.fen, data.state.fen),
-          check: data.state.check,
-          mate: data.state.termination === 'checkmate',
-        });
-      }
+      if (before)
+        playMoveNavigationSound(before.acceptedPly, data.acceptedPly, () =>
+          site.sound.move({
+            capture: isXiangqiCapture(before.state.fen, data.state.fen),
+            check: data.state.check,
+            mate: data.state.termination === 'checkmate',
+            board: boardElement,
+          }),
+        );
       renderMoveList(data);
       displayed = data;
       notice = patch(notice, h('div.special-rules__notice', [renderAdjudication(data.state)]));

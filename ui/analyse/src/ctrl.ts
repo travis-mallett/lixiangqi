@@ -27,6 +27,7 @@ import { displayColumns } from 'lib/device';
 import { playable, playedTurns, fenToEpd, isXiangqiCapture, validUci } from 'lib/game';
 import { plyColor } from 'lib/game/chess';
 import { PromotionCtrl } from 'lib/game/promotion';
+import { playMoveNavigationSound } from 'lib/game/replay/moveNavigationSound';
 import { pubsub } from 'lib/pubsub';
 import { storedBooleanProp } from 'lib/storage';
 import { makeTree, treePath, treeOps, type TreeWrapper } from 'lib/tree';
@@ -424,8 +425,7 @@ export default class AnalyseCtrl implements CevalHandler {
     !!this.justPlayed && !!this.node.uci && this.node.uci.startsWith(this.justPlayed);
 
   jump(path: TreePath): void {
-    const pathChanged = path !== this.path,
-      isForwardStep = pathChanged && path.length === this.path.length + 2;
+    const pathChanged = path !== this.path;
     const previousNode = this.node;
     if (this.path !== path)
       this.treeView.requestAutoScroll(treeOps.distance(this.path, path) > 8 ? 'instant' : 'smooth');
@@ -433,7 +433,7 @@ export default class AnalyseCtrl implements CevalHandler {
     if (pathChanged) {
       if (this.study) this.study.setPath(path, this.node);
       if (this.retro) this.retro.onJump();
-      if (isForwardStep) {
+      playMoveNavigationSound(previousNode.ply, this.node.ply, () => {
         const isAtomicCapture = this.data.game.variant.key === 'atomic' && !!this.node.san?.includes('x');
         if (isAtomicCapture) site.sound.play('explosion');
         else
@@ -443,7 +443,7 @@ export default class AnalyseCtrl implements CevalHandler {
               ? { capture: isXiangqiCapture(previousNode.fen, this.node.fen) }
               : {}),
           });
-      }
+      });
       this.threatMode(false);
       this.ceval?.reset();
       this.startCeval();

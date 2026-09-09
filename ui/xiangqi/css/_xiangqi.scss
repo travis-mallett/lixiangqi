@@ -2608,20 +2608,15 @@
   }
 
   .xiangqi-analysis-panel {
-    // The controls are first in the mobile panel so they remain immediately
-    // below the board and evaluation gauge.
     margin-top: 0;
-    height: min(68vh, 640px);
+    height: auto;
+    min-height: 0;
+    overflow: visible;
 
     > .xiangqi-analysis__nav {
-      order: -3;
+      order: -2;
       border-top: 0;
       border-bottom: 1px solid $c-border;
-    }
-
-    > .xiangqi-engine {
-      order: -2;
-      overflow-anchor: none;
     }
 
     > .xiangqi-analysis__position-status {
@@ -2630,6 +2625,47 @@
 
     > #xiangqi-moves {
       overflow-anchor: none;
+    }
+  }
+
+  .xiangqi-engine {
+    overflow-anchor: none;
+  }
+
+  .xiangqi-analysis__moves {
+    flex: 0 0 4rem;
+    display: flex;
+    align-items: stretch;
+    min-height: 0;
+    padding: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    box-shadow: inset 0 4px 12px #000;
+
+    &::-webkit-scrollbar {
+      height: 0;
+    }
+  }
+
+  .xiangqi-analysis__horizontal-moves {
+    display: flex;
+    align-items: stretch;
+    height: 100%;
+    min-width: max-content;
+
+    > :first-child {
+      margin-inline-start: auto;
+    }
+
+    .xiangqi-analysis__move {
+      display: flex;
+      align-items: center;
+      min-height: 100%;
+      margin: 0;
+      border-radius: 0;
+      padding: 0 0.45rem;
+      font-size: $move-list-font-size;
     }
   }
 

@@ -20,6 +20,7 @@ final class Preload(
     lightUserApi: LightUserApi,
     userApi: UserApi,
     userCached: lila.user.Cached,
+    xiangqiRankingApi: lila.user.XiangqiRankingApi,
     gameCached: lila.game.Cached,
     roundProxy: lila.round.GameProxyRepo,
     getLastUpdates: lila.feed.Feed.GetLastUpdates,
@@ -49,11 +50,13 @@ final class Preload(
     playban <- ctx.userId.so(playbanApi.currentBan).mon(lila.mon.lobby.segment("playban"))
     lichessMsg <- ctx.userId.ifTrue(nbNotifications > 0).so(unreadCount.hasLichessMsg)
     leaderboard <- userCached.top10Ranks.get({}).mon(lila.mon.lobby.segment("leaderboard"))
+    personal <- ctx.user.traverse(xiangqiRankingApi.personal(_, leaderboard))
     leaderboardUsers <- userApi.byIds(leaderboard.map(_.user.id))
     leaderboardFlags = leaderboardUsers
       .flatMap: user =>
         user.profile.flatMap(_.flag).map(user.id -> _)
       .toMap
+      ++ ctx.user.toList.flatMap(u => u.profile.flatMap(_.flag).map(u.id -> _)).toMap
     (currentGame, _) <- ctx.me
       .soUse(currentGameMyTurn(povs, lightUserApi.sync))
       .mon(lila.mon.lobby.segment("currentGame"))
@@ -67,6 +70,7 @@ final class Preload(
     getLastUpdates(),
     leaderboard,
     leaderboardFlags,
+    personal,
     hasUnreadLichessMessage = lichessMsg
   )
 
@@ -99,6 +103,7 @@ object Preload:
       lastUpdates: List[lila.feed.Feed.Update],
       leaderboard: List[LightRank],
       leaderboardFlags: Map[UserId, FlagCode],
+      personal: Option[lila.user.XiangqiPersonalRank],
       hasUnreadLichessMessage: Boolean
   )
 

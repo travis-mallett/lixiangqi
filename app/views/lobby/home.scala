@@ -117,7 +117,7 @@ object home:
             )
           ),
           st.aside(cls := "lobby__right-rail", attr("aria-label") := "Community highlights")(
-            bits.homepageLeaderboard(leaderboard, leaderboardFlags),
+            bits.homepageLeaderboard(leaderboard, leaderboardFlags, personal),
             st.section(cls := "lobby__feed", attr("aria-labelledby") := "lobby-updates-title")(
               h2(id := "lobby-updates-title", cls := "lobby__feed__title")(
                 iconTag(Icon.RssFeed),

@@ -30,9 +30,10 @@ dialog {
   }
 
   > div.scrollable {
-    max-height: calc(var(---viewport-height) - 16px);
+    max-height: min(calc(var(---viewport-height) - 16px), calc(100dvh - 16px));
     overflow-x: clip;
     overflow-y: auto;
+    overscroll-behavior-y: contain;
   }
 
   div.close-button-anchor {
@@ -93,6 +94,11 @@ dialog {
 // applied to dialog wrapper div so we can fake HTMLDialogElement.showModal() in a snab render loop
 .snab-modal-mask {
   @extend %fullscreen-mask, %flex-center-center;
+
+  // Keep the modal layer above fixed mobile navigation. The mask and nav both
+  // use the fullscreen-mask layer; the mask must own the higher stacking level
+  // so its dialog cannot be painted underneath a later nav element.
+  z-index: $z-modal-111;
 }
 
 .dialog-content {

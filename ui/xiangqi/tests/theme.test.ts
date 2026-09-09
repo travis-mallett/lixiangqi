@@ -14,14 +14,8 @@ test('uses reusable shadow textures without live blur filters', () => {
     chessgroundTheme,
     /cg-board piece\s*\{\s*--cg-piece-brightness:\s*brightness\([\s\S]*?\);\s*\}/,
   );
-  assert.match(
-    theme,
-    /--xiangqi-rest-shadow-image:\s*url\('\.\.\/piece\/effects\/xiangqi-rest-shadow\.png'\);/,
-  );
-  assert.match(
-    theme,
-    /--xiangqi-airborne-shadow-image:\s*url\('\.\.\/piece\/effects\/xiangqi-airborne-shadow\.png'\);/,
-  );
+  assert.match(theme, /background-image:\s*var\(--xiangqi-rest-shadow-image\)/);
+  assert.match(theme, /background-image:\s*var\(--xiangqi-airborne-shadow-image\)/);
   assert.doesNotMatch(theme, /drop-shadow\(|filter:\s*blur\(/);
 
   for (const asset of ['xiangqi-rest-shadow.png', 'xiangqi-airborne-shadow.png']) {

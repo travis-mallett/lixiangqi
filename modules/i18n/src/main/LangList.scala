@@ -147,10 +147,16 @@ object LangList extends lila.core.i18n.LangList:
     popularNoRegion.flatMap: lang =>
       all.get(lang).map(toLanguage(lang) -> _)
 
-  lazy val allChoices: List[(String, String)] = all.view
-    .map: (l, name) =>
-      l.code -> name
-    .toList
+  // The settings language picker should lead with LiXiangQi's primary audiences.
+  private val settingsLanguagePriority = List(Lang("en", "US"), Lang("zh", "CN"), Lang("vi", "VN"))
+
+  lazy val allChoices: List[(String, String)] =
+    val prioritized = settingsLanguagePriority.flatMap(lang => all.get(lang).map(lang.code -> _))
+    val remaining = all.view
+      .filterNot { case (lang, _) => settingsLanguagePriority.contains(lang) }
+      .map { case (lang, name) => lang.code -> name }
+      .toList
+    prioritized ++ remaining
 
   lazy val allLanguagesForm = new LangForm:
     val choices = languageChoices

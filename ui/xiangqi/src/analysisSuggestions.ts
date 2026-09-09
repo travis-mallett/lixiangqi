@@ -74,6 +74,7 @@ export class AnalysisSuggestions {
     this.elements.engineLines.addEventListener('mouseleave', () => this.hidePreview());
     window.matchMedia('(max-width: 799px)').addEventListener('change', event => {
       if (event.matches) this.hidePreview();
+      this.render();
     });
   }
 
@@ -124,13 +125,17 @@ export class AnalysisSuggestions {
   }
 
   configuredRowCount(): number {
+    if (isMobileAnalysisLayout()) return 1;
     const count = Number(this.elements.multiPv.value);
     return Number.isFinite(count) ? Math.max(1, count) : 3;
   }
 
   showPlaceholders(count: number): void {
     this.hidePreview();
-    this.elements.engineLines.replaceChildren(...Array.from({ length: count }, () => this.placeholderRow()));
+    const rowCount = isMobileAnalysisLayout() ? 1 : count;
+    this.elements.engineLines.replaceChildren(
+      ...Array.from({ length: rowCount }, () => this.placeholderRow()),
+    );
   }
 
   setPreviewEnabled(enabled: boolean): void {
@@ -149,7 +154,7 @@ export class AnalysisSuggestions {
     const cloudMoves = this.explorerResult?.available ? this.explorerResult.moves : [];
     const useCloud = cloudMoves.length > 0;
     this.elements.cloudBadge.hidden = !useCloud;
-    const limit = this.expanded ? 12 : 3;
+    const limit = isMobileAnalysisLayout() ? 1 : this.expanded ? 12 : 3;
     const rows: HTMLElement[] = useCloud
       ? cloudMoves.slice(0, limit).map(entry =>
           this.suggestionRow({
@@ -168,12 +173,12 @@ export class AnalysisSuggestions {
             }),
           );
     const minimumRowCount =
-      this.engineResult || this.explorerResult
+      this.engineResult || this.explorerResult || isMobileAnalysisLayout()
         ? this.configuredRowCount()
         : Math.max(previousRowCount, this.configuredRowCount());
     while (rows.length < minimumRowCount) rows.push(this.placeholderRow());
     this.elements.engineLines.replaceChildren(...rows);
-    this.elements.moreLines.hidden = !useCloud || cloudMoves.length <= 3;
+    this.elements.moreLines.hidden = isMobileAnalysisLayout() || !useCloud || cloudMoves.length <= 3;
     this.elements.moreLines.setAttribute('aria-expanded', String(this.expanded));
     const moreLabel = this.expanded ? 'Show fewer cloud moves' : 'Show more cloud moves';
     this.elements.moreLines.dataset.icon = this.expanded ? licon.UpTriangle : licon.DownTriangle;

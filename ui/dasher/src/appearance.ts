@@ -396,7 +396,6 @@ export class AppearanceCtrl {
     this.applyBackground(backgroundUrl);
 
     document.body.dataset.board = state.boardTheme;
-    document.body.dataset.pieceSet = state.pieceSet;
     document.body.dataset.soundSet = state.soundSet;
     document.body.dataset.musicSet = state.musicSet;
     this.applyBoardTheme(state.boardTheme);
@@ -435,8 +434,10 @@ export class AppearanceCtrl {
 
   private readonly applyPieceSet = (key: string): void => {
     const pieceSet = this.data.pieceSets.find(candidate => candidate.key === key)!;
-    for (const [variable, path] of Object.entries(pieceSet.assets))
-      document.body.style.setProperty(variable, `url(${site.asset.url(path, { pathOnly: true })})`);
+    const assets = Object.fromEntries(
+      Object.entries(pieceSet.assets).map(([variable, path]) => [variable, `url(${site.asset.url(path)})`]),
+    );
+    void site.pieceImages.set(assets, key).catch(console.error);
   };
 
   private readonly backgroundUrl = (): string | undefined => {

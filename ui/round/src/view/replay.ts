@@ -16,6 +16,7 @@ import {
   onInsert,
   dataIcon,
 } from 'lib/view';
+import { horizontalMoveListScrollPosition } from 'lib/view/horizontalMoveList';
 
 import type RoundController from '../ctrl';
 import type { Step } from '../interfaces';
@@ -41,7 +42,7 @@ const autoScroll = throttle(100, (movesEl: HTMLElement, ctrl: RoundController) =
       if (plyEl)
         st =
           displayColumns() === 1
-            ? plyEl.offsetLeft - movesEl.offsetWidth / 2 + plyEl.offsetWidth / 2
+            ? horizontalMoveListScrollPosition(movesEl, plyEl)
             : plyEl.offsetTop - movesEl.offsetHeight / 2 + plyEl.offsetHeight / 2;
     }
     if (typeof st === 'number') {

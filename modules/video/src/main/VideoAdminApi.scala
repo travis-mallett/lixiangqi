@@ -4,6 +4,29 @@ final class VideoAdminApi(api: VideoApi, providers: VideoProviderRegistry)(using
 
   case class Preview(source: VideoSource, metadata: VideoMetadata)
 
+  def saveTag(name: Tag, description: String, ids: List[Video.ID]): Fu[Either[String, Unit]] =
+    api.tag
+      .find(name)
+      .zip(api.video.publishedForReorder)
+      .flatMap:
+        case (None, _) => fuccess(Left("This tag no longer has published videos."))
+        case (Some(tag), videos) =>
+          val expected = videos.filter(_.tags.contains(name)).map(_.id).toSet
+          if description.length > 2000 then fuccess(Left("Tag descriptions must be at most 2000 characters."))
+          else if ids.distinct.size != ids.size || ids.toSet != expected then
+            fuccess(Left("The video list changed. Reload the page and try again."))
+          else api.tag.save(tag.copy(description = description.trim, videoIds = ids)).inject(Right(()))
+
+  def reorderTags(names: List[Tag]): Fu[Either[String, Unit]] =
+    api.tag.all.flatMap: tags =>
+      if names.distinct.size != names.size || names.toSet != tags.map(_.name).toSet then
+        fuccess(Left("The tag list changed. Reload the page and try again."))
+      else
+        val byName = tags.map(t => t.name -> t).toMap
+        names.zipWithIndex
+          .sequentiallyVoid((name, index) => api.tag.setOrder(byName(name), index))
+          .inject(Right(()))
+
   def preview(url: String): Fu[Either[String, Preview]] =
     providers.parse(url) match
       case Left(error) => fuccess(Left(error))

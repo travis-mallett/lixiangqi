@@ -8,6 +8,11 @@ import lila.core.user.LightRank
 import lila.db.dsl.{ *, given }
 import lila.rating.{ UserPerfs, XiangqiRank }
 
+enum XiangqiPersonalRank:
+  case Ranked(place: Int, entry: LightRank)
+  case Unplayed
+  case Ineligible
+
 /** Leaderboards are a projection of the authoritative native rank accounts in user_perf. */
 final class XiangqiRankingApi(perfsRepo: UserPerfsRepo, userRepo: UserRepo)(using Executor):
 
@@ -55,3 +60,65 @@ final class XiangqiRankingApi(perfsRepo: UserPerfsRepo, userRepo: UserRepo)(usin
                 else loop(skip + docs.size, next)
 
       loop(skip = 0, found = Nil)
+
+  /** The displayed slice together with the exact place of a ranked user. Uses displayed position when
+    * available; otherwise counts higher eligible accounts with the same ordering as top.
+    */
+  def personal(user: User, displayed: List[LightRank]): Fu[XiangqiPersonalRank] =
+    if !user.rankable then fuccess(XiangqiPersonalRank.Ineligible)
+    else
+      displayed.zipWithIndex.find(_._1.user.id == user.id) match
+        case Some((entry, index)) => fuccess(XiangqiPersonalRank.Ranked(index + 1, entry))
+        case None =>
+          perfsRepo
+            .byId(user)
+            .flatMap: perfs =>
+              perfs.rank(RankTrackId.xiangqi).filter(_.games > 0) match
+                case None => fuccess(XiangqiPersonalRank.Unplayed)
+                case Some(perf) => personalByCount(user, perf)
+
+  private def personalByCount(user: User, perf: lila.core.rank.RankPerf): Fu[XiangqiPersonalRank] =
+    val s = "ranks.xiangqi.s"
+    val la = "ranks.xiangqi.la"
+    val newer = perf.latest.fold($doc(la -> $doc("$ne" -> reactivemongo.api.bson.BSONNull)))(date =>
+      $doc(la -> $doc("$gt" -> date))
+    )
+    val equal = perf.latest.fold($doc(la -> reactivemongo.api.bson.BSONNull))(date => $doc(la -> date))
+    val higher = $doc(
+      "ranks.xiangqi.nb" -> $doc("$gt" -> 0),
+      "$or" -> List(
+        $doc(s -> $doc("$gt" -> perf.score.value)),
+        $doc(s -> perf.score.value) ++ newer,
+        $doc(s -> perf.score.value) ++ equal ++ $doc("_id" -> $doc("$lt" -> user.id))
+      )
+    )
+    val eligible = userRepo.enabledNoBotSelect ++ userRepo.markSelect(lila.core.user.UserMark.rankban)(false)
+    perfsRepo.coll
+      .aggregateOne(_.sec): framework =>
+        import framework.*
+        Match(higher) -> List(
+          PipelineOperator(
+            userRepo.withColl(c =>
+              $lookup.simple(
+                c,
+                "u",
+                "_id",
+                "_id",
+                List($doc("$match" -> eligible), $doc("$project" -> $doc("_id" -> 1)))
+              )
+            )
+          ),
+          UnwindField("u"),
+          PipelineOperator($doc("$count" -> "n"))
+        )
+      .map: doc =>
+        XiangqiPersonalRank.Ranked(
+          doc.flatMap(_.getAsOpt[Int]("n")).getOrElse(0) + 1,
+          LightRank(
+            user.light,
+            RankTrackId.xiangqi,
+            perf.score,
+            XiangqiRank.catalog.code(perf.score),
+            perf.progress
+          )
+        )

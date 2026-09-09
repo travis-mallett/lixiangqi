@@ -7,6 +7,7 @@ export interface EngineSettings {
   useCloud: boolean;
   showLinesPreview: boolean;
   depth: number;
+  arrowUpdates: number;
   multiPv: number;
   threads: number;
   hashSize: number;
@@ -29,6 +30,7 @@ export function loadEngineSettings(): EngineSettings {
     useCloud: true,
     showLinesPreview: true,
     depth: 20,
+    arrowUpdates: 4,
     multiPv: 3,
     threads: 2,
     hashSize: 64,
@@ -38,6 +40,7 @@ export function loadEngineSettings(): EngineSettings {
     useCloud: stored.useCloud !== false,
     showLinesPreview: stored.showLinesPreview !== false,
     depth: clampNumber(stored.depth, 10, 30, defaults.depth),
+    arrowUpdates: clampNumber(stored.arrowUpdates, 1, 4, defaults.arrowUpdates),
     multiPv: clampNumber(stored.multiPv, 1, 5, defaults.multiPv),
     threads: clampNumber(stored.threads, 1, 8, defaults.threads),
     hashSize: clampNumber(stored.hashSize, 16, 256, defaults.hashSize, 16),

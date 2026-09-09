@@ -1,3 +1,5 @@
+import { horizontalMoveListScrollPosition } from 'lib/view/horizontalMoveList';
+
 import { formatEvaluation } from './evaluation';
 import {
   canPromote,
@@ -39,12 +41,44 @@ export class AnalysisTreeView {
       return;
     }
 
+    if (isMobileAnalysisLayout()) {
+      this.renderHorizontalMoves(scrollToActive);
+      return;
+    }
+
     const fragment = document.createDocumentFragment();
     if (this.opts.tree().root.comments?.length) fragment.append(this.commentBlock(this.opts.tree().root));
     this.renderBranches(children, fragment, 0, true);
     this.opts.element.replaceChildren(fragment);
     if (scrollToActive)
       this.opts.element.querySelector<HTMLElement>('.active')?.scrollIntoView({ block: 'nearest' });
+  }
+
+  /**
+   * Mobile uses the same single-row, horizontally scrollable interaction as
+   * LiXiangQiTV. The shown line follows the selected variation, so navigating
+   * a variation never silently jumps back to the main line.
+   */
+  private renderHorizontalMoves(scrollToActive: boolean): void {
+    const list = document.createElement('div');
+    list.className = 'xiangqi-analysis__horizontal-moves';
+    const activePathParts = this.opts.activePath().split('.').filter(Boolean);
+    let children = this.opts.tree().root.children;
+    let depth = 0;
+    let firstInLine = true;
+
+    while (children.length) {
+      const node = children.find(candidate => candidate.id === activePathParts[depth]) ?? children[0];
+      list.append(this.moveButton(node, firstInLine));
+      children = node.children;
+      depth += 1;
+      firstInLine = false;
+    }
+
+    this.opts.element.replaceChildren(list);
+    const active = list.querySelector<HTMLElement>('.active');
+    if (scrollToActive && active)
+      this.opts.element.scrollLeft = horizontalMoveListScrollPosition(this.opts.element, active);
   }
 
   closeMenu(): void {
@@ -258,4 +292,8 @@ function moveMeta(node: XiangqiTreeNode): { mover: 'red' | 'black'; number: numb
   const fullmove = Number.parseInt(node.state.fen.trim().split(/\s+/)[5] ?? '1', 10);
   const number = mover === 'black' ? Math.max(1, fullmove - 1) : Math.max(1, fullmove);
   return { mover, number };
+}
+
+function isMobileAnalysisLayout(): boolean {
+  return window.matchMedia?.('(max-width: 799px)').matches ?? false;
 }

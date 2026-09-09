@@ -5,13 +5,16 @@ import { randomId } from 'lib/algo';
 import { PikafishBrowserEngine, type EngineAnalysis, type PikafishStatus } from 'lib/ceval';
 import { selectXiangqiNotation, type XiangqiNotationStyle } from 'lib/game';
 import { formatMs } from 'lib/game/clock/clockWidget';
+import { playMoveNavigationSound } from 'lib/game/replay/moveNavigationSound';
 import { isRecordedClockTimeline, type RecordedClockTimeline } from 'lib/game/replay/recordedClockPlayback';
 import { ShowResizeHandle } from 'lib/prefs';
 import { storage } from 'lib/storage';
 import stepwiseScroll from 'lib/view/stepwiseScroll';
 
+import { createArrowCadence } from './analysisArrowCadence';
 import { readAnalysisUrl } from './analysisHandoff';
 import { bindAnalysisInterfaceControls } from './analysisInterfaceControls';
+import { syncAnalysisLayout } from './analysisLayout';
 import {
   applyInterfaceSettingsClasses,
   ENGINE_SETTINGS_KEY,
@@ -120,6 +123,7 @@ const engineSettingsElement = requiredElement('#xiangqi-engine-settings');
 const engineUseCloudInput = requiredElement<HTMLInputElement>('#xiangqi-engine-use-cloud');
 const engineLinesPreviewInput = requiredElement<HTMLInputElement>('#xiangqi-engine-lines-preview');
 const engineDepthInput = requiredElement<HTMLInputElement>('#xiangqi-engine-depth');
+const engineArrowUpdatesInput = requiredElement<HTMLInputElement>('#xiangqi-engine-arrow-updates');
 const engineMultiPvInput = requiredElement<HTMLInputElement>('#xiangqi-engine-multipv');
 const engineThreadsInput = requiredElement<HTMLInputElement>('#xiangqi-engine-threads');
 const engineHashInput = requiredElement<HTMLInputElement>('#xiangqi-engine-hash');
@@ -128,8 +132,19 @@ const databaseExplorerButton = requiredElement<HTMLButtonElement>('#xiangqi-expl
 const analysisTabsElement = requiredElement('#xiangqi-analysis-tabs');
 
 const analysisPageElement = requiredElement('.xiangqi-analysis-page');
+const analysisPanelElement = requiredElement('.xiangqi-analysis-panel');
+const analysisBoardElement = requiredElement('.xiangqi-analysis-board');
 
 export default function init(bootstrap: AnalysisBootstrap = {}): void {
+  const mobileLayout = window.matchMedia('(max-width: 799px)');
+  const layout = {
+    page: analysisPageElement,
+    engine: engineElement,
+    panel: analysisPanelElement,
+    board: analysisBoardElement,
+  };
+  syncAnalysisLayout(layout, mobileLayout.matches);
+  mobileLayout.addEventListener('change', event => syncAnalysisLayout(layout, event.matches));
   void main(bootstrap).catch(error => {
     statusElement.textContent = error instanceof Error ? error.message : String(error);
     statusElement.classList.add('error');
@@ -218,6 +233,8 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
   let engineProgressDepth = 0;
   let previousEngineProgressPercent = 0;
   let engineSettings = loadEngineSettings();
+  const arrowCadence = createArrowCadence(engineSettings.depth, engineSettings.arrowUpdates);
+  let arrowPositionFen = '';
   let interfaceSettings = loadInterfaceSettings();
   const liveNotation = new Map<string, Promise<MoveResponse>>();
   const liveNotationValues = new Map<string, MoveResponse>();
@@ -357,6 +374,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     if (!tree.byPath.has(path)) return;
     const navigationTree = tree;
     const fromPath = activePath;
+    const origin = currentNode();
     const backwards = getNodeList(tree, path).length < getNodeList(tree, fromPath).length;
     activePath = path;
     const destination = currentNode();
@@ -365,9 +383,12 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     update(true, backwards);
     const playSound = () => {
       if (tree === navigationTree && activePath === path)
-        playXiangqiTransitionSound(navigationTree, fromPath, path);
+        playMoveNavigationSound(origin.state.ply, destination.state.ply, () =>
+          playXiangqiTransitionSound(navigationTree, fromPath, path),
+        );
     };
-    if (destination.state.needsHydration) void hydratePosition(destination).then(playSound);
+    if (destination.state.needsHydration && destination.state.ply === origin.state.ply + 1)
+      void hydratePosition(destination).then(playSound);
     else playSound();
   }
 
@@ -414,9 +435,13 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     if (document.activeElement !== notationInput)
       notationInput.value = renderXiangqiNotation(tree, initialFen);
     suggestions.setEvaluation(node.evaluation?.score);
-    if (!pending && !lineController && toolsFen !== state.fen) {
+    if (!pending && toolsFen !== state.fen) {
       toolsFen = state.fen;
-      void refreshTools(state, node);
+      if (lineController) {
+        arrowCadence.reset(Math.min(engineSettings.depth, 18), engineSettings.arrowUpdates);
+        arrowPositionFen = state.fen;
+        suggestions.setPosition(state.fen, moves => void onMoves(moves));
+      } else void refreshTools(state, node);
     }
     if (state.needsHydration) void hydratePosition(node);
   }
@@ -454,6 +479,8 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     explorerController = new AbortController();
     const position = { fen: state.fen };
     databaseExplorer.setPosition(position);
+    arrowCadence.reset(engineSettings.depth, engineSettings.arrowUpdates);
+    arrowPositionFen = state.fen;
     suggestions.setPosition(state.fen, moves => void onMoves(moves));
     engineProgressDepth = node.evaluation?.depth ?? 0;
     renderEngineProgress();
@@ -464,7 +491,9 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
       browserEngine.start({
         fen: state.fen,
         depth: engineSettings.depth,
-        multiPv: engineSettings.multiPv,
+        // A phone has room for, and needs, one principal variation. Requesting
+        // one also avoids spending local engine time on hidden alternatives.
+        multiPv: isMobileAnalysisLayout() ? 1 : engineSettings.multiPv,
         threads: engineSettings.threads,
         hashSize: engineSettings.hashSize,
         emit: (result, final) => {
@@ -472,6 +501,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
           engineProgressDepth = result.depth;
           renderEngineProgress();
           applyKnownLiveNotation(result, state.fen);
+          arrowCadence.accept(result, final);
           node.evaluation = summarizeEvaluation(result);
           suggestions.renderEngine(result, moves => void onMoves(moves));
           treeView.render({ scrollToActive: !isMobileAnalysisLayout() });
@@ -799,8 +829,12 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
       for (let index = 0; index < nodes.length; index++) {
         const node = nodes[index];
         if (node.state.gameResult !== '*') continue;
+        arrowCadence.reset(Math.min(engineSettings.depth, 18), engineSettings.arrowUpdates);
+        arrowPositionFen = node.state.fen;
+        renderSuggestionArrows();
         engineStatusElement.textContent = `Analysing selected line ${index + 1}/${nodes.length}…`;
-        const result = await analyseWithBrowser(node.state.fen, lineController.signal, snapshot => {
+        const result = await analyseWithBrowser(node.state.fen, lineController.signal, (snapshot, final) => {
+          if (node.path === activePath) arrowCadence.accept(snapshot, final);
           node.evaluation = summarizeEvaluation(snapshot);
           if (node.path === activePath) {
             suggestions.renderEngine(snapshot, moves => void onMoves(moves));
@@ -830,7 +864,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
   function analyseWithBrowser(
     fen: string,
     signal: AbortSignal,
-    onSnapshot: (analysis: EngineAnalysis) => void,
+    onSnapshot: (analysis: EngineAnalysis, final: boolean) => void,
   ): Promise<EngineAnalysis> {
     return new Promise((resolve, reject) => {
       const abort = () => {
@@ -846,7 +880,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
         hashSize: engineSettings.hashSize,
         emit: (analysis, final) => {
           if (signal.aborted) return;
-          onSnapshot(analysis);
+          onSnapshot(analysis, final);
           if (final) {
             signal.removeEventListener('abort', abort);
             resolve(analysis);
@@ -910,7 +944,8 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
       const cloudMove = suggestions.explorerResult?.available
         ? suggestions.explorerResult.moves[0]?.move
         : undefined;
-      const engineLine = suggestions.engineResult?.lines[0]?.pvMoves ?? [];
+      const engineLine =
+        arrowPositionFen === currentState().fen ? (arrowCadence.published?.lines[0]?.pvMoves ?? []) : [];
       const recommendedMoves = cloudMove
         ? engineLine[0] === cloudMove
           ? engineLine
@@ -970,6 +1005,11 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     toolsFen = '';
     update();
   });
+  window.matchMedia('(max-width: 799px)').addEventListener('change', () => {
+    toolsFen = '';
+    treeView.render();
+    update();
+  });
   engineSettingsButton.addEventListener('click', () => {
     const open = engineSettingsElement.hidden;
     engineSettingsElement.hidden = !open;
@@ -997,6 +1037,15 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
       toolsFen = '';
       update();
     });
+  });
+  engineArrowUpdatesInput.addEventListener('input', updateEngineSettingOutputs);
+  engineArrowUpdatesInput.addEventListener('change', () => {
+    engineSettings.arrowUpdates = Number(engineArrowUpdatesInput.value);
+    arrowCadence.configure(
+      lineController ? Math.min(engineSettings.depth, 18) : engineSettings.depth,
+      engineSettings.arrowUpdates,
+    );
+    localStorage.setItem(ENGINE_SETTINGS_KEY, JSON.stringify(engineSettings));
   });
   engineLinesPreviewInput.addEventListener('change', () => {
     suggestions.setPreviewEnabled(engineLinesPreviewInput.checked);
@@ -1164,6 +1213,7 @@ function applyEngineSettingsInputs(settings: EngineSettings): void {
   engineUseCloudInput.checked = settings.useCloud;
   engineLinesPreviewInput.checked = settings.showLinesPreview;
   engineDepthInput.value = String(settings.depth);
+  engineArrowUpdatesInput.value = String(settings.arrowUpdates);
   engineMultiPvInput.value = String(settings.multiPv);
   engineThreadsInput.value = String(settings.threads);
   engineHashInput.value = String(settings.hashSize);
@@ -1172,6 +1222,7 @@ function applyEngineSettingsInputs(settings: EngineSettings): void {
 
 function updateEngineSettingOutputs(): void {
   requiredElement('#xiangqi-engine-depth-value').textContent = engineDepthInput.value;
+  requiredElement('#xiangqi-engine-arrow-updates-value').textContent = engineArrowUpdatesInput.value;
   requiredElement('#xiangqi-engine-multipv-value').textContent = `${engineMultiPvInput.value} / 5`;
   requiredElement('#xiangqi-engine-threads-value').textContent = engineThreadsInput.value;
   requiredElement('#xiangqi-engine-hash-value').textContent = `${engineHashInput.value} MB`;
@@ -1182,6 +1233,7 @@ function engineSettingsFromInputs(): EngineSettings {
     useCloud: engineUseCloudInput.checked,
     showLinesPreview: engineLinesPreviewInput.checked,
     depth: Number(engineDepthInput.value),
+    arrowUpdates: Number(engineArrowUpdatesInput.value),
     multiPv: Number(engineMultiPvInput.value),
     threads: Number(engineThreadsInput.value),
     hashSize: Number(engineHashInput.value),

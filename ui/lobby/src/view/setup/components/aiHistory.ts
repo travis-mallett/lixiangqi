@@ -1,10 +1,10 @@
 import { h, type VNode } from 'snabbdom';
 
+import { aiLevelName } from 'lib/game';
+
 import type LobbyController from '@/ctrl';
 import type { AiStatsCounts } from '@/interfaces';
 import type SetupController from '@/setupCtrl';
-
-import { aiLevelName } from './levelButtons';
 
 const percent = (count: number, games: number) => `${games ? Math.round((count * 1000) / games) / 10 : 0}%`;
 

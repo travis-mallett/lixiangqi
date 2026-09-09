@@ -4,6 +4,12 @@
 
 @import 'xiangqi-pieces';
 
+// Hide the entire stack until its faces and shadow textures decode. Once
+// ready, normal visibility inheritance still governs hidden boards/tooltips.
+body:not(.piece-images-ready) .cg-wrap.xiangqi9x10 cg-board > piece {
+  visibility: hidden;
+}
+
 .main-board.xiangqi9x10 {
   padding-bottom: calc(10 * 100% / 9);
 }
@@ -15,9 +21,6 @@
 
 body .cg-wrap.xiangqi9x10 {
   container-type: inline-size;
-
-  --xiangqi-rest-shadow-image: url('../piece/effects/xiangqi-rest-shadow.png');
-  --xiangqi-airborne-shadow-image: url('../piece/effects/xiangqi-airborne-shadow.png');
 
   // Xiangqi board artwork defines its own edge treatment. Do not impose the
   // site's generic board rounding on top of the asset.

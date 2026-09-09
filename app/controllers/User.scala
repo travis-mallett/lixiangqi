@@ -241,9 +241,10 @@ final class User(
     env.user.xiangqiRankingApi.top(100).flatMap { leaderboard =>
       negotiate(
         html = for
+          personal <- ctx.user.traverse(env.user.xiangqiRankingApi.personal(_, leaderboard))
           topOnline <- env.user.cached.getTop50Online
           page <- renderPage:
-            views.user.list(topOnline, leaderboard)
+            views.user.list(topOnline, leaderboard, personal)
         yield Ok(page),
         json = JsonOk(Json.obj("xiangqi" -> leaderboard.map(env.user.jsonView.lightRankIsOnline)))
       )

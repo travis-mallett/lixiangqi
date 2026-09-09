@@ -1,5 +1,5 @@
 import { defined } from 'lib';
-import type { Player, TopOrBottom } from 'lib/game';
+import { aiLevelName, type Player, type TopOrBottom } from 'lib/game';
 import { licon } from 'lib/licon';
 import { wsAverageLag } from 'lib/socket';
 import { dataIcon, hl, type VNode } from 'lib/view';
@@ -96,5 +96,5 @@ export const userTxt = (player: Player): string =>
   player.user
     ? (player.user.title ? player.user.title + ' ' : '') + player.user.username
     : player.ai
-      ? i18n.site.aiNameLevelAiLevel('Pikafish', player.ai)
+      ? aiLevelName(player.ai)
       : i18n.site.anonymous;

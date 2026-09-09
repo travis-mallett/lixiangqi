@@ -37,6 +37,10 @@ interface Site {
   displayLocale: string; // file://./../../common/src/i18n.ts
   blindMode: boolean;
   load: Promise<void>; // DOMContentLoaded promise
+  pieceImages: {
+    ready: Promise<void>;
+    set(assets: Record<string, string>, key: string): Promise<void>;
+  };
   quantity(n: number): 'zero' | 'one' | 'two' | 'few' | 'many' | 'other';
   quietMode?: boolean;
   analysis?: any; // expose the analysis ctrl
@@ -93,6 +97,7 @@ type SoundMoveOpts = {
   check?: boolean;
   mate?: boolean;
   volume?: number;
+  board?: HTMLElement;
 };
 
 type SoundMove = (opts?: SoundMoveOpts) => void;

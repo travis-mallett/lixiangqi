@@ -1,5 +1,3 @@
-$user-list-width: 30ch;
-
 .community {
   display: grid;
   gap: 2rem;
@@ -52,45 +50,5 @@ $user-list-width: 30ch;
 
   &__leaders {
     grid-area: leaders;
-
-    .leaderboards {
-      @extend %box-radius;
-
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax($user-list-width, 1fr));
-
-      .user-top {
-        border: 1px solid rgb(from $c-brag r g b / calc(alpha * 0.5));
-      }
-
-      h2 {
-        @extend %flex-center-nowrap, %nowrap-hidden;
-
-        font-size: 1.45em;
-        line-height: 2.5em;
-        letter-spacing: 1px;
-        padding-inline-start: 0.8rem;
-        font-weight: 600;
-        margin: 0;
-        background: $c-brag;
-
-        &,
-        a {
-          color: #fff;
-        }
-
-        @include if-light {
-          background: $c-mistake;
-        }
-      }
-
-      li {
-        @include padding-direction(0.7rem, 1.2rem, 0.7rem, 0.5rem);
-      }
-
-      li:nth-child(even) {
-        background: $c-bg-zebra;
-      }
-    }
   }
 }

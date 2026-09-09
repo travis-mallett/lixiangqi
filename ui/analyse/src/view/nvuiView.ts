@@ -11,7 +11,7 @@ import { throttle } from 'lib/async';
 import { view as cevalView, renderEval } from 'lib/ceval';
 import { renderChat } from 'lib/chat/renderChat';
 import { isTouchDevice } from 'lib/device';
-import { type Player, plyOpponentColor } from 'lib/game';
+import { aiLevelName, type Player, plyOpponentColor } from 'lib/game';
 import { plyToTurn } from 'lib/game/chess';
 import {
   renderSan,
@@ -562,7 +562,7 @@ const requestAnalysisBtn = ({ ctrl, notify, analysisInProgress }: AnalyseNvuiCon
 };
 
 const renderPlayer = (ctrl: AnalyseCtrl, player: Player): LooseVNodes =>
-  player.ai ? i18n.site.aiNameLevelAiLevel('Pikafish', player.ai) : userHtml(ctrl, player);
+  player.ai ? aiLevelName(player.ai) : userHtml(ctrl, player);
 
 function userHtml(ctrl: AnalyseCtrl, player: Player) {
   const d = ctrl.data,

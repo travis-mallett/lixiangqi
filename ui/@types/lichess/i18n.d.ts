@@ -3291,6 +3291,10 @@ interface I18n {
     anotherWasX: I18nFormat;
     /** Submit */
     apply: string;
+    /** Arrow updates */
+    arrowUpdates: string;
+    /** Show arrows after depth 5, then at evenly spaced depths up to the target; 1 update shows arrows only at the final depth */
+    arrowUpdatesDescription: string;
     /** as black */
     asBlack: string;
     /** Your account is managed. Ask your Xiangqi teacher about removing kid mode. */
@@ -4009,6 +4013,8 @@ interface I18n {
     logInByEmail: string;
     /** Sign in to chat */
     loginToChat: string;
+    /** Login to see your ranking */
+    loginToSeeYourRanking: string;
     /** Sign out */
     logOut: string;
     /** Losing */
@@ -4343,6 +4349,8 @@ interface I18n {
     pieceSet: string;
     /** Pinned pieces */
     pinnedPieces: string;
+    /** Place */
+    place: string;
     /** Play */
     play: string;
     /** Play against computer */
@@ -4367,6 +4375,8 @@ interface I18n {
     playFirstOpeningEndgameExplorerMove: string;
     /** Playing right now */
     playingRightNow: string;
+    /** Play a rated game to get ranked */
+    playRatedGameToGetRanked: string;
     /** Play Rated Xiangqi */
     playRatedXiangqi: string;
     /** play selected move */
@@ -5055,6 +5065,12 @@ interface I18n {
     xHostsY: I18nFormat;
     /** Empty Xiangqi board, ready to play */
     xiangqiBoardReady: string;
+    /** Xiangqi rules */
+    xiangqiRules: string;
+    /** Lixiangqi default rules */
+    xiangqiRulesTiantian: string;
+    /** Unrestricted (no repetition adjudication) */
+    xiangqiRulesUnrestricted: string;
     /** %1$s invited you to "%2$s". */
     xInvitedYouToY: I18nFormat;
     /** %1$s is a free (%2$s), libre, no-ads, open source Xiangqi server. */
@@ -6319,24 +6335,62 @@ interface I18n {
     allNbVideoTags: I18nFormat;
     /** All videos are free for everyone. */
     allVideosAreFree: string;
+    /** Back to videos */
+    backToVideos: string;
+    /** Explore videos by level and topic. */
+    browseByLevel: string;
     /** Xiangqi videos */
     chessVideos: string;
+    /** Recommended order */
+    curatedOrder: string;
+    /** Edit tag */
+    editTag: string;
     /** Free Xiangqi videos */
     freeChessVideos: string;
     /** free for all */
     freeForAll: string;
+    /** Views count signed-in viewers on LiXiangQi. */
+    libraryViewsHelp: string;
+    /** Manage tags */
+    manageTags: string;
+    /** Most viewed on LiXiangQi */
+    mostViewed: string;
+    /** Move down */
+    moveDown: string;
+    /** Move up */
+    moveUp: string;
     /** %s videos found */
     nbVideosFound: I18nPlural;
     /** No videos for these tags: */
     noVideosForTheseTags: string;
+    /** Reorder videos */
+    reorderVideos: string;
+    /** Save order */
+    saveOrder: string;
+    /** See all */
+    seeAll: string;
     /** Select tags to filter the videos. */
     selectTagsToFilter: string;
+    /** Tag description */
+    tagDescription: string;
+    /** Arrange the sections on the Videos page. Drag rows by their handles or use the arrow buttons. Select a tag to edit its description and video order. */
+    tagOrderHelp: string;
     /** That's all we have for these tags: */
     thatsAllWeGotForTheseTags: string;
     /** That's all we have for this search: "%s" */
     thatsAllWeGotForThisSearchX: I18nFormat;
+    /** Title */
+    titleOrder: string;
+    /** Videos with an unknown upload date appear last. */
+    uploadDateHelp: string;
+    /** Upload date (newest) */
+    uploadNewest: string;
+    /** Upload date (oldest) */
+    uploadOldest: string;
     /** Video not found! */
     videoNotFound: string;
+    /** Set the recommended order within this tag. Drag rows by their handles or use the arrow buttons. */
+    videoOrderHelp: string;
     /** View more tags */
     viewMoreTags: string;
     /** We have carefully selected %s videos so far! */

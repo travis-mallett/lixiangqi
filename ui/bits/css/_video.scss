@@ -1,4 +1,10 @@
 .video {
+  min-width: 0;
+
+  .box__top {
+    flex-wrap: wrap;
+  }
+
   .box__top form {
     position: relative;
 
@@ -15,6 +21,147 @@
     overflow-x: auto;
   }
 
+  .page-menu__content {
+    min-width: 0;
+  }
+
+  &-home .page-menu__content {
+    width: 100%;
+  }
+
+  &-home-intro {
+    color: $c-font-dim;
+    padding-top: 0;
+  }
+
+  .video-section {
+    padding-top: $box-padding-vert;
+    padding-bottom: $box-padding-vert;
+    border-top: $border;
+
+    &__heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1em;
+      margin-bottom: 0.75em;
+
+      h2 {
+        margin: 0;
+        min-width: 0;
+        overflow-wrap: anywhere;
+        font-size: 1.5em;
+      }
+
+      h2 a {
+        color: $c-font;
+      }
+
+      .button {
+        flex-shrink: 0;
+      }
+    }
+
+    &__description {
+      color: $c-font-dim;
+      line-height: 1.5;
+      margin-bottom: 1.25em;
+      white-space: pre-line;
+      overflow-wrap: anywhere;
+    }
+
+    &__carousel {
+      --columns: 2;
+      --gap: #{$block-gap};
+
+      container-type: inline-size;
+      position: relative;
+
+      @media (min-width: $small) {
+        --columns: 4;
+      }
+
+      @media (min-width: $xx-large) {
+        --columns: 6;
+      }
+    }
+
+    .video-section__videos {
+      grid-template-columns: none;
+      grid-auto-flow: column;
+      grid-auto-columns: calc((100% - (var(--columns) - 1) * var(--gap)) / var(--columns));
+      gap: var(--gap);
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scroll-behavior: smooth;
+      scrollbar-width: none;
+      margin-bottom: 0;
+      padding-bottom: 4px;
+
+      .card {
+        scroll-snap-align: start;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        scroll-behavior: auto;
+      }
+    }
+
+    &__previous,
+    &__next {
+      @extend %button-shadow;
+
+      position: absolute;
+      top: calc((100cqw - (var(--columns) - 1) * var(--gap)) / var(--columns) * 9 / 32);
+      transform: translateY(-50%);
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 50%;
+      background: $c-bg-box;
+      color: $c-font;
+      z-index: 1;
+
+      &:hover {
+        background: $c-bg-zebra;
+      }
+
+      &[hidden] {
+        display: none;
+      }
+    }
+
+    &__previous {
+      left: max(-1.25rem, -1 * #{$box-padding});
+    }
+
+    &__next {
+      right: max(-1.25rem, -1 * #{$box-padding});
+    }
+  }
+
+  &-home-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75em;
+  }
+
+  .video-sort {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75em;
+
+    select {
+      max-width: 100%;
+    }
+
+    &__help {
+      margin-top: 0.75em;
+      color: $c-font-dim;
+    }
+  }
+
   .list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -27,6 +174,7 @@
     @include transition;
 
     position: relative;
+    min-width: 0;
     overflow: hidden;
     color: $c-font;
 
@@ -35,8 +183,8 @@
     }
 
     .img {
-      @extend %video;
-
+      display: block;
+      aspect-ratio: 16 / 9;
       background-size: cover;
       background-position: center;
 
@@ -1131,4 +1279,8 @@
       }
     }
   }
+}
+
+.video-admin .video-tag-reorder-list li {
+  grid-template-columns: auto minmax(0, 1fr) auto;
 }

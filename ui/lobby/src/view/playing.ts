@@ -1,3 +1,4 @@
+import { aiLevelName } from 'lib/game';
 import { timeago } from 'lib/i18n';
 import { hl, onInsert, initMiniBoard } from 'lib/view';
 
@@ -23,7 +24,7 @@ export default function (ctrl: LobbyController) {
           hook: onInsert(initMiniBoard),
         }),
         hl('span.meta', [
-          pov.opponent.ai ? i18n.site.aiNameLevelAiLevel('Pikafish', pov.opponent.ai) : pov.opponent.username,
+          pov.opponent.ai ? aiLevelName(pov.opponent.ai) : pov.opponent.username,
           hl(
             'span.indicator',
             pov.isMyTurn

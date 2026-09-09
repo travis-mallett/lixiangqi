@@ -1,6 +1,8 @@
 import type { GameData, Player } from './interfaces';
 import { finished, aborted, status } from './status';
 
+export { aiLevelName } from './aiLevel';
+
 export type * from './interfaces';
 export * from './sanWriter';
 export * from './chess';

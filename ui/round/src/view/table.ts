@@ -1,6 +1,14 @@
 import { h } from 'snabbdom';
 
-import { abortable, playable, drawableSwiss, resignable, takebackable, type TopOrBottom } from 'lib/game';
+import {
+  abortable,
+  aiLevelName,
+  playable,
+  drawableSwiss,
+  resignable,
+  takebackable,
+  type TopOrBottom,
+} from 'lib/game';
 import { renderAdjudication } from 'lib/game/view/adjudication';
 import { licon, type LiconValue } from 'lib/licon';
 import { type LooseVNodes, hl, bind, toggleButton as boardMenuToggleButton, dataIcon } from 'lib/view';
@@ -16,10 +24,7 @@ function renderPlayer(ctrl: RoundController, position: TopOrBottom) {
   if (ctrl.nvui) return undefined;
   const player = ctrl.playerAt(position);
   return player.ai
-    ? h('div.user-link.online.ruser.ruser-' + position, [
-        h('icon.line'),
-        h('name', i18n.site.aiNameLevelAiLevel('Pikafish', player.ai)),
-      ])
+    ? h('div.user-link.online.ruser.ruser-' + position, [h('icon.line'), h('name', aiLevelName(player.ai))])
     : userHtml(ctrl, player, position);
 }
 

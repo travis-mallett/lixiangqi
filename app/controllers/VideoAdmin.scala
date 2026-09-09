@@ -13,6 +13,70 @@ final class VideoAdmin(env: Env) extends LilaController(env):
   private val api = env.video.api
   private val adminApi = env.video.adminApi
   private val reorderForm = Form(single("order" -> nonEmptyText(maxLength = 100_000)))
+  private val tagForm = Form(
+    tuple("description" -> text(maxLength = 2000), "order" -> text(maxLength = 100_000))
+  )
+
+  def tags = Secure(_.ManageVideos) { _ ?=> _ ?=>
+    Ok.async(api.tag.all.map(views.videoAdmin.tags))
+  }
+
+  def tagsReorder = SecureBody(_.ManageVideos) { _ ?=> me ?=>
+    bindForm(reorderForm)(
+      _ => Redirect(routes.VideoAdmin.tags).flashFailure("Invalid tag order."),
+      order =>
+        adminApi
+          .reorderTags(order.split(',').map(_.trim).filter(_.nonEmpty).toList)
+          .flatMap:
+            case Left(error) => fuccess(Redirect(routes.VideoAdmin.tags).flashFailure(error))
+            case Right(_) =>
+              env.mod.logApi
+                .video(Modlog.videoReorder, "tags", order)
+                .inject(Redirect(routes.VideoAdmin.tags))
+    )
+  }
+
+  def tagEdit(tag: String) = Secure(_.ManageVideos) { _ ?=> _ ?=>
+    Found(api.tag.find(tag)): category =>
+      api.video.publishedForReorder.flatMap: all =>
+        val videos = all.filter(_.tags.contains(tag))
+        val positions = category.videoIds.zipWithIndex.toMap
+        val ordered = videos.sortBy(v => positions.getOrElse(v.id, Int.MaxValue))
+        Ok.page(
+          views.videoAdmin
+            .tagEdit(category, tagForm.fill(category.description -> ordered.map(_.id).mkString(",")), ordered)
+        )
+  }
+
+  def tagUpdate(tag: String) = SecureBody(_.ManageVideos) { _ ?=> me ?=>
+    Found(api.tag.find(tag)): category =>
+      bindForm(tagForm)(
+        invalid =>
+          BadRequest.async(
+            api.video.publishedForReorder.map(videos =>
+              views.videoAdmin.tagEdit(category, invalid, videos.filter(_.tags.contains(tag)))
+            )
+          ),
+        (description, order) =>
+          adminApi
+            .saveTag(tag, description.trim, order.split(',').map(_.trim).filter(_.nonEmpty).toList)
+            .flatMap:
+              case Left(error) =>
+                BadRequest.async(
+                  api.video.publishedForReorder.map(videos =>
+                    views.videoAdmin.tagEdit(
+                      category,
+                      tagForm.fill(description -> order).withGlobalError(error),
+                      videos.filter(_.tags.contains(tag))
+                    )
+                  )
+                )
+              case Right(_) =>
+                env.mod.logApi
+                  .video(Modlog.videoEdit, s"tag:$tag", description)
+                  .inject(Redirect(routes.VideoAdmin.tags))
+      )
+  }
 
   def index(page: Int) = Secure(_.ManageVideos) { _ ?=> _ ?=>
     val status = get("status").flatMap(VideoStatus.byKey)

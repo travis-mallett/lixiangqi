@@ -1,6 +1,6 @@
 import { h, thunk, type VNode } from 'snabbdom';
 
-import { getPlayer } from 'lib/game';
+import { aiLevelName, getPlayer } from 'lib/game';
 import { licon } from 'lib/licon';
 import { bind, dataIcon, onInsert } from 'lib/view';
 import { ratingDiff } from 'lib/view/userLink';
@@ -29,7 +29,7 @@ const renderPlayer = ({ data, study }: AnalyseCtrl, color: Color): VNode => {
   return h(
     'span',
     player.name ||
-      (player.ai && 'Pikafish level ' + player.ai) ||
+      (player.ai && aiLevelName(player.ai)) ||
       (study && findTag(study.data.chapter.tags, color)) ||
       'Anonymous',
   );

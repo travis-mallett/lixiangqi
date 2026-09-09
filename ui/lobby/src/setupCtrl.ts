@@ -39,6 +39,7 @@ export default class SetupController {
   aiLevel: Prop<number>;
 
   variantMenuOpen = toggle(false);
+  rulesetMenuOpen = toggle(false);
 
   timeControl: TimeControl;
 
@@ -152,6 +153,7 @@ export default class SetupController {
     this.lastValidFen = '';
     this.friendUser = friendUser || '';
     this.variantMenuOpen(false);
+    this.rulesetMenuOpen(false);
     this.forced = forceOptions;
     this.loadPropsFromStore(forceOptions);
     if (gameType === 'ai') void this.loadAiStats();
@@ -189,6 +191,11 @@ export default class SetupController {
 
   toggleVariantMenu = () => {
     this.variantMenuOpen.toggle();
+    this.root.redraw();
+  };
+
+  toggleRulesetMenu = () => {
+    this.rulesetMenuOpen.toggle();
     this.root.redraw();
   };
 

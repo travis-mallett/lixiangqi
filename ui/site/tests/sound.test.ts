@@ -102,6 +102,38 @@ test('move-event playback launches Xiangqi board animations independently of aud
   }
 });
 
+test('move-event playback targets an explicitly selected Xiangqi board', async () => {
+  const soundWasEnabled = sound.isSoundEnabled();
+  const throttled = sound.throttled;
+  const first = document.createElement('div');
+  const selected = document.createElement('div');
+  first.className = selected.className = 'cg-wrap xiangqi9x10';
+  document.body.append(first, selected);
+  Object.assign(site, { asset: { url: (path: string) => `/assets/${path}` } });
+
+  try {
+    sound.setSoundEnabled(false);
+    sound.throttled = (name, volume, board) => void sound.play(name, volume, board);
+    const eventFlags = {
+      capture: { capture: true },
+      check: { check: true },
+      checkmate: { mate: true },
+    } as const;
+    for (const event of ['capture', 'check', 'checkmate'] as const) {
+      await sound.move({ ...eventFlags[event], board: selected });
+      assert.equal(first.querySelector('.xiangqi-board-animation'), null);
+      assert.ok(selected.querySelector(`.xiangqi-board-animation--${event}`));
+    }
+  } finally {
+    sound.throttled = throttled;
+    stopXiangqiBoardAnimation(first);
+    stopXiangqiBoardAnimation(selected);
+    first.remove();
+    selected.remove();
+    sound.setSoundEnabled(soundWasEnabled);
+  }
+});
+
 test('disabling board animations does not disable checkmate audio', async () => {
   const soundWasEnabled = sound.isSoundEnabled();
   const soundSet = sound.soundSet;

@@ -2,7 +2,7 @@ package views
 
 import play.api.libs.json.{ JsString, Json }
 
-import lila.app.UiEnv.*
+import lila.app.UiEnv.{ *, given }
 
 object xiangqi:
 
@@ -839,6 +839,15 @@ object xiangqi:
                   span("Search depth"),
                   input(id := "xiangqi-engine-depth", tpe := "range", min := 10, max := 30, value := 20),
                   span(id := "xiangqi-engine-depth-value", cls := "xiangqi-engine-settings__value")("20")
+                ),
+                label(
+                  attr("title") := trans.site.arrowUpdatesDescription.txt()
+                )(
+                  span(trans.site.arrowUpdates.txt()),
+                  input(id := "xiangqi-engine-arrow-updates", tpe := "range", min := 1, max := 4, value := 4),
+                  span(id := "xiangqi-engine-arrow-updates-value", cls := "xiangqi-engine-settings__value")(
+                    "4"
+                  )
                 ),
                 label(
                   span("Multiple lines"),

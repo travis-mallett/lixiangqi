@@ -105,6 +105,27 @@ $c-slider: $c-setup;
     background: $c-bg-zebra;
   }
 
+  .advanced-settings {
+    @extend %box-radius;
+
+    border: $border;
+    background: $c-bg-low;
+
+    summary {
+      padding: 0.8rem 1rem;
+      cursor: pointer;
+      color: $c-font-clear;
+      font-weight: 600;
+    }
+
+    &__content {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      padding: 0 1rem 1rem;
+    }
+  }
+
   .disabled {
     opacity: 0.4;
     cursor: default !important;

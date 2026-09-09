@@ -2,7 +2,14 @@ import { Chessground } from 'chessgroundx/chessground';
 import type { Key, Piece, Pieces } from 'chessgroundx/types';
 import { opposite } from 'chessops';
 
-import { type Player, type TopOrBottom, playable, xiangqiCgToUci, xiangqiUciMoveToCg } from 'lib/game';
+import {
+  aiLevelName,
+  type Player,
+  type TopOrBottom,
+  playable,
+  xiangqiCgToUci,
+  xiangqiUciMoveToCg,
+} from 'lib/game';
 import { plyToTurn } from 'lib/game/chess';
 import { renderClock } from 'lib/game/clock/clockView';
 import { renderSetting } from 'lib/nvui/setting';
@@ -287,7 +294,7 @@ function anyClock(ctrl: RoundController, position: TopOrBottom): VNode | undefin
 }
 
 function playerHtml(player: Player): VNode | string {
-  if (player.ai) return i18n.site.aiNameLevelAiLevel('Pikafish', player.ai);
+  if (player.ai) return aiLevelName(player.ai);
   const user = player.user;
   const rank = player.rank ?? user?.rank ?? user?.perfs.xiangqi?.rank;
   if (!user) return i18n.site.anonymous;

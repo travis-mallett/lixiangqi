@@ -55,7 +55,7 @@ final class TopNav(helpers: Helpers):
               a(href := routes.Learn.ancientManuals)(
                 if ctx.lang.language == "zh" then "古谱" else "Ancient Manuals"
               ),
-              a(href := routes.Learn.xiangqiRankings)("About Xiangqi Rankings"),
+              a(href := routes.Learn.xiangqiRankings)("Ranking System"),
               a(href := routes.Learn.specialRules)(if ctx.lang.language == "zh" then "特殊规则"
               else "Special Rules")
             )

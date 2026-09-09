@@ -12,6 +12,7 @@ import lila.core.config.*
 private final class VideoConfig(
     @ConfigName("collection.video") val videoColl: CollName,
     @ConfigName("collection.view") val viewColl: CollName,
+    @ConfigName("collection.tag") val tagColl: CollName,
     @ConfigName("youtube.url") val youtubeUrl: String,
     @ConfigName("youtube.api_key") val youtubeApiKey: Secret,
     @ConfigName("metadata.refresh_max") val metadataRefreshMax: Max,
@@ -32,7 +33,8 @@ final class Env(
   lazy val api = VideoApi(
     cacheApi = cacheApi,
     videoColl = db(config.videoColl),
-    viewColl = db(config.viewColl)
+    viewColl = db(config.viewColl),
+    tagColl = db(config.tagColl)
   )
 
   private lazy val youtube = YoutubeProvider(

@@ -11,6 +11,7 @@ test('special rules initializes independent authoritative widgets', async () => 
     { id: 'three-piece-check', endpoint: '/special/three/', length: 37 },
   ];
   const requests: Array<{ id: string; url: string; ply: number }> = [];
+  const soundMoves: Array<{ board?: HTMLElement } | undefined> = [];
   const boardState = new Map<string, string>();
   const failTwoAt = 5;
   mock.module(indexUrl, {
@@ -49,7 +50,10 @@ test('special rules initializes independent authoritative widgets', async () => 
       script: scriptFor(example.length),
     };
   };
-  globalThis.site = { asset: { loadPieces: Promise.resolve() }, sound: { move: () => {} } } as any;
+  globalThis.site = {
+    asset: { loadPieces: Promise.resolve() },
+    sound: { move: (options?: { board?: HTMLElement }) => soundMoves.push(options) },
+  } as any;
   window.matchMedia = globalThis.matchMedia;
   globalThis.fetch = mock.fn(async (url: string) => {
     const match = examples.find(example => url.startsWith(example.endpoint));
@@ -129,10 +133,19 @@ test('special rules initializes independent authoritative widgets', async () => 
     [...controls.querySelectorAll<HTMLElement>('.jumps button')].map(button => button.dataset.act),
     ['first', 'prev', 'next', 'last'],
   );
-  single.querySelector<HTMLElement>('[data-move-ply="5"]')!.click();
+  single.querySelector<HTMLElement>('[data-move-ply="1"]')!.click();
   await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(soundMoves.at(-1)?.board, single.querySelector('.cg-wrap'));
   assert.equal(measuredMoves.scrollTop, 70);
   assert.equal(measuredMoves.scrollLeft, 70);
+  const soundsBeforeRewind = soundMoves.length;
+  const previousFromOne = single.querySelector<HTMLButtonElement>('[data-act="prev"]')!;
+  window.HTMLElement.prototype.releasePointerCapture = () => {};
+  previousFromOne.dispatchEvent(new window.Event('pointerdown', { bubbles: true }));
+  previousFromOne.dispatchEvent(new window.Event('pointerup', { bubbles: true, cancelable: true }));
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(soundMoves.length, soundsBeforeRewind + 1);
+  assert.equal(soundMoves.at(-1), undefined);
   const ids = [...document.querySelectorAll<HTMLElement>('[id]')].map(element => element.id);
   assert.equal(new Set(ids).size, ids.length);
 
@@ -145,6 +158,9 @@ test('special rules initializes independent authoritative widgets', async () => 
   );
   assertUnchanged(beforeTwoFailure);
   const beforeThreeMove = snapshotOthers('three-piece-check');
+  roots.get('three-piece-check')!.querySelector<HTMLElement>('[data-move-ply="1"]')!.click();
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(soundMoves.at(-1)?.board, roots.get('three-piece-check')!.querySelector('.cg-wrap'));
   roots.get('three-piece-check')!.querySelector<HTMLElement>('[data-move-ply="5"]')!.click();
   await new Promise(resolve => setTimeout(resolve, 0));
   assert.equal(boardState.get('three-piece-check'), 'three-piece-check-server-5');

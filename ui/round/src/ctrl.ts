@@ -21,6 +21,7 @@ import { plyToTurn, plyColor } from 'lib/game/chess';
 import { ClockCtrl, type ClockOpts } from 'lib/game/clock/clockCtrl';
 import type { MoveRootCtrl } from 'lib/game/moveRootCtrl';
 import { PromotionCtrl } from 'lib/game/promotion';
+import { playMoveNavigationSound } from 'lib/game/replay/moveNavigationSound';
 import {
   isRecordedClockTimeline,
   RecordedClockPlayback,
@@ -226,9 +227,9 @@ export default class RoundController implements MoveRootCtrl {
 
   jump = (ply: Ply): boolean => {
     ply = Math.max(util.firstPly(this.data), Math.min(this.lastPly(), ply));
-    const isForwardStep = ply === this.ply + 1;
     const isBackward = ply < this.ply;
     const previousFen = this.stepAt(this.ply).fen;
+    const previousPly = this.ply;
     this.ply = ply;
     const s = this.stepAt(ply),
       config: XiangqiGroundConfig = {
@@ -246,11 +247,13 @@ export default class RoundController implements MoveRootCtrl {
       };
     this.chessground.cancelMove();
     this.chessground.set(config, isBackward ? { animation: 'slide' } : undefined);
-    if (s.san && isForwardStep)
-      site.sound.move({
-        ...s,
-        capture: s.capture ?? isXiangqiCapture(previousFen, s.fen),
-      });
+    playMoveNavigationSound(previousPly, ply, () => {
+      if (s.san)
+        site.sound.move({
+          ...s,
+          capture: s.capture ?? isXiangqiCapture(previousFen, s.fen),
+        });
+    });
     this.autoScroll();
     pubsub.emit('ply', ply);
     this.pluginUpdate(s.fen);

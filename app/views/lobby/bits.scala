@@ -12,22 +12,48 @@ object bits:
 
   def homepageLeaderboard(
       leaderboard: List[lila.core.user.LightRank],
-      flags: Map[UserId, lila.core.user.FlagCode]
+      flags: Map[UserId, lila.core.user.FlagCode],
+      personal: Option[lila.user.XiangqiPersonalRank],
+      showMoreLink: Boolean = true
   )(using ctx: Context) =
+    val ranked = personal.collect { case lila.user.XiangqiPersonalRank.Ranked(place, entry) =>
+      place -> entry
+    }
+    val extra = ranked.filterNot((_, entry) => leaderboard.exists(_.user.id == entry.user.id))
+    def row(entry: lila.core.user.LightRank, place: Int) =
+      tr(cls := ranked.exists(_._2.user.id == entry.user.id).option("is-me"))(
+        td(cls := "lobby__leaderboard__user")(
+          lightUserLink(entry.user, truncate = 18.some),
+          flags
+            .get(entry.user.id)
+            .map(code =>
+              img(
+                cls := "flag",
+                src := assetUrl(s"flags/${code.value}.webp"),
+                alt := "",
+                aria.hidden := "true"
+              )
+            )
+        ),
+        td(cls := "lobby__leaderboard__rating")(entry.score.value),
+        td(cls := "lobby__leaderboard__rank")(entry.rank.value),
+        td(cls := "lobby__leaderboard__place")(place.toString)
+      )
     st.section(cls := "lobby__leaderboard lobby__box")(
       header(cls := "lobby__leaderboard__header")(
         h2(
           span(cls := "lobby__leaderboard__icon", aria.hidden := true),
           "Leaderboard"
         ),
-        a(cls := "more", href := routes.User.list)("More ›")
+        showMoreLink.option(a(cls := "more", href := routes.User.list)("More ›"))
       ),
       div(cls := "lobby__leaderboard__scroll")(
         table(
           colgroup(
             col(cls := "lobby__leaderboard__player-column"),
             col(cls := "lobby__leaderboard__rating-column"),
-            col(cls := "lobby__leaderboard__rank-column")
+            col(cls := "lobby__leaderboard__rank-column"),
+            col(cls := "lobby__leaderboard__place-column")
           ),
           thead(
             tr(
@@ -63,27 +89,14 @@ object bits:
                     attr("aria-describedby") := "xiangqi-rank-help"
                   )
                 )
-              )
+              ),
+              th(cls := "lobby__leaderboard__place-heading", attr("scope") := "col")(trans.site.place())
             )
           ),
           tbody(
-            leaderboard.map: entry =>
-              tr(
-                td(cls := "lobby__leaderboard__user")(
-                  lightUserLink(entry.user, truncate = 18.some),
-                  flags
-                    .get(entry.user.id)
-                    .map: code =>
-                      img(
-                        cls := "flag",
-                        src := assetUrl(s"flags/${code.value}.webp"),
-                        alt := "",
-                        aria.hidden := "true"
-                      )
-                ),
-                td(cls := "lobby__leaderboard__rating")(entry.score.value),
-                td(cls := "lobby__leaderboard__rank")(entry.rank.value)
-              )
+            leaderboard.zipWithIndex.map((entry, index) => row(entry, index + 1)),
+            extra.nonEmpty.option(tr(cls := "lobby__leaderboard__ellipsis")(td(attr("colspan") := 4)("…"))),
+            extra.map((place, entry) => row(entry, place))
           )
         )
       ),
@@ -125,7 +138,19 @@ object bits:
         p(cls := "lobby__leaderboard__rating-more")(
           a(href := routes.Learn.xiangqiRankings)("Learn More")
         )
-      )
+      ),
+      personal match
+        case None =>
+          p(cls := "lobby__leaderboard__footer")(
+            a(href := s"${routes.Auth.login.url}?referrer=${ctx.req.path}")(
+              trans.site.loginToSeeYourRanking()
+            )
+          )
+        case Some(lila.user.XiangqiPersonalRank.Unplayed) =>
+          p(cls := "lobby__leaderboard__footer")(
+            a(href := routes.Round.matchmaking("15+0-m90-30x3"))(trans.site.playRatedGameToGetRanked())
+          )
+        case _ => emptyFrag
     )
 
   def showUnreadLichessMessage(using Context) =

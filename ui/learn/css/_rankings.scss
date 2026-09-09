@@ -176,6 +176,8 @@
   }
 
   &__table-wrap {
+    width: 17rem;
+    max-width: 100%;
     margin-top: 1.45rem;
     border: $border;
     border-radius: 6px;
@@ -184,15 +186,16 @@
 
   &__table {
     width: 100%;
+    table-layout: fixed;
     border-collapse: collapse;
     font-variant-numeric: tabular-nums;
 
     caption {
-      padding: 0 0 0.5rem;
+      padding: 0 0.5rem 0.5rem;
       color: $c-font-clear;
       font-size: 1.25rem;
       font-weight: 700;
-      text-align: start;
+      text-align: center;
     }
 
     th,
@@ -210,6 +213,7 @@
     }
 
     .xiangqi-rankings__rating-column {
+      width: 6rem;
       text-align: end;
     }
 
@@ -219,6 +223,61 @@
 
     tbody tr:last-child td {
       border-bottom: 0;
+    }
+
+    &--nested {
+      width: 100%;
+      table-layout: fixed;
+
+      tbody tr:nth-child(odd) {
+        background: color-mix(in oklab, $c-bg-zebra 65%, transparent);
+      }
+
+      tbody tr:nth-child(even) {
+        background: transparent;
+      }
+    }
+  }
+
+  &__collapsed-row {
+    > td {
+      padding: 0;
+    }
+  }
+
+  &__collapsed {
+    summary {
+      padding: 0.65rem 0.75rem;
+      color: $c-primary;
+      cursor: pointer;
+      font-weight: 700;
+      white-space: nowrap;
+
+      small {
+        display: block;
+        margin-inline-start: 1rem;
+        color: $c-font-dim;
+        font-weight: normal;
+      }
+
+      &:hover,
+      &:focus-visible {
+        background: color-mix(in oklab, $c-primary 7%, transparent);
+      }
+    }
+
+    .xiangqi-rankings__hide-ranks {
+      display: none;
+    }
+
+    &[open] {
+      .xiangqi-rankings__show-ranks {
+        display: none;
+      }
+
+      .xiangqi-rankings__hide-ranks {
+        display: inline;
+      }
     }
   }
 

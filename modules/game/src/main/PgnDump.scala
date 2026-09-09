@@ -7,7 +7,7 @@ import chess.{ ByColor, Centis, Color, Outcome, Ply, Tree }
 import lila.core.LightUser
 import lila.core.config.RouteUrl
 import lila.core.game.PgnDump.WithFlags
-import lila.core.game.{ Game, Player }
+import lila.core.game.{ AiLevel, Game, Player }
 import lila.game.Player.nameSplit
 import lila.core.rank.RankTrackId.*
 
@@ -61,7 +61,7 @@ final class PgnDump(
   def player(p: Player, u: Option[LightUser]): String | UserName =
     p.aiLevel.fold(
       u.fold(p.nameSplit.map(_._1.value).orElse(p.name.map(_.value)) | UserName.anonymous)(_.name)
-    )("lichess AI level " + _)
+    )(AiLevel.displayName)
 
   private def eventOf(game: Game) =
     game.tournamentId
