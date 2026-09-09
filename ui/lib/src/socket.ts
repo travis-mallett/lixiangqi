@@ -1,3 +1,4 @@
+import { randomToken } from './algo';
 import { idleTimer } from './event';
 import { defined, myUserId } from './index';
 import { log } from './permalog';
@@ -6,6 +7,11 @@ import { storage, once, type LichessStorage } from './storage';
 import * as xhr from './xhr';
 
 let siteSocket: WsSocket | undefined;
+let currentActivity: string | undefined;
+let currentActivityGroup: string | undefined;
+const visitorStorage = storage.make('presence.visitor');
+const visitorId = visitorStorage.get() ?? randomToken();
+if (!visitorStorage.get()) visitorStorage.set(visitorId);
 
 export function eventuallySetupDefaultConnection(): void {
   setTimeout(() => {
@@ -72,6 +78,13 @@ export function wsDestroy(): void {
   siteSocket = undefined;
 }
 
+export function wsSetActivity(activity?: string, group?: string): void {
+  if (currentActivity === activity && currentActivityGroup === group) return;
+  currentActivity = activity;
+  currentActivityGroup = group;
+  siteSocket?.send('presence', { activity: activity ?? null, group: group ?? null }, {}, true);
+}
+
 export function wsSend(t: string, d?: any, o?: SocketSendOpts, noRetry?: boolean): void {
   siteSocket?.send(t, d, o, noRetry);
 }
@@ -136,6 +149,7 @@ class WsSocket {
       events: settings.events || {},
       params: {
         sri: site.sri,
+        visitor: visitorId,
         from: 'website',
         ...settings.params,
       },
@@ -154,6 +168,8 @@ class WsSocket {
     this.destroy();
     this.lastUrl = xhr.url(this.options.protocol + '//' + this.nextBaseUrl() + this.url, {
       ...this.settings.params,
+      activity: currentActivity,
+      activityGroup: currentActivityGroup,
       v: this.version === false ? undefined : this.version,
     });
     this.debug('connection attempt to ' + this.lastUrl);
@@ -170,6 +186,12 @@ class WsSocket {
         cl.add('online');
         this.onSuccess();
         this.pingNow();
+        this.send(
+          'presence',
+          { activity: currentActivity ?? null, group: currentActivityGroup ?? null },
+          {},
+          true,
+        );
         this.resendWhenOpen.forEach(([t, d, o]) => this.send(t, d, o));
         this.resendWhenOpen = [];
         pubsub.emit('socket.open');

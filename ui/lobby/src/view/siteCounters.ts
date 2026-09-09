@@ -1,5 +1,5 @@
 import { numberFormat } from 'lib/i18n';
-import { hl, onInsert } from 'lib/view';
+import { hl } from 'lib/view';
 
 import type LobbyController from '@/ctrl';
 
@@ -11,7 +11,6 @@ export default function siteCounters(ctrl: LobbyController) {
     english: string,
     options: {
       href?: string;
-      onInsert?: (element: HTMLElement) => void;
       online?: boolean;
       wide?: boolean;
     } = {},
@@ -22,14 +21,7 @@ export default function siteCounters(ctrl: LobbyController) {
       {
         attrs: options.href ? { href: options.href } : {},
       },
-      [
-        hl(
-          'strong',
-          options.onInsert ? { hook: onInsert<HTMLElement>(element => options.onInsert?.(element)) } : {},
-          numberFormat(value),
-        ),
-        hl('span.lobby__label-en', english),
-      ],
+      [hl('strong', {}, numberFormat(value)), hl('span.lobby__label-en', english)],
     );
   };
 
@@ -37,15 +29,9 @@ export default function siteCounters(ctrl: LobbyController) {
     counter(members, 'Players online', {
       href: '/player',
       online: true,
-      onInsert: element => {
-        ctrl.spreadPlayersNumber = ctrl.initNumberSpreader(element, 10, members);
-      },
     }),
     counter(rounds, 'Games in play', {
       href: '/games',
-      onInsert: element => {
-        ctrl.spreadGamesNumber = ctrl.initNumberSpreader(element, 8, rounds);
-      },
     }),
     ...(stats
       ? [

@@ -1,7 +1,8 @@
 import { pubsub } from 'lib/pubsub';
-import { wsConnect, wsPingInterval } from 'lib/socket';
+import { wsConnect } from 'lib/socket';
 import * as xhr from 'lib/xhr';
 
+import { applyCounterSnapshot } from './counterSnapshot';
 import type { LobbyOpts } from './interfaces';
 import main from './main';
 
@@ -13,11 +14,8 @@ export function initModule(opts: LobbyOpts) {
     options: { reloadOnResume: true },
     receive: (t: string, d: any) => lobbyCtrl.socket.receive(t, d),
     events: {
-      n(_: string, msg: any) {
-        lobbyCtrl.data.counters.members = msg.d;
-        lobbyCtrl.data.counters.rounds = msg.r;
-        lobbyCtrl.spreadPlayersNumber?.(msg.d);
-        setTimeout(() => lobbyCtrl.spreadGamesNumber?.(msg.r), wsPingInterval() / 2);
+      counters(snapshot: any) {
+        applyCounterSnapshot(lobbyCtrl.data, snapshot);
         lobbyCtrl.redraw();
       },
       reload_timeline() {

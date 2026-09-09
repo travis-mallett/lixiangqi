@@ -8,7 +8,6 @@ import play.api.mvc.*
 import lila.app.{ *, given }
 import lila.core.i18n.Language
 import lila.core.id.PuzzleId
-import lila.core.socket.Sri
 import lila.puzzle.{
   Puzzle as Puz,
   PuzzleAngle,
@@ -82,12 +81,6 @@ final class Puzzle(env: Env, apiC: => Api) extends LilaController(env):
         yield JsonOk(json)
 
   def home = Open(serveHome)
-
-  def presence(sri: Sri) = Open:
-    if HTTPRequest.isXhr(ctx.req) then
-      env.lobby.socket.registerPuzzlePlayer(sri, ctx.userId)
-      NoContent
-    else BadRequest
 
   def homeLang = LangPage(routes.Puzzle.home.url)(serveHome)
 

@@ -235,6 +235,8 @@ $python = Join-Path $projectRoot '.venv\Scripts\python.exe'
 $pikafish = Join-Path $toolsDir 'pikafish\Windows\pikafish-avx2.exe'
 $lilaWsDir = Join-Path $toolsDir 'lila-ws'
 $lilaWsPatch = Join-Path $PSScriptRoot 'lila-ws-xiangqi.patch'
+$lilaWsPrepare = Join-Path $PSScriptRoot 'Prepare-LilaWs.ps1'
+$lilaWsMarker = Join-Path $dataDir 'lila-ws-applied.patch'
 $lilaWsConf = Join-Path $PSScriptRoot 'lila-ws.conf'
 $lilaWsCommit = 'cd3e2e9e5a38be76d89fa76136940f6a5c086437'
 
@@ -251,6 +253,7 @@ if ($LASTEXITCODE) {
   if ($LASTEXITCODE) { throw 'Python dependency installation failed.' }
 }
 if (-not (Test-Path $lilaWsPatch)) { throw 'The Xiangqi lila-ws patch is missing.' }
+if (-not (Test-Path $lilaWsPrepare)) { throw 'The lila-ws preparation helper is missing.' }
 if (-not (Test-Path $lilaWsConf)) { throw 'The local lila-ws configuration is missing.' }
 if (-not (Test-Path $pikafish)) {
   Write-Step 'Installing the official Pikafish Xiangqi analysis engine'
@@ -270,13 +273,8 @@ $installedLilaWsCommit = (& git -C $lilaWsDir rev-parse HEAD).Trim()
 if ($installedLilaWsCommit -ne $lilaWsCommit) {
   throw "Unexpected lila-ws revision $installedLilaWsCommit. Expected $lilaWsCommit."
 }
-& git -C $lilaWsDir apply --reverse --check $lilaWsPatch 2>$null
-if ($LASTEXITCODE -ne 0) {
-  & git -C $lilaWsDir apply --check $lilaWsPatch
-  if ($LASTEXITCODE) { throw 'The Xiangqi lila-ws patch does not apply cleanly.' }
-  & git -C $lilaWsDir apply $lilaWsPatch
-  if ($LASTEXITCODE) { throw 'Could not apply the Xiangqi lila-ws patch.' }
-}
+& $lilaWsPrepare -Source $lilaWsDir -Patch $lilaWsPatch -Commit $lilaWsCommit -Marker $lilaWsMarker
+if ($LASTEXITCODE) { throw 'Could not prepare the Xiangqi lila-ws source.' }
 
 $applicationConf = Join-Path $projectRoot 'conf\application.conf'
 if (-not (Test-Path $applicationConf)) {

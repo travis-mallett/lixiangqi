@@ -25,8 +25,8 @@ export default class LobbySocket {
       hrm(ids: string) {
         ids.match(/.{8}/g)!.forEach(function (id) {
           const hook = hookRepo.find(ctrl, id);
-          if (hook?.action === 'cancel') ctrl.onOwnHookRemoved(hook);
           hookRepo.remove(ctrl, id);
+          if (hook?.action === 'cancel') ctrl.onOwnHookRemoved(hook);
         });
         ctrl.redraw();
       },
@@ -38,14 +38,12 @@ export default class LobbySocket {
       },
       hli(ids: string) {
         hookRepo.syncIds(ctrl, ids.match(/.{8}/g) || []);
+        ctrl.syncOwnHookPool();
         ctrl.redraw();
       },
       reload_seeks() {
-        if (ctrl.tab === 'seeks') ctrl.fetchSeeks();
-      },
-      poolCounts(counts: Record<string, number>) {
-        Object.assign(ctrl.data.poolCounts, counts);
-        ctrl.redraw();
+        if (ctrl.tab === 'seeks' || ctrl.data.seeks.some(seek => seek.action === 'cancelSeek'))
+          ctrl.fetchSeeks();
       },
     };
 

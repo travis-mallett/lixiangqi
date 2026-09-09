@@ -23,8 +23,7 @@ export default function table(ctrl: LobbyController) {
   const quickRooms = ctrl.homePools.filter(pool => pool.lim !== 15).sort((a, b) => a.lim - b.lim);
   const quickRoomCounts = new Map(quickRooms.map(pool => [pool.id, ctrl.poolCount(pool.id)]));
   const customRoomCount = ctrl.poolCount('lobby');
-  const otherTimeControlsCount =
-    [...quickRoomCounts.values()].reduce((total, count) => total + count, 0) + customRoomCount;
+  const otherTimeControlsCount = ctrl.poolCount('other');
 
   return hl('div.lobby__table', { class: { 'lobby__table--seeking': poolSeeking } }, [
     featurePoolButton(performance),

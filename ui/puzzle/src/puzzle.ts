@@ -1,19 +1,16 @@
 import { attributesModule, classModule, init } from 'snabbdom';
 
 import menuHover from 'lib/menuHover';
-import * as xhr from 'lib/xhr';
+import { wsSetActivity } from 'lib/socket';
 
 import PuzzleCtrl from './ctrl';
 import type { PuzzleOpts, NvuiPlugin } from './interfaces';
-import { startPuzzlePresence } from './presence';
 import view from './view/main';
 
 const patch = init([classModule, attributesModule]);
 
 export async function initModule(opts: PuzzleOpts) {
-  startPuzzlePresence(() =>
-    xhr.text(`/training/presence/${encodeURIComponent(site.sri)}`, { method: 'post' }),
-  );
+  wsSetActivity('puzzle');
 
   await site.asset.loadPieces;
   const element = document.querySelector('main.puzzle') as HTMLElement;

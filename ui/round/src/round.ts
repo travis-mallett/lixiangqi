@@ -6,7 +6,7 @@ import { finished, type TourPlayer } from 'lib/game';
 import { setClockWidget } from 'lib/game/clock/clockWidget';
 import menuHover from 'lib/menuHover';
 import { pubsub } from 'lib/pubsub';
-import { wsConnect, wsDestroy } from 'lib/socket';
+import { wsConnect, wsDestroy, wsSetActivity } from 'lib/socket';
 import { storage } from 'lib/storage';
 import { alert } from 'lib/view';
 import { text as xhrText } from 'lib/xhr';
@@ -20,6 +20,7 @@ import { main as view } from './view/main';
 const patch = init([classModule, attributesModule]);
 
 export async function initModule(opts: RoundOpts): Promise<RoundController> {
+  wsSetActivity(opts.data.presence, opts.data.presenceGroup);
   await site.asset.loadPieces;
   return opts.data.local ? app(opts) : boot(opts, app);
 }
@@ -73,6 +74,7 @@ async function boot(
           );
       },
       endData() {
+        wsSetActivity();
         xhrText(`${data.tv ? '/tv' : ''}/${data.game.id}/${data.player.color}/sides`).then(html => {
           const $html = $(html),
             $meta = $html.find('.game__meta');

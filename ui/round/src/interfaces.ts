@@ -71,6 +71,8 @@ export interface RoundSocketSend {
 export type EncodedDests = Record<string, string[]>;
 
 export interface RoundData extends GameData {
+  presence?: string;
+  presenceGroup?: string;
   clock?: ClockData;
   recordedClock?: RecordedClockTimeline;
   pref: Pref;

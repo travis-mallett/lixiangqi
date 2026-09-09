@@ -4,7 +4,7 @@ import org.apache.pekko.actor.*
 import org.apache.pekko.pattern.pipe
 import scalalib.ThreadLocalRandom
 
-import lila.core.pool.{ HookThieve, PoolCount, PoolMember, PoolFrom }
+import lila.core.pool.{ HookThieve, PoolMember, PoolFrom }
 import lila.core.socket.Sris
 
 final private class PoolActor(
@@ -33,9 +33,7 @@ final private class PoolActor(
   scheduleWave()
 
   private def updateMembers(next: Vector[PoolMember]): Unit =
-    val previousSize = members.size
     members = next
-    if members.size != previousSize then lila.common.Bus.pub(PoolCount(config.id, members.size))
 
   def receive =
 

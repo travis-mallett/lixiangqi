@@ -48,6 +48,7 @@ final class Env(
     securityApi: lila.core.security.SecurityApi,
     simulApiCircularDep: => lila.core.simul.SimulApi,
     tourApiCircularDep: => lila.core.tournament.TournamentApi,
+    poolApi: lila.core.pool.PoolApi,
     userNoteApi: lila.core.user.NoteApi,
     settingStore: lila.memo.SettingStore.Builder,
     shutdown: org.apache.pekko.actor.CoordinatedShutdown

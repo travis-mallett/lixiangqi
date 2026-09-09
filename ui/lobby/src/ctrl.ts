@@ -1,7 +1,6 @@
-import { numberFormat } from 'lib/i18n';
 import { pubsub } from 'lib/pubsub';
 import { colors, type ColorChoice } from 'lib/setup/color';
-import { wsPingInterval } from 'lib/socket';
+import { wsSetActivity } from 'lib/socket';
 import { storage, type LichessStorage } from 'lib/storage';
 
 import * as hookRepo from './hookRepo';
@@ -65,6 +64,7 @@ export default class LobbyController {
     this.setupCtrl = new SetupController(this);
     hookRepo.initAll(this);
     seekRepo.initAll(this);
+    this.syncPresence();
     this.socket = new LobbySocket(opts.socketSend, this);
 
     this.stores = makeStores(this.me?.username.toLowerCase());
@@ -169,8 +169,6 @@ export default class LobbyController {
     window.addEventListener('beforeunload', () => this.leavePool());
   }
 
-  spreadPlayersNumber?: (nb: number) => void;
-  spreadGamesNumber?: (nb: number) => void;
   openLobbyOverlay: () => void = () => {};
   openSetupFromLobby: (gameType: Exclude<GameType, 'local'>) => void = gameType => {
     this.setupCtrl.openModal(gameType);
@@ -178,6 +176,23 @@ export default class LobbyController {
   };
 
   poolCount = (id: string): number => this.data.poolCounts[id] ?? 0;
+  syncPresence = () => {
+    const ownHook = this.data.hooks.find(hook => hook.action === 'cancel');
+    const ownHookPool = ownHook && this.homePools.some(pool => pool.id === this.poolIdForHook(ownHook));
+    const ownSeek = this.data.seeks.some(seek => seek.action === 'cancelSeek');
+    const poolId = this.poolMember?.id ?? this.seekingPoolId;
+    const activity = poolId
+      ? poolId
+      : ownHook
+        ? ownHookPool
+          ? this.poolIdForHook(ownHook)
+          : 'lobby'
+        : ownSeek
+          ? 'lobby'
+          : undefined;
+    const activityPool = activity ? this.homePools.find(pool => pool.id === activity) : undefined;
+    wsSetActivity(activity, activity && activityPool?.lim !== 15 ? 'other' : undefined);
+  };
   isPoolSeeking = (id: string): boolean => this.poolMember?.id === id || this.seekingPoolId === id;
   hasPoolSeeking = (): boolean => !!this.poolMember || !!this.seekingPoolId;
 
@@ -208,6 +223,7 @@ export default class LobbyController {
   closeHomepageRoom = () => {
     ++this.homepageRoomRequest;
     this.homepageRoom = undefined;
+    this.syncPresence();
     this.redraw();
   };
 
@@ -216,24 +232,6 @@ export default class LobbyController {
     this.redirecting = true;
     site.redirect(`/play/room/${encodeURIComponent(pool.id)}`);
   }
-
-  initNumberSpreader = (elm: HTMLElement, nbSteps: number, initialCount: number) => {
-    let previous = initialCount;
-    let timeouts: number[] = [];
-    const display = (prev: number, cur: number, it: number) => {
-      elm.textContent = numberFormat(Math.round((prev * (nbSteps - 1 - it) + cur * (it + 1)) / nbSteps));
-    };
-    return (nb: number) => {
-      if (!nb && nb !== 0) return;
-      timeouts.forEach(clearTimeout);
-      timeouts = [];
-      const interv = Math.abs(wsPingInterval() / nbSteps);
-      const prev = previous || nb;
-      previous = nb;
-      for (let i = 0; i < nbSteps; i++)
-        timeouts.push(setTimeout(() => display(prev, nb, i), Math.round(i * interv)));
-    };
-  };
 
   private doFlushHooks() {
     this.stepHooks = this.data.hooks.slice(0);
@@ -286,6 +284,7 @@ export default class LobbyController {
   fetchSeeks = async () => {
     this.data.seeks = await xhr.seeks();
     seekRepo.initAll(this);
+    this.syncPresence();
     this.redraw();
   };
 
@@ -296,6 +295,7 @@ export default class LobbyController {
         const ownHook = this.data.hooks.find(hook => hook.action === 'cancel');
         if (ownHook) this.socket.send('cancel', ownHook.id);
         this.seekingPoolId = undefined;
+        this.syncPresence();
         this.redraw();
         return;
       }
@@ -306,6 +306,7 @@ export default class LobbyController {
       const request = { id, cancelled: false };
       this.anonPoolRequest = request;
       this.seekingPoolId = id;
+      this.syncPresence();
       this.setTab('real_time');
       this.redraw();
       try {
@@ -314,6 +315,7 @@ export default class LobbyController {
       } catch (_) {
         if (this.anonPoolRequest === request) {
           this.seekingPoolId = undefined;
+          this.syncPresence();
           this.redraw();
         }
       } finally {
@@ -327,16 +329,19 @@ export default class LobbyController {
   onOwnHookAdded = (hook: Hook) => {
     const id = this.poolIdForHook(hook);
     if (this.homePools.some(pool => pool.id === id)) this.seekingPoolId = id;
+    this.syncPresence();
   };
 
   onOwnHookRemoved = (hook: Hook) => {
     if (this.seekingPoolId === this.poolIdForHook(hook)) this.seekingPoolId = undefined;
+    this.syncPresence();
   };
 
   syncOwnHookPool = () => {
     const ownHook = this.data.hooks.find(hook => hook.action === 'cancel');
     if (ownHook) this.onOwnHookAdded(ownHook);
     else if (!this.anonPoolRequest) this.seekingPoolId = undefined;
+    this.syncPresence();
   };
 
   private readonly poolIdForHook = (hook: Hook): string => {
@@ -348,6 +353,7 @@ export default class LobbyController {
   enterPool = (member: PoolMember) => {
     this.setTab('pools');
     this.poolMember = member;
+    this.syncPresence();
     this.poolIn();
   };
 
@@ -355,6 +361,7 @@ export default class LobbyController {
     if (!this.poolMember) return;
     this.socket.poolOut(this.poolMember);
     this.poolMember = undefined;
+    this.syncPresence();
   };
 
   poolIn = () => {

@@ -26,7 +26,8 @@ final class JsonView(
     takebacker: Takebacker,
     moretimer: Moretimer,
     divider: lila.game.Divider,
-    isOfferingRematch: lila.core.round.IsOfferingRematch
+    isOfferingRematch: lila.core.round.IsOfferingRematch,
+    poolApi: lila.core.pool.PoolApi
 )(using Executor):
 
   private def commonPlayerJson(
@@ -64,6 +65,22 @@ final class JsonView(
     pref = prefs(pov.color)
   yield
     import pov.*
+    val presence =
+      if game.isBeingPlayed then
+        game.source match
+          case Some(lila.core.game.Source.Ai) => "ai".some
+          case Some(lila.core.game.Source.Friend) => "friend".some
+          case _ =>
+            game.clockConfig
+              .flatMap(poolApi.homepagePoolOf(_, game.moveTimeLimit))
+              .map(_.value)
+              .orElse("lobby".some)
+      else none
+    val presenceGroup = presence.flatMap: activity =>
+      val featured =
+        game.clockConfig.contains(lila.core.game.RankedGame.xiangqiClock) &&
+          game.moveTimeLimit.contains(lila.core.game.RankedGame.xiangqiMoveTime)
+      Option.when(activity == "lobby" || (activity != "ai" && activity != "friend" && !featured))("other")
     Json
       .obj(
         "game" -> gameJsonView.baseWithPosition(game, initialFen),
@@ -114,6 +131,8 @@ final class JsonView(
             .add("showCaptured" -> pref.captured)
             .add("submitMove" -> submitMovePref(pref, game, flags.nvui))
       )
+      .add("presence" -> presence)
+      .add("presenceGroup" -> presenceGroup)
       .add("clock" -> game.clock.map(_ => clockJson(game)))
       .add("correspondence" -> game.correspondenceClock)
       .add("takebackable" -> takebackable)

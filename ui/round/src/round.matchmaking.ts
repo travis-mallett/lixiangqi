@@ -3,7 +3,7 @@ import { attributesModule, classModule, init, type VNode } from 'snabbdom';
 import { pubsub } from 'lib/pubsub';
 import type { MoveTimeLimitConfig } from 'lib/setup/interfaces';
 import { formatMoveTime } from 'lib/setup/timeControl';
-import { wsConnect } from 'lib/socket';
+import { wsConnect, wsSetActivity } from 'lib/socket';
 import { storage } from 'lib/storage';
 import { bind, hl, initMiniBoardWith, onInsert } from 'lib/view';
 import { form, json as xhrJson } from 'lib/xhr';
@@ -72,12 +72,14 @@ class MatchmakingPage {
   private readonly start = () => {
     if (this.phase !== 'ready') return;
     this.phase = 'matching';
+    wsSetActivity(this.opts.pool.id, this.opts.pool.lim === 15 ? undefined : 'other');
     this.redraw();
     void this.session.start();
   };
 
   private readonly cancelAndLeave = () => {
     this.session.cancel();
+    wsSetActivity();
     site.redirect('/');
   };
 
@@ -190,6 +192,7 @@ class PoolMatchmakingSession {
     private readonly onPaired: (pairing: PairingRedirect) => void,
     private readonly onCancelled: () => void,
   ) {
+    wsSetActivity(this.pool.id, this.pool.lim === 15 ? undefined : 'other');
     this.socket = wsConnect('/lobby/socket/v5', false, {
       options: { reloadOnResume: false },
       events: {
@@ -247,6 +250,7 @@ class PoolMatchmakingSession {
     if (!this.active || this.completed) return;
     this.active = false;
     ++this.generation;
+    wsSetActivity();
     if (this.authenticated) this.socket.send('poolOut', this.pool.id);
     else this.socket.send('cancel', undefined);
     this.onCancelled();
@@ -259,6 +263,7 @@ class PoolMatchmakingSession {
     pubsub.off('socket.open', this.onSocketOpen);
     this.unlistenPoolStorage();
     window.removeEventListener('beforeunload', this.cancelOnUnload);
+    wsSetActivity();
   }
 
   private isCurrent(generation: number): boolean {

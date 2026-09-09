@@ -60,11 +60,12 @@ export default function main(opts: LobbyOpts) {
 
   const siteCountersElement = document.querySelector('.lobby__site-counters') as HTMLElement;
   siteCountersElement.innerHTML = '';
-  patch(siteCountersElement, siteCountersView(ctrl));
+  let siteCountersVNode = patch(siteCountersElement, siteCountersView(ctrl));
 
   function redraw() {
     appVNode = patch(appVNode, appView(ctrl));
     tableVNode = patch(tableVNode, tableView(ctrl));
+    siteCountersVNode = patch(siteCountersVNode, siteCountersView(ctrl));
     syncHomepageRoomLayout();
   }
 

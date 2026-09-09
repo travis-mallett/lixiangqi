@@ -4,7 +4,7 @@ import { defined } from 'lib';
 import { throttle } from 'lib/async';
 import { type Simul, setOnGame, isPlayerTurn, plyColor } from 'lib/game';
 import { pubsub } from 'lib/pubsub';
-import { wsSign, wsVersion } from 'lib/socket';
+import { wsSetActivity, wsSign, wsVersion } from 'lib/socket';
 import { domDialog } from 'lib/view';
 
 import type RoundController from './ctrl';
@@ -67,7 +67,10 @@ export function make(send: RoundSocketSend, ctrl: RoundController): RoundSocket 
           if (isRetry) site.reload();
           // give up and reload the page
           else reload(o, true);
-        } else ctrl.reload(data);
+        } else {
+          ctrl.reload(data);
+          wsSetActivity(data.presence, data.presenceGroup);
+        }
       }, site.reload);
   };
 

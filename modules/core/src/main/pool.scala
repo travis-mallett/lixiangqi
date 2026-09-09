@@ -10,7 +10,7 @@ import lila.core.rank.{ RankSnapshot, RankTrackId }
 import lila.core.socket.Sri
 import lila.core.userId.*
 import lila.core.id.GameFullId
-import lila.core.game.{ MoveTimeLimit, Source }
+import lila.core.game.MoveTimeLimit
 
 opaque type Blocking = Set[UserId]
 object Blocking extends TotalWrapper[Blocking, Set[UserId]]:
@@ -24,29 +24,6 @@ object PoolConfigId extends OpaqueString[PoolConfigId]:
       moveTimeLimit.fold(clock.show): limit =>
         val opening = limit.first.fold("")(first => s"-${first.seconds}x${first.moves}")
         s"${clock.show}-m${limit.seconds}$opening"
-
-case class HomepageGameCounts(
-    poolGames: Map[PoolConfigId, Int],
-    friendGames: Int,
-    aiGames: Int,
-    lobbyPlayers: Int
-):
-  def poolPlayers(poolId: PoolConfigId, waitingPlayers: Int): Int =
-    waitingPlayers + poolGames.getOrElse(poolId, 0) * 2
-  def friendPlayers: Int = friendGames * 2
-  def aiPlayers: Int = aiGames
-  def updateActiveGame(
-      homepagePoolId: Option[PoolConfigId],
-      source: Option[Source],
-      humanPlayers: Int,
-      delta: Int
-  ): HomepageGameCounts = (source, homepagePoolId) match
-    case (Some(Source.Friend), _) => copy(friendGames = (friendGames + delta).max(0))
-    case (Some(Source.Ai), _) => copy(aiGames = (aiGames + delta).max(0))
-    case (_, Some(poolId)) =>
-      val next = (poolGames.getOrElse(poolId, 0) + delta).max(0)
-      copy(poolGames = poolGames.updated(poolId, next))
-    case _ => copy(lobbyPlayers = (lobbyPlayers + humanPlayers * delta).max(0))
 
 opaque type IsClockCompatible = (Clock.Config, Option[MoveTimeLimit]) => Boolean
 object IsClockCompatible
@@ -68,7 +45,6 @@ case class PoolMember(
 
 case class Pairing(players: ByColor[(Sri, GameFullId)])
 case class Pairings(pairings: List[Pairing])
-case class PoolCount(poolId: PoolConfigId, members: Int)
 
 object HookThieve:
 

@@ -162,7 +162,6 @@ GET   /$lang<\w\w\w?>/training/notation controllers.Notation.homeLang(lang: Lang
 
 # Training - Puzzle
 GET   /training                        controllers.Puzzle.home
-POST  /training/presence/:sri          controllers.Puzzle.presence(sri: Sri)
 GET   /training/daily                  controllers.Puzzle.daily
 GET   /training/frame                  controllers.Puzzle.frame
 GET   /training/help                   controllers.Puzzle.help

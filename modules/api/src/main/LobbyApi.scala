@@ -18,6 +18,7 @@ final class LobbyApi(
     me.traverse(gameProxyRepo.urgentGames)
       .mon(lila.mon.lobby.segment("urgentGames"))
       .flatMap: urgent =>
+        val counters = lobbySocket.counters
         val povs = urgent.so(_.value)
         val displayedPovs = povs.take(9)
         for _ <- lightUserApi.preloadMany(displayedPovs.flatMap(_.opponent.userId))
@@ -27,10 +28,10 @@ final class LobbyApi(
             "nbNowPlaying" -> povs.size,
             "nbMyTurn" -> povs.count(_.isMyTurn),
             "counters" -> Json.obj(
-              "members" -> lobbySocket.counters.members,
-              "rounds" -> lobbySocket.counters.rounds
+              "members" -> counters.members,
+              "rounds" -> counters.rounds
             ),
-            "poolCounts" -> lobbySocket.poolCountsJson
+            "poolCounts" -> counters.poolCounts
           )
           .add(
             "me",
