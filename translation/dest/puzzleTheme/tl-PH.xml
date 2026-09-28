@@ -49,12 +49,8 @@
   <string name="mateIn3Description">Magbigay ng checkmate sa tatlong tira.</string>
   <string name="mateIn4">Mag-mate sa 4</string>
   <string name="mateIn4Description">Magbigay ng checkmate sa apat na tira.</string>
-  <string name="mateIn5">Mag-mate sa 5 o higit pa</string>
-  <string name="middlegameDescription">Isang taktika sa ikalawang yugto ng laro.</string>
   <string name="oneMove">Isang galaw na palaisipan</string>
   <string name="oneMoveDescription">Isang palaisipan na isang galaw lang ang haba.</string>
-  <string name="opening">Pagbubukas</string>
-  <string name="openingDescription">Isang taktika sa unang yugto ng laro.</string>
   <string name="promotion">Promosyon</string>
   <string name="queenRookEndgame">Reyna at Rook</string>
   <string name="queensideAttack">Panig na reyna na atake</string>

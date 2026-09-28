@@ -3,7 +3,7 @@
  *
  * The established Xiangqi glyph paths are retained for competitive
  * readability. This generator remounts those paths on theme-owned soot and
- * cinnabar pigment discs; it never writes to the source piece package.
+ * cinnabar pigment discs using the theme's own glyph source templates.
  */
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../../../../..');
-const sourceDir = path.join(root, 'public', 'piece', 'xiangqi-wikipedia');
+const glyphs = JSON.parse(await readFile(path.join(here, 'glyphs.json'), 'utf8'));
 const outputDir = path.join(root, 'public', 'piece', 'xiangqi-wudang');
 const pieces = ['rP', 'bP', 'rB', 'bB', 'rN', 'bN', 'rR', 'bR', 'rA', 'bA', 'rC', 'bC', 'rK', 'bK'];
 
@@ -53,14 +53,12 @@ const mount = colors => `<ellipse cx="50" cy="53" rx="44.5" ry="45" fill="#07101
 await mkdir(outputDir, { recursive: true });
 
 for (const piece of pieces) {
-  const source = path.join(sourceDir, `${piece}.svg`);
   const output = path.join(outputDir, `${piece}.svg`);
   const colors = piece.startsWith('r') ? palette.red : palette.black;
-  let svg = await readFile(source, 'utf8');
+  let svg = glyphs[piece];
+  if (!svg) throw new Error(`Missing Wudang glyph: ${piece}`);
 
   svg = svg
-    .replace(/<circle\b[^>]*\/>/g, '')
-    .replace(/\sfill="#c00"/g, '')
     .replace(
       /^(<svg\b[^>]*>)/,
       `$1<title>Wudang ${piece} Xiangqi piece</title>${defs(colors)}${mount(colors)}`,

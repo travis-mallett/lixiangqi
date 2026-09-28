@@ -99,14 +99,9 @@
   <string name="mateIn3Description">Поставьте мат в три хода.</string>
   <string name="mateIn4">Мат в 4 хода</string>
   <string name="mateIn4Description">Поставьте мат за четыре хода.</string>
-  <string name="mateIn5">Мат в 5 или более ходов</string>
   <string name="mateIn5Description">Найдите последовательность ходов, ведущую к мату.</string>
-  <string name="middlegame">Миттельшпиль</string>
-  <string name="middlegameDescription">Тактика во второй стадии игры.</string>
   <string name="oneMove">Одноходовая задача</string>
   <string name="oneMoveDescription">Задача, где нужно сделать только один выигрывающий ход.</string>
-  <string name="opening">Дебют</string>
-  <string name="openingDescription">Тактика в первой стадии игры.</string>
   <string name="operaMate">Оперный мат</string>
   <string name="operaMateDescription">Ладья ставит мат под защитой слона.</string>
   <string name="pawnEndgame">Пешечный эндшпиль</string>

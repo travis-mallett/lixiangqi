@@ -17,7 +17,6 @@
   <string name="youHaveLifetime">Jy het \'n lewenslange Beskermheer rekening. Dis wonderlik!</string>
   <string name="patronUntil">Jy het \'n Beskermheer rekening tot %s.</string>
   <string name="ifNotRenewedThenAccountWillRevert">As nie gehernu word nie sal jou rekening teruggekeer word na \'n algemene rekening.</string>
-  <string name="weAreNonProfit">Ons is \'n assosiasie sonder winsbejag, want ons glo almal moet toegang tot \'n gratis wêreld-gehalte skaak platform hê.</string>
   <string name="weRelyOnSupport">Ons steun op die ondersteuning van mense soos julle om dit moontlik te maak. Indien jy dit geniet om Lichess te gebruik, oorweeg dit om ons te ondersteun deur \'n skenking te maak en \'n Beskermheer te word!</string>
   <string name="lifetime">Lewenslange</string>
   <string name="payLifetimeOnce">Betaal %s een keer. Word \'n Lichess Beskermheer vir ewig!</string>
@@ -33,17 +32,9 @@
   <string name="weAreSmallTeam">Ons is \'n klein span, so jou ondersteuning maak \'n groot verskil!</string>
   <string name="celebratedPatrons">Die gevierde Beskermhere wat Lichess moontlik maak</string>
   <string name="whereMoneyGoes">Waarheen gaan my geld?</string>
-  <string name="serversAndDeveloper">Eerstens, kragtige bedieners.
-Verder betaal ons \'n voltydse sagteware ontwikkelaar: %s, die stigter van Licehss.</string>
-  <string name="costBreakdown">Sien die uiteengesette koste analise</string>
   <string name="officialNonProfit">Is Lichess \'n amptelike organisasie sonder winsbejag?</string>
-  <string name="actOfCreation">Sowaar, hier is die akte van oprigting (in Frans)</string>
   <string name="changeMonthlySupport">Kan ek my maandelikse ondersteuning kanseleer of verander?</string>
   <string name="contactSupport">Lichess ondersteuning kontak</string>
-  <string name="otherMethods">Ander donasie metodes?</string>
-  <string name="lichessIsRegisteredWith">Lichess is by %s geregistreer.</string>
-  <string name="bankTransfers">Ons aanvaar ook bank oordragte</string>
-  <string name="onlyDonationFromAbove">Let asb. daarop dat slegs die donasievorm hierbo gebruik mag word vir Patron-status.</string>
   <string name="patronFeatures">Is sekere kenmerke net vir Beskermhere voorbehou?</string>
   <string name="noPatronFeatures">Nee, want Lichess is heeltemal gratis, vir ewig en vir almal. Dis \'n belofte.
 Maar Beskermhere kan spog met \'n oulike nuwe profiel ikoon.</string>
@@ -79,5 +70,4 @@ Maar Beskermhere kan spog met \'n oulike nuwe profiel ikoon.</string>
   <string name="changeCurrency">Verander geld eenheid</string>
   <string name="paymentDetails">Betalingsbesonderhede</string>
   <string name="updatePaymentMethod">Wysig betalingsmetode</string>
-  <string name="stripeManageSub">Bestuur jou subskripsie en laai jou fakture en kwitansies af</string>
 </resources>

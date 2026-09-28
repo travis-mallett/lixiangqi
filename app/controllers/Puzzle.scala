@@ -22,10 +22,76 @@ import lila.ui.LangPath
 import scalalib.model.Days
 import lila.common.HTTPRequest
 import lila.common.Json.given
+import java.time.Instant
 
 final class Puzzle(env: Env, apiC: => Api) extends LilaController(env):
 
   import env.puzzle.{ jsonView, selector }
+
+  def publicationAnalysisInventory = ScopedBody(parse.json(maxLength = 64 * 1024))(Seq(_.Puzzle.Publish)) {
+    ctx ?=> _ ?=>
+      IfGranted(_.PuzzleCurator):
+        Future.unit
+          .flatMap(_ => env.analyse.gameAnalysisImport.inventory(ctx.body.body))
+          .flatMap: result =>
+            val nativeIds = (result \ "depths")
+              .as[JsObject]
+              .keys
+              .filter(_.matches("[A-Za-z0-9]{8}"))
+              .toList
+              .map(GameId.apply)
+            env.fishnet.api.cancelGameAnalyses(nativeIds).inject(Ok(result))
+          .recover {
+            case e: IllegalArgumentException => BadRequest(jsonError(e.getMessage))
+            case e: JsResultException => BadRequest(jsonError(e.getMessage))
+          }
+  }
+
+  def publicationAnalysis = ScopedBody(parse.json(maxLength = 4 * 1024 * 1024))(Seq(_.Puzzle.Publish)) {
+    ctx ?=> _ ?=>
+      IfGranted(_.PuzzleCurator):
+        Future.unit
+          .flatMap(_ => env.analyse.gameAnalysisImport(ctx.body.body))
+          .flatMap: analysis =>
+            analysis.id.gameId
+              .so(env.fishnet.api.cancelGameAnalysis)
+              .map: _ =>
+                Ok(Json.obj("id" -> analysis.id.value, "depth" -> analysis.depth))
+          .recover {
+            case e: IllegalArgumentException => BadRequest(jsonError(e.getMessage))
+            case e: JsResultException => BadRequest(jsonError(e.getMessage))
+          }
+  }
+
+  def publicationSubmit = ScopedBody(parse.json(maxLength = 4 * 1024 * 1024))(Seq(_.Puzzle.Publish)) {
+    ctx ?=> me ?=>
+      IfGranted(_.PuzzleCurator):
+        scala.util
+          .Try(env.puzzle.publication.submit(ctx.body.body, me.userId))
+          .fold(
+            e => fuccess(BadRequest(Json.obj("error" -> e.getMessage))),
+            _.map(r => Accepted(r)).recover { case e: lila.puzzle.PuzzlePublicationJson.Invalid =>
+              Conflict(Json.obj("error" -> e.getMessage))
+            }
+          )
+
+  }
+
+  def publicationReceipt(id: String) = Scoped(_.Puzzle.Publish) { _ ?=> _ ?=>
+    IfGranted(_.PuzzleCurator):
+      env.puzzle.publication
+        .receipt(id)
+        .map(_.fold(NotFound(Json.obj("error" -> "Unknown operation")))(Ok(_)))
+
+  }
+
+  def publicationInventory(after: String, ids: String) = Scoped(_.Puzzle.Publish) { _ ?=> _ ?=>
+    IfGranted(_.PuzzleCurator):
+      env.puzzle.publication.inventory(after, ids.split(',').filter(_.nonEmpty).toList).map(Ok(_)).recover {
+        case e: lila.puzzle.PuzzlePublicationJson.Invalid => Conflict(Json.obj("error" -> e.getMessage))
+      }
+
+  }
 
   private def renderShow(
       puzzle: Puz,

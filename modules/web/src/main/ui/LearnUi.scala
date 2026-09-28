@@ -436,8 +436,6 @@ final class LearnUi(helpers: Helpers):
           )
         )
   def xiangqiRankingsPage(levels: Vector[(String, Int)]) =
-    val (introductoryLevels, remainingLevels) = levels.span(_._1 != "业2-2")
-    val (intermediateLevels, highestLevels) = remainingLevels.span(_._1 != "专3-1")
     val forumUrl =
       "https://chesshomeh5.qqchess.qq.com/#/sub_package/community/info/topic_detail/index?id=1671904&uHotType=1"
     val videoUrl = "https://www.youtube.com/watch?v=4CfsnZQAj8k"
@@ -504,67 +502,36 @@ final class LearnUi(helpers: Helpers):
             p(
               "Tiantian Xiangqi divides its ranks into three broad groups, and Lixiangqi uses the same set of rank titles."
             ),
-            ul(cls := "xiangqi-rankings__rank-groups")(
-              li(
-                span(cls := "xiangqi-rankings__rank-symbol", lang := "zh")("学"),
-                span(strong("Student Rank"), small("学1-1 to 学3-3"))
-              ),
-              li(
-                span(cls := "xiangqi-rankings__rank-symbol", lang := "zh")("业"),
-                span(strong("Amateur Rank"), small("业1-1 to 业9-3"))
-              ),
-              li(
-                span(cls := "xiangqi-rankings__rank-symbol", lang := "zh")("专"),
-                span(strong("Professional Rank"), small("专1-1 to 专3-3"))
-              )
-            ),
-            div(id := "rank-table", cls := "xiangqi-rankings__table-wrap")(
-              table(cls := "xiangqi-rankings__table")(
-                caption("Minimum rating for each Lixiangqi rank title"),
-                thead(
-                  tr(
-                    th(attr("scope") := "col")("Rank"),
-                    th(cls := "xiangqi-rankings__rating-column", attr("scope") := "col")("Rating")
-                  )
-                ),
-                tbody(
-                  introductoryLevels.map: (rank, rating) =>
-                    tr(
-                      td(rank),
-                      td(cls := "xiangqi-rankings__rating-column")(rating)
-                    ),
-                  tr(cls := "xiangqi-rankings__collapsed-row")(
-                    td(attr("colspan") := 2)(
-                      details(cls := "xiangqi-rankings__collapsed")(
-                        summary(
-                          span(cls := "xiangqi-rankings__show-ranks")(
-                            s"Show ${intermediateLevels.size} intermediate ranks"
-                          ),
-                          span(cls := "xiangqi-rankings__hide-ranks")("Hide intermediate ranks"),
-                          small("业2-2–专2-3")
-                        ),
-                        table(
-                          cls := "xiangqi-rankings__table xiangqi-rankings__table--nested",
-                          attr("aria-label") := "Intermediate rank ratings"
-                        )(
-                          tbody(
-                            intermediateLevels.map: (rank, rating) =>
-                              tr(
-                                td(rank),
-                                td(cls := "xiangqi-rankings__rating-column")(rating)
-                              )
-                          )
-                        )
-                      )
-                    )
+            p("Minimum rating for each Lixiangqi rank title"),
+            ul(id := "rank-table", cls := "xiangqi-rankings__rank-groups")(
+              List(
+                ("学", "Student Rank", "学1-1 to 学3-3"),
+                ("业", "Amateur Rank", "业1-1 to 业9-3"),
+                ("专", "Professional Rank", "专1-1 to 专3-3")
+              ).map: (symbol, title, range) =>
+                li(
+                  div(cls := "xiangqi-rankings__rank-header")(
+                    span(cls := "xiangqi-rankings__rank-symbol", lang := "zh")(symbol),
+                    span(strong(title), small(range))
                   ),
-                  highestLevels.map: (rank, rating) =>
-                    tr(
-                      td(rank),
-                      td(cls := "xiangqi-rankings__rating-column")(rating)
+                  table(cls := "xiangqi-rankings__table", attr("aria-label") := title)(
+                    thead(
+                      tr(
+                        th(attr("scope") := "col")("Rank"),
+                        th(cls := "xiangqi-rankings__rating-column", attr("scope") := "col")("Rating")
+                      )
+                    ),
+                    tbody(
+                      levels
+                        .filter(_._1.startsWith(symbol))
+                        .map: (rank, rating) =>
+                          tr(
+                            td(rank),
+                            td(cls := "xiangqi-rankings__rating-column")(rating)
+                          )
                     )
+                  )
                 )
-              )
             )
           ),
           st.section(

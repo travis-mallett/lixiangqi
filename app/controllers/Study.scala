@@ -5,7 +5,6 @@ import play.api.mvc.*
 import scalalib.Json.given
 import scalalib.paginator.Paginator
 
-import lila.analyse.Analysis
 import lila.app.{ *, given }
 import lila.common.HTTPRequest
 import lila.core.id.RelayRoundId
@@ -17,7 +16,6 @@ import lila.study.JsonView.JsData
 import lila.study.PgnDump.WithFlags
 import lila.study.Study.WithChapter
 import lila.study.{ Who, Chapter, Orders, Settings, Study as StudyModel, StudyForm }
-import lila.tree.Node.partitionTreeWriter
 import lila.ui.Page
 import lila.mon.extensions.*
 
@@ -207,7 +205,8 @@ final class Study(
       previews <- withChapters.optionFu(env.study.preview.jsonList(study.id))
       _ <- env.user.lightUserApi.preloadMany(study.members.ids.toList)
       pov = userAnalysisC.makePov(chapter.root.fen.some, chapter.setup.variant)
-      analysis <- chapterAnalysis(sc)
+      resolvedAnalysis <- env.study.chapterAnalysis(chapter)
+      analysis = resolvedAnalysis.analysis
       division = analysis.isDefined.option(env.study.serverEvalMerger.divisionOf(chapter))
       baseData <- env.analyse.externalEngine.withExternalEngines(
         env.round.jsonView.userAnalysisJson(
@@ -221,9 +220,17 @@ final class Study(
         )
       )
       withMembers = !study.isRelay || isGrantedOpt(_.StudyAdmin) || ctx.me.exists(study.isMember)
-      studyJson <- env.study.jsonView.full(study, chapter, previews, withMembers = withMembers)
+      studyJson <- env.study.jsonView.full(
+        study,
+        chapter,
+        previews,
+        withMembers = withMembers,
+        analysis = resolvedAnalysis
+      )
       lichobile = HTTPRequest.isLichobile(ctx.req)
-      nativeTree = env.study.jsonView.xiangqiTree(partitionTreeWriter(chapter.root, lichobile = lichobile))
+      nativeTree = env.study.jsonView.xiangqiTree(
+        lila.study.JsonView.analysisTree(chapter, resolvedAnalysis, lichobile)
+      )
       nativeGame = (baseData \ "game").as[JsObject] +
         ("variant" -> Json.obj("key" -> "xiangqi", "name" -> "Xiangqi"))
     yield WithChapter(study, chapter) -> JsData(
@@ -232,11 +239,6 @@ final class Study(
         .add("treeParts" -> nativeTree.some)
         .add("analysis" -> analysis.map { env.analyse.jsonView.bothPlayers(chapter.root.ply, _) })
     )
-
-  private def chapterAnalysis(sc: WithChapter) =
-    sc.chapter.serverEval
-      .exists(_.done)
-      .so(env.analyse.repo.byId(Analysis.Id(sc.study.id, sc.chapter.id)))
 
   def show(id: StudyId) = OpenOrScoped(_.Study.Read, _.Web.Mobile):
     orRelayRedirect(id):
@@ -473,9 +475,12 @@ final class Study(
                 then env.relay.pgnStream.ofChapter(sc).getOrElse(makeChapterPgn)
                 else makeChapterPgn
               analysisJson <- getBool("analysisHeader").so:
-                chapterAnalysis(sc).map2: analysis =>
-                  val division = env.study.serverEvalMerger.divisionOf(chapter)
-                  env.analyse.jsonView.analysisHeader(sc.chapter.root, division, analysis)
+                env.study
+                  .chapterAnalysis(chapter)
+                  .map: resolved =>
+                    resolved.analysis.map: analysis =>
+                      val division = env.study.serverEvalMerger.divisionOf(chapter)
+                      env.analyse.jsonView.analysisHeader(chapter.root, division, analysis)
               filename = s"${pgnDump.filename(study, chapter)}.pgn"
               res = Ok(pgn.toString).as(pgnContentType).asAttachment(filename)
               resWithAnalysis = analysisJson.fold(res): a =>

@@ -89,14 +89,9 @@
   <string name="mateIn3Description">ત્રણ ચાલમાં ચેકમેટ પહોંચાડો.</string>
   <string name="mateIn4">4 માં મેટ</string>
   <string name="mateIn4Description">ચાર ચાલમાં ચેકમેટ પહોંચાડો.</string>
-  <string name="mateIn5">5 અથવા વધુમાં મેટ</string>
   <string name="mateIn5Description">લાંબી મેટિંગ ક્રમ શોધો.</string>
-  <string name="middlegame">મિડલગેમ</string>
-  <string name="middlegameDescription">રમતની બીજી અવસ્થા દરમિયાનની યુક્તિ.</string>
   <string name="oneMove">એક-ચાલની પઝલ</string>
   <string name="oneMoveDescription">એક પઝલ જે માત્ર એક ચાલ લાંબી હોય.</string>
-  <string name="opening">ઓપનિંગ</string>
-  <string name="openingDescription">રમતની પ્રથમ અવસ્થા દરમિયાનની યુક્તિ.</string>
   <string name="pawnEndgame">પ્યાદા એન્ડગેમ</string>
   <string name="pawnEndgameDescription">ફક્ત પ્યાદાઓ સાથેનો અંત.</string>
   <string name="pin">પિન</string>

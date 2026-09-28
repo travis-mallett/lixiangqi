@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { isXiangqiCheckmate } from '../src/game/adjudication';
+import { isXiangqiMate } from '../src/game/adjudication';
 import { renderAdjudication } from '../src/game/view/adjudication';
 
 test('live and example notice uses current state, ending precedence and shared localization', () => {
@@ -20,17 +20,15 @@ test('live and example notice uses current state, ending precedence and shared l
   document.documentElement.lang = 'en';
 });
 
-test('only checkmate endings receive the mate presentation', () => {
-  assert.equal(isXiangqiCheckmate('mate', 'checkmate', true), true);
-  assert.equal(isXiangqiCheckmate('mate', 'stalemate', false), false);
-  assert.equal(isXiangqiCheckmate('variantEnd', 'forced-variation', true), false);
-  assert.equal(isXiangqiCheckmate('draw', 'mutual-check', true), false);
-  assert.equal(isXiangqiCheckmate('draw', 'no-capture', true), false);
-  assert.equal(isXiangqiCheckmate(undefined, undefined, true), false);
-});
-
-test('older game data falls back to mate status and available check state', () => {
-  assert.equal(isXiangqiCheckmate('mate'), true);
-  assert.equal(isXiangqiCheckmate('mate', null, true), true);
-  assert.equal(isXiangqiCheckmate('mate', null, false), false);
+test('checkmate and stalemate share mate events while other endings do not', () => {
+  for (const termination of ['checkmate', 'stalemate']) {
+    assert.equal(isXiangqiMate('mate', termination), true);
+    assert.equal(isXiangqiMate(undefined, termination), true);
+  }
+  for (const termination of ['forced-variation', 'mutual-check', 'no-capture'])
+    assert.equal(isXiangqiMate('mate', termination), false);
+  assert.equal(isXiangqiMate('mate'), true);
+  assert.equal(isXiangqiMate('mate', null), true);
+  assert.equal(isXiangqiMate('draw'), false);
+  assert.equal(isXiangqiMate(), false);
 });

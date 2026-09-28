@@ -86,34 +86,69 @@ The two frame rectangles are:
 The painted outer edge of the heavy frame is therefore exactly `x=±411` and
 `y=±461`.
 
+## Wood color calibration
+
+The wood was recalibrated against the supplied 628 × 730 Tiantian
+`chessboard.png` reference using 90 windows arranged in nine columns and ten
+rows across the playing field. These are sampling windows, not board cells
+(the xiangqi grid has 8 × 9 cells). Each window is approximately half a cell
+wide and high. Grid strokes, palace diagonals, position marks, and river
+lettering are masked out before averaging encoded-sRGB channels.
+
+The reference playing field runs approximately from (41.5, 61.5) to
+(585.5, 668.5); the SVG field runs from (50, 50) to (850, 950) in image
+coordinates. Sampling uses this correspondence rather than screenshot scaling.
+
+A smooth quadratic RGB offset is baked into the canonical RGBA background
+and its identical embedded PNG. No runtime filter or extra image is required.
+For image coordinates X,Y in the 900 × 1000 board, let
+`u = (X - 450) / 400` and `v = (Y - 500) / 450`.
+The fitted additive corrections, in 0–255 encoded-sRGB units, are:
+
+| Term | Red | Green | Blue |
+| --- | ---: | ---: | ---: |
+| 1 | 3.134019 | 9.571158 | 14.372182 |
+| v | -1.240003 | -1.399969 | -1.634114 |
+| v² | -2.417381 | -3.436900 | -4.975264 |
+| u | -0.023804 | 0.178831 | 0.223406 |
+| uv | -0.555416 | -0.800327 | -1.049994 |
+| u² | -1.349086 | -1.900267 | -3.453322 |
+
+These describe the completed correction, not a filter to apply again.
+Dimensions and every alpha-channel value are preserved. A quadratic was
+chosen to correct the broad lighting difference without fitting individual
+wood-grain variations. The 90-window mean absolute RGB error drops from
+7.161 to 0.627 before rasterization; an Inkscape 1800 × 2000 render measures
+0.775, with a worst individual window/channel difference of 3.180.
+The textures and raster sampling differ, so this is a measured close match,
+not pixel equality.
+
 ## Printed grid ink
 
-The grid, palace diagonals, frame, and position markers share one simulated
-burned-ink treatment:
+The grid, palace diagonals, frame, and position markers share one translucent
+burned-ink treatment, recalibrated after the wood correction:
 
 ```text
-ink color: #250001
-group opacity: 0.24858769641707545
+ink color: #5b2712
+group opacity: 0.351560395
 color interpolation used for calibration: sRGB
 ```
 
-These values were solved programmatically rather than selected by eye. The
-thick outer frame in the **天天象棋** reference was used as the stable sampling
-target. Candidate ink colors and alpha values were composited over the actual
-Lixiangqi wood beneath the same frame region and optimized against the
-reference's mean RGB and luminance.
-
-The relevant compositing model, evaluated per sRGB channel, is:
+The fit uses 154 internal/inner-border line segments and 60 samples distributed
+along all four heavy outer-frame edges. Reference core pixels exclude partially
+covered antialiased edges; corresponding corrected wood samples provide the
+underlying color. The fitted model is:
 
 ```text
 output = alpha × ink + (1 − alpha) × wood
 ```
 
-The fitted result was `#250001` at
-`0.24858769641707545` opacity. Keeping the artwork translucent is important:
-the wood grain continues through the lines, so the result reads as burned or
-printed pigment rather than opaque vector artwork. Do not replace the pair with
-an approximately similar opaque brown.
+A shared transmission and premultiplied RGB pigment were fitted by least
+squares, then the pigment was rounded to 8-bit RGB and opacity refitted.
+Mean absolute RGB error is 0.980 for grid samples and 1.875 for the outer
+frame. These are compositing-model errors against the reference core samples,
+not a claim of pixel-identical antialiasing at every display size.
+The translucent ink retains visible wood-grain variation beneath the artwork.
 
 ## Engraved lettering
 
@@ -141,7 +176,7 @@ Luminance here means the encoded-sRGB calculation
 `Y = 0.2126R + 0.7152G + 0.0722B`; it is not a linear-light measurement.
 
 The dark edge ramp closely follows the direction from the plateau color
-`#9e8168` toward the grid ink `#250001`, which is why the engraving reuses
+`#9e8168` toward the original engraving shadow color `#250001`, which is why the engraving reuses
 `#250001` for both shadow components. The very narrow lower-right highlight was
 best fitted by the cool near-white `#e7f3ff` at `0.0774` opacity.
 
@@ -250,7 +285,7 @@ The final visible order is:
 4. engraved river text.
 
 The border verses must not remain beneath the engraved copy inside the
-`0.24858769641707545` grid group. A second dark layer changes both the
+`0.351560395` grid group. A second dark layer changes both the
 antialiased edge color and the measured body color.
 
 When changing this theme, preserve these invariants unless the design is being
@@ -259,7 +294,7 @@ deliberately recalibrated:
 - root size and viewBox remain 900 × 1000 and `-450 -500 900 1000`;
 - all nine files, ten ranks, palace diagonals, and legal starting-position
   markers remain geometrically aligned;
-- grid/frame ink remains `#250001` at `0.24858769641707545` opacity;
+- grid/frame ink remains `#5b2712` at `0.351560395` opacity;
 - engraved text base remains `#9e8168` with the recorded filters;
 - river and verse glyph path data remain unchanged unless a typography redesign
   is explicitly intended;
@@ -274,8 +309,8 @@ deliberately recalibrated:
 2. Import the Wikipedia-derived grid, river glyphs, position markers, and border
    verse paths.
 3. Apply the geometry and stroke changes in the vector-modification table.
-4. Render the grid/frame layer with `#250001` at
-   `0.24858769641707545` opacity.
+4. Render the grid/frame layer with `#5b2712` at
+   `0.351560395` opacity.
 5. Orient both river labels upright to the viewer.
 6. Apply the exact border-verse transforms rather than visually approximating
    them.
@@ -285,4 +320,4 @@ deliberately recalibrated:
    then clip its vertical output to `y=-461…461`.
 9. Verify a native 900 × 1000 render and a high-resolution render. Confirm that
    no verse effect pixels extend above or below the outer frame, the central
-   board is unchanged, and the transparent corners have no white fringe.
+   board matches the calibrated reference measurements, and the transparent corners have no white fringe.

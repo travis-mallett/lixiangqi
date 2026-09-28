@@ -1,7 +1,6 @@
 package lila.plan
 
 import play.api.i18n.Lang
-import reactivemongo.api.*
 
 import lila.common.Bus
 import lila.core.config.{ RouteUrl, Secret }
@@ -74,7 +73,8 @@ final class PlanApi(
             .userSubscription(user)
             .flatMap:
               case None => fuccess(false)
-              case Some(sub) => payPalClient.cancelSubscription(sub) >> onCancel
+              case Some(sub) =>
+                payPalClient.cancelSubscription(sub) >> payPal.onSubscriptionCancelled(sub.id).inject(true)
 
   def setColorById(id: Int)(using me: Me): Funit =
     val color = for
@@ -253,6 +253,9 @@ final class PlanApi(
       mongo.patron.one[Patron]($doc("stripe.customerId" -> id))
   end stripe
 
+  private val payPalPayments =
+    new PayPalPaymentStore(mongo, (id, db) => f => userApi.updatePlanInTransaction(id, db)(f))
+
   object payPal:
 
     def getEvent = payPalClient.getEvent
@@ -264,8 +267,8 @@ final class PlanApi(
       isLifetime <- pricingApi.isLifetime(money)
       giftTo <- ipn.giftTo.so(userApi.byId)
       _ <-
-        if key != payPalIpnKey.value then
-          logger.error(s"Invalid PayPal IPN key $key from $ip ${ipn.userId} $money")
+        if payPalIpnKey.value.isEmpty || key != payPalIpnKey.value then
+          logger.error(s"Invalid PayPal IPN authentication from $ip")
           funit
         else if !pricing.valid(money, giftTo.isDefined) then
           logger.info(s"Ignoring invalid paypal amount from $ip ${ipn.userId} $money ${ipn.txnId}")
@@ -331,146 +334,125 @@ final class PlanApi(
 
     def createOrder(checkout: PlanCheckout, user: User, giftTo: Option[User]) =
       for
+        pricing <- pricingApi.pricingFor(checkout.money.currency).orFail("Unsupported currency")
+        _ <-
+          if pricing.valid(checkout.money, giftTo.isDefined) then funit else fufail("Invalid donation amount")
         isLifetime <- pricingApi.isLifetime(checkout.money)
         order <- payPalClient.createOrder(CreatePayPalOrder(checkout, user, giftTo, isLifetime))
       yield order
 
     def createSubscription(checkout: PlanCheckout, user: User) =
-      payPalClient.createSubscription(checkout, user)
+      userSubscription(user).flatMap:
+        case Some(sub) if !sub.isCancelled => fufail("A monthly PayPal subscription already exists")
+        case _ => payPalClient.createSubscription(checkout, user)
 
-    def captureOrder(orderId: PayPalOrderId, ip: IpAddress) = for
-      order <- payPalClient.captureOrder(orderId)
-      money <- order.capturedMoney.fold[Fu[Money]](fufail(s"Invalid paypal capture $order"))(fuccess)
-      pricing <- pricingApi.pricingFor(money.currency).orFail(s"Invalid paypal currency $money")
-      usd <- currencyApi.toUsd(money).orFail(s"Invalid paypal currency $money")
-      isLifetime <- pricingApi.isLifetime(money)
-      giftTo <- order.giftTo.so(userApi.byId)
-      _ <-
-        if !pricing.valid(money, giftTo.isDefined) then
-          logger.info(s"Ignoring invalid paypal amount from $ip ${order.userId} $money ${orderId}")
-          funit
-        else
-          val charge = Charge.make(
-            userId = order.userId,
-            giftTo = giftTo.map(_.id),
-            payPalCheckout = Patron.PayPalCheckout(order.id, order.payer.id, none).some,
-            money = money,
-            usd = usd
-          )
-          (addCharge(charge, order.country) >> order.userId.so(userApi.byId)).flatMapz { user =>
-            giftTo match
-              case Some(to) => gift(user, to, money)
-              case None =>
-                def newPayPalCheckout = Patron.PayPalCheckout(order.id, order.payer.id, none)
-                for
-                  patron <- userPatron(user)
-                  _ <- patron match
-                    case None =>
-                      for
-                        _ <- mongo.patron.insert.one(
-                          Patron(
-                            _id = user.id,
-                            payPalCheckout = newPayPalCheckout.some,
-                            lastLevelUp = Some(nowInstant)
-                          ).expireInOneMonth
-                        )
-                        _ <- setDbUserPlanOnCharge(user, levelUp = false)
-                      yield ()
-                    case Some(patron) =>
-                      val p2 = patron
-                        .copy(
-                          payPalCheckout = patron.payPalCheckout.orElse(newPayPalCheckout.some),
-                          free = none
-                        )
-                        .levelUpIfPossible
-                        .expireInOneMonth
-                      for
-                        _ <- mongo.patron.update.one($id(patron.id), p2)
-                        _ <- setDbUserPlanOnCharge(user, patron.canLevelUp)
-                      yield ()
-                  _ <- isLifetime.so(setLifetime(user))
-                yield logger.info(s"Charged ${user.username} with paypal: $money")
-          }
+    def captureOrder(orderId: PayPalOrderId, user: User): Funit = for
+      approved <- payPalClient.getOrder(orderId).orFail(s"Missing PayPal order $orderId")
+      _ <- if approved.userId.contains(user.id) then funit else fufail("PayPal order belongs to another user")
+      order <- if approved.isCompletedCapture then fuccess(approved) else payPalClient.captureOrder(orderId)
+      _ <- onOrderCompleted(order)
     yield ()
 
-    def captureSubscription(
-        orderId: PayPalOrderId,
-        subId: PayPalSubscriptionId,
-        user: User,
-        ip: IpAddress
-    ) = for
-      order <- payPalClient.getOrder(orderId).orFail(s"Missing paypal order for id $orderId")
-      sub <- payPalClient.getSubscription(subId).orFail(s"Missing paypal subscription for order $order")
-      money = sub.capturedMoney
-      pricing <- pricingApi.pricingFor(money.currency).orFail(s"Invalid paypal currency $money")
-      usd <- currencyApi.toUsd(money).orFail(s"Invalid paypal currency $money")
-      _ <-
-        if !pricing.valid(money, isGift = false) then
-          logger.info(s"Ignoring invalid paypal amount from $ip ${order.userId} $money $orderId")
-          funit
-        else
-          val charge = Charge.make(
-            userId = user.id.some,
-            giftTo = None,
-            payPalCheckout = Patron.PayPalCheckout(order.id, order.payer.id, sub.id.some).some,
-            money = money,
-            usd = usd
-          )
-          addSubscriptionCharge(charge, user, order.country)
+    def onOrderCompleted(order: PayPalOrder): Funit = for
+      capture <- fuccess(order.capture).orFail("PayPal has not completed the payment")
+      owner <- fuccess(order.userId).orFail("PayPal order has no LiXiangQi user")
+      _ <- fulfill(
+        capture,
+        owner,
+        order.giftTo,
+        Patron.PayPalCheckout(order.id.some, order.payer.id, none),
+        order.country
+      )
     yield ()
 
-    def subscriptionUser(id: PayPalSubscriptionId): Fu[Option[User]] =
-      subscriptionIdPatron(id).flatMap { _.map(_.id).so(userApi.byId) }
+    def onOrderApproved(orderId: PayPalOrderId): Funit = for
+      order <- payPalClient.getOrder(orderId).orFail(s"Missing PayPal order $orderId")
+      user <- order.userId.so(userApi.byId).orFail("Missing PayPal donor")
+      _ <- captureOrder(orderId, user)
+    yield ()
 
-    // only used for automatically renewing subscription charges
-    def onCaptureCompleted(capture: PayPalCapture) =
-      capture.subscriptionId.map { subId =>
-        for
-          user <- userApi.byId(capture.userId).orFail(s"Missing user for paypal capture $capture")
-          // look for previous charge
-          previous <- mongo.charge
-            // hit the userId index
-            .find($doc("userId" -> user.id, "payPalCheckout.subscriptionId" -> subId))
-            .sort($doc("date" -> -1))
-            .one[Charge]
-            // avoid duplicating the initial charge
-            .map(_.filter(_.date.isBefore(nowInstant.minusMinutes(3))))
-          _ <- previous.so { prev =>
-            logger.info(s"Renewing paypal checkout subscription with $capture")
-            addSubscriptionCharge(prev.copyAsNew, user, none)
-          }
-        yield ()
-      } | funit
+    def onSubscriptionActivated(subId: PayPalSubscriptionId): Funit = for
+      sub <- payPalClient.getSubscription(subId).orFail(s"Missing PayPal subscription $subId")
+      user <- userApi.byId(sub.userId).orFail("Missing PayPal donor")
+      _ <- captureSubscription(subId, user)
+    yield ()
 
-    private def addSubscriptionCharge(charge: Charge, user: User, country: Option[Country]) = for
-      _ <- addCharge(charge, country)
-      _ <- userPatron(user).flatMap:
-        case None =>
-          mongo.patron.insert.one(
-            Patron(
-              _id = user.id,
-              payPalCheckout = charge.payPalCheckout,
-              lastLevelUp = Some(nowInstant)
-            ).expireInOneMonth
-          ) >>
-            setDbUserPlanOnCharge(user, levelUp = false)
-        case Some(patron) =>
-          val p2 = patron
-            .copy(
-              payPalCheckout = charge.payPalCheckout,
-              stripe = none,
-              free = none
+    def onOrderEvent(orderId: PayPalOrderId): Funit =
+      payPalClient.getOrder(orderId).orFail(s"Missing PayPal order $orderId").flatMap(onOrderCompleted)
+
+    // Subscription approval is not proof of payment. Only real completed transactions grant benefits.
+    def captureSubscription(subId: PayPalSubscriptionId, user: User): Fu[Boolean] = for
+      sub <- payPalClient.getSubscription(subId).orFail(s"Missing PayPal subscription $subId")
+      _ <- if sub.userId == user.id then funit else fufail("PayPal subscription belongs to another user")
+      transactions <- payPalClient.subscriptionTransactions(subId)
+      _ <- transactions
+        .filter(_.status == "COMPLETED")
+        .sortBy(_.time)
+        .sequentiallyVoid: transaction =>
+          fulfill(
+            transaction.toCapture(subId),
+            sub.userId,
+            none,
+            Patron.PayPalCheckout(none, sub.subscriber.id, sub.id.some),
+            sub.country
+          )
+    yield transactions.exists(_.status == "COMPLETED")
+
+    def onCaptureCompleted(capture: PayPalCapture): Funit =
+      capture.subscriptionId.so: subId =>
+        payPalClient
+          .getSubscription(subId)
+          .orFail(s"Missing PayPal subscription $subId")
+          .flatMap: sub =>
+            fulfill(
+              capture,
+              sub.userId,
+              none,
+              Patron.PayPalCheckout(none, sub.subscriber.id, sub.id.some),
+              sub.country
             )
-            .levelUpIfPossible
-            .expireInOneMonth
-          mongo.patron.update.one($id(patron.id), p2) >>
-            setDbUserPlanOnCharge(user, patron.canLevelUp)
-      isLifetime <- pricingApi.isLifetime(charge.money)
-      _ <- isLifetime.so(setLifetime(user))
-    yield logger.info(s"Charged ${user.username} with paypal checkout: $charge")
 
-    private def subscriptionIdPatron(id: PayPalSubscriptionId): Fu[Option[Patron]] =
-      mongo.patron.one[Patron]($doc("payPalCheckout.subscriptionId" -> id))
+    def onSubscriptionCancelled(id: PayPalSubscriptionId): Funit =
+      mongo.patron.update
+        .one(
+          $doc("payPalCheckout.subscriptionId" -> id),
+          $unset("payPalCheckout.subscriptionId")
+        )
+        .void
+
+    private def fulfill(
+        capture: PayPalCapture,
+        owner: UserId,
+        giftTo: Option[UserId],
+        checkout: Patron.PayPalCheckout,
+        country: Option[Country]
+    ): Funit = for
+      money <- fuccess(capture.capturedMoney).orFail("PayPal payment is not completed")
+      pricing <- pricingApi.pricingFor(money.currency).orFail(s"Unsupported PayPal currency $money")
+      _ <- if pricing.valid(money, giftTo.isDefined) then funit else fufail("Invalid PayPal payment amount")
+      usd <- currencyApi.toUsd(money).orFail(s"No exchange rate for $money")
+      lifetime <- pricingApi.isLifetime(money)
+      charge = Charge(
+        _id = s"paypal:${capture.id.value}",
+        userId = owner.some,
+        giftTo = giftTo,
+        payPalCheckout = checkout.some,
+        money = money,
+        usd = usd,
+        date = capture.create_time
+      )
+      updated <- payPalPayments.commit(charge, lifetime)
+      _ <- updated.so: (before, after) =>
+        lightUserApi.invalidate(after.id)
+        recentChargeUserIdsCache.invalidateUnit()
+        if giftTo.isDefined then userApi.byId(owner).map(_.foreach(notifier.onGift(_, after, lifetime)))
+        else
+          notifier.onCharge(after)
+          maybeNotifyColorUnlock(before, after)
+          funit
+      _ <- updated.isDefined.so(monitorCharge(charge, country))
+    yield ()
+
   end payPal
 
   private def setDbUserPlanOnCharge(from: User, levelUp: Boolean): Funit =
@@ -517,10 +499,15 @@ final class PlanApi(
               .flatMap:
                 case None =>
                   logger.warn(s"${user.username} sync: unset DB patron that's not in paypal")
-                  mongo.patron.update.one($id(patron.id), patron.removePayPalCheckout) >> sync(user)
-                case Some(subscription) if subscription.isActive && !user.plan.active =>
+                  mongo.patron.update.one($id(patron.id), patron.withoutPayPalRenewal) >> sync(user)
+                case Some(subscription)
+                    if subscription.isActive && patron.expiresAt.exists(
+                      _.isAfter(nowInstant)
+                    ) && !user.plan.active =>
                   logger.warn(s"${user.username} sync: enable plan of customer with a payPal subscription")
                   setDbUserPlan(user.mapPlan(_.enable)).inject(ReloadUser)
+                case Some(subscription) if subscription.isCancelled =>
+                  payPal.onSubscriptionCancelled(subId) >> sync(user)
                 case subscription => fuccess(Synced(patron.some, none, subscription))
 
           case (_, _, Some(_)) =>

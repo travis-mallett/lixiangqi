@@ -4,15 +4,18 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { engineMoveToUi, parsePikafishInfo, PikafishProtocol } from 'lib/ceval';
+import { engineProgress } from 'lib/ceval/engineProgress';
 import { isXiangqiCapture } from 'lib/game';
 import { MoveEvent } from 'lib/prefs';
 
 import {
   ENGINE_SETTINGS_KEY,
   INTERFACE_SETTINGS_KEY,
+  effectiveEngineMultiPv,
   loadEngineSettings,
   loadInterfaceSettings,
 } from '../src/analysisSettings.ts';
+import { AnalysisSuggestions } from '../src/analysisSuggestions.ts';
 import {
   deserializeAnalysisTabs,
   MAX_ANALYSIS_TAB_TITLE_LENGTH,
@@ -23,7 +26,6 @@ import {
 import { AnalysisTreeView } from '../src/analysisTreeView.ts';
 import { ancientManuals } from '../src/ancientManuals.ts';
 import { hydrateXiangqiState, requestXiangqi } from '../src/api.ts';
-import { engineProgress } from '../src/engineProgress.ts';
 import { displayedEvaluation, formatEvaluation, NEUTRAL_EVALUATION } from '../src/evaluation.ts';
 import {
   annotationSourceLabel,
@@ -67,7 +69,7 @@ const state = (fen: string, turn: 'red' | 'black', ply: number): RulesState => (
 });
 
 interface RecordedAnimation {
-  element: HTMLElement;
+  element: Element;
   keyframes: Keyframe[];
   options: KeyframeAnimationOptions;
 }
@@ -85,7 +87,7 @@ const fixedBoardBounds = (): DOMRect => ({
 });
 
 function recordAnimations(settled = false): { calls: RecordedAnimation[]; restore: () => void } {
-  const prototype = window.HTMLElement.prototype;
+  const prototype = window.Element.prototype;
   const original = Object.getOwnPropertyDescriptor(prototype, 'animate');
   const calls: RecordedAnimation[] = [];
 
@@ -93,7 +95,7 @@ function recordAnimations(settled = false): { calls: RecordedAnimation[]; restor
     configurable: true,
     writable: true,
     value(
-      this: HTMLElement,
+      this: Element,
       keyframes: Keyframe[] | PropertyIndexedKeyframes,
       options?: number | KeyframeAnimationOptions,
     ): Animation {
@@ -113,7 +115,7 @@ function recordAnimations(settled = false): { calls: RecordedAnimation[]; restor
     calls,
     restore() {
       if (original) Object.defineProperty(prototype, 'animate', original);
-      else delete (prototype as Partial<HTMLElement>).animate;
+      else delete (prototype as Partial<Element>).animate;
     },
   };
 }
@@ -272,6 +274,43 @@ test('distinguishes the origin and destination of the last move', () => {
   element.remove();
 });
 
+test('keeps one board-plane shadow per piece through redraws, flips, resize and removal', () => {
+  const element = document.createElement('div');
+  document.body.append(element);
+  const ground = makeXiangqiGround(element, { viewOnly: true, animationDuration: 0 });
+  const verify = () => {
+    const pieces = [...element.querySelectorAll<HTMLElement>('cg-board > piece')];
+    const shadows = [
+      ...element.querySelectorAll<HTMLElement>('cg-board > .xiangqi-shadow-layer > .xiangqi-piece-shadow'),
+    ];
+    assert.equal(shadows.length, pieces.length);
+    for (const piece of pieces) {
+      const key = (piece as HTMLElement & { cgKey: string }).cgKey;
+      const shadow = shadows.find(node => node.dataset.key === key);
+      assert.ok(shadow);
+      assert.equal(shadow.style.transform, piece.style.transform);
+      assert.equal(shadow.querySelectorAll('.xiangqi-motion-shadow-contact').length, 1);
+      assert.equal(piece.querySelector('.xiangqi-motion-shadow-contact'), null);
+    }
+  };
+  try {
+    verify();
+    ground.state.dom.redrawNow();
+    verify();
+    ground.toggleOrientation();
+    verify();
+    ground.state.dom.redrawNow(true);
+    verify();
+    ground.set({ fen: '4k4/9/9/9/9/9/9/9/9/4K4' });
+    ground.state.dom.redrawNow();
+    verify();
+    assert.equal(element.querySelectorAll('.xiangqi-piece-shadow').length, 2);
+  } finally {
+    ground.destroy();
+    element.remove();
+  }
+});
+
 test('keeps the Lixiangqi lifted presentation for click-to-move', () => {
   const originalBounds = window.HTMLElement.prototype.getBoundingClientRect;
   window.HTMLElement.prototype.getBoundingClientRect = fixedBoardBounds;
@@ -297,8 +336,24 @@ test('keeps the Lixiangqi lifted presentation for click-to-move', () => {
     assert.ok(selectedPiece);
     assert.ok(selectedPiece.classList.contains('xiangqi-motion-piece'));
     assert.equal(selectedPiece.style.getPropertyValue('--xiangqi-piece-perspective'), '300px');
-    assert.ok(selectedPiece.querySelector('.xiangqi-motion-shadow-contact'));
-    assert.ok(selectedPiece.querySelector('.xiangqi-motion-shadow-airborne'));
+    assert.equal(selectedPiece.querySelector('.xiangqi-motion-shadow-contact'), null);
+    const airborne = selectedPiece.querySelector('.xiangqi-motion-shadow-airborne');
+    assert.ok(airborne);
+    assert.equal(airborne.parentElement, selectedPiece);
+    assert.deepEqual(animations.calls.find(call => call.element === airborne)?.keyframes, [
+      { opacity: 0 },
+      { opacity: 1 },
+    ]);
+    const contact = element.querySelector(
+      '.xiangqi-piece-shadow[data-key="h1"] .xiangqi-motion-shadow-contact',
+    );
+    assert.ok(contact);
+    assert.equal(contact.parentElement?.parentElement?.className, 'xiangqi-shadow-layer');
+    assert.equal(contact.parentElement?.parentElement?.parentElement?.tagName, 'CG-BOARD');
+    assert.deepEqual(animations.calls.find(call => call.element === contact)?.keyframes, [
+      { opacity: 1 },
+      { opacity: 0 },
+    ]);
     assert.ok(selectedPiece.querySelector('.xiangqi-motion-rim'));
     assert.ok(selectedPiece.querySelector('.xiangqi-motion-face'));
 
@@ -544,6 +599,13 @@ test('carries a click-selected piece and preserves that motion through authorita
     assert.ok(movedPiece);
     assert.ok(movedPiece.classList.contains('xiangqi-motion-piece'));
     assert.ok(animations.calls.some(call => call.element === movedPiece && call.options.duration === 150));
+    const shadow = element.querySelector('.xiangqi-piece-shadow[data-key="g3"]');
+    assert.ok(shadow);
+    const carry = animations.calls.find(call => call.element === movedPiece && call.options.duration === 150);
+    assert.deepEqual(
+      animations.calls.find(call => call.element === shadow && call.options.duration === 150)?.keyframes,
+      carry?.keyframes,
+    );
 
     // A live game acknowledges the optimistic user move through the public move API.
     // Since the source is already empty, that acknowledgment must remain a true no-op.
@@ -617,6 +679,48 @@ test('uses the measured flat slide only when requested for reverse navigation', 
   }
 });
 
+test('reveals the last-move connector with the same travel progress as a long cannon move', () => {
+  const originalBounds = window.HTMLElement.prototype.getBoundingClientRect;
+  window.HTMLElement.prototype.getBoundingClientRect = fixedBoardBounds;
+  const animations = recordAnimations();
+  const element = document.createElement('div');
+  document.body.append(element);
+  const ground = makeXiangqiGround(element, { viewOnly: true });
+  try {
+    ground.move('b3', 'b9');
+    const reveal = animations.calls.find(call =>
+      call.element.classList.contains('xiangqi-last-move-connector'),
+    );
+    const travel = animations.calls.find(
+      call => call.element.tagName === 'PIECE' && call.keyframes.length === 6,
+    );
+    assert.ok(reveal);
+    assert.ok(travel);
+    assert.deepEqual(reveal.options, travel.options);
+    assert.deepEqual(
+      reveal.keyframes.map(frame => frame.offset),
+      travel.keyframes.map(frame => frame.offset),
+    );
+    for (let i = 0; i < travel.keyframes.length; i++) {
+      const y = Number(String(travel.keyframes[i].transform).match(/,([\d.]+)px,/)![1]);
+      const radius = Number(String(reveal.keyframes[i].clipPath).match(/circle\(([\d.]+)px/)![1]);
+      assert.ok(Math.abs(radius - (700 - y)) < 0.001);
+    }
+    assert.equal(reveal.keyframes[0].clipPath, 'circle(0px at 150px 750px)');
+    assert.equal(reveal.keyframes.at(-1)?.clipPath, 'circle(600px at 150px 750px)');
+    // Interrupt the carry with another position; stale reveal effects must go
+    // away with the board's existing animation cancellation lifecycle.
+    ground.set({ lastMove: undefined });
+    ground.state.dom.redrawNow();
+    assert.equal(element.querySelector('.xiangqi-last-move-connector'), null);
+  } finally {
+    ground.destroy();
+    element.remove();
+    animations.restore();
+    window.HTMLElement.prototype.getBoundingClientRect = originalBounds;
+  }
+});
+
 test('stacks the destination shadow below its glow and piece face', async () => {
   const originalBounds = window.HTMLElement.prototype.getBoundingClientRect;
   window.HTMLElement.prototype.getBoundingClientRect = fixedBoardBounds;
@@ -635,6 +739,7 @@ test('stacks the destination shadow below its glow and piece face', async () => 
     );
     assert.ok(movedPiece);
     assert.ok(movedPiece.classList.contains('xiangqi-last-move-piece'));
+    assert.equal(element.querySelector('.xiangqi-motion-shadow-airborne'), null);
     assert.deepEqual(
       [...movedPiece.children].map(child => child.className),
       ['xiangqi-last-move-highlight'],
@@ -664,6 +769,13 @@ test('lands the layered piece with the final measured perspective sequence', asy
       call => call.element.classList.contains('xiangqi-motion-stack') && call.keyframes.length === 6,
     );
     assert.ok(landing);
+    const shadowLanding = animations.calls.find(
+      call =>
+        call.element.classList.contains('xiangqi-motion-shadow-airborne') &&
+        call.options.duration === 150 &&
+        call.keyframes.at(-1)?.opacity === 0,
+    );
+    assert.ok(shadowLanding);
     assert.equal(landing.options.duration, 150);
     assert.deepEqual(
       landing.keyframes.map(frame => [frame.offset, frame.transform]),
@@ -807,7 +919,7 @@ test('emits only completed browser MultiPV depths and stops old work before repl
   protocol.received('readyok');
   protocol.compute({
     fen: 'test w - - 0 1',
-    depth: 20,
+    search: { depth: 20 },
     multiPv: 2,
     threads: 2,
     hashSize: 64,
@@ -826,14 +938,16 @@ test('emits only completed browser MultiPV depths and stops old work before repl
 
 test('matches Lichess progress semantics for Pikafish depth, completion, and downloads', () => {
   assert.deepEqual(engineProgress(true, { state: 'computing' }, 5, 20), {
-    computing: true,
+    active: true,
+    label: i18n.site.depthX(5),
     percent: 25,
     visible: true,
   });
   assert.equal(engineProgress(true, { state: 'ready' }, 5, 20).percent, 100);
   assert.equal(engineProgress(false, { state: 'ready' }, 0, 20).visible, false);
   assert.deepEqual(engineProgress(false, { state: 'downloading', bytes: 2, total: 5 }, 0, 20), {
-    computing: false,
+    active: true,
+    label: i18n.site.engineDownloadProgress('40%', '0', '0'),
     percent: 40,
     visible: true,
   });
@@ -884,6 +998,117 @@ test('normalizes persisted analysis settings at their storage boundary', () => {
   } finally {
     localStorage.removeItem(ENGINE_SETTINGS_KEY);
     localStorage.removeItem(INTERFACE_SETTINGS_KEY);
+  }
+});
+
+test('uses responsive MultiPV defaults only when no preference is stored', () => {
+  const original = localStorage.getItem(ENGINE_SETTINGS_KEY);
+  try {
+    localStorage.removeItem(ENGINE_SETTINGS_KEY);
+    const settings = loadEngineSettings();
+    assert.equal(settings.multiPv, undefined);
+    assert.equal(effectiveEngineMultiPv(settings, true), 1);
+    assert.equal(effectiveEngineMultiPv(settings, false), 3);
+
+    for (const value of [1, 3, 5]) {
+      localStorage.setItem(ENGINE_SETTINGS_KEY, JSON.stringify({ multiPv: value }));
+      const saved = loadEngineSettings();
+      assert.equal(saved.multiPv, value);
+      assert.equal(effectiveEngineMultiPv(saved, true), value);
+      assert.equal(effectiveEngineMultiPv(saved, false), value);
+    }
+
+    localStorage.setItem(ENGINE_SETTINGS_KEY, JSON.stringify({ multiPv: '3' }));
+    assert.equal(loadEngineSettings().multiPv, undefined);
+    localStorage.setItem(ENGINE_SETTINGS_KEY, JSON.stringify({ multiPv: 99 }));
+    assert.equal(loadEngineSettings().multiPv, 5);
+  } finally {
+    if (original === null) localStorage.removeItem(ENGINE_SETTINGS_KEY);
+    else localStorage.setItem(ENGINE_SETTINGS_KEY, original);
+  }
+});
+
+test('renders mobile engine rows and placeholders from the resolved MultiPV count', () => {
+  const originalMatchMedia = window.matchMedia;
+  let mobile = false;
+  let breakpointChanged: ((event: MediaQueryListEvent) => void) | undefined;
+  window.matchMedia = () =>
+    ({
+      get matches() {
+        return mobile;
+      },
+      addEventListener(_type: string, listener: (event: MediaQueryListEvent) => void) {
+        breakpointChanged = listener;
+      },
+    }) as MediaQueryList;
+  document.body.innerHTML = `
+    <div id="xiangqi-eval"><div id="xiangqi-eval-fill"></div><span id="xiangqi-eval-score"></span></div>
+    <span id="xiangqi-engine-score"></span>
+    <span id="xiangqi-engine-status"></span>
+    <div id="xiangqi-engine-lines"></div>
+    <span id="xiangqi-cloud-badge"></span>
+    <button id="xiangqi-more-lines"></button>
+  `;
+  try {
+    let count = 3;
+    const suggestions = new AnalysisSuggestions(
+      'root w - - 0 1',
+      () => 'white',
+      () => count,
+    );
+    suggestions.showPlaceholders();
+    assert.equal(document.querySelectorAll('#xiangqi-engine-lines > .placeholder').length, 3);
+    count = 2;
+    mobile = true;
+    suggestions.renderEngine(
+      {
+        engine: 'Pikafish',
+        depth: 12,
+        nodes: 100,
+        nps: 100,
+        timeMs: 10,
+        score: { redCp: 20 },
+        lines: Array.from({ length: 5 }, (_, index) => ({
+          multipv: index + 1,
+          depth: 12,
+          seldepth: 12,
+          score: { redCp: 20 - index },
+          pvMoves: ['a4a5'],
+          wxfMoves: [`P${index + 1}+1`],
+        })),
+      },
+      () => undefined,
+    );
+    assert.equal(document.querySelectorAll('#xiangqi-engine-lines > .pv:not(.placeholder)').length, 2);
+    suggestions.renderExplorer(
+      {
+        available: true,
+        source: 'test',
+        moves: Array.from({ length: 5 }, (_, index) => ({
+          move: `a${index + 1}a${index + 2}`,
+          notation: `P${index + 1}+1`,
+          pvMoves: [],
+          wxfMoves: [],
+          note: '',
+        })),
+      },
+      () => undefined,
+    );
+    assert.equal(document.querySelectorAll('#xiangqi-engine-lines > .pv').length, 2);
+    assert.equal(document.querySelectorAll('#xiangqi-engine-lines > .placeholder').length, 0);
+    mobile = false;
+    breakpointChanged?.({ matches: false } as MediaQueryListEvent);
+    suggestions.toggleExpanded();
+    assert.equal(document.querySelectorAll('#xiangqi-engine-lines > .pv').length, 5);
+    mobile = true;
+    breakpointChanged?.({ matches: true } as MediaQueryListEvent);
+    assert.equal(document.querySelectorAll('#xiangqi-engine-lines > .pv').length, 2);
+    count = 5;
+    suggestions.showPlaceholders();
+    assert.equal(document.querySelectorAll('#xiangqi-engine-lines > .placeholder').length, 5);
+  } finally {
+    window.matchMedia = originalMatchMedia;
+    document.body.replaceChildren();
   }
 });
 

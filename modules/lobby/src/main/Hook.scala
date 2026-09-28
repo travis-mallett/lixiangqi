@@ -21,7 +21,8 @@ case class Hook(
     color: TriColor,
     user: Option[LobbyUser],
     createdAt: Instant,
-    boardApi: Boolean
+    boardApi: Boolean,
+    traffic: Option[lila.core.traffic.TrafficSearch] = None
 ):
 
   val realVariant = Variant.orDefault(variant)
@@ -39,6 +40,12 @@ case class Hook(
   def userId = user.map(_.id)
   def username = user.fold(UserName.anonymous)(_.username)
   def lame = user.so(_.lame)
+
+  def trafficEvent(kind: String, outcome: String, game: Option[GameId] = None): Unit = traffic.foreach:
+    search =>
+      val event =
+        search.event(kind, userId, lila.core.pool.PoolConfigId.from(clock, moveTimeLimit).value, outcome)
+      lila.common.Bus.pub(event.copy(dimensions = event.dimensions ++ game.map(id => "game" -> id.value)))
 
   import lila.common.Json.given
   def render: JsObject = Json

@@ -99,14 +99,9 @@
   <string name="mateIn3Description">Chiếu hết trong ba nước cờ.</string>
   <string name="mateIn4">Chiếu hết trong 4 nước</string>
   <string name="mateIn4Description">Chiếu hết trong bốn nước cờ.</string>
-  <string name="mateIn5">Chiếu hết trong 5 nước hoặc hơn</string>
   <string name="mateIn5Description">Tìm ra một chuỗi dài các nước cờ dẫn đến chiếu hết.</string>
-  <string name="middlegame">Trung cuộc</string>
-  <string name="middlegameDescription">Chiến thuật trong giai đoạn thứ hai của ván cờ.</string>
   <string name="oneMove">Câu đố một nước</string>
   <string name="oneMoveDescription">Câu đố mà chỉ có một nước đi.</string>
-  <string name="opening">Khai cuộc</string>
-  <string name="openingDescription">Chiến thuật trong phần mở đầu của ván cờ.</string>
   <string name="operaMate">Chiếu hết kiểu Opera</string>
   <string name="operaMateDescription">Dùng quân xe chiếu vua và dùng quân tượng để bảo vệ quân xe.</string>
   <string name="pawnEndgame">Tàn cuộc Tốt</string>

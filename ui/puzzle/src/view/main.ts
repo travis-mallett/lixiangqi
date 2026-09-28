@@ -1,11 +1,6 @@
-import { render as renderKeyboardMove } from 'keyboard-move';
 import { type VNode, h } from 'snabbdom';
-import { renderVoiceBar } from 'voice';
 
-import { view as cevalView } from 'lib/ceval';
-import { dispatchChessgroundResize } from 'lib/chessgroundResize';
 import { licon } from 'lib/licon';
-import { Coords } from 'lib/prefs';
 import { storage } from 'lib/storage';
 import {
   toggleButton as boardMenuToggleButton,
@@ -21,14 +16,13 @@ import * as control from '@/control';
 import type PuzzleCtrl from '@/ctrl';
 import { view as keyboardView } from '@/keyboard';
 
+import actions from './actions';
 import boardMenu from './boardMenu';
 import chessground from './chessground';
 import feedbackView from './feedback';
 import { replay, puzzleBox, userBox, streakBox, config } from './side';
 import theme from './theme';
 import { render as treeView } from './tree';
-
-const renderAnalyse = (ctrl: PuzzleCtrl): VNode => hl('div.puzzle__moves.areplay', [treeView(ctrl)]);
 
 function controls(ctrl: PuzzleCtrl): VNode {
   const node = ctrl.node;
@@ -52,32 +46,9 @@ function controls(ctrl: PuzzleCtrl): VNode {
   });
 }
 
-let cevalShown = false;
-
 export default function (ctrl: PuzzleCtrl): VNode {
-  const gaugeOn = ctrl.showEvalGauge();
-
-  if (cevalShown !== ctrl.showEvaluation()) {
-    if (!cevalShown) ctrl.autoScrollNow = true;
-    cevalShown = ctrl.showEvaluation();
-  }
-
   return hl(
-    `main.puzzle.puzzle-${ctrl.data.replay ? 'replay' : 'play'}${ctrl.streak ? '.puzzle--streak' : ''}${ctrl.isXiangqi ? '.puzzle-xiangqi' : ''}`,
-    {
-      class: { 'gauge-on': gaugeOn },
-      hook: {
-        postpatch(old, vnode) {
-          if (old.data!.gaugeOn !== gaugeOn) {
-            if (ctrl.pref.coords === Coords.Outside) {
-              $('body').toggleClass('coords-in', gaugeOn).toggleClass('coords-out', !gaugeOn);
-            }
-            dispatchChessgroundResize();
-          }
-          vnode.data!.gaugeOn = gaugeOn;
-        },
-      },
-    },
+    `main.puzzle.puzzle-${ctrl.data.replay ? 'replay' : 'play'}${ctrl.streak ? '.puzzle--streak' : ''}.puzzle-xiangqi`,
     [
       renderBlindfoldToggle(ctrl.blindfold),
       hl('aside.puzzle__side', [
@@ -88,7 +59,7 @@ export default function (ctrl: PuzzleCtrl): VNode {
         config(ctrl),
       ]),
       hl(
-        `div.puzzle__board.main-board${ctrl.isXiangqi ? '.xiangqi9x10' : ''}${ctrl.blindfold() ? '.blindfold' : ''}`,
+        `div.puzzle__board.main-board.xiangqi9x10${ctrl.blindfold() ? '.blindfold' : ''}`,
         {
           hook:
             'ontouchstart' in window || !storage.boolean('scrollMoves').getOrDefault(true)
@@ -105,23 +76,10 @@ export default function (ctrl: PuzzleCtrl): VNode {
                   ),
                 ),
         },
-        [chessground(ctrl), ctrl.isXiangqi ? null : ctrl.promotion.view()],
+        [chessground(ctrl)],
       ),
-      cevalView.renderGauge(ctrl),
-      hl('div.puzzle__tools', [
-        ctrl.voiceMove ? renderVoiceBar(ctrl.voiceMove.ctrl, ctrl.redraw, 'puz') : null,
-        // we need the wrapping div here
-        // so the siblings are only updated when ceval is added
-        hl(
-          'div.ceval-wrap',
-          { class: { none: !ctrl.showEvaluation() } },
-          ctrl.showEvaluation() ? [cevalView.renderCeval(ctrl), cevalView.renderPvs(ctrl)] : [],
-        ),
-        renderAnalyse(ctrl),
-        feedbackView(ctrl),
-      ]),
+      hl('div.puzzle__tools', [treeView(ctrl), feedbackView(ctrl), actions(ctrl)]),
       controls(ctrl),
-      ctrl.keyboardMove && renderKeyboardMove(ctrl.keyboardMove),
       session(ctrl),
       ctrl.keyboardHelp() && keyboardView(ctrl),
     ],

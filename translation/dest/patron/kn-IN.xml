@@ -17,7 +17,6 @@
   <string name="youHaveLifetime">ನೀವು ಜೀವಮಾನದ ಪೋಷಕ ಖಾತೆಯನ್ನು ಹೊಂದಿರುವಿರಿ. ಅದು ಬಹಳ ಅದ್ಭುತವಾಗಿದೆ!</string>
   <string name="patronUntil">ನೀವು %s ವರೆಗೆ ಪೋಷಕ ಖಾತೆಯನ್ನು ಹೊಂದಿರುವಿರಿ.</string>
   <string name="ifNotRenewedThenAccountWillRevert">ನವೀಕರಿಸದಿದ್ದರೆ, ನಿಮ್ಮ ಖಾತೆಯು ಸಾಮಾನ್ಯ ಖಾತೆಗೆ ಹಿಂತಿರುಗುತ್ತದೆ.</string>
-  <string name="weAreNonProfit">ನಾವು ಲಾಭರಹಿತ ಸಂಘವಾಗಿದೆ ಏಕೆಂದರೆ ಪ್ರತಿಯೊಬ್ಬರೂ ಉಚಿತ, ವಿಶ್ವ ದರ್ಜೆಯ ಚೆಸ್ ಪ್ಲಾಟ್‌ಫಾರ್ಮ್‌ಗೆ ಪ್ರವೇಶವನ್ನು ಹೊಂದಿರಬೇಕು ಎಂದು ನಾವು ನಂಬುತ್ತೇವೆ.</string>
   <string name="weRelyOnSupport">ಅದನ್ನು ಸಾಧ್ಯವಾಗಿಸಲು ನಾವು ನಿಮ್ಮಂತಹ ಜನರ ಬೆಂಬಲವನ್ನು ಅವಲಂಬಿಸಿದ್ದೇವೆ. ನೀವು Lichess ಅನ್ನು ಬಳಸುವುದನ್ನು ಆನಂದಿಸುತ್ತಿದ್ದರೆ, ದಯವಿಟ್ಟು ದೇಣಿಗೆ ನೀಡುವ ಮೂಲಕ ಮತ್ತು ಪೋಷಕರಾಗುವ ಮೂಲಕ ನಮ್ಮನ್ನು ಬೆಂಬಲಿಸುವುದನ್ನು ಪರಿಗಣಿಸಿ!</string>
   <string name="lifetime">ಜೀವಮಾನ</string>
   <string name="payLifetimeOnce">ಒಮ್ಮೆ %s ಪಾವತಿಸಿ. ಶಾಶ್ವತವಾಗಿ ಲಿಚೆಸ್ ಪೋಷಕರಾಗಿರಿ!</string>
@@ -33,18 +32,9 @@
   <string name="weAreSmallTeam">ನಮ್ಮದು ಚಿಕ್ಕ ತಂಡ, ಆದ್ದರಿಂದ ನಿಮ್ಮ ಬೆಂಬಲವು ದೊಡ್ಡ ವ್ಯತ್ಯಾಸವನ್ನು ಮಾಡುತ್ತದೆ!</string>
   <string name="celebratedPatrons">ಸಾಧ್ಯವಾಗಿಸುವ ಪ್ರಸಿದ್ಧ ಪೋಷಕರು</string>
   <string name="whereMoneyGoes">ಹಣ ಎಲ್ಲಿಗೆ ಹೋಗುತ್ತದೆ?</string>
-  <string name="serversAndDeveloper">ಮೊದಲನೆಯದಾಗಿ, ಶಕ್ತಿಯುತ ಸರ್ವರ್‌ಗಳು.
-ನಂತರ ನಾವು ಪೂರ್ಣ ಸಮಯದ ಡೆವಲಪರ್‌ಗೆ ಪಾವತಿಸುತ್ತೇವೆ: %s, ಲಿಚೆಸ್‌ನ ಸಂಸ್ಥಾಪಕ.
-</string>
-  <string name="costBreakdown">ವಿವರವಾದ ವೆಚ್ಚದ ವಿಭಜನೆಯನ್ನು ನೋಡಿ</string>
   <string name="officialNonProfit">ಲಿಚೆಸ್ ಅಧಿಕೃತ ಲಾಭರಹಿತವೇ?</string>
-  <string name="actOfCreation">ಹೌದು, ಸೃಷ್ಟಿ ಕ್ರಿಯೆ ಇಲ್ಲಿದೆ (ಫ್ರೆಂಚ್‌ನಲ್ಲಿ)</string>
   <string name="changeMonthlySupport">ನನ್ನ ಮಾಸಿಕ ಬೆಂಬಲವನ್ನು ನಾನು ಬದಲಾಯಿಸಬಹುದೇ/ರದ್ದು ಮಾಡಬಹುದೇ?</string>
   <string name="contactSupport">lichess ಬೆಂಬಲವನ್ನು ಸಂಪರ್ಕಿಸಿ</string>
-  <string name="otherMethods">ದಾನದ ಇತರ ವಿಧಾನಗಳು?</string>
-  <string name="lichessIsRegisteredWith">Lichess ಅನ್ನು %s ಜೊತೆಗೆ ನೋಂದಾಯಿಸಲಾಗಿದೆ.</string>
-  <string name="bankTransfers">ನಾವು ಬ್ಯಾಂಕ್ ವರ್ಗಾವಣೆಗಳನ್ನು ಸಹ ಸ್ವೀಕರಿಸುತ್ತೇವೆ</string>
-  <string name="onlyDonationFromAbove">ಮೇಲಿನ ದೇಣಿಗೆ ನಮೂನೆಯು ಮಾತ್ರ ಪೋಷಕ ಸ್ಥಿತಿಯನ್ನು ನೀಡುತ್ತದೆ ಎಂಬುದನ್ನು ದಯವಿಟ್ಟು ಗಮನಿಸಿ.</string>
   <string name="patronFeatures">ಕೆಲವು ವೈಶಿಷ್ಟ್ಯಗಳನ್ನು ಪೋಷಕರಿಗೆ ಕಾಯ್ದಿರಿಸಲಾಗಿದೆಯೇ?</string>
   <string name="noPatronFeatures">ಇಲ್ಲ, ಏಕೆಂದರೆ ಲಿಚೆಸ್ ಸಂಪೂರ್ಣವಾಗಿ ಉಚಿತವಾಗಿದೆ, ಶಾಶ್ವತವಾಗಿ ಮತ್ತು ಎಲ್ಲರಿಗೂ. ಅದೊಂದು ಭರವಸೆ.
 ಆದಾಗ್ಯೂ, ತಂಪಾದ ಹೊಸ ಪ್ರೊಫೈಲ್ ಐಕಾನ್‌ನೊಂದಿಗೆ ಪೋಷಕರು ಬಡಾಯಿ ಕೊಚ್ಚಿಕೊಳ್ಳುವ ಹಕ್ಕುಗಳನ್ನು ಪಡೆಯುತ್ತಾರೆ.</string>

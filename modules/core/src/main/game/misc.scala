@@ -198,6 +198,7 @@ object BSONFields:
   val winnerId = "wid"
   val createdAt = "ca"
   val movedAt = "ua" // ua = updatedAt (bc)
+  val completedAt = "co"
   val turns = "t"
   val analysed = "an"
   val pgnImport = "pgni"

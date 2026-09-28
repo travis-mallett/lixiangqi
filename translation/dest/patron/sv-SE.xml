@@ -18,7 +18,6 @@
   <string name="youHaveLifetime">Du har ett livstids Patron-konto. Det är ganska häftigt!</string>
   <string name="patronUntil">Du har ett Patron-konto till %s.</string>
   <string name="ifNotRenewedThenAccountWillRevert">Om donationen inte förnyas kommer ditt konto sedan återgå till ett vanligt konto.</string>
-  <string name="weAreNonProfit">Vi är en ideell förening eftersom vi anser att alla bör ha tillgång till en gratis schackplattform i världsklass.</string>
   <string name="weRelyOnSupport">Vi förlitar oss på stöd från personer som du för att göra detta möjligt. Om du tycker om att använda Lichess, vänligen överväg att stödja oss genom att donera och bli beskyddare!</string>
   <string name="lifetime">Livstid</string>
   <string name="payLifetimeOnce">Betala %s en gång. Var en Lichess Patron för evigt!</string>
@@ -34,17 +33,9 @@
   <string name="weAreSmallTeam">Vi är ett litet team, så ditt stöd gör en enorm skillnad!</string>
   <string name="celebratedPatrons">De berömda Patronerna som gör Lichess möjligt</string>
   <string name="whereMoneyGoes">Vart går pengarna?</string>
-  <string name="serversAndDeveloper">Först och främst till kraftfulla servrar.
-Sedan betalar vi en heltidsutvecklare: %s, grundaren av Lichess.</string>
-  <string name="costBreakdown">Se den detaljerade kostnadsfördelningen</string>
   <string name="officialNonProfit">Är Lichess en officiell ideell organisation?</string>
-  <string name="actOfCreation">Ja, här är den skapande handlingen (på franska)</string>
   <string name="changeMonthlySupport">Kan jag ändra/avbryta mitt månatliga bidrag?</string>
   <string name="contactSupport">kontakta Lichess support</string>
-  <string name="otherMethods">Andra metoder för donation?</string>
-  <string name="lichessIsRegisteredWith">Lichess är registrerad till %s.</string>
-  <string name="bankTransfers">Vi godtar även banköverföringar</string>
-  <string name="onlyDonationFromAbove">Observera att endast donationsformuläret ovan kommer att ge Patron-status.</string>
   <string name="patronFeatures">Är vissa funktioner reserverade för Beskyddare (Patroner)?</string>
   <string name="noPatronFeatures">Nej, eftersom Lichess är helt gratis, för alltid och för alla. Det är ett löfte.
 Men beskyddare får skryta med rätten till en cool ny profilikon.</string>
@@ -81,5 +72,4 @@ Men beskyddare får skryta med rätten till en cool ny profilikon.</string>
   <string name="changeCurrency">Ändra valuta</string>
   <string name="paymentDetails">Betalningsuppgifter</string>
   <string name="updatePaymentMethod">Uppdatera betalningsmetod</string>
-  <string name="stripeManageSub">Hantera din prenumeration och ladda ner dina fakturor och kvitton</string>
 </resources>

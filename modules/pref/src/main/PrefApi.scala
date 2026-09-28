@@ -46,6 +46,16 @@ final class PrefApi(
     .get(userId)
     .dmap(_ | Pref.create(userId))
 
+  /** Bulk consumers use the canonical decoder and defaults without one database request per account. */
+  def byIds(userIds: List[UserId]): Fu[Map[UserId, Pref]] =
+    coll
+      .find($inIds(userIds))
+      .cursor[Pref]()
+      .list(userIds.size)
+      .map: prefs =>
+        val saved = prefs.map(p => p.id -> p).toMap
+        userIds.map(id => id -> saved.getOrElse(id, Pref.create(id))).toMap
+
   def byId(both: ByColor[Option[UserId]]): Fu[ByColor[Pref]] =
     both.traverse(_.fold(fuccess(Pref.default))(byId))
 

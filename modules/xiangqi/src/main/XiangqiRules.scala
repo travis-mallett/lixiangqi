@@ -78,6 +78,7 @@ object XiangqiRules:
       boardMove(game.state.fen, uci).map: result =>
         val state = game.ruleset.policy.get.afterMove(game, result)
         result.copy(
+          checkmate = state.mate,
           legalMoves = state.legalMoves,
           insufficientMaterial = state.insufficientMaterial,
           gameResult = state.gameResult,
@@ -141,7 +142,7 @@ object XiangqiRules:
         notation = wxf(current.board, uci),
         chineseNotation = chinese(current.board, uci),
         capture = transition.capture,
-        checkmate = state.check && state.immediateEnd.ended,
+        checkmate = state.mate,
         variant = state.variant,
         fen = state.fen,
         ply = state.ply,

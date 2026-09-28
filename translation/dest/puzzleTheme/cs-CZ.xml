@@ -93,14 +93,9 @@
   <string name="mateIn3Description">Dejte mat třetím tahem.</string>
   <string name="mateIn4">Mat 4. tahem</string>
   <string name="mateIn4Description">Dejte mat čtvrtým tahem.</string>
-  <string name="mateIn5">Mat za 5 nebo více tahů</string>
   <string name="mateIn5Description">Spočítejte dlouhou variantu vedoucí do matu.</string>
-  <string name="middlegame">Střední hra</string>
-  <string name="middlegameDescription">Taktický obrat ve střední hře.</string>
   <string name="oneMove">Jednotažka</string>
   <string name="oneMoveDescription">Úloha, která má pouze jeden tah.</string>
-  <string name="opening">Zahájení</string>
-  <string name="openingDescription">Taktický obrat v zahájení.</string>
   <string name="operaMate">Mat typu „Opera“</string>
   <string name="pawnEndgame">Pěšcové koncovky</string>
   <string name="pawnEndgameDescription">Koncovka pouze s pěšci.</string>

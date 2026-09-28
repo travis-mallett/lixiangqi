@@ -16,16 +16,23 @@ final class Analyser(
 
   def save(analysis: Analysis, workHash: => Array[Byte]): Funit = for
     _ <- analysisRepo.save(analysis, analysis.studyId.isDefined.option(workHash))
-    _ <- analysis.id.gameId.so: id =>
+    // Read the winner from primary, including on retry after an uncertain write.
+    retained <- analysisRepo.current(analysis.id).orFail("Saved analysis missing")
+    _ <- retained.id.gameId.so: id =>
       gameRepo.game(id).flatMapz { prev =>
         val game = prev.focus(_.metadata.analysed).replace(true)
         for _ <- gameRepo.setAnalysed(game.id, true)
-        yield Bus.pub(actorApi.AnalysisReady(game, analysis))
+        yield Bus.pub(actorApi.AnalysisReady(game, retained))
       }
-    _ <- sendAnalysisProgress(analysis, complete = true)
+    _ <- sendAnalysisProgress(retained, complete = true)
   yield ()
 
-  def progress(analysis: Analysis): Funit = sendAnalysisProgress(analysis, complete = false)
+  def progress(analysis: Analysis): Funit =
+    analysisRepo
+      .current(analysis.id)
+      .flatMap:
+        case Some(retained) => sendAnalysisProgress(retained, complete = true)
+        case None => sendAnalysisProgress(analysis, complete = false)
 
   def foundSameHash(forId: Analysis.Id, same: Analysis, workHash: Array[Byte]): Funit =
     save(same.copy(id = forId), workHash)
@@ -37,19 +44,23 @@ final class Analyser(
           Bus.pub(
             lila.tree.AnalysisProgress(
               id,
-              () => makeProgressPayload(analysis, game)
+              () => makeProgressPayload(analysis, game, complete)
             )
           )
         }
-      case _ =>
+      case Analysis.Id.Study(_, _) =>
         fuccess:
           Bus.pub(lila.tree.StudyAnalysisProgress(analysis, complete))
+      case Analysis.Id.Catalog(_) => funit
 
   private def makeProgressPayload(
       analysis: Analysis,
-      game: Game
+      game: Game,
+      complete: Boolean
   ): JsObject =
     Json.obj(
+      "complete" -> complete,
+      "depth" -> analysis.depth,
       "analysis" -> JsonView.bothPlayers(game.startedAtPly, analysis),
       "treeParts" -> XiangqiTreeJson(game, analysis.some, ExportOptions.default)
     )

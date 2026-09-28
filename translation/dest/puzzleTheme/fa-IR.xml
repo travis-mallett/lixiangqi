@@ -99,14 +99,9 @@
   <string name="mateIn3Description">در سه حرکت کیش و مات کنید.</string>
   <string name="mateIn4">مات در چهار حرکت</string>
   <string name="mateIn4Description">در چهار حرکت کیش و مات کنید.</string>
-  <string name="mateIn5">مات در پنج حرکت یا بیشتر</string>
   <string name="mateIn5Description">کشف یک مات طولانی و متوالی.</string>
-  <string name="middlegame">وسط بازی</string>
-  <string name="middlegameDescription">راهکنشی در مرحله دوم بازی.</string>
   <string name="oneMove">معمای یک-حرکتی</string>
   <string name="oneMoveDescription">یک معما که فقط یک حرکت طول می‌کشد.</string>
-  <string name="opening">گشایش</string>
-  <string name="openingDescription">تاکتیک در مرحله اول بازی.</string>
   <string name="operaMate">ماتِ نَغمایش</string>
   <string name="operaMateDescription">با رُخی که فیلی از او دفاع می‌کند، شاه را مات کنید.</string>
   <string name="pawnEndgame">آخربازی پیاده</string>

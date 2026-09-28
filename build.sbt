@@ -90,7 +90,7 @@ lazy val modules = Seq(
   notifyModule, clas, perfStat, timeline,
   setup, video, fide, title, push,
   // and then the smaller ones
-  pool, lobby, relation, tv, notation, feed, history, recap,
+  pool, lobby, relation, tv, notation, traffic, feed, history, recap,
   shutup, appeal, irc, explorer, learn, event, coach,
   evalCache, irwin, bot, racer, cms, i18n,
   socket, bookmark, studySearch, gameSearch, forumSearch, teamSearch, irc
@@ -102,6 +102,11 @@ lazy val moduleCPDeps = moduleRefs map { sbt.ClasspathDependency(_, None) }
 lazy val core = module("core",
   Seq(xiangqi),
   Seq(catsMtl, scalatags, galimatias) ++ scalalib.bundle ++ reactivemongo.bundle ++ tests.bundle
+)
+
+lazy val traffic = module("traffic",
+  Seq(db, memo, pref, user, security),
+  Seq(dataSketches) ++ tests.bundle
 )
 
 lazy val coreI18n = module("coreI18n",
@@ -147,7 +152,7 @@ lazy val i18n = module("i18n",
     I18n.serialize(
       sourceDir = new File("translation/source"),
       destDir = new File("translation/dest"),
-      dbs = "activity app appeal arena broadcast challenge class coach contact notation dgt emails faq features insight keyboardMove lag learn nvui oauthScope onboarding patron perfStat preferences puzzle puzzleTheme recap search settings site streamer storm study swiss team timeago tfa tourname ublog variant video voiceCommands msg".split(' ').toList,
+      dbs = "activity app appeal arena broadcast challenge class coach contact notation dgt emails faq features insight keyboardMove lag learn nvui oauthScope onboarding patron perfStat preferences puzzle puzzleTheme recap search settings site streamer storm study swiss team timeago tfa tourname traffic ublog variant video voiceCommands msg".split(' ').toList,
       outputDir = (Compile / resourceManaged).value
     )
   }.taskValue

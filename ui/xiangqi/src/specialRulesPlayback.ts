@@ -11,6 +11,25 @@ export interface ExamplePlayback {
   script: { move: string; english: string; chinese: string }[];
 }
 
+/** A fixed, server-validated line. Its states and notation are shared by all readers. */
+export interface ExampleSequence {
+  ruleset: string;
+  states: ExamplePlayback['state'][];
+  script: ExamplePlayback['script'];
+}
+
+export function examplePosition(sequence: ExampleSequence, ply: number): ExamplePlayback {
+  if (!Number.isInteger(ply) || ply < 0 || ply > sequence.script.length || !sequence.states[ply])
+    throw new Error('Invalid example move index');
+  return {
+    ruleset: sequence.ruleset,
+    state: sequence.states[ply],
+    acceptedPly: ply,
+    lastMove: ply ? sequence.script[ply - 1].move : undefined,
+    script: sequence.script,
+  };
+}
+
 /** Navigation requests authoritative history; no rule thresholds or predicted outcomes live here. */
 export class SpecialRulesPlayback {
   data?: ExamplePlayback;

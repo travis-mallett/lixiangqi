@@ -380,7 +380,7 @@ final class GameRepo(c: Coll)(using Executor) extends lila.core.game.GameRepo(c)
   ): Funit =
     coll.update
       .one(
-        $id(id),
+        $id(id) ++ F.completedAt.$exists(false),
         nonEmptyMod(
           "$set",
           $doc(
@@ -390,6 +390,7 @@ final class GameRepo(c: Coll)(using Executor) extends lila.core.game.GameRepo(c)
             F.abortedBy -> abortBy
           )
         ) ++ $doc(
+          "$currentDate" -> $doc(F.completedAt -> true),
           "$unset" -> finishUnsets.++ {
             // keep the checkAt field when game is aborted,
             // so it gets deleted in 24h

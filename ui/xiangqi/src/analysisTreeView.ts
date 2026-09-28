@@ -23,6 +23,8 @@ export interface AnalysisTreeViewOptions {
   notationLayout: () => 'two-column' | 'compact';
   navigate: (path: string) => void;
   commit: () => void;
+  readOnly?: boolean;
+  emptyText?: string;
 }
 
 export class AnalysisTreeView {
@@ -36,7 +38,7 @@ export class AnalysisTreeView {
     if (!children.length) {
       const empty = document.createElement('span');
       empty.className = 'xiangqi-analysis__empty';
-      empty.textContent = 'Play a move on the board to begin analysis.';
+      empty.textContent = this.opts.emptyText ?? 'Play a move on the board to begin analysis.';
       this.opts.element.replaceChildren(empty);
       return;
     }
@@ -199,6 +201,7 @@ export class AnalysisTreeView {
       }
       this.opts.navigate(node.path);
     });
+    if (this.opts.readOnly) return button;
     button.addEventListener('contextmenu', event => {
       event.preventDefault();
       this.openMenu(node.path, event.clientX, event.clientY);

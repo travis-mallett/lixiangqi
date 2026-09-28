@@ -48,41 +48,34 @@ final class PlanWebhook(api: PlanApi)(using Executor):
         case Some(event) =>
           lila.mon.plan.webhook("payPal", event.tpe).increment()
           payPalLogger.info:
-            s"${event.tpe}: ${event.id} / ${event.resourceTpe}: ${event.resourceId} / ${Json.stringify(event.resource).take(2000)}"
+            s"${event.tpe}: ${event.id} / ${event.resourceTpe}: ${event.resourceId}"
           event.tpe match
-            case "PAYMENT.CAPTURE.COMPLETED" =>
-              Json
-                .fromJson[PayPalCapture](event.resource)
-                .fold(
-                  _ =>
-                    payPalLogger.error:
-                      s"Unreadable PayPalCapture ${Json.stringify(event.resource).take(2000)}"
-                    funit
-                  ,
-                  capture =>
-                    fuccess:
-                      api.payPal.onCaptureCompleted(capture)
-                )
-            case "PAYMENT.SALE.COMPLETED" =>
-              Json
-                .fromJson[PayPalSale](event.resource)
-                .fold(
-                  _ =>
-                    payPalLogger.error(s"Unreadable PayPalSale ${Json.stringify(event.resource).take(2000)}")
-                    funit
-                  ,
-                  sale =>
-                    fuccess {
-                      api.payPal.onCaptureCompleted(sale.toCapture)
-                    }
-                )
-            case "BILLING.SUBSCRIPTION.ACTIVATED" => funit
-            case "BILLING.SUBSCRIPTION.CANCELLED" =>
+            case "CHECKOUT.ORDER.APPROVED" =>
               event.resourceId
-                .map(
-                  PayPalSubscriptionId.apply
+                .map(PayPalOrderId.apply)
+                .fold[Funit](fufail("PayPal order event is missing its ID"))(api.payPal.onOrderApproved)
+            case "BILLING.SUBSCRIPTION.ACTIVATED" =>
+              event.resourceId
+                .map(PayPalSubscriptionId.apply)
+                .fold[Funit](fufail("PayPal subscription event is missing its ID"))(
+                  api.payPal.onSubscriptionActivated
                 )
-                .so(api.payPal.subscriptionUser)
-                .flatMapz(api.cancel)
-
+            case "PAYMENT.CAPTURE.COMPLETED" =>
+              (event.resource \ "supplementary_data" \ "related_ids" \ "order_id")
+                .asOpt[String]
+                .map(PayPalOrderId.apply)
+                .fold[Funit](fufail("PayPal capture is missing its order ID"))(api.payPal.onOrderEvent)
+            case "PAYMENT.SALE.COMPLETED" =>
+              event.resource
+                .validate[PayPalSale]
+                .fold(
+                  _ => fufail("Invalid PayPal sale event"),
+                  sale => api.payPal.onCaptureCompleted(sale.toCapture)
+                )
+            case "BILLING.SUBSCRIPTION.CANCELLED" | "BILLING.SUBSCRIPTION.EXPIRED" =>
+              event.resourceId
+                .map(PayPalSubscriptionId.apply)
+                .fold[Funit](fufail("PayPal subscription event is missing its ID"))(
+                  api.payPal.onSubscriptionCancelled
+                )
             case _ => funit

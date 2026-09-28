@@ -1,4 +1,5 @@
 import { isXiangqiCapture } from 'lib/game';
+import { isXiangqiMate } from 'lib/game/adjudication';
 
 import { nodeAtPath, parentPath, type RulesState, type XiangqiMoveTree } from './tree';
 
@@ -12,7 +13,12 @@ export function xiangqiMoveSound(state?: RulesState): XiangqiMoveSound {
   return {
     capture: state?.capture === true,
     check: state?.check === true,
-    mate: state?.checkmate === true || (state?.check === true && state.immediateEnd?.ended === true),
+    mate: state?.termination
+      ? isXiangqiMate(undefined, state.termination)
+      : state?.checkmate === true ||
+        (state?.immediateEnd?.ended === true &&
+          state.legalMoves.length === 0 &&
+          ['1-0', '0-1'].includes(state.gameResult)),
   };
 }
 

@@ -17,7 +17,6 @@
   <string name="youHaveLifetime">あなたに永久パトロン・アカウントを贈ります。すばらしい！</string>
   <string name="patronUntil">%s までのパトロン・アカウントを贈ります。</string>
   <string name="ifNotRenewedThenAccountWillRevert">更新しないとアカウントが通常のアカウントに戻ります。</string>
-  <string name="weAreNonProfit">Lichess は非営利団体です。ワールドクラスのチェスサイトを誰もが無料で使えるべきだと考えているからです。</string>
   <string name="weRelyOnSupport">そのためにはあなたのような方からのサポートが必要です。Lichess を楽しんでいるのなら、寄付をしてパトロンになってみるのはどうでしょう。</string>
   <string name="lifetime">永久資格</string>
   <string name="payLifetimeOnce">%s を一度寄付すれば永久パトロンです。</string>
@@ -33,19 +32,11 @@
   <string name="weAreSmallTeam">小さな団体なのであなたのサポートはほんとうに助けになります！</string>
   <string name="celebratedPatrons">Lichess の実現に貢献しているパトロンのみなさん</string>
   <string name="whereMoneyGoes">このお金は何に使われますか？</string>
-  <string name="serversAndDeveloper">まず強力なサーバの維持費です。
-次にフルタイムの開発者、Lichess 創立者の %s に行きます。</string>
-  <string name="costBreakdown">費用の内訳を見る</string>
   <string name="officialNonProfit">Lichess は公認の非営利団体ですか？</string>
-  <string name="actOfCreation">そうです。設立のための公文書（フランス語）はこちら</string>
   <string name="changeMonthlySupport">月ぎめの寄付を変更／キャンセルできますか？</string>
   <string name="changeSupport">PayPal で支払う場合は、ご自分の PayPal アカウントから寄付をキャンセル/変更できます。あるいは「%1$s」のリンクから連絡いただければ当方で対応します。 PayPal 以外からの支払いは決済代行業者の Stripe によって処理され、寄付のキャンセル/変更は %2$s から行なえます。</string>
   <string name="patronPage">パトロンのページ</string>
   <string name="contactSupport">Lichess サポートに連絡</string>
-  <string name="otherMethods">寄付するのにほかの方法は？</string>
-  <string name="lichessIsRegisteredWith">Lichess は %s に登録しています。</string>
-  <string name="bankTransfers">銀行振込もできます</string>
-  <string name="onlyDonationFromAbove">ただしパトロンの資格が得られるのは上の寄付フォームを使った場合だけなのでご注意を。</string>
   <string name="patronFeatures">パトロン限定の機能はありますか？</string>
   <string name="noPatronFeatures">いいえ、Lichess は誰に対しても永久に無料です。これは約束です。
 ただパトロンになるとプロフィールに翼マークがついて自慢できます。</string>
@@ -81,6 +72,5 @@
   <string name="changeCurrency">通貨を変更</string>
   <string name="paymentDetails">支払いの詳細</string>
   <string name="updatePaymentMethod">支払方法の更新</string>
-  <string name="stripeManageSub">サブスクリプションの管理、インボイスや領収書のダウンロード</string>
   <string name="coverFees">本取引の処理手数料分として %s を追加します</string>
 </resources>

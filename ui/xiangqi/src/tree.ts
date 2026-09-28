@@ -7,6 +7,7 @@ export interface RulesState {
   check: boolean;
   capture?: boolean;
   checkmate?: boolean;
+  termination?: string | null;
   insufficientMaterial?: boolean;
   gameResult: string;
   immediateEnd?: { ended: boolean; result: number };
@@ -160,15 +161,14 @@ export function createMoveTreeFromStates(
   chineseNotations: string[] = [],
   chinese = false,
   analysis: ServerAnalysisInfo[] = [],
+  analysisDepth = 0,
 ): XiangqiMoveTree {
   if (states.length !== moves.length + 1 || moves.length !== notations.length)
     throw new Error('Native Xiangqi game data has inconsistent moves, notation, and positions');
   const tree = createMoveTree(states[0]);
-  const analysisByPly = new Map(analysis.map(info => [info.ply, info]));
   let parent: XiangqiPositionNode = tree.root;
   moves.forEach((uci, index) => {
     const state = states[index + 1];
-    const info = analysisByPly.get(state.ply);
     const child = createChild(tree, parent, {
       uci,
       notation: chinese ? chineseNotations[index] || notations[index] : notations[index],
@@ -176,22 +176,54 @@ export function createMoveTreeFromStates(
       chineseNotation: chineseNotations[index],
       state,
     });
-    if (info)
-      child.evaluation = {
-        engine: 'Pikafish server analysis',
-        depth: 0,
-        nodes: 0,
-        score: {
-          ...(info.cp === undefined ? {} : { redCp: info.cp }),
-          ...(info.mate === undefined ? {} : { redMate: info.mate }),
-        },
-        ...(info.best ? { best: info.best } : {}),
-        ...(info.variation.length ? { variation: info.variation } : {}),
-      };
     parent.children.push(child);
     parent = child;
   });
+  applyServerAnalysis(tree, analysis, analysisDepth);
   return tree;
+}
+
+export function applyServerAnalysis(
+  tree: XiangqiMoveTree,
+  infos: ServerAnalysisInfo[],
+  depth = 0,
+  positions: XiangqiPositionNode[] = getNodeList(tree, mainlineEndPath(tree)),
+): void {
+  const byPly = new Map(infos.map(info => [info.ply, info]));
+  for (const node of positions) {
+    if (tree.byPath.get(node.path) !== node) continue;
+    const info = byPly.get(node.state.ply);
+    if (!info || (info.cp === undefined && info.mate === undefined)) continue;
+    node.evaluation = {
+      engine: 'Pikafish server analysis',
+      depth,
+      nodes: 0,
+      score: {
+        ...(info.cp === undefined ? {} : { redCp: info.cp }),
+        ...(info.mate === undefined ? {} : { redMate: info.mate }),
+      },
+      ...(info.best ? { best: info.best } : {}),
+      ...(info.variation.length ? { variation: info.variation } : {}),
+    };
+  }
+}
+
+/** Follow the recorded moves, even when an editable workspace has promoted a variation. */
+export function recordedPositions(
+  tree: XiangqiMoveTree,
+  initialFen: string,
+  moves: string[],
+): XiangqiPositionNode[] {
+  if (tree.root.state.fen !== initialFen) return [];
+  const nodes: XiangqiPositionNode[] = [tree.root];
+  let current: XiangqiPositionNode = tree.root;
+  for (const move of moves) {
+    const child: XiangqiTreeNode | undefined = current.children.find(node => node.uci === move);
+    if (!child) break;
+    nodes.push(child);
+    current = child;
+  }
+  return nodes;
 }
 
 export function createMoveTreeFromUciMainline(

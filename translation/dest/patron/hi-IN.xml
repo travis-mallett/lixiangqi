@@ -17,7 +17,6 @@
   <string name="youHaveLifetime">आपके पास एक लाइफटाइम संरक्षक खाता है। यह बहुत बढ़िया है!</string>
   <string name="patronUntil">%s तक आपके पास एक संरक्षक खाता है।</string>
   <string name="ifNotRenewedThenAccountWillRevert">यदि नवीनीकृत नहीं किया जाता है, तो आपका खाता फिर से एक नियमित खाते में वापस आ जाएगा।</string>
-  <string name="weAreNonProfit">हम एक गैर लाभ संस्था हैं क्योंकि हमारा मानना ​​है कि हर किसी की मुफ्त, विश्व स्तरीय शतरंज मंच तक पहुंच होनी चाहिए।</string>
   <string name="weRelyOnSupport">हम आप जैसे लोगों से मिलने वाले समर्थन पर भरोसा करते हैं। यदि आप लिचेस का उपयोग करने का आनंद लेते हैं, तो कृपया दान करके और संरक्षक बनकर हमारा समर्थन करें!</string>
   <string name="lifetime">लाइफटाइम</string>
   <string name="payLifetimeOnce">एक बार %s का भुगतान करें। हमेशा के लिए एक लिचेस संरक्षक बनें!</string>
@@ -33,17 +32,9 @@
   <string name="weAreSmallTeam">हमारी एक छोटी टीम हैं, इसलिए आपका समर्थन हमारे लिए बहुत बड़ी बात है!</string>
   <string name="celebratedPatrons">प्रसिद्ध संरक्षक जो लिचेस को संभव बनाते हैं</string>
   <string name="whereMoneyGoes">पैसा कहां जाता है?</string>
-  <string name="serversAndDeveloper">सबसे पहले, शक्तिशाली सर्वर।
-फिर हम एक पूर्णकालिक डेवलपर का भुगतान करते हैं: लिचेस के संस्थापक,%s।</string>
-  <string name="costBreakdown">विस्तृत लागत ब्रेकडाउन देखें</string>
   <string name="officialNonProfit">Lichess एक आधिकारिक गैर-लाभकारी है?</string>
-  <string name="actOfCreation">हाँ, यहाँ निगमन प्रमाणपत्र है (फ्रेंच में)</string>
   <string name="changeMonthlySupport">क्या मैं अपना मासिक समर्थन बदल / रद्द कर सकता हूँ?</string>
   <string name="contactSupport">लिचेस समर्थन से संपर्क करें</string>
-  <string name="otherMethods">दान की अन्य विधियाँ?</string>
-  <string name="lichessIsRegisteredWith">लाइकेस %s के साथ पंजीकृत है।</string>
-  <string name="bankTransfers">हम बैंक हस्तांतरण को भी स्वीकार करते हैं</string>
-  <string name="onlyDonationFromAbove">कृपया ध्यान दें कि केवल उपरोक्त दान प्रपत्र ही संरक्षक का दर्जा प्रदान करेगा।</string>
   <string name="patronFeatures">क्या कुछ विशेषताएं संरक्षक के लिए आरक्षित हैं?</string>
   <string name="noPatronFeatures">नहीं, क्योंकि Lichess पूरी तरह से मुक्त है, हमेशा के लिए, और सभी के लिए। यह एक वादा है।
 हालाँकि, Patrons को एक नए आकर्षक प्रोफ़ाइल आइकन के साथ डींग मारने का अधिकार मिलता है।</string>

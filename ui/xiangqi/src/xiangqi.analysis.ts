@@ -3,21 +3,25 @@ import type { Key } from 'chessgroundx/types';
 
 import { randomId } from 'lib/algo';
 import { PikafishBrowserEngine, type EngineAnalysis, type PikafishStatus } from 'lib/ceval';
+import { engineProgress, engineLoadingText, enginePreparing } from 'lib/ceval/engineProgress';
 import { selectXiangqiNotation, type XiangqiNotationStyle } from 'lib/game';
 import { formatMs } from 'lib/game/clock/clockWidget';
 import { playMoveNavigationSound } from 'lib/game/replay/moveNavigationSound';
 import { isRecordedClockTimeline, type RecordedClockTimeline } from 'lib/game/replay/recordedClockPlayback';
 import { ShowResizeHandle } from 'lib/prefs';
 import { storage } from 'lib/storage';
+import { updateProgressBar } from 'lib/view/progressBar';
 import stepwiseScroll from 'lib/view/stepwiseScroll';
 
 import { createArrowCadence } from './analysisArrowCadence';
-import { readAnalysisUrl } from './analysisHandoff';
+import { AnalysisChart } from './analysisChart';
+import { readAnalysisUrl, replayPath } from './analysisHandoff';
 import { bindAnalysisInterfaceControls } from './analysisInterfaceControls';
 import { syncAnalysisLayout } from './analysisLayout';
 import {
   applyInterfaceSettingsClasses,
   ENGINE_SETTINGS_KEY,
+  effectiveEngineMultiPv,
   loadEngineSettings,
   loadInterfaceSettings,
   type EngineSettings,
@@ -33,7 +37,6 @@ import {
 import { AnalysisTabsView } from './analysisTabsView';
 import { AnalysisTreeView } from './analysisTreeView';
 import { hydrateXiangqiState, requestXiangqi } from './api';
-import { engineProgress } from './engineProgress';
 import ExplorerCtrl from './explorer/explorerCtrl';
 import type { ExplorerGame } from './explorer/interfaces';
 import { annotationSourceLabel } from './gameCatalog';
@@ -61,6 +64,7 @@ import {
   mainlineEndPath,
   nodeAtPath,
   parentPath,
+  recordedPositions,
   siblingPath,
   type ImportedMoveTree,
   type RulesState,
@@ -90,6 +94,7 @@ interface AnalysisBootstrap extends XiangqiGroundPreferences {
   analysisRequestUrl?: string;
   analysis?: {
     id: string;
+    depth?: number;
     infos: ServerAnalysisInfo[];
   };
   recordedClock?: RecordedClockTimeline;
@@ -113,10 +118,8 @@ const evalElement = requiredElement('#xiangqi-eval');
 const engineEnabledElement = requiredElement<HTMLInputElement>('#xiangqi-engine-enabled');
 const analyseLineButton = requiredElement<HTMLButtonElement>('#xiangqi-analyse-line');
 const engineStatusElement = requiredElement('#xiangqi-engine-status');
-const engineLinesElement = requiredElement('#xiangqi-engine-lines');
 const engineElement = requiredElement('.xiangqi-engine');
 const engineProgressBarElement = requiredElement('.xiangqi-engine > .bar');
-const engineProgressElement = requiredElement('.xiangqi-engine > .bar > span');
 const moreLinesButton = requiredElement<HTMLButtonElement>('#xiangqi-more-lines');
 const engineSettingsButton = requiredElement<HTMLButtonElement>('#xiangqi-engine-settings-button');
 const engineSettingsElement = requiredElement('#xiangqi-engine-settings');
@@ -176,9 +179,11 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
       moves: [],
     }));
   initialFen = authoritativeRoot.fen;
+  let engineSettings = loadEngineSettings();
   const suggestions = new AnalysisSuggestions(
     initialFen,
     () => ground?.state.orientation ?? orientation ?? 'white',
+    () => effectiveEngineMultiPv(engineSettings, isMobileAnalysisLayout()),
   );
   let tree: XiangqiMoveTree =
     handoff?.tree ??
@@ -190,9 +195,10 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
           bootstrap.chineseNotations ?? [],
           chineseNotation,
           bootstrap.analysis?.infos,
+          bootstrap.analysis?.depth ?? 0,
         )
       : createMoveTree(authoritativeRoot));
-  let activePath = nativeStates ? mainlineEndPath(tree) : '';
+  let activePath = handoff?.activePath ?? (nativeStates ? replayPath(tree, location.hash) : '');
   let tabs: AnalysisTab[] = [
     {
       id: createTabId(),
@@ -231,8 +237,6 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
   let lineController: AbortController | undefined;
   let browserEngineStatus: PikafishStatus = { state: 'loading' };
   let engineProgressDepth = 0;
-  let previousEngineProgressPercent = 0;
-  let engineSettings = loadEngineSettings();
   const arrowCadence = createArrowCadence(engineSettings.depth, engineSettings.arrowUpdates);
   let arrowPositionFen = '';
   let interfaceSettings = loadInterfaceSettings();
@@ -260,23 +264,42 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     },
   });
 
-  bindServerAnalysis({
+  const chart = new AnalysisChart(
+    requiredElement('#xiangqi-analysis-chart'),
+    requiredElement<HTMLCanvasElement>('#xiangqi-analysis-chart canvas'),
+    navigate,
+    showError,
+  );
+  const catalogGames = new WeakMap<XiangqiMoveTree, ExplorerGame>();
+  const serverAnalysis = bindServerAnalysis({
     bootstrap,
     tree: () => tree,
     currentNode,
-    renderTree: () => treeView.render(),
+    renderTree: () => {
+      treeView.render();
+      chart.render(tree, activePath);
+    },
     renderEvaluation: node => suggestions.setEvaluation(node.evaluation?.score),
     save: saveDraft,
+    catalogPositions: async (tree, id) => {
+      let game = catalogGames.get(tree);
+      if (!game) {
+        game = await requestXiangqi<ExplorerGame>(
+          `${(bootstrap.explorerEndpoint || '').replace(/\/$/, '')}/games/game`,
+          { id, language: bootstrap.language || 'en' },
+        );
+        catalogGames.set(tree, game);
+      }
+      return recordedPositions(tree, game.initialFen || XIANGQI_START_FEN, game.moves);
+    },
   });
 
   const browserEngine = new PikafishBrowserEngine(status => {
     browserEngineStatus = status;
     renderEngineProgress();
     if (!engineEnabledElement.checked || lineController) return;
-    if (status.state === 'downloading') {
-      const progress = status.total ? ` ${Math.round((status.bytes / status.total) * 100)}%` : '';
-      engineStatusElement.textContent = `Downloading Pikafish network${progress}…`;
-    } else if (status.state === 'error') {
+    if (enginePreparing(status)) engineStatusElement.textContent = engineLoadingText(status);
+    else if (status.state === 'error') {
       engineStatusElement.textContent = status.error;
       engineStatusElement.classList.add('error');
     }
@@ -289,21 +312,8 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
       engineProgressDepth,
       engineSettings.depth,
     );
-    engineElement.classList.toggle('computing', progress.computing);
-    engineProgressBarElement.hidden = !progress.visible;
-
-    if (!progress.visible) {
-      engineProgressElement.style.width = '0%';
-      previousEngineProgressPercent = 0;
-      return;
-    }
-
-    engineProgressElement.style.width = `${progress.percent}%`;
-    if (previousEngineProgressPercent > progress.percent) {
-      engineProgressElement.remove();
-      engineProgressBarElement.append(engineProgressElement);
-    }
-    previousEngineProgressPercent = progress.percent;
+    engineElement.classList.toggle('computing', browserEngineStatus.state === 'computing');
+    updateProgressBar(engineProgressBarElement, progress);
   }
 
   if (!handoff) restoreWorkspace();
@@ -311,6 +321,8 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
   const color = (turn: RulesState['turn']) => (turn === 'red' ? 'white' : 'black');
 
   function restoreWorkspace(): void {
+    // A native replay must never be replaced by a draft sharing its starting FEN.
+    if (bootstrap.gameId) return;
     if (!urlFen && !bootstrap.gameId) {
       try {
         const storedTabs = localStorage.getItem(ANALYSIS_TABS_STORAGE_KEY);
@@ -424,6 +436,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     boardElement.dataset.path = activePath;
     boardElement.dataset.ply = String(getNodeList(tree, activePath).length - 1);
     treeView.render();
+    chart.render(tree, activePath);
     renderSuggestionArrows();
 
     const nextPath = node.children[0]?.path;
@@ -490,10 +503,8 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
       engineStatusElement.classList.remove('error');
       browserEngine.start({
         fen: state.fen,
-        depth: engineSettings.depth,
-        // A phone has room for, and needs, one principal variation. Requesting
-        // one also avoids spending local engine time on hidden alternatives.
-        multiPv: isMobileAnalysisLayout() ? 1 : engineSettings.multiPv,
+        search: { depth: engineSettings.depth },
+        multiPv: effectiveEngineMultiPv(engineSettings, isMobileAnalysisLayout()),
         threads: engineSettings.threads,
         hashSize: engineSettings.hashSize,
         emit: (result, final) => {
@@ -502,9 +513,10 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
           renderEngineProgress();
           applyKnownLiveNotation(result, state.fen);
           arrowCadence.accept(result, final);
-          node.evaluation = summarizeEvaluation(result);
+          rememberEvaluation(node, result);
           suggestions.renderEngine(result, moves => void onMoves(moves));
           treeView.render({ scrollToActive: !isMobileAnalysisLayout() });
+          chart.render(tree, activePath);
           void hydrateLiveNotation(result, state.fen, generation, node);
           if (final) saveDraft();
         },
@@ -638,6 +650,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     else
       saveStatusElement.textContent = selected.kind === 'game' ? `Viewing ${selected.title}` : selected.title;
     update();
+    refreshServerAnalysis();
   }
 
   async function addAnalysisTab(): Promise<void> {
@@ -729,6 +742,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
       });
       syncActiveTab();
       const importedTree = createMoveTreeFromImport(imported, chineseNotation);
+      catalogGames.set(importedTree, game);
       const mainline = getNodeList(importedTree, mainlineEndPath(importedTree));
       const nodeAtUciPath = (path: string): XiangqiPositionNode | undefined => {
         let node: XiangqiPositionNode = importedTree.root;
@@ -822,9 +836,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     const targetPath = currentLineEndPath(tree, activePath || mainlineEndPath(tree));
     const nodes = getNodeList(tree, targetPath);
     analyseLineButton.textContent = 'Cancel';
-    suggestions.showPlaceholders(
-      Math.max(engineLinesElement.childElementCount, suggestions.configuredRowCount()),
-    );
+    suggestions.showPlaceholders();
     try {
       for (let index = 0; index < nodes.length; index++) {
         const node = nodes[index];
@@ -835,14 +847,15 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
         engineStatusElement.textContent = `Analysing selected line ${index + 1}/${nodes.length}…`;
         const result = await analyseWithBrowser(node.state.fen, lineController.signal, (snapshot, final) => {
           if (node.path === activePath) arrowCadence.accept(snapshot, final);
-          node.evaluation = summarizeEvaluation(snapshot);
+          rememberEvaluation(node, snapshot);
           if (node.path === activePath) {
             suggestions.renderEngine(snapshot, moves => void onMoves(moves));
             suggestions.setEvaluation(snapshot.score);
           }
           treeView.render({ scrollToActive: !isMobileAnalysisLayout() });
+          chart.render(tree, activePath);
         });
-        node.evaluation = summarizeEvaluation(result);
+        rememberEvaluation(node, result);
         if (node.path === activePath) {
           suggestions.renderEngine(result, moves => void onMoves(moves));
           suggestions.setEvaluation(result.score);
@@ -874,7 +887,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
       signal.addEventListener('abort', abort, { once: true });
       browserEngine.start({
         fen,
-        depth: Math.min(engineSettings.depth, 18),
+        search: { depth: Math.min(engineSettings.depth, 18) },
         multiPv: 1,
         threads: engineSettings.threads,
         hashSize: engineSettings.hashSize,
@@ -1007,6 +1020,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
   });
   window.matchMedia('(max-width: 799px)').addEventListener('change', () => {
     toolsFen = '';
+    applyEngineSettingsInputs(engineSettings);
     treeView.render();
     update();
   });
@@ -1029,14 +1043,20 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
   engineRangeInputs.forEach(input => {
     input.addEventListener('input', updateEngineSettingOutputs);
   });
-  const engineInputs = [engineUseCloudInput, ...engineRangeInputs];
+  const engineInputs = [engineUseCloudInput, engineDepthInput, engineThreadsInput, engineHashInput];
   engineInputs.forEach(input => {
     input.addEventListener('change', () => {
-      engineSettings = engineSettingsFromInputs();
+      engineSettings = engineSettingsFromInputs(engineSettings);
       localStorage.setItem(ENGINE_SETTINGS_KEY, JSON.stringify(engineSettings));
       toolsFen = '';
       update();
     });
+  });
+  engineMultiPvInput.addEventListener('change', () => {
+    engineSettings = engineSettingsFromInputs(engineSettings, true);
+    localStorage.setItem(ENGINE_SETTINGS_KEY, JSON.stringify(engineSettings));
+    toolsFen = '';
+    update();
   });
   engineArrowUpdatesInput.addEventListener('input', updateEngineSettingOutputs);
   engineArrowUpdatesInput.addEventListener('change', () => {
@@ -1049,7 +1069,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
   });
   engineLinesPreviewInput.addEventListener('change', () => {
     suggestions.setPreviewEnabled(engineLinesPreviewInput.checked);
-    engineSettings = engineSettingsFromInputs();
+    engineSettings = engineSettingsFromInputs(engineSettings);
     localStorage.setItem(ENGINE_SETTINGS_KEY, JSON.stringify(engineSettings));
   });
   moreLinesButton.addEventListener('click', () => {
@@ -1120,6 +1140,14 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
   }
   update();
   if (catalogGameId) await loadCatalogGame(catalogGameId);
+  refreshServerAnalysis();
+
+  function refreshServerAnalysis(): void {
+    serverAnalysis.refresh();
+    const selected = tabs.find(tab => tab.id === activeTabId);
+    if (selected?.kind === 'game' && selected.gameId && selected.gameId !== bootstrap.gameId)
+      void serverAnalysis.loadCatalog(selected.tree, selected.gameId).catch(showError);
+  }
 
   function recordedPositionAtPath(path: string): number | undefined {
     if (!bootstrap.gameId || tabs.find(tab => tab.id === activeTabId)?.gameId !== bootstrap.gameId) return;
@@ -1145,13 +1173,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
   }
 
   function liveEngineStatus(node: XiangqiPositionNode): string {
-    if (browserEngineStatus.state === 'downloading') {
-      const progress = browserEngineStatus.total
-        ? ` ${Math.round((browserEngineStatus.bytes / browserEngineStatus.total) * 100)}%`
-        : '';
-      return `Downloading Pikafish network${progress}…`;
-    }
-    if (browserEngineStatus.state === 'loading') return 'Starting browser Pikafish…';
+    if (enginePreparing(browserEngineStatus)) return engineLoadingText(browserEngineStatus);
     if (browserEngineStatus.state === 'error') return browserEngineStatus.error;
     return node.evaluation ? 'Refreshing cached Pikafish evaluation…' : 'Pikafish is calculating…';
   }
@@ -1214,7 +1236,7 @@ function applyEngineSettingsInputs(settings: EngineSettings): void {
   engineLinesPreviewInput.checked = settings.showLinesPreview;
   engineDepthInput.value = String(settings.depth);
   engineArrowUpdatesInput.value = String(settings.arrowUpdates);
-  engineMultiPvInput.value = String(settings.multiPv);
+  engineMultiPvInput.value = String(effectiveEngineMultiPv(settings, isMobileAnalysisLayout()));
   engineThreadsInput.value = String(settings.threads);
   engineHashInput.value = String(settings.hashSize);
   updateEngineSettingOutputs();
@@ -1228,20 +1250,26 @@ function updateEngineSettingOutputs(): void {
   requiredElement('#xiangqi-engine-hash-value').textContent = `${engineHashInput.value} MB`;
 }
 
-function engineSettingsFromInputs(): EngineSettings {
+function engineSettingsFromInputs(previous: EngineSettings, includeMultiPv = false): EngineSettings {
   return {
     useCloud: engineUseCloudInput.checked,
     showLinesPreview: engineLinesPreviewInput.checked,
     depth: Number(engineDepthInput.value),
     arrowUpdates: Number(engineArrowUpdatesInput.value),
-    multiPv: Number(engineMultiPvInput.value),
+    multiPv: includeMultiPv ? Number(engineMultiPvInput.value) : previous.multiPv,
     threads: Number(engineThreadsInput.value),
     hashSize: Number(engineHashInput.value),
   };
 }
 
-function summarizeEvaluation(result: EngineAnalysis) {
-  return { engine: result.engine, depth: result.depth, nodes: result.nodes, score: result.score };
+function rememberEvaluation(node: XiangqiPositionNode, result: EngineAnalysis): void {
+  if (!node.evaluation || result.depth >= node.evaluation.depth)
+    node.evaluation = {
+      engine: result.engine,
+      depth: result.depth,
+      nodes: result.nodes,
+      score: result.score,
+    };
 }
 
 function isMobileAnalysisLayout(): boolean {

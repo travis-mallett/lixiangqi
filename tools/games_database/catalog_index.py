@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import sqlite3
 import time
+from contextlib import closing
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Final
@@ -214,7 +215,7 @@ def ensure_current(
 def ensure(path: Path, *, progress: bool = False) -> bool:
     if not path.is_file():
         return False
-    with sqlite3.connect(path) as connection:
+    with closing(sqlite3.connect(path)) as connection:
         connection.execute("PRAGMA foreign_keys = ON")
         connection.execute("PRAGMA synchronous = NORMAL")
         connection.execute("PRAGMA temp_store = MEMORY")

@@ -43,6 +43,7 @@ case class Game(
     bookmarks: Int = 0,
     createdAt: Instant = nowInstant,
     movedAt: Instant = nowInstant,
+    completedAt: Option[Instant] = None,
     metadata: GameMetadata,
     abortedBy: Option[Color] = None,
     variant: Variant = Standard

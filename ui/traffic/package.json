@@ -1,0 +1,12 @@
+{
+  "name": "traffic",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "chart.js": "4.5.1",
+    "lib": "workspace:*"
+  },
+  "build": {
+    "bundle": "src/traffic.ts"
+  }
+}

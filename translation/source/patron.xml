@@ -18,7 +18,6 @@
   <string name="youHaveLifetime">You have a Lifetime Patron account. That's pretty awesome!</string>
   <string name="patronUntil">You have a Patron account until %s.</string>
   <string name="ifNotRenewedThenAccountWillRevert">If not renewed, your account will then revert to a regular account.</string>
-  <string name="weAreNonProfit">We are a non‑profit association because we believe everyone should have access to a free, world-class Xiangqi platform.</string>
   <string name="weRelyOnSupport">We rely on support from people like you to make it possible. If you enjoy using Lixiangqi, please consider supporting us by donating and becoming a Patron!</string>
   <string name="lifetime">Lifetime</string>
   <string name="payLifetimeOnce">Pay %s once. Be a Lixiangqi Patron forever!</string>
@@ -34,20 +33,11 @@
   <string name="weAreSmallTeam">We are a small team, so your support makes a huge difference!</string>
   <string name="celebratedPatrons">The celebrated Patrons who make Lixiangqi possible</string>
   <string name="whereMoneyGoes">Where does the money go?</string>
-  <string name="serversAndDeveloper">First of all, powerful servers.
-Then we pay a full-time developer: %s, the founder of Lixiangqi.
-</string>
-  <string name="costBreakdown">See the detailed cost breakdown</string>
   <string name="officialNonProfit">Is Lixiangqi an official non-profit?</string>
-  <string name="actOfCreation">Yes, here's the act of creation (in French)</string>
   <string name="changeMonthlySupport">Can I change/cancel my monthly support?</string>
   <string name="changeSupport">If your payments are processed by PayPal, you can cancel/change your support through your own PayPal account, or you can %1$s and we can do it for you. If you didn't use PayPal, then your payments are processed by Stripe, and you cancel your donation or change the amount on %2$s.</string>
   <string name="patronPage">the patron page</string>
   <string name="contactSupport">contact Lixiangqi support</string>
-  <string name="otherMethods">Other methods of donation?</string>
-  <string name="lichessIsRegisteredWith">Lixiangqi is registered with %s.</string>
-  <string name="bankTransfers">We also accept bank transfers</string>
-  <string name="onlyDonationFromAbove">Please note that only the donation form above will grant the Patron status.</string>
   <string name="patronFeatures">Are some features reserved to Patrons?</string>
   <string name="noPatronFeatures">No, because Lixiangqi is entirely free, forever, and for everyone. That's a promise.
 However, Patrons get bragging rights with cool new Patron wings that show up on your profile.</string>
@@ -84,6 +74,27 @@ However, Patrons get bragging rights with cool new Patron wings that show up on 
   <string name="changeCurrency">Change currency</string>
   <string name="paymentDetails">Payment details</string>
   <string name="updatePaymentMethod">Update payment method</string>
-  <string name="stripeManageSub">Manage your subscription and download your invoices and receipts</string>
   <string name="coverFees">I'll add %s to help cover the cost of processing this transaction</string>
+  <string name="communityProject">LiXiangQi is a community project built by volunteers. We believe everyone should have access to a free, world-class xiangqi platform.</string>
+  <string name="paymentOptions">Choose a payment option below. Availability depends on your device and currency.</string>
+  <string name="fundingPriorities">Our costs and priorities will change as the project grows:</string>
+  <string name="alphaStage">Alpha stage (current)</string>
+  <string name="alphaServers">Server costs.</string>
+  <string name="alphaTools">Development tools, such as a Codex subscription. All development work is voluntary; no developer salaries are paid at this stage.</string>
+  <string name="alphaAdministration">Domain registration, nonprofit organization formation fees, and other setup costs.</string>
+  <string name="betaStage">Beta stage</string>
+  <string name="betaServers">More server capacity as the community grows.</string>
+  <string name="betaTools">Continued funding for development tools.</string>
+  <string name="betaOutreach">Advertising to build an active player pool, including outreach to the Vietnamese community.</string>
+  <string name="betaApps">App development and associated fees, such as Apple Developer Program membership.</string>
+  <string name="futureStage">Future</string>
+  <string name="futureServers">Bigger servers—we hope to need them because that means lots of people are playing xiangqi!</string>
+  <string name="futureChina">Pursuing app publication in China, which may require significant funding to hire a specialist firm.</string>
+  <string name="futureDeveloper">A full-time developer.</string>
+  <string name="nonProfitPlans">Not yet. We plan to establish a nonprofit organization in the future.</string>
+  <string name="paymentsUnavailable">Donations are currently unavailable in this currency. Please try another currency or check back later.</string>
+  <string name="paymentPending">Your subscription was approved. PayPal is still processing the first payment. Your Patron wings will appear when the payment completes.</string>
+  <string name="giftLifetimeConfirmation">is now a lifetime LiXiangQi Patron, thanks to you!</string>
+  <string name="giftMonthConfirmation">is now a LiXiangQi Patron for one month, thanks to you!</string>
+  <string name="paymentError">We could not confirm your payment. Please check your PayPal activity before trying again. If a payment completed, your Patron status will update automatically.</string>
 </resources>

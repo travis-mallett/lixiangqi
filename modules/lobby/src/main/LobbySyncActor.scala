@@ -35,12 +35,13 @@ final private class LobbySyncActor(
 
     case msg @ SetupBus.AddHook(hook) =>
       lila.mon.lobby.hook.create.increment()
+      hook.trafficEvent("accepted", "queued")
       hookRepo.bySri(hook.sri).foreach(remove)
       hook.sid.so: sid =>
         hookRepo.bySid(sid).foreach(remove)
       findCompatible(hook) match
         case Some(h) =>
-          biteHook(h.id, hook.sri, hook.user)
+          biteHook(h.id, hook.sri, hook.user, Some(hook))
           publishRemoveHook(hook)
         case None =>
           hookRepo.save(msg.hook)
@@ -57,7 +58,11 @@ final private class LobbySyncActor(
       socket ! msg
 
     case CancelHook(sri) =>
-      hookRepo.bySri(sri).foreach(remove)
+      hookRepo
+        .bySri(sri)
+        .foreach: hook =>
+          hook.trafficEvent("left", "cancelled")
+          remove(hook)
 
     case CancelSeek(seekId, user) =>
       seekApi.removeBy(seekId, user.id)
@@ -121,7 +126,10 @@ final private class LobbySyncActor(
       lila.mon.actor.queueSize("lobby").update(queueSize)
       promise.success(())
 
-    case RemoveHooks(hooks) => hooks.foreach(remove)
+    case RemoveHooks(hooks) =>
+      hooks.foreach: hook =>
+        hook.trafficEvent("left", "disconnected")
+        remove(hook)
 
     case Resync => socket ! HookIds(hookRepo.ids)
 
@@ -141,11 +149,15 @@ final private class LobbySyncActor(
       .foreach:
         if _ then () else f
 
-  private def biteHook(hookId: String, sri: Sri, user: Option[LobbyUser]) =
+  private def biteHook(hookId: String, sri: Sri, user: Option[LobbyUser], joining: Option[Hook] = None) =
     hookRepo.byId(hookId).foreach { hook =>
+      val joiner = joining.orElse(hookRepo.bySri(sri))
       remove(hook)
       hookRepo.bySri(sri).foreach(remove)
-      biter(hook, sri, user).foreach(this.!)
+      biter(hook, sri, user).foreach: result =>
+        hook.trafficEvent("paired", "paired", Some(result.game.id))
+        joiner.foreach(_.trafficEvent("paired", "paired", Some(result.game.id)))
+        this ! result
     }
 
   private def findCompatible(hook: Hook): Option[Hook] =

@@ -163,6 +163,15 @@ final private class MovePlayer(
 
   private def notifyMove(move: Xiangqi.MoveResult, game: Game): Unit =
     import lila.core.round.{ CorresMoveEvent, MoveEvent, SimulMoveEvent }
+    if game.playedPlies.value == 1 then
+      Bus.pub(
+        lila.core.traffic.TrafficEvent(
+          s"game-first-move/${game.id}",
+          "game.firstMove",
+          nowInstant,
+          dimensions = Map("game" -> game.id.value)
+        )
+      )
     val color = !game.turnColor
     val moveEvent = MoveEvent(
       gameId = game.id,

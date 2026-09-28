@@ -14,12 +14,10 @@
 const playColl = db.puzzle2_puzzle;
 const _roundColl = db.puzzle2_round;
 
-const phases = new Set(['opening', 'middlegame', 'endgame']);
-
 db.puzzle2_puzzle
   .aggregate([
     { $match: { dirty: true } },
-    { $project: { _id: 1, themes: 1 } },
+    { $project: { _id: 1, themes: 1, managedThemes: 1, authorRevision: 1, themeVersion: 1 } },
     {
       $lookup: {
         from: 'puzzle2_round',
@@ -44,14 +42,27 @@ db.puzzle2_puzzle
       themeMap[theme] = x.v * signum + (themeMap[theme] || 0);
     });
 
-    const newThemes = new Set(oldThemes.filter(t => phases.has(t)));
+    const newThemes = new Set();
     Object.keys(themeMap).forEach(theme => {
       if (themeMap[theme] > 80) newThemes.add(theme);
     });
 
-    const update = { $unset: { dirty: true } };
-    if (oldThemes.length !== newThemes.size || oldThemes.some(t => !newThemes.has(t))) {
-      update['$set'] = { themes: Array.from(newThemes) };
-    }
-    playColl.updateOne({ _id: p._id }, update);
+    // Authoring and community themes have separate ownership, including when
+    // both sources support the same theme. A changed author or vote version
+    // leaves dirty set so the next run recomputes from current rounds.
+    playColl.updateOne(
+      {
+        _id: p._id,
+        themes: oldThemes,
+        authorRevision: p.authorRevision ?? null,
+        themeVersion: p.themeVersion ?? null,
+      },
+      {
+        $unset: { dirty: true },
+        $set: {
+          communityThemes: Array.from(newThemes),
+          themes: Array.from(new Set([...(p.managedThemes || []), ...newThemes])),
+        },
+      },
+    );
   });

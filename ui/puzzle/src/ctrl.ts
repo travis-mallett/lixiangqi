@@ -1,14 +1,6 @@
-import { Result } from '@badrap/result';
-import type { DrawShape } from '@lichess-org/chessground/draw';
-import { uciToMove } from '@lichess-org/chessground/util';
-import { Chess, normalizeMove } from 'chessops/chess';
-import { chessgroundDests } from 'chessops/compat';
-import { parseFen, makeFen } from 'chessops/fen';
-import { makeSanAndPlay } from 'chessops/san';
-import type { Role, Move, Outcome } from 'chessops/types';
-import { parseSquare, parseUci, makeSquare, makeUci, opposite } from 'chessops/util';
-import { ctrl as makeKeyboardMove, type KeyboardMove, type KeyboardMoveRootCtrl } from 'keyboard-move';
-import { makeVoiceMove, type VoiceMove } from 'voice';
+import type { Api as XiangqiGroundApi } from 'chessgroundx/api';
+import type { DrawShape } from 'chessgroundx/draw';
+import type { Color, Key } from 'chessgroundx/types';
 import {
   hydrateXiangqiState,
   legalMoveDests,
@@ -21,28 +13,24 @@ import {
 } from 'xiangqi';
 
 import { prop, type Prop, propWithEffect, type Toggle, toggle, requestIdleCallbackSafe, myUserId } from 'lib';
-import { type Deferred, defer, throttle } from 'lib/async';
-import { CevalCtrl } from 'lib/ceval';
-import type { CevalHandler } from 'lib/ceval/types';
+import { type Deferred, defer } from 'lib/async';
+import type { PikafishStatus } from 'lib/ceval/engines/pikafishBrowser';
 import { selectXiangqiNotation } from 'lib/game';
-import { plyColor } from 'lib/game/chess';
-import { type WithGround } from 'lib/game/ground';
-import { PromotionCtrl } from 'lib/game/promotion';
 import { playMoveNavigationSound } from 'lib/game/replay/moveNavigationSound';
 import { pubsub } from 'lib/pubsub';
 import { type StoredProp, storedBooleanProp, storedBooleanPropWithEffect, storage } from 'lib/storage';
+import { trafficActivity, trafficAttemptId, trackTraffic } from 'lib/traffic';
 import { makeTree, treeOps, treePath, type TreeWrapper } from 'lib/tree';
-import { completeNode } from 'lib/tree/node';
 import { last } from 'lib/tree/ops';
 import type { TreeNode, TreePath } from 'lib/tree/types';
 import { alert } from 'lib/view';
 import { toggleZenMode } from 'lib/view/zen';
 
-import computeAutoShapes from './autoShape';
+import { evaluateAlternative, type AlternativeResult } from './alternative';
+import { evaluationPercent } from './evaluationProgress';
 import type {
   PuzzleOpts,
   PuzzleData,
-  MoveTest,
   ThemeKey,
   ReplayEnd,
   PuzzleRound,
@@ -50,30 +38,26 @@ import type {
   XiangqiMoveTest,
 } from './interfaces';
 import keyboard from './keyboard';
-import moveTest from './moveTest';
-import { pgnToTree, mergeSolution, nextCorrectMove } from './moveTree';
-import Report from './report';
 import PuzzleSession from './session';
+import { PuzzleSolutions, defenderDelay } from './solutions';
 import PuzzleStreak from './streak';
+import { parsePuzzleVariant } from './variant';
 import * as xhr from './xhr';
 import {
   buildXiangqiTree,
+  buildSolutionTree,
   makeXiangqiNode,
   nextXiangqiMove,
   splitXiangqiUci,
   type XiangqiPuzzleNode,
 } from './xiangqi';
 import {
-  adjudicateAlternative,
-  hasUsableScore,
   isEfficientMate,
   makeObjective,
-  playerMoveAllowance,
-  storedLineProgress,
   terminalDecision,
-  winningContinuation,
   type PuzzleObjective,
   type PuzzleFailure,
+  type PuzzleDecision,
 } from './xiangqiAdjudication';
 import XiangqiPuzzleEngine from './xiangqiPuzzleEngine';
 
@@ -82,26 +66,25 @@ interface XiangqiMoveResponse extends RulesState {
   chineseNotation: string;
 }
 
-export default class PuzzleCtrl implements CevalHandler {
+type PuzzleGround = XiangqiGroundApi;
+type WithGround = <A>(f: (ground: PuzzleGround) => A) => A | undefined;
+
+export default class PuzzleCtrl {
+  private trafficAttempt = trafficAttemptId();
+  private trafficStarted = false;
   data: PuzzleData;
   next: Deferred<PuzzleData | ReplayEnd> = defer<PuzzleData>();
   tree: TreeWrapper;
-  ceval: CevalCtrl;
   autoNext: StoredProp<boolean>;
   rated: StoredProp<boolean>;
-  ground: Prop<CgApi> = prop<CgApi | undefined>(undefined) as Prop<CgApi>;
-  threatMode: Toggle = toggle(false);
+  ground: Prop<PuzzleGround> = prop<PuzzleGround | undefined>(undefined) as Prop<PuzzleGround>;
   streak?: PuzzleStreak;
   streakFailStorage = storage.make('puzzle.streak.fail');
   session: PuzzleSession;
   menu: Toggle;
   flipped = toggle(false);
   googlyEyes?: () => DrawShape[];
-  keyboardMove?: KeyboardMove;
-  voiceMove?: VoiceMove;
-  promotion: PromotionCtrl;
   keyboardHelp: Prop<boolean>;
-  cgConfig?: CgConfig;
   path: TreePath;
   node: TreeNode;
   nodeList: TreeNode[];
@@ -113,7 +96,7 @@ export default class PuzzleCtrl implements CevalHandler {
   round?: PuzzleRound;
   resultSent: boolean;
   lastFeedback: 'init' | 'fail' | 'win' | 'good' | 'retry';
-  canViewSolution = toggle(false);
+  completed = false;
   showHint = toggle(false);
   hintHasBeenShown = toggle(false);
   voted?: boolean;
@@ -122,24 +105,29 @@ export default class PuzzleCtrl implements CevalHandler {
   isDaily: boolean;
   blindfolded: StoredProp<boolean>;
   cgVersion = 1;
-  isXiangqi = false;
   private xiangqiBusy = false;
+  viewingSolution = false;
+  private readonly alternatives = new Map<string, AlternativeResult & { bestMove: boolean }>();
   xiangqiEvaluating = false;
+  moveEvaluationDepth?: number;
+  moveEvaluationPercent = 0;
   xiangqiFailure?: PuzzleFailure;
   xiangqiBestMove = true;
   solvedMoves = 0;
   xiangqiEngineError = false;
+  engineStatus: PikafishStatus = { state: 'loading' };
   private xiangqiObjective?: PuzzleObjective;
   private xiangqiAllowance = 0;
-  private xiangqiReady = false;
-  xiangqiContinuation: string[] = [];
+  solutions: PuzzleSolutions;
+  private readonly xiangqiHints = new Map<string, string>();
+  private xiangqiPlayerMoveAt = 0;
+  private xiangqiFailedPath?: TreePath;
+  xiangqiFailureDetail?: { needed: number; remaining: number };
   private xiangqiEngine?: XiangqiPuzzleEngine;
   private xiangqiGeneration = 0;
   private xiangqiReplyPending = false;
   xiangqiRetry?: () => void;
   private readonly xiangqiHydrations = new WeakMap<TreeNode, Promise<void>>();
-
-  private report: Report;
 
   constructor(
     readonly opts: PuzzleOpts,
@@ -165,44 +153,8 @@ export default class PuzzleCtrl implements CevalHandler {
     this.menu = toggle(false, redraw);
 
     this.initiate(opts.data);
-    this.promotion = new PromotionCtrl(
-      this.withGround,
-      () => this.withGround(g => g.set(this.cgConfig!)),
-      redraw,
-    );
-
-    this.ceval = new CevalCtrl({
-      redraw: this.redraw,
-      variant: {
-        short: 'Std',
-        name: 'Standard',
-        key: 'standard',
-      },
-      externalEngines:
-        this.data.externalEngines?.map(engine => ({
-          ...engine,
-          endpoint: this.opts.externalEngineEndpoint,
-        })) || [],
-      initialFen: undefined, // always standard starting position
-      emit: (ev, meta) => {
-        this.tree.updateAt(meta.path, node => {
-          if (meta.threatMode) {
-            const threat = ev;
-            if (!node.threat || node.threat.depth <= threat.depth) node.threat = threat;
-          } else if (!node.ceval || node.ceval.depth <= ev.depth) node.ceval = ev;
-          if (meta.path === this.path) {
-            this.report.checkForMultipleSolutions(ev, this, meta.threatMode);
-            this.setAutoShapes();
-            this.redraw();
-          }
-        });
-      },
-      onUciHover: this.setAutoShapes,
-    });
-
     this.keyboardHelp = propWithEffect(location.hash === '#keyboard', this.redraw);
     keyboard(this);
-    this.report = new Report();
 
     // If the page loads while being hidden (like when changing settings),
     // chessground is not displayed, and the first move is not fully applied.
@@ -216,14 +168,47 @@ export default class PuzzleCtrl implements CevalHandler {
       this.cancelXiangqiWork();
       this.xiangqiEngine?.destroy();
       this.xiangqiEngine = undefined;
+      this.engineStatus = { state: 'loading' };
+    });
+    window.addEventListener('pageshow', event => {
+      if (event.persisted) void this.prepareXiangqiEngine();
     });
     $('body').addClass('playing'); // for zen
     $('#zentog').on('click', () => pubsub.emit('zen'));
     (window as any).lichess.puzzle = {
-      playUci: (uci: Uci) => this.playUci(uci),
+      playUci: (uci: string) => this.playUci(uci),
     };
     (window as any).lichess.chessground = this.ground;
+    void this.prepareXiangqiEngine();
   }
+
+  engineReady = (): boolean => ['ready', 'computing'].includes(this.engineStatus.state);
+
+  private readonly getXiangqiEngine = (): XiangqiPuzzleEngine =>
+    (this.xiangqiEngine ??= new XiangqiPuzzleEngine(undefined, status => {
+      const wasReady = this.engineReady();
+      this.engineStatus = status;
+      if (wasReady !== this.engineReady()) this.withGround(this.showGround);
+      this.redraw();
+    }));
+
+  private readonly prepareXiangqiEngine = async (): Promise<void> => {
+    this.engineStatus = { state: 'loading' };
+    this.withGround(this.showGround);
+    this.redraw();
+    const engine = this.getXiangqiEngine();
+    try {
+      await engine.prepare();
+      if (engine !== this.xiangqiEngine) return;
+      this.engineStatus = { state: 'ready' };
+    } catch (error) {
+      if (engine !== this.xiangqiEngine) return;
+      console.error(error);
+      this.engineStatus = { state: 'error', error: String(error) };
+    }
+    this.withGround(this.showGround);
+    this.redraw();
+  };
 
   private readonly loadSound = (name: string, volume?: number) => {
     site.sound.load(name);
@@ -242,35 +227,8 @@ export default class PuzzleCtrl implements CevalHandler {
     this.showHint(false);
   };
 
-  setChessground = (cg: CgApi): void => {
+  setChessground = (cg: PuzzleGround): void => {
     this.ground(cg);
-    if (this.isXiangqi) {
-      requestAnimationFrame(() => this.redraw());
-      return;
-    }
-    const makeRoot = (): KeyboardMoveRootCtrl => ({
-      data: {
-        game: { variant: { key: 'standard' } },
-        player: { color: this.pov },
-      },
-      pluginMove: this.pluginMove,
-      redraw: this.redraw,
-      flipNow: this.flip,
-      userJumpPlyDelta: this.userJumpPlyDelta,
-      nextPuzzle: this.nextPuzzle,
-      vote: this.vote,
-      solve: this.viewSolution,
-      blindfold: this.blindfold,
-    });
-    const up = { fen: this.node.fen, canMove: true, cg };
-    if (this.opts.pref.voiceMove) {
-      if (this.voiceMove) this.voiceMove.update(up);
-      else this.voiceMove = makeVoiceMove(makeRoot(), up);
-    }
-    if (this.opts.pref.keyboardMove) {
-      if (!this.keyboardMove) this.keyboardMove = makeKeyboardMove(makeRoot());
-      this.keyboardMove.update(up);
-    }
     requestAnimationFrame(() => this.redraw());
     pubsub.on('board.change', () => {
       this.withGround(g => {
@@ -308,22 +266,25 @@ export default class PuzzleCtrl implements CevalHandler {
   };
 
   initiate = (fromData: PuzzleData): void => {
+    this.trafficAttempt = trafficAttemptId();
+    this.trafficStarted = false;
+    trafficActivity('puzzle.solve', this.trafficAttempt, { theme: fromData.angle.key });
+    trackTraffic('puzzle.presented', {}, {}, this.trafficAttempt);
     this.cancelXiangqiWork();
     this.xiangqiObjective = undefined;
+    this.viewingSolution = false;
+    this.alternatives.clear();
     this.xiangqiFailure = undefined;
     this.xiangqiBestMove = true;
     this.solvedMoves = 0;
     this.xiangqiEngineError = false;
     this.data = fromData;
-    this.xiangqiContinuation = [...fromData.puzzle.solution];
-    this.isXiangqi = fromData.variant === 'xiangqi';
-    this.xiangqiReady = !this.isXiangqi || this.xiangqiMatingPuzzle();
-    this.xiangqiAllowance = playerMoveAllowance(this.data.puzzle.solution, this.xiangqiMatingPuzzle());
-    this.tree = makeTree(
-      this.isXiangqi
-        ? buildXiangqiTree(this.data, this.pref.notationStyle)
-        : pgnToTree(this.data.game.pgn.split(' ')),
-    );
+    parsePuzzleVariant(fromData.variant);
+    this.solutions = new PuzzleSolutions(fromData.puzzle.playback.solutions);
+    this.xiangqiHints.clear();
+    this.xiangqiFailedPath = undefined;
+    this.xiangqiFailureDetail = undefined;
+    this.tree = makeTree(buildXiangqiTree(this.data, this.pref.notationStyle));
     const initialPath = treePath.fromNodeList(treeOps.mainlineNodeList(this.tree.root));
     this.mode = 'play';
     this.next = defer();
@@ -332,17 +293,16 @@ export default class PuzzleCtrl implements CevalHandler {
     this.lastFeedback = 'init';
     this.initialPath = initialPath;
     this.initialNode = this.tree.nodeAtPath(initialPath);
-    if (this.isXiangqi && this.xiangqiMatingPuzzle())
-      this.xiangqiObjective = makeObjective(this.initialNode.fen, this.data.puzzle.solution, undefined, true);
-    this.pov = this.isXiangqi
-      ? (this.initialNode as XiangqiPuzzleNode).xiangqi.turn === 'black'
-        ? 'black'
-        : 'white'
-      : plyColor(this.initialNode.ply);
+    this.xiangqiObjective = makeObjective(
+      this.initialNode.fen,
+      this.data.puzzle.playback.solutions[0],
+      this.data.puzzle.playback,
+    );
+    this.xiangqiAllowance = this.xiangqiObjective.allowance;
+    this.pov = (this.initialNode as XiangqiPuzzleNode).xiangqi.turn === 'black' ? 'black' : 'white';
     this.isDaily = !!this.data.isDaily;
     this.hintHasBeenShown(false);
-    this.canViewSolution(false);
-    this.report = new Report();
+    this.completed = false;
     this.voted = undefined;
 
     this.setPath(site.blindMode ? initialPath : treePath.init(initialPath));
@@ -356,71 +316,14 @@ export default class PuzzleCtrl implements CevalHandler {
       this.opts.pref.animation.duration > 0 ? 500 : 0,
     );
 
-    // just to delay button display
-    setTimeout(
-      () => {
-        if (generation !== this.xiangqiGeneration) return;
-        this.canViewSolution(true);
-        this.redraw();
-      },
-      this.rated() ? 4000 : 2000,
-    );
-
     this.withGround(g => {
       g.selectSquare(null);
       g.setAutoShapes([]);
       g.setShapes([]);
       this.showGround(g);
     });
-    if (this.isXiangqi && (this.node as XiangqiPuzzleNode).xiangqi.needsHydration)
+    if ((this.node as XiangqiPuzzleNode).xiangqi.needsHydration)
       void this.hydrateXiangqiPosition(initialPath);
-    if (!this.xiangqiReady) void this.prepareXiangqiObjective();
-  };
-
-  private readonly loadXiangqiObjective = async (): Promise<PuzzleObjective> => {
-    const initialFen = this.initialNode.fen;
-    const solution = this.data.puzzle.solution;
-    const mating = this.xiangqiMatingPuzzle();
-    const starting = await (this.xiangqiEngine ??= new XiangqiPuzzleEngine()).evaluate(initialFen, {
-      initialFen: this.tree.root.fen,
-      moves: this.tree
-        .getNodeList(this.initialPath)
-        .slice(1)
-        .map(node => node.uci!),
-    });
-    return makeObjective(initialFen, solution, starting, mating);
-  };
-
-  // Metadata-less puzzles need their starting classification before any move.
-  // Otherwise discovering mate later could shrink an already-used allowance.
-  private readonly prepareXiangqiObjective = async (): Promise<void> => {
-    const generation = this.xiangqiGeneration;
-    this.xiangqiBusy = true;
-    this.xiangqiEvaluating = true;
-    this.xiangqiEngineError = false;
-    this.xiangqiRetry = undefined;
-    this.redraw();
-    try {
-      const objective = await this.loadXiangqiObjective();
-      if (generation !== this.xiangqiGeneration) return;
-      this.xiangqiObjective = objective;
-      this.xiangqiAllowance = objective.allowance;
-      this.xiangqiReady = true;
-    } catch (error) {
-      if (generation !== this.xiangqiGeneration) return;
-      console.error(error);
-      this.xiangqiEngineError = true;
-      this.xiangqiRetry = () => {
-        if (generation === this.xiangqiGeneration) void this.prepareXiangqiObjective();
-      };
-    } finally {
-      if (generation === this.xiangqiGeneration) {
-        this.xiangqiBusy = false;
-        this.xiangqiEvaluating = false;
-        this.withGround(this.showGround);
-        this.redraw();
-      }
-    }
   };
 
   private readonly hydrateXiangqiPosition = (path: TreePath): Promise<void> => {
@@ -458,59 +361,19 @@ export default class PuzzleCtrl implements CevalHandler {
     else play();
   };
 
-  position = (): Chess => {
-    const setup = parseFen(this.node.fen).unwrap();
-    return Chess.fromSetup(setup).unwrap();
-  };
-
-  makeCgOpts = (): CgConfig => {
-    const node = this.node;
-    const color = plyColor(node.ply);
-    const dests = chessgroundDests(this.position());
-    const nextNode = this.node.children[0];
-    const canMove = this.mode === 'view' || (color === this.pov && (!nextNode || nextNode.puzzle === 'fail'));
-    const movable = canMove
-      ? {
-          color: dests.size > 0 ? color : undefined,
-          dests,
-        }
-      : {
-          color: undefined,
-          dests: new Map(),
-        };
-
-    const config = {
-      fen: node.fen,
-      orientation: this.flipped() ? opposite(this.pov) : this.pov,
-      turnColor: color,
-      movable,
-      premovable: {
-        enabled: false,
-      },
-      check: node.check(),
-      lastMove: uciToMove(node.uci),
-    };
-    if (node.ply >= this.initialNode.ply) {
-      if (this.mode !== 'view' && color !== this.pov && !nextNode) {
-        config.movable.color = this.pov;
-        config.premovable.enabled = true;
-      }
-    }
-    this.cgConfig = config;
-    return config;
-  };
-
   makeXiangqiGroundOpts = (): XiangqiGroundOptions => {
     const node = this.node as XiangqiPuzzleNode;
     const state =
       this.path === this.initialPath && this.data.puzzle.state ? this.data.puzzle.state : node.xiangqi;
     const color: Color = state.turn === 'black' ? 'black' : 'white';
     const canMove =
+      this.engineReady() &&
       !this.xiangqiBusy &&
-      (this.mode === 'view' || (this.xiangqiReady && !this.moveAllowanceExceeded() && color === this.pov));
+      !this.viewingSolution &&
+      (this.mode === 'view' || (!this.xiangqiFailure && !this.xiangqiReplyPending && color === this.pov));
     return {
       fen: state.fen,
-      orientation: this.flipped() ? opposite(this.pov) : this.pov,
+      orientation: this.flipped() ? (this.pov === 'white' ? 'black' : 'white') : this.pov,
       turnColor: color,
       movableColor: canMove && state.legalMoves.length ? color : undefined,
       legalMoves: canMove ? state.legalMoves : [],
@@ -524,10 +387,10 @@ export default class PuzzleCtrl implements CevalHandler {
     };
   };
 
-  showGround = (g: CgApi): void => {
-    if (this.isXiangqi) {
-      const opts = this.makeXiangqiGroundOpts();
-      g.set({
+  showGround = (g: PuzzleGround, backward = false): void => {
+    const opts = this.makeXiangqiGroundOpts();
+    g.set(
+      {
         fen: opts.fen,
         orientation: opts.orientation,
         turnColor: opts.turnColor,
@@ -536,52 +399,23 @@ export default class PuzzleCtrl implements CevalHandler {
           color: opts.movableColor,
           dests: legalMoveDests(opts.legalMoves || []),
         },
-      } as CgConfig);
-    } else g.set(this.makeCgOpts());
+      },
+      backward ? { animation: 'slide' } : undefined,
+    );
     this.setAutoShapes();
   };
 
-  pluginMove = (orig: Key, dest: Key, role?: Role) => {
-    if (role) this.playUserMove(orig, dest, role);
-    else
-      this.withGround(g => {
-        g.move(orig, dest);
-        g.state.movable.dests = undefined;
-        g.state.turnColor = opposite(g.state.turnColor);
-      });
+  playUci = (uci: string): void => {
+    if (!this.xiangqiReplyPending) void this.playXiangqiUciAt(this.path, uci);
   };
 
-  pluginUpdate = (fen: string): void => {
-    this.voiceMove?.update({ fen, canMove: true });
-    this.keyboardMove?.update({ fen, canMove: true });
-  };
-
-  userMove = (orig: Key, dest: Key): void => {
-    const isPromoting = this.promotion.start(orig, dest, {
-      submit: this.playUserMove,
-      show: this.voiceMove?.promotionHook(),
-    });
-    if (!isPromoting) this.playUserMove(orig, dest);
-    this.pluginUpdate(this.node.fen);
-  };
-
-  playUci = (uci: Uci): void => {
-    if (this.isXiangqi) void this.playXiangqiUciAt(this.path, uci);
-    else this.sendMove(parseUci(uci)!);
-  };
-
-  playUciList = (uciList: Uci[]): void => uciList.forEach(this.playUci);
-
-  playUserMove = (orig: Key, dest: Key, promotion?: Role): void =>
-    this.sendMove({
-      from: parseSquare(orig)!,
-      to: parseSquare(dest)!,
-      promotion,
-    });
-
-  sendMove = (move: Move): void => this.sendMoveAt(this.path, this.position(), move);
+  playUciList = (uciList: string[]): void => uciList.forEach(this.playUci);
 
   userXiangqiMove = (uci: string): void => {
+    if (!this.trafficStarted && (this.mode === 'play' || this.mode === 'try')) {
+      this.trafficStarted = true;
+      trackTraffic('puzzle.started', {}, {}, this.trafficAttempt);
+    }
     if (!this.xiangqiBusy && !this.xiangqiReplyPending) void this.playXiangqiUciAt(this.path, uci);
   };
 
@@ -590,12 +424,22 @@ export default class PuzzleCtrl implements CevalHandler {
     this.xiangqiEngine?.stop();
     this.xiangqiBusy = false;
     this.xiangqiEvaluating = false;
+    this.moveEvaluationDepth = undefined;
     this.xiangqiReplyPending = false;
     this.xiangqiRetry = undefined;
   };
 
-  private readonly playXiangqiUciAt = async (path: TreePath, uci: string): Promise<void> => {
-    if (this.xiangqiBusy || (this.mode !== 'view' && (!this.xiangqiReady || this.moveAllowanceExceeded())))
+  private readonly playXiangqiUciAt = async (
+    path: TreePath,
+    uci: string,
+    failure?: Extract<PuzzleDecision, { result: 'fail' }>,
+  ): Promise<void> => {
+    if (
+      !this.engineReady() ||
+      this.xiangqiBusy ||
+      this.viewingSolution ||
+      (this.mode !== 'view' && this.xiangqiFailure)
+    )
       return;
     this.xiangqiBusy = true;
     this.xiangqiEngineError = false;
@@ -603,6 +447,8 @@ export default class PuzzleCtrl implements CevalHandler {
     const generation = this.xiangqiGeneration;
     const mode = this.mode;
     const parent = this.tree.nodeAtPath(path);
+    if ((treePath.size(path) - treePath.size(this.initialPath)) % 2 === 0)
+      this.xiangqiPlayerMoveAt = performance.now();
     try {
       const state = await requestXiangqi<XiangqiMoveResponse>('/api/analysis/move', {
         initialFen: this.tree.root.fen,
@@ -616,24 +462,27 @@ export default class PuzzleCtrl implements CevalHandler {
       const notation = selectXiangqiNotation(state.notation, state.chineseNotation, this.pref.notationStyle);
       this.addNode(makeXiangqiNode(state, uci, notation || uci, parent.children.length), path);
       const playedNode = this.node as XiangqiPuzzleNode;
-      playedNode.played ??= { notation: state.notation, chineseNotation: state.chineseNotation };
-      await this.adjudicateXiangqi();
-      if (mode !== 'view') playedNode.played.result = playedNode.puzzle;
+      playedNode.wxfNotation = state.notation;
+      playedNode.chineseNotation = state.chineseNotation;
+      if (failure) this.revealXiangqiFailure(failure, parent, true);
+      else await this.adjudicateXiangqi();
     } catch (error) {
       if (generation !== this.xiangqiGeneration) return;
       console.error(error);
       if (this.mode === mode) this.jump(path);
+      this.xiangqiReplyPending = false;
       this.xiangqiEngineError = true;
       this.xiangqiRetry = () => {
         if (generation === this.xiangqiGeneration && this.mode === mode) {
           this.jump(path);
-          void this.playXiangqiUciAt(path, uci);
+          void this.playXiangqiUciAt(path, uci, failure);
         }
       };
     } finally {
       if (generation === this.xiangqiGeneration) {
         this.xiangqiBusy = false;
         this.xiangqiEvaluating = false;
+        this.moveEvaluationDepth = undefined;
         this.withGround(this.showGround);
         this.redraw();
       }
@@ -644,7 +493,7 @@ export default class PuzzleCtrl implements CevalHandler {
     if (this.mode === 'view' || !treePath.contains(this.path, this.initialPath)) return;
     const played = this.nodeList.slice(treePath.size(this.initialPath) + 1).map(node => node.uci!);
     const state = (this.node as XiangqiPuzzleNode).xiangqi;
-    const stored = storedLineProgress(this.xiangqiContinuation, played);
+    const stored = this.solutions.at(played);
     const playerMoved = played.length % 2 === 1;
     const terminal = terminalDecision(
       state,
@@ -653,20 +502,27 @@ export default class PuzzleCtrl implements CevalHandler {
       this.xiangqiAllowance,
     );
     if (terminal) {
-      this.node.puzzle = terminal.result === 'win' ? 'win' : 'fail';
-      this.xiangqiFailure = terminal.result === 'fail' ? terminal.reason : undefined;
-      this.applyProgress(this.node.puzzle);
-      return;
-    }
-    if (stored.kind !== 'alternative') {
-      this.xiangqiFailure = undefined;
-      if (stored.kind === 'win') {
+      if (terminal.result === 'fail')
+        this.revealXiangqiFailure(
+          terminal,
+          playerMoved ? this.node : this.tree.nodeAtPath(treePath.init(this.path)),
+          !playerMoved,
+        );
+      else {
         this.node.puzzle = 'win';
         this.applyProgress('win');
-      } else if (stored.kind === 'reply') {
+      }
+      return;
+    }
+    if (stored && !this.alternatives.has(played.join(' '))) {
+      this.xiangqiFailure = undefined;
+      if (stored.complete) {
+        this.node.puzzle = 'win';
+        this.applyProgress('win');
+      } else if (playerMoved) {
         this.xiangqiBestMove = true;
         this.node.puzzle = 'good';
-        this.applyProgress({ uci: stored.uci, path: this.path });
+        this.applyProgress({ uci: this.solutions.next(played)!, path: this.path });
       }
       return;
     }
@@ -679,164 +535,238 @@ export default class PuzzleCtrl implements CevalHandler {
     const current = () => generation === this.xiangqiGeneration && path === this.path && mode === this.mode;
     this.xiangqiEvaluating = true;
     this.redraw();
-    const engine = (this.xiangqiEngine ??= new XiangqiPuzzleEngine());
+    const engine = this.getXiangqiEngine();
     const objective = this.xiangqiObjective!;
-    const evaluation =
-      state.gameResult === '*'
-        ? await engine.evaluate(state.fen, {
-            initialFen: this.tree.root.fen,
-            moves: this.nodeList.slice(1).map(node => node.uci!),
-          })
-        : undefined;
-    if (!current()) return;
-    if (!objective.mate && evaluation && !hasUsableScore(evaluation))
-      throw new Error('Pikafish returned no usable puzzle score');
-    const continuation =
-      objective.mate && evaluation
-        ? await winningContinuation(objective, state, evaluation, Math.ceil(played.length / 2), {
-            initialFen: this.tree.root.fen,
-            moves: this.nodeList.slice(1).map(node => node.uci!),
-          })
-        : undefined;
-    if (!current()) return;
-    const decision = adjudicateAlternative(
-      objective,
-      state,
-      evaluation,
-      Math.ceil(played.length / 2),
-      continuation,
-    );
+    const key = played.join(' ');
+    let alternative = this.alternatives.get(key);
+    if (!alternative) {
+      this.moveEvaluationDepth = 1;
+      this.moveEvaluationPercent = 0;
+      this.redraw();
+      const result = await evaluateAlternative(
+        engine,
+        objective,
+        state,
+        Math.ceil(played.length / 2),
+        {
+          initialFen: this.tree.root.fen,
+          moves: this.nodeList.slice(1).map(node => node.uci!),
+        },
+        current,
+        analysis => {
+          if (!current()) return;
+          const depth = Math.max(this.moveEvaluationDepth ?? 1, analysis.depth);
+          const percent = Math.max(this.moveEvaluationPercent, evaluationPercent(analysis.timeMs));
+          if (depth === this.moveEvaluationDepth && percent === this.moveEvaluationPercent) return;
+          this.moveEvaluationDepth = depth;
+          this.moveEvaluationPercent = percent;
+          this.redraw();
+        },
+      );
+      if (!result || !current()) return;
+      this.moveEvaluationDepth = undefined;
+      const reply = result.evaluation.bestMove;
+      if (!reply || !state.legalMoves.includes(reply)) throw new Error('Pikafish returned no legal reply');
+      alternative = {
+        ...result,
+        bestMove:
+          !!result.continuation &&
+          isEfficientMate(
+            (this.solutions.at(played.slice(0, -1))?.remaining ?? Infinity) - 1,
+            result.evaluation.score,
+            objective.player,
+          ),
+      };
+      this.alternatives.set(key, alternative);
+    }
+    const { evaluation, continuation, decision } = alternative;
     if (decision.result === 'continue') {
       const reply = continuation?.moves[0] ?? evaluation?.bestMove;
       if (!reply || !state.legalMoves.includes(reply)) throw new Error('Pikafish returned no legal reply');
       this.xiangqiFailure = undefined;
-      this.xiangqiBestMove =
-        !!continuation &&
-        isEfficientMate(this.xiangqiContinuation, played, continuation, evaluation!.score, objective.player);
-      if (continuation) this.xiangqiContinuation = [...played, ...continuation.moves];
+      this.xiangqiBestMove = alternative.bestMove;
+      if (continuation) this.solutions.add([...played, ...continuation.moves]);
+      const recommendation = evaluation?.lines[0]?.pvMoves[1];
+      if (recommendation) this.xiangqiHints.set([...played, reply].join(' '), recommendation);
       this.node.puzzle = 'good';
       this.applyProgress({ uci: reply, path });
+    } else if (decision.result === 'fail') {
+      const reply = evaluation?.bestMove;
+      if (!reply || !state.legalMoves.includes(reply)) throw new Error('Pikafish returned no legal defense');
+      this.xiangqiFailedPath = treePath.init(path);
+      this.queueXiangqiReply({ uci: reply, path }, decision);
     } else {
-      this.node.puzzle = decision.result;
-      this.xiangqiFailure = decision.result === 'fail' ? decision.reason : undefined;
-      if (this.xiangqiFailure) site.sound.say(i18n.puzzle[this.xiangqiFailure]);
-      this.applyProgress(decision.result);
+      this.node.puzzle = 'win';
+      this.applyProgress('win');
     }
-    this.reorderChildren(treePath.init(path));
   };
 
-  private readonly xiangqiMatingPuzzle = (): boolean =>
-    this.data.puzzle.mateIn !== undefined ||
-    this.data.puzzle.themes.some(theme => theme.toLowerCase().includes('mate'));
+  nextSolutionMove = (): string | undefined => {
+    const played = this.nodeList.slice(treePath.size(this.initialPath) + 1).map(node => node.uci!);
+    return this.solutions.next(played) ?? this.xiangqiHints.get(played.join(' '));
+  };
 
-  sendMoveAt = (path: TreePath, pos: Chess, move: Move): void => {
-    move = normalizeMove(pos, move);
-    const san = makeSanAndPlay(pos, move);
-    this.addNode(
-      completeNode('standard')({
-        ply: 2 * (pos.fullmoves - 1) + (pos.turn === 'white' ? 0 : 1),
-        fen: makeFen(pos.toSetup()),
-        uci: makeUci(move),
-        san,
-        pos: () => Result.ok(pos),
-      }),
-      path,
+  private readonly revealXiangqiFailure = (
+    decision: Extract<PuzzleDecision, { result: 'fail' }>,
+    culprit: TreeNode,
+    afterReply: boolean,
+  ): void => {
+    const generation = this.xiangqiGeneration;
+    const path = this.path;
+    const mode = this.mode;
+    const reveal = () => {
+      if (generation !== this.xiangqiGeneration || this.path !== path || this.mode !== mode) return;
+      this.xiangqiReplyPending = false;
+      culprit.puzzle = 'fail';
+      this.setXiangqiFailure(decision);
+      this.applyProgress('fail');
+      this.withGround(this.showGround);
+      this.redraw();
+    };
+    if (afterReply) {
+      this.xiangqiReplyPending = true;
+      setTimeout(reveal, this.pref.animation.duration);
+    } else reveal();
+  };
+
+  private readonly setXiangqiFailure = (decision: Extract<PuzzleDecision, { result: 'fail' }>): void => {
+    this.xiangqiFailure = decision.reason;
+    this.xiangqiFailureDetail =
+      decision.needed !== undefined && decision.remaining !== undefined
+        ? { needed: decision.needed, remaining: decision.remaining }
+        : undefined;
+    const afterReply = (treePath.size(this.path) - treePath.size(this.initialPath)) % 2 === 0;
+    this.xiangqiFailedPath ??= treePath.init(afterReply ? treePath.init(this.path) : this.path);
+    site.sound.say(this.failureMessage());
+  };
+
+  failureMessage = (): string =>
+    this.xiangqiFailureDetail
+      ? i18n.puzzle.mateAllowanceDetail(this.xiangqiFailureDetail.remaining, this.xiangqiFailureDetail.needed)
+      : this.xiangqiFailure
+        ? i18n.puzzle[this.xiangqiFailure]
+        : i18n.puzzle.notTheMove;
+
+  private readonly queueXiangqiReply = (
+    progress: XiangqiMoveTest,
+    failure?: Extract<PuzzleDecision, { result: 'fail' }>,
+  ): void => {
+    const generation = this.xiangqiGeneration;
+    const mode = this.mode;
+    this.xiangqiReplyPending = true;
+    setTimeout(
+      () => {
+        if (generation !== this.xiangqiGeneration || mode !== this.mode || this.path !== progress.path)
+          return;
+        this.xiangqiReplyPending = false;
+        void this.playXiangqiUciAt(progress.path, progress.uci, failure);
+      },
+      Math.max(
+        0,
+        defenderDelay(this.pref.animation.duration) - (performance.now() - this.xiangqiPlayerMoveAt),
+      ),
     );
   };
 
   addNode = (node: TreeNode, path: TreePath): void => {
+    if (this.mode !== 'view') this.tree.nodeAtPath(path).children = [];
     const newPath = this.tree.addNode(node, path)!;
     this.jump(newPath);
     this.withGround(g => g.playPremove());
 
-    const progress = this.isXiangqi ? undefined : moveTest(this);
     this.setAutoShapes();
-    if (progress === 'fail') site.sound.say(i18n.puzzle.failed);
-    if (progress) this.applyProgress(progress);
-    this.reorderChildren(path);
     this.redraw();
   };
 
-  reorderChildren = (path: TreePath, recursive?: boolean): void => {
-    const node = this.tree.nodeAtPath(path);
-    node.children.sort((c1, _) => {
-      const p = c1.puzzle;
-      if (p === 'fail') return 1;
-      if (p === 'good' || p === 'win') return -1;
-      return 0;
-    });
-    if (recursive) node.children.forEach(child => this.reorderChildren(path + child.id, true));
-  };
+  canUseActions = (): boolean =>
+    this.engineReady() && this.completed && !this.xiangqiBusy && !this.xiangqiReplyPending;
 
-  private readonly instantRevertUserMove = (): void => {
-    this.withGround(g => {
-      g.cancelPremove();
-      g.selectSquare(null);
-    });
-    const afterOpponentReply =
-      this.isXiangqi && (treePath.size(this.path) - treePath.size(this.initialPath)) % 2 === 0;
-    this.jump(treePath.init(afterOpponentReply ? treePath.init(this.path) : this.path));
-    this.redraw();
-  };
+  canHint = (): boolean =>
+    this.engineReady() &&
+    !this.completed &&
+    !this.xiangqiBusy &&
+    !this.xiangqiReplyPending &&
+    this.mode !== 'view' &&
+    treePath.contains(this.path, this.initialPath) &&
+    (this.node as XiangqiPuzzleNode).xiangqi.turn === (this.pov === 'white' ? 'red' : 'black');
 
-  revertUserMove = (): void => {
-    if (site.blindMode) this.instantRevertUserMove();
-    else {
-      const path = this.path;
-      const generation = this.xiangqiGeneration;
-      setTimeout(() => {
-        if (this.path === path && generation === this.xiangqiGeneration) this.instantRevertUserMove();
-      }, 300);
+  canRetry = (): boolean =>
+    !this.xiangqiBusy &&
+    !this.xiangqiReplyPending &&
+    (this.engineStatus.state === 'error' ||
+      (this.engineReady() &&
+        (!!this.xiangqiRetry || (this.completed && this.xiangqiFailedPath !== undefined))));
+
+  retryFailedMove = (): void => {
+    if (!this.canRetry()) return;
+    if (this.engineStatus.state === 'error') {
+      void this.prepareXiangqiEngine().then(() => {
+        if (this.engineReady()) {
+          this.xiangqiEngineError = false;
+          this.xiangqiRetry?.();
+          this.redraw();
+        }
+      });
+      return;
     }
+    if (this.xiangqiRetry) return this.xiangqiRetry();
+    if (this.xiangqiFailedPath === undefined || this.xiangqiBusy) return;
+    const path = this.xiangqiFailedPath;
+    this.cancelXiangqiWork();
+    this.xiangqiBusy = true;
+    const generation = this.xiangqiGeneration;
+    const finish = () => {
+      if (generation !== this.xiangqiGeneration) return;
+      this.jump(path);
+      this.tree.nodeAtPath(path).children = [];
+      this.setPath(path);
+      this.xiangqiBusy = false;
+      this.xiangqiFailure = undefined;
+      this.xiangqiFailureDetail = undefined;
+      this.xiangqiFailedPath = undefined;
+      this.lastFeedback = 'init';
+      this.withGround(this.showGround);
+      this.redraw();
+    };
+    // Navigation may have moved away from the failure. Rewind from wherever
+    // the board currently is, never replay a failed move just to undo it.
+    if (treePath.contains(this.path, path) && treePath.size(this.path) > treePath.size(path) + 1) {
+      this.jump(treePath.init(this.path));
+      this.redraw();
+      setTimeout(finish, 250);
+    } else finish();
   };
 
-  applyProgress = (progress: undefined | 'fail' | 'win' | MoveTest | XiangqiMoveTest): void => {
+  applyProgress = (progress: undefined | 'fail' | 'win' | XiangqiMoveTest): void => {
+    if (progress === 'fail' || progress === 'win')
+      trafficActivity('puzzle.review', this.trafficAttempt, { theme: this.data.angle.key });
     if (progress === 'fail') {
+      this.completed = true;
       this.lastFeedback = 'fail';
-      if (!this.moveAllowanceExceeded()) this.revertUserMove();
       if (this.mode === 'play') {
         if (this.streak) {
           this.failStreak(this.streak);
           this.streakFailStorage.fire();
         } else {
-          this.canViewSolution(true);
           this.mode = 'try';
           this.sendResult(false);
         }
       }
     } else if (progress === 'win') {
+      this.completed = true;
       this.solvedMoves = Math.ceil((treePath.size(this.path) - treePath.size(this.initialPath)) / 2);
-      if (this.isXiangqi) site.sound.say(this.solvedMessage());
+      site.sound.say(this.solvedMessage());
       if (this.streak) this.sound.good();
       this.lastFeedback = 'win';
       if (this.mode !== 'view') {
         const sent = this.mode === 'play' ? this.sendResult(true) : Promise.resolve();
         this.mode = 'view';
         this.withGround(this.showGround);
-        sent.then(_ => (this.autoNext() ? this.nextPuzzle() : this.startCeval()));
+        sent.then(_ => this.autoNext() && this.nextPuzzle());
       }
     } else if (progress) {
       this.lastFeedback = 'good';
-      if (this.isXiangqi) (this.node as XiangqiPuzzleNode).puzzleBestMove = this.xiangqiBestMove;
-      const generation = this.xiangqiGeneration;
-      const mode = this.mode;
-      if ('uci' in progress) this.xiangqiReplyPending = true;
-      setTimeout(
-        () => {
-          if ('uci' in progress) {
-            if (generation === this.xiangqiGeneration && mode === this.mode && this.path === progress.path) {
-              this.xiangqiReplyPending = false;
-              void this.playXiangqiUciAt(progress.path, progress.uci);
-            }
-          } else {
-            const pos = Chess.fromSetup(parseFen(progress.fen).unwrap()).unwrap();
-            this.sendMoveAt(progress.path, pos, progress.move);
-          }
-        },
-        this.isXiangqi
-          ? this.opts.pref.animation.duration
-          : this.opts.pref.animation.duration * (this.autoNext() ? 1 : 1.5),
-      );
+      this.queueXiangqiReply(progress);
     }
   };
 
@@ -849,6 +779,8 @@ export default class PuzzleCtrl implements CevalHandler {
 
   sendResult = async (win: boolean): Promise<void> => {
     if (this.resultSent) return Promise.resolve();
+    trafficActivity('puzzle.review', this.trafficAttempt, { theme: this.data.angle.key });
+    trackTraffic('puzzle.review', { outcome: win ? 'won' : 'failed' }, {}, this.trafficAttempt);
     this.resultSent = true;
     this.session.complete(this.data.puzzle.id, win);
     const res = await xhr.complete(
@@ -859,6 +791,7 @@ export default class PuzzleCtrl implements CevalHandler {
       this.data.replay,
       this.streak,
       this.opts.settings.color,
+      this.trafficAttempt,
     );
     const next = res.next;
     if (next?.user && this.data.user) {
@@ -867,7 +800,6 @@ export default class PuzzleCtrl implements CevalHandler {
       this.round = res.round;
       if (res.round?.ratingDiff) this.session.setRatingDiff(this.data.puzzle.id, res.round.ratingDiff);
     }
-    if (win && !this.isXiangqi) site.sound.say(i18n.puzzle.puzzleSuccess);
     if (next) {
       this.next.resolve(this.data.replay && res.replayComplete ? this.data.replay : next);
       if (this.streak && win) this.streak.onComplete(true, res.next);
@@ -881,23 +813,30 @@ export default class PuzzleCtrl implements CevalHandler {
 
   private readonly isPuzzleData = (d: PuzzleData | ReplayEnd): d is PuzzleData => 'puzzle' in d;
 
-  moveAllowanceExceeded = (): boolean => this.xiangqiFailure === 'moveAllowanceExceeded';
-
   solvedMessage = (): string =>
-    `${i18n.puzzle.solvedInMoves(this.solvedMoves)} ${i18n.puzzle.efficientSolutionMoves(Math.ceil(this.data.puzzle.solution.length / 2))}`;
+    `${i18n.puzzle.solvedInMoves(this.solvedMoves)} ${i18n.puzzle.referenceSolutionMoves(Math.ceil(this.data.puzzle.playback.solutions[0].length / 2))}`;
 
   retryPuzzle = (): void => {
-    if (!this.isXiangqi || !this.moveAllowanceExceeded()) return;
+    if (!this.completed) return;
+    this.trafficAttempt = trafficAttemptId();
+    this.trafficStarted = false;
+    trafficActivity('puzzle.solve', this.trafficAttempt, { theme: this.data.angle.key, mode: 'practice' });
+    trackTraffic('puzzle.retry', {}, {}, this.trafficAttempt);
     this.cancelXiangqiWork();
-    this.ceval.reset();
-    this.initialNode.children = [];
-    this.xiangqiContinuation = [...this.data.puzzle.solution];
+    this.viewingSolution = false;
+    this.tree = makeTree(buildXiangqiTree(this.data, this.pref.notationStyle));
+    this.initialPath = treePath.fromNodeList(treeOps.mainlineNodeList(this.tree.root));
+    this.initialNode = this.tree.nodeAtPath(this.initialPath);
+    this.solutions = new PuzzleSolutions(this.data.puzzle.playback.solutions);
+    this.xiangqiHints.clear();
+    this.xiangqiFailedPath = undefined;
+    this.xiangqiFailureDetail = undefined;
     this.xiangqiFailure = undefined;
     this.xiangqiEngineError = false;
     this.xiangqiBestMove = true;
     this.solvedMoves = 0;
     this.lastFeedback = 'init';
-    this.mode = 'try';
+    this.mode = this.resultSent ? 'try' : 'play';
     this.showHint(false);
     this.jump(this.initialPath);
     this.withGround(g => {
@@ -909,13 +848,18 @@ export default class PuzzleCtrl implements CevalHandler {
   };
 
   nextPuzzle = (): void => {
+    trackTraffic('puzzle.next', {}, {}, this.trafficAttempt);
+    if (!this.completed) return;
     if (this.streak && this.lastFeedback !== 'win') {
       if (this.lastFeedback === 'fail') site.redirect(this.routerWithLang('/streak'));
       return;
     }
-    if (this.mode !== 'view') return;
+    if (this.mode !== 'view') {
+      this.cancelXiangqiWork();
+      this.sendResult(false);
+      this.mode = 'view';
+    }
 
-    this.ceval.reset();
     this.next.promise.then(n => {
       if (this.isPuzzleData(n)) {
         this.initiate(n);
@@ -935,101 +879,27 @@ export default class PuzzleCtrl implements CevalHandler {
 
   setAutoShapes = (): void =>
     this.withGround(g => {
-      if (this.isXiangqi) {
-        const move = this.showHint() ? nextXiangqiMove(this) : undefined;
-        const squares = move && splitXiangqiUci(move);
-        g.setAutoShapes(
-          squares ? ([{ orig: uciToCg(squares[0]) as Key, brush: 'green' }] as DrawShape[]) : [],
-        );
-      } else
-        g.setAutoShapes(
-          computeAutoShapes({
-            ...this,
-            node: this.node,
-            hint: this.hintSquare(),
-          }),
-        );
+      const move = this.showHint() ? nextXiangqiMove(this) : undefined;
+      const squares = move && splitXiangqiUci(move);
+      g.setAutoShapes(squares ? ([{ orig: uciToCg(squares[0]) as Key, brush: 'green' }] as DrawShape[]) : []);
     });
-
-  hintSquare = () => {
-    if (this.isXiangqi) return undefined;
-    const hint = this.showHint() ? nextCorrectMove(this) : undefined;
-    return hint?.from;
-  };
-
-  isCevalAllowed = (): boolean => !this.isXiangqi && this.mode === 'view';
-
-  startCeval = (): void => {
-    if (this.cevalEnabled()) this.doStartCeval();
-  };
-
-  private readonly doStartCeval = throttle(800, () => {
-    this.ceval.reset();
-    this.ceval.start(this.path, this.nodeList, this.data.puzzle.id, this.threatMode());
-  });
-
-  nextNodeBest = () => treeOps.withMainlineChild(this.node, n => n.eval?.best);
-
-  cevalEnabledProp = storedBooleanProp('engine.enabled', false);
-  cevalEnabled = (enable?: boolean) => {
-    if (enable === undefined) return this.cevalEnabledProp() && this.isCevalAllowed();
-    this.cevalEnabledProp(enable);
-    if (enable && this.isCevalAllowed()) this.startCeval();
-    else {
-      this.threatMode(false);
-      this.ceval.reset();
-    }
-    this.autoScrollRequested = true;
-    this.setAutoShapes();
-    this.ceval.showEnginePrefs(false);
-    this.redraw();
-    return enable;
-  };
-
-  clearCeval(): void {
-    this.tree.removeCeval();
-    this.ceval.reset();
-    this.startCeval();
-    this.redraw();
-  }
-
-  toggleThreatMode = (): void => {
-    if (this.node.check()) return;
-    if (!this.cevalEnabled()) return;
-    this.threatMode.toggle();
-    this.setAutoShapes();
-    this.startCeval();
-    this.redraw();
-  };
-
-  outcome = (): Outcome | undefined => (this.isXiangqi ? undefined : this.position().outcome());
 
   jump = (path: TreePath): void => {
     const pathChanged = path !== this.path;
     const previousPly = this.node.ply;
     this.setPath(path);
-    this.withGround(this.showGround);
+    this.withGround(g => this.showGround(g, this.node.ply < previousPly));
     if (pathChanged) {
       playMoveNavigationSound(previousPly, this.node.ply, () => {
-        if (this.isXiangqi) this.playXiangqiSound(path);
-        else {
-          site.sound.saySan(this.node.san);
-          site.sound.move({ san: this.node.san });
-        }
+        this.playXiangqiSound(path);
       });
-      this.threatMode(false);
-      this.ceval.reset();
-      this.startCeval();
     }
-    if (!this.isXiangqi) this.promotion.cancel();
     this.autoScrollRequested = true;
-    this.pluginUpdate(this.node.fen);
     pubsub.emit('ply', this.node.ply);
   };
 
   userJump = (path: TreePath): void => {
-    if (this.isXiangqi && (this.xiangqiBusy || this.xiangqiReplyPending)) return;
-    if (this.tree.nodeAtPath(path)?.puzzle === 'fail' && this.mode !== 'view') return;
+    if (this.xiangqiBusy || this.xiangqiReplyPending) return;
     this.withGround(g => g.selectSquare(null));
     this.jump(path);
   };
@@ -1042,82 +912,95 @@ export default class PuzzleCtrl implements CevalHandler {
     this.userJump(treePath.fromNodeList(this.mainline.slice(0, newPly + 1)));
   };
 
-  toggleHint = (): void => {
-    if (this.moveAllowanceExceeded()) return;
+  toggleHint = (): void => void this.prepareHint();
+
+  private readonly prepareHint = async (): Promise<void> => {
+    if (!this.canHint()) return;
     if (!this.showHint()) {
       this.hintHasBeenShown(true);
-      this.userJump(treePath.fromNodeList(this.mainline.filter(node => node.puzzle !== 'fail')));
+    }
+    if (!this.showHint() && !nextXiangqiMove(this)) {
+      const generation = this.xiangqiGeneration;
+      const path = this.path;
+      this.xiangqiBusy = true;
+      this.xiangqiEvaluating = true;
+      this.xiangqiEngineError = false;
+      this.redraw();
+      try {
+        const evaluation = await this.getXiangqiEngine().evaluate(this.node.fen, {
+          initialFen: this.tree.root.fen,
+          moves: this.nodeList.slice(1).map(node => node.uci!),
+        });
+        if (generation !== this.xiangqiGeneration || path !== this.path) return;
+        if (
+          !evaluation.bestMove ||
+          !(this.node as XiangqiPuzzleNode).xiangqi.legalMoves.includes(evaluation.bestMove)
+        )
+          throw new Error('Pikafish returned no legal hint');
+        const played = this.nodeList.slice(treePath.size(this.initialPath) + 1).map(node => node.uci!);
+        this.xiangqiHints.set(played.join(' '), evaluation.bestMove);
+      } catch (error) {
+        if (generation === this.xiangqiGeneration) {
+          console.error(error);
+          this.xiangqiEngineError = true;
+          this.xiangqiRetry = this.toggleHint;
+        }
+        return;
+      } finally {
+        if (generation === this.xiangqiGeneration) {
+          this.xiangqiBusy = false;
+          this.xiangqiEvaluating = false;
+          this.withGround(this.showGround);
+          this.redraw();
+        }
+      }
     }
     this.showHint.toggle();
     this.setAutoShapes();
-    if (this.isXiangqi) {
-      const hint = this.showHint() && nextXiangqiMove(this);
-      const squares = hint && splitXiangqiUci(hint);
-      this.withGround(g => g.selectSquare(squares ? (uciToCg(squares[0]) as Key) : null));
-    } else {
-      const hint = this.hintSquare();
-      this.withGround(g => g.selectSquare(hint ? makeSquare(hint) : null));
-    }
+    const hint = this.showHint() && nextXiangqiMove(this);
+    const squares = hint && splitXiangqiUci(hint);
+    this.withGround(g => g.selectSquare(squares ? (uciToCg(squares[0]) as Key) : null));
     this.redraw();
   };
 
   viewSolution = (): void => {
-    if (this.isXiangqi) {
-      void this.viewXiangqiSolution();
-      return;
-    }
-    this.sendResult(false);
-    this.mode = 'view';
-    mergeSolution(this.tree, this.initialPath, this.data.puzzle.solution, this.pov);
-    this.reorderChildren(this.initialPath, true);
-
-    // try to play the solution next move
-    const next = this.node.children[0];
-    if (next?.puzzle === 'good') this.userJump(this.path + next.id);
-    else {
-      const firstGoodPath = treeOps.takePathWhile(this.mainline, node => node.puzzle !== 'good');
-      if (firstGoodPath) this.userJump(firstGoodPath + this.tree.nodeAtPath(firstGoodPath).children[0].id);
-    }
-
-    this.autoScrollRequested = true;
-    this.redraw();
-    this.startCeval();
+    trackTraffic('puzzle.revealed', {}, {}, this.trafficAttempt);
+    trafficActivity('puzzle.review', this.trafficAttempt, { theme: this.data.angle.key });
+    if (this.canUseActions()) void this.viewXiangqiSolution();
   };
 
   private readonly viewXiangqiSolution = async (): Promise<void> => {
     this.cancelXiangqiWork();
     this.xiangqiEngineError = false;
+    this.xiangqiFailure = undefined;
+    this.xiangqiFailureDetail = undefined;
+    this.xiangqiFailedPath = undefined;
     this.sendResult(false);
     this.mode = 'view';
-    let path = this.initialPath;
-    for (let index = 0; index < this.data.puzzle.solution.length; index++) {
-      const uci = this.data.puzzle.solution[index];
-      const parent = this.tree.nodeAtPath(path);
-      let child = parent.children.find(node => node.uci === uci);
-      if (!child) {
-        const state = await requestXiangqi<XiangqiMoveResponse>('/api/analysis/move', {
-          initialFen: parent.fen,
-          moves: [],
-          move: uci,
-        });
-        const notation = selectXiangqiNotation(
-          state.notation,
-          state.chineseNotation,
-          this.pref.notationStyle,
-        );
-        child = makeXiangqiNode(state, uci, notation || uci, parent.children.length);
-        this.tree.addNode(child, path);
-      }
-      if (index % 2 === 0) child.puzzle = index === this.data.puzzle.solution.length - 1 ? 'win' : 'good';
-      path += child.id;
-    }
-    this.reorderChildren(this.initialPath, true);
-    const first = this.tree
-      .nodeAtPath(this.initialPath)
-      .children.find(node => node.puzzle === 'good' || node.puzzle === 'win');
-    if (first) this.userJump(this.initialPath + first.id);
-    this.autoScrollRequested = true;
+    this.viewingSolution = true;
+    this.xiangqiBusy = true;
+    const generation = this.xiangqiGeneration;
+    const current = () => generation === this.xiangqiGeneration;
     this.redraw();
+    try {
+      const root = await buildSolutionTree(this.data, this.pref.notationStyle, current);
+      if (!root || !current()) return;
+      this.tree = makeTree(root);
+      this.initialPath = treePath.root;
+      this.initialNode = root;
+      this.jump(treePath.root);
+    } catch (error) {
+      if (!current()) return;
+      console.error(error);
+      this.xiangqiEngineError = true;
+      this.xiangqiRetry = this.viewSolution;
+    } finally {
+      if (current()) {
+        this.xiangqiBusy = false;
+        this.withGround(this.showGround);
+        this.redraw();
+      }
+    }
   };
 
   skip = () => {
@@ -1125,7 +1008,7 @@ export default class PuzzleCtrl implements CevalHandler {
     this.streak.skip();
     this.userJump(treePath.fromNodeList(this.mainline));
     const moveIndex = treePath.size(this.path) - treePath.size(this.initialPath);
-    const solution = this.data.puzzle.solution[moveIndex];
+    const solution = this.data.puzzle.playback.solutions[0][moveIndex];
     this.playUci(solution);
     this.playBestMove();
   };
@@ -1165,20 +1048,14 @@ export default class PuzzleCtrl implements CevalHandler {
     return this.blindfolded();
   };
   playBestMove = (): void => {
-    const uci = this.isXiangqi
-      ? nextXiangqiMove(this)
-      : this.nextNodeBest() || this.node.ceval?.pvs[0].moves[0];
+    const uci = nextXiangqiMove(this);
     if (uci) this.playUci(uci);
   };
   autoNexting = () => this.lastFeedback === 'win' && this.autoNext();
-  showEvalGauge = () => this.showEvaluation() && this.isCevalAllowed() && !this.outcome();
   getOrientation = () => this.withGround(g => g.state.orientation)!;
   allThemes?: { dynamic: string[]; static: Set<string> };
   toggleRated = () => this.rated(!this.rated());
-  getCeval = () => this.ceval;
-  ongoing = false;
   getNode = () => this.node;
-  showEvaluation = () => !this.isXiangqi && this.mode === 'view';
   routerWithLang = (path: string): string => {
     if (document.body.hasAttribute('data-user')) return path;
     const language = document.documentElement.lang.slice(0, 2);

@@ -18,7 +18,6 @@
   <string name="youHaveLifetime">Életre szóló támogató fiókod van. Ez azért elég vagány!</string>
   <string name="patronUntil">Támogató fiókod van eddig a napig: %s.</string>
   <string name="ifNotRenewedThenAccountWillRevert">Megújítás nélkül a fiókod majd visszaváltozik hagyományos fiókká.</string>
-  <string name="weAreNonProfit">Non-profit szervezet vagyunk, mert hiszünk egy mindenki számára elérhető, ingyenes és világszínvonalú sakk platformban.</string>
   <string name="weRelyOnSupport">Hozzád hasonló hozzájárulókra támaszkodunk, hogy ezt megvalósítsuk. Ha tetszik a Lichess légyszíves fontold meg támogatásunkat adománnyal és légy Te is Patron!</string>
   <string name="lifetime">Életre szóló</string>
   <string name="payLifetimeOnce">%s egyszeri adománnyal legyél Lichess Patron örökre!</string>
@@ -34,18 +33,9 @@
   <string name="weAreSmallTeam">Mi egy kis csapat vagyunk, a támogatásod nagyon sokat jelent!</string>
   <string name="celebratedPatrons">Az ünnepelt Patronok, akik nélkül nincs Lichess</string>
   <string name="whereMoneyGoes">Mire megy el a pénz?</string>
-  <string name="serversAndDeveloper">Először is, komoly szerverekre.
-Ezen kívül fizetünk egy főállású fejlesztőt: ő %s, a Lichess alapítója.
-</string>
-  <string name="costBreakdown">Lásd a részletes költséglebontást</string>
   <string name="officialNonProfit">A Lichess hivatalosan non-profit?</string>
-  <string name="actOfCreation">Igen, itt találod az alapító okiratot (franciául)</string>
   <string name="changeMonthlySupport">Módosíthatom/törölhetem a havi finanszírozásomat?</string>
   <string name="contactSupport">keress fel minket</string>
-  <string name="otherMethods">Más adakozási lehetőségek?</string>
-  <string name="lichessIsRegisteredWith">A Lichess a %s által van bejegyezve.</string>
-  <string name="bankTransfers">Elfogadunk banki átutalást is</string>
-  <string name="onlyDonationFromAbove">Patron státusz csak a fenti űrlapon keresztül érkező adományok után jár.</string>
   <string name="patronFeatures">Vannak csak Patronok számára elérhető funkciók?</string>
   <string name="noPatronFeatures">Nincsenek, mivel a Lichess teljesen ingyenes, mindig, mindenkinek. Ezt megígérjük.
 Illetve a Patronok kapnak menő profil ikont amivel lehet villogni.</string>
@@ -82,6 +72,5 @@ Illetve a Patronok kapnak menő profil ikont amivel lehet villogni.</string>
   <string name="changeCurrency">Pénznem módosítása</string>
   <string name="paymentDetails">Fizetés részletei</string>
   <string name="updatePaymentMethod">Fizetési mód frissítése</string>
-  <string name="stripeManageSub">Kezeld előfizetésed, és töltsd le a számlákat és nyugtákat</string>
   <string name="coverFees">Hozzáadok még %s összeget a tranzakciós költségek fedezésére</string>
 </resources>

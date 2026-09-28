@@ -256,7 +256,17 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
     exists(name).not.flatMapz:
       val doc = newUser(name, passwordHash, email, blind, mustConfirmEmail, lang, kid) ++
         ("len" -> BSONInteger(name.value.length))
-      coll.insert.one(doc) >> byId(name.id)
+      (coll.insert.one(doc) >> byId(name.id)).addEffect: created =>
+        created.foreach: user =>
+          lila.common.Bus.pub(
+            lila.core.traffic.TrafficEvent(
+              s"registration/${user.id.value}",
+              "user.registered",
+              user.createdAt,
+              Some(user.id),
+              dimensions = Map("language" -> lang.fold("unknown")(_.value))
+            )
+          )
 
   def exists[U: UserIdOf](u: U): Fu[Boolean] = coll.exists($id(u.id))
   def existsSec[U: UserIdOf](u: U): Fu[Boolean] = coll.secondary.exists($id(u.id))
@@ -518,6 +528,15 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
 
   def setPlan(user: User, plan: Option[Plan]): Funit =
     coll.updateOrUnsetField($id(user.id), BSONFields.plan, plan).void
+
+  // Read and write through the caller's transaction so payments and benefits commit together.
+  def updatePlanInTransaction(id: UserId, db: DB)(f: Plan => Plan): Fu[(User, User)] =
+    val transactional = new UserRepo(db.collection(coll.name))
+    for
+      before <- transactional.byId(id).orFail(s"Missing payment recipient $id")
+      after = before.copy(plan = f(before.plan))
+      _ <- transactional.setPlan(after, after.plan.some)
+    yield before -> after
 
   def setSeenAt(id: UserId): Unit =
     coll.updateFieldUnchecked($id(id), F.seenAt, nowInstant)

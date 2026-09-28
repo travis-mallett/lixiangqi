@@ -2,7 +2,7 @@ package lila.puzzle
 
 import scalalib.ThreadLocalRandom
 
-import lila.db.dsl.*
+import lila.db.dsl.{ *, given }
 import lila.memo.CacheApi
 import lila.mon.extensions.*
 
@@ -18,6 +18,7 @@ final class PuzzleAnon(
   def getOneFor(angle: PuzzleAngle, diff: PuzzleDifficulty, color: Option[Color]): Fu[Option[Puzzle]] =
     pool
       .get(angle -> diff)
+      .flatMap(fresh(angle))
       .map(color.fold[Vector[Puzzle] => Option[Puzzle]](ThreadLocalRandom.oneOf)(selectWithColor))
       .mon(lila.mon.puzzle.selector.anon.time)
       .addEffect:
@@ -32,7 +33,14 @@ final class PuzzleAnon(
     nextTry(1)
 
   def getBatchFor(angle: PuzzleAngle, diff: PuzzleDifficulty, nb: Int): Fu[Vector[Puzzle]] =
-    pool.get(angle -> diff).map(_.take(nb)).mon(lila.mon.puzzle.selector.anon.batch(nb))
+    pool.get(angle -> diff).flatMap(fresh(angle)).map(_.take(nb)).mon(lila.mon.puzzle.selector.anon.batch(nb))
+
+  private def fresh(angle: PuzzleAngle)(puzzles: Vector[Puzzle]): Fu[Vector[Puzzle]] =
+    colls.puzzle(
+      _.find(Puzzle.activeFor(angle) ++ $inIds(puzzles.map(_.id)))
+        .cursor[Puzzle]()
+        .collect[Vector](150, reactivemongo.api.Cursor.FailOnError[Vector[Puzzle]]())
+    )
 
   private val poolSize = 150
 
@@ -57,27 +65,33 @@ final class PuzzleAnon(
             else if count > 5000 then 5
             else if count > 2000 then 8
             else 15
-          colls.path:
-            _.aggregateList(poolSize): framework =>
-              import framework.*
-              Match(pathApi.select(angle, tier, ratingRange)) -> List(
-                Sample(pathSampleSize),
-                Project($doc("puzzleId" -> "$ids", "_id" -> false)),
-                Unwind("puzzleId"),
-                Sample(poolSize),
-                PipelineOperator:
-                  $doc(
-                    "$lookup" -> $doc(
-                      "from" -> colls.puzzle.name.value,
-                      "localField" -> "puzzleId",
-                      "foreignField" -> "_id",
-                      "as" -> "puzzle"
-                    )
+          pathApi
+            .generation(angle)
+            .flatMap: generationSelector =>
+              colls.path:
+                _.aggregateList(poolSize): framework =>
+                  import framework.*
+                  Match(pathApi.select(angle, tier, ratingRange) ++ generationSelector) -> List(
+                    Sample(pathSampleSize),
+                    Project($doc("puzzleId" -> "$ids", "_id" -> false)),
+                    Unwind("puzzleId"),
+                    Sample(poolSize),
+                    PipelineOperator:
+                      $doc(
+                        "$lookup" -> $doc(
+                          "from" -> colls.puzzle.name.value,
+                          "localField" -> "puzzleId",
+                          "foreignField" -> "_id",
+                          "as" -> "puzzle",
+                          "pipeline" -> List($doc("$match" -> Puzzle.activeFor(angle)))
+                        )
+                      )
+                    ,
+                    Unwind("puzzle"),
+                    PipelineOperator:
+                      $doc("$replaceWith" -> "$puzzle")
                   )
-                ,
-                PipelineOperator:
-                  $doc("$replaceWith" -> $doc("$arrayElemAt" -> $arr("$puzzle", 0)))
-              )
-            .map:
-              _.view.flatMap(puzzleReader.readOpt).toVector
+                .map:
+                  _.view.flatMap(puzzleReader.readOpt).toVector
+
         }

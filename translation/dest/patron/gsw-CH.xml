@@ -18,7 +18,6 @@
   <string name="youHaveLifetime">Du häsch es läbelangs Gönnerkonto. Das isch grossartig!</string>
   <string name="patronUntil">Du häsch es Gönnerkonto bis %s.</string>
   <string name="ifNotRenewedThenAccountWillRevert">Falls du nöd erneuere tuesch, wird dis Konto in es Regulärs umgwandlet.</string>
-  <string name="weAreNonProfit">Als \"Non-Profit-Organisation\" glaubed mir, dass jedi und jede wo Schach schpillt, sött gratis Zuegang zu ere \"Wältklass-Schach-Plattform\" ha!</string>
   <string name="weRelyOnSupport">Mir sind uf d\'Underschtützig vu Lüt wie du agwise, um das z\'ermögliche. Wänn dir Lichess g\'fallt, chasch du eus underschtütze, indem du öppis schpändsch und so en Lichess-Gönner wirsch!</string>
   <string name="lifetime">Läbeslang</string>
   <string name="payLifetimeOnce">Zahl eimal %s und wird für immer en Lichess Gönner!</string>
@@ -34,17 +33,9 @@
   <string name="weAreSmallTeam">Mir sind es chlises Team, drum hät dini Underschtützig e grossi Würkig!</string>
   <string name="celebratedPatrons">Gönner wo Lichess möglich mached</string>
   <string name="whereMoneyGoes">Wohi flüsst das Gäld?</string>
-  <string name="serversAndDeveloper">Ganz zerscht in leischtigsstarchi Server. 
-Dänn zahled mir en Vollzit-Entwickler: %s, de Gründer vu Lichess.</string>
-  <string name="costBreakdown">Da die detailliert Choschte-Ufteilig</string>
   <string name="officialNonProfit">Isch Lichess e offizielli Non-Profit-Organisation?</string>
-  <string name="actOfCreation">Ja, da isch d\'Gründigsurkund (uf französisch)</string>
   <string name="changeMonthlySupport">Chann ich mini monetlichi Underschtützig ändere/chünde?</string>
   <string name="contactSupport">de Lichess Support kontaktiere</string>
-  <string name="otherMethods">Anderi Schpändemöglichkeite?</string>
-  <string name="lichessIsRegisteredWith">Lichess isch regischtriert bi %s.</string>
-  <string name="bankTransfers">Mir akzeptiered au Überwisige</string>
-  <string name="onlyDonationFromAbove">Du erreichsch de Gönnerstatus aber nur mit dem obere Formular.</string>
   <string name="patronFeatures">Gits zuesätzlichi Funktione
 für en Gönner?</string>
   <string name="noPatronFeatures">Nei - Lichess isch komplett gratis, für immer und für jedermann; das isch es Verschpräche.
@@ -82,6 +73,5 @@ Aber en Lichess-Gönner chann sis Profil mit dem coole Flügel-Icon schmücke.</
   <string name="changeCurrency">Anderi Währig</string>
   <string name="paymentDetails">Zahligs-Details</string>
   <string name="updatePaymentMethod">Zahligsmodus aktualisiere</string>
-  <string name="stripeManageSub">Dis Abo verwalte und Rechnige oder Quittige abelade</string>
   <string name="coverFees">Ich gib no %s dezue, für d\'Überwisigsgebühr</string>
 </resources>

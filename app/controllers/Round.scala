@@ -61,21 +61,23 @@ final class Round(
           if !pov.game.started then notFound
           else
             PreventTheft(pov):
-              for
-                pageData <- playerPageData(pov, tour, Preload(users))
-                page <- renderPage(
-                  views.round.player(
-                    pov,
-                    pageData.round,
-                    tour = tour,
-                    simul = pageData.simul,
-                    cross = pageData.cross,
-                    playing = pageData.playing,
-                    chatOption = pageData.chat,
-                    bookmarked = pageData.bookmarked
+              if pov.game.replayable then analyseC.replay(pov, userTv = none)
+              else
+                for
+                  pageData <- playerPageData(pov, tour, Preload(users))
+                  page <- renderPage(
+                    views.round.player(
+                      pov,
+                      pageData.round,
+                      tour = tour,
+                      simul = pageData.simul,
+                      cross = pageData.cross,
+                      playing = pageData.playing,
+                      chatOption = pageData.chat,
+                      bookmarked = pageData.bookmarked
+                    )
                   )
-                )
-              yield Ok(page).noCache
+                yield Ok(page).noCache
         ,
         api = _ =>
           if isTheft(pov) then theftResponse

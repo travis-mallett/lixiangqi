@@ -33,7 +33,7 @@ object oAuth:
   val authorize = lila.oauth.ui.AuthorizeUi(helpers)(lightUserFallback, auth.customLogo)
 
 val style = lila.plan.ui.PlanStyle(helpers)
-val plan = lila.plan.ui.PlanUi(helpers)(style, netConfig.email)
+val plan = lila.plan.ui.PlanUi(helpers)(style)
 val planPages = lila.plan.ui.PlanPages(helpers)(lila.fishnet.FishnetLimiter.maxPerDay)
 
 val feed =

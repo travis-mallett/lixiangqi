@@ -6,5 +6,8 @@ AI Agents: Do not work on these tasks unless requested to do so.
 - 18. Security vunerability discovered on lichess. Implement the fix in lixiangqi: https://github.com/lichess-org/lila/security/advisories/GHSA-x958-pp85-74wf
 - 19. Center the "Minimum rating for each lixiangqi rank title on the page in the Xiangqi Rankings page.
 - 20. Too much vertical space between tag lists on the videos page. These need to be more compact like the YouTube layout.
+- 21. The repetition rules setting in the Play against Computer dialogue: the dropdown seems to visually disappear after selecting an option. It must be clicked again for it to show up again.
+
+22. The brightness slider under Board Style seems to inadvertantly apply brightness effects to pieces, not just the board as intended. Opacity slider seems to have no effect (except I see the effect in the board selection - the little previews in the drop down menu) but no effect in the main boards on the pages.
 
 To Verify:

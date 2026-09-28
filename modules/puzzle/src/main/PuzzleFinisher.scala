@@ -49,120 +49,146 @@ final private[puzzle] class PuzzleFinisher(
       id: PuzzleId,
       angle: PuzzleAngle,
       win: PuzzleWin,
-      rated: Rated
+      rated: Rated,
+      traffic: Option[lila.core.traffic.TrafficEvent] = None
   )(using me: Me, perf: Perf): Fu[Option[(PuzzleRound, Perf)]] =
-    if api.casual(me.value, id) then
-      fuccess:
-        some:
-          PuzzleRound(
-            id = PuzzleRound.Id(me.userId, id),
-            win = win,
-            fixedAt = none,
-            date = nowInstant
-          ) -> perf
-    else
-      sequencer(id):
-        api.round
-          .find(me.value, id)
-          .zip(api.puzzle.find(id))
-          .flatMap:
-            case (_, None) => fuccess(none)
-            case (prevRound, Some(puzzle)) =>
-              val now = nowInstant
-              prevRound
-                .match
-                  case Some(prev) =>
-                    fuccess:
-                      (prev.updateWithWin(win), none, perf)
-                  case None if rated.no =>
-                    fuccess:
-                      val round = PuzzleRound(
-                        id = PuzzleRound.Id(me.userId, puzzle.id),
-                        win = win,
-                        fixedAt = none,
-                        date = now
-                      )
-                      (round, none, perf)
-                  case None =>
-                    // for rating computation, we treat the solve as a game
-                    // where the player is white and the puzzle is black
-                    val (userGlicko, puzzleGlicko) =
-                      val players = ByColor(
-                        perf.toGlickoPlayer,
-                        chess.rating.glicko.Player(puzzle.glicko.cap, puzzle.plays, none)
-                      )
-                      calculator
-                        .computeGame:
-                          chess.rating.glicko.Game(players, chess.Outcome(Color.fromWhite(win.yes).some))
-                        .map(_.map(_.glicko))
-                        .fold(
-                          err =>
-                            logger.error(s"Failed to compute glicko for puzzle ${puzzle.id}", err)
-                            players.map(_.glicko).toPair
-                          ,
-                          _.toPair
+    val result =
+      if api.casual(me.value, id) then
+        fuccess:
+          some:
+            PuzzleRound(
+              id = PuzzleRound.Id(me.userId, id),
+              win = win,
+              fixedAt = none,
+              date = nowInstant
+            ) -> perf
+      else
+        sequencer(id):
+          api.round
+            .find(me.value, id)
+            .zip(api.puzzle.find(id))
+            .flatMap:
+              case (_, None) => fuccess(none)
+              case (prevRound, Some(puzzle)) =>
+                val now = nowInstant
+                prevRound
+                  .match
+                    case Some(prev) =>
+                      fuccess:
+                        (prev.updateWithWin(win), none, perf)
+                    case None if rated.no =>
+                      fuccess:
+                        val round = PuzzleRound(
+                          id = PuzzleRound.Id(me.userId, puzzle.id),
+                          win = win,
+                          fixedAt = none,
+                          date = now
                         )
-                    userApi
-                      .dubiousPuzzle(me.userId, perf)
-                      .map: dubiousPlayer =>
-                        val updatePuzzleGlicko =
-                          !dubiousPlayer && canUpdatePuzzleRating(me.userId, false)(true)
-                        val newPuzzleGlicko = updatePuzzleGlicko.so:
-                          ponder
-                            .puzzle(
-                              angle,
-                              win,
-                              puzzle.glicko -> puzzleGlicko
-                                .copy(
-                                  rating = puzzleGlicko.rating
-                                    .atMost(puzzle.glicko.rating + lila.rating.Glicko.maxRatingDelta)
-                                    .atLeast(puzzle.glicko.rating - lila.rating.Glicko.maxRatingDelta)
-                                )
-                                .cap,
-                              player = perf.glicko
-                            )
-                            .some
-                            .filter(puzzle.glicko !=)
-                            .filter(_.sanityCheck)
-                        val round =
-                          PuzzleRound(
-                            id = PuzzleRound.Id(me.userId, puzzle.id),
-                            win = win,
-                            fixedAt = none,
-                            date = now
+                        (round, none, perf)
+                    case None =>
+                      // for rating computation, we treat the solve as a game
+                      // where the player is white and the puzzle is black
+                      val (userGlicko, puzzleGlicko) =
+                        val players = ByColor(
+                          perf.toGlickoPlayer,
+                          chess.rating.glicko.Player(puzzle.glicko.cap, puzzle.plays, none)
+                        )
+                        calculator
+                          .computeGame:
+                            chess.rating.glicko.Game(players, chess.Outcome(Color.fromWhite(win.yes).some))
+                          .map(_.map(_.glicko))
+                          .fold(
+                            err =>
+                              logger.error(s"Failed to compute glicko for puzzle ${puzzle.id}", err)
+                              players.map(_.glicko).toPair
+                            ,
+                            _.toPair
                           )
-                        val userPerf = perf
-                          .addOrReset(lila.mon.puzzle.crazyGlicko, s"puzzle ${puzzle.id}")(userGlicko, now)
-                          .pipe: p =>
-                            p.copy(glicko = ponder.player(angle, win, perf.glicko -> p.glicko, puzzle.glicko))
-                        (round, newPuzzleGlicko, userPerf)
-                .flatMap: (round, newPuzzleGlicko, userPerf) =>
-                  import lila.rating.Glicko.glickoHandler
-                  for
-                    _ <- api.round
-                      .upsert(round, angle)
-                      .zip:
-                        (userPerf != perf).so:
-                          userApi
-                            .setPerf(me.userId, PerfType.Puzzle, userPerf.clearRecent)
-                            .zip(historyApi.addPuzzle(user = me.value, completedAt = now, perf = userPerf))
-                            .void
-                    _ <- colls.puzzle.map:
-                      _.updateUnchecked(
-                        $id(puzzle.id),
-                        $inc(Puzzle.BSONFields.plays -> $int(1)) ++ newPuzzleGlicko.so { glicko =>
-                          $set(Puzzle.BSONFields.glicko -> glicko)
-                        }
-                      )
-                    _ = if prevRound.isEmpty then
-                      Bus.pub:
-                        Puzzle.UserResult(
-                          puzzle.id,
-                          me.userId,
-                          win,
-                          perf.intRating -> userPerf.intRating
+                      userApi
+                        .dubiousPuzzle(me.userId, perf)
+                        .map: dubiousPlayer =>
+                          val updatePuzzleGlicko =
+                            !dubiousPlayer && canUpdatePuzzleRating(me.userId, false)(true)
+                          val newPuzzleGlicko = updatePuzzleGlicko.so:
+                            ponder
+                              .puzzle(
+                                angle,
+                                win,
+                                puzzle.glicko -> puzzleGlicko
+                                  .copy(
+                                    rating = puzzleGlicko.rating
+                                      .atMost(puzzle.glicko.rating + lila.rating.Glicko.maxRatingDelta)
+                                      .atLeast(puzzle.glicko.rating - lila.rating.Glicko.maxRatingDelta)
+                                  )
+                                  .cap,
+                                player = perf.glicko
+                              )
+                              .some
+                              .filter(puzzle.glicko !=)
+                              .filter(_.sanityCheck)
+                          val round =
+                            PuzzleRound(
+                              id = PuzzleRound.Id(me.userId, puzzle.id),
+                              win = win,
+                              fixedAt = none,
+                              date = now
+                            )
+                          val userPerf = perf
+                            .addOrReset(lila.mon.puzzle.crazyGlicko, s"puzzle ${puzzle.id}")(userGlicko, now)
+                            .pipe: p =>
+                              p.copy(glicko =
+                                ponder.player(angle, win, perf.glicko -> p.glicko, puzzle.glicko)
+                              )
+                          (round, newPuzzleGlicko, userPerf)
+                  .flatMap: (round, newPuzzleGlicko, userPerf) =>
+                    import lila.rating.Glicko.glickoHandler
+                    for
+                      _ <- api.round
+                        .upsert(round, angle)
+                        .zip:
+                          (userPerf != perf).so:
+                            userApi
+                              .setPerf(me.userId, PerfType.Puzzle, userPerf.clearRecent)
+                              .zip(historyApi.addPuzzle(user = me.value, completedAt = now, perf = userPerf))
+                              .void
+                      _ <- colls.puzzle.map:
+                        _.updateUnchecked(
+                          $id(puzzle.id),
+                          $inc(Puzzle.BSONFields.plays -> $int(1)) ++ newPuzzleGlicko.so { glicko =>
+                            $set(Puzzle.BSONFields.glicko -> glicko)
+                          }
                         )
-                  yield (round -> userPerf).some
+                      _ = if prevRound.isEmpty then
+                        Bus.pub:
+                          Puzzle.UserResult(
+                            puzzle.id,
+                            me.userId,
+                            win,
+                            perf.intRating -> userPerf.intRating
+                          )
+                    yield (round -> userPerf).some
+
+    result.addEffect: completed =>
+      if completed.isDefined then
+        val attempt = java.util.UUID.randomUUID().toString
+        Bus.pub(
+          traffic
+            .getOrElse(
+              lila.core.traffic.TrafficEvent(
+                s"puzzle/$attempt",
+                "puzzle.completed",
+                nowInstant,
+                Some(me.userId),
+                Some(attempt),
+                Map(
+                  "theme" -> angle.key,
+                  "mode" -> (if rated.yes then "rated" else "casual"),
+                  "outcome" -> (if win.yes then "won" else "failed")
+                )
+              )
+            )
+            .copy(at = nowInstant)
+        )
 
   private val canUpdatePuzzleRating =
     lila.memo.RateLimit[UserId](300, 1.day, key = "puzzle.canUpdatePuzzleRating")
@@ -171,8 +197,6 @@ final private[puzzle] class PuzzleFinisher(
 
     // themes that don't hint at the solution
     private val nonHintingThemes: Set[PuzzleTheme.Key] = Set(
-      PuzzleTheme.opening,
-      PuzzleTheme.middlegame,
       PuzzleTheme.endgame,
       PuzzleTheme.rookEndgame,
       PuzzleTheme.bishopEndgame,

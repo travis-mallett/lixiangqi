@@ -99,14 +99,9 @@
   <string name="mateIn3Description">تحقيق الكش مات في 3 نقلات.</string>
   <string name="mateIn4">كش مات في 4 حركات</string>
   <string name="mateIn4Description">تحقيق الكش مات قي 4 نقلات.</string>
-  <string name="mateIn5">كش مات في 5 حركات أو اكثر</string>
   <string name="mateIn5Description">اكتشف سلسلة من الحركات الممتابعة التي تقود إلى كش مات.</string>
-  <string name="middlegame">وسط المباراة</string>
-  <string name="middlegameDescription">تكتيك خلال وسط المباراة.</string>
   <string name="oneMove">لفز ذو حركة واحدة</string>
   <string name="oneMoveDescription">لغز بحركة واحدة فقط.</string>
-  <string name="opening">إفتتاح</string>
-  <string name="openingDescription">تكتيك في مرحلة الافتتاح.</string>
   <string name="operaMate">كش الأوبرا</string>
   <string name="operaMateDescription">كش الملك باستخدام القلعة واستخدم الفيل للدفاع عن القلعة.</string>
   <string name="pawnEndgame">نهاية اللعبة بالجنود</string>

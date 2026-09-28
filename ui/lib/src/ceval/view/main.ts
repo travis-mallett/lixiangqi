@@ -16,6 +16,7 @@ import { licon } from '@/licon';
 import type { ClientEval, LocalEval, PvData } from '@/tree/types';
 import { type VNode, type LooseVNode, type LooseVNodes, bind, hl, onInsert, icon } from '@/view';
 import { cmnToggle } from '@/view/cmn-toggle';
+import { progressBar as renderProgressBar } from '@/view/progressBar';
 import stepwiseScroll from '@/view/stepwiseScroll';
 
 import type { CevalCtrl } from '../ctrl';
@@ -183,25 +184,13 @@ export function renderCeval(ctrl: CevalHandler): VNode[] {
 
   const progressBar: VNode | undefined =
     (enabled || download) &&
-    h(
-      'div.bar',
-      h('span', {
-        class: { threat: enabled && threatMode },
-        attrs: { style: `width: ${percent}%` },
-        hook: {
-          postpatch: (old, vnode) => {
-            if (old.data!.percent > percent || !!old.data!.threatMode !== threatMode) {
-              const el = vnode.elm as HTMLElement;
-              const p = el.parentNode as HTMLElement;
-              p.removeChild(el);
-              p.appendChild(el);
-            }
-            vnode.data!.percent = percent;
-            vnode.data!.threatMode = threatMode;
-          },
-        },
-      }),
-    );
+    renderProgressBar({
+      percent: ceval.state === CevalState.Loading && !download?.total ? undefined : percent,
+      active: ceval.isComputing || ceval.state === CevalState.Loading,
+      visible: true,
+      threat: enabled && threatMode,
+      label: ceval.state === CevalState.Loading ? loadingText(ctrl) : i18n.site.calculatingMoves,
+    });
 
   const body: LooseVNodes = enabled
     ? [

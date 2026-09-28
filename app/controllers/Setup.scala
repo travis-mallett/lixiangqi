@@ -131,7 +131,8 @@ final class Setup(
                     userConfig,
                     sri,
                     req.sid,
-                    lila.core.pool.Blocking(blocking)
+                    lila.core.pool.Blocking(blocking),
+                    ctx.body.body.asFormUrlEncoded.flatMap(_.get("trafficAttempt").flatMap(_.headOption))
                   )(using me)
                 yield hookResponse(res)
         )

@@ -99,14 +99,9 @@
   <string name="mateIn3Description">Κάντε ματ σε τρεις κινήσεις.</string>
   <string name="mateIn4">Ματ σε 4</string>
   <string name="mateIn4Description">Κάντε ματ σε τέσσερις κινήσεις.</string>
-  <string name="mateIn5">Ματ σε 5 ή περισσότερο</string>
   <string name="mateIn5Description">Βρείτε μία μακρά ακολουθία κινήσεων που οδηγεί σε ματ.</string>
-  <string name="middlegame">Μέσο</string>
-  <string name="middlegameDescription">Τακτικά κατά τη δεύτερη φάση της παρτίδας.</string>
   <string name="oneMove">Τακτικό μιας κίνησης</string>
   <string name="oneMoveDescription">Τακτικά που έχουν μόνο μία κίνηση.</string>
-  <string name="opening">Άνοιγμα</string>
-  <string name="openingDescription">Τακτικά κατά την πρώτη φάση της παρτίδας.</string>
   <string name="operaMate">Ματ της όπερας</string>
   <string name="operaMateDescription">Ένας πύργος που προστατεύεται από έναν αξιωματικό κάνει ματ στον αντίπαλο βασιλιά.</string>
   <string name="pawnEndgame">Φινάλε πιονιών</string>

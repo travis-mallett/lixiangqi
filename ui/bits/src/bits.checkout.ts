@@ -1,5 +1,5 @@
 import { myUserId } from 'lib';
-import { currencyFormat, roundToCurrency } from 'lib/i18n';
+import { currencyFormat } from 'lib/i18n';
 import { spinnerHtml, prompt } from 'lib/view';
 import * as xhr from 'lib/xhr';
 
@@ -7,6 +7,7 @@ import { contactEmail } from './bits';
 
 export interface Pricing {
   currency: string;
+  fractionDigits: number;
   default: number;
   min: number;
   max: number;
@@ -40,6 +41,10 @@ export function initModule({
   const hasLifetime = $('#freq_lifetime').prop('disabled');
   const $coverFees = $('#cover-fees');
   const $coverFeesLabel = $('label[for="cover-fees"]');
+  const roundAmount = (amount: number): number => {
+    const factor = 10 ** pricing.fractionDigits;
+    return Math.round((amount + Number.EPSILON) * factor) / factor;
+  };
 
   const toggleInput = ($input: Cash, enable: boolean) =>
     $input.prop('disabled', !enable).toggleClass('disabled', !enable);
@@ -51,13 +56,10 @@ export function initModule({
 
   const calculateFee = (amount: number) => {
     const fee = Math.max(pricing.feeFixed, pricing.feeRate * amount);
-    return roundToCurrency(fee, pricing.currency);
+    return roundAmount(fee);
   };
 
   const getBaseAmount = (): number => {
-    const freq = getFreq();
-    if (freq === 'lifetime') return pricing.lifetime;
-
     const $input = $checkout.find('group.amount input:checked');
     const val = parseFloat($input.data('amount'));
     return isNaN(val) ? pricing.default : val;
@@ -72,8 +74,16 @@ export function initModule({
 
   const onFreqChange = function () {
     const freq = getFreq();
-    $checkout.find('.amount_fixed').toggleClass('none', freq !== 'lifetime');
-    $checkout.find('.amount_choice').toggleClass('none', freq === 'lifetime');
+    const lifetime = freq === 'lifetime';
+    $checkout.find('.lifetime-amount').toggleClass('none', !lifetime);
+    $checkout.find('.regular-amount').toggleClass('none', lifetime);
+    if (
+      lifetime &&
+      (getBaseAmount() < pricing.lifetime || $checkout.find('.regular-amount input:checked').length)
+    )
+      $('#plan_lifetime').prop('checked', true);
+    else if (!lifetime && $('#plan_lifetime').prop('checked'))
+      $checkout.find('input.default').prop('checked', true);
     const sub = freq === 'monthly';
     $checkout.find('.paypal--order').toggle(!sub);
     $checkout.find('.paypal--subscription').toggle(sub);
@@ -110,14 +120,14 @@ export function initModule({
     }
     if (!amount) {
       $(this).text($(this).data('trans-other'));
-      $checkout.find('input.default').trigger('click');
+      (getFreq() === 'lifetime' ? $('#plan_lifetime') : $checkout.find('input.default')).trigger('click');
       updateFeeLabel();
       return false;
     }
     const isGift = !!$checkout.find('.gift input').val();
-    const min = isGift ? pricing.giftMin : pricing.min;
+    const min = getFreq() === 'lifetime' ? pricing.lifetime : isGift ? pricing.giftMin : pricing.min;
     amount = Math.max(min, Math.min(pricing.max, amount));
-    amount = roundToCurrency(amount, pricing.currency); // Make sure label and input agree on amount
+    amount = roundAmount(amount); // Make sure label and input agree on amount
     $(this).text(currencyFormat(amount, pricing.currency));
     ($(this).siblings('input').data('amount', amount)[0] as HTMLInputElement).checked = true;
     updateFeeLabel();
@@ -144,7 +154,7 @@ export function initModule({
     const base = getBaseAmount();
     const isGift = !!$checkout.find('.gift input').val();
     const { currency, min, giftMin, max } = pricing;
-    const minimumRequired = isGift ? giftMin : min;
+    const minimumRequired = getFreq() === 'lifetime' ? pricing.lifetime : isGift ? giftMin : min;
 
     // Validate BASE against MINIMUM
     if (base < minimumRequired) {
@@ -155,9 +165,7 @@ export function initModule({
       return undefined;
     }
 
-    const total = $coverFees.prop('checked')
-      ? roundToCurrency(base + calculateFee(base), pricing.currency)
-      : base;
+    const total = $coverFees.prop('checked') ? roundAmount(base + calculateFee(base)) : base;
 
     // Validate TOTAL against MAXIMUM
     if (total > max) {
@@ -218,11 +226,20 @@ const payPalStyle = {
   height: 55,
 };
 
+function payPalError(): void {
+  const error = document.getElementById('error');
+  if (!error) return;
+  error.setAttribute('role', 'alert');
+  error.textContent = i18n.patron.paymentError;
+  error.scrollIntoView({ block: 'center' });
+}
+
 function payPalOrderStart($checkout: Cash, pricing: Pricing, getAmount: () => number | undefined) {
   if (!window.paypalOrder) return;
   (window.paypalOrder as any)
     .Buttons({
       style: payPalStyle,
+      onError: payPalError,
       createOrder: (_data: any, _actions: any) => {
         const amount = getAmount();
         if (!amount) return;
@@ -239,9 +256,10 @@ function payPalOrderStart($checkout: Cash, pricing: Pricing, getAmount: () => nu
           });
       },
       onApprove: (data: any, _actions: any) => {
-        xhr
+        return xhr
           .json('/patron/paypal/capture/' + data.orderID, { method: 'POST' })
-          .then(() => location.assign('/patron/thanks'));
+          .then(() => location.assign('/patron/thanks'))
+          .catch(payPalError);
       },
     })
     .render('.paypal--order');
@@ -252,6 +270,7 @@ function payPalSubscriptionStart($checkout: Cash, pricing: Pricing, getAmount: (
   (window.paypalSubscription as any)
     .Buttons({
       style: payPalStyle,
+      onError: payPalError,
       createSubscription: (_data: any, _actions: any) => {
         const amount = getAmount();
         if (!amount) return;
@@ -268,9 +287,13 @@ function payPalSubscriptionStart($checkout: Cash, pricing: Pricing, getAmount: (
           });
       },
       onApprove: (data: any, _actions: any) => {
-        xhr
-          .json(`/patron/paypal/capture/${data.orderID}?sub=${data.subscriptionID}`, { method: 'POST' })
-          .then(() => location.assign('/patron/thanks'));
+        return xhr
+          .json<{ paid: boolean }>(
+            `/patron/paypal/capture/subscription?sub=${encodeURIComponent(data.subscriptionID)}`,
+            { method: 'POST' },
+          )
+          .then(result => location.assign(`/patron/thanks${result.paid ? '' : '?pending=1'}`))
+          .catch(payPalError);
       },
     })
     .render('.paypal--subscription');
@@ -282,6 +305,7 @@ function stripeStart(
   pricing: Pricing,
   getAmount: () => number | undefined,
 ) {
+  if (!publicKey || !$checkout.find('.service .stripe').length) return;
   const stripe = window.Stripe(publicKey);
   $checkout.find('.service .stripe').on('click', function () {
     const amount = getAmount();

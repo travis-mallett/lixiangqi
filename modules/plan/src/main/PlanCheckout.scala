@@ -24,6 +24,10 @@ private object PlanCheckout:
   def amountField(pricing: PlanPricing) = bigDecimal(10, 3)
     .verifying(Constraints.max(pricing.max.amount))
     .verifying(Constraints.min(pricing.min.amount))
+    .verifying(
+      "Invalid currency precision",
+      _.bigDecimal.stripTrailingZeros.scale <= pricing.fractionDigits
+    )
 
 final class PlanCheckoutForm(
     lightUserApi: lila.core.user.LightUserApi,
@@ -51,7 +55,7 @@ final class PlanCheckoutForm(
     mapping(
       "email" -> optional(email),
       "amount" -> PlanCheckout.amountField(pricing),
-      "freq" -> nonEmptyText,
+      "freq" -> nonEmptyText.verifying("Invalid donation frequency", Set("monthly", "onetime", "lifetime")),
       "gift" -> optional(lila.common.Form.username.historicalField)
         .verifying("That player doesn't want to be gifted Patron", _.forall(u => !blockingIsBlockedBy(u)))
         .verifying("Unknown receiver", n => n.forall { blockingFetchUser(_).isDefined })

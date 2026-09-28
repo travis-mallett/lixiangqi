@@ -29,13 +29,22 @@ final private[setup] class Processor(
       config: HookConfig,
       sri: lila.core.socket.Sri,
       sid: Option[String],
-      blocking: lila.core.pool.Blocking
+      blocking: lila.core.pool.Blocking,
+      trafficAttempt: Option[String] = None
   )(using me: Option[UserWithPerfs]): Fu[Processor.HookResult] =
     import Processor.HookResult.*
     config.hook(sri, me, sid, blocking) match
       case Left(hook) =>
         fuccess:
-          Bus.pub(SetupBus.AddHook(hook))
+          Bus.pub(
+            SetupBus.AddHook(
+              hook.copy(traffic =
+                trafficAttempt
+                  .filter(lila.core.traffic.TrafficEvent.validAttempt)
+                  .map(lila.core.traffic.TrafficSearch(_, nowInstant))
+              )
+            )
+          )
           Created(hook.id)
       case Right(Some(seek)) => me.fold(fuccess(Refused))(u => createSeekIfAllowed(seek, u.id))
       case _ => fuccess(Refused)

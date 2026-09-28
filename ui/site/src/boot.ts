@@ -7,6 +7,7 @@ import { prefersLightThemeQuery } from 'lib/device';
 import { licon } from 'lib/licon';
 import { pubsub } from 'lib/pubsub';
 import { eventuallySetupDefaultConnection } from 'lib/socket';
+import { initTraffic } from 'lib/traffic';
 import { initMiniBoards, initMiniGames, updateMiniGame, finishMiniGame, toggleBoxInit } from 'lib/view';
 import { watchers } from 'lib/view/watchers';
 import { text as xhrText } from 'lib/xhr';
@@ -21,6 +22,7 @@ import serviceWorker from './serviceWorker';
 import { addExceptionListeners } from './unhandledError';
 
 export function boot() {
+  initTraffic();
   addExceptionListeners();
   const setBlind = location.hash === '#blind';
   const showDebug = location.hash.startsWith('#debug');

@@ -203,7 +203,11 @@ final class LobbySocket(
               from = PoolFrom.Socket,
               rank = user.rank,
               lame = user.lame,
-              blocking = user.blocking.map(_ ++ blocking)
+              blocking = user.blocking.map(_ ++ blocking),
+              traffic = d
+                .str("attempt")
+                .filter(lila.core.traffic.TrafficEvent.validAttempt)
+                .map(lila.core.traffic.TrafficSearch(_, nowInstant))
             )
           )
     // leaving a pool

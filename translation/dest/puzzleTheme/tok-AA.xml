@@ -44,12 +44,9 @@
   <string name="mateIn3Description">o moli e lawa mije ante lon tenpo tawa tu wan.</string>
   <string name="mateIn4">moli lon tenpo tawa 4</string>
   <string name="mateIn4Description">o moli e lawa mije ante lon tenpo tawa tu tu.</string>
-  <string name="mateIn5">moli lon tenpo tawa mute</string>
   <string name="mateIn5Description">o lukin e linja tawa ni: lawa mije ante li moli lon tenpo tawa mute.</string>
-  <string name="middlegame">tenpo insa musi</string>
   <string name="oneMove">tawa wan taso</string>
   <string name="oneMoveDescription">musi lili ni la, o pali e tawa wan taso.</string>
-  <string name="opening">open musi</string>
   <string name="pawnEndgame">pini pi jan utala</string>
   <string name="pawnEndgameDescription">pini musi li kama. jan utala taso li lon.</string>
   <string name="pin">ken tawa ala</string>

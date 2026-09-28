@@ -1,22 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <resources>
-  <string name="advantageLost">Advantage Lost</string>
+  <string name="evaluatingMove">Evaluating Move</string>
+  <string name="restart">Restart</string>
+  <string name="analyze">Analyze</string>
+  <string name="hint">Hint</string>
+  <string name="mateExceedsAllowance">Still winning, but too many moves</string>
+  <string name="mateAllowanceDetail">Still winning, but too many moves: M%1$s → M%2$s</string>
+  <string name="lineDrawn">This line draws</string>
+  <string name="lineLost">This line loses</string>
+  <string name="restartPuzzle">Restart puzzle</string>
+  <string name="tryAnotherMove">Try another move</string>
+  <string name="advantageLost">Too much advantage lost</string>
   <string name="tryAgain">Try again</string>
   <string name="thisIsTheBestMove">This is the best move</string>
-  <string name="notMostEfficientMove">Not the most efficient move</string>
-  <string name="continuationAllowed">But continuation allowed.</string>
+  <string name="continuationAllowed">Not the most efficient move, but continuation allowed.</string>
   <plurals name="solvedInMoves">
     <item quantity="one">Puzzle solved in %s move.</item>
     <item quantity="other">Puzzle solved in %s moves.</item>
   </plurals>
-  <plurals name="efficientSolutionMoves">
-    <item quantity="one">Most efficient solution: %s move.</item>
-    <item quantity="other">Most efficient solution: %s moves.</item>
+  <plurals name="referenceSolutionMoves">
+    <item quantity="one">Reference solution: %s move.</item>
+    <item quantity="other">Reference solution: %s moves.</item>
   </plurals>
-  <string name="forcedMateLost">Lost the forced mate</string>
-  <string name="moveAllowanceExceeded">Move allowance exceeded</string>
-  <string name="alternativeEvaluationUnavailable">This move could not be checked. Please try again or view the solution. Your result has not changed.</string>
+  <string name="forcedMateLost">Forced mate lost</string>
+  <string name="moveAllowanceExceeded">Move allowance reached</string>
+  <string name="alternativeEvaluationUnavailable">Could not verify this move. Retry or choose another move. No result recorded.</string>
   <string name="puzzles">Puzzles</string>
   <string name="puzzleThemes">Puzzle Themes</string>
   <string name="recommended">Recommended</string>

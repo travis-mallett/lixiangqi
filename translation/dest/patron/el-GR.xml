@@ -18,7 +18,6 @@
   <string name="youHaveLifetime">Φανταστικά! Έχετε λογαριασμό Lifetime Patron.</string>
   <string name="patronUntil">Έχετε έναν λογαριασμό Υποστηρικτή μέχρι τις %s.</string>
   <string name="ifNotRenewedThenAccountWillRevert">Σε περίπτωση που επιλέξετε να μη δωρίσετε εκ νέου στο lichess, ο λογαριασμός σας θα γίνει «κανονικός».</string>
-  <string name="weAreNonProfit">Είμαστε μια μη κερδοσκοπική οργάνωση — πιστεύουμε πως όλοι πρέπει να έχουν πρόσβαση σε μια δωρεάν, παγκόσμιας εμβέλειας σκακιστική πλατφόρμα.</string>
   <string name="weRelyOnSupport">Βασιζόμαστε στη στήριξη από ανθρώπους όπως εσείς για να πραγματοποιήσουμε τον στόχο μας αυτό. Αν σας αρέσει να χρησιμοποιείτε το Lichess, σας παρακαλούμε να σκεφτείτε να μας υποστηρίξετε με μια δωρεά ώστε να γίνετε και επίσημα Υποστηρικτής!</string>
   <string name="lifetime">Για πάντα</string>
   <string name="payLifetimeOnce">Πληρώστε %s μια φορά. Γίνετε Υποστηρικτής του Lichess για πάντα!</string>
@@ -34,20 +33,11 @@
   <string name="weAreSmallTeam">Είμαστε μια μικρή ομάδα, επομένως η υποστήριξή σας κάνει μεγάλη διαφορά!</string>
   <string name="celebratedPatrons">Οι διάσημοι Υποστηρικτές που έκαναν το Lichess πραγματικότητα</string>
   <string name="whereMoneyGoes">Που πηγαίνουν τα χρήματα;</string>
-  <string name="serversAndDeveloper">Καταρχάς, σε ισχυρούς διακομιστές.
-Έπειτα, πληρώνουμε έναν προγραμματιστή πλήρους απασχόλησης: τον %s, ιδρυτή του Lichess.
-</string>
-  <string name="costBreakdown">Δείτε εδώ τα αναλυτικά έξοδα του lichess</string>
   <string name="officialNonProfit">Είναι το Lichess μια επίσημη μη κερδοσκοπική οργάνωση;</string>
-  <string name="actOfCreation">Ναι, δείτε εδώ την ιδρυτική πράξη (στα γαλλικά)</string>
   <string name="changeMonthlySupport">Μπορώ να αλλάξω/ακυρώσω την μηνιαία υποστήριξη μου;</string>
   <string name="changeSupport">Αν οι πληρωμές σας πραγματοποιούνται μέσω PayPal, μπορείτε να ακυρώσετε/τροποποιήσετε το ποσό της στήριξης σας μέσω του PayPal λογαριασμού σας. Εναλλακτικά μπορείτε να %1$s και θα το κάνουμε εμείς για εσάς. Αντίθετα, αν δεν χρησιμοποιείτε PayPal, τότε το Stripe επεξεργάζεται τις πληρωμές σας και μπορείτε να ακυρώσετε την δωρεά σας ή να αλλάξετε το ποσό της στην %2$s.</string>
   <string name="patronPage">σελίδα δωρεών</string>
   <string name="contactSupport">να επικοινωνήσετε με την εξυπηρέτηση του Lichess</string>
-  <string name="otherMethods">Υπάρχουν άλλοι τρόποι δωρεάς;</string>
-  <string name="lichessIsRegisteredWith">Το Lichess είναι συμβεβλημένο με την πλατφόρμα %s.</string>
-  <string name="bankTransfers">Δεχόμαστε, επίσης, τραπεζικές μεταφορές</string>
-  <string name="onlyDonationFromAbove">Σημειώνουμε πως η πραγματοποίηση της δωρεάς πρέπει να γίνει από την παραπάνω φόρμα για την απόκτηση λογαριασμού Υποστηρικτή.</string>
   <string name="patronFeatures">Υπάρχουν χαρακτηριστικά που είναι διαθέσιμα μόνο σε Υποστηρικτές;</string>
   <string name="noPatronFeatures">Όχι. Το Lichess είναι και θα είναι δωρεάν για όλους, για πάντα. Αυτό είναι μία υπόσχεση.
 Όμως, οι Υποστηρικτές μπορούν να καυχώνται για το υπέροχο εικονίδιο στο προφίλ τους.</string>
@@ -84,6 +74,5 @@
   <string name="changeCurrency">Αλλαγή νομίσματος</string>
   <string name="paymentDetails">Στοιχεία πληρωμής</string>
   <string name="updatePaymentMethod">Ενημέρωση μεθόδου πληρωμής</string>
-  <string name="stripeManageSub">Διαχειριστείτε τη συνδρομή σας και κατεβάστε τα τιμολόγια και τις αποδείξεις σας</string>
   <string name="coverFees">Θα δωρίσω επιπλέον %s για την κάλυψη του κόστους επεξεργασίας της συναλλαγής</string>
 </resources>

@@ -2,7 +2,6 @@ import { blurIfPrimaryClick, repeater } from 'lib';
 import { throttle } from 'lib/async';
 import { displayColumns } from 'lib/device';
 import { finished, aborted, userAnalysable, playable } from 'lib/game';
-import { game as gameRoute } from 'lib/game/router';
 import viewStatus from 'lib/game/view/status';
 import { licon, type LiconKey } from 'lib/licon';
 import { addPointerListeners } from 'lib/pointer';
@@ -135,7 +134,7 @@ export function analysisButton(ctrl: RoundController): LooseVNode {
         class: { text: !!forecastCount },
         attrs: {
           title: i18n.site.analysis,
-          href: gameRoute(ctrl.data, ctrl.data.player.color) + '/analysis#' + ctrl.ply,
+          href: util.analysisUrl(ctrl.data, ctrl.ply),
           'data-icon': licon.Microscope,
         },
       },

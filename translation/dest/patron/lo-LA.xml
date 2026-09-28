@@ -17,7 +17,6 @@
   <string name="youHaveLifetime">ທ່ານມີບັນຊີຜູ້ອຸປະຖຳຕະຫຼອດຊີວິດ. ນີ້ມັນສຸດຍອດຫຼາຍ!</string>
   <string name="patronUntil">ທ່ານມີບັນຊີຜູ້ອຸປະຖຳຈົນເຖິງ %s.</string>
   <string name="ifNotRenewedThenAccountWillRevert">ຫາກບໍ່ມີການຕໍ່ອາຍຸ, ບັນຊີຂອງທ່ານຈະກັບໄປເປັນບັນຊີປົກກະຕິ.</string>
-  <string name="weAreNonProfit">ພວກເຮົາເປັນສະມາຄົມທີ່ບໍ່ຫວັງຜົນກຳໄລ ເພາະພວກເຮົາເຊື່ອວ່າທຸກຄົນຄວນເຂົ້າເຖິງແພລັດຟອມໝາກຮຸກລະດັບໂລກໄດ້ໂດຍບໍ່ເສຍຄ່າ.</string>
   <string name="weRelyOnSupport">ພວກເຮົາອາໄສການສະໜັບສະໜູນຈາກຄົນຄືທ່ານເພື່ອເຮັດໃຫ້ສິ່ງນີ້ເປັນໄປໄດ້. ຖ້າທ່ານມັກໃຊ້ Lichess, ກະລຸນາພິຈາລະນາສະໜັບສະໜູນພວກເຮົາໂດຍການບໍລິຈາກ ແລະ ເຂົ້າຮ່ວມເປັນຜູ້ອຸປະຖຳ!</string>
   <string name="lifetime">ຕະຫຼອດຊີວິດ</string>
   <string name="payLifetimeOnce">ຈ່າຍ %s ພຽງຄັ້ງດຽວ. ເປັນຜູ້ອຸປະຖຳ Lichess ຕະຫຼອດໄປ!</string>
@@ -33,16 +32,9 @@
   <string name="weAreSmallTeam">ພວກເຮົາເປັນທີມງານຂະໜາດນ້ອຍ, ສະນັ້ນການສະໜັບສະໜູນຂອງທ່ານຈຶ່ງມີຄວາມໝາຍຫຼາຍ!</string>
   <string name="celebratedPatrons">ເຫຼົ່າຜູ້ອຸປະຖຳທີ່ເຮັດໃຫ້ Lichess ເປັນໄປໄດ້</string>
   <string name="whereMoneyGoes">ເງິນເຫຼົ່ານີ້ເອົາໄປໃສ?</string>
-  <string name="serversAndDeveloper">ກ່ອນອື່ນໝົດແມ່ນ ເຊີບເວີທີ່ມີປະສິດທິພາບສູງ. ຈາກນັ້ນພວກເຮົາກໍຈ່າຍຄ່າຈ້າງໃຫ້ນັກພັດທະນາແບບເຕັມເວລາ: %s, ຜູ້ກໍ່ຕັ້ງ Lichess.</string>
-  <string name="costBreakdown">ເບິ່ງລາຍລະອຽດຄ່າໃຊ້ຈ່າຍ</string>
   <string name="officialNonProfit">Lichess ເປັນອົງການບໍ່ຫວັງຜົນກຳໄລຢ່າງເປັນທາງການຫຼືບໍ່?</string>
-  <string name="actOfCreation">ແມ່ນແລ້ວ, ນີ້ແມ່ນເອກະສານການກໍ່ຕັ້ງ (ເປັນພາສາຝຣັ່ງ)</string>
   <string name="changeMonthlySupport">ຂ້ອຍສາມາດປ່ຽນ/ຍົກເລີກການສະໜັບສະໜູນລາຍເດືອນໄດ້ຫຼືບໍ່?</string>
   <string name="contactSupport">ຕິດຕໍ່ຝ່າຍຊ່ວຍເຫຼືອຂອງ Lichess</string>
-  <string name="otherMethods">ວິທີການບໍລິຈາກອື່ນໆ?</string>
-  <string name="lichessIsRegisteredWith">Lichess ໄດ້ລົງທະບຽນກັບ %s.</string>
-  <string name="bankTransfers">ພວກເຮົາຍັງຮັບການໂອນເງິນຜ່ານທະນາຄານນຳອີກ</string>
-  <string name="onlyDonationFromAbove">ກະລຸນາຮັບຊາບວ່າ ການບໍລິຈາກຜ່ານແບບຟອມຂ້າງເທິງນີ້ເທົ່ານັ້ນທີ່ຈະໄດ້ຮັບສະຖານະຜູ້ອຸປະຖຳ.</string>
   <string name="patronFeatures">ມີຟີເຈີໃດແດ່ທີ່ສະຫງວນໄວ້ໃຫ້ສະເພາະຜູ້ອຸປະຖຳ?</string>
   <string name="noPatronFeatures">ບໍ່ມີ, ເພາະ Lichess ໃຫ້ໃຊ້ຟຣີທັງໝົດ, ຕະຫຼອດໄປ ແລະ ສຳລັບທຸກຄົນ. ນັ້ນແມ່ນຄຳໝັ້ນສັນຍາ. ແນວໃດກໍຕາມ, ຜູ້ອຸປະຖຳຈະໄດ້ຮັບປີກຜູ້ອຸປະຖຳທີ່ສວຍງາມສະແດງຢູ່ໃນໂປຣໄຟລ໌ຂອງທ່ານ.</string>
   <string name="featuresComparison">ເບິ່ງການປຽບທຽບຟີເຈີແບບລະອຽດ</string>
@@ -77,6 +69,5 @@
   <string name="changeCurrency">ປ່ຽນສະກຸນເງິນ</string>
   <string name="paymentDetails">ລາຍລະອຽດການຊຳລະເງິນ</string>
   <string name="updatePaymentMethod">ອັບເດດວິທີການຊຳລະເງິນ</string>
-  <string name="stripeManageSub">ຈັດການການສະໝັກສະມາຊິກຂອງທ່ານ ແລະ ດາວໂຫຼດໃບແຈ້ງໜີ້ພ້ອມທັງໃບຮັບເງິນຂອງທ່ານ</string>
   <string name="coverFees">ຂ້ອຍຈະເພີ່ມເງິນອີກ %s ເພື່ອຊ່ວຍຊຳລະຄ່າທຳນຽມໃນການເຮັດທຸລະກຳຄັ້ງນີ້</string>
 </resources>

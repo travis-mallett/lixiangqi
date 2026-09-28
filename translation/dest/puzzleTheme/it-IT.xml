@@ -99,14 +99,9 @@
   <string name="mateIn3Description">Dai scacco matto in tre mosse.</string>
   <string name="mateIn4">Matto in 4</string>
   <string name="mateIn4Description">Dai scacco matto in quattro mosse.</string>
-  <string name="mateIn5">Matto in 5 o più mosse</string>
   <string name="mateIn5Description">Trova una lunga sequenza di mosse per dare matto.</string>
-  <string name="middlegame">Mediogioco</string>
-  <string name="middlegameDescription">Una tattica durante la seconda fase della partita.</string>
   <string name="oneMove">Problema da una mossa</string>
   <string name="oneMoveDescription">Un problema lungo una sola mossa.</string>
-  <string name="opening">Apertura</string>
-  <string name="openingDescription">Una tattica durante la prima fase della partita.</string>
   <string name="operaMate">Matto dell\'opera</string>
   <string name="operaMateDescription">Dai scacco al re con la torre e usa un alfiere per difendere quella torre.</string>
   <string name="pawnEndgame">Finale di pedoni</string>

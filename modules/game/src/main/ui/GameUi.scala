@@ -85,7 +85,7 @@ final class GameUi(helpers: Helpers):
         dataReplayMoves := replay.option(game.xiangqi.moves.map(_.value).mkString(" ")),
         dataRecordedClock := recordedClock.map(timeline => Json.stringify(timeline.json)),
         dataReplayChecks := replay.option(replayChecks.mkString(",")),
-        dataReplayMate := replay.option(game.xiangqi.state.check && game.xiangqi.state.immediateEnd.ended),
+        dataReplayMate := replay.option(game.xiangqi.state.mate),
         dataReplayInitialFen := replay.option(game.xiangqi.initialFen),
         dataReplayAnimation := replay.option(animationMillis).flatten,
         renderState(pov)

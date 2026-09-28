@@ -318,9 +318,13 @@ html.wudang {
   }
 
   .ceval.computing .bar span,
-  .xiangqi-engine.computing .bar span {
+  .engine-progress.active span {
     background-image: none;
     animation: none;
+  }
+
+  .engine-progress span {
+    background-color: var(--wudang-jade);
   }
 
   .pv_box,

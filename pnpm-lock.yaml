@@ -6,7 +6,7 @@ settings:
 
 patchedDependencies:
   '@toast-ui/editor@3.2.2': 0a324facc984b3c00201cd2ac957c0e51db9ee66ce33c37306031ca67d5aa7ba
-  chessgroundx@10.7.5: c0b0779372dc928cdcc9e2c55225de5f8059f504f414b350fc94db8495932140
+  chessgroundx@10.7.5: 3cc51230c791b482065b649d5ffd96458ad2683e5f2c10b54c6fcaa4324dc097
 
 importers:
 
@@ -32,7 +32,7 @@ importers:
         version: https://codeload.github.com/lichess-org/ab-stub/tar.gz/e391b56a82b7c71e7663082a797f6fc21b18776d
       chessgroundx:
         specifier: 10.7.5
-        version: 10.7.5(patch_hash=c0b0779372dc928cdcc9e2c55225de5f8059f504f414b350fc94db8495932140)
+        version: 10.7.5(patch_hash=3cc51230c791b482065b649d5ffd96458ad2683e5f2c10b54c6fcaa4324dc097)
       chessops:
         specifier: ^0.15.1
         version: 0.15.1
@@ -178,7 +178,7 @@ importers:
         version: 1.9.4
       chessgroundx:
         specifier: 10.7.5
-        version: 10.7.5(patch_hash=c0b0779372dc928cdcc9e2c55225de5f8059f504f414b350fc94db8495932140)
+        version: 10.7.5(patch_hash=3cc51230c791b482065b649d5ffd96458ad2683e5f2c10b54c6fcaa4324dc097)
       cropperjs:
         specifier: 1.6.2
         version: 1.6.2
@@ -285,7 +285,7 @@ importers:
     dependencies:
       chessgroundx:
         specifier: 10.7.5
-        version: 10.7.5(patch_hash=c0b0779372dc928cdcc9e2c55225de5f8059f504f414b350fc94db8495932140)
+        version: 10.7.5(patch_hash=3cc51230c791b482065b649d5ffd96458ad2683e5f2c10b54c6fcaa4324dc097)
       lib:
         specifier: workspace:*
         version: link:../lib
@@ -351,7 +351,7 @@ importers:
         version: 3.1.9
       chessgroundx:
         specifier: 10.7.5
-        version: 10.7.5(patch_hash=c0b0779372dc928cdcc9e2c55225de5f8059f504f414b350fc94db8495932140)
+        version: 10.7.5(patch_hash=3cc51230c791b482065b649d5ffd96458ad2683e5f2c10b54c6fcaa4324dc097)
       debounce-promise:
         specifier: ^3.1.2
         version: 3.1.2
@@ -361,6 +361,9 @@ importers:
       tablesort:
         specifier: 5.7.0
         version: 5.7.0
+      web-vitals:
+        specifier: 6.2.2
+        version: 6.2.2
 
   ui/lobby:
     dependencies:
@@ -433,15 +436,9 @@ importers:
       chart.js:
         specifier: 4.5.1
         version: 4.5.1
-      keyboard-move:
-        specifier: workspace:*
-        version: link:../keyboardMove
       lib:
         specifier: workspace:*
         version: link:../lib
-      voice:
-        specifier: workspace:*
-        version: link:../voice
       xiangqi:
         specifier: workspace:*
         version: link:../xiangqi
@@ -465,7 +462,7 @@ importers:
     dependencies:
       chessgroundx:
         specifier: 10.7.5
-        version: 10.7.5(patch_hash=c0b0779372dc928cdcc9e2c55225de5f8059f504f414b350fc94db8495932140)
+        version: 10.7.5(patch_hash=3cc51230c791b482065b649d5ffd96458ad2683e5f2c10b54c6fcaa4324dc097)
       keyboard-move:
         specifier: workspace:*
         version: link:../keyboardMove
@@ -532,6 +529,15 @@ importers:
         specifier: workspace:*
         version: link:../lib
 
+  ui/traffic:
+    dependencies:
+      chart.js:
+        specifier: 4.5.1
+        version: 4.5.1
+      lib:
+        specifier: workspace:*
+        version: link:../lib
+
   ui/tutor:
     dependencies:
       lib:
@@ -558,9 +564,12 @@ importers:
 
   ui/xiangqi:
     dependencies:
+      chart:
+        specifier: workspace:*
+        version: link:../chart
       chessgroundx:
         specifier: 10.7.5
-        version: 10.7.5(patch_hash=c0b0779372dc928cdcc9e2c55225de5f8059f504f414b350fc94db8495932140)
+        version: 10.7.5(patch_hash=3cc51230c791b482065b649d5ffd96458ad2683e5f2c10b54c6fcaa4324dc097)
       lib:
         specifier: workspace:*
         version: link:../lib
@@ -2178,6 +2187,9 @@ packages:
     resolution: {integrity: sha512-o8qghlI8NZHU1lLPrpi2+Uq7abh4GGPpYANlalzWxyWteJOCsr/P+oPBA49TOLu5FTZO4d3F9MnWJfiMo4BkmA==}
     engines: {node: '>=18'}
 
+  web-vitals@6.2.2:
+    resolution: {integrity: sha512-oto5x6dLEgrRqfcWed+pZEUb2q6ikbFmqF54CRDhI/QGbn+qxC49b4C4OkbH+kb9C3a8shpFD3SgR9kRcs80ZQ==}
+
   webidl-conversions@7.0.0:
     resolution: {integrity: sha512-VwddBukDzu71offAQR975unBIGqfKZpM+8ZX6ySk8nYhVoo5CYaZyzt3YBvYtRtO+aoGlqxPg/B87NGVZ/fu6g==}
     engines: {node: '>=12'}
@@ -2761,7 +2773,7 @@ snapshots:
       undici: 7.27.2
       whatwg-mimetype: 4.0.0
 
-  chessgroundx@10.7.5(patch_hash=c0b0779372dc928cdcc9e2c55225de5f8059f504f414b350fc94db8495932140): {}
+  chessgroundx@10.7.5(patch_hash=3cc51230c791b482065b649d5ffd96458ad2683e5f2c10b54c6fcaa4324dc097): {}
 
   chessops@0.15.1:
     dependencies:
@@ -3736,6 +3748,8 @@ snapshots:
   w3c-xmlserializer@5.0.0:
     dependencies:
       xml-name-validator: 5.0.0
+
+  web-vitals@6.2.2: {}
 
   webidl-conversions@7.0.0: {}
 

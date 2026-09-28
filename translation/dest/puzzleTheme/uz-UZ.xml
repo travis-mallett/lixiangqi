@@ -99,14 +99,9 @@
   <string name="mateIn3Description">Uchta yurishda mot qiling.</string>
   <string name="mateIn4">4 yurishda mot</string>
   <string name="mateIn4Description">Toʻrtta yurishda mot qiling.</string>
-  <string name="mateIn5">5 yurishda mot</string>
   <string name="mateIn5Description">Koʻp yurishli mot ketma‑ketligini yeching.</string>
-  <string name="middlegame">Mittelshpil</string>
-  <string name="middlegameDescription">Oʻyinning ikkinchi bosqichidagi taktik usullar.</string>
   <string name="oneMove">Bir yurishli masala</string>
   <string name="oneMoveDescription">Faqat bir yurishdan iborat masala.</string>
-  <string name="opening">Debyut</string>
-  <string name="openingDescription">Oʻyinning birinchi bosqichidagi taktik usullar.</string>
   <string name="operaMate">Opera moti</string>
   <string name="operaMateDescription">Rux bilan shohga mot berish; bunda fil ruxni himoya qilib turadi hamda shohning qochish yoʻllarini yopadi.</string>
   <string name="pawnEndgame">Piyodali endshpil</string>

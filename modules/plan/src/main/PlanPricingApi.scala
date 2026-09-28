@@ -19,6 +19,7 @@ case class PlanPricing(
 
   def currency = min.currency
   def currencyCode = currency.getCurrencyCode
+  def fractionDigits = CurrencyApi.donationFractionDigits(currency)
 
   def payPalSupportsCurrency = CurrencyApi.payPalCurrencies.contains(currency)
   def stripeSupportsCurrency = CurrencyApi.stripeCurrencies.contains(currency)
@@ -54,6 +55,7 @@ final class PlanPricingApi(currencyApi: CurrencyApi, cacheApi: CacheApi)(using E
 
   def pricingFor(currency: Currency): Fu[Option[PlanPricing]] =
     if currency == USD then fuccess(usdPricing.some)
+    else if !currencyApi.hasExchangeRates then fuccess(none)
     else if currency == EUR then fuccess(eurPricing.some)
     else
       for
@@ -93,11 +95,10 @@ final class PlanPricingApi(currencyApi: CurrencyApi, cacheApi: CacheApi)(using E
 
   private def convertAndRound(money: Money, to: Currency, nice: Boolean = true): Fu[Option[Money]] =
     currencyApi.convert(money, to).map2 { m =>
-      val amount =
+      val amount = (
         if nice then PlanPricingApi.nicelyRound(m.amount)
-        else
-          val scale = if CurrencyApi.zeroDecimalCurrencies contains to then 0 else 2
-          m.amount.setScale(scale, BigDecimal.RoundingMode.HALF_UP)
+        else m.amount
+      ).setScale(CurrencyApi.donationFractionDigits(to), BigDecimal.RoundingMode.HALF_UP)
 
       m.copy(amount = amount)
     }
@@ -117,6 +118,7 @@ object PlanPricingApi:
   given pricingWrites: OWrites[PlanPricing] = OWrites: p =>
     Json.obj(
       "currency" -> p.currencyCode,
+      "fractionDigits" -> p.fractionDigits,
       "min" -> p.min.amount,
       "max" -> p.max.amount,
       "lifetime" -> p.lifetime.amount,

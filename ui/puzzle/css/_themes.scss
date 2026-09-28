@@ -1,49 +1,147 @@
 .puzzle-themes {
-  h2 {
+  $title-size: 1.3;
+  $title-line-height: 1.2;
+  $learn-size: 0.9;
+  $category-highlight: color-mix(in oklab, $c-primary 10%, $c-bg);
+
+  --theme-card-height: 9rem;
+
+  > h2 {
     @extend %box-padding-horiz, %roboto;
+
+    font-size: 2em;
 
     &:not(:first-child) {
       margin-block: 1em 0.5em;
     }
   }
 
+  &__category {
+    @extend %box-padding-horiz, %roboto;
+
+    font-size: 1.5em;
+    margin-block: 1.5em 0.5em;
+    color: $c-font-dim;
+  }
+
   &__list {
     display: grid;
-    column-gap: 0.5em;
+    gap: 0.75em;
     margin-inline: calc($box-padding / 2);
-    grid-template-columns: repeat(auto-fill, minmax(50ch, 1fr));
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
 
-    @media (max-width: at-most($xx-small)) {
-      grid-template-columns: repeat(auto-fill, minmax(40ch, 1fr));
+  &__card {
+    position: relative;
+    min-width: 0;
+    border-radius: $box-radius-size * 2;
+    background: color-mix(in oklab, $c-bg-low 45%, $c-bg);
+
+    &--learning,
+    &:has(.puzzle-theme-lesson[open]) {
+      background: $category-highlight;
+    }
+  }
+
+  &__learn {
+    @include transition(background-color color);
+
+    position: absolute;
+    inset-block-start: calc(1.5em / $learn-size);
+    inset-inline-end: 0.5em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55em;
+
+    // Match two lines of the category title, despite the smaller button label.
+    min-height: calc(2 * $title-size * $title-line-height / $learn-size * 1em);
+    min-width: 7em;
+    max-width: 8em;
+    padding: 0.5em 1em;
+    color: $c-font-dim;
+    background: $c-bg-low;
+    border: 0;
+    border-radius: 1.2em;
+    font-size: $learn-size * 1em;
+    font-weight: 500;
+    line-height: 1.2;
+    text-align: center;
+    cursor: pointer;
+    list-style: none;
+
+    &::before {
+      font-size: 1.6em;
+      margin: 0;
     }
 
-    &.puzzle-recommended {
-      display: block;
+    &::-webkit-details-marker {
+      display: none;
+    }
+
+    &:disabled {
+      cursor: default;
+    }
+
+    :where(.puzzle-themes__card:hover) & {
+      color: $c-link;
+      background: color-mix(in oklab, $c-primary 20%, $c-bg);
+    }
+
+    &:hover,
+    &:focus-visible {
+      color: $c-over;
+      background: $c-primary;
+    }
+
+    &:focus-visible {
+      outline: 2px solid $c-primary;
+      outline-offset: 2px;
+    }
+  }
+
+  .puzzle-recommended {
+    .puzzle-themes__link {
+      background: color-mix(in oklab, $c-good 15%, $c-bg);
+      border: 1px solid color-mix(in oklab, $c-good 30%, $c-bg);
+
+      &:hover,
+      &:has(~ .puzzle-theme-lesson[open]) {
+        background: color-mix(in oklab, $c-good 25%, $c-bg);
+      }
     }
   }
 
   &__link {
     @include transition(background-color color);
-    @extend %box-radius;
 
     color: $c-font;
     display: flex;
     align-items: center;
-    padding: 1.5em 1em 1.5em 0;
+    min-height: var(--theme-card-height);
+    padding-inline-end: 8em;
+    border-radius: inherit;
 
     img {
       @include transition(opacity filter);
 
-      flex: 0 0 7.5em;
-      height: 4.5em;
-      opacity: 0.8;
-      align-self: flex-start;
+      position: relative;
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+
+      &:not(.puzzle-themes__illustration) {
+        opacity: 0.8;
+      }
     }
 
-    &:hover {
-      background: color-mix(in oklab, $c-primary 10%, $c-bg);
+    &:hover,
+    &:has(~ .puzzle-theme-lesson[open]) {
+      background: $category-highlight;
 
-      img {
+      img:not(.puzzle-themes__illustration) {
         opacity: 1;
         filter: brightness(1.4);
 
@@ -53,24 +151,30 @@
       }
     }
 
-    @media (max-width: at-most($xx-small)) {
-      &::before {
-        display: none;
-      }
-
-      padding-inline-start: 1em;
+    // The expanded card owns the shared surface, including the header.
+    &:has(~ .puzzle-theme-lesson[open]),
+    .puzzle-themes__card--learning > & {
+      background: none;
     }
 
-    > span {
-      flex: 1 1 100%;
+    > span:not(.puzzle-themes__icon) {
+      flex: 1;
+      min-width: 0;
       margin: 0;
+      padding-block: 0.75em;
+      overflow-wrap: anywhere;
+
+      > span {
+        font-size: 0.9em;
+        line-height: 1.4;
+      }
     }
 
-    h3 {
+    h4 {
       font-weight: normal;
-      font-size: 1.7em;
+      font-size: $title-size * 1em;
       display: block;
-      line-height: 1em;
+      line-height: $title-line-height;
       margin-bottom: 0.2em;
 
       em {
@@ -82,31 +186,23 @@
         letter-spacing: -1px;
       }
     }
+  }
 
-    .puzzle-recommended & {
-      @extend %box-bordered;
+  &__icon {
+    position: relative;
+    flex: 0 0 calc(var(--theme-card-height) * 1.5);
+    height: var(--theme-card-height);
+    overflow: clip;
+    border-start-start-radius: inherit;
+    border-end-start-radius: inherit;
 
-      font-size: 1.2em;
-      background: color-mix(in oklab, $c-secondary 20%, $c-bg);
-      border-color: color-mix(in oklab, $c-secondary 35%, $c-bg);
-      color: $c-good;
-      margin: 2em 0;
-
-      &::before {
-        color: $c-good;
-      }
-
-      > span {
-        color: $c-font;
-      }
-
-      &:hover {
-        background: color-mix(in oklab, $c-secondary 25%, $c-bg);
-      }
-
-      @media (max-width: at-most($small)) {
-        margin: 2em $box-padding 2em 0;
-      }
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0 -15%;
+      background: color-mix(in oklab, $c-font-dim 24%, transparent);
+      mask: url('../images/puzzle-themes/brush-ring.webp') center / contain no-repeat;
+      pointer-events: none;
     }
   }
 
@@ -114,9 +210,106 @@
     unicode-bidi: plaintext;
   }
 
+  .puzzleTheme-matingMethodsByPieceType {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-auto-rows: 1fr;
+    align-items: stretch;
+
+    .puzzle-themes__card {
+      display: flex;
+    }
+
+    .puzzle-themes__link {
+      width: 100%;
+      flex-direction: column;
+      min-height: 0;
+      padding: 0.5em;
+      text-align: center;
+    }
+
+    .puzzle-themes__icon {
+      flex: 0 0 auto;
+      width: 100%;
+      max-width: 6rem;
+      height: 5rem;
+      border-radius: inherit;
+    }
+
+    .puzzle-themes__link h4 {
+      font-size: 1em;
+      margin-bottom: 0;
+    }
+
+    .puzzle-themes__count {
+      display: block;
+      margin-inline-start: 0;
+      margin-top: 0.25em;
+    }
+  }
+
+  @media (min-width: $small) {
+    .puzzleTheme-matingMethodsByPieceType {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: $large) {
+    .puzzleTheme-matingMethodsByPieceType {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 350px) {
+    .puzzleTheme-matingMethodsByPieceType .puzzle-themes__link h4 {
+      font-size: 0.85em;
+    }
+  }
+
   &__db {
     @extend %box-padding;
 
     text-align: center;
+  }
+
+  @media (max-width: at-most($x-small)) {
+    &__icon {
+      flex-basis: var(--theme-card-height);
+    }
+
+    &__link h4 {
+      font-size: 1.1em;
+    }
+  }
+
+  @media (max-width: at-most($xx-small)) {
+    &__learn {
+      flex-direction: column;
+      min-width: 44px;
+      max-width: 5em;
+      min-height: 44px;
+      padding: 0.5em 0.25em;
+      gap: 0.25em;
+    }
+
+    &__link {
+      padding-inline-end: 5em;
+
+      > span:not(.puzzle-themes__icon) {
+        padding-block: 0.25em;
+      }
+    }
+  }
+
+  @media (max-width: at-most($xxx-small)) {
+    &__link {
+      h4 {
+        font-size: 1em;
+      }
+
+      > span:not(.puzzle-themes__icon) > span {
+        display: block;
+        line-height: 1.2;
+      }
+    }
   }
 }

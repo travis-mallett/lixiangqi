@@ -35,10 +35,9 @@ case class Patron(
       expiresAt = none
     )
 
-  def removePayPalCheckout =
+  def withoutPayPalRenewal =
     copy(
-      payPalCheckout = none,
-      expiresAt = none
+      payPalCheckout = payPalCheckout.map(_.copy(subscriptionId = none))
     )
 
   def removePayPal =
@@ -54,7 +53,7 @@ object Patron:
   case class Stripe(customerId: StripeCustomerId)
 
   case class PayPalCheckout(
-      orderId: PayPalOrderId,
+      orderId: Option[PayPalOrderId],
       payerId: PayPalPayerId,
       subscriptionId: Option[PayPalSubscriptionId]
   ):

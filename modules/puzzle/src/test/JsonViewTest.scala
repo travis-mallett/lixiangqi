@@ -11,6 +11,15 @@ class JsonViewTest extends munit.FunSuite:
     id = PuzzleId("12345"),
     gameId = GameId("12345678"),
     gameSource = none,
+    sourceSnapshot = Puzzle.SourceSnapshot(
+      Xiangqi.startFen,
+      Vector(
+        Xiangqi.Uci.unsafe("a4a5"),
+        Xiangqi.Uci.unsafe("a7a6"),
+        Xiangqi.Uci.unsafe("b1c3")
+      ),
+      Vector.empty
+    ),
     fen = Xiangqi.startFen,
     line = NonEmptyList.of(
       Xiangqi.Uci.unsafe("a4a5"),
@@ -20,6 +29,7 @@ class JsonViewTest extends munit.FunSuite:
     glicko = Glicko.default,
     plays = 7,
     vote = 1f,
+    playback = Puzzle.Playback("mate", Vector(Vector("a7a6", "b1c3")), None),
     themes = Set.empty
   )
 
@@ -46,3 +56,10 @@ class JsonViewTest extends munit.FunSuite:
     assertEquals((json \ "game" \ "id").as[String], puzzle.gameId.value)
     assertEquals((json \ "puzzle" \ "initialPly").as[Int], puzzle.initialPly.value)
     assertEquals((json \ "puzzle" \ "solution").as[Vector[String]], Vector("a7a6", "b1c3"))
+
+  test("retirement does not remove a puzzle from direct JSON access"):
+    val retired = puzzle.copy(retired = true)
+    val json = JsonView.puzzleJsonStandalone(retired)
+
+    assertEquals((json \ "id").as[String], puzzle.id.value)
+    assertEquals((json \ "solution").as[Vector[String]], Vector("a7a6", "b1c3"))

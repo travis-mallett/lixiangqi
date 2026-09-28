@@ -68,6 +68,8 @@ final class Env(
 
   private lazy val studyInvite = wire[StudyInvite]
 
+  lazy val chapterAnalysis = ChapterAnalysis(gameRepo.gameFromSecondary, analyser.byId)
+
   private lazy val serverEvalRequester = wire[ServerEval.Requester]
 
   private lazy val sequencer = wire[StudySequencer]

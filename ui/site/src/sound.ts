@@ -3,6 +3,7 @@ import { throttle } from 'lib/async';
 import { isIos } from 'lib/device';
 import { speakable } from 'lib/game/sanWriter';
 import { storage } from 'lib/storage';
+import { trafficBoundary, trafficMusicPlaying, trackTraffic } from 'lib/traffic';
 import { playXiangqiBoardAnimation } from 'lib/xiangqiBoardAnimation';
 
 import { BackgroundMusic } from './backgroundMusic';
@@ -28,7 +29,7 @@ class SoundService implements SoundI {
   voiceSoundEnabledStorage = storage.make('voice-sound-enabled');
   musicEnabledStorage = storage.make('music-enabled');
   musicSetStorage = storage.make('music-set');
-  backgroundMusic = new BackgroundMusic();
+  backgroundMusic = new BackgroundMusic(undefined, trafficMusicPlaying);
   primerEvents = ['touchend', 'pointerup', 'pointerdown', 'mousedown', 'keydown'];
 
   constructor() {
@@ -189,8 +190,10 @@ class SoundService implements SoundI {
   }
 
   setVolume = (volume: number) => {
+    trafficBoundary();
     this.volumeStorage.set(volume);
     this.syncMusic();
+    trackTraffic('audio.changed', { component: 'volume' });
   };
 
   getVolume = () => {
@@ -202,7 +205,9 @@ class SoundService implements SoundI {
   isSoundEnabled = () => this.soundEnabledStorage.get() !== '0';
 
   setSoundEnabled = (enabled: boolean) => {
+    trafficBoundary();
     this.soundEnabledStorage.set(enabled ? '1' : '0');
+    trackTraffic('audio.changed', { component: 'effectsEnabled' });
   };
 
   isVoiceSoundEnabled = () => this.voiceSoundEnabledStorage.get() !== '0';
@@ -214,8 +219,10 @@ class SoundService implements SoundI {
   isMusicEnabled = () => this.musicEnabledStorage.get() === '1';
 
   setMusicEnabled = (enabled: boolean) => {
+    trafficBoundary();
     this.musicEnabledStorage.set(enabled ? '1' : '0');
     this.syncMusic();
+    trackTraffic('audio.changed', { component: 'musicEnabled' });
   };
 
   getVoice = (): SpeechSynthesisVoice | undefined => {

@@ -29,10 +29,7 @@
   <string name="mateIn2">2 хъурщиялъ мат</string>
   <string name="mateIn3">3 хъурщиялъ мат</string>
   <string name="mateIn4">4 хъурщиялъ мат</string>
-  <string name="mateIn5">5 яги цӀикӀкӀун хъурщиялъ мат</string>
-  <string name="middlegame">БакьулъхӀай</string>
   <string name="oneMove">Цо хъурщиялъул масъала</string>
-  <string name="opening">Байбихьи</string>
   <string name="pawnEndgame">Пешкаялъул ахирхӀай</string>
   <string name="pin">Бухьин</string>
   <string name="queenEndgame">Къиралалъул ахирхӀай</string>

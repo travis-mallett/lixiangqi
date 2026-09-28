@@ -127,6 +127,12 @@ object page:
           dataUsername := ctx.username,
           dataSoundSet := pref.soundSet,
           dataMusicSet := pref.musicSet,
+          attr("data-background") := pref.appearance.background,
+          attr("data-traffic") := (env.traffic.enabled && !lila.common.ClientName(ctx.req).isCrawler &&
+            !ctx.req.cookies.get("traffic-opt-out").exists(_.value == "1") &&
+            (env.traffic.collectStaff || !ctx.me
+              .exists(me => lila.core.perm.Granter.of(_.ViewTrafficStats)(me.value)))),
+          attr("data-traffic-page") := lila.common.HTTPRequest.actionName(ctx.req),
           attr("data-socket-domains") := (if ~pref.usingAltSocket then netConfig.socketAlts
                                           else netConfig.socketDomains).mkString(","),
           dataAssetUrl,

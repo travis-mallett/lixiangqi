@@ -38,8 +38,8 @@ final class Analyser(
       sender: Sender,
       originOpt: Option[Origin] = none
   ): Fu[Analyser.Result] =
-    game.metadata.analysed
-      .so(analysisRepo.exists(game.id))
+    analysisRepo
+      .exists(game.id)
       .flatMap:
         if _ then fuccess(Analyser.Result.AlreadyAnalysed)
         else if !gameApi.analysable(game) then fuccess(Analyser.Result.NotAnalysable)
@@ -73,7 +73,11 @@ final class Analyser(
                           .monSuccess(lila.mon.fishnet.analysis.skipPositionsGame)
                           .flatMap: skipPositions =>
                             lila.mon.fishnet.analysis.evalCacheHits.record(skipPositions.size)
-                            repo.addAnalysis(work.copy(skipPositions = skipPositions))
+                            repo
+                              .addAnalysis(work.copy(skipPositions = skipPositions))
+                              .flatMap: _ =>
+                                // Publication may have finished while this request was being queued.
+                                analysisRepo.exists(game.id).flatMap(_.so(repo.cancelGame(game.id)))
                 }
               .inject(result)
           }

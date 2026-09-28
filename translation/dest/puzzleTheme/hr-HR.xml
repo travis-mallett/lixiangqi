@@ -79,14 +79,9 @@
   <string name="mateIn3Description">Matiraj protivnika u tri poteza.</string>
   <string name="mateIn4">Mat u 4</string>
   <string name="mateIn4Description">Matiraj protivnika u četiri poteza.</string>
-  <string name="mateIn5">Mat u 5 ili više</string>
   <string name="mateIn5Description">Pronađi slijed koji uključuje više od četiri poteza i dovodi do mata.</string>
-  <string name="middlegame">Središnjica</string>
-  <string name="middlegameDescription">Taktički potezi u središnjici.</string>
   <string name="oneMove">Jednopotezni zadatak</string>
   <string name="oneMoveDescription">Zadatak koji se sastoji od samo jednog poteza.</string>
-  <string name="opening">Otvaranje</string>
-  <string name="openingDescription">Taktički potezi u otvaranju.</string>
   <string name="pawnEndgame">Pješačka završnica</string>
   <string name="pawnEndgameDescription">Završnica koja uključuje samo pješake.</string>
   <string name="pin">Svezivanje</string>

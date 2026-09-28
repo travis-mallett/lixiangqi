@@ -17,7 +17,6 @@
   <string name="youHaveLifetime">您拥有终身赞助者账户。这真是太棒了！</string>
   <string name="patronUntil">您的赞助者账户有效期至 %s。</string>
   <string name="ifNotRenewedThenAccountWillRevert">如未续期，您的账户将恢复为普通账户。</string>
-  <string name="weAreNonProfit">我们是一个非营利性协会，因为我们相信每个人都应能访问一个免费的世界级象棋平台。</string>
   <string name="weRelyOnSupport">我们依靠像您这样的用户的支持来实现这一目标。如果您喜欢使用 Lichess，请考虑通过赞助并成为赞助者来支持我们！</string>
   <string name="lifetime">终身赞助</string>
   <string name="payLifetimeOnce">一次性支付 %s。成为 Lichess 的永久赞助者！</string>
@@ -33,19 +32,11 @@
   <string name="weAreSmallTeam">我们是一个小团队，所以您的支持至关重要！</string>
   <string name="celebratedPatrons">正是这些杰出的赞助者们使 Lichess 成为可能</string>
   <string name="whereMoneyGoes">资金用在了何处？</string>
-  <string name="serversAndDeveloper">首先，是强大的服务器。
-其次，我们支付一位全职开发者的薪酬：%s，Lichess 的创始人。</string>
-  <string name="costBreakdown">查看详细的成本明细</string>
   <string name="officialNonProfit">Lichess 是正式的非营利组织吗？</string>
-  <string name="actOfCreation">是的，这是（法文的）成立文件</string>
   <string name="changeMonthlySupport">我可以更改/取消我的月度赞助吗？</string>
   <string name="changeSupport">如果您的付款由 PayPal 处理，您可以通过自己的 PayPal 账户取消/变更赞助，或者您也可以 %1$s，由我们代为操作。如果您未使用 PayPal，则您的付款由 Stripe 处理，您可以在 %2$s 上取消赞助或变更金额。</string>
   <string name="patronPage">赞助页面</string>
   <string name="contactSupport">联系 Lichess 获取帮助</string>
-  <string name="otherMethods">其他赞助方式？</string>
-  <string name="lichessIsRegisteredWith">Lichess 已在 %s 注册。</string>
-  <string name="bankTransfers">我们也接受银行转账</string>
-  <string name="onlyDonationFromAbove">请注意，只有通过上方的赞助表单才会授予赞助者身份。</string>
   <string name="patronFeatures">是否有某些功能仅为赞助者保留？</string>
   <string name="noPatronFeatures">没有，因为 Lichess 是完全免费、永久且面向所有人的。这是一个承诺。
 不过，赞助者会获得值得夸耀的酷炫新赞助者之翼，它会显示在您的个人资料上。</string>
@@ -81,6 +72,5 @@
   <string name="changeCurrency">更改货币</string>
   <string name="paymentDetails">付款详情</string>
   <string name="updatePaymentMethod">更新付款方式</string>
-  <string name="stripeManageSub">管理您的订阅并下载发票和收据</string>
   <string name="coverFees">我将额外支付 %s，以承担这笔交易的手续费</string>
 </resources>

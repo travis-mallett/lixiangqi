@@ -63,6 +63,7 @@ enum Permission(val key: String, val alsoGrants: List[Permission], val name: Str
   case TitleRequest extends Permission("TITLE_REQUEST", List(UserModView, SetTitle), "Process title requests")
   case SetEmail extends Permission("SET_EMAIL", "Set email address")
   case SeeReport extends Permission("SEE_REPORT", "See reports")
+  case ViewTrafficStats extends Permission("VIEW_TRAFFIC_STATS", "View traffic statistics")
   case Appeals extends Permission("APPEAL", "Handle appeals")
   case Presets extends Permission("PRESET", "Edit mod presets")
   case ModLog extends Permission("MOD_LOG", "See mod log")
@@ -214,6 +215,7 @@ enum Permission(val key: String, val alsoGrants: List[Permission], val name: Str
         "ADMIN",
         List(
           LichessTeam,
+          ViewTrafficStats,
           DeveloperTeam,
           AccountInfo,
           UserSearch,

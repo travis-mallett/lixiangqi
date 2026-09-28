@@ -2067,6 +2067,8 @@ interface I18n {
     preferenceRead: string;
     /** Write preference */
     preferenceWrite: string;
+    /** Publish puzzle content */
+    puzzlePublish: string;
     /** Read puzzle activity */
     puzzleRead: string;
     /** Create and join puzzle races */
@@ -2129,14 +2131,28 @@ interface I18n {
     whatNowSuggestions: string;
   };
   patron: {
-    /** Yes, here's the act of creation (in French) */
-    actOfCreation: string;
+    /** Domain registration, nonprofit organization formation fees, and other setup costs. */
+    alphaAdministration: string;
+    /** Server costs. */
+    alphaServers: string;
+    /** Alpha stage (current) */
+    alphaStage: string;
+    /** Development tools, such as a Codex subscription. All development work is voluntary; no developer salaries are paid at this stage. */
+    alphaTools: string;
     /** Amount */
     amount: string;
-    /** We also accept bank transfers */
-    bankTransfers: string;
     /** Become a Lixiangqi Patron */
     becomePatron: string;
+    /** App development and associated fees, such as Apple Developer Program membership. */
+    betaApps: string;
+    /** Advertising to build an active player pool, including outreach to the Vietnamese community. */
+    betaOutreach: string;
+    /** More server capacity as the community grows. */
+    betaServers: string;
+    /** Beta stage */
+    betaStage: string;
+    /** Continued funding for development tools. */
+    betaTools: string;
     /** Cancel your support */
     cancelSupport: string;
     /** The celebrated Patrons who make Lixiangqi possible */
@@ -2151,10 +2167,10 @@ interface I18n {
     changeSupport: I18nFormat;
     /** Check out your profile page! */
     checkOutProfile: string;
+    /** LiXiangQi is a community project built by volunteers. We believe everyone should have access to a free, world-class xiangqi platform. */
+    communityProject: string;
     /** contact Lixiangqi support */
     contactSupport: string;
-    /** See the detailed cost breakdown */
-    costBreakdown: string;
     /** I'll add %s to help cover the cost of processing this transaction */
     coverFees: I18nFormat;
     /** Current status */
@@ -2175,14 +2191,26 @@ interface I18n {
     freeAccount: string;
     /** Free Xiangqi for everyone, forever! */
     freeChess: string;
+    /** Our costs and priorities will change as the project grows: */
+    fundingPriorities: string;
+    /** Pursuing app publication in China, which may require significant funding to hire a specialist firm. */
+    futureChina: string;
+    /** A full-time developer. */
+    futureDeveloper: string;
+    /** Bigger servers—we hope to need them because that means lots of people are playing xiangqi! */
+    futureServers: string;
+    /** Future */
+    futureStage: string;
+    /** is now a lifetime LiXiangQi Patron, thanks to you! */
+    giftLifetimeConfirmation: string;
+    /** is now a LiXiangQi Patron for one month, thanks to you! */
+    giftMonthConfirmation: string;
     /** Gift Patron wings to a player */
     giftPatronWings: string;
     /** Gift Patron wings */
     giftPatronWingsShort: string;
     /** If not renewed, your account will then revert to a regular account. */
     ifNotRenewedThenAccountWillRevert: string;
-    /** Lixiangqi is registered with %s. */
-    lichessIsRegisteredWith: I18nFormat;
     /** Lixiangqi Patron */
     lichessPatron: string;
     /** Lifetime */
@@ -2203,6 +2231,8 @@ interface I18n {
     noAdsNoSubs: string;
     /** No longer support Lixiangqi */
     noLongerSupport: string;
+    /** Not yet. We plan to establish a nonprofit organization in the future. */
+    nonProfitPlans: string;
     /** No, because Lixiangqi is entirely free, forever, and for everyone. That's a promise. */
     noPatronFeatures: string;
     /** You are now a lifetime Lixiangqi Patron! */
@@ -2213,12 +2243,8 @@ interface I18n {
     officialNonProfit: string;
     /** One-time */
     onetime: string;
-    /** Please note that only the donation form above will grant the Patron status. */
-    onlyDonationFromAbove: string;
     /** Other */
     otherAmount: string;
-    /** Other methods of donation? */
-    otherMethods: string;
     /** Are some features reserved to Patrons? */
     patronFeatures: string;
     /** Lixiangqi Patron for %s months */
@@ -2233,22 +2259,26 @@ interface I18n {
     payLifetimeOnce: I18nFormat;
     /** Payment details */
     paymentDetails: string;
+    /** We could not confirm your payment. Please check your PayPal activity before trying again. If a payment completed, your Patron status will update automatically. */
+    paymentError: string;
+    /** Choose a payment option below. Availability depends on your device and currency. */
+    paymentOptions: string;
+    /** Your subscription was approved. PayPal is still processing the first payment. Your Patron wings will appear when the payment completes. */
+    paymentPending: string;
+    /** Donations are currently unavailable in this currency. Please try another currency or check back later. */
+    paymentsUnavailable: string;
     /** You now have a permanent Patron account. */
     permanentPatron: string;
     /** Please enter an amount in %s */
     pleaseEnterAmountInX: I18nFormat;
     /** Recurring billing, renewing your Patron wings every month. */
     recurringBilling: string;
-    /** First of all, powerful servers. */
-    serversAndDeveloper: I18nFormat;
     /** A single donation that grants you the Patron wings for one month. */
     singleDonation: string;
     /** Withdraw your credit card and stop payments: */
     stopPayments: string;
     /** Cancel PayPal subscription and stop payments: */
     stopPaymentsPayPal: string;
-    /** Manage your subscription and download your invoices and receipts */
-    stripeManageSub: string;
     /** Thank you for your donation! */
     thankYou: string;
     /** Your transaction has been completed, and a receipt for your donation has been emailed to you. */
@@ -2261,8 +2291,6 @@ interface I18n {
     updatePaymentMethod: string;
     /** View other Lixiangqi Patrons */
     viewOthers: string;
-    /** We are a non‑profit association because we believe everyone should have access to a free, world-class Xiangqi platform. */
-    weAreNonProfit: string;
     /** We are a small team, so your support makes a huge difference! */
     weAreSmallTeam: string;
     /** We rely on support from people like you to make it possible. If you enjoy using Lixiangqi, please consider supporting us by donating and becoming a Patron! */
@@ -2559,17 +2587,19 @@ interface I18n {
     addAnotherTheme: string;
     /** Advanced */
     advanced: string;
-    /** Advantage Lost */
+    /** Too much advantage lost */
     advantageLost: string;
-    /** This move could not be checked. Please try again or view the solution. Your result has not changed. */
+    /** Could not verify this move. Retry or choose another move. No result recorded. */
     alternativeEvaluationUnavailable: string;
+    /** Analyze */
+    analyze: string;
     /** Best move! */
     bestMove: string;
     /** By openings */
     byOpenings: string;
     /** Click to solve */
     clickToSolve: string;
-    /** But continuation allowed. */
+    /** Not the most efficient move, but continuation allowed. */
     continuationAllowed: string;
     /** Continue the streak */
     continueTheStreak: string;
@@ -2587,8 +2617,8 @@ interface I18n {
     easier: string;
     /** Easiest */
     easiest: string;
-    /** Most efficient solution: %s moves. */
-    efficientSolutionMoves: I18nPlural;
+    /** Evaluating Move */
+    evaluatingMove: string;
     /** Example */
     example: string;
     /** incorrect */
@@ -2597,7 +2627,7 @@ interface I18n {
     findTheBestMoveForBlack: string;
     /** Find the best move for red. */
     findTheBestMoveForWhite: string;
-    /** Lost the forced mate */
+    /** Forced mate lost */
     forcedMateLost: string;
     /** From game %s */
     fromGameLink: I18nFormat;
@@ -2615,6 +2645,8 @@ interface I18n {
     hardest: string;
     /** hidden */
     hidden: string;
+    /** Hint */
+    hint: string;
     /** Puzzle history */
     history: string;
     /** Improvement areas */
@@ -2627,15 +2659,23 @@ interface I18n {
     keepGoing: string;
     /** Lengths */
     lengths: string;
+    /** This line draws */
+    lineDrawn: string;
+    /** This line loses */
+    lineLost: string;
     /** View puzzles from a player's games */
     lookupOfPlayer: string;
+    /** Still winning, but too many moves: M%1$s → M%2$s */
+    mateAllowanceDetail: I18nFormat;
+    /** Still winning, but too many moves */
+    mateExceedsAllowance: string;
     /** Mates */
     mates: string;
     /** Mate themes */
     mateThemes: string;
     /** Motifs */
     motifs: string;
-    /** Move allowance exceeded */
+    /** Move allowance reached */
     moveAllowanceExceeded: string;
     /** %s played */
     nbPlayed: I18nPlural;
@@ -2653,8 +2693,6 @@ interface I18n {
     noPuzzlesToShow: string;
     /** Normal */
     normal: string;
-    /** Not the most efficient move */
-    notMostEfficientMove: string;
     /** That's not the move! */
     notTheMove: string;
     /** Openings you played the most in rated games */
@@ -2691,6 +2729,12 @@ interface I18n {
     ratingX: I18nFormat;
     /** Recommended */
     recommended: string;
+    /** Reference solution: %s moves. */
+    referenceSolutionMoves: I18nPlural;
+    /** Restart */
+    restart: string;
+    /** Restart puzzle */
+    restartPuzzle: string;
     /** Search puzzles */
     searchPuzzles: string;
     /** solved */
@@ -2713,6 +2757,8 @@ interface I18n {
     toGetPersonalizedPuzzles: string;
     /** Try again */
     tryAgain: string;
+    /** Try another move */
+    tryAnotherMove: string;
     /** Try something else. */
     trySomethingElse: string;
     /** Great puzzle! */
@@ -2739,10 +2785,26 @@ interface I18n {
     anastasiaMate: string;
     /** A knight and rook or queen team up to trap the opposing king between the side of the board and a friendly piece. */
     anastasiaMateDescription: string;
+    /** Angler Horse (钓鱼马) */
+    anglerHorse: string;
+    /** The horse casts the net; a chariot lands the general who can no longer slip away. */
+    anglerHorseDescription: string;
+    /** The soldier removes the advisor; the cannon checks while the horse prevents capture and escape. */
+    anglerHorseFinish: string;
+    /** An angler horse guards the palace center and a back-rank entry square. */
+    anglerHorseLesson: string;
     /** Arabian mate */
     arabianMate: string;
     /** A knight and a rook team up to trap the opposing king on a corner of the board. */
     arabianMateDescription: string;
+    /** Assisting King Attack (御驾亲征) */
+    assistingKingAttack: string;
+    /** Leave the throne, not the palace: the general joins the final assault. */
+    assistingKingAttackDescription: string;
+    /** Here, move the general to pin one cannon, then advance the chariot to capture the other cannon and continue the attack. */
+    assistingKingAttackFinish: string;
+    /** Bring the general onto a useful file to restrict the opposing general or pin a key defender. */
+    assistingKingAttackLesson: string;
     /** Attacking f2 or f7 */
     attackingF2F7: string;
     /** An attack focusing on the f2 or f7 pawn, such as in the fried liver opening. */
@@ -2751,14 +2813,28 @@ interface I18n {
     attraction: string;
     /** An exchange or sacrifice encouraging or forcing an opponent piece to a square that allows a follow-up tactic. */
     attractionDescription: string;
+    /** Bachelor Chariot Attack (单车耳) */
+    bachelorChariotAttack: string;
+    /** One pillar cannot hold the palace; one advisor cannot save the throne. */
+    bachelorChariotAttackDescription: string;
+    /** Here, drive the general to the back rank and coordinate both chariots to finish the attack. */
+    bachelorChariotAttackFinish: string;
+    /** A chariot threatens an advisor beside the general, tying down the palace defense. */
+    bachelorChariotAttackLesson: string;
     /** Back rank mate */
     backRankMate: string;
     /** Checkmate the king on the home rank, when it is trapped there by its own pieces. */
     backRankMateDescription: string;
+    /** Back to lesson */
+    backToLesson: string;
     /** Balestra mate */
     balestraMate: string;
     /** A bishop delivers the checkmate, while a queen blocks the remaining escape squares */
     balestraMateDescription: string;
+    /** Basic Kills */
+    basicKills: string;
+    /** Basic Tactics */
+    basicTactic: string;
     /** Bishop endgame */
     bishopEndgame: string;
     /** An endgame with only bishops and pawns. */
@@ -2771,6 +2847,40 @@ interface I18n {
     bodenMate: string;
     /** Two attacking bishops on criss-crossing diagonals deliver mate to a king obstructed by friendly pieces. */
     bodenMateDescription: string;
+    /** Bold Chariot Attack (大胆车) */
+    boldChariotAttack: string;
+    /** Offer the chariot without flinching: taking it opens the road to mate. */
+    boldChariotAttackDescription: string;
+    /** Here, capture the advisor; the remaining chariot and cannons drive the general into mate. */
+    boldChariotAttackFinish: string;
+    /** Offer a chariot to remove a defender or open the lines needed for a decisive attack. */
+    boldChariotAttackLesson: string;
+    /** Cannon Chariot Discovered Attack (车炮抽扯) */
+    cannonChariotDiscoveredAttack: string;
+    /** The chariot moves and the cannon speaks; the forced reply prepares the next blow. */
+    cannonChariotDiscoveredAttackDescription: string;
+    /** Here, the defender must answer the cannon check, leaving its chariot to be captured. The example wins material. */
+    cannonChariotDiscoveredAttackFinish: string;
+    /** Move a chariot away from the cannon’s line to uncover check, gaining time to attack another enemy piece. */
+    cannonChariotDiscoveredAttackLesson: string;
+    /** Cannon Killing Methods */
+    cannonKillingMethods: string;
+    /** Cannon */
+    cannonMatingMethods: string;
+    /** Practice mating attacks using cannons. */
+    cannonMatingMethodsDescription: string;
+    /** Cannon and soldier */
+    cannonSoldierMatingMethods: string;
+    /** Practice mating attacks using cannons and soldiers. */
+    cannonSoldierMatingMethodsDescription: string;
+    /** Cannons Sandwiching Chariot (夹车炮) */
+    cannonsSandwichingChariot: string;
+    /** The chariot threads between the cannons; each attack prepares the next. */
+    cannonsSandwichingChariotDescription: string;
+    /** The chariot checks on the next rank while the cannons prevent the general’s return. */
+    cannonsSandwichingChariotFinish: string;
+    /** A chariot moves out from between two cannons, uncovering a double-cannon check. */
+    cannonsSandwichingChariotLesson: string;
     /** Capture the defender */
     capturingDefender: string;
     /** Removing a piece that is critical to defence of another piece, allowing the now undefended piece to be captured on a following move. */
@@ -2779,10 +2889,72 @@ interface I18n {
     castling: string;
     /** Keep the general safe while preparing a counterattack. */
     castlingDescription: string;
-    /** Centroid Pawn Attack */
+    /** Centroid Pawn Attack (小鬼坐龙廷) */
     centroidPawnMate: string;
-    /** Use a central pawn attack to break through toward the opposing general. */
+    /** A little ghost takes the dragon throne; the rightful ruler is trapped in his own palace. */
     centroidPawnMateDescription: string;
+    /** The horse gives check while the central soldier prevents escape. */
+    centroidPawnMateFinish: string;
+    /** A soldier in the palace center confines the general to a corner by controlling its exits. */
+    centroidPawnMateLesson: string;
+    /** Chariot and cannon */
+    chariotCannonMatingMethods: string;
+    /** Practice mating attacks using chariots and cannons. */
+    chariotCannonMatingMethodsDescription: string;
+    /** Chariot, cannon, and soldier */
+    chariotCannonSoldierMatingMethods: string;
+    /** Practice mating attacks using chariots, cannons, and soldiers. */
+    chariotCannonSoldierMatingMethodsDescription: string;
+    /** Chariot, horse, and cannon */
+    chariotHorseCannonMatingMethods: string;
+    /** Practice mating attacks using chariots, horses, and cannons. */
+    chariotHorseCannonMatingMethodsDescription: string;
+    /** Chariot, horse, cannon, and soldier */
+    chariotHorseCannonSoldierMatingMethods: string;
+    /** Practice mating attacks using chariots, horses, cannons, and soldiers. */
+    chariotHorseCannonSoldierMatingMethodsDescription: string;
+    /** Chariot and horse */
+    chariotHorseMatingMethods: string;
+    /** Practice mating attacks using chariots and horses. */
+    chariotHorseMatingMethodsDescription: string;
+    /** Chariot, horse, and soldier */
+    chariotHorseSoldierMatingMethods: string;
+    /** Practice mating attacks using chariots, horses, and soldiers. */
+    chariotHorseSoldierMatingMethodsDescription: string;
+    /** Chariot Horse Zugzwang (车马冷着) */
+    chariotHorseZugzwang: string;
+    /** A chariot and horse leave the defender to undo his own position. */
+    chariotHorseZugzwangDescription: string;
+    /** Here, pin the advisor, check with the horse, and sacrifice one chariot so the other can finish under the horse’s protection. */
+    chariotHorseZugzwangFinish: string;
+    /** Use the chariot and horse together to restrict the general and force the defenders into awkward positions. */
+    chariotHorseZugzwangLesson: string;
+    /** Chariot Killing Methods */
+    chariotKillingMethods: string;
+    /** Chariot */
+    chariotMatingMethods: string;
+    /** Practice mating attacks using chariots. */
+    chariotMatingMethodsDescription: string;
+    /** Chariot Pawn Zugzwang (花心采蜜) */
+    chariotPawnZugzwang: string;
+    /** Hold the flower’s heart; let the defender’s next move surrender the nectar. */
+    chariotPawnZugzwangDescription: string;
+    /** Here, Black uses a soldier check to displace the general, then arranges the chariots for the soldier’s final blow. */
+    chariotPawnZugzwangFinish: string;
+    /** Combine chariot pressure with a timely soldier move that forces the defender into a worse position. */
+    chariotPawnZugzwangLesson: string;
+    /** Chariot and soldier */
+    chariotSoldierMatingMethods: string;
+    /** Practice mating attacks using chariots and soldiers. */
+    chariotSoldierMatingMethodsDescription: string;
+    /** Child Worships Buddha (童子拜佛) */
+    childWorshipsBuddha: string;
+    /** A little club over the head. */
+    childWorshipsBuddhaDescription: string;
+    /** Here, the soldier advances directly in front of the general; the flying-general rule protects it and completes the mate. */
+    childWorshipsBuddhaFinish: string;
+    /** A soldier attacks the general at close range, supported by the general or other friendly pieces. */
+    childWorshipsBuddhaLesson: string;
     /** Clearance */
     clearance: string;
     /** A move, often with tempo, that clears a square, file or diagonal for a follow-up tactical idea. */
@@ -2795,6 +2967,22 @@ interface I18n {
     cornerMate: string;
     /** Confine the king to the corner using a rook or queen and a knight to engage the checkmate. */
     cornerMateDescription: string;
+    /** Cross-Check Attack (解杀还杀) */
+    crossCheckAttack: string;
+    /** Turn the parry into the killing stroke: the move that saves your general threatens theirs. */
+    crossCheckAttackDescription: string;
+    /** Here, the chariot blocks the enemy chariot’s check while clearing the horse’s leg for a countercheck. */
+    crossCheckAttackFinish: string;
+    /** Resolve a check against your general with a move that also checks the enemy general. */
+    crossCheckAttackLesson: string;
+    /** Crowning Checkmate (平顶冠) */
+    crowningMate: string;
+    /** Crown the general with a chariot; the cannon behind it turns the coronation into a double check. */
+    crowningMateDescription: string;
+    /** Advisor captures cannot stop the cannon’s check. */
+    crowningMateFinish: string;
+    /** One chariot protects the other as it crowns the general, backed by a cannon. */
+    crowningMateLesson: string;
     /** Crushing */
     crushing: string;
     /** Spot the opponent blunder to obtain a crushing advantage. (eval ≥ 600cp) */
@@ -2807,6 +2995,14 @@ interface I18n {
     deflection: string;
     /** A move that distracts an opposing piece from another duty that it performs, such as guarding a key square. Sometimes also called "overloading". */
     deflectionDescription: string;
+    /** Detonating Mine Attack (炮辗丹沙) */
+    detonatingMineAttack: string;
+    /** A chariot hiding behind a cannon becomes leaps into action. */
+    detonatingMineAttackDescription: string;
+    /** Here, the defender blocks the chariot check, then the cannon captures the enemy chariot using an enemy horse as a screen. */
+    detonatingMineAttackFinish: string;
+    /** Move a cannon off the chariot’s line to uncover check and aim the cannon at another valuable piece. */
+    detonatingMineAttackLesson: string;
     /** Discovered attack */
     discoveredAttack: string;
     /** Moving a piece (such as a knight), that previously blocked an attack by a long range piece (such as a rook), out of the way of that piece. */
@@ -2819,14 +3015,86 @@ interface I18n {
     doubleBishopMate: string;
     /** Two attacking bishops on adjacent diagonals deliver mate to a king obstructed by friendly pieces. */
     doubleBishopMateDescription: string;
+    /** Double Cannons (重炮杀) */
+    doubleCannons: string;
+    /** Stack the cannons: one becomes the other’s bridge, and the palace falls. */
+    doubleCannonsDescription: string;
+    /** Blocking activates the front cannon instead, and the general has no escape. */
+    doubleCannonsFinish: string;
+    /** Two cannons align with the general; the front cannon provides the rear cannon’s screen. */
+    doubleCannonsLesson: string;
+    /** Double Chariots Checkmate (双车错) */
+    doubleChariotsMate: string;
+    /** One chariot bars the way; the other delivers the blow. */
+    doubleChariotsMateDescription: string;
+    /** Use one chariot to block escape while the other delivers checkmate. */
+    doubleChariotsMateFinish: string;
+    /** Alternate checks on adjacent ranks or files to drive the general back. */
+    doubleChariotsMateLesson: string;
+    /** Double Chariots Threatening the Advisor (双车胁士) */
+    doubleChariotsThreateningAdvisor: string;
+    /** Without advisors, fear two chariots. */
+    doubleChariotsThreateningAdvisorDescription: string;
+    /** One captures the advisor; the other finishes while its partner blocks escape. */
+    doubleChariotsThreateningAdvisorFinish: string;
+    /** Two chariots flank the central advisor, supporting each other as they break into the palace. */
+    doubleChariotsThreateningAdvisorLesson: string;
     /** Double check */
     doubleCheck: string;
     /** Checking with two pieces at once, as a result of a discovered attack where both the moving piece and the unveiled piece attack the opponent's king. */
     doubleCheckDescription: string;
+    /** Double Check Checkmate (双照将) */
+    doubleCheckMate: string;
+    /** Move once and let two attackers speak; the reply must silence both. */
+    doubleCheckMateDescription: string;
+    /** Here, the horse moves with check and uncovers the cannon’s check; together they cover every escape. */
+    doubleCheckMateFinish: string;
+    /** One move gives check from two pieces at the same time, leaving the general unable to answer both threats. */
+    doubleCheckMateLesson: string;
+    /** Double Ghosts Knocking (二鬼拍门) */
+    doubleGhostsKnocking: string;
+    /** Two little ghosts pound the palace’s side doors; the advisors cannot keep them both out. */
+    doubleGhostsKnockingDescription: string;
+    /** The cannon and horse block escape; the horse protects the mating soldier. */
+    doubleGhostsKnockingFinish: string;
+    /** Two soldiers flank the advisor and take turns breaking through. */
+    doubleGhostsKnockingLesson: string;
+    /** Double Horses Checkmate (双马饮泉) */
+    doubleHorsesMate: string;
+    /** Leap in loops; circle and strike. */
+    doubleHorsesMateDescription: string;
+    /** The cannon forces the retreat that allows the second horse to mate. */
+    doubleHorsesMateFinish: string;
+    /** Two horses divide the work: one controls the general’s escape, and the other gives check. */
+    doubleHorsesMateLesson: string;
+    /** Double Toast Checkmate (双杯献酒) */
+    doubleToastMate: string;
+    /** Offer the first cannon as a cup of wine; the second delivers the fatal toast. */
+    doubleToastMateDescription: string;
+    /** The second recaptures, trapping the general behind its advisors. */
+    doubleToastMateFinish: string;
+    /** Two cannons attack one square in turn, sacrificing the first to remove a defender. */
+    doubleToastMateLesson: string;
     /** Dovetail mate */
     dovetailMate: string;
     /** A queen delivers mate to an adjacent king, whose only two escape squares are obstructed by friendly pieces. */
     dovetailMateDescription: string;
+    /** Drawer Checkmate (拉抽屉) */
+    drawerMate: string;
+    /** The golden rooster nods three times. */
+    drawerMateDescription: string;
+    /** Here, sacrifice a chariot to remove the advisor, then advance the other chariot until the general and cannon secure the mate. */
+    drawerMateFinish: string;
+    /** Chariot and cannon checks force the general in and out along the same file, like opening and closing a drawer. */
+    drawerMateLesson: string;
+    /** Elbow Horse (卧槽马) */
+    elbowHorse: string;
+    /** From its stable beside the palace, the horse attacks while its allies close the exits. */
+    elbowHorseDescription: string;
+    /** A chariot attacks along the middle palace rank to finish. */
+    elbowHorseFinish: string;
+    /** A horse on the elbow square checks the general and controls its forward and backward escapes. */
+    elbowHorseLesson: string;
     /** Endgame */
     endgame: string;
     /** A tactic during the last phase of the game. */
@@ -2843,26 +3111,122 @@ interface I18n {
     equality: string;
     /** Come back from a losing position, and secure a draw or a balanced position. (eval ≤ 200cp) */
     equalityDescription: string;
+    /** Eunuch Chasing Emperor Kill (太监追皇帝) */
+    eunuchChasingEmperorKill: string;
+    /** The servant gives chase; the sovereign runs out of palace. */
+    eunuchChasingEmperorKillDescription: string;
+    /** Use the chariot to restrict escape while the soldier continues the pursuit. */
+    eunuchChasingEmperorKillFinish: string;
+    /** A soldier inside the palace pursues the general with checks, driving it toward a mating position. */
+    eunuchChasingEmperorKillLesson: string;
+    /** Exchanging to Relieve Pressure (兑子解围) */
+    exchangingToRelievePressure: string;
+    /** Practice exchanging to relieve pressure (兑子解围). */
+    exchangingToRelievePressureDescription: string;
+    /** Exchanging to Seize the Initiative (兑子争先) */
+    exchangingToSeizeInitiative: string;
+    /** Practice exchanging to seize the initiative (兑子争先). */
+    exchangingToSeizeInitiativeDescription: string;
+    /** Exchanging to Win Material (兑子得子) */
+    exchangingToWinMaterial: string;
+    /** Practice exchanging to win material (兑子得子). */
+    exchangingToWinMaterialDescription: string;
     /** Exposed king */
     exposedKing: string;
     /** A tactic involving a king with few defenders around it, often leading to checkmate. */
     exposedKingDescription: string;
+    /** Flanking Trio Checkmate (三子归边) */
+    flankingTrioMate: string;
+    /** Bring three attackers to one flank; where their threats converge, the palace wall gives way. */
+    flankingTrioMateDescription: string;
+    /** Here, the chariot, horse, and cannon combine: the horse seals the exits while the chariot and cannon deliver the final check. */
+    flankingTrioMateFinish: string;
+    /** Coordinate three pieces on one flank in enemy territory to build an attack; the formation alone does not guarantee mate. */
+    flankingTrioMateLesson: string;
     /** Fork */
     fork: string;
     /** A move where the moved piece attacks two opponent pieces at once. */
     forkDescription: string;
     /** A move where a piece attacks two or more opposing pieces simultaneously. */
     forkOpposingPiecesDescription: string;
+    /** General Disrobing Attack (三把手) */
+    generalDisrobingAttack: string;
+    /** Cast off the general’s robe: move his own guards aside and let his uncovered gaze join the attack. */
+    generalDisrobingAttackDescription: string;
+    /** Here, retreat the elephant to pin the advisor, then check with the horse; the advisor can no longer capture it. */
+    generalDisrobingAttackFinish: string;
+    /** Move a friendly piece off the general’s file so the flying-general rule pins an enemy defender. */
+    generalDisrobingAttackLesson: string;
+    /** General Killing Methods */
+    generalKillingMethods: string;
     /** Hanging piece */
     hangingPiece: string;
     /** A tactic involving an opponent piece being undefended or insufficiently defended and free to capture. */
     hangingPieceDescription: string;
+    /** Headhunter Cannon Attack (空头炮杀法) */
+    headhunterCannonAttack: string;
+    /** The cannon watches the throne in silence; one piece gives it a voice. */
+    headhunterCannonAttackDescription: string;
+    /** This formation supports an attack rather than guaranteeing mate. Here, the horse checks and the chariot covers the escape. */
+    headhunterCannonAttackFinish: string;
+    /** A cannon faces the enemy general with no intervening piece; defenders cannot step into that line without giving check. */
+    headhunterCannonAttackLesson: string;
+    /** Heaven and Earth Cannons (天地炮) */
+    heavenAndEarthCannons: string;
+    /** Heaven’s thunder calls forth Earth’s fire. */
+    heavenAndEarthCannonsDescription: string;
+    /** The chariot captures an advisor; cannon protection prevents the general from taking it. */
+    heavenAndEarthCannonsFinish: string;
+    /** Cannons on the central file and back rank pin the palace defenders. */
+    heavenAndEarthCannonsLesson: string;
+    /** Hiding Behind Leaves Attack (叶底藏花) */
+    hidingBehindLeavesAttack: string;
+    /** The chariot blooms from behind its own defenses; the harmless foliage concealed an ambush. */
+    hidingBehindLeavesAttackDescription: string;
+    /** Here, an advisor interposes against the enemy chariot and uncovers a cannon check; the ensuing attack ends in stalemate. */
+    hidingBehindLeavesAttackFinish: string;
+    /** Keep an attacker, often a cannon, behind friendly pieces until moving a blocker reveals its attack. */
+    hidingBehindLeavesAttackLesson: string;
+    /** High Angler Horse (高钓马) */
+    highAnglerHorse: string;
+    /** A tiger waits beside the palace: the high horse and chariot hunt an exposed general from the flank. */
+    highAnglerHorseDescription: string;
+    /** The horse seals its escapes while a chariot attacks the exposed file. */
+    highAnglerHorseFinish: string;
+    /** A high angler horse checks from the soldier rank, drawing the general forward into a trap. */
+    highAnglerHorseLesson: string;
     /** Hook mate */
     hookMate: string;
     /** Checkmate with a rook, knight, and pawn along with one enemy pawn to limit the enemy king's escape. */
     hookMateDescription: string;
     /** Checkmate using a rook, knight, and pawn, where an opposing pawn blocks the king's escape. */
     hookMateOpposingPawnDescription: string;
+    /** Horse Cannon Checkmate (马后炮) */
+    horseCannonMate: string;
+    /** The horse bars the side doors; the cannon fires over its back. */
+    horseCannonMateDescription: string;
+    /** A chariot sacrifice draws the general onto the horse’s file, completing the mating alignment. */
+    horseCannonMateFinish: string;
+    /** A cannon fires over a horse that controls the general’s sideways escape. */
+    horseCannonMateLesson: string;
+    /** Horse and cannon */
+    horseCannonMatingMethods: string;
+    /** Practice mating attacks using horses and cannons. */
+    horseCannonMatingMethodsDescription: string;
+    /** Horse, cannon, and soldier */
+    horseCannonSoldierMatingMethods: string;
+    /** Practice mating attacks using horses, cannons, and soldiers. */
+    horseCannonSoldierMatingMethodsDescription: string;
+    /** Horse Killing Methods */
+    horseKillingMethods: string;
+    /** Horse */
+    horseMatingMethods: string;
+    /** Practice mating attacks using horses. */
+    horseMatingMethodsDescription: string;
+    /** Horse and soldier */
+    horseSoldierMatingMethods: string;
+    /** Practice mating attacks using horses and soldiers. */
+    horseSoldierMatingMethodsDescription: string;
     /** Interference */
     interference: string;
     /** Moving a piece between two opponent pieces to leave one or both opponent pieces undefended, such as a knight on a defended square between two rooks. */
@@ -2871,6 +3235,14 @@ interface I18n {
     intermezzo: string;
     /** Instead of playing the expected move, first interpose another move posing an immediate threat that the opponent must answer. Also known as "Zwischenzug" or "In between". */
     intermezzoDescription: string;
+    /** Iron Bolt (铁门栓) */
+    ironBolt: string;
+    /** With the cannon facing the center, lay the chariot across the general’s road. */
+    ironBoltDescription: string;
+    /** Your general protects the chariot; the pinned advisor cannot capture it. */
+    ironBoltFinish: string;
+    /** A central cannon pins the defenders, letting a chariot invade the palace. */
+    ironBoltLesson: string;
     /** Kill box mate */
     killBoxMate: string;
     /** A rook is next to the enemy king and supported by a queen that also blocks the king's escape squares. The rook and the queen catch the enemy king in a 3 by 3 "kill box". */
@@ -2883,6 +3255,16 @@ interface I18n {
     knightEndgame: string;
     /** An endgame with only knights and pawns. */
     knightEndgameDescription: string;
+    /** Leisurely Stroll Checkmate (闲庭散步) */
+    leisurelyStrollMate: string;
+    /** One quiet move by the general can settle the whole game. */
+    leisurelyStrollMateDescription: string;
+    /** Here, the general takes a quiet step while the soldier and cannon keep Black immobilized. Stalemate wins in xiangqi. */
+    leisurelyStrollMateFinish: string;
+    /** When every enemy piece is trapped or pinned, a harmless waiting move can leave the opponent with no legal reply. */
+    leisurelyStrollMateLesson: string;
+    /** The pattern */
+    lessonPattern: string;
     /** Long puzzle */
     long: string;
     /** Three moves to win. */
@@ -2915,38 +3297,90 @@ interface I18n {
     mateIn4: string;
     /** Deliver checkmate in four moves. */
     mateIn4Description: string;
-    /** Mate in 5 or more */
+    /** Mate in 5 */
     mateIn5: string;
     /** Figure out a long mating sequence. */
     mateIn5Description: string;
-    /** Middlegame */
-    middlegame: string;
-    /** A tactic during the second phase of the game. */
-    middlegameDescription: string;
+    /** Mate in 6 */
+    mateIn6: string;
+    /** Deliver checkmate in six moves. */
+    mateIn6Description: string;
+    /** Mate in 7 */
+    mateIn7: string;
+    /** Deliver checkmate in seven moves. */
+    mateIn7Description: string;
+    /** Mate in 8 */
+    mateIn8: string;
+    /** Deliver checkmate in eight moves. */
+    mateIn8Description: string;
+    /** Material Gain (得子) */
+    materialGain: string;
+    /** Mating Methods by Piece Type */
+    matingMethodsByPieceType: string;
     /** Healthy mix */
     mix: string;
     /** A bit of everything. You don't know what to expect, so be ready for anything! Just like in real games. */
     mixDescription: string;
+    /** Moon Scooping Checkmate (海底捞月) */
+    moonScoopingMate: string;
+    /** Drive the tiger from its cave; scoop the moon from the depths. */
+    moonScoopingMateDescription: string;
+    /** The general blocks sideways escape as your chariot delivers mate. */
+    moonScoopingMateFinish: string;
+    /** Control the central file and bring a cannon behind the enemy general to dislodge its defending chariot. */
+    moonScoopingMateLesson: string;
     /** Morphy's mate */
     morphysMate: string;
     /** Use the bishop to check the king, while your rook helps to confine it. */
     morphysMateDescription: string;
+    /** Octagonal Horse (八角马) */
+    octagonalHorse: string;
+    /** Chariot overhead, horse at the corner—the old general cannot survive. */
+    octagonalHorseDescription: string;
+    /** A protected soldier steps in to check; the horse prevents capture and escape. */
+    octagonalHorseFinish: string;
+    /** A horse occupies the palace corner diagonally opposite the general, controlling both exits. */
+    octagonalHorseLesson: string;
+    /** Old Pawn Searching Mountain (老卒搜山) */
+    oldPawnSearchingMountain: string;
+    /** At the far edge of the battlefield, the old soldier turns sideways and hunts through the general’s last refuges. */
+    oldPawnSearchingMountainDescription: string;
+    /** Here, the horse and cannon seal the exits; the old soldier steps sideways to deliver mate. */
+    oldPawnSearchingMountainFinish: string;
+    /** A soldier on the back rank cannot advance or promote, but it can still check sideways. */
+    oldPawnSearchingMountainLesson: string;
     /** One-move puzzle */
     oneMove: string;
     /** A puzzle that is only one move long. */
     oneMoveDescription: string;
-    /** Opening */
-    opening: string;
-    /** A tactic during the first phase of the game. */
-    openingDescription: string;
     /** Opera mate */
     operaMate: string;
     /** Check the king with a rook and use a bishop to defend the rook. */
     operaMateDescription: string;
+    /** Other Named Basic Kills */
+    otherNamedBasicKills: string;
+    /** Palcorner Horse (挂角马) */
+    palcornerHorse: string;
+    /** Chariot overhead, horse at the corner—the old general cannot survive. */
+    palcornerHorseDescription: string;
+    /** The cannon and your general seal the remaining escape squares. */
+    palcornerHorseFinish: string;
+    /** A horse checks from a front palace corner after a sacrifice draws the advisor away. */
+    palcornerHorseLesson: string;
     /** Pawn endgame */
     pawnEndgame: string;
     /** An endgame with only pawns. */
     pawnEndgameDescription: string;
+    /** Pawn Triple Advancement Attack (三進兵) */
+    pawnTripleAdvancementAttack: string;
+    /** The pawn advances, the palace shrinks—three steps, and no escape. */
+    pawnTripleAdvancementAttackDescription: string;
+    /** Here, two soldiers share the advances; a soldier seals the escape while the chariot delivers mate. */
+    pawnTripleAdvancementAttackFinish: string;
+    /** Repeated soldier advances, often three in total, force the general into a mating net. */
+    pawnTripleAdvancementAttackLesson: string;
+    /** Piece Exchanges (兑换) */
+    pieceExchanges: string;
     /** Pillsbury's mate */
     pillsburysMate: string;
     /** The rook delivers checkmate, while the bishop helps to confine it. */
@@ -2959,12 +3393,22 @@ interface I18n {
     playerGames: string;
     /** View puzzles generated from your games, or from another player's games */
     playerGamesDescription: string;
+    /** Practice Now */
+    practiceNow: string;
     /** Promotion */
     promotion: string;
     /** Promote one of your pawn to a queen or minor piece. */
     promotionDescription: string;
     /** These puzzles are in the public domain, and can be downloaded from %s. */
     puzzleDownloadInformation: I18nFormat;
+    /** Quadruple Check Checkmate (四照将) */
+    quadrupleCheckMate: string;
+    /** Four attacks spell death. */
+    quadrupleCheckMateDescription: string;
+    /** Here, a sideways chariot move gives check, clears both horses’ legs, and supplies a screen for the cannon’s check. */
+    quadrupleCheckMateFinish: string;
+    /** Four simultaneous checks are possible in a composed xiangqi position, although this is exceptionally unlikely in play. */
+    quadrupleCheckMateLesson: string;
     /** Queen endgame */
     queenEndgame: string;
     /** An endgame with only queens and pawns. */
@@ -2981,6 +3425,14 @@ interface I18n {
     quietMove: string;
     /** A move that does not check, capture, or create an immediate threat to capture. Instead, it prepares a hidden and unavoidable threat for a later move. */
     quietMoveDescription: string;
+    /** Repatriation of the Buddha (送佛归殿) */
+    repatriationOfBuddha: string;
+    /** Escort the Buddha back to his hall—one forcing pawn-step at a time, until there is nowhere farther to retreat. */
+    repatriationOfBuddhaDescription: string;
+    /** Cannons prevent capture and escape as the soldier gives the final check. */
+    repatriationOfBuddhaFinish: string;
+    /** A cannon protects a soldier’s advance, driving the general toward the back rank. */
+    repatriationOfBuddhaLesson: string;
     /** Rook endgame */
     rookEndgame: string;
     /** An endgame with only rooks and pawns. */
@@ -2989,18 +3441,76 @@ interface I18n {
     sacrifice: string;
     /** A tactic involving giving up material in the short-term, to gain an advantage again after a forced sequence of moves. */
     sacrificeDescription: string;
+    /** Servant Crowding Master Attack (臣压君) */
+    servantCrowdingMasterAttack: string;
+    /** The servant presses so close that the sovereign has no room to breathe. */
+    servantCrowdingMasterAttackDescription: string;
+    /** Here, the cannon checks along the back rank; the crowded advisor cannot move away to remove the cannon’s screen. */
+    servantCrowdingMasterAttackFinish: string;
+    /** The general’s own pieces occupy its escape squares, allowing a cannon, horse, or another attacker to deliver mate. */
+    servantCrowdingMasterAttackLesson: string;
     /** Short puzzle */
     short: string;
     /** Two moves to win. */
     shortDescription: string;
+    /** Single Horse Captures the King (单马擒王) */
+    singleHorseCapturesKing: string;
+    /** One horse lays siege to Youzhou. */
+    singleHorseCapturesKingDescription: string;
+    /** A quiet general move leaves no legal reply: stalemate wins in xiangqi. */
+    singleHorseCapturesKingFinish: string;
+    /** A horse controls the palace’s middle rank while your general blocks sideways escape. */
+    singleHorseCapturesKingLesson: string;
     /** Skewer */
     skewer: string;
     /** A motif involving a high value piece being attacked, moving out the way, and allowing a lower value piece behind it to be captured or attacked, the inverse of a pin. */
     skewerDescription: string;
+    /** Small Iron Bolt (小铁门栓) */
+    smallIronBolt: string;
+    /** The cannon commands the center; little ghosts knock at the gate. */
+    smallIronBoltDescription: string;
+    /** Small Throat Cutting Checkmate (小刀剜心) */
+    smallThroatCuttingMate: string;
+    /** The little blade pierces the heart. */
+    smallThroatCuttingMateDescription: string;
+    /** Here, the cannon pins the defenders; the other soldier prevents capture and escape. */
+    smallThroatCuttingMateFinish: string;
+    /** Invade the rank just ahead of the general’s back rank with a soldier. */
+    smallThroatCuttingMateLesson: string;
+    /** Smothered Cannon (闷宫) */
+    smotheredCannon: string;
+    /** A general sheltering behind an advisor must beware the cannon. */
+    smotheredCannonDescription: string;
+    /** The advisor serving as the cannon’s screen cannot move because the other advisor blocks its destination. */
+    smotheredCannonFinish: string;
+    /** A cannon checks a general boxed in by its own defenders. */
+    smotheredCannonLesson: string;
     /** Smothered mate */
     smotheredMate: string;
     /** A checkmate delivered by a knight in which the mated king is unable to move because it is surrounded (or smothered) by its own pieces. */
     smotheredMateDescription: string;
+    /** Soldier (Pawn) Killing Methods */
+    soldierKillingMethods: string;
+    /** Soldier */
+    soldierMatingMethods: string;
+    /** Practice mating attacks using soldiers. */
+    soldierMatingMethodsDescription: string;
+    /** Spring Horse Checkmate (拔簧马) */
+    springHorseMate: string;
+    /** The chariot borrows the horse’s strength. */
+    springHorseMateDescription: string;
+    /** The chariot seals escape squares as the unblocked horse delivers mate. */
+    springHorseMateFinish: string;
+    /** A chariot temporarily blocks its own horse’s leg, then moves away to release a discovered check. */
+    springHorseMateLesson: string;
+    /** Stalemate Checkmate (禁闭杀) */
+    stalemateMate: string;
+    /** Seal every road and leave the general untouched; the prison itself delivers the sentence. */
+    stalemateMateDescription: string;
+    /** Here, move the horse to the palace corner to cover the general’s remaining exits and force stalemate. */
+    stalemateMateFinish: string;
+    /** In xiangqi, a player with no legal move loses even when the general is not in check. */
+    stalemateMateLesson: string;
     /** Super GM games */
     superGM: string;
     /** Puzzles from games played by the best players in the world. */
@@ -3009,6 +3519,34 @@ interface I18n {
     swallowstailMate: string;
     /** A checkmate pattern that visually resembles the appearance of a swallow’s tail, similar to a V shape. */
     swallowstailMateDescription: string;
+    /** Three Chariot Attack (三把手) */
+    threeChariotAttack: string;
+    /** Two chariots batter the gate; the general lends the invisible third hand. */
+    threeChariotAttackDescription: string;
+    /** Three Chariots Harassing Advisor (三车闹士) */
+    threeChariotsHarassingAdvisor: string;
+    /** The pawns join the chariots’ work; three attackers throw the court into uproar. */
+    threeChariotsHarassingAdvisorDescription: string;
+    /** The chariot pins the advisor while one soldier mates, protected by the other. */
+    threeChariotsHarassingAdvisorFinish: string;
+    /** A chariot and two advanced soldiers cooperate against the palace as three powerful attackers. */
+    threeChariotsHarassingAdvisorLesson: string;
+    /** Three Immortals Refining the Elixir (三仙炼丹) */
+    threeImmortalsRefiningTheElixir: string;
+    /** Three humble soldiers become immortals around the furnace, tending the attack until the palace gives way. */
+    threeImmortalsRefiningTheElixirDescription: string;
+    /** Here, the general supports the final soldier check while another soldier closes the escape route. */
+    threeImmortalsRefiningTheElixirFinish: string;
+    /** Three soldiers maneuver around the palace, forcing the defenders to rearrange until a mating net forms. */
+    threeImmortalsRefiningTheElixirLesson: string;
+    /** Throat Cutting Checkmate (大刀剜心) */
+    throatCuttingMate: string;
+    /** The great blade gouges the heart; the old general writhes. */
+    throatCuttingMateDescription: string;
+    /** Here, sacrifice a chariot; your general pins the advisor for the other chariot’s mate. */
+    throatCuttingMateFinish: string;
+    /** Invade the throat rank, just in front of the general’s back rank. */
+    throatCuttingMateLesson: string;
     /** Trapped piece */
     trappedPiece: string;
     /** A piece is unable to escape capture as it has limited moves. */
@@ -3017,6 +3555,14 @@ interface I18n {
     triangleMate: string;
     /** The queen and rook, one square away from the enemy king, are on the same rank or file, separated by one square, forming a triangle. */
     triangleMateDescription: string;
+    /** Triple Check Checkmate (三照将) */
+    tripleCheckMate: string;
+    /** Lift one obstruction, and three threats spring free. */
+    tripleCheckMateDescription: string;
+    /** Here, the soldier steps sideways to check, freeing the horse and becoming the cannon’s screen. The other cannon protects the soldier. */
+    tripleCheckMateFinish: string;
+    /** A single move can give three checks by attacking directly, clearing a horse’s leg, and supplying a cannon screen. */
+    tripleCheckMateLesson: string;
     /** Underpromotion */
     underPromotion: string;
     /** Promotion to a knight, bishop, or rook. */
@@ -3029,6 +3575,40 @@ interface I18n {
     vukovicMate: string;
     /** A rook and knight team up to mate the king. The rook delivers mate while supported by a third piece, and the knight is used to block the king's escape squares. */
     vukovicMateDescription: string;
+    /** Watch the lesson */
+    watchLesson: string;
+    /** White Faced General (白脸将) */
+    whiteFacedGeneral: string;
+    /** The generals smile across the board; one unbroken gaze closes the other’s escape. */
+    whiteFacedGeneralDescription: string;
+    /** A sacrifice removes a defender; the chariot captures the blockers and mates. */
+    whiteFacedGeneralFinish: string;
+    /** Your general controls the central file, blocking sideways escape. */
+    whiteFacedGeneralLesson: string;
+    /** White Horse Checkmate (白马现蹄) */
+    whiteHorseMate: string;
+    /** A backward leap reveals the hoof: the horse checks from the corner, and the chariot strikes. */
+    whiteHorseMateDescription: string;
+    /** Here, sacrifice a chariot for the advisor, then bring the horse to the palace corner so the other chariot can mate. */
+    whiteHorseMateFinish: string;
+    /** Place a horse on the throat rank in front of an enemy horse’s starting square, supporting an attack on an advisor. */
+    whiteHorseMateLesson: string;
+    /** Winning Material by Double Attack (捉双得子) */
+    winningMaterialByDoubleAttack: string;
+    /** Practice winning material by double attack (捉双得子). */
+    winningMaterialByDoubleAttackDescription: string;
+    /** Winning Material by Restraint (牵制得子) */
+    winningMaterialByRestraint: string;
+    /** Practice winning material by restraint (牵制得子). */
+    winningMaterialByRestraintDescription: string;
+    /** Winning Material by Skewer (串打得子) */
+    winningMaterialBySkewer: string;
+    /** Practice winning material by skewer (串打得子). */
+    winningMaterialBySkewerDescription: string;
+    /** Winning Material by Trapping (困子得子) */
+    winningMaterialByTrapping: string;
+    /** Practice winning material by trapping (困子得子). */
+    winningMaterialByTrappingDescription: string;
     /** X-Ray attack */
     xRayAttack: string;
     /** A piece attacks or defends a square, through an enemy piece. */
@@ -3719,8 +4299,14 @@ interface I18n {
     endgame: string;
     /** Endgame positions */
     endgamePositions: string;
+    /** Downloading engine: %1$s (%2$s / %3$s MB) */
+    engineDownloadProgress: I18nFormat;
+    /** Downloading engine: %s MB */
+    engineDownloadSize: I18nFormat;
     /** Error loading engine */
     engineFailed: string;
+    /** Could not load the engine. Retry to continue. */
+    engineLoadingFailed: string;
     /** Special move rights */
     enPassant: string;
     /** This email address is invalid */
@@ -4597,6 +5183,8 @@ interface I18n {
     security: string;
     /** See best move */
     seeBestMove: string;
+    /** Select matching pieces */
+    selectMatchingPieces: string;
     /** Send */
     send: string;
     /** If you can't find your confirmation email, send an email to %s and we'll confirm your account for you. */
@@ -4703,6 +5291,8 @@ interface I18n {
     startedStreaming: string;
     /** Starting: */
     starting: string;
+    /** Starting engine... */
+    startingEngine: string;
     /** Starting in */
     startingIn: string;
     /** Start */
@@ -6189,6 +6779,388 @@ interface I18n {
     yearlyX: I18nFormat;
     /** Yearly %s Arena */
     yearlyXArena: I18nFormat;
+  };
+  traffic: {
+    /** Game aborted */
+    aborted: string;
+    /** Accepted */
+    accepted: string;
+    /** Registrations */
+    accounts: string;
+    /** Registrations are successful account creations. Historical registrations are reconstructed from remaining account records; deleted accounts cannot be reconstructed. The saved-account census below includes defaults and distinguishes enabled non-bot accounts from the full recorded account population. */
+    accountsHelp: string;
+    /** Traffic & acquisition */
+    acquisition: string;
+    /** Compare sources by engagement and successful activity as well as visitor counts. Country, region and city are approximate network locations; unknown locations stay visible. Sources are session-attributed when collection is available. */
+    acquisitionHelp: string;
+    /** Accounts with observed activation */
+    activated: string;
+    /** Activity */
+    activity: string;
+    /** All categories */
+    all: string;
+    /** Anonymous visitors */
+    anonymous: string;
+    /** Appearance */
+    appearance: string;
+    /** Appearance changes */
+    appearance_changed: string;
+    /** Compare board time, users, selection changes and saved-account share. A short-lived selection may reflect experimentation or poor fit; compare meaningful usage before retiring an option. All options and labels come from the site catalogs automatically. */
+    appearanceHelp: string;
+    /** Apply filters */
+    apply: string;
+    /** Search attempt cohort */
+    attemptCohort: string;
+    /** Audience */
+    audience: string;
+    /** Audio */
+    audio: string;
+    /** Audio setting changes */
+    audio_changed: string;
+    /** Enabled music, enabled effects, selected packs and actual music playback are separate measurements. Playback depends on volume, browser autoplay and tab ownership. Percentages of time use measured engaged time as the denominator; they do not describe all registered accounts. */
+    audioHelp: string;
+    /** Latest observed setting per registered browser in the last 30 days. Account counts deduplicate people across their observed browsers and count enabled if any recent browser is enabled. Users can have different settings on different browsers. This is not a census of all accounts. */
+    audioSnapshotHelp: string;
+    /** Background image */
+    background: string;
+    /** Mean observed use before switching */
+    beforeSwitch: string;
+    /** Board style */
+    board: string;
+    /** Active board time */
+    boardMs: string;
+    /** Board + pieces */
+    boardPieces: string;
+    /** Server events waiting in memory */
+    buffered: string;
+    /** Campaign */
+    campaign: string;
+    /** City */
+    city: string;
+    /** Collection errors */
+    client_error: string;
+    /** Mean CLS (sampled) */
+    clsMilli: string;
+    /** Attempts accepted in the selected period, with outcomes as of now. Repeated observations are deduplicated by attempt. Unresolved includes interrupted collection or service restarts and is not automatically counted as abandonment. */
+    cohortNotes: string;
+    /** Cohort size */
+    cohortSize: string;
+    /** Resolved color scheme */
+    colorScheme: string;
+    /** Full appearance combination */
+    combination: string;
+    /** Compare previous period */
+    compare: string;
+    /** Changed component */
+    component: string;
+    /** Country */
+    country: string;
+    /** Known crawlers, optional browser privacy opt-outs and administrators are excluded from browser collection by default. Anonymous identities cannot be reliably linked across devices or cleared storage. Tracking provides evidence for investigation, not proof of a design problem. */
+    coverageNotes: string;
+    /** Button clicks */
+    cta_clicked: string;
+    /** Button exposures */
+    cta_exposed: string;
+    /** Cumulative total */
+    cumulative: string;
+    /** All-audience registration charts include observed registrations before the selected period. Category charts accumulate within the selected period. Historical backfill covers surviving account records only. */
+    cumulativeNotes: string;
+    /** Recent registered browser settings */
+    currentAudio: string;
+    /** Daily */
+    day: string;
+    /** Day 1 return */
+    dayOne: string;
+    /** Day 7 return */
+    daySeven: string;
+    /** Day 30 return */
+    dayThirty: string;
+    /** Definitions and limitations */
+    definitions: string;
+    /** Device class */
+    device: string;
+    /** Puzzle difficulty */
+    difficulty: string;
+    /** Break down by */
+    dimension: string;
+    /** Server events dropped since restart */
+    dropped: string;
+    /** Accounts with effects enabled on a recent browser */
+    effectsAccounts: string;
+    /** Effects enabled */
+    effectsEnabled: string;
+    /** Time with effects enabled */
+    effectsEnabledMs: string;
+    /** Engaged time with effects enabled */
+    effectsShare: string;
+    /** Collector enabled */
+    enabled: string;
+    /** Engaged time */
+    engagedMs: string;
+    /** Engaged / visible time */
+    engagement: string;
+    /** Error category */
+    error: string;
+    /** Approximate 95% interval */
+    estimateRange: string;
+    /** Everyone */
+    everyone: string;
+    /** Export categories (CSV) */
+    exportCsv: string;
+    /** Game reached first move */
+    firstMove: string;
+    /** From */
+    from: string;
+    /** Games ended */
+    game_completed: string;
+    /** IP Geolocation by DB-IP */
+    geoAttribution: string;
+    /** Geography database available */
+    geoAvailable: string;
+    /** Interval */
+    grain: string;
+    /** Hourly */
+    hour: string;
+    /** hours */
+    hoursUnit: string;
+    /** Mean INP (sampled) */
+    inpMs: string;
+    /** Investigate high-traffic pages with low engagement before smaller pages. */
+    insightPage: string;
+    /** Use larger samples and compare periods before deciding to remove a style. */
+    insightSamples: string;
+    /** Understand where visitors come from, what they do, and where their experience can improve. */
+    intro: string;
+    /** Site language */
+    language: string;
+    /** Mean LCP (sampled) */
+    lcpMs: string;
+    /** Left queue */
+    left: string;
+    /** Lesson practice actions */
+    lesson_practice: string;
+    /** Lessons started */
+    lesson_started: string;
+    /** Unable to load this report. Try a shorter date range or a coarser interval, then retry. */
+    loadError: string;
+    /** Loading report… */
+    loading: string;
+    /** Matchmaking */
+    matchmaking: string;
+    /** Follow exposure → click → room → accepted search → pairing → round ready. These time-window counts are not a conversion funnel: attempts can cross the selected dates. Use the attempt cohort below for pairing rates and unresolved searches. Wait percentiles are histogram upper bounds among paired searches, not promises about future waits. */
+    matchmakingHelp: string;
+    /** Mean visible visit duration */
+    meanVisit: string;
+    /** Measurement */
+    measurement: string;
+    /** Engagement ends after two minutes without interaction, excludes hidden tabs and gives one tab attention ownership. Visible time can include reading or thinking. Sleeping-device gaps are discarded. Unique estimates are merged across time, never summed. Cumulative charts are available only for additive measures. */
+    measurementNotes: string;
+    /** Measurement installed */
+    measurementStartedAt: string;
+    /** Campaign medium */
+    medium: string;
+    /** Mode */
+    mode: string;
+    /** Monthly */
+    month: string;
+    /** Music track */
+    music: string;
+    /** Accounts with music enabled on a recent browser */
+    musicAccounts: string;
+    /** Music enabled */
+    musicEnabled: string;
+    /** Time with music enabled */
+    musicEnabledMs: string;
+    /** Actual music playback time */
+    musicPlayingMs: string;
+    /** Engaged time with music enabled */
+    musicShare: string;
+    /** No previous-period baseline */
+    noBaseline: string;
+    /** No observations match these filters. Check collection health and the measurement start date. */
+    noData: string;
+    /** Notation sessions finished */
+    notation_finished: string;
+    /** Notation sessions started */
+    notation_started: string;
+    /** Recently observed accounts */
+    observedAccounts: string;
+    /** Oldest unprocessed event */
+    oldestPendingAt: string;
+    /** Outcome */
+    outcome: string;
+    /** Overview */
+    overview: string;
+    /** Start with the trend, then compare the previous period and open a category. Visitor estimates identify browsers, not individual people. A person using multiple devices can appear more than once. */
+    overviewHelp: string;
+    /** Page views */
+    page: string;
+    /** Pages & engagement */
+    pages: string;
+    /** Find pages with substantial traffic but little engagement. A quick exit is a completed observed visit with under 10 seconds of visible time and no tracked activity. Visible reading time and active interaction time are separate; short visits can also mean visitors found what they needed. */
+    pagesHelp: string;
+    /** Paired */
+    paired: string;
+    /** Pairing rate */
+    pairingRate: string;
+    /** Observed identities (estimated) */
+    participants: string;
+    /** Not available yet */
+    pending: string;
+    /** Performance observations */
+    performance: string;
+    /** Performance is sampled on 10% of page loads using web-vitals. Each metric uses its first finalized observation per navigation; later visibility periods can differ. Missing/unsupported measurements are excluded, not zeros. Browser coverage and small samples limit comparisons. */
+    performanceNotes: string;
+    /** Piece style */
+    pieces: string;
+    /** Button placement */
+    placement: string;
+    /** Engaged time with music playing */
+    playingShare: string;
+    /** Time control */
+    pool: string;
+    /** Previous period */
+    previousPeriod: string;
+    /** LiXiangQi measures page usage, approximate network location, gameplay and appearance preferences to improve the site. Optional browser measurement uses a pseudonymous browser identifier. It does not record keystroke contents, custom image URLs, full referrer URLs or session recordings. Browser privacy signals are respected. */
+    privacyDescription: string;
+    /** Disable optional traffic measurement on this browser */
+    privacyDisable: string;
+    /** Analytics records are kept indefinitely. Disabling optional browser measurement stops future browser observations on this browser; it does not erase previously recorded data. Aggregate operational activity and saved-account preference statistics remain available to administrators. */
+    privacyRetention: string;
+    /** Traffic measurement preferences */
+    privacyTitle: string;
+    /** Last processing check */
+    processedAt: string;
+    /** Puzzle results submitted */
+    puzzle_completed: string;
+    /** Next-puzzle actions */
+    puzzle_next: string;
+    /** Puzzles presented */
+    puzzle_presented: string;
+    /** Practice retries */
+    puzzle_retry: string;
+    /** Solutions revealed */
+    puzzle_revealed: string;
+    /** Puzzle review entries */
+    puzzle_review: string;
+    /** Puzzles with a first move */
+    puzzle_started: string;
+    /** Puzzles & learning */
+    puzzles: string;
+    /** Puzzle presentations, first moves, submitted results, solution reveals and next-puzzle actions answer different questions. Solving time excludes review and hidden tabs. A selected puzzle theme differs from the puzzle’s overlapping classification tags. Notation sessions include anonymous practice. */
+    puzzlesHelp: string;
+    /** Data quality */
+    quality: string;
+    /** Check processing freshness, collection loss and unknown categories before interpreting changes. Collection is optional and can be blocked. Server outcomes and browser observations have different coverage; the absence of a browser event does not prove the absence of activity. */
+    qualityHelp: string;
+    /** Quick-exit visits */
+    quickExit: string;
+    /** Referring domain */
+    referrer: string;
+    /** Region */
+    region: string;
+    /** Registered users */
+    registered: string;
+    /** Recently observed registered browsers */
+    registeredBrowsers: string;
+    /** Rejected batches since restart */
+    rejected: string;
+    /** Retention */
+    retention: string;
+    /** Return activity */
+    retentionCohort: string;
+    /** Accounts created since measurement began, within the selected range, and meaningful activity on reporting-calendar days 1, 7 and 30 after signup. Only fully elapsed follow-up days enter each denominator. This cohort covers all accounts regardless of the audience/category controls above; cells smaller than ten are withheld. Activation means an accepted puzzle result, a played game, a completed lesson or a completed notation session. Historical or blocked browser activity is unobservable, not proof that a person never returned. */
+    retentionHelp: string;
+    /** Events, durations, hourly summaries and historical snapshots are retained indefinitely. No age-based deletion or TTL index is used. */
+    retentionNotes: string;
+    /** Room entries */
+    room_entered: string;
+    /** Round handoff failures */
+    round_failed: string;
+    /** Round interface ready */
+    round_ready: string;
+    /** Game board ready */
+    roundReady: string;
+    /** Save */
+    save: string;
+    /** Saved account preferences */
+    savedPreferences: string;
+    /** Accepted searches */
+    search_accepted: string;
+    /** Client cancellations */
+    search_cancelled: string;
+    /** Search clicks */
+    search_clicked: string;
+    /** Failed search requests */
+    search_failed: string;
+    /** Cancelled / disconnected searches */
+    search_left: string;
+    /** Paired searches */
+    search_paired: string;
+    /** seconds */
+    secondsUnit: string;
+    /** Observed selection episodes ending in a switch */
+    selectionEpisodes: string;
+    /** Switch durations measure observed use on this browser before switching: board-visible engagement for boards/pieces, foreground engagement for other options. Episodes can span page loads. Ongoing selections, cleared storage, offline periods and other devices are incomplete evidence; this is not time since an account saved a preference. Use the transition breakdown to identify the previous and next option. */
+    selectionNotes: string;
+    /** Sessions (estimated) */
+    sessions: string;
+    /** Share of category total */
+    share: string;
+    /** City categories and timeline buckets with fewer than 10 measured subjects are withheld. Missing buckets are not evidence of zero traffic. */
+    smallCellsNotes: string;
+    /** Fewer than 10 eligible accounts */
+    smallSample: string;
+    /** Last completed census (UTC) */
+    snapshotDate: string;
+    /** Daily census of enabled, non-bot accounts, including accounts using default settings. Country here is a self-selected profile flag, not a measured network location. Local browser audio toggles are not saved account preferences. */
+    snapshotNotes: string;
+    /** Puzzle solving time */
+    solvingMs: string;
+    /** Sound effects pack */
+    sound: string;
+    /** Campaign source */
+    source: string;
+    /** Top 100 categories, ordered by the selected measurement. Click a category to view its timeline. Category visitor shares can overlap when a browser uses multiple options or visits multiple pages. Export includes all matching categories within the query budget. */
+    tableNotes: string;
+    /** Selected puzzle theme */
+    theme: string;
+    /** UI + background */
+    themeBackground: string;
+    /** Traffic Stats */
+    title: string;
+    /** Through */
+    to: string;
+    /** Style transition */
+    transition: string;
+    /** UI theme */
+    uiTheme: string;
+    /** Unresolved */
+    unresolved: string;
+    /** Last processing check */
+    updated: string;
+    /** New registrations */
+    user_registered: string;
+    /** Calendar boundaries: UTC */
+    utc: string;
+    /** versus previous period */
+    versusPrevious: string;
+    /** Visible page time */
+    visibleMs: string;
+    /** Completed observed visits */
+    visit_closed: string;
+    /** Distinct browsers (estimated) */
+    visitors: string;
+    /** Median paired wait (upper bound) */
+    waitP50: string;
+    /** 90th percentile paired wait (upper bound) */
+    waitP90: string;
+    /** 95th percentile paired wait (upper bound) */
+    waitP95: string;
+    /** Weekly */
+    week: string;
+    /** Yearly */
+    year: string;
   };
   ublog: {
     /** %s blog posts */

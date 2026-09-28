@@ -24,15 +24,8 @@ final private class PayPalClient(
     cacheApi: CacheApi
 )(using Executor):
 
-  import PayPalClient.*
+  import PayPalClient.{ *, given }
   import JsonHandlers.payPal.given
-
-  given moneyWrites: OWrites[Money] = OWrites[Money] { money =>
-    Json.obj(
-      "currency_code" -> money.currencyCode,
-      "value" -> money.amount
-    )
-  }
 
   private object path:
     val orders = "v2/checkout/orders"
@@ -57,17 +50,19 @@ final private class PayPalClient(
       if data.isLifetime then
         (
           "Lifetime Patron",
-          "Support Lichess and get the Patron wings permanently. One-time lifetime contribution."
+          "Support LiXiangQi and get the Patron wings permanently. One-time lifetime contribution."
         )
       else
         (
           "One-time Patron",
-          "Support Lichess and get the Patron wings for one month. Will not renew automatically."
+          "Support LiXiangQi and get the Patron wings for one month. Will not renew automatically."
         )
     postOne[PayPalOrderCreated](
       path.orders,
       Json.obj(
         "intent" -> "CAPTURE",
+        "application_context" -> Json
+          .obj("brand_name" -> "LiXiangQi", "shipping_preference" -> "NO_SHIPPING"),
         "purchase_units" -> List(
           Json.obj(
             "custom_id" -> data.makeCustomId,
@@ -82,7 +77,7 @@ final private class PayPalClient(
                 "name" -> itemName,
                 "description" -> itemDesc,
                 "unit_amount" -> data.checkout.money,
-                "quantity" -> 1
+                "quantity" -> "1"
               )
             )
           )
@@ -92,7 +87,10 @@ final private class PayPalClient(
 
   // actually triggers the payment for a onetime order
   def captureOrder(id: PayPalOrderId): Fu[PayPalOrder] =
-    postOne[PayPalOrder](path.capture(id), Json.obj())
+    request(path.capture(id)).flatMap:
+      _.addHttpHeaders("PayPal-Request-Id" -> s"capture-${id.value}")
+        .post(Json.obj())
+        .flatMap(response[PayPalOrder])
 
   def createSubscription(checkout: PlanCheckout, user: User): Fu[PayPalSubscriptionCreated] =
     plans.get(checkout.money.currency).flatMap { plan =>
@@ -101,6 +99,8 @@ final private class PayPalClient(
         Json.obj(
           "plan_id" -> plan.id.value,
           "custom_id" -> user.id,
+          "application_context" -> Json
+            .obj("brand_name" -> "LiXiangQi", "shipping_preference" -> "NO_SHIPPING"),
           "plan" -> Json.obj(
             "billing_cycles" -> Json.arr(
               Json.obj(
@@ -128,8 +128,14 @@ final private class PayPalClient(
   def getSubscription(id: PayPalSubscriptionId): Fu[Option[PayPalSubscription]] =
     getOne[PayPalSubscription](s"${path.subscriptions}/$id").recover:
       case CantParseException(json, _)
-          if json.str("status").exists(status => status == "CANCELLED" || status == "SUSPENDED") =>
+          if json.str("status").exists(status => status == "CANCELLED" || status == "EXPIRED") =>
         none
+
+  def subscriptionTransactions(id: PayPalSubscriptionId): Fu[List[PayPalSubscriptionTransaction]] =
+    val end = nowInstant
+    get[List[PayPalSubscriptionTransaction]](
+      s"${path.subscriptions}/$id/transactions?start_time=${end.minusDays(31)}&end_time=$end"
+    )(using (__ \ "transactions").read[List[PayPalSubscriptionTransaction]])
 
   def getEvent(id: PayPalEventId): Fu[Option[PayPalEvent]] =
     getOne[PayPalEvent](s"${path.events}/$id")
@@ -153,7 +159,7 @@ final private class PayPalClient(
       Json.obj(
         "product_id" -> patronMonthProductId,
         "name" -> s"Monthly Patron $currency",
-        "description" -> s"Support Lichess and get Patron wings. The subscription is renewed every month. Currency: $currency",
+        "description" -> s"Support LiXiangQi and get Patron wings. The subscription is renewed every month. Currency: $currency",
         "status" -> "ACTIVE",
         "billing_cycles" -> Json.arr(
           Json.obj(
@@ -191,12 +197,16 @@ final private class PayPalClient(
   private def postOne[A: Reads](url: String, data: JsObject): Fu[A] = post[A](url, data)
 
   private def post[A: Reads](url: String, data: JsObject): Fu[A] =
-    logger.info(s"POST $url $data")
+    logger.debug(s"POST $url")
     request(url).flatMap { _.post(data).flatMap(response[A]) }
 
   private def postOneNoResponse(url: String, data: JsObject): Funit =
-    logger.info(s"POST $url $data")
-    request(url).flatMap(_.post(data)).void
+    logger.debug(s"POST $url")
+    request(url)
+      .flatMap(_.post(data))
+      .flatMap: res =>
+        if res.status == 204 then funit
+        else fufail(new StatusException(res.status, "PayPal cancellation failed"))
 
   private lazy val logger = lila.log("plan.payPal")
 
@@ -240,6 +250,15 @@ final private class PayPalClient(
         .monSuccess(lila.mon.plan.paypalCheckout.fetchAccessToken)
 
 object PayPalClient:
+
+  // Play's decimal form mapping retains three places (e.g. 10.000). PayPal
+  // validates the string's scale, even when the extra digits are only zeros.
+  given moneyWrites: OWrites[Money] = OWrites: money =>
+    val scale = CurrencyApi.payPalFractionDigits(money.currency)
+    Json.obj(
+      "currency_code" -> money.currencyCode,
+      "value" -> money.amount.setScale(scale, BigDecimal.RoundingMode.UNNECESSARY).bigDecimal.toPlainString
+    )
 
   case class AccessToken(value: String) extends StringValue
 

@@ -75,14 +75,9 @@
   <string name="mateIn3Description">ಚೆಕ್ಮೇಟ್ ಅನ್ನು ಮೂರು ಚಲನೆಗಳಲ್ಲಿ ತಲುಪಿಸಿ.</string>
   <string name="mateIn4">4 ರಲ್ಲಿ ಸಂಗಾತಿ</string>
   <string name="mateIn4Description">ಚೆಕ್ಮೇಟ್ ಅನ್ನು ನಾಲ್ಕು ಚಲನೆಗಳಲ್ಲಿ ತಲುಪಿಸಿ.</string>
-  <string name="mateIn5">5 ಅಥವಾ ಹೆಚ್ಚಿನ ಚಲನೆಗಳಲ್ಲಿ ಸಂಗಾತಿ</string>
   <string name="mateIn5Description">ದೀರ್ಘ ಸಂಯೋಗದ ಅನುಕ್ರಮವನ್ನು ಲೆಕ್ಕಾಚಾರ ಮಾಡಿ.</string>
-  <string name="middlegame">ಮಧ್ಯಮ ಆಟ</string>
-  <string name="middlegameDescription">ಆಟದ ಎರಡನೇ ಹಂತದ ಸಮಯದಲ್ಲಿ ಒಂದು ತಂತ್ರ.</string>
   <string name="oneMove">ಒಂದು ಚಲನೆಯ ಒಗಟು</string>
   <string name="oneMoveDescription">ಕೇವಲ ಒಂದು ನಡೆಯನ್ನು ಹೊಂದಿರುವ ಒಗಟು.</string>
-  <string name="opening">ತೆರೆಯಲಾಗುತ್ತಿದೆ</string>
-  <string name="openingDescription">ಆಟದ ಮೊದಲ ಹಂತದಲ್ಲಿ ಒಂದು ತಂತ್ರ.</string>
   <string name="pawnEndgame">ಪ್ಯಾದೆಯ ಅಂತಿಮ ಆಟ</string>
   <string name="pawnEndgameDescription">ಕೇವಲ ಪ್ಯಾದೆಗಳೊಂದಿಗೆ ಅಂತಿಮ ಆಟ.</string>
   <string name="pin">ಪಿನ್</string>

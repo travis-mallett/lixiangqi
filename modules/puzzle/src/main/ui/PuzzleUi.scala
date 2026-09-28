@@ -10,11 +10,10 @@ import lila.ui.*
 
 import ScalatagsTemplate.{ *, given }
 
-final class PuzzleUi(helpers: Helpers, val bits: PuzzleBits)(
-    analyseCsp: Update[ContentSecurityPolicy],
-    externalEngineEndpoint: String
-):
+final class PuzzleUi(helpers: Helpers, val bits: PuzzleBits):
   import helpers.{ *, given }
+
+  private val themeLesson = new PuzzleThemeLessonUi(helpers)
 
   def show(
       puzzle: lila.puzzle.Puzzle,
@@ -49,13 +48,8 @@ final class PuzzleUi(helpers: Helpers, val bits: PuzzleBits)(
     val isStreak = data.value.contains("streak")
     Page(if isStreak then "Puzzle Streak" else trans.site.puzzles.txt())
       .css("puzzle")
-      .css(ctx.pref.hasKeyboardMove.option("keyboardMove"))
-      .css(ctx.pref.hasVoice.option("voice"))
-      .css(ctx.blind.option("round.nvui"))
+      .csp(_.withWebAssembly)
       .i18n(_.puzzle, _.puzzleTheme)
-      .i18nOpt(ctx.speechSynthesis, _.nvui)
-      .i18nOpt(ctx.blind, _.keyboardMove)
-      .js(ctx.blind.option(Esm("puzzle.nvui")))
       .js(
         PageModule(
           "puzzle",
@@ -64,13 +58,11 @@ final class PuzzleUi(helpers: Helpers, val bits: PuzzleBits)(
               "data" -> data,
               "pref" -> pref,
               "showRatings" -> ctx.pref.showRatings,
-              "settings" -> Json.obj("difficulty" -> settings.difficulty.key).add("color" -> settings.color),
-              "externalEngineEndpoint" -> externalEngineEndpoint
+              "settings" -> Json.obj("difficulty" -> settings.difficulty.key).add("color" -> settings.color)
             )
             .add("themes" -> ctx.isAuth.option(bits.jsonThemes))
         )
       )
-      .csp(analyseCsp)
       .graph(
         OpenGraph(
           image = image,
@@ -96,14 +88,22 @@ final class PuzzleUi(helpers: Helpers, val bits: PuzzleBits)(
   def themes(all: PuzzleAngle.All)(using ctx: Context) =
     Page(trans.puzzle.puzzleThemes.txt())
       .css("puzzle.page")
+      .js(esmInit("puzzle.themes"))
       .hrefLangs(lila.ui.LangPath(routes.Puzzle.themes)):
-        main(cls := "page-menu")(
+        main(cls := "page-menu puzzle-themes-page")(
           bits.pageMenu("themes", ctx.me),
           div(cls := "page-menu__content box")(
             h1(cls := "box__top")(trans.puzzle.puzzleThemes()),
             standardFlash.map(div(cls := "box__pad")(_)),
             div(cls := "puzzle-themes")(
-              all.themes.map(themeCategory),
+              all.themes.map(section =>
+                frag(
+                  h2(id := section.name.value)(section.name()),
+                  section.categories.map(category =>
+                    themeCategory(category.name, category.themes, category.name != section.name)
+                  )
+                )
+              ),
               themeInfo
             )
           )
@@ -114,33 +114,63 @@ final class PuzzleUi(helpers: Helpers, val bits: PuzzleBits)(
       trans.puzzleTheme.puzzleDownloadInformation:
         a(href := "https://database.lixiangqi.org/")("database.lixiangqi.org")
 
-  private def themeCategory(cat: I18nKey, themes: List[PuzzleTheme.WithCount])(using Context) =
+  private def themeCategory(cat: I18nKey, themes: List[PuzzleTheme.WithCount], nested: Boolean)(using
+      Context
+  ) =
+    val orderedThemes =
+      if cat == I18nKey.puzzleTheme.matingMethodsByPieceType || cat == I18nKey.puzzle.mateThemes then themes
+      else themes.sortBy(pt => -pt.count)
     frag(
-      h2(id := cat.value)(cat()),
+      nested.option(h3(cls := "puzzle-themes__category", id := cat.value)(cat())),
       div(cls := s"puzzle-themes__list ${cat.value.replace(":", "-")}")(
-        themes.map: pt =>
+        orderedThemes.map: pt =>
           val url =
             if pt.theme == PuzzleTheme.mix then routes.Puzzle.home
             else routes.Puzzle.show(pt.theme.key.value)
-          a(
-            cls := "puzzle-themes__link",
-            href := (pt.count > 0).option(langHref(url))
-          )(
-            img(src := assetUrl(s"images/puzzle-themes/${iconFile(pt.theme.key)}.svg")),
-            span(
-              h3(
-                pt.theme.name(),
-                em(cls := "puzzle-themes__count")(pt.count.localize)
+          val practiceUrl = (pt.count > 0).option(langHref(url))
+          div(cls := "puzzle-themes__card")(
+            a(
+              cls := "puzzle-themes__link",
+              href := practiceUrl
+            )(
+              span(cls := "puzzle-themes__icon")(
+                img(
+                  src := assetUrl(s"images/puzzle-themes/${pt.theme.iconFile}"),
+                  cls := pt.theme.iconFile.endsWith(".webp").option("puzzle-themes__illustration"),
+                  alt := "",
+                  widthA := 120,
+                  heightA := 72,
+                  attr("loading") := "lazy",
+                  attr("decoding") := "async"
+                )
               ),
-              span(pt.theme.description())
-            )
+              span(
+                h4(
+                  pt.theme.name(),
+                  em(cls := "puzzle-themes__count")(pt.count.localize)
+                ),
+                (!PuzzleTheme.pieceTypeMates.contains(pt.theme)).option(span(pt.theme.description()))
+              )
+            ),
+            PuzzleThemeLesson
+              .find(pt.theme)
+              .fold[Frag](
+                frag(
+                  (pt.theme != PuzzleTheme.mix && cat != I18nKey.puzzle.mateThemes &&
+                    !PuzzleTheme.pieceTypeMates.contains(pt.theme)).option:
+                    button(
+                      cls := "puzzle-themes__learn text",
+                      tpe := "button",
+                      disabled,
+                      dataIcon := Icon.Book
+                    )(
+                      trans.site.learnMenu()
+                    )
+                )
+              )(themeLesson(_, practiceUrl))
           )
       )
     )
-
-  private def iconFile(theme: PuzzleTheme.Key): String =
-    if theme.value.startsWith("mateIn") then "mate"
-    else theme.value
 
   def ofPlayer(query: String, user: Option[User], puzzles: Option[Paginator[Puzzle]])(using ctx: Context) =
     val title: String = (user, puzzles).tupled match

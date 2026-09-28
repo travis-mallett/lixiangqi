@@ -18,7 +18,6 @@
   <string name="youHaveLifetime">Siz — umrbod homiysiz. Bu juda ajoyib!</string>
   <string name="patronUntil">Sizning homiylik maqomingiz %s gacha amal qiladi.</string>
   <string name="ifNotRenewedThenAccountWillRevert">Agar homiylik yangilanmasa, hisobingiz oddiy foydalanuvchi holatiga qaytadi.</string>
-  <string name="weAreNonProfit">Bizning tashkilotimiz notijorat hisoblanadi, chunki jahon darajasidagi shaxmat hamma uchun bepul va ochiq boʻlishi kerak deb hisoblaymiz.</string>
   <string name="weRelyOnSupport">Lichessʼning mavjudligi siz kabi insonlarning qoʻllab‑quvvatlashiga bogʻliq. Agar platformamizdan foydalanish sizga yoqayotgan boʻlsa, donat qilish orqali homiylarimiz qatoriga qoʻshilishingizni iltimos qilib qolamiz!</string>
   <string name="lifetime">Umrbod</string>
   <string name="payLifetimeOnce">Bir marta %s toʻlang va umrbod Lichess homiysiga aylaning!</string>
@@ -34,20 +33,11 @@
   <string name="weAreSmallTeam">Biz kichik jamoamiz, shuning uchun sizning yordamingiz biz uchun juda katta ahamiyatga ega!</string>
   <string name="celebratedPatrons">Lichessʻning mavjudligiga hissa qoʻshayotgan olijanob homiylarimiz</string>
   <string name="whereMoneyGoes">Mablagʻlar qayerga sarflanadi?</string>
-  <string name="serversAndDeveloper">Birinchi navbatda — kuchli serverlarga.
-Mablagʻlar, shuningdek, Lichess asoschisi va asosiy dasturchisi %sning faoliyati uchun sarflanadi.
-</string>
-  <string name="costBreakdown">Xarajatlarning batafsil hisoboti bilan tanishing</string>
   <string name="officialNonProfit">Lichess rasmiy notijorat tashkilotmi?</string>
-  <string name="actOfCreation">Ha, mana bizning tashkil etilganligimiz haqidagi hujjat (fransuz tilida)</string>
   <string name="changeMonthlySupport">Har oylik yordamimni oʻzgartirishim yoki bekor qilishim mumkinmi?</string>
   <string name="changeSupport">Agar toʻlovlaringiz PayPal orqali amalga oshirilgan boʻlsa, qoʻllab‑quvvatlashni bekor qilish yoki oʻzgartirish uchun oʻz PayPal hisobingiz orqali amalga oshirishingiz mumkin. Yoki %1$s, buni siz uchun oʻzimiz bajarib beramiz. Agar PayPalʼdan foydalanmagan boʻlsangiz, demak toʻlovlaringiz Stripe orqali amalga oshirilgan boʻladi — bunday holatda donat miqdorini oʻzgartirish yoki uni bekor qilishni %2$s bajarishingiz mumkin.</string>
   <string name="patronPage">homiylar (patron) sahifada</string>
   <string name="contactSupport">Lichess yordam xizmati bilan bogʻlanishingiz mumkin</string>
-  <string name="otherMethods">Donat qilishning boshqa usullari bormi?</string>
-  <string name="lichessIsRegisteredWith">Lichess %s platformasida roʻyxatdan oʻtgan.</string>
-  <string name="bankTransfers">Shuningdek, biz bank oʻtkazmalarini ham qabul qilamiz</string>
-  <string name="onlyDonationFromAbove">Iltimos, eʼtibor bering: faqat yuqoridagi donat formasi orqali toʻlov qilingandagina \"Homiy\" maqomi beriladi.</string>
   <string name="patronFeatures">Homiylar uchun maxsus imtiyozlar bormi?</string>
   <string name="noPatronFeatures">Yoʻq, chunki Lichess hamma uchun har doim butunlay bepul. Bu — bizning vaʼdamiz.
 Lekin homiylar oʻz profillarida koʻrinib turadigan chiroyli \"homiylik qanotlari\"ga ega boʻladilar.</string>
@@ -84,6 +74,5 @@ Lekin homiylar oʻz profillarida koʻrinib turadigan chiroyli \"homiylik qanotla
   <string name="changeCurrency">Valyutani oʻzgartirish</string>
   <string name="paymentDetails">Toʻlov tafsilotlari</string>
   <string name="updatePaymentMethod">Toʻlov usulini yangilash</string>
-  <string name="stripeManageSub">Obunangizni boshqaring hamda hisob‑faktura va kvitansiyalaringizni yuklab oling</string>
   <string name="coverFees">Toʻlov komissiyasini qoplashga yana %s qoʻshaman</string>
 </resources>

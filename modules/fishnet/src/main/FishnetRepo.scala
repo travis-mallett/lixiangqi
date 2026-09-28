@@ -42,6 +42,10 @@ final private class FishnetRepo(
   def getAnalysis(id: Work.Id) = analysisColl.byId[Work.Analysis](id)
   def updateAnalysis(ana: Work.Analysis) = analysisColl.update.one($id(ana.id), ana).void
   def deleteAnalysis(ana: Work.Analysis) = analysisColl.delete.one($id(ana.id)).void
+  def cancelGame(id: GameId): Funit =
+    cancelGames(List(id))
+  def cancelGames(ids: List[GameId]): Funit = ids.nonEmpty.so:
+    analysisColl.delete.one($doc("game.id".$in(ids), "game.studyId".$exists(false)), limit = Some(0)).void
   def updateOrGiveUpAnalysis(ana: Work.Analysis, update: Work.Analysis => Work.Analysis) =
     if ana.isOutOfTries then
       logger.warn(s"Give up on analysis $ana")

@@ -99,14 +99,9 @@
   <string name="mateIn3Description">Матирай с три хода.</string>
   <string name="mateIn4">Мат в 4 хода</string>
   <string name="mateIn4Description">Матирай с четири хода.</string>
-  <string name="mateIn5">Мат в 5 или повече хода</string>
   <string name="mateIn5Description">Намерете дълга последователност от ходове водеща до мат.</string>
-  <string name="middlegame">Мителшпил</string>
-  <string name="middlegameDescription">Тактика във втората фаза на играта.</string>
   <string name="oneMove">Едноходови задачи</string>
   <string name="oneMoveDescription">Задача, която се решава само с един ход.</string>
-  <string name="opening">Дебют</string>
-  <string name="openingDescription">Тактика в първата фаза на играта.</string>
   <string name="operaMate">Оперен мат</string>
   <string name="operaMateDescription">Матирайте царя с топ, защитен от офицер.</string>
   <string name="pawnEndgame">Пешечен Ендшпил</string>

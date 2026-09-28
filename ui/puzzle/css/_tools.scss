@@ -4,74 +4,19 @@
   @extend %box-neat-force, %replay-panel;
 
   background: $c-bg-box;
-
-  .gauge-on & {
-    @extend %box-radius-right;
-  }
-
-  .ceval-wrap {
-    flex: 0 0 38px;
-  }
-
-  .ceval {
-    height: 38px;
-  }
-}
-
-.puzzle__moves {
-  @extend %replay-moves;
-  @include prevent-select;
-
-  flex: 2 1 auto;
-
-  /* required by line::before */
-
-  .tview2 > move {
-    justify-content: space-between;
-
-    glyph {
-      font-size: 1.6em;
-    }
-  }
-
-  move {
-    &.fail glyph {
-      color: $c-bad;
-    }
-
-    &.good glyph,
-    &.win glyph {
-      color: $c-good;
-    }
-
-    &:hover glyph {
-      color: $c-font-dim;
-    }
-  }
-}
-
-// WXF uses Latin piece letters as notation, not chess SAN glyph codes.
-.puzzle-xiangqi .puzzle__moves .tview2 move {
-  font-family: 'Noto Sans', sans-serif;
 }
 
 .puzzle__feedback {
   @extend %replay-feedback;
   @extend %flex-column;
 
-  flex: 1 0 9rem;
-
-  @include mq-at-least-col2 {
-    @media (min-height: at-least($tall)) {
-      flex: 1 0 17rem;
-    }
-  }
-
+  flex: 0 0 auto;
+  position: relative;
   background: $c-bg-zebra;
   justify-content: center;
 
   &:not(.after) {
-    padding: 2em;
+    padding: 1em;
   }
 
   .player {
@@ -117,20 +62,6 @@
   .instruction strong {
     font-size: 1.5em;
   }
-
-  .view_solution {
-    margin-top: 1.5em;
-    text-align: center;
-    visibility: hidden;
-    opacity: 0;
-  }
-
-  .view_solution.show {
-    visibility: visible;
-    opacity: 0.8;
-
-    @include transition(opacity, 1.5s);
-  }
 }
 
 .puzzle__controls {
@@ -164,5 +95,91 @@
 
   .glowing {
     color: $c-font-clearer;
+  }
+}
+
+.puzzle__actions {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  flex: 0 0 auto;
+  border-top: $border;
+
+  &.failed {
+    background: color-mix(in oklab, $c-bad 35%, $c-bg-box);
+  }
+
+  &.solved {
+    background: color-mix(in oklab, $c-good 35%, $c-bg-box);
+  }
+
+  .fbt {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35em;
+    min-width: 0;
+    min-height: 4.5rem;
+    padding: 0.6em 0.2em;
+    font-size: 0.85em;
+    text-transform: none;
+    overflow-wrap: anywhere;
+
+    &.disabled {
+      color: $c-font-dim;
+      opacity: 0.45;
+      pointer-events: none;
+    }
+
+    icon {
+      font-size: 1.8em;
+    }
+  }
+
+  &.solved .next:not(:disabled) {
+    background: color-mix(in oklab, $c-good 75%, $c-dark);
+    color: $c-over;
+
+    &:hover,
+    &:focus-visible {
+      background: color-mix(in oklab, $c-good 90%, $c-dark);
+    }
+
+    icon {
+      position: relative;
+      color: #fff;
+      text-shadow: 0 0 0.3em rgb(255 255 255 / 0.6);
+
+      &::after {
+        content: '';
+        position: absolute;
+        inset: -0.35em;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgb(255 255 255 / 0.4), transparent 70%);
+        opacity: 0.6;
+        pointer-events: none;
+      }
+
+      @media (prefers-reduced-motion: no-preference) {
+        animation: puzzle-next-pulse 2.8s ease-in-out infinite;
+
+        &::after {
+          animation: puzzle-next-halo 2.8s ease-in-out infinite;
+        }
+      }
+    }
+  }
+}
+
+@keyframes puzzle-next-pulse {
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+@keyframes puzzle-next-halo {
+  50% {
+    transform: scale(1.2);
+    opacity: 0.9;
   }
 }

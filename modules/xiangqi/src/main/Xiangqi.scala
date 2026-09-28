@@ -217,6 +217,9 @@ object Xiangqi:
       variation: Option[String] = None
   ):
     def ended = gameResult != Result.Ongoing
+    // Both checkmate and stalemate are board wins with the same mate events.
+    def mate = immediateEnd.ended && gameResult.winner.isDefined &&
+      termination.exists(reason => reason == "checkmate" || reason == "stalemate")
     def insufficient(side: Side) =
       if side == Side.Red then redInsufficientMaterial else blackInsufficientMaterial
 

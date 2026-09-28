@@ -28,8 +28,7 @@ export function adjudicationText(reason?: string | null): string | undefined {
   return reason ? reasons[reason]?.[document.documentElement.lang.startsWith('zh') ? 1 : 0] : undefined;
 }
 
-// The server's legacy `mate` status also represents a Xiangqi stalemate win.
-// Prefer the actual ending, with check state as a fallback for older game data.
-export function isXiangqiCheckmate(status?: string, termination?: string | null, check?: boolean): boolean {
-  return status === 'mate' && (termination ? termination === 'checkmate' : check !== false);
+// Xiangqi checkmate and stalemate share the mate event, regardless of check.
+export function isXiangqiMate(status?: string, termination?: string | null): boolean {
+  return termination ? termination === 'checkmate' || termination === 'stalemate' : status === 'mate';
 }

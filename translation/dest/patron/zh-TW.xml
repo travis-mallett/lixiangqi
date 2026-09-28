@@ -17,7 +17,6 @@
   <string name="youHaveLifetime">你有了一個終身贊助者帳戶，太棒了！</string>
   <string name="patronUntil">你的贊助帳戶持續到 %s。</string>
   <string name="ifNotRenewedThenAccountWillRevert">如果未續約，您的帳號將轉為一般使用者</string>
-  <string name="weAreNonProfit">我們因為相信大家都能觸及免費、世界級西洋棋平台而選擇成為非營利組織。</string>
   <string name="weRelyOnSupport">我們依賴你們的支援才能讓 Lichess 持續下去。如果你喜歡 Lichess，請考慮捐款並且成為贊助者！</string>
   <string name="lifetime">終身</string>
   <string name="payLifetimeOnce">一次支付 %s 就能成為終身贊助者！</string>
@@ -33,16 +32,9 @@
   <string name="weAreSmallTeam">我們是個小團隊，你的支持能帶來巨大的影響！</string>
   <string name="celebratedPatrons">偉大的贊助者讓 Lichess 能夠維持</string>
   <string name="whereMoneyGoes">我捐出的錢會到哪裡?</string>
-  <string name="serversAndDeveloper">首先，強大的服務器。 然後我們會再付給全職開發者：%s，Lichess 的創始人。</string>
-  <string name="costBreakdown">查看詳細的成本開支</string>
   <string name="officialNonProfit">Lichess 是一個非營利組織嗎?</string>
-  <string name="actOfCreation">是的，這是公司註冊證書 (法語)</string>
   <string name="changeMonthlySupport">我可以更改/取消我的每月支持嗎？</string>
   <string name="contactSupport">聯絡 Lichess 支援</string>
-  <string name="otherMethods">有其他的贊助方式嗎？</string>
-  <string name="lichessIsRegisteredWith">Lichess 是以 %s 註冊。</string>
-  <string name="bankTransfers">我們也接受銀行轉帳</string>
-  <string name="onlyDonationFromAbove">僅上方的捐款方式能取得贊助者翅膀身分。</string>
   <string name="patronFeatures">贊助者會有專屬功能嗎？</string>
   <string name="noPatronFeatures">不會，因為 Lichess 不管對任何人都是永遠免費的。這是我們的承諾。
 不過贊助者們可以炫耀自己有超酷的個人資料圖示。</string>
@@ -78,5 +70,4 @@
   <string name="changeCurrency">換算貨幣</string>
   <string name="paymentDetails">付款明细</string>
   <string name="updatePaymentMethod">更新付款方式</string>
-  <string name="stripeManageSub">管理訂閱並下載發票與明細</string>
 </resources>

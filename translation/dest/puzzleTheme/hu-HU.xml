@@ -84,14 +84,9 @@
   <string name="mateIn3Description">Adj mattot három lépésben.</string>
   <string name="mateIn4">Matt 4 lépésben</string>
   <string name="mateIn4Description">Adj mattot négy lépésben.</string>
-  <string name="mateIn5">Matt 5 vagy több lépésben</string>
   <string name="mateIn5Description">Találd meg a matthoz vezető hosszabb lépéssorozatot.</string>
-  <string name="middlegame">Középjáték</string>
-  <string name="middlegameDescription">Taktikák a játszma második fázisában.</string>
   <string name="oneMove">Egy lépéses feladvány</string>
   <string name="oneMoveDescription">Csupán egy lépésből álló feladvány.</string>
-  <string name="opening">Megnyitás</string>
-  <string name="openingDescription">Taktikák a játszma kezdeti fázisában.</string>
   <string name="operaMate">Opera matt</string>
   <string name="pawnEndgame">Gyalogvégjáték</string>
   <string name="pawnEndgameDescription">Végjáték csak gyalogokkal.</string>

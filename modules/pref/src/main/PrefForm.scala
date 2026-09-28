@@ -33,6 +33,7 @@ object PrefForm:
       url => url.isBlank || url.startsWith("https://") || url.startsWith("//") || url.startsWith("/assets/")
     )
     val boardTheme = "boardTheme" -> text.verifying(BoardThemes.contains)
+    val selectMatchingPieces = "selectMatchingPieces" -> boolean
     val pieceSet = "pieceSet" -> text.verifying(PieceSets.contains)
     val soundSet = "soundSet" -> text.verifying(SoundSets.contains)
     val musicSet = "musicSet" -> text.verifying(MusicSets.contains)

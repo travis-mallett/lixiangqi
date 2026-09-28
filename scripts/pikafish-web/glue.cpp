@@ -1,6 +1,7 @@
 #include "glue.hpp"
 
 #include <istream>
+#include <iostream>
 #include <memory>
 #include <sstream>
 #include <string>
@@ -65,7 +66,11 @@ EMSCRIPTEN_KEEPALIVE std::string js_getline() {
         // Official Pikafish networks are distributed as Zstandard streams.
         // Network::load expects the decompressed NNUE bytes.
         auto input = decompressNnue(command);
-        uci_global->engine.load_big_network(input);
+        if (!uci_global->engine.load_big_network(input))
+        {
+            std::cerr << "Pikafish could not initialize the NNUE network" << std::endl;
+            return "quit";
+        }
     }
     return "";
 }

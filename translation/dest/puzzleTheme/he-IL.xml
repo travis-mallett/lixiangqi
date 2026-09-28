@@ -77,14 +77,9 @@
   <string name="mateIn3Description">בצע/י מט בשלושה מסעים.</string>
   <string name="mateIn4">מט ב4</string>
   <string name="mateIn4Description">בצע/י מט בארבעה מסעים.</string>
-  <string name="mateIn5">מט ב5 או יותר</string>
   <string name="mateIn5Description">מצא/י רצף מסעים ארוך עד למט.</string>
-  <string name="middlegame">מציעה</string>
-  <string name="middlegameDescription">טקטיקה במהלך השלב השני של המשחק.</string>
   <string name="oneMove">פאזל מסע יחיד</string>
   <string name="oneMoveDescription">פאזל המכיל מסע אחד בלבד.</string>
-  <string name="opening">פתיחה</string>
-  <string name="openingDescription">טקטיקה במהלך השלב הראשון של המשחק.</string>
   <string name="pawnEndgame">סיום רגלים</string>
   <string name="pawnEndgameDescription">סיום עם רגלים בלבד.</string>
   <string name="pin">ריתוק</string>

@@ -53,6 +53,7 @@ final class UserApi(userRepo: UserRepo, perfsRepo: UserPerfsRepo, cacheApi: Cach
     filterKid,
     incToints,
     setPlan,
+    updatePlanInTransaction,
     filterByEnabledPatrons,
     isCreatedSince,
     accountAge

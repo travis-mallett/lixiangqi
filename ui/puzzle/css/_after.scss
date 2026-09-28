@@ -49,10 +49,6 @@
     display: none;
     padding: 0.5em 2em;
 
-    .practice {
-      color: $c-font;
-    }
-
     @include mq-at-least-col2 {
       display: flex;
     }

@@ -20,6 +20,16 @@ The generated GPLv3 engine, license, exact-source pointer, and NNUE network are
 written to `public/pikafish-web/`. The application caches the large NNUE file in
 the browser's OPFS or IndexedDB after the first download.
 
+The loader uses the asset manifest's content hashes, so server restarts do not
+invalidate unchanged networks. Native network loading reports invalid data as an
+error; the browser evicts those cached bytes before offering a retry. Preparation
+completes only after the configured native engine acknowledges `isready`.
+
+If the maintained patch changes, use a new `--build-dir` when rebuilding. Existing
+checkouts are checked against the patch rather than silently compiling stale code.
+Deployment packages the generated assets and rebuilds their hashed manifest; no
+server-side migration is needed for engine preparation.
+
 The release archive and extracted network are verified against pinned SHA-256
 digests by `scripts/windows/Install-Pikafish.ps1`. Pikafish engine code is
 GPL-3.0, while the official Pikafish NNUE weights carry the separate usage terms

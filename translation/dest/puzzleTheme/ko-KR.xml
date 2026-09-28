@@ -99,14 +99,9 @@
   <string name="mateIn3Description">세 수만에 체크메이트하세요.</string>
   <string name="mateIn4">4수 메이트</string>
   <string name="mateIn4Description">네 수만에 체크메이트하세요.</string>
-  <string name="mateIn5">5수+ 메이트</string>
   <string name="mateIn5Description">긴 체크메이트를 찾아내세요.</string>
-  <string name="middlegame">미들게임</string>
-  <string name="middlegameDescription">게임 중반부에서의 전략</string>
   <string name="oneMove">1수 퍼즐</string>
   <string name="oneMoveDescription">한 수짜리 퍼즐입니다.</string>
-  <string name="opening">오프닝</string>
-  <string name="openingDescription">게임 초반부에서의 전략</string>
   <string name="operaMate">오페라 메이트</string>
   <string name="operaMateDescription">룩으로 킹을 체크하고, 비숍이 룩이 있는 칸을 지킵니다.</string>
   <string name="pawnEndgame">폰 엔드게임</string>

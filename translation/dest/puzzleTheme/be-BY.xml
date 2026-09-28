@@ -75,14 +75,9 @@
   <string name="mateIn3Description">Пастаўце мат у тры хады.</string>
   <string name="mateIn4">Мат у 4 хады</string>
   <string name="mateIn4Description">Пастаўце мат у чатыры хады.</string>
-  <string name="mateIn5">Мат у 5 хадоў</string>
   <string name="mateIn5Description">Знайдзіце доўгую матавую паслядоўнасць.</string>
-  <string name="middlegame">Мітальшпіль</string>
-  <string name="middlegameDescription">Тактыка на другім этапе гульні.</string>
   <string name="oneMove">Аднахадовая задача</string>
   <string name="oneMoveDescription">Задача ў адзін ход.</string>
-  <string name="opening">Дэбют</string>
-  <string name="openingDescription">Тактыка на першым этапе гульні.</string>
   <string name="pawnEndgame">Пешачны эндшпіль</string>
   <string name="pawnEndgameDescription">Эндшпіль выключна з пешкамі.</string>
   <string name="pin">Звязка</string>

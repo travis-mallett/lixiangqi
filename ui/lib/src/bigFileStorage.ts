@@ -9,12 +9,31 @@ export const bigFileStorage: () => BigFileStorage = memoize(() => new BigFileSto
 
 type U8 = Uint8Array<ArrayBuffer>;
 
+interface DownloadOptions {
+  onProgress?: (loaded: number, total: number) => void;
+  signal?: AbortSignal;
+}
+
 class BigFileStorage {
   private readonly idb = memoize(() => objectStorage<U8>({ store: 'big-file' }));
   private readonly opfs = memoize(() => directoryHandleIfAvailable());
 
-  async get(assetUrl: string, onProgress?: (loaded: number, total: number) => void): Promise<U8> {
+  get(assetUrl: string, options: DownloadOptions = {}): Promise<U8> {
+    const { signal } = options;
+    if (!signal) return this.fetchAndCache(assetUrl, options);
+    return new Promise((resolve, reject) => {
+      const abort = () => reject(signal.reason);
+      if (signal.aborted) return abort();
+      signal.addEventListener('abort', abort, { once: true });
+      void this.fetchAndCache(assetUrl, options)
+        .then(resolve, reject)
+        .finally(() => signal.removeEventListener('abort', abort));
+    });
+  }
+
+  private async fetchAndCache(assetUrl: string, { onProgress, signal }: DownloadOptions): Promise<U8> {
     const stored = await this.readFile(assetUrl).catch(() => undefined);
+    signal?.throwIfAborted();
     if (stored) return stored;
 
     const fetched = await new Promise<U8>((resolve, reject) => {
@@ -22,6 +41,11 @@ class BigFileStorage {
 
       xhr.open('GET', assetUrl, true);
       xhr.responseType = 'arraybuffer';
+
+      const abort = () => xhr.abort();
+      signal?.addEventListener('abort', abort, { once: true });
+      xhr.onloadend = () => signal?.removeEventListener('abort', abort);
+      xhr.onabort = () => reject(signal?.reason ?? new Error('Download cancelled'));
 
       if (onProgress) xhr.onprogress = e => onProgress(e.loaded, e.total);
 
@@ -31,10 +55,13 @@ class BigFileStorage {
         else reject(new Error(`fetch '${assetUrl}' failed: ${xhr.status}`));
       };
 
+      onProgress?.(0, 0);
       xhr.send();
     });
 
+    signal?.throwIfAborted();
     await this.writeFile(assetUrl, fetched);
+    signal?.throwIfAborted();
     return fetched;
   }
 

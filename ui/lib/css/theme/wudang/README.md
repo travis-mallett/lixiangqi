@@ -85,9 +85,10 @@ receive no Wudang-specific maintenance in this initial package.
 
 ## Asset generation
 
-`generate-pieces.mjs` reads the repository's established Xiangqi glyph paths
-for small-size recognition and writes only to `public/piece/xiangqi-wudang/`.
-It does not modify the source piece package. Run it from the repository root:
+`generate-pieces.mjs` reads the theme-owned `glyphs.json` SVG outline templates
+and writes only to `public/piece/xiangqi-wudang/`. These outlines derive from
+Wj654cj86's public-domain Wikimedia Xiangqi artwork; the retired Classic piece
+set is not required. Run it from the repository root:
 
 ```sh
 node ui/lib/css/theme/wudang/generate-pieces.mjs

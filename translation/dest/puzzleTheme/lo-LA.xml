@@ -93,14 +93,9 @@
   <string name="mateIn3Description">ທຳການຈົນໃນສາມຕາ.</string>
   <string name="mateIn4">ຈົນໃນ 4 ຕາ</string>
   <string name="mateIn4Description">ທຳການຈົນໃນສີ່ຕາ.</string>
-  <string name="mateIn5">ຈົນໃນ 5 ຕາ ຫຼື ຫຼາຍກວ່າ</string>
   <string name="mateIn5Description">ຄິດຫາລຳດັບການຈົນແບບຍາວ.</string>
-  <string name="middlegame">ເກມກາງກະດານ</string>
-  <string name="middlegameDescription">ແຜນການໃນຊ່ວງທີສອງຂອງເກມ.</string>
   <string name="oneMove">ປິດສະໜາແບບຕາດຽວ</string>
   <string name="oneMoveDescription">ປິດສະໜາທີ່ມີຄວາມຍາວພຽງຕາດຽວ.</string>
-  <string name="opening">ການເປີດເກມ</string>
-  <string name="openingDescription">ແຜນການໃນຊ່ວງທຳອິດຂອງເກມ.</string>
   <string name="operaMate">ການຈົນແບບ Opera</string>
   <string name="operaMateDescription">ຣຸກຄິງດ້ວຍເຮືອ ແລະ ໃຊ້ບິຊອບ (Bishop) ເພື່ອປ້ອງກັນເຮືອ.</string>
   <string name="pawnEndgame">ເກມປາຍກະດານເບ້</string>

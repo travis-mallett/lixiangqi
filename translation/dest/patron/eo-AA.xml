@@ -18,7 +18,6 @@
   <string name="youHaveLifetime">Vi havas dumvivan Patronan konton. Tio estas tre impresa!</string>
   <string name="patronUntil">Vi havas Patronan konton ĝis la %s.</string>
   <string name="ifNotRenewedThenAccountWillRevert">Se ne renovigas, vian konton estos tiam reveni al senpaga konto.</string>
-  <string name="weAreNonProfit">Ni estas neprofitcela asocio ĉar ni kredas, ke ĉiuj rajtas havi aliron al senpaga altkvalita ŝakplatformo.</string>
   <string name="weRelyOnSupport">Ni fidas je subteno de homoj kiel vi por ebligi tion. Se vi ŝatas Lichess, bonvolu konsideri subteni nin per donacoj kaj friĝi Patrono!</string>
   <string name="lifetime">Dumviva</string>
   <string name="payLifetimeOnce">Pagu %s unufoje. Estu Patrono de Lichess por ĉiam!</string>
@@ -34,17 +33,9 @@
   <string name="weAreSmallTeam">Ni estas malgranda teamo, tial via subteno faras grandegan diferencon!</string>
   <string name="celebratedPatrons">La elstaraj Patronoj, kiuj ebligas Lichess</string>
   <string name="whereMoneyGoes">Kien iras la mono?</string>
-  <string name="serversAndDeveloper">Unue potencaj serviloj.
-Tiam ni pagas plentempan programiston: %s, la fondinto de Lichess.</string>
-  <string name="costBreakdown">Vidu la detalan enspezon pri kosto</string>
   <string name="officialNonProfit">Ĉu Lichess estas oficiale neprofitcela organizo?</string>
-  <string name="actOfCreation">Jes, jen la fondiĝdokumento (en la franca)</string>
   <string name="changeMonthlySupport">Ĉu mi povas ŝanĝi/nuligi mian monatan subtenon?</string>
   <string name="contactSupport">kontaktu la subtenon de Lichess</string>
-  <string name="otherMethods">Ĉu estas aliaj metodoj por donaci?</string>
-  <string name="lichessIsRegisteredWith">Lichess estas registrita kun %s.</string>
-  <string name="bankTransfers">Ni ankaŭ akceptas bankmandatojn</string>
-  <string name="onlyDonationFromAbove">Bonvolu noti, ke nur la donacia formularo supra donos Patronan staton.</string>
   <string name="patronFeatures">Ĉu iuj funkcioj estas rezervitaj por Patronoj?</string>
   <string name="noPatronFeatures">Ne, ĉar Lichess estas tute senpaga, por ĉiam kaj por ĉiuj. Tio estas promeso. 
 Tamen, Patronoj ekhavas rajtojn fiere uzi novan profilan ikonon.</string>
@@ -81,5 +72,4 @@ Tamen, Patronoj ekhavas rajtojn fiere uzi novan profilan ikonon.</string>
   <string name="changeCurrency">Ŝanĝi valuton</string>
   <string name="paymentDetails">Pagaj detaloj</string>
   <string name="updatePaymentMethod">Ĝisdatigi pagmanieron</string>
-  <string name="stripeManageSub">Administri vian abonon kaj elŝuti viajn fakturojn kaj kvitancojn</string>
 </resources>

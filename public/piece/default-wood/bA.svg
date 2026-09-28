@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   height="92"
+   width="92"
+   viewBox="0 0 92 92"
+   version="1.1"
+   id="svg9"
+   sodipodi:docname="bA.svg"
+   inkscape:version="1.3.2 (091e20e, 2023-11-25, custom)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs9" />
+  <sodipodi:namedview
+     id="namedview9"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="4.8229294"
+     inkscape:cx="48.725573"
+     inkscape:cy="39.08413"
+     inkscape:window-width="1229"
+     inkscape:window-height="873"
+     inkscape:window-x="145"
+     inkscape:window-y="421"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="svg9" />
+  <clipPath
+     id="wood-clip">
+    <ellipse
+       cx="405"
+       cy="53.61076"
+       rx="57.869461"
+       ry="59.637218"
+       id="ellipse1" />
+  </clipPath>
+  <radialGradient
+     id="a"
+     cx="-638.67987"
+     cy="63.566608"
+     gradientTransform="matrix(1.0751961 .02369973 -.02469788 1.1204806 875.45216 -171.12662)"
+     gradientUnits="userSpaceOnUse"
+     r="57.869461">
+    <stop
+       offset="0"
+       stop-color="#f3bf86"
+       id="stop1" />
+    <stop
+       offset=".76315546"
+       stop-color="#f3bb7f"
+       id="stop2" />
+    <stop
+       offset=".89982331"
+       stop-color="#dca05c"
+       id="stop3" />
+    <stop
+       offset="1"
+       stop-color="#a17e53"
+       id="stop4" />
+  </radialGradient>
+  <filter
+     id="c"
+     color-interpolation-filters="sRGB"
+     height="1.3720994"
+     width="1.2298259"
+     x="-0.11491295"
+     y="-0.18604969">
+    <feGaussianBlur
+       stdDeviation="1.438904"
+       id="feGaussianBlur4" />
+  </filter>
+  <filter
+     id="d"
+     color-interpolation-filters="sRGB"
+     height="1.2112464"
+     width="1.2112464"
+     x="-0.10562318"
+     y="-0.10562318">
+    <feGaussianBlur
+       stdDeviation="3.0476689"
+       id="feGaussianBlur5" />
+  </filter>
+  <g
+     id="g9">
+    <g
+       transform="matrix(.68586115 0 0 .68586115 -231.77377 9.230463)"
+       id="g8">
+      <g
+         transform="translate(216.73288 159.42387)"
+         id="g5">
+        <ellipse
+           cx="188.26712"
+           cy="-105.81311"
+           fill="url(#a)"
+           rx="57.869461"
+           ry="59.637218"
+           id="ellipse5" />
+      </g>
+      <g
+         transform="translate(216.73288 159.42387)"
+         id="g6">
+        <ellipse
+           cx="187.662686"
+           cy="-110.937426"
+           rx="46.87182"
+           ry="45.345321"
+           fill="#f6b97b"
+           id="ellipse6" />
+      </g>
+      <image
+         x="347.130539"
+         y="-6.026458"
+         width="115.738922"
+         height="119.274436"
+         preserveAspectRatio="none"
+         opacity=".035"
+         href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAQBAMAAACigOGCAAAAMFBMVEX///+oqKilpaWioqKSkpKEhIR2dnZlZWVfX19cXFxaWlpYWFhXV1dFRUUTExMAAACc2NaXAAAA50lEQVR42nXQr06CcRhH8Q+/F9gMOnB0sRgsvhvTZIA7YDO7Mb0hK5uKm9nNO4DNpBYsBovYmTBNIH8Mj9UnnW94TjiObcwa3TybZZe92WPey7Nuo3fhIc35goI5Nyqww01acgVrCwam8MQwZYxhZcLECPrkqaxwCpxwGPRa0UkrdmPWaAVtM0o/frJQfXMQqvzefVpYJFi65s0Q6gOD5J9LRcUVZM7Yk8OoqZlKSktINnlRh2FbOyXe43lMP+iTeppb38a84zlofxpJaqGqUg1V6y/JeUQs0oyIR5HEVkQs04mIH3R+ATsiRBU+gRZeAAAAAElFTkSuQmCC"
+         clip-path="url(#wood-clip)"
+         id="image6" />
+      <path
+         d="m 364.59856,82.111505 c 0,0 7.02475,11.74977 12.9047,14.84925 4.48776,2.36562 17.14735,3.712295 17.14735,3.712295 -11.1995,-3.414035 -23.09518,-10.904865 -30.05205,-18.561545 z"
+         fill="#fff0cb"
+         filter="url(#c)"
+         opacity="0.15"
+         id="path6"
+         style="opacity:0.72759857;filter:url(#c)" />
+      <circle
+         cx="-402.375"
+         cy="-180.875"
+         fill="#efd49c"
+         filter="url(#d)"
+         opacity=".08"
+         r="34.625"
+         transform="matrix(1.1102782 0 0 1.1102782 850.68122 243.85686)"
+         id="circle6" />
+      <g
+         transform="translate(216.73288 159.42387)"
+         id="g7">
+        <ellipse
+           cx="187.662686"
+           cy="-110.937426"
+           rx="46.87182"
+           ry="45.345321"
+           fill="none"
+           stroke="#3b3938"
+           stroke-width="3.261493"
+           stroke-linecap="round"
+           stroke-linejoin="round"
+           id="ring" />
+      </g>
+    </g>
+  </g>
+  <g
+     id="symbol"
+     transform="matrix(0.977854 0 0 1.101181 1.303555 -0.231561)">
+    <path
+       d="m-31.419099-90.968786c-1.45682-1.07221-.55118-2.98808 1.55423-3.28795.56721-.0808 2.95621-.15337 5.30886-.16127l4.27754-.0144.004-.83584c.003-.45972.0906-2.90844.19624-5.441604.1057-2.53317.15635-4.64158.11259-4.68535-.1584-.1584-2.22368.37328-5.39464.85704-4.65915.71081-6.70013 1.17177-9.08697 2.05232-1.15788.42719-2.28133.77669-2.49656.77669-.21524 0-.6328-.20772-.92795-.46158-.52929-.45528-.53298-.47468-.26846-1.41936.33632-1.20119 1.47948-2.38507 2.99573-3.10236.95029-.44956 1.36486-.52363 2.93778-.52494 1.00726-.00079 3.64564-.14003 5.86309-.3093 2.21743-.16928 1.93996-.36773 3.50839-.441l2.85169-.1332.0555-1.97102c.0379-1.34252-.0653-2.59677-.3233-3.93337-.43562-2.25642-.36354-2.53415.74365-2.86587.94079-.28187 1.92521-.11422 2.7963.47625.75451.51145.71991.13796.46969 5.0695l-.15572 3.06887 6.35536.12849c7.9352596.16043 8.9699647.0735 9.97392476-.12784 1.51385004-.30353 2.23832004-.18588 2.32033004.3768.0674.46182-1.30713004 1.9056-2.81631006 3.45139-.83504004.85531-1.18174004 1.06374-2.11746994 1.27317-1.1159.24973-1.12784.24742-4.41528-.84681-4.2365298-1.41016-2.3845752-1.44398-7.4102748-1.44436l-2.19359-.00016-.11318 2.01585c-.0622 1.10872-.16698 3.578734-.23277 5.488914l-.11959 3.47305 4.88472.0671c4.4170896.0606 4.9587396.10458 5.6578596.46032.42522.21633.85864.5345.96313.70705.30727.50734-.004 1.28685-.60292 1.51369-.29883.11302-2.49035.26008-4.8700396.32678-2.37969.0667-6.31799.20419-8.75176.30552-10.79719.44956-11.08068.45249-11.53396.11887z"
+       fill="#3b3938"
+       stroke-width="1.396528"
+       transform="matrix(1.171074 0 0 1.171074 67.658791 159.820801)"
+       stroke="#3b3938"
+       stroke-linecap="round"
+       stroke-linejoin="round"
+       paint-order="stroke fill"
+       id="path9" />
+  </g>
+</svg>

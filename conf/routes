@@ -155,6 +155,11 @@ POST  /feed/:id/delete                 controllers.Feed.delete(id)
 GET   /feed.atom                       controllers.Feed.atom
 
 # Learn - Xiangqi notation
+POST  /traffic/events                 controllers.Traffic.events
+GET   /privacy/traffic                controllers.Traffic.privacy
+POST  /privacy/traffic                controllers.Traffic.privacyPost
+
+# Learn - Xiangqi notation
 GET   /training/notation               controllers.Notation.home
 GET   /training/notation/exercise      controllers.Notation.exercise(turn: Option[String] ?= None)
 POST  /training/notation/score         controllers.Notation.score
@@ -221,6 +226,7 @@ GET   /embed/analysis                  controllers.UserAnalysis.embed
 POST  /api/analysis/position           controllers.UserAnalysis.position
 POST  /api/analysis/move               controllers.UserAnalysis.move
 POST  /api/analysis/import             controllers.UserAnalysis.importNotation
+GET   /api/analysis/catalog            controllers.UserAnalysis.catalogAnalysis(id: String)
 
 # Study
 GET   /study                           controllers.Study.allDefault(page: Int ?= 1)
@@ -319,6 +325,7 @@ GET   /$lang<\w\w\w?>/broadcast               controllers.RelayTour.indexLang(la
 # Learn
 GET   /learn                           controllers.Learn.index
 GET   /learn/special-rules             controllers.Learn.specialRules
+GET   /wiki/elbow-horse                controllers.Wiki.elbowHorse
 GET   /learn/special-rules/example/:id/:ply controllers.Learn.specialRulesExample(id: String, ply: Int)
 GET   /learn/ancient-manuals           controllers.Learn.ancientManuals
 GET   /learn/xiangqi-rankings           controllers.Learn.xiangqiRankings
@@ -732,6 +739,11 @@ GET    /stat/rating/distribution/:perf controllers.User.ratingDistribution(perf:
 # API
 POST  /api/users                       controllers.Api.usersByIds
 GET   /api/puzzle/daily                controllers.Puzzle.apiDaily
+POST  /api/puzzle/publication          controllers.Puzzle.publicationSubmit
+POST  /api/puzzle/publication/analysis/inventory controllers.Puzzle.publicationAnalysisInventory
+POST  /api/puzzle/publication/analysis controllers.Puzzle.publicationAnalysis
+GET   /api/puzzle/publication/inventory controllers.Puzzle.publicationInventory(after: String ?= "", ids: String ?= "")
+GET   /api/puzzle/publication/:id      controllers.Puzzle.publicationReceipt(id: String)
 GET   /api/puzzle/activity             controllers.Puzzle.activity
 GET   /api/puzzle/dashboard/$days<\d+> controllers.Puzzle.apiDashboard(days: Days)
 GET   /api/puzzle/$id<\w{5}>           controllers.Puzzle.apiShow(id: PuzzleId)
@@ -993,3 +1005,12 @@ GET   /$lang<\w\w\w?>/mobile           controllers.Main.mobileLang(lang: Languag
 GET   /$lang<\w\w\w>                   controllers.Lobby.homeLang(lang: Language)
 
 GET   /*path                           controllers.User.redirect(path)
+
+GET   /report/traffic                  controllers.Traffic.index
+GET   /report/traffic/data             controllers.Traffic.data
+GET   /report/traffic/export           controllers.Traffic.exportCsv
+GET   /report/traffic/snapshot         controllers.Traffic.snapshot
+GET   /report/traffic/health           controllers.Traffic.health
+GET   /report/traffic/searches         controllers.Traffic.searches
+GET   /report/traffic/returns          controllers.Traffic.returns
+GET   /report/traffic/audio            controllers.Traffic.audio

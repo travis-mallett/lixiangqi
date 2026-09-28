@@ -95,6 +95,13 @@ square {
   }
 }
 
+.cg-static-preview {
+  piece,
+  square {
+    will-change: auto;
+  }
+}
+
 piece {
   position: absolute;
   top: 0;
@@ -196,6 +203,7 @@ html:not(.has-background) body:not(.simple-board) {
 
 html.has-background body:not(.simple-board) cg-board {
   piece,
+  .xiangqi-piece-shadow,
   square {
     opacity: calc(min(1, 0.5 + var(---board-opacity) / 100));
   }

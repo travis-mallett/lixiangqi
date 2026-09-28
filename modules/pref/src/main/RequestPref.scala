@@ -27,6 +27,8 @@ object RequestPref:
         .when(background == Backgrounds.customKey)(read("backgroundUrl").orElse(base.backgroundUrl))
         .flatten,
       boardTheme = read("boardTheme").filter(BoardThemes.contains) | base.boardTheme,
+      selectMatchingPieces =
+        read("selectMatchingPieces").flatMap(_.toBooleanOption) | base.selectMatchingPieces,
       pieceSet = read("pieceSet").filter(PieceSets.contains) | base.pieceSet,
       soundSet = read("soundSet").filter(SoundSets.contains) | base.soundSet,
       musicSet = read("musicSet").filter(MusicSets.contains) | base.musicSet,

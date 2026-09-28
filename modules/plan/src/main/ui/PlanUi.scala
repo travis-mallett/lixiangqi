@@ -10,14 +10,13 @@ import lila.ui.*
 import lila.core.LightUser
 import lila.plan.PlanPricingApi.pricingWrites
 
-final class PlanUi(helpers: Helpers)(style: PlanStyle, contactEmail: EmailAddress):
+final class PlanUi(helpers: Helpers)(style: PlanStyle):
   import helpers.{ *, given }
   import trans.patron as trp
 
   private val stripeScript = script(src := "https://js.stripe.com/v3/")
   private val namespaceAttr = attr("data-namespace")
   private val dataForm = attr("data-form")
-  private val stripeBillingPortal = "https://billing.stripe.com/p/login/fZefZ2dCK9zq7Ty6oo"
 
   def index(
       email: Option[EmailAddress],
@@ -28,6 +27,8 @@ final class PlanUi(helpers: Helpers)(style: PlanStyle, contactEmail: EmailAddres
       bestScores: Paginator[LightUser],
       pricing: PlanPricing
   )(using ctx: Context) =
+    val stripeAvailable = stripePublicKey.nonEmpty && pricing.stripeSupportsCurrency
+    val payPalAvailable = payPalPublicKey.nonEmpty && pricing.payPalSupportsCurrency
     val localeParam = lila.plan.PayPalClient.locale(ctx.lang).so { l => s"&locale=$l" }
     Page(trans.patron.becomePatron.txt())
       .css("bits.plan")
@@ -35,8 +36,8 @@ final class PlanUi(helpers: Helpers)(style: PlanStyle, contactEmail: EmailAddres
       .append:
         ctx.isAuth.so:
           frag(
-            stripeScript,
-            pricing.payPalSupportsCurrency.option:
+            stripeAvailable.option(stripeScript),
+            payPalAvailable.option:
               frag(
                 // gotta load the paypal SDK twice, for onetime and subscription :facepalm:
                 // https://stackoverflow.com/questions/69024268/how-can-i-show-a-paypal-smart-subscription-button-and-a-paypal-smart-capture-but/69024269
@@ -101,9 +102,9 @@ final class PlanUi(helpers: Helpers)(style: PlanStyle, contactEmail: EmailAddres
             div(cls := "box__pad")(
               div(cls := "wrapper")(
                 div(cls := "text")(
-                  p(trp.weAreNonProfit()),
+                  p(trp.communityProject()),
                   p(trp.weRelyOnSupport()),
-                  p("Click donate to view payment options based on your device and currency.")
+                  p(trp.paymentOptions())
                 ),
                 div(cls := "content")(
                   div(
@@ -187,7 +188,7 @@ final class PlanUi(helpers: Helpers)(style: PlanStyle, contactEmail: EmailAddres
                           st.group(cls := "radio buttons amount")(
                             pricing.suggestions.map { money =>
                               val id = s"plan_${money.code}"
-                              div(
+                              div(cls := "regular-amount")(
                                 input(
                                   cls := (money == pricing.default).option("default"),
                                   tpe := "radio",
@@ -200,6 +201,16 @@ final class PlanUi(helpers: Helpers)(style: PlanStyle, contactEmail: EmailAddres
                                 label(`for` := id)(money.display)
                               )
                             },
+                            div(cls := "lifetime-amount none")(
+                              input(
+                                tpe := "radio",
+                                name := "plan",
+                                id := "plan_lifetime",
+                                value := pricing.lifetime.amount,
+                                attr("data-amount") := pricing.lifetime.amount
+                              ),
+                              label(`for` := "plan_lifetime")(pricing.lifetime.display)
+                            ),
                             div(cls := "other")(
                               input(tpe := "radio", name := "plan", id := "plan_other", value := "other"),
                               label(
@@ -209,11 +220,6 @@ final class PlanUi(helpers: Helpers)(style: PlanStyle, contactEmail: EmailAddres
                               )(trp.otherAmount())
                             )
                           )
-                        ),
-                        div(cls := "amount_fixed none")(
-                          st.group(cls := "radio buttons amount")(
-                            div(label(`for` := s"plan_${pricing.lifetime.code}")(pricing.lifetime.display))
-                          )
                         )
                       )
                     ),
@@ -222,17 +228,19 @@ final class PlanUi(helpers: Helpers)(style: PlanStyle, contactEmail: EmailAddres
                         input(tpe := "checkbox", id := "cover-fees", cls := "cover-fees-checkbox"),
                         label(`for` := "cover-fees"):
                           val rawFee = pricing.feeFixed.amount.max(pricing.default.amount * pricing.feeRate)
-                          trp.coverFees.txt(Money(rawFee, pricing.currency).display)
+                          val fee = rawFee.setScale(pricing.fractionDigits, BigDecimal.RoundingMode.HALF_UP)
+                          trp.coverFees.txt(Money(fee, pricing.currency).display)
                       )
                     ),
                     div(cls := "service")(
                       div(cls := "buttons")(
                         if ctx.isAuth then
                           frag(
-                            pricing.stripeSupportsCurrency.option:
+                            (!stripeAvailable && !payPalAvailable).option(p(trp.paymentsUnavailable())),
+                            stripeAvailable.option:
                               button(cls := "stripe button")(trp.donate())
                             ,
-                            pricing.payPalSupportsCurrency.option:
+                            payPalAvailable.option:
                               frag(
                                 div(cls := "paypal paypal--order"),
                                 div(cls := "paypal paypal--subscription"),
@@ -284,21 +292,34 @@ final class PlanUi(helpers: Helpers)(style: PlanStyle, contactEmail: EmailAddres
 
   private def faq(using Translate) =
     div(cls := "faq")(
-      dl(
+      dl(cls := "funding-priorities")(
         dt(trp.whereMoneyGoes()),
         dd(
-          trp.serversAndDeveloper(userIdLink(UserId("thibault").some)),
-          br,
-          a(href := routes.Main.costs, targetBlank)(trp.costBreakdown()),
-          "."
-        ),
-        dt(trp.officialNonProfit()),
-        dd(
-          a(
-            href := "https://www.journal-officiel.gouv.fr/associations/detail-annonce/associations_b/20160025/818"
-          )(trp.actOfCreation()),
-          "."
+          p(trp.fundingPriorities()),
+          h3(trp.alphaStage()),
+          ul(
+            li(trp.alphaServers()),
+            li(trp.alphaTools()),
+            li(trp.alphaAdministration())
+          ),
+          h3(trp.betaStage()),
+          ul(
+            li(trp.betaServers()),
+            li(trp.betaTools()),
+            li(trp.betaOutreach()),
+            li(trp.betaApps())
+          ),
+          h3(trp.futureStage()),
+          ul(
+            li(trp.futureServers()),
+            li(trp.futureChina()),
+            li(trp.futureDeveloper())
+          )
         )
+      ),
+      dl(
+        dt(trp.officialNonProfit()),
+        dd(trp.nonProfitPlans())
       ),
       dl(
         dt(trp.changeMonthlySupport()),
@@ -307,27 +328,11 @@ final class PlanUi(helpers: Helpers)(style: PlanStyle, contactEmail: EmailAddres
             a(href := routes.Main.contact, targetBlank)(trp.contactSupport()),
             a(href := routes.Plan.index())(trp.patronPage())
           )
-        ),
-        dt(trp.otherMethods()),
-        dd(
-          trp.lichessIsRegisteredWith(
-            a(href := "https://causes.benevity.org/causes/250-5789375887401_bf01")("Benevity")
-          ),
-          br,
-          bits.contactEmailLinkEmpty(contactEmail.value)(trp.bankTransfers()),
-          ".",
-          br,
-          strong(trp.onlyDonationFromAbove())
         )
       ),
       dl(
         dt(trp.patronFeatures()),
-        dd(
-          trp.noPatronFeatures(),
-          br,
-          a(href := routes.Plan.features, targetBlank)(trp.featuresComparison()),
-          "."
-        )
+        dd(trp.noPatronFeatures())
       )
     )
 
@@ -354,17 +359,17 @@ final class PlanUi(helpers: Helpers)(style: PlanStyle, contactEmail: EmailAddres
               tr(
                 th(trp.currentStatus()),
                 td(
-                  trp.youSupportWith(strong(subscription.capturedMoney.display)),
+                  subscription.capturedMoney.map(money => trp.youSupportWith(strong(money.display))),
                   span(cls := "thanks")(trp.tyvm())
                 )
               ),
               tr(
                 th(trp.nextPayment()),
                 td(
-                  trp.youWillBeChargedXOnY(
-                    strong(subscription.capturedMoney.display),
-                    showDate(subscription.nextChargeAt)
-                  ),
+                  (for
+                    money <- subscription.capturedMoney
+                    date <- subscription.nextChargeAt
+                  yield trp.youWillBeChargedXOnY(strong(money.display), showDate(date))),
                   br,
                   a(href := s"${routes.Plan.list}?freq=onetime")(trp.makeAdditionalDonation())
                 )
@@ -529,12 +534,6 @@ final class PlanUi(helpers: Helpers)(style: PlanStyle, contactEmail: EmailAddres
                     )
                   )
                 )
-              ),
-              tr(
-                th("Stripe"),
-                td:
-                  a(href := stripeBillingPortal):
-                    trp.stripeManageSub()
               ),
               tr(
                 th,

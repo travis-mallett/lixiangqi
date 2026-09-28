@@ -3,7 +3,7 @@ import { h } from 'snabbdom';
 import { toggle } from 'lib';
 import { renderNodesTxt } from 'lib/game/nodePGN';
 import { licon } from 'lib/licon';
-import { boardMenu as menuDropdown, boolPrefXhrToggle, hl } from 'lib/view';
+import { boardMenu as menuDropdown, hl } from 'lib/view';
 
 import type PuzzleCtrl from '../ctrl';
 
@@ -21,8 +21,6 @@ export default function (ctrl: PuzzleCtrl) {
         toggle(ctrl.blindfold(), v => ctrl.blindfold(v)),
         true,
       ),
-      menu.voiceInput(boolPrefXhrToggle('voice', !!ctrl.voiceMove), true),
-      menu.keyboardInput(boolPrefXhrToggle('keyboardMove', !!ctrl.keyboardMove), true),
     ]),
     studyButton(ctrl),
     h('section.board-menu__links', [

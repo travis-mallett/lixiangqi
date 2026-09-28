@@ -16,7 +16,7 @@ import { makeVoiceMove, type VoiceMove } from 'voice';
 import { defined, type Toggle, type Prop, toggle, requestIdleCallbackSafe, memoize } from 'lib';
 import * as game from 'lib/game';
 import { isXiangqiCapture, plyOpponentColor, xiangqiCgToUci, xiangqiUciMoveToCg } from 'lib/game';
-import { isXiangqiCheckmate } from 'lib/game/adjudication';
+import { isXiangqiMate } from 'lib/game/adjudication';
 import { plyToTurn, plyColor } from 'lib/game/chess';
 import { ClockCtrl, type ClockOpts } from 'lib/game/clock/clockCtrl';
 import type { MoveRootCtrl } from 'lib/game/moveRootCtrl';
@@ -389,7 +389,7 @@ export default class RoundController implements MoveRootCtrl {
         check: !!o.check,
       });
       if (this.googlyEyes) this.chessground.setAutoShapes(this.googlyEyes());
-      if (isXiangqiCheckmate(o.status?.name, o.termination, o.check)) {
+      if (isXiangqiMate(o.status?.name, o.termination)) {
         site.sound.play('checkmate', o.volume);
       } else if (o.check) {
         site.sound.play('check', o.volume);
@@ -408,7 +408,7 @@ export default class RoundController implements MoveRootCtrl {
       uci: o.uci,
       check: o.check,
       capture: o.capture,
-      mate: isXiangqiCheckmate(o.status?.name, o.termination, o.check),
+      mate: isXiangqiMate(o.status?.name, o.termination),
     };
     d.steps.push(step);
     if (this.ply === step.ply && this.chessground.getFen() !== step.fen) ground.sync(this, step, playing);
@@ -524,8 +524,7 @@ export default class RoundController implements MoveRootCtrl {
     if (!d.player.spectator && d.game.turns > 1) {
       const key = o.winner ? (d.player.color === o.winner ? 'victory' : 'defeat') : 'draw';
       // The sound service suppresses result sounds for checkmate, which has dedicated audio.
-      if (isXiangqiCheckmate(o.status.name, d.game.termination, util.lastStep(d).check))
-        site.sound.playAndDelayMateResultIfNecessary(key);
+      if (isXiangqiMate(o.status.name, d.game.termination)) site.sound.playAndDelayMateResultIfNecessary(key);
       else site.sound.play(key);
     }
     this.onTimeTrouble(false);

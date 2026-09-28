@@ -157,58 +157,61 @@ final class PlanPages(helpers: Helpers)(fishnetPerDay: Int):
   def thanks(
       patron: Option[Patron],
       stripeCustomer: Option[StripeCustomer],
-      giftTo: Option[LightUser]
+      giftTo: Option[LightUser],
+      pending: Boolean
   )(using ctx: Context, me: Me) =
     Page(trans.patron.thankYou.txt())
       .css("bits.page"):
         main(cls := "page-small page box box-pad")(
           boxTop(h1(cls := "text", dataIcon := patronIconChar)(trp.thankYou())),
           p(trp.tyvm()),
-          p(trp.transactionCompleted()),
-          (giftTo, patron) match
-            case (Some(receiver), _) =>
-              p(
-                lightUserLink(receiver),
-                " ",
-                if receiver.isPatronLifetime then "is now a lifetime Lichess Patron"
-                else "is now a Lichess Patron for one month",
-                ", thanks to you!"
-              )
-            case (_, Some(pat)) =>
-              if pat.payPal.exists(_.renew) ||
-                pat.payPalCheckout.exists(_.renew) ||
-                stripeCustomer.exists(_.renew)
-              then
-                ctx.me.map { me =>
-                  p(
-                    trp.permanentPatron(),
-                    br,
-                    a(href := routes.User.show(me.username))(trp.checkOutProfile())
-                  )
-                }
-              else
-                frag(
-                  if me.plan.lifetime then
+          p(if pending then trp.paymentPending() else trp.transactionCompleted()),
+          if pending then a(href := routes.Plan.index())(trp.currentStatus())
+          else
+            (giftTo, patron) match
+              case (Some(receiver), _) =>
+                p(
+                  lightUserLink(receiver),
+                  " ",
+                  if receiver.isPatronLifetime then trp.giftLifetimeConfirmation.txt()
+                  else trp.giftMonthConfirmation.txt(),
+                  ""
+                )
+              case (_, Some(pat)) =>
+                if pat.payPal.exists(_.renew) ||
+                  pat.payPalCheckout.exists(_.renew) ||
+                  stripeCustomer.exists(_.renew)
+                then
+                  ctx.me.map { me =>
                     p(
-                      trp.nowLifetime(),
+                      trp.permanentPatron(),
                       br,
-                      ctx.me.map { me =>
-                        a(href := routes.User.show(me.username))(trp.checkOutProfile())
-                      }
+                      a(href := routes.User.show(me.username))(trp.checkOutProfile())
                     )
-                  else
-                    frag(
+                  }
+                else
+                  frag(
+                    if me.plan.lifetime then
                       p(
-                        trp.nowOneMonth(),
+                        trp.nowLifetime(),
                         br,
                         ctx.me.map { me =>
                           a(href := routes.User.show(me.username))(trp.checkOutProfile())
                         }
-                      ),
-                      p(trp.downgradeNextMonth())
-                    )
-                )
-            case _ => emptyFrag
+                      )
+                    else
+                      frag(
+                        p(
+                          trp.nowOneMonth(),
+                          br,
+                          ctx.me.map { me =>
+                            a(href := routes.User.show(me.username))(trp.checkOutProfile())
+                          }
+                        ),
+                        p(trp.downgradeNextMonth())
+                      )
+                  )
+              case _ => emptyFrag
           ,
           br,
           br,

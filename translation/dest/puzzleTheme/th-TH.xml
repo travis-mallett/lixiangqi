@@ -99,14 +99,9 @@
   <string name="mateIn3Description">รุกจนให้ได้โดยการเดินสามครั้ง</string>
   <string name="mateIn4">รุกจนใน 4 ตา</string>
   <string name="mateIn4Description">รุกจนให้ได้โดยการเดินสี่ครั้ง</string>
-  <string name="mateIn5">รุกจนใน 5 ตาหรือมากกว่านั้น</string>
   <string name="mateIn5Description">หาวิธีการรุกจนในห้าตาหรือมากกว่านั้น</string>
-  <string name="middlegame">กลางเกม</string>
-  <string name="middlegameDescription">กลยุทธ์ที่ใช้ในช่วงที่สองของเกมหรือกลางเกม</string>
   <string name="oneMove">1 ตาเดิน</string>
   <string name="oneMoveDescription">ปริศนาที่มีแค่ 1 ตาเดิน</string>
-  <string name="opening">การเปิดเกม</string>
-  <string name="openingDescription">กลยุทธ์ที่ใช้ในช่วงแรกของเกมหรือช่วงเปิดเกม</string>
   <string name="operaMate">การรุกจนแบบโอเปร่า</string>
   <string name="operaMateDescription">รุกจนคิงโดยเรือที่มีบิชอปคอยกันเอาไว้</string>
   <string name="pawnEndgame">เบี้ยในท้ายเกม</string>

@@ -79,14 +79,9 @@
   <string name="mateIn3Description">Fer escaque y mate en tres movimientos.</string>
   <string name="mateIn4">Mate en 4</string>
   <string name="mateIn4Description">Fer escaque y mate en cuatre movimientos.</string>
-  <string name="mateIn5">Mate en 5 u mas</string>
   <string name="mateIn5Description">Troba una secuencia larga de mate.</string>
-  <string name="middlegame">Meyo chuego</string>
-  <string name="middlegameDescription">Una tactica en a segunda fase d\'a partida.</string>
   <string name="oneMove">Problema d\'una sola chugada</string>
   <string name="oneMoveDescription">Un problema que se resuelve nomás con un movimiento.</string>
-  <string name="opening">Obridura</string>
-  <string name="openingDescription">Una tactica en a primera fase d\'o chuego.</string>
   <string name="pawnEndgame">Final de peons</string>
   <string name="pawnEndgameDescription">Un final con peons nomás.</string>
   <string name="pin">Clavada</string>

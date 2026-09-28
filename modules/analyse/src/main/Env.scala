@@ -18,6 +18,7 @@ final class Env(
   lazy val requesterApi = RequesterApi(db(CollName("analysis_requester")))
 
   lazy val analyser = wire[Analyser]
+  lazy val gameAnalysisImport = wire[GameAnalysisImport]
 
   lazy val annotator = Annotator(net.domain)
 

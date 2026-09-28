@@ -1,37 +1,11 @@
 import { h, type VNode } from 'snabbdom';
 
-import { bind, requiresI18n, type MaybeVNode } from 'lib/view';
+import { engineLoadingText, enginePreparing, engineProgress } from 'lib/ceval/engineProgress';
+import type { MaybeVNode } from 'lib/view';
+import { progressBar } from 'lib/view/progressBar';
 
 import type PuzzleCtrl from '../ctrl';
 import afterView from './after';
-
-const viewSolution = (ctrl: PuzzleCtrl): VNode =>
-  ctrl.streak
-    ? h('div.view_solution.skip', { class: { show: ctrl.streak?.data.skip } }, [
-        requiresI18n('storm', ctrl.redraw, cat =>
-          h(
-            'button.button.button-empty',
-            { hook: bind('click', ctrl.skip), attrs: { title: i18n.puzzle.streakSkipExplanation } },
-            cat.skip,
-          ),
-        ),
-      ])
-    : h('div.view_solution', { class: { show: ctrl.canViewSolution() } }, [
-        ctrl.moveAllowanceExceeded()
-          ? h('button.button', { hook: bind('click', ctrl.retryPuzzle) }, i18n.site.retry)
-          : ctrl.mode !== 'view'
-            ? h(
-                'button.button' + (ctrl.showHint() ? '' : '.button-empty'),
-                { hook: bind('click', ctrl.toggleHint) },
-                i18n.site.getAHint,
-              )
-            : undefined,
-        h(
-          'button.button.button-empty',
-          { hook: bind('click', ctrl.viewSolution) },
-          i18n.site.viewTheSolution,
-        ),
-      ]);
 
 const initial = (ctrl: PuzzleCtrl): VNode =>
   h('div.puzzle__feedback.play', [
@@ -42,7 +16,6 @@ const initial = (ctrl: PuzzleCtrl): VNode =>
         h('em', i18n.puzzle[ctrl.pov === 'white' ? 'findTheBestMoveForWhite' : 'findTheBestMoveForBlack']),
       ]),
     ]),
-    viewSolution(ctrl),
   ]);
 
 const good = (ctrl: PuzzleCtrl): VNode =>
@@ -50,50 +23,49 @@ const good = (ctrl: PuzzleCtrl): VNode =>
     h('div.player', [
       h('div.icon', '✓'),
       h('div.instruction', [
-        h(
-          'strong',
-          ctrl.isXiangqi
-            ? i18n.puzzle[ctrl.xiangqiBestMove ? 'thisIsTheBestMove' : 'notMostEfficientMove']
-            : i18n.puzzle.bestMove,
-        ),
-        h(
-          'em',
-          ctrl.isXiangqi
-            ? i18n.puzzle[ctrl.xiangqiBestMove ? 'keepGoing' : 'continuationAllowed']
-            : i18n.puzzle.keepGoing,
-        ),
+        h('strong', i18n.puzzle[ctrl.xiangqiBestMove ? 'thisIsTheBestMove' : 'continuationAllowed']),
+        ctrl.xiangqiBestMove ? h('em', i18n.puzzle.keepGoing) : undefined,
       ]),
     ]),
-    viewSolution(ctrl),
   ]);
 
 const fail = (ctrl: PuzzleCtrl): VNode =>
   h('div.puzzle__feedback.fail', [
-    h('div.player', [
-      h('div.icon', '✗'),
-      h('div.instruction', [
-        h('strong', ctrl.xiangqiFailure ? i18n.puzzle[ctrl.xiangqiFailure] : i18n.puzzle.notTheMove),
-        ctrl.moveAllowanceExceeded()
-          ? undefined
-          : h(
-              'em',
-              ctrl.xiangqiFailure === 'advantageLost' ? i18n.puzzle.tryAgain : i18n.puzzle.trySomethingElse,
-            ),
-      ]),
-    ]),
-    viewSolution(ctrl),
+    h('div.player', [h('div.icon', '✗'), h('div.instruction', [h('strong', ctrl.failureMessage())])]),
   ]);
 
 export default function (ctrl: PuzzleCtrl): MaybeVNode {
+  if (enginePreparing(ctrl.engineStatus) || ctrl.engineStatus.state === 'error')
+    return h('div.puzzle__feedback.engine-loading', [
+      enginePreparing(ctrl.engineStatus) ? progressBar(engineProgress(true, ctrl.engineStatus)) : undefined,
+      h('div.instruction', { attrs: { role: 'status', 'aria-live': 'polite' } }, [
+        h(
+          'strong',
+          ctrl.engineStatus.state === 'downloading'
+            ? i18n.site.loadingEngine
+            : engineLoadingText(ctrl.engineStatus),
+        ),
+        ctrl.engineStatus.state === 'downloading' ? h('em', engineLoadingText(ctrl.engineStatus)) : undefined,
+      ]),
+    ]);
   if (ctrl.xiangqiEngineError)
     return h('div.puzzle__feedback', { attrs: { role: 'status', 'aria-live': 'polite' } }, [
       h('div.instruction', i18n.puzzle.alternativeEvaluationUnavailable),
-      ctrl.xiangqiRetry
-        ? h('button.button', { hook: bind('click', ctrl.xiangqiRetry) }, i18n.site.retry)
-        : undefined,
-      viewSolution(ctrl),
     ]);
   if (ctrl.mode === 'view') return afterView(ctrl);
+  if (ctrl.moveEvaluationDepth !== undefined)
+    return h('div.puzzle__feedback.engine-loading', [
+      progressBar({
+        percent: ctrl.moveEvaluationPercent,
+        active: true,
+        visible: true,
+        label: i18n.puzzle.evaluatingMove,
+      }),
+      h('div.instruction', { attrs: { role: 'status', 'aria-live': 'polite' } }, [
+        h('strong', i18n.puzzle.evaluatingMove),
+        h('em', i18n.site.depthX(ctrl.moveEvaluationDepth)),
+      ]),
+    ]);
   switch (ctrl.lastFeedback) {
     case 'init':
       return initial(ctrl);

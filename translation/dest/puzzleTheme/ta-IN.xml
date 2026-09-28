@@ -79,14 +79,9 @@
   <string name="mateIn3Description">மூன்று நகர்வுகளில் முற்றுகையிடுங்கள்.</string>
   <string name="mateIn4">4 இல் முற்றுகை</string>
   <string name="mateIn4Description">நான்கு நகர்வுகளில் முற்றுகையிடுங்கள்.</string>
-  <string name="mateIn5">5 அல்லது அதற்கு மேற்பட்டவற்றில் முற்றுகை</string>
   <string name="mateIn5Description">நீண்ட முற்றுகை தொடர்வரிசையைக் கண்டறியவும்.</string>
-  <string name="middlegame">இடையாட்டம்</string>
-  <string name="middlegameDescription">ஆட்டத்தின் இரண்டாம் கட்டத்தின்போது ஒரு சூழ்ச்சி.</string>
   <string name="oneMove">ஒரு-நகர்வு புதிர்</string>
   <string name="oneMoveDescription">ஒரே ஒரு நகர்வு நீளமுள்ள ஒரு புதிர்.</string>
-  <string name="opening">துவக்கம்</string>
-  <string name="openingDescription">ஆட்டத்தின் முதல் கட்டத்தின்போது ஒரு சூழ்ச்சி.</string>
   <string name="pawnEndgame">பணய கடையாட்டம்</string>
   <string name="pawnEndgameDescription">பணயங்கள் மட்டுமே கொண்ட ஒரு கடையாட்டம்.</string>
   <string name="pin">குண்டூசி</string>

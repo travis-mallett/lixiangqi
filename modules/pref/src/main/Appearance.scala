@@ -10,8 +10,16 @@ case class Appearance(
     pieceSet: String,
     soundSet: String,
     musicSet: String,
-    board: Appearance.BoardSettings
+    board: Appearance.BoardSettings,
+    selectMatchingPieces: Boolean = true
 ):
+
+  def selectBoard(key: String): Appearance =
+    copy(
+      boardTheme = key,
+      pieceSet =
+        if selectMatchingPieces then BoardThemes(key).matchingPieceSet.getOrElse(pieceSet) else pieceSet
+    )
 
   def sessionValues: Map[String, String] =
     Map(
@@ -19,6 +27,7 @@ case class Appearance(
       "background" -> background,
       "boardTheme" -> boardTheme,
       "pieceSet" -> pieceSet,
+      "selectMatchingPieces" -> selectMatchingPieces.toString,
       "soundSet" -> soundSet,
       "musicSet" -> musicSet,
       "boardBrightness" -> board.brightness.toString,
@@ -42,6 +51,7 @@ object Appearance:
     "backgroundUrl",
     "boardTheme",
     "pieceSet",
+    "selectMatchingPieces",
     "soundSet",
     "musicSet",
     "boardBrightness",
@@ -77,7 +87,7 @@ object Appearance:
     background = Backgrounds.none.key,
     backgroundUrl = None,
     boardTheme = BoardThemes.lixiangqiDefault.key,
-    pieceSet = PieceSets.wikipedia.key,
+    pieceSet = PieceSets.default.key,
     soundSet = SoundSets.standard.key,
     musicSet = MusicSets.gentleAncient.key,
     board = defaultBoardSettings
@@ -178,7 +188,8 @@ case class BoardTheme(
     name: String,
     file: String,
     coordinateLight: String,
-    coordinateDark: String
+    coordinateDark: String,
+    matchingPieceSet: Option[String] = None
 )
 
 object BoardThemes:
@@ -190,38 +201,35 @@ object BoardThemes:
     "Lixiangqi Default",
     "svg/lixiangqi-default.svg",
     coordinateLight,
-    coordinateDark
+    coordinateDark,
+    Some(PieceSets.defaultWood.key)
   )
   val paperBoard = BoardTheme(
     "paper-board",
     "Paper Board",
     "svg/paper-board.svg",
     coordinateLight,
-    coordinateDark
-  )
-  val wikipedia = BoardTheme(
-    "xiangqi-wikipedia",
-    "Classic Xiangqi",
-    "svg/xiangqi-wikipedia.svg",
-    coordinateLight,
-    coordinateDark
+    coordinateDark,
+    Some(PieceSets.international.key)
   )
   val tournament = BoardTheme(
     "xiangqi-tournament",
     "Tournament Xiangqi",
     "svg/xiangqi-tournament.svg",
     coordinateLight,
-    coordinateDark
+    coordinateDark,
+    Some(PieceSets.defaultWood.key)
   )
   val wudang = BoardTheme(
     "xiangqi-wudang",
     "Wudang Ink Xiangqi",
     "xiangqi-wudang.webp",
     "#f0ece2",
-    "#152022"
+    "#152022",
+    Some(PieceSets.wudang.key)
   )
 
-  val all = List(lixiangqiDefault, paperBoard, wikipedia, tournament, wudang)
+  val all = List(lixiangqiDefault, paperBoard, tournament, wudang)
   private val byKey = all.mapBy(_.key)
 
   def apply(key: String): BoardTheme = byKey(key)
@@ -240,13 +248,14 @@ case class PieceSet(key: String, name: String, category: PieceSetCategory)
 object PieceSets:
   import PieceSetCategory.*
 
-  val wikipedia = PieceSet("xiangqi-wikipedia", "Classic Xiangqi", Traditional)
-  val paper = PieceSet("xiangqi-paper", "Paper Xiangqi", Traditional)
+  val defaultWood = PieceSet("default-wood", "default-wood", Traditional)
   val wudang = PieceSet("xiangqi-wudang", "Wudang Brush Seals", Traditional)
-  val international = PieceSet("xiangqi-international", "International Symbols", GraphicalSymbols)
+  val paperTraditional = PieceSet("xiangqi-paper-traditional", "Paper - Traditional", Traditional)
+  val international = PieceSet("xiangqi-international", "Paper - International Symbols", GraphicalSymbols)
   val western = PieceSet("xiangqi-western", "Western Outlines", Other)
 
-  val all = List(wikipedia, paper, wudang, international, western)
+  val default = defaultWood
+  val all = List(defaultWood, wudang, paperTraditional, international, western)
   private val byKey = all.mapBy(_.key)
 
   private val files = List(
@@ -267,11 +276,11 @@ object PieceSets:
   )
 
   def assets(key: String): List[(String, String)] =
-    val extension = "svg"
+    val pieceSet = get(Some(key))
     files.map: (file, variable) =>
-      s"piece/$key/$file.$extension" -> variable
+      s"piece/${pieceSet.key}/$file.svg" -> variable
 
-  def get(key: Option[String]): PieceSet = key.flatMap(byKey.get) | wikipedia
+  def get(key: Option[String]): PieceSet = key.flatMap(byKey.get) | default
   def contains(key: String): Boolean = byKey.contains(key)
 
   given Writes[PieceSet] = Writes: pieceSet =>

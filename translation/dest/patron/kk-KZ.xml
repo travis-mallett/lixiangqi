@@ -17,7 +17,6 @@
   <string name="youHaveLifetime">Сіз Мәңгі Қамқоршысыз. Бәрекелді!</string>
   <string name="patronUntil">Сіздің Қамқоршы тіркелгіңіз %s дейін істейді.</string>
   <string name="ifNotRenewedThenAccountWillRevert">Егер төлем тоқталса, тіркелгіңіз жай күйге қайтып ауысады.</string>
-  <string name="weAreNonProfit">Біз коммерциялық емес ұйымбыз, өйткені біз әрбір адам әлемдік деңгейдегі шахматты тегін ойнауға құқылы деп сенеміз.</string>
   <string name="weRelyOnSupport">Еңбегімізді қуаттап, қолдап жүрген жұртқа үміт артамыз. Егер сізге Личес пайдасын тигізсе, Қамқоршы болып, бізге ақшалай демеу көрсетуді сұраймыз!</string>
   <string name="lifetime">Мәңгіге</string>
   <string name="payLifetimeOnce">%s бір мәрте төлеп, Лическе мәңгі Қамқоршы болыңыз!</string>
@@ -33,17 +32,9 @@
   <string name="weAreSmallTeam">Біз шағын ғана топпыз, сондықтан сіздің жәрдеміңіз зор пайда болады!</string>
   <string name="celebratedPatrons">Личесті жоқтан болдырған атақты Қамқоршыларымыз</string>
   <string name="whereMoneyGoes">Ақша қайда жұмсалады?</string>
-  <string name="serversAndDeveloper">Біріншіден, мықты серверлерге.
-Кейін – толық күн жұмыс істейтін әзірлеушіге: Личесті қалаған %s.</string>
-  <string name="costBreakdown">Шығындар кестесін қараңыз</string>
   <string name="officialNonProfit">Личес, шынымен, табыс табуға көзделмеген бе?</string>
-  <string name="actOfCreation">Иә. Міне – құру құжаты (француз тілінде)</string>
   <string name="changeMonthlySupport">Айлық қолдауымды өзгертсем/тоқтатсам бола ма?</string>
   <string name="contactSupport">Личес қолдау орталығына хабарлаңыз</string>
-  <string name="otherMethods">Демеу берудің басқа жолдары бар ма?</string>
-  <string name="lichessIsRegisteredWith">Личес %s-мен тіркелген.</string>
-  <string name="bankTransfers">Сонымен қатар банк аударымдарын қабылдаймыз</string>
-  <string name="onlyDonationFromAbove">Ескерту: Қамқоршы мәртебесі тек осы демеушілік формасын толтыруымен ғана болады.</string>
   <string name="patronFeatures">Қамқоршылар үшін бір артықшылықтар бар ма?</string>
   <string name="noPatronFeatures">Жоқ, өйткені Личес бәріне бірдей, мәңгі тегін. Бұл біздің уәдеміз.
 Дегенмен, Қамқоршылар өз төлқұжатында күшті таңбашаға ие болады.</string>

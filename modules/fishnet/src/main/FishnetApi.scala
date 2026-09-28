@@ -129,6 +129,9 @@ final class FishnetApi(
       )
     )
 
+  def cancelGameAnalysis(gameId: GameId): Funit = workQueue(repo.cancelGame(gameId))
+  def cancelGameAnalyses(gameIds: List[GameId]): Funit = workQueue(repo.cancelGames(gameIds))
+
   def status: Fu[JsonStr] = monitor.statusCache.get {}.map(_.json)
 
   private[fishnet] def createClient(userId: UserId): Fu[Client] =

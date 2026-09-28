@@ -24,6 +24,8 @@ final class CurrencyApi(
 
   import CurrencyApi.*
 
+  val hasExchangeRates = config.appId.value.nonEmpty
+
   private val baseUrl = "https://openexchangerates.org/api"
 
   private val ratesCache = mongoCache.unit[Map[String, Double]](
@@ -44,19 +46,24 @@ final class CurrencyApi(
               case Some(rates) => rates.filterValues(0 <)
 
   def convert(money: Money, currency: Currency): Fu[Option[Money]] =
-    ratesCache.get {}.map { rates =>
-      for
-        fromRate <- rates.get(money.currencyCode)
-        toRate <- rates.get(currency.getCurrencyCode)
-      yield Money(money.amount / fromRate * toRate, currency)
-    }
+    if money.currency == currency then fuccess(money.some)
+    else if !hasExchangeRates then fuccess(none)
+    else
+      ratesCache.get {}.map { rates =>
+        for
+          fromRate <- rates.get(money.currencyCode)
+          toRate <- rates.get(currency.getCurrencyCode)
+        yield Money(money.amount / fromRate * toRate, currency)
+      }
 
   def toUsd(money: Money): Fu[Option[Usd]] =
-    ratesCache.get {}.map { rates =>
-      rates.get(money.currencyCode).map { fromRate =>
-        Usd(money.amount / fromRate)
+    if money.currencyCode == "USD" then fuccess(Some(Usd(money.amount)))
+    else
+      ratesCache.get {}.map { rates =>
+        rates.get(money.currencyCode).map { fromRate =>
+          Usd(money.amount / fromRate)
+        }
       }
-    }
 
   val USD = Currency.getInstance("USD")
   val EUR = Currency.getInstance("EUR")
@@ -111,7 +118,16 @@ object CurrencyApi:
     "XPF"
   ).flatMap(anyCurrencyOption)
 
-  // https://developer.paypal.com/docs/reports/reference/paypal-supported-currencies/
+  // https://developer.paypal.com/reference/currency-codes/
+  def payPalFractionDigits(currency: Currency): Int =
+    if Set("HUF", "JPY", "TWD").contains(currency.getCurrencyCode) then 0 else 2
+
+  // Use an amount accepted by either checkout provider without changing the donor's selected total.
+  def donationFractionDigits(currency: Currency): Int =
+    if payPalCurrencies.contains(currency) then payPalFractionDigits(currency)
+    else if zeroDecimalCurrencies.contains(currency) then 0
+    else currency.getDefaultFractionDigits
+
   val payPalCurrencies: Set[Currency] = Set(
     "AUD",
     "BRL",
@@ -132,7 +148,6 @@ object CurrencyApi:
     "PHP",
     "PLN",
     "GBP",
-    "RUB",
     "SGD",
     "SEK",
     "CHF",

@@ -14,6 +14,8 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from tools.games_database.identity import resolve_catalog_game
+
 from tools.games_database.catalog_index import (
     ONLINE_SOURCE_IDS,
     SOURCE_BITS,
@@ -1746,26 +1748,6 @@ def _complete_game(
     return game
 
 
-def _legacy_source_locator(game_id: str) -> tuple[str, str | None, str] | None:
-    """Resolve storage identifiers emitted before canonical game IDs were introduced."""
-
-    if game_id.startswith("dpxq_online:"):
-        remainder = game_id.removeprefix("dpxq_online:")
-        collection, separator, external_id = remainder.partition(":")
-        if separator and collection in ONLINE_SOURCES and external_id:
-            return "dpxq", collection, external_id
-    for prefix, source in (
-        ("dpxq:", "dpxq"),
-        ("gdchess_01xq:", "gdchess_01xq"),
-        ("xqdao:", "xqdao"),
-    ):
-        if game_id.startswith(prefix):
-            external_id = game_id.removeprefix(prefix)
-            if external_id:
-                return source, None, external_id
-    return None
-
-
 def get_game(query: dict[str, Any]) -> dict[str, Any]:
     locale = manual_language(query)
     game_id = query.get("id")
@@ -1775,44 +1757,12 @@ def get_game(query: dict[str, Any]) -> dict[str, Any]:
     if connection is None:
         raise ValueError("Games database is not installed")
     try:
-        row = connection.execute(
-            """
-            SELECT g.*, COALESCE(json_extract(g.moves, '$[0]'), '') AS move
-            FROM games g WHERE g.id = ?
-            """,
-            (game_id,),
-        ).fetchone()
-        if row is None:
-            requested_source = query.get("database")
-            if isinstance(requested_source, str):
-                requested_source = catalog_database_id(requested_source)
-            source_name = {
-                "dpxq": "dpxq",
-                "gdchess": "gdchess_01xq",
-                "xqdao": "xqdao",
-            }.get(requested_source)
-            external_id = game_id
-            requested_collection: str | None = None
-            legacy_locator = _legacy_source_locator(game_id)
-            if legacy_locator is not None:
-                source_name, requested_collection, external_id = legacy_locator
-            parameters: list[Any] = [external_id]
-            condition = ""
-            if source_name:
-                condition = " AND s.source = ?"
-                parameters.append(source_name)
-            if requested_collection:
-                condition += " AND s.collection = ?"
-                parameters.append(requested_collection)
-            row = connection.execute(
-                f"""
-                SELECT g.*, COALESCE(json_extract(g.moves, '$[0]'), '') AS move
-                FROM game_sources s JOIN games g ON g.id = s.game_id
-                WHERE s.external_id = ? {condition}
-                ORDER BY s.id LIMIT 1
-                """,
-                parameters,
-            ).fetchone()
+        requested_source = query.get("database")
+        if isinstance(requested_source, str):
+            requested_source = catalog_database_id(requested_source)
+        else:
+            requested_source = None
+        row = resolve_catalog_game(connection, game_id, requested_source)
         if row is None:
             raise ValueError("Catalog game was not found")
         return _complete_game(connection, row, locale)

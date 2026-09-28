@@ -99,14 +99,9 @@
   <string name="mateIn3Description">Üç hamlede rakibi mat et.</string>
   <string name="mateIn4">4 Hamlede Mat</string>
   <string name="mateIn4Description">Dört hamlede rakibi mat et.</string>
-  <string name="mateIn5">5 hamle ve üstü matlar</string>
   <string name="mateIn5Description">Uzun bir mat serisini çözmeye çalış.</string>
-  <string name="middlegame">Oyunortası</string>
-  <string name="middlegameDescription">Oyunun ikinci aşamasında her eve lazım taktikler.</string>
   <string name="oneMove">Tek hamlelik bulmaca</string>
   <string name="oneMoveDescription">Yalnızca bir hamle uzunluğundaki bulmacalar.</string>
-  <string name="opening">Açılış</string>
-  <string name="openingDescription">Oyunun ilk aşamasında hayatınızı kolaylaştıran taktikler.</string>
   <string name="operaMate">Opera matı</string>
   <string name="operaMateDescription">Kale ile şah çekin ve kaleyi korumak için fil kullanın.</string>
   <string name="pawnEndgame">Piyon oyunsonu</string>

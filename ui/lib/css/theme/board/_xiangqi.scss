@@ -6,7 +6,8 @@
 
 // Hide the entire stack until its faces and shadow textures decode. Once
 // ready, normal visibility inheritance still governs hidden boards/tooltips.
-body:not(.piece-images-ready) .cg-wrap.xiangqi9x10 cg-board > piece {
+body:not(.piece-images-ready) .cg-wrap.xiangqi9x10 cg-board > piece,
+body:not(.piece-images-ready) .cg-wrap.xiangqi9x10 cg-board .xiangqi-piece-shadow {
   visibility: hidden;
 }
 
@@ -17,6 +18,14 @@ body:not(.piece-images-ready) .cg-wrap.xiangqi9x10 cg-board > piece {
 .mini-board.xiangqi9x10,
 .mini-game .cg-wrap.xiangqi9x10 {
   padding-bottom: calc(10 * 100% / 9);
+}
+
+body .cg-wrap.xiangqi9x10.cg-static-preview {
+  // Static diagrams retain their contact shadows without reserving a layer per piece/shadow.
+  .xiangqi-piece-shadow,
+  .xiangqi-motion-shadow-contact {
+    will-change: auto;
+  }
 }
 
 body .cg-wrap.xiangqi9x10 {
@@ -30,7 +39,8 @@ body .cg-wrap.xiangqi9x10 {
   }
 
   square,
-  piece {
+  piece,
+  .xiangqi-piece-shadow {
     width: calc(100% / 9);
     height: 10%;
   }
@@ -41,19 +51,34 @@ body .cg-wrap.xiangqi9x10 {
     filter: none;
   }
 
-  cg-board > piece::before,
   cg-board > piece::after {
     content: '';
     position: absolute;
     pointer-events: none;
   }
 
-  // The pre-rendered contact shadow replaces the former per-piece Gaussian
-  // filters. Its generous transparent bounds keep the soft edge unclipped.
-  cg-board > piece::before {
+  // Clip decorative shadow textures at the board edge without clipping draggable pieces.
+  .xiangqi-shadow-layer {
+    position: absolute;
+    inset: 0;
     z-index: 0;
-    inset: -50%;
-    background: var(--xiangqi-rest-shadow-image) center / 100% 100% no-repeat;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  // A board-level companion keeps every contact shadow below every face.
+  // Piece transforms/isolation must never contain a resting shadow.
+  cg-board .xiangqi-piece-shadow {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 0;
+    pointer-events: none;
+    will-change: transform;
+
+    &.fading {
+      opacity: 0.5;
+    }
   }
 
   cg-board > piece::after {
@@ -73,11 +98,11 @@ body .cg-wrap.xiangqi9x10 {
     border-radius: 50%;
     background: radial-gradient(
       circle,
-      rgb(255 255 255 / 0.96) 0 58%,
-      rgb(255 255 255 / 0.86) 61%,
-      rgb(255 255 255 / 0.6) 65%,
-      rgb(255 255 255 / 0.32) 68%,
-      rgb(255 255 255 / 0.12) 71%,
+      rgb(var(--xiangqi-last-move-rgb) / 0.96) 0 58%,
+      rgb(var(--xiangqi-last-move-rgb) / 0.86) 61%,
+      rgb(var(--xiangqi-last-move-rgb) / 0.6) 65%,
+      rgb(var(--xiangqi-last-move-rgb) / 0.32) 68%,
+      rgb(var(--xiangqi-last-move-rgb) / 0.12) 71%,
       transparent 74%
     );
     pointer-events: none;
@@ -87,7 +112,6 @@ body .cg-wrap.xiangqi9x10 {
     z-index: 30;
   }
 
-  cg-board > piece.xiangqi-motion-piece::before,
   cg-board > piece.xiangqi-motion-piece::after {
     content: none;
   }
@@ -101,8 +125,7 @@ body .cg-wrap.xiangqi9x10 {
     background-repeat: no-repeat;
     background-size: 100% 100%;
     pointer-events: none;
-    transform-origin: center;
-    will-change: transform, opacity;
+    will-change: opacity;
   }
 
   .xiangqi-motion-shadow-contact {
@@ -110,10 +133,12 @@ body .cg-wrap.xiangqi9x10 {
     opacity: 1;
   }
 
+  // Only the airborne shadow shares the lifted face's stacking context.
   .xiangqi-motion-shadow-airborne {
     background-image: var(--xiangqi-airborne-shadow-image);
     opacity: 0;
-    transform: translate3d(0, 0, 0);
+    transform-origin: center;
+    will-change: transform, opacity;
   }
 
   .xiangqi-motion-camera {
@@ -176,13 +201,13 @@ body .cg-wrap.xiangqi9x10 {
     &.last-move-origin {
       background: radial-gradient(
         circle,
-        rgb(255 255 255 / 0.98) 0 9%,
-        rgb(255 255 255 / 0.88) 10%,
-        rgb(255 255 255 / 0.38) 13%,
-        rgb(255 255 255 / 0.12) 17%,
-        rgb(255 255 255 / 0.88) 18%,
-        rgb(255 255 255 / 0.96) 20%,
-        rgb(255 255 255 / 0.28) 21%,
+        rgb(var(--xiangqi-last-move-rgb) / 0.98) 0 9%,
+        rgb(var(--xiangqi-last-move-rgb) / 0.88) 10%,
+        rgb(var(--xiangqi-last-move-rgb) / 0.38) 13%,
+        rgb(var(--xiangqi-last-move-rgb) / 0.12) 17%,
+        rgb(var(--xiangqi-last-move-rgb) / 0.88) 18%,
+        rgb(var(--xiangqi-last-move-rgb) / 0.96) 20%,
+        rgb(var(--xiangqi-last-move-rgb) / 0.28) 21%,
         transparent 24%
       );
     }
@@ -200,11 +225,11 @@ body .cg-wrap.xiangqi9x10 {
         border-radius: 50%;
         background: radial-gradient(
           circle,
-          rgb(255 255 255 / 0.96) 0 58%,
-          rgb(255 255 255 / 0.86) 61%,
-          rgb(255 255 255 / 0.6) 65%,
-          rgb(255 255 255 / 0.32) 68%,
-          rgb(255 255 255 / 0.12) 71%,
+          rgb(var(--xiangqi-last-move-rgb) / 0.96) 0 58%,
+          rgb(var(--xiangqi-last-move-rgb) / 0.86) 61%,
+          rgb(var(--xiangqi-last-move-rgb) / 0.6) 65%,
+          rgb(var(--xiangqi-last-move-rgb) / 0.32) 68%,
+          rgb(var(--xiangqi-last-move-rgb) / 0.12) 71%,
           transparent 74%
         );
       }
@@ -356,3 +381,5 @@ body .cg-wrap.xiangqi9x10 {
     width: 90%;
   }
 }
+
+@import 'xiangqi-board-themes';

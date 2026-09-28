@@ -1,4 +1,4 @@
-import { randomToken } from './algo';
+import { browserId } from './browserId';
 import { idleTimer } from './event';
 import { defined, myUserId } from './index';
 import { log } from './permalog';
@@ -9,9 +9,7 @@ import * as xhr from './xhr';
 let siteSocket: WsSocket | undefined;
 let currentActivity: string | undefined;
 let currentActivityGroup: string | undefined;
-const visitorStorage = storage.make('presence.visitor');
-const visitorId = visitorStorage.get() ?? randomToken();
-if (!visitorStorage.get()) visitorStorage.set(visitorId);
+const visitorId = browserId();
 
 export function eventuallySetupDefaultConnection(): void {
   setTimeout(() => {

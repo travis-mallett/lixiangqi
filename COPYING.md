@@ -40,9 +40,10 @@ SVG in ui/learn/src/apple.ts | [Sensa](https://www.svgrepo.com/svg/434273/star) 
 public/flair/img/symbols.neovim-mark.webp | Jason Long | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) (Modified by converting to webp and resizing)
 public/flair/img/symbols.helix-logo.webp | [jakenvac](https://github.com/jakenvac) | [MPL 2.0](https://www.mozilla.org/en-US/MPL/2.0/)
 ui/lib/src/game/xiangqi.ts, ui/xiangqi | [PyChess Variants authors](https://github.com/gbtami/pychess-variants/tree/7dc114b1ce2c12fed294d36db2db04dd59857d9b) and Lixiangqi contributors | [GPLv3](https://www.gnu.org/licenses/gpl-3.0.html)
-public/images/board/svg/158871-wood-grain.svg | [Lazur, "wood grain filter pack 4"](https://openclipart.org/detail/256780/wood-grain-filter-pack-4) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/)
-public/images/board/svg/xiangqi-{wikipedia,tournament,file-coordinates}.svg, public/piece/xiangqi-wikipedia | [Wj654cj86](https://commons.wikimedia.org/wiki/User:Wj654cj86) and Lixiangqi contributors | Public-domain source artwork; Lixiangqi modifications are AGPLv3+
+public/images/board/svg/xiangqi-{wikipedia,tournament,file-coordinates}.svg, ui/lib/css/theme/wudang/glyphs.json | [Wj654cj86](https://commons.wikimedia.org/wiki/User:Wj654cj86) and Lixiangqi contributors | Public-domain source artwork; Lixiangqi modifications are AGPLv3+
 public/piece/xiangqi-wudang | Lixiangqi contributors, derived from Wj654cj86's public-domain Xiangqi pieces | AGPLv3+
+public/piece/default-wood | [PyChess Variants contributors](https://github.com/gbtami/pychess-variants/tree/6e38d77426991710ec4a1d641773e17cb66f921a/static/images/pieces/xiangqi/ttxqhanzi) and Lixiangqi contributors | [AGPLv3+](https://www.gnu.org/licenses/agpl-3.0.html); adapted colors, raster grain, and lighting
+public/piece/xiangqi-paper-traditional | [PyChess Variants contributors](https://github.com/gbtami/pychess-variants/tree/6e38d77426991710ec4a1d641773e17cb66f921a/static/images/pieces/xiangqi/lishu) | [AGPLv3+](https://www.gnu.org/licenses/agpl-3.0.html); original SVGs with filenames adapted to LiXiangQi
 public/piece/xiangqi-{international,western} | [PyChess Variants authors](https://github.com/gbtami/pychess-variants/tree/10f48bc32658f856628da5fb8b3ed723e0e089d6/static/images/pieces/xiangqi) | [AGPLv3](https://www.gnu.org/licenses/agpl-3.0.html)
 public/pikafish-web/pikafish.{js,wasm}, public/pikafish-web/COPYING.txt | [Pikafish authors](https://github.com/official-pikafish/Pikafish/tree/ce0679e00ee196f7ba17f6ec18941b9a5036f8cf) and Lixiangqi contributors | [GPLv3](https://www.gnu.org/licenses/gpl-3.0.html)
 public/sound/standard/{LearnCapture,NewChatMessage}.mp3 | [Enigmahack](https://github.com/Enigmahack) | AGPLv3+
@@ -50,7 +51,9 @@ public/sound/standard/{PuzzleStormEnd,PuzzleStormGood}.mp3 | [EdinburghCollectiv
 public/sound/wuxia3/Music.mp3 | [PeriTune, “Wuxia3”](https://peritune.com/blog/2021/05/22/wuxia3/) | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
 public/sound/gentle-ancient/Music.mp3 | [碎碎平安的碎碎, 《温婉的古风音乐》](https://www.ear0.com/sound/show/soundid-43881) | [CC BY 3.0 China](https://creativecommons.org/licenses/by/3.0/cn/)
 
-public/images/puzzle-themes/_ [game-icons.net](https://game-icons.net/about.html) [CC BY 3.0](http://creativecommons.org/licenses/by/3.0/)
+public/images/puzzle-themes/\*.svg [game-icons.net](https://game-icons.net/about.html) [CC BY 3.0](http://creativecommons.org/licenses/by/3.0/)
+
+public/images/puzzle-themes/\*.webp Original AI-generated LiXiangQi artwork; see the art direction and generation prompts for the [chariot icons](doc/design/chariot-theme-icons.md), [horse icons](doc/design/horse-theme-icons.md), [cannon icons](doc/design/cannon-theme-icons.md), [soldier icons](doc/design/soldier-theme-icons.md), [general icon](doc/design/general-theme-icon.md), and [brushstroke icon background](doc/design/puzzle-theme-brush-ring.md).
 translation/source/puzzleTheme.xml | the lila authors and contributors | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/)
 
 ## Exceptions (non-free)

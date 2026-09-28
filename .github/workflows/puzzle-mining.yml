@@ -1,0 +1,92 @@
+name: Puzzle mining tests
+
+on:
+  push:
+    paths:
+      - 'tools/xiangqi_data/puzzle_mining/**'
+      - 'tools/xiangqi_data/puzzle_composition/**'
+      - 'tools/xiangqi_data/requirements.txt'
+      - 'tools/xiangqi_data/tests/test_puzzle*.py'
+      - 'tools/xiangqi_data/tests/test_supported_puzzle_kinds.py'
+      - 'tools/puzzle_catalog/**'
+      - 'tools/games_database/**'
+      - 'external/xiangqi_explorer/game_catalog.py'
+      - 'tools/xiangqi_data/tests/test_game_catalog.py'
+      - 'tools/environment_data/**'
+      - 'scripts/discover-puzzle-candidates.py'
+      - 'scripts/categorize-checkmate-puzzles.py'
+      - 'scripts/categorize-tactic-puzzles.py'
+      - 'scripts/compose-quadruple-puzzles.py'
+      - 'tools/data_migration/**'
+      - '.github/workflows/puzzle-mining.yml'
+  pull_request:
+    paths:
+      - 'tools/xiangqi_data/puzzle_mining/**'
+      - 'tools/xiangqi_data/puzzle_composition/**'
+      - 'tools/xiangqi_data/requirements.txt'
+      - 'tools/xiangqi_data/tests/test_puzzle*.py'
+      - 'tools/xiangqi_data/tests/test_supported_puzzle_kinds.py'
+      - 'tools/puzzle_catalog/**'
+      - 'tools/games_database/**'
+      - 'external/xiangqi_explorer/game_catalog.py'
+      - 'tools/xiangqi_data/tests/test_game_catalog.py'
+      - 'tools/environment_data/**'
+      - 'scripts/discover-puzzle-candidates.py'
+      - 'scripts/categorize-checkmate-puzzles.py'
+      - 'scripts/categorize-tactic-puzzles.py'
+      - 'scripts/compose-quadruple-puzzles.py'
+      - 'tools/data_migration/**'
+      - '.github/workflows/puzzle-mining.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    services:
+      mongo:
+        image: mongo:8.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ping:1})'"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        with:
+          python-version: '3.12'
+      - name: Install mining test dependencies
+        run: python -m pip install --disable-pip-version-check pymongo -r tools/xiangqi_data/requirements.txt
+      - name: Run puzzle mining tests
+        run: python -m unittest discover -s tools/xiangqi_data/tests -p "test_puzzle*.py"
+      - name: Run supported puzzle kind tests
+        run: python -m unittest tools.xiangqi_data.tests.test_supported_puzzle_kinds
+      - name: Run content and environment isolation tests
+        run: python -m unittest tools.puzzle_catalog.test_catalog tools.puzzle_catalog.test_publication tools.puzzle_catalog.test_remove_phase_tags tools.puzzle_catalog.test_source_references tools.environment_data.tests.test_snapshot tools.environment_data.tests.test_preview_account tools.xiangqi_data.tests.test_game_catalog
+      - name: Run live publication client tests
+        run: python -m unittest tools.puzzle_catalog.test_live tools.puzzle_catalog.test_game_analysis tools.puzzle_catalog.test_discovery_publication
+      - name: Run game completion migration tests
+        run: node tools/data_migration/tests/game_completion.test.cjs
+      - name: Run supported objective migration tests
+        run: node tools/data_migration/tests/supported_objectives.test.mjs
+      - name: Test deployment migrations and interruption recovery
+        env:
+          LIXIANGQI_MIGRATION_TEST_URI: mongodb://127.0.0.1:27017
+        run: python -m unittest discover -s tools/data_migration/tests -p 'test_*.py'
+
+  desktop:
+    runs-on: windows-latest
+    env:
+      QT_QPA_PLATFORM: offscreen
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        with:
+          python-version: '3.12'
+      - name: Install desktop dependencies
+        run: python -m pip install -r tools/puzzle_catalog/desktop/requirements.txt
+      - name: Test desktop workflows, moderation, process ownership and rendering
+        run: python -m unittest discover -s tools/puzzle_catalog/desktop/tests -p "test_*.py"

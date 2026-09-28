@@ -987,16 +987,22 @@ object xiangqi:
               attr("aria-live") := "polite"
             )(
               div(
-                strong("Computer analysis"),
+                strong(trans.site.computerAnalysis()),
                 span(id := "xiangqi-server-analysis-status")(
-                  "Request a full-game Pikafish analysis."
+                  trans.site.requestAComputerAnalysis()
                 )
               ),
               button(
                 id := "xiangqi-request-analysis",
                 cls := "button",
                 attr("type") := "button"
-              )("Request computer analysis")
+              )(trans.site.requestAComputerAnalysis())
+            ),
+            div(id := "xiangqi-analysis-chart", cls := "xiangqi-analysis__chart", attr("hidden") := true)(
+              canvas(
+                attr("aria-label") := trans.site.computerAnalysis.txt(),
+                attr("tabindex") := "0"
+              )(trans.site.computerAnalysis())
             ),
             div(cls := "xiangqi-analysis__fen")(
               label(attr("for") := "xiangqi-fen")("Position (Xiangqi FEN)"),

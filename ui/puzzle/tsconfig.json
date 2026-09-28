@@ -1,10 +1,5 @@
 {
   "extends": "../tsconfig.base.json",
   "compilerOptions": { "noEmit": true, "isolatedDeclarations": false },
-  "references": [
-    { "path": "../lib/tsconfig.json" },
-    { "path": "../keyboardMove/tsconfig.json" },
-    { "path": "../xiangqi/tsconfig.json" },
-    { "path": "../voice/tsconfig.json" }
-  ]
+  "references": [{ "path": "../lib/tsconfig.json" }, { "path": "../xiangqi/tsconfig.json" }]
 }

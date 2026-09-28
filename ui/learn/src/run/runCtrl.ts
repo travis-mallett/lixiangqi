@@ -2,6 +2,8 @@ import type { Api } from 'chessgroundx/api';
 import type { Key } from 'chessgroundx/types';
 import { requestXiangqi, type RulesState, uciMoveToCg } from 'xiangqi';
 
+import { trafficActivity, trafficAttemptId, trackTraffic } from 'lib/traffic';
+
 import { makeAppleShape } from '../apple';
 import { hashNavigate } from '../hashRouting';
 import type { LearnOpts } from '../learn';
@@ -9,6 +11,8 @@ import { COMPLETION_SCORE } from '../score';
 import { type Level, type Stage, byId as stageById, list as stages } from '../stage/list';
 
 export class RunCtrl {
+  private trafficAttempt = trafficAttemptId();
+  private trafficPractice = false;
   ground?: Api;
   fen = '';
   step = 0;
@@ -36,6 +40,14 @@ export class RunCtrl {
   }
 
   initializeLevel = () => {
+    this.trafficAttempt = trafficAttemptId();
+    this.trafficPractice = false;
+    if (this.opts.stageId !== null) {
+      trafficActivity(this.level.reading ? 'lesson.read' : 'lesson.practice', this.trafficAttempt, {
+        theme: this.stage.key,
+      });
+      trackTraffic('lesson.started', {}, {}, this.trafficAttempt);
+    } else trafficActivity('lesson.browse');
     window.clearTimeout(this.completionTimer);
     const generation = ++this.validationGeneration;
     this.step = 0;
@@ -70,6 +82,10 @@ export class RunCtrl {
   };
 
   onMove = (move: string) => {
+    if (!this.trafficPractice) {
+      this.trafficPractice = true;
+      trackTraffic('lesson.practice', {}, {}, this.trafficAttempt);
+    }
     const expected = this.level.moves[this.step];
     if (move !== expected) {
       this.failed = true;
@@ -91,6 +107,8 @@ export class RunCtrl {
 
   complete = () => {
     if (this.completed) return;
+    trackTraffic('lesson.completed', {}, {}, this.trafficAttempt);
+    trafficActivity('lesson.review', this.trafficAttempt, { theme: this.stage.key });
     this.completed = true;
     this.opts.storage.saveScore(this.stage, this.level, COMPLETION_SCORE);
     this.ground?.stop();

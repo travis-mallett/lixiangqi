@@ -3,7 +3,7 @@ package lila.plan
 import scalalib.ThreadLocalRandom
 
 case class Charge(
-    _id: String, // random
+    _id: String, // PayPal transaction ID, otherwise generated locally
     userId: Option[UserId],
     giftTo: Option[UserId] = none,
     stripe: Option[Charge.Stripe] = none,
@@ -27,8 +27,6 @@ case class Charge(
     else "???"
 
   def toGift = (userId, giftTo).mapN { Charge.Gift(_, _, date) }
-
-  def copyAsNew = copy(_id = Charge.makeId, date = nowInstant)
 
 object Charge:
 

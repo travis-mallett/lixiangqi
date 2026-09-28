@@ -2,6 +2,7 @@ package lila.puzzle
 
 import chess.{ Ply, IntRating }
 import chess.rating.glicko.Glicko
+import lila.db.dsl.{ *, given }
 
 import lila.xiangqi.{ Xiangqi, XiangqiRules }
 
@@ -9,12 +10,15 @@ case class Puzzle(
     id: PuzzleId,
     gameId: GameId,
     gameSource: Option[Puzzle.GameSource],
+    sourceSnapshot: Puzzle.SourceSnapshot,
     fen: String,
     line: NonEmptyList[Xiangqi.Uci],
     glicko: Glicko,
     plays: Int,
     vote: Float, // denormalized ratio of voteUp/voteDown
-    themes: Set[PuzzleTheme.Key]
+    themes: Set[PuzzleTheme.Key],
+    playback: Puzzle.Playback,
+    retired: Boolean = false
 ):
   def gameRef: Puzzle.GameRef =
     gameSource.fold[Puzzle.GameRef](Puzzle.GameRef.Lila(gameId)):
@@ -45,6 +49,20 @@ case class Puzzle(
   def hasTheme(anyOf: PuzzleTheme*) = anyOf.exists(t => themes(t.key))
 
 object Puzzle:
+
+  case class Playback(objective: String, solutions: Vector[Vector[String]], startingCp: Option[Int])
+
+  case class SourcePlayer(color: String, userId: Option[UserId], name: Option[String], rating: Option[Int])
+  case class SourceSnapshot(
+      initialFen: String,
+      moves: Vector[Xiangqi.Uci],
+      players: Vector[SourcePlayer],
+      name: Option[String] = None,
+      event: Option[String] = None,
+      sourceUrl: Option[String] = None,
+      rated: Option[Boolean] = None,
+      perf: Option[String] = None
+  )
 
   enum GameSource:
     case Catalog(database: String)
@@ -103,6 +121,7 @@ object Puzzle:
     val id = "_id"
     val gameId = "gameId"
     val gameSource = "gameSource"
+    val sourceSnapshot = "sourceSnapshot"
     val fen = "fen"
     val line = "line"
     val glicko = "glicko"
@@ -115,3 +134,15 @@ object Puzzle:
     val issue = "issue"
     val dirty = "dirty" // themes need to be denormalized
     val tagMe = "tagMe" // pending phase & opening
+    val retired = "retired"
+
+  /** Selector shared by all active training consumers; absent is legacy-active. */
+  val activeSelector: Bdoc = BSONFields.retired.$ne(true)
+
+  private[puzzle] def eligibleForAngle(themes: List[String], angle: String): Boolean =
+    angle == "mix" || themes.contains(angle)
+
+  def activeFor(angle: PuzzleAngle): Bdoc =
+    activeSelector ++ angle.asTheme
+      .filter(_ != PuzzleTheme.mix.key)
+      .fold($empty)(key => $doc("themes" -> key))

@@ -6,6 +6,7 @@ import { legalMoveDests, setXiangqiCoordinates, uciMoveToCg } from 'xiangqi';
 import { type Prop, myUserId, withEffect } from 'lib';
 import { pubsub } from 'lib/pubsub';
 import { storedBooleanProp, storedProp } from 'lib/storage';
+import { trafficActivity, trafficAttemptId, trackTraffic } from 'lib/traffic';
 import { toggleZenMode } from 'lib/view/zen';
 import { text as xhrText, form as xhrForm } from 'lib/xhr';
 
@@ -31,6 +32,7 @@ const perspectiveColor = (perspective: Exclude<BoardPerspective, 'both'>): Color
   perspective === 'red' ? 'white' : 'black';
 
 export default class NotationTrainerCtrl {
+  private trafficAttempt = trafficAttemptId();
   ground?: GroundApi;
   exercise?: NotationExercise;
   hasPlayed = false;
@@ -137,6 +139,9 @@ export default class NotationTrainerCtrl {
 
   start = () => {
     if (this.playing || this.loading) return;
+    this.trafficAttempt = trafficAttemptId();
+    trafficActivity('notation.practice', this.trafficAttempt, { mode: this.mode() });
+    trackTraffic('notation.started', {}, {}, this.trafficAttempt);
     this.playing = true;
     this.hasPlayed = true;
     this.score = 0;
@@ -150,6 +155,13 @@ export default class NotationTrainerCtrl {
 
   stop = () => {
     if (!this.playing) return;
+    trackTraffic(
+      'notation.finished',
+      { mode: this.mode() },
+      { durationMs: Date.now() - this.timeAtStart, score: this.score },
+      this.trafficAttempt,
+    );
+    trafficActivity('notation.read');
     this.playing = false;
     this.loading = false;
     this.answerReady = false;

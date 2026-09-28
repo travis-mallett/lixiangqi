@@ -18,7 +18,6 @@
   <string name="youHaveLifetime">உங்களிடம் வாழ்நாள் ஆதரவாளர் கணக்கு உள்ளது. அது மிகவும் அருமையானது!</string>
   <string name="patronUntil">%s வரை உங்களிடம் ஆதரவாளர் கணக்கு உள்ளது.</string>
   <string name="ifNotRenewedThenAccountWillRevert">புதுப்பிக்கப்படாவிட்டால், உங்கள் கணக்கு வழக்கமான கணக்கிற்கு மாற்றப்படும்.</string>
-  <string name="weAreNonProfit">நாங்கள் ஒரு இலாப நோக்கற்ற சங்கமாக இருக்கிறோம், ஏனென்றால் அனைவருக்கும் சுதந்திரமான, உலகத் தரம் வாய்ந்த சதுரங்க தளத்தை அணுக வேண்டும் என்று நாங்கள் நம்புகிறோம்.</string>
   <string name="weRelyOnSupport">அதனைச் சாத்தியப்படுத்த உங்களைப் போன்றவர்களின் ஆதரவை நாங்கள் நம்பியுள்ளோம். நீங்கள் லிசெஸ் ஐப் பயன்படுத்துவதில் மகிழ்ச்சியடைகிறீர்கள் என்றால், நன்கொடை அளிப்பதன் மூலமும், ஆதரவாளர் ஆவதன் மூலமும் எங்களுக்கு ஆதரவளிக்கவும்!</string>
   <string name="lifetime">வாழ்நாள்</string>
   <string name="payLifetimeOnce">%s ஐ ஒருமுறை செலுத்தவும். என்றென்றும் Lichess ஆதரவாளராக இருங்கள்!</string>
@@ -34,18 +33,9 @@
   <string name="weAreSmallTeam">நாங்கள் ஒரு சிறிய கூட்டணி, எனவே உங்கள் ஆதரவு மிகப்பெரிய மாற்றத்தை ஏற்படுத்துகிறது!</string>
   <string name="celebratedPatrons">Lichess ஐ சாத்தியமாக்கும் புகழ்பெற்ற ஆதரவாளர்கள்</string>
   <string name="whereMoneyGoes">பணம் எங்கே போகிறது?</string>
-  <string name="serversAndDeveloper">முதலில், சக்திவாய்ந்த சேவையகங்கள்.
-பின்னர் முழுநேர உருவாக்குநருக்கு நாங்கள் பணம் செலுத்துகிறோம்: %s, Lichess இன் நிறுவனர்.
-</string>
-  <string name="costBreakdown">விரிவான செலவுப் பிரிவைப் பார்க்கவும்</string>
   <string name="officialNonProfit">Lichess ஒரு அதிகாரப்பூர்வ இலாப நோக்கற்ற நிறுவனமா?</string>
-  <string name="actOfCreation">ஆம், படைப்பின் செயல் இதோ (பிரெஞ்சு மொழியில்)</string>
   <string name="changeMonthlySupport">எனது மாதாந்திர ஆதரவை நான் மாற்றலாமா/ரத்து செய்யலாமா?</string>
   <string name="contactSupport">லிசெஸ் ஆதரவைத் தொடர்பு கொள்ளவும்</string>
-  <string name="otherMethods">மற்ற நன்கொடை முறைகள்?</string>
-  <string name="lichessIsRegisteredWith">Lichess %s உடன் பதிவு செய்யப்பட்டுள்ளது.</string>
-  <string name="bankTransfers">வங்கி பரிமாற்றங்களையும் நாங்கள் ஏற்றுக்கொள்கிறோம்</string>
-  <string name="onlyDonationFromAbove">மேலுள்ள நன்கொடை படிவம் மட்டுமே ஆதரவாளர் தகுநிலையை வழங்கும் என்பதை நினைவில் கொள்ளவும்.</string>
   <string name="patronFeatures">சில அம்சங்கள் ஆதரவாளர்களுக்கு ஒதுக்கப்பட்டதா?</string>
   <string name="noPatronFeatures">இல்லை, ஏனெனில் Lichess முற்றிலும் சுதந்திரம், என்றென்றும், மற்றும் அனைவருக்கும். அது ஒரு வாக்குறுதி.
 இருப்பினும், உங்கள் சுயவிவரத்தில் காண்பிக்கப்படும் புதிய ஆதரவாளர் இறக்கைகள்மூலம்ரவாளர் பெருமை பேசும் உரிமைகளைப் பெறுகிறார்கள்.</string>
@@ -82,5 +72,4 @@
   <string name="changeCurrency">நாணயத்தை மாற்றவும்</string>
   <string name="paymentDetails">கட்டண விவரங்கள்</string>
   <string name="updatePaymentMethod">கட்டண முறையைப் புதுப்பிக்கவும்</string>
-  <string name="stripeManageSub">உங்கள் சந்தாவை நிர்வகிக்கவும் மற்றும் உங்கள் விலைப்பட்டியல்கள் மற்றும் இரசீதுகளைப் பதிவிறக்கவும்</string>
 </resources>

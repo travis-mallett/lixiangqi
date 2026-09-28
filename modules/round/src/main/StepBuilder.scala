@@ -17,7 +17,5 @@ object StepBuilder:
           "sanZh" -> game.chineseWxf.lift(index - 1),
           "fen" -> state.fen,
           "check" -> state.check,
-          "mate" -> (state.check && state.immediateEnd.ended &&
-            state.gameResult.winner.isDefined &&
-            state.termination.forall(_ == "checkmate"))
+          "mate" -> state.mate
         )

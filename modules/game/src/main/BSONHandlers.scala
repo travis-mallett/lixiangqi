@@ -165,6 +165,7 @@ object BSONHandlers:
         bookmarks = r.intD(F.bookmarks),
         createdAt = createdAt,
         movedAt = r.dateD(F.movedAt, createdAt),
+        completedAt = r.dateO(F.completedAt),
         metadata = GameMetadata(
           source = r.getO[Source](F.source),
           pgnImport = r.getO[PgnImport](F.pgnImport),
@@ -213,6 +214,7 @@ object BSONHandlers:
         F.bookmarks -> w.intO(o.bookmarks),
         F.createdAt -> w.date(o.createdAt),
         F.movedAt -> w.date(o.movedAt),
+        F.completedAt -> o.completedAt,
         F.source -> o.metadata.source,
         F.pgnImport -> o.metadata.pgnImport,
         F.tournamentId -> o.metadata.tournamentId,

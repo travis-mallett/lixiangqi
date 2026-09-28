@@ -19,14 +19,11 @@ import {
 
 import type RoundController from '../ctrl';
 import type { EventsWithoutPayload, RoundData } from '../interfaces';
+import { analysisUrl } from '../util';
 
 export interface ButtonState {
   enabled: boolean;
   overrideHint?: string;
-}
-
-function analysisBoardOrientation(data: RoundData) {
-  return data.game.variant.key === 'racingKings' ? 'white' : data.player.color;
 }
 
 function poolUrl(clock: ClockData, moveTime?: MoveTimeLimitConfig, blocking?: PlayerUser) {
@@ -35,23 +32,20 @@ function poolUrl(clock: ClockData, moveTime?: MoveTimeLimitConfig, blocking?: Pl
 }
 
 function analysisButton(ctrl: RoundController): VNode | false {
-  const d = ctrl.data,
-    url = gameRoute(d, analysisBoardOrientation(d)) + '#' + ctrl.ply;
+  const d = ctrl.data;
   return (
     replayable(d) &&
     hl(
       'a.fbt',
       {
-        attrs: { href: url },
+        attrs: { href: analysisUrl(d, ctrl.ply) },
         hook: bind(
           'click',
           e => {
-            // force page load in case the URL is the same
             if (d.local) {
               d.local.analyse();
               return e.preventDefault();
             }
-            if (location.pathname === url.split('#')[0]) location.reload();
           },
           undefined,
           false,

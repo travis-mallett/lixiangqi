@@ -18,7 +18,6 @@
   <string name="youHaveLifetime">Tens um conta patrono vitalícia. Isso é bem fixe!</string>
   <string name="patronUntil">Tens uma conta de patrono até %s.</string>
   <string name="ifNotRenewedThenAccountWillRevert">Se não for renovada, a sua conta voltará a ser uma conta normal.</string>
-  <string name="weAreNonProfit">Nós somos uma associação sem fins lucrativos porque acreditamos que todos devem ter acesso a uma plataforma de xadrez gratuita e de nível mundial.</string>
   <string name="weRelyOnSupport">Contamos com o apoio de pessoas como tu para o tornar possível. Se gostas de usar o Lichess, por favor, considera apoiar-nos através de uma doação ao tornares-te Patrono!</string>
   <string name="lifetime">Vitalícia</string>
   <string name="payLifetimeOnce">Paga %s uma vez. Sê um patrono do Lichess para sempre!</string>
@@ -34,21 +33,13 @@
   <string name="weAreSmallTeam">Somos uma equipa pequena, pelo que o teu apoio faz uma grande diferença!</string>
   <string name="celebratedPatrons">Os gloriosos Patronos que tornam o Lichess possível</string>
   <string name="whereMoneyGoes">Para onde vai o dinheiro?</string>
-  <string name="serversAndDeveloper">Em primeiro lugar, para servidores poderosos.
-De seguida, pagamos a um desenvolvedor a tempo inteiro: %s, o fundador do Lichess.</string>
-  <string name="costBreakdown">Vê os custos detalhadamente</string>
   <string name="officialNonProfit">O Lichess é uma organização sem fins lucrativos oficial?</string>
-  <string name="actOfCreation">Sim, aqui está o ato de criação (em francês)</string>
   <string name="changeMonthlySupport">Posso mudar/cancelar a minha doação mensal?</string>
   <string name="changeSupport">Se os teus pagamentos são processados pelo PayPal, podes cancelar/mudar o teu apoio através da tua própria conta do PayPal, ou podes %1$s e podemos fazer isso por ti. 
 
 Se não usaste o PayPal, então os teus pagamentos são processados pelo Stripe, e podes cancelar a tua doação ou mudar o valor na %2$s.</string>
   <string name="patronPage">página de patronos</string>
   <string name="contactSupport">contactar o suporte do Lichess</string>
-  <string name="otherMethods">Outros métodos de doação?</string>
-  <string name="lichessIsRegisteredWith">O Lichess está registado com %s.</string>
-  <string name="bankTransfers">Também aceitamos transferências bancárias</string>
-  <string name="onlyDonationFromAbove">Por favor, nota que apenas o formulário de doação em cima concederá o estatuto de Patrono.</string>
   <string name="patronFeatures">Há funcionalidades exclusivas para patronos?</string>
   <string name="noPatronFeatures">Não, porque o Lichess é totalmente gratuito, para sempre e para todos. É uma promessa.
 No entanto, os Patronos ganham o direito de se gabarem com as novas e elegantes asas de Patrono, que aparecem no seu perfil.</string>
@@ -85,6 +76,5 @@ No entanto, os Patronos ganham o direito de se gabarem com as novas e elegantes 
   <string name="changeCurrency">Alterar moeda</string>
   <string name="paymentDetails">Detalhes de pagamento</string>
   <string name="updatePaymentMethod">Atualizar forma de pagamento</string>
-  <string name="stripeManageSub">Gere a tua assinatura e descarrega faturas e recibos</string>
   <string name="coverFees">Adicionarei %s para ajudar a cobrir o custo do processamento desta transação</string>
 </resources>

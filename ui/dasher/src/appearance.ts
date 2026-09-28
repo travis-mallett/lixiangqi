@@ -2,6 +2,7 @@ import { debounce } from 'lib/async';
 import { prefersLightThemeQuery } from 'lib/device';
 import { licon } from 'lib/licon';
 import { pubsub } from 'lib/pubsub';
+import { trafficBoundary, trackTraffic } from 'lib/traffic';
 import { bind, dataIcon, hl, onInsert, type VNode } from 'lib/view';
 import { cmnToggleWrap } from 'lib/view/cmn-toggle';
 import { form as xhrForm, text as xhrText } from 'lib/xhr';
@@ -93,6 +94,18 @@ export class AppearanceCtrl {
         },
         i18n.site.boardReset,
       ),
+    ]),
+    hl('div.matching-pieces-setting', [
+      cmnToggleWrap({
+        id: 'appearance-matching-pieces',
+        name: i18n.site.selectMatchingPieces,
+        checked: this.current.selectMatchingPieces,
+        change: enabled => {
+          this.current = { ...this.current, selectMatchingPieces: enabled };
+          this.post('selectMatchingPieces', String(enabled));
+        },
+        redraw: this.root.redraw,
+      }),
     ]),
     hl(
       'div.board-style-list',
@@ -370,13 +383,20 @@ export class AppearanceCtrl {
     value: string,
   ): void => {
     this.selectionVersion++;
+    const matchingPieceSet =
+      field === 'boardTheme' && this.current.selectMatchingPieces
+        ? this.data.boards.find(board => board.key === value)?.matchingPieceSet
+        : undefined;
     this.current = { ...this.current, [field]: value };
+    if (matchingPieceSet) this.current.pieceSet = matchingPieceSet;
     this.apply();
     this.post(field, value);
     this.root.redraw();
   };
 
   private apply(): void {
+    const before = { ...document.body.dataset };
+    trafficBoundary();
     const state = this.current;
     const uiTheme = this.data.uiThemes.find(theme => theme.key === state.uiTheme)!;
     const colorScheme =
@@ -398,9 +418,22 @@ export class AppearanceCtrl {
     document.body.dataset.board = state.boardTheme;
     document.body.dataset.soundSet = state.soundSet;
     document.body.dataset.musicSet = state.musicSet;
+    document.body.dataset.background = state.background;
     this.applyBoardTheme(state.boardTheme);
     this.applyBoardSettings();
     this.applyPieceSet(state.pieceSet);
+    for (const [component, field] of Object.entries({
+      board: 'board',
+      pieces: 'pieceSet',
+      uiTheme: 'uiTheme',
+      background: 'background',
+      sound: 'soundSet',
+      music: 'musicSet',
+    })) {
+      const previous = before[field];
+      if (previous && previous !== document.body.dataset[field])
+        trackTraffic('appearance.changed', { component, previous });
+    }
     site.sound.changeSoundSet(state.soundSet);
     site.sound.changeMusicSet(state.musicSet);
     pubsub.emit('theme', colorScheme);

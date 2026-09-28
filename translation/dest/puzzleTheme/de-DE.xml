@@ -99,14 +99,9 @@
   <string name="mateIn3Description">Mattsetzen in drei Zügen.</string>
   <string name="mateIn4">Matt in 4</string>
   <string name="mateIn4Description">Mattsetzen in vier Zügen.</string>
-  <string name="mateIn5">Matt in 5 oder mehr</string>
   <string name="mateIn5Description">Finde eine lange, mattsetzende Zugfolge.</string>
-  <string name="middlegame">Mittelspiel</string>
-  <string name="middlegameDescription">Eine Taktik in der zweiten Phase des Spiels.</string>
   <string name="oneMove">Einzügige Aufgabe</string>
   <string name="oneMoveDescription">Eine Aufgabe, die nur einen Zug erfordert.</string>
-  <string name="opening">Eröffnung</string>
-  <string name="openingDescription">Eine Taktik in der ersten Phase der Partie.</string>
   <string name="operaMate">Opern Matt</string>
   <string name="operaMateDescription">Stelle den König mithilfe deines Turms ins Schach und benutze einen Läufer, um den Turm zu verteidigen.</string>
   <string name="pawnEndgame">Bauernendspiel</string>

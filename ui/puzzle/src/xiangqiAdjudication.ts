@@ -8,6 +8,8 @@ import {
 
 import type { EngineAnalysis, EngineScore, PikafishHistory } from 'lib/ceval/engines/pikafishProtocol';
 
+import type { PuzzlePlayback } from './solutions';
+
 // Tactical tolerance and fixed solver-move budgets. Mating deviations also need
 // a complete native-rules winning continuation within their remaining budget.
 export const puzzleAdjudicationSettings = {
@@ -15,8 +17,16 @@ export const puzzleAdjudicationSettings = {
   playerMoveAllowanceMultiplier: 3,
 } as const;
 
-export type PuzzleFailure = 'advantageLost' | 'forcedMateLost' | 'moveAllowanceExceeded';
-export type PuzzleDecision = { result: 'win' | 'continue' } | { result: 'fail'; reason: PuzzleFailure };
+export type PuzzleFailure =
+  | 'advantageLost'
+  | 'forcedMateLost'
+  | 'moveAllowanceExceeded'
+  | 'mateExceedsAllowance'
+  | 'lineDrawn'
+  | 'lineLost';
+export type PuzzleDecision =
+  | { result: 'win' | 'continue' }
+  | { result: 'fail'; reason: PuzzleFailure; needed?: number; remaining?: number };
 export interface PuzzleObjective {
   mate: boolean;
   startingCp: number;
@@ -47,30 +57,15 @@ export interface WinningContinuation {
   finalState: RulesState;
 }
 
-// The saved line supplies the local mate distance, including after an accepted
-// detour. Only the solver's moves count; the submitted move has already happened.
-export function isEfficientMate(
-  solution: string[],
-  played: string[],
-  continuation: WinningContinuation,
-  score: EngineScore,
-  player: 'red' | 'black',
-): boolean {
-  const parent = played.slice(0, -1);
-  if (parent.some((uci, i) => uci !== solution[i])) return false;
-  const remaining = Math.floor((solution.length - played.length) / 2);
+// Compare additional solver moves after the submitted move, from the same position.
+export function isEfficientMate(remaining: number, score: EngineScore, player: 'red' | 'black'): boolean {
   const mate = playerScore(score, player).mate;
-  return (
-    mate !== undefined &&
-    mate > 0 &&
-    mate <= remaining &&
-    Math.floor(continuation.moves.length / 2) <= remaining
-  );
+  return mate !== undefined && mate > 0 && mate <= remaining;
 }
 
 // A PV is guidance, not a certificate. Replay it once with the same native rules
-// and history as playback before retaining it. Invalid analysis fails the move;
-// transport/service failures propagate through the existing evaluation error UI.
+// and history as playback before retaining it. Insufficient evidence and
+// service failures remain unscored evaluation errors.
 export async function winningContinuation(
   objective: PuzzleObjective,
   state: RulesState,
@@ -80,7 +75,6 @@ export async function winningContinuation(
 ): Promise<WinningContinuation | undefined> {
   const mate = playerScore(evaluation.score, objective.player).mate;
   const moves = [...(evaluation.lines[0]?.pvMoves ?? [])];
-  const remaining = objective.allowance - playerMoves;
   const solverMoves =
     state.turn === objective.player ? Math.ceil(moves.length / 2) : Math.floor(moves.length / 2);
   if (
@@ -90,9 +84,7 @@ export async function winningContinuation(
     mate <= 0 ||
     !moves.length ||
     moves[0] !== evaluation.bestMove ||
-    !state.legalMoves.includes(moves[0]) ||
-    remaining <= 0 ||
-    solverMoves > remaining
+    !state.legalMoves.includes(moves[0])
   )
     return;
   try {
@@ -100,10 +92,7 @@ export async function winningContinuation(
       initialFen: history.initialFen,
       moves: [...history.moves, ...moves],
     });
-    if (
-      terminalDecision(finalState, objective.player, playerMoves + solverMoves, objective.allowance)
-        ?.result === 'win'
-    )
+    if (terminalDecision(finalState, objective.player, playerMoves + solverMoves, Infinity)?.result === 'win')
       return { moves, finalState };
   } catch (error) {
     if (!(error instanceof XiangqiRequestError && error.status === 400)) throw error;
@@ -123,15 +112,7 @@ export function terminalDecision(
   if (state.gameResult === '*') return;
   return state.gameResult === (player === 'red' ? '1-0' : '0-1')
     ? { result: 'win' }
-    : { result: 'fail', reason: 'advantageLost' };
-}
-
-export type StoredLineProgress = { kind: 'alternative' | 'win' | 'wait' } | { kind: 'reply'; uci: string };
-
-export function storedLineProgress(solution: string[], played: string[]): StoredLineProgress {
-  if (played.some((uci, i) => uci !== solution[i])) return { kind: 'alternative' };
-  if (played.length >= solution.length) return { kind: 'win' };
-  return played.length % 2 === 1 ? { kind: 'reply', uci: solution[played.length] } : { kind: 'wait' };
+    : { result: 'fail', reason: state.gameResult === '1/2-1/2' ? 'lineDrawn' : 'lineLost' };
 }
 
 export function playerScore(score: EngineScore, player: 'red' | 'black'): { cp?: number; mate?: number } {
@@ -169,28 +150,51 @@ export function material(fen: string, player: 'red' | 'black'): number {
 export function makeObjective(
   initialFen: string,
   solution: string[],
-  starting: EngineAnalysis | undefined,
-  matingObjective: boolean,
+  playback: PuzzlePlayback,
 ): PuzzleObjective {
   if (!solution.length) throw new Error('Puzzle has no stored solution');
-  if (!matingObjective && (!starting || !hasUsableScore(starting)))
-    throw new Error('Pikafish returned no usable starting puzzle score');
   const player = initialFen.split(/\s+/)[1] === 'b' ? 'black' : 'red';
-  const score = starting ? playerScore(starting.score, player) : {};
-  const mate = matingObjective || (score.mate !== undefined && score.mate > 0);
-  if (!mate && (score.cp === undefined || score.cp <= 0))
-    throw new Error('Pikafish could not establish a positive starting advantage');
+  const mate = playback.objective === 'mate';
+  if (playback.objective === 'tactic' && (!Number.isFinite(playback.startingCp) || playback.startingCp! <= 0))
+    throw new Error('Puzzle has no verified starting advantage');
   const positions = linePositions(initialFen, solution);
   const end = positions[positions.length - 1];
   return {
     mate,
-    startingCp: score.cp ?? 0,
+    startingCp: playback.startingCp ?? 0,
     player,
     allowance: playerMoveAllowance(solution, mate),
     startingMaterial: material(initialFen, player),
     targetMaterial: material(end.fen, player),
     targetPosition: positionKey(end.fen),
   };
+}
+
+export function alternativeScoreFailure(
+  objective: PuzzleObjective,
+  evaluation: EngineAnalysis,
+  playerMoves: number,
+): Extract<PuzzleDecision, { result: 'fail' }> | undefined {
+  if (!hasUsableScore(evaluation)) throw new Error('Pikafish returned no usable score');
+  if (objective.mate && playerMoves >= objective.allowance)
+    return { result: 'fail', reason: 'moveAllowanceExceeded' };
+  const score = playerScore(evaluation.score, objective.player);
+  const forcedMate = score.mate !== undefined && score.mate > 0;
+  if (objective.mate) {
+    if (!forcedMate) return { result: 'fail', reason: 'forcedMateLost' };
+    const remaining = objective.allowance - playerMoves;
+    if (score.mate! > remaining)
+      return { result: 'fail', reason: 'mateExceedsAllowance', needed: score.mate, remaining };
+  } else if (
+    !forcedMate &&
+    (score.cp === undefined ||
+      score.cp < objective.startingCp * (1 - puzzleAdjudicationSettings.maximumAdvantageLoss))
+  )
+    return {
+      result: 'fail',
+      reason: playerMoves >= objective.allowance ? 'moveAllowanceExceeded' : 'advantageLost',
+    };
+  return undefined;
 }
 
 export function adjudicateAlternative(
@@ -202,20 +206,15 @@ export function adjudicateAlternative(
 ): PuzzleDecision {
   const terminal = terminalDecision(state, objective.player, playerMoves, objective.allowance);
   if (terminal) return terminal;
-  const score = evaluation && playerScore(evaluation.score, objective.player);
-  const forcedMate = score?.mate !== undefined && score.mate > 0;
-  if (
-    objective.mate
-      ? !forcedMate
-      : !forcedMate &&
-        (score?.cp === undefined ||
-          score.cp < objective.startingCp * (1 - puzzleAdjudicationSettings.maximumAdvantageLoss))
-  )
-    return { result: 'fail', reason: objective.mate ? 'forcedMateLost' : 'advantageLost' };
-
+  if (!evaluation) throw new Error('Pikafish returned no usable score');
+  const failure = alternativeScoreFailure(objective, evaluation, playerMoves);
+  if (failure) return failure;
   if (objective.mate) {
-    if (playerMoves >= objective.allowance) return { result: 'fail', reason: 'moveAllowanceExceeded' };
-    return continuation ? { result: 'continue' } : { result: 'fail', reason: 'forcedMateLost' };
+    if (!continuation) throw new Error('Pikafish did not establish a complete winning continuation');
+    const needed = Math.floor(continuation.moves.length / 2);
+    const remaining = objective.allowance - playerMoves;
+    if (needed > remaining) return { result: 'fail', reason: 'mateExceedsAllowance', needed, remaining };
+    return { result: 'continue' };
   }
 
   if (!objective.mate && evaluation) {

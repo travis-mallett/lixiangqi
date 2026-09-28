@@ -75,14 +75,9 @@
   <string name="mateIn3Description">Матирај у три потеза.</string>
   <string name="mateIn4">Мат у 4</string>
   <string name="mateIn4Description">Матирај у четири потеза.</string>
-  <string name="mateIn5">Мат у 5 или више</string>
   <string name="mateIn5Description">Пронађи дугу матну комбинацију.</string>
-  <string name="middlegame">Средишњица</string>
-  <string name="middlegameDescription">Тактика током друге фазе партије.</string>
   <string name="oneMove">Једнопотезни проблем</string>
   <string name="oneMoveDescription">Проблем од само једног потеза.</string>
-  <string name="opening">Отварање</string>
-  <string name="openingDescription">Тактика током прве фазе партије.</string>
   <string name="pawnEndgame">Пешачка завршница</string>
   <string name="pawnEndgameDescription">Завршница са само пешацима.</string>
   <string name="pin">Везивање</string>

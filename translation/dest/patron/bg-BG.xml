@@ -18,7 +18,6 @@
   <string name="youHaveLifetime">Имате доживотен дарителски акаунт. Това е просто невероятно!</string>
   <string name="patronUntil">Имате дарителски акаунт до %s.</string>
   <string name="ifNotRenewedThenAccountWillRevert">Ако не бъде подновена, Вашата регистрация ще стане пак обикновена.</string>
-  <string name="weAreNonProfit">Ние сме асоциация с нестопанска цел, защото вярваме че всеки трябва да има достъп до безплатна шахматна платформа на световно ниво.</string>
   <string name="weRelyOnSupport">Ние разчитаме на подкрепа от хора като вас за да направим това реалност. Ако се наслаждавате на Lichess, можете да ни подкрепите като станете Дарител!</string>
   <string name="lifetime">До живот</string>
   <string name="payLifetimeOnce">Платете %s веднъж. Станете Lichess Дарител завинаги!</string>
@@ -34,17 +33,9 @@
   <string name="weAreSmallTeam">Ние сме малък екип, за това Вашата подкрепа има огромно значение!</string>
   <string name="celebratedPatrons">Почетни Дарители, които правят Lichess възможен</string>
   <string name="whereMoneyGoes">Къде отиват парите от даренията?</string>
-  <string name="serversAndDeveloper">На първо място, за мощни сървъри.
-След това плащаме на нашия разработчик на пълно работно време: %s, основателя на Lichess.</string>
-  <string name="costBreakdown">Вижте подробна разбивка на разходите</string>
   <string name="officialNonProfit">Lichess официална организация с нестопанска цел ли е?</string>
-  <string name="actOfCreation">Да, ето тук е документът (на френски)</string>
   <string name="changeMonthlySupport">Мога ли да променя/прекратя ежемесечния си абонамент?</string>
   <string name="contactSupport">свържете с Lichess поддръжка</string>
-  <string name="otherMethods">Други начини за дарение?</string>
-  <string name="lichessIsRegisteredWith">Lichess е регистриран на %s.</string>
-  <string name="bankTransfers">Приемаме също и банкови преводи</string>
-  <string name="onlyDonationFromAbove">Моля обърнете внимание, че само дарение направено чрез горната форма ще Ви даде статус на Дарител.</string>
   <string name="patronFeatures">Има ли функционалности, които са запазени само за Дарители?</string>
   <string name="noPatronFeatures">Не, защото Lichess е напълно безплатен, завинаги и за всички. Обещано.
 Все пак, Дарителите могат да се похвалят с готина нова профилна иконка.</string>
@@ -81,6 +72,5 @@
   <string name="changeCurrency">Промяна на валута</string>
   <string name="paymentDetails">Детайли за плащане</string>
   <string name="updatePaymentMethod">Актуализиране на метода на плащане</string>
-  <string name="stripeManageSub">Управление на абонамента и изтегляне на касови бележки</string>
   <string name="coverFees">Ще добавя %s, за да помогна за покриването на разходите по обработката на тази трансакция</string>
 </resources>

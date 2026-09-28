@@ -17,9 +17,18 @@ final private[puzzle] class DailyPuzzle(
 
   private val cache =
     cacheApi.unit[Option[DailyPuzzle.WithHtml]]("puzzle.daily"):
-      _.refreshAfterWrite(1.minutes).buildAsyncTimeoutZero()(_ => find)
+      _.expireAfterWrite(1.minutes).buildAsyncTimeoutZero()(_ => find)
 
-  def get: Fu[Option[DailyPuzzle.WithHtml]] = cache.getUnit
+  def get: Fu[Option[DailyPuzzle.WithHtml]] = cache.getUnit.flatMap:
+    case Some(daily) =>
+      colls
+        .puzzle(_.exists($id(daily.puzzle.id) ++ Puzzle.activeSelector))
+        .flatMap:
+          case true => fuccess(daily.some)
+          case false =>
+            cache.invalidateUnit()
+            find
+    case None => fuccess(none)
 
   private def find: Fu[Option[DailyPuzzle.WithHtml]] =
     findCurrent
@@ -42,7 +51,7 @@ final private[puzzle] class DailyPuzzle(
   }
 
   private def findCurrent = colls.puzzle:
-    _.find($doc(F.day.$gt(nowInstant.minusDays(1))))
+    _.find(Puzzle.activeSelector ++ $doc(F.day.$gt(nowInstant.minusDays(1))))
       .sort($sort.desc(F.day))
       .one[Puzzle]
 
@@ -59,47 +68,52 @@ final private[puzzle] class DailyPuzzle(
       case p => fuccess(p)
 
   private def findNew(minPlays: Int): Fu[Option[Puzzle]] =
-    colls
-      .path:
-        _.aggregateOne(): framework =>
-          import framework.*
-          val forbiddenThemes = List(PuzzleTheme.oneMove) :::
-            odds(2).so(List(PuzzleTheme.checkFirst))
-          Match(pathApi.select(PuzzleAngle.mix, PuzzleTier.top, 2150 to 2300)) -> List(
-            Sample(3),
-            Project($doc("ids" -> true, "_id" -> false)),
-            UnwindField("ids"),
-            PipelineOperator:
-              $lookup.simple(
-                from = colls.puzzle.name,
-                as = "puzzle",
-                local = "ids",
-                foreign = "_id",
-                pipe = List(
-                  $doc(
-                    "$match" -> $doc(
-                      Puzzle.BSONFields.plays.$gt(minPlays),
-                      Puzzle.BSONFields.day.$exists(false),
-                      Puzzle.BSONFields.issue.$exists(false),
-                      Puzzle.BSONFields.themes.$nin(forbiddenThemes.map(_.key))
+    pathApi
+      .generation(PuzzleAngle.mix)
+      .flatMap: generationSelector =>
+        colls
+          .path:
+            _.aggregateOne(): framework =>
+              import framework.*
+              val forbiddenThemes = List(PuzzleTheme.oneMove) :::
+                odds(2).so(List(PuzzleTheme.checkFirst))
+              Match(
+                pathApi.select(PuzzleAngle.mix, PuzzleTier.top, 2150 to 2300) ++ generationSelector
+              ) -> List(
+                Sample(3),
+                Project($doc("ids" -> true, "_id" -> false)),
+                UnwindField("ids"),
+                PipelineOperator:
+                  $lookup.simple(
+                    from = colls.puzzle.name,
+                    as = "puzzle",
+                    local = "ids",
+                    foreign = "_id",
+                    pipe = List(
+                      $doc(
+                        "$match" -> (Puzzle.activeSelector ++ $doc(
+                          Puzzle.BSONFields.plays.$gt(minPlays),
+                          Puzzle.BSONFields.day.$exists(false),
+                          Puzzle.BSONFields.issue.$exists(false),
+                          Puzzle.BSONFields.themes.$nin(forbiddenThemes.map(_.key))
+                        ))
+                      )
                     )
                   )
-                )
+                ,
+                UnwindField("puzzle"),
+                ReplaceRootField("puzzle"),
+                AddFields($doc("dayScore" -> $doc("$multiply" -> $arr("$plays", "$vote")))),
+                Sort(Descending("dayScore")),
+                Limit(1)
               )
-            ,
-            UnwindField("puzzle"),
-            ReplaceRootField("puzzle"),
-            AddFields($doc("dayScore" -> $doc("$multiply" -> $arr("$plays", "$vote")))),
-            Sort(Descending("dayScore")),
-            Limit(1)
-          )
-      .flatMap:
-        _.flatMap(puzzleReader.readOpt).so { puzzle =>
-          colls
-            .puzzle(_.updateField($id(puzzle.id), F.day, nowInstant))
-            .inject(puzzle.some)
-            .addEffect(_ => lila.common.Bus.pub(DailyChange(puzzle.id)))
-        }
+          .flatMap:
+            _.flatMap(puzzleReader.readOpt).so { puzzle =>
+              colls
+                .puzzle(_.updateField($id(puzzle.id), F.day, nowInstant))
+                .inject(puzzle.some)
+                .addEffect(_ => lila.common.Bus.pub(DailyChange(puzzle.id)))
+            }
 
 object DailyPuzzle:
   type Try = () => Fu[Option[DailyPuzzle.WithHtml]]

@@ -1,3 +1,5 @@
+@import '../component/engine-progress';
+
 .ceval {
   @extend %metal-bg;
 
@@ -111,40 +113,6 @@
     &.good {
       color: $c-good;
     }
-  }
-
-  .bar {
-    position: absolute;
-    width: 100%;
-    height: 3px;
-    top: 0;
-  }
-
-  @keyframes bar-anim {
-    from {
-      background-position: 0 0;
-    }
-
-    to {
-      background-position: 100000px 0;
-    }
-  }
-
-  .bar span {
-    display: block;
-    height: 3px;
-    width: 0;
-    background: $c-good;
-    transition: width 1s;
-
-    &.threat {
-      background: $c-bad;
-    }
-  }
-
-  &.computing .bar span {
-    background-image: url('../images/bar-highlight.png');
-    animation: bar-anim 1000s linear infinite;
   }
 }
 

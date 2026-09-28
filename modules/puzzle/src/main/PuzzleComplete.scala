@@ -21,7 +21,23 @@ final class PuzzleComplete(
       ctx: Context
   )(using Perf, Translate): Fu[JsObject] =
     given Option[Me] = ctx.me
-    data.streakPuzzleId.match
+    val attempt = data.trafficAttempt.getOrElse(java.util.UUID.randomUUID().toString)
+    val traffic = lila.core.traffic.TrafficEvent(
+      s"puzzle/$attempt",
+      "puzzle.completed",
+      nowInstant,
+      ctx.userId,
+      Some(attempt),
+      Map(
+        "theme" -> angle.key,
+        "difficulty" -> PuzzleDifficulty.fromReqSession(ctx.req).fold("normal")(_.key),
+        "mode" -> (if data.replayDays.isDefined then "replay"
+                   else if data.rated.yes then "rated"
+                   else "casual"),
+        "outcome" -> (if data.win.yes then "won" else "failed")
+      )
+    )
+    val result = data.streakPuzzleId.match
       case Some(streakNextId) =>
         api.puzzle
           .find(streakNextId)
@@ -43,7 +59,7 @@ final class PuzzleComplete(
         ctx.me match
           case Some(me) =>
             given Me = me
-            finisher(id, angle, data.win, data.rated).flatMapz { (round, perf) =>
+            finisher(id, angle, data.win, data.rated, Some(traffic)).flatMapz { (round, perf) =>
               val newMe = me.value.withPerf(perf)
               for
                 _ <- session.onComplete(me.userId, angle)
@@ -90,7 +106,7 @@ final class PuzzleComplete(
               yield json
             }
           case None =>
-            finisher.incPuzzlePlays(id)
+            finisher.incPuzzlePlays(id).addEffect(_ => lila.common.Bus.pub(traffic.copy(at = nowInstant)))
             if mobileBc then fuccess(Json.obj("user" -> false))
             else
               selector
@@ -99,6 +115,8 @@ final class PuzzleComplete(
                   _.so(jsonView.analysis(_, angle))
                 .map: json =>
                   Json.obj("next" -> json)
+
+    result
 
   def setStreakResult(userId: UserId, score: Int) =
     lila.common.Bus.pub(lila.core.misc.puzzle.StreakRun(userId, score))

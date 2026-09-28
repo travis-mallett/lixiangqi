@@ -33,6 +33,7 @@ import lila.db.dsl.{ *, given }
  * classes and teams have a life of their own. Close them manually if you want to, before deleting your account.
  */
 final class AccountTermination(
+    trafficErasure: lila.traffic.TrafficErasure,
     userRepo: lila.user.UserRepo,
     playbanApi: lila.playban.PlaybanApi,
     relationApi: lila.relation.RelationApi,
@@ -125,6 +126,7 @@ final class AccountTermination(
     playbanned <- playbanApi.hasCurrentPlayban(u.id)
     tos = u.marks.dirty || playbanned
     _ = lila.log.system.info(s"Deleting user ${u.username} tos=$tos")
+    _ <- trafficErasure.request(u.id)
     _ <- if tos then userRepo.delete.nowWithTosViolation(u) else userRepo.delete.nowFully(u)
     _ <- activityWrite.deleteAll(u)
     singlePlayerGameIds <- gameRepo.deleteAllSinglePlayerOf(u.id)

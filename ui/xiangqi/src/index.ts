@@ -18,6 +18,7 @@ import {
 
 export { hydrateXiangqiState, requestXiangqi, XiangqiRequestError } from './api';
 export { createAnalysisUrl } from './analysisHandoff';
+export { AnalysisTreeView } from './analysisTreeView';
 export * from './groundUtil';
 export {
   createMoveTreeFromUciMainline,

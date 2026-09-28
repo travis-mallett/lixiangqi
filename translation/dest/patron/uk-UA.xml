@@ -20,7 +20,6 @@
   <string name="youHaveLifetime">У вас довічний обліковий запис \"Покровителя\". Це доволі круто!</string>
   <string name="patronUntil">Ваш обліковий запис Покровителя діє до %s.</string>
   <string name="ifNotRenewedThenAccountWillRevert">Якщо не буде продовжений, ваш обліковий запис перетвориться на звичайний обліковий запис.</string>
-  <string name="weAreNonProfit">Ми неприбуткова асоціація, тому що ми вважаємо, що кожен повинен мати доступ до безкоштовної шахової платформи світового рівня.</string>
   <string name="weRelyOnSupport">Ми покладаємося на підтримку таких як ви, щоб зробити його можливим. Якщо вам подобається користуватися Lichess, будь ласка, підтримайте нас, зробивши внесок і ставши Покровителем!</string>
   <string name="lifetime">Довічне</string>
   <string name="payLifetimeOnce">Заплатіть %s один раз. Станьте Покровителем назавжди!</string>
@@ -36,19 +35,11 @@
   <string name="weAreSmallTeam">Ми невелика команда, тому ваша підтримка має велике значення!</string>
   <string name="celebratedPatrons">Видатні Покровителі, завдяки яким існує Lichess</string>
   <string name="whereMoneyGoes">Куди підуть гроші?</string>
-  <string name="serversAndDeveloper">Перш за все, на потужні сервери.
-Також ми оплачуємо повний робочий час розробнику: %s, засновнику Lichess.</string>
-  <string name="costBreakdown">Переглянути детальний розподіл витрат</string>
   <string name="officialNonProfit">Чи дійсно Lichess офіційно некомерційний?</string>
-  <string name="actOfCreation">Так, ось акт створення (французькою)</string>
   <string name="changeMonthlySupport">Чи можу я змінити/скасувати свою місячну підтримку?</string>
   <string name="changeSupport">Якщо ваші платежі опрацьовуються PayPal, ви можете скасувати чи змінити свої внески через обліковий запис PayPal, або %1$s, тоді це зробимо ми. Якщо ви не використовуєте PayPal, ваші платежі опрацьовуються Stripe, а скасувати чи змінити внески можна на %2$s.</string>
   <string name="patronPage">сторінці покровителя</string>
   <string name="contactSupport">зв\'язатися з підтримкою Lichess</string>
-  <string name="otherMethods">Інші методи підтримки?</string>
-  <string name="lichessIsRegisteredWith">Lichess зареєстровано через %s.</string>
-  <string name="bankTransfers">Ми також приймаємо банківські перекази</string>
-  <string name="onlyDonationFromAbove">Будь ласка, зверніть увагу, що статус Патрона надаватимуть тільки внески, зроблені за формою вище.</string>
   <string name="patronFeatures">Чи є функції, зарезервовані лише для Покровителів?</string>
   <string name="noPatronFeatures">Ні, тому що Lichess повністю безкоштовний, назавжди і для всіх. Це обіцянка.
 Тим не менш, Покровителі отримують нову класну іконку профілю.</string>
@@ -87,6 +78,5 @@
   <string name="changeCurrency">Змінити валюту</string>
   <string name="paymentDetails">Деталі оплати</string>
   <string name="updatePaymentMethod">Оновити спосіб оплати</string>
-  <string name="stripeManageSub">Керувати своєю підпискою та завантажити ваші чеки</string>
   <string name="coverFees">Я додам %s, аби покрити вартість обробки цієї трансакції</string>
 </resources>

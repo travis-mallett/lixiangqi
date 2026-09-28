@@ -3,9 +3,7 @@ import lila.app.UiEnv.{ *, given }
 import lila.puzzle.DailyPuzzle
 
 lazy val bits = lila.puzzle.ui.PuzzleBits(helpers)
-lazy val ui =
-  lila.puzzle.ui
-    .PuzzleUi(helpers, bits)(views.analyse.ui.bits.cspExternalEngine, analyseEndpoints.externalEngine)
+lazy val ui = lila.puzzle.ui.PuzzleUi(helpers, bits)
 
 def embed(daily: DailyPuzzle.WithHtml)(using config: EmbedContext) =
   views.base.embed.minimal(

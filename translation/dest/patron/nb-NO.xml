@@ -18,7 +18,6 @@
   <string name="youHaveLifetime">Du har patronkonto på livstid. Det er rett og slett storartet!</string>
   <string name="patronUntil">Du har patronkonto fram til %s.</string>
   <string name="ifNotRenewedThenAccountWillRevert">Uten fornyelse går kontoen din tilbake til en vanlig konto.</string>
-  <string name="weAreNonProfit">Vi er en ideell forening fordi vi mener at alle bør ha tilgang til en gratis sjakkplattform i verdensklasse.</string>
   <string name="weRelyOnSupport">Vi er avhengige av støtte fra folk som deg for å gjøre det mulig. Dersom du setter pris på å bruke Lichess, så vurder gjerne å støtte oss med et bidrag og bli patron!</string>
   <string name="lifetime">Livstid</string>
   <string name="payLifetimeOnce">Betal %s én gang. Vær Lichess-patron for alltid!</string>
@@ -34,17 +33,9 @@
   <string name="weAreSmallTeam">Vi er et lite team, så din støtte er av stor betydning!</string>
   <string name="celebratedPatrons">De velaktede patronene som gjør Lichess mulig</string>
   <string name="whereMoneyGoes">Hva går pengene til?</string>
-  <string name="serversAndDeveloper">Først og fremst til kraftige servere.
-Dernest betaler vi en fulltidsutvikler: %s, grunnleggeren av Lichess.</string>
-  <string name="costBreakdown">Vis en detaljert oversikt over kostnader</string>
   <string name="officialNonProfit">Er Lichess offisielt en ideell forening?</string>
-  <string name="actOfCreation">Ja, her er registermeldingen (på fransk)</string>
   <string name="changeMonthlySupport">Kan jeg endre/annullere det månedlige bidraget mitt?</string>
   <string name="contactSupport">ta kontakt med Lichess-support</string>
-  <string name="otherMethods">Andre måter å bidra på?</string>
-  <string name="lichessIsRegisteredWith">Lichess er registrert hos %s.</string>
-  <string name="bankTransfers">Vi tar også imot bankoverføringer</string>
-  <string name="onlyDonationFromAbove">Legg merke til at det bare er pengebidrag via skjemaet ovenfor som gir patronstatus.</string>
   <string name="patronFeatures">Er noen funksjoner forbeholdt patroner?</string>
   <string name="noPatronFeatures">Nei, Lichess er helt gratis, for alltid og for alle. Det er et løfte.
 Patroner kan like fullt briske seg med et tøft, nytt profilikon.</string>
@@ -81,6 +72,5 @@ Patroner kan like fullt briske seg med et tøft, nytt profilikon.</string>
   <string name="changeCurrency">Endre valuta</string>
   <string name="paymentDetails">Betalingsdetaljer</string>
   <string name="updatePaymentMethod">Oppdater betalingsmåte</string>
-  <string name="stripeManageSub">Administrer abonnementet ditt og last ned fakturaer og kvitteringer</string>
   <string name="coverFees">Jeg legger til %s for å bidra til å dekke kostnadene ved å behandle denne transaksjonen</string>
 </resources>

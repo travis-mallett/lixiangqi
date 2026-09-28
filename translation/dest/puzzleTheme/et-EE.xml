@@ -54,14 +54,9 @@
   <string name="mateIn3Description">Soorita matt kolme käiguga.</string>
   <string name="mateIn4">Matt 4 käiguga</string>
   <string name="mateIn4Description">Soorita matt nelja käiguga.</string>
-  <string name="mateIn5">Matt 5+ käiguga</string>
   <string name="mateIn5Description">Leia mitme käiguga matt.</string>
-  <string name="middlegame">Keskmäng</string>
-  <string name="middlegameDescription">Taktika mängu teises faasis.</string>
   <string name="oneMove">Ühekäiguline ülesanne</string>
   <string name="oneMoveDescription">Ülesanne, mille lahendamiseks on vaja ainult ühte liigutust.</string>
-  <string name="opening">Avang</string>
-  <string name="openingDescription">Taktika mängu esimeses faasis.</string>
   <string name="pawnEndgame">Etturilõppmäng</string>
   <string name="pawnEndgameDescription">Lõppmäng ainult etturitega.</string>
   <string name="pin">Sidumine</string>

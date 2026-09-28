@@ -99,14 +99,9 @@
   <string name="mateIn3Description">Set matt i tre trekk.</string>
   <string name="mateIn4">Matt i fire trekk</string>
   <string name="mateIn4Description">Set matt i fire trekk.</string>
-  <string name="mateIn5">Matt i fem eller fleire trekk</string>
   <string name="mateIn5Description">Finn ein lang trekksekvens som leier fram til matt.</string>
-  <string name="middlegame">Mellomspel</string>
-  <string name="middlegameDescription">Taktikk i den andre fasen av partiet.</string>
   <string name="oneMove">Eitt-trekks oppgåve</string>
   <string name="oneMoveDescription">Ei taktikkoppgåve på berre eitt trekk.</string>
-  <string name="opening">Opning</string>
-  <string name="openingDescription">Taktikk i den første fasen av partiet.</string>
   <string name="operaMate">Operamatt</string>
   <string name="operaMateDescription">Sett kongen i sjakk med eit tårn og bruk ein løpar til å forsvare tårnet.</string>
   <string name="pawnEndgame">Bondesluttspel</string>

@@ -59,6 +59,8 @@ private object JsonHandlers:
     given Reads[PayPalOrderCreated] = Json.reads
     given Reads[PayPalSubscriptionCreated] = Json.reads
     given Reads[PayPalAmount] = Json.reads
+    given Reads[PayPalCapture] = Json.reads
+    given Reads[PayPalOrderPayments] = Json.reads
     given Reads[PayPalPurchaseUnit] = Json.reads
     given Reads[PayPalAddress] = Json.reads
     given Reads[PayPalPayer] = Json.reads
@@ -68,6 +70,7 @@ private object JsonHandlers:
     given Reads[PayPalSubscription] = Json.reads
     given Reads[PayPalEvent] = Json.reads
     given Reads[PayPalPlan] = Json.reads
-    given Reads[PayPalCapture] = Json.reads
     given Reads[PayPalSaleAmount] = Json.reads
     given Reads[PayPalSale] = Json.reads
+    given Reads[PayPalTransactionAmount] = Json.reads
+    given Reads[PayPalSubscriptionTransaction] = Json.reads

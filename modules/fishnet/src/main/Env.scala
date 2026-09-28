@@ -114,3 +114,6 @@ final class Env(
 
   Bus.sub[lila.core.fishnet.FishnetMoveRequest]: req =>
     player(req)
+
+  Bus.sub[lila.analyse.actorApi.AnalysisReady]: ready =>
+    api.cancelGameAnalysis(ready.game.id)

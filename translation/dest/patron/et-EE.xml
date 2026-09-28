@@ -17,7 +17,6 @@
   <string name="youHaveLifetime">Sinul on eluaegne toetuskonto. See on väga lahe!</string>
   <string name="patronUntil">Sul on toetuskonto kuni %s.</string>
   <string name="ifNotRenewedThenAccountWillRevert">Kui seda ei uuendata, siis taastub teie konto tavaliseks kontoks.</string>
-  <string name="weAreNonProfit">Me oleme mittetulundusühing, sest me usume, et igal ühel on õigus tasuta ja kvaliteetsele male platvormile.</string>
   <string name="weRelyOnSupport">Me vajame abi inimestelt nagu sina, et teha seda võimalikuks. Kui sa naudid Lichessi siis palun kaalu meie toetamist annetades ja saades toetajaks!</string>
   <string name="lifetime">Eluaegne</string>
   <string name="payLifetimeOnce">Maksa %s ühe korra. Ole Lichessi toetaja elu lõpuni!</string>
@@ -33,17 +32,9 @@
   <string name="weAreSmallTeam">Me oleme väike meeskond, sinu toetusel on suur panus!</string>
   <string name="celebratedPatrons">Auväärsed toetajad tänu kellele Lichess on olemas</string>
   <string name="whereMoneyGoes">Kuhu raha läheb?</string>
-  <string name="serversAndDeveloper">Esmaselt võimsatesse serveritesse.
-Siis me maksame täiskohaga arendajale: %s, Lichessi asutajale.</string>
-  <string name="costBreakdown">Vaata detailne kulude ülevaade</string>
   <string name="officialNonProfit">Kas Lichess on ametlikult mittetulundusühing?</string>
-  <string name="actOfCreation">Jah, siin on põhikiri (prantsuse keeles)</string>
   <string name="changeMonthlySupport">Kas ma saan muuta/tühistada mu igakuiset toetust?</string>
   <string name="contactSupport">võta ühendust Lichessi abiga</string>
-  <string name="otherMethods">Teised annetusviisid?</string>
-  <string name="lichessIsRegisteredWith">Lichess on registreeritud %s-sse.</string>
-  <string name="bankTransfers">Me võtame vastu ka pangaülekandeid</string>
-  <string name="onlyDonationFromAbove">Palun pane tähele, et ainult üleval olev annetusvorm annab Toetaja staatuse.</string>
   <string name="patronFeatures">Kas osa funktsioonidest on mõeldud ainult Toetajatele?</string>
   <string name="noPatronFeatures">Ei, sest Lichess on täiesti tasuta, igavesti ja kõigile. See on lubadus. Ikkagi, toetajad saavad käia uhkelt ringi uue laheda profiilipildiga.</string>
   <string name="featuresComparison">Vaata üksikasjaline funktsioonide võrdlus</string>

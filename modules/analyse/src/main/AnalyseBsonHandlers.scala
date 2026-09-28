@@ -19,14 +19,18 @@ object AnalyseBsonHandlers:
         def getId[Id: BSONReader]: Id = r.get[Id]("_id")
         r.getO[StudyId]("studyId") match
           case Some(studyId) => Analysis.Id(studyId, getId[StudyChapterId])
-          case None => Analysis.Id(getId[GameId])
+          case None =>
+            val value = r.str("_id")
+            if value.startsWith("catalog:") then Analysis.Id.Catalog(value.stripPrefix("catalog:"))
+            else Analysis.Id(getId[GameId])
       Analysis(
         id = id,
         infos = Info.decodeList(raw, startPly).err(s"Invalid analysis data $raw"),
         startPly = startPly,
         date = r.date("date"),
         fk = r.strO("fk"),
-        nodesPerMove = r.intO("npm")
+        nodesPerMove = r.intO("npm"),
+        depth = r.intO("depth")
       )
     def writes(w: BSON.Writer, a: Analysis) =
       BSONDocument(
@@ -36,7 +40,8 @@ object AnalyseBsonHandlers:
         "ply" -> w.intO(a.startPly.value),
         "date" -> w.date(a.date),
         "fk" -> a.fk,
-        "npm" -> a.nodesPerMove
+        "npm" -> a.nodesPerMove,
+        "depth" -> a.depth
       )
 
   given engineHandler: BSONDocumentHandler[ExternalEngine] = Macros.handler

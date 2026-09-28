@@ -52,6 +52,7 @@ object Permission:
       Streamers
     ),
     "Monitoring" -> List(
+      ViewTrafficStats,
       MonitoredBoostMod,
       MonitoredCheatMod,
       MonitoredCommMod

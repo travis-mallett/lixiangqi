@@ -12,12 +12,11 @@ import {
 } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 
-import { winningChances } from 'lib/ceval';
 import { plyToTurn } from 'lib/game/chess';
 import { pubsub } from 'lib/pubsub';
-import type { TreeNodeBase } from 'lib/tree/types';
 
 import division from './division';
+import { evaluationLabel, evaluationValue } from './evaluation';
 import {
   blackFill,
   fontColor,
@@ -30,13 +29,14 @@ import {
   whiteFill,
   axisOpts,
 } from './index';
-import type { AcplChart, AnalyseData, Player } from './interface';
+import type { AcplChart, AnalyseData, EvaluationChartOptions, EvaluationNode, Player } from './interface';
 
 Chart.register(LineController, LinearScale, PointElement, LineElement, Tooltip, Filler, ChartDataLabels);
 export default async function (
   el: HTMLCanvasElement,
   data: AnalyseData,
-  mainline: TreeNodeBase[],
+  mainline: EvaluationNode[],
+  options: EvaluationChartOptions = {},
 ): Promise<AcplChart> {
   const possibleChart = maybeChart(el);
   if (possibleChart) return possibleChart as AcplChart;
@@ -49,7 +49,7 @@ export default async function (
 
   const makeDataset = (
     d: AnalyseData,
-    mainline: TreeNodeBase[],
+    mainline: EvaluationNode[],
   ): { acpl: ChartDataset<'line'>; moveLabels: string[]; adviceHoverColors: string[] } => {
     const pointBackgroundColors: (
       | typeof orangeAccent
@@ -65,19 +65,16 @@ export default async function (
     if (d.player.color === 'white') blurs.reverse();
     mainline.slice(1).map(node => {
       const isWhite = (node.ply & 1) === 1;
-      let cp: number | undefined = node.eval && 0;
-      if (node.eval?.mate) cp = node.eval.mate > 0 ? Infinity : -Infinity;
-      else if (node.san?.includes('#')) cp = isWhite ? Infinity : -Infinity;
-      if (cp && d.game.variant.key === 'antichess' && node.san?.includes('#')) cp = -cp;
-      else if (node.eval?.cp) cp = node.eval.cp;
       const turn = plyToTurn(node.ply);
       const dots = isWhite ? '.' : '...';
-      const winchance = winningChances.povChances('white', { cp });
+      const winchance = evaluationValue(node, d.game.variant.key);
       // Plot winchance because logarithmic but display the corresponding cp.eval from AnalyseData in the tooltip
-      winChances.push({ x: node.ply, y: winchance });
+      // Chart.js skips non-finite points and leaves a gap for missing analysis.
+      winChances.push({ x: node.ply, y: winchance ?? NaN });
 
       const { advice, color: glyphColor } = glyphProperties(node);
-      const label = turn + dots + ' ' + node.san;
+      const side = d.game.variant.key === 'xiangqi' ? `${isWhite ? i18n.site.white : i18n.site.black} ` : '';
+      const label = `${turn}${dots} ${side}${node.san ?? ''}`;
       let annotation = '';
       if (advice) annotation = ` [${i18n.site[advice]}]`;
       const isBlur =
@@ -118,7 +115,7 @@ export default async function (
 
   const dataset = makeDataset(data, mainline);
   const acpl = dataset.acpl;
-  const moveLabels = dataset.moveLabels;
+  let moveLabels = dataset.moveLabels;
   let adviceHoverColors = dataset.adviceHoverColors;
   const config: ChartConfiguration<'line'> = {
     type: 'line',
@@ -132,7 +129,7 @@ export default async function (
         axis: 'x',
         intersect: false,
       },
-      scales: axisOpts(firstPly + 1, mainline.length + firstPly),
+      scales: axisOpts(firstPly + 1, Math.max(firstPly + 2, mainline[mainline.length - 1].ply)),
       animation: false,
       maintainAspectRatio: false,
       responsive: true,
@@ -150,20 +147,8 @@ export default async function (
           filter: item => item.datasetIndex === 0,
           callbacks: {
             label: item => {
-              const ev = mainline[item.dataIndex + 1]?.eval;
-              if (!ev) return ''; // Pos is mate
-              let e = 0,
-                mateSymbol = '',
-                advantageSign = '';
-              if (ev.cp) {
-                e = Math.max(Math.min(Math.round(ev.cp / 10) / 10, 99), -99);
-                if (ev.cp > 0) advantageSign = '+';
-              }
-              if (ev.mate) {
-                e = ev.mate;
-                mateSymbol = '#';
-              }
-              return i18n.site.advantage + ': ' + mateSymbol + advantageSign + e;
+              const node = mainline[item.dataIndex + 1];
+              return node ? `${i18n.site.advantage}: ${evaluationLabel(node)}` : '';
             },
             title: items => (items[0] ? moveLabels[items[0].dataIndex] : ''),
           },
@@ -171,28 +156,48 @@ export default async function (
       },
       onClick(_event, elements, _chart) {
         const data = elements[elements.findIndex(element => element.datasetIndex === 0)];
-        if (data) pubsub.emit('analysis.chart.click', data.index);
+        if (data) {
+          if (options.onSelect) options.onSelect(mainline[data.index + 1].ply);
+          else pubsub.emit('analysis.chart.click', data.index);
+        }
       },
     },
   };
   const acplChart = new Chart(el, config) as AcplChart;
   acplChart.selectPly = selectPly.bind(acplChart);
-  acplChart.updateData = (d: AnalyseData, mainline: TreeNodeBase[]) => {
-    const dataset = makeDataset(d, mainline);
+  let unbindAdvice = () => {};
+  acplChart.updateData = (d: AnalyseData, nodes: EvaluationNode[]) => {
+    data = d;
+    mainline = nodes;
+    const dataset = makeDataset(data, mainline);
+    moveLabels = dataset.moveLabels;
     adviceHoverColors = dataset.adviceHoverColors;
-    const acpl = dataset.acpl;
-    acplChart.data.datasets[0].data = acpl.data;
-    if (!isPartial(data)) christmasTree(acplChart, mainline, adviceHoverColors);
+    acplChart.data.datasets[0] = dataset.acpl;
+    acplChart.data.labels = moveLabels.map((_, index) => index);
+    acplChart.options.scales = axisOpts(
+      mainline[0].ply + 1,
+      Math.max(mainline[0].ply + 2, mainline[mainline.length - 1].ply),
+    );
+    unbindAdvice();
+    if (!isPartial(data)) unbindAdvice = christmasTree(acplChart, mainline, adviceHoverColors);
     acplChart.update('none');
   };
-  pubsub.on('ply', acplChart.selectPly);
-  pubsub.emit('ply.trigger');
-  if (!isPartial(data)) christmasTree(acplChart, mainline, adviceHoverColors);
+  if (!options.onSelect) {
+    pubsub.on('ply', acplChart.selectPly);
+    pubsub.emit('ply.trigger');
+  }
+  if (!isPartial(data)) unbindAdvice = christmasTree(acplChart, mainline, adviceHoverColors);
+  const destroy = acplChart.destroy.bind(acplChart);
+  acplChart.destroy = () => {
+    pubsub.off('ply', acplChart.selectPly);
+    unbindAdvice();
+    destroy();
+  };
   return acplChart;
 }
 
 type Advice = 'blunder' | 'mistake' | 'inaccuracy';
-const glyphProperties = (node: TreeNodeBase): { advice?: Advice; color?: string } => {
+const glyphProperties = (node: EvaluationNode): { advice?: Advice; color?: string } => {
   if (node.glyphs?.some(g => g.id === 4)) return { advice: 'blunder', color: '#db3031' };
   else if (node.glyphs?.some(g => g.id === 2)) return { advice: 'mistake', color: '#e69d00' };
   else if (node.glyphs?.some(g => g.id === 6)) return { advice: 'inaccuracy', color: '#4da3d5' };
@@ -201,30 +206,34 @@ const glyphProperties = (node: TreeNodeBase): { advice?: Advice; color?: string 
 
 const toBlurArray = (player: Player) => player.blurs?.bits?.split('') ?? [];
 
-function christmasTree(chart: AcplChart, mainline: TreeNodeBase[], hoverColors: string[]) {
-  $('div.advice-summary')
-    .on('mouseenter', 'div.symbol', function (this: HTMLElement) {
-      if (!chart.canvas.isConnected) return;
-      const symbol = this.getAttribute('data-symbol');
-      const playerColorBit = this.getAttribute('data-color') === 'white' ? 1 : 0;
-      const acplDataset = chart.data.datasets[0];
-      if (symbol === '??' || symbol === '?!' || symbol === '?') {
-        acplDataset.pointHoverBackgroundColor = hoverColors;
-        acplDataset.pointBorderColor = hoverColors;
-        const points = mainline
-          .filter(
-            node => node.glyphs?.some(glyph => glyph.symbol === symbol) && (node.ply & 1) === playerColorBit,
-          )
-          .map(node => ({ datasetIndex: 0, index: node.ply - mainline[0].ply - 1 }));
-        chart.setActiveElements(points);
-        chart.update('none');
-      }
-    })
-    .on('mouseleave', 'div.symbol', function (this: HTMLElement) {
-      if (!chart.canvas.isConnected) return;
-      chart.setActiveElements([]);
-      chart.data.datasets[0].pointHoverBackgroundColor = orangeAccent;
-      chart.data.datasets[0].pointBorderColor = orangeAccent;
+function christmasTree(chart: AcplChart, mainline: EvaluationNode[], hoverColors: string[]) {
+  const summary = $('div.advice-summary');
+  const enter = function (this: HTMLElement) {
+    if (!chart.canvas.isConnected) return;
+    const symbol = this.getAttribute('data-symbol');
+    const playerColorBit = this.getAttribute('data-color') === 'white' ? 1 : 0;
+    const acplDataset = chart.data.datasets[0];
+    if (symbol === '??' || symbol === '?!' || symbol === '?') {
+      acplDataset.pointHoverBackgroundColor = hoverColors;
+      acplDataset.pointBorderColor = hoverColors;
+      const points = mainline
+        .filter(
+          node => node.glyphs?.some(glyph => glyph.symbol === symbol) && (node.ply & 1) === playerColorBit,
+        )
+        .map(node => ({ datasetIndex: 0, index: node.ply - mainline[0].ply - 1 }));
+      chart.setActiveElements(points);
       chart.update('none');
-    });
+    }
+  };
+  const leave = () => {
+    if (!chart.canvas.isConnected) return;
+    chart.setActiveElements([]);
+    chart.data.datasets[0].pointHoverBackgroundColor = orangeAccent;
+    chart.data.datasets[0].pointBorderColor = orangeAccent;
+    chart.update('none');
+  };
+  summary.on('mouseenter', 'div.symbol', enter).on('mouseleave', 'div.symbol', leave);
+  return () => {
+    summary.off('mouseenter', enter).off('mouseleave', leave);
+  };
 }

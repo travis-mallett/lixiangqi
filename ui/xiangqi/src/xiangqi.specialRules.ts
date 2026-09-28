@@ -1,6 +1,8 @@
+import type { DrawShape } from 'chessgroundx/draw';
 import { attributesModule, classModule, h, init, type VNode } from 'snabbdom';
 
 import { isXiangqiCapture } from 'lib/game';
+import { isXiangqiMate } from 'lib/game/adjudication';
 import { playMoveNavigationSound } from 'lib/game/replay/moveNavigationSound';
 import { renderAdjudication } from 'lib/game/view/adjudication';
 import { licon } from 'lib/licon';
@@ -9,14 +11,26 @@ import { renderColumnTree, renderIndex, type ColumnTreeNode } from 'lib/tree/col
 import { hl, onInsert, renderReplayControls } from 'lib/view';
 
 import { legalMoveDests, makeXiangqiGround, uciMoveToCg } from './index';
-import { SpecialRulesPlayback, type ExamplePlayback } from './specialRulesPlayback';
+import {
+  examplePosition,
+  SpecialRulesPlayback,
+  type ExamplePlayback,
+  type ExampleSequence,
+} from './specialRulesPlayback';
+
+type Example = {
+  id: string;
+  initialPly?: number;
+  annotations?: Record<string, string>;
+} & ({ endpoint: string; replay?: never } | { replay: ExampleSequence; endpoint?: never });
 
 interface Bootstrap {
-  examples: Array<{ id: string; endpoint: string }>;
+  examples: Example[];
+  diagrams?: Array<{ id: string; fen: string; shapes: DrawShape[] }>;
   animationDuration?: number;
 }
 
-async function initExample(root: HTMLElement, endpoint: string, animationDuration?: number): Promise<void> {
+async function initExample(root: HTMLElement, example: Example, animationDuration?: number): Promise<void> {
   const boardElement = root.querySelector<HTMLElement>('.cg-wrap')!;
   const moves = root.querySelector<HTMLElement>('.special-rules__moves')!;
   const status = root.querySelector<HTMLElement>('.special-rules__status')!;
@@ -48,7 +62,8 @@ async function initExample(root: HTMLElement, endpoint: string, animationDuratio
   boardElement.style.visibility = 'hidden';
   let displayed: ExamplePlayback | undefined;
   const playback = new SpecialRulesPlayback(async ply => {
-    const response = await fetch(`${endpoint}${ply}`, {
+    if (example.replay) return examplePosition(example.replay, ply);
+    const response = await fetch(`${example.endpoint}${ply}`, {
       cache: 'no-store',
       headers: { 'X-Requested-With': 'XMLHttpRequest' },
     });
@@ -85,13 +100,18 @@ async function initExample(root: HTMLElement, endpoint: string, animationDuratio
           site.sound.move({
             capture: isXiangqiCapture(before.state.fen, data.state.fen),
             check: data.state.check,
-            mate: data.state.termination === 'checkmate',
+            mate: isXiangqiMate(undefined, data.state.termination),
             board: boardElement,
           }),
         );
       renderMoveList(data);
       displayed = data;
       notice = patch(notice, h('div.special-rules__notice', [renderAdjudication(data.state)]));
+      const annotation = root.querySelector<HTMLElement>('.special-rules__annotation');
+      if (annotation) {
+        annotation.textContent = example.annotations?.[data.acceptedPly] ?? '';
+        annotation.hidden = !annotation.textContent;
+      }
     }
     moves.querySelectorAll<HTMLElement>('[data-move-ply]').forEach(button => {
       button.setAttribute('aria-disabled', String(playback.pending));
@@ -223,11 +243,23 @@ async function initExample(root: HTMLElement, endpoint: string, animationDuratio
       navigate(action);
     }
   });
-  await playback.go(0);
+  await playback.go(example.initialPly ?? 0);
 }
 
 export default async function initExamples(bootstrap: Bootstrap): Promise<void> {
   await site.asset.loadPieces;
+  for (const diagram of bootstrap.diagrams ?? []) {
+    const element = document.getElementById(diagram.id);
+    if (!element) continue;
+    const ground = makeXiangqiGround(element, {
+      fen: diagram.fen,
+      viewOnly: true,
+      resizeHandle: ShowResizeHandle.Never,
+      animationDuration: 0,
+      addDimensionsCssVarsTo: element,
+    });
+    ground.set({ drawable: { enabled: false, autoShapes: diagram.shapes } });
+  }
   const navigation = [...document.querySelectorAll<HTMLAnchorElement>('.special-rules .subnav a')];
   const updateNavigation = (): void => {
     const target = window.location.hash || '#overview';
@@ -240,7 +272,7 @@ export default async function initExamples(bootstrap: Bootstrap): Promise<void> 
       const root = document.querySelector<HTMLElement>(
         `.special-rules__example[data-example-id="${example.id}"]`,
       );
-      return root ? initExample(root, example.endpoint, bootstrap.animationDuration) : Promise.resolve();
+      return root ? initExample(root, example, bootstrap.animationDuration) : Promise.resolve();
     }),
   );
 }

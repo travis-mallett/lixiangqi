@@ -7,7 +7,16 @@ export interface PlyChart extends Chart<'line'> {
 }
 
 export interface AcplChart extends PlyChart {
-  updateData(d: AnalyseData, mainline: TreeNodeBase[]): void;
+  updateData(d: AnalyseData, mainline: EvaluationNode[]): void;
+}
+
+export interface EvaluationNode extends Pick<TreeNodeBase, 'ply' | 'san' | 'glyphs'> {
+  eval?: EvalScore;
+}
+
+export interface EvaluationChartOptions {
+  // An explicit owner avoids global navigation events on pages with multiple games.
+  onSelect?: (ply: number) => void;
 }
 
 export interface Division {
@@ -48,7 +57,12 @@ export interface AnalyseData {
 }
 
 export interface ChartGame {
-  acpl(el: HTMLCanvasElement, data: AnalyseData, mainline: TreeNodeBase[]): Promise<AcplChart>;
+  acpl(
+    el: HTMLCanvasElement,
+    data: AnalyseData,
+    mainline: EvaluationNode[],
+    options?: EvaluationChartOptions,
+  ): Promise<AcplChart>;
   movetime(el: HTMLCanvasElement, data: AnalyseData, hunter: boolean): Promise<PlyChart | undefined>;
 }
 

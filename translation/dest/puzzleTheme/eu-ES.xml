@@ -99,14 +99,9 @@
   <string name="mateIn3Description">Eman mate hiru jokalditan.</string>
   <string name="mateIn4">Mate lautan</string>
   <string name="mateIn4Description">Eman mate lau jokalditan.</string>
-  <string name="mateIn5">Mate 5 edo jokaldi gehiagotan</string>
   <string name="mateIn5Description">Mate emateko sekuentzia luzea asmatu.</string>
-  <string name="middlegame">Erdi-jokoa</string>
-  <string name="middlegameDescription">Partidaren bigarren faseko taktika.</string>
   <string name="oneMove">Jokaldi bakarreko ariketa</string>
   <string name="oneMoveDescription">Jokaldi bakarrean ebazten den ariketa.</string>
-  <string name="opening">Hasiera</string>
-  <string name="openingDescription">Partidaren lehenengo faseko taktika.</string>
   <string name="operaMate">Opera matea</string>
   <string name="operaMateDescription">Eman xake erregeari gazteluarekine ta erabili alfila gaztelua defendatzeko.</string>
   <string name="pawnEndgame">Peoien finala</string>

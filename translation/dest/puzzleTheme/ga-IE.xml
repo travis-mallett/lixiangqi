@@ -75,14 +75,9 @@
   <string name="mateIn3Description">Tabhair Marbhsháinn i dtrí bheart.</string>
   <string name="mateIn4">Marbhsháinn i 4 bheart</string>
   <string name="mateIn4Description">Tabhair Marbhsháinn i ceithre bheart.</string>
-  <string name="mateIn5">Marbhsháinn i 5 mbeart nó níos mó</string>
   <string name="mateIn5Description">Obair amach an marbháháinn le seicheamh fada.</string>
-  <string name="middlegame">Lár an cluiche</string>
-  <string name="middlegameDescription">Beartaíocht san dara céim den chluiche.</string>
   <string name="oneMove">Fadhbh beart-amháin</string>
   <string name="oneMoveDescription">Fadhbh nach bhfuil ach beart amháin fada.</string>
-  <string name="opening">Oscail</string>
-  <string name="openingDescription">Beartaíocht san céad céim den chluiche.</string>
   <string name="pawnEndgame">Cor deiridh na ceithearnaigh</string>
   <string name="pawnEndgameDescription">Deireadh cluiche le ceithearnaigh amháin.</string>
   <string name="pin">Teannta</string>

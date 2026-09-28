@@ -1,0 +1,201 @@
+.puzzle-themes-page .page-menu__content {
+  min-width: 0;
+}
+
+.puzzle-theme-lesson {
+  // Use the same native disclosure animation as the FAQ and lobby controls.
+  @supports (interpolate-size: allow-keywords) {
+    interpolate-size: allow-keywords;
+
+    &::details-content {
+      height: 0;
+      overflow: clip;
+      transition:
+        height 0.3s ease,
+        content-visibility 0.3s ease allow-discrete;
+    }
+
+    &[open]::details-content {
+      height: auto;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      &::details-content {
+        transition: none;
+      }
+    }
+  }
+
+  &__content {
+    position: relative;
+    padding: 2.75em 1.5em 1.5em;
+    border-top: $border;
+    scroll-margin-block-start: $site-header-outer-height;
+  }
+
+  &__close {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-end: 0;
+    background: none;
+    border: 0;
+    color: $c-link;
+    padding: 0.5em;
+    cursor: pointer;
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  &__stage {
+    overflow: clip;
+  }
+
+  &__overview {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas: 'media board' 'practice practice';
+    gap: 1.5em;
+
+    &[hidden] {
+      display: none;
+    }
+  }
+
+  &__media {
+    grid-area: media;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 1em;
+    min-height: 0;
+
+    // The board alone determines this row's height. Copy must not enlarge it.
+    contain: size;
+    container-type: inline-size;
+  }
+
+  &__explanation {
+    @extend %box-radius;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.5em;
+    min-height: 0;
+    padding: 0.75em;
+    border: $border;
+    background: $c-bg-low;
+    font-size: clamp(0.9em, 3.5cqi, 1.2em);
+    line-height: 1.4;
+
+    > * {
+      flex-shrink: 0;
+      margin: 0;
+    }
+
+    h3 {
+      font-size: 1.15em;
+      font-weight: bold;
+    }
+
+    ul {
+      padding-inline-start: 1.1em;
+    }
+
+    li {
+      list-style: disc;
+
+      &::marker {
+        color: $c-primary;
+      }
+
+      + li {
+        margin-top: 0.35em;
+      }
+    }
+  }
+
+  &__play {
+    @extend %box-radius;
+
+    position: relative;
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    cursor: pointer;
+    background: $c-bg-low;
+
+    img {
+      position: absolute;
+      inset: 0;
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .button {
+      position: absolute;
+      inset: 50% auto auto 50%;
+      transform: translate(-50%, -50%);
+      padding: 0.75em 1em;
+      border-radius: 0.75em;
+      font-size: 1.5em;
+    }
+  }
+
+  &__board {
+    grid-area: board;
+    align-self: start;
+    position: relative;
+    width: 100%;
+    height: auto;
+    padding-bottom: 0;
+    aspect-ratio: 9 / 10;
+    margin: 0 auto;
+
+    .cg-wrap {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+    }
+  }
+
+  &__practice {
+    grid-area: practice;
+    justify-self: center;
+  }
+
+  &__player {
+    aspect-ratio: 16 / 9;
+
+    iframe {
+      display: block;
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+  }
+
+  @media (max-width: at-most($x-small)) {
+    &__content {
+      padding: 2.75em 1em 1em;
+    }
+
+    &__overview {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-areas: 'media' 'board' 'practice';
+    }
+
+    &__media {
+      contain: none;
+      grid-template-rows: auto auto;
+    }
+
+    &__board {
+      max-width: 400px;
+    }
+  }
+}

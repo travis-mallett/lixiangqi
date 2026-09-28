@@ -36,13 +36,13 @@ final class Env(
 
   private val config = appConfig.get[PlanConfig]("plan")(using AutoConfig.loader)
 
-  val stripePublicKey = config.stripe.publicKey
-  val payPalPublicKey = config.payPal.publicKey
+  val stripePublicKey = if config.stripe.secretKey.value.nonEmpty then config.stripe.publicKey else ""
+  val payPalPublicKey = if config.payPal.secretKey.value.nonEmpty then config.payPal.publicKey else ""
 
   val donationGoalSetting = settingStore[Int](
     "donationGoal",
     default = 0,
-    text = "Monthly donation goal in USD from https://lixiangqi.org/costs".some
+    text = "Monthly donation goal in USD".some
   )
 
   private lazy val mongo = PlanMongo(
@@ -71,7 +71,7 @@ final class Env(
 
   lazy val webhook = wire[PlanWebhook]
 
-  PlanExpiration(userApi, mongo.patron, notifier)
+  PlanExpiration(userApi, lightUserApi, mongo.patron, notifier)
 
   lila.common.Bus.sub[lila.core.user.ChangeEmail]:
     case lila.core.user.ChangeEmail(userId, email) => api.onEmailChange(userId, email)

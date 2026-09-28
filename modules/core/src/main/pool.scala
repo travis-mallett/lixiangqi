@@ -40,7 +40,8 @@ case class PoolMember(
     lame: Boolean,
     blocking: Blocking,
     rageSitCounter: Int = 0,
-    misses: Int = 0 // how many waves they missed
+    misses: Int = 0, // how many waves they missed
+    traffic: Option[lila.core.traffic.TrafficSearch] = None
 )
 
 case class Pairing(players: ByColor[(Sri, GameFullId)])

@@ -34,15 +34,25 @@ final class PuzzleReplayApi(
       theme: PuzzleTheme.Key
   )(using me: Me): Fu[Option[(Puzzle, PuzzleReplay)]] =
     maybeDays.so: days =>
+      def puzzleFor(replay: PuzzleReplay): Fu[Option[(Puzzle, PuzzleReplay)]] =
+        replay.remaining.headOption.so: id =>
+          colls
+            .puzzle(_.one[Puzzle](Puzzle.activeFor(PuzzleAngle.Theme(replay.theme)) ++ $id(id)))
+            .flatMap:
+              case Some(puzzle) => fuccess((puzzle -> replay).some)
+              case None if replay.remaining.nonEmpty =>
+                val advanced = replay.step
+                replays.put(me.userId, fuccess(advanced))
+                puzzleFor(advanced)
+              case None => fuccess(none)
       for
         current <- replays.getFuture(me.userId, _ => createReplayFor(me, days, theme))
         replay <-
           if current.days == days && current.theme == theme && current.remaining.nonEmpty
           then fuccess(current)
           else createReplayFor(me, days, theme).tap { replays.put(me.userId, _) }
-        puzzle <- replay.remaining.headOption.so: id =>
-          colls.puzzle(_.byId[Puzzle](id))
-      yield puzzle.map(_ -> replay)
+        puzzle <- puzzleFor(replay)
+      yield puzzle
 
   def onComplete(round: PuzzleRound, days: Days, angle: PuzzleAngle): Funit =
     angle.asTheme.so: theme =>
@@ -73,7 +83,7 @@ final class PuzzleReplayApi(
                 let = $doc("pid" -> $doc("$arrayElemAt" -> $arr($doc("$split" -> $arr("$_id", ":")), 1))),
                 pipe = List(
                   $doc(
-                    "$match" -> $doc(
+                    "$match" -> (Puzzle.activeFor(PuzzleAngle.Theme(theme)) ++ $doc(
                       $expr:
                         if theme == PuzzleTheme.mix.key then $doc("$eq" -> $arr("$_id", "$$pid"))
                         else
@@ -82,7 +92,7 @@ final class PuzzleReplayApi(
                               $doc("$eq" -> $arr("$_id", "$$pid")),
                               $doc("$in" -> $arr(theme, "$themes"))
                             )
-                    )
+                    ))
                   ),
                   $doc("$limit" -> maxPuzzles),
                   $doc("$project" -> $doc("_id" -> true))

@@ -132,8 +132,12 @@ body {
   }
 
   &__daily-puzzle {
+    align-self: start;
+
     &__link {
-      display: block;
+      display: flex;
+      align-items: center;
+      flex-direction: column;
       padding: 12px;
       color: $c-font;
 
@@ -143,17 +147,17 @@ body {
       }
     }
 
-    .mini-board {
-      width: min(100%, 270px);
-      margin-inline: auto;
-    }
-
     &__turn {
+      align-self: stretch;
       display: block;
       margin-top: 9px;
       color: $c-font-dim;
       font-size: 0.82rem;
       text-align: end;
+    }
+
+    &--left {
+      display: none;
     }
   }
 
@@ -573,6 +577,16 @@ body {
     &__rail-card,
     &__site-stats {
       border-radius: 10px;
+    }
+  }
+
+  @media (max-width: 1099px) {
+    &__daily-puzzle--right {
+      display: none;
+    }
+
+    &__daily-puzzle--left {
+      display: block;
     }
   }
 

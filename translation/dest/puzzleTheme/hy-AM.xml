@@ -79,14 +79,9 @@
   <string name="mateIn3Description">Արեք մատ երեք քայլից։</string>
   <string name="mateIn4">Մատ 4 քայլից</string>
   <string name="mateIn4Description">Արեք մատ չորս քայլից։</string>
-  <string name="mateIn5">Մատ 5 և ավելի քայլից</string>
   <string name="mateIn5Description">Գտեք դեպի մատը տանող քայլերի հաջորդականությունը։</string>
-  <string name="middlegame">Միջնախաղ</string>
-  <string name="middlegameDescription">Մարտավարություն խաղի երկրորդ փուլում։</string>
   <string name="oneMove">Մեկքայլանի խնդիր</string>
   <string name="oneMoveDescription">Խնդիր, որտեղ պետք է անել միայն մեկ հաղթող քայլ։</string>
-  <string name="opening">Սկզբնախաղ</string>
-  <string name="openingDescription">Մարտավարություն խաղի առաջին փուլում։</string>
   <string name="pawnEndgame">Զինվորային վերջնախաղ</string>
   <string name="pawnEndgameDescription">Վերջնախաղ զինվորներով։</string>
   <string name="pin">Կապ</string>

@@ -27,7 +27,7 @@ export function i18n(): Promise<void | string> {
   return makeTask({
     includes: [
       { cwd: env.i18nSrcDir, path: '*.xml' },
-      { cwd: join(env.i18nDestDir, 'site'), path: '*.xml' },
+      { cwd: env.i18nDestDir, path: '**/*.xml' },
     ],
     ctx: 'i18n',
     debounce: 500,
@@ -123,7 +123,10 @@ async function writeJavascript(cat: string, locale?: string, xstat: fs.Stats | f
         'window.i18n.quantity=' +
         (jsQuantity.find(({ l }) => l.includes(lang ?? ''))?.q ?? `o=>o==1?'one':'other'`) +
         ';';
-  if (!jsInit && locale && !localeSpecific.size) return;
+  if (!jsInit && locale && !localeSpecific.size) {
+    await fs.promises.rm(join(env.i18nJsDir, `${cat}.${locale}.js`), { force: true });
+    return;
+  }
   const code =
     jsPrelude +
     jsInit +
@@ -149,13 +152,19 @@ async function writeJavascript(cat: string, locale?: string, xstat: fs.Stats | f
 }
 
 async function updated(cat: string, locale?: string): Promise<fs.Stats | false> {
-  const xmlPath = locale ? join(env.i18nDestDir, cat, `${locale}.xml`) : join(env.i18nSrcDir, `${cat}.xml`);
+  const sourcePath = join(env.i18nSrcDir, `${cat}.xml`);
+  const localePath = locale && join(env.i18nDestDir, cat, `${locale}.xml`);
   const jsPath = join(env.i18nJsDir, `${cat}.${locale ?? 'en-GB'}.js`);
-  const [xml, js] = await Promise.allSettled([fs.promises.stat(xmlPath), fs.promises.stat(jsPath)]);
-  return xml.status === 'rejected' ||
-    (js.status !== 'rejected' && isClose(xml.value.mtimeMs, js.value.mtimeMs))
-    ? false
-    : xml.value.size > 64 && xml.value;
+  const [source, localized, js] = await Promise.all([
+    fs.promises.stat(sourcePath),
+    localePath ? fs.promises.stat(localePath).catch(() => undefined) : undefined,
+    fs.promises.stat(jsPath).catch(() => undefined),
+  ]);
+  if (locale && !localized) return js ? source : false;
+  // Every localized bundle includes source fallbacks. Its timestamp must track
+  // both inputs, even if the source bundle was already rebuilt separately.
+  const xml = localized && localized.mtimeMs > source.mtimeMs ? localized : source;
+  return js && isClose(xml.mtimeMs, js.mtimeMs) ? false : xml;
 }
 
 function parseXml(xmlData: string): Map<string, string | Plural> {

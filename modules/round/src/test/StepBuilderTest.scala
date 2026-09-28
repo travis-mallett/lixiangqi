@@ -36,3 +36,16 @@ class StepBuilderTest extends munit.FunSuite:
     val game = root.applyMove(move).toOption.get
     assertEquals(game.state.termination, Some("checkmate"))
     assertEquals((StepBuilder(game).value.last \ "mate").as[Boolean], true)
+
+  test("stalemate emits the same move and replay mate events without check"):
+    val root = XiangqiRules
+      .initialGame(Some("4k4/9/3R1R3/9/9/4P4/9/9/R8/3K5 w - - 0 1"))
+      .toOption
+      .get
+    val move = XiangqiRules.move(root, Uci.unsafe("a2a9")).toOption.get
+    val game = root.applyMove(move).toOption.get
+    assertEquals(game.state.termination, Some("stalemate"))
+    assertEquals(game.state.check, false)
+    assertEquals(game.state.mate, true)
+    assertEquals(move.checkmate, true)
+    assertEquals((StepBuilder(game).value.last \ "mate").as[Boolean], true)

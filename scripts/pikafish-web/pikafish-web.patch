@@ -6,11 +6,17 @@ index fff21ba..f6f5ff1 100644
      void load_networks();
      void load_big_network(const std::string& file);
      void save_network(const std::pair<std::optional<std::string>, std::string> files);
-+    void load_big_network(std::istream& input) {
++    bool load_big_network(std::istream& input) {
++        bool loaded = true;
 +        networks.modify_and_replicate(
-+          [this, &input](auto& replicated) { replicated.big.load(input); });
++          [&input, &loaded](auto& replicated) {
++              loaded = replicated.big.load(input).has_value() && loaded;
++          });
++        if (!loaded)
++            return false;
 +        threads.clear();
 +        threads.ensure_network_replicated();
++        return true;
 +    }
  
      // utility functions

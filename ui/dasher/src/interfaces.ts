@@ -39,6 +39,7 @@ export interface BoardThemeData extends CatalogItem {
   file: string;
   coordinateLight: string;
   coordinateDark: string;
+  matchingPieceSet?: string | null;
 }
 
 export interface PieceSetData extends CatalogItem {
@@ -60,6 +61,7 @@ export interface AppearanceState {
   backgroundUrl?: string | null;
   boardTheme: string;
   pieceSet: string;
+  selectMatchingPieces: boolean;
   soundSet: string;
   musicSet: string;
   board: BoardSettings;

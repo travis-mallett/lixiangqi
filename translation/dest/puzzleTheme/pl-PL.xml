@@ -97,14 +97,9 @@
   <string name="mateIn3Description">Daj mata w trzech posunięciach.</string>
   <string name="mateIn4">Mat w 4 ruchach</string>
   <string name="mateIn4Description">Daj mata w czterech posunięciach.</string>
-  <string name="mateIn5">Mat w 5 lub więcej ruchach</string>
   <string name="mateIn5Description">Naprawdę długa sekwencja matowa.</string>
-  <string name="middlegame">Gra środkowa</string>
-  <string name="middlegameDescription">Taktyka w drugiej fazie gry.</string>
   <string name="oneMove">Bardzo krótkie zadanie</string>
   <string name="oneMoveDescription">Zadanie, którego długość to tylko jedno posunięcie.</string>
-  <string name="opening">Otwarcie</string>
-  <string name="openingDescription">Taktyka w pierwszej fazie gry.</string>
   <string name="operaMate">Mat operowy</string>
   <string name="operaMateDescription">Wieża broniona przez gońca daje mata, stojąc bezpośrednio przy królu przeciwnika.</string>
   <string name="pawnEndgame">Końcówka pionkowa</string>

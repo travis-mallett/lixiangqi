@@ -8,4 +8,7 @@ ids.forEach(id => {
     },
   );
 });
-puzzleDb.puzzle2_puzzle.updateMany({ _id: { $in: ids } }, { $set: { dirty: true } });
+puzzleDb.puzzle2_puzzle.updateMany(
+  { _id: { $in: ids } },
+  { $set: { dirty: true }, $inc: { themeVersion: 1 } },
+);

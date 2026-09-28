@@ -133,7 +133,7 @@ final class Plan(env: Env) extends LilaController(env):
         patron <- ctx.me.so { env.plan.api.userPatron(_) }
         customer <- patron.so(env.plan.api.stripe.patronCustomer)
         gift <- ctx.me.so { env.plan.api.recentGiftFrom(_) }
-        page <- renderPage(views.planPages.thanks(patron, customer, gift))
+        page <- renderPage(views.planPages.thanks(patron, customer, gift, get("pending").contains("1")))
       yield Ok(page)
   }
 
@@ -275,10 +275,9 @@ final class Plan(env: Env) extends LilaController(env):
       get("sub")
         .map(PayPalSubscriptionId.apply)
         .match
-          case None => env.plan.api.payPal.captureOrder(PayPalOrderId(orderId), ctx.ip)
+          case None => env.plan.api.payPal.captureOrder(PayPalOrderId(orderId), me).inject(jsonOkResult)
           case Some(subId) =>
-            env.plan.api.payPal.captureSubscription(PayPalOrderId(orderId), subId, me, ctx.ip)
-        .inject(jsonOkResult)
+            env.plan.api.payPal.captureSubscription(subId, me).map(paid => JsonOk(Json.obj("paid" -> paid)))
   }
 
   // deprecated

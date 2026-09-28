@@ -1,0 +1,44 @@
+.engine-progress {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 3px;
+  overflow: hidden;
+
+  span {
+    display: block;
+    height: 100%;
+    width: 0;
+    background: $c-good;
+    transition: width 1s;
+
+    &.threat {
+      background: $c-bad;
+    }
+  }
+
+  &.active span {
+    background-image: url('../images/bar-highlight.png');
+    animation: engine-progress-highlight 1000s linear infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    span {
+      transition: none;
+    }
+
+    &.active span {
+      animation: none;
+    }
+  }
+}
+
+@keyframes engine-progress-highlight {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: 100000px 0;
+  }
+}

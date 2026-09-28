@@ -1,3 +1,5 @@
+import type { Color } from 'chessgroundx/types';
+
 import { defined } from 'lib';
 import { json as xhrJson, form as xhrForm } from 'lib/xhr';
 
@@ -12,6 +14,7 @@ export const complete = (
   replay?: PuzzleReplay,
   streak?: PuzzleStreak,
   color?: Color,
+  trafficAttempt?: string,
 ): Promise<PuzzleResult> =>
   xhrJson(`/training/complete/${theme}/${puzzleId}`, {
     method: 'POST',
@@ -21,6 +24,7 @@ export const complete = (
       ...(streak ? { streakId: streak.nextId(), streakScore: streak.data.index } : {}),
       rated,
       color,
+      trafficAttempt,
     }),
   });
 

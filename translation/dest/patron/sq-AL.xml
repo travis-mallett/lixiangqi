@@ -18,7 +18,6 @@
   <string name="youHaveLifetime">Keni një llogari të përjetshme Bamirësi. Kjo është me të vërtetë fantastike!</string>
   <string name="patronUntil">Keni një llogari Bamirësi deri më %s.</string>
   <string name="ifNotRenewedThenAccountWillRevert">Po nuk u rinovua, llogaria juaj do të rikthehet atëherë si llogari e rregullt.</string>
-  <string name="weAreNonProfit">Jemi një ent jofitimprurës, ngaqë besojmë se gjithkush duhet të ketë mundësi të përdorë një platformë shahu të lirë, të kalibrit botëror.</string>
   <string name="weRelyOnSupport">Për ta bërë të mundur këtë, mbështetemi në përkrahjen e njerëzve si ju. Nëse ju pëlqen të përdorni Lichess-in, ju lutemi, shihni mundësinë të na përkrahni duke dhuruar ose duke u bërë një Bamirës!</string>
   <string name="lifetime">Përgjithmonë</string>
   <string name="payLifetimeOnce">Paguani %s një herë. Bëhuni Bamirës Lichess-i përgjithmonë!</string>
@@ -34,19 +33,11 @@
   <string name="weAreSmallTeam">Jemi një ekip i vogël, andaj përkrahja juaj bën dallim të madh!</string>
   <string name="celebratedPatrons">Bamirës të nderuar që bëjnë të mundur Lichess-in</string>
   <string name="whereMoneyGoes">Ku shkojnë paratë?</string>
-  <string name="serversAndDeveloper">Së pari, për shërbyes të fuqishëm.
-Më tej, paguajmë një zhvillues me orar të plotë, %s, krijuesin e Lichess-it.</string>
-  <string name="costBreakdown">Shihni zbërthim të hollësishëm shpenzimesh</string>
   <string name="officialNonProfit">A është Lichess-i një ent jofitimprurës zyrtarisht?</string>
-  <string name="actOfCreation">Po, ja akti i themelimit (në frëngjisht)</string>
   <string name="changeMonthlySupport">A mund ta ndryshoj/anuloj përkrahjen time mujore?</string>
   <string name="changeSupport">Nëse pagesat tuaja kryhen përmes PayPal-i, mundeni të anuloni/ndryshoni përkrahjen tuaj përmes llogarisë tuaj PayPal, ose mund të %1$s dhe mund ta bëjmë ne për ju. Nëse s’përdorët PayPal, atëherë pagesat tuaja përpunohen nga Stripe dhe mund të anuloni ose ndryshoni dhurimin tuaj te %2$s.</string>
   <string name="patronPage">faqja e patronazhit</string>
   <string name="contactSupport">lidheni me asistencën e Lichess-it</string>
-  <string name="otherMethods">Metoda tjera dhurimi?</string>
-  <string name="lichessIsRegisteredWith">Lichess-i është i regjistruar me %s.</string>
-  <string name="bankTransfers">Pranojmë edhe dërgesa bankare</string>
-  <string name="onlyDonationFromAbove">Ju lutemi, kini parasysh se emblemë Patron-i do të sjellë vetëm dhurimi përmes formularit më sipër.</string>
   <string name="patronFeatures">A janë disa veçori të rezervuara për Bamirës?</string>
   <string name="noPatronFeatures">Jo, sepse Lichess-i është krejtësisht falas, përgjithmonë dhe për këdo. Ju japim fjalën.
 Sidoqoftë, Bamirësit mund të mburren me një ikonë të re të lezetshme profili.</string>
@@ -83,6 +74,5 @@ Sidoqoftë, Bamirësit mund të mburren me një ikonë të re të lezetshme prof
   <string name="changeCurrency">Ndryshoni monedhë</string>
   <string name="paymentDetails">Hollësi pagese</string>
   <string name="updatePaymentMethod">Përditësoni metodë pagesash</string>
-  <string name="stripeManageSub">Administroni pajtimin tuaj dhe shkarkoni faturat dhe dëftesat tuaja</string>
   <string name="coverFees">Do të shtoj %s, që të ndihmoj të mbulohet kostoja e përpunimit të këtij transaksioni</string>
 </resources>

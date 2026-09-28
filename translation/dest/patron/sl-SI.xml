@@ -20,7 +20,6 @@
   <string name="youHaveLifetime">Imate vseživljenski pokroviteljski račun. To je super!</string>
   <string name="patronUntil">Imate pokroviteljski račun od %s.</string>
   <string name="ifNotRenewedThenAccountWillRevert">Če ga ne obnovite, se bo vaš račun vrnil na običajni račun.</string>
-  <string name="weAreNonProfit">Smo neprofitno združenje, saj verjamemo, da bi morali vsi imeti dostop do brezplačne šahovske platforme svetovnega razreda.</string>
   <string name="weRelyOnSupport">Da to omogočimo, se zanašamo na vašo podporo. Če radi uporabljate Lichess, vas prosimo, da nas podprete z donacijami in postanete pokrovitelj!</string>
   <string name="lifetime">Doživljenjsko</string>
   <string name="payLifetimeOnce">Plačajte %s enkrat Bodite Lichess pokrovitelj za vedno!</string>
@@ -36,17 +35,9 @@
   <string name="weAreSmallTeam">Smo majhna ekipa, zato vaša podpora veliko pomeni!</string>
   <string name="celebratedPatrons">Slavni pokrovitelji, ki so omogočili Lichess</string>
   <string name="whereMoneyGoes">Kam gre denar?</string>
-  <string name="serversAndDeveloper">Najprej za zmogljive strežnike.
-Nato za plačilo polno zaposlenega razvijalca: %s, ustanovitelja Lichessa.</string>
-  <string name="costBreakdown">Oglejte si podrobno razčlenitev stroškov</string>
   <string name="officialNonProfit">Ali je Lichess uradno neprofiten?</string>
-  <string name="actOfCreation">Da, tu je uradna objava o ustanovitvi (v francoščini)</string>
   <string name="changeMonthlySupport">Ali lahko spremenim/prekličem svojo mesečno podporo?</string>
   <string name="contactSupport">kontaktirajte Lichess podporo</string>
-  <string name="otherMethods">Druge metode donacije?</string>
-  <string name="lichessIsRegisteredWith">Lichess je registriran s %s.</string>
-  <string name="bankTransfers">Sprejemamo tudi bančne transferje</string>
-  <string name="onlyDonationFromAbove">Upoštevajte, da bo status pokrovitelja podeljen le z zgoraj navedenim obrazcem za donacijo.</string>
   <string name="patronFeatures">Ali so katere možnosti namenjene samo pokroviteljem?</string>
   <string name="noPatronFeatures">Ne, ker je Lichess popolnoma zastonj, za vedno in za vsakogar. To je obljuba. Kakorkoli, pokrovitelji dobijo pravice hvalisanja s kul novo ikono profila.</string>
   <string name="featuresComparison">Poglejte podrobno primerjavo lastnosti</string>
@@ -84,6 +75,5 @@ Nato za plačilo polno zaposlenega razvijalca: %s, ustanovitelja Lichessa.</stri
   <string name="changeCurrency">Spremenite valuto</string>
   <string name="paymentDetails">Podrobnosti o plačilu</string>
   <string name="updatePaymentMethod">Način plačila posodobljen</string>
-  <string name="stripeManageSub">Upravljajte svojo naročnino in prenesite svoje račune in potrdila</string>
   <string name="coverFees">Dodal bom %s, da pokrijem stroške obdelave te transakcije</string>
 </resources>

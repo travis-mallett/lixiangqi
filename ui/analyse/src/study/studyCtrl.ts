@@ -45,6 +45,12 @@ import { NotifCtrl } from './notif';
 import type { RelayData } from './relay/interfaces';
 import RelayCtrl from './relay/relayCtrl';
 import ServerEval from './serverEval';
+import {
+  clearSourceGameEvals,
+  matchesSourceGame,
+  snapshotSourceGame,
+  type SourceGameLine,
+} from './sourceGameAnalysis';
 import StudyChaptersCtrl, { isFinished } from './studyChapters';
 import { StudyForm } from './studyForm';
 import { GlyphForm } from './studyGlyph';
@@ -110,6 +116,7 @@ export default class StudyCtrl {
   chapterDesc: DescriptionCtrl;
   search: SearchCtrl;
   gamebookPlay?: GamebookPlayCtrl;
+  private sourceGameLine: SourceGameLine = [];
 
   constructor(
     data: StudyDataFromServer,
@@ -118,6 +125,7 @@ export default class StudyCtrl {
     relayData?: RelayData,
   ) {
     this.data = data;
+    if (data.chapter.serverEval?.sourceGame) this.sourceGameLine = snapshotSourceGame(ctrl.data.treeParts);
     this.notif = new NotifCtrl(ctrl.redraw);
     const isManualChapter = data.chapter.id !== data.position.chapterId;
     const sticked =
@@ -337,6 +345,9 @@ export default class StudyCtrl {
     const s = d.study;
     const prevPath = this.ctrl.path;
     const sameChapter = this.data.chapter.id === s.chapter.id;
+    // Reloads merge local variations, but source scores must come from the new
+    // response so an edited chapter cannot recover an outdated overlay.
+    clearSourceGameEvals(this.ctrl.tree.root);
     const changeInChapterOrientation =
       sameChapter && // changes on orientation are only relevant for the same chapter
       this.data.chapter.setup.orientation !== s.chapter.setup.orientation;
@@ -362,7 +373,9 @@ export default class StudyCtrl {
     this.ctrl.flipped = this.chapterFlipMapProp(this.data.chapter.id);
 
     const merge = !this.vm.mode.write && sameChapter;
+    this.sourceGameLine = s.chapter.serverEval?.sourceGame ? snapshotSourceGame(d.analysis.treeParts) : [];
     this.ctrl.reloadData(d.analysis, merge);
+    this.invalidateSourceGameAnalysis();
     this.vm.gamebookOverride = undefined;
     this.configureAnalysis();
     this.vm.loading = false;
@@ -559,26 +572,45 @@ export default class StudyCtrl {
     this.isRelayAwayFromLive() && !treePath.contains(this.data.chapter.relayPath!, this.ctrl.path);
 
   setPath = (path: TreePath, node: TreeNode) => {
+    this.invalidateSourceGameAnalysis();
     this.arrowHistory = [];
     this.onSetPath(path);
     this.commentForm.onSetPath(this.vm.chapterId, path, node);
   };
-  deleteNode = (path: TreePath) =>
-    this.makeChange(
+  private readonly invalidateSourceGameAnalysis = () => {
+    if (
+      !this.data.chapter.serverEval?.sourceGame ||
+      matchesSourceGame(this.ctrl.tree.root, this.sourceGameLine)
+    )
+      return;
+    clearSourceGameEvals(this.ctrl.tree.root);
+    delete this.ctrl.data.analysis;
+    delete this.ctrl.data.game.division;
+    delete this.data.chapter.serverEval;
+    this.sourceGameLine = [];
+    this.serverEval.reset();
+  };
+
+  deleteNode = (path: TreePath) => {
+    this.invalidateSourceGameAnalysis();
+    return this.makeChange(
       'deleteNode',
       this.addChapterId({
         path,
         jumpTo: this.ctrl.path,
       }),
     );
-  promote = (path: TreePath, toMainline: boolean) =>
-    this.makeChange(
+  };
+  promote = (path: TreePath, toMainline: boolean) => {
+    this.invalidateSourceGameAnalysis();
+    return this.makeChange(
       'promote',
       this.addChapterId({
         toMainline,
         path,
       }),
     );
+  };
   forceVariation = (path: TreePath, force: boolean) =>
     this.makeChange(
       'forceVariation',
@@ -696,6 +728,7 @@ export default class StudyCtrl {
       if (!newPath) return this.xhrReload();
       if (d.relayPath && !this.ctrl.tree.pathIsMainline(d.relayPath))
         this.ctrl.tree.promoteAt(d.relayPath, true);
+      this.invalidateSourceGameAnalysis();
       if (sticky) this.data.position.path = newPath;
       if (
         (sticky && this.vm.mode.sticky) ||
@@ -714,6 +747,7 @@ export default class StudyCtrl {
       if (who && who.s === site.sri) return;
       if (!this.ctrl.tree.pathExists(d.p.path)) return this.xhrReload();
       this.ctrl.tree.deleteNodeAt(position.path);
+      this.invalidateSourceGameAnalysis();
       if (this.vm.mode.sticky) this.ctrl.jump(this.ctrl.path);
       return this.redraw();
     },
@@ -724,6 +758,7 @@ export default class StudyCtrl {
       if (this.wrongChapter(d) || (who && who.s === site.sri)) return;
       if (!this.ctrl.tree.pathExists(d.p.path)) return this.xhrReload();
       this.ctrl.tree.promoteAt(position.path, d.toMainline);
+      this.invalidateSourceGameAnalysis();
       if (this.vm.mode.sticky) this.ctrl.jump(this.ctrl.path);
       else if (this.relay) this.ctrl.jump(d.p.path);
       return this.redraw();

@@ -99,14 +99,9 @@
   <string name="mateIn3Description">3 手でチェックメイトにします。</string>
   <string name="mateIn4">4 手メイト</string>
   <string name="mateIn4Description">4 手でチェックメイトにします。</string>
-  <string name="mateIn5">5 手以上メイト</string>
   <string name="mateIn5Description">長いメイトの手順を考える。</string>
-  <string name="middlegame">ミドルゲーム</string>
-  <string name="middlegameDescription">ゲームの中盤でのタクティクス。</string>
   <string name="oneMove">1 手問題</string>
   <string name="oneMoveDescription">1 手だけ動かす問題。</string>
-  <string name="opening">オープニング</string>
-  <string name="openingDescription">ゲームの序盤でのタクティクス。</string>
   <string name="operaMate">オペラのメイト</string>
   <string name="operaMateDescription">ルークがチェックをかけ、ビショップがルークを守っているメイト。</string>
   <string name="pawnEndgame">ポーン・エンドゲーム</string>

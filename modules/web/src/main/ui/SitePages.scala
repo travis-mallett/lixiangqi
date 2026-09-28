@@ -27,6 +27,9 @@ final class SitePages(helpers: Helpers):
       a(activeCls("contact"), href := routes.Main.contact)(trans.contact.contact()),
       a(activeCls("tos"), href := routes.Cms.tos)(trans.site.termsOfService()),
       a(activeCls("privacy"), href := "/privacy")(trans.site.privacy()),
+      a(activeCls("trafficPrivacy"), href := "/privacy/traffic")(
+        lila.core.i18n.I18nKey("traffic:privacyTitle")()
+      ),
       a(activeCls("title"), href := routes.TitleVerify.index)(trans.site.titleVerification()),
       sep,
       a(activeCls("source"), href := routes.Cms.source)(trans.site.sourceCode()),

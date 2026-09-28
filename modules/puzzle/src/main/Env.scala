@@ -2,7 +2,6 @@ package lila.puzzle
 
 import com.softwaremill.macwire.*
 import play.api.Configuration
-import play.api.libs.ws.StandaloneWSClient
 
 import lila.common.autoconfig.{ *, given }
 import lila.core.config.*
@@ -24,10 +23,7 @@ final class Env(
     lightUserApi: lila.core.user.LightUserApi,
     userApi: lila.core.user.UserApi,
     cacheApi: lila.memo.CacheApi,
-    mongoCacheApi: lila.memo.MongoCache.Api,
-    gameRepo: lila.core.game.GameRepo,
     myEngines: lila.core.misc.analysis.MyEnginesAsJson,
-    ws: StandaloneWSClient,
     mongo: lila.db.Env
 )(using
     Executor,
@@ -44,14 +40,20 @@ final class Env(
 
   private val db = mongo.asyncDb("puzzle", config.mongoUri)
 
+  private val publicationJournal = db(CollName("puzzle2_publication"))
+
   val colls = PuzzleColls(
     puzzle = db(config.puzzleColl),
     round = db(config.roundColl),
-    path = db(config.pathColl)
+    path = db(config.pathColl),
+    publication = publicationJournal
   )
 
-  private val sourceGameJson =
-    new SourceGameJson(Url(appConfig.get[String]("explorer.internal_endpoint")), ws)
+  val publication = new PuzzlePublication(colls, publicationJournal)
+  scheduler.scheduleAtFixedRate(5.seconds, 5.seconds): () =>
+    publication.tick()
+  scheduler.scheduleAtFixedRate(10.seconds, 1.hour): () =>
+    publication.refreshPaths()
 
   private val gameJson: GameJson = wire[GameJson]
 
@@ -116,13 +118,9 @@ final class Env(
   scheduler.scheduleAtFixedRate(10.minutes, 1.day): () =>
     tagger.addAllMissing
 
-  if mode.isProd then
-    scheduler.scheduleAtFixedRate(10.minutes, 10.minutes): () =>
-      pathApi.isStale.foreach: stale =>
-        if stale then logger.error("Puzzle paths appear to be stale! check that the regen cron is up")
-
 final class PuzzleColls(
     val puzzle: AsyncColl,
     val round: AsyncColl,
-    val path: AsyncColl
+    val path: AsyncColl,
+    val publication: AsyncColl
 )

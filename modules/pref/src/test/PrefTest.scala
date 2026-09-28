@@ -39,7 +39,8 @@ class PrefTest extends FunSuite:
     assertEquals(appearance.uiTheme, UiThemes.dark.key)
     assertEquals(appearance.background, Backgrounds.none.key)
     assertEquals(appearance.boardTheme, BoardThemes.lixiangqiDefault.key)
-    assertEquals(appearance.pieceSet, PieceSets.wikipedia.key)
+    assertEquals(appearance.pieceSet, PieceSets.default.key)
+    assertEquals(PieceSets.default, PieceSets.defaultWood)
     assertEquals(appearance.soundSet, SoundSets.standard.key)
     assertEquals(appearance.musicSet, MusicSets.gentleAncient.key)
     assert(appearance.board.isDefault)
@@ -95,9 +96,9 @@ class PrefTest extends FunSuite:
     assertEquals(
       PieceSets.all.map(pieceSet => pieceSet.key -> pieceSet.category),
       List(
-        PieceSets.wikipedia.key -> Traditional,
-        PieceSets.paper.key -> Traditional,
+        PieceSets.defaultWood.key -> Traditional,
         PieceSets.wudang.key -> Traditional,
+        PieceSets.paperTraditional.key -> Traditional,
         PieceSets.international.key -> GraphicalSymbols,
         PieceSets.western.key -> Other
       )

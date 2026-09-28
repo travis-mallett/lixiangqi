@@ -251,6 +251,7 @@ object user:
     def incToints(id: UserId, nb: Int): Funit
     def addPuzRun(field: String, userId: UserId, score: Int): Funit
     def setPlan(user: User, plan: Option[Plan]): Funit
+    def updatePlanInTransaction(id: UserId, db: reactivemongo.api.DB)(f: Plan => Plan): Fu[(User, User)]
     def filterByEnabledPatrons(userIds: List[UserId]): Fu[Set[UserId]]
     def isCreatedSince(id: UserId, since: Instant): Fu[Boolean]
     def accountAge(id: UserId): Fu[Days]

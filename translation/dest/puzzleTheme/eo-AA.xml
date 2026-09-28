@@ -79,14 +79,9 @@
   <string name="mateIn3Description">Liveri ŝakmaton en tri movoj.</string>
   <string name="mateIn4">Mato en 4</string>
   <string name="mateIn4Description">Liveri ŝakmaton en kvar movoj.</string>
-  <string name="mateIn5">Mato en 5 aŭ pli</string>
   <string name="mateIn5Description">Solvi longan matantan vicon.</string>
-  <string name="middlegame">Mezludo</string>
-  <string name="middlegameDescription">Taktiko dum la dua fazo de la ludo.</string>
   <string name="oneMove">Unumova puzlo</string>
   <string name="oneMoveDescription">Puzlo, kiu estas nur unu movo longa.</string>
-  <string name="opening">Malfermo</string>
-  <string name="openingDescription">Taktiko dum la unua fazo de la ludo.</string>
   <string name="pawnEndgame">Peona finaĵo</string>
   <string name="pawnEndgameDescription">Finaĵo nur kun soldatoj.</string>
   <string name="pin">Alpinglo</string>

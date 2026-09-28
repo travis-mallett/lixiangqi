@@ -31,10 +31,27 @@ export interface PikafishHistory {
   moves: readonly string[];
 }
 
+export interface PikafishOptions {
+  threads: number;
+  hashSize: number;
+}
+
 export interface PikafishWork {
   fen: string;
   history?: PikafishHistory;
-  depth: number;
+  search:
+    | { depth: number }
+    | {
+        movetime: number;
+        extension?: {
+          // Additional search time after the initial budget. Only check
+          // completion after the minimum; the maximum always stops the search.
+          minMovetime: number;
+          maxMovetime: number;
+          needed: (analysis: EngineAnalysis) => boolean;
+          complete: (analysis: EngineAnalysis) => boolean;
+        };
+      };
   multiPv: number;
   threads: number;
   hashSize: number;
@@ -59,11 +76,25 @@ export class PikafishProtocol {
   private lastCompleteLines = new Map<number, ParsedInfo>();
   private options = new Map<string, string>();
   private computing = false;
+  private searchTimer?: ReturnType<typeof setTimeout>;
+  private budgetStarted = false;
+  private awaitingConfirmation = false;
+  private finishRequested = false;
+  private ready = false;
+  private awaitingReady = false;
+  private readonly startupOptions: PikafishOptions | undefined;
 
-  constructor(private readonly onComputingChange: (computing: boolean) => void = () => undefined) {}
+  constructor(
+    private readonly onComputingChange: (computing: boolean) => void = () => undefined,
+    private readonly onReady: () => void = () => undefined,
+    startupOptions?: PikafishOptions,
+  ) {
+    this.startupOptions = startupOptions;
+  }
 
   connected(send: (command: string) => void): void {
     this.send = send;
+    this.ready = false;
     this.options = new Map([
       ['Threads', '1'],
       ['Hash', '16'],
@@ -75,10 +106,20 @@ export class PikafishProtocol {
   received(command: string): void {
     const parts = command.trim().split(/\s+/);
     if (parts[0] === 'uciok') {
+      const options = this.startupOptions ?? this.nextWork;
+      if (options) {
+        this.setOption('Threads', options.threads);
+        this.setOption('Hash', options.hashSize);
+      }
       this.send?.('ucinewgame');
+      this.awaitingReady = true;
       this.send?.('isready');
-    } else if (parts[0] === 'readyok') this.swapWork();
-    else if (parts[0] === 'id' && parts[1] === 'name') this.engineName = parts.slice(2).join(' ');
+    } else if (parts[0] === 'readyok' && this.awaitingReady) {
+      this.awaitingReady = false;
+      this.ready = true;
+      this.onReady();
+      this.swapWork();
+    } else if (parts[0] === 'id' && parts[1] === 'name') this.engineName = parts.slice(2).join(' ');
     else if (parts[0] === 'bestmove') this.finish(parts[1]);
     else if (parts[0] === 'info' && this.work && !this.work.stopRequested) this.receiveInfo(command);
   }
@@ -95,9 +136,42 @@ export class PikafishProtocol {
     return this.computing;
   }
 
+  disconnected(): void {
+    this.clearSearchTimer();
+    this.send = undefined;
+    this.work = this.nextWork = undefined;
+    this.ready = this.awaitingReady = false;
+    this.setComputing(false);
+  }
+
   private receiveInfo(command: string): void {
     const work = this.work;
     if (!work) return;
+    const search = work.search;
+    // Start from native search time, not module loading, option changes, or
+    // commands waiting in the UCI queue. An adaptive budget uses ONE continuous
+    // search: never restart iterative deepening at the confirmation boundary.
+    const elapsed = /\btime (\d+)/.exec(command);
+    if ('movetime' in search && search.extension && !this.budgetStarted && elapsed) {
+      this.budgetStarted = true;
+      this.searchTimer = setTimeout(
+        () => {
+          if (this.work !== work || work.stopRequested) return;
+          const extension = search.extension!;
+          if (extension.needed(this.snapshot()))
+            this.searchTimer = setTimeout(() => {
+              if (this.work !== work || work.stopRequested) return;
+              const remaining = extension.maxMovetime - extension.minMovetime;
+              if (remaining > 0 && !extension.complete(this.snapshot())) {
+                this.awaitingConfirmation = true;
+                this.searchTimer = setTimeout(() => this.finishSearch(), remaining);
+              } else this.finishSearch();
+            }, extension.minMovetime);
+          else this.finishSearch();
+        },
+        Math.max(0, search.movetime - Number(elapsed[1])),
+      );
+    }
     const line = parsePikafishInfo(command, work.fen);
     if (!line || (line.score.bound && line.multipv === 1)) return;
 
@@ -114,6 +188,14 @@ export class PikafishProtocol {
     if (this.lines.size === work.multiPv && this.lines.has(work.multiPv)) {
       this.lastCompleteLines = new Map(this.lines);
       work.emit(this.snapshot(), false);
+      if (
+        this.work === work &&
+        !work.stopRequested &&
+        this.awaitingConfirmation &&
+        'movetime' in search &&
+        search.extension?.complete(this.snapshot())
+      )
+        this.finishSearch();
     }
   }
 
@@ -139,6 +221,7 @@ export class PikafishProtocol {
   }
 
   private finish(bestMove: string | undefined): void {
+    this.clearSearchTimer();
     const work = this.work;
     this.work = undefined;
     this.setComputing(false);
@@ -152,15 +235,16 @@ export class PikafishProtocol {
   }
 
   private stop(): void {
+    this.clearSearchTimer();
     if (this.work && !this.work.stopRequested) {
       this.work.stopRequested = true;
       this.setComputing(false);
-      this.send?.('stop');
+      if (!this.finishRequested) this.send?.('stop');
     }
   }
 
   private swapWork(): void {
-    if (!this.send || this.work) return;
+    if (!this.send || !this.ready || this.work) return;
     this.work = this.nextWork;
     this.nextWork = undefined;
     if (!this.work) return;
@@ -168,6 +252,9 @@ export class PikafishProtocol {
     this.setComputing(true);
 
     this.currentDepth = 0;
+    this.budgetStarted = false;
+    this.awaitingConfirmation = false;
+    this.finishRequested = false;
     this.lines.clear();
     this.lastCompleteLines.clear();
     this.setOption('Threads', this.work.threads);
@@ -178,7 +265,28 @@ export class PikafishProtocol {
     this.send(
       `position fen ${history?.initialFen ?? this.work.fen}${moves?.length ? ` moves ${moves.join(' ')}` : ''}`,
     );
-    this.send(`go depth ${this.work.depth}`);
+    const { search } = this.work;
+    this.send(
+      'depth' in search
+        ? `go depth ${search.depth}`
+        : search.extension
+          ? 'go infinite'
+          : `go movetime ${search.movetime}`,
+    );
+  }
+
+  private clearSearchTimer(): void {
+    if (this.searchTimer !== undefined) clearTimeout(this.searchTimer);
+    this.searchTimer = undefined;
+  }
+
+  private finishSearch(): void {
+    this.clearSearchTimer();
+    this.awaitingConfirmation = false;
+    if (this.work && !this.work.stopRequested && !this.finishRequested) {
+      this.finishRequested = true;
+      this.send?.('stop');
+    }
   }
 
   private setComputing(computing: boolean): void {

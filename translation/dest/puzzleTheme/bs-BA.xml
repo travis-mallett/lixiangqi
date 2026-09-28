@@ -89,14 +89,9 @@
   <string name="mateIn3Description">Dajte mat u tri poteza.</string>
   <string name="mateIn4">Mat u četvero</string>
   <string name="mateIn4Description">Dajte mat u četiri poteza.</string>
-  <string name="mateIn5">Mat u petero ili više</string>
   <string name="mateIn5Description">Odredite dugi niz matanja.</string>
-  <string name="middlegame">Sredokolo</string>
-  <string name="middlegameDescription">Taktika u drugoj fazi igre.</string>
   <string name="oneMove">Slagalica u jednom pokretu</string>
   <string name="oneMoveDescription">Slagalica koja traje samo jedan potez.</string>
-  <string name="opening">Otvaranje</string>
-  <string name="openingDescription">Taktika u prvoj fazi igre.</string>
   <string name="pawnEndgame">Pijunska krajnica</string>
   <string name="pawnEndgameDescription">Završno kolo sa samo pijunima.</string>
   <string name="pin">Značka</string>

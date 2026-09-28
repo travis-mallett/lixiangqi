@@ -36,7 +36,7 @@ class PikafishCevalEngine implements CevalEngine {
     this.started = true;
     this.engine.start({
       fen: work.currentFen,
-      depth: searchDepth(work),
+      search: { depth: searchDepth(work) },
       multiPv: work.multiPv,
       threads: work.threads,
       hashSize: work.hashSize ?? 16,
@@ -61,6 +61,7 @@ class PikafishCevalEngine implements CevalEngine {
   private readonly onStatus = (status: PikafishStatus): void => {
     switch (status.state) {
       case 'loading':
+      case 'initializing':
         this.state = CevalState.Loading;
         break;
       case 'downloading':

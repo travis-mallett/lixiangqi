@@ -22,16 +22,6 @@ export default (ctrl: PuzzleCtrl) =>
       control.last(ctrl);
       ctrl.redraw();
     })
-    .bind('l', () => {
-      if (ctrl.isCevalAllowed()) ctrl.cevalEnabled(!ctrl.cevalEnabled());
-    })
-    .bind('x', ctrl.toggleThreatMode)
-    .bind('space', () => {
-      if (ctrl.isCevalAllowed()) {
-        if (ctrl.cevalEnabled()) ctrl.playBestMove();
-        else ctrl.cevalEnabled(true);
-      }
-    })
     .bind('z', () => pubsub.emit('zen'))
     .bind('?', () => ctrl.keyboardHelp(!ctrl.keyboardHelp()))
     .bind('f', ctrl.flip)

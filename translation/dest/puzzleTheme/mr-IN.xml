@@ -99,14 +99,9 @@
   <string name="mateIn3Description">तीन चालीत मात द्या.</string>
   <string name="mateIn4">4 चालीत मात</string>
   <string name="mateIn4Description">चार चालीत मात द्या.</string>
-  <string name="mateIn5">5 किंवा अधिक चालीत मात</string>
   <string name="mateIn5Description">जास्त चालीनंतरची मात शोधा.</string>
-  <string name="middlegame">मध्यखेळ</string>
-  <string name="middlegameDescription">खेळाच्या दुसऱ्या टप्प्यातील डावपेच.</string>
   <string name="oneMove">एक चालीचे कोडे</string>
   <string name="oneMoveDescription">एक चालीचे कोडे.</string>
-  <string name="opening">ओपनिंग</string>
-  <string name="openingDescription">खेळाच्या सुरूवातीचे डावपेच.</string>
   <string name="operaMate">नाट्यगृहातील मात</string>
   <string name="operaMateDescription">राजाला हत्तीने शह द्या व उंटाने हत्तीचे रक्षण करा.</string>
   <string name="pawnEndgame">प्याद्यांचा अंत्यखेळ</string>

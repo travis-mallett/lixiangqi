@@ -5,6 +5,7 @@ import type { MoveTimeLimitConfig } from 'lib/setup/interfaces';
 import { formatMoveTime } from 'lib/setup/timeControl';
 import { wsConnect, wsSetActivity } from 'lib/socket';
 import { storage } from 'lib/storage';
+import { trafficActivity, trafficAttemptId, trafficNavigate, trackTraffic } from 'lib/traffic';
 import { bind, hl, initMiniBoardWith, onInsert } from 'lib/view';
 import { form, json as xhrJson } from 'lib/xhr';
 
@@ -50,6 +51,8 @@ class MatchmakingPage {
   private readonly session: PoolMatchmakingSession;
 
   constructor(private readonly opts: MatchmakingOpts) {
+    trackTraffic('room.entered', { pool: opts.pool.id });
+    trafficActivity('matchmaking.room', undefined, { pool: opts.pool.id });
     const element = document.querySelector('.round__app') as HTMLElement;
     this.vnode = patch(element, this.view());
     this.session = new PoolMatchmakingSession(
@@ -99,8 +102,12 @@ class MatchmakingPage {
       history.replaceState(null, '', bootstrap.url);
       document.title = bootstrap.title;
       await site.asset.loadEsm('round', { init: bootstrap.options });
+      trackTraffic('round.ready', { pool: this.opts.pool.id }, {}, this.session.attempt);
+      trafficActivity('game.play');
+      trafficNavigate('Round.player');
       pubsub.emit('content-loaded', mainWrap);
     } catch (error) {
+      trackTraffic('round.failed', { pool: this.opts.pool.id, error: 'handoff' }, {}, this.session.attempt);
       console.warn('Seamless round handoff failed', error);
       site.redirect(pairing, true);
     }
@@ -177,6 +184,8 @@ class MatchmakingPage {
 }
 
 class PoolMatchmakingSession {
+  attempt = trafficAttemptId();
+  private startedAt = 0;
   private active = false;
   private completed = false;
   private generation = 0;
@@ -211,6 +220,10 @@ class PoolMatchmakingSession {
 
   async start(): Promise<void> {
     if (this.active || this.completed) return;
+    this.attempt = trafficAttemptId();
+    this.startedAt = performance.now();
+    trafficActivity('matchmaking.search', this.attempt, { pool: this.pool.id });
+    trackTraffic('search.clicked', { pool: this.pool.id }, {}, this.attempt);
     this.active = true;
     const generation = ++this.generation;
     this.poolStorage.fire();
@@ -233,10 +246,12 @@ class PoolMatchmakingSession {
             'moveTime.firstSeconds': this.pool.moveTime?.first?.seconds,
             days: 1,
             color: 'random',
+            trafficAttempt: this.attempt,
           }),
         });
         if (!this.isCurrent(generation)) this.socket.send('cancel', undefined);
       } catch (error) {
+        trackTraffic('search.failed', { pool: this.pool.id, error: 'join' }, {}, this.attempt);
         if (this.isCurrent(generation)) {
           this.active = false;
           this.onCancelled();
@@ -248,6 +263,13 @@ class PoolMatchmakingSession {
 
   cancel = (): void => {
     if (!this.active || this.completed) return;
+    trackTraffic(
+      'search.cancelled',
+      { pool: this.pool.id },
+      { durationMs: Math.round(performance.now() - this.startedAt) },
+      this.attempt,
+    );
+    trafficActivity('matchmaking.room', undefined, { pool: this.pool.id });
     this.active = false;
     ++this.generation;
     wsSetActivity();
@@ -273,7 +295,7 @@ class PoolMatchmakingSession {
   private readonly joinAuthenticatedPool = () => {
     if (this.joinedConnection === this.connection) return;
     this.joinedConnection = this.connection;
-    this.socket.send('poolIn', { id: this.pool.id }, {}, true);
+    this.socket.send('poolIn', { id: this.pool.id, attempt: this.attempt }, {}, true);
   };
 
   private readonly onSocketOpen = () => {

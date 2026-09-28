@@ -99,14 +99,9 @@
   <string name="mateIn3Description">Dă mat din trei mutări.</string>
   <string name="mateIn4">Mat din 4</string>
   <string name="mateIn4Description">Dă mat din patru mutări.</string>
-  <string name="mateIn5">Mat din 5 sau mai multe</string>
   <string name="mateIn5Description">Găsește o secvență lungă de mat.</string>
-  <string name="middlegame">Mijlocul jocului</string>
-  <string name="middlegameDescription">O tactică în a doua etapă a jocului.</string>
   <string name="oneMove">Puzzle de o mutare</string>
   <string name="oneMoveDescription">Un puzzle care are doar o mutare.</string>
-  <string name="opening">Deschidere</string>
-  <string name="openingDescription">O tactică în prima etapă a jocului.</string>
   <string name="operaMate">Mat Opera</string>
   <string name="operaMateDescription">Dă șah la rege cu o tură si folosește un nebun ca sa aperi tura.</string>
   <string name="pawnEndgame">Final cu pioni</string>

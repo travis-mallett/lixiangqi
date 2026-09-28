@@ -19,7 +19,6 @@
   <string name="youHaveLifetime">Ai un cont de Patron pe viață. Asta e minunat!</string>
   <string name="patronUntil">Ai un cont de Patron până pe %s.</string>
   <string name="ifNotRenewedThenAccountWillRevert">Dacă nu se reînnoiește, contul tău va deveni din nou un cont obișnuit.</string>
-  <string name="weAreNonProfit">Suntem o asociație non-profit deoarece credem că toată lumea ar trebui să aibă acces la o platformă de șah gratuită, de talie mondială.</string>
   <string name="weRelyOnSupport">Ne bazăm pe sprijinul oamenilor ca tine pentru a face acest lucru posibil. Dacă îți place să folosești Lichess, te rugăm să ne susții donând și devenind un Patron!</string>
   <string name="lifetime">Pe viață</string>
   <string name="payLifetimeOnce">Plătește %s o dată. Fii un Patron Lichess pentru totdeauna!</string>
@@ -35,19 +34,11 @@
   <string name="weAreSmallTeam">Suntem o echipă mică, deci susținerea ta face o diferență uriașă!</string>
   <string name="celebratedPatrons">Patronii renumiți care fac Lichess posibil</string>
   <string name="whereMoneyGoes">Unde se duc banii?</string>
-  <string name="serversAndDeveloper">În primul rând, la servere puternice.
-Apoi plătim un dezvoltator cu normă întreagă: %s, fondatorul Lichess.</string>
-  <string name="costBreakdown">Vezi analiza detaliată a costurilor</string>
   <string name="officialNonProfit">Este Lichess un non-profit în mod oficial?</string>
-  <string name="actOfCreation">Da, iată actul de creare (în franceză)</string>
   <string name="changeMonthlySupport">Pot schimba/anula susținerea mea lunară?</string>
   <string name="changeSupport">Dacă plățile tale sunt procesate de PayPal, poți anula/schimba sprijinul prin propriul cont PayPal. sau poți merge la %1$s și noi o putem face pentru tine. Dacă nu ai utilizat PayPal, atunci plățile tale sunt procesate de Stripe, și anulezi donația sau modifici suma la %2$s.</string>
   <string name="patronPage">pagina donatorilor</string>
   <string name="contactSupport">cere asistență de la Lichess</string>
-  <string name="otherMethods">Alte metode de donare?</string>
-  <string name="lichessIsRegisteredWith">Lichess este înregistrat cu %s.</string>
-  <string name="bankTransfers">Acceptăm și transferuri bancare</string>
-  <string name="onlyDonationFromAbove">Te rugăm să iei aminte că doar formularul de donație de mai sus îți va acorda statutul de Patron.</string>
   <string name="patronFeatures">Sunt unele funcții rezervate Patronilor?</string>
   <string name="noPatronFeatures">Nu, deoarece Lichess e complet gratuit, pentru totdeauna, și pentru toată lumea. Asta e o promisiune.
 Totuși, Patronii primesc o nouă pictogramă faină lângă profil.</string>
@@ -85,6 +76,5 @@ Totuși, Patronii primesc o nouă pictogramă faină lângă profil.</string>
   <string name="changeCurrency">Schimbă moneda</string>
   <string name="paymentDetails">Detalii de plată</string>
   <string name="updatePaymentMethod">Actualizați metoda de plată</string>
-  <string name="stripeManageSub">Gestionează-ți abonamentul și descarcă facturile și bonurile tale</string>
   <string name="coverFees">Voi adăuga %s pentru acoperirea costurilor de procesare a acestei tranzacții</string>
 </resources>

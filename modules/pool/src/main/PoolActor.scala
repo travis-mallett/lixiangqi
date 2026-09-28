@@ -44,6 +44,7 @@ final private class PoolActor(
       members.find(m => joiner.userId.is(m.userId)) match
         case None =>
           updateMembers(members :+ joiner)
+          traffic(joiner, "accepted", "queued")
           // #TODO #FIXME race condition. several full waves can be sent here.
           if members.sizeIs >= config.wave.players.value then self ! FullWave
         case _ => // no change
@@ -53,6 +54,7 @@ final private class PoolActor(
       members
         .find(_.userId == userId)
         .foreach: member =>
+          traffic(member, "left", "cancelled")
           updateMembers(members.filterNot(_ == member))
 
     case ScheduledWave =>
@@ -98,6 +100,9 @@ final private class PoolActor(
     // lila-ws sends us the list of sris currently connected through WS
     // so we can cleanup members that are not connected anymore
     case Sris(sris) =>
+      members
+        .filter(m => m.from == PoolFrom.Socket && !sris.contains(m.sri))
+        .foreach(traffic(_, "left", "disconnected"))
       updateMembers(
         members.filter: member =>
           member.from != PoolFrom.Socket || sris.contains(member.sri)
@@ -105,6 +110,11 @@ final private class PoolActor(
 
   val monitor = lila.mon.lobby.pool.wave
   val monId = config.id.value.replace('+', '_')
+
+  private def traffic(member: PoolMember, kind: String, outcome: String): Unit =
+    member.traffic.foreach(search =>
+      lila.common.Bus.pub(search.event(kind, Some(member.userId), config.id.value, outcome))
+    )
 
 private object PoolActor:
 

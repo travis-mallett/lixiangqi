@@ -75,14 +75,9 @@
   <string name="mateIn3Description">Üç gedişə mat et.</string>
   <string name="mateIn4">4 Gedişə Mat</string>
   <string name="mateIn4Description">Dörd gedişə mat et.</string>
-  <string name="mateIn5">5 və ya daha çox gedişə mat</string>
   <string name="mateIn5Description">Uzun mat ardıcıllığını həll etməyə çalışın.</string>
-  <string name="middlegame">Mittelşpil</string>
-  <string name="middlegameDescription">Oyunun ikinci mərhələsindəki taktikalar.</string>
   <string name="oneMove">Bir gedişlik tapmaca</string>
   <string name="oneMoveDescription">Bir gedişlik tapmacalar.</string>
-  <string name="opening">Debüt</string>
-  <string name="openingDescription">Oyunun ilk mərhələsindəki taktikalar.</string>
   <string name="pawnEndgame">Piyada sonluğu</string>
   <string name="pawnEndgameDescription">Sadəcə piyadalardan ibarət oyun sonu.</string>
   <string name="pin">Bağlama</string>

@@ -135,7 +135,6 @@
     }
 
     group input:checked + label,
-    .amount_fixed label,
     .lifetime-check + label {
       @extend %active-secondary;
 
@@ -242,6 +241,23 @@
     dl {
       flex: 1 0 200px;
       margin: 0 0.2em 1em 0.2em;
+    }
+
+    .funding-priorities {
+      flex-basis: 100%;
+
+      h3 {
+        margin: 1em 0 0.5em;
+      }
+
+      ul {
+        padding-inline-start: 1.5em;
+      }
+
+      li {
+        list-style: disc;
+        margin-bottom: 0.5em;
+      }
     }
 
     dt {

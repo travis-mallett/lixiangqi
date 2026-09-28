@@ -225,6 +225,8 @@ $siteDomain = "${siteAddress}:9663"
 
 $mongo = Get-ChildItem (Join-Path $toolsDir 'mongodb') -Filter mongod.exe -Recurse -ErrorAction SilentlyContinue |
   Select-Object -First 1 -ExpandProperty FullName
+$mongosh = Get-ChildItem (Join-Path $toolsDir 'mongodb') -Filter mongosh.exe -Recurse -ErrorAction SilentlyContinue |
+  Select-Object -First 1 -ExpandProperty FullName
 $redis = Get-ChildItem (Join-Path $toolsDir 'redis') -Filter redis-server.exe -Recurse -ErrorAction SilentlyContinue |
   Select-Object -First 1 -ExpandProperty FullName
 $java = Get-ChildItem (Join-Path $toolsDir 'jdk-21') -Filter java.exe -Recurse -ErrorAction SilentlyContinue |
@@ -241,12 +243,17 @@ $lilaWsConf = Join-Path $PSScriptRoot 'lila-ws.conf'
 $lilaWsCommit = 'cd3e2e9e5a38be76d89fa76136940f6a5c086437'
 
 if (-not $mongo) { throw 'MongoDB is missing from .tools\mongodb. Run the Windows bootstrap first.' }
+if (-not $mongosh) {
+  & (Join-Path $PSScriptRoot 'Install-Mongosh.ps1')
+  $mongosh = Get-ChildItem (Join-Path $toolsDir 'mongodb') -Filter mongosh.exe -Recurse | Select-Object -First 1 -ExpandProperty FullName
+}
+if (-not $mongosh) { throw 'MongoDB Shell installation failed.' }
 if (-not $redis) { throw 'Redis is missing from .tools\redis. Run the Windows bootstrap first.' }
 if (-not $java) { throw 'Temurin JDK 21 is missing from .tools\jdk-21.' }
 if (-not (Test-Path $sbt)) { throw 'The SBT launcher is missing from .tools\sbt.' }
 if (-not (Test-Path $python)) { throw 'The Python virtual environment is missing. Run: python -m venv .venv' }
 $pythonRequirements = Join-Path $PSScriptRoot 'requirements.txt'
-& $python -c 'import pymongo' 2>$null
+& $python -c 'import pymongo, paramiko' 2>$null
 if ($LASTEXITCODE) {
   Write-Step 'Installing the local data synchronization dependency'
   & $python -m pip install -r $pythonRequirements
@@ -353,20 +360,90 @@ $mongoData = Join-Path $dataDir 'mongodb'
 $redisData = Join-Path $dataDir 'redis'
 New-Item -ItemType Directory -Force -Path $mongoData, $redisData | Out-Null
 
+# Upgrade an existing project-owned standalone without touching unrelated MongoDB services.
+if (Test-Port 27017) {
+  & $mongosh --quiet 'mongodb://127.0.0.1:27017/admin?directConnection=true' --eval 'if (!db.hello().setName) quit(17);'
+  $trafficReplicaCheck = $LASTEXITCODE
+  if ($trafficReplicaCheck -eq 17) {
+    $trafficOwnedMongo = @(Get-CimInstance Win32_Process -Filter "Name='mongod.exe'" | Where-Object {
+      $_.ExecutablePath -eq $mongo -and $_.CommandLine -and
+      $_.CommandLine.IndexOf($mongoData, [StringComparison]::OrdinalIgnoreCase) -ge 0 -and
+      $_.CommandLine -match '--port\s+"?27017"?(\s|$)'
+    })
+    if ($trafficOwnedMongo.Count -ne 1) { throw 'Port 27017 is a standalone MongoDB not verified as this project. Configure a replica set before starting preview.' }
+    Write-Step 'Restarting the verified preview MongoDB with replica-set support'
+    & $mongosh --quiet 'mongodb://127.0.0.1:27017/admin?directConnection=true' --eval 'db.adminCommand({shutdown:1})' *> (Join-Path $logsDir 'traffic-mongo-upgrade.log')
+    for ($trafficWait = 0; $trafficWait -lt 30 -and (Test-Port 27017); $trafficWait++) { Start-Sleep -Seconds 1 }
+    if (Test-Port 27017) { throw 'Preview MongoDB did not stop cleanly; no migration was run.' }
+  } elseif ($trafficReplicaCheck -ne 0) { throw 'Could not check preview MongoDB replica-set status.' }
+}
+
 if (-not (Test-Port 27017)) {
   $null = Start-Background 'MongoDB' $mongo @(
     '--bind_ip', '127.0.0.1', '--port', '27017', '--dbpath', $mongoData,
+    '--replSet', 'lixiangqi-preview', '--oplogSize', '128',
     '--logpath', (Join-Path $logsDir 'mongodb.log'), '--logappend'
   ) (Join-Path $logsDir 'mongodb.stdout.log') (Join-Path $logsDir 'mongodb.stderr.log')
   Wait-Port 27017 30 'MongoDB'
 }
 
-$puzzleDatabase = Join-Path $dataDir 'xiangqi-puzzle-mining.sqlite3'
-if (Test-Path $puzzleDatabase) {
-  Write-Step 'Synchronizing mined puzzles with the puzzle player'
-  & $python -m tools.xiangqi_data.puzzle_mining.puzzle_sync --source $puzzleDatabase
-  if ($LASTEXITCODE) { throw 'Native puzzle synchronization failed.' }
+Write-Step 'Ensuring preview MongoDB supports analytics transactions'
+& $mongosh --quiet 'mongodb://127.0.0.1:27017/admin?directConnection=true' --eval 'try { rs.status(); } catch (e) { if (e.codeName === "NotYetInitialized") { rs.initiate({_id:"lixiangqi-preview", members:[{_id:0,host:"127.0.0.1:27017"}]}); } else { throw e; } } for(let n=0;n<60&&!db.hello().isWritablePrimary;n++) sleep(500); if(!db.hello().setName||!db.hello().isWritablePrimary) throw new Error("Restart the project-owned MongoDB with --replSet lixiangqi-preview before starting preview.");'
+if ($LASTEXITCODE) { throw 'Preview MongoDB replica-set initialization failed. Existing data has not been modified by a migration.' }
+& $mongosh --quiet 'mongodb://127.0.0.1:27017/lixiangqi_traffic_preview' (Join-Path $projectRoot 'tools\data_migration\20260924_traffic_stats_v1.js')
+if ($LASTEXITCODE) { throw 'Traffic Stats schema migration failed.' }
+$env:LIXIANGQI_TRAFFIC_MONGODB_URI = 'mongodb://127.0.0.1:27017/lixiangqi_traffic_preview?appName=lila-traffic-preview&rm.nbChannelsPerNode=2'
+& $python -m tools.traffic.geoip --directory (Join-Path $dataDir 'traffic-geoip')
+if ($LASTEXITCODE) { throw 'Traffic geography database preparation failed.' }
+
+$snapshotStore = Join-Path $dataDir 'production-snapshots'
+$deploymentRoot = 'Z:\Work\Scripts\lixiangqi-beta-deployment'
+if (-not (Test-Path $deploymentRoot)) { throw "Deployment transport is missing: $deploymentRoot" }
+Write-Step 'Refreshing verified production snapshot for disposable preview'
+& $python -m tools.environment_data.remote --destination $snapshotStore --deployment-root $deploymentRoot
+if ($LASTEXITCODE) { throw 'Production snapshot refresh failed; refusing stale preview data.' }
+$snapshotPointer = Join-Path $snapshotStore 'current.json'
+if (-not (Test-Path $snapshotPointer)) { throw 'Snapshot refresh produced no current.json pointer.' }
+$snapshotId = (Get-Content $snapshotPointer -Raw | ConvertFrom-Json).snapshotId
+if (-not $snapshotId) { throw 'Snapshot pointer has no snapshotId.' }
+$environmentSnapshot = Join-Path $snapshotStore $snapshotId
+$previewEnvironment = Join-Path $dataDir 'preview-environment'
+if (Test-Path (Join-Path $environmentSnapshot 'manifest.json')) {
+  Write-Step 'Refreshing disposable preview environment from verified production snapshot'
+  $mongodump = Get-ChildItem (Join-Path $toolsDir 'mongodb') -Filter mongodump.exe -Recurse | Select-Object -First 1 -ExpandProperty FullName
+  $mongorestore = Get-ChildItem (Join-Path $toolsDir 'mongodb') -Filter mongorestore.exe -Recurse | Select-Object -First 1 -ExpandProperty FullName
+  if (-not $mongodump -or -not $mongorestore) {
+    & (Join-Path $PSScriptRoot 'Install-MongoTools.ps1')
+    $mongodump = Get-ChildItem (Join-Path $toolsDir 'mongodb') -Filter mongodump.exe -Recurse | Select-Object -First 1 -ExpandProperty FullName
+    $mongorestore = Get-ChildItem (Join-Path $toolsDir 'mongodb') -Filter mongorestore.exe -Recurse | Select-Object -First 1 -ExpandProperty FullName
+    if (-not $mongodump -or -not $mongorestore) { throw 'MongoDB tools installation failed.' }
+  }
+  & $python -m tools.environment_data.snapshot refresh $environmentSnapshot $previewEnvironment --mongodump $mongodump --mongorestore $mongorestore
+  if ($LASTEXITCODE) { throw 'Production snapshot verification or preview refresh failed.' }
+} else {
+  throw 'No verified production snapshot found. Refusing to start preview with mutable or stale data.'
 }
+
+$completionMigration = Join-Path $projectRoot 'tools\data_migration\20260909_lixiangqi_game_completion_v1.js'
+if (-not (Test-Path $completionMigration)) { throw 'Game completion migration is missing.' }
+if ($mongosh) {
+  Write-Step 'Ensuring durable native game completion metadata is indexed'
+  & $mongosh --quiet 'mongodb://127.0.0.1:27017/lixiangqi_preview' $completionMigration
+  if ($LASTEXITCODE) { throw 'Game completion migration failed.' }
+} else {
+  Write-Warning 'MongoDB Shell is unavailable; local game completion migration will run on the next deployment.'
+}
+
+& $python -m tools.environment_data.prepare_preview --snapshot $environmentSnapshot --source-catalog (Join-Path $dataDir 'xiangqi-games.sqlite3')
+if ($LASTEXITCODE) { throw 'Restored preview content verification failed.' }
+
+Write-Step 'Preparing the application password hasher for the preview test account'
+& $java '-Dsbt.server.autostart=false' -jar $sbt stage
+if ($LASTEXITCODE) { throw 'Application staging failed; refusing to create an incompatible preview password.' }
+$previewClasspath = (Join-Path $projectRoot 'conf') + ';' + (Join-Path $projectRoot 'target\universal\stage\lib\*')
+& $python -m tools.environment_data.preview_account --java $java --classpath $previewClasspath --backup-dir (Join-Path $dataDir 'preview-account-backups')
+if ($LASTEXITCODE) { throw 'Preview test account provisioning failed.' }
+
 
 if (-not (Test-Port 6379)) {
   $redisPath = $redisData.Replace('\', '/')
@@ -377,6 +454,7 @@ if (-not (Test-Port 6379)) {
   Wait-Port 6379 30 'Redis'
 }
 
+$env:LIXIANGQI_GAMES_DB = Join-Path $dataDir 'xiangqi-games.sqlite3'
 Write-Step 'Ensuring the write-time games database indexes are current'
 & $python -m tools.games_database.explorer_index ensure
 if ($LASTEXITCODE) { throw 'Games database index preparation failed.' }
@@ -386,7 +464,8 @@ $env:LIXIANGQI_SOCKET_DOMAIN = "${siteAddress}:9664"
 if (-not (Test-Port 9664)) {
   $null = Start-Background 'Lila websocket service' $java @(
     '-Xms32m', '-Xmx512m', '-Dsbt.supershell=false', '-Dsbt.color=false',
-    "-Dconfig.file=$lilaWsConf", '-jar', $sbt, 'run'
+    "-Dconfig.file=$lilaWsConf", '-Dmongo.uri=mongodb://127.0.0.1:27017/lixiangqi_preview',
+    '-Dstudy.mongo.uri=mongodb://127.0.0.1:27017/lixiangqi_preview', '-Dyolo.mongo.uri=mongodb://127.0.0.1:27017/lixiangqi_preview', '-jar', $sbt, 'run'
   ) (Join-Path $logsDir 'lila-ws.stdout.log') (Join-Path $logsDir 'lila-ws.stderr.log') $lilaWsDir
   try {
     Wait-Port 9664 180 'Lila websocket service'
@@ -417,7 +496,9 @@ if (-not (Test-Port 9663)) {
   # Typesafe Config gives JVM system properties precedence over application.conf.
   # JAVA_TOOL_OPTIONS reaches both SBT and its forked application JVM, allowing
   # local access without changing the application's checked-in domain settings.
-  $env:JAVA_TOOL_OPTIONS = "$($env:JAVA_TOOL_OPTIONS) -Dnet.domain=$siteDomain".Trim()
+  $previewDatabaseOptions = (@('mongodb.uri', 'mongodb.yolo.uri', 'study.mongodb.uri', 'puzzle.mongodb.uri', 'insight.mongodb.uri') |
+    ForEach-Object { "-D$_=mongodb://127.0.0.1:27017/lixiangqi_preview?appName=lila" }) -join ' '
+  $env:JAVA_TOOL_OPTIONS = "$($env:JAVA_TOOL_OPTIONS) -Dnet.domain=$siteDomain -Dmailer.primary.mock=true -Dmailer.secondary.mock=true $previewDatabaseOptions".Trim()
   $webProcess = Start-Background 'Lichess/Lixiangqi web application' $java @(
     '-Xms512m', '-Xmx6g', '-Dsbt.supershell=false', '-Dsbt.color=false',
     '-jar', $sbt, 'run'

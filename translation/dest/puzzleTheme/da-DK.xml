@@ -99,14 +99,9 @@
   <string name="mateIn3Description">Sæt skakmat med tre træk.</string>
   <string name="mateIn4">Mat i 4</string>
   <string name="mateIn4Description">Sæt skakmat i fire træk.</string>
-  <string name="mateIn5">Mat i 5 eller flere</string>
   <string name="mateIn5Description">Find en lang træksekvens, som fører til mat.</string>
-  <string name="middlegame">Midtspil</string>
-  <string name="middlegameDescription">En taktik i den anden fase af spillet.</string>
   <string name="oneMove">Et-træks opgave</string>
   <string name="oneMoveDescription">En taktikopgave der kun er ét træk lang.</string>
-  <string name="opening">Åbning</string>
-  <string name="openingDescription">En taktik i den første fase af spillet.</string>
   <string name="operaMate">Opera-mat</string>
   <string name="operaMateDescription">Sæt kongen skak med eT tårn og brug en løber til at forsvare tårnet.</string>
   <string name="pawnEndgame">Bondeslutspil</string>

@@ -234,6 +234,12 @@ final class ModUi(helpers: Helpers):
     bits.pageMenuSubnav(
       Granter(_.SeeReport)
         .option(a(cls := itemCls(active, "report"), href := routes.Report.list)("Reports")),
+      Granter(_.ViewTrafficStats)
+        .option(
+          a(cls := itemCls(active, "traffic"), href := "/report/traffic")(
+            lila.core.i18n.I18nKey("traffic:title")()
+          )
+        ),
       Granter(_.PublicChatView)
         .option(a(cls := itemCls(active, "public-chat"), href := routes.Mod.publicChat)("Public Chats")),
       Granter(_.SeeReport).option:

@@ -16,7 +16,6 @@
   <string name="youHaveLifetime">Anda memiliki akun Lifetime Patron. Itu luar biasa!</string>
   <string name="patronUntil">Anda memiliki akun Penyokong hingga %s.</string>
   <string name="ifNotRenewedThenAccountWillRevert">Jika tidak diperbarui, akun anda akan kembali menjadi akun reguler.</string>
-  <string name="weAreNonProfit">Kami adalah bukanlah asosiasi mencari keuntungan karena kami percaya setiap orang harus memiliki akses ke platform catur kelas dunia yang gratis.</string>
   <string name="weRelyOnSupport">Kami mengandalkan dukungan dari orang-orang seperti Anda jika memungkinkan. Jika Anda menikmati menggunakan Lichess, silakan pertimbangkan mendukung kami dengan menyumbang dan menjadi Penyokong!</string>
   <string name="lifetime">Sepanjang waktu</string>
   <string name="payLifetimeOnce">Bayar %s satu kali. Jadilah Penyokong Lichess selamanya!</string>
@@ -32,17 +31,9 @@
   <string name="weAreSmallTeam">Kami adalah tim kecil, jadi dukungan Anda membuat perubahan besar!</string>
   <string name="celebratedPatrons">Sorakan Penyokong yang membuat Lichess menjadi ada</string>
   <string name="whereMoneyGoes">Kemana uang itu pergi?</string>
-  <string name="serversAndDeveloper">Pertama-tama, server yang kuat.
-Lalu kami membayar pengembang dengan penuh-waktu: %s, pendiri Lichess.</string>
-  <string name="costBreakdown">Lihat rincian biaya</string>
   <string name="officialNonProfit">Apakah Lichess resmi nirlaba?</string>
-  <string name="actOfCreation">Ya, ini adalah tindakan penciptaan (dalam bahasa Prancis)</string>
   <string name="changeMonthlySupport">Bisakah saya mengubah/membatalkan dukungan bulanan saya?</string>
   <string name="contactSupport">kontak dukungan Lichess</string>
-  <string name="otherMethods">Metode donasi lainnya?</string>
-  <string name="lichessIsRegisteredWith">Lichess terdaftar dengan %s.</string>
-  <string name="bankTransfers">Kami juga menerima transfer bank</string>
-  <string name="onlyDonationFromAbove">Mohon diingat bahwa hanya formulir donasi diatas yang akan memberikan status Patron.</string>
   <string name="patronFeatures">Apakah beberapa fitur disediakan untuk para Penyokong?</string>
   <string name="noPatronFeatures">Tidak, karena Lichess sepenuhnya gratis, selamanya, dan untuk semua orang. Itu janji.
 Namun, Penyokong mendapatkan hak dengan ikon profil baru yang keren.</string>

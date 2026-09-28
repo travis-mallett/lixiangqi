@@ -99,14 +99,9 @@
   <string name="mateIn3Description">Matez en trois coups.</string>
   <string name="mateIn4">Mat en 4</string>
   <string name="mateIn4Description">Matez en quatre coups.</string>
-  <string name="mateIn5">Mat en 5 ou plus</string>
   <string name="mateIn5Description">Trouvez une longue séquence de coups menant au mat.</string>
-  <string name="middlegame">Milieu de jeu</string>
-  <string name="middlegameDescription">Une tactique pendant la seconde phase de la partie.</string>
   <string name="oneMove">Problème à un coup</string>
   <string name="oneMoveDescription">Un problème qui ne dure qu\'un coup.</string>
-  <string name="opening">Ouverture</string>
-  <string name="openingDescription">Une tactique durant la première phase de la partie.</string>
   <string name="operaMate">Mat de l\'opéra</string>
   <string name="operaMateDescription">Protégée par le fou, la tour met le roi adverse échec et mat.</string>
   <string name="pawnEndgame">Finale de pions</string>

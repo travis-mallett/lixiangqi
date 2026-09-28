@@ -3,7 +3,35 @@ package lila.puzzle
 import lila.core.i18n.I18nKey
 import lila.core.i18n.I18nKey.puzzleTheme as i
 
-case class PuzzleTheme(key: PuzzleTheme.Key, name: I18nKey, description: I18nKey)
+case class PuzzleTheme(key: PuzzleTheme.Key, name: I18nKey, description: I18nKey):
+  def iconFile: String =
+    if key.value.startsWith("mateIn") then "mate.svg"
+    else
+      key.value match
+        case "doubleChariotsMate" | "throatCuttingMate" | "smallThroatCuttingMate" |
+            "doubleChariotsThreateningAdvisor" | "moonScoopingMate" | "singleHorseCapturesKing" |
+            "elbowHorse" | "palcornerHorse" | "anglerHorse" | "highAnglerHorse" | "octagonalHorse" |
+            "springHorseMate" | "doubleHorsesMate" | "doubleCannons" | "heavenAndEarthCannons" |
+            "smotheredCannon" | "ironBolt" | "horseCannonMate" | "cannonsSandwichingChariot" |
+            "crowningMate" | "doubleToastMate" | "doubleGhostsKnocking" | "threeChariotsHarassingAdvisor" |
+            "centroidPawnMate" | "repatriationOfBuddha" | "whiteFacedGeneral" | "winningMaterialByTrapping" |
+            "winningMaterialByRestraint" | "winningMaterialBySkewer" | "winningMaterialByDoubleAttack" |
+            "exchangingToWinMaterial" | "exchangingToSeizeInitiative" | "exchangingToRelievePressure" |
+            "chariotMatingMethods" | "horseMatingMethods" | "cannonMatingMethods" | "soldierMatingMethods" |
+            "chariotHorseMatingMethods" | "chariotCannonMatingMethods" | "chariotSoldierMatingMethods" |
+            "horseCannonMatingMethods" | "horseSoldierMatingMethods" | "cannonSoldierMatingMethods" |
+            "chariotHorseCannonMatingMethods" | "chariotHorseSoldierMatingMethods" |
+            "chariotCannonSoldierMatingMethods" | "horseCannonSoldierMatingMethods" |
+            "chariotHorseCannonSoldierMatingMethods" | "bachelorChariotAttack" | "boldChariotAttack" |
+            "pawnTripleAdvancementAttack" | "eunuchChasingEmperorKill" | "chariotPawnZugzwang" |
+            "oldPawnSearchingMountain" | "threeImmortalsRefiningTheElixir" | "whiteHorseMate" |
+            "chariotHorseZugzwang" | "cannonChariotDiscoveredAttack" | "detonatingMineAttack" |
+            "headhunterCannonAttack" | "childWorshipsBuddha" | "servantCrowdingMasterAttack" |
+            "stalemateMate" | "leisurelyStrollMate" | "flankingTrioMate" | "drawerMate" | "doubleCheckMate" |
+            "tripleCheckMate" | "quadrupleCheckMate" | "crossCheckAttack" | "hidingBehindLeavesAttack" |
+            "generalDisrobingAttack" | "assistingKingAttack" | "threeChariotAttack" | "smallIronBolt" =>
+          s"${key.value}.webp"
+        case _ => "mix.svg"
 
 object PuzzleTheme:
 
@@ -77,10 +105,11 @@ object PuzzleTheme:
   val mateIn3 = PuzzleTheme(i.mateIn3, i.mateIn3Description)
   val mateIn4 = PuzzleTheme(i.mateIn4, i.mateIn4Description)
   val mateIn5 = PuzzleTheme(i.mateIn5, i.mateIn5Description)
+  val mateIn6 = PuzzleTheme(i.mateIn6, i.mateIn6Description)
+  val mateIn7 = PuzzleTheme(i.mateIn7, i.mateIn7Description)
+  val mateIn8 = PuzzleTheme(i.mateIn8, i.mateIn8Description)
   val smotheredMate = PuzzleTheme(i.smotheredMate, i.smotheredMateDescription)
-  val middlegame = PuzzleTheme(i.middlegame, i.middlegameDescription)
   val oneMove = PuzzleTheme(i.oneMove, i.oneMoveDescription)
-  val opening = PuzzleTheme(i.opening, i.openingDescription)
   val operaMate = PuzzleTheme(i.operaMate, i.operaMateDescription)
   val pawnEndgame = PuzzleTheme(i.pawnEndgame, i.pawnEndgameDescription)
   val pin = PuzzleTheme(i.pin, i.pinDescription)
@@ -102,22 +131,241 @@ object PuzzleTheme:
   val xRayAttack = PuzzleTheme(i.xRayAttack, i.xRayAttackDescription)
   val zugzwang = PuzzleTheme(i.zugzwang, i.zugzwangDescription)
   val centroidPawnMate = PuzzleTheme(i.centroidPawnMate, i.centroidPawnMateDescription)
+  val octagonalHorse = PuzzleTheme(i.octagonalHorse, i.octagonalHorseDescription)
+  val doubleCannons = PuzzleTheme(i.doubleCannons, i.doubleCannonsDescription)
+  val whiteFacedGeneral = PuzzleTheme(i.whiteFacedGeneral, i.whiteFacedGeneralDescription)
   val checkFirst = PuzzleTheme(Key("checkFirst"), I18nKey("Check first"), I18nKey("Check first"))
 
-  val categorized = List[(I18nKey, List[PuzzleTheme])](
-    I18nKey.puzzle.recommended -> List(
-      centroidPawnMate
+  val doubleChariotsMate = PuzzleTheme(i.doubleChariotsMate, i.doubleChariotsMateDescription)
+  val throatCuttingMate = PuzzleTheme(i.throatCuttingMate, i.throatCuttingMateDescription)
+  val smallThroatCuttingMate = PuzzleTheme(i.smallThroatCuttingMate, i.smallThroatCuttingMateDescription)
+  val doubleChariotsThreateningAdvisor =
+    PuzzleTheme(i.doubleChariotsThreateningAdvisor, i.doubleChariotsThreateningAdvisorDescription)
+  val moonScoopingMate = PuzzleTheme(i.moonScoopingMate, i.moonScoopingMateDescription)
+  val singleHorseCapturesKing = PuzzleTheme(i.singleHorseCapturesKing, i.singleHorseCapturesKingDescription)
+  val elbowHorse = PuzzleTheme(i.elbowHorse, i.elbowHorseDescription)
+  val palcornerHorse = PuzzleTheme(i.palcornerHorse, i.palcornerHorseDescription)
+  val anglerHorse = PuzzleTheme(i.anglerHorse, i.anglerHorseDescription)
+  val highAnglerHorse = PuzzleTheme(i.highAnglerHorse, i.highAnglerHorseDescription)
+  val springHorseMate = PuzzleTheme(i.springHorseMate, i.springHorseMateDescription)
+  val doubleHorsesMate = PuzzleTheme(i.doubleHorsesMate, i.doubleHorsesMateDescription)
+  val heavenAndEarthCannons = PuzzleTheme(i.heavenAndEarthCannons, i.heavenAndEarthCannonsDescription)
+  val smotheredCannon = PuzzleTheme(i.smotheredCannon, i.smotheredCannonDescription)
+  val ironBolt = PuzzleTheme(i.ironBolt, i.ironBoltDescription)
+  val horseCannonMate = PuzzleTheme(i.horseCannonMate, i.horseCannonMateDescription)
+  val cannonsSandwichingChariot =
+    PuzzleTheme(i.cannonsSandwichingChariot, i.cannonsSandwichingChariotDescription)
+  val crowningMate = PuzzleTheme(i.crowningMate, i.crowningMateDescription)
+  val doubleToastMate = PuzzleTheme(i.doubleToastMate, i.doubleToastMateDescription)
+  val doubleGhostsKnocking = PuzzleTheme(i.doubleGhostsKnocking, i.doubleGhostsKnockingDescription)
+  val threeChariotsHarassingAdvisor =
+    PuzzleTheme(i.threeChariotsHarassingAdvisor, i.threeChariotsHarassingAdvisorDescription)
+  val repatriationOfBuddha = PuzzleTheme(i.repatriationOfBuddha, i.repatriationOfBuddhaDescription)
+  val winningMaterialByTrapping =
+    PuzzleTheme(i.winningMaterialByTrapping, i.winningMaterialByTrappingDescription)
+  val winningMaterialByRestraint =
+    PuzzleTheme(i.winningMaterialByRestraint, i.winningMaterialByRestraintDescription)
+  val winningMaterialBySkewer = PuzzleTheme(i.winningMaterialBySkewer, i.winningMaterialBySkewerDescription)
+  val winningMaterialByDoubleAttack =
+    PuzzleTheme(i.winningMaterialByDoubleAttack, i.winningMaterialByDoubleAttackDescription)
+  val exchangingToWinMaterial = PuzzleTheme(i.exchangingToWinMaterial, i.exchangingToWinMaterialDescription)
+  val exchangingToSeizeInitiative =
+    PuzzleTheme(i.exchangingToSeizeInitiative, i.exchangingToSeizeInitiativeDescription)
+  val exchangingToRelievePressure =
+    PuzzleTheme(i.exchangingToRelievePressure, i.exchangingToRelievePressureDescription)
+
+  val chariotMatingMethods = PuzzleTheme(i.chariotMatingMethods, i.chariotMatingMethodsDescription)
+  val horseMatingMethods = PuzzleTheme(i.horseMatingMethods, i.horseMatingMethodsDescription)
+  val cannonMatingMethods = PuzzleTheme(i.cannonMatingMethods, i.cannonMatingMethodsDescription)
+  val soldierMatingMethods = PuzzleTheme(i.soldierMatingMethods, i.soldierMatingMethodsDescription)
+  val chariotHorseMatingMethods =
+    PuzzleTheme(i.chariotHorseMatingMethods, i.chariotHorseMatingMethodsDescription)
+  val chariotCannonMatingMethods =
+    PuzzleTheme(i.chariotCannonMatingMethods, i.chariotCannonMatingMethodsDescription)
+  val chariotSoldierMatingMethods =
+    PuzzleTheme(i.chariotSoldierMatingMethods, i.chariotSoldierMatingMethodsDescription)
+  val horseCannonMatingMethods =
+    PuzzleTheme(i.horseCannonMatingMethods, i.horseCannonMatingMethodsDescription)
+  val horseSoldierMatingMethods =
+    PuzzleTheme(i.horseSoldierMatingMethods, i.horseSoldierMatingMethodsDescription)
+  val cannonSoldierMatingMethods =
+    PuzzleTheme(i.cannonSoldierMatingMethods, i.cannonSoldierMatingMethodsDescription)
+  val chariotHorseCannonMatingMethods =
+    PuzzleTheme(i.chariotHorseCannonMatingMethods, i.chariotHorseCannonMatingMethodsDescription)
+  val chariotHorseSoldierMatingMethods =
+    PuzzleTheme(i.chariotHorseSoldierMatingMethods, i.chariotHorseSoldierMatingMethodsDescription)
+  val chariotCannonSoldierMatingMethods =
+    PuzzleTheme(i.chariotCannonSoldierMatingMethods, i.chariotCannonSoldierMatingMethodsDescription)
+  val horseCannonSoldierMatingMethods =
+    PuzzleTheme(i.horseCannonSoldierMatingMethods, i.horseCannonSoldierMatingMethodsDescription)
+  val chariotHorseCannonSoldierMatingMethods =
+    PuzzleTheme(i.chariotHorseCannonSoldierMatingMethods, i.chariotHorseCannonSoldierMatingMethodsDescription)
+
+  val threeChariotAttack = PuzzleTheme(i.threeChariotAttack, i.threeChariotAttackDescription)
+  val smallIronBolt = PuzzleTheme(i.smallIronBolt, i.smallIronBoltDescription)
+  val bachelorChariotAttack = PuzzleTheme(i.bachelorChariotAttack, i.bachelorChariotAttackDescription)
+  val boldChariotAttack = PuzzleTheme(i.boldChariotAttack, i.boldChariotAttackDescription)
+  val pawnTripleAdvancementAttack =
+    PuzzleTheme(i.pawnTripleAdvancementAttack, i.pawnTripleAdvancementAttackDescription)
+  val eunuchChasingEmperorKill =
+    PuzzleTheme(i.eunuchChasingEmperorKill, i.eunuchChasingEmperorKillDescription)
+  val chariotPawnZugzwang = PuzzleTheme(i.chariotPawnZugzwang, i.chariotPawnZugzwangDescription)
+  val oldPawnSearchingMountain =
+    PuzzleTheme(i.oldPawnSearchingMountain, i.oldPawnSearchingMountainDescription)
+  val threeImmortalsRefiningTheElixir =
+    PuzzleTheme(i.threeImmortalsRefiningTheElixir, i.threeImmortalsRefiningTheElixirDescription)
+  val whiteHorseMate = PuzzleTheme(i.whiteHorseMate, i.whiteHorseMateDescription)
+  val chariotHorseZugzwang = PuzzleTheme(i.chariotHorseZugzwang, i.chariotHorseZugzwangDescription)
+  val cannonChariotDiscoveredAttack =
+    PuzzleTheme(i.cannonChariotDiscoveredAttack, i.cannonChariotDiscoveredAttackDescription)
+  val detonatingMineAttack = PuzzleTheme(i.detonatingMineAttack, i.detonatingMineAttackDescription)
+  val headhunterCannonAttack = PuzzleTheme(i.headhunterCannonAttack, i.headhunterCannonAttackDescription)
+  val childWorshipsBuddha = PuzzleTheme(i.childWorshipsBuddha, i.childWorshipsBuddhaDescription)
+  val servantCrowdingMasterAttack =
+    PuzzleTheme(i.servantCrowdingMasterAttack, i.servantCrowdingMasterAttackDescription)
+  val stalemateMate = PuzzleTheme(i.stalemateMate, i.stalemateMateDescription)
+  val leisurelyStrollMate = PuzzleTheme(i.leisurelyStrollMate, i.leisurelyStrollMateDescription)
+  val flankingTrioMate = PuzzleTheme(i.flankingTrioMate, i.flankingTrioMateDescription)
+  val drawerMate = PuzzleTheme(i.drawerMate, i.drawerMateDescription)
+  val doubleCheckMate = PuzzleTheme(i.doubleCheckMate, i.doubleCheckMateDescription)
+  val tripleCheckMate = PuzzleTheme(i.tripleCheckMate, i.tripleCheckMateDescription)
+  val quadrupleCheckMate = PuzzleTheme(i.quadrupleCheckMate, i.quadrupleCheckMateDescription)
+  val crossCheckAttack = PuzzleTheme(i.crossCheckAttack, i.crossCheckAttackDescription)
+  val hidingBehindLeavesAttack =
+    PuzzleTheme(i.hidingBehindLeavesAttack, i.hidingBehindLeavesAttackDescription)
+  val generalDisrobingAttack = PuzzleTheme(i.generalDisrobingAttack, i.generalDisrobingAttackDescription)
+  val assistingKingAttack = PuzzleTheme(i.assistingKingAttack, i.assistingKingAttackDescription)
+
+  val otherNamedBasicKills: List[PuzzleTheme] = List(
+    threeChariotAttack,
+    bachelorChariotAttack,
+    boldChariotAttack,
+    smallThroatCuttingMate,
+    pawnTripleAdvancementAttack,
+    eunuchChasingEmperorKill,
+    chariotPawnZugzwang,
+    oldPawnSearchingMountain,
+    threeImmortalsRefiningTheElixir,
+    whiteHorseMate,
+    chariotHorseZugzwang,
+    smallIronBolt,
+    cannonChariotDiscoveredAttack,
+    detonatingMineAttack,
+    headhunterCannonAttack,
+    childWorshipsBuddha,
+    servantCrowdingMasterAttack,
+    stalemateMate,
+    leisurelyStrollMate,
+    flankingTrioMate,
+    drawerMate,
+    doubleCheckMate,
+    tripleCheckMate,
+    quadrupleCheckMate,
+    crossCheckAttack,
+    hidingBehindLeavesAttack,
+    generalDisrobingAttack,
+    assistingKingAttack
+  )
+
+  val pieceTypeMates: List[PuzzleTheme] = List(
+    chariotMatingMethods,
+    horseMatingMethods,
+    cannonMatingMethods,
+    soldierMatingMethods,
+    chariotHorseMatingMethods,
+    chariotCannonMatingMethods,
+    chariotSoldierMatingMethods,
+    horseCannonMatingMethods,
+    horseSoldierMatingMethods,
+    cannonSoldierMatingMethods,
+    chariotHorseCannonMatingMethods,
+    chariotHorseSoldierMatingMethods,
+    chariotCannonSoldierMatingMethods,
+    horseCannonSoldierMatingMethods,
+    chariotHorseCannonSoldierMatingMethods
+  )
+
+  case class Category[A](name: I18nKey, themes: List[A])
+  case class Section[A](name: I18nKey, categories: List[Category[A]])
+
+  val categorized: List[Section[PuzzleTheme]] = List(
+    Section(
+      i.basicKills,
+      List(
+        Category(
+          i.chariotKillingMethods,
+          List(
+            doubleChariotsMate,
+            throatCuttingMate,
+            doubleChariotsThreateningAdvisor,
+            moonScoopingMate
+          )
+        ),
+        Category(
+          i.horseKillingMethods,
+          List(
+            singleHorseCapturesKing,
+            elbowHorse,
+            palcornerHorse,
+            anglerHorse,
+            highAnglerHorse,
+            octagonalHorse,
+            springHorseMate,
+            doubleHorsesMate
+          )
+        ),
+        Category(
+          i.cannonKillingMethods,
+          List(
+            doubleCannons,
+            heavenAndEarthCannons,
+            smotheredCannon,
+            ironBolt,
+            horseCannonMate,
+            cannonsSandwichingChariot,
+            crowningMate,
+            doubleToastMate
+          )
+        ),
+        Category(
+          i.soldierKillingMethods,
+          List(doubleGhostsKnocking, threeChariotsHarassingAdvisor, centroidPawnMate, repatriationOfBuddha)
+        ),
+        Category(i.generalKillingMethods, List(whiteFacedGeneral)),
+        Category(i.otherNamedBasicKills, otherNamedBasicKills),
+        Category(i.matingMethodsByPieceType, pieceTypeMates)
+      )
     ),
-    I18nKey.puzzle.mateThemes -> List(
-      mateIn1,
-      mateIn2,
-      mateIn3,
-      mateIn4,
-      mateIn5
+    Section(
+      i.basicTactic,
+      List(
+        Category(
+          i.materialGain,
+          List(
+            winningMaterialByTrapping,
+            winningMaterialByRestraint,
+            winningMaterialBySkewer,
+            winningMaterialByDoubleAttack
+          )
+        ),
+        Category(
+          i.pieceExchanges,
+          List(exchangingToWinMaterial, exchangingToSeizeInitiative, exchangingToRelievePressure)
+        )
+      )
+    ),
+    Section(
+      I18nKey.puzzle.mateThemes,
+      List(
+        Category(
+          I18nKey.puzzle.mateThemes,
+          List(mateIn1, mateIn2, mateIn3, mateIn4, mateIn5, mateIn6, mateIn7, mateIn8)
+        )
+      )
     )
   )
 
-  val visible: List[PuzzleTheme] = categorized.flatMap(_._2)
+  val visible: List[PuzzleTheme] = categorized.flatMap(_.categories.flatMap(_.themes))
   // themes that can't be viewed by players
   private[puzzle] val hiddenThemes: List[PuzzleTheme] = List(checkFirst)
 
@@ -173,10 +421,11 @@ object PuzzleTheme:
     mateIn3,
     mateIn4,
     mateIn5,
+    mateIn6,
+    mateIn7,
+    mateIn8,
     smotheredMate,
-    middlegame,
     oneMove,
-    opening,
     operaMate,
     pawnEndgame,
     pin,
@@ -223,16 +472,17 @@ object PuzzleTheme:
     mateIn3,
     mateIn4,
     mateIn5,
-    middlegame,
+    mateIn6,
+    mateIn7,
+    mateIn8,
     oneMove,
-    opening,
     short,
     smotheredMate,
     veryLong,
     checkFirst
   ).map(_.key)
 
-  val allMates: Set[Key] = visible.filter(_.key.value.endsWith("Mate")).map(_.key).toSet
+  val allMates: Set[Key] = categorized.head.categories.flatMap(_.themes).map(_.key).toSet
 
   val studyChapterIds: Map[PuzzleTheme.Key, String] = List(
     advancedPawn -> "sw8VyTe1",

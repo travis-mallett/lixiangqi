@@ -378,36 +378,6 @@
   padding-top: 3px; // bar
   border-bottom: 1px solid $c-border;
   background: color-mix(in oklab, $c-bg-box 96%, $c-good);
-
-  .bar {
-    position: absolute;
-    width: 100%;
-    height: 3px;
-    top: 0;
-  }
-
-  @keyframes bar-anim {
-    from {
-      background-position: 0 0;
-    }
-
-    to {
-      background-position: 100000px 0;
-    }
-  }
-
-  .bar span {
-    display: block;
-    height: 3px;
-    width: 0;
-    background: $c-good;
-    transition: width 1s;
-  }
-
-  &.computing .bar span {
-    background-image: url('../images/bar-highlight.png');
-    animation: bar-anim 1000s linear infinite;
-  }
 }
 
 .xiangqi-engine__summary {
@@ -787,193 +757,7 @@
   display: block;
 }
 
-.xiangqi-analysis__moves {
-  @extend %base-font;
-
-  flex: 1 1 0;
-  min-height: 10rem;
-  overflow: auto;
-  padding: 0.25rem 0.35rem;
-  background: $c-bg-box;
-  font-size: $move-list-font-size;
-}
-
-.xiangqi-analysis__branch {
-  display: block;
-  margin-inline-start: min(calc(var(--variation-depth) * 0.72rem), 3.6rem);
-  border-inline-start: 2px solid color-mix(in oklab, $c-font 15%, transparent);
-  padding-inline-start: 0.28rem;
-  line-height: 1.35rem;
-
-  &.mainline {
-    margin-inline-start: 0;
-    border-inline-start: 0;
-    padding-inline-start: 0;
-    line-height: 2rem;
-  }
-
-  &:not(.mainline) {
-    margin-block: 0.08rem;
-    background: color-mix(in oklab, $c-bg-zebra 55%, transparent);
-  }
-}
-
-.xiangqi-analysis__move {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.18rem;
-  min-height: 1.55rem;
-  margin: 0.05rem;
-  border: 0;
-  border-radius: 3px;
-  padding: 0.16rem 0.35rem;
-  background: transparent;
-  color: $c-font;
-  font-size: 0.78em;
-  line-height: 1.2;
-  text-align: left;
-  cursor: pointer;
-
-  .move-number {
-    color: $c-font-dim;
-    font-size: 0.75em;
-  }
-
-  .move-eval {
-    color: $c-font-dim;
-    font-size: 0.68em;
-  }
-
-  &:hover,
-  &:focus-visible {
-    background: color-mix(in oklab, $c-primary 15%, $c-bg-box);
-  }
-
-  &.branch-point:not(.active) {
-    box-shadow: inset 0 -1px color-mix(in oklab, $c-primary 48%, transparent);
-  }
-
-  &.active {
-    color: $c-over;
-    background: $c-primary;
-    font-weight: bold;
-
-    .move-number,
-    .move-eval {
-      color: $c-over;
-    }
-  }
-}
-
-.xiangqi-analysis__branch.mainline > .xiangqi-analysis__move {
-  font-size: 1em;
-}
-
-.xiangqi-analysis__branch:not(.mainline) .xiangqi-analysis__move {
-  min-height: 1.12rem;
-  padding-block: 0.08rem;
-}
-
-.xiangqi-analysis-page.two-column-notation {
-  .xiangqi-analysis__branch.mainline {
-    line-height: 2rem;
-  }
-
-  .xiangqi-analysis__move-row {
-    display: grid;
-    grid-template-columns: 2.6rem repeat(2, minmax(0, 1fr));
-    min-height: 2.25rem;
-    border-bottom: 1px solid color-mix(in oklab, $c-border 45%, transparent);
-
-    &:nth-of-type(odd) {
-      background: color-mix(in oklab, $c-bg-zebra 45%, transparent);
-    }
-
-    > .move-row-number {
-      display: flex;
-      grid-column: 1;
-      align-items: center;
-      justify-content: center;
-      color: $c-font-dim;
-      font-size: 0.78em;
-    }
-
-    > .xiangqi-analysis__move {
-      display: flex;
-      min-width: 0;
-      min-height: 2.25rem;
-      width: 100%;
-      justify-content: space-between;
-      gap: 0.35rem;
-      margin: 0;
-      border-radius: 0;
-      padding: 0.25rem 0.65rem;
-      font-size: 1em;
-
-      &.red-move {
-        grid-column: 2;
-      }
-
-      &.black-move {
-        grid-column: 3;
-        border-inline-start: 1px solid color-mix(in oklab, $c-border 45%, transparent);
-      }
-
-      .move-number {
-        display: none;
-      }
-
-      .move-notation {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .move-eval {
-        margin-inline-start: auto;
-      }
-    }
-  }
-}
-
-.xiangqi-analysis-page.inline-notation {
-  .xiangqi-analysis__branch:not(.mainline) {
-    display: inline;
-    margin: 0;
-    border: 0;
-    padding: 0;
-    background: transparent;
-    font-style: italic;
-
-    &::before {
-      content: '(';
-      color: $c-font-dim;
-    }
-
-    &::after {
-      content: ')';
-      color: $c-font-dim;
-    }
-  }
-}
-
-.xiangqi-analysis__comments {
-  margin: 0.2rem 0.45rem 0.4rem;
-  border-inline-start: 3px solid color-mix(in oklab, $c-primary 48%, transparent);
-  padding: 0.2rem 0.55rem;
-  color: $c-font;
-  font-size: 0.78em;
-  line-height: 1.35;
-
-  p {
-    margin: 0.18rem 0;
-  }
-
-  strong {
-    color: $c-font-dim;
-    font-size: 0.9em;
-  }
-}
+@import 'move-tree';
 
 .xiangqi-analysis-page.annotations-hidden {
   .move-eval,
@@ -1076,6 +860,7 @@
 
 .xiangqi-server-analysis {
   display: flex;
+  flex-wrap: wrap;
   grid-column: 1 / -1;
   align-items: center;
   justify-content: space-between;
@@ -1091,6 +876,13 @@
   span {
     color: $c-font-dim;
   }
+}
+
+.xiangqi-analysis__chart {
+  position: relative;
+  grid-column: 1 / -1;
+  min-width: 0;
+  height: clamp(10rem, 20vw, 15rem);
 }
 
 .xiangqi-analysis__tabs {
@@ -2630,42 +2422,12 @@
 
   .xiangqi-engine {
     overflow-anchor: none;
-  }
 
-  .xiangqi-analysis__moves {
-    flex: 0 0 4rem;
-    display: flex;
-    align-items: stretch;
-    min-height: 0;
-    padding: 0;
-    overflow-x: auto;
-    overflow-y: hidden;
-    white-space: nowrap;
-    box-shadow: inset 0 4px 12px #000;
-
-    &::-webkit-scrollbar {
-      height: 0;
-    }
-  }
-
-  .xiangqi-analysis__horizontal-moves {
-    display: flex;
-    align-items: stretch;
-    height: 100%;
-    min-width: max-content;
-
-    > :first-child {
-      margin-inline-start: auto;
-    }
-
-    .xiangqi-analysis__move {
-      display: flex;
-      align-items: center;
-      min-height: 100%;
-      margin: 0;
-      border-radius: 0;
-      padding: 0 0.45rem;
-      font-size: $move-list-font-size;
+    &:has(#xiangqi-engine-enabled:not(:checked)) {
+      .xiangqi-engine__lines,
+      .xiangqi-engine__more {
+        display: none;
+      }
     }
   }
 

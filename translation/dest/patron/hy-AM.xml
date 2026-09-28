@@ -17,7 +17,6 @@
   <string name="youHaveLifetime">Դուք ունեք հովանավորի ցմահ օգտանուն։ Դա շատ զիլ է։</string>
   <string name="patronUntil">Հովանավորի Ձեր օգտանունը գործում է մինչև %s։</string>
   <string name="ifNotRenewedThenAccountWillRevert">Եթե չթարմացվի, մասնակցային հաշիվը կրկին կդառնա սովորական։</string>
-  <string name="weAreNonProfit">Մենք շահույթ չհետապնդող ասոցիացիա ենք, քանի որ կարծում ենք, որ բոլորը պետք է ազատ և անսահմանափակ մուտք ունենան համաշխարհային կարգի շախմատային հարթակ:</string>
   <string name="weRelyOnSupport">Մենք ապավինում ենք Ձեր նման մարդկանց աջակցությանը: Եթե ​​Ձեզ դուր է գալիս Lichess-ը, խնդրում ենք աջակցել մեզ՝ նվիրաբերելով և դառնալով նրա հովանավորը:</string>
   <string name="lifetime">Անժամկետ</string>
   <string name="payLifetimeOnce">Վճարեք %s մեկ անգամ։ Դարձեք հովանավոր ընդմիշտ։</string>
@@ -33,7 +32,6 @@
   <string name="weAreSmallTeam">Մենք փոքր թիմ ենք, հետևաբար Ձեր օժանդակությունն ունի մեծ նշանակություն։</string>
   <string name="celebratedPatrons">Ակնառու հովանավորներ, որոնց շնորհիվ գոյություն ունի Lichess-ը</string>
   <string name="whereMoneyGoes">Ինչի՞ն է ուղվում գումարը</string>
-  <string name="lichessIsRegisteredWith">Lichess-ը գրանցված է %s-ում։</string>
   <string name="currentStatus">Ընթացիկ կարգավիճակ</string>
   <string name="nextPayment">Հաջորդ վճարում</string>
   <string name="giftPatronWingsShort">Նվիրել Հովանավորի թևեր</string>

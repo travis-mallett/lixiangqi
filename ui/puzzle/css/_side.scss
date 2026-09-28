@@ -141,7 +141,7 @@
       }
 
       .color-white icon {
-        background-image: url('../piece/xiangqi-wikipedia/rK.svg');
+        background-image: var(---red-general);
       }
 
       .color-random icon {
@@ -149,7 +149,7 @@
       }
 
       .color-black icon {
-        background-image: url('../piece/xiangqi-wikipedia/bK.svg');
+        background-image: var(---black-general);
       }
 
       .label.active {

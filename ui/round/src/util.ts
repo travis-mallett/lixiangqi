@@ -2,8 +2,12 @@ import type { Dests } from 'chessgroundx/types';
 
 import { selectXiangqiNotation, xiangqiLegalMoveDests } from 'lib/game';
 import type { RecordedClockPlayback } from 'lib/game/replay/recordedClockPlayback';
+import { game as gameRoute } from 'lib/game/router';
 
 import type { EncodedDests, RoundData, Step } from './interfaces';
+
+export const analysisUrl = (d: RoundData, ply: number): string =>
+  gameRoute(d, d.game.variant.key === 'racingKings' ? 'white' : d.player.color) + '/analysis#' + ply;
 
 export const canToggleRecordedClockPlayback = (d: RoundData, playback?: RecordedClockPlayback): boolean =>
   !!playback && playback.timeline.delays.length > 0 && !!d.tv && d.player.spectator === true;

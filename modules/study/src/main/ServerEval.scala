@@ -14,12 +14,17 @@ object ServerEval:
 
   final class Requester(
       chapterRepo: ChapterRepo,
-      userApi: lila.core.user.UserApi
+      userApi: lila.core.user.UserApi,
+      chapterAnalysis: ChapterAnalysis
   )(using Executor):
 
     private val onceEvery = scalalib.cache.OnceEvery[StudyChapterId](5.minutes)
 
     def apply(study: Study, chapter: Chapter, userId: UserId, official: Boolean = false): Funit =
+      chapterAnalysis(chapter).flatMap: resolved =>
+        resolved.sourceGame.isEmpty.so(request(study, chapter, userId, official))
+
+    private def request(study: Study, chapter: Chapter, userId: UserId, official: Boolean): Funit =
       chapter.serverEval
         .forall: eval =>
           !eval.done && onceEvery(chapter.id)

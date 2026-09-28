@@ -68,13 +68,12 @@
   }
 }
 
-// These images are also referenced in crazyCtrl.ts (for preloading).
-// The other file should be kept in sync.
-@each $color, $c in ('white': r, 'black': b) {
-  @each $role, $r in (pawn: P, knight: N, bishop: B, rook: R, queen: C) {
+@each $color, $piece-color in ('white': red, 'black': black) {
+  @each $role, $xiangqi-role in (pawn: soldier, knight: horse, bishop: elephant, rook: chariot, queen: cannon)
+  {
     body.cursor-#{$color}-#{$role} * {
       cursor:
-        url(../piece/xiangqi-wikipedia/#{$c}#{$r}.svg) 22 22,
+        var(---#{$piece-color}-#{$xiangqi-role}) 22 22,
         auto !important;
     }
   }

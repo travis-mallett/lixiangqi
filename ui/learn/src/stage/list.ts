@@ -747,7 +747,7 @@ const rawCategs: RawCateg[] = [
             moves: ['e8e9'],
           },
           {
-            title: 'Repatriation of Buddha · 送佛归殿',
+            title: 'Repatriation of the Buddha · 送佛归殿',
             goal: 'Escort the veteran Soldier into e9.',
             explanation:
               'The Red General supports the Soldier through the open file and sends the enemy General “back to the hall” with no legal exit.',

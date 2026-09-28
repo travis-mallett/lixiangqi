@@ -99,14 +99,9 @@
   <string name="mateIn3Description">Dar xeque-mate em três movimentos.</string>
   <string name="mateIn4">Mate em 4</string>
   <string name="mateIn4Description">Dar xeque-mate em 4 movimentos.</string>
-  <string name="mateIn5">Mate em 5 ou mais</string>
   <string name="mateIn5Description">Descubra uma longa sequência de mate.</string>
-  <string name="middlegame">Meio-jogo</string>
-  <string name="middlegameDescription">Tática durante a segunda fase do jogo.</string>
   <string name="oneMove">Problema de um lance</string>
   <string name="oneMoveDescription">Um problema que é resolvido com apenas um movimento.</string>
-  <string name="opening">Abertura</string>
-  <string name="openingDescription">Tática durante a primeira fase do jogo.</string>
   <string name="operaMate">Mate da ópera</string>
   <string name="operaMateDescription">Dê xeque no rei com uma torre e use um bispo para defender a torre.</string>
   <string name="pawnEndgame">Finais de peões</string>

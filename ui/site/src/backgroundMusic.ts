@@ -68,7 +68,10 @@ export class BackgroundMusic {
   private storageClaimTimer?: number;
   private ownershipRetryTimer?: number;
 
-  constructor(environment: BackgroundMusicEnvironment = browserEnvironment()) {
+  constructor(
+    environment: BackgroundMusicEnvironment = browserEnvironment(),
+    private readonly playingChanged?: (playing: boolean) => void,
+  ) {
     this.env = environment;
     this.tabId = this.readOrCreateTabId();
     this.env.window.addEventListener('pagehide', this.onPageHide);
@@ -214,6 +217,10 @@ export class BackgroundMusic {
       audio.loop = true;
       audio.preload = 'auto';
       audio.addEventListener('timeupdate', this.savePosition);
+      audio.addEventListener('playing', () => this.playingChanged?.(true));
+      audio.addEventListener('pause', () => this.playingChanged?.(false));
+      audio.addEventListener('waiting', () => this.playingChanged?.(false));
+      audio.addEventListener('error', () => this.playingChanged?.(false));
       if (this.audioReady) this.restorePosition(audio, request.name);
       else
         audio.addEventListener(
@@ -290,6 +297,7 @@ export class BackgroundMusic {
   };
 
   private pause(continueTimeline: boolean): void {
+    this.playingChanged?.(false);
     if (!this.audio) return;
     this.persistPosition(continueTimeline);
     if (!this.audio.paused) this.audio.pause();

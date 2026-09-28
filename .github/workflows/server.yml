@@ -32,6 +32,14 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    services:
+      publication-mongo:
+        image: mongo:8.2
+        ports:
+          - 27291:27017
+    env:
+      LIXIANGQI_PUBLICATION_TEST_URI: mongodb://127.0.0.1:27291
+      LIXIANGQI_ANALYSIS_TEST_URI: mongodb://127.0.0.1:27291
     strategy:
       matrix:
         java-version: [21]

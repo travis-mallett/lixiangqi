@@ -1,0 +1,225 @@
+.traffic-page {
+  max-width: 1600px;
+}
+
+.traffic {
+  padding: 2rem;
+  min-width: 0;
+
+  h1 {
+    margin-bottom: 0.5rem;
+  }
+
+  &__intro,
+  &__help,
+  &__caption,
+  &__definitions {
+    color: $c-font-dim;
+  }
+
+  &__tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin: 1.5rem 0;
+
+    button {
+      padding: 0.7rem;
+      border-radius: 0.3rem;
+      background: $c-bg-zebra;
+    }
+
+    button[aria-current='true'] {
+      background: $c-primary;
+      color: $c-over;
+    }
+  }
+
+  &__filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 0.8rem;
+    padding: 1rem;
+    background: $c-bg-zebra;
+
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      font-size: 0.85rem;
+    }
+
+    input,
+    select {
+      padding: 0.5rem;
+      max-width: 100%;
+      background: $c-bg-input;
+      color: $c-font;
+    }
+
+    input[type='checkbox'] {
+      min-height: 2rem;
+    }
+  }
+
+  &__status {
+    margin: 1rem 0;
+    color: $c-font-dim;
+  }
+
+  &__cards {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+    margin: 1.5rem 0;
+  }
+
+  &__card {
+    background: $c-bg-zebra;
+    padding: 1rem;
+    border-radius: 0.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+
+    strong {
+      font-size: 1.7rem;
+    }
+
+    small {
+      color: $c-font-dim;
+    }
+  }
+
+  &__chart {
+    position: relative;
+    height: 330px;
+    margin-bottom: 1.5rem;
+  }
+
+  &__table {
+    overflow-x: auto;
+
+    table {
+      width: 100%;
+    }
+
+    td:not(:first-child),
+    th:not(:first-child) {
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    td:first-child {
+      max-width: 26rem;
+      overflow-wrap: anywhere;
+    }
+
+    button {
+      color: $c-link;
+      text-align: start;
+    }
+  }
+
+  &__caption {
+    font-size: 0.85rem;
+    margin: 0.7rem 0;
+  }
+
+  &__snapshot,
+  &__definitions {
+    margin-top: 2rem;
+  }
+
+  h2 {
+    margin-bottom: 0.7rem;
+  }
+
+  &__histogram {
+    display: grid;
+    gap: 0.8rem;
+    margin: 1rem 0;
+    max-width: 850px;
+
+    > div {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 0.25rem 1rem;
+    }
+
+    meter {
+      width: 100%;
+      grid-column: 1 / -1;
+      accent-color: $c-primary;
+    }
+  }
+
+  &__health {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+
+  &__empty {
+    text-align: center;
+    padding: 2rem;
+  }
+}
+
+.traffic-privacy {
+  max-width: 850px;
+
+  p {
+    margin: 1.5rem 0;
+  }
+
+  form {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    gap: 1.5rem;
+  }
+
+  input {
+    margin-inline-end: 0.7rem;
+  }
+}
+
+@media (max-width: 1000px) {
+  .traffic__cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .traffic {
+    padding: 1rem;
+
+    &__filters label {
+      flex: 1 1 42%;
+      min-width: 0;
+    }
+
+    &__cards {
+      gap: 0.5rem;
+    }
+
+    &__card {
+      padding: 0.7rem;
+    }
+
+    &__card strong {
+      font-size: 1.3rem;
+    }
+
+    &__chart {
+      height: 270px;
+    }
+
+    &__tabs button {
+      font-size: 0.9rem;
+    }
+  }
+}

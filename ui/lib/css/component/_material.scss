@@ -14,27 +14,27 @@
     display: inline-block;
 
     &.pawn {
-      background-image: url('../piece/xiangqi-wikipedia/rP.svg');
+      background-image: var(---red-soldier);
     }
 
     &.bishop {
-      background-image: url('../piece/xiangqi-wikipedia/rB.svg');
+      background-image: var(---red-elephant);
     }
 
     &.knight {
-      background-image: url('../piece/xiangqi-wikipedia/rN.svg');
+      background-image: var(---red-horse);
     }
 
     &.rook {
-      background-image: url('../piece/xiangqi-wikipedia/rR.svg');
+      background-image: var(---red-chariot);
     }
 
     &.queen {
-      background-image: url('../piece/xiangqi-wikipedia/rC.svg');
+      background-image: var(---red-cannon);
     }
 
     &.king {
-      background-image: url('../piece/xiangqi-wikipedia/rK.svg');
+      background-image: var(---red-general);
     }
 
     @include if-background {

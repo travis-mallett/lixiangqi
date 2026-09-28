@@ -37,7 +37,6 @@ interface Elements {
   engineStatus: HTMLElement;
   cloudBadge: HTMLElement;
   moreLines: HTMLButtonElement;
-  multiPv: HTMLInputElement;
 }
 
 export const MAX_PV_MOVES = 16;
@@ -58,6 +57,7 @@ export class AnalysisSuggestions {
   constructor(
     initialFen: string,
     private readonly orientation: () => 'white' | 'black',
+    private readonly configuredMultiPv: () => number,
   ) {
     this.fen = initialFen;
     this.elements = {
@@ -69,7 +69,6 @@ export class AnalysisSuggestions {
       engineStatus: requiredElement('#xiangqi-engine-status'),
       cloudBadge: requiredElement('#xiangqi-cloud-badge'),
       moreLines: requiredElement<HTMLButtonElement>('#xiangqi-more-lines'),
-      multiPv: requiredElement<HTMLInputElement>('#xiangqi-engine-multipv'),
     };
     this.elements.engineLines.addEventListener('mouseleave', () => this.hidePreview());
     window.matchMedia('(max-width: 799px)').addEventListener('change', event => {
@@ -125,14 +124,12 @@ export class AnalysisSuggestions {
   }
 
   configuredRowCount(): number {
-    if (isMobileAnalysisLayout()) return 1;
-    const count = Number(this.elements.multiPv.value);
-    return Number.isFinite(count) ? Math.max(1, count) : 3;
+    return this.configuredMultiPv();
   }
 
-  showPlaceholders(count: number): void {
+  showPlaceholders(): void {
     this.hidePreview();
-    const rowCount = isMobileAnalysisLayout() ? 1 : count;
+    const rowCount = this.configuredRowCount();
     this.elements.engineLines.replaceChildren(
       ...Array.from({ length: rowCount }, () => this.placeholderRow()),
     );
@@ -150,11 +147,11 @@ export class AnalysisSuggestions {
 
   private render(): void {
     this.hidePreview();
-    const previousRowCount = this.elements.engineLines.childElementCount;
     const cloudMoves = this.explorerResult?.available ? this.explorerResult.moves : [];
     const useCloud = cloudMoves.length > 0;
     this.elements.cloudBadge.hidden = !useCloud;
-    const limit = isMobileAnalysisLayout() ? 1 : this.expanded ? 12 : 3;
+    const configuredRowCount = this.configuredRowCount();
+    const limit = this.expanded && !isMobileAnalysisLayout() ? 12 : configuredRowCount;
     const rows: HTMLElement[] = useCloud
       ? cloudMoves.slice(0, limit).map(entry =>
           this.suggestionRow({
@@ -165,6 +162,7 @@ export class AnalysisSuggestions {
         )
       : (this.engineResult?.lines ?? [])
           .filter(line => line.wxfMoves[0])
+          .slice(0, configuredRowCount)
           .map(line =>
             this.suggestionRow({
               moves: line.pvMoves,
@@ -172,13 +170,10 @@ export class AnalysisSuggestions {
               value: formatEvaluation(line.score),
             }),
           );
-    const minimumRowCount =
-      this.engineResult || this.explorerResult || isMobileAnalysisLayout()
-        ? this.configuredRowCount()
-        : Math.max(previousRowCount, this.configuredRowCount());
-    while (rows.length < minimumRowCount) rows.push(this.placeholderRow());
+    while (rows.length < configuredRowCount) rows.push(this.placeholderRow());
     this.elements.engineLines.replaceChildren(...rows);
-    this.elements.moreLines.hidden = isMobileAnalysisLayout() || !useCloud || cloudMoves.length <= 3;
+    this.elements.moreLines.hidden =
+      isMobileAnalysisLayout() || !useCloud || cloudMoves.length <= configuredRowCount;
     this.elements.moreLines.setAttribute('aria-expanded', String(this.expanded));
     const moreLabel = this.expanded ? 'Show fewer cloud moves' : 'Show more cloud moves';
     this.elements.moreLines.dataset.icon = this.expanded ? licon.UpTriangle : licon.DownTriangle;

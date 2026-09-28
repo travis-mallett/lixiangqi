@@ -99,14 +99,9 @@
   <string name="mateIn3Description">Dá xaque mate en tres movementos.</string>
   <string name="mateIn4">Mate en 4</string>
   <string name="mateIn4Description">Dá xaque mate en catro movementos.</string>
-  <string name="mateIn5">Mate en 5 ou máis</string>
   <string name="mateIn5Description">Calcula unha secuencia de mate longa.</string>
-  <string name="middlegame">Medio xogo</string>
-  <string name="middlegameDescription">Táctica durante a segunda fase do xogo.</string>
   <string name="oneMove">Exercicio dun só movemento</string>
   <string name="oneMoveDescription">Un crebacabezas dunha soa xogada.</string>
-  <string name="opening">Apertura</string>
-  <string name="openingDescription">Táctica durante a primeira fase do xogo.</string>
   <string name="operaMate">Mate da Ópera</string>
   <string name="operaMateDescription">Dá xaque ó rei cunha torre defendida por un alfil.</string>
   <string name="pawnEndgame">Final de peóns</string>

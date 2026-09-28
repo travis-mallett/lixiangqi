@@ -75,14 +75,9 @@
   <string name="mateIn3Description">Piesakiet matu trīs gājienos.</string>
   <string name="mateIn4">Mats 4 gājienos</string>
   <string name="mateIn4Description">Piesakiet matu četros gājienos.</string>
-  <string name="mateIn5">Mats 5 vai vairāk gājienos</string>
   <string name="mateIn5Description">Izdomājiet garu gājienu virkni, kas beidzas ar matu.</string>
-  <string name="middlegame">Vidusspēle</string>
-  <string name="middlegameDescription">Spēles otrā posma taktika.</string>
   <string name="oneMove">Viena gājiena uzdevums</string>
   <string name="oneMoveDescription">Uzdevums, kas ilgst tikai vienu gājienu.</string>
-  <string name="opening">Atklātne</string>
-  <string name="openingDescription">Atklātnes posma taktika.</string>
   <string name="pawnEndgame">Bandinieku beigu spēle</string>
   <string name="pawnEndgameDescription">Beigu spēle, kurā iesaistīti tikai bandinieki.</string>
   <string name="pin">Piespraušana</string>

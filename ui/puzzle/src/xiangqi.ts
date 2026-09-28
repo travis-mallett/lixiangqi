@@ -7,6 +7,7 @@ import {
   type RulesState,
   type XiangqiPositionNode,
   type XiangqiTreeNode,
+  requestXiangqi,
 } from 'xiangqi';
 
 import { selectXiangqiNotation, type XiangqiNotationStyle } from 'lib/game';
@@ -18,31 +19,68 @@ import type { PuzzleData } from './interfaces';
 
 export type XiangqiPuzzleNode = TreeNode & {
   xiangqi: RulesState;
-  puzzleBestMove?: boolean;
-  played?: { notation: string; chineseNotation: string; result?: TreeNode['puzzle'] };
+  wxfNotation?: string;
+  chineseNotation?: string;
 };
 
-export function puzzleAnalysisTree(initialNode: TreeNode) {
+/** Adapt the puzzle's path encoding to the shared Xiangqi notation viewer. */
+export function puzzleNotationTree(initialNode: TreeNode, initialPath: string) {
   const tree = createMoveTree((initialNode as XiangqiPuzzleNode).xiangqi);
-  const append = (source: TreeNode, target: XiangqiPositionNode): void => {
-    const children = (source.children as XiangqiPuzzleNode[]).filter(node => node.played);
-    const priority = (node: XiangqiPuzzleNode) =>
-      node.played?.result === 'fail' ? 2 : node.played?.result ? 0 : 1;
-    children.sort((a, b) => priority(a) - priority(b));
-    for (const child of children) {
-      const move = addOrSelectChild(tree, target.path, {
+  const paths = new Map<string, string>([['', initialPath]]);
+  const append = (source: TreeNode, target: XiangqiPositionNode, path: string): void => {
+    for (const child of source.children as XiangqiPuzzleNode[]) {
+      const added = addOrSelectChild(tree, target.path, {
         uci: child.uci!,
-        notation: child.played!.notation,
-        chineseNotation: child.played!.chineseNotation,
+        notation: child.san ?? child.uci!,
+        wxfNotation: child.wxfNotation ?? child.san,
+        chineseNotation: child.chineseNotation,
         state: child.xiangqi,
       });
-      const added = tree.byPath.get(move.path)! as XiangqiTreeNode;
-      added.forceVariation = child.played?.result === 'fail' || undefined;
-      append(child, added);
+      paths.set(added.path, path + child.id);
+      append(child, tree.byPath.get(added.path)!, path + child.id);
     }
   };
-  append(initialNode, tree.root);
-  return tree;
+  append(initialNode, tree.root, initialPath);
+  return { tree, paths };
+}
+
+export async function buildSolutionTree(
+  data: PuzzleData,
+  notationStyle: XiangqiNotationStyle,
+  current: () => boolean,
+): Promise<XiangqiPuzzleNode | undefined> {
+  let initial = buildXiangqiTree(data, notationStyle);
+  while (initial.children[0]) initial = initial.children[0] as XiangqiPuzzleNode;
+  const root: XiangqiPuzzleNode = { ...initial, id: '', uci: undefined, san: undefined, children: [] };
+  for (const line of data.puzzle.playback.solutions) {
+    let parent = root;
+    for (let index = 0; index < line.length; index++) {
+      const uci = line[index];
+      let child = parent.children.find(node => node.uci === uci) as XiangqiPuzzleNode | undefined;
+      if (!child) {
+        const state = await requestXiangqi<RulesState & { notation: string; chineseNotation: string }>(
+          '/api/analysis/move',
+          {
+            initialFen: data.game.initialFen || data.puzzle.displayFen,
+            moves: [...(data.game.moves ?? []), ...line.slice(0, index)],
+            move: uci,
+          },
+        );
+        if (!current()) return;
+        child = makeXiangqiNode(
+          state,
+          uci,
+          selectXiangqiNotation(state.notation, state.chineseNotation, notationStyle) || uci,
+          parent.children.length,
+        );
+        child.wxfNotation = state.notation;
+        child.chineseNotation = state.chineseNotation;
+        parent.children.push(child);
+      }
+      parent = child;
+    }
+  }
+  return root;
 }
 
 const unavailablePosition = () => Result.err(new Error('Xiangqi positions are provided by Pikafish'));
@@ -111,9 +149,7 @@ export function makeXiangqiNode(
 
 export function nextXiangqiMove(ctrl: PuzzleCtrl): string | undefined {
   if (ctrl.mode === 'view' || !pathOps.contains(ctrl.path, ctrl.initialPath)) return;
-  const played = ctrl.nodeList.slice(pathOps.size(ctrl.initialPath) + 1).map(node => node.uci);
-  if (played.some((uci, i) => uci !== ctrl.xiangqiContinuation[i])) return;
-  return ctrl.xiangqiContinuation[played.length];
+  return ctrl.nextSolutionMove();
 }
 
 export function splitXiangqiUci(uci: string): [string, string] | undefined {

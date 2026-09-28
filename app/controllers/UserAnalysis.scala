@@ -24,6 +24,14 @@ final class UserAnalysis(env: Env) extends LilaController(env) with lila.web.The
 
   def embed = load(none, Standard)
 
+  def catalogAnalysis(id: String) = Open:
+    if !lila.analyse.GameAnalysisImport.validCatalogId(id) then BadRequest(jsonError("Invalid catalog ID"))
+    else
+      env.analyse.repo
+        .byId(lila.tree.Analysis.Id.Catalog(id))
+        .map: analysis =>
+          Ok(Json.obj("analysis" -> analysis.map(lila.analyse.XiangqiAnalysis.json))).noCache
+
   def position = AnonBodyOf(parse.json): body =>
     nativeJson[Xiangqi.Position, Xiangqi.State](body)(XiangqiRules.position)
 
@@ -167,19 +175,7 @@ object UserAnalysis:
         "analysisRequestUrl" ->
           (analysis.isEmpty && lila.game.GameExt.analysable(pov.game))
             .option(routes.Analyse.requestAnalysis(pov.gameId).url),
-        "analysis" -> analysis.map: value =>
-          Json.obj(
-            "id" -> value.id.value,
-            "infos" -> value.infos.map: info =>
-              Json
-                .obj(
-                  "ply" -> info.ply.value,
-                  "variation" -> info.variation.map(_.toString)
-                )
-                .add("cp", info.cp.map(_.value))
-                .add("mate", info.mate.map(_.value))
-                .add("best", info.best)
-          )
+        "analysis" -> analysis.map(lila.analyse.XiangqiAnalysis.json)
       )
       .add(
         "recordedClock" ->

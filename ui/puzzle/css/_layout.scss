@@ -19,11 +19,6 @@ $puzzle-block-gap: $block-gap;
   grid-area: main;
   display: grid;
 
-  &--nvui {
-    display: block;
-    max-width: 800px;
-  }
-
   &__side {
     @extend %zen;
 
@@ -51,20 +46,8 @@ $puzzle-block-gap: $block-gap;
     align-self: start;
   }
 
-  .eval-gauge {
-    grid-area: gauge;
-  }
-
-  .keyboard-move {
-    grid-area: kb-move;
-  }
-
-  grid-template-areas: 'board' 'controls' 'tools' 'session' 'side' 'kb-move';
+  grid-template-areas: 'board' 'controls' 'tools' 'session' 'side';
   row-gap: $puzzle-block-gap;
-
-  &__moves {
-    display: none;
-  }
 
   @include mq-at-least-col2 {
     grid-template-columns: var(---col2-uniboard-width) $puzzle-block-gap $col2-uniboard-table;
@@ -72,7 +55,6 @@ $puzzle-block-gap: $block-gap;
     grid-template-areas:
       'board   gauge tools'
       'session .     controls'
-      'kb-move .     controls'
       'side    side  side';
 
     &__tools {
@@ -92,7 +74,6 @@ $puzzle-block-gap: $block-gap;
     grid-template-areas:
       'side    . board   gauge tools'
       'side    . session .     controls'
-      'side    . kb-move .     controls'
       'side    . .       .     .';
     grid-template-columns:
       $col3-uniboard-side $puzzle-block-gap var(---col3-uniboard-width)

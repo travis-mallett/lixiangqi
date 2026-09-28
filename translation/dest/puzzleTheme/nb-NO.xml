@@ -99,14 +99,9 @@
   <string name="mateIn3Description">Sett sjakk matt i tre trekk.</string>
   <string name="mateIn4">Matt i 4</string>
   <string name="mateIn4Description">Sett sjakk matt i fire trekk.</string>
-  <string name="mateIn5">Matt i 5 eller flere</string>
   <string name="mateIn5Description">Finn en lang trekkrekke som gir matt.</string>
-  <string name="middlegame">Midtspill</string>
-  <string name="middlegameDescription">En taktikk i den andre fasen av partiet.</string>
   <string name="oneMove">Ett-trekks sjakknøtt</string>
   <string name="oneMoveDescription">En sjakknøtt på bare ett trekk.</string>
-  <string name="opening">Åpning</string>
-  <string name="openingDescription">En taktikk i den første fasen av partiet.</string>
   <string name="operaMate">Operamatt</string>
   <string name="operaMateDescription">Tårn matter, dekket av løper.</string>
   <string name="pawnEndgame">Bondesluttspill</string>

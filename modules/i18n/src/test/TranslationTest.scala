@@ -68,6 +68,40 @@ Voir les link3 sur ce coup pour vous entraîner."""
       """كلمة Lichess مزيج من live/light/libre (مباشر\خفيف\حر) و chess (شطرنج). تنطق link1."""
     )
 
+  test("xiangqi puzzle theme names use their localized titles"):
+    def assertTitles(lang: Lang, centroid: String, horse: String) =
+      given Lang = lang
+      assertEquals(I18nKey.puzzleTheme.centroidPawnMate.txt(), centroid)
+      assertEquals(I18nKey.puzzleTheme.octagonalHorse.txt(), horse)
+    assertTitles(Lang("en", "GB"), "Centroid Pawn Attack (小鬼坐龙廷)", "Octagonal Horse (八角马)")
+    assertTitles(Lang("en", "US"), "Centroid Pawn Attack (小鬼坐龙廷)", "Octagonal Horse (八角马)")
+    assertTitles(Lang("zh", "CN"), "小鬼坐龙廷", "八角马")
+    assertTitles(Lang("zh", "TW"), "小鬼坐龙廷", "八角马")
+
+  test("white faced general has localized titles and English fallback"):
+    for (lang, title) <- List(
+        Lang("en", "GB") -> "White Faced General (白脸将)",
+        Lang("en", "US") -> "White Faced General (白脸将)",
+        Lang("fr", "FR") -> "White Faced General (白脸将)",
+        Lang("zh", "CN") -> "白脸将",
+        Lang("zh", "TW") -> "白臉將"
+      )
+    do
+      given Lang = lang
+      assertEquals(I18nKey.puzzleTheme.whiteFacedGeneral.txt(), title)
+
+  test("double cannons has localized titles and English fallback"):
+    for (lang, title) <- List(
+        Lang("en", "GB") -> "Double Cannons (重炮杀)",
+        Lang("en", "US") -> "Double Cannons (重炮杀)",
+        Lang("fr", "FR") -> "Double Cannons (重炮杀)",
+        Lang("zh", "CN") -> "重炮杀",
+        Lang("zh", "TW") -> "重炮殺"
+      )
+    do
+      given Lang = lang
+      assertEquals(I18nKey.puzzleTheme.doubleCannons.txt(), title)
+
   private def argsForKey(k: String): List[String] =
     if k.contains("%s") then List("arg1")
     else if k.contains("%6$s") then List("arg1", "arg2", "arg3", "arg4", "arg5", "arg6")

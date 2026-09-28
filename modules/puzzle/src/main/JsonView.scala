@@ -180,7 +180,8 @@ object JsonView:
           then lila.core.i18n.I18nKey.puzzle.puzzleThemes.txt()
           else a.name.txt()
         },
-        "desc" -> a.description.txt()
+        "desc" -> a.description.txt(),
+        "icon" -> PuzzleTheme(PuzzleTheme.Key(a.key)).iconFile
       )
 
   given OWrites[PuzzleReplay] = Json.writes[PuzzleReplay]
@@ -202,7 +203,12 @@ object JsonView:
     "id" -> puzzle.id,
     "rating" -> puzzle.glicko.intRating,
     "plays" -> puzzle.plays,
-    "solution" -> puzzle.line.tail.map(_.value),
+    "solution" -> puzzle.playback.solutions.head,
+    "playback" -> Json.obj(
+      "objective" -> puzzle.playback.objective,
+      "solutions" -> puzzle.playback.solutions,
+      "startingCp" -> puzzle.playback.startingCp
+    ),
     "themes" -> simplifyThemes(puzzle.themes),
     "state" -> puzzle.stateAfterInitialMove,
     "displayFen" -> puzzle.fenAfterInitialMove
@@ -219,14 +225,16 @@ object JsonView:
 
   def angles(all: PuzzleAngle.All)(using Translate) = Json.obj(
     "themes" -> JsObject:
-      all.themes.map: (i18n, themes) =>
-        i18n.txt() -> JsArray:
-          themes.map:
-            case PuzzleTheme.WithCount(theme, count) =>
-              Json.obj(
-                "key" -> theme.key,
-                "name" -> theme.name.txt(),
-                "desc" -> theme.description.txt(),
-                "count" -> count
-              )
+      all.themes
+        .flatMap(_.categories)
+        .map: category =>
+          category.name.txt() -> JsArray:
+            category.themes.map:
+              case PuzzleTheme.WithCount(theme, count) =>
+                Json.obj(
+                  "key" -> theme.key,
+                  "name" -> theme.name.txt(),
+                  "desc" -> theme.description.txt(),
+                  "count" -> count
+                )
   )

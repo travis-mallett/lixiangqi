@@ -19,7 +19,8 @@ object PuzzleForm:
       replayDays: Option[Days],
       streakId: Option[String],
       streakScore: Option[Int],
-      color: Option[Color]
+      color: Option[Color],
+      trafficAttempt: Option[String] = None
   ):
     def streakPuzzleId = streakId.flatMap(Puzzle.toId)
 
@@ -42,7 +43,8 @@ object PuzzleForm:
       "replayDays" -> optional(typeIn[Days](PuzzleDashboard.dayChoices.toSet)),
       "streakId" -> optional(nonEmptyText),
       "streakScore" -> optional(number(min = 0, max = maxStreakScore)),
-      "color" -> optional(lila.common.Form.color.mapping)
+      "color" -> optional(lila.common.Form.color.mapping),
+      "trafficAttempt" -> optional(nonEmptyText.verifying(lila.core.traffic.TrafficEvent.validAttempt))
     )(RoundData.apply)(unapply)
   )
 

@@ -18,7 +18,6 @@
   <string name="youHaveLifetime">Du bass e liewenslaange Lichess-Ënnerstëtzer. Dat ass super!</string>
   <string name="patronUntil">Du hues en Ënnerstëtzer-Konto bis %s.</string>
   <string name="ifNotRenewedThenAccountWillRevert">Falls net erneiert, gëtt däi Benotzerkonto erëm zu engem reguläre Konto.</string>
-  <string name="weAreNonProfit">Mir sinn eng Non-Profit-Organisatioun, well mir mengen, dass jiddereen Accès zu enger gratis, héichwäerteger Schachplattform soll hunn.</string>
   <string name="weRelyOnSupport">Mir sinn op d\'Ënnerstëtzung vu Leit wéi dir ugewise fir dat hei méiglech ze maachen. Wann dir Lichess gefält, consideréier wgl. eis mat enger Spend z\'ënnerstëtzen an e Lichess-Ënnerstëtzer ze ginn!</string>
   <string name="lifetime">Liewenslaang</string>
   <string name="payLifetimeOnce">Eemol %s bezuehlen. Fir ëmmer Lichess-Ënnerstëtzer sinn!</string>
@@ -34,17 +33,9 @@
   <string name="weAreSmallTeam">Mir sinn eng kleng Ekipp, also mécht all Ënnerstëtzung en groussen Ënnerscheed!</string>
   <string name="celebratedPatrons">Eis gefeiert Ënnerstëtzer, déi Lichess méiglech maachen</string>
   <string name="whereMoneyGoes">Wou ginn d\'Suen hinn?</string>
-  <string name="serversAndDeveloper">Virun allem fir staark Server.
-Dann bezuelen mir och en Vollzäit-Entwéckler: %s, den Grënner vun Lichess.</string>
-  <string name="costBreakdown">Detailléiert Käschtenzesummenstellung kucken</string>
   <string name="officialNonProfit">Ass Lichess eng offiziell Non-Profit?</string>
-  <string name="actOfCreation">Jo, hei ass den acte de création (op Franséisch)</string>
   <string name="changeMonthlySupport">Kann ech meng monatlech Ënnerstëtzung änneren/annuléieren?</string>
   <string name="contactSupport">de Lichess-Support kontaktéieren</string>
-  <string name="otherMethods">Aner Weeër fir ze spenden?</string>
-  <string name="lichessIsRegisteredWith">Lichess ass bei %s registréiert.</string>
-  <string name="bankTransfers">Mir akzeptéieren och Bank-Transferten</string>
-  <string name="onlyDonationFromAbove">Bedenk, datt een nëmmen iwwer de Spendeformulaire uewen den Ënnerstëtzer-Status kritt.</string>
   <string name="patronFeatures">Si verschidde Funktioune just fir Ënnerstëtzer?</string>
   <string name="noPatronFeatures">Nee, well Lichess komplett gratis ass, an zwar fir ëmmer a fir jiddereen. Dat ass versprach.
 Allerdéngs kréien Ënnerstëtzer d\'Recht, sech mat engem coolen neien Flilleken-Icon ze bretzen.</string>

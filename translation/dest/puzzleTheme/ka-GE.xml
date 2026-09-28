@@ -73,14 +73,9 @@
   <string name="mateIn3Description">ჩასვით შამთი 3 სვლაში.</string>
   <string name="mateIn4">შამათი 4 სვლაში</string>
   <string name="mateIn4Description">ჩასვით შამათი 4 სვლაში.</string>
-  <string name="mateIn5">შამათი 5 ან მეტ სვლაში</string>
   <string name="mateIn5Description">დათვალეთ გრძელი საშამოთო სვლების თანმიმდევრობა.</string>
-  <string name="middlegame">შუათამაში </string>
-  <string name="middlegameDescription">ტაქტიკა შუათამაშში ანუ პარიის მეორე ნაწილში.</string>
   <string name="oneMove">ერთ-სვლიანი ამოცანა</string>
   <string name="oneMoveDescription">ამოცანა სულ ერთ სვლაში.</string>
-  <string name="opening">დებიუტი ანუ დასაწყისი</string>
-  <string name="openingDescription">ტაქტიკა პარტიის პირველ ფაზაში ანუ დასაწყისში.</string>
   <string name="pawnEndgame">პაიკთა ენდშპილი ანუ დაბოლება</string>
   <string name="pawnEndgameDescription">მხოლოდ პაიკების დაბოლოება.</string>
   <string name="pin">დაბმა</string>

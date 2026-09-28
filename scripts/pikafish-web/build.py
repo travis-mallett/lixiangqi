@@ -54,6 +54,9 @@ def main() -> None:
     elif output("git", "rev-parse", "HEAD", cwd=source) != COMMIT:
         raise RuntimeError(f"Unexpected source revision in {source}")
 
+    # Never silently rebuild against an older version of the native bridge.
+    run("git", "apply", "--reverse", "--check", "--recount", SCRIPT_DIR / "pikafish-web.patch", cwd=source)
+
     # Keep rebuilds in an existing checkout synchronized with the maintained
     # web bridge. Previously these files were refreshed only on the first clone.
     shutil.copy2(SCRIPT_DIR / "glue.cpp", source / "src" / "glue.cpp")

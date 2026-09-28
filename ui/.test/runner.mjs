@@ -43,7 +43,7 @@ function getDashArgsAndGlobs() {
   const posArgs = argv.filter(x => !x.startsWith('-'));
   const globs =
     posArgs.length === 0
-      ? ['*/tests/**/*.ts']
+      ? ['*/tests/**/*.ts', '.build/tests/**/*.ts']
       : posArgs.map(
           arg =>
             /^[A-Za-z0-9_]+$/.test(arg)

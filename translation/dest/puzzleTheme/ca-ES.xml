@@ -99,14 +99,9 @@
   <string name="mateIn3Description">Fer escac i mat en tres jugades.</string>
   <string name="mateIn4">Mat en 4</string>
   <string name="mateIn4Description">Fer escac i mat en quatre jugades.</string>
-  <string name="mateIn5">Mat en 5 o més</string>
   <string name="mateIn5Description">Troba una seqüència llarga de mat.</string>
-  <string name="middlegame">Mig joc</string>
-  <string name="middlegameDescription">Una maniobra tàctica a la segona fase de la partida.</string>
   <string name="oneMove">Problema d\'una sola jugada</string>
   <string name="oneMoveDescription">Un problema que és només d\'un moviment.</string>
-  <string name="opening">Obertura</string>
-  <string name="openingDescription">Una tàctica durant la primera fase del joc.</string>
   <string name="operaMate">Mat de l\'òpera</string>
   <string name="operaMateDescription">Fes escac al rei amb la torre i utilitza l\'alfil per defensar la torre.</string>
   <string name="pawnEndgame">Final de peons</string>

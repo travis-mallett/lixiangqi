@@ -24,5 +24,6 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/us
 ### running on puzzle db
 # m h dom mon dow user  command
 14 */2 * * *  root  jobq -q mongo_puzzles mongosh --quiet rubik:27017/puzzler /home/lichess/deploy/cron/mongodb-puzzle-denormalize-themes.js
-27 */2 * * *  root  jobq -q mongo_puzzles mongosh --quiet rubik:27017/puzzler /home/lichess/deploy/cron/mongodb-puzzle-regen-paths.js
 ```
+
+LiXiangQi regenerates puzzle selection paths inside the application publication journal. Do not configure an external path-regeneration cron.

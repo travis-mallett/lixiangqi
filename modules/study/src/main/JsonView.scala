@@ -57,7 +57,8 @@ final class JsonView(
       study: Study,
       chapter: Chapter,
       previews: Option[ChapterPreview.AsJsons],
-      withMembers: Boolean
+      withMembers: Boolean,
+      analysis: ChapterAnalysis.Result
   )(using me: Option[Me], pref: Pref) =
 
     def allowed(selection: Settings => Settings.UserSelection): Boolean =
@@ -97,7 +98,7 @@ final class JsonView(
             )
           )
           .add("description", chapter.description)
-          .add("serverEval", chapter.serverEval)
+          .add("serverEval", JsonView.chapterServerEval(chapter, analysis))
           .add("relayPath", relayPath)
           .pipe(addChapterMode(chapter))
       )
@@ -164,6 +165,31 @@ final class JsonView(
 object JsonView:
 
   case class JsData(study: JsObject, analysis: JsObject)
+
+  def analysisTree(chapter: Chapter, resolved: ChapterAnalysis.Result, lichobile: Boolean): JsValue =
+    val tree = lila.tree.Node.partitionTreeWriter(chapter.root, lichobile)
+    if resolved.sourceGame.isEmpty then tree
+    else
+      import lila.tree.evals.jsonWrites
+      val infos = resolved.analysis.toList.flatMap(_.infos).map(info => info.ply.value -> info.eval).toMap
+      // The partition contains only mainline positions at its top level. Variations,
+      // comments, and existing chapter evaluations keep their own annotations.
+      JsArray:
+        tree
+          .as[JsArray]
+          .value
+          .map: node =>
+            val obj = node.as[JsObject]
+            infos.get((obj \ "ply").as[Int]).filterNot(_.isEmpty) match
+              case Some(eval) if !obj.keys.contains("eval") =>
+                obj + ("eval" -> (Json.toJson(eval).as[JsObject] + ("sourceGame" -> JsBoolean(true))))
+              case _ => obj
+
+  private[study] def chapterServerEval(chapter: Chapter, resolved: ChapterAnalysis.Result): Option[JsObject] =
+    resolved.sourceGame
+      .map: id =>
+        Json.obj("done" -> true, "path" -> chapter.root.mainlinePath, "sourceGame" -> id)
+      .orElse(chapter.serverEval.map(Json.toJsObject(_)))
 
   given OWrites[lila.core.study.IdName] = Json.writes
 
@@ -254,7 +280,7 @@ object JsonView:
       "thinkTime" -> r.secondsSinceLastMove
     )
 
-  private[study] given Writes[Chapter.ServerEval] = Json.writes
+  private[study] given OWrites[Chapter.ServerEval] = Json.writes
 
   private[study] given OWrites[Who] = OWrites: w =>
     Json.obj("u" -> w.u, "s" -> w.sri)

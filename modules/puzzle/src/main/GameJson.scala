@@ -4,19 +4,34 @@ import chess.Ply
 import play.api.libs.json.*
 
 import lila.common.Json.given
+import lila.common.url.queryString
 import lila.core.LightUser
+import lila.xiangqi.{ Xiangqi, XiangqiRules }
 
 final private class GameJson(
-    gameRepo: lila.core.game.GameRepo,
-    sourceGameJson: SourceGameJson,
     cacheApi: lila.memo.CacheApi,
     lightUserApi: lila.core.user.LightUserApi
 )(using Executor, lila.core.i18n.Translator):
 
   given play.api.i18n.Lang = lila.core.i18n.defaultLang
 
+  private case class Key(id: GameId, source: Puzzle.SourceSnapshot, ply: Ply, bc: Boolean)
+
+  private val snapshotCache = cacheApi[Key, JsObject](4096, "puzzle.sourceSnapshot"):
+    _.expireAfterAccess(5.minutes).maximumSize(4096).buildAsyncFuture(generateSnapshot)
+
   def apply(puzzle: Puzzle, bc: Boolean): Fu[JsObject] =
-    (if bc then bcCache else cache).get(Key(puzzle.gameRef, puzzle.initialPly))
+    lightUserApi
+      .preloadMany(puzzle.sourceSnapshot.players.flatMap(_.userId))
+      .flatMap: _ =>
+        snapshotCache
+          .get(Key(puzzle.gameId, puzzle.sourceSnapshot, puzzle.initialPly, bc))
+          .map: json =>
+            val url = puzzle.gameSource.map:
+              case Puzzle.GameSource.Catalog(database) =>
+                s"/analysis?${queryString(Map("game" -> puzzle.gameId.value, "database" -> database))}"
+            (json ++ Json.obj("players" -> JsArray(puzzle.sourceSnapshot.players.map(playersJson))))
+              .add("url", url)
 
   def noCache(game: Game, plies: Ply): Fu[JsObject] =
     lightUserApi.preloadMany(game.userIds).inject(generate(game, plies))
@@ -24,32 +39,68 @@ final private class GameJson(
   def noCacheBc(game: Game, plies: Ply): Fu[JsObject] =
     lightUserApi.preloadMany(game.userIds).inject(generateBc(game, plies))
 
-  private case class Key(game: Puzzle.GameRef, plies: Ply)
+  private def generateSnapshot(key: Key): Fu[JsObject] =
+    val snapshot = key.source
+    XiangqiRules.game(
+      Xiangqi.Position(
+        initialFen = snapshot.initialFen,
+        moves = snapshot.moves.take(
+          (key.ply.value - XiangqiRules
+            .position(Xiangqi.Position(initialFen = snapshot.initialFen))
+            .fold(_ => 0, _.ply) + 1).max(0)
+        )
+      )
+    ) match
+      case Left(error) => fufail(s"Invalid puzzle source snapshot ${key.id}: $error")
+      case Right(game) =>
+        fuccess:
+          val sourceInitialPly = game.states.head.ply
+          val moveCount = (key.ply.value - sourceInitialPly + 1).max(0)
+          val moves = snapshot.moves.take(moveCount)
+          val notations = game.wxf.take(moveCount)
+          val chinese = game.chineseWxf.take(moveCount)
+          val base = Json
+            .obj(
+              "id" -> key.id,
+              "perf" -> Json.obj(
+                "key" -> snapshot.perf.getOrElse("xiangqi"),
+                "name" -> snapshot.name.getOrElse("Xiangqi")
+              ),
+              "rated" -> snapshot.rated.getOrElse(false),
+              "pgn" -> notations.mkString(" "),
+              "initialFen" -> snapshot.initialFen,
+              "moves" -> moves.map(_.value),
+              "notations" -> notations,
+              "notationsZh" -> chinese
+            )
+            .add("event", snapshot.event)
+            .add("sourceUrl", snapshot.sourceUrl)
+          if key.bc then
+            base.add(
+              "treeParts",
+              game.states
+                .lift(moveCount)
+                .map: position =>
+                  Json
+                    .obj("fen" -> position.fen, "ply" -> position.ply)
+                    .add("san", notations.lastOption)
+                    .add("sanZh", chinese.lastOption)
+                    .add("uci", moves.lastOption.map(_.value))
+            )
+          else base
 
-  private val cache = cacheApi[Key, JsObject](4096, "puzzle.gameJson"):
-    _.expireAfterAccess(5.minutes)
-      .maximumSize(4096)
-      .buildAsyncFuture(generate(_, false))
-
-  private val bcCache = cacheApi[Key, JsObject](1024, "puzzle.bc.gameJson"):
-    _.expireAfterAccess(5.minutes)
-      .maximumSize(1024)
-      .buildAsyncFuture(generate(_, true))
-
-  private def generate(key: Key, bc: Boolean): Fu[JsObject] = key.game match
-    case Puzzle.GameRef.Lila(gameId) =>
-      gameRepo.gameFromSecondary(gameId).orFail(s"Missing puzzle game $gameId!").flatMap { game =>
-        lightUserApi
-          .preloadMany(game.userIds)
-          .inject:
-            if bc then generateBc(game, key.plies)
-            else generate(game, key.plies)
-      }
-    case source: Puzzle.GameRef.Catalog =>
-      sourceGameJson(source, key.plies, bc)
+  private def playersJson(player: Puzzle.SourcePlayer): JsObject =
+    val identity = player.userId.fold(Json.obj("name" -> player.name.getOrElse("Anonymous")))(id =>
+      Json.toJsObject(lightUserApi.syncFallback(id))
+    )
+    val color = player.color match
+      case "red" => "white"
+      case "black" => "black"
+      case other => other
+    identity ++ Json.obj("color" -> color).add("rating", player.rating)
 
   private def generate(game: Game, plies: Ply): JsObject =
-    val moveCount = plies.value + 1
+    val moveCount = moveCountFrom(game, plies)
     Json
       .obj(
         "id" -> game.id,
@@ -82,7 +133,7 @@ final private class GameJson(
         .add("rating" -> p.rating))
 
   private def generateBc(game: Game, plies: Ply): JsObject =
-    val moveCount = plies.value + 1
+    val moveCount = moveCountFrom(game, plies)
     Json
       .obj(
         "id" -> game.id,
@@ -107,6 +158,9 @@ final private class GameJson(
       )
       .add("clock", game.clock.map(_.config.show))
       .add("moveTime", game.moveTimeLimit.map(moveTimeJson))
+
+  private def moveCountFrom(game: Game, plies: Ply): Int =
+    (plies.value - game.xiangqi.states.head.ply + 1).max(0)
 
   private def moveTimeJson(limit: lila.core.game.MoveTimeLimit) =
     Json

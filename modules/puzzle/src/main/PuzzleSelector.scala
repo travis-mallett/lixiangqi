@@ -113,7 +113,8 @@ final class PuzzleSelector(
                   "from" -> colls.puzzle.name.value,
                   "localField" -> "puzzleId",
                   "foreignField" -> "_id",
-                  "as" -> "puzzle"
+                  "as" -> "puzzle",
+                  "pipeline" -> List($doc("$match" -> Puzzle.activeFor(session.path.angle)))
                 )
             ,
             // look for existing round
@@ -136,7 +137,8 @@ final class PuzzleSelector(
                 .getAsOpt[List[Puzzle]]("puzzle")
                 .flatMap(_.headOption)
                 .fold[NextPuzzleResult](PuzzleMissing(puzzleId)): puzzle =>
-                  if session.settings.color.exists(puzzle.color !=) then WrongColor(puzzle)
+                  if puzzle.retired then PuzzleMissing(puzzleId)
+                  else if session.settings.color.exists(puzzle.color !=) then WrongColor(puzzle)
                   else if doc.getAsOpt[List[Bdoc]]("round").exists(_.nonEmpty) then
                     PuzzleAlreadyPlayed(puzzle)
                   else PuzzleFound(puzzle)

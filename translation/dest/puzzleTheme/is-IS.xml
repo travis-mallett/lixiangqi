@@ -93,14 +93,9 @@
   <string name="mateIn3Description">Skákaðu og mátaðu í þremur leikjum.</string>
   <string name="mateIn4">Mát í 4</string>
   <string name="mateIn4Description">Skákaðu og mátaðu í fjórum leikjum.</string>
-  <string name="mateIn5">Mát í 5 eða fleiri</string>
   <string name="mateIn5Description">Reiknaðu út langa mátsleikfléttu.</string>
-  <string name="middlegame">Miðtafl</string>
-  <string name="middlegameDescription">Bragðvísi sem kemur upp á miðsstigi skákarinnar.</string>
   <string name="oneMove">Eins leiks þraut</string>
   <string name="oneMoveDescription">Þraut sem þarfnast bara eins leiks.</string>
-  <string name="opening">Byrjun</string>
-  <string name="openingDescription">Bragðvísi sem kemur upp á upphafsstigi skákarinnar.</string>
   <string name="operaMate">Óperumát</string>
   <string name="operaMateDescription">Skákaðu kóngnum með hrók og notaðu biskup til að verja hrókinn.</string>
   <string name="pawnEndgame">Endatafl með peðum</string>

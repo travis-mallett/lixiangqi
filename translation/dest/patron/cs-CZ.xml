@@ -20,7 +20,6 @@
   <string name="youHaveLifetime">You have a Lifetime Patron account. That\'s pretty awesome!</string>
   <string name="patronUntil">Máte Patron účet do %s.</string>
   <string name="ifNotRenewedThenAccountWillRevert">Pokud si neobnovíš svůj účet, tvůj účet se vrátí na běžný účet.</string>
-  <string name="weAreNonProfit">Jsme neziskovým sdružením, protože jsme přesvědčeni, že každý by měl mít přístup k bezplatné, prvotřídní šachové platformě.</string>
   <string name="weRelyOnSupport">Spoléháme na podporu lidí, jako jste Vy, aby nám to umožnili. Pokud se vám líbí používání Lichess, zvažte prosím podporu tím, že přispějete a stanete se Patronem!</string>
   <string name="lifetime">Doživotní</string>
   <string name="payLifetimeOnce">Zaplaťte %s jednou. Buďte navždy Lichess Patronem!</string>
@@ -36,19 +35,11 @@
   <string name="weAreSmallTeam">Jsme malý tým, takže vaše podpora dělá velké změny!</string>
   <string name="celebratedPatrons">Slavní Patroni, kteří umožňují fungování Lichess</string>
   <string name="whereMoneyGoes">Kam jdou peníze?</string>
-  <string name="serversAndDeveloper">Zaprvé, mocné servery.
-Pak platíme vývojáře na plný úvazek: %s, zakladatel Lichess.</string>
-  <string name="costBreakdown">Viz podrobný rozpis nákladů</string>
   <string name="officialNonProfit">Je Lichess oficiálně neziskový?</string>
-  <string name="actOfCreation">Ano, tady je ustanovující listina (ve francouzštině)</string>
   <string name="changeMonthlySupport">Mohu změnit/zrušit svou měsíční podporu?</string>
   <string name="changeSupport">Pokud jsou vaše platby zpracovávány přes PayPal, můžete stornovat/změnit svůj dar prostřednictvím vašeho účtu PayPal, nebo můžete %1$s a my to můžeme udělat za vás. Pokud jste PayPal nepoužili, pak jsou vaše platby zpracovávány přes Stripe, tímpádem můžete váš dar zrušíit nebo změnit na %2$s.</string>
   <string name="patronPage">patronské stránce</string>
   <string name="contactSupport">kontaktovat podporu Lichess</string>
-  <string name="otherMethods">Jiné způsoby podpory?</string>
-  <string name="lichessIsRegisteredWith">Lichess je registrován u %s.</string>
-  <string name="bankTransfers">Přijímáme také bankovní převody</string>
-  <string name="onlyDonationFromAbove">Vezměte prosím na vědomí, že pouze příspěvek pomocí formuláře výše vám poskytne Patron status.</string>
   <string name="patronFeatures">Jsou některé funkce vyhrazeny pro Patrony?</string>
   <string name="noPatronFeatures">Ne, protože Lichess je zcela zdarma, navždy a pro všechny. To je slib.
 Patroni se však blýsknou novou cool ikonou profilu.</string>
@@ -87,6 +78,5 @@ Patroni se však blýsknou novou cool ikonou profilu.</string>
   <string name="changeCurrency">Změnit měnu</string>
   <string name="paymentDetails">Detaily platby</string>
   <string name="updatePaymentMethod">Aktualizovat způsob platby</string>
-  <string name="stripeManageSub">Spravujte své předplatné a stáhněte si své faktury a účtenky</string>
   <string name="coverFees">Přidám %s, abych pomohl/a pokrýt náklady na zpracování této transakce</string>
 </resources>

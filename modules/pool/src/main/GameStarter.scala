@@ -54,6 +54,10 @@ final private class GameStarter(
       _ <- gameRepo.insertDenormalized(game)
     yield
       onStart(game.id)
+      List(whiteMember, blackMember).foreach: member =>
+        member.traffic.foreach: search =>
+          val event = search.event("paired", Some(member.userId), pool.id.value, "paired")
+          Bus.pub(event.copy(dimensions = event.dimensions + ("game" -> game.id.value)))
       Pairing(ByColor(whiteMember.sri -> game.fullIds.white, blackMember.sri -> game.fullIds.black)).some
 
   private def makeGame(

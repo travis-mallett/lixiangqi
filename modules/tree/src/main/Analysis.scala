@@ -28,7 +28,8 @@ case class Analysis(
     startPly: Ply,
     date: Instant,
     fk: Option[Analysis.FishnetKey],
-    nodesPerMove: Option[Int]
+    nodesPerMove: Option[Int],
+    depth: Option[Int] = None
 ):
   lazy val infoAdvices: InfoAdvices =
     (Info.start(startPly) :: infos)
@@ -59,6 +60,7 @@ object Analysis:
   enum Id:
     case Game(id: GameId)
     case Study(study: StudyId, id: StudyChapterId)
+    case Catalog(id: String)
 
   object Id:
     def apply(gameId: GameId): Id = Game(gameId)
@@ -71,6 +73,7 @@ object Analysis:
       def value: String = id match
         case Game(gameId) => gameId.value
         case Study(_, id) => id.value
+        case Catalog(id) => s"catalog:$id"
 
       def gameId: Option[GameId] = id match
         case Game(gameId) => Some(gameId)

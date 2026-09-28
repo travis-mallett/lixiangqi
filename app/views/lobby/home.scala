@@ -25,6 +25,27 @@ object home:
           span("Play Xiangqi in style")
         )
       )
+    def dailyPuzzleCard(daily: lila.puzzle.DailyPuzzle.WithHtml, placement: String) =
+      st.section(
+        cls := s"lobby__daily-puzzle lobby__daily-puzzle--$placement lobby__rail-card",
+        attr("aria-labelledby") := s"daily-puzzle-title-$placement"
+      )(
+        h2(id := s"daily-puzzle-title-$placement", cls := "lobby__rail-title")(
+          iconTag(Icon.Target),
+          "Puzzle of the day"
+        ),
+        a(
+          cls := "lobby__daily-puzzle__link",
+          href := routes.Puzzle.daily,
+          title := trans.puzzle.clickToSolve.txt()
+        )(
+          daily.html,
+          span(cls := "lobby__daily-puzzle__turn")(
+            daily.puzzle.color.fold("Red to play", "Black to play"),
+            " ›"
+          )
+        )
+      )
     def variantCard(icon: String, chinese: String, english: String) =
       st.article(cls := "lobby__variant-card", attr("aria-disabled") := "true")(
         span(cls := "lobby__coming-soon")(trans.site.comingSoon()),
@@ -90,6 +111,7 @@ object home:
                 ),
                 views.game.mini(Pov.naturalOrientation(game), tv = true, replayFinished = true)
               ),
+            puzzle.map(dailyPuzzleCard(_, "left")),
             donateLink,
             swagLink
           ),
@@ -125,27 +147,7 @@ object home:
               ),
               views.feed.lobbyUpdates(lastUpdates)
             ),
-            puzzle.map: daily =>
-              st.section(
-                cls := "lobby__daily-puzzle lobby__rail-card",
-                attr("aria-labelledby") := "daily-puzzle-title"
-              )(
-                h2(id := "daily-puzzle-title", cls := "lobby__rail-title")(
-                  iconTag(Icon.Target),
-                  "Puzzle of the day"
-                ),
-                a(
-                  cls := "lobby__daily-puzzle__link",
-                  href := routes.Puzzle.daily,
-                  title := trans.puzzle.clickToSolve.txt()
-                )(
-                  daily.html,
-                  span(cls := "lobby__daily-puzzle__turn")(
-                    daily.puzzle.color.fold("Red to play", "Black to play"),
-                    " ›"
-                  )
-                )
-              )
+            puzzle.map(dailyPuzzleCard(_, "right"))
           ),
           st.nav(cls := "lobby__mobile-nav", attr("aria-label") := "Primary")(
             a(

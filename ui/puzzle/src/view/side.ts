@@ -4,30 +4,21 @@ import { licon } from 'lib/licon';
 import { formatClock } from 'lib/setup/timeControl';
 import { type VNode, dataIcon, onInsert, type MaybeVNode, hl } from 'lib/view';
 import { cmnToggleWrap } from 'lib/view/cmn-toggle';
-import { userLink } from 'lib/view/userLink';
 
 import type PuzzleCtrl from '@/ctrl';
-import type { Angle, PuzzleDifficulty } from '@/interfaces';
+import type { PuzzleDifficulty } from '@/interfaces';
 import type PuzzleStreak from '@/streak';
 
 export function puzzleBox(ctrl: PuzzleCtrl): VNode {
   return hl('div.puzzle__side__metas', [puzzleInfos(ctrl), gameInfos(ctrl)]);
 }
 
-const angleImg = (angle: Angle): string => {
-  const name =
-    angle.key === 'centroidPawnMate'
-      ? 'centroidPawnMate'
-      : angle.key.startsWith('mateIn')
-        ? 'mate'
-        : angle.key;
-  return site.asset.url(`images/puzzle-themes/${name}.svg`);
-};
-
 const puzzleInfos = (ctrl: PuzzleCtrl): VNode => {
   const { puzzle, angle } = ctrl.data;
   return hl('div.infos.puzzle', [
-    hl('img.infos__angle-img', { attrs: { src: angleImg(angle), alt: angle.name } }),
+    hl('img.infos__angle-img', {
+      attrs: { src: site.asset.url(`images/puzzle-themes/${angle.icon}`), alt: angle.name },
+    }),
     hl('div', [
       hl(
         'p',
@@ -90,16 +81,9 @@ function gameInfos(ctrl: PuzzleCtrl): VNode {
         'div.players',
         game.players.map(p => {
           const label = `${p.name}${ctrl.opts.showRatings && p.rating ? ` (${p.rating})` : ''}`;
-          const user = ctrl.isXiangqi
-            ? p.url
-              ? hl('a.user-link', { attrs: { href: p.url } }, label)
-              : label
-            : p.name === 'ghost'
-              ? p.rating?.toString() || ''
-              : userLink({ ...p, rating: ctrl.opts.showRatings ? p.rating : undefined, line: false });
+          const user = p.url ? hl('a.user-link', { attrs: { href: p.url } }, label) : label;
           return hl(
-            'div.player.color-icon.is.text.' +
-              (ctrl.isXiangqi && p.color === 'white' ? 'white.is-red' : p.color),
+            'div.player.color-icon.is.text.' + (p.color === 'white' ? 'white.is-red' : p.color),
             user,
           );
         }),
@@ -192,7 +176,7 @@ export function config(ctrl: PuzzleCtrl): MaybeVNode {
       checked: ctrl.autoNext(),
       change(v) {
         ctrl.autoNext(v);
-        if (ctrl.autoNext() && ctrl.resultSent && !ctrl.streak) ctrl.nextPuzzle();
+        if (ctrl.autoNext() && ctrl.lastFeedback === 'win' && !ctrl.streak) ctrl.nextPuzzle();
       },
       redraw: ctrl.redraw,
     }),

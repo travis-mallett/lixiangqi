@@ -99,14 +99,9 @@
   <string name="mateIn3Description">Поставте мат в три ходи.</string>
   <string name="mateIn4">Мат в 4 ходи</string>
   <string name="mateIn4Description">Поставте мат в чотири ходи.</string>
-  <string name="mateIn5">Мат в 5 або більше</string>
   <string name="mateIn5Description">Знайдіть послідовність ходів, що призводить до мату.</string>
-  <string name="middlegame">Мітельшпіль</string>
-  <string name="middlegameDescription">Тактика на другому етапі гри.</string>
   <string name="oneMove">Задача в один хід</string>
   <string name="oneMoveDescription">Задача, що складається лише з одного ходу.</string>
-  <string name="opening">Дебют</string>
-  <string name="openingDescription">Тактика на першому етапі гри.</string>
   <string name="operaMate">Оперний мат</string>
   <string name="operaMateDescription">Тура ставить шах королю, а слон захищає туру.</string>
   <string name="pawnEndgame">Пішаковий ендшпіль</string>

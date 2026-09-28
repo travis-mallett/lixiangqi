@@ -10,11 +10,11 @@
     }
 
     &.white icon {
-      background-image: url('../piece/xiangqi-wikipedia/rK.svg');
+      background-image: var(---red-general);
     }
 
     &.black icon {
-      background-image: url('../piece/xiangqi-wikipedia/bK.svg');
+      background-image: var(---black-general);
     }
 
     &.random icon {

@@ -58,7 +58,7 @@ function fixture() {
   return { api: window.site.pieceImages, body, values, pending, resolve };
 }
 
-test('initial pieces remain hidden until all faces and both shadow images decode', async () => {
+test('initial pieces remain hidden until all faces and both shadows decode', async () => {
   const f = fixture();
   assert.equal(f.pending.size, 16);
   f.resolve(url => url.endsWith('.svg'));

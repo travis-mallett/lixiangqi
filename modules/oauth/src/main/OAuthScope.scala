@@ -60,6 +60,7 @@ object OAuthScope:
   object Puzzle:
     case object Read extends OAuthScope("puzzle:read", trans.puzzleRead)
     case object Write extends OAuthScope("puzzle:write", I18nKey("Solve puzzles"))
+    case object Publish extends OAuthScope("puzzle:publish", trans.puzzlePublish)
 
   object Team:
     case object Read extends OAuthScope("team:read", trans.teamRead)
@@ -109,6 +110,7 @@ object OAuthScope:
     Racer.Write,
     Puzzle.Read,
     Puzzle.Write,
+    Puzzle.Publish,
     Team.Read,
     Team.Write,
     Team.Lead,
@@ -129,7 +131,7 @@ object OAuthScope:
     I18nKey("Interactions") -> List(Follow.Read, Follow.Write, Msg.Write),
     I18nKey("Play games") -> List(Challenge.Read, Challenge.Write, Challenge.Bulk, Tournament.Write),
     I18nKey("Teams") -> List(Team.Read, Team.Write, Team.Lead),
-    I18nKey("Puzzles") -> List(Puzzle.Read, Puzzle.Write, Racer.Write),
+    I18nKey("Puzzles") -> List(Puzzle.Read, Puzzle.Write, Puzzle.Publish, Racer.Write),
     I18nKey("Studies & Broadcasts") -> List(Study.Read, Study.Write),
     I18nKey("External play") -> List(Board.Play, Bot.Play),
     I18nKey("External engine") -> List(Engine.Read, Engine.Write)

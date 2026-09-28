@@ -47,11 +47,12 @@ final class PuzzleBatch(
                         local = "puzzleId",
                         foreign = "_id",
                         as = "puzzle",
-                        pipe = Nil
+                        pipe = List($doc("$match" -> Puzzle.activeFor(angle)))
                       )
                     ,
+                    Unwind("puzzle"),
                     PipelineOperator:
-                      $doc("$replaceWith" -> $doc("$arrayElemAt" -> $arr("$puzzle", 0)))
+                      $doc("$replaceWith" -> "$puzzle")
                   )
                 .map:
                   _.view.flatMap(puzzleReader.readOpt).toVector

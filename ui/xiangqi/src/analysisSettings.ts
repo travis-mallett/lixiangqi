@@ -8,7 +8,8 @@ export interface EngineSettings {
   showLinesPreview: boolean;
   depth: number;
   arrowUpdates: number;
-  multiPv: number;
+  /** Absent until user chooses a count; defaults follow layout. */
+  multiPv?: number;
   threads: number;
   hashSize: number;
 }
@@ -31,7 +32,6 @@ export function loadEngineSettings(): EngineSettings {
     showLinesPreview: true,
     depth: 20,
     arrowUpdates: 4,
-    multiPv: 3,
     threads: 2,
     hashSize: 64,
   };
@@ -41,10 +41,17 @@ export function loadEngineSettings(): EngineSettings {
     showLinesPreview: stored.showLinesPreview !== false,
     depth: clampNumber(stored.depth, 10, 30, defaults.depth),
     arrowUpdates: clampNumber(stored.arrowUpdates, 1, 4, defaults.arrowUpdates),
-    multiPv: clampNumber(stored.multiPv, 1, 5, defaults.multiPv),
+    multiPv:
+      typeof stored.multiPv === 'number' && Number.isFinite(stored.multiPv)
+        ? clampNumber(stored.multiPv, 1, 5, 1)
+        : undefined,
     threads: clampNumber(stored.threads, 1, 8, defaults.threads),
     hashSize: clampNumber(stored.hashSize, 16, 256, defaults.hashSize, 16),
   };
+}
+
+export function effectiveEngineMultiPv(settings: EngineSettings, mobile: boolean): number {
+  return settings.multiPv ?? (mobile ? 1 : 3);
 }
 
 export function loadInterfaceSettings(): InterfaceSettings {

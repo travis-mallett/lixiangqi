@@ -1,0 +1,11 @@
+// A standalone article: load board/replay primitives, never the site layout or typography.
+@import '../../../lib/css/plugin';
+@import '../../../lib/css/theme/theme.light';
+@import '../../../lib/css/base/data-icon';
+@import '../../../lib/css/theme/board/chessground';
+@import '../../../lib/css/theme/board/coords';
+@import '../../../lib/css/layout/vars';
+@import '../../../lib/css/chess/control';
+@import '../../../lib/css/tree/tree';
+@import '../special-rules-example';
+@import '../wiki';

@@ -24,15 +24,17 @@ final class PuzzleApi(
           _.aggregateOne(): framework =>
             import framework.*
             turn match
-              case None => Sample(1) -> List.empty
+              case None => Match(Puzzle.activeSelector) -> List(Sample(1))
               case Some(side) =>
                 // The stored FEN is before the puzzle's initial move, so the
                 // requested exercise turn is the opposite FEN side.
                 val fenTurn = if side == lila.xiangqi.Xiangqi.Side.Red then "b" else "w"
-                Match(Puzzle.BSONFields.fen.$regex(s" $fenTurn ")) -> List(Sample(1))
+                Match(Puzzle.activeSelector ++ Puzzle.BSONFields.fen.$regex(s" $fenTurn ")) -> List(Sample(1))
         .map(_.flatMap(_.asOpt[Puzzle]))
 
     def find(id: PuzzleId): Fu[Option[Puzzle]] =
+      // Direct puzzle IDs remain addressable for shared links, history, and
+      // normal completion even after a puzzle leaves the training inventory.
       colls.puzzle(_.byId[Puzzle](id))
 
     def findMany(ids: List[PuzzleId]): Fu[List[Puzzle]] =
@@ -43,7 +45,7 @@ final class PuzzleApi(
         Paginator(
           adapter = new Adapter[Puzzle](
             collection = coll,
-            selector = $doc("users" -> user.id),
+            selector = Puzzle.activeSelector ++ $doc("users" -> user.id),
             projection = none,
             sort = $sort.desc("glicko.r")
           ),
@@ -138,11 +140,22 @@ final class PuzzleApi(
 
   object theme:
 
-    private[PuzzleApi] def categorizedWithCount: Fu[List[(I18nKey, List[PuzzleTheme.WithCount])]] =
+    private[PuzzleApi] def categorizedWithCount: Fu[List[PuzzleTheme.Section[PuzzleTheme.WithCount]]] =
       countApi.countsByTheme.map: counts =>
-        PuzzleTheme.categorized.map: (cat, puzzles) =>
-          cat -> puzzles.map: pt =>
-            PuzzleTheme.WithCount(pt, counts.getOrElse(pt.key, 0))
+        val recommended = PuzzleTheme.Section(
+          I18nKey.puzzle.recommended,
+          List(PuzzleTheme.Category(I18nKey.puzzle.recommended, List(PuzzleTheme.mix)))
+        )
+        (recommended :: PuzzleTheme.categorized).map: section =>
+          PuzzleTheme.Section(
+            section.name,
+            section.categories.map: category =>
+              PuzzleTheme.Category(
+                category.name,
+                category.themes.map: pt =>
+                  PuzzleTheme.WithCount(pt, counts.getOrElse(pt.key, 0))
+              )
+          )
 
     private def updateRoundThemes(puzzle: PuzzleId, themes: List[PuzzleRound.Theme], weight: Option[Int]) =
       import PuzzleRound.BSONFields as F
@@ -172,7 +185,14 @@ final class PuzzleApi(
                 else trustApi.theme(me).map2(t => updateRoundThemes(id, newThemes, t.some))
               _ <- update.so(up => colls.round(_.update.one($id(puzRound.id), up)).void)
               _ <- update.isDefined.so:
-                colls.puzzle(_.updateField($id(puzRound.id.puzzleId), Puzzle.BSONFields.dirty, true)).void
+                colls
+                  .puzzle(
+                    _.update.one(
+                      $id(puzRound.id.puzzleId),
+                      $set(Puzzle.BSONFields.dirty -> true) ++ $inc("themeVersion" -> 1)
+                    )
+                  )
+                  .void
             yield lila.mon.puzzle.vote.theme(theme.key.value, vote, puzRound.win.yes).increment()
 
     private def lichessVote(
@@ -186,7 +206,9 @@ final class PuzzleApi(
         prev <- prev.raiseIfNone(PuzzleTheme.VoteError.Fail(s"Puzzle $puzzleId not yet tagged by lichess"))
         newThemes <- PuzzleRound.themeVote(prev)(theme, vote).raiseIfNone(PuzzleTheme.VoteError.Unchanged)
         _ <- colls.round(_.update.one($id(roundId), updateRoundThemes(puzzleId, newThemes, none)))
-        _ <- colls.puzzle(_.updateField($id(puzzleId), Puzzle.BSONFields.dirty, true))
+        _ <- colls.puzzle(
+          _.update.one($id(puzzleId), $set(Puzzle.BSONFields.dirty -> true) ++ $inc("themeVersion" -> 1))
+        )
       yield ()
 
   object casual:

@@ -51,4 +51,5 @@ export function initModule(opts: LobbyOpts) {
   });
 
   const lobbyCtrl = main(opts);
+  pubsub.emit('content-loaded');
 }

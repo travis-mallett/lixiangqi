@@ -45,7 +45,11 @@ function liveGames(ctrl: LobbyController, room: HomepageRoom) {
     hl(
       'button.button.button-metal.lobby__live-games__play',
       {
-        attrs: { type: 'button' },
+        attrs: {
+          type: 'button',
+          'data-traffic-action': 'room.play-rated',
+          'data-traffic-pool': room.pool.id,
+        },
         hook: bind('click', ctrl.enterHomepageMatchmaking),
       },
       i18n.site.playRatedXiangqi,

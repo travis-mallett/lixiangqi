@@ -1,3 +1,8 @@
+// Author display rules must not expose controls hidden by their owner.
+[hidden]:not([hidden='until-found']) {
+  display: none !important;
+}
+
 html {
   min-height: 100%;
   color-scheme: light dark;

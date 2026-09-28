@@ -27,6 +27,6 @@ object PuzzleAngle:
 
   def findOrMix(key: Key): PuzzleAngle = find(key) | mix
 
-  case class All(themes: List[(I18nKey, List[PuzzleTheme.WithCount])])
+  case class All(themes: List[PuzzleTheme.Section[PuzzleTheme.WithCount]])
 
   given Iso.StringIso[PuzzleAngle] = scalalib.Iso.string(findOrMix, _.key)

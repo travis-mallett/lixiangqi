@@ -24,7 +24,9 @@ object PrefSingleChange:
         )
       ),
     changing(_.boardTheme): v =>
-      changeAppearance(_.copy(boardTheme = v)),
+      changeAppearance(_.selectBoard(v)),
+    changing(_.selectMatchingPieces): v =>
+      changeAppearance(_.copy(selectMatchingPieces = v)),
     changing(_.pieceSet): v =>
       changeAppearance(_.copy(pieceSet = v)),
     changing(_.soundSet): v =>

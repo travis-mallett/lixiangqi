@@ -101,6 +101,10 @@
   <string name="depthX">Depth %s</string>
   <string name="usingServerAnalysis">Using server analysis</string>
   <string name="loadingEngine">Loading engine...</string>
+  <string name="startingEngine">Starting engine...</string>
+  <string name="engineDownloadProgress">Downloading engine: %1$s (%2$s / %3$s MB)</string>
+  <string name="engineDownloadSize">Downloading engine: %s MB</string>
+  <string name="engineLoadingFailed">Could not load the engine. Retry to continue.</string>
   <string name="calculatingMoves">Calculating moves...</string>
   <string name="engineFailed">Error loading engine</string>
   <string name="cloudAnalysis">Cloud analysis</string>
@@ -916,6 +920,7 @@
   <string name="contrast">Contrast</string>
   <string name="saturation">Saturation</string>
   <string name="hue">Hue</string>
+  <string name="selectMatchingPieces">Select matching pieces</string>
   <string name="boardReset">Reset colours to default</string>
   <string name="pieceSet">Piece set</string>
   <string name="traditional">Traditional</string>

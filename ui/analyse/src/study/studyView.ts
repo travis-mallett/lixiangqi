@@ -168,6 +168,11 @@ export function underboard(ctrl: AnalyseCtrl): LooseVNodes {
     toolTab = study.vm.toolTab();
   if (study.gamebookPlay)
     return [gbPlayButtons(ctrl), descView(study, true), descView(study, false), metadata(study)];
+  const showAnalysis = canShowAnalysis(ctrl);
+  const availableChart =
+    showAnalysis && ctrl.settings.showStaticAnalysis && study.serverEval.available()
+      ? analysisPanel(ctrl)
+      : undefined;
   let panel;
   switch (toolTab) {
     case 'tags':
@@ -191,8 +196,7 @@ export function underboard(ctrl: AnalyseCtrl): LooseVNodes {
         : glyphForm.viewDisabled('Select a move to annotate');
       break;
     case 'serverEval':
-      panel = serverEvalView(study.serverEval);
-      if (study?.relay) panel = hl('div.eval-chart-and-training', [panel, trainingView(ctrl)]);
+      if (showAnalysis && !availableChart) panel = analysisPanel(ctrl);
       break;
     case 'share':
       panel = studyShareView(study.share);
@@ -201,7 +205,31 @@ export function underboard(ctrl: AnalyseCtrl): LooseVNodes {
       panel = multiBoardView(study.multiBoard, study);
       break;
   }
-  return [notifView(study.notif), descView(study, true), descView(study, false), buttons(ctrl), panel];
+  return [
+    notifView(study.notif),
+    availableChart,
+    descView(study, true),
+    descView(study, false),
+    buttons(ctrl),
+    panel,
+  ];
+}
+
+function canShowAnalysis(ctrl: AnalyseCtrl): boolean {
+  const study = ctrl.study!;
+  const chapter = study.data.chapter;
+  return (
+    chapter.features.computer &&
+    !study.gamebookPlay &&
+    !chapter.practice &&
+    !ctrl.practice &&
+    (chapter.conceal === undefined || study.isChapterOwner() || ctrl.tree.lastPly() <= chapter.conceal)
+  );
+}
+
+function analysisPanel(ctrl: AnalyseCtrl): VNode {
+  const chart = serverEvalView(ctrl.study!.serverEval);
+  return ctrl.study!.relay ? hl('div.eval-chart-and-training', [chart, trainingView(ctrl)]) : chart;
 }
 
 export const resultTag = (s: string) => (s === '1' ? 'good' : s === '0' ? 'bad' : 'status');
@@ -290,13 +318,14 @@ function buttons(root: AnalyseCtrl): VNode {
           count: (root.node.glyphs || []).length,
           shouldBlurIfPrimaryClick: true,
         }),
-      (canContribute || root.data.analysis) &&
+      canShowAnalysis(root) &&
+        (canContribute || ctrl.serverEval.available()) &&
         toolButton({
           ctrl,
           tab: 'serverEval',
           hint: i18n.site.computerAnalysis,
           icon: icon(licon.BarChart)(),
-          count: root.data.analysis && '✓',
+          count: ctrl.serverEval.available() ? '✓' : undefined,
           shouldBlurIfPrimaryClick: true,
         }),
       toolButton({

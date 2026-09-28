@@ -304,10 +304,6 @@ As appropriate, investigate:
 - deployment implications;
 - external compatibility requirements.
 
-Use subagents for substantial, cross-cutting, unfamiliar, or architecture-heavy work when independent investigation improves coverage or keeps noisy exploration out of the main context.
-
-The main agent remains responsible for synthesizing findings and choosing the final design.
-
 Verify changes at the level appropriate to their impact. A shared lower-level fix should receive broader verification rather than being replaced by a safer-looking surface patch.
 
 ## Review standard

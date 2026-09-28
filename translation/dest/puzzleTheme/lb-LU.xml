@@ -76,14 +76,9 @@
   <string name="mateIn3Description">Mattsetzen an dräi Zich.</string>
   <string name="mateIn4">Matt a 4</string>
   <string name="mateIn4Description">Mattsetzen a véier Zich.</string>
-  <string name="mateIn5">Matt a 5 oder méi</string>
   <string name="mateIn5Description">Fann eng laang Sequenz un Zich, déi schachmatt gëtt.</string>
-  <string name="middlegame">Mëttelspill</string>
-  <string name="middlegameDescription">Eng Taktik an der zweeter Phase vun der Partie.</string>
   <string name="oneMove">Een-Zuch Aufgab</string>
   <string name="oneMoveDescription">Eng Aufgab déi nëmmen een Zuch erfuerdert.</string>
-  <string name="opening">Eröffnung</string>
-  <string name="openingDescription">Eng Taktik an der éischter Phase vun der Partie.</string>
   <string name="pawnEndgame">Baueren Endspill</string>
   <string name="pawnEndgameDescription">En Endspill mat just Baueren.</string>
   <string name="pin">Fesselung</string>

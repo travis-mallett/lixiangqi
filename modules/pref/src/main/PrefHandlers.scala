@@ -64,10 +64,11 @@ private object PrefHandlers:
           .flatten
           .filterNot(_.isBlank),
         boardTheme = key(r, "boardTheme", d.boardTheme, BoardThemes.contains),
-        pieceSet = key(r, "pieceSet", d.pieceSet, PieceSets.contains),
+        pieceSet = if r.contains("pieceSet") then PieceSets.get(r.strO("pieceSet")).key else d.pieceSet,
         soundSet = key(r, "soundSet", d.soundSet, SoundSets.contains),
         musicSet = key(r, "musicSet", d.musicSet, MusicSets.contains),
-        board = r.getD("board", d.board)
+        board = r.getD("board", d.board),
+        selectMatchingPieces = r.getD("selectMatchingPieces", d.selectMatchingPieces)
       )
 
     def writes(w: BSON.Writer, o: Appearance) =
@@ -77,6 +78,7 @@ private object PrefHandlers:
         "backgroundUrl" -> o.backgroundUrl,
         "boardTheme" -> o.boardTheme,
         "pieceSet" -> o.pieceSet,
+        "selectMatchingPieces" -> o.selectMatchingPieces,
         "soundSet" -> o.soundSet,
         "musicSet" -> o.musicSet,
         "board" -> o.board

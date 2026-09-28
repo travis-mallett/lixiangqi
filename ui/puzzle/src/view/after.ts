@@ -1,10 +1,7 @@
-import { createAnalysisUrl } from 'xiangqi';
-
 import { licon } from 'lib/licon';
 import { type VNode, type MaybeVNodes, bind, hl, icon } from 'lib/view';
 
 import type PuzzleCtrl from '../ctrl';
-import { puzzleAnalysisTree } from '../xiangqi';
 
 const renderVote = (ctrl: PuzzleCtrl): VNode =>
   hl(
@@ -42,44 +39,13 @@ const renderStreak = (ctrl: PuzzleCtrl): MaybeVNodes => [
 export default function (ctrl: PuzzleCtrl): VNode {
   const { data } = ctrl;
   const win = ctrl.lastFeedback === 'win';
-  const canPlayComputer = !ctrl.isXiangqi && !ctrl.node.san?.includes('#');
   return hl(
     'div.puzzle__feedback.after',
     ctrl.streak && !win
       ? renderStreak(ctrl)
       : [
-          hl(
-            'div.complete',
-            win && ctrl.isXiangqi
-              ? ctrl.solvedMessage()
-              : i18n.puzzle[win ? 'puzzleSuccess' : 'puzzleComplete'],
-          ),
-          hl('button.continue', { hook: bind('click', ctrl.nextPuzzle) }, [
-            icon(licon.PlayTriangle)(),
-            i18n.puzzle[ctrl.streak ? 'continueTheStreak' : 'continueTraining'],
-          ]),
-          hl('div.puzzle__more', [
-            canPlayComputer
-              ? hl('a.practice.button.button-empty', {
-                  attrs: {
-                    'data-icon': licon.Bullseye,
-                    href: `/analysis/${ctrl.node.fen.replace(/ /g, '_')}?color=${ctrl.pov}#practice`,
-                    title: i18n.site.playAgainstComputer,
-                    target: '_blank',
-                  },
-                })
-              : ctrl.isXiangqi
-                ? hl('a.practice.button.button-empty', {
-                    attrs: {
-                      'data-icon': licon.Bullseye,
-                      href: createAnalysisUrl(puzzleAnalysisTree(ctrl.initialNode), ctrl.pov),
-                      title: i18n.site.analysis,
-                      target: '_blank',
-                    },
-                  })
-                : hl('a'),
-            data.user ? renderVote(ctrl) : undefined,
-          ]),
+          hl('div.complete', win ? ctrl.solvedMessage() : i18n.puzzle.puzzleComplete),
+          hl('div.puzzle__more', [data.user ? renderVote(ctrl) : undefined]),
         ],
   );
 }
