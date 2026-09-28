@@ -69,7 +69,7 @@ jobs:
             --output "$archive"
           echo "84257063905615919fb4ee6a70273a94843bb6ec04c45e3ac706098838bc1a49  $archive" | sha256sum --check
           mkdir -p .tools/pikafish
-          7zz x "$archive" -o.tools/pikafish Linux/pikafish-avx2 pikafish.nnue
+          7z x "$archive" -o.tools/pikafish Linux/pikafish-avx2 pikafish.nnue
           echo '98b569626c1f49932d5f8b5571740fe75e1a28beaa75cfd2feda87db2773f8bc  .tools/pikafish/Linux/pikafish-avx2' | sha256sum --check
           echo 'c4026370d7516d9b0f668447f9ca1931241538bdc689cde6fec6a991ac4d5f77  .tools/pikafish/pikafish.nnue' | sha256sum --check
           chmod +x .tools/pikafish/Linux/pikafish-avx2
