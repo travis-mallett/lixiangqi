@@ -1000,6 +1000,11 @@ class PuzzleStorageLifecycleTest(unittest.TestCase):
         from tools.xiangqi_data.puzzle_mining.verification import verify_candidate
         from tools.xiangqi_data.tests.test_puzzle_mining import CategorizerEngine
 
+        timing_log = Path(self.temp.name) / "logs" / "verification.jsonl"
+        self.enterContext(
+            patch("tools.xiangqi_data.puzzle_mining.verification.TIMING_LOG", timing_log)
+        )
+        self.assertFalse(timing_log.parent.exists())
         source = Path(self.temp.name) / "source.sqlite3"
         with closing(sqlite3.connect(source)) as db, db:
             db.execute("CREATE TABLE games(id TEXT PRIMARY KEY,moves TEXT)")
@@ -1017,6 +1022,9 @@ class PuzzleStorageLifecycleTest(unittest.TestCase):
             )
         self.assertEqual(status, "complete")
         self.assertEqual(engine.resets, 1)
+        timings = [json.loads(line) for line in timing_log.read_text().splitlines()]
+        self.assertIn("source.load_game", [entry["stage"] for entry in timings])
+        self.assertIn("verification.persist", [entry["stage"] for entry in timings])
         evidence = json.loads(
             self.connection.execute(
                 "SELECT branches_json FROM candidate_assessments"

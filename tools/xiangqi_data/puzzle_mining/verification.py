@@ -154,6 +154,7 @@ def verify_candidate(connection, engine, claim, source_path, config, progress=No
 
 def _verify_candidate(connection, engine, claim, source_path, config, progress=None):
     candidate = claim.candidate
+    TIMING_LOG.parent.mkdir(parents=True, exist_ok=True)
     engine.new_game()
 
     def timing(stage, details):
@@ -254,7 +255,6 @@ def _worker_main(
     catalog_path=None,
     reconstruct: bool = False,
 ) -> None:
-    TIMING_LOG.parent.mkdir(parents=True, exist_ok=True)
     connection = open_database(Path(output_path))
     from .queue_priority import prepare_priority
 

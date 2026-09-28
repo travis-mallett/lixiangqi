@@ -6,12 +6,18 @@ on:
       - '.github/workflows/translations.yml'
       - 'translation/**'
       - 'bin/trans-lint'
+      - 'bin/i18n-file-gen.ts'
+      - 'modules/coreI18n/src/main/key.scala'
+      - 'ui/@types/lichess/i18n.d.ts'
       - 'ui/.build/src/i18n.ts'
   pull_request:
     paths:
       - '.github/workflows/translations.yml'
       - 'translation/**'
       - 'bin/trans-lint'
+      - 'bin/i18n-file-gen.ts'
+      - 'modules/coreI18n/src/main/key.scala'
+      - 'ui/@types/lichess/i18n.d.ts'
       - 'ui/.build/src/i18n.ts'
 
 jobs:
@@ -48,6 +54,6 @@ jobs:
           git status --porcelain
           git diff
           if [[ -n $(git status --porcelain) ]]; then
-              echo "i18n files are out of date. Please run `pnpm i18n-file-gen` and `./ui/build --i18n` and commit the changes.";
+              echo 'i18n files are out of date. Please run `pnpm i18n-file-gen` and `./ui/build --i18n` and commit the changes.';
               exit 1;
           fi
