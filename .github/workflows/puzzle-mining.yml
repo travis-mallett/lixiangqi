@@ -59,6 +59,20 @@ jobs:
           python-version: '3.12'
       - name: Install mining test dependencies
         run: python -m pip install --disable-pip-version-check pymongo -r tools/xiangqi_data/requirements.txt
+      - name: Install pinned Pikafish engine and network
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y 7zip
+          archive="$RUNNER_TEMP/pikafish.7z"
+          curl --fail --location --retry 3 \
+            https://github.com/official-pikafish/Pikafish/releases/download/Pikafish-2026-01-02/Pikafish.2026-01-02.7z \
+            --output "$archive"
+          echo "84257063905615919fb4ee6a70273a94843bb6ec04c45e3ac706098838bc1a49  $archive" | sha256sum --check
+          mkdir -p .tools/pikafish
+          7zz x "$archive" -o.tools/pikafish Linux/pikafish-avx2 pikafish.nnue
+          echo '98b569626c1f49932d5f8b5571740fe75e1a28beaa75cfd2feda87db2773f8bc  .tools/pikafish/Linux/pikafish-avx2' | sha256sum --check
+          echo 'c4026370d7516d9b0f668447f9ca1931241538bdc689cde6fec6a991ac4d5f77  .tools/pikafish/pikafish.nnue' | sha256sum --check
+          chmod +x .tools/pikafish/Linux/pikafish-avx2
       - name: Run puzzle mining tests
         run: python -m unittest discover -s tools/xiangqi_data/tests -p "test_puzzle*.py"
       - name: Run supported puzzle kind tests
