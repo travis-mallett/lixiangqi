@@ -176,13 +176,6 @@ export interface CheckCount {
   black: number;
 }
 
-export type MaterialDiffSide = Record<Role, number>;
-
-export interface MaterialDiff {
-  white: MaterialDiffSide;
-  black: MaterialDiffSide;
-}
-
 export interface RoundStep {
   ply: Ply;
   fen: FEN;

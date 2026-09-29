@@ -156,5 +156,5 @@ object embed:
 
   def notFound(using EmbedContext) =
     views.base.embed
-      .minimal(title = s"404 - ${trans.study.studyNotFound.txt()}", cssKeys = List("bits.lpv.embed")):
+      .minimal(title = s"404 - ${trans.study.studyNotFound.txt()}", cssKeys = List("viewer.embed")):
         div(cls := "not-found")(h1(trans.study.studyNotFound()))

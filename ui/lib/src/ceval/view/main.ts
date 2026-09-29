@@ -1,7 +1,7 @@
-// no side effects allowed due to re-export by index.ts
-
 import { Chessground as makeChessground } from '@lichess-org/chessground';
 import { uciToMove } from '@lichess-org/chessground/util';
+// no side effects allowed due to re-export by index.ts
+import { boardPresentation, type BoardView } from '@lixiangqi/board';
 import type { Position } from 'chessops/chess';
 import { lichessRules } from 'chessops/compat';
 import { parseFen, makeBoardFen } from 'chessops/fen';
@@ -10,6 +10,7 @@ import { opposite, parseUci } from 'chessops/util';
 import { setupPosition } from 'chessops/variant';
 import { h } from 'snabbdom';
 
+import { createXiangqiBoard, xiangqiPosition } from '@/board';
 import { isTouchDevice } from '@/device';
 import { blurIfPrimaryClick, defined, notNull, requestIdleCallbackSafe } from '@/index';
 import { licon } from '@/licon';
@@ -483,6 +484,30 @@ function renderPvBoard(ctrl: CevalHandler): VNode | undefined {
   if (!pvBoard) return;
   const { fen, uci } = pvBoard;
   const orientation = ctrl.getOrientation();
+  if (ceval.opts.variant.key === 'xiangqi') {
+    return hl(
+      'div.pv-board',
+      hl(
+        'div.pv-board-square',
+        hl('div.cg-wrap', {
+          hook: {
+            insert: vnode => {
+              vnode.data!.board = createXiangqiBoard(
+                vnode.elm as HTMLElement,
+                xiangqiPosition(fen, uci),
+                boardPresentation('preview', orientation === 'white' ? 'red' : 'black'),
+              );
+            },
+            postpatch: (old, vnode) => {
+              vnode.data!.board = old.data!.board;
+              (vnode.data!.board as BoardView).display(xiangqiPosition(fen, uci));
+            },
+            destroy: vnode => (vnode.data!.board as BoardView).destroy(),
+          },
+        }),
+      ),
+    );
+  }
   const cgConfig = {
     fen,
     lastMove: uciToMove(uci),

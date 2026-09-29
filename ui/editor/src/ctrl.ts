@@ -1,12 +1,8 @@
-import type { Api } from 'chessgroundx/api';
-import { read as readFen } from 'chessgroundx/fen';
-import type { Color } from 'chessgroundx/types';
+import { positionFromFen, positionToFen, standardXiangqi, type BoardView } from '@lixiangqi/board';
 
 import * as xhr from 'lib/xhr';
 
 import type { Config, EditorState, Redraw, Selected } from './interfaces';
-
-const DIMENSIONS = { width: 9, height: 10 } as const;
 
 interface PositionResponse {
   fen: string;
@@ -15,7 +11,7 @@ interface PositionResponse {
 }
 
 export default class EditorCtrl {
-  ground?: Api;
+  ground?: BoardView;
   selected: Selected = 'pointer';
   orientation: Color;
   turn: Color;
@@ -37,13 +33,15 @@ export default class EditorCtrl {
     this.state = { fen, validating: true, playable: false };
   }
 
-  attachGround(ground: Api): void {
+  attachGround(ground: BoardView): void {
     this.ground = ground;
     void this.validate();
   }
 
   getFen(): string {
-    const placement = this.ground?.getFen() ?? this.state.fen.split(/\s+/)[0];
+    const placement = this.ground
+      ? positionToFen(this.ground.position(), standardXiangqi).split(' ')[0]
+      : this.state.fen.split(/\s+/)[0];
     return `${placement} ${this.turn === 'white' ? 'w' : 'b'} - - ${this.halfmoves} ${this.fullmoves}`;
   }
 
@@ -55,7 +53,7 @@ export default class EditorCtrl {
     this.halfmoves = nonNegativeInt(fields[4], 0);
     this.fullmoves = Math.max(1, nonNegativeInt(fields[5], 1));
     this.state = { fen, validating: true, playable: false };
-    this.ground?.set({ fen: fields[0], turnColor: this.turn });
+    this.ground?.display(positionFromFen(fen, standardXiangqi), { kind: 'edit' });
     this.changed();
     return true;
   }
@@ -69,13 +67,15 @@ export default class EditorCtrl {
   }
 
   flip(): void {
-    this.ground?.toggleOrientation();
-    this.orientation = this.orientation === 'white' ? 'black' : 'white';
-    this.changed(false);
+    this.setOrientation(this.orientation === 'white' ? 'black' : 'white');
   }
 
   setOrientation(orientation: Color): void {
-    if (orientation !== this.orientation) this.ground?.toggleOrientation();
+    if (this.ground)
+      this.ground.setPresentation({
+        ...this.ground.getPresentation(),
+        perspective: orientation === 'white' ? 'red' : 'black',
+      });
     this.orientation = orientation;
     this.changed(false);
   }
@@ -87,7 +87,11 @@ export default class EditorCtrl {
 
   setTurn(turn: Color): void {
     this.turn = turn;
-    this.ground?.set({ turnColor: turn });
+    if (this.ground)
+      this.ground.display(
+        { ...this.ground.position(), active: turn === 'white' ? 'red' : 'black' },
+        { kind: 'edit' },
+      );
     this.changed();
   }
 
@@ -159,9 +163,8 @@ function normalizeFen(rawFen: string, fallback: string): string {
 
 function hasBoardShape(fen: string): boolean {
   try {
-    const placement = fen.split(/\s+/)[0];
-    const board = readFen(placement, DIMENSIONS);
-    return board.pieces.size >= 0 && placement.split('/').length === 10;
+    positionFromFen(fen, standardXiangqi);
+    return true;
   } catch {
     return false;
   }

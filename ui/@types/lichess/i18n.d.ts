@@ -1875,6 +1875,8 @@ interface I18n {
   nvui: {
     /** Actions */
     actions: string;
+    /** advisor */
+    advisor: string;
     /** Announce current square. */
     announceCurrentSquare: string;
     /** Announce last move. */
@@ -1905,10 +1907,20 @@ interface I18n {
     blackRook: string;
     /** Command list when the board has focus */
     boardCommandList: string;
+    /** cannon */
+    cannon: string;
+    /** chariot */
+    chariot: string;
+    /** face-down piece */
+    concealedPiece: string;
     /** %s copied to clipboard */
     copiedToClipboard: I18nFormat;
     /** Copy %s to clipboard */
     copyToClipboard: I18nFormat;
+    /** elephant */
+    elephant: string;
+    /** empty */
+    emptyLocation: string;
     /** Featured events */
     featuredEvents: string;
     /** Game info */
@@ -1917,10 +1929,14 @@ interface I18n {
     gameStart: string;
     /** Game status */
     gameStatus: string;
+    /** general */
+    general: string;
     /** Go to the board. Default square is e-4. You can specify a square: board a-1 or b a-1 will take you to square a-1. */
     goToBoard: string;
     /** Go to the command input form. */
     goToInputForm: string;
+    /** horse */
+    horse: string;
     /** Command input form */
     inputForm: string;
     /** Type these commands in the command input form. */
@@ -1981,6 +1997,8 @@ interface I18n {
     sanSymbols: string;
     /** takes */
     sanTakes: string;
+    /** soldier */
+    soldier: string;
     /** Red bishop */
     whiteBishop: string;
     /** Red king */
@@ -4283,6 +4301,8 @@ interface I18n {
     emailSent: I18nFormat;
     /** Do not set an email address suggested by someone else. They can use it to steal your account. */
     emailSuggestion: string;
+    /** Embed your game */
+    embedGame: string;
     /** Embed in your website */
     embedInYourWebsite: string;
     /** Paste a game URL or a study chapter URL to embed it. */
@@ -4543,6 +4563,8 @@ interface I18n {
     kingInTheCenter: string;
     /** Language */
     language: string;
+    /** Last */
+    last: string;
     /** Last post */
     lastPost: string;
     /** Active %s */
@@ -4991,6 +5013,8 @@ interface I18n {
     practice: string;
     /** Practice with computer */
     practiceWithComputer: string;
+    /** Previous */
+    previous: string;
     /** Previously on Lixiangqi TV */
     previouslyOnLichessTV: string;
     /** Ctrl or shift = red; command, alt, or meta = blue; a key from each = yellow. */
@@ -5287,6 +5311,8 @@ interface I18n {
     standByX: I18nFormat;
     /** Standings */
     standings: string;
+    /** Start */
+    start: string;
     /** started streaming */
     startedStreaming: string;
     /** Starting: */

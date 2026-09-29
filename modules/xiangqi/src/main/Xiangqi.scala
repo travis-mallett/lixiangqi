@@ -368,13 +368,16 @@ object Xiangqi:
       notation: String,
       chineseNotation: String,
       state: State,
-      children: Vector[ImportedTreeNode]
+      children: Vector[ImportedTreeNode],
+      comments: Vector[String] = Vector.empty,
+      glyphs: Vector[Int] = Vector.empty
   )
   final case class ImportedMoveTree(
       initialFen: String,
       headers: Map[String, String],
       state: State,
-      children: Vector[ImportedTreeNode]
+      children: Vector[ImportedTreeNode],
+      comments: Vector[String] = Vector.empty
   ):
     def mainline: Game =
       @annotation.tailrec

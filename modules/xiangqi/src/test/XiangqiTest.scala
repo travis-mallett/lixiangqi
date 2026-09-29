@@ -312,3 +312,22 @@ class XiangqiTest extends FunSuite:
         )
         .isLeft
     )
+
+  test("native notation keeps diagram comments, variation comments, and glyphs"):
+    val diagram =
+      XiangqiRules.Notation.importTree(NotationImport(notation = "{A diagram} *")).fold(fail(_), identity)
+    assertEquals(diagram.comments, Vector("A diagram"))
+    assertEquals(diagram.children.size, 0)
+    val tree = XiangqiRules.Notation
+      .importTree(
+        NotationImport(
+          notation = "{Root} 1. a4a5! {Main move} ( {Alternative} 1. c4c5 $2 ;Line comment\n ) a7a6"
+        )
+      )
+      .fold(fail(_), identity)
+    assertEquals(tree.comments, Vector("Root"))
+    assertEquals(tree.children.head.comments, Vector("Main move"))
+    assertEquals(tree.children.head.glyphs, Vector(1))
+    assertEquals(tree.children(1).comments, Vector("Alternative", "Line comment"))
+    assertEquals(tree.children(1).glyphs, Vector(2))
+    assert(XiangqiRules.Notation.importTree(NotationImport(notation = "{unclosed")).isLeft)

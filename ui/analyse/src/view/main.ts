@@ -9,7 +9,6 @@ import { licon } from 'lib/licon';
 import { type VNode, onInsert, hl } from 'lib/view';
 import { watchers } from 'lib/view/watchers';
 
-import crazyView from '@/crazy/crazyView';
 import type AnalyseCtrl from '@/ctrl';
 import forecastView from '@/forecast/forecastView';
 import { view as keyboardView } from '@/keyboard';
@@ -47,9 +46,7 @@ function analyseView(ctrl: AnalyseCtrl, deps?: typeof studyDeps): VNode {
     ctrl.keyboardHelp && keyboardView(ctrl),
     renderBoard(ctx),
     ctx.gaugeOn && cevalView.renderGauge(ctrl),
-    crazyView(ctrl, ctrl.topColor(), 'top'),
     renderTools(ctx),
-    crazyView(ctrl, ctrl.bottomColor(), 'bottom'),
     renderControls(ctrl),
     renderUnderboard(ctx),
     ctrl.keyboardMove && renderKeyboardMove(ctrl.keyboardMove),

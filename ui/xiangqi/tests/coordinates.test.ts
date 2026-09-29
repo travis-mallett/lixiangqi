@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 test('keeps Xiangqi file coordinates player-relative in both board orientations', () => {
-  const theme = readFileSync(new URL('../../lib/css/theme/board/_xiangqi.scss', import.meta.url), 'utf8');
+  const theme = readFileSync(new URL('../../board/css/_board.scss', import.meta.url), 'utf8');
 
   assert.match(
     theme,

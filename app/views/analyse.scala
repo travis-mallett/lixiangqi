@@ -86,30 +86,14 @@ object embed:
       views.base.page.ui.inlineJs(ctx.nonce, Nil)
     )
 
-  def lpv(pgn: PgnStr, getPgn: Boolean, title: String, args: JsObject)(using
-      ctx: EmbedContext
+  def lpv(pgn: PgnStr, @annotation.unused getPgn: Boolean, @annotation.unused title: String, args: JsObject)(
+      using ctx: EmbedContext
   ) =
-    val opts = Json.obj(
-      "menu" -> Json.obj("getPgn" -> Json.obj("enabled" -> getPgn)),
-      "i18n" -> Json.obj(
-        "flipTheBoard" -> trans.site.flipBoard.txt(),
-        "analysisBoard" -> trans.site.analysis.txt(),
-        "practiceWithComputer" -> trans.site.practiceWithComputer.txt(),
-        "getPgn" -> trans.study.copyChapterPgn.txt(),
-        "download" -> trans.site.download.txt()
-      )
-    ) ++ args
-    views.base.embed.minimal(
-      title = title,
-      cssKeys = List("bits.lpv.embed"),
-      modules = esmInitObj("site.lpvEmbed", opts)
-    )(
-      div(cls := "is2d")(div(pgn))
-    )
+    views.boardViewer(args ++ Json.obj("pgn" -> pgn.value))
 
   def notFound(using EmbedContext) =
     views.base.embed.minimal(
       title = "404 - Game not found",
-      cssKeys = List("bits.lpv.embed")
+      cssKeys = List("viewer.embed")
     ):
       div(cls := "not-found")(h1("Game not found"))

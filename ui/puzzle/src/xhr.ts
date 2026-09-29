@@ -1,5 +1,3 @@
-import type { Color } from 'chessgroundx/types';
-
 import { defined } from 'lib';
 import { json as xhrJson, form as xhrForm } from 'lib/xhr';
 

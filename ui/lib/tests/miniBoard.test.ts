@@ -7,7 +7,7 @@ const sent: unknown[][] = [];
 mock.module(new URL('../src/socket.ts', import.meta.url).href, {
   namedExports: { wsSend: (...args: unknown[]) => sent.push(args) },
 });
-const { initMiniGames, initMiniGame, getChessground, updateMiniGame } = await import('../src/view/miniBoard');
+const { initMiniGames, initMiniGame, getBoard, updateMiniGame } = await import('../src/view/miniBoard');
 const { pubsub } = await import('../src/pubsub');
 // Load the same small DOM library shipped with the page.
 const cash = await import('../../../public/javascripts/vendor/cash.min.js');
@@ -16,7 +16,7 @@ Object.assign(globalThis, { $: cash.default });
 const boards: HTMLElement[] = [];
 afterEach(() => {
   for (const node of boards.splice(0)) {
-    getChessground(node.querySelector('.cg-wrap')!)?.destroy();
+    getBoard(node.querySelector('.cg-wrap')!)?.destroy();
     node.remove();
   }
   sent.length = 0;
@@ -41,14 +41,15 @@ test('live mini-games render pieces, subscribe, and apply incoming moves', async
   pubsub.complete('socket.hasConnected');
   await Promise.resolve();
   assert.deepEqual(sent, [['startWatching', 'tvgame01']]);
-  const ground = getChessground(node.querySelector('.cg-wrap')!);
+  const ground = getBoard(node.querySelector('.cg-wrap')!);
   assert.equal(node.querySelectorAll('cg-board piece').length, 32);
-  assert.ok(ground.state.animation);
-  ground.set({ animation: { enabled: false } });
+  assert.ok(ground);
+  ground.setPresentation({ ...ground.getPresentation(), motion: { duration: 0 } });
+  assert.deepEqual(ground.getPresentation().feedback, { effects: [], audio: false });
   updateMiniGame(node, { fen: movedFen, lm: 'a4a5' });
-  assert.equal(ground.state.boardState.pieces.has('a4'), false);
-  assert.equal(ground.state.boardState.pieces.get('a5')?.role, 'p-piece');
-  assert.deepEqual(ground.state.lastMove, ['a4', 'a5']);
+  assert.equal(ground.position().pieces.has('a4'), false);
+  assert.equal(ground.position().pieces.get('a5')?.role, 'soldier');
+  assert.deepEqual(ground.position().lastMove, ['a4', 'a5']);
 });
 
 test('finished mini-games start at the initial position and replay recorded timing', async () => {
@@ -69,10 +70,10 @@ test('finished mini-games start at the initial position and replay recorded timi
     }),
   );
   initMiniGame(node);
-  const ground = getChessground(node.querySelector('.cg-wrap')!);
-  assert.equal(ground.state.boardState.pieces.has('a4'), true);
+  const ground = getBoard(node.querySelector('.cg-wrap')!);
+  assert.equal(ground!.position().pieces.has('a4'), true);
   assert.equal(node.querySelectorAll('cg-board piece').length, 32);
   await new Promise(resolve => setTimeout(resolve, 180));
-  assert.equal(ground.state.boardState.pieces.has('a4'), false);
-  assert.equal(ground.state.boardState.pieces.get('a5')?.role, 'p-piece');
+  assert.equal(ground!.position().pieces.has('a4'), false);
+  assert.equal(ground!.position().pieces.get('a5')?.role, 'soldier');
 });

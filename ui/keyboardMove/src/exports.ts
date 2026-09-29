@@ -1,11 +1,8 @@
-import { charToRole } from 'chessops';
 import { h, type VNode } from 'snabbdom';
 
 import { type Prop, propWithEffect } from 'lib';
 import type { SanToUci } from 'lib/game';
 import type { MoveRootCtrl, MoveUpdate } from 'lib/game/moveRootCtrl';
-import { promote } from 'lib/game/promotion';
-import type { NodeCrazy } from 'lib/tree/types';
 import { onInsert, snabDialog } from 'lib/view';
 
 import KeyboardChecker from './keyboardChecker';
@@ -15,17 +12,19 @@ export interface Opts {
   ctrl: KeyboardMove;
 }
 
-export type KeyboardMoveHandler = (fen: FEN, dests?: Dests, yourMove?: boolean) => void;
+export type KeyboardMoveHandler = (
+  fen: FEN,
+  dests?: ReadonlyMap<string, readonly string[]>,
+  yourMove?: boolean,
+) => void;
 
 export interface KeyboardMove {
-  drop(key: Key, piece: string): void;
-  promote(orig: Key, dest: Key, piece: string): void;
   update(up: MoveUpdate): void;
   registerHandler(h: KeyboardMoveHandler): void;
   isFocused: Prop<boolean>;
-  san(orig: Key, dest: Key): void;
-  select(key: Key): void;
-  hasSelected(): Key | undefined;
+  san(orig: string, dest: string): void;
+  select(key: string): void;
+  hasSelected(): string | undefined;
   confirmMove(): void;
   usedSan: boolean;
   legalSans: SanToUci | null;
@@ -51,12 +50,9 @@ export interface RootData {
 export type ArrowKey = 'ArrowUp' | 'ArrowDown' | 'ArrowLeft' | 'ArrowRight';
 
 export interface KeyboardMoveRootCtrl extends MoveRootCtrl {
-  sendNewPiece?: (role: Role, key: Key, isPredrop: boolean) => void;
   userJumpPlyDelta?: (plyDelta: Ply) => void;
   handleArrowKey?: (arrowKey: ArrowKey) => void;
   submitMove?: (v: boolean) => void;
-  crazyValid?: (role: Role, key: Key) => boolean;
-  getCrazyhousePockets?: () => NodeCrazy['pockets'] | undefined;
   data: RootData;
 }
 
@@ -75,7 +71,7 @@ export function render(ctrl: KeyboardMove): VNode {
       ),
     }),
     ctrl.isFocused()
-      ? h('em', 'Enter SAN (Nc3), ICCF (2133) or UCI (b1c3) moves, type ? to learn more')
+      ? h('em', ['a1a2 / a10a9 ', h('kbd', 'Enter')])
       : h('strong', ['Press ', h('kbd', 'm'), ' to focus']),
     ctrl.helpModalOpen()
       ? snabDialog({
@@ -95,60 +91,33 @@ export function ctrl(root: KeyboardMoveRootCtrl): KeyboardMove {
   let handler: KeyboardMoveHandler | undefined;
   let lastSelect = performance.now();
   let lastFen: FEN | undefined;
-  let cg: CgApi;
-  const select = (key: Key): void => {
-    if (cg.state.selected === key) cg.cancelMove();
-    else {
-      cg.selectSquare(key, true);
-      lastSelect = performance.now();
-    }
+  let board: MoveUpdate['board'];
+  const select = (key: string): void => {
+    if (!board) return;
+    if (board.selectedLocation() === key) board.cancelInput();
+    else board.select(key);
+    lastSelect = performance.now();
   };
   let usedSan = false;
   return {
-    drop(key, piece) {
-      const role = charToRole(piece);
-      const crazyhousePockets = root.getCrazyhousePockets?.();
-      const color = root.data.player.color === 'both' ? cg.state.movable.color : root.data.player.color;
-      // Unable to determine what color we are
-      if (!color || color === 'both') return;
-      // Crazyhouse not set up properly
-      if (!root.crazyValid || !root.sendNewPiece) return;
-      // Square occupied
-      if (!role || !crazyhousePockets || cg.state.pieces.has(key)) return;
-      // Piece not in Pocket
-      if (role === 'king' || !crazyhousePockets[color === 'white' ? 0 : 1][role]) return;
-      if (!root.crazyValid(role, key)) return;
-      cg.cancelMove();
-      cg.newPiece({ role, color }, key);
-      root.sendNewPiece(role, key, false);
-    },
-    promote(orig, dest, piece) {
-      const role = charToRole(piece);
-      const variant = root.data.game.variant.key;
-      if (!role || role === 'pawn' || (role === 'king' && variant !== 'antichess')) return;
-      cg.cancelMove();
-      promote(cg, dest, role);
-      root.pluginMove(orig, dest, role);
-    },
     update(up: MoveUpdate) {
-      if (up.cg) cg = up.cg;
-      if (handler) handler(up.fen, cg.state.movable.dests, up.canMove);
+      if (up.board) board = up.board;
+      if (handler) handler(up.fen, board?.destinations(), up.canMove);
       lastFen = up.fen;
     },
     registerHandler(h: KeyboardMoveHandler) {
       handler = h;
-      if (lastFen) handler(lastFen, cg.state.movable.dests);
+      if (lastFen) handler(lastFen, board?.destinations());
     },
     san(orig, dest) {
       usedSan = true;
-      cg.cancelMove();
+      board?.cancelInput();
       select(orig);
       select(dest);
-      // ensure chessground does not leave the destination square selected
-      cg.cancelMove();
+      board?.cancelInput();
     },
     select,
-    hasSelected: () => cg.state.selected,
+    hasSelected: () => board?.selectedLocation(),
     confirmMove: () => (root.submitMove ? root.submitMove(true) : null),
     usedSan,
     legalSans: null,

@@ -93,8 +93,8 @@ test('preparation locks every player input without searching or recording an att
     assert.fail('loading must not submit a move');
   });
   const { ctrl, results } = controller(opts(), undefined, () => preparation);
-  assert.equal(ctrl.makeXiangqiGroundOpts().movableColor, undefined);
-  assert.deepEqual(ctrl.makeXiangqiGroundOpts().legalMoves, []);
+  assert.equal(ctrl.boardSetup().canMove, false);
+  assert.deepEqual(ctrl.boardSetup().legalMoves, []);
   assert.equal(ctrl.canHint(), false);
   ctrl.userXiangqiMove('a1a2');
   ctrl.playUci('a1a2');
@@ -102,7 +102,7 @@ test('preparation locks every player input without searching or recording an att
   assert.deepEqual(results, []);
   ready();
   await new Promise<void>(resolve => setImmediate(resolve));
-  assert.equal(ctrl.makeXiangqiGroundOpts().movableColor, 'white');
+  assert.equal(ctrl.boardSetup().canMove, true);
   assert.equal(ctrl.canHint(), true);
   assert.deepEqual(results, []);
 });
@@ -116,13 +116,13 @@ test('startup failure exposes Retry before completion and recovery unlocks the b
   assert.equal(ctrl.engineStatus.state, 'error');
   assert.equal(ctrl.completed, false);
   assert.equal(ctrl.canRetry(), true);
-  assert.equal(ctrl.makeXiangqiGroundOpts().movableColor, undefined);
+  assert.equal(ctrl.boardSetup().canMove, false);
   t.mock.method(XiangqiPuzzleEngine.prototype, 'prepare', async () => {});
   ctrl.retryFailedMove();
   assert.equal(ctrl.canRetry(), false, 'retry cannot start overlapping preparations');
   await new Promise<void>(resolve => setImmediate(resolve));
   assert.equal(ctrl.engineStatus.state, 'ready');
-  assert.equal(ctrl.makeXiangqiGroundOpts().movableColor, 'white');
+  assert.equal(ctrl.boardSetup().canMove, true);
   assert.deepEqual(results, []);
 });
 
@@ -529,7 +529,7 @@ test('explicit objective metadata starts both puzzle types without engine analys
     const { ctrl } = await readyController(options);
     assert.equal(ctrl.xiangqiEvaluating, false);
     assert.equal((ctrl as any).xiangqiObjective.mate, objective === 'mate');
-    assert.equal(ctrl.makeXiangqiGroundOpts().movableColor, 'white');
+    assert.equal(ctrl.boardSetup().canMove, true);
     assert.equal(search.mock.callCount(), 0);
     search.mock.restore();
   }
@@ -551,7 +551,7 @@ test('move allowance retry clears the attempt while preserving the rated result 
   ctrl.xiangqiFailure = 'moveAllowanceExceeded';
   ctrl.applyProgress('fail');
   assert.equal(ctrl.path, failedPath);
-  assert.equal(ctrl.makeXiangqiGroundOpts().movableColor, undefined);
+  assert.equal(ctrl.boardSetup().canMove, false);
   ctrl.toggleHint();
   assert.equal(ctrl.showHint(), false);
   const request = t.mock.method(globalThis, 'fetch', async () => {
@@ -572,7 +572,7 @@ test('move allowance retry clears the attempt while preserving the rated result 
   assert.equal(ctrl.hintHasBeenShown(), true);
   assert.equal(ctrl.next, next);
   assert.equal(internal.xiangqiObjective, objective);
-  assert.equal(ctrl.makeXiangqiGroundOpts().movableColor, 'white');
+  assert.equal(ctrl.boardSetup().canMove, true);
   ctrl.addNode(makeXiangqiNode(state, 'a1a4', '', 0), ctrl.path);
   ctrl.applyProgress('win');
   assert.equal(ctrl.solvedMoves, 1);
@@ -632,21 +632,23 @@ test('failed deviations play defense after 750ms, reveal failure after animation
   assert.deepEqual(results, [false]);
   const animations: unknown[] = [];
   ctrl.ground({
-    set: (_config: unknown, options: unknown) => animations.push(options),
-    setAutoShapes() {},
+    display: (_position: unknown, transition: unknown) => animations.push(transition),
+    setPresentation() {},
+    setInteraction() {},
+    presentTransition() {},
     playPremove() {},
-    selectSquare() {},
+    select() {},
     cancelPremove() {},
-    setShapes() {},
+    setMarks() {},
   } as any);
   ctrl.retryFailedMove();
   assert.equal(ctrl.node.uci, 'a1a4');
-  assert.deepEqual(animations[0], { animation: 'slide' });
-  assert.equal(ctrl.makeXiangqiGroundOpts().movableColor, undefined);
+  assert.deepEqual(animations[0], { kind: 'backward', effects: [] });
+  assert.equal(ctrl.boardSetup().canMove, false);
   t.mock.timers.tick(249);
   assert.equal(ctrl.node.uci, 'a1a4');
   t.mock.timers.tick(1);
-  assert.deepEqual(animations[1], { animation: 'slide' });
+  assert.deepEqual(animations[1], { kind: 'backward', effects: [] });
   assert.equal(ctrl.path, ctrl.initialPath);
   assert.equal(ctrl.mode, 'try');
   assert.equal(ctrl.xiangqiFailure, undefined);
@@ -660,9 +662,9 @@ test('failed deviations play defense after 750ms, reveal failure after animation
   assert.equal(ctrl.initialNode.children.length, 1, 'no retry variations');
   animations.length = 0;
   ctrl.jump(ctrl.initialPath);
-  assert.deepEqual(animations[0], { animation: 'slide' });
+  assert.deepEqual(animations[0], { kind: 'backward', effects: [] });
   ctrl.jump(ctrl.initialPath + ctrl.initialNode.children[0].id);
-  assert.equal(animations[1], undefined, 'forward navigation uses the normal animation');
+  assert.deepEqual(animations[1], { kind: 'forward' }, 'forward navigation uses the normal animation');
 });
 
 test('saved root alternatives use no engine and reveal every nested variation', async t => {
@@ -774,7 +776,7 @@ test('Solution replaces source history and attempts with only published branches
     ctrl.tree.root.children.map(node => node.uci),
     ['a1a2', 'a1a4'],
   );
-  assert.equal(ctrl.makeXiangqiGroundOpts().movableColor, undefined);
+  assert.equal(ctrl.boardSetup().canMove, false);
   ctrl.completed = true;
   ctrl.retryPuzzle();
   assert.equal(ctrl.initialNode.fen, position.fen);

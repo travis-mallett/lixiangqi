@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { mock, test } from 'node:test';
 
-const indexUrl = new URL('../src/index.ts', import.meta.url).href;
+const indexUrl = new URL('../../lib/src/board.ts', import.meta.url).href;
 const specialRulesUrl = new URL('../src/xiangqi.specialRules.ts', import.meta.url).href;
 
 test('special rules initializes independent authoritative widgets', async () => {
@@ -16,12 +16,15 @@ test('special rules initializes independent authoritative widgets', async () => 
   const failTwoAt = 5;
   mock.module(indexUrl, {
     namedExports: {
-      legalMoveDests: () => new Map(),
-      makeXiangqiGround: (element: HTMLElement) => ({
-        set: (state: { fen: string }) =>
-          boardState.set(element.closest<HTMLElement>('[data-example-id]')!.dataset.exampleId!, state.fen),
+      xiangqiPosition: (fen: string) => ({ fen }),
+      websiteBoardPresentation: () => ({}),
+      createXiangqiBoard: (element: HTMLElement) => ({
+        display: (state: { fen: string }, transition: any) => {
+          boardState.set(element.closest<HTMLElement>('[data-example-id]')!.dataset.exampleId!, state.fen);
+          if (transition.effects !== undefined) soundMoves.push({ board: element });
+        },
+        onDestroy() {},
       }),
-      uciMoveToCg: (move: string) => move,
     },
   });
   const scriptFor = (length: number) =>
@@ -145,7 +148,7 @@ test('special rules initializes independent authoritative widgets', async () => 
   previousFromOne.dispatchEvent(new window.Event('pointerup', { bubbles: true, cancelable: true }));
   await new Promise(resolve => setTimeout(resolve, 0));
   assert.equal(soundMoves.length, soundsBeforeRewind + 1);
-  assert.equal(soundMoves.at(-1), undefined);
+  assert.equal(soundMoves.at(-1)?.board, single.querySelector('.cg-wrap'));
   const ids = [...document.querySelectorAll<HTMLElement>('[id]')].map(element => element.id);
   assert.equal(new Set(ids).size, ids.length);
 

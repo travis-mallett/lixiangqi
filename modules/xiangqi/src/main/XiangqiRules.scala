@@ -614,13 +614,17 @@ object XiangqiRules:
           val initialFen = headers.getOrElse("fen", command.initialFen).trim
           for
             root <- decode(initialFen)
-            stripped <- stripComments(tagPattern.replaceAllIn(text, " "))
-            tokens = """\(|\)|[^\s()]+""".r.findAllIn(stripped).toVector
+            tokens <- tokenize(tagPattern.replaceAllIn(text, " "))
             parser = Parser(tokens)
             roots = mutable.ArrayBuffer.empty[Parser.Node]
             _ <- parser.parseSequence(root, roots, depth = 0, expectClose = false)
-            _ <- Either.cond(parser.nodeCount > 0, (), "notation contains no Xiangqi moves")
-          yield ImportedMoveTree(initialFen, headers, stateOf(root), roots.map(_.immutable).toVector)
+          yield ImportedMoveTree(
+            initialFen,
+            headers,
+            stateOf(root),
+            roots.map(_.immutable).toVector,
+            parser.comments.toVector
+          )
 
     private object Parser:
       final class Node(
@@ -628,16 +632,27 @@ object XiangqiRules:
           val notation: String,
           val chineseNotation: String,
           val state: State,
-          val children: mutable.ArrayBuffer[Node] = mutable.ArrayBuffer.empty
+          val children: mutable.ArrayBuffer[Node] = mutable.ArrayBuffer.empty,
+          val comments: mutable.ArrayBuffer[String] = mutable.ArrayBuffer.empty,
+          val glyphs: mutable.ArrayBuffer[Int] = mutable.ArrayBuffer.empty
       ):
         def immutable: ImportedTreeNode =
-          ImportedTreeNode(move, notation, chineseNotation, state, children.map(_.immutable).toVector)
+          ImportedTreeNode(
+            move,
+            notation,
+            chineseNotation,
+            state,
+            children.map(_.immutable).toVector,
+            comments.toVector,
+            glyphs.toVector
+          )
 
     private final class Parser(tokens: Vector[String]):
       import Parser.Node
 
       var index = 0
       var nodeCount = 0
+      val comments = mutable.ArrayBuffer.empty[String]
 
       def parseSequence(
           start: Decoded,
@@ -651,11 +666,26 @@ object XiangqiRules:
           var currentChildren = siblings
           var lastParent: Option[mutable.ArrayBuffer[Node]] = None
           var lastBefore: Option[Decoded] = None
+          var lastNode: Option[Node] = None
+          val leadingComments = mutable.ArrayBuffer.empty[String]
           var error: Option[String] = None
           var closed = false
 
           while index < tokens.size && error.isEmpty && !closed do
             tokens(index) match
+              case comment if comment.startsWith("{") =>
+                lastNode.fold(if depth == 0 then comments else leadingComments)(_.comments) += comment
+                  .drop(1)
+                  .dropRight(1)
+                  .trim
+                index += 1
+              case nag if nag.matches("\\$[0-9]+") =>
+                nag
+                  .drop(1)
+                  .toIntOption
+                  .filter(n => n >= 0 && n <= 255)
+                  .foreach(n => lastNode.foreach(_.glyphs += n))
+                index += 1
               case ")" =>
                 if !expectClose then error = Some("Unexpected closing variation parenthesis")
                 else
@@ -687,6 +717,13 @@ object XiangqiRules:
                               mergeNode(currentChildren, node) match
                                 case Left(message) => error = Some(message)
                                 case Right(existing) =>
+                                  existing.comments ++= leadingComments
+                                  leadingComments.clear()
+                                  lastNode = Some(existing)
+                                  val suffix = raw.reverse.takeWhile(c => c == '!' || c == '?').reverse
+                                  Map("!" -> 1, "?" -> 2, "!!" -> 3, "??" -> 4, "!?" -> 5, "?!" -> 6)
+                                    .get(suffix)
+                                    .foreach(existing.glyphs += _)
                                   lastParent = Some(currentChildren)
                                   lastBefore = Some(before)
                                   currentChildren = existing.children
@@ -734,23 +771,35 @@ object XiangqiRules:
     private def unescape(value: String): String =
       value.replace("\\\"", "\"").replace("\\\\", "\\")
 
-    private def stripComments(text: String): Either[String, String] =
-      val output = StringBuilder()
-      var braceDepth = 0
-      var lineComment = false
-      text.foreach: char =>
-        if lineComment then
-          if char == '\r' || char == '\n' then
-            lineComment = false
-            output.append(' ')
-        else if braceDepth > 0 then
-          if char == '{' then braceDepth += 1
-          else if char == '}' then braceDepth -= 1
+    /** Keep comments as data; never discard article or study annotations while importing. */
+    private def tokenize(text: String): Either[String, Vector[String]] =
+      val tokens = mutable.ArrayBuffer.empty[String]
+      var index = 0
+      var error: Option[String] = None
+      while index < text.length && error.isEmpty do
+        val char = text(index)
+        if char.isWhitespace then index += 1
         else if char == '{' then
-          braceDepth = 1
-          output.append(' ')
+          val start = index
+          var depth = 1
+          index += 1
+          while index < text.length && depth > 0 do
+            if text(index) == '{' then depth += 1
+            else if text(index) == '}' then depth -= 1
+            index += 1
+          if depth != 0 then error = Some("Unclosed notation comment")
+          else tokens += text.substring(start, index)
         else if char == ';' then
-          lineComment = true
-          output.append(' ')
-        else output.append(char)
-      Either.cond(braceDepth == 0, output.result(), "Unclosed notation comment")
+          val start = index + 1
+          while index < text.length && text(index) != '\n' && text(index) != '\r' do index += 1
+          tokens += "{" + text.substring(start, index) + "}"
+        else if char == '(' || char == ')' then
+          tokens += char.toString
+          index += 1
+        else
+          val start = index
+          while index < text.length && !text(index).isWhitespace && !"(){};".contains(text(index)) do
+            index += 1
+          if start == index then error = Some("Unexpected closing comment brace")
+          else tokens += text.substring(start, index)
+      error.toLeft(tokens.toVector)

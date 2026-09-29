@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { makeXiangqiGround } from '../src/index.ts';
+import { makeRenderer } from '../../board/tests/support/renderer.ts';
 
 test('last-move connector follows moves, orientation, and highlight visibility', () => {
   const element = document.createElement('div');
   document.body.append(element);
-  const ground = makeXiangqiGround(element, {
+  const ground = makeRenderer(element, {
     lastMove: 'a4a1',
     animationDuration: 0,
     viewOnly: true,

@@ -149,13 +149,15 @@ function renderHelpModal(ctrl: VoiceCtrl) {
 
   return snabDialog({
     class: 'help.voice-move-help',
-    htmlUrl: `/help/voice/${ctrl.moduleId}`,
+    ...(ctrl.moduleId === 'xiangqi'
+      ? { htmlText: '<div></div>' }
+      : { htmlUrl: `/help/voice/${ctrl.moduleId}` }),
     css: [{ hashed: 'voice.move.help' }],
     onClose: () => ctrl.showHelp(false),
     modal: true,
     easyClose: 'clickOutside',
     onInsert: async dlg => {
-      if (ctrl.showHelp() === 'list') {
+      if (ctrl.showHelp() === 'list' || ctrl.moduleId === 'xiangqi') {
         showMoveList(dlg);
         return;
       }

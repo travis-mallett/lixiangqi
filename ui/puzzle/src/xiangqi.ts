@@ -3,7 +3,6 @@ import {
   createMoveTreeFromUciMainline,
   createMoveTree,
   addOrSelectChild,
-  legalMoveDests,
   type RulesState,
   type XiangqiPositionNode,
   type XiangqiTreeNode,
@@ -11,6 +10,7 @@ import {
 } from 'xiangqi';
 
 import { selectXiangqiNotation, type XiangqiNotationStyle } from 'lib/game';
+import { xiangqiTreeDestinations } from 'lib/tree/node';
 import { path as pathOps } from 'lib/tree/tree';
 import type { TreeNode } from 'lib/tree/types';
 
@@ -95,7 +95,7 @@ function asPuzzleNode(source: XiangqiPositionNode): XiangqiPuzzleNode {
     san: move?.notation,
     children: source.children.map(asPuzzleNode),
     pos: unavailablePosition,
-    dests: () => legalMoveDests(source.state.legalMoves) as Dests,
+    dests: () => xiangqiTreeDestinations(source.state.legalMoves),
     drops: () => [],
     check: () => source.state.check,
     outcome: () => undefined,
@@ -118,7 +118,7 @@ export function buildXiangqiTree(data: PuzzleData, notationStyle: XiangqiNotatio
     current.xiangqi = data.puzzle.state;
     current.fen = data.puzzle.state.fen;
     current.ply = data.puzzle.state.ply;
-    current.dests = () => legalMoveDests(data.puzzle.state!.legalMoves) as Dests;
+    current.dests = () => xiangqiTreeDestinations(data.puzzle.state!.legalMoves);
     current.check = () => data.puzzle.state!.check;
   }
   return root;
@@ -139,7 +139,7 @@ export function makeXiangqiNode(
     san: notation,
     children: [],
     pos: unavailablePosition,
-    dests: () => legalMoveDests(state.legalMoves) as Dests,
+    dests: () => xiangqiTreeDestinations(state.legalMoves),
     drops: () => [],
     check: () => state.check,
     outcome: () => undefined,

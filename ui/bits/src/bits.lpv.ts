@@ -1,69 +1,51 @@
-import Lpv from '@lichess-org/pgn-viewer';
-import type { Opts as LpvOpts } from '@lichess-org/pgn-viewer/interfaces';
-import type PgnViewer from '@lichess-org/pgn-viewer/pgnViewer';
+import { mountViewer, type GameViewer, type ViewerOptions } from '@lixiangqi/viewer';
 
 import { text as xhrText } from 'lib/xhr';
 
-export default async function (opts?: { el: HTMLElement; url: string; lpvOpts: LpvOpts }): Promise<void> {
-  return opts ? loadPgnAndStart(opts.el, opts.url, opts.lpvOpts) : autostart();
-}
+type Options = Pick<ViewerOptions, 'orientation' | 'initialPly' | 'showMoves' | 'showControls'>;
+const mounted = new Map<HTMLElement, { abort: AbortController; viewer?: GameViewer }>();
+let observer: MutationObserver | undefined;
 
-async function autostart() {
-  await site.asset.loadCssPath('bits.lpv');
-  $('.lpv--autostart').each(function (this: HTMLElement) {
-    const pgn = this.dataset['pgn']!.replace(/<br>/g, '\n');
-    const gamebook = pgn.includes('[ChapterMode "gamebook"]');
-    const rawPly = this.dataset['ply'];
-    const initialPly =
-      rawPly === 'last' ? 'last' : rawPly !== undefined ? parseInt(rawPly, 10) || 0 : undefined;
-    const config: Partial<LpvOpts> = {
-      pgn,
-      orientation: this.dataset['orientation'] as Color | undefined,
-      lichess: location.origin,
-      initialPly: initialPly ?? (gamebook ? 0 : 'last'),
-      ...(gamebook
-        ? {
-            showPlayers: false,
-            showClocks: false,
-            showMoves: false,
-            showControls: false,
-            scrollToMove: false,
-          }
-        : {}),
-    };
-    try {
-      const lpv = Lpv(this, config);
-      if (typeof initialPly === 'number') {
-        const rootPly = (lpv.game.mainline[0]?.ply ?? 1) - 1;
-        const relativePly = Math.max(0, initialPly - rootPly);
-        if (relativePly !== initialPly) lpv.toPath(lpv.game.pathAtMainlinePly(relativePly), false);
+async function mount(el: HTMLElement, pgn: string, options: Options): Promise<void> {
+  if (mounted.has(el)) return;
+  const entry: { abort: AbortController; viewer?: GameViewer } = { abort: new AbortController() };
+  mounted.set(el, entry);
+  observer ??= new MutationObserver(() => {
+    for (const [element, entry] of mounted)
+      if (!element.isConnected) {
+        entry.abort.abort();
+        entry.viewer?.destroy();
+        mounted.delete(element);
       }
-      if (gamebook) toGamebook(lpv);
-    } catch (e) {
-      const url = this.dataset['url'];
-      if (url) this.innerHTML = `<a href="${url}">${location.host}${url}</a>`;
-      console.warn(`LPV refused to load ${url}: ${e}`);
+    if (!mounted.size) {
+      observer?.disconnect();
+      observer = undefined;
     }
   });
+  observer.observe(document.body, { childList: true, subtree: true });
+  try {
+    entry.viewer = await mountViewer(el, { pgn }, options, entry.abort.signal);
+  } catch (error) {
+    if (!entry.abort.signal.aborted) el.textContent = String(error);
+  }
 }
 
-async function loadPgnAndStart(el: HTMLElement, url: string, opts: LpvOpts) {
+/** Retain stored forum/message markup; all actual rendering is the native shared viewer. */
+export default async function (opts?: { el: HTMLElement; url: string; lpvOpts: Options }): Promise<void> {
   await site.asset.loadCssPath('bits.lpv');
-  const pgn = await xhrText(url, {
-    headers: {
-      Accept: 'application/x-chess-pgn',
-    },
-  });
-  Lpv(el, {
-    ...opts,
-    lichess: location.origin,
-    pgn,
-  });
-}
-
-function toGamebook(lpv: PgnViewer) {
-  const href = lpv.game.metadata.externalLink;
-  $(lpv.div)
-    .addClass('lpv--gamebook')
-    .append($(`<a href="${href}" target="_blank" class="button lpv__gamebook">Start</a>`));
+  if (opts)
+    return mount(
+      opts.el,
+      await xhrText(opts.url, { headers: { Accept: 'application/x-chess-pgn' } }),
+      opts.lpvOpts,
+    );
+  await Promise.all(
+    [...document.querySelectorAll<HTMLElement>('.lpv--autostart')].map(el => {
+      const rawPly = el.dataset.ply;
+      return mount(el, (el.dataset.pgn ?? '').replace(/<br>/g, '\n'), {
+        orientation: el.dataset.orientation as Color,
+        initialPly: rawPly === 'last' ? 'last' : rawPly === undefined ? 'last' : Number(rawPly) || 0,
+      });
+    }),
+  );
 }

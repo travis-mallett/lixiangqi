@@ -1,97 +1,65 @@
-import { makeUci } from 'chessops';
-import { IllegalSetup, type Position } from 'chessops/chess';
-import { makeFen } from 'chessops/fen';
-import { makeVariant, parsePgn, startingPosition, type ChildNode, type PgnNodeData } from 'chessops/pgn';
-import { makeSanAndPlay, parseSan } from 'chessops/san';
-
 import type { Player } from 'lib/game';
+import {
+  importXiangqiNotation,
+  notationAnnotations,
+  type ImportedTreeNode,
+  type RulesState,
+} from 'lib/game/xiangqiNotation';
 import { completeNode } from 'lib/tree/node';
 import type { TreeNode } from 'lib/tree/types';
 
 import type { AnalyseData, Game } from './interfaces';
+import { storedStudyMarks } from './study/boardMarks';
 
-const readNode = (
-  variant: VariantKey,
-  node: ChildNode<PgnNodeData>,
-  pos: Position,
-  ply: Ply,
-  withChildren = true,
-): TreeNode => {
-  const move = parseSan(pos, node.data.san);
-  if (!move) throw new Error(`Can't play ${node.data.san} at move ${Math.ceil(ply / 2)}, ply ${ply}`);
-  return completeNode(variant)({
-    ply,
-    san: makeSanAndPlay(pos, move),
-    fen: makeFen(pos.toSetup()),
-    uci: makeUci(move),
-    children: withChildren ? node.children.map(child => readNode(variant, child, pos.clone(), ply + 1)) : [],
-  });
-};
-
-export default function (pgn: string): Partial<AnalyseData> {
-  const game = parsePgn(pgn)[0];
-  const start = startingPosition(game.headers).unwrap();
-  const fen = makeFen(start.toSetup());
-  const variant: VariantKey = rulesToVariantKey[start.rules] || start.rules;
-  const initialPly = (start.toSetup().fullmoves - 1) * 2 + (start.turn === 'white' ? 0 : 1);
-  const treeParts: TreeNode[] = [
-    completeNode(variant)({
-      id: '',
-      ply: initialPly,
-      fen,
-      children: [],
-    }),
-  ];
-  let tree = game.moves;
-  const pos = start;
-  const sidelines: TreeNode[][] = [[]];
-  let index = 0;
-  while (tree.children.length) {
-    const [mainline, ...variations] = tree.children;
-    const ply = initialPly + index + 1;
-    sidelines.push(variations.map(variation => readNode(variant, variation, pos.clone(), ply)));
-    treeParts.push(readNode(variant, mainline, pos, ply, false));
-    tree = mainline;
-    index += 1;
-  }
-  const variantName = makeVariant(start.rules) || variant;
-  // TODO Improve types so that analysis data != game data
+/** Use the same native rules boundary as analysis and embeds. These IDs are local to this imported tree. */
+export default async function (pgn: string): Promise<Partial<AnalyseData>> {
+  const imported = await importXiangqiNotation(pgn);
+  const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+  let sequence = 0;
+  const build = (
+    state: RulesState,
+    children: ImportedTreeNode[],
+    comments: string[] = [],
+    move?: ImportedTreeNode,
+  ): TreeNode => {
+    const index = sequence++;
+    const annotations = notationAnnotations(comments);
+    return completeNode('xiangqi')({
+      id: move ? alphabet[Math.floor(index / alphabet.length)] + alphabet[index % alphabet.length] : '',
+      ply: state.ply,
+      fen: state.fen,
+      uci: move?.move,
+      san: move?.notation,
+      sanZh: move?.chineseNotation,
+      xiangqiLegalMoves: state.legalMoves,
+      xiangqiCheck: state.check,
+      comments: annotations.comments.map((text, i) => ({ id: `${index}-${i}`, by: '', text })),
+      shapes: storedStudyMarks(annotations.marks),
+      glyphs: move?.glyphs?.map(id => ({
+        id,
+        name: `$${id}`,
+        symbol:
+          ({ 1: '!', 2: '?', 3: '!!', 4: '??', 5: '!?', 6: '?!' } as Record<number, string>)[id] ?? `$${id}`,
+      })),
+      children: children.map(child => build(child.state, child.children, child.comments, child)),
+    });
+  };
+  const root = build(imported.state, imported.children, imported.comments);
   return {
     game: {
-      fen,
-      initialFen: fen,
+      fen: root.fen,
+      initialFen: root.fen,
       id: 'synthetic',
-      player: start.turn,
+      player: imported.state.turn === 'red' ? 'white' : 'black',
       status: { id: 20, name: 'started' },
-      turns: treeParts.length,
-      variant: {
-        key: variant,
-        name: variantName,
-        short: variantName,
-      },
+      turns: root.ply,
+      variant: { key: 'xiangqi', name: 'Xiangqi', short: 'Xiangqi' },
     } as Game,
     player: { color: 'white' } as Player,
     opponent: { color: 'black' } as Player,
-    treeParts,
-    sidelines,
+    treeParts: [root],
     userAnalysis: true,
   };
 }
 
-const rulesToVariantKey: Record<string, VariantKey> = {
-  chess: 'standard',
-  kingofthehill: 'kingOfTheHill',
-  '3check': 'threeCheck',
-  racingkings: 'racingKings',
-};
-
-export const renderPgnError = (error = '') =>
-  `PGN error: ${
-    {
-      [IllegalSetup.Empty]: 'empty board',
-      [IllegalSetup.OppositeCheck]: 'king in check',
-      [IllegalSetup.PawnsOnBackrank]: 'pawns on back rank',
-      [IllegalSetup.Kings]: 'king(s) missing',
-      [IllegalSetup.Variant]: 'invalid Variant header',
-    }[error] ?? error
-  }`;
+export const renderPgnError = (error = '') => (error ? `PGN: ${error}` : '');

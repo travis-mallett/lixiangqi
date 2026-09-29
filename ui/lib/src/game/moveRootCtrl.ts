@@ -1,5 +1,6 @@
+import type { BoardView } from '@lixiangqi/board';
 export interface MoveRootCtrl {
-  pluginMove: (orig: Key, dest: Key, prom: Role | undefined, preConfirmed?: boolean /* = false */) => void;
+  pluginMove(orig: string, dest: string, prom: Role | undefined, preConfirmed?: boolean): void;
   redraw: () => void;
   flipNow: () => void;
   offerDraw?: (v: boolean, immediately?: boolean) => void;
@@ -18,5 +19,5 @@ export interface MoveRootCtrl {
 export interface MoveUpdate {
   fen: FEN;
   canMove: boolean;
-  cg?: CgApi;
+  board?: BoardView;
 }

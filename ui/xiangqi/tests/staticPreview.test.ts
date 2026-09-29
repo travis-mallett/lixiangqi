@@ -1,12 +1,12 @@
-import { Chessground } from 'chessgroundx/chessground';
-import { Notation } from 'chessgroundx/types';
 import assert from 'node:assert/strict';
 import { mock, test } from 'node:test';
+
+import { Chessground, Notation } from '../../board/tests/support/renderer.ts';
 
 mock.module(new URL('../../lib/src/socket.ts', import.meta.url).href, {
   namedExports: { wsSend: () => {} },
 });
-const { getChessground } = await import('lib/view');
+const { getBoard } = await import('lib/view');
 const { default: initManuals } = await import('../src/xiangqi.manuals.ts');
 
 const fen = 'rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR';
@@ -19,6 +19,7 @@ test('static preview preserves pieces and shadows but cannot enable interaction 
     fen,
     dimensions,
     notation: Notation.XIANGQI_HANNUM,
+    layeredPieces: true,
     staticPreview: true,
     viewOnly: false,
     animation: { enabled: true, duration: 250 },
@@ -97,10 +98,11 @@ test('every expanded Yicheng chapter uses static previews', () => {
     assert.equal(previews.length, 134);
     for (const preview of previews) {
       assert.ok(preview.classList.contains('cg-static-preview'));
-      assert.equal(getChessground(preview).state.staticPreview, true);
+      assert.equal(getBoard(preview)!.getPresentation().motion.duration, 0);
+      assert.deepEqual(getBoard(preview)!.getPresentation().feedback, { effects: [], audio: false });
     }
   } finally {
-    host.querySelectorAll<HTMLElement>('.cg-wrap').forEach(node => getChessground(node)?.destroy());
+    host.querySelectorAll<HTMLElement>('.cg-wrap').forEach(node => getBoard(node)?.destroy());
     HTMLElement.prototype.scrollIntoView = scrollIntoView;
     window.matchMedia = matchMedia;
     host.remove();

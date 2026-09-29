@@ -1,16 +1,15 @@
-import type { DrawShape } from 'chessgroundx/draw';
+import type { BoardMark, BoardEffect } from '@lixiangqi/board';
 import { attributesModule, classModule, h, init, type VNode } from 'snabbdom';
 
+import { createXiangqiBoard, xiangqiPosition, websiteBoardPresentation } from 'lib/board';
 import { isXiangqiCapture } from 'lib/game';
 import { isXiangqiMate } from 'lib/game/adjudication';
-import { playMoveNavigationSound } from 'lib/game/replay/moveNavigationSound';
 import { renderAdjudication } from 'lib/game/view/adjudication';
+import { XIANGQI_START_FEN } from 'lib/game/xiangqi';
 import { licon } from 'lib/licon';
-import { ShowResizeHandle } from 'lib/prefs';
 import { renderColumnTree, renderIndex, type ColumnTreeNode } from 'lib/tree/columnView';
 import { hl, onInsert, renderReplayControls } from 'lib/view';
 
-import { legalMoveDests, makeXiangqiGround, uciMoveToCg } from './index';
 import {
   examplePosition,
   SpecialRulesPlayback,
@@ -26,7 +25,7 @@ type Example = {
 
 interface Bootstrap {
   examples: Example[];
-  diagrams?: Array<{ id: string; fen: string; shapes: DrawShape[] }>;
+  diagrams?: Array<{ id: string; fen: string; shapes: BoardMark[] }>;
   animationDuration?: number;
 }
 
@@ -52,12 +51,11 @@ async function initExample(root: HTMLElement, example: Example, animationDuratio
     event.preventDefault();
     void playback.go(Number(target.dataset.movePly));
   });
-  const ground = makeXiangqiGround(boardElement, {
-    viewOnly: true,
-    resizeHandle: ShowResizeHandle.Never,
-    animationDuration,
-    addDimensionsCssVarsTo: root,
-  });
+  const ground = createXiangqiBoard(
+    boardElement,
+    xiangqiPosition(XIANGQI_START_FEN),
+    websiteBoardPresentation({ animationDuration }, 'replay'),
+  );
   // Keep the empty board hidden until the server has supplied the actual starting position.
   boardElement.style.visibility = 'hidden';
   let displayed: ExamplePlayback | undefined;
@@ -81,29 +79,25 @@ async function initExample(root: HTMLElement, example: Example, animationDuratio
           }
         });
   movesResizeObserver?.observe(moves);
+  ground.onDestroy(() => movesResizeObserver?.disconnect());
 
   function render(): void {
     const data = playback.data;
     root.setAttribute('aria-busy', String(playback.pending));
     if (data && displayed !== data) {
       const before = displayed;
-      ground.set({
-        fen: data.state.fen,
-        turnColor: data.state.turn === 'red' ? 'white' : 'black',
-        check: data.state.check,
-        lastMove: data.lastMove ? uciMoveToCg(data.lastMove) : undefined,
-        movable: { free: false, dests: legalMoveDests(data.state.legalMoves) },
+      const delta = before ? data.acceptedPly - before.acceptedPly : 0;
+      const effects: BoardEffect[] = [];
+      if (delta === 1 && before) {
+        if (isXiangqiCapture(before.state.fen, data.state.fen)) effects.push('capture');
+        if (data.state.check) effects.push('check');
+        if (isXiangqiMate(undefined, data.state.termination)) effects.push('checkmate');
+      }
+      ground.display(xiangqiPosition(data.state.fen, data.lastMove, data.state.check), {
+        kind: delta === 1 ? 'forward' : delta === -1 ? 'backward' : 'jump',
+        effects: Math.abs(delta) === 1 ? effects : undefined,
       });
       boardElement.style.visibility = 'visible';
-      if (before)
-        playMoveNavigationSound(before.acceptedPly, data.acceptedPly, () =>
-          site.sound.move({
-            capture: isXiangqiCapture(before.state.fen, data.state.fen),
-            check: data.state.check,
-            mate: isXiangqiMate(undefined, data.state.termination),
-            board: boardElement,
-          }),
-        );
       renderMoveList(data);
       displayed = data;
       notice = patch(notice, h('div.special-rules__notice', [renderAdjudication(data.state)]));
@@ -251,14 +245,11 @@ export default async function initExamples(bootstrap: Bootstrap): Promise<void> 
   for (const diagram of bootstrap.diagrams ?? []) {
     const element = document.getElementById(diagram.id);
     if (!element) continue;
-    const ground = makeXiangqiGround(element, {
-      fen: diagram.fen,
-      viewOnly: true,
-      resizeHandle: ShowResizeHandle.Never,
-      animationDuration: 0,
-      addDimensionsCssVarsTo: element,
+    const ground = createXiangqiBoard(element, xiangqiPosition(diagram.fen), {
+      ...websiteBoardPresentation({}, 'preview'),
+      coordinates: true,
     });
-    ground.set({ drawable: { enabled: false, autoShapes: diagram.shapes } });
+    ground.setMarks(diagram.shapes, 'annotation');
   }
   const navigation = [...document.querySelectorAll<HTMLAnchorElement>('.special-rules .subnav a')];
   const updateNavigation = (): void => {

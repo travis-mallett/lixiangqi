@@ -29,15 +29,19 @@ export class LiveboardPlugin implements ChatPlugin {
     const cloudEval = this.ctrl.multiCloudEval?.thisIfShowEval();
     const orientation = this.ctrl.bottomColor();
 
-    const extraCgConfig: () => Partial<CgConfig> = () => ({
-      addDimensionsCssVarsTo: document.querySelector<HTMLElement>('section.mchat') || undefined,
-    });
-
     return hl(
       'div.chat-liveboard',
       hl(
         `span.mini-game.is2d.liveboard-chapter-${preview.id}.liveboard-orientation-${orientation}`,
-        previewContent(preview, orientation, cloudEval, true, this.round, extraCgConfig),
+        previewContent(
+          preview,
+          orientation,
+          cloudEval,
+          true,
+          this.round,
+          undefined,
+          () => document.querySelector<HTMLElement>('section.mchat') ?? undefined,
+        ),
       ),
     );
   }

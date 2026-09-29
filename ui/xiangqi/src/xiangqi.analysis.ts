@@ -1,14 +1,23 @@
-import type { DrawShape } from 'chessgroundx/draw';
-import type { Key } from 'chessgroundx/types';
+import { coordinateMove, type BoardMark } from '@lixiangqi/board';
+import { ExplorerCtrl, type ExplorerGame } from '@lixiangqi/explorer';
+import { embedCode } from '@lixiangqi/viewer';
 
 import { randomId } from 'lib/algo';
+import {
+  makeBoardResizable,
+  createXiangqiBoard,
+  websiteBoardPresentation,
+  xiangqiPosition,
+  xiangqiPlay,
+  type BoardPreferences,
+} from 'lib/board';
 import { PikafishBrowserEngine, type EngineAnalysis, type PikafishStatus } from 'lib/ceval';
 import { engineProgress, engineLoadingText, enginePreparing } from 'lib/ceval/engineProgress';
 import { selectXiangqiNotation, type XiangqiNotationStyle } from 'lib/game';
 import { formatMs } from 'lib/game/clock/clockWidget';
 import { playMoveNavigationSound } from 'lib/game/replay/moveNavigationSound';
 import { isRecordedClockTimeline, type RecordedClockTimeline } from 'lib/game/replay/recordedClockPlayback';
-import { ShowResizeHandle } from 'lib/prefs';
+import { hydrateXiangqiState, requestXiangqi } from 'lib/game/xiangqiApi';
 import { storage } from 'lib/storage';
 import { updateProgressBar } from 'lib/view/progressBar';
 import stepwiseScroll from 'lib/view/stepwiseScroll';
@@ -36,18 +45,8 @@ import {
 } from './analysisTabs';
 import { AnalysisTabsView } from './analysisTabsView';
 import { AnalysisTreeView } from './analysisTreeView';
-import { hydrateXiangqiState, requestXiangqi } from './api';
-import ExplorerCtrl from './explorer/explorerCtrl';
-import type { ExplorerGame } from './explorer/interfaces';
 import { annotationSourceLabel } from './gameCatalog';
-import {
-  legalMoveDests,
-  makeXiangqiGround,
-  setXiangqiGroundPending,
-  uciMoveToCg,
-  XIANGQI_START_FEN,
-  type XiangqiGroundPreferences,
-} from './index';
+import { XIANGQI_START_FEN } from './index';
 import { renderXiangqiNotation } from './notation';
 import { recommendedArrowShapes } from './recommendedArrows';
 import { bindServerAnalysis } from './serverAnalysis';
@@ -79,7 +78,7 @@ interface MoveResponse extends RulesState {
   chineseNotation: string;
 }
 
-interface AnalysisBootstrap extends XiangqiGroundPreferences {
+interface AnalysisBootstrap extends BoardPreferences {
   gameId?: string;
   title?: string;
   initialFen?: string;
@@ -159,7 +158,7 @@ if (!('site' in window)) init();
 async function main(bootstrap: AnalysisBootstrap): Promise<void> {
   const chineseNotation = bootstrap.notationStyle === 'chinese';
   const handoff = readAnalysisUrl(location.hash, chineseNotation);
-  const orientation = handoff?.orientation ?? bootstrap.orientation;
+  const orientation = handoff?.orientation ?? bootstrap.orientation ?? 'white';
   const notationOf = (move: MoveResponse): string =>
     selectXiangqiNotation(move.notation, move.chineseNotation, bootstrap.notationStyle || 'english');
   const urlParams = new URLSearchParams(location.search);
@@ -182,7 +181,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
   let engineSettings = loadEngineSettings();
   const suggestions = new AnalysisSuggestions(
     initialFen,
-    () => ground?.state.orientation ?? orientation ?? 'white',
+    () => (ground.getPresentation().perspective === 'red' ? 'white' : 'black'),
     () => effectiveEngineMultiPv(engineSettings, isMobileAnalysisLayout()),
   );
   let tree: XiangqiMoveTree =
@@ -318,8 +317,6 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
 
   if (!handoff) restoreWorkspace();
 
-  const color = (turn: RulesState['turn']) => (turn === 'red' ? 'white' : 'black');
-
   function restoreWorkspace(): void {
     // A native replay must never be replaced by a draft sharing its starting FEN.
     if (bootstrap.gameId) return;
@@ -396,7 +393,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     const playSound = () => {
       if (tree === navigationTree && activePath === path)
         playMoveNavigationSound(origin.state.ply, destination.state.ply, () =>
-          playXiangqiTransitionSound(navigationTree, fromPath, path),
+          playXiangqiTransitionSound(ground, navigationTree, fromPath, path),
         );
     };
     if (destination.state.needsHydration && destination.state.ply === origin.state.ply + 1)
@@ -408,21 +405,21 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     const node = currentNode();
     const state = node.state;
     const lastMove = node.path ? (node as XiangqiTreeNode).uci : undefined;
-    if (syncPosition)
-      ground.set(
-        {
-          fen: state.fen,
-          turnColor: color(state.turn),
-          check: state.check,
-          lastMove: lastMove ? uciMoveToCg(lastMove) : undefined,
-          movable: {
-            free: false,
-            color: pending || state.gameResult !== '*' ? undefined : color(state.turn),
-            dests: pending ? new Map() : legalMoveDests(state.legalMoves),
-          },
-        },
-        slide ? { animation: 'slide' } : undefined,
+    if (syncPosition) {
+      ground.display(xiangqiPosition(state.fen, lastMove, state.check), {
+        kind: slide ? 'backward' : 'forward',
+      });
+      ground.setInteraction(
+        xiangqiPlay(
+          ground,
+          state.turn,
+          state.legalMoves,
+          onMove,
+          bootstrap,
+          !pending && state.gameResult === '*',
+        ),
       );
+    }
 
     const turn = state.turn === 'red' ? 'Red' : 'Black';
     statusElement.textContent =
@@ -537,7 +534,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
   async function onMoves(moves: string[]): Promise<void> {
     if (pending) return;
     pending = true;
-    setXiangqiGroundPending(ground);
+    ground.setInteraction({ mode: 'display' });
     update(false);
     let failure: unknown;
     let created = false;
@@ -548,7 +545,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
           moves: [],
           move,
         });
-        playXiangqiMoveSound(next);
+        playXiangqiMoveSound(ground, next);
         const added = addOrSelectChild(tree, activePath, {
           uci: move,
           notation: notationOf(next) || move,
@@ -561,7 +558,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
       }
       saveDraft(created);
     } catch (error) {
-      ground.set({ fen: currentState().fen });
+      ground.display(xiangqiPosition(currentState().fen), { kind: 'correction' });
       failure = error;
     } finally {
       pending = false;
@@ -916,20 +913,11 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     statusElement.classList.add('error');
   }
 
-  const ground = makeXiangqiGround(boardElement, {
-    fen: currentState().fen,
-    orientation,
-    turnColor: color(currentState().turn),
-    movableColor: color(currentState().turn),
-    legalMoves: currentState().legalMoves,
+  const ground = createXiangqiBoard(boardElement, xiangqiPosition(currentState().fen), {
+    ...websiteBoardPresentation(bootstrap, 'interactive', orientation === 'white' ? 'red' : 'black'),
     coordinates: interfaceSettings.coordinates,
-    animationDuration: bootstrap.animationDuration,
-    moveEvent: bootstrap.moveEvent,
-    highlight: bootstrap.highlight,
-    resizeHandle: ShowResizeHandle.Always,
-    ply: 0,
-    onMove,
   });
+  makeBoardResizable(ground);
   if (!('ontouchstart' in window) && storage.boolean('scrollMoves').getOrDefault(true))
     boardElement.addEventListener(
       'wheel',
@@ -952,7 +940,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     bootstrap.explorerEndpoint || '',
   );
   function renderSuggestionArrows(): void {
-    const shapes: DrawShape[] = [];
+    const shapes: BoardMark[] = [];
     if (interfaceSettings.bestArrow) {
       const cloudMove = suggestions.explorerResult?.available
         ? suggestions.explorerResult.moves[0]?.move
@@ -964,7 +952,13 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
           ? engineLine
           : [cloudMove]
         : engineLine;
-      shapes.push(...recommendedArrowShapes(recommendedMoves, currentState().turn, ground.state.orientation));
+      shapes.push(
+        ...recommendedArrowShapes(
+          recommendedMoves,
+          currentState().turn,
+          ground.getPresentation().perspective === 'red' ? 'white' : 'black',
+        ),
+      );
     }
     const variationMoves: Array<{ move: string; brush: string }> = [];
     if (interfaceSettings.variationArrows) {
@@ -973,15 +967,16 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
         .forEach(child => variationMoves.push({ move: child.uci, brush: 'paleGrey' }));
     }
     const seen = new Set<string>();
-    ground.setAutoShapes(
+    ground.setMarks(
       shapes.concat(
         variationMoves
           .filter(entry => !seen.has(entry.move) && seen.add(entry.move))
           .map(entry => {
-            const [orig, dest] = uciMoveToCg(entry.move);
-            return { orig: orig as Key, dest, brush: entry.brush };
+            const [from, to] = coordinateMove(entry.move);
+            return { from, to, brush: entry.brush };
           }),
       ),
+      'annotation',
     );
   }
   suggestions.setArrowRenderer(renderSuggestionArrows);
@@ -1090,6 +1085,8 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     () => {
       saveDraft();
       browserEngine.destroy();
+      databaseExplorer.destroy();
+      ground.destroy();
     },
     { once: true },
   );
@@ -1100,6 +1097,17 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     () => void navigator.clipboard.writeText(currentState().fen),
   );
   requiredElement('#xiangqi-import-notation').addEventListener('click', () => void importNotation());
+  const embedButton = document.createElement('button');
+  embedButton.type = 'button';
+  embedButton.textContent = i18n.site.embedGame;
+  requiredElement('#xiangqi-copy-notation').after(embedButton);
+  embedButton.addEventListener('click', () => {
+    const code = embedCode({ pgn: renderXiangqiNotation(tree, initialFen) });
+    notationInput.value = code;
+    notationInput.focus();
+    notationInput.select();
+    void navigator.clipboard.writeText(code).catch(() => {});
+  });
   requiredElement('#xiangqi-copy-notation').addEventListener('click', () => {
     const notation = renderXiangqiNotation(tree, initialFen);
     notationInput.value = notation;
@@ -1133,8 +1141,8 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     moveButton.dataset.testid = 'automation-h1g3';
     moveButton.textContent = 'Test H2+3';
     moveButton.addEventListener('click', () => {
-      ground.selectSquare('h1');
-      ground.selectSquare('g3');
+      ground.select('h1');
+      ground.select('g3');
     });
     document.body.append(moveButton);
   }

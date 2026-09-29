@@ -85,10 +85,11 @@ class PrefTest extends FunSuite:
   test("piece sets expose a complete unique CSS asset map"):
     PieceSets.all.foreach: pieceSet =>
       val assets = PieceSets.assets(pieceSet.key)
-      assertEquals(assets.size, 14)
+      assertEquals(assets.size, 15)
       assertEquals(assets.map(_._1).distinct, assets.map(_._1))
       assertEquals(assets.map(_._2).distinct, assets.map(_._2))
-      assert(assets.forall((path, variable) => path.endsWith(".svg") && variable.startsWith("---")))
+      assert(assets.forall((path, variable) => path.endsWith(".svg") && variable.startsWith("--")))
+      assert(assets.exists(_._2 == "--board-piece-back"))
 
   test("piece sets are assigned to the board-piece menu categories"):
     import PieceSetCategory.*

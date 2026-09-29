@@ -1,5 +1,5 @@
 import type { ChessCtrl } from './chess';
-import type { Shape } from './chessground';
+import type { Shape } from './levelTypes';
 import * as timeouts from './timeouts';
 import { decomposeUci } from './util';
 

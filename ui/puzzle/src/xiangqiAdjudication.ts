@@ -7,6 +7,9 @@ import {
 } from 'xiangqi';
 
 import type { EngineAnalysis, EngineScore, PikafishHistory } from 'lib/ceval/engines/pikafishProtocol';
+import { xiangqiMaterialScore as material } from 'lib/game/material';
+
+export { material };
 
 import type { PuzzlePlayback } from './solutions';
 
@@ -134,18 +137,6 @@ export function linePositions(fen: string, moves: string[]): RulesState[] {
 }
 
 const positionKey = (fen: string): string => fen.split(/\s+/).slice(0, 2).join(' ');
-
-// Material is only a completion target, never a replacement for Pikafish's evaluation.
-// Fixed values deliberately exclude positional bonuses (e.g. crossing the river).
-const pieceValues: Record<string, number> = { r: 9, c: 4.5, n: 4, h: 4, b: 2, e: 2, a: 2, p: 1, k: 0 };
-export function material(fen: string, player: 'red' | 'black'): number {
-  let red = 0;
-  for (const piece of fen.split(' ')[0]) {
-    const value = pieceValues[piece.toLowerCase()] ?? 0;
-    red += piece === piece.toUpperCase() ? value : -value;
-  }
-  return player === 'red' ? red : -red;
-}
 
 export function makeObjective(
   initialFen: string,

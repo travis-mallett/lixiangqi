@@ -1,0 +1,22 @@
+{
+  "name": "@lixiangqi/viewer",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@lixiangqi/board": "workspace:*",
+    "lib": "workspace:*",
+    "@lixiangqi/explorer": "workspace:*"
+  },
+  "build": {
+    "bundle": "src/viewer.*.ts"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": {
+        "source": "./src/index.ts",
+        "default": "./dist/index.js"
+      }
+    }
+  }
+}

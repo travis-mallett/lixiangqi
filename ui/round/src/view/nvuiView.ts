@@ -1,61 +1,40 @@
-import { Chessground } from 'chessgroundx/chessground';
-import type { Key, Piece, Pieces } from 'chessgroundx/types';
+import { coordinateMove as moveLocations } from '@lixiangqi/board';
 import { opposite } from 'chessops';
 
-import {
-  aiLevelName,
-  type Player,
-  type TopOrBottom,
-  playable,
-  xiangqiCgToUci,
-  xiangqiUciMoveToCg,
-} from 'lib/game';
+import { aiLevelName, type Player, type TopOrBottom, playable } from 'lib/game';
 import { plyToTurn } from 'lib/game/chess';
 import { renderClock } from 'lib/game/clock/clockView';
+import { accessibleBoard, positionText } from 'lib/nvui/board';
 import { renderSetting } from 'lib/nvui/setting';
 import { formatClock as formatClockName } from 'lib/setup/timeControl';
 import { type LooseVNodes, type VNode, hl, onInsert } from 'lib/view';
 
+import { createRoundBoard } from '../board';
 import renderCorresClock from '../corresClock/corresClockView';
 import type RoundController from '../ctrl';
-import { makeConfig as makeGroundConfig } from '../ground';
 import type { Step } from '../interfaces';
 import type { RoundNvuiContext } from '../round.nvui';
 import { plyStep } from '../util';
 import { renderResult } from './replay';
 import { renderTableEnd, renderTablePlay, renderTableWatch } from './table';
 
-const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'] as const;
-const ranks = ['10', '9', '8', '7', '6', '5', '4', '3', '2', '1'] as const;
 const coordinateMove = /^([a-i](?:10|[1-9]))([a-i](?:10|[1-9]))$/i;
 
-const roleNames: Record<string, string> = {
-  'k-piece': 'general',
-  'a-piece': 'advisor',
-  'b-piece': 'elephant',
-  'n-piece': 'horse',
-  'r-piece': 'chariot',
-  'c-piece': 'cannon',
-  'p-piece': 'soldier',
-};
-
-const sideName = (color: Color): string => (color === 'white' ? 'Red' : 'Black');
-const displayKey = (key: Key): string => xiangqiCgToUci(key);
-const pieceName = (piece: Piece): string => `${sideName(piece.color)} ${roleNames[piece.role] ?? piece.role}`;
-
+const sideName = (color: string): string => (color === 'white' || color === 'red' ? 'Red' : 'Black');
 export function renderNvui(ctx: RoundNvuiContext): VNode {
   const { ctrl, notify, pageStyle, moveStyle } = ctx;
   notify.redraw = ctrl.redraw;
 
-  if (!ctrl.chessground)
-    ctrl.setChessground(
-      Chessground(document.createElement('div'), {
-        ...makeGroundConfig(ctrl),
-        animation: { enabled: false },
-        drawable: { enabled: false },
-        coordinates: false,
-      }),
-    );
+  if (!ctrl.board) {
+    const board = createRoundBoard(document.createElement('div'), ctrl);
+    board.setPresentation({
+      ...board.getPresentation(),
+      motion: { duration: 0 },
+      drawing: false,
+      coordinates: false,
+    });
+    ctrl.setBoard(board);
+  }
 
   const board = renderBoard(ctx);
   const actions = renderActions(ctrl);
@@ -81,7 +60,7 @@ export function renderNvui(ctx: RoundNvuiContext): VNode {
       renderMove(plyStep(ctrl.data, ctrl.ply), moveStyle.get()),
     ),
     hl('h2', i18n.nvui.pieces),
-    renderPieceList(ctrl.chessground.state.boardState.pieces),
+    hl('p', positionText(ctrl.board)),
     hl('label', [noTrans('Move notation'), renderSetting(moveStyle, ctrl.redraw)]),
     hl('label', [noTrans('Page layout'), renderSetting(pageStyle, ctrl.redraw)]),
     notify.render(),
@@ -141,8 +120,8 @@ function inputForm(ctx: RoundNvuiContext): VNode {
 }
 
 function legalMove(ctrl: RoundController, uci: string): boolean {
-  const [orig, dest] = xiangqiUciMoveToCg(uci);
-  return ctrl.chessground.state.movable.dests?.get(orig)?.includes(dest) ?? false;
+  const [from, to] = moveLocations(uci);
+  return ctrl.board.allowsMove(from, to);
 }
 
 function gameInfo({ ctrl }: RoundNvuiContext): VNode {
@@ -205,69 +184,11 @@ function renderActions(ctrl: RoundController): VNode {
   ]);
 }
 
-function renderBoard({ ctrl }: RoundNvuiContext): VNode {
-  const pov = ctrl.flip ? opposite(ctrl.data.player.color) : ctrl.data.player.color;
-  const orderedFiles = pov === 'black' ? [...files].reverse() : [...files];
-  const orderedRanks = pov === 'black' ? [...ranks].reverse() : [...ranks];
-  const pieces = ctrl.chessground.state.boardState.pieces;
-
+function renderBoard({ ctrl, notify }: RoundNvuiContext): VNode {
+  const color = ctrl.flip ? opposite(ctrl.data.player.color) : ctrl.data.player.color;
   return hl('section.xiangqi-board', [
     hl('h2', i18n.site.board),
-    hl(
-      'table.board-wrapper',
-      {
-        attrs: {
-          'aria-label': noTrans('Xiangqi board. Red is represented internally as white.'),
-        },
-      },
-      [
-        hl('thead', [
-          hl('tr', [hl('td'), ...orderedFiles.map(file => hl('th', { attrs: { scope: 'col' } }, file))]),
-        ]),
-        hl(
-          'tbody',
-          orderedRanks.map(rank =>
-            hl('tr', [
-              hl('th', { attrs: { scope: 'row' } }, rank),
-              ...orderedFiles.map(file => {
-                const display = `${file}${rank}`;
-                const key = xiangqiUciMoveToCg(`${display}${display}`)[0] as Key;
-                const piece = pieces.get(key);
-                return hl(
-                  'td',
-                  hl(
-                    'button',
-                    {
-                      attrs: {
-                        type: 'button',
-                        'aria-label': piece ? `${display}: ${pieceName(piece)}` : `${display}: empty`,
-                        disabled: true,
-                      },
-                    },
-                    piece ? pieceName(piece) : '·',
-                  ),
-                );
-              }),
-            ]),
-          ),
-        ),
-      ],
-    ),
-  ]);
-}
-
-function renderPieceList(pieces: Pieces): VNode {
-  const bySide = (color: Color) =>
-    [...pieces]
-      .filter(([, piece]) => piece.color === color)
-      .sort(([left], [right]) =>
-        displayKey(left).localeCompare(displayKey(right), undefined, { numeric: true }),
-      )
-      .map(([key, piece]) => `${roleNames[piece.role] ?? piece.role} ${displayKey(key)}`)
-      .join(', ');
-  return hl('div.pieces', [
-    hl('p', noTrans(`Red: ${bySide('white')}`)),
-    hl('p', noTrans(`Black: ${bySide('black')}`)),
+    accessibleBoard(ctrl.board, notify.set, color === 'white' ? 'red' : 'black'),
   ]);
 }
 

@@ -1,4 +1,4 @@
-import Lpv from '@lichess-org/pgn-viewer';
+import { mountViewer } from '@lixiangqi/viewer';
 
 site.load.then(() => {
   $('.tutor-card--link').on('click', function (this: HTMLElement) {
@@ -7,21 +7,15 @@ site.load.then(() => {
   });
 
   $('.tutor__opening .lpv').each(function (this: HTMLElement) {
-    Lpv(this, {
-      pgn: this.dataset['pgn']!,
-      orientation: this.dataset['orientation'] as Color,
-      initialPly: 'last',
-      showMoves: false,
-      showClocks: false,
-      showPlayers: false,
-      chessground: { coordinates: false },
-      menu: {
-        getPgn: {
-          enabled: true,
-          fileName: (this.dataset['title'] || this.dataset['pgn'] || 'opening').replace(' ', '_') + '.pgn',
-        },
+    void mountViewer(
+      this,
+      { pgn: this.dataset.pgn },
+      {
+        orientation: this.dataset.orientation as Color,
+        initialPly: 'last',
+        showMoves: false,
       },
-    });
+    );
   });
 
   const tutorUser = $('.tutor__waiting__games').data('tutor-user');
@@ -31,21 +25,26 @@ site.load.then(() => {
     setTimeout(() => location.assign(`/tutor/${tutorUser}?waiting=1`), 60 * 1000);
 
     waitingGames.forEach((el: HTMLElement, index: number) => {
-      const lpv = Lpv(el, {
-        pgn: el.dataset['pgn']!,
-        orientation: el.dataset['pov'] as Color,
-        showMoves: false,
-        showClocks: false,
-        showPlayers: true,
-        showControls: false,
-        chessground: { coordinates: false, animation: { duration: 100 } },
-        drawArrows: false,
+      void mountViewer(
+        el,
+        { pgn: el.dataset.pgn },
+        {
+          orientation: el.dataset.pov as Color,
+          initialPly: Math.max(0, 5 - index),
+          showMoves: false,
+          showControls: false,
+        },
+      ).then(viewer => {
+        const interval = setInterval(() => viewer.navigate('next'), 500);
+        window.addEventListener(
+          'pagehide',
+          () => {
+            clearInterval(interval);
+            viewer.destroy();
+          },
+          { once: true },
+        );
       });
-      for (let i = 5 - index; i > 0; i--) lpv.goTo('next', false);
-      const nbMoves = Array.from(lpv.game.moves.mainline()).length;
-      const delayBeforeStart = (index * 1000 * 68) / nbWaitingGames - 9000;
-      const moveInterval = 270 - nbMoves;
-      setTimeout(() => setInterval(() => lpv.goTo('next', false), moveInterval), delayBeforeStart);
     });
   }
 });

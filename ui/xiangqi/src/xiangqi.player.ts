@@ -1,6 +1,15 @@
-import { requestXiangqi } from './api';
-import ExplorerCtrl from './explorer/explorerCtrl';
-import type { ExplorerColor, ExplorerGame } from './explorer/interfaces';
+import { ExplorerCtrl, type ExplorerColor, type ExplorerGame } from '@lixiangqi/explorer';
+
+import {
+  makeBoardResizable,
+  createXiangqiBoard,
+  websiteBoardPresentation,
+  xiangqiPosition,
+  xiangqiPlay,
+  type BoardPreferences,
+} from 'lib/board';
+import { requestXiangqi } from 'lib/game/xiangqiApi';
+
 import {
   analysisGameUrl,
   databaseEventUrl,
@@ -17,18 +26,9 @@ import {
   type PlayerDatabaseSummary,
   type PlayerOutcome,
 } from './gameCatalog';
-import {
-  legalMoveDests,
-  makeXiangqiGround,
-  playXiangqiMoveSound,
-  setXiangqiGroundPending,
-  uciMoveToCg,
-  XIANGQI_START_FEN,
-  type RulesState,
-  type XiangqiGroundPreferences,
-} from './index';
+import { playXiangqiMoveSound, XIANGQI_START_FEN, type RulesState } from './index';
 
-interface PlayerPageBootstrap extends XiangqiGroundPreferences {
+interface PlayerPageBootstrap extends BoardPreferences {
   explorerEndpoint?: string;
   player?: string;
 }
@@ -586,18 +586,12 @@ async function initializeExplorer(initialSide: ExplorerColor, bootstrap: PlayerP
   const positions: ExploredPosition[] = [{ state: initialState }];
   let pending = false;
   const boardElement = required('#player-xiangqi-board');
-  const turnColor = (state: RulesState) => (state.turn === 'red' ? 'white' : 'black');
-  const ground = makeXiangqiGround(boardElement, {
-    fen: initialState.fen,
-    orientation: initialSide === 'black' ? 'black' : 'white',
-    turnColor: turnColor(initialState),
-    movableColor: turnColor(initialState),
-    legalMoves: initialState.legalMoves,
-    animationDuration: bootstrap.animationDuration,
-    moveEvent: bootstrap.moveEvent,
-    highlight: bootstrap.highlight,
-    onMove: move => void play(move),
-  });
+  const ground = createXiangqiBoard(
+    boardElement,
+    xiangqiPosition(initialState.fen),
+    websiteBoardPresentation(bootstrap, 'interactive', initialSide === 'black' ? 'black' : 'red'),
+  );
+  makeBoardResizable(ground);
   const explorer = new ExplorerCtrl(
     required('#player-opening-explorer'),
     required<HTMLButtonElement>('#player-opening-explorer-toggle'),
@@ -616,20 +610,21 @@ async function initializeExplorer(initialSide: ExplorerColor, bootstrap: PlayerP
 
   function update(syncPosition = true, slide = false): void {
     const position = positions[positions.length - 1];
-    if (syncPosition)
-      ground.set(
-        {
-          fen: position.state.fen,
-          turnColor: turnColor(position.state),
-          lastMove: position.move ? uciMoveToCg(position.move) : undefined,
-          movable: {
-            free: false,
-            color: pending || position.state.gameResult !== '*' ? undefined : turnColor(position.state),
-            dests: pending ? new Map() : legalMoveDests(position.state.legalMoves),
-          },
-        },
-        slide ? { animation: 'slide' } : undefined,
+    if (syncPosition) {
+      ground.display(xiangqiPosition(position.state.fen, position.move, position.state.check), {
+        kind: slide ? 'backward' : 'forward',
+      });
+      ground.setInteraction(
+        xiangqiPlay(
+          ground,
+          position.state.turn,
+          position.state.legalMoves,
+          move => void play(move),
+          bootstrap,
+          !pending && position.state.gameResult === '*',
+        ),
       );
+    }
     explorer.setPosition({ fen: position.state.fen });
     explorerBackButton.disabled = positions.length === 1 || pending;
     explorerResetButton.disabled = positions.length === 1 || pending;
@@ -654,7 +649,7 @@ async function initializeExplorer(initialSide: ExplorerColor, bootstrap: PlayerP
   async function play(move: string): Promise<void> {
     if (pending) return;
     pending = true;
-    setXiangqiGroundPending(ground);
+    ground.setInteraction({ mode: 'display' });
     update(false);
     let completedState: RulesState | undefined;
     try {
@@ -666,23 +661,20 @@ async function initializeExplorer(initialSide: ExplorerColor, bootstrap: PlayerP
       positions.push({ state: response, move, notation: response.notation || move });
       completedState = response;
     } catch (error) {
-      ground.set({ fen: current().fen });
+      ground.display(xiangqiPosition(current().fen), { kind: 'correction' });
       pageStatus.textContent = error instanceof Error ? error.message : String(error);
       pageStatus.classList.add('error');
     } finally {
       pending = false;
       update();
     }
-    if (completedState) playXiangqiMoveSound(completedState);
+    if (completedState) playXiangqiMoveSound(ground, completedState);
   }
 
   function selectSide(side: ExplorerColor): void {
     explorer.selectColor(side);
-    if (
-      (side === 'black' && ground.state.orientation !== 'black') ||
-      (side === 'red' && ground.state.orientation !== 'white')
-    )
-      ground.toggleOrientation();
+    if (side === 'red' || side === 'black')
+      ground.setPresentation({ ...ground.getPresentation(), perspective: side });
     redSideButton.classList.toggle('active', side === 'red');
     blackSideButton.classList.toggle('active', side === 'black');
     redSideButton.setAttribute('aria-pressed', String(side === 'red'));

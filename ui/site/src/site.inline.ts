@@ -23,6 +23,7 @@ if (!window.site.pieceImages) {
       }),
     ),
   );
+  initial['--board-piece-back'] = style.getPropertyValue('--board-piece-back').trim();
   const shadows = ['--xiangqi-rest-shadow-image', '--xiangqi-airborne-shadow-image'].map(variable =>
     style.getPropertyValue(variable).trim(),
   );

@@ -193,44 +193,12 @@ case class BoardTheme(
 )
 
 object BoardThemes:
-  private val coordinateLight = "#fff4dc"
-  private val coordinateDark = "#2f160c"
-
-  val lixiangqiDefault = BoardTheme(
-    "lixiangqi-default",
-    "Lixiangqi Default",
-    "svg/lixiangqi-default.svg",
-    coordinateLight,
-    coordinateDark,
-    Some(PieceSets.defaultWood.key)
-  )
-  val paperBoard = BoardTheme(
-    "paper-board",
-    "Paper Board",
-    "svg/paper-board.svg",
-    coordinateLight,
-    coordinateDark,
-    Some(PieceSets.international.key)
-  )
-  val tournament = BoardTheme(
-    "xiangqi-tournament",
-    "Tournament Xiangqi",
-    "svg/xiangqi-tournament.svg",
-    coordinateLight,
-    coordinateDark,
-    Some(PieceSets.defaultWood.key)
-  )
-  val wudang = BoardTheme(
-    "xiangqi-wudang",
-    "Wudang Ink Xiangqi",
-    "xiangqi-wudang.webp",
-    "#f0ece2",
-    "#152022",
-    Some(PieceSets.wudang.key)
-  )
-
-  val all = List(lixiangqiDefault, paperBoard, tournament, wudang)
+  val all = BoardCatalog.boards
   private val byKey = all.mapBy(_.key)
+  val lixiangqiDefault = byKey((BoardCatalog.json \ "defaultBoard").as[String])
+  val paperBoard = byKey("paper-board")
+  val tournament = byKey("xiangqi-tournament")
+  val wudang = byKey("xiangqi-wudang")
 
   def apply(key: String): BoardTheme = byKey(key)
   def get(key: Option[String]): BoardTheme = key.flatMap(byKey.get) | lixiangqiDefault
@@ -246,39 +214,17 @@ enum PieceSetCategory(val key: String):
 case class PieceSet(key: String, name: String, category: PieceSetCategory)
 
 object PieceSets:
-  import PieceSetCategory.*
-
-  val defaultWood = PieceSet("default-wood", "default-wood", Traditional)
-  val wudang = PieceSet("xiangqi-wudang", "Wudang Brush Seals", Traditional)
-  val paperTraditional = PieceSet("xiangqi-paper-traditional", "Paper - Traditional", Traditional)
-  val international = PieceSet("xiangqi-international", "Paper - International Symbols", GraphicalSymbols)
-  val western = PieceSet("xiangqi-western", "Western Outlines", Other)
-
-  val default = defaultWood
-  val all = List(defaultWood, wudang, paperTraditional, international, western)
+  val shadows: List[(String, String)] = BoardCatalog.shadows
+  val all = BoardCatalog.pieces
   private val byKey = all.mapBy(_.key)
+  val defaultWood = byKey("default-wood")
+  val wudang = byKey("xiangqi-wudang")
+  val paperTraditional = byKey("xiangqi-paper-traditional")
+  val international = byKey("xiangqi-international")
+  val western = byKey("xiangqi-western")
+  val default = byKey((BoardCatalog.json \ "defaultPieces").as[String])
 
-  private val files = List(
-    "rP" -> "---red-soldier",
-    "bP" -> "---black-soldier",
-    "rB" -> "---red-elephant",
-    "bB" -> "---black-elephant",
-    "rN" -> "---red-horse",
-    "bN" -> "---black-horse",
-    "rR" -> "---red-chariot",
-    "bR" -> "---black-chariot",
-    "rA" -> "---red-advisor",
-    "bA" -> "---black-advisor",
-    "rC" -> "---red-cannon",
-    "bC" -> "---black-cannon",
-    "rK" -> "---red-general",
-    "bK" -> "---black-general"
-  )
-
-  def assets(key: String): List[(String, String)] =
-    val pieceSet = get(Some(key))
-    files.map: (file, variable) =>
-      s"piece/${pieceSet.key}/$file.svg" -> variable
+  def assets(key: String): List[(String, String)] = BoardCatalog.pieceAssets(get(Some(key)).key, "xiangqi")
 
   def get(key: Option[String]): PieceSet = key.flatMap(byKey.get) | default
   def contains(key: String): Boolean = byKey.contains(key)

@@ -4,7 +4,8 @@
   "type": "module",
   "dependencies": {
     "lib": "workspace:*",
-    "xiangqi": "workspace:*"
+    "xiangqi": "workspace:*",
+    "@lixiangqi/board": "workspace:*"
   },
   "build": {
     "bundle": "src/learn.ts"

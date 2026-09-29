@@ -134,4 +134,5 @@ export type Clock = number;
 export interface Shape {
   orig: Key;
   dest?: Key;
+  brush?: string;
 }

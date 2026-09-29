@@ -6,8 +6,8 @@ import { type WithGround } from 'lib/game/ground';
 
 import { makeAppleShape } from './apple';
 import makeChess, { type ChessCtrl } from './chess';
-import type { CgMove } from './chessground';
 import { type Items, ctrl as makeItems } from './item';
+import type { CgMove } from './levelTypes';
 import { PromotionCtrl } from './promotionCtrl';
 import makeScenario, { type Scenario } from './scenario';
 import { scenario as scoreScenario, pieceValue, capture, apple, getLevelBonus } from './score';

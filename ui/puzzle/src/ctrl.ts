@@ -1,26 +1,22 @@
-import type { Api as XiangqiGroundApi } from 'chessgroundx/api';
-import type { DrawShape } from 'chessgroundx/draw';
-import type { Color, Key } from 'chessgroundx/types';
-import {
-  hydrateXiangqiState,
-  legalMoveDests,
-  playXiangqiMoveSound,
-  requestXiangqi,
-  uciMoveToCg,
-  uciToCg,
-  type RulesState,
-  type XiangqiGroundOptions,
-} from 'xiangqi';
+import type {
+  BoardView,
+  BoardPosition,
+  BoardPresentation,
+  BoardMark,
+  BoardTransition,
+} from '@lixiangqi/board';
+import { hydrateXiangqiState, playXiangqiMoveSound, requestXiangqi, type RulesState } from 'xiangqi';
 
 import { prop, type Prop, propWithEffect, type Toggle, toggle, requestIdleCallbackSafe, myUserId } from 'lib';
 import { type Deferred, defer } from 'lib/async';
+import { makeBoardResizable, websiteBoardPresentation, xiangqiPosition, xiangqiPlay } from 'lib/board';
 import type { PikafishStatus } from 'lib/ceval/engines/pikafishBrowser';
 import { selectXiangqiNotation } from 'lib/game';
-import { playMoveNavigationSound } from 'lib/game/replay/moveNavigationSound';
 import { pubsub } from 'lib/pubsub';
 import { type StoredProp, storedBooleanProp, storedBooleanPropWithEffect, storage } from 'lib/storage';
 import { trafficActivity, trafficAttemptId, trackTraffic } from 'lib/traffic';
 import { makeTree, treeOps, treePath, type TreeWrapper } from 'lib/tree';
+import { xiangqiTreeDestinations } from 'lib/tree/node';
 import { last } from 'lib/tree/ops';
 import type { TreeNode, TreePath } from 'lib/tree/types';
 import { alert } from 'lib/view';
@@ -66,7 +62,7 @@ interface XiangqiMoveResponse extends RulesState {
   chineseNotation: string;
 }
 
-type PuzzleGround = XiangqiGroundApi;
+type PuzzleGround = BoardView;
 type WithGround = <A>(f: (ground: PuzzleGround) => A) => A | undefined;
 
 export default class PuzzleCtrl {
@@ -83,7 +79,7 @@ export default class PuzzleCtrl {
   session: PuzzleSession;
   menu: Toggle;
   flipped = toggle(false);
-  googlyEyes?: () => DrawShape[];
+  googlyEyes?: () => BoardMark[];
   keyboardHelp: Prop<boolean>;
   path: TreePath;
   node: TreeNode;
@@ -227,12 +223,14 @@ export default class PuzzleCtrl {
     this.showHint(false);
   };
 
-  setChessground = (cg: PuzzleGround): void => {
+  setBoard = (cg: PuzzleGround): void => {
     this.ground(cg);
+    makeBoardResizable(cg);
+    this.showGround(cg);
     requestAnimationFrame(() => this.redraw());
     pubsub.on('board.change', () => {
       this.withGround(g => {
-        g.redrawAll();
+        g.redraw();
       });
       this.setAutoShapes();
     });
@@ -245,9 +243,9 @@ export default class PuzzleCtrl {
       this.withGround(cg => {
         site.asset
           .loadEsm('bits.googlyHorsey', {
-            init: { cg, redraw: this.setAutoShapes },
+            init: { board: cg, redraw: this.setAutoShapes },
           })
-          .then(({ makeGooglyShapes }: { makeGooglyShapes: () => DrawShape[] }) => {
+          .then(({ makeGooglyShapes }: { makeGooglyShapes: () => BoardMark[] }) => {
             this.googlyEyes = makeGooglyShapes;
             this.setAutoShapes();
           });
@@ -317,9 +315,9 @@ export default class PuzzleCtrl {
     );
 
     this.withGround(g => {
-      g.selectSquare(null);
-      g.setAutoShapes([]);
-      g.setShapes([]);
+      g.select();
+      g.setMarks([], 'annotation');
+      g.setMarks([]);
       this.showGround(g);
     });
     if ((this.node as XiangqiPuzzleNode).xiangqi.needsHydration)
@@ -339,7 +337,7 @@ export default class PuzzleCtrl {
         node.xiangqi = state;
         node.fen = state.fen;
         node.ply = state.ply;
-        node.dests = () => legalMoveDests(state.legalMoves) as Dests;
+        node.dests = () => xiangqiTreeDestinations(state.legalMoves);
         node.check = () => state.check;
         if (this.path === path) this.withGround(this.showGround);
       } catch (error) {
@@ -355,13 +353,18 @@ export default class PuzzleCtrl {
   private readonly playXiangqiSound = (path: TreePath): void => {
     const node = this.tree.nodeAtPath(path) as XiangqiPuzzleNode;
     const play = () => {
-      if (this.path === path) playXiangqiMoveSound(node.xiangqi);
+      if (this.path === path) this.withGround(board => playXiangqiMoveSound(board, node.xiangqi));
     };
     if (node.xiangqi.needsHydration) void this.hydrateXiangqiPosition(path).then(play);
     else play();
   };
 
-  makeXiangqiGroundOpts = (): XiangqiGroundOptions => {
+  boardSetup = (): {
+    position: BoardPosition;
+    presentation: BoardPresentation;
+    legalMoves: readonly string[];
+    canMove: boolean;
+  } => {
     const node = this.node as XiangqiPuzzleNode;
     const state =
       this.path === this.initialPath && this.data.puzzle.state ? this.data.puzzle.state : node.xiangqi;
@@ -371,36 +374,36 @@ export default class PuzzleCtrl {
       !this.xiangqiBusy &&
       !this.viewingSolution &&
       (this.mode === 'view' || (!this.xiangqiFailure && !this.xiangqiReplyPending && color === this.pov));
+    const orientation = this.flipped() ? (this.pov === 'white' ? 'black' : 'white') : this.pov;
     return {
-      fen: state.fen,
-      orientation: this.flipped() ? (this.pov === 'white' ? 'black' : 'white') : this.pov,
-      turnColor: color,
-      movableColor: canMove && state.legalMoves.length ? color : undefined,
+      position: xiangqiPosition(state.fen, node.uci, state.check),
+      presentation: websiteBoardPresentation(
+        {
+          animationDuration: this.pref.animation.duration,
+          moveEvent: this.pref.moveEvent,
+          highlight: this.pref.highlight,
+        },
+        'interactive',
+        orientation === 'white' ? 'red' : 'black',
+      ),
       legalMoves: canMove ? state.legalMoves : [],
-      lastMove: node.uci,
-      coordinates: true,
-      animationDuration: this.pref.animation.duration,
-      moveEvent: this.pref.moveEvent,
-      highlight: this.pref.highlight,
-      viewOnly: false,
-      ply: node.ply,
+      canMove,
     };
   };
 
-  showGround = (g: PuzzleGround, backward = false): void => {
-    const opts = this.makeXiangqiGroundOpts();
-    g.set(
-      {
-        fen: opts.fen,
-        orientation: opts.orientation,
-        turnColor: opts.turnColor,
-        lastMove: opts.lastMove ? uciMoveToCg(opts.lastMove) : undefined,
-        movable: {
-          color: opts.movableColor,
-          dests: legalMoveDests(opts.legalMoves || []),
-        },
-      },
-      backward ? { animation: 'slide' } : undefined,
+  showGround = (g: PuzzleGround, transition: BoardTransition = { kind: 'jump' }): void => {
+    const setup = this.boardSetup();
+    g.setPresentation(setup.presentation);
+    g.display(setup.position, transition);
+    g.setInteraction(
+      xiangqiPlay(
+        g,
+        setup.position.active,
+        setup.legalMoves,
+        this.userXiangqiMove,
+        { moveEvent: this.pref.moveEvent },
+        setup.canMove,
+      ),
     );
     this.setAutoShapes();
   };
@@ -841,8 +844,8 @@ export default class PuzzleCtrl {
     this.jump(this.initialPath);
     this.withGround(g => {
       g.cancelPremove();
-      g.selectSquare(null);
-      g.setShapes([]);
+      g.select();
+      g.setMarks([]);
     });
     this.redraw();
   };
@@ -881,26 +884,32 @@ export default class PuzzleCtrl {
     this.withGround(g => {
       const move = this.showHint() ? nextXiangqiMove(this) : undefined;
       const squares = move && splitXiangqiUci(move);
-      g.setAutoShapes(squares ? ([{ orig: uciToCg(squares[0]) as Key, brush: 'green' }] as DrawShape[]) : []);
+      g.setMarks(
+        [...(this.googlyEyes?.() ?? []), ...(squares ? [{ from: squares[0], brush: 'green' }] : [])],
+        'annotation',
+      );
     });
 
   jump = (path: TreePath): void => {
     const pathChanged = path !== this.path;
-    const previousPly = this.node.ply;
+    const previousPath = this.path;
     this.setPath(path);
-    this.withGround(g => this.showGround(g, this.node.ply < previousPly));
-    if (pathChanged) {
-      playMoveNavigationSound(previousPly, this.node.ply, () => {
-        this.playXiangqiSound(path);
-      });
-    }
+    const forward = pathChanged && treePath.init(path) === previousPath;
+    const backward = pathChanged && treePath.init(previousPath) === path;
+    this.withGround(g =>
+      this.showGround(g, {
+        kind: forward ? 'forward' : backward ? 'backward' : 'jump',
+        ...(backward ? { effects: [] } : {}),
+      }),
+    );
+    if (forward) this.playXiangqiSound(path);
     this.autoScrollRequested = true;
     pubsub.emit('ply', this.node.ply);
   };
 
   userJump = (path: TreePath): void => {
     if (this.xiangqiBusy || this.xiangqiReplyPending) return;
-    this.withGround(g => g.selectSquare(null));
+    this.withGround(g => g.select());
     this.jump(path);
   };
 
@@ -959,7 +968,7 @@ export default class PuzzleCtrl {
     this.setAutoShapes();
     const hint = this.showHint() && nextXiangqiMove(this);
     const squares = hint && splitXiangqiUci(hint);
-    this.withGround(g => g.selectSquare(squares ? (uciToCg(squares[0]) as Key) : null));
+    this.withGround(g => g.select(squares ? squares[0] : undefined));
     this.redraw();
   };
 
@@ -1016,7 +1025,12 @@ export default class PuzzleCtrl {
   flip = () => {
     this.flipped.toggle();
     this.cgVersion++;
-    this.withGround(g => g.toggleOrientation());
+    this.withGround(g =>
+      g.setPresentation({
+        ...g.getPresentation(),
+        perspective: g.getPresentation().perspective === 'red' ? 'black' : 'red',
+      }),
+    );
     this.redraw();
   };
 
@@ -1052,7 +1066,8 @@ export default class PuzzleCtrl {
     if (uci) this.playUci(uci);
   };
   autoNexting = () => this.lastFeedback === 'win' && this.autoNext();
-  getOrientation = () => this.withGround(g => g.state.orientation)!;
+  getOrientation = () =>
+    this.withGround(g => (g.getPresentation().perspective === 'red' ? 'white' : 'black'))!;
   allThemes?: { dynamic: string[]; static: Set<string> };
   toggleRated = () => this.rated(!this.rated());
   getNode = () => this.node;

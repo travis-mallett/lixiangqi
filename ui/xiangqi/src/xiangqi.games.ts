@@ -1,4 +1,5 @@
-import { requestXiangqi } from './api';
+import { requestXiangqi } from 'lib/game/xiangqiApi';
+
 import {
   analysisGameUrl,
   catalogSources,

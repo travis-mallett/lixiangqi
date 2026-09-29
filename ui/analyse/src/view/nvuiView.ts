@@ -1,53 +1,28 @@
-import { Chessground as makeChessground } from '@lichess-org/chessground';
+import { coordinateMove } from '@lixiangqi/board';
 import { COLORS } from 'chessops';
-import { lichessRules } from 'chessops/compat';
-import { parseFen } from 'chessops/fen';
-import { makeSan } from 'chessops/san';
-import { charToRole, opposite, parseUci } from 'chessops/util';
-import { setupPosition } from 'chessops/variant';
 
 import { defined } from 'lib';
-import { throttle } from 'lib/async';
 import { view as cevalView, renderEval } from 'lib/ceval';
 import { renderChat } from 'lib/chat/renderChat';
 import { isTouchDevice } from 'lib/device';
-import { aiLevelName, type Player, plyOpponentColor } from 'lib/game';
+import { aiLevelName, type Player } from 'lib/game';
 import { plyToTurn } from 'lib/game/chess';
-import {
-  renderSan,
-  renderPieces,
-  renderBoard,
-  renderMainline,
-  renderComments,
-  boardCommandsHandler,
-  selectionHandler,
-  arrowKeyHandler,
-  positionJumpHandler,
-  pieceJumpingHandler,
-  castlingFlavours,
-  inputToMove,
-  lastCapturedCommandHandler,
-  type DropMove,
-  possibleMovesHandler,
-  renderPockets,
-  pocketsStr,
-  leaveSquareHandler,
-} from 'lib/nvui/chess';
-import { commands, boardCommands, addBreaks } from 'lib/nvui/command';
-import { scanDirectionsHandler } from 'lib/nvui/directionScan';
+import { accessibleBoard, positionText } from 'lib/nvui/board';
+import { renderSan, renderMainline, renderComments } from 'lib/nvui/chess';
+import { addBreaks } from 'lib/nvui/command';
 import { liveText } from 'lib/nvui/notify';
 import { renderSetting } from 'lib/nvui/setting';
 import { pubsub } from 'lib/pubsub';
 import { formatClock as formatClockName } from 'lib/setup/timeControl';
 import { ops, path as treePath } from 'lib/tree/tree';
-import type { ClientEval, PvData } from 'lib/tree/types';
+import type { ClientEval } from 'lib/tree/types';
 import { type VNode, type LooseVNodes, type VNodeChildren, hl, bind, noTrans, onInsert } from 'lib/view';
 import { text as xhrText } from 'lib/xhr';
 
 import type { AnalyseNvuiContext } from '../analyse.nvui';
+import { createStudyBoard } from '../board';
 import type AnalyseCtrl from '../ctrl';
 import explorerView from '../explorer/explorerView';
-import { makeConfig as makeCgConfig } from '../ground';
 import type { AnalyseData } from '../interfaces';
 import { clickHook, currentLineIndex, renderCurrentNode } from '../nvuiUtil';
 import { renderRetro } from '../retrospect/nvuiRetroView';
@@ -57,11 +32,6 @@ import { playersView } from '../study/relay/relayPlayers';
 import { showInfo as tourOverview } from '../study/relay/relayTourView';
 import renderClocks from '../view/clocks';
 import { renderResult, viewContext, type RelayViewContext } from '../view/components';
-
-const throttled = (sound: string) => throttle(100, () => site.sound.play(sound));
-const selectSound = throttled('select');
-const borderSound = throttled('outOfBound');
-const errorSound = throttled('error');
 
 export function initNvui(ctx: AnalyseNvuiContext): void {
   const { ctrl, notify } = ctx;
@@ -76,15 +46,13 @@ export function renderNvui(ctx: AnalyseNvuiContext): VNode {
   const { ctrl, deps, notify, moveStyle, pieceStyle, prefixStyle, positionStyle, boardStyle, pageStyle } =
     ctx;
   const d = ctrl.data,
-    style = moveStyle.get(),
-    clocks = renderClocks(ctrl, ctrl.path),
-    pockets = ctrl.node.crazy?.pockets;
-  ctrl.chessground = makeChessground(document.createElement('div'), {
-    ...makeCgConfig(ctrl),
-    animation: { enabled: false },
-    drawable: { enabled: false },
-    coordinates: false,
-  });
+    clocks = renderClocks(ctrl, ctrl.path);
+  if (!ctrl.board || ctrl.cgVersion.dom !== ctrl.cgVersion.js) {
+    ctrl.board?.destroy();
+    const board = createStudyBoard(document.createElement('div'), ctrl);
+    board.setPresentation({ ...board.getPresentation(), motion: { duration: 0 }, drawing: false });
+    ctrl.setBoard(board);
+  }
   const boardFirst = isTouchDevice() && pageStyle.get() === 'board-actions';
 
   if (boardFirst) {
@@ -93,21 +61,7 @@ export function renderNvui(ctx: AnalyseNvuiContext): VNode {
     boardStyle.set('plain');
   }
 
-  const boardView = [
-    hl('h2', i18n.site.board),
-    hl(
-      'div.board',
-      { hook: onInsert(el => boardEventsHook(ctx, el)) },
-      renderBoard(
-        ctrl.chessground.state.pieces,
-        ctrl.data.game.variant.key === 'racingKings' ? 'white' : ctrl.bottomColor(),
-        pieceStyle.get(),
-        prefixStyle.get(),
-        positionStyle.get(),
-        boardStyle.get(),
-      ),
-    ),
-  ];
+  const boardView = [hl('h2', i18n.site.board), accessibleBoard(ctrl.board, notify.set)];
 
   return hl('main.analyse', [
     hl('div.nvui', [
@@ -137,9 +91,7 @@ export function renderNvui(ctx: AnalyseNvuiContext): VNode {
         explorerView(ctrl),
       ],
       hl('h2', i18n.nvui.pieces),
-      renderPieces(ctrl.chessground.state.pieces, style, ctrl.bottomColor()),
-      pockets && hl('h2', i18n.nvui.pockets),
-      pockets && renderPockets(pockets),
+      hl('p', positionText(ctrl.board)),
       renderAriaResult(ctrl),
       hl('h2', i18n.nvui.lastMove),
       !ctrl.retro && liveText(renderCurrentNode(ctx), 'polite', 'p.position.lastMove'),
@@ -215,7 +167,6 @@ export function renderNvui(ctx: AnalyseNvuiContext): VNode {
           `x: ${i18n.site.showThreat}`,
         ].reduce(addBreaks, []),
       ),
-      boardCommands(),
       hl('h2', i18n.nvui.inputFormCommandList),
       hl(
         'p',
@@ -268,44 +219,6 @@ function renderTouchDeviceCommands(ctx: AnalyseNvuiContext): LooseVNodes {
   ];
 }
 
-function boardEventsHook(
-  { ctrl, pieceStyle, prefixStyle, moveStyle, notify }: AnalyseNvuiContext,
-  el: HTMLElement,
-): void {
-  const $board = $(el);
-  const $buttons = $board.find('button');
-  const steps = () => ctrl.tree.getNodeList(ctrl.path);
-  const fenSteps = () => steps().map(step => step.fen);
-  $buttons.on('blur', leaveSquareHandler($buttons));
-  $buttons.on(
-    'click',
-    selectionHandler(() => plyOpponentColor(ctrl.node.ply)),
-  );
-  $buttons.on('keydown', (e: KeyboardEvent) => {
-    if (e.shiftKey && e.key.match(/^[ad]$/i)) jumpMoveOrLine(ctrl)(e);
-    else if (e.key.match(/^x$/i))
-      scanDirectionsHandler(ctrl.bottomColor(), ctrl.chessground.state.pieces, moveStyle.get())(e);
-    else if (['o', 'l', 't'].includes(e.key)) boardCommandsHandler()(e);
-    else if (e.key.startsWith('Arrow')) arrowKeyHandler(ctrl.bottomColor(), borderSound)(e);
-    else if (e.key === 'c') lastCapturedCommandHandler(fenSteps, pieceStyle.get(), prefixStyle.get())();
-    else if (e.key === 'i') {
-      e.preventDefault();
-      document.querySelector<HTMLElement>('input.move')?.focus();
-    } else if (e.key === 'f') {
-      if (ctrl.data.game.variant.key !== 'racingKings') {
-        notify.set('Flipping the board');
-        setTimeout(() => ctrl.flip(), 1000);
-      }
-    } else if (e.code.match(/^Digit([1-8])$/)) positionJumpHandler()(e);
-    else if (e.key.match(/^[kqrbnp]$/i)) pieceJumpingHandler(selectSound, errorSound)(e);
-    else if (e.key.toLowerCase() === 'm')
-      possibleMovesHandler(ctrl.turnColor(), ctrl.chessground, ctrl.data.game.variant.key, ctrl.nodeList)(e);
-    else if (e.key.toLowerCase() === 'v') notify.set(renderEvalAndDepth(ctrl));
-    else if (e.key === 'G') ctrl.playBestMove();
-    else if (e.key === 'g') notify.set(renderBestMove({ ctrl, moveStyle } as AnalyseNvuiContext));
-  });
-}
-
 function renderEvalAndDepth(ctrl: AnalyseCtrl): string {
   if (ctrl.threatMode()) return `${evalInfo(ctrl.node.threat)} ${depthInfo(ctrl.node.threat, false)}`;
   const evs = { client: ctrl.getNode().ceval, server: ctrl.getNode().eval },
@@ -335,33 +248,8 @@ function toggleLocalEvaluation(ctrl: AnalyseCtrl): void {
   if (ctrl.isCevalAllowed() && ctrl.ceval.analysable) ctrl.cevalEnabled(!ctrl.cevalEnabled());
 }
 
-function renderBestMove({ ctrl, moveStyle }: AnalyseNvuiContext): string {
-  const noEvalMsg = noEvalStr(ctrl);
-  if (noEvalMsg) return noEvalMsg;
-  const node = ctrl.node;
-  let pvs: PvData[] = [];
-  if (ctrl.threatMode() && node.threat) {
-    pvs = node.threat.pvs;
-    if (ctrl.ceval.opts.variant.key === 'xiangqi') return pvs[0]?.moves[0] ?? '';
-    const setup = parseFen(node.fen).unwrap();
-    setup.turn = opposite(setup.turn);
-    if (setup.turn === 'white') setup.fullmoves += 1;
-    const pos = setupPosition(lichessRules(ctrl.ceval.opts.variant.key), setup);
-    if (pos.isOk && pvs.length > 0 && pvs[0].moves.length > 0) {
-      const uci = pvs[0].moves[0];
-      const san = makeSan(pos.unwrap(), parseUci(uci)!);
-      return renderSan(san, uci, moveStyle.get());
-    }
-  } else if (node.ceval) pvs = node.ceval.pvs;
-  if (ctrl.ceval.opts.variant.key === 'xiangqi') return pvs[0]?.moves[0] ?? '';
-  const setup = parseFen(node.fen).unwrap();
-  const pos = setupPosition(lichessRules(ctrl.ceval.opts.variant.key), setup);
-  if (pos.isOk && pvs.length > 0 && pvs[0].moves.length > 0) {
-    const uci = pvs[0].moves[0];
-    const san = makeSan(pos.unwrap(), parseUci(uci)!);
-    return renderSan(san, uci, moveStyle.get());
-  }
-  return '';
+function renderBestMove({ ctrl }: AnalyseNvuiContext): string {
+  return noEvalStr(ctrl) || (ctrl.threatMode() ? ctrl.node.threat : ctrl.node.ceval)?.pvs[0]?.moves[0] || '';
 }
 
 function renderAriaResult(ctrl: AnalyseCtrl): VNode[] {
@@ -385,25 +273,24 @@ function onSubmit(ctx: AnalyseNvuiContext, $input: Cash) {
   const { ctrl, notify } = ctx;
   return (e: SubmitEvent) => {
     e.preventDefault();
-    const input = castlingFlavours(($input.val() as string).trim());
+    const input = ($input.val() as string).trim();
     // Allow commands with/without a leading '/'
     const command = getCommand(input) || getCommand(input.slice(1));
     if (command && !command.invalid?.(ctrl)) command.cb(ctx, input);
     else {
-      const move = inputToMove(input, ctrl.node.fen, ctrl.chessground);
-      const isDrop = (u?: string | DropMove) => !!(u && typeof u !== 'string');
-      const isInvalidDrop = (d: DropMove) =>
-        !ctrl.crazyValid(d.role, d.key) || ctrl.chessground.state.pieces.has(d.key);
-      const isInvalidCrazy = isDrop(move) && isInvalidDrop(move);
-
-      if (!move || isInvalidCrazy) notify.set(`Invalid move: ${input}`);
-      else sendMove(move, ctrl);
+      const matched = /^([a-i](?:10|[1-9]))([a-i](?:10|[1-9]))$/i.exec(input);
+      if (!matched || !ctrl.board.allowsMove(matched[1].toLowerCase(), matched[2].toLowerCase()))
+        notify.set(`Invalid move: ${input}`);
+      else {
+        const [from, to] = coordinateMove(input.toLowerCase());
+        ctrl.sendMove(from, to);
+      }
     }
     $input.val('');
   };
 }
 
-type Command = 'b' | 'p' | 's' | 'eval' | 'best' | 'prev' | 'next' | 'prev line' | 'next line' | 'pocket';
+type Command = 'b' | 'p' | 's' | 'eval' | 'best' | 'prev' | 'next' | 'prev line' | 'next line';
 type InputCommand = {
   cmd: Command;
   help: VNode | string;
@@ -412,30 +299,12 @@ type InputCommand = {
 };
 
 const inputCommands: InputCommand[] = [
-  {
-    cmd: 'b',
-    help: commands().board.help,
-    cb: ({ ctrl, notify, moveStyle }, input) =>
-      notify.set(commands().board.apply(input, ctrl.chessground.state.pieces, moveStyle.get()) || ''),
-  },
-  {
-    cmd: 'p',
-    help: commands().piece.help,
-    cb: ({ ctrl, notify, moveStyle }, input) =>
-      notify.set(
-        commands().piece.apply(input, ctrl.chessground.state.pieces, moveStyle.get()) ||
-          `Bad input: ${input}. Exptected format: ${commands().piece.help}`,
-      ),
-  },
-  {
-    cmd: 's',
-    help: commands().scan.help,
-    cb: ({ ctrl, notify, moveStyle }, input) =>
-      notify.set(
-        commands().scan.apply(input, ctrl.chessground.state.pieces, moveStyle.get()) ||
-          `Bad input: ${input}. Exptected format: ${commands().scan.help}`,
-      ),
-  },
+  ...(['b', 'p', 's'] as const).map(cmd => ({
+    cmd,
+    help: i18n.nvui.pieces,
+    cb: ({ ctrl, notify }: AnalyseNvuiContext, input: string) =>
+      notify.set(positionText(ctrl.board, input.split(' ').slice(1).join(' ').trim()) || i18n.site.none),
+  })),
   {
     cmd: 'eval',
     help: noTrans("announce last move's computer evaluation"),
@@ -466,22 +335,6 @@ const inputCommands: InputCommand[] = [
     help: noTrans('switch to the next variation'),
     cb: ({ ctrl }) => doAndRedraw(ctrl, jumpNextLine),
   },
-  {
-    cmd: 'pocket',
-    help: noTrans('Read out pockets for white or black. Example: "pocket black"'),
-    cb: ({ ctrl, notify }, input) => {
-      const pockets = ctrl.node.crazy?.pockets;
-      const color = input.split(' ')?.[1]?.trim();
-      return notify.set(
-        pockets
-          ? color
-            ? pocketsStr(color === 'white' ? pockets[0] : pockets[1]) || i18n.site.none
-            : 'Expected format: pocket [white|black]'
-          : 'Command only available in crazyhouse',
-      );
-    },
-    invalid: ctrl => ctrl.data.game.variant.key !== 'crazyhouse',
-  },
 ];
 
 const getCommand = (input: string) => {
@@ -492,17 +345,6 @@ const getCommand = (input: string) => {
     inputCommands.find(c => split.length !== 1 && c.cmd === firstWordLowerCase)
   ); // 'next line' should not be interpreted as 'next'
 };
-
-function sendMove(uciOrDrop: string | DropMove, ctrl: AnalyseCtrl) {
-  if (typeof uciOrDrop === 'string')
-    ctrl.sendMove(
-      uciOrDrop.slice(0, 2) as Key,
-      uciOrDrop.slice(2, 4) as Key,
-      undefined,
-      charToRole(uciOrDrop.slice(4)),
-    );
-  else if (ctrl.crazyValid(uciOrDrop.role, uciOrDrop.key)) ctrl.sendNewPiece(uciOrDrop.role, uciOrDrop.key);
-}
 
 const analysisGlyphs = new Set(['?!', '?', '??']);
 
@@ -766,10 +608,3 @@ const doAndRedraw = (ctrl: AnalyseCtrl, fn: (ctrl: AnalyseCtrl) => void): void =
   fn(ctrl);
   ctrl.redraw();
 };
-
-function jumpMoveOrLine(ctrl: AnalyseCtrl) {
-  return (e: KeyboardEvent) => {
-    if (e.key === 'A') doAndRedraw(ctrl, e.altKey ? jumpPrevLine : ctrl.navigate.prev);
-    else if (e.key === 'D') doAndRedraw(ctrl, e.altKey ? jumpNextLine : ctrl.navigate.next);
-  };
-}

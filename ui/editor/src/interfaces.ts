@@ -1,7 +1,7 @@
-import type { Color, Role } from 'chessgroundx/types';
+import type { VisiblePiece } from '@lixiangqi/board';
 
 export type Redraw = () => void;
-export type Selected = 'pointer' | 'trash' | { color: Color; role: Role };
+export type Selected = 'pointer' | 'trash' | Extract<VisiblePiece, { face: 'up' }>;
 
 export interface EditorState {
   fen: string;

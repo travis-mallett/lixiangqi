@@ -3,8 +3,8 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "chessgroundx": "10.7.5",
-    "lib": "workspace:*"
+    "lib": "workspace:*",
+    "@lixiangqi/board": "workspace:*"
   },
   "build": {
     "bundle": "src/editor.ts"

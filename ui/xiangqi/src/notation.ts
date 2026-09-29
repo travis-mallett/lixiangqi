@@ -1,3 +1,5 @@
+import { notationComments } from 'lib/game/xiangqiNotation';
+
 import type { XiangqiMoveTree, XiangqiTreeNode } from './tree';
 
 interface MoveContext {
@@ -6,12 +8,12 @@ interface MoveContext {
 }
 
 export function renderXiangqiMovetext(tree: XiangqiMoveTree): string {
-  return renderSequence(
-    tree.root.children,
-    startContext(tree.root.state.fen, tree.root.state.turn),
-    false,
-    true,
-  );
+  return [
+    notationComments(tree.root.comments?.map(comment => comment.text)),
+    renderSequence(tree.root.children, startContext(tree.root.state.fen, tree.root.state.turn), false, true),
+  ]
+    .filter(Boolean)
+    .join(' ');
 }
 
 export function renderXiangqiNotation(tree: XiangqiMoveTree, initialFen: string): string {
@@ -36,7 +38,12 @@ function renderSequence(
   if (main.forceVariation && isMainline)
     return children.map(child => `(${renderSequence([child], context, true, false)})`).join(' ');
 
-  const tokens = [`${movePrefix(context, firstInVariation)}${main.notation}`];
+  const tokens = [
+    `${movePrefix(context, firstInVariation)}${main.notation}`,
+    ...(main.glyphs ?? []).map(id => `$${id}`),
+  ];
+  const comments = notationComments(main.comments?.map(comment => comment.text));
+  if (comments) tokens.push(comments);
   variations.forEach(variation => {
     tokens.push(`(${renderSequence([variation], context, true, false)})`);
   });

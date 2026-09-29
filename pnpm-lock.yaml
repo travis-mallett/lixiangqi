@@ -6,7 +6,7 @@ settings:
 
 patchedDependencies:
   '@toast-ui/editor@3.2.2': 0a324facc984b3c00201cd2ac957c0e51db9ee66ce33c37306031ca67d5aa7ba
-  chessgroundx@10.7.5: 3cc51230c791b482065b649d5ffd96458ad2683e5f2c10b54c6fcaa4324dc097
+  chessgroundx@10.7.5: 0ca00a1b62c0d1114a5740018a7cf15405a7a3b0f76286c0472166b0fb45590c
 
 importers:
 
@@ -15,9 +15,6 @@ importers:
       '@lichess-org/chessground':
         specifier: ^10.1.1
         version: 10.1.1
-      '@lichess-org/pgn-viewer':
-        specifier: ^2.6.2
-        version: 2.6.2
       '@playwright/test':
         specifier: ^1.60.0
         version: 1.60.0
@@ -30,9 +27,6 @@ importers:
       ab:
         specifier: github:lichess-org/ab-stub
         version: https://codeload.github.com/lichess-org/ab-stub/tar.gz/e391b56a82b7c71e7663082a797f6fc21b18776d
-      chessgroundx:
-        specifier: 10.7.5
-        version: 10.7.5(patch_hash=3cc51230c791b482065b649d5ffd96458ad2683e5f2c10b54c6fcaa4324dc097)
       chessops:
         specifier: ^0.15.1
         version: 0.15.1
@@ -95,6 +89,9 @@ importers:
       '@badrap/result':
         specifier: ^0.3.1
         version: 0.3.1
+      '@lixiangqi/board':
+        specifier: workspace:*
+        version: link:../board
       '@types/debounce-promise':
         specifier: ^3.1.9
         version: 3.1.9
@@ -140,6 +137,12 @@ importers:
       '@fnando/sparkline':
         specifier: ^0.3.10
         version: 0.3.10
+      '@lixiangqi/board':
+        specifier: workspace:*
+        version: link:../board
+      '@lixiangqi/viewer':
+        specifier: workspace:*
+        version: link:../viewer
       '@textcomplete/core':
         specifier: ^0.1.13
         version: 0.1.13
@@ -176,9 +179,6 @@ importers:
       canvas-confetti:
         specifier: ^1.9.4
         version: 1.9.4
-      chessgroundx:
-        specifier: 10.7.5
-        version: 10.7.5(patch_hash=3cc51230c791b482065b649d5ffd96458ad2683e5f2c10b54c6fcaa4324dc097)
       cropperjs:
         specifier: 1.6.2
         version: 1.6.2
@@ -227,6 +227,12 @@ importers:
       zxcvbn:
         specifier: ^4.4.2
         version: 4.4.2
+
+  ui/board:
+    dependencies:
+      chessgroundx:
+        specifier: 10.7.5
+        version: 10.7.5(patch_hash=0ca00a1b62c0d1114a5740018a7cf15405a7a3b0f76286c0472166b0fb45590c)
 
   ui/challenge:
     dependencies:
@@ -283,9 +289,15 @@ importers:
 
   ui/editor:
     dependencies:
-      chessgroundx:
-        specifier: 10.7.5
-        version: 10.7.5(patch_hash=3cc51230c791b482065b649d5ffd96458ad2683e5f2c10b54c6fcaa4324dc097)
+      '@lixiangqi/board':
+        specifier: workspace:*
+        version: link:../board
+      lib:
+        specifier: workspace:*
+        version: link:../lib
+
+  ui/explorer:
+    dependencies:
       lib:
         specifier: workspace:*
         version: link:../lib
@@ -331,6 +343,9 @@ importers:
 
   ui/learn:
     dependencies:
+      '@lixiangqi/board':
+        specifier: workspace:*
+        version: link:../board
       lib:
         specifier: workspace:*
         version: link:../lib
@@ -346,12 +361,12 @@ importers:
       '@lichess-org/zerofish':
         specifier: ^0.0.40
         version: 0.0.40
+      '@lixiangqi/board':
+        specifier: workspace:*
+        version: link:../board
       '@types/debounce-promise':
         specifier: ^3.1.9
         version: 3.1.9
-      chessgroundx:
-        specifier: 10.7.5
-        version: 10.7.5(patch_hash=3cc51230c791b482065b649d5ffd96458ad2683e5f2c10b54c6fcaa4324dc097)
       debounce-promise:
         specifier: ^3.1.2
         version: 3.1.2
@@ -412,6 +427,9 @@ importers:
       '@fnando/sparkline':
         specifier: ^0.3.10
         version: 0.3.10
+      '@lixiangqi/board':
+        specifier: workspace:*
+        version: link:../board
       '@types/fnando__sparkline':
         specifier: ^0.3.7
         version: 0.3.7
@@ -433,6 +451,9 @@ importers:
       '@badrap/result':
         specifier: ^0.3.1
         version: 0.3.1
+      '@lixiangqi/board':
+        specifier: workspace:*
+        version: link:../board
       chart.js:
         specifier: 4.5.1
         version: 4.5.1
@@ -460,9 +481,9 @@ importers:
 
   ui/round:
     dependencies:
-      chessgroundx:
-        specifier: 10.7.5
-        version: 10.7.5(patch_hash=3cc51230c791b482065b649d5ffd96458ad2683e5f2c10b54c6fcaa4324dc097)
+      '@lixiangqi/board':
+        specifier: workspace:*
+        version: link:../board
       keyboard-move:
         specifier: workspace:*
         version: link:../keyboardMove
@@ -489,6 +510,9 @@ importers:
       '@juggle/resize-observer':
         specifier: ^3.4.0
         version: 3.4.0
+      '@lixiangqi/board':
+        specifier: workspace:*
+        version: link:../board
       bits:
         specifier: workspace:*
         version: link:../bits
@@ -540,6 +564,9 @@ importers:
 
   ui/tutor:
     dependencies:
+      '@lixiangqi/viewer':
+        specifier: workspace:*
+        version: link:../viewer
       lib:
         specifier: workspace:*
         version: link:../lib
@@ -549,6 +576,18 @@ importers:
       bits:
         specifier: workspace:*
         version: link:../bits
+      lib:
+        specifier: workspace:*
+        version: link:../lib
+
+  ui/viewer:
+    dependencies:
+      '@lixiangqi/board':
+        specifier: workspace:*
+        version: link:../board
+      '@lixiangqi/explorer':
+        specifier: workspace:*
+        version: link:../explorer
       lib:
         specifier: workspace:*
         version: link:../lib
@@ -564,12 +603,18 @@ importers:
 
   ui/xiangqi:
     dependencies:
+      '@lixiangqi/board':
+        specifier: workspace:*
+        version: link:../board
+      '@lixiangqi/explorer':
+        specifier: workspace:*
+        version: link:../explorer
+      '@lixiangqi/viewer':
+        specifier: workspace:*
+        version: link:../viewer
       chart:
         specifier: workspace:*
         version: link:../chart
-      chessgroundx:
-        specifier: 10.7.5
-        version: 10.7.5(patch_hash=3cc51230c791b482065b649d5ffd96458ad2683e5f2c10b54c6fcaa4324dc097)
       lib:
         specifier: workspace:*
         version: link:../lib
@@ -859,9 +904,6 @@ packages:
 
   '@lichess-org/chessground@10.1.1':
     resolution: {integrity: sha512-IBEs8+J64/zE8QB4NXxsvpjm/tHRjfQAdWwUh4xzqqN+RValgthWHemLnxsmtHFwuxvO4lHd+crp1ecgZxKVoQ==}
-
-  '@lichess-org/pgn-viewer@2.6.2':
-    resolution: {integrity: sha512-QZNKVarNiuEkRGf8pM1upN9x0bMxOMeZBxYkYTBLOn7GknGNgxLhMYMQnSIS3CjOJKApv6dvXW+0VvMgnFP9lA==}
 
   '@lichess-org/vosk-browser@0.0.3':
     resolution: {integrity: sha512-kgxU346dZC/YbtVhqQTJbjZupUjuvwR3R270mGF5LJLmKAUCLRAQFhkRAqv4eUK1dmzu47ywN/SwrL5QrV7tCg==}
@@ -1988,10 +2030,6 @@ packages:
     resolution: {integrity: sha512-wHMNIOjkm/YNE5EM3RCbr/+DVgPg6AqQAX1eOxO46zYNvCXjKP5Y865tqQj3EXnaMBjkxmQA5jFuDpDK/dbfiA==}
     engines: {node: '>=8.3.0'}
 
-  snabbdom@3.6.4:
-    resolution: {integrity: sha512-VmxEfuw1/Y/eFj5VtMhYnukExpYiPkNzoo3+N3qwAOUDMl8wXgbli5ebR+j0knE3lZ/0eYskLxNcX64uy10N9w==}
-    engines: {node: '>=12.17.0'}
-
   sortablejs@1.15.7:
     resolution: {integrity: sha512-Kk8wLQPlS+yi1ZEf48a4+fzHa4yxjC30M/Sr2AnQu+f/MPwvvX9XjZ6OWejiz8crBsLwSq8GHqaxaET7u6ux0A==}
 
@@ -2490,12 +2528,6 @@ snapshots:
 
   '@lichess-org/chessground@10.1.1': {}
 
-  '@lichess-org/pgn-viewer@2.6.2':
-    dependencies:
-      '@lichess-org/chessground': 10.1.1
-      chessops: 0.15.1
-      snabbdom: 3.6.4
-
   '@lichess-org/vosk-browser@0.0.3':
     dependencies:
       uuid: 11.1.0
@@ -2773,7 +2805,7 @@ snapshots:
       undici: 7.27.2
       whatwg-mimetype: 4.0.0
 
-  chessgroundx@10.7.5(patch_hash=3cc51230c791b482065b649d5ffd96458ad2683e5f2c10b54c6fcaa4324dc097): {}
+  chessgroundx@10.7.5(patch_hash=0ca00a1b62c0d1114a5740018a7cf15405a7a3b0f76286c0472166b0fb45590c): {}
 
   chessops@0.15.1:
     dependencies:
@@ -3534,8 +3566,6 @@ snapshots:
       is-fullwidth-code-point: 5.1.0
 
   snabbdom@3.5.1: {}
-
-  snabbdom@3.6.4: {}
 
   sortablejs@1.15.7: {}
 

@@ -6,11 +6,11 @@
     "@badrap/result": "^0.3.1",
     "@lichess-org/zerofish": "^0.0.40",
     "@types/debounce-promise": "^3.1.9",
-    "chessgroundx": "10.7.5",
     "debounce-promise": "^3.1.2",
     "idb-keyval": "^6.2.1",
     "tablesort": "5.7.0",
-    "web-vitals": "6.2.2"
+    "web-vitals": "6.2.2",
+    "@lixiangqi/board": "workspace:*"
   },
   "build": {
     "hash": [

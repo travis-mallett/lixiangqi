@@ -1,45 +1,46 @@
-import { opposite } from '@lichess-org/chessground/util';
-import { charToRole, ROLES, type Board } from 'chessops';
+import { positionFromFen, standardXiangqi } from '@lixiangqi/board';
 
-import type { CheckCount, CheckState, MaterialDiff } from './interfaces';
+import type { CheckCount, CheckState } from './interfaces';
 
-export function getMaterialDiff(chess: FEN | Board): MaterialDiff {
-  const diff: MaterialDiff = {
-    white: { king: 0, queen: 0, rook: 0, bishop: 0, knight: 0, pawn: 0 },
-    black: { king: 0, queen: 0, rook: 0, bishop: 0, knight: 0, pawn: 0 },
-  };
-  if (isFen(chess)) {
-    const fenLike = chess.split(' ')[0];
-    for (let i = 0, part = 0; i < fenLike.length && part < 8; i++) {
-      const ch = fenLike[i];
-      const lower = ch.toLowerCase();
-      const role = charToRole(ch);
-      if (role) {
-        const color = ch === lower ? 'black' : 'white';
-        const them = diff[opposite(color)];
-        if (them[role] > 0) them[role]--;
-        else diff[color][role]++;
-      } else if (ch === '[' || ch === ' ') break;
-      else if (ch === '/') part++;
-    }
-  } else {
-    for (const role of ROLES) {
-      const c = [chess.pieces('white', role).size(), chess.pieces('black', role).size()];
-      diff.white[role] = c[0] > c[1] ? c[0] - c[1] : 0;
-      diff.black[role] = c[1] > c[0] ? c[1] - c[0] : 0;
-    }
+// Fixed material values describe an imbalance, not a positional engine evaluation.
+export const xiangqiMaterialValues = {
+  general: 0,
+  advisor: 2,
+  elephant: 2,
+  horse: 4,
+  chariot: 9,
+  cannon: 4.5,
+  soldier: 1,
+} as const;
+type MaterialRole = keyof typeof xiangqiMaterialValues;
+export type MaterialDiffSide = Record<MaterialRole, number>;
+export type MaterialDiff = Record<'red' | 'black', MaterialDiffSide>;
+
+export function getMaterialDiff(fen: FEN): MaterialDiff {
+  const empty = () =>
+    Object.fromEntries(Object.keys(xiangqiMaterialValues).map(role => [role, 0])) as MaterialDiffSide;
+  const diff = { red: empty(), black: empty() };
+  if (!fen) return diff;
+  for (const piece of positionFromFen(fen, standardXiangqi).pieces.values()) {
+    if (piece.face !== 'up') continue;
+    const role = piece.role as MaterialRole;
+    const color = piece.participant as 'red' | 'black';
+    const them = diff[color === 'red' ? 'black' : 'red'];
+    if (them[role] > 0) them[role]--;
+    else diff[color][role]++;
   }
   return diff;
 }
 
 export function getScore(diff: MaterialDiff): number {
-  return (
-    (diff.white.queen - diff.black.queen) * 9 +
-    (diff.white.rook - diff.black.rook) * 5 +
-    (diff.white.bishop - diff.black.bishop) * 3 +
-    (diff.white.knight - diff.black.knight) * 3 +
-    (diff.white.pawn - diff.black.pawn)
+  return (Object.keys(xiangqiMaterialValues) as MaterialRole[]).reduce(
+    (score, role) => score + (diff.red[role] - diff.black[role]) * xiangqiMaterialValues[role],
+    0,
   );
+}
+
+export function xiangqiMaterialScore(fen: FEN, player: 'red' | 'black'): number {
+  return getScore(getMaterialDiff(fen)) * (player === 'red' ? 1 : -1);
 }
 
 export const NO_CHECKS: CheckCount = {
@@ -57,8 +58,4 @@ export function countChecks(steps: CheckState[], ply: Ply): CheckCount {
     }
   }
   return checks;
-}
-
-function isFen(chess: FEN | Board): chess is FEN {
-  return typeof chess === 'string';
 }

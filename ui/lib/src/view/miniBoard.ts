@@ -1,12 +1,10 @@
 // no side effects allowed due to re-export by index.ts
 
-import type { Api } from 'chessgroundx/api';
-import { Chessground as makeChessground } from 'chessgroundx/chessground';
-import type { Config } from 'chessgroundx/config';
-import { Notation } from 'chessgroundx/types';
+import { boardPresentation, coordinateMove, recordedPosition, type BoardView } from '@lixiangqi/board';
 import { COLORS } from 'chessops';
 import { h, type VNode } from 'snabbdom';
 
+import { createXiangqiBoard, xiangqiPosition } from '@/board';
 import * as domData from '@/data';
 import { fenColor } from '@/game/chess';
 import { formatMs, lichessClockIsRunning, setClockWidget } from '@/game/clock/clockWidget';
@@ -16,16 +14,12 @@ import {
   type RecordedClockFrame,
   type RecordedClockTimeline,
 } from '@/game/replay/recordedClockPlayback';
-import { XIANGQI_DIMENSIONS, xiangqiUciMoveToCg } from '@/game/xiangqi';
 import { pubsub } from '@/pubsub';
 import { wsSend } from '@/socket';
-import { playXiangqiBoardAnimation } from '@/xiangqiBoardAnimation';
 
 interface MiniGameReplay {
   animationMillis: number;
-  checks: Set<number>;
   initialFen: FEN;
-  mate: boolean;
   moves: Uci[];
   recordedClock: RecordedClockTimeline;
 }
@@ -48,29 +42,20 @@ const readMiniGameReplay = (node: Element): MiniGameReplay | undefined => {
     animationMillis: Number.parseInt(
       node.getAttribute('data-replay-animation') ||
         node.closest('[data-mini-game-animation]')?.getAttribute('data-mini-game-animation') ||
-        '250',
+        '200',
       10,
     ),
-    checks: new Set(
-      (node.getAttribute('data-replay-checks') || '')
-        .split(',')
-        .filter(Boolean)
-        .map(value => Number.parseInt(value, 10)),
-    ),
     initialFen,
-    mate: node.getAttribute('data-replay-mate') === 'true',
     moves,
     recordedClock,
   };
 };
 
-const startMiniGameReplay = (node: Element, cg: Api, replay: MiniGameReplay): void => {
-  const board = node.querySelector<HTMLElement>('.cg-wrap') || undefined;
+const startMiniGameReplay = (node: Element, board: BoardView, replay: MiniGameReplay): void => {
+  let repeatTimer: ReturnType<typeof setTimeout> | undefined;
   const playback: { controller?: RecordedClockPlayback } = {};
   const resetBoard = () => {
-    cg.set({ animation: { enabled: false } });
-    cg.set({ fen: replay.initialFen, lastMove: undefined });
-    cg.set({ animation: { enabled: replay.animationMillis > 0, duration: replay.animationMillis } });
+    board.display(xiangqiPosition(replay.initialFen), { kind: 'jump' });
   };
   const renderClock = (frame: RecordedClockFrame) => {
     if (!node.isConnected) {
@@ -92,24 +77,27 @@ const startMiniGameReplay = (node: Element, cg: Api, replay: MiniGameReplay): vo
         resetBoard();
         return;
       }
-      const moveIndex = position - 1;
-      const [orig, dest] = xiangqiUciMoveToCg(replay.moves[moveIndex]),
-        capture = !!cg.state.boardState.pieces.get(dest);
-      cg.move(orig, dest);
-      cg.set({ lastMove: [orig, dest] });
-      if (replay.mate && moveIndex === replay.moves.length - 1) playXiangqiBoardAnimation('checkmate', board);
-      else if (replay.checks.has(moveIndex)) playXiangqiBoardAnimation('check', board);
-      else if (capture) playXiangqiBoardAnimation('capture', board);
+      const current = board.position();
+      const next = recordedPosition(
+        current,
+        replay.moves[position - 1],
+        current.active === 'red' ? 'black' : 'red',
+      );
+      board.display(next, { kind: 'forward' });
     },
     renderClock,
     ended: () => {
-      window.setTimeout(() => {
+      repeatTimer = setTimeout(() => {
         if (node.isConnected) controller.start();
         else controller.destroy();
       }, 5000);
     },
   });
   playback.controller = controller;
+  board.onDestroy(() => {
+    controller.destroy();
+    if (repeatTimer !== undefined) clearTimeout(repeatTimer);
+  });
   controller.start();
 };
 
@@ -118,23 +106,26 @@ export const initMiniBoard = (node: HTMLElement): void => {
   initMiniBoardWith(node, {
     fen,
     orientation: orientation as Color,
-    lastMove: lm ? xiangqiUciMoveToCg(lm) : undefined,
+    lastMove: lm ? coordinateMove(lm) : undefined,
   });
 };
 
-export const initMiniBoardWith = (node: HTMLElement, config: Config): void => {
-  node.classList.add('xiangqi9x10');
-  const cgConfig: Config = {
-    coordinates: false,
-    viewOnly: !node.getAttribute('data-playable'),
-    drawable: { enabled: false, visible: false },
-    dimensions: XIANGQI_DIMENSIONS,
-    notation: Notation.XIANGQI_HANNUM,
-    kingRoles: ['k-piece'],
-    autoCastle: false,
-    ...config,
+export interface MiniBoardOptions {
+  fen: string;
+  orientation?: Color;
+  lastMove?: readonly string[];
+  coordinates?: boolean;
+  purpose?: 'thumbnail' | 'preview';
+}
+
+export const initMiniBoardWith = (node: HTMLElement, options: MiniBoardOptions): void => {
+  getBoard(node)?.destroy();
+  const position = xiangqiPosition(options.fen, options.lastMove?.join(''));
+  const presentation = {
+    ...boardPresentation(options.purpose ?? 'thumbnail', options.orientation === 'black' ? 'black' : 'red'),
+    coordinates: options.coordinates ?? false,
   };
-  domData.set(node, 'chessground', makeChessground(node, cgConfig));
+  domData.set(node, 'board', createXiangqiBoard(node, position, presentation));
 };
 
 export const initMiniBoards = (parent?: HTMLElement): void =>
@@ -151,36 +142,20 @@ export const renderClock = (color: Color, time: number): VNode =>
 export const initMiniGame = (node: Element): string | null => {
   const [fen, color, lm] = node.getAttribute('data-state')!.split(','),
     replay = readMiniGameReplay(node),
-    config: Config = {
-      coordinates: false,
-      viewOnly: true,
-      fen: replay?.initialFen || fen,
-      orientation: color as Color,
-      lastMove: replay ? undefined : lm ? xiangqiUciMoveToCg(lm) : undefined,
-      dimensions: XIANGQI_DIMENSIONS,
-      notation: Notation.XIANGQI_HANNUM,
-      kingRoles: ['k-piece'],
-      autoCastle: false,
-      ...(replay
-        ? {
-            animation: {
-              enabled: replay.animationMillis > 0,
-              duration: replay.animationMillis,
-            },
-          }
-        : {}),
-      drawable: {
-        enabled: false,
-        visible: false,
-      },
-    },
     $el = $(node).removeClass('mini-game--init'),
     $cg = $el.find('.cg-wrap').addClass('xiangqi9x10'),
     turnColor = fenColor(fen);
 
-  const cg = makeChessground($cg[0] as HTMLElement, config);
-  domData.set($cg[0] as Element, 'chessground', cg);
-  if (replay) startMiniGameReplay(node, cg, replay);
+  const element = $cg[0] as HTMLElement;
+  getBoard(element)?.destroy();
+  const position = xiangqiPosition(replay?.initialFen || fen, replay ? undefined : lm || undefined);
+  const presentation = {
+    ...boardPresentation('thumbnail', color === 'black' ? 'black' : 'red'),
+    motion: { duration: replay?.animationMillis ?? 200 },
+  };
+  const board = createXiangqiBoard(element, position, presentation);
+  domData.set(element, 'board', board);
+  if (replay) startMiniGameReplay(node, board, replay);
 
   if (!replay)
     COLORS.forEach(color =>
@@ -194,7 +169,7 @@ export const initMiniGame = (node: Element): string | null => {
   return node.getAttribute('data-live');
 };
 
-export const getChessground = (node: HTMLElement): Api => domData.get(node, 'chessground');
+export const getBoard = (node: HTMLElement): BoardView | undefined => domData.get(node, 'board');
 
 export const initMiniGames = (parent?: HTMLElement): void => {
   const nodes = Array.from((parent || document).getElementsByClassName('mini-game--init')),
@@ -204,12 +179,8 @@ export const initMiniGames = (parent?: HTMLElement): void => {
 
 export const updateMiniGame = (node: HTMLElement, data: MiniGameUpdateData): void => {
   const lm = data.lm,
-    cg = getChessground(node.querySelector('.cg-wrap')!);
-  if (cg)
-    cg.set({
-      fen: data.fen,
-      lastMove: lm ? xiangqiUciMoveToCg(lm) : undefined,
-    });
+    board = getBoard(node.querySelector('.cg-wrap')!);
+  if (board) board.display(xiangqiPosition(data.fen, lm || undefined), { kind: 'forward' });
   const turnColor = fenColor(data.fen);
   const updateClock = (time: number | undefined, color: Color) => {
     const clockEl = node?.querySelector('.mini-game__clock--' + color) as HTMLElement;

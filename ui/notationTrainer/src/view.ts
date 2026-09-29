@@ -2,7 +2,7 @@ import type { VNode } from 'snabbdom';
 
 import { bind, hl, onInsert } from 'lib/view';
 
-import notationBoard from './chessground';
+import notationBoard from './board';
 import NotationTrainerCtrl, { DURATION } from './ctrl';
 import side from './side';
 

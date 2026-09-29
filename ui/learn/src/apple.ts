@@ -1,5 +1,4 @@
-import type { DrawShape } from 'chessgroundx/draw';
-import type { Key } from 'chessgroundx/types';
+import type { BoardMark } from '@lixiangqi/board';
 
 // Safari specifically requires globally unique IDs for SVG elements, even between different SVGs,
 // so we concatenate a unique key to every ID for each SVG.
@@ -101,7 +100,10 @@ const svg = (key: string) => $html`
     </g>
   </g>`;
 
-export const makeAppleShape = (key: Key): DrawShape => ({
+export const makeAppleMark = (location: string): BoardMark => ({ from: location, svg: svg(location) });
+
+// The deferred chess lesson controller still uses its original annotation format.
+export const makeAppleShape = (key: Key): { orig: Key; customSvg: string } => ({
   orig: key,
   customSvg: svg(key),
 });

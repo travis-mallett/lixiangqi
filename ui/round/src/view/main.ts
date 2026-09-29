@@ -5,8 +5,8 @@ import { type VNode, hl, bind } from 'lib/view';
 import { renderBlindfoldToggle } from 'lib/view/blindfold';
 import stepwiseScroll from 'lib/view/stepwiseScroll';
 
+import { render as renderGround } from '../board';
 import type RoundController from '../ctrl';
-import { render as renderGround } from '../ground';
 import { next, prev, view } from '../keyboard';
 import { renderTable } from './table';
 

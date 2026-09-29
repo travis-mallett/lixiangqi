@@ -13,7 +13,8 @@ export async function parsePackages(): Promise<void> {
   for (const pkgInfo of env.packages.values()) {
     const deplist: string[] = [];
     for (const dep in pkgInfo.pkg.dependencies) {
-      if (env.packages.has(dep)) deplist.push(dep);
+      const workspace = [...env.packages.values()].find(candidate => candidate.pkg.name === dep);
+      if (workspace) deplist.push(workspace.name);
     }
     env.workspaceDeps.set(pkgInfo.name, deplist);
   }

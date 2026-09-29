@@ -1,11 +1,11 @@
 import { Result } from '@badrap/result';
+import { moveDestinations } from '@lixiangqi/board';
 import { type Position, parseUci, makeSquare } from 'chessops';
 import { chessgroundDests, lichessRules, scalachessCharPair } from 'chessops/compat';
 import { parseFen } from 'chessops/fen';
 import { setupPosition } from 'chessops/variant';
 
 import { memoize } from '@/common';
-import { xiangqiLegalMoveDests } from '@/game';
 
 import type { PositionResult, TreeNode, TreeNodeBase } from './types';
 
@@ -15,12 +15,13 @@ export const completeNode =
   (from: TreeNodeBase): TreeNode => {
     const node = from as TreeNode;
     if (variant === 'xiangqi') {
-      node.id ||= node.uci ?? '';
+      if (node.uci && !node.id) throw new Error('A Xiangqi tree branch requires a two-character path ID');
+      node.id ??= '';
       node.children ||= [];
       node.pos ||= memoize(() =>
         Result.err(new Error('Xiangqi positions come from the native rules boundary')),
       );
-      node.dests ||= memoize(() => xiangqiLegalMoveDests(node.xiangqiLegalMoves ?? []) as Dests);
+      node.dests ||= memoize(() => xiangqiTreeDestinations(node.xiangqiLegalMoves ?? []));
       node.drops ||= memoize(() => []);
       node.check ||= memoize(() => node.xiangqiCheck ?? false);
       node.outcome ||= memoize(() => undefined);
@@ -57,3 +58,13 @@ const withPosition = <A>(position: PositionResult, defaultValue: A, f: (p: Posit
     console.error(err);
     return defaultValue;
   });
+
+/** The existing study tree wire format uses two-character squares. Boards consume canonical locations. */
+export function xiangqiTreeDestinations(moves: readonly string[]): Dests {
+  return new Map(
+    [...moveDestinations(moves)].map(([from, to]) => [
+      from.replaceAll('10', ':'),
+      to.map(key => key.replaceAll('10', ':')),
+    ]),
+  ) as Dests;
+}

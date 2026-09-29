@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-const theme = readFileSync(new URL('../../lib/css/theme/board/_xiangqi.scss', import.meta.url), 'utf8');
+const theme = readFileSync(new URL('../../board/css/_board.scss', import.meta.url), 'utf8');
 const chessgroundTheme = readFileSync(
   new URL('../../lib/css/theme/board/_chessground.scss', import.meta.url),
   'utf8',

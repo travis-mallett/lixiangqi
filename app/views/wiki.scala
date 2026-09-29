@@ -17,11 +17,11 @@ object wiki:
             "fen" -> "9/9/9/9/9/9/9/9/9/9 w - - 0 1",
             "shapes" -> (
               List("c9", "g9", "c2", "g2").map(square =>
-                Json.obj("orig" -> square, "brush" -> "blue")
+                Json.obj("from" -> square, "brush" -> "blue")
               ) ++ List("b9", "h9", "b2", "h2").map(square =>
                 Json.obj(
-                  "orig" -> square,
-                  "customSvg" -> """<svg viewBox="0 0 100 100"><rect x="15" y="15" width="70" height="70" fill="#aa7724" fill-opacity=".18" stroke="#aa7724" stroke-width="5"/></svg>"""
+                  "from" -> square,
+                  "svg" -> """<svg viewBox="0 0 100 100"><rect x="15" y="15" width="70" height="70" fill="#aa7724" fill-opacity=".18" stroke="#aa7724" stroke-width="5"/></svg>"""
                 )
               )
             )

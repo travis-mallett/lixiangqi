@@ -59,6 +59,7 @@ class PublicationTests(Tests):
         with self.c() as c:
             for pid, theme in (
                 ("Ghost", "doubleGhostsKnocking"),
+                ("Elixr", "threeImmortalsRefiningTheElixir"),
                 ("Child", "childWorshipsBuddha"),
                 ("Crown", "crowningMate"),
                 ("Chase", "eunuchChasingEmperorKill"),
@@ -69,7 +70,7 @@ class PublicationTests(Tests):
                 c.admit(p, {"status": "verified", "assessmentId": pid})
             release = c.build_release()
             self.assertTrue(
-                {"Ghost", "Child", "Crown", "Chase"}
+                {"Elixr", "Ghost", "Child", "Crown", "Chase"}
                 <= {p["_id"] for p in release["puzzles"]}
             )
             validate_release_categories(release["puzzles"])

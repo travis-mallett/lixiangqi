@@ -13,28 +13,12 @@
     background-size: cover;
     display: inline-block;
 
-    &.pawn {
-      background-image: var(---red-soldier);
-    }
-
-    &.bishop {
-      background-image: var(---red-elephant);
-    }
-
-    &.knight {
-      background-image: var(---red-horse);
-    }
-
-    &.rook {
-      background-image: var(---red-chariot);
-    }
-
-    &.queen {
-      background-image: var(---red-cannon);
-    }
-
-    &.king {
-      background-image: var(---red-general);
+    @each $color in red, black {
+      @each $role in general, advisor, elephant, horse, chariot, cannon, soldier {
+        &.#{$color}.#{$role} {
+          background-image: var(---#{$color}-#{$role});
+        }
+      }
     }
 
     @include if-background {

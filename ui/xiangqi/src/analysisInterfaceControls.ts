@@ -1,6 +1,6 @@
-import type { Api } from 'chessgroundx/api';
+import type { BoardView } from '@lixiangqi/board';
 
-import { dispatchChessgroundResize } from 'lib/chessgroundResize';
+import { dispatchChessgroundResize } from 'lib/boardResize';
 
 import {
   applyInterfaceSettingsClasses,
@@ -10,12 +10,11 @@ import {
 } from './analysisSettings';
 import type { AnalysisTreeView } from './analysisTreeView';
 import { isGaugeDock, type GaugeDock } from './gaugeDock';
-import { setXiangqiCoordinates } from './index';
 
 interface Options {
   page: HTMLElement;
   eval: HTMLElement;
-  ground: Api;
+  ground: BoardView;
   treeView: AnalysisTreeView;
   fenInput: HTMLTextAreaElement;
   saveStatus: HTMLElement;
@@ -79,7 +78,10 @@ export function bindAnalysisInterfaceControls(options: Options): void {
   });
 
   requiredElement('#xiangqi-flip').addEventListener('click', () => {
-    options.ground.toggleOrientation();
+    options.ground.setPresentation({
+      ...options.ground.getPresentation(),
+      perspective: options.ground.getPresentation().perspective === 'red' ? 'black' : 'red',
+    });
     options.renderArrows();
   });
   requiredElement('#xiangqi-edit-position').addEventListener('click', () => {
@@ -119,7 +121,10 @@ export function bindAnalysisInterfaceControls(options: Options): void {
       persist();
       apply();
       if (key === 'gauge') settleDockLayout();
-      setXiangqiCoordinates(options.ground, options.settings().coordinates);
+      options.ground.setPresentation({
+        ...options.ground.getPresentation(),
+        coordinates: options.settings().coordinates,
+      });
       options.renderArrows();
     });
   });

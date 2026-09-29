@@ -1,4 +1,3 @@
-import type { DrawShape } from '@lichess-org/chessground/draw';
 import { opposite } from 'chessops/util';
 
 import { prop, defined } from 'lib';
@@ -14,6 +13,7 @@ import { alert } from 'lib/view';
 import type AnalyseCtrl from '../ctrl';
 import type { EvalHitMulti, EvalHitMultiArray } from '../interfaces';
 import type { StudySocketSendParams } from '../socket';
+import { studyMarks } from './boardMarks';
 import { CommentForm } from './commentForm';
 import { DescriptionCtrl } from './description';
 import GamebookPlayCtrl from './gamebook/gamebookPlayCtrl';
@@ -68,7 +68,7 @@ interface Handlers {
   deleteNode(d: WithWhoAndPos): void;
   promote(d: WithWhoAndPos & { toMainline: boolean }): void;
   liking(d: WithWho & { l: { likes: number; me: boolean } }): void;
-  shapes(d: WithWhoAndPos & { s: DrawShape[] }): void;
+  shapes(d: WithWhoAndPos & { s: Shape[] }): void;
   members(d: Record<string, { user: { name: string; id: string }; role: 'r' | 'w' }>): void;
   setComment(d: WithWhoAndPos & { c: TreeComment }): void;
   deleteComment(d: WithWhoAndPos & { id: string }): void;
@@ -295,7 +295,7 @@ export default class StudyCtrl {
     const last = this.arrowHistory.pop();
     if (!last) return;
     this.updateShapes(last);
-    this.ctrl.withCg(cg => cg.setShapes(last.slice() as DrawShape[]));
+    this.ctrl.withBoard(board => board.setMarks(studyMarks(last)));
   };
 
   makeChange = <K extends keyof StudySocketSendParams>(
@@ -446,16 +446,12 @@ export default class StudyCtrl {
     return undefined;
   };
 
-  mutateCgConfig = (config: CgConfig) => {
-    if (config.drawable) {
-      config.drawable.onChange = (shapes: Shape[]) => {
-        if (this.vm.mode.write) {
-          this.arrowHistory.push(this.ctrl.node.shapes?.slice() ?? []);
-          this.updateShapes(shapes);
-        }
-        this.gamebookPlay?.onShapeChange(shapes);
-      };
+  onBoardMarksChange = (shapes: Shape[]) => {
+    if (this.vm.mode.write) {
+      this.arrowHistory.push(this.ctrl.node.shapes?.slice() ?? []);
+      this.updateShapes(shapes);
     }
+    this.gamebookPlay?.onShapeChange(shapes);
   };
 
   wrongChapter = (serverData: WithPosition & { s?: boolean }): boolean => {
@@ -839,7 +835,7 @@ export default class StudyCtrl {
       if (who && who.s === site.sri) return this.redraw(); // update shape indicator in column move view
       if (this.ctrl.path === position.path) {
         this.arrowHistory.push(this.ctrl.node.shapes?.slice() ?? []);
-        this.ctrl.withCg(cg => cg.setShapes(d.s));
+        this.ctrl.withBoard(board => board.setMarks(studyMarks(d.s)));
       }
       this.ctrl.tree.setShapes(d.s, position.path);
       this.redraw();

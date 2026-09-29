@@ -2,7 +2,7 @@
 import * as ab from 'ab/site';
 
 import { scrollToInnerSelector, requestIdleCallbackSafe } from 'lib';
-import { dispatchChessgroundResize } from 'lib/chessgroundResize';
+import { dispatchChessgroundResize } from 'lib/boardResize';
 import { prefersLightThemeQuery } from 'lib/device';
 import { licon } from 'lib/licon';
 import { pubsub } from 'lib/pubsub';

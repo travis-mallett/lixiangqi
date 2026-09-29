@@ -6,7 +6,12 @@ import lila.core.i18n.I18nModule
 
 object embed:
   /* a minimalist embed that doesn't load site.ts */
-  def minimal(title: String, cssKeys: List[String] = Nil, modules: EsmList = Nil)(body: Modifier*)(using
+  def minimal(
+      title: String,
+      cssKeys: List[String] = Nil,
+      modules: EsmList = Nil,
+      csp: Update[ContentSecurityPolicy] = identity
+  )(body: Modifier*)(using
       ctx: EmbedContext
   ) = lila.ui.Snippet:
     frag(
@@ -16,7 +21,7 @@ object embed:
         head(
           page.ui.charset,
           page.ui.viewport,
-          page.ui.metaCsp(embedCsp.withNonce(ctx.nonce).withInlineIconFont),
+          page.ui.metaCsp(csp(embedCsp.withNonce(ctx.nonce).withInlineIconFont)),
           st.headTitle(title),
           (ctx.uiTheme == lila.pref.UiThemes.system.key).option(page.ui.systemThemeScript(ctx.nonce.some)),
           page.pieceSetImages.load(ctx.pieceSet, lila.pref.PieceSets.assets(ctx.pieceSet)),
@@ -34,7 +39,7 @@ object embed:
     )
 
   private def bodyModifiers(using ctx: EmbedContext) = List(
-    cls := List("simple-board" -> ctx.pref.simpleBoard),
+    cls := "board-embed",
     page.ui.dataSoundSet := lila.pref.SoundSets.none.key,
     page.ui.dataMusicSet := lila.pref.MusicSets.none.key,
     page.ui.dataAssetUrl,
@@ -44,7 +49,12 @@ object embed:
     page.ui.dataPieceSet := ctx.pieceSet,
     page.ui.dataBoard := ctx.boardTheme,
     page.ui.dataSocketDomains,
-    style := page.boardStyle(zoomable = false)
+    style := {
+      val board = lila.pref.BoardThemes(ctx.boardTheme)
+      s"---board-image:url(${assetUrl(s"images/board/${board.file}").value});" +
+        s"---cg-ccw:${board.coordinateLight};---cg-ccb:${board.coordinateDark};" +
+        "---cg-cs:none;---board-opacity:100;---board-brightness:100;---board-contrast:100;---board-saturation:100;---board-hue:0;"
+    }
   )
 
   /* a heavier embed that loads site.ts and connects to WS */

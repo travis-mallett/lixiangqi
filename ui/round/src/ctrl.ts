@@ -1,27 +1,26 @@
 /// <reference types="../types/ab" />
 
-import type { MoveMetadata as ChessgroundMoveMetadata } from '@lichess-org/chessground/types';
+import {
+  recordedPosition,
+  positionToFen,
+  standardXiangqi,
+  type BoardView,
+  type MoveIntent,
+  type BoardMark,
+  type BoardEffect,
+} from '@lixiangqi/board';
 import * as ab from 'ab/round';
-import type { Api as XiangqiGroundApi } from 'chessgroundx/api';
-import type { Config as XiangqiGroundConfig } from 'chessgroundx/config';
-import type { DrawShape as XiangqiDrawShape } from 'chessgroundx/draw';
-import type {
-  Key as XiangqiKey,
-  MoveMetadata as XiangqiMoveMetadata,
-  Piece as XiangqiPiece,
-} from 'chessgroundx/types';
 import { ctrl as makeKeyboardMove, type KeyboardMove } from 'keyboard-move';
 import { makeVoiceMove, type VoiceMove } from 'voice';
 
 import { defined, type Toggle, type Prop, toggle, requestIdleCallbackSafe, memoize } from 'lib';
+import { xiangqiPosition } from 'lib/board';
 import * as game from 'lib/game';
-import { isXiangqiCapture, plyOpponentColor, xiangqiCgToUci, xiangqiUciMoveToCg } from 'lib/game';
+import { isXiangqiCapture, plyOpponentColor } from 'lib/game';
 import { isXiangqiMate } from 'lib/game/adjudication';
 import { plyToTurn, plyColor } from 'lib/game/chess';
 import { ClockCtrl, type ClockOpts } from 'lib/game/clock/clockCtrl';
 import type { MoveRootCtrl } from 'lib/game/moveRootCtrl';
-import { PromotionCtrl } from 'lib/game/promotion';
-import { playMoveNavigationSound } from 'lib/game/replay/moveNavigationSound';
 import {
   isRecordedClockTimeline,
   RecordedClockPlayback,
@@ -42,9 +41,9 @@ import { toggleZenMode } from 'lib/view/zen';
 import * as wakeLock from 'lib/wakeLock';
 
 import * as blur from './blur';
+import * as ground from './board';
 import * as cevalSub from './cevalSub';
 import { CorresClockController } from './corresClock/corresClockCtrl';
-import * as ground from './ground';
 import type {
   Step,
   RoundOpts,
@@ -72,7 +71,8 @@ type GoneBerserk = Partial<ByColor<boolean>>;
 export default class RoundController implements MoveRootCtrl {
   data: RoundData;
   socket: RoundSocket;
-  chessground: XiangqiGroundApi;
+  board: BoardView;
+  private optimisticMoveId?: string;
   clock?: ClockCtrl;
   recordedClockPlayback?: RecordedClockPlayback;
   private latestClock?: {
@@ -86,7 +86,6 @@ export default class RoundController implements MoveRootCtrl {
   keyboardMove?: KeyboardMove;
   voiceMove?: VoiceMove;
   moveOn: MoveOn;
-  promotion: PromotionCtrl;
   ply: number;
   firstSeconds = true;
   flip = false;
@@ -135,16 +134,6 @@ export default class RoundController implements MoveRootCtrl {
       this.initRecordedClockPlayback();
       this.redraw();
     });
-    this.promotion = new PromotionCtrl(
-      f => f(this.chessground as unknown as CgApi),
-      () => {
-        this.chessground.cancelPremove();
-        xhr.reload(this.data).then(this.reload, site.reload);
-      },
-      this.redraw,
-      d.pref.autoQueen,
-    );
-
     this.setQuietMode();
     this.confirmMoveToggle = toggle(d.pref.submitMove);
     this.moveOn = new MoveOn(this, 'move-on');
@@ -180,30 +169,21 @@ export default class RoundController implements MoveRootCtrl {
     setTimeout(this.showExpiration, 250);
   };
 
-  private readonly onUserMove = (orig: XiangqiKey, dest: XiangqiKey, meta: XiangqiMoveMetadata) => {
+  onBoardMove = (move: MoveIntent): void => {
     if (!this.keyboardMove?.usedSan && !this.opts.noab)
-      ab.move(this, meta as unknown as ChessgroundMoveMetadata, pubsub.emit);
-    this.sendMove(orig, dest, meta);
+      ab.move(
+        this,
+        { premove: move.premove, ctrlKey: move.controlKey, holdTime: move.holdTime },
+        pubsub.emit,
+      );
+    this.optimisticMoveId = `${this.ply + 1}:${move.from}${move.to}`;
+    this.board.presentTransition({ kind: 'forward', id: this.optimisticMoveId, effects: [] });
+    this.sendMove(move.from, move.to, { premove: move.premove, holdTime: move.holdTime });
   };
-
-  private readonly onMove = (_orig: XiangqiKey, _dest: XiangqiKey, _captured?: XiangqiPiece) => {
-    site.sound.move({ capture: false });
-  };
-
-  private readonly onPremove = () => {};
-
-  private readonly onCancelPremove = () => this.promotion.cancelPrePromotion();
 
   private readonly isSimulHost = () => this.data.simul && this.data.simul.hostId === this.opts.userId;
 
   lastPly = (): number => util.lastPly(this.data);
-
-  makeCgHooks = (): any => ({
-    onUserMove: this.onUserMove,
-    onMove: this.data.local ? undefined : this.onMove,
-    onPremove: this.onPremove,
-    onCancelPremove: this.onCancelPremove,
-  });
 
   replaying = (): boolean => this.ply !== this.lastPly() && !this.data.local;
 
@@ -214,8 +194,7 @@ export default class RoundController implements MoveRootCtrl {
 
   userJump = (ply: Ply): void => {
     this.toSubmit = undefined;
-    this.promotion.dismiss();
-    this.chessground.selectSquare(null);
+    this.board.select();
     if (ply !== this.ply && this.jump(ply)) site.sound.saySan(this.stepAt(this.ply).san, true);
     else this.redraw();
     this.syncRecordedClockForPly();
@@ -231,28 +210,21 @@ export default class RoundController implements MoveRootCtrl {
     const previousFen = this.stepAt(this.ply).fen;
     const previousPly = this.ply;
     this.ply = ply;
-    const s = this.stepAt(ply),
-      config: XiangqiGroundConfig = {
-        fen: s.fen,
-        lastMove: s.uci ? xiangqiUciMoveToCg(s.uci) : undefined,
-        check: !!s.check,
-        turnColor: plyColor(this.ply),
-      };
-    this.promotion.dismiss();
-    if (this.replaying()) this.chessground.stop();
-    else
-      config.movable = {
-        color: this.isPlaying() ? this.data.player.color : undefined,
-        dests: util.parsePossibleMoves(this.data.possibleMoves),
-      };
-    this.chessground.cancelMove();
-    this.chessground.set(config, isBackward ? { animation: 'slide' } : undefined);
-    playMoveNavigationSound(previousPly, ply, () => {
-      if (s.san)
-        site.sound.move({
-          ...s,
-          capture: s.capture ?? isXiangqiCapture(previousFen, s.fen),
-        });
+    const s = this.stepAt(ply);
+    this.board.cancelInput();
+    const delta = ply - previousPly;
+    ground.sync(this, s, this.isPlaying(), {
+      kind: Math.abs(delta) === 1 ? (isBackward ? 'backward' : 'forward') : 'jump',
+      effects:
+        delta === 1
+          ? [
+              ...((s.capture ?? isXiangqiCapture(previousFen, s.fen)) ? ['capture' as const] : []),
+              ...(s.check ? ['check' as const] : []),
+              ...(s.mate ? ['checkmate' as const] : []),
+            ]
+          : delta === -1
+            ? []
+            : undefined,
     });
     this.autoScroll();
     pubsub.emit('ply', ply);
@@ -260,7 +232,9 @@ export default class RoundController implements MoveRootCtrl {
     return true;
   };
 
-  canMove = (): boolean => !this.replaying() && this.data.player.color === this.chessground.state.turnColor;
+  canMove = (): boolean =>
+    !this.replaying() &&
+    (this.data.player.color === 'white' ? 'red' : 'black') === this.board.position().active;
 
   replayEnabledByPref = (): boolean => {
     const d = this.data;
@@ -278,8 +252,9 @@ export default class RoundController implements MoveRootCtrl {
 
   flipNow = (): void => {
     this.flip = !this.nvui && !this.flip;
-    this.chessground.set({
-      orientation: ground.boardOrientation(this.data, this.flip),
+    this.board.setPresentation({
+      ...this.board.getPresentation(),
+      perspective: ground.boardOrientation(this.data, this.flip) === 'white' ? 'red' : 'black',
     });
     pubsub.emit('flip', this.flip);
     this.redraw();
@@ -310,10 +285,15 @@ export default class RoundController implements MoveRootCtrl {
     this.redraw();
   };
 
-  pluginMove = (orig: XiangqiKey, dest: XiangqiKey, _role?: Role, preConfirmed?: boolean): void => {
-    this.chessground.move(orig, dest);
-    this.chessground.state.movable.dests = undefined;
-    this.chessground.state.turnColor = this.chessground.state.turnColor === 'white' ? 'black' : 'white';
+  pluginMove = (orig: string, dest: string, _role?: Role, preConfirmed?: boolean): void => {
+    if (!this.board.allowsMove(orig, dest)) return;
+    const position = this.board.position();
+    this.optimisticMoveId = `${this.ply + 1}:${orig}${dest}`;
+    this.board.display(recordedPosition(position, orig + dest, position.active === 'red' ? 'black' : 'red'), {
+      kind: 'forward',
+      id: this.optimisticMoveId,
+      effects: [],
+    });
     this.sendMove(orig, dest, { premove: false, preConfirmed });
   };
 
@@ -322,8 +302,8 @@ export default class RoundController implements MoveRootCtrl {
     this.keyboardMove?.update({ fen, canMove: this.canMove() });
   };
 
-  sendMove = (orig: XiangqiKey, dest: XiangqiKey, meta: MoveMetadata): void => {
-    const move: SocketMove = { u: xiangqiCgToUci(orig + dest) };
+  sendMove = (orig: string, dest: string, meta: MoveMetadata): void => {
+    const move: SocketMove = { u: orig + dest };
     if (blur.get()) move.b = 1;
     this.resign(false);
 
@@ -379,23 +359,18 @@ export default class RoundController implements MoveRootCtrl {
     this.setTitle();
     if (!this.replaying()) {
       this.ply++;
-      const keys = xiangqiUciMoveToCg(o.uci);
-      this.chessground.move(keys[0], keys[1]);
-      this.chessground.set({
-        turnColor: d.game.player,
-        movable: {
-          dests: playing ? util.parsePossibleMoves(d.possibleMoves) : new Map(),
-        },
-        check: !!o.check,
+      const effects: BoardEffect[] = [];
+      if (o.capture) effects.push('capture');
+      if (o.check) effects.push('check');
+      if (isXiangqiMate(o.status?.name, o.termination)) effects.push('checkmate');
+      const optimistic = this.optimisticMoveId === `${o.ply}:${o.uci}`;
+      if (optimistic) this.optimisticMoveId = undefined;
+      this.board.display(xiangqiPosition(o.fen, o.uci, !!o.check), {
+        kind: optimistic ? 'confirmation' : 'forward',
+        id: `${o.ply}:${o.uci}`,
+        effects,
       });
-      if (this.googlyEyes) this.chessground.setAutoShapes(this.googlyEyes());
-      if (isXiangqiMate(o.status?.name, o.termination)) {
-        site.sound.play('checkmate', o.volume);
-      } else if (o.check) {
-        site.sound.play('check', o.volume);
-      } else if (o.capture) {
-        site.sound.play('capture', o.volume);
-      }
+      if (this.googlyEyes) this.board.setMarks(this.googlyEyes(), 'annotation');
       blur.onMove();
       pubsub.emit('ply', this.ply);
     }
@@ -411,7 +386,7 @@ export default class RoundController implements MoveRootCtrl {
       mate: isXiangqiMate(o.status?.name, o.termination),
     };
     d.steps.push(step);
-    if (this.ply === step.ply && this.chessground.getFen() !== step.fen) ground.sync(this, step, playing);
+    if (this.ply === step.ply) this.board.setInteraction(ground.interaction(this, playing));
     game.setOnGame(d, playedColor, true);
     this.data.forecastCount = undefined;
     if (o.clock) {
@@ -453,8 +428,7 @@ export default class RoundController implements MoveRootCtrl {
       setTimeout(() => {
         if (this.ply !== premovePly || this.stepAt(this.ply).fen !== premoveFen) return;
         if (this.nvui) this.nvui.playPremove();
-        else if (!this.chessground.playPremove()) {
-          this.promotion.cancel();
+        else if (!this.board.playPremove()) {
           this.showYourMoveNotification();
         }
       }, 1);
@@ -485,7 +459,7 @@ export default class RoundController implements MoveRootCtrl {
       });
     if (this.corresClock) this.corresClock.update(d.correspondence!.white, d.correspondence!.black);
     if (posChanged || !this.replaying()) ground.reload(this);
-    if (posChanged) this.chessground.cancelPremove();
+    if (posChanged) this.board.cancelPremove();
     this.setTitle();
     this.moveOn.next();
     this.setQuietMode();
@@ -511,12 +485,11 @@ export default class RoundController implements MoveRootCtrl {
     if (
       o.status.name === 'outoftime' &&
       d.player.color !== o.winner &&
-      this.chessground.state.turnColor === d.opponent.color
+      this.board.position().active === (d.opponent.color === 'white' ? 'red' : 'black')
     ) {
       this.reload(d);
     }
-    this.promotion.cancel();
-    this.chessground.stop();
+    this.board.setInteraction({ mode: 'display' });
     if (o.rank) {
       d.player.rank = o.rank[d.player.color];
       d.opponent.rank = o.rank[d.opponent.color];
@@ -556,7 +529,7 @@ export default class RoundController implements MoveRootCtrl {
     if (
       !d.player.spectator &&
       o.status.name === 'outoftime' &&
-      this.chessground.state.turnColor === d.opponent.color
+      this.board.position().active === (d.opponent.color === 'white' ? 'red' : 'black')
     ) {
       notify(viewStatus(this.data));
     }
@@ -744,8 +717,7 @@ export default class RoundController implements MoveRootCtrl {
 
   takebackYes = (): void => {
     this.socket.sendLoading('takeback-yes');
-    this.chessground.cancelPremove();
-    this.promotion.cancel();
+    this.board.cancelPremove();
   };
 
   resign = (v: boolean, immediately?: boolean): void => {
@@ -898,16 +870,16 @@ export default class RoundController implements MoveRootCtrl {
     this.socket.sendLoading('draw-yes');
   };
 
-  setChessground = (cg: XiangqiGroundApi): void => {
-    this.chessground = cg;
+  setBoard = (cg: BoardView): void => {
+    this.board = cg;
     const up = {
       fen: this.stepAt(this.ply).fen,
       canMove: this.canMove(),
-      cg: cg as unknown as CgApi,
+      board: cg,
     };
-    pubsub.on('board.change', () => {
-      this.chessground.redrawAll();
-    });
+    const redrawBoard = () => cg.redraw();
+    pubsub.on('board.change', redrawBoard);
+    cg.onDestroy(() => pubsub.off('board.change', redrawBoard));
     if (!this.isPlaying()) return;
     if (this.data.pref.keyboardMove) {
       if (!this.keyboardMove) this.keyboardMove = makeKeyboardMove(this);
@@ -927,7 +899,7 @@ export default class RoundController implements MoveRootCtrl {
     if (!submit) return undefined;
     return {
       ply: this.ply + 1,
-      fen: this.chessground.getFen(),
+      fen: positionToFen(this.board.position(), standardXiangqi),
       san: submit.u,
       uci: submit.u,
     };
@@ -957,16 +929,16 @@ export default class RoundController implements MoveRootCtrl {
   };
 
   private readonly doYeet = memoize(() => {
-    this.chessground.stop();
+    this.board.setInteraction({ mode: 'display' });
     site.asset.loadEsm('round.yeet');
   });
 
-  private googlyEyes?: () => XiangqiDrawShape[];
+  private googlyEyes?: () => BoardMark[];
 
   googlyEyesStart: () => void = memoize(async () => {
-    const redraw = () => this.googlyEyes && this.chessground.setAutoShapes(this.googlyEyes());
+    const redraw = () => this.googlyEyes && this.board.setMarks(this.googlyEyes(), 'annotation');
     const { makeGooglyShapes }: any = await site.asset.loadEsm('bits.googlyHorsey', {
-      init: { cg: this.chessground, redraw },
+      init: { board: this.board, redraw },
     });
     this.googlyEyes = makeGooglyShapes;
     redraw();
@@ -993,7 +965,7 @@ export default class RoundController implements MoveRootCtrl {
             site.mousetrap
               .bind('esc', () => {
                 this.submitMove(false);
-                this.chessground.cancelMove();
+                this.board.cancelInput();
               })
               .bind('return', () => this.submitMove(true));
           }

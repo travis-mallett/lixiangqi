@@ -1,17 +1,19 @@
-import type { Color, MouchEvent, Piece, Role } from 'chessgroundx/types';
+import { standardXiangqi, type VisiblePiece } from '@lixiangqi/board';
+type EditorPiece = Extract<VisiblePiece, { face: 'up' }>;
+type MouchEvent = MouseEvent | TouchEvent;
 
-import { dragPiece, makeGround } from './chessground';
+import { dragPiece, makeGround } from './board';
 import type EditorCtrl from './ctrl';
 import type { Selected } from './interfaces';
 
-const pieces: Array<{ role: Role; name: string }> = [
-  { role: 'k-piece', name: 'General' },
-  { role: 'a-piece', name: 'Advisor' },
-  { role: 'b-piece', name: 'Elephant' },
-  { role: 'n-piece', name: 'Horse' },
-  { role: 'r-piece', name: 'Chariot' },
-  { role: 'c-piece', name: 'Cannon' },
-  { role: 'p-piece', name: 'Soldier' },
+const pieces: Array<{ role: string; name: string }> = [
+  { role: 'general', name: 'General' },
+  { role: 'advisor', name: 'Advisor' },
+  { role: 'elephant', name: 'Elephant' },
+  { role: 'horse', name: 'Horse' },
+  { role: 'chariot', name: 'Chariot' },
+  { role: 'cannon', name: 'Cannon' },
+  { role: 'soldier', name: 'Soldier' },
 ];
 
 export default class EditorView {
@@ -88,7 +90,14 @@ export default class EditorView {
     const palette = element('div', `spare spare-${position} spare-${color}`);
     palette.setAttribute('aria-label', `${color === 'white' ? 'Red' : 'Black'} pieces`);
     palette.append(this.selectionButton('pointer', 'Move pieces'));
-    pieces.forEach(piece => palette.append(this.pieceButton({ color, role: piece.role }, piece.name)));
+    pieces.forEach(piece =>
+      palette.append(
+        this.pieceButton(
+          { face: 'up', participant: color === 'white' ? 'red' : 'black', role: piece.role },
+          piece.name,
+        ),
+      ),
+    );
     palette.append(this.selectionButton('trash', 'Remove pieces'));
     return palette;
   }
@@ -107,14 +116,18 @@ export default class EditorView {
     return button;
   }
 
-  private pieceButton(piece: Piece, name: string): HTMLElement {
+  private pieceButton(piece: EditorPiece, name: string): HTMLElement {
     const button = element('button', 'no-square');
     button.type = 'button';
-    button.title = `${piece.color === 'white' ? 'Red' : 'Black'} ${name}`;
+    button.title = `${piece.participant === 'red' ? 'Red' : 'Black'} ${name}`;
     button.setAttribute('aria-label', button.title);
     button.dataset.selection = selectionKey(piece);
     const square = element('div');
-    square.append(pieceElement(`${piece.role} ${piece.color}`));
+    square.append(
+      pieceElement(
+        `${standardXiangqi.roles[piece.role]}-piece ${piece.participant === 'red' ? 'white' : 'black'}`,
+      ),
+    );
     button.append(square);
     const selectAndDrag = (event: MouchEvent): void => {
       this.ctrl.select(piece);
@@ -229,8 +242,8 @@ function option(value: string, label: string): HTMLOptionElement {
   return item;
 }
 
-function selectionKey(selected: Selected | Piece): string {
-  return typeof selected === 'string' ? selected : `${selected.color}:${selected.role}`;
+function selectionKey(selected: Selected): string {
+  return typeof selected === 'string' ? selected : `${selected.participant}:${selected.role}`;
 }
 
 function element<K extends keyof HTMLElementTagNameMap>(

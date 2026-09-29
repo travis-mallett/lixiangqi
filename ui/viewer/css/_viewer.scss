@@ -1,0 +1,80 @@
+.xiangqi-viewer {
+  width: 100%;
+  max-width: 640px;
+  margin: auto;
+  padding: 0.5em;
+  box-sizing: border-box;
+  container-type: inline-size;
+
+  &__board {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 9 / 10;
+
+    .cg-wrap {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+  }
+
+  &.board-assets-ready .lixiangqi-board cg-board > piece,
+  &.board-assets-ready .lixiangqi-board cg-board .xiangqi-piece-shadow {
+    visibility: visible;
+  }
+
+  &__moves {
+    max-height: 8em;
+    overflow: auto;
+
+    button {
+      padding: 0.35em 0.6em;
+    }
+
+    button.active {
+      background: $c-primary;
+      color: $c-over;
+    }
+  }
+
+  &__variation {
+    display: block;
+    margin-inline-start: 1em;
+    border-inline-start: 2px solid $c-border;
+  }
+
+  &__comments {
+    white-space: pre-line;
+    padding: 0.5em 0;
+  }
+
+  &__comments:empty {
+    display: none;
+  }
+
+  &__controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4em;
+    padding-top: 0.5em;
+  }
+
+  &__controls button,
+  select {
+    padding: 0.5em;
+  }
+
+  details {
+    position: relative;
+  }
+
+  select {
+    max-width: 15em;
+  }
+
+  &__explorer {
+    padding: 0.5em 0;
+  }
+}

@@ -1,3 +1,4 @@
+import { Chessground } from '@lichess-org/chessground';
 import { uciToMove } from '@lichess-org/chessground/util';
 import { Chess } from 'chessops/chess';
 import { parseFen, makeFen } from 'chessops/fen';
@@ -6,7 +7,7 @@ import { h, type VNode } from 'snabbdom';
 
 import type { Toggle } from '@/index';
 import type { PuzCtrl } from '@/puz/interfaces';
-import { initMiniBoardWith, onInsert } from '@/view';
+import { onInsert } from '@/view';
 
 const slowPuzzleIds = (ctrl: PuzCtrl): Set<string> | undefined => {
   if (!ctrl.filters.slow() || !ctrl.run.history.length) return undefined;
@@ -51,16 +52,23 @@ export default (ctrl: PuzCtrl): VNode => {
                 href: `/training/${round.puzzle.id}`,
                 target: '_blank',
               },
-              hook: onInsert(e => {
-                const pos = Chess.fromSetup(parseFen(round.puzzle.fen).unwrap()).unwrap();
-                const uci = round.puzzle.line.split(' ')[0];
-                pos.play(parseUci(uci)!);
-                initMiniBoardWith(e, {
-                  fen: makeFen(pos.toSetup()),
-                  orientation: pos.turn,
-                  lastMove: uciToMove(uci),
-                });
-              }),
+              hook: {
+                ...onInsert(e => {
+                  const pos = Chess.fromSetup(parseFen(round.puzzle.fen).unwrap()).unwrap();
+                  const uci = round.puzzle.line.split(' ')[0];
+                  pos.play(parseUci(uci)!);
+                  // This dormant chess puzzle mode retains its original renderer until its release conversion.
+                  const board = Chessground(e, {
+                    fen: makeFen(pos.toSetup()),
+                    orientation: pos.turn,
+                    lastMove: uciToMove(uci),
+                    viewOnly: true,
+                    coordinates: false,
+                  });
+                  (e as HTMLElement & { disposeBoard?: () => void }).disposeBoard = () => board.destroy();
+                }),
+                destroy: vnode => (vnode.elm as HTMLElement & { disposeBoard?: () => void }).disposeBoard?.(),
+              },
             }),
             h('span.puz-history__round__meta', [
               h('span.puz-history__round__result', [

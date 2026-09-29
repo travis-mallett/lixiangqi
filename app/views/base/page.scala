@@ -9,7 +9,7 @@ import lila.mon.extensions.*
 
 object page:
 
-  val pieceSetImages = lila.web.ui.PieceSetImages(assetHelper)
+  val pieceSetImages = lila.web.ui.PieceSetImages(assetHelper, lila.pref.PieceSets.shadows)
 
   val ui = lila.web.ui.layout(helpers, assetHelper)(
     popularAlternateLanguages = lila.i18n.LangList.popularAlternateLanguages,

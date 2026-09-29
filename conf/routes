@@ -222,6 +222,7 @@ GET   /$lang<\w\w\w?>/racer             controllers.Racer.homeLang(lang: Languag
 # User Analysis
 GET   /analysis                        controllers.UserAnalysis.index
 GET   /analysis/*something             controllers.UserAnalysis.parseArg(something)
+GET     /embed/xiangqi                    controllers.UserAnalysis.embed
 GET   /embed/analysis                  controllers.UserAnalysis.embed
 POST  /api/analysis/position           controllers.UserAnalysis.position
 POST  /api/analysis/move               controllers.UserAnalysis.move

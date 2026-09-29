@@ -1,8 +1,8 @@
-import { INITIAL_FEN } from 'chessops/fen';
 import { h } from 'snabbdom';
 
 import { fixCrazySan, plyToTurn } from 'lib/game/chess';
-import { plyPrefix, renderNodesTxt } from 'lib/game/nodePGN';
+import { plyPrefix, renderNodesTxt, nodeAnnotations } from 'lib/game/nodePGN';
+import { XIANGQI_START_FEN } from 'lib/game/xiangqi';
 import type { TreeNode } from 'lib/tree/types';
 import { type MaybeVNodes } from 'lib/view';
 
@@ -18,13 +18,15 @@ function renderPgnTags(game: Game): string {
   let txt = '';
   const tags: Array<[string, string]> = [];
   if (game.variant.key !== 'standard') tags.push(['Variant', game.variant.name]);
-  if (game.initialFen && game.initialFen !== INITIAL_FEN) tags.push(['FEN', game.initialFen]);
+  if (game.initialFen && game.initialFen !== XIANGQI_START_FEN) tags.push(['FEN', game.initialFen]);
   if (tags.length) txt = tags.map(t => '[' + t[0] + ' "' + t[1] + '"]').join('\n') + '\n\n';
   return txt;
 }
 
 export const renderFullTxt = (ctrl: AnalyseCtrl): string =>
-  renderPgnTags(ctrl.data.game) + renderNodesTxt(ctrl.tree.root, true);
+  renderPgnTags(ctrl.data.game) +
+  nodeAnnotations(ctrl.tree.root) +
+  renderNodesTxt(ctrl.tree.root, true, true);
 
 export function renderNodesHtml(nodes: PgnNode[]): MaybeVNodes {
   if (!nodes[0]) return [];

@@ -1,13 +1,21 @@
-import { end as endDrag, start as startDrag } from 'chessgroundx/drag';
-import { computeSquareCenter } from 'chessgroundx/util';
+import { coordinateMove, moveDestinations, standardXiangqi } from '@lixiangqi/board';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { engineMoveToUi, parsePikafishInfo, PikafishProtocol } from 'lib/ceval';
 import { engineProgress } from 'lib/ceval/engineProgress';
 import { isXiangqiCapture } from 'lib/game';
+import { hydrateXiangqiState, requestXiangqi } from 'lib/game/xiangqiApi';
 import { MoveEvent } from 'lib/prefs';
 
+import { boardLocation, rendererKey } from '../../board/src/renderer/coordinates';
+import {
+  makeRenderer,
+  setCoordinates,
+  endDrag,
+  startDrag,
+  computeSquareCenter,
+} from '../../board/tests/support/renderer.ts';
 import {
   ENGINE_SETTINGS_KEY,
   INTERFACE_SETTINGS_KEY,
@@ -25,7 +33,6 @@ import {
 } from '../src/analysisTabs.ts';
 import { AnalysisTreeView } from '../src/analysisTreeView.ts';
 import { ancientManuals } from '../src/ancientManuals.ts';
-import { hydrateXiangqiState, requestXiangqi } from '../src/api.ts';
 import { displayedEvaluation, formatEvaluation, NEUTRAL_EVALUATION } from '../src/evaluation.ts';
 import {
   annotationSourceLabel,
@@ -39,8 +46,6 @@ import {
   sourceLabels,
 } from '../src/gameCatalog.ts';
 import { gaugeDockAtPoint, isGaugeDock } from '../src/gaugeDock.ts';
-import { cgToUci, legalMoveDests, setXiangqiGroundPending, uciMoveToCg, uciToCg } from '../src/groundUtil.ts';
-import { makeXiangqiGround, setXiangqiCoordinates } from '../src/index.ts';
 import { renderXiangqiNotation, renderXiangqiMovetext } from '../src/notation.ts';
 import { recommendedArrowShapes } from '../src/recommendedArrows.ts';
 import { xiangqiMoveSound, xiangqiTransitionSound } from '../src/sound.ts';
@@ -206,39 +211,47 @@ test('sorts database sources by dataset size with stable ties', () => {
 });
 
 test('uses PyChess rank-10 encoding exactly', () => {
-  assert.equal(uciToCg('a10a9'), 'a:a9');
-  assert.equal(cgToUci('a:a9'), 'a10a9');
-  assert.deepEqual(uciMoveToCg('i10h10'), ['i:', 'h:']);
+  assert.equal(
+    coordinateMove('a10a9')
+      .map(key => rendererKey(key, standardXiangqi.geometry))
+      .join(''),
+    'a:a9',
+  );
+  assert.equal(boardLocation('a:') + boardLocation('a9'), 'a10a9');
+  assert.deepEqual(
+    coordinateMove('i10h10').map(key => rendererKey(key, standardXiangqi.geometry)),
+    ['i:', 'h:'],
+  );
 });
 
 test('renders the numbered tapered recommendation style and orthogonal horse route', () => {
   const shapes = recommendedArrowShapes(['h1e1', 'h10g8'], 'red');
   assert.equal(shapes.length, 2);
-  assert.equal(shapes[0].orig, 'h1');
-  assert.match(shapes[0].customSvg ?? '', /fill="#e04b4d"/);
-  assert.match(shapes[0].customSvg ?? '', />1<\/text>/);
-  assert.equal(shapes[1].orig, 'h:');
-  assert.match(shapes[1].customSvg ?? '', /fill="#282828"/);
-  assert.match(shapes[1].customSvg ?? '', /50,150/);
-  assert.match(shapes[1].customSvg ?? '', />2<\/text>/);
-  assert.match(shapes[1].customSvg ?? '', /fill="#77a718"/);
+  assert.equal(shapes[0].from, 'h1');
+  assert.match(shapes[0].svg ?? '', /fill="#e04b4d"/);
+  assert.match(shapes[0].svg ?? '', />1<\/text>/);
+  assert.equal(shapes[1].from, 'h10');
+  assert.match(shapes[1].svg ?? '', /fill="#282828"/);
+  assert.match(shapes[1].svg ?? '', /50,150/);
+  assert.match(shapes[1].svg ?? '', />2<\/text>/);
+  assert.match(shapes[1].svg ?? '', /fill="#77a718"/);
 });
 
 test('mirrors recommendation geometry with a flipped board', () => {
   const shape = recommendedArrowShapes(['h10g8'], 'black', 'black')[0];
-  assert.match(shape.customSvg ?? '', /50,-50/);
+  assert.match(shape.svg ?? '', /50,-50/);
 });
 
 test('groups Xiangqi UCI moves for ChessgroundX', () => {
-  const dests = legalMoveDests(['a1a2', 'a1a3', 'a10a9']);
+  const dests = moveDestinations(['a1a2', 'a1a3', 'a10a9']);
   assert.deepEqual(dests.get('a1'), ['a2', 'a3']);
-  assert.deepEqual(dests.get('a:'), ['a9']);
+  assert.deepEqual(dests.get('a10'), ['a9']);
 });
 
 test('renders traditional Xiangqi file numbers and redraws them when toggled or flipped', () => {
   const element = document.createElement('div');
   document.body.append(element);
-  const ground = makeXiangqiGround(element, { viewOnly: true });
+  const ground = makeRenderer(element, { viewOnly: true });
 
   assert.ok(element.classList.contains('cg-wrap'));
   assert.ok(element.classList.contains('xiangqi9x10'));
@@ -251,10 +264,10 @@ test('renders traditional Xiangqi file numbers and redraws them when toggled or 
   assert.ok(element.classList.contains('orientation-black'));
   assert.equal(element.querySelectorAll('coords').length, 2);
 
-  setXiangqiCoordinates(ground, false);
+  setCoordinates(ground, false);
   assert.equal(element.querySelectorAll('coords').length, 0);
 
-  setXiangqiCoordinates(ground, true);
+  setCoordinates(ground, true);
   assert.equal(element.querySelectorAll('coords').length, 2);
 
   ground.destroy();
@@ -264,7 +277,7 @@ test('renders traditional Xiangqi file numbers and redraws them when toggled or 
 test('distinguishes the origin and destination of the last move', () => {
   const element = document.createElement('div');
   document.body.append(element);
-  const ground = makeXiangqiGround(element, { lastMove: 'h1g3', viewOnly: true });
+  const ground = makeRenderer(element, { lastMove: 'h1g3', viewOnly: true });
 
   assert.equal(element.querySelectorAll('square.last-move').length, 2);
   assert.ok(element.querySelector('square.last-move-origin'));
@@ -277,7 +290,7 @@ test('distinguishes the origin and destination of the last move', () => {
 test('keeps one board-plane shadow per piece through redraws, flips, resize and removal', () => {
   const element = document.createElement('div');
   document.body.append(element);
-  const ground = makeXiangqiGround(element, { viewOnly: true, animationDuration: 0 });
+  const ground = makeRenderer(element, { viewOnly: true, animationDuration: 0 });
   const verify = () => {
     const pieces = [...element.querySelectorAll<HTMLElement>('cg-board > piece')];
     const shadows = [
@@ -318,7 +331,7 @@ test('keeps the Lixiangqi lifted presentation for click-to-move', () => {
 
   const element = document.createElement('div');
   document.body.append(element);
-  const ground = makeXiangqiGround(element, {
+  const ground = makeRenderer(element, {
     movableColor: 'white',
     legalMoves: ['h1g3'],
   });
@@ -391,7 +404,7 @@ test('respects the standard Chessground click, drag, and either interaction conf
   for (const mode of modes) {
     const element = document.createElement('div');
     document.body.append(element);
-    const ground = makeXiangqiGround(element, {
+    const ground = makeRenderer(element, {
       movableColor: 'white',
       legalMoves: ['h1g3'],
       moveEvent: mode.moveEvent,
@@ -421,7 +434,7 @@ test('moves a Xiangqi piece through the standard Chessground drag path in drag a
     for (const moveEvent of [MoveEvent.Drag, MoveEvent.ClickOrDrag]) {
       const element = document.createElement('div');
       document.body.append(element);
-      const ground = makeXiangqiGround(element, {
+      const ground = makeRenderer(element, {
         movableColor: 'white',
         legalMoves: ['h1g3'],
         moveEvent,
@@ -486,7 +499,7 @@ test('renders Xiangqi moves immediately when piece animation is disabled', () =>
 
   const element = document.createElement('div');
   document.body.append(element);
-  const ground = makeXiangqiGround(element, {
+  const ground = makeRenderer(element, {
     movableColor: 'white',
     legalMoves: ['h1g3'],
     animationDuration: 0,
@@ -521,7 +534,7 @@ test('uses the measured layered carry path and keeps its destination underlay at
 
   const element = document.createElement('div');
   document.body.append(element);
-  const ground = makeXiangqiGround(element, { viewOnly: true });
+  const ground = makeRenderer(element, { viewOnly: true });
 
   try {
     ground.move('h1', 'g3');
@@ -582,7 +595,7 @@ test('carries a click-selected piece and preserves that motion through authorita
 
   const element = document.createElement('div');
   document.body.append(element);
-  const ground = makeXiangqiGround(element, {
+  const ground = makeRenderer(element, {
     movableColor: 'white',
     legalMoves: ['h1g3'],
     onMove: () => undefined,
@@ -633,7 +646,7 @@ test('uses the measured flat slide only when requested for reverse navigation', 
   const element = document.createElement('div');
   document.body.append(element);
   const initialFen = 'rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR';
-  const ground = makeXiangqiGround(element, {
+  const ground = makeRenderer(element, {
     fen: 'rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C4NC1/9/RNBAKAB1R',
     movableColor: 'white',
     legalMoves: ['g3h1'],
@@ -685,7 +698,7 @@ test('reveals the last-move connector with the same travel progress as a long ca
   const animations = recordAnimations();
   const element = document.createElement('div');
   document.body.append(element);
-  const ground = makeXiangqiGround(element, { viewOnly: true });
+  const ground = makeRenderer(element, { viewOnly: true });
   try {
     ground.move('b3', 'b9');
     const reveal = animations.calls.find(call =>
@@ -728,7 +741,7 @@ test('stacks the destination shadow below its glow and piece face', async () => 
 
   const element = document.createElement('div');
   document.body.append(element);
-  const ground = makeXiangqiGround(element, { viewOnly: true });
+  const ground = makeRenderer(element, { viewOnly: true });
 
   try {
     ground.move('h1', 'g3');
@@ -759,7 +772,7 @@ test('lands the layered piece with the final measured perspective sequence', asy
 
   const element = document.createElement('div');
   document.body.append(element);
-  const ground = makeXiangqiGround(element, { viewOnly: true });
+  const ground = makeRenderer(element, { viewOnly: true });
 
   try {
     ground.move('h1', 'g3');
@@ -795,16 +808,6 @@ test('lands the layered piece with the final measured perspective sequence', asy
     animations.restore();
     window.HTMLElement.prototype.getBoundingClientRect = originalBounds;
   }
-});
-
-test('locks an optimistic move without restoring a stale FEN', () => {
-  const configs: Parameters<Parameters<typeof setXiangqiGroundPending>[0]['set']>[0][] = [];
-  setXiangqiGroundPending({ set: config => configs.push(config) });
-
-  assert.equal(configs.length, 1);
-  assert.equal(configs[0].fen, undefined);
-  assert.equal(configs[0].movable?.color, undefined);
-  assert.deepEqual(configs[0].movable?.dests, new Map());
 });
 
 test('reports a failed non-JSON upstream response without leaking a JSON parser error', async () => {

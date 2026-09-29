@@ -1,6 +1,15 @@
-import { requestXiangqi } from './api';
-import ExplorerCtrl from './explorer/explorerCtrl';
-import type { ExplorerGame } from './explorer/interfaces';
+import { ExplorerCtrl, type ExplorerGame } from '@lixiangqi/explorer';
+
+import {
+  makeBoardResizable,
+  createXiangqiBoard,
+  websiteBoardPresentation,
+  xiangqiPosition,
+  xiangqiPlay,
+  type BoardPreferences,
+} from 'lib/board';
+import { requestXiangqi } from 'lib/game/xiangqiApi';
+
 import {
   analysisGameUrl,
   catalogSources,
@@ -11,18 +20,9 @@ import {
   type EventDatabaseResult,
   type EventDatabaseSummary,
 } from './gameCatalog';
-import {
-  legalMoveDests,
-  makeXiangqiGround,
-  playXiangqiMoveSound,
-  setXiangqiGroundPending,
-  uciMoveToCg,
-  XIANGQI_START_FEN,
-  type RulesState,
-  type XiangqiGroundPreferences,
-} from './index';
+import { playXiangqiMoveSound, XIANGQI_START_FEN, type RulesState } from './index';
 
-interface EventPageBootstrap extends XiangqiGroundPreferences {
+interface EventPageBootstrap extends BoardPreferences {
   explorerEndpoint?: string;
   event?: string;
 }
@@ -382,18 +382,12 @@ async function initializeExplorer(bootstrap: EventPageBootstrap): Promise<void> 
   });
   const positions: ExploredPosition[] = [{ state: initialState }];
   let pending = false;
-  const turnColor = (state: RulesState) => (state.turn === 'red' ? 'white' : 'black');
-  const ground = makeXiangqiGround(required('#event-xiangqi-board'), {
-    fen: initialState.fen,
-    orientation: 'white',
-    turnColor: turnColor(initialState),
-    movableColor: turnColor(initialState),
-    legalMoves: initialState.legalMoves,
-    animationDuration: bootstrap.animationDuration,
-    moveEvent: bootstrap.moveEvent,
-    highlight: bootstrap.highlight,
-    onMove: move => void play(move),
-  });
+  const ground = createXiangqiBoard(
+    required('#event-xiangqi-board'),
+    xiangqiPosition(initialState.fen),
+    websiteBoardPresentation(bootstrap, 'interactive', 'red'),
+  );
+  makeBoardResizable(ground);
   const explorer = new ExplorerCtrl(
     required('#event-opening-explorer'),
     required<HTMLButtonElement>('#event-opening-explorer-toggle'),
@@ -410,20 +404,21 @@ async function initializeExplorer(bootstrap: EventPageBootstrap): Promise<void> 
 
   function update(syncPosition = true, slide = false): void {
     const position = positions[positions.length - 1];
-    if (syncPosition)
-      ground.set(
-        {
-          fen: position.state.fen,
-          turnColor: turnColor(position.state),
-          lastMove: position.move ? uciMoveToCg(position.move) : undefined,
-          movable: {
-            free: false,
-            color: pending || position.state.gameResult !== '*' ? undefined : turnColor(position.state),
-            dests: pending ? new Map() : legalMoveDests(position.state.legalMoves),
-          },
-        },
-        slide ? { animation: 'slide' } : undefined,
+    if (syncPosition) {
+      ground.display(xiangqiPosition(position.state.fen, position.move, position.state.check), {
+        kind: slide ? 'backward' : 'forward',
+      });
+      ground.setInteraction(
+        xiangqiPlay(
+          ground,
+          position.state.turn,
+          position.state.legalMoves,
+          move => void play(move),
+          bootstrap,
+          !pending && position.state.gameResult === '*',
+        ),
       );
+    }
     explorer.setPosition({ fen: position.state.fen });
     explorerBackButton.disabled = positions.length === 1 || pending;
     explorerResetButton.disabled = positions.length === 1 || pending;
@@ -447,7 +442,7 @@ async function initializeExplorer(bootstrap: EventPageBootstrap): Promise<void> 
   async function play(move: string): Promise<void> {
     if (pending) return;
     pending = true;
-    setXiangqiGroundPending(ground);
+    ground.setInteraction({ mode: 'display' });
     update(false);
     let completedState: RulesState | undefined;
     try {
@@ -459,14 +454,14 @@ async function initializeExplorer(bootstrap: EventPageBootstrap): Promise<void> 
       positions.push({ state: response, move, notation: response.notation || move });
       completedState = response;
     } catch (error) {
-      ground.set({ fen: current().fen });
+      ground.display(xiangqiPosition(current().fen), { kind: 'correction' });
       pageStatus.textContent = error instanceof Error ? error.message : String(error);
       pageStatus.classList.add('error');
     } finally {
       pending = false;
       update();
     }
-    if (completedState) playXiangqiMoveSound(completedState);
+    if (completedState) playXiangqiMoveSound(ground, completedState);
   }
 
   explorerBackButton.addEventListener('click', () => {

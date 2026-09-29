@@ -437,6 +437,13 @@ lazy val relation = module("relation",
 lazy val pref = module("pref",
   Seq(memo, ui),
   Seq()
+).settings(
+  Compile / resourceGenerators += Def.task {
+    val source = (LocalRootProject / baseDirectory).value / "ui" / "board" / "src" / "catalog.json"
+    val dest = (Compile / resourceManaged).value / "board-catalog.json"
+    IO.copyFile(source, dest)
+    Seq(dest)
+  }.taskValue
 )
 
 lazy val msg = module("msg",

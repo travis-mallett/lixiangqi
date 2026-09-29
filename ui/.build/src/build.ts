@@ -4,6 +4,7 @@ import { relative, join } from 'node:path';
 import { chdir } from 'node:process';
 
 import { definedUnique } from './algo.ts';
+import { checkBoardAssets } from './boardAssets.ts';
 import { clean } from './clean.ts';
 import { env, errorMark, c } from './env.ts';
 import { esbuild, stopEsbuild } from './esbuild.ts';
@@ -24,6 +25,7 @@ export async function build(pkgs: string[]): Promise<void> {
     try {
       chdir(env.rootDir);
       if (env.install) execSync('pnpm install', { stdio: 'inherit' });
+      checkBoardAssets(env.rootDir);
       if (!pkgs.length) env.log(`Parsing packages in '${c.cyan(env.uiDir)}'`);
 
       await Promise.allSettled([parsePackages(), fs.promises.mkdir(env.buildTempDir)]);

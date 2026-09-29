@@ -3,14 +3,21 @@ import { mock, test } from 'node:test';
 
 test('fixed examples use native playback, starting frames, annotations and independent navigation', async () => {
   const boards = new Map<string, any>();
-  mock.module(new URL('../src/index.ts', import.meta.url).href, {
+  mock.module(new URL('../../lib/src/board.ts', import.meta.url).href, {
     namedExports: {
-      legalMoveDests: () => new Map(),
-      uciMoveToCg: (move: string) => move,
-      makeXiangqiGround: (element: HTMLElement, options: any) => {
+      xiangqiPosition: (fen: string, lastMove?: string) => ({ fen, lastMove }),
+      websiteBoardPresentation: () => ({}),
+      createXiangqiBoard: (element: HTMLElement, position: any) => {
         const id = element.id || element.closest<HTMLElement>('[data-example-id]')!.dataset.exampleId!;
-        boards.set(id, options);
-        return { set: (state: any) => boards.set(id, { ...boards.get(id), ...state }) };
+        boards.set(id, position);
+        return {
+          display: (state: any, transition: any) => {
+            boards.set(id, state);
+            if (transition.effects !== undefined) sounds.push({ board: element, transition });
+          },
+          setMarks: (marks: unknown) => boards.set(id, { ...boards.get(id), marks }),
+          onDestroy() {},
+        };
       },
     },
   });
@@ -51,11 +58,10 @@ test('fixed examples use native playback, starting frames, annotations and indep
           `<div class="special-rules__example" data-example-id="${id}"><div class="cg-wrap"></div><div class="special-rules__moves"></div><div class="special-rules__controls"></div><div class="special-rules__notice"></div><p class="special-rules__status"></p><p class="special-rules__annotation"></p></div>`,
       )
       .join('');
-  const shapes = [{ orig: 'c9' as const, brush: 'blue' }];
+  const shapes = [{ from: 'c9' as const, brush: 'blue' }];
   const init = (await import('../src/xiangqi.specialRules.ts')).default;
   await init({ examples, animationDuration: 200, diagrams: [{ id: 'map', fen: 'empty', shapes }] });
-  assert.equal(boards.get('map').viewOnly, true);
-  assert.deepEqual(boards.get('map').drawable.autoShapes, shapes);
+  assert.deepEqual(boards.get('map').marks, shapes);
   assert.equal(boards.get('one').fen, 'one-1');
   assert.equal(boards.get('two').fen, 'two-1');
   assert.equal(sounds.length, 0);

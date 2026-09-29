@@ -1,4 +1,4 @@
-import type { MoveMetadata as CgMoveMetadata } from 'chessgroundx/types';
+import type { MoveIntent } from '@lixiangqi/board';
 
 import type { ChatOpts as BaseChatOpts, ChatCtrl, ChatPlugin } from 'lib/chat/interfaces';
 import type { GameData, Status, RoundStep, XiangqiNotationStyle } from 'lib/game';
@@ -210,7 +210,7 @@ export interface Pref {
   resizeHandle: Prefs.ShowResizeHandle;
 }
 
-export interface MoveMetadata extends CgMoveMetadata {
+export interface MoveMetadata extends Pick<MoveIntent, 'premove' | 'holdTime'> {
   preConfirmed?: boolean;
 }
 

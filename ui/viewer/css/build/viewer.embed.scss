@@ -1,0 +1,31 @@
+@import '../../../lib/css/abstract/all';
+@import '../../../lib/css/base/typography';
+@import '../../../lib/css/theme/board/chessground';
+@import '../viewer';
+@import '../../../explorer/css/explorer';
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+}
+
+body {
+  color: $c-font;
+  background: $c-bg-box;
+}
+
+button,
+select {
+  color: inherit;
+  background: $c-bg-box;
+  border: 1px solid $c-border;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

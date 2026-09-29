@@ -1,0 +1,230 @@
+{
+  "version": 1,
+  "defaultBoard": "lixiangqi-default",
+  "defaultPieces": "default-wood",
+  "boards": [
+    {
+      "key": "lixiangqi-default",
+      "name": "Lixiangqi Default",
+      "coordinateLight": "#fff4dc",
+      "coordinateDark": "#2f160c",
+      "matchingPieceSet": "default-wood",
+      "geometries": {
+        "xiangqi-9x10": "images/board/svg/lixiangqi-default.svg"
+      }
+    },
+    {
+      "key": "paper-board",
+      "name": "Paper Board",
+      "coordinateLight": "#fff4dc",
+      "coordinateDark": "#2f160c",
+      "matchingPieceSet": "xiangqi-international",
+      "geometries": {
+        "xiangqi-9x10": "images/board/svg/paper-board.svg"
+      }
+    },
+    {
+      "key": "xiangqi-tournament",
+      "name": "Tournament Xiangqi",
+      "coordinateLight": "#fff4dc",
+      "coordinateDark": "#2f160c",
+      "matchingPieceSet": "default-wood",
+      "geometries": {
+        "xiangqi-9x10": "images/board/svg/xiangqi-tournament.svg"
+      }
+    },
+    {
+      "key": "xiangqi-wudang",
+      "name": "Wudang Ink Xiangqi",
+      "coordinateLight": "#f0ece2",
+      "coordinateDark": "#152022",
+      "matchingPieceSet": "xiangqi-wudang",
+      "geometries": {
+        "xiangqi-9x10": "images/board/xiangqi-wudang.webp"
+      }
+    }
+  ],
+  "pieceSets": [
+    {
+      "key": "default-wood",
+      "name": "default-wood",
+      "category": "traditional",
+      "variants": {
+        "xiangqi": {
+          "back": "piece/default-wood/back.svg",
+          "faces": {
+            "red": {
+              "general": "piece/default-wood/rK.svg",
+              "advisor": "piece/default-wood/rA.svg",
+              "elephant": "piece/default-wood/rB.svg",
+              "horse": "piece/default-wood/rN.svg",
+              "chariot": "piece/default-wood/rR.svg",
+              "cannon": "piece/default-wood/rC.svg",
+              "soldier": "piece/default-wood/rP.svg"
+            },
+            "black": {
+              "general": "piece/default-wood/bK.svg",
+              "advisor": "piece/default-wood/bA.svg",
+              "elephant": "piece/default-wood/bB.svg",
+              "horse": "piece/default-wood/bN.svg",
+              "chariot": "piece/default-wood/bR.svg",
+              "cannon": "piece/default-wood/bC.svg",
+              "soldier": "piece/default-wood/bP.svg"
+            }
+          }
+        }
+      }
+    },
+    {
+      "key": "xiangqi-wudang",
+      "name": "Wudang Brush Seals",
+      "category": "traditional",
+      "variants": {
+        "xiangqi": {
+          "back": "piece/xiangqi-wudang/back.svg",
+          "faces": {
+            "red": {
+              "general": "piece/xiangqi-wudang/rK.svg",
+              "advisor": "piece/xiangqi-wudang/rA.svg",
+              "elephant": "piece/xiangqi-wudang/rB.svg",
+              "horse": "piece/xiangqi-wudang/rN.svg",
+              "chariot": "piece/xiangqi-wudang/rR.svg",
+              "cannon": "piece/xiangqi-wudang/rC.svg",
+              "soldier": "piece/xiangqi-wudang/rP.svg"
+            },
+            "black": {
+              "general": "piece/xiangqi-wudang/bK.svg",
+              "advisor": "piece/xiangqi-wudang/bA.svg",
+              "elephant": "piece/xiangqi-wudang/bB.svg",
+              "horse": "piece/xiangqi-wudang/bN.svg",
+              "chariot": "piece/xiangqi-wudang/bR.svg",
+              "cannon": "piece/xiangqi-wudang/bC.svg",
+              "soldier": "piece/xiangqi-wudang/bP.svg"
+            }
+          }
+        }
+      }
+    },
+    {
+      "key": "xiangqi-paper-traditional",
+      "name": "Paper - Traditional",
+      "category": "traditional",
+      "variants": {
+        "xiangqi": {
+          "back": "piece/xiangqi-paper-traditional/back.svg",
+          "faces": {
+            "red": {
+              "general": "piece/xiangqi-paper-traditional/rK.svg",
+              "advisor": "piece/xiangqi-paper-traditional/rA.svg",
+              "elephant": "piece/xiangqi-paper-traditional/rB.svg",
+              "horse": "piece/xiangqi-paper-traditional/rN.svg",
+              "chariot": "piece/xiangqi-paper-traditional/rR.svg",
+              "cannon": "piece/xiangqi-paper-traditional/rC.svg",
+              "soldier": "piece/xiangqi-paper-traditional/rP.svg"
+            },
+            "black": {
+              "general": "piece/xiangqi-paper-traditional/bK.svg",
+              "advisor": "piece/xiangqi-paper-traditional/bA.svg",
+              "elephant": "piece/xiangqi-paper-traditional/bB.svg",
+              "horse": "piece/xiangqi-paper-traditional/bN.svg",
+              "chariot": "piece/xiangqi-paper-traditional/bR.svg",
+              "cannon": "piece/xiangqi-paper-traditional/bC.svg",
+              "soldier": "piece/xiangqi-paper-traditional/bP.svg"
+            }
+          }
+        }
+      }
+    },
+    {
+      "key": "xiangqi-international",
+      "name": "Paper - International Symbols",
+      "category": "graphicalSymbols",
+      "variants": {
+        "xiangqi": {
+          "back": "piece/xiangqi-international/back.svg",
+          "faces": {
+            "red": {
+              "general": "piece/xiangqi-international/rK.svg",
+              "advisor": "piece/xiangqi-international/rA.svg",
+              "elephant": "piece/xiangqi-international/rB.svg",
+              "horse": "piece/xiangqi-international/rN.svg",
+              "chariot": "piece/xiangqi-international/rR.svg",
+              "cannon": "piece/xiangqi-international/rC.svg",
+              "soldier": "piece/xiangqi-international/rP.svg"
+            },
+            "black": {
+              "general": "piece/xiangqi-international/bK.svg",
+              "advisor": "piece/xiangqi-international/bA.svg",
+              "elephant": "piece/xiangqi-international/bB.svg",
+              "horse": "piece/xiangqi-international/bN.svg",
+              "chariot": "piece/xiangqi-international/bR.svg",
+              "cannon": "piece/xiangqi-international/bC.svg",
+              "soldier": "piece/xiangqi-international/bP.svg"
+            }
+          }
+        }
+      }
+    },
+    {
+      "key": "xiangqi-western",
+      "name": "Western Outlines",
+      "category": "other",
+      "variants": {
+        "xiangqi": {
+          "back": "piece/xiangqi-western/back.svg",
+          "faces": {
+            "red": {
+              "general": "piece/xiangqi-western/rK.svg",
+              "advisor": "piece/xiangqi-western/rA.svg",
+              "elephant": "piece/xiangqi-western/rB.svg",
+              "horse": "piece/xiangqi-western/rN.svg",
+              "chariot": "piece/xiangqi-western/rR.svg",
+              "cannon": "piece/xiangqi-western/rC.svg",
+              "soldier": "piece/xiangqi-western/rP.svg"
+            },
+            "black": {
+              "general": "piece/xiangqi-western/bK.svg",
+              "advisor": "piece/xiangqi-western/bA.svg",
+              "elephant": "piece/xiangqi-western/bB.svg",
+              "horse": "piece/xiangqi-western/bN.svg",
+              "chariot": "piece/xiangqi-western/bR.svg",
+              "cannon": "piece/xiangqi-western/bC.svg",
+              "soldier": "piece/xiangqi-western/bP.svg"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "effects": {
+    "capture": {
+      "path": "images/board-animations/lixiangqi-default/capture/animation.webp",
+      "duration": 1200
+    },
+    "check": {
+      "path": "images/board-animations/lixiangqi-default/check/animation.webp",
+      "duration": 1200
+    },
+    "checkmate": {
+      "path": "images/board-animations/lixiangqi-default/checkmate/animation.webp",
+      "duration": 1500
+    }
+  },
+  "shadows": {
+    "rest": "piece/effects/xiangqi-rest-shadow.png",
+    "airborne": "piece/effects/xiangqi-airborne-shadow.png"
+  },
+  "sounds": {
+    "defaultSet": "standard",
+    "files": {
+      "move": "Move.mp3",
+      "capture": "Capture.mp3",
+      "check": "Check.mp3",
+      "checkmate": "Checkmate.mp3"
+    },
+    "checkmateEffect": {
+      "path": "sound/standard/Checkmate_sound_effect.mp3",
+      "volume": 0.8
+    }
+  }
+}

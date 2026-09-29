@@ -1,7 +1,4 @@
-import type { DrawShape } from 'chessgroundx/draw';
-import type { Color, Key } from 'chessgroundx/types';
-
-import { uciMoveToCg } from './groundUtil';
+import { coordinateMove, type BoardMark } from '@lixiangqi/board';
 
 const RED = '#e04b4d';
 const BLACK = '#282828';
@@ -24,14 +21,14 @@ const normal = (point: Point): Point => ({ x: -point.y, y: point.x });
 const format = (value: number): string => Number(value.toFixed(2)).toString();
 const svgPoint = (point: Point): string => `${format(point.x)},${format(point.y)}`;
 
-function squarePosition(key: Key): Point {
+function squarePosition(key: string): Point {
   return {
     x: key.charCodeAt(0) - 97,
-    y: key.charCodeAt(1) - 49,
+    y: Number(key.slice(1)) - 1,
   };
 }
 
-function routeForMove(orig: Key, dest: Key, orientation: Color): Point[] {
+function routeForMove(orig: string, dest: string, orientation: string): Point[] {
   const source = squarePosition(orig);
   const target = squarePosition(dest);
   const orientationSign = orientation === 'white' ? 1 : -1;
@@ -100,20 +97,16 @@ function arrowSvg(route: Point[], moveNumber: number, color: string): string {
 export function recommendedArrowShapes(
   moves: readonly string[],
   turn: 'red' | 'black',
-  orientation: Color = 'white',
-): DrawShape[] {
+  orientation = 'white',
+): BoardMark[] {
   return moves.slice(0, MAX_RECOMMENDED_PLIES).flatMap((move, index) => {
     if (!/^[a-i](?:10|[1-9])[a-i](?:10|[1-9])$/.test(move)) return [];
-    const [orig, dest] = uciMoveToCg(move);
+    const [orig, dest] = coordinateMove(move);
     const moverIsRed = index % 2 === 0 ? turn === 'red' : turn === 'black';
     return [
       {
-        orig: orig as Key,
-        customSvg: arrowSvg(
-          routeForMove(orig as Key, dest, orientation),
-          index + 1,
-          moverIsRed ? RED : BLACK,
-        ),
+        from: orig,
+        svg: arrowSvg(routeForMove(orig, dest, orientation), index + 1, moverIsRed ? RED : BLACK),
       },
     ];
   });

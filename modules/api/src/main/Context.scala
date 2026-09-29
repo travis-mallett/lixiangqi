@@ -115,9 +115,9 @@ object EmbedContext:
       .filter(lila.pref.UiThemes.contains) | lila.pref.UiThemes.system.key,
     boardTheme = HTTPRequest
       .queryStringGet("boardTheme")(using ctx.req)
-      .filter(lila.pref.BoardThemes.contains) | ctx.pref.boardTheme,
+      .filter(lila.pref.BoardThemes.contains) | lila.pref.Appearance.default.boardTheme,
     pieceSet = HTTPRequest
       .queryStringGet("pieceSet")(using ctx.req)
-      .filter(lila.pref.PieceSets.contains) | ctx.pref.pieceSet,
+      .filter(lila.pref.PieceSets.contains) | lila.pref.Appearance.default.pieceSet,
     nonce = Nonce.random
   )

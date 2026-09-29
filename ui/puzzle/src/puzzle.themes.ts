@@ -1,7 +1,6 @@
-import type { Api } from 'chessgroundx/api';
-import { makeXiangqiGround, uciMoveToCg } from 'xiangqi';
+import { boardPresentation, recordedPosition, type BoardView } from '@lixiangqi/board';
 
-import { ShowResizeHandle } from 'lib/prefs';
+import { createXiangqiBoard, xiangqiPosition } from 'lib/board';
 
 import { lessonMoveMillis, ThemeLessonPlayback } from './themeLessonPlayback';
 
@@ -18,7 +17,6 @@ interface Lesson {
 
 function initThemeLesson(details: HTMLDetailsElement): void {
   const lesson: Lesson = JSON.parse(details.dataset.lesson!);
-  const startingColor = lesson.fen.split(' ')[1] === 'b' ? 'black' : 'white';
   const card = details.closest<HTMLElement>('.puzzle-themes__card')!;
   const summary = details.querySelector<HTMLElement>('summary')!;
   const content = details.querySelector<HTMLElement>('.puzzle-theme-lesson__content')!;
@@ -29,7 +27,7 @@ function initThemeLesson(details: HTMLDetailsElement): void {
   const board = details.querySelector<HTMLElement>('.cg-wrap')!;
   const iframe = details.querySelector('iframe')!;
   const play = details.querySelector<HTMLButtonElement>('.puzzle-theme-lesson__play')!;
-  let ground: Api | undefined;
+  let ground: BoardView | undefined;
   let open = false;
   let watching = false;
   let viewAnimations: Animation[] = [];
@@ -39,25 +37,20 @@ function initThemeLesson(details: HTMLDetailsElement): void {
     lesson.moves.length,
     ply => {
       if (!ground) return;
-      if (!ply) {
-        ground.set({
-          animation: { enabled: false },
-          fen: lesson.fen,
-          lastMove: undefined,
-          check: lesson.check ? startingColor : false,
-          turnColor: startingColor,
-        });
-        ground.set({ animation: { enabled: animationMillis > 0 } });
-      } else {
+      if (!ply) ground.display(xiangqiPosition(lesson.fen, undefined, lesson.check), { kind: 'jump' });
+      else {
         const step = lesson.moves[ply - 1];
-        const move = uciMoveToCg(step.uci);
-        const turnColor = ply % 2 ? (startingColor === 'white' ? 'black' : 'white') : startingColor;
-        ground.move(move[0], move[1]);
-        ground.set({
-          lastMove: move,
-          turnColor,
-          check: step.check ? turnColor : false,
-        });
+        const position = ground.position();
+        const next = recordedPosition(position, step.uci, position.active === 'red' ? 'black' : 'red');
+        const checked = step.check
+          ? [...next.pieces]
+              .filter(
+                ([, piece]) =>
+                  piece.face === 'up' && piece.participant === next.active && piece.role === 'general',
+              )
+              .map(([location]) => location)
+          : [];
+        ground.display({ ...next, checked }, { kind: 'forward' });
       }
     },
     animationMillis,
@@ -89,7 +82,7 @@ function initThemeLesson(details: HTMLDetailsElement): void {
       }
     } else {
       iframe.removeAttribute('src');
-      ground?.redrawAll();
+      ground?.redraw();
       if (open && !document.hidden) playback.resume();
       if (animate) play.focus({ preventScroll: true });
     }
@@ -119,14 +112,11 @@ function initThemeLesson(details: HTMLDetailsElement): void {
     open = details.open;
     if (open) {
       card.classList.add('puzzle-themes__card--learning');
-      ground = makeXiangqiGround(board, {
-        fen: lesson.fen,
-        viewOnly: true,
-        resizeHandle: ShowResizeHandle.Never,
-        animationDuration: animationMillis,
-        addDimensionsCssVarsTo: content,
+      ground = createXiangqiBoard(board, xiangqiPosition(lesson.fen), {
+        ...boardPresentation('thumbnail', 'red'),
+        coordinates: true,
+        motion: { duration: animationMillis },
       });
-      ground.set({ drawable: { enabled: false, visible: false } });
       playback.start();
     } else {
       release();
@@ -161,7 +151,7 @@ function initThemeLesson(details: HTMLDetailsElement): void {
     else if (open && !watching) playback.resume();
   });
   const observer = new ResizeObserver(() => {
-    if (!watching) ground?.redrawAll();
+    if (!watching) ground?.redraw();
   });
   observer.observe(board);
   window.addEventListener('pagehide', () => {

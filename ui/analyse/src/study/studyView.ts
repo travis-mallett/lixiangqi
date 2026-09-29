@@ -15,7 +15,6 @@ import { renderControls } from '@/view/controls';
 import { renderTools } from '@/view/tools';
 import { wikiToggleBox } from '@/wiki';
 
-import crazyView from '../crazy/crazyView';
 import type AnalyseCtrl from '../ctrl';
 import { view as keyboardView } from '../keyboard';
 import type * as studyDeps from '../study/studyDeps';
@@ -49,9 +48,7 @@ export function studyView(ctrl: AnalyseCtrl, study: StudyCtrl, deps: typeof stud
     deps.studyView.overboard(study),
     renderBoard(ctx),
     gaugeOn && cevalView.renderGauge(ctrl),
-    crazyView(ctrl, ctrl.topColor(), 'top'),
     gamebookPlayView || renderTools(ctx),
-    crazyView(ctrl, ctrl.bottomColor(), 'bottom'),
     !gamebookPlayView && renderControls(ctrl),
     renderUnderboard(ctx),
     ctrl.keyboardMove && renderKeyboardMove(ctrl.keyboardMove),

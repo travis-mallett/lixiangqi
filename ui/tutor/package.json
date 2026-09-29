@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "lib": "workspace:*"
+    "lib": "workspace:*",
+    "@lixiangqi/viewer": "workspace:*"
   },
   "build": {
     "bundle": "src/tutor.ts"

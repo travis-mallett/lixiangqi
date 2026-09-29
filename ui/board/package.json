@@ -1,0 +1,17 @@
+{
+  "name": "@lixiangqi/board",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "chessgroundx": "10.7.5"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": {
+        "source": "./src/index.ts",
+        "default": "./dist/index.js"
+      }
+    }
+  }
+}

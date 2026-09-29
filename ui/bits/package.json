@@ -16,7 +16,6 @@
     "@types/zxcvbn": "^4.4.5",
     "@yaireo/tagify": "4.17.9",
     "canvas-confetti": "^1.9.4",
-    "chessgroundx": "10.7.5",
     "cropperjs": "1.6.2",
     "crypto-random-string": "^5",
     "debounce-promise": "^3.1.2",
@@ -32,7 +31,9 @@
     "qrcode": "^1.5.4",
     "shepherd.js": "11.2.0",
     "sortablejs": "^1.15.6",
-    "zxcvbn": "^4.4.2"
+    "zxcvbn": "^4.4.2",
+    "@lixiangqi/board": "workspace:*",
+    "@lixiangqi/viewer": "workspace:*"
   },
   "build": {
     "bundle": [

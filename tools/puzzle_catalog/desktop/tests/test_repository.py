@@ -85,6 +85,7 @@ class RepositoryTests(unittest.TestCase):
         repo = ContentRepository(self.catalog, self.mining, self.state)
         for theme in (
             "doubleGhostsKnocking",
+            "threeImmortalsRefiningTheElixir",
             "childWorshipsBuddha",
             "crowningMate",
             "eunuchChasingEmperorKill",

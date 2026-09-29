@@ -1,5 +1,4 @@
 import { blurIfEscape } from 'lib';
-import { sanWriter, destsToUcis } from 'lib/game';
 
 import type { KeyboardMoveHandler, Opts, ArrowKey } from '@/exports';
 import { type Submit, makeSubmit } from '@/keyboardSubmit';
@@ -13,9 +12,18 @@ export function initModule(opts: Opts): KeyboardMoveHandler | undefined {
   makeBindings(opts, submit, clear);
 
   // returns a function that is called when any move is played
-  return (fen: string, dests: Dests | undefined, yourMove: boolean): void => {
+  return (
+    _fen: string,
+    dests: ReadonlyMap<string, readonly string[]> | undefined,
+    yourMove: boolean,
+  ): void => {
     // update legal SAN moves
-    opts.ctrl.legalSans = dests && dests.size > 0 ? sanWriter(fen, destsToUcis(dests)) : null;
+    opts.ctrl.legalSans =
+      dests && dests.size > 0
+        ? Object.fromEntries(
+            [...dests].flatMap(([from, destinations]) => destinations.map(to => [from + to, from + to])),
+          )
+        : null;
     // play a premove if it is available in the input
     setTimeout(() => {
       submit(opts.input.value, {
@@ -58,13 +66,6 @@ function makeBindings(opts: Opts, submit: Submit, clear: () => void) {
         isTrusted: true,
       });
     }
-  });
-  opts.input.addEventListener('keypress', (e: KeyboardEvent) => {
-    const v = (e.target as HTMLInputElement).value;
-    // If UCI/ICCF and the user starts typing the dest before releasing the second key for orig,
-    // submit orig now (before the dest key is added to the input field):
-    if (e.isTrusted && v.length === 2 && /^\w$/.test(e.key) && !opts.ctrl.hasSelected())
-      submit(v, { isTrusted: true });
   });
   opts.input.addEventListener('keydown', (e: KeyboardEvent) => {
     // prevent default on arrow keys: they only replay moves

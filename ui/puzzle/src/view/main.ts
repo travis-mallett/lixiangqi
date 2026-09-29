@@ -17,8 +17,8 @@ import type PuzzleCtrl from '@/ctrl';
 import { view as keyboardView } from '@/keyboard';
 
 import actions from './actions';
+import chessground from './board';
 import boardMenu from './boardMenu';
-import chessground from './chessground';
 import feedbackView from './feedback';
 import { replay, puzzleBox, userBox, streakBox, config } from './side';
 import theme from './theme';

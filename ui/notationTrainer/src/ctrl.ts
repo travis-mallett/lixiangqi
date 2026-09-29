@@ -1,9 +1,8 @@
 import { sparkline } from '@fnando/sparkline';
-import type { Api as GroundApi } from 'chessgroundx/api';
-import type { Color } from 'chessgroundx/types';
-import { legalMoveDests, setXiangqiCoordinates, uciMoveToCg } from 'xiangqi';
+import { moveDestinations, type BoardView } from '@lixiangqi/board';
 
 import { type Prop, myUserId, withEffect } from 'lib';
+import { xiangqiPosition } from 'lib/board';
 import { pubsub } from 'lib/pubsub';
 import { storedBooleanProp, storedProp } from 'lib/storage';
 import { trafficActivity, trafficAttemptId, trackTraffic } from 'lib/traffic';
@@ -27,13 +26,12 @@ export const DURATION = 30 * 1000;
 const TICK_DELAY = 50;
 const NEXT_EXERCISE_DELAY = 450;
 
-const groundColor = (turn: NotationExercise['turn']): Color => (turn === 'red' ? 'white' : 'black');
 const perspectiveColor = (perspective: Exclude<BoardPerspective, 'both'>): Color =>
   perspective === 'red' ? 'white' : 'black';
 
 export default class NotationTrainerCtrl {
   private trafficAttempt = trafficAttemptId();
-  ground?: GroundApi;
+  ground?: BoardView;
   exercise?: NotationExercise;
   hasPlayed = false;
   isAuth = !!myUserId();
@@ -109,8 +107,8 @@ export default class NotationTrainerCtrl {
 
   showBoardCoordinates: Prop<boolean> = withEffect<boolean>(
     storedBooleanProp('notationTrainer.showBoardCoordinates', true),
-    value => {
-      if (this.ground) setXiangqiCoordinates(this.ground, value);
+    () => {
+      this.syncGroundAppearance();
       this.redraw();
     },
   );
@@ -213,10 +211,9 @@ export default class NotationTrainerCtrl {
       if (this.mode() === 'writeNotation') {
         this.nextTimeout = window.setTimeout(() => {
           if (!this.playing || !this.exercise) return;
-          this.ground?.set({
-            fen: this.exercise.resultFen,
-            lastMove: uciMoveToCg(this.exercise.move),
-            movable: { color: undefined, dests: new Map() },
+          this.ground?.setInteraction({ mode: 'display' });
+          this.ground?.display(xiangqiPosition(this.exercise.resultFen, this.exercise.move), {
+            kind: 'forward',
           });
           this.answerReady = true;
           this.redraw();
@@ -234,21 +231,23 @@ export default class NotationTrainerCtrl {
 
   setGroundPosition = (interactive: boolean) => {
     if (!this.ground || !this.exercise) return;
-    const color = groundColor(this.exercise.turn);
-    if (this.ground.state.orientation !== this.orientation()) this.ground.toggleOrientation();
-    this.ground.set({
-      fen: this.exercise.fen,
-      turnColor: color,
-      lastMove: undefined,
-      movable: {
-        color: interactive && this.mode() === 'moveFromNotation' ? color : undefined,
-        dests:
-          interactive && this.mode() === 'moveFromNotation'
-            ? legalMoveDests(this.exercise.legalMoves)
-            : new Map(),
-      },
-    });
-    setXiangqiCoordinates(this.ground, this.showBoardCoordinates());
+    this.syncGroundAppearance();
+    this.ground.display(xiangqiPosition(this.exercise.fen), { kind: 'jump' });
+    this.ground.setInteraction(
+      interactive && this.mode() === 'moveFromNotation'
+        ? {
+            mode: 'play',
+            participant: this.exercise.turn,
+            destinations: moveDestinations(this.exercise.legalMoves),
+            input: 'click',
+            showDestinations: true,
+            onMove: ({ from, to }) => {
+              this.ground?.setInteraction({ mode: 'display' });
+              this.onMove(`${from}${to}`);
+            },
+          }
+        : { mode: 'display' },
+    );
   };
 
   private readonly orientationForNextExercise = (): Color => {
@@ -261,8 +260,11 @@ export default class NotationTrainerCtrl {
 
   private readonly syncGroundAppearance = () => {
     if (!this.ground) return;
-    if (this.ground.state.orientation !== this.orientation()) this.ground.toggleOrientation();
-    setXiangqiCoordinates(this.ground, this.showBoardCoordinates());
+    this.ground.setPresentation({
+      ...this.ground.getPresentation(),
+      perspective: this.orientation() === 'white' ? 'red' : 'black',
+      coordinates: this.showBoardCoordinates(),
+    });
   };
 
   onMove = (move: string) => {

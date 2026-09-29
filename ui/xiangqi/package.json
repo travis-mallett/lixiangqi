@@ -4,8 +4,10 @@
   "type": "module",
   "dependencies": {
     "chart": "workspace:*",
-    "chessgroundx": "10.7.5",
-    "lib": "workspace:*"
+    "lib": "workspace:*",
+    "@lixiangqi/board": "workspace:*",
+    "@lixiangqi/viewer": "workspace:*",
+    "@lixiangqi/explorer": "workspace:*"
   },
   "build": {
     "bundle": "src/xiangqi.*.ts"

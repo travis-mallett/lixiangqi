@@ -137,6 +137,8 @@ DOUBLE_CANNONS_THEME = "doubleCannons"
 DOUBLE_CANNONS_LOGIC_VERSION = "1.0"
 DOUBLE_CHARIOTS_THEME = "doubleChariotsMate"
 DOUBLE_CHARIOTS_LOGIC_VERSION = "1.1"
+THREE_IMMORTALS_THEME = "threeImmortalsRefiningTheElixir"
+THREE_IMMORTALS_VERSION = "1.0"
 DOUBLE_GHOSTS_THEME = "doubleGhostsKnocking"
 DOUBLE_GHOSTS_VERSION = "1.1"
 CHARIOTS_THREATENING_ADVISOR_THEME = "doubleChariotsThreateningAdvisor"
@@ -833,6 +835,11 @@ CHECKMATE_MATCHERS: tuple[PatternMatcher, ...] = (
         MOON_SCOOPING_LOGIC_VERSION,
         lambda terminal: terminal.checkmate
         and bool(white_faced_general_escape_positions(terminal)),
+    ),
+    PatternMatcher(
+        THREE_IMMORTALS_THEME,
+        THREE_IMMORTALS_VERSION,
+        lambda terminal: terminal.checkmate,
     ),
     PatternMatcher(
         DOUBLE_GHOSTS_THEME,

@@ -1,13 +1,12 @@
-import type { Api } from 'chessgroundx/api';
+import { boardPresentation, type BoardView } from '@lixiangqi/board';
 
+import { createXiangqiBoard, xiangqiPosition } from 'lib/board';
 import type { EngineAnalysis } from 'lib/ceval';
 import { isTouchDevice } from 'lib/device';
 import { licon } from 'lib/licon';
-import { ShowResizeHandle } from 'lib/prefs';
 import stepwiseScroll from 'lib/view/stepwiseScroll';
 
 import { displayedEvaluation, evaluationShare, formatEvaluation, NEUTRAL_EVALUATION } from './evaluation';
-import { makeXiangqiGround } from './index';
 import { createMoveTreeFromUciMainline, type EngineScore, type XiangqiTreeNode } from './tree';
 
 export interface ExplorerMove {
@@ -47,7 +46,7 @@ export class AnalysisSuggestions {
 
   private play: ((moves: string[]) => void) | undefined;
   private fen: string;
-  private previewGround: Api | undefined;
+  private previewGround: BoardView | undefined;
   private previewEnabled = true;
   private expanded = false;
   private lastEvaluation = NEUTRAL_EVALUATION;
@@ -296,15 +295,11 @@ export class AnalysisSuggestions {
     boardFrame.append(groundElement);
     board.append(boardFrame);
     this.elements.engineLines.append(board);
-    this.previewGround = makeXiangqiGround(groundElement, {
-      fen,
-      lastMove: move,
-      orientation: this.orientation(),
-      coordinates: false,
-      viewOnly: true,
-      resizeHandle: ShowResizeHandle.Never,
-      addDimensionsCssVarsTo: groundElement,
-    });
+    this.previewGround = createXiangqiBoard(
+      groundElement,
+      xiangqiPosition(fen, move),
+      boardPresentation('preview', this.orientation() === 'white' ? 'red' : 'black'),
+    );
   }
 
   private hidePreview(): void {

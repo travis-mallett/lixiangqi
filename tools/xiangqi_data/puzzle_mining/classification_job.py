@@ -21,6 +21,7 @@ from . import (
     horse_roles,
     throat_cutting,
     chariots_threatening_advisor,
+    three_immortals,
     double_ghosts,
     moon_scooping,
     spring_horse,
@@ -446,6 +447,12 @@ def _evaluate_category(
             proofs[(theme, index)] = records
         for theme, version, geometry, assessor in (
             (
+                three_immortals.THEME,
+                three_immortals.VERSION,
+                lambda terminal: three_immortals.candidate(trace) is not False,
+                three_immortals,
+            ),
+            (
                 chariots_threatening_advisor.THEME,
                 chariots_threatening_advisor.VERSION,
                 lambda terminal: chariots_threatening_advisor.candidate(trace)
@@ -580,6 +587,7 @@ def _evaluate_category(
                 if theme
                 in throat_cutting.THEMES
                 | {
+                    three_immortals.THEME,
                     chariots_threatening_advisor.THEME,
                     moon_scooping.THEME,
                     spring_horse.THEME,

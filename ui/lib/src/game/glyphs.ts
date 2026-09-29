@@ -1,42 +1,27 @@
-import type { DrawShape } from '@lichess-org/chessground/draw';
-import { parseUci, makeSquare, squareRank } from 'chessops/util';
+import { coordinateMove, type BoardMark } from '@lixiangqi/board';
 
-import type { Glyph, TreeNode } from '@/tree/types';
+import type { TreeNode } from '@/tree/types';
 
-// maximum number of glyphs to show for a given move
 const maxGlyphs = 4;
-
-export function annotationShapes(node: TreeNode): DrawShape[] {
-  const { uci, glyphs, san } = node;
-  if (uci && san && glyphs) {
-    return (
-      glyphs
-        .slice(0, maxGlyphs)
-        .map((glyph: Glyph, idx: number) => {
-          const move = parseUci(uci)!;
-          const destSquare = san.startsWith('O-O') // castle, short or long
-            ? squareRank(move.to) === 0 // white castle
-              ? san.startsWith('O-O-O')
-                ? 'c1'
-                : 'g1'
-              : san.startsWith('O-O-O')
-                ? 'c8'
-                : 'g8'
-            : makeSquare(move.to);
-          const symbol = glyph.symbol;
-          const prerendered = glyphToSvg[symbol] ? glyphToSvg[symbol](idx) : undefined;
-          return {
-            orig: destSquare,
-            brush: prerendered ? '' : undefined,
-            customSvg: prerendered ? { html: prerendered } : undefined,
-            label: prerendered ? undefined : { text: symbol, fill: 'purple' },
-            // keep some purple just to keep feedback forum on their toes
-          };
-        })
-        // needed so that the right-most (and first) glyph is at the top of the stack
-        .reverse()
-    );
-  } else return [];
+export function annotationShapes(node: TreeNode): BoardMark[] {
+  if (!node.uci || !node.glyphs) return [];
+  const [, to] = coordinateMove(node.uci.replaceAll(':', '10'));
+  return node.glyphs
+    .slice(0, maxGlyphs)
+    .map((glyph, index) => {
+      let svg = glyphToSvg[glyph.symbol]?.(index);
+      if (!svg) {
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', '70');
+        text.setAttribute('y', '12');
+        text.setAttribute('fill', 'purple');
+        text.setAttribute('font-size', '20');
+        text.textContent = glyph.symbol;
+        svg = text.outerHTML;
+      }
+      return { from: to, svg };
+    })
+    .reverse();
 }
 
 // NOTE:

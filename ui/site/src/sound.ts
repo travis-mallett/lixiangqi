@@ -1,10 +1,11 @@
+import { boardAssets, boardSoundPath } from '@lixiangqi/board';
+
 import { requestIdleCallbackSafe } from 'lib';
 import { throttle } from 'lib/async';
 import { isIos } from 'lib/device';
 import { speakable } from 'lib/game/sanWriter';
 import { storage } from 'lib/storage';
 import { trafficBoundary, trafficMusicPlaying, trackTraffic } from 'lib/traffic';
-import { playXiangqiBoardAnimation } from 'lib/xiangqiBoardAnimation';
 
 import { BackgroundMusic } from './backgroundMusic';
 
@@ -12,8 +13,8 @@ type Name = string;
 type Path = string;
 
 const CHECKMATE_EFFECT_NAME = 'checkmateAnimationEffect';
-const CHECKMATE_EFFECT_PATH = 'standard/Checkmate_sound_effect.mp3';
-const CHECKMATE_EFFECT_VOLUME = 0.8;
+const CHECKMATE_EFFECT_PATH = boardAssets.sounds.checkmateEffect.path;
+const CHECKMATE_EFFECT_VOLUME = boardAssets.sounds.checkmateEffect.volume;
 
 class SoundService implements SoundI {
   ctx?: AudioContext;
@@ -21,7 +22,7 @@ class SoundService implements SoundI {
   listeners = new Set<SoundListener>();
   sounds = new Map<Path, Sound>(); // All loaded sounds and their instances
   paths = new Map<Name, Path>(); // sound names to paths
-  soundThrottles = new Map<Name, (volume: number, board?: HTMLElement) => void>();
+  soundThrottles = new Map<Name, (volume: number) => void>();
   soundSet = document.body.dataset.soundSet!;
   musicSet = document.body.dataset.musicSet!;
   volumeStorage = storage.make('sound-volume');
@@ -86,41 +87,36 @@ class SoundService implements SoundI {
 
   resolvePath(name: Name): string | undefined {
     if (!this.effectsEnabled()) return;
-    return this.url(`${this.soundSet}/${name[0].toUpperCase() + name.slice(1)}.mp3`);
+    const path = boardSoundPath(name, this.soundSet);
+    return path
+      ? site.asset.url(path)
+      : this.url(`${this.soundSet}/${name[0].toUpperCase() + name.slice(1)}.mp3`);
   }
 
   url(name: Name): string {
     return site.asset.url(`sound/${name}`);
   }
 
-  async play(name: Name, volume = 1, board?: HTMLElement): Promise<void> {
-    if (name === 'checkmate') return this.playCheckmate(volume, board);
-    if (name === 'capture' || name === 'check') playXiangqiBoardAnimation(name, board);
+  async play(name: Name, volume = 1): Promise<void> {
+    if (name === 'checkmate') return this.playCheckmate(volume);
     if (!this.effectsEnabled()) return;
     if ((name === 'capture' || name === 'check') && !this.isVoiceSoundEnabled()) return;
     const sound = await this.load(name);
     if (sound && (await this.resumeWithTest())) await sound.play(this.getVolume() * volume);
   }
 
-  private async playCheckmate(volume: number, board?: HTMLElement): Promise<void> {
-    if (!this.effectsEnabled()) {
-      playXiangqiBoardAnimation('checkmate', board);
-      return;
-    }
+  private async playCheckmate(volume: number): Promise<void> {
+    if (!this.effectsEnabled()) return;
 
     const [spoken, effect] = await Promise.all([
       this.isVoiceSoundEnabled() ? this.load('checkmate').catch(() => undefined) : Promise.resolve(undefined),
-      this.load(CHECKMATE_EFFECT_NAME, this.url(CHECKMATE_EFFECT_PATH)).catch(() => undefined),
+      this.load(CHECKMATE_EFFECT_NAME, site.asset.url(CHECKMATE_EFFECT_PATH)).catch(() => undefined),
     ]);
-    if (!(await this.resumeWithTest())) {
-      playXiangqiBoardAnimation('checkmate', board);
-      return;
-    }
+    if (!(await this.resumeWithTest())) return;
 
     const outputVolume = this.getVolume() * volume;
     await new Promise<void>(resolve => {
       const start = () => {
-        playXiangqiBoardAnimation('checkmate', board);
         const playback = [
           spoken?.play(outputVolume),
           effect?.play(outputVolume * CHECKMATE_EFFECT_VOLUME),
@@ -133,28 +129,26 @@ class SoundService implements SoundI {
     });
   }
 
-  throttled = (name: Name, volume: number, board?: HTMLElement): void => {
+  throttled = (name: Name, volume: number): void => {
     let play = this.soundThrottles.get(name);
     if (!play) {
-      play = throttle(100, (nextVolume: number, nextBoard?: HTMLElement) =>
-        this.play(name, nextVolume, nextBoard),
-      );
+      play = throttle(100, (nextVolume: number) => this.play(name, nextVolume));
       this.soundThrottles.set(name, play);
     }
-    play(volume, board);
+    play(volume);
   };
 
   async move(o?: SoundMoveOpts) {
     const volume = o?.volume ?? 1;
-    if (o?.name) return this.throttled(o.name, volume, o.board);
+    if (o?.name) return this.throttled(o.name, volume);
 
     this.throttled('move', volume);
     const mate = o?.mate ?? o?.san?.includes('#');
     const check = o?.check ?? o?.san?.includes('+');
     const capture = o?.capture ?? o?.san?.includes('x');
-    if (mate) this.throttled('checkmate', volume, o?.board);
-    else if (check) this.throttled('check', volume, o?.board);
-    else if (capture) this.throttled('capture', volume, o?.board);
+    if (mate) this.throttled('checkmate', volume);
+    else if (check) this.throttled('check', volume);
+    else if (capture) this.throttled('capture', volume);
   }
 
   async playAndDelayMateResultIfNecessary(_name: Name): Promise<void> {
@@ -304,7 +298,7 @@ class SoundService implements SoundI {
     if (this.isVoiceSoundEnabled()) {
       for (const name of ['capture', 'check', 'checkmate']) this.load(name);
     }
-    this.load(CHECKMATE_EFFECT_NAME, this.url(CHECKMATE_EFFECT_PATH));
+    this.load(CHECKMATE_EFFECT_NAME, site.asset.url(CHECKMATE_EFFECT_PATH));
   }
 
   async resumeWithTest(): Promise<boolean> {

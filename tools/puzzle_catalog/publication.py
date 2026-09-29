@@ -39,6 +39,7 @@ OFFICIAL_THEMES = frozenset(
         "boldChariotAttack",
         "pawnTripleAdvancementAttack",
         "doubleGhostsKnocking",
+        "threeImmortalsRefiningTheElixir",
         "threeChariotsHarassingAdvisor",
         "centroidPawnMate",
         "repatriationOfBuddha",

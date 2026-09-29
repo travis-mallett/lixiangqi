@@ -22,7 +22,9 @@ final class UserAnalysis(env: Env) extends LilaController(env) with lila.web.The
       case Array(key, fen) if key == Standard.key.value => load(fen.some, Standard)
       case _ => load(arg.some, Standard)
 
-  def embed = load(none, Standard)
+  def embed = Anon:
+    given EmbedContext = EmbedContext(summon[Context])
+    Ok.snip(views.boardViewer(Json.obj("initialFen" -> get("fen"), "orientation" -> get("color"))))
 
   def catalogAnalysis(id: String) = Open:
     if !lila.analyse.GameAnalysisImport.validCatalogId(id) then BadRequest(jsonError("Invalid catalog ID"))
@@ -39,9 +41,15 @@ final class UserAnalysis(env: Env) extends LilaController(env) with lila.web.The
     nativeJson[Xiangqi.MoveCommand, Xiangqi.MoveResult](body): command =>
       XiangqiRules.move(Xiangqi.Position(command.initialFen, command.moves), command.move)
 
+  // Repeated short wiki examples share parsed positions. Long user imports remain uncached.
+  private val notationCache = env.memo.cacheApi
+    .notLoadingSync[Xiangqi.NotationImport, Either[String, Xiangqi.ImportedMoveTree]](64, "xiangqi.notation"):
+      _.maximumSize(64).expireAfterWrite(10.minutes).build()
+
   def importNotation = AnonBodyOf(parse.json): body =>
     nativeJson[Xiangqi.NotationImport, Xiangqi.ImportedMoveTree](body): command =>
-      XiangqiRules.Notation.importTree(command)
+      if command.notation.length <= 4000 then notationCache.get(command, XiangqiRules.Notation.importTree)
+      else XiangqiRules.Notation.importTree(command)
 
   private def nativeJson[A: Reads, B: Writes](body: JsValue)(run: A => Either[String, B]) =
     body

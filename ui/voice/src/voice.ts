@@ -94,12 +94,21 @@ export function makeVoice(opts: {
 
 export function makeVoiceMove(ctrl: MoveRootCtrl, initial: MoveUpdate): VoiceMove {
   let move: VoiceMove; // shim
+  let latest = initial;
   const voice = makeVoice({ redraw: ctrl.redraw, module: () => move, tpe: 'move' });
-  site.asset.loadEsm<VoiceMove>('voice.move', { init: { root: ctrl, voice, initial } }).then(x => (move = x));
+  const module = 'voice.xiangqi';
+  voice.moduleId = 'xiangqi';
+  site.asset.loadEsm<VoiceMove>(module, { init: { root: ctrl, voice, initial } }).then(x => {
+    move = x;
+    move.update(latest);
+  });
   return {
     ctrl: voice,
     initGrammar: () => move?.initGrammar(),
-    update: (up: MoveUpdate) => move?.update(up),
+    update: (up: MoveUpdate) => {
+      latest = up;
+      move?.update(up);
+    },
     listenForResponse: (key, action) => move?.listenForResponse(key, action),
     question: () => move?.question(),
     promotionHook: () => move?.promotionHook(),

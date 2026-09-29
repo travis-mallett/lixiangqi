@@ -47,19 +47,8 @@ final class Analyse(env: Env) extends LilaController(env):
 
   def embedReplayGame(gameId: GameId, color: Color) = Anon:
     Found(env.game.gameRepo.pov(gameId, color)): pov =>
-      (
-        env.analyse.repo.byGame(pov.game),
-        if pov.game.metadata.analysed then fuccess(false)
-        else env.fishnet.api.userAnalysisExists(pov.gameId)
-      ).flatMapN: (analysis, analysisInProgress) =>
-        Ok.page(
-          views.xiangqi.analysis:
-            UserAnalysis.bootstrap(
-              pov,
-              analysis,
-              analysisInProgress
-            ) ++ Json.obj("explorerEndpoint" -> env.fishnet.explorerEndpoint)
-        )
+      given EmbedContext = EmbedContext(summon[Context])
+      Ok.snip(views.boardViewer(UserAnalysis.bootstrap(pov)))
 
   def externalEngineList = ScopedBody(_.Engine.Read) { _ ?=> me ?=>
     env.analyse.externalEngine.list(me).map { list =>

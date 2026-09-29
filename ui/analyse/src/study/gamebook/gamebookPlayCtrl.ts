@@ -98,7 +98,7 @@ export default class GamebookPlayCtrl {
   };
 
   solution = () => {
-    this.root.chessground.setShapes(
+    this.root.board.setMarks(
       makeShapesFromUci(this.root.turnColor(), this.root.node.children[0].uci, 'green'),
     );
   };
@@ -108,7 +108,7 @@ export default class GamebookPlayCtrl {
   onJump = () => {
     this.makeState();
     // wait for the root ctrl to make the move
-    setTimeout(() => this.root.withCg(cg => cg.playPremove()), 100);
+    setTimeout(() => this.root.withBoard(cg => cg.playPremove()), 100);
   };
 
   onShapeChange = (shapes: Shape[]) => {

@@ -1,7 +1,7 @@
-import { Chessground } from 'chessgroundx/chessground';
-import { Notation } from 'chessgroundx/types';
 import assert from 'node:assert/strict';
 import test from 'node:test';
+
+import { Chessground, Notation } from '../../board/tests/support/renderer.ts';
 
 test('Xiangqi boards fill widths that are not divisible into physical-pixel cells', () => {
   const previousDevicePixelRatio = window.devicePixelRatio;
@@ -25,6 +25,7 @@ test('Xiangqi boards fill widths that are not divisible into physical-pixel cell
     const ground = Chessground(wrap, {
       dimensions: { width: 9, height: 10 },
       notation: Notation.XIANGQI_HANNUM,
+      layeredPieces: true,
     });
     const container = wrap.querySelector('cg-container') as HTMLElement;
 

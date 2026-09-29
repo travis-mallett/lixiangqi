@@ -1,8 +1,7 @@
-import type { Api } from 'chessgroundx/api';
+import { boardPresentation, type BoardView } from '@lixiangqi/board';
 import { h, type VNode } from 'snabbdom';
-import { makeXiangqiGround } from 'xiangqi';
 
-import { onInsert } from 'lib/view';
+import { makeBoardResizable, createXiangqiBoard, xiangqiPosition } from 'lib/board';
 
 import type { RunCtrl } from './run/runCtrl';
 
@@ -15,20 +14,25 @@ export default function xiangqiBoard(ctrl: RunCtrl): VNode {
         'aria-label': `${level.title}. ${level.goal}`,
       },
       hook: {
-        ...onInsert(element => {
-          const ground: Api = makeXiangqiGround(element, {
-            fen: ctrl.fen,
-            orientation: level.color === 'red' ? 'white' : 'black',
-            turnColor: level.color === 'red' ? 'white' : 'black',
-            movableColor: level.reading ? undefined : level.color === 'red' ? 'white' : 'black',
-            legalMoves: ctrl.legalMoves(),
-            coordinates: true,
-            viewOnly: level.reading,
-            onMove: ctrl.onMove,
-          });
+        insert: vnode => {
+          const element = vnode.elm as HTMLElement;
+          const ground = createXiangqiBoard(
+            element,
+            xiangqiPosition(ctrl.fen),
+            boardPresentation('interactive', level.color),
+          );
+          makeBoardResizable(ground);
+          vnode.data!.board = ground;
           ctrl.setGround(ground);
-        }),
-        destroy: () => ctrl.destroyGround(),
+        },
+        postpatch: (old, vnode) => {
+          vnode.data!.board = old.data!.board;
+        },
+        destroy: vnode => {
+          const board = vnode.data!.board as BoardView;
+          board.destroy();
+          if (ctrl.ground === board) ctrl.ground = undefined;
+        },
       },
     }),
   ]);

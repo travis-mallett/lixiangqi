@@ -1,4 +1,3 @@
-import type { Color } from 'chessgroundx/types';
 import type { RulesState } from 'xiangqi';
 
 import type { XiangqiNotationStyle } from 'lib/game';

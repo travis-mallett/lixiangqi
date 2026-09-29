@@ -1,7 +1,8 @@
-import { Chessground as makeChessground } from '@lichess-org/chessground';
-import { opposite as cgOpposite, uciToMove } from '@lichess-org/chessground/util';
-import type { Color } from 'chessops';
-import { EMPTY_BOARD_FEN } from 'chessops/fen';
+import { type BoardView, boardPresentation } from '@lixiangqi/board';
+import { opposite as cgOpposite, type Color } from 'chessops';
+
+import { createXiangqiBoard, xiangqiPosition, publishBoardDimensions } from 'lib/board';
+const EMPTY_BOARD_FEN = '9/9/9/9/9/9/9/9/9/9 w';
 import { h } from 'snabbdom';
 
 import { type Prop, type Toggle, defined, notNull, prop, toggle } from 'lib';
@@ -225,13 +226,6 @@ function pagerButton(icon: string, click: () => void, enable: boolean, ctrl: Mul
   });
 }
 
-const previewToCgConfig = (cp: ChapterPreview): CgConfig => ({
-  fen: cp.fen,
-  lastMove: uciToMove(cp.lastMove),
-  turnColor: fenColor(cp.fen),
-  check: !!cp.check,
-});
-
 const makePreviews = (
   previews: ChapterPreview[],
   roundPath: string,
@@ -242,19 +236,23 @@ const makePreviews = (
   pins?: RelayPlayerPin,
 ) =>
   previews.map((preview, index) => {
-    const extraCgConfig =
-      index === 0
-        ? () => ({
-            addDimensionsCssVarsTo: document.querySelector<HTMLElement>('.study__multiboard .now-playing')!,
-          })
-        : undefined;
     return h(
       `a.mini-game.is2d.chap-${preview.id}${showResults ? '' : '.no-spoilers'}`,
       {
         class: { active: preview.id === current },
         attrs: gameLinkAttrs(roundPath, preview),
       },
-      previewContent(preview, preview.orientation, cloudEval, showResults, round, extraCgConfig, pins),
+      previewContent(
+        preview,
+        preview.orientation,
+        cloudEval,
+        showResults,
+        round,
+        pins,
+        index === 0
+          ? () => document.querySelector<HTMLElement>('.study__multiboard .now-playing') ?? undefined
+          : undefined,
+      ),
     );
   });
 
@@ -264,13 +262,15 @@ export const previewContent = (
   cloudEval?: MultiCloudEval,
   showResults?: boolean,
   round?: RelayRound,
-  extraCgConfig?: () => Partial<CgConfig>,
   pins?: RelayPlayerPin,
+  dimensionScope?: () => HTMLElement | undefined,
 ) => {
-  const makeCgConfig = () => ({
-    ...(showResults ? previewToCgConfig(preview) : { fen: EMPTY_BOARD_FEN }),
-    ...(extraCgConfig ? extraCgConfig() : {}),
-  });
+  const position = () =>
+    xiangqiPosition(
+      showResults ? preview.fen : EMPTY_BOARD_FEN,
+      showResults ? preview.lastMove?.replaceAll(':', '10') : undefined,
+      !!preview.check,
+    );
   return [
     boardPlayer(preview, cgOpposite(orientation), showResults, round, pins),
     h('span.cg-gauge', [
@@ -281,20 +281,27 @@ export const previewContent = (
           hook: {
             insert(vnode) {
               const el = vnode.elm as HTMLElement;
-              vnode.data!.cg = makeChessground(el, {
-                coordinates: false,
-                viewOnly: true,
-                orientation,
-                drawable: { enabled: false, visible: false },
-                ...makeCgConfig(),
-              });
+              vnode.data!.board = createXiangqiBoard(
+                el,
+                position(),
+                boardPresentation('thumbnail', orientation === 'white' ? 'red' : 'black'),
+              );
+              const scope = dimensionScope?.();
+              if (scope) publishBoardDimensions(vnode.data!.board, scope);
               vnode.data!.fen = preview.fen;
+              vnode.data!.showResults = showResults;
             },
+            destroy: vnode => (vnode.data!.board as BoardView).destroy(),
             postpatch(old, vnode) {
-              if (!showResults) return;
-              if (old.data!.fen !== preview.fen) old.data!.cg?.set(makeCgConfig());
+              vnode.data!.board = old.data!.board;
+              const board = old.data!.board as BoardView;
+              board.setPresentation(
+                boardPresentation('thumbnail', orientation === 'white' ? 'red' : 'black'),
+              );
+              if (old.data!.showResults !== showResults || old.data!.fen !== preview.fen)
+                board.display(position(), { kind: 'jump' });
               vnode.data!.fen = preview.fen;
-              vnode.data!.cg = old.data!.cg;
+              vnode.data!.showResults = showResults;
             },
           },
         }),

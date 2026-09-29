@@ -8,12 +8,10 @@
   },
   "devDependencies": {
     "@lichess-org/chessground": "^10.1.1",
-    "@lichess-org/pgn-viewer": "^2.6.2",
     "@playwright/test": "^1.60.0",
     "@types/lichess": "workspace:*",
     "@types/node": "^24.13.3",
     "ab": "github:lichess-org/ab-stub",
-    "chessgroundx": "10.7.5",
     "chessops": "^0.15.1",
     "jsdom": "^27.4.0",
     "lint-staged": "^16.4.0",

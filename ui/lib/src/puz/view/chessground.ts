@@ -1,4 +1,4 @@
-import resizeHandle from '@/chessgroundResize';
+import resizeHandle from '@/boardResize';
 import { isSafari } from '@/device';
 import { ShowResizeHandle, Coords } from '@/prefs';
 import { storage } from '@/storage';

@@ -1,10 +1,10 @@
-import type { Api } from 'chessgroundx/api';
-import type { Key } from 'chessgroundx/types';
-import { requestXiangqi, type RulesState, uciMoveToCg } from 'xiangqi';
+import { coordinateMove, moveDestinations, type BoardView } from '@lixiangqi/board';
+import { requestXiangqi, type RulesState } from 'xiangqi';
 
+import { xiangqiPosition } from 'lib/board';
 import { trafficActivity, trafficAttemptId, trackTraffic } from 'lib/traffic';
 
-import { makeAppleShape } from '../apple';
+import { makeAppleMark } from '../apple';
 import { hashNavigate } from '../hashRouting';
 import type { LearnOpts } from '../learn';
 import { COMPLETION_SCORE } from '../score';
@@ -13,7 +13,7 @@ import { type Level, type Stage, byId as stageById, list as stages } from '../st
 export class RunCtrl {
   private trafficAttempt = trafficAttemptId();
   private trafficPractice = false;
-  ground?: Api;
+  ground?: BoardView;
   fen = '';
   step = 0;
   completed = false;
@@ -57,18 +57,13 @@ export class RunCtrl {
     this.validationError = '';
     this.validatedPositions = [];
     this.fen = '';
-    this.ground?.stop();
+    this.ground?.setInteraction({ mode: 'display' });
     void this.validateLevel(generation);
   };
 
-  setGround = (ground: Api) => {
+  setGround = (ground: BoardView) => {
     this.ground = ground;
     this.syncGround();
-  };
-
-  destroyGround = () => {
-    this.ground?.destroy();
-    this.ground = undefined;
   };
 
   legalMoves = () =>
@@ -111,7 +106,7 @@ export class RunCtrl {
     trafficActivity('lesson.review', this.trafficAttempt, { theme: this.stage.key });
     this.completed = true;
     this.opts.storage.saveScore(this.stage, this.level, COMPLETION_SCORE);
-    this.ground?.stop();
+    this.ground?.setInteraction({ mode: 'display' });
     this.redraw();
   };
 
@@ -149,28 +144,28 @@ export class RunCtrl {
 
   private syncGround(lastMove?: string) {
     if (!this.ground || !this.level || this.validation !== 'ready') return;
-    const color = this.level.color === 'red' ? 'white' : 'black';
-    this.ground.set({
-      fen: this.fen,
-      orientation: color,
-      turnColor: color,
-      lastMove: lastMove ? uciMoveToCg(lastMove) : undefined,
-      movable: {
-        color: this.completed || this.level.reading ? undefined : color,
-        dests: legalMoveDests(this.legalMoves()),
-      },
-    });
-    const move = this.legalMoves()[0];
-    this.ground.setShapes(
-      move
-        ? [
-            {
-              orig: uciMoveToCg(move)[0] as Key,
-              dest: uciMoveToCg(move)[1],
-              brush: 'green',
+    this.ground.display(xiangqiPosition(this.fen, lastMove), { kind: lastMove ? 'forward' : 'jump' });
+    this.ground.setPresentation({ ...this.ground.getPresentation(), perspective: this.level.color });
+    this.ground.setInteraction(
+      this.completed || this.level.reading
+        ? { mode: 'display' }
+        : {
+            mode: 'play',
+            participant: this.level.color,
+            destinations: moveDestinations(this.legalMoves()),
+            input: 'click',
+            showDestinations: true,
+            onMove: ({ from, to }) => {
+              this.ground?.setInteraction({ mode: 'display' });
+              this.onMove(`${from}${to}`);
             },
-            makeAppleShape(uciMoveToCg(move)[1]),
-          ]
+          },
+    );
+    const move = this.legalMoves()[0];
+    const coordinates = move ? coordinateMove(move) : undefined;
+    this.ground.setMarks(
+      coordinates
+        ? [{ from: coordinates[0], to: coordinates[1], brush: 'green' }, makeAppleMark(coordinates[1])]
         : [],
     );
   }
@@ -201,13 +196,4 @@ export class RunCtrl {
 interface LessonValidation {
   positions: RulesState[];
   notations: string[];
-}
-
-function legalMoveDests(moves: string[]) {
-  const dests = new Map();
-  for (const move of moves) {
-    const [orig, dest] = uciMoveToCg(move);
-    dests.set(orig, [...(dests.get(orig) ?? []), dest]);
-  }
-  return dests;
 }

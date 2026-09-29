@@ -1,9 +1,9 @@
-import { parseFen } from 'chessops/fen';
+import { positionFromFen, standardXiangqi } from '@lixiangqi/board';
 import { h } from 'snabbdom';
 
 import { defined } from 'lib';
+import { dispatchChessgroundResize } from 'lib/boardResize';
 import { renderEval as normalizeEval } from 'lib/ceval';
-import { dispatchChessgroundResize } from 'lib/chessgroundResize';
 import { isMobile } from 'lib/device';
 import { playable } from 'lib/game';
 import { fixCrazySan, plyToTurn } from 'lib/game/chess';
@@ -25,8 +25,8 @@ import {
 } from 'lib/view';
 import stepwiseScroll from 'lib/view/stepwiseScroll';
 
+import * as chessground from '../board';
 import type AnalyseCtrl from '../ctrl';
-import * as chessground from '../ground';
 import type { ConcealOf } from '../interfaces';
 import * as pgnExport from '../pgnExport';
 import { renderPgnError } from '../pgnImport';
@@ -153,7 +153,6 @@ export const renderBoard = ({ ctrl, study, playerBars, playerStrips }: ViewConte
       playerBars?.[ctrl.bottomIsWhite() ? 1 : 0],
       chessground.render(ctrl),
       playerBars?.[ctrl.bottomIsWhite() ? 0 : 1],
-      ctrl.promotion.view(ctrl.data.game.variant.key === 'antichess'),
     ],
   );
 
@@ -183,7 +182,12 @@ export function renderInputs(ctrl: AnalyseCtrl): VNode | undefined {
             });
             el.addEventListener('input', () => {
               ctrl.fenInput = el.value;
-              el.setCustomValidity(parseFen(el.value.trim()).isOk ? '' : 'Invalid FEN');
+              try {
+                positionFromFen(el.value.trim(), standardXiangqi);
+                el.setCustomValidity('');
+              } catch {
+                el.setCustomValidity('Invalid FEN');
+              }
             });
           }),
           postpatch: (_, vnode) => {

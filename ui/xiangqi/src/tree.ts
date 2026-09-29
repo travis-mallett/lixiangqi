@@ -1,19 +1,5 @@
-export interface RulesState {
-  variant?: string;
-  fen: string;
-  ply: number;
-  turn: 'red' | 'black';
-  legalMoves: string[];
-  check: boolean;
-  capture?: boolean;
-  checkmate?: boolean;
-  termination?: string | null;
-  insufficientMaterial?: boolean;
-  gameResult: string;
-  immediateEnd?: { ended: boolean; result: number };
-  optionalEnd?: { ended: boolean; result: number };
-  needsHydration?: boolean;
-}
+import type { RulesState, ImportedTreeNode, ImportedMoveTree } from 'lib/game/xiangqiNotation';
+export type { RulesState, ImportedTreeNode, ImportedMoveTree } from 'lib/game/xiangqiNotation';
 
 export interface EngineScore {
   cp?: number;
@@ -60,6 +46,7 @@ export interface XiangqiTreeNode {
   collapsed?: boolean;
   evaluation?: NodeEvaluation;
   comments?: TreeComment[];
+  glyphs?: number[];
 }
 
 export interface XiangqiTreeRoot {
@@ -70,6 +57,7 @@ export interface XiangqiTreeRoot {
   collapsed?: boolean;
   evaluation?: NodeEvaluation;
   comments?: TreeComment[];
+  glyphs?: number[];
 }
 
 export type XiangqiPositionNode = XiangqiTreeRoot | XiangqiTreeNode;
@@ -78,20 +66,6 @@ export interface XiangqiMoveTree {
   root: XiangqiTreeRoot;
   byPath: Map<string, XiangqiPositionNode>;
   nextId: number;
-}
-
-export interface ImportedTreeNode {
-  move: string;
-  notation: string;
-  chineseNotation?: string;
-  state: RulesState;
-  children: ImportedTreeNode[];
-}
-
-export interface ImportedMoveTree {
-  initialFen: string;
-  state: RulesState;
-  children: ImportedTreeNode[];
 }
 
 interface StoredTreeNode {
@@ -106,6 +80,7 @@ interface StoredTreeNode {
   collapsed?: boolean;
   evaluation?: NodeEvaluation;
   comments?: TreeComment[];
+  glyphs?: number[];
 }
 
 export interface StoredMoveTree {
@@ -119,6 +94,7 @@ export interface StoredMoveTree {
     collapsed?: boolean;
     evaluation?: NodeEvaluation;
     comments?: TreeComment[];
+    glyphs?: number[];
   };
   activePath: string;
   savedAt: string;
@@ -135,6 +111,7 @@ export function createMoveTree(state: RulesState): XiangqiMoveTree {
 
 export function createMoveTreeFromImport(imported: ImportedMoveTree, chinese = false): XiangqiMoveTree {
   const tree = createMoveTree(imported.state);
+  tree.root.comments = imported.comments?.map(text => ({ text }));
 
   const addChildren = (parent: XiangqiPositionNode, children: ImportedTreeNode[]): void => {
     for (const importedChild of children) {
@@ -145,6 +122,8 @@ export function createMoveTreeFromImport(imported: ImportedMoveTree, chinese = f
         chineseNotation: importedChild.chineseNotation,
         state: importedChild.state,
       });
+      child.comments = importedChild.comments?.map(text => ({ text }));
+      child.glyphs = importedChild.glyphs;
       parent.children.push(child);
       addChildren(child, importedChild.children);
     }
@@ -491,6 +470,7 @@ export function serializeMoveTree(
     ...(node.collapsed ? { collapsed: true } : {}),
     ...(node.evaluation ? { evaluation: node.evaluation } : {}),
     ...(node.comments?.length ? { comments: node.comments } : {}),
+    ...(node.glyphs?.length ? { glyphs: node.glyphs } : {}),
   });
 
   return {
@@ -570,6 +550,10 @@ export function deserializeMoveTree(
     child.collapsed = stored.collapsed === true || undefined;
     child.evaluation = isNodeEvaluation(stored.evaluation) ? stored.evaluation : undefined;
     child.comments = isTreeComments(stored.comments) ? stored.comments : undefined;
+    child.glyphs =
+      Array.isArray(stored.glyphs) && stored.glyphs.every(id => Number.isInteger(id) && id >= 0 && id <= 255)
+        ? stored.glyphs
+        : undefined;
     parent.children.push(child);
     stored.children.forEach(grandchild => restore(child, grandchild));
     return child;

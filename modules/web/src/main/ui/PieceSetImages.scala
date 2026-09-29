@@ -4,14 +4,9 @@ package ui
 import scalatags.Text.all.*
 import lila.web.ui.AssetFullHelper
 
-final class PieceSetImages(assets: AssetFullHelper):
+final class PieceSetImages(assets: AssetFullHelper, shadows: List[(String, String)]):
 
   private val cache = scala.collection.concurrent.TrieMap.empty[String, String]
-
-  private val shadows = List(
-    "piece/effects/xiangqi-rest-shadow.png" -> "--xiangqi-rest-shadow-image",
-    "piece/effects/xiangqi-airborne-shadow.png" -> "--xiangqi-airborne-shadow-image"
-  )
 
   lila.common.Bus.sub[AssetManifestUpdate.type](_ => cache.clear())
 
