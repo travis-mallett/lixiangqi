@@ -3,25 +3,24 @@ import { AnalysisTreeView } from 'xiangqi';
 import { hl, type VNode } from 'lib/view';
 
 import type PuzzleCtrl from '../ctrl';
-import { puzzleNotationTree } from '../xiangqi';
 
 const cleanups = new WeakMap<Node, () => void>();
 
 export function render(ctrl: PuzzleCtrl): VNode {
   const render = (vnode: VNode) => {
-    const { tree, paths } = puzzleNotationTree(ctrl.tree.root, '');
     const view = new AnalysisTreeView({
       element: vnode.elm as HTMLElement,
-      tree: () => tree,
-      activePath: () => [...paths].find(([, path]) => path === ctrl.path)?.[0] ?? '',
+      tree: () => ctrl.tree,
+      activePath: () => ctrl.path,
       notationLayout: () => 'two-column',
       navigate: path => {
-        ctrl.userJump(paths.get(path)!);
+        ctrl.userJump(path);
         ctrl.redraw();
       },
       setActivePath: () => {},
       commit: () => {},
       readOnly: true,
+      notationStyle: () => ctrl.pref.notationStyle,
       emptyText: '',
     });
     view.render({ scrollToActive: ctrl.autoScrollRequested || ctrl.autoScrollNow });

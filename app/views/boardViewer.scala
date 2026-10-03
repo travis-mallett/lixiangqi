@@ -10,10 +10,6 @@ object boardViewer:
       "previous" -> trans.site.previous.txt(),
       "next" -> trans.site.next.txt(),
       "last" -> trans.site.last.txt(),
-      "flip" -> trans.site.flipBoard.txt(),
-      "board" -> trans.site.board.txt(),
-      "pieces" -> trans.site.pieceSet.txt(),
-      "sound" -> trans.site.sound.txt(),
       "moves" -> trans.site.moves.txt(),
       "start" -> trans.site.start.txt(),
       "analysis" -> trans.site.analysis.txt()

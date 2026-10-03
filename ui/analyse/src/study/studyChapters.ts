@@ -1,17 +1,15 @@
-import { INITIAL_FEN } from 'chessops/fen';
-import { opposite } from 'chessops/util';
 import type Sortable from 'sortablejs';
 
 import { blurIfPrimaryClick, defined, prop, type Prop, scrollToInnerSelector } from 'lib';
-import { fenColor } from 'lib/game/chess';
+import { XIANGQI_START_FEN, oppositeSide as opposite, fenSide as fenColor } from 'lib/game/xiangqi';
 import { licon } from 'lib/licon';
+import * as treePath from 'lib/tree/path';
 import { type VNode, bind, hl, alert, icon } from 'lib/view';
 
 import type AnalyseCtrl from '../ctrl';
 import type { StudySocketSend } from '../socket';
 import { StudyChapterEditForm } from './chapterEditForm';
 import { StudyChapterNewForm } from './chapterNewForm';
-import { federations, localizedName } from './fideFeds';
 import type {
   LocalPaths,
   StudyChapter,
@@ -26,6 +24,7 @@ import type {
   ChapterSelect,
   StatusStr,
 } from './interfaces';
+import { federations, localizedName } from './playerFederations';
 import type StudyCtrl from './studyCtrl';
 
 /* read-only interface for external use */
@@ -60,11 +59,10 @@ export default class StudyChaptersCtrl {
     setTab: () => void,
     chapterConfig: (id: string) => Promise<StudyChapterConfig>,
     root: AnalyseCtrl,
-    currentChapter: () => StudyChapter,
   ) {
     this.list = new StudyChapters(this.store);
     this.loadFromServer(initChapters);
-    this.newForm = new StudyChapterNewForm(send, this.list, isBroadcast, setTab, root, currentChapter);
+    this.newForm = new StudyChapterNewForm(send, this.list, isBroadcast, setTab, root);
     this.editForm = new StudyChapterEditForm(send, chapterConfig, isBroadcast, root.redraw);
   }
 
@@ -77,16 +75,16 @@ export default class StudyChaptersCtrl {
     this.store(
       chapters.map(c => ({
         ...c,
-        fen: c.fen || INITIAL_FEN,
+        fen: c.fen || XIANGQI_START_FEN,
         players: c.players ? this.convertPlayersFromServer(c.players) : undefined,
-        orientation: c.orientation || 'white',
+        orientation: c.orientation || 'red',
         playing: defined(c.lastMove) && c.status === '*',
         lastMoveAt: defined(c.thinkTime) ? Date.now() - 1000 * c.thinkTime : undefined,
       })),
     );
   private readonly convertPlayersFromServer = (players: PairOf<StudyPlayerFromServer>) => {
     const conv: StudyPlayer[] = players.map(convertPlayerFromServer);
-    return { white: conv[0], black: conv[1] };
+    return { red: conv[0], black: conv[1] };
   };
 
   addNode = (d: ServerNodeMsg) => {
@@ -94,11 +92,12 @@ export default class StudyChaptersCtrl {
       node = d.n;
     const cp = this.list.get(pos.chapterId);
     if (cp) {
-      const onRelayPath = d.relayPath === d.p.path + d.n.id;
+      const onRelayPath = d.relayPath === treePath.append(d.p.path, d.n.uci!);
       if (onRelayPath || !d.relayPath) {
         cp.fen = node.fen;
+        cp.position = { ...cp.position, moves: [...treePath.ids(d.p.path), node.uci!] };
         cp.lastMove = node.uci;
-        cp.check = node.san?.includes('#') ? '#' : node.san?.includes('+') ? '+' : undefined;
+        cp.check = node.state.checkmate ? '#' : node.state.check ? '+' : undefined;
       }
       if (onRelayPath) {
         cp.lastMoveAt = Date.now();
@@ -133,7 +132,7 @@ export function isFinished(c: StudyChapter) {
 
 export const findTag = (tags: TagArray[], name: string) => tags.find(t => t[0].toLowerCase() === name)?.[1];
 
-export const looksLikeLichessGame = (tags: TagArray[]) =>
+export const looksLikeNativeGame = (tags: TagArray[]) =>
   !!findTag(tags, 'site')?.match(new RegExp(location.hostname + '/\\w{8}$'));
 
 export const gameLinkAttrs = (roundPath: string, game: { id: ChapterId }) => ({

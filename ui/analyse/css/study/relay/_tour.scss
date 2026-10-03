@@ -631,7 +631,7 @@
     color: $c-font-dim;
   }
 
-  .fide-player,
+  .directory-player,
   &__teams__standings {
     a {
       color: $c-font;
@@ -642,7 +642,7 @@
     }
   }
 
-  .fide-player {
+  .directory-player {
     &__header {
       @extend %tour-margin-horiz;
     }
@@ -787,7 +787,7 @@
     }
   }
 
-  .fide-players-table {
+  .directory-players-table {
     .game-link {
       @extend %game-link-styles;
     }

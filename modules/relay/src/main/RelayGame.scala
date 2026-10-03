@@ -1,26 +1,23 @@
 package lila.relay
 
-import chess.Outcome
-import chess.format.UciPath
+import lila.xiangqi.Xiangqi.{ Result, GamePoints }
 import chess.format.pgn.{ Tag, TagType, Tags }
 
-import lila.study.{ MultiPgn, PgnDump, StudyPgnImport }
+import lila.study.{ MultiPgn, PgnDump, StudyPgnImport, StudyPgnTags }
 import lila.tree.{ Root, Clock }
-import lila.tree.Node.Comments
-import lila.core.fide.PlayerToken
+import lila.core.playerDirectory.PlayerToken
 
 case class RelayGame(
     tags: Tags,
-    variant: chess.variant.Variant,
     root: Root,
-    points: Option[Outcome.GamePoints]
+    points: Option[GamePoints]
 ):
   override def toString =
-    s"RelayGame ${root.mainlineNodeList.size} ${tags.outcome} ${tags.names} ${tags.fideIds}"
+    s"RelayGame ${root.mainlineNodeList.size} ${points} ${StudyPgnTags.names(tags)} ${StudyPgnTags.playerIds(tags)}"
 
   def isEmpty = tags.value.isEmpty && root.children.isEmpty
 
-  def isBye = tags.names.exists(_.exists(_.value.toLowerCase == "bye"))
+  def isBye = StudyPgnTags.names(tags).exists(_.exists(_.value.toLowerCase == "bye"))
 
   def hasMoves = root.children.nonEmpty
 
@@ -31,19 +28,15 @@ case class RelayGame(
     points = None
   )
 
-  def fideIdsPair: Option[PairOf[Option[chess.FideId]]] =
-    tags.fideIds.some.filter(_.exists(_.exists(_.value > 0))).map(_.toPair)
-
-  def hasUnknownPlayer: Boolean =
-    List(RelayGame.whiteTags, RelayGame.blackTags).exists:
-      _.forall(tag => tags(tag).isEmpty)
+  def playerIdsPair: Option[PairOf[Option[lila.core.playerDirectory.PlayerId]]] =
+    StudyPgnTags.playerIds(tags).some.filter(_.exists(_.isDefined)).map(_.toPair)
 
   def applyTagClocksToLastMoves: RelayGame =
-    val clocks = tags.clocks
+    val clocks = StudyPgnTags.clocks(tags)
     if clocks.forall(_.isEmpty) then this
     else
       val mainlinePath = root.mainlinePath
-      val turn = root.lastMainlineNode.ply.turn
+      val turn = root.lastMainlineNode.state.turn
       val newRoot = List(
         mainlinePath.nonEmpty.option(mainlinePath.parent) -> turn,
         mainlinePath.some -> !turn
@@ -56,56 +49,56 @@ case class RelayGame(
             else root.setClockAt(Clock(centis, true.some).some, path) | root
       copy(root = newRoot)
 
-  def showResult = Outcome.showPoints(points)
+  def showResult = GamePoints.show(points)
 
 private object RelayGame:
 
-  val lichessDomains = List("lixiangqi.org", "lichess.dev")
+  val siteDomains = List("lixiangqi.org", "lixiangqi.com")
 
   type TagNames = List[Tag.type => TagType]
   val eventTags: TagNames = List(_.Event, _.Site)
-  val nameTags: TagNames = List(_.White, _.Black)
-  val fideIdTags: TagNames = List(_.WhiteFideId, _.BlackFideId)
-  val whiteTags: TagNames = List(_.White, _.WhiteFideId)
-  val blackTags: TagNames = List(_.Black, _.BlackFideId)
+  val nameTags: TagNames = List(_ => StudyPgnTags.Red, _.Black)
+  val playerIdTags: TagNames = List(_ => StudyPgnTags.RedPlayerId, _ => StudyPgnTags.BlackPlayerId)
   val unplayedTag = Tag(_.Termination, "Unplayed")
 
   def fromChapter(c: lila.study.Chapter) = RelayGame(
     tags = c.tags,
-    variant = c.setup.variant,
     root = c.root,
-    points = c.tags.points
+    points = c.tags("Result").flatMap(GamePoints.fromResult)
   )
 
   def fromStudyImport(res: StudyPgnImport.Result): RelayGame =
     val fixedTags = cleanOrRemovePlayerNames:
       // remove wrong ongoing result tag if the board has a mate on it
-      if res.ending.isDefined && res.tags(_.Result).has("*") then
+      if res.root.lastMainlineNode.state.gameResult != Result.Ongoing && res.tags(_.Result).has("*") then
         res.tags.map(_.filter(_ != Tag(_.Result, "*")))
       // normalize result tag (e.g. 0.5-0 ->  1/2-0)
       else
         res.tags.map(_.map: tag =>
           if tag.name == Tag.Result
-          then tag.copy(value = Outcome.showPoints(Outcome.pointsFromResult(tag.value)))
+          then tag.copy(value = GamePoints.show(GamePoints.fromResult(tag.value)))
           else tag)
-    .pipe(_ - Tag.Date) // trust the chapter date, not the source date
-      .pipe(toggleUnplayedTermination(_, res.ending.isDefined && res.root.mainline.sizeIs < 2))
+    .pipe(
+      toggleUnplayedTermination(
+        _,
+        res.tags("Result").flatMap(GamePoints.fromResult).isDefined && res.root.mainline.sizeIs < 2
+      )
+    )
     RelayGame(
       tags = fixedTags,
-      variant = res.variant,
-      root = res.root.copy(
-        comments = Comments.empty,
-        children = res.root.children.updateMainline(_.copy(comments = Comments.empty))
-      ),
-      points = res.ending.map(_.points)
+      root = res.root,
+      points = res
+        .tags("Result")
+        .flatMap(GamePoints.fromResult)
+        .orElse(GamePoints.fromResult(res.root.lastMainlineNode.state.gameResult.key))
     ).applyTagClocksToLastMoves
 
   private def cleanOrRemovePlayerNames(tags: Tags) = tags.map:
     _.flatMap: tag =>
-      if tag.name != Tag.White && tag.name != Tag.Black then tag.some
+      if tag.name != StudyPgnTags.Red && tag.name != Tag.Black then tag.some
       else
         val clean = tag.value.trim
-        Option.when(clean.size > 1 && clean.toLowerCase != "unknown"):
+        Option.when(clean.nonEmpty && clean != "?" && !clean.equalsIgnoreCase("unknown")):
           tag.copy(value = clean)
 
   def toggleUnplayedTermination(tags: Tags, set: Boolean) =
@@ -114,12 +107,11 @@ private object RelayGame:
     else tags.map(_.filter(_ != unplayedTag))
 
   import scalalib.Iso
-  import chess.format.pgn.InitialComments
   val iso: Iso[RelayGames, MultiPgn] =
     import lila.study.PgnDump.WithFlags
     given WithFlags = WithFlags(
-      comments = false,
-      variations = false,
+      comments = true,
+      variations = true,
       clocks = true,
       orientation = false
     )
@@ -127,7 +119,7 @@ private object RelayGame:
       gs =>
         MultiPgn:
           gs.view
-            .map(g => PgnDump.rootToPgn(g.root, g.tags, InitialComments.empty).render)
+            .map(g => PgnDump.rootToPgn(g.root, g.tags))
             .toList
       ,
       mul => RelayFetch.multiPgnToGames.either(mul).fold(e => throw e, identity)
@@ -196,7 +188,8 @@ private object RelayGame:
     private def tokenizeGamesByPlayers(games: RelayGames): Map[PlayerToken, Vector[RelayGame]] =
       val gamesTokens: Vector[(RelayGame, List[PlayerToken])] =
         games.map: g =>
-          g -> g.tags.names
+          g -> StudyPgnTags
+            .names(g.tags)
             .mapList(_.map(_.value))
             .flatten
             .map(RelayPlayerLine.tokenize.apply)

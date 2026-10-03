@@ -11,7 +11,7 @@ site.load.then(() => {
       this,
       { pgn: this.dataset.pgn },
       {
-        orientation: this.dataset.orientation as Color,
+        orientation: this.dataset.orientation === 'black' ? 'black' : 'red',
         initialPly: 'last',
         showMoves: false,
       },
@@ -29,7 +29,7 @@ site.load.then(() => {
         el,
         { pgn: el.dataset.pgn },
         {
-          orientation: el.dataset.pov as Color,
+          orientation: el.dataset.pov === 'black' ? 'black' : 'red',
           initialPly: Math.max(0, 5 - index),
           showMoves: false,
           showControls: false,

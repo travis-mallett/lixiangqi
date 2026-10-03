@@ -24,7 +24,7 @@ export default class RelayPlayerPin {
   isChapterPinned: (c: ChapterPreview) => boolean = c =>
     this.anyPinned() &&
     !!c.players &&
-    (this.isPlayerPinned(c.players.white) || this.isPlayerPinned(c.players.black));
+    (this.isPlayerPinned(c.players.red) || this.isPlayerPinned(c.players.black));
 
   anyPinned: () => boolean = () => this.pins.size > 0;
 

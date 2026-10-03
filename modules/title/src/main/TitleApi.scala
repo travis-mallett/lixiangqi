@@ -2,7 +2,7 @@ package lila.title
 
 import reactivemongo.api.bson.*
 
-import chess.FideId
+import lila.core.playerDirectory.PlayerId
 import lila.core.config.BaseUrl
 import lila.core.id.TitleRequestId
 import lila.core.msg.SystemMsg
@@ -56,7 +56,8 @@ final class TitleApi(
   def findSimilar(req: TitleRequest): Fu[List[TitleRequest]] =
     val search = List(
       ("data.realName" -> BSONString(req.data.realName)).some,
-      req.data.fideId.map(id => "data.fideId" -> BSONInteger(id.value))
+      req.data.fideId.map(id => "data.fideId" -> BSONInteger(id.value)),
+      req.data.playerId.map(id => "data.playerId" -> BSONString(id.value))
     ).flatten.map: (k, v) =>
       $doc(k -> v)
     coll
@@ -96,18 +97,18 @@ final class TitleApi(
   def tryAgain(req: TitleRequest) =
     coll.update.one($id(req.id), req.tryAgain).void
 
-  def publicUserOf(fideId: FideId): Fu[Option[User]] = for
+  def publicUserOf(playerId: PlayerId): Fu[Option[User]] = for
     ids <- coll.secondary.primitive[UserId](
-      $doc("data.fideId" -> fideId, s"$statusField.n" -> Status.approved.toString, "data.public" -> true),
+      $doc("data.playerId" -> playerId, s"$statusField.n" -> Status.approved.toString, "data.public" -> true),
       $sort.desc(updatedAtField),
       "userId"
     )
     users <- userApi.enabledByIds(ids)
   yield users.sortBy(u => u.seenAt | u.createdAt).lastOption
 
-  object publicFideIdOf:
+  object publicPlayerIdOf:
 
-    private val cache = cacheApi[UserId, Option[FideId]](8_192, "title.publicFideIdOf"):
+    private val cache = cacheApi[UserId, Option[PlayerId]](8_192, "title.publicPlayerIdOf"):
       _.expireAfterWrite(1.hour).buildAsyncFuture: id =>
         coll.secondary
           .find(
@@ -115,7 +116,7 @@ final class TitleApi(
               "userId" -> id,
               s"$statusField.n" -> Status.approved.toString
             ),
-            $doc("data.fideId" -> true, "data.public" -> true).some
+            $doc("data.playerId" -> true, "data.public" -> true).some
           )
           .sort($sort.desc("createdAt"))
           .one[Bdoc]
@@ -123,16 +124,16 @@ final class TitleApi(
             for
               doc <- docOpt
               data <- doc.child("data")
-              fideId <- data.getAsOpt[FideId]("fideId")
+              playerId <- data.getAsOpt[PlayerId]("playerId")
               if ~data.booleanLike("public")
-            yield fideId
+            yield playerId
 
-    def apply(user: LightUser): Fu[Option[FideId]] =
+    def apply(user: LightUser): Fu[Option[PlayerId]] =
       (user.title.isDefined && !user.isBot).so(cache.get(user.id))
 
   private def sendFeedback(to: UserId, feedback: String): Unit =
     val pm = s"""
-Your title request has been reviewed by the Lichess team.
+Your title request has been reviewed by the LiXiangQi team.
 Here is the feedback provided:
 
 $feedback

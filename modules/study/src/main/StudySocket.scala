@@ -1,8 +1,11 @@
 package lila.study
 
+import lila.xiangqi.XiangqiGlyph.{ Glyph, Glyphs }
+
 import chess.Centis
-import chess.format.UciPath
-import chess.format.pgn.{ Glyph, Glyphs }
+import lila.xiangqi.UciPath
+import lila.xiangqi.XiangqiJson.given
+
 import play.api.libs.json.*
 import scalalib.actor.SyncActorMap
 
@@ -14,7 +17,7 @@ import lila.tree.Branch
 import lila.tree.Node.{ Comment, Gamebook, Shape, Shapes }
 import lila.core.study.Visibility
 import cats.mtl.Handle.*
-import lila.tree.Node.lichobileNodeJsonWriter
+import lila.tree.Node.defaultNodeJsonWriter
 
 final private class StudySocket(
     api: StudyApi,
@@ -46,7 +49,7 @@ final private class StudySocket(
           Json.obj(
             "analysis" -> analysis,
             "ch" -> chapterId,
-            "tree" -> lichobileNodeJsonWriter.writes(tree),
+            "tree" -> defaultNodeJsonWriter.writes(tree),
             "division" -> division
           )
         )
@@ -60,6 +63,10 @@ final private class StudySocket(
       import JsonView.given
       def who = user.map(Who(_, sri))
       def applyWho(f: Who => Unit) = who.foreach(f)
+      def reading[A: Reads](value: JsValue)(f: A => Unit): Unit =
+        (value \ "d").validate[A] match
+          case JsSuccess(data, _) => f(data)
+          case JsError(_) => validationError(s"Invalid $tpe data", sri)(studyId)
 
       tpe match
         case "setPath" =>
@@ -117,10 +124,10 @@ final private class StudySocket(
 
         case "shapes" =>
           reading[AtPosition](o): position =>
-            (o \ "d" \ "shapes")
-              .asOpt[List[Shape]]
-              .foreach: shapes =>
-                applyWho(api.setShapes(studyId, position.ref, Shapes(shapes.take(32))))
+            (o \ "d" \ "shapes").validate[List[Shape]] match
+              case JsSuccess(shapes, _) if shapes.size <= 32 =>
+                applyWho(api.setShapes(studyId, position.ref, Shapes(shapes)))
+              case _ => validationError("Invalid drawing annotations or more than 32 shapes", sri)(studyId)
 
         case "addChapter" =>
           reading[ChapterMaker.Data](o): data =>
@@ -183,8 +190,15 @@ final private class StudySocket(
 
         case "setComment" =>
           reading[AtPosition](o): position =>
-            for text <- (o \ "d" \ "text").asOpt[String]
-            do applyWho(api.setComment(studyId, position.ref, Comment.sanitize(text)))
+            (o \ "d" \ "text").asOpt[String] match
+              case Some(text) =>
+                scala.util
+                  .Try(Comment.sanitize(text))
+                  .fold(
+                    error => validationError(error.getMessage, sri)(studyId),
+                    comment => applyWho(api.setComment(studyId, position.ref, comment))
+                  )
+              case None => validationError("Invalid comment text", sri)(studyId)
 
         case "deleteComment" =>
           reading[AtPosition](o): position =>
@@ -217,11 +231,6 @@ final private class StudySocket(
         case "explorerGame" =>
           reading[ExplorerGame](o): data =>
             applyWho(api.explorerGame(studyId, data))
-
-        case "requestAnalysis" =>
-          o.get[StudyChapterId]("d")
-            .foreach: chapterId =>
-              user.foreach(api.analysisRequest(studyId, chapterId, _))
 
         case "invite" =>
           for
@@ -275,7 +284,6 @@ final private class StudySocket(
   def addNode(
       pos: Position.Ref,
       node: Branch,
-      parentFen: chess.format.Fen.Full,
       sticky: Boolean,
       relay: Option[Chapter.Relay],
       who: Who
@@ -289,7 +297,7 @@ final private class StudySocket(
       "addNode",
       Json
         .obj(
-          "n" -> jsonView.xiangqiNode(defaultNodeJsonWriter.writes(node).as[JsObject], parentFen.value.some),
+          "n" -> defaultNodeJsonWriter.writes(node),
           "p" -> pos,
           "s" -> sticky
         )
@@ -358,7 +366,7 @@ final private class StudySocket(
         .add(
           "relayClocks",
           relayDenorm.map: clocks =>
-            Json.arr(clocks.white, clocks.black)
+            Json.arr(clocks.red, clocks.black)
         )
     )
   def forceVariation(pos: Position.Ref, force: Boolean, who: Who) =
@@ -429,12 +437,6 @@ object StudySocket:
     object In:
       import play.api.libs.functional.syntax.*
 
-      def reading[A](o: JsValue)(f: A => Unit)(using reader: Reads[A]): Unit =
-        o.obj("d")
-          .flatMap: d =>
-            reader.reads(d).asOpt
-          .foreach(f)
-
       case class AtPosition(path: UciPath, chapterId: StudyChapterId):
         def ref = Position.Ref(chapterId, path)
       given Reads[AtPosition] =
@@ -442,14 +444,12 @@ object StudySocket:
       case class SetRole(userId: UserId, role: String)
       given Reads[SetRole] = Json.reads
       given Reads[ChapterMaker.Mode] = optRead(ChapterMaker.Mode.apply)
-      given Reads[ChapterMaker.Orientation] = stringRead(ChapterMaker.Orientation.apply)
+      given Reads[ChapterMaker.Orientation] = optRead(ChapterMaker.Orientation.apply)
       given Reads[Settings.UserSelection] = optRead(Settings.UserSelection.byKey.get)
-      given Reads[chess.variant.Variant] =
-        optRead(key => chess.variant.Variant(chess.variant.Variant.LilaKey(key)))
       given Reads[ChapterMaker.Data] = Json.reads
       given Reads[ChapterMaker.EditData] = Json.reads
       given Reads[ChapterMaker.DescData] = Json.reads
-      given Reads[Visibility] = stringRead(v => Visibility.byKey.getOrElse(v, Visibility.public))
+      given Reads[Visibility] = optRead(Visibility.byKey.get)
       given Reads[StudyForm.FormData] = Json.reads
       given Reads[SetTag] = Json.reads
       given Reads[Gamebook] = Json.reads

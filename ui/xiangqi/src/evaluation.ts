@@ -1,4 +1,4 @@
-import type { EngineScore } from './tree';
+import type { EngineScore } from 'lib/tree/native';
 
 export const NEUTRAL_EVALUATION: EngineScore = Object.freeze({ redCp: 0 });
 

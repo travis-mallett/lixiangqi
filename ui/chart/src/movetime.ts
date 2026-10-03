@@ -10,7 +10,9 @@ import {
   type PointStyle,
   Tooltip,
 } from 'chart.js';
-import { COLORS } from 'chessops';
+
+import { mainlineNodeList } from 'lib/tree/ops';
+const COLORS = ['red', 'black'] as const;
 
 import { pubsub } from 'lib/pubsub';
 
@@ -25,7 +27,7 @@ import {
   plyLine,
   selectPly,
   tooltipBgColor,
-  whiteFill,
+  redFill,
   axisOpts,
 } from './index';
 import type { AnalyseData, Player, PlyChart } from './interface';
@@ -41,21 +43,21 @@ export default async function (
   if (possibleChart) return possibleChart as PlyChart;
   const moveCentis = data.game.moveCentis;
   if (!moveCentis) return; // imported games
-  type PlotSeries = { white: MovePoint[]; black: MovePoint[] };
+  type PlotSeries = { red: MovePoint[]; black: MovePoint[] };
   const moveSeries: PlotSeries = {
-    white: [],
+    red: [],
     black: [],
   };
   const totalSeries: PlotSeries = {
-    white: [],
+    red: [],
     black: [],
   };
   const labels: { title: string; label: string[] }[] = [];
   const blueLineColor = '#3893e8';
-  const pointStyles: { white: PointStyle[]; black: PointStyle[] } = { white: [], black: [] };
-  const pointRadius: { white: number[]; black: number[] } = { white: [], black: [] };
+  const pointStyles: { red: PointStyle[]; black: PointStyle[] } = { red: [], black: [] };
+  const pointRadius: { red: number[]; black: number[] } = { red: [], black: [] };
 
-  const tree = data.treeParts;
+  const tree = mainlineNodeList(data.tree);
   const firstPly = tree[0].ply;
   for (let i = 0; i <= firstPly; i++) labels.push({ title: '', label: [''] });
   const showTotal = !hunter;
@@ -63,23 +65,23 @@ export default async function (
   const logC = Math.pow(Math.log(3), 2);
 
   const blurs = [toBlurArray(data.player), toBlurArray(data.opponent)];
-  if (data.player.color === 'white') blurs.reverse();
+  if (data.player.color === 'red') blurs.reverse();
 
   moveCentis.forEach((centis: number, x: number) => {
     const node = tree[x + 1];
     if (!tree[x]) return;
     const ply = node ? node.ply : tree[x].ply + 1;
-    const san = node ? node.san : '-';
+    const notation = node ? node.notation : '-';
     // Current behaviour: Game-ending action is assigned to the next color
     // regardless of whether they made it or not
-    // e.g. White makes a move and then immediately resigns
+    // e.g. Red makes a move and then immediately resigns
 
     const turn = (ply + 1) >> 1;
     const color = ply & 1;
-    const colorName = color ? 'white' : 'black';
+    const colorName = color ? 'red' : 'black';
 
     const y = Math.pow(Math.log(0.005 * Math.min(centis, 12e4) + 3), 2) - logC;
-    let title = turn + (color ? '. ' : '... ') + san;
+    let title = turn + (color ? '. ' : '... ') + notation;
     const movePoint: MovePoint = {
       x: node ? node.ply : tree[x].ply + 1,
       y: color ? y : -y,
@@ -129,7 +131,7 @@ export default async function (
         y: point.y / (moveSeries ? moveSeriesMax : totalSeriesMax),
       })),
       backgroundColor: color,
-      borderColor: moveSeries && showTotal ? (color === 'white' ? '#838383' : '#3d3d3d') : blueLineColor,
+      borderColor: moveSeries && showTotal ? (color === 'red' ? '#838383' : '#3d3d3d') : blueLineColor,
       borderWidth: moveSeries && showTotal ? 1 : 1.5,
       pointHitRadius: moveSeries && showTotal ? 0 : 200,
       pointHoverBorderColor: moveSeries && !showTotal ? orangeAccent : blueLineColor,
@@ -138,7 +140,7 @@ export default async function (
       pointStyle: moveSeries && !showTotal ? pointStyles[color] : undefined,
       fill: {
         target: 'origin',
-        above: moveSeries ? whiteFill : 'rgb(153 153 153 / 0.3)',
+        above: moveSeries ? redFill : 'rgb(153 153 153 / 0.3)',
         below: moveSeries ? blackFill : 'rgb(0 0 0 / 0.3)',
       },
       order: moveSeries ? 2 : 1,
@@ -154,7 +156,7 @@ export default async function (
         categoryPercentage: 2,
         barPercentage: 1,
         order: 2,
-        borderColor: color === 'white' ? '#838383' : '#616161',
+        borderColor: color === 'red' ? '#838383' : '#616161',
         borderWidth: 1,
         datalabels: { display: false },
       }))

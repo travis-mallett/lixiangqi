@@ -2,7 +2,6 @@ package lila.study
 
 import chess.format.Fen
 import chess.format.pgn.PgnStr
-import chess.variant.Variant
 import play.api.data.*
 import play.api.data.Forms.*
 import play.api.data.format.Formatter
@@ -29,7 +28,7 @@ object StudyForm:
     formatter.stringOptionFormatter(_.key, ChapterMaker.Mode.apply)
 
   private given Formatter[ChapterMaker.Orientation] =
-    formatter.stringFormatter(_.key, ChapterMaker.Orientation.apply)
+    formatter.stringOptionFormatter(_.key, ChapterMaker.Orientation.apply)
 
   given Formatter[Visibility] =
     formatter.stringOptionFormatter[Visibility](_.key, Visibility.byKey.get)
@@ -86,9 +85,6 @@ object StudyForm:
         "orientation" -> optional(of[ChapterMaker.Orientation]),
         "fen" -> optional(xiangqiFen),
         "pgn" -> optional(nonEmptyText.into[PgnStr]),
-        "variant" -> optional(
-          of[Variant].verifying(v => v == chess.variant.Standard || v == chess.variant.FromPosition)
-        ),
         "as" -> optional(nonEmptyText),
         "mode" -> optional(of[ChapterMaker.Mode])
       )(Data.apply)(unapply)
@@ -99,7 +95,6 @@ object StudyForm:
         orientation: Option[ChapterMaker.Orientation] = None,
         fen: Option[Fen.Full] = None,
         pgnStr: Option[PgnStr] = None,
-        variant: Option[Variant] = None,
         asStr: Option[String] = None,
         mode: Option[ChapterMaker.Mode] = None
     ):
@@ -112,7 +107,6 @@ object StudyForm:
       def toChapterData = ChapterMaker.Data(
         name = StudyChapterName(""),
         game = gameId.map(_.value),
-        variant = variant,
         fen = fen,
         pgn = pgnStr,
         orientation = orientation | ChapterMaker.Orientation.Auto,
@@ -130,9 +124,6 @@ object StudyForm:
       mapping(
         "name" -> optional(cleanNonEmptyText(minLength = 1, maxLength = 100)),
         "orientation" -> optional(of[ChapterMaker.Orientation]),
-        "variant" -> optional(
-          of[Variant].verifying(v => v == chess.variant.Standard || v == chess.variant.FromPosition)
-        ),
         "mode" -> defaulting(of[ChapterMaker.Mode], ChapterMaker.Mode.Normal),
         "initial" -> boolean,
         "sticky" -> boolean,
@@ -144,7 +135,6 @@ object StudyForm:
     case class Data(
         name: Option[String],
         orientation: Option[ChapterMaker.Orientation] = None,
-        variant: Option[Variant] = None,
         mode: ChapterMaker.Mode,
         initial: Boolean,
         sticky: Boolean,
@@ -160,7 +150,6 @@ object StudyForm:
             ChapterMaker.Data(
               // only the first chapter can be named
               name = StudyChapterName((index == 0).so(~name)),
-              variant = variant,
               pgn = onePgn.some,
               orientation = orientation | ChapterMaker.Orientation.Auto,
               mode = mode,
@@ -179,11 +168,12 @@ object StudyForm:
   val replaceChapterPgnMoves = Form(single("pgn" -> nonEmptyText.into[PgnStr]))
 
   def chapterTagsForm = Form:
-    import chess.format.pgn.{ Tags, Parser }
+    import chess.format.pgn.{ Tags, Tag }
     given Formatter[Tags] = formatter.stringTryFormatter(
       pgn =>
         for
-          raw <- Parser.tags(PgnStr(pgn)).left.map(_.value)
+          headers <- lila.xiangqi.XiangqiNotation.parseHeaders(pgn)
+          raw = Tags(headers.toList.map((name, value) => Tag(name, value)))
           validated <- StudyPgnTags.validateTagTypes(raw)
         yield validated,
       _ => "" // unused, API only

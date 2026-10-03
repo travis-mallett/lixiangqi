@@ -204,6 +204,8 @@ object JsonView:
     "rating" -> puzzle.glicko.intRating,
     "plays" -> puzzle.plays,
     "solution" -> puzzle.playback.solutions.head,
+    "solutionStates" -> puzzle.solutionStates,
+    "ruleset" -> puzzle.initialGame.ruleset,
     "playback" -> Json.obj(
       "objective" -> puzzle.playback.objective,
       "solutions" -> puzzle.playback.solutions,

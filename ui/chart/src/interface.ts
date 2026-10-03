@@ -10,7 +10,7 @@ export interface AcplChart extends PlyChart {
   updateData(d: AnalyseData, mainline: EvaluationNode[]): void;
 }
 
-export interface EvaluationNode extends Pick<TreeNodeBase, 'ply' | 'san' | 'glyphs'> {
+export interface EvaluationNode extends Pick<TreeNodeBase, 'ply' | 'notation' | 'glyphs'> {
   eval?: EvalScore;
 }
 
@@ -25,7 +25,7 @@ export interface Division {
 }
 
 export interface Player {
-  color: 'white' | 'black';
+  color: 'red' | 'black';
   blurs?: {
     bits?: string;
   };
@@ -34,7 +34,7 @@ export interface Player {
 export interface AnalyseData {
   player: Player;
   opponent: Player;
-  treeParts: TreeNodeBase[];
+  tree: TreeNodeBase;
   game: {
     division?: Division;
     variant: {

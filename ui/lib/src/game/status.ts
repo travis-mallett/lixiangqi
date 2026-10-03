@@ -44,10 +44,14 @@ export type StatusId = number;
 
 export const statusOf = (name: StatusName): Status => ({ id: status[name], name });
 
-export const started = (data: GameData): boolean => data.game.status.id >= status.started;
+export const started = (data: { game: Pick<GameData['game'], 'status'> }): boolean =>
+  data.game.status.id >= status.started;
 
-export const finished = (data: GameData): boolean => data.game.status.id >= status.mate;
+export const finished = (data: { game: Pick<GameData['game'], 'status'> }): boolean =>
+  data.game.status.id >= status.mate;
 
-export const aborted = (data: GameData): boolean => data.game.status.id === status.aborted;
+export const aborted = (data: { game: Pick<GameData['game'], 'status'> }): boolean =>
+  data.game.status.id === status.aborted;
 
-export const playing = (data: GameData): boolean => started(data) && !finished(data) && !aborted(data);
+export const playing = (data: { game: Pick<GameData['game'], 'status'> }): boolean =>
+  started(data) && !finished(data) && !aborted(data);

@@ -8,22 +8,28 @@ import type AnalyseCtrl from '../ctrl';
 import { nodeFullName } from '../view/util';
 import type StudyCtrl from './studyCtrl';
 
-export type AuthorObj = {
-  id: string;
-  name: string; // contains the title
+export type Author = import('lib/game/xiangqiNotation').CommentAuthor;
+export type AuthorObj = Extract<Author, { kind: 'user' }>;
+
+export const isAuthorObj = (author: Author): author is AuthorObj => author.kind === 'user';
+
+export const authorText = (author: Author): string => {
+  switch (author.kind) {
+    case 'user':
+    case 'external':
+      return author.name;
+    case 'site':
+      return 'LiXiangQi';
+    case 'unknown':
+      return i18n.site.anonymous;
+  }
 };
-export type Author = AuthorObj | string;
 
 function authorDom(author: Author): string | VNode {
-  if (!author) return 'Unknown';
-  if (typeof author === 'string') return author;
-  return h('span.user-link.ulpt', { attrs: { 'data-href': '/@/' + author.id } }, author.name);
+  return author.kind === 'user'
+    ? h('span.user-link.ulpt', { attrs: { 'data-href': '/@/' + author.id } }, author.name)
+    : authorText(author);
 }
-
-export const isAuthorObj = (author: Author): author is AuthorObj => typeof author === 'object';
-
-export const authorText = (author?: Author): string =>
-  !author ? 'Unknown' : typeof author === 'string' ? author : author.name;
 
 export function currentComments(ctrl: AnalyseCtrl, includingMine: boolean): VNode | undefined {
   if (!ctrl.node.comments) return;
@@ -51,7 +57,7 @@ export function currentComments(ctrl: AnalyseCtrl, includingMine: boolean): VNod
             })
           : null,
         authorDom(by),
-        ...(node.san ? [' on ', h('span.node', nodeFullName(node))] : []),
+        ...(node.notation ? [' on ', h('span.node', nodeFullName(node))] : []),
         ': ',
         h('div.text', { hook: richHTML(comment.text) }),
       ]);

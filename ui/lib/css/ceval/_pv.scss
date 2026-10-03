@@ -27,7 +27,7 @@
     }
 
     span {
-      @extend %san;
+      @extend %move-notation;
 
       margin-inline-start: 4px;
     }
@@ -80,7 +80,7 @@
     cursor: pointer;
   }
 
-  .pv_box .pv[data-uci] .pv-san:hover {
+  .pv_box .pv[data-uci] .pv-move:hover {
     color: $c-primary;
   }
 

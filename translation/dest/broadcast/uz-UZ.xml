@@ -41,11 +41,7 @@
   <string name="definitivelyDeleteTournament">Butun turnirni, uning barcha turlari va barcha oʻyinlarini butunlay oʻchirib tashlash.</string>
   <string name="showScores">Oʻyin natijalari asosida oʻyinchilarning ochkolarini koʻrsatish</string>
   <string name="replacePlayerTags">Ixtiyoriy: oʻyinchilar ismlari, reytinglari va unvonlarini oʻzgartirish</string>
-  <string name="fideFederations">FIDE federatsiyalari</string>
   <string name="top10Rating">Top 10 reyting</string>
-  <string name="fidePlayers">FIDE oʻyinchilari</string>
-  <string name="fidePlayerNotFound">FIDE oʻyinchisi topilmadi</string>
-  <string name="fideProfile">FIDE profili</string>
   <string name="federation">Federatsiya</string>
   <string name="age">Yoshi</string>
   <string name="unrated">Reytingsiz</string>
@@ -76,7 +72,6 @@
   <string name="tournamentLocation">Turnir manzili</string>
   <string name="topPlayers">Eng yaxshi oʻyinchilar</string>
   <string name="timezone">Vaqt mintaqasi</string>
-  <string name="fideRatingCategory">FIDE reyting toifasi</string>
   <string name="optionalDetails">Ixtiyoriy tafsilotlar</string>
   <string name="pastBroadcasts">Oʻtgan translyatsiyalar</string>
   <string name="allBroadcastsByMonth">Barcha translyatsiyalarni oyma‑oy koʻring</string>

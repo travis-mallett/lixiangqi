@@ -8,18 +8,7 @@ object xiangqi:
 
   private def analysisBoard =
     st.section(cls := "xiangqi-analysis-board")(
-      div(
-        id := "xiangqi-eval",
-        cls := "xiangqi-eval",
-        role := "meter",
-        attr("aria-label") := "Pikafish evaluation from Red's perspective",
-        attr("aria-valuemin") := "0",
-        attr("aria-valuemax") := "100",
-        attr("aria-valuenow") := "50"
-      )(
-        div(id := "xiangqi-eval-fill", cls := "xiangqi-eval__red"),
-        span(id := "xiangqi-eval-score", cls := "xiangqi-eval__score")("+0.00")
-      ),
+      div(id := "xiangqi-eval"),
       st.section(cls := "main-board xiangqi9x10")(
         div(id := "xiangqi-board", cls := "cg-wrap xiangqi9x10")
       ),
@@ -146,6 +135,7 @@ object xiangqi:
   ) =
     Page("Xiangqi Games Database")
       .css("xiangqi")
+      .i18n(_.study)
       .js(
         PageModule(
           "xiangqi.games",
@@ -307,6 +297,7 @@ object xiangqi:
   def databasePlayer(explorerEndpoint: String, player: String)(using ctx: Context) =
     Page(s"$player — Games Database")
       .css("xiangqi")
+      .i18n(_.study)
       .js(
         PageModule(
           "xiangqi.player",
@@ -555,6 +546,7 @@ object xiangqi:
   def databaseEvent(explorerEndpoint: String, event: String)(using ctx: Context) =
     Page(s"$event — Games Database")
       .css("xiangqi")
+      .i18n(_.study)
       .js(
         PageModule(
           "xiangqi.event",
@@ -772,6 +764,7 @@ object xiangqi:
   def analysis(bootstrap: play.api.libs.json.JsObject = Json.obj())(using ctx: Context) =
     Page("Xiangqi Analysis Board")
       .css("xiangqi")
+      .i18n(_.study)
       .js(
         PageModule(
           "xiangqi.analysis",
@@ -795,98 +788,7 @@ object xiangqi:
         main(cls := "xiangqi-page xiangqi-analysis-page")(
           analysisBoard,
           st.aside(cls := "xiangqi-analysis-panel box")(
-            st.section(cls := "xiangqi-engine", attr("aria-label") := "Pikafish analysis")(
-              div(cls := "bar", attr("aria-hidden") := "true")(span()),
-              div(cls := "xiangqi-engine__summary")(
-                label(cls := "xiangqi-engine__switch", title := "Enable local Pikafish")(
-                  input(id := "xiangqi-engine-enabled", tpe := "checkbox", checked := true),
-                  span(attr("aria-hidden") := "true")
-                ),
-                strong(id := "xiangqi-engine-score", cls := "xiangqi-engine__headline-score")("—"),
-                div(cls := "xiangqi-engine__identity")(
-                  span(cls := "xiangqi-engine__name")("Pikafish"),
-                  span(
-                    id := "xiangqi-engine-status",
-                    cls := "xiangqi-analysis__substatus",
-                    attr("aria-live") := "polite"
-                  )("Starting engine…")
-                ),
-                span(id := "xiangqi-cloud-badge", cls := "xiangqi-cloud-badge", attr("hidden") := true)(
-                  "CLOUD"
-                ),
-                button(
-                  id := "xiangqi-engine-settings-button",
-                  cls := "xiangqi-icon-button",
-                  attr("type") := "button",
-                  title := "Pikafish settings",
-                  attr("aria-label") := "Pikafish settings",
-                  attr("aria-expanded") := "false",
-                  dataIcon := Icon.Gear
-                )
-              ),
-              div(id := "xiangqi-engine-settings", cls := "xiangqi-engine-settings", attr("hidden") := true)(
-                label(cls := "xiangqi-engine-settings__toggle")(
-                  span("Use Cloud Database"),
-                  input(id := "xiangqi-engine-use-cloud", tpe := "checkbox", checked := true),
-                  span(cls := "xiangqi-engine-settings__toggle-control", attr("aria-hidden") := "true")
-                ),
-                label(cls := "xiangqi-engine-settings__toggle xiangqi-engine-settings__preview-toggle")(
-                  span("Show engine lines preview"),
-                  input(id := "xiangqi-engine-lines-preview", tpe := "checkbox", checked := true),
-                  span(cls := "xiangqi-engine-settings__toggle-control", attr("aria-hidden") := "true")
-                ),
-                label(
-                  span("Search depth"),
-                  input(id := "xiangqi-engine-depth", tpe := "range", min := 10, max := 30, value := 20),
-                  span(id := "xiangqi-engine-depth-value", cls := "xiangqi-engine-settings__value")("20")
-                ),
-                label(
-                  attr("title") := trans.site.arrowUpdatesDescription.txt()
-                )(
-                  span(trans.site.arrowUpdates.txt()),
-                  input(id := "xiangqi-engine-arrow-updates", tpe := "range", min := 1, max := 4, value := 4),
-                  span(id := "xiangqi-engine-arrow-updates-value", cls := "xiangqi-engine-settings__value")(
-                    "4"
-                  )
-                ),
-                label(
-                  span("Multiple lines"),
-                  input(id := "xiangqi-engine-multipv", tpe := "range", min := 1, max := 5, value := 3),
-                  span(id := "xiangqi-engine-multipv-value", cls := "xiangqi-engine-settings__value")("3 / 5")
-                ),
-                label(
-                  span("Threads"),
-                  input(id := "xiangqi-engine-threads", tpe := "range", min := 1, max := 8, value := 2),
-                  span(id := "xiangqi-engine-threads-value", cls := "xiangqi-engine-settings__value")("2")
-                ),
-                label(
-                  span("Memory"),
-                  input(
-                    id := "xiangqi-engine-hash",
-                    tpe := "range",
-                    min := 16,
-                    max := 256,
-                    step := 16,
-                    value := 64
-                  ),
-                  span(id := "xiangqi-engine-hash-value", cls := "xiangqi-engine-settings__value")("64 MB")
-                ),
-                button(id := "xiangqi-analyse-line", cls := "button button-empty", attr("type") := "button")(
-                  "Analyse selected line"
-                )
-              ),
-              div(id := "xiangqi-engine-lines", cls := "xiangqi-engine__lines pv_box"),
-              button(
-                id := "xiangqi-more-lines",
-                cls := "xiangqi-engine__more",
-                attr("type") := "button",
-                attr("hidden") := true,
-                attr("aria-expanded") := "false",
-                attr("aria-label") := "Show more cloud moves",
-                title := "Show more cloud moves",
-                dataIcon := Icon.DownTriangle
-              )
-            ),
+            st.section(cls := "xiangqi-engine"),
             div(
               id := "xiangqi-recorded-clocks",
               cls := "xiangqi-analysis__recorded-clocks",
@@ -895,7 +797,7 @@ object xiangqi:
             )(
               div(cls := "xiangqi-analysis__recorded-clock")(
                 span(cls := "label")("Red"),
-                strong(id := "xiangqi-recorded-clock-white", attr("role") := "timer")("0:00")
+                strong(id := "xiangqi-recorded-clock-red", attr("role") := "timer")("0:00")
               ),
               div(cls := "xiangqi-analysis__recorded-clock")(
                 span(cls := "label")("Black"),

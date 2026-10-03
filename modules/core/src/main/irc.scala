@@ -14,7 +14,7 @@ trait IrcApi:
   def commReportBurst(user: LightUser): Funit
   def broadcastStart(id: RelayRoundId, fullName: String): Funit
   def broadcastError(id: RelayRoundId, name: String, error: String): Funit
-  def broadcastMissingFideId(id: RelayRoundId, name: String, players: List[(StudyChapterId, String)]): Funit
+  def broadcastMissingPlayerId(id: RelayRoundId, name: String, players: List[(StudyChapterId, String)]): Funit
   def broadcastAmbiguousPlayers(id: RelayRoundId, name: String, players: List[(String, List[String])]): Funit
   def broadcastOrphanBoard(
       id: RelayRoundId,

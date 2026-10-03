@@ -23,8 +23,11 @@ final class UserBits(helpers: Helpers):
         trans.site.onlineBots()
       ),
       div(cls := "sep"),
-      a(cls := active.active("fide"), href := addQueryParam(routes.Fide.index().url, "community", "1"))(
-        trans.broadcast.fidePlayers()
+      a(
+        cls := active.active("players"),
+        href := addQueryParam(routes.PlayerDirectory.index().url, "community", "1")
+      )(
+        trans.broadcast.directoryPlayers()
       )
     )
 

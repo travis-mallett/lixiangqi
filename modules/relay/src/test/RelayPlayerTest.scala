@@ -8,9 +8,9 @@ class RelayPlayerTest extends munit.FunSuite:
     assertEquals(RelayPlayerLine.tokenize("Prof. Pieper Thomas"), "pieper thomas")
     assertEquals(RelayPlayerLine.tokenize("Prof. Pieper Thomas Dr."), "pieper thomas")
 
-  test("chess title"):
+  test("external player title"):
     assertEquals(RelayPlayerLine.tokenize("GM Pieper Thomas"), "pieper thomas")
-    assertEquals(RelayPlayerLine.tokenize("WIM Allahverdiyeva, Ayan"), "allahverdiyeva ayan")
+    assertEquals(RelayPlayerLine.tokenize("IGM Hu, Ronghua"), "hu ronghua")
     assertEquals(RelayPlayerLine.tokenize("Alice the BOT"), "alice bot the")
     assertEquals(RelayPlayerLine.tokenize("Some IM name"), "im name some")
 
@@ -117,7 +117,7 @@ class RelayPlayerTest extends munit.FunSuite:
     import lila.study.StudyPlayer
     StudyPlayer.WithFed(
       player = StudyPlayer(
-        fideId = None,
+        playerId = None,
         name = Some(chess.PlayerName(name)),
         rating = Some(chess.IntRating(rating)),
         title = None,
@@ -126,5 +126,5 @@ class RelayPlayerTest extends munit.FunSuite:
       fed = None
     )
 
-  def ratingsMap(rating: Int): Map[chess.FideTC, chess.IntRating] =
-    Map(chess.FideTC.standard -> chess.IntRating(rating))
+  def ratingsMap(rating: Int): Map[lila.core.playerDirectory.RatingCategory, chess.IntRating] =
+    Map(lila.core.playerDirectory.RatingCategory.standard -> chess.IntRating(rating))

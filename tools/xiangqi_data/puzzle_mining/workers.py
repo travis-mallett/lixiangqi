@@ -8,6 +8,7 @@ uses termination only as a last resort for a genuinely stuck child.
 from __future__ import annotations
 
 import multiprocessing as mp
+import threading
 import time
 from datetime import UTC, datetime
 from typing import Any
@@ -19,6 +20,37 @@ class WorkerCancelled(RuntimeError):
 
 class WorkerClaimLost(WorkerCancelled):
     """Only this claim was superseded; the worker can take another job."""
+
+
+def supervisor_running() -> bool:
+    """Whether the process that spawned this worker still exists.
+
+    ``multiprocessing`` hands every spawned child a handle to its parent, so
+    this reports the parent's exit directly instead of polling process tables.
+    """
+
+    parent = mp.parent_process()
+    return parent is None or parent.is_alive()
+
+
+def watch_supervisor(
+    stop_event: mp.synchronize.Event, *, interval: float = 1.0
+) -> None:
+    """Stop this worker once the supervisor that spawned it disappears.
+
+    A pool outliving its supervisor keeps mining against the shared database
+    and starves every later stage of the writer lock, and Windows job objects
+    cannot contain descendants when the launcher itself runs inside a job.
+    """
+
+    def watch() -> None:
+        while not stop_event.is_set():
+            if not supervisor_running():
+                stop_event.set()
+                return
+            stop_event.wait(interval)
+
+    threading.Thread(target=watch, name="supervisor-watch", daemon=True).start()
 
 
 def renew_claim(

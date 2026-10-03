@@ -19,11 +19,7 @@
   <string name="deleteRound">Dzēst šo raundu</string>
   <string name="definitivelyDeleteRound">Neatgriezeniski dzēst raundu un tā spēles.</string>
   <string name="deleteAllGamesOfThisRound">Izdzēst visas šī raunda spēles. To atjaunošanai būs nepieciešams aktīvs avots.</string>
-  <string name="fideFederations">FIDE federācijas</string>
   <string name="top10Rating">10 labāko spēlētāju reitings</string>
-  <string name="fidePlayers">FIDE spēlētāji</string>
-  <string name="fidePlayerNotFound">FIDE spēlētājs nav atrasts</string>
-  <string name="fideProfile">FIDE profils</string>
   <string name="federation">Federācija</string>
   <string name="unrated">Nevērtēta</string>
 </resources>

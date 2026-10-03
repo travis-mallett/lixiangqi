@@ -293,6 +293,14 @@ interface I18n {
     deleteRound: string;
     /** Delete this tournament */
     deleteTournament: string;
+    /** Xiangqi player not found */
+    directoryPlayerNotFound: string;
+    /** Xiangqi players */
+    directoryPlayers: string;
+    /** Player directory profile */
+    directoryProfile: string;
+    /** No matching Xiangqi player directory entry is available. */
+    directoryUnavailable: string;
     /** Download all rounds */
     downloadAllRounds: string;
     /** Edit round study */
@@ -301,16 +309,6 @@ interface I18n {
     embedThisBroadcast: string;
     /** Federation */
     federation: string;
-    /** WXF federations */
-    fideFederations: string;
-    /** WXF player not found */
-    fidePlayerNotFound: string;
-    /** WXF players */
-    fidePlayers: string;
-    /** WXF profile */
-    fideProfile: string;
-    /** WXF rating category */
-    fideRatingCategory: string;
     /** Finals */
     finals: string;
     /** Full event description */
@@ -377,8 +375,16 @@ interface I18n {
     pastBroadcasts: string;
     /** Permanently delete this tournament, including all rounds and games? */
     permanentlyDeleteTournament: string;
+    /** Player federations */
+    playerFederations: string;
+    /** Source */
+    playerSource: string;
+    /** Published */
+    playerSourceDate: string;
     /** Quarterfinals */
     quarterfinals: string;
+    /** Rating category */
+    ratingCategory: string;
     /** Rating diff */
     ratingDiff: string;
     /** Recent tournaments */
@@ -1949,6 +1955,8 @@ interface I18n {
     knight: string;
     /** Last move */
     lastMove: string;
+    /** %1$s to %2$s */
+    moveFromTo: I18nFormat;
     /** Move list */
     moveList: string;
     /** To move a piece, use standard algebraic notation. */
@@ -1967,10 +1975,20 @@ interface I18n {
     pawn: string;
     /** PGN and FEN */
     pgnAndFen: string;
+    /** Piece letter */
+    pieceLetter: string;
+    /** Piece name */
+    pieceName: string;
     /** Pieces */
     pieces: string;
+    /** Plain board layout */
+    plainBoard: string;
     /** Pockets */
     pockets: string;
+    /** Coordinate after piece */
+    positionAfter: string;
+    /** Coordinate before piece */
+    positionBefore: string;
     /** Premove cancelled */
     premoveCancelled: string;
     /** Premove recorded: %s. Hit enter to cancel */
@@ -1979,6 +1997,10 @@ interface I18n {
     promotion: string;
     /** queen */
     queen: string;
+    /** Red uppercase letter */
+    redUppercaseLetter: string;
+    /** Red uppercase name */
+    redUppercaseName: string;
     /** rook */
     rook: string;
     /** check */
@@ -1997,8 +2019,14 @@ interface I18n {
     sanSymbols: string;
     /** takes */
     sanTakes: string;
+    /** Side letter */
+    sideLetter: string;
+    /** Side name */
+    sideName: string;
     /** soldier */
     soldier: string;
+    /** Table with rank and file headings */
+    tableBoard: string;
     /** Red bishop */
     whiteBishop: string;
     /** Red king */
@@ -2443,6 +2471,8 @@ interface I18n {
     correspondenceEmailNotification: string;
     /** Enable variation hiding */
     disclosureMode: string;
+    /** Expand or collapse move branches to focus on the line you are studying. */
+    disclosureModeHelp: string;
     /** Display */
     display: string;
     /** Show board resize handle */
@@ -2475,6 +2505,8 @@ interface I18n {
     inCorrespondenceGames: string;
     /** In-game only */
     inGameOnly: string;
+    /** Display moves in a continuous line, including variations and comments. */
+    inlineHelp: string;
     /** Inline notation */
     inlineNotation: string;
     /** Input moves with the keyboard */
@@ -2553,6 +2585,12 @@ interface I18n {
     scrollOnTheBoardToReplayMoves: string;
     /** Show best move arrows */
     showBestMoveArrows: string;
+    /** Show the engine’s highest-ranked move as an arrow on the board. */
+    showBestMoveArrowsHelp: string;
+    /** Show checkable general */
+    showCheckableGeneral: string;
+    /** Highlight generals that can be checked, with an arrow for the checking move. */
+    showCheckableGeneralHelp: string;
     /** Show checkable king */
     showCheckableKing: string;
     /** Show on the left on mobile devices */
@@ -2561,22 +2599,38 @@ interface I18n {
     showFlairs: string;
     /** Show evaluation gauge */
     showGauge: string;
+    /** The gauge shows which side the engine favors: Red or Black. */
+    showGaugeHelp: string;
+    /** Show move-quality symbols from the current engine analysis. */
+    showLiveAnnotationsHelp: string;
     /** Live engine annotations */
     showLiveGlyphs: string;
     /** Show maneuver arrows */
     showManeuverArrows: string;
+    /** Show consecutive engine moves by the same piece. */
+    showManeuverMoveArrowsHelp: string;
     /** Show move annotations */
     showMoveAnnotationsOnBoard: string;
+    /** Show annotation symbols beside the piece that moved. */
+    showMoveAnnotationsOnBoardHelp: string;
     /** Show pinned pieces */
     showPinnedPieces: string;
+    /** Highlight pieces shielding a more valuable piece from an attack. */
+    showPinnedPiecesHelp: string;
     /** Show player ranks */
     showPlayerRatings: string;
     /** Show server analysis */
     showServerAnalysis: string;
+    /** Show saved engine evaluations, the evaluation graph, and annotations. */
+    showStaticAnalysisHelp: string;
     /** Show undefended pieces */
     showUndefendedPieces: string;
+    /** Highlight pieces that an opponent can capture with a material gain. */
+    showUndefendedPiecesHelp: string;
     /** Show variation arrows */
     showVariationArrows: string;
+    /** Show arrows for engine alternatives. Use Shift to cycle between them. */
+    showVariationArrowsHelp: string;
     /** Snap arrows to valid moves */
     snapArrowsToValidMoves: string;
     /** Sound when time gets critical */
@@ -2643,6 +2697,8 @@ interface I18n {
     failed: string;
     /** Find the best move for black. */
     findTheBestMoveForBlack: string;
+    /** Find the best move for red. */
+    findTheBestMoveForRed: string;
     /** Find the best move for red. */
     findTheBestMoveForWhite: string;
     /** Forced mate lost */
@@ -4245,6 +4301,8 @@ interface I18n {
     doItAgain: string;
     /** Done reviewing black's mistakes */
     doneReviewingBlackMistakes: string;
+    /** Done reviewing Red mistakes */
+    doneReviewingRedMistakes: string;
     /** Done reviewing Red's mistakes */
     doneReviewingWhiteMistakes: string;
     /** Download */
@@ -4329,6 +4387,8 @@ interface I18n {
     engineLoadingFailed: string;
     /** Special move rights */
     enPassant: string;
+    /** Enter a coordinate, WXF, or Chinese move */
+    enterXiangqiMove: string;
     /** This email address is invalid */
     'error.email': string;
     /** This email address is not acceptable. Please double-check it, and try again. */
@@ -4382,6 +4442,8 @@ interface I18n {
     /** Find a better move for black */
     findBetterMoveForBlack: string;
     /** Find a better move for Red */
+    findBetterMoveForRed: string;
+    /** Find a better move for Red */
     findBetterMoveForWhite: string;
     /** Finished */
     finished: string;
@@ -4393,6 +4455,8 @@ interface I18n {
     flipBoard: string;
     /** Focus chat */
     focusChat: string;
+    /** Press m to enter a move */
+    focusMoveInput: string;
     /** Follow */
     follow: string;
     /** Following */
@@ -4609,6 +4673,8 @@ interface I18n {
     listBlockedPlayers: string;
     /** Live ranked games */
     liveRatedGames: string;
+    /** Loading… */
+    loading: string;
     /** Loading engine... */
     loadingEngine: string;
     /** Load position */
@@ -4835,6 +4901,8 @@ interface I18n {
     noGameFound: string;
     /** No mistakes found for black */
     noMistakesFoundForBlack: string;
+    /** No mistakes found for Red */
+    noMistakesFoundForRed: string;
     /** No mistakes found for Red */
     noMistakesFoundForWhite: string;
     /** None */
@@ -5101,6 +5169,12 @@ interface I18n {
     recentGames: string;
     /** Reconnecting */
     reconnecting: string;
+    /** Red */
+    red: string;
+    /** Red is victorious */
+    redIsVictorious: string;
+    /** Red wins */
+    redWinsGame: string;
     /** Wait 5 minutes and refresh your email inbox. */
     refreshInboxAfterFiveMinutes: string;
     /** Refund: %1$s %2$s rating points. */
@@ -5176,6 +5250,8 @@ interface I18n {
     /** Review black's mistakes */
     reviewBlackMistakes: string;
     /** Review Red's mistakes */
+    reviewRedMistakes: string;
+    /** Review Red's mistakes */
     reviewWhiteMistakes: string;
     /** revoke all sessions */
     revokeAllSessions: string;
@@ -5225,6 +5301,8 @@ interface I18n {
     settings: string;
     /** Share your Xiangqi insights data */
     shareYourInsightsData: string;
+    /** Show all */
+    showAll: string;
     /** View this help overlay */
     showHelpDialog: string;
     /** Show me everything */
@@ -5487,6 +5565,8 @@ interface I18n {
     troll: string;
     /** Try another move for black */
     tryAnotherMoveForBlack: string;
+    /** Try another move for Red */
+    tryAnotherMoveForRed: string;
     /** Try another move for Red */
     tryAnotherMoveForWhite: string;
     /** try the contact page */
@@ -6012,6 +6092,8 @@ interface I18n {
     /** Back */
     back: string;
     /** Black defeat, but Red can't win */
+    blackDefeatRedCanNotWin: string;
+    /** Black defeat, but Red can't win */
     blackDefeatWhiteCanNotWin: string;
     /** Black is better */
     blackIsBetter: string;
@@ -6023,6 +6105,8 @@ interface I18n {
     blunder: string;
     /** Brilliant move */
     brilliantMove: string;
+    /** Analyse the main line with Pikafish on your device. Keep this chapter open until the results are saved. */
+    browserAnalysisDescription: string;
     /** Chapters are saved forever.<br>Have fun organizing your Xiangqi content! */
     chapterConclusionText: string;
     /** Chapter PGN */
@@ -6083,6 +6167,8 @@ interface I18n {
     dateAddedOldest: string;
     /** Delete chapter */
     deleteChapter: string;
+    /** Delete pinned comment? */
+    deletePinnedComment: string;
     /** Delete study */
     deleteStudy: string;
     /** Delete the study chat history? There is no going back! */
@@ -6091,6 +6177,10 @@ interface I18n {
     deleteThisChapter: string;
     /** Development */
     development: string;
+    /** Distance to conversion */
+    distanceToConversion: string;
+    /** Distance to mate */
+    distanceToMate: string;
     /** Double defeat */
     doubleDefeat: string;
     /** Download game */
@@ -6109,11 +6199,15 @@ interface I18n {
     empty: string;
     /** Enable sync */
     enableSync: string;
+    /** Endgame tablebase */
+    endgameTablebase: string;
     /** Equal position */
     equalPosition: string;
+    /** Evaluating… */
+    evaluating: string;
     /** Everyone */
     everyone: string;
-    /** Paste a position in FEN format<br><i>4k3/4rb2/8/7p/8/5Q2/1PP5/1K6 w</i><br>to start the chapter from a position. */
+    /** Paste a position in FEN format<br><i>4k4/9/9/9/9/4P4/9/9/9/4K4 w - - 0 1</i><br>to start the chapter from a position. */
     fromFenStringText: string;
     /** From a FEN string */
     fromFenStringTitle: string;
@@ -6121,7 +6215,7 @@ interface I18n {
     fromInitialPositionText: string;
     /** From initial position */
     fromInitialPositionTitle: string;
-    /** Paste a game in PGN format<br>to load moves, comments and variations in the chapter. */
+    /** Paste a game in Xiangqi notation<br>to load moves, comments and variations in the chapter. */
     fromPgnGameText: string;
     /** From a PGN game */
     fromPgnGameTitle: string;
@@ -6129,6 +6223,8 @@ interface I18n {
     getAFullComputerAnalysis: string;
     /** Need help? Get the tour! */
     getTheTour: string;
+    /** Could not load annotation glyphs. */
+    glyphsFailedToLoad: string;
     /** Good move */
     goodMove: string;
     /** Hide next moves */
@@ -6139,6 +6235,10 @@ interface I18n {
     importFromChapterX: I18nFormat;
     /** Initiative */
     initiative: string;
+    /** Insert as a chapter */
+    insertChapter: string;
+    /** Insert in this chapter */
+    insertLine: string;
     /** Interactive lesson */
     interactiveLesson: string;
     /** Interesting move */
@@ -6151,6 +6251,30 @@ interface I18n {
     kick: string;
     /** Leave the study */
     leaveTheStudy: string;
+    /** Add variation moves to explain why specific other moves are wrong. */
+    lessonAddVariations: string;
+    /** Comment on the player's correct move, or leave empty to continue to the next move. */
+    lessonCorrectMoveComment: string;
+    /** Explain why all other moves are wrong. */
+    lessonExplainOtherMoves: string;
+    /** Give the player a tip so they can find the right move. */
+    lessonHintPlaceholder: string;
+    /** Help the player find the initial move, with a comment. */
+    lessonInitialComment: string;
+    /** Introduce the lesson with a comment. */
+    lessonIntroduction: string;
+    /** Explain the opponent move, and help the player find the next move, with a comment. */
+    lessonNextMoveComment: string;
+    /** Put the opponent's first move on the board. */
+    lessonOpponentFirstMove: string;
+    /** Optional, on-demand hint for the player: */
+    lessonOptionalHint: string;
+    /** When any other wrong move is played: */
+    lessonOtherWrongMoves: string;
+    /** Or promote it as the main line if it is the right move. */
+    lessonPromoteCorrectMove: string;
+    /** Explain why this move is wrong in a comment. */
+    lessonWrongMoveComment: string;
     /** Like */
     like: string;
     /** Load games by URLs */
@@ -6163,6 +6287,8 @@ interface I18n {
     loadExistingLichessGameText: string;
     /** Load an existing Lixiangqi game */
     loadExistingLichessGameTitle: string;
+    /** Analysis could not be completed or saved. Check your connection and browser support, then retry. If the chapter changed, cancel and start again. */
+    localAnalysisFailed: string;
     /** Make sure the chapter is complete. You can only request analysis once. */
     makeSureTheChapterIsComplete: string;
     /** Manage topics */
@@ -6199,12 +6325,16 @@ interface I18n {
     nextChapter: string;
     /** Nobody */
     nobody: string;
+    /** No matching database position. */
+    noBookPosition: string;
     /** No: let people browse freely */
     noLetPeopleBrowseFreely: string;
     /** None yet. */
     noneYet: string;
     /** None */
     noPinnedComment: string;
+    /** No matching Xiangqi reference is available for this position. */
+    noPositionReference: string;
     /** Normal analysis */
     normalAnalysis: string;
     /** Novelty */
@@ -6219,9 +6349,11 @@ interface I18n {
     onlyPublicStudiesCanBeEmbedded: string;
     /** Open */
     open: string;
+    /** Opening book */
+    openingBook: string;
     /** Orientation */
     orientation: string;
-    /** Paste games as PGN text here. For each game, a new chapter is created. The study can have up to %s chapters. */
+    /** Paste games as Xiangqi notation here. For each game, a new chapter is created. The study can have up to %s chapters. */
     pasteYourPgnTextHereUpToNbGames: I18nPlural;
     /** %s per page */
     perPage: I18nFormat;
@@ -6239,6 +6371,8 @@ interface I18n {
     pleaseOnlyInvitePeopleYouKnow: string;
     /** Popular topics */
     popularTopics: string;
+    /** Annotated source records containing this position */
+    positionReferences: string;
     /** Previous chapter */
     prevChapter: string;
     /** Private */
@@ -6249,14 +6383,32 @@ interface I18n {
     readMoreAboutEmbedding: string;
     /** Recently updated */
     recentlyUpdated: string;
+    /** Recorded result */
+    recordedResult: string;
+    /** Red defeat, but Black can't win */
+    redDefeatBlackCanNotWin: string;
+    /** Red is better */
+    redIsBetter: string;
+    /** Red is slightly better */
+    redIsSlightlyBetter: string;
+    /** Red is winning */
+    redIsWinning: string;
+    /** Read the source */
+    referenceSource: string;
+    /** The position reference service is unavailable. */
+    referenceUnavailable: string;
     /** Relevant */
     relevant: string;
     /** Right under the board */
     rightUnderTheBoard: string;
     /** Save */
     save: string;
+    /** Save and close */
+    saveAndClose: string;
     /** Save chapter */
     saveChapter: string;
+    /** Saving analysis… */
+    savingAnalysis: string;
     /** Search by username */
     searchByUsername: string;
     /** Share & export */
@@ -6303,6 +6455,14 @@ interface I18n {
     studyPgn: string;
     /** Study URL */
     studyUrl: string;
+    /** Draw */
+    tablebaseDraw: string;
+    /** Loss */
+    tablebaseLoss: string;
+    /** Database evaluations use AXF rules. Your chapter’s rules and complete move history determine legal moves and game outcomes. */
+    tablebaseRulesExplanation: string;
+    /** Win */
+    tablebaseWin: string;
     /** The chapter is too short to be analysed. */
     theChapterIsTooShortToBeAnalysed: string;
     /** Time trouble */
@@ -6345,6 +6505,8 @@ interface I18n {
     withTheIdea: string;
     /** %1$s, brought to you by %2$s */
     xBroughtToYouByY: I18nFormat;
+    /** Xiangqi Cloud Database */
+    xiangqiCloudDatabase: string;
     /** Yes: keep everyone on the same position */
     yesKeepEveryoneOnTheSamePosition: string;
     /** You are now a contributor */

@@ -7,6 +7,7 @@ import lila.common.Json.given
 import lila.common.url.queryString
 import lila.core.LightUser
 import lila.xiangqi.{ Xiangqi, XiangqiRules }
+import lila.xiangqi.XiangqiJson.given
 
 final private class GameJson(
     cacheApi: lila.memo.CacheApi,
@@ -70,24 +71,14 @@ final private class GameJson(
               "pgn" -> notations.mkString(" "),
               "initialFen" -> snapshot.initialFen,
               "moves" -> moves.map(_.value),
+              "states" -> game.states.take(moveCount + 1),
+              "ruleset" -> game.ruleset,
               "notations" -> notations,
               "notationsZh" -> chinese
             )
             .add("event", snapshot.event)
             .add("sourceUrl", snapshot.sourceUrl)
-          if key.bc then
-            base.add(
-              "treeParts",
-              game.states
-                .lift(moveCount)
-                .map: position =>
-                  Json
-                    .obj("fen" -> position.fen, "ply" -> position.ply)
-                    .add("san", notations.lastOption)
-                    .add("sanZh", chinese.lastOption)
-                    .add("uci", moves.lastOption.map(_.value))
-            )
-          else base
+          if key.bc then base.add("tree", Some(treeJson(game, moveCount))) else base
 
   private def playersJson(player: Puzzle.SourcePlayer): JsObject =
     val identity = player.userId.fold(Json.obj("name" -> player.name.getOrElse("Anonymous")))(id =>
@@ -110,6 +101,8 @@ final private class GameJson(
         "pgn" -> game.xiangqi.wxf.take(moveCount).mkString(" "),
         "initialFen" -> game.xiangqi.initialFen,
         "moves" -> game.xiangqi.moves.take(moveCount).map(_.value),
+        "states" -> game.xiangqi.states.take(moveCount + 1),
+        "ruleset" -> game.xiangqi.ruleset,
         "notations" -> game.xiangqi.wxf.take(moveCount),
         "notationsZh" -> game.xiangqi.chineseWxf.take(moveCount)
       )
@@ -142,22 +135,25 @@ final private class GameJson(
         "rated" -> game.rated,
         "initialFen" -> game.xiangqi.initialFen,
         "moves" -> game.xiangqi.moves.take(moveCount).map(_.value),
+        "states" -> game.xiangqi.states.take(moveCount + 1),
+        "ruleset" -> game.xiangqi.ruleset,
         "notations" -> game.xiangqi.wxf.take(moveCount),
         "notationsZh" -> game.xiangqi.chineseWxf.take(moveCount),
-        "treeParts" -> game.xiangqi.states
-          .lift(moveCount)
-          .map: position =>
-            Json
-              .obj(
-                "fen" -> position.fen,
-                "ply" -> position.ply
-              )
-              .add("san", game.xiangqi.wxf.lift(moveCount - 1))
-              .add("sanZh", game.xiangqi.chineseWxf.lift(moveCount - 1))
-              .add("uci", game.xiangqi.moves.lift(moveCount - 1).map(_.value))
+        "tree" -> treeJson(game.xiangqi, moveCount)
       )
       .add("clock", game.clock.map(_.config.show))
       .add("moveTime", game.moveTimeLimit.map(moveTimeJson))
+
+  private def treeJson(game: Xiangqi.Game, moveCount: Int): JsObject =
+    lila.tree.Node.writeJson(
+      lila.tree.Root.fromGame(
+        game.copy(
+          moves = game.moves.take(moveCount),
+          wxf = game.wxf.take(moveCount),
+          states = game.states.take(moveCount + 1)
+        )
+      )
+    )
 
   private def moveCountFrom(game: Game, plies: Ply): Int =
     (plies.value - game.xiangqi.states.head.ply + 1).max(0)

@@ -3,6 +3,8 @@ import type { VNode, Hooks } from 'snabbdom';
 import { plyToTurn } from '@/game/chess';
 import { type LooseVNodes, hl } from '@/view';
 
+import { append } from './path';
+
 export interface ColumnTreeNode<N extends ColumnTreeNode<N>> {
   id: string;
   ply: number;
@@ -35,20 +37,20 @@ function renderChildrenOf<N extends ColumnTreeNode<N>>(
   if (!main) return [];
 
   if (isMainline) {
-    const isWhite = main.ply % 2 === 1;
+    const isRed = main.ply % 2 === 1;
     if (!variations.length)
       return [
-        isWhite && renderIndex(main.ply, false),
+        isRed && renderIndex(main.ply, false),
         renderMoveAndChildrenOf(opts, main, parentPath, true, false),
       ];
 
-    const mainChildren = renderChildrenOf(opts, main, `${parentPath}${main.id}`, true);
+    const mainChildren = renderChildrenOf(opts, main, append(parentPath, main.id), true);
     return [
-      isWhite && renderIndex(main.ply, false),
-      opts.renderMove(main, { path: `${parentPath}${main.id}`, isMainline: true, withIndex: false }),
-      isWhite && emptyMove(),
+      isRed && renderIndex(main.ply, false),
+      opts.renderMove(main, { path: append(parentPath, main.id), isMainline: true, withIndex: false }),
+      isRed && emptyMove(),
       hl('interrupt', renderLines(opts, variations, parentPath)),
-      isWhite && mainChildren && [renderIndex(main.ply, false), emptyMove()],
+      isRed && mainChildren && [renderIndex(main.ply, false), emptyMove()],
       mainChildren,
     ];
   }
@@ -77,7 +79,7 @@ function renderMoveAndChildrenOf<N extends ColumnTreeNode<N>>(
   isMainline: boolean,
   withIndex: boolean,
 ): LooseVNodes {
-  const path = `${parentPath}${node.id}`;
+  const path = append(parentPath, node.id);
   return [
     opts.renderMove(node, { path, isMainline, withIndex }),
     renderChildrenOf(opts, node, path, isMainline),

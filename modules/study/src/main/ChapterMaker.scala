@@ -2,7 +2,7 @@ package lila.study
 
 import chess.format.Fen
 import chess.format.pgn.{ PgnStr, Tags }
-import chess.variant.Variant
+import lila.xiangqi.Xiangqi.Side
 
 import lila.core.game.Namer
 import lila.core.id.GameFullId
@@ -31,6 +31,7 @@ final private class ChapterMaker(
     data.game
       .so(parseGame)
       .flatMap:
+        case None if data.game.isDefined => fufail(StudyValidationException("Game could not be found"))
         case None => fromFenOrPgnOrBlank(study, data, order, userId)
         case Some(game) => fromGame(study, game, data, order, userId, withRatings)
       .map: c =>
@@ -41,37 +42,45 @@ final private class ChapterMaker(
       case Some(pgn) => fromPgn(study, pgn, data, order, userId)
       case None => fuccess(fromFenOrBlank(study, data, order, userId))
 
-  def toStudyPgn(study: Study, pgn: PgnStr, strict: Boolean): Fu[StudyPgnImport.Result] = for
+  def toStudyPgn(study: Study, pgn: PgnStr): Fu[StudyPgnImport.Result] = for
     contributors <- lightUser.asyncMany(study.members.contributorIds.toList)
-    parsed <- StudyPgnImport.result(pgn, contributors.flatten, strict = strict).toFuture.recoverWith {
-      case e: Exception => fufail(StudyValidationException(e.getMessage))
+    parsed <- StudyPgnImport.result(pgn, contributors.flatten).toFuture.recoverWith { case e: Exception =>
+      fufail(StudyValidationException(e.getMessage))
     }
   yield parsed
 
   private def fromPgn(study: Study, pgn: PgnStr, data: Data, order: Int, userId: UserId): Fu[Chapter] =
-    for parsed <- toStudyPgn(study, pgn, strict = false)
-    yield Chapter.make(
-      studyId = study.id,
-      name = getChapterNameFromPgn(data, parsed),
-      setup = Chapter.Setup(
-        none,
-        parsed.variant,
-        resolveOrientation(data, parsed.root, userId, parsed.tags)
-      ),
-      root = parsed.root,
-      tags = parsed.tags,
-      order = order,
-      ownerId = userId,
-      practice = data.isPractice,
-      gamebook = data.isGamebook,
-      conceal = data.isConceal.option(parsed.root.ply)
-    )
+    for
+      parsed <- toStudyPgn(study, pgn)
+      settings = data.copy(
+        mode = if data.mode == Mode.Normal then parsed.metadata.mode.getOrElse(data.mode) else data.mode,
+        orientation = if data.orientation == Orientation.Auto then
+          parsed.metadata.orientation.fold(data.orientation)(Orientation.Fixed.apply)
+        else data.orientation
+      )
+    yield Chapter
+      .make(
+        studyId = study.id,
+        name = getChapterNameFromPgn(data, parsed),
+        setup = Chapter.Setup(
+          none,
+          resolveOrientation(settings, parsed.root, userId, parsed.tags)
+        ),
+        root = parsed.root,
+        tags = parsed.tags,
+        order = order,
+        ownerId = userId,
+        practice = settings.isPractice,
+        gamebook = settings.isGamebook,
+        conceal = settings.isConceal.option(parsed.metadata.conceal.getOrElse(parsed.root.ply))
+      )
+      .copy(description = parsed.metadata.description)
 
   private def getChapterNameFromPgn(data: Data, parsed: StudyPgnImport.Result): StudyChapterName =
     def fromPgnTags =
       (parsed.tags("Red"), parsed.tags(_.Black)) match
-        case (Some(white), Some(black)) => Some(s"$white - $black")
-        case (Some(white), None) => Some(white)
+        case (Some(red), Some(black)) => Some(s"$red - $black")
+        case (Some(red), None) => Some(red)
         case (None, Some(black)) => Some(black)
         case (None, None) => parsed.tags("Event")
     data.name.some
@@ -82,49 +91,32 @@ final private class ChapterMaker(
           fromPgnTags.map(_.trim).filter(_.nonEmpty)
       .getOrElse(data.name)
 
-  private def resolveOrientation(data: Data, root: Root, userId: UserId, tags: Tags = Tags.empty): Color =
+  private def resolveOrientation(data: Data, root: Root, userId: UserId, tags: Tags = Tags.empty): Side =
     def isMe(name: Option[chess.PlayerName]) = name.flatMap(n => UserStr.read(n.value)).exists(_.is(userId))
     data.orientation match
       case Orientation.Fixed(color) => color
-      case _ if isMe(tags.names.white) => Color.white
-      case _ if isMe(tags.names.black) => Color.black
+      case _ if isMe(StudyPgnTags.names(tags).red) => Side.Red
+      case _ if isMe(StudyPgnTags.names(tags).black) => Side.Black
       // If it is a concealed chapter (puzzles from a coach/book/course), start from side which moves first
       case _ if data.isConceal => root.color
-      // if an outcome is known, then it's a finished game, which we show from white perspective by convention
-      case _ if tags.outcome.isDefined => Color.white
+      // if an outcome is known, then it's a finished game, which we show from red perspective by convention
+      case _ if StudyPgnTags.points(tags).isDefined => Side.Red
       // in gamebooks (interactive chapter), we guess the orientation based on the last node
       case _ if data.isGamebook => !root.lastMainlineNode.color
       // else we show from the perspective of whoever turn it is to move
       case _ => root.lastMainlineNode.color
 
   def fromFenOrBlank(study: Study, data: Data, order: Int, userId: UserId): Chapter =
-    val variant = data.variant | Variant.default
-    val (root, isFromFen) =
-      data.fen.filter(f => Xiangqi.Fen.isValid(f.value)) match
-        case Some(game) =>
-          Root(
-            ply = XiangqiRules
-              .position(Xiangqi.Position(initialFen = game.value))
-              .fold(_ => chess.Ply(0), s => chess.Ply(s.ply)),
-            fen = game,
-            clock = none,
-            crazyData = none,
-            children = Branches.empty
-          ) -> true
-        case None =>
-          Root(
-            ply = chess.Ply(0),
-            fen = Fen.Full(Xiangqi.startFen),
-            clock = none,
-            crazyData = none,
-            children = Branches.empty
-          ) -> false
+    val fen = data.fen.fold(Xiangqi.startFen)(_.value)
+    val root = Root
+      .fromPosition(Xiangqi.Position(initialFen = fen))
+      .fold(error => throw StudyValidationException(error), identity)
+    val isFromFen = data.fen.isDefined
     Chapter.make(
       studyId = study.id,
       name = data.name,
       setup = Chapter.Setup(
         none,
-        variant,
         resolveOrientation(data, root, userId),
         fromFen = isFromFen.option(true)
       ),
@@ -160,9 +152,8 @@ final private class ChapterMaker(
       name = name,
       setup = Chapter.Setup(
         (!game.synthetic).option(game.id),
-        game.variant,
         data.orientation match
-          case Orientation.Auto => Color.white
+          case Orientation.Auto => Side.Red
           case Orientation.Fixed(color) => color
       ),
       root = root,
@@ -197,8 +188,16 @@ final private class ChapterMaker(
         fuccess(fen.some)
       .map: goodFen =>
         val fromGame = GameToRoot(game, goodFen, withClocks = true)
-        pgnOpt.flatMap(StudyPgnImport.result(_, Nil).toOption.map(_.root)) match
-          case Some(r) => fromGame.merge(r)
+        pgnOpt match
+          case Some(pgn) =>
+            val imported = StudyPgnImport
+              .result(pgn, Nil)
+              .fold(error => throw StudyValidationException(error.value), _.root)
+            require(
+              imported.fen == fromGame.fen && imported.ruleset == fromGame.ruleset,
+              "Imported game history/ruleset mismatch"
+            )
+            fromGame.merge(imported)
           case None => fromGame
 
   private val UrlRegex = {
@@ -229,16 +228,16 @@ private object ChapterMaker:
     def isGamebook = mode == Mode.Gamebook
     def isConceal = mode == Mode.Conceal
 
-  enum Orientation(val key: String, val resolve: Option[Color]):
-    case Fixed(color: Color) extends Orientation(color.name, color.some)
+  enum Orientation(val key: String, val resolve: Option[Side]):
+    case Fixed(color: Side) extends Orientation(color.key, color.some)
     case Auto extends Orientation("automatic", none)
   object Orientation:
-    def apply(str: String) = Color.fromName(str.toLowerCase()).fold[Orientation](Auto)(Fixed.apply)
+    def apply(str: String): Option[Orientation] =
+      if str == Auto.key then Some(Auto) else Side.fromKey(str).toOption.map(Fixed.apply)
 
   case class Data(
       name: StudyChapterName,
       game: Option[String] = None,
-      variant: Option[Variant] = None,
       fen: Option[Fen.Full] = None,
       pgn: Option[PgnStr] = None,
       orientation: Orientation = Orientation.Auto,
@@ -249,7 +248,7 @@ private object ChapterMaker:
 
     def manyGames: Option[List[Data]] =
       game
-        .so(_.linesIterator.take(Study.maxChapters.value).toList)
+        .so(_.linesIterator.toList)
         .map(_.trim)
         .filter(_.nonEmpty)
         .map { g => copy(game = g.some) }

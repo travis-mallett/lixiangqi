@@ -43,7 +43,7 @@ export default async function (opts?: { el: HTMLElement; url: string; lpvOpts: O
     [...document.querySelectorAll<HTMLElement>('.lpv--autostart')].map(el => {
       const rawPly = el.dataset.ply;
       return mount(el, (el.dataset.pgn ?? '').replace(/<br>/g, '\n'), {
-        orientation: el.dataset.orientation as Color,
+        orientation: el.dataset.orientation === 'black' ? 'black' : 'red',
         initialPly: rawPly === 'last' ? 'last' : rawPly === undefined ? 'last' : Number(rawPly) || 0,
       });
     }),

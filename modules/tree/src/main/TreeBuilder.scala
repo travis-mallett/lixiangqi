@@ -1,120 +1,83 @@
 package lila.tree
 
-import chess.format.pgn.{ Comment, Glyphs }
-import chess.format.{ Fen, Uci }
-import chess.{ Centis, Ply, Position }
+import lila.xiangqi.XiangqiGlyph.{ Glyph, Glyphs }
+
+import chess.format.Fen
+import chess.format.pgn.Comment
+import chess.{ Centis, Ply }
+import lila.xiangqi.{ Xiangqi, XiangqiRules }
+import lila.xiangqi.Xiangqi.Move
 
 object TreeBuilder:
-
-  type LogChessError = String => Unit
-
-  private[tree] def makeEval(info: Info) = Eval(cp = info.cp, mate = info.mate, best = info.best)
+  type LogRuleError = String => Unit
+  private[tree] def makeEval(info: Info) = info.eval
 
   def apply(
       game: Game,
       analysis: Option[Analysis],
       initialFen: Fen.Full,
       withFlags: ExportOptions,
-      logChessError: LogChessError
+      logRuleError: LogRuleError
   ): Root =
-    val withClocks: Option[Vector[Centis]] = withFlags.clocks.so(game.bothClockStates)
-    val drawOfferPlies = game.drawOffers.normalizedPlies
-    val setup = chess.Position.AndFullMoveNumber(game.variant, initialFen)
-    val fen = Fen.write(setup)
-    val infos: Vector[Info] = analysis.so(_.infos.toVector)
-    val advices: Map[Ply, Advice] = analysis.so(_.advices.mapBy(_.ply))
-
-    val root = Root(
-      ply = setup.ply,
-      fen = fen,
-      clock = withFlags.clocks.so:
-        game.clock.map(c => Centis.ofSeconds(c.limitSeconds.value)).map(Clock(_))
-      ,
-      crazyData = setup.position.crazyData,
-      eval = infos.lift(0).map(makeEval)
-    )
-
-    def makeBranch(move: chess.MoveOrDrop, ply: Ply): Branch =
-      val fen = Fen.write(move.after, ply.fullMoveNumber)
-      val index = (ply - setup.ply - 1).value
-      val info = infos.lift(index)
-      val advice = advices.get(ply)
-
-      val branch = Branch(
-        ply = ply,
-        move = Uci.WithSan(move.toUci, move.toSanStr),
-        fen = fen,
-        clock = withClocks.flatMap(_.lift(index)).map(Clock(_)),
-        crazyData = move.after.crazyData,
-        eval = info.map(makeEval),
-        glyphs = Glyphs.fromList(advice.map(_.judgment.glyph).toList),
-        comments = Node.Comments(
-          drawOfferPlies(ply)
-            .option(makeLichessComment(Comment(s"${!ply.turn} offers draw")))
-            .toList :::
-            advice
-              .map(_.makeComment(false))
-              .toList
-              .map(makeLichessComment)
+    require(initialFen.value == game.xiangqi.initialFen, "Game tree initial position mismatch")
+    val native = game.xiangqi
+    val infos = analysis.toList.flatMap(_.infos).map(i => i.ply -> i).toMap
+    val advice = analysis.toList.flatMap(_.advices).map(a => a.ply -> a).toMap
+    val clocks = withFlags.clocks.so(game.bothClockStates).getOrElse(Vector.empty)
+    val children = native.moves.zipWithIndex.foldRight(Branches.empty):
+      case ((uci, index), next) =>
+        val state = native.states(index + 1)
+        val ply = Ply(state.ply)
+        val branch = Branch(
+          state,
+          Move(uci, native.wxf(index), native.chineseWxf(index)),
+          children = next,
+          clock = clocks.lift(index).map(Clock(_)),
+          eval = infos.get(ply).map(_.eval),
+          glyphs = Glyphs.fromList(advice.get(ply).map(a => Glyph.fromId(a.judgment.glyph.id)).toList),
+          comments = Node.Comments(
+            game.drawOffers
+              .normalizedPlies(ply)
+              .option(makeSiteComment(Comment(s"${(!state.turn).key} offers a draw")))
+              .toList :::
+              advice.get(ply).map(a => makeSiteComment(a.makeComment(false))).toList
+          )
         )
-      )
-
-      advices
-        .get(ply + 1)
-        .fold(branch): adv =>
-          withAnalysisChild(
-            game.id,
-            branch,
-            move.after,
-            ply,
-            logChessError
-          )(adv.info)
-
-    val (result, error) = setup.position.foldRight(game.sans, setup.ply)(
-      none[Branch],
-      (step, acc) =>
-        inline def branch = makeBranch(step.move, step.ply)
-        acc.fold(branch)(branch.prependChildUnchecked).some
+        val annotated = advice.get(ply + 1).fold(branch) { nextAdvice =>
+          val history = native.copy(
+            moves = native.moves.take(index + 1),
+            wxf = native.wxf.take(index + 1),
+            states = native.states.take(index + 2)
+          )
+          XiangqiRules
+            .variation(history, nextAdvice.info.variation.toVector)
+            .fold(
+              error =>
+                logRuleError(error);
+                branch
+              ,
+              line =>
+                line.moves
+                  .foldRight(Option.empty[Branch])((step, child) =>
+                    Some(
+                      Branch(
+                        step.state,
+                        Move(step.move, step.notation, step.chineseNotation),
+                        children = Branches(child.toList),
+                        comp = true
+                      )
+                    )
+                  )
+                  .fold(branch)(branch.addChild)
+            )
+        }
+        Branches(List(annotated))
+    Root(
+      native.states.head,
+      native.ruleset,
+      children = children,
+      clock = withFlags.clocks.so(game.clock.map(c => Clock(Centis.ofSeconds(c.limitSeconds.value))))
     )
 
-    error.foreach(err => logChessError(formatError(game.id, err)))
-    result.fold(root)(root.prependChildUnchecked)
-
-  private[tree] def makeLichessComment(c: Comment) =
-    Node.Comment(
-      Node.Comment.Id.make,
-      c,
-      Node.Comment.Author.Lichess
-    )
-
-  private def withAnalysisChild(
-      id: GameId,
-      root: Branch,
-      position: Position,
-      ply: Ply,
-      logChessError: LogChessError
-  )(info: Info): Branch =
-
-    def makeBranch(m: chess.MoveOrDrop, ply: Ply): Branch =
-      val fen = Fen.write(m.after, ply.fullMoveNumber)
-      Branch(
-        ply = ply,
-        move = Uci.WithSan(m.toUci, m.toSanStr),
-        fen = fen,
-        crazyData = m.after.position.crazyData,
-        eval = none
-      )
-
-    val (result, error) = position
-      .foldRight(info.variation.take(20), ply)(
-        none[Branch],
-        (step, acc) =>
-          inline def branch = makeBranch(step.move, step.ply)
-          acc.fold(branch)(acc => branch.addChild(acc)).some
-      )
-
-    error.foreach(e => logChessError(formatError(id, e)))
-    result.fold(root)(b => root.addChild(b.setComp))
-
-  private def formatError(id: GameId, err: chess.ErrorStr) =
-    s"TreeBuilder https://lixiangqi.org/$id ${err.value.linesIterator.toList.headOption}"
+  private[tree] def makeSiteComment(c: Comment) =
+    Node.Comment(Node.Comment.Id.make, c, Node.Comment.Author.Site)

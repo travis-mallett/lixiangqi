@@ -4,12 +4,10 @@ import { licon, type LiconValue } from 'lib/licon';
 import { bind, hl, icon, type VNode } from 'lib/view';
 
 import type PuzzleCtrl from '../ctrl';
-import { puzzleNotationTree } from '../xiangqi';
 
 export default function actions(ctrl: PuzzleCtrl): VNode {
   const enabled = ctrl.canUseActions();
-  const { tree, paths } = puzzleNotationTree(ctrl.tree.root, '');
-  const activePath = [...paths].find(([, path]) => path === ctrl.path)?.[0] ?? '';
+
   const action = (name: string, label: string, glyph: LiconValue, click: () => void, disabled = false) =>
     hl(
       `button.fbt.${name}`,
@@ -32,7 +30,9 @@ export default function actions(ctrl: PuzzleCtrl): VNode {
             {
               attrs: {
                 title: i18n.puzzle.analyze,
-                ...(enabled ? { href: createAnalysisUrl(tree, ctrl.pov, activePath) } : {}),
+                ...(enabled
+                  ? { href: createAnalysisUrl(ctrl.tree, ctrl.pov === 'white' ? 'red' : 'black', ctrl.path) }
+                  : {}),
                 'aria-disabled': String(!enabled),
                 tabindex: enabled ? 0 : -1,
                 target: '_blank',

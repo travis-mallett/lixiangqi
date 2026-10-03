@@ -2,7 +2,6 @@ package controllers
 
 import org.apache.pekko.stream.scaladsl.*
 import org.apache.pekko.util.ByteString
-import chess.variant.Variant
 import play.api.mvc.Result
 
 import lila.app.{ *, given }
@@ -25,7 +24,7 @@ final class Export(env: Env) extends LilaController(env):
     NoCrawlersUnlessPreview:
       exportImageOf(env.game.gameRepo.game(id)): game =>
         val options = lila.game.GifExport.Options.fromReq
-        val filename = s"lixiangqi-game-${game.id}-${color.name}.gif"
+        val filename = s"lixiangqi-game-${game.id}-${if color.white then "red" else "black"}.gif"
         stream(filename, cacheSeconds = if game.finishedOrAborted then 3600 * 24 else 10):
           for
             analysis <- options.glyphs.so(env.analyse.repo.byGame(game))
@@ -55,7 +54,7 @@ final class Export(env: Env) extends LilaController(env):
         .thumbnail(
           position = puzzle.stateAfterInitialMove.err(s"invalid puzzle ${puzzle.id}"),
           lastMove = puzzle.line.head.value.some,
-          orientation = puzzle.color,
+          orientation = if puzzle.color.white then Xiangqi.Side.Red else Xiangqi.Side.Black,
           theme = BoardThemes.get(theme).key,
           piece = PieceSets.get(piece).key,
           description = s"puzzleThumbnail ${puzzle.id}"
@@ -64,29 +63,30 @@ final class Export(env: Env) extends LilaController(env):
 
   def fenThumbnail(
       fen: String,
-      color: Option[Color],
+      orientation: Option[String],
       lastMove: Option[String],
-      variant: Option[Variant.LilaKey],
       theme: Option[String],
       piece: Option[String]
   ) = Anon:
-    val supportedVariant = variant.forall: key =>
-      key == chess.variant.Standard.key || key == chess.variant.FromPosition.key
-    val position =
-      if supportedVariant
-      then fuccess(XiangqiRules.position(Xiangqi.Position(initialFen = fen)).toOption)
-      else fuccess(none)
-    exportImageOf(position): position =>
-      env.game.gifExport
-        .thumbnail(
-          position = position,
-          lastMove = lastMove,
-          orientation = color | Color.white,
-          theme = BoardThemes.get(theme).key,
-          piece = PieceSets.get(piece).key,
-          description = s"fenThumbnail $fen"
-        )
-        .pipe(stream(s"lixiangqi-fen.gif"))
+    val input = for
+      side <- orientation.fold[Either[String, Xiangqi.Side]](Right(Xiangqi.Side.Red))(Xiangqi.Side.fromKey)
+      position <- XiangqiRules.position(Xiangqi.Position(initialFen = fen))
+      _ <- lastMove.fold[Either[String, Unit]](Right(()))(s => Xiangqi.Uci.from(s).map(_ => ()))
+    yield position -> side
+    input match
+      case Left(error) => fuccess(BadRequest(error))
+      case Right((position, side)) =>
+        exportImageOf(fuccess(position.some)): position =>
+          env.game.gifExport
+            .thumbnail(
+              position = position,
+              lastMove = lastMove,
+              orientation = side,
+              theme = BoardThemes.get(theme).key,
+              piece = PieceSets.get(piece).key,
+              description = s"fenThumbnail $fen"
+            )
+            .pipe(stream(s"lixiangqi-fen.gif"))
 
   private def stream(filename: String, contentType: String = "image/gif", cacheSeconds: Int = 1209600)(
       upstream: Fu[Source[ByteString, ?]]

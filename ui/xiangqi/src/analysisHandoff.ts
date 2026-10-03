@@ -4,7 +4,7 @@ import {
   mainlineEndPath,
   serializeMoveTree,
   type XiangqiMoveTree,
-} from './tree';
+} from 'lib/tree/native';
 
 const PREFIX = '#analysis=';
 
@@ -19,7 +19,7 @@ export function replayPath(tree: XiangqiMoveTree, hash: string): string {
 /** Carry an explicit analysis tree in the fragment so it never enters server request logs. */
 export function createAnalysisUrl(
   tree: XiangqiMoveTree,
-  orientation: 'white' | 'black',
+  orientation: 'red' | 'black',
   activePath = '',
 ): string {
   return `/analysis${PREFIX}${encodeURIComponent(
@@ -29,20 +29,19 @@ export function createAnalysisUrl(
 
 export function readAnalysisUrl(
   hash: string,
-  chinese = false,
 ):
-  | { tree: XiangqiMoveTree; initialFen: string; orientation: 'white' | 'black'; activePath: string }
+  | { tree: XiangqiMoveTree; initialFen: string; orientation: 'red' | 'black'; activePath: string }
   | undefined {
   if (!hash.startsWith(PREFIX)) return undefined;
   const payload = JSON.parse(decodeURIComponent(hash.slice(PREFIX.length)));
   if (
     !payload ||
-    (payload.orientation !== 'white' && payload.orientation !== 'black') ||
+    (payload.orientation !== 'red' && payload.orientation !== 'black') ||
     typeof payload.draft?.initialFen !== 'string'
   )
     throw new Error('Invalid analysis link');
   const initialFen: string = payload.draft.initialFen;
-  const { tree, activePath } = deserializeMoveTree(payload.draft, initialFen, chinese);
+  const { tree, activePath } = deserializeMoveTree(payload.draft, initialFen);
   if (tree.root.state.fen !== initialFen) throw new Error('Invalid analysis starting position');
   return { tree, initialFen, orientation: payload.orientation, activePath };
 }

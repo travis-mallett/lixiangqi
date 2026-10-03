@@ -10,10 +10,10 @@ import afterView from './after';
 const initial = (ctrl: PuzzleCtrl): VNode =>
   h('div.puzzle__feedback.play', [
     h('div.player', [
-      h('div.no-square', h('piece.king.' + ctrl.pov)),
+      h('div.no-square', h('piece.general.' + (ctrl.pov === 'white' ? 'red' : 'black'))),
       h('div.instruction', [
         h('strong', i18n.site.yourTurn),
-        h('em', i18n.puzzle[ctrl.pov === 'white' ? 'findTheBestMoveForWhite' : 'findTheBestMoveForBlack']),
+        h('em', i18n.puzzle[ctrl.pov === 'white' ? 'findTheBestMoveForRed' : 'findTheBestMoveForBlack']),
       ]),
     ]),
   ]);

@@ -178,8 +178,23 @@ class JobManager(QObject):
         return True
 
     def _force(self, name, proc):
-        if self._jobs.get(name) is proc:
-            proc.kill()
+        if self._jobs.get(name) is not proc:
+            return
+        # The supervisor owns tree shutdown, but a supervisor stuck badly enough
+        # to be forced may die without it. A Windows job object cannot contain
+        # descendants when the supervisor itself runs inside a job, so the
+        # captured tree is cleared here rather than left mining unsupervised.
+        try:
+            children = psutil.Process(proc.processId()).children(recursive=True)
+        except psutil.Error:
+            children = []
+        proc.kill()
+        for child in reversed(children):
+            try:
+                child.kill()
+            except psutil.Error:
+                continue
+        psutil.wait_procs(children, timeout=3)
 
     def active(self, name):
         return name in self._jobs

@@ -41,11 +41,7 @@
   <string name="definitivelyDeleteTournament">Slet hele turneringen, alle dens runder og alle dens partier.</string>
   <string name="showScores">Vis spilleres point baseret på resultater fra partier</string>
   <string name="replacePlayerTags">Valgfrit: udskift spillernavne, ratings og titler</string>
-  <string name="fideFederations">FIDE-føderationer</string>
   <string name="top10Rating">Top 10 rating</string>
-  <string name="fidePlayers">FIDE-spillere</string>
-  <string name="fidePlayerNotFound">FIDE-spiller ikke fundet</string>
-  <string name="fideProfile">FIDE-profil</string>
   <string name="federation">Føderation</string>
   <string name="age">Alder</string>
   <string name="unrated">Uden rating</string>
@@ -76,7 +72,6 @@
   <string name="tournamentLocation">Turneringssted</string>
   <string name="topPlayers">Topspillere</string>
   <string name="timezone">Tidszone</string>
-  <string name="fideRatingCategory">FIDE-ratingkategori</string>
   <string name="optionalDetails">Valgfri detaljer</string>
   <string name="pastBroadcasts">Tidligere udsendelser</string>
   <string name="allBroadcastsByMonth">Vis alle udsendelser efter måned</string>

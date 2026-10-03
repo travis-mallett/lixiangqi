@@ -1,6 +1,11 @@
-import { deserializeMoveTree, serializeMoveTree, type StoredMoveTree, type XiangqiMoveTree } from './tree';
+import {
+  deserializeMoveTree,
+  serializeMoveTree,
+  type StoredMoveTree,
+  type XiangqiMoveTree,
+} from 'lib/tree/native';
 
-export const ANALYSIS_TABS_STORAGE_KEY = 'lixiangqi.analysis.tabs.v1';
+export const ANALYSIS_TABS_STORAGE_KEY = 'lixiangqi.analysis.tabs.v2';
 export const MAX_ANALYSIS_TABS = 12;
 export const MAX_ANALYSIS_TAB_TITLE_LENGTH = 120;
 
@@ -23,14 +28,14 @@ interface StoredAnalysisTab {
 }
 
 interface StoredAnalysisTabs {
-  version: 1;
+  version: 2;
   activeId: string;
   tabs: StoredAnalysisTab[];
 }
 
 export function serializeAnalysisTabs(tabs: AnalysisTab[], activeId: string): StoredAnalysisTabs {
   return {
-    version: 1,
+    version: 2,
     activeId,
     tabs: tabs.map(tab => ({
       id: tab.id,
@@ -47,14 +52,11 @@ export function normalizeAnalysisTabTitle(value: string): string | undefined {
   return title && title.length <= MAX_ANALYSIS_TAB_TITLE_LENGTH ? title : undefined;
 }
 
-export function deserializeAnalysisTabs(
-  value: unknown,
-  chinese = false,
-): {
+export function deserializeAnalysisTabs(value: unknown): {
   tabs: AnalysisTab[];
   activeId: string;
 } {
-  if (!isRecord(value) || value.version !== 1 || !Array.isArray(value.tabs) || !value.tabs.length)
+  if (!isRecord(value) || value.version !== 2 || !Array.isArray(value.tabs) || !value.tabs.length)
     throw new Error('Saved analysis tabs have an incompatible format');
   if (value.tabs.length > MAX_ANALYSIS_TABS) throw new Error('Too many saved analysis tabs');
 
@@ -76,7 +78,7 @@ export function deserializeAnalysisTabs(
     )
       throw new Error('Saved analysis tabs contain an invalid tab');
     ids.add(stored.id);
-    const restored = deserializeMoveTree(stored.draft, stored.draft.initialFen, chinese);
+    const restored = deserializeMoveTree(stored.draft, stored.draft.initialFen);
     return {
       id: stored.id,
       title,

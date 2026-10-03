@@ -105,14 +105,14 @@ export const initMiniBoard = (node: HTMLElement): void => {
   const [fen, orientation, lm] = node.getAttribute('data-state')!.split(',');
   initMiniBoardWith(node, {
     fen,
-    orientation: orientation as Color,
+    orientation: orientation === 'black' ? 'black' : 'red',
     lastMove: lm ? coordinateMove(lm) : undefined,
   });
 };
 
 export interface MiniBoardOptions {
   fen: string;
-  orientation?: Color;
+  orientation?: 'red' | 'black';
   lastMove?: readonly string[];
   coordinates?: boolean;
   purpose?: 'thumbnail' | 'preview';

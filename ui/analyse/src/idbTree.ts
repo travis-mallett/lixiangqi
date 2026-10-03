@@ -1,7 +1,9 @@
 import { memoize } from 'lib';
 import { objectStorage } from 'lib/objectStorage';
 import { completeNode } from 'lib/tree/node';
+import { mainlineChild } from 'lib/tree/ops';
 import * as treeOps from 'lib/tree/ops';
+import * as treePath from 'lib/tree/path';
 import type { TreeNodeLite, TreePath } from 'lib/tree/types';
 
 import type AnalyseCtrl from './ctrl';
@@ -9,9 +11,11 @@ import type AnalyseCtrl from './ctrl';
 export type DiscloseState = undefined | 'expanded' | 'collapsed';
 export class IdbTree {
   private readonly cacheMap = new Map<string, State>();
-  private readonly collapseDb = memoize(() => objectStorage<TreePath[]>({ store: 'analyse-collapse' }));
+  private readonly collapseDb = memoize(() =>
+    objectStorage<TreePath[]>({ store: 'xiangqi-study-collapse-v2' }),
+  );
   private readonly moveDb = memoize(() =>
-    objectStorage<{ root: TreeNodeLite | undefined }>({ store: 'analyse-state', db: 'lichess' }),
+    objectStorage<{ root: TreeNodeLite | undefined }>({ store: 'xiangqi-analysis-tree-v2', db: 'lixiangqi' }),
   );
 
   constructor(private readonly ctrl: AnalyseCtrl) {}
@@ -32,9 +36,9 @@ export class IdbTree {
     while (path && kids.length < 2 && !this.ctrl.tree.pathIsMainline(path)) {
       [path, kids] = this.familyOf(path);
     }
-    const i = kids.findIndex(k => fromPath.slice(path.length).startsWith(k.id));
+    const i = kids.findIndex(k => treePath.head(treePath.drop(fromPath, treePath.size(path))) === k.id);
     const stepTo = which === 'next' ? (kids[i + 1] ?? kids[0]) : (kids[i - 1] ?? kids[kids.length - 1]);
-    return !stepTo ? fromPath : path + stepTo.id;
+    return !stepTo ? fromPath : treePath.append(path, stepTo.id);
   }
 
   setCollapsed(path: TreePath, collapsed: boolean): void {
@@ -60,7 +64,7 @@ export class IdbTree {
     let save = false;
     const nodes = path === undefined ? this.ctrl.nodeList : this.ctrl.tree.getNodeList(path);
     for (let i = 0; i < nodes.length; i++) {
-      const kid = nodes[i].children[0];
+      const kid = mainlineChild(nodes[i]);
       if (nodes[i].collapsed && kid && nodes[i + 1] && kid !== nodes[i + 1]) {
         nodes[i].collapsed = false;
         save = true;
@@ -80,7 +84,7 @@ export class IdbTree {
 
   onAddNode(node: TreeNodeLite, path: TreePath): void {
     if (this.noop || this.cache.movesDirty) return;
-    this.cache.movesDirty = !this.ctrl.tree.pathExists(path + node.id);
+    this.cache.movesDirty = !this.ctrl.tree.pathExists(treePath.append(path, node.id));
   }
 
   clear = async (what?: 'analysis' | 'collapse' | 'moves'): Promise<void> => {
@@ -117,7 +121,7 @@ export class IdbTree {
             .then(db => db.getOpt(this.id))
             .then(moves => {
               if (moves?.root) {
-                this.ctrl.tree.merge(completeNode(this.ctrl.variantKey)(moves.root));
+                this.ctrl.tree.merge(completeNode(moves.root));
                 this.cache.movesDirty = true;
               }
             }),
@@ -168,7 +172,7 @@ export class IdbTree {
     const collapsedPaths: TreePath[] = [];
     function traverse(node: TreeNodeLite, path: TreePath): void {
       if (node.collapsed) collapsedPaths.push(path);
-      for (const c of node.children) traverse(c, path + c.id);
+      for (const c of node.children) traverse(c, treePath.append(path, c.id));
     }
     traverse(this.ctrl.tree.root, '');
     return collapsedPaths;
@@ -187,7 +191,7 @@ export class IdbTree {
   }
 
   private familyOf(path: TreePath): [TreePath, TreeNodeLite[]] {
-    const parentPath = path.slice(0, -2);
+    const parentPath = treePath.init(path);
     return [
       parentPath,
       this.ctrl.tree

@@ -1,17 +1,18 @@
 import { coordinateMove } from '@lixiangqi/board';
-import { COLORS } from 'chessops';
 
 import { defined } from 'lib';
 import { view as cevalView, renderEval } from 'lib/ceval';
 import { renderChat } from 'lib/chat/renderChat';
 import { isTouchDevice } from 'lib/device';
-import { aiLevelName, type Player } from 'lib/game';
+import { aiLevelName } from 'lib/game';
 import { plyToTurn } from 'lib/game/chess';
+import { type XiangqiSide as Color, xiangqiSides as COLORS } from 'lib/game/xiangqi';
+import { requestXiangqi } from 'lib/game/xiangqiApi';
 import { accessibleBoard, positionText } from 'lib/nvui/board';
-import { renderSan, renderMainline, renderComments } from 'lib/nvui/chess';
 import { addBreaks } from 'lib/nvui/command';
 import { liveText } from 'lib/nvui/notify';
-import { renderSetting } from 'lib/nvui/setting';
+import { renderSetting } from 'lib/nvui/settings';
+import { renderMove, renderMainline, renderComments } from 'lib/nvui/xiangqi';
 import { pubsub } from 'lib/pubsub';
 import { formatClock as formatClockName } from 'lib/setup/timeControl';
 import { ops, path as treePath } from 'lib/tree/tree';
@@ -23,7 +24,7 @@ import type { AnalyseNvuiContext } from '../analyse.nvui';
 import { createStudyBoard } from '../board';
 import type AnalyseCtrl from '../ctrl';
 import explorerView from '../explorer/explorerView';
-import type { AnalyseData } from '../interfaces';
+import type { AnalyseData, Player } from '../interfaces';
 import { clickHook, currentLineIndex, renderCurrentNode } from '../nvuiUtil';
 import { renderRetro } from '../retrospect/nvuiRetroView';
 import { view as chapterEditFormView } from '../study/chapterEditForm';
@@ -61,7 +62,15 @@ export function renderNvui(ctx: AnalyseNvuiContext): VNode {
     boardStyle.set('plain');
   }
 
-  const boardView = [hl('h2', i18n.site.board), accessibleBoard(ctrl.board, notify.set)];
+  const boardView = [
+    hl('h2', i18n.site.board),
+    accessibleBoard(ctrl.board, notify.set, ctrl.bottomColor(), {
+      pieceStyle: pieceStyle.get(),
+      prefixStyle: prefixStyle.get(),
+      positionStyle: positionStyle.get(),
+      boardStyle: boardStyle.get(),
+    }),
+  ];
 
   return hl('main.analyse', [
     hl('div.nvui', [
@@ -231,7 +240,7 @@ const evalInfo = (bestEv: EvalScore | undefined): string =>
   defined(bestEv?.cp)
     ? renderEval(bestEv.cp).replace('-', '−')
     : defined(bestEv?.mate)
-      ? `mate in ${Math.abs(bestEv.mate)} for ${bestEv.mate > 0 ? 'white' : 'black'}`
+      ? `mate in ${Math.abs(bestEv.mate)} for ${bestEv.mate > 0 ? 'red' : 'black'}`
       : '';
 
 const depthInfo = (clientEv: ClientEval | undefined, isCloud: boolean): string =>
@@ -264,26 +273,33 @@ function renderAriaResult(ctrl: AnalyseCtrl): VNode[] {
 function renderCurrentLine({ ctrl, moveStyle }: AnalyseNvuiContext) {
   if (ctrl.path.length === 0) return renderMainline(ctrl.mainline, ctrl.path, moveStyle.get(), !ctrl.retro);
   else {
-    const futureNodes = ctrl.node.children.length > 0 ? ops.mainlineNodeList(ctrl.node.children[0]) : [];
+    const child = ops.mainlineChild(ctrl.node);
+    const futureNodes = child ? ops.mainlineNodeList(child) : [];
     return renderMainline(ctrl.nodeList.concat(futureNodes), ctrl.path, moveStyle.get(), !ctrl.retro);
   }
 }
 
 function onSubmit(ctx: AnalyseNvuiContext, $input: Cash) {
   const { ctrl, notify } = ctx;
-  return (e: SubmitEvent) => {
+  return async (e: SubmitEvent) => {
     e.preventDefault();
     const input = ($input.val() as string).trim();
     // Allow commands with/without a leading '/'
     const command = getCommand(input) || getCommand(input.slice(1));
     if (command && !command.invalid?.(ctrl)) command.cb(ctx, input);
     else {
-      const matched = /^([a-i](?:10|[1-9]))([a-i](?:10|[1-9]))$/i.exec(input);
-      if (!matched || !ctrl.board.allowsMove(matched[1].toLowerCase(), matched[2].toLowerCase()))
-        notify.set(`Invalid move: ${input}`);
-      else {
-        const [from, to] = coordinateMove(input.toLowerCase());
+      const tree = ctrl.tree,
+        path = ctrl.path;
+      try {
+        const resolved = await requestXiangqi<{ move: string }>('/api/analysis/notation-move', {
+          ...tree.positionAt(path),
+          notation: input,
+        });
+        if (ctrl.tree !== tree || ctrl.path !== path) return;
+        const [from, to] = coordinateMove(resolved.move);
         ctrl.sendMove(from, to);
+      } catch (error) {
+        notify.set(error instanceof Error ? error.message : String(error));
       }
     }
     $input.val('');
@@ -366,14 +382,14 @@ function renderAcpl({ ctrl, moveStyle }: AnalyseNvuiContext): LooseVNodes {
           ),
         },
         analysisNodes
-          .filter(n => (n.ply % 2 === 1) === (color === 'white'))
+          .filter(n => (n.ply % 2 === 1) === (color === 'red'))
           .map(node =>
             hl(
               'option',
               { attrs: { value: node.ply, selected: node.ply === ctrl.node.ply } },
               [
                 plyToTurn(node.ply),
-                renderSan(node.san, node.uci, moveStyle.get()),
+                renderMove(node.notation, node.uci, moveStyle.get()),
                 renderComments(node, moveStyle.get()),
               ].join(' '),
             ),
@@ -465,7 +481,7 @@ function jumpLine(ctrl: AnalyseCtrl, delta: number) {
   const newI = (i + delta + of) % of;
   const prevPath = treePath.init(ctrl.path);
   const prevNode = ctrl.tree.nodeAtPath(prevPath);
-  const newPath = prevPath + prevNode.children[newI].id;
+  const newPath = treePath.append(prevPath, prevNode.children[newI].id);
   ctrl.userJumpIfCan(newPath);
 }
 

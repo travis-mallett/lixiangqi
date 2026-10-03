@@ -45,7 +45,7 @@ private final class RelayNotifierAdmin(roundRepo: RelayRoundRepo, irc: IrcApi, p
           s"Too many games from source: $games. Max is $max"
         )
 
-  object missingFideIds:
+  object missingPlayerIds:
     private val once = scalalib.cache.OnceEvery[RelayRoundId](1.hour)
 
     def schedule(id: RelayRoundId) =
@@ -63,11 +63,11 @@ private final class RelayNotifierAdmin(roundRepo: RelayRoundRepo, irc: IrcApi, p
             val missing: List[(StudyChapterId, String)] = chapters.flatMap: chapter =>
               chapter.players
                 .so(_.toList)
-                .filter(_.fideId.isEmpty)
+                .filter(_.playerId.isEmpty)
                 .map: player =>
                   (chapter.id, player.name.fold("?")(_.value))
             missing.nonEmpty.so:
-              irc.broadcastMissingFideId(rt.round.id, rt.fullNameNoTrans, missing)
+              irc.broadcastMissingPlayerId(rt.round.id, rt.fullNameNoTrans, missing)
 
   def tourCreate(tour: RelayTour)(using Me): Funit =
     tour.official.so:

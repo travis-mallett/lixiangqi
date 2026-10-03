@@ -1,13 +1,17 @@
 package lila.relay
 
+import lila.study.StudyPgnTags
+import lila.xiangqi.XiangqiJson.given
+
 import scala.collection.immutable.SeqMap
 import scalalib.Debouncer
 
 import chess.format.pgn.*
-import chess.{ FideId, PlayerName, IntRating }
-import chess.Outcome.Points
+import chess.{ PlayerName, IntRating }
+import lila.core.playerDirectory.PlayerId
+import lila.xiangqi.Xiangqi.{ Score as Points, Side, BySide }
 
-import lila.core.fide.{ PlayerToken, Tokenize }
+import lila.core.playerDirectory.{ PlayerToken, Tokenize }
 import lila.study.ChapterPreview
 import lila.study.StudyPlayer
 import lila.relay.RelayGroup.ScoreGroup
@@ -18,24 +22,19 @@ private class RelayTeamsTextarea(val text: String):
 
   def sortedText = text.linesIterator.toList.sorted.mkString("\n")
 
-  /* We need this because `PlayerName | FideId` doesn't work
-   * the compiler can't differentiate between the two types
-   * at runtime using pattern matching. */
-  private type PlayerNameStr = String
-
-  lazy val teams: Map[TeamName, List[PlayerNameStr | FideId]] = text.linesIterator
+  lazy val teams: Map[TeamName, List[String]] = text.linesIterator
     .take(1000)
     .toList
     .flatMap: line =>
       line.split(';').map(_.trim) match
-        case Array(team, player) => Some(team -> (player.toIntOption.fold(player)(FideId(_))))
+        case Array(team, player) => Some(team -> player)
         case _ => none
     .groupBy(_._1)
     .view
     .mapValues(_._2F)
     .toMap
 
-  private lazy val playerTeams: Map[PlayerNameStr | FideId, TeamName] =
+  private lazy val playerTeams: Map[String, TeamName] =
     teams.flatMap: (team, players) =>
       players.map(_ -> team)
 
@@ -43,25 +42,23 @@ private class RelayTeamsTextarea(val text: String):
     game.copy(tags = update(game.tags))
 
   private def update(tags: Tags)(using Tokenize): Tags =
-    Color.all.foldLeft(tags): (tags, color) =>
-      val found = tags
-        .fideIds(color)
+    Side.values.toList.foldLeft(tags): (tags, color) =>
+      val found = StudyPgnTags
+        .playerIds(tags)(color)
+        .map(_.value)
         .flatMap(findMatching)
-        .orElse(PlayerName.raw(tags.names(color)).flatMap(findMatching))
+        .orElse(PlayerName.raw(StudyPgnTags.names(tags)(color)).flatMap(findMatching))
       found.fold(tags): team =>
-        tags + Tag(_.teams(color), team)
+        tags + Tag(color.fold("RedTeam", "BlackTeam"), team)
 
-  private def findMatching(player: PlayerNameStr | FideId)(using Tokenize): Option[TeamName] =
-    def tokenizedPlayerTeams: Map[PlayerToken | FideId, TeamName] = playerTeams.mapKeys(tokenizePlayer)
+  private def findMatching(player: String)(using Tokenize): Option[TeamName] =
+    def tokenizedPlayerTeams: Map[String, TeamName] = playerTeams.mapKeys(tokenizePlayer)
     playerTeams.get(player).orElse(tokenizedPlayerTeams.get(tokenizePlayer(player)))
 
-  private def tokenizePlayer(using tokenize: Tokenize): PlayerNameStr | FideId => PlayerToken | FideId =
-    case name: PlayerNameStr => tokenize.exec(name)
-    // typing with `fideId: FideId` results in a compiler warning. The current code however is ok.
-    case fideId => fideId
+  private def tokenizePlayer(using tokenize: Tokenize)(value: String): String =
+    PlayerId.parse(value).fold(tokenize.exec(value))(_.value)
 
 object RelayTeam:
-  import chess.{ Color, ByColor }
   extension (players: Iterable[RelayPlayer])
     def allGamesFinished: Boolean = players.forall(_.games.forall(_.points.isDefined))
   case class TeamWithGames(name: TeamName, players: RelayPlayer.RelayPlayers):
@@ -84,7 +81,7 @@ object RelayTeam:
     def foldLeft[B](z: B)(f: (B, A) => B) = f(f(z, a), b)
     def reverse = Pair(b, a)
 
-  case class TeamGame(id: StudyChapterId, pov: Color):
+  case class TeamGame(id: StudyChapterId, pov: Side):
     def swap = copy(pov = !pov)
 
   case class TeamMatch(
@@ -97,9 +94,9 @@ object RelayTeam:
     def add(
         chap: ChapterPreview,
         playerAndTeam: Pair[(StudyPlayer, TeamName)],
-        game: ByColor[RelayPlayer.Game]
+        game: BySide[RelayPlayer.Game]
     ): TeamMatch =
-      val t0Color = Color.fromWhite(playerAndTeam.a._2 == teams.a.name)
+      val t0Color = if playerAndTeam.a._2 == teams.a.name then Side.Red else Side.Black
       val wPOV = game(t0Color)
       val bPOV = game(!t0Color)
       val wPlayer = RelayPlayer.empty(wPOV.opponent).copy(score = wPOV.playerScore, games = Vector(wPOV))
@@ -193,7 +190,7 @@ final class RelayTeamTable(
         round <- roundRepo.byId(studyId.into(RelayRoundId)).orFail(s"Missing relay round $studyId")
         chapters <- chapterPreviewApi.dataList(studyId)
         table = makeTable(chapters, round)
-        ordered = ensureFirstPlayerHasWhite(table)
+        ordered = ensureFirstPlayerHasRed(table)
       yield ordered
 
     def makeTable(chapters: List[ChapterPreview], round: RelayRound): List[TeamMatch] =
@@ -202,7 +199,7 @@ final class RelayTeamTable(
           points <- chap.points
           players <- chap.players.map(_.map(_.studyPlayer))
           teams <- players.traverse(_.team).map(_.toPair).map(Pair.apply)
-          game = players.mapWithColor: (c, p) =>
+          game = players.mapWithSide: (c, p) =>
             RelayPlayer.Game(
               round.id,
               chap.id,
@@ -210,7 +207,7 @@ final class RelayTeamTable(
               c,
               points,
               round.rated,
-              chess.FideTC.standard,
+              lila.core.playerDirectory.RatingCategory.standard,
               round.customScoring,
               unplayed = false,
               ongoing = false
@@ -223,15 +220,15 @@ final class RelayTeamTable(
           )
           m1 = m0.add(
             chap,
-            Pair(players.white.player -> teams.a, players.black.player -> teams.b),
+            Pair(players.red.player -> teams.a, players.black.player -> teams.b),
             game
           )
           newTable = m1 :: table.filterNot(_.is(teams))
         yield newTable) | table
 
-    def ensureFirstPlayerHasWhite(table: List[TeamMatch]): List[TeamMatch] =
+    def ensureFirstPlayerHasRed(table: List[TeamMatch]): List[TeamMatch] =
       table.map: m =>
-        if m.games.headOption.forall(_.pov.white) then m
+        if m.games.headOption.forall(_.pov.red) then m
         else m.swap
 
 final class RelayTeamLeaderboard(

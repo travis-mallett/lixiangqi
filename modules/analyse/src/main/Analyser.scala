@@ -14,8 +14,18 @@ final class Analyser(
 
   export analysisRepo.{ byId, byGame as get }
 
-  def save(analysis: Analysis, workHash: => Array[Byte]): Funit = for
-    _ <- analysisRepo.save(analysis, analysis.studyId.isDefined.option(workHash))
+  def persistStudy(analysis: Analysis, workHash: Array[Byte]): Fu[Analysis] =
+    require(analysis.studyId.isDefined, "Study persistence requires a study analysis")
+    analysisRepo.save(analysis, Some(workHash)) >> analysisRepo
+      .current(analysis.id)
+      .orFail("Saved study analysis missing")
+
+  def save(analysis: Analysis, workHash: => Array[Byte]): Funit =
+    if analysis.studyId.isDefined then sendAnalysisProgress(analysis, complete = true)
+    else saveGame(analysis)
+
+  private def saveGame(analysis: Analysis): Funit = for
+    _ <- analysisRepo.save(analysis, None)
     // Read the winner from primary, including on retry after an uncertain write.
     retained <- analysisRepo.current(analysis.id).orFail("Saved analysis missing")
     _ <- retained.id.gameId.so: id =>
@@ -31,11 +41,12 @@ final class Analyser(
     analysisRepo
       .current(analysis.id)
       .flatMap:
-        case Some(retained) => sendAnalysisProgress(retained, complete = true)
-        case None => sendAnalysisProgress(analysis, complete = false)
+        case Some(retained) if retained.position == analysis.position =>
+          sendAnalysisProgress(retained, complete = true)
+        case _ => sendAnalysisProgress(analysis, complete = false)
 
   def foundSameHash(forId: Analysis.Id, same: Analysis, workHash: Array[Byte]): Funit =
-    save(same.copy(id = forId), workHash)
+    save(same.copy(id = forId, date = nowInstant), workHash)
 
   private def sendAnalysisProgress(analysis: Analysis, complete: Boolean): Funit =
     analysis.id match
@@ -62,5 +73,5 @@ final class Analyser(
       "complete" -> complete,
       "depth" -> analysis.depth,
       "analysis" -> JsonView.bothPlayers(game.startedAtPly, analysis),
-      "treeParts" -> XiangqiTreeJson(game, analysis.some, ExportOptions.default)
+      "tree" -> XiangqiTreeJson(game, analysis.some, ExportOptions.default)
     )

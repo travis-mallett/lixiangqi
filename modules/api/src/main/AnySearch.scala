@@ -11,12 +11,18 @@ final class AnySearch(
     swissEnv: lila.swiss.Env,
     ublogApi: lila.ublog.UblogApi,
     teamEnv: lila.team.Env,
-    fideEnv: lila.fide.Env
+    playerDirectoryEnv: lila.playerDirectory.Env
 )(using Executor):
 
   private val idRegex = """^[a-zA-Z0-9]{4,12}$""".r
 
   def redirect(str: String): Fu[Option[String]] =
+    lila.core.playerDirectory.PlayerId.parse(str.trim) match
+      case Some(id) =>
+        playerDirectoryEnv.playerApi.fetch(id).map2(p => routes.PlayerDirectory.show(id, p.slug).url)
+      case None => redirectLocalId(str)
+
+  private def redirectLocalId(str: String): Fu[Option[String]] =
     str.trim.some
       .filter(idRegex.matches)
       .so: id =>
@@ -40,10 +46,6 @@ final class AnySearch(
 
         def team = teamEnv.teamRepo.enabled(TeamId(id)).map2(_ => routes.Team.show(TeamId(id)).url)
 
-        def fideplayer = chess.FideId
-          .from(str.toIntOption)
-          .so(id => fideEnv.playerApi.fetch(id).map2(p => routes.Fide.show(id, p.slug).url))
-
         game
           .orElse(broadcastRound)
           .orElse(broadcastTour)
@@ -55,4 +57,3 @@ final class AnySearch(
           .orElse(swiss)
           .orElse(ublog)
           .orElse(team)
-          .orElse(fideplayer)

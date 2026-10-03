@@ -67,6 +67,12 @@ The saved best-defense score must retain the advantage, or the capture must end
 the game. Earlier incidental forks do not qualify. This category never changes
 the solution's endpoint, and its evidence supplies no publication length.
 
+Detection is currently switched off for tactic categorization through
+`classification_job.DOUBLE_ATTACK_DETECTION_ENABLED`. The theme, detector,
+stored verdicts, and existing puzzle tags are unchanged; the categorizer simply
+stops scanning and reuses an already-stored match. Turning it back on requires a
+forced reclassification pass to scan the skipped candidates.
+
 ### Exchange material (`exchangingToWinMaterial`, version 3)
 
 The opening must capture an approximately equal-valued piece (horse/cannon for
@@ -99,6 +105,27 @@ deadline. Board inspections are cached within the category invocation. Persisted
 evidence includes both search results and inspected continuations, bound to the
 exact verified trace and category version. Reuse replays the material calculation
 without engine searches. This analysis belongs to the exchange category only.
+
+### Cannon chariot discovery (`cannonChariotDiscoveredAttack`, version 1)
+
+The one motif both pools share. Anywhere in a verified solution, a winning
+chariot may leave the segment between a winning cannon and the losing general.
+The same cannon must not attack the general before that move and must attack it
+afterwards through exactly one screen. A cannon attacks the first piece beyond
+exactly one screen, so replaying the stored decision boards proves the rule
+without engine inspections, piece removals, or continuation searches. The theme
+is registered with the checkmate taxonomy and the tactic category list; the two
+entries are independent, and both publish the same tag.
+
+### Detonating mine attack (`detonatingMineAttack`, version 1)
+
+The role-reversed twin. Anywhere in a verified solution, a winning cannon may
+leave the segment between a winning chariot and the losing general. The same
+chariot must not attack the general before that move and must attack it
+afterwards along an unobstructed rank or file. Chariot attacks are exact board
+geometry, so this shares the discovery's engine-free replay contract and is
+likewise registered with both the checkmate taxonomy and the tactic category
+list.
 
 All categories are independent, read-only detectors. Publication always uses the
 full verified solution. Schema v17 removes `taxonomy_assessments.solution_plies`
@@ -263,7 +290,9 @@ destination. White-Faced General also uses attack inspection. Neither pawn nor
 general classification searches continuations. Those are classification
 evidence, cached separately by verification assessment, branch, theme and theme
 version. Missing or inconclusive evidence requests category work, not a re-solve.
-Identical terminal tests are shared across branches within one candidate.
+Identical terminal tests are shared across branches within one candidate. Cannon
+Chariot Discovery and the Detonating Mine instead work from the stored decision
+boards alone, with no engine inspection.
 
 Puzzle Studio has independent Discover, checkmate and tactic Verify & construct,
 and checkmate and tactic Categorize controls. “Reconstruct old puzzles”

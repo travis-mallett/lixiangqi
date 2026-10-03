@@ -1,4 +1,3 @@
-import { view as cevalView } from 'lib/ceval';
 import { licon } from 'lib/licon';
 import { bind, dataIcon, hl, type LooseVNode, type VNode } from 'lib/view';
 
@@ -13,17 +12,16 @@ import type * as studyDeps from '@/study/studyDeps';
 import { addChapterId, renderResult, type ViewContext } from '@/view/components';
 
 import { view as actionMenu } from './actionMenu';
+import { renderXiangqiEngine } from './xiangqiEngine';
 
 export function renderTools({ ctrl, deps, concealOf, allowVideo }: ViewContext, embeddedVideo?: LooseVNode) {
   const showCeval = ctrl.isCevalAllowed() && ctrl.showCeval();
   return hl(addChapterId(ctrl.study, 'div.analyse__tools'), [
     allowVideo && embeddedVideo,
-    showCeval && cevalView.renderCeval(ctrl),
-    showCeval &&
-      !ctrl.retro?.isSolving() &&
-      !ctrl.practice &&
-      !ctrl.study?.hideMoves() &&
-      cevalView.renderPvs(ctrl),
+    showCeval && renderXiangqiEngine(ctrl),
+    ctrl.motifEnabled() &&
+      ctrl.motif.error &&
+      hl('div.error', { attrs: { role: 'status' } }, ctrl.motif.error),
     renderMoveList(ctrl, deps, concealOf),
     deps?.gbEdit.running(ctrl) ? deps?.gbEdit.render(ctrl) : undefined,
     renderBackToLiveButton(ctrl),

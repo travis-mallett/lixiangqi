@@ -1,92 +1,52 @@
 package lila.study
 
-import chess.format.UciPath
-
+import lila.xiangqi.{ Xiangqi, UciPath }
 import lila.mon.Chronometer.syncMon
 import lila.db.dsl.*
-import lila.tree.{ Branch, Branches, NewBranch, NewRoot, NewTree, Root }
-
-import BSONHandlers.{ readBranch, writeBranch, readNewBranch, writeNewBranch }
+import lila.tree.{ Branch, Branches, Root }
+import BSONHandlers.{ readBranch, writeBranch }
+import BSONHandlers.given
 
 private object StudyFlatTree:
-
-  private case class FlatNode(path: UciPath, data: Bdoc):
-    val depth = path.depth
-
-    def toNodeWithChildren(children: Option[Branches]): Option[Branch] =
-      readBranch(data).map:
-        _.copy(children = children | Branches.empty)
-
-    def toNodeWithChild(child: Option[NewTree]): Option[NewTree] =
-      readNewBranch(data).map(NewTree(_, child, Nil))
-
   object reader:
-
-    def rootChildren(flatTree: Bdoc): Branches =
+    def rootChildren(flatTree: Bdoc, game: Xiangqi.Game): Branches =
       syncMon(lila.mon.study.tree.read):
-        traverse:
-          flatTree.elements.toList
-            .collect:
-              case el if el.name != UciPathDb.rootDbKey =>
-                FlatNode(UciPathDb.decodeDbKey(el.name), el.value.asOpt[Bdoc].get)
-            .sortBy(-_.depth)
-
-    def newRoot(flatTree: Bdoc): Option[NewTree] =
-      syncMon(lila.mon.study.tree.read):
-        traverseN:
-          flatTree.elements.toList
-            .collect:
-              case el if el.name != UciPathDb.rootDbKey =>
-                FlatNode(UciPathDb.decodeDbKey(el.name), el.value.asOpt[Bdoc].get)
-            .sortBy(-_.depth)
-
-    private def traverse(children: List[FlatNode]): Branches =
-      children
-        .foldLeft(Map.empty[UciPath, Branches]) { (roots, flat) =>
-          flat
-            .toNodeWithChildren(roots.get(flat.path))
-            .fold(roots): node =>
-              roots
-                .removed(flat.path)
-                .updatedWith(flat.path.parent):
-                  case None => Branches(List(node)).some
-                  case Some(siblings) => siblings.addNode(node).some
-        }
-        .get(UciPath.root) | Branches.empty
-
-    private def traverseN(xs: List[FlatNode]): Option[NewTree] =
-      xs.nonEmpty.so(
-        xs.foldLeft(Map.empty[UciPath, NewTree]) { (roots, flat) =>
-          // assumes that node has a greater depth than roots (sort beforehand)
-          flat
-            .toNodeWithChild(roots.get(flat.path))
-            .fold(roots): node =>
-              roots
-                .removed(flat.path)
-                .updatedWith(flat.path.parent):
-                  case None => node.some
-                  case Some(siblings) => siblings.addVariation(node.toVariation).some
-        }.get(UciPath.root)
-      )
+        val entries = flatTree.elements.toList.collect:
+          case el if el.name != UciPathDb.rootDbKey =>
+            UciPathDb.decodeDbKey(el.name) -> el.value
+              .asOpt[Bdoc]
+              .getOrElse(throw IllegalArgumentException(s"Invalid study node ${el.name}"))
+        require(entries.size <= Chapter.maxNodes, "Study has too many nodes")
+        val byParent = entries.groupBy(_._1.parent)
+        var visited = 0
+        def children(parent: UciPath, history: Xiangqi.Game): Branches =
+          val parentDoc =
+            flatTree.getAsTry[Bdoc](if parent.isEmpty then UciPathDb.rootDbKey else parent.value).get
+          val order = parentDoc.getAsTry[List[Xiangqi.Uci]](Node.BsonFields.order).get
+          val siblings = byParent.getOrElse(parent, Nil)
+          require(
+            order.distinct.size == order.size && order.toSet == siblings.flatMap(_._1.lastId).toSet,
+            s"Invalid child order at ${parent.value}"
+          )
+          val indexed = siblings.map((path, doc) => path.lastId.get -> (path, doc)).toMap
+          Branches(order.map(indexed).map { (path, doc) =>
+            val (branch, next) = readBranch(doc, history)
+            require(path.lastId.contains(branch.id), s"Study path/move mismatch: ${path.value}")
+            visited += 1
+            branch.copy(children = children(path, next))
+          })
+        val result = children(UciPath.root, game)
+        require(visited == entries.size, "Study contains orphaned nodes")
+        result
 
   object writer:
-
     def rootChildren(root: Root): List[(String, Bdoc)] =
       syncMon(lila.mon.study.tree.write):
-        root.children.toList.flatMap { traverse(_, UciPath.root) }
-
-    def newRootChildren(root: NewRoot): List[(String, Bdoc)] =
-      syncMon(lila.mon.study.tree.write):
-        root.tree.so:
-          _.mapAccuml_(UciPath.root)((acc, branch) =>
-            val path = acc + branch.id
-            path -> (UciPathDb.encodeDbKey(path) -> writeNewBranch(branch))
-          ).toList
+        require(root.children.countRecursive <= Chapter.maxNodes, "Study has too many nodes")
+        root.children.toList.flatMap(traverse(_, UciPath.root))
 
     private def traverse(node: Branch, parentPath: UciPath): List[(String, Bdoc)] =
-      (parentPath.depth < Node.MAX_PLIES).so:
-        val path = parentPath + node.id
-        node.children.toList
-          .flatMap:
-            traverse(_, path)
-          .appended(UciPathDb.encodeDbKey(path) -> writeBranch(node))
+      require(parentPath.depth < Node.MAX_PLIES, "Study exceeds maximum path depth")
+      val path = parentPath + node.id
+      (UciPathDb.encodeDbKey(path) -> writeBranch(node)) ::
+        node.children.toList.flatMap(traverse(_, path))

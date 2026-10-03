@@ -5,18 +5,16 @@ import type {
   BoardMark,
   BoardTransition,
 } from '@lixiangqi/board';
-import { hydrateXiangqiState, playXiangqiMoveSound, requestXiangqi, type RulesState } from 'xiangqi';
+import { playXiangqiTransitionSound, requestXiangqi, type RulesState } from 'xiangqi';
 
 import { prop, type Prop, propWithEffect, type Toggle, toggle, requestIdleCallbackSafe, myUserId } from 'lib';
 import { type Deferred, defer } from 'lib/async';
 import { makeBoardResizable, websiteBoardPresentation, xiangqiPosition, xiangqiPlay } from 'lib/board';
 import type { PikafishStatus } from 'lib/ceval/engines/pikafishBrowser';
-import { selectXiangqiNotation } from 'lib/game';
 import { pubsub } from 'lib/pubsub';
 import { type StoredProp, storedBooleanProp, storedBooleanPropWithEffect, storage } from 'lib/storage';
 import { trafficActivity, trafficAttemptId, trackTraffic } from 'lib/traffic';
 import { makeTree, treeOps, treePath, type TreeWrapper } from 'lib/tree';
-import { xiangqiTreeDestinations } from 'lib/tree/node';
 import { last } from 'lib/tree/ops';
 import type { TreeNode, TreePath } from 'lib/tree/types';
 import { alert } from 'lib/view';
@@ -24,15 +22,7 @@ import { toggleZenMode } from 'lib/view/zen';
 
 import { evaluateAlternative, type AlternativeResult } from './alternative';
 import { evaluationPercent } from './evaluationProgress';
-import type {
-  PuzzleOpts,
-  PuzzleData,
-  ThemeKey,
-  ReplayEnd,
-  PuzzleRound,
-  RoundThemes,
-  XiangqiMoveTest,
-} from './interfaces';
+import type { PuzzleOpts, PuzzleData, ThemeKey, ReplayEnd, PuzzleRound, XiangqiMoveTest } from './interfaces';
 import keyboard from './keyboard';
 import PuzzleSession from './session';
 import { PuzzleSolutions, defenderDelay } from './solutions';
@@ -123,7 +113,6 @@ export default class PuzzleCtrl {
   private xiangqiGeneration = 0;
   private xiangqiReplyPending = false;
   xiangqiRetry?: () => void;
-  private readonly xiangqiHydrations = new WeakMap<TreeNode, Promise<void>>();
 
   constructor(
     readonly opts: PuzzleOpts,
@@ -295,9 +284,10 @@ export default class PuzzleCtrl {
       this.initialNode.fen,
       this.data.puzzle.playback.solutions[0],
       this.data.puzzle.playback,
+      this.data.puzzle.solutionStates,
     );
     this.xiangqiAllowance = this.xiangqiObjective.allowance;
-    this.pov = (this.initialNode as XiangqiPuzzleNode).xiangqi.turn === 'black' ? 'black' : 'white';
+    this.pov = (this.initialNode as XiangqiPuzzleNode).state.turn === 'black' ? 'black' : 'white';
     this.isDaily = !!this.data.isDaily;
     this.hintHasBeenShown(false);
     this.completed = false;
@@ -320,43 +310,14 @@ export default class PuzzleCtrl {
       g.setMarks([]);
       this.showGround(g);
     });
-    if ((this.node as XiangqiPuzzleNode).xiangqi.needsHydration)
-      void this.hydrateXiangqiPosition(initialPath);
   };
 
-  private readonly hydrateXiangqiPosition = (path: TreePath): Promise<void> => {
-    const node = this.tree.nodeAtPath(path) as XiangqiPuzzleNode;
-    if (!node.xiangqi.needsHydration) return Promise.resolve();
-    const existing = this.xiangqiHydrations.get(node);
-    if (existing) return existing;
-    const fen = node.xiangqi.fen;
-    const hydration = (async () => {
-      try {
-        const state = await hydrateXiangqiState(node.xiangqi);
-        if (node.xiangqi.fen !== fen) return;
-        node.xiangqi = state;
-        node.fen = state.fen;
-        node.ply = state.ply;
-        node.dests = () => xiangqiTreeDestinations(state.legalMoves);
-        node.check = () => state.check;
-        if (this.path === path) this.withGround(this.showGround);
-      } catch (error) {
-        console.error('Could not hydrate Xiangqi puzzle position', error);
-      } finally {
-        this.xiangqiHydrations.delete(node);
-      }
-    })();
-    this.xiangqiHydrations.set(node, hydration);
-    return hydration;
-  };
-
-  private readonly playXiangqiSound = (path: TreePath): void => {
-    const node = this.tree.nodeAtPath(path) as XiangqiPuzzleNode;
+  private readonly playXiangqiSound = (fromPath: TreePath, toPath: TreePath): void => {
     const play = () => {
-      if (this.path === path) this.withGround(board => playXiangqiMoveSound(board, node.xiangqi));
+      if (this.path === toPath)
+        this.withGround(board => playXiangqiTransitionSound(board, this.tree, fromPath, toPath));
     };
-    if (node.xiangqi.needsHydration) void this.hydrateXiangqiPosition(path).then(play);
-    else play();
+    play();
   };
 
   boardSetup = (): {
@@ -367,7 +328,7 @@ export default class PuzzleCtrl {
   } => {
     const node = this.node as XiangqiPuzzleNode;
     const state =
-      this.path === this.initialPath && this.data.puzzle.state ? this.data.puzzle.state : node.xiangqi;
+      this.path === this.initialPath && this.data.puzzle.state ? this.data.puzzle.state : node.state;
     const color: Color = state.turn === 'black' ? 'black' : 'white';
     const canMove =
       this.engineReady() &&
@@ -460,12 +421,12 @@ export default class PuzzleCtrl {
           .slice(1)
           .map(node => node.uci!),
         move: uci,
+        ruleset: this.data.game.ruleset,
       });
       if (generation !== this.xiangqiGeneration || this.path !== path || this.mode !== mode) return;
-      const notation = selectXiangqiNotation(state.notation, state.chineseNotation, this.pref.notationStyle);
-      this.addNode(makeXiangqiNode(state, uci, notation || uci, parent.children.length), path);
+      this.addNode(makeXiangqiNode(state, uci, state.notation), path);
       const playedNode = this.node as XiangqiPuzzleNode;
-      playedNode.wxfNotation = state.notation;
+      playedNode.notation = state.notation;
       playedNode.chineseNotation = state.chineseNotation;
       if (failure) this.revealXiangqiFailure(failure, parent, true);
       else await this.adjudicateXiangqi();
@@ -495,7 +456,7 @@ export default class PuzzleCtrl {
   private readonly adjudicateXiangqi = async (): Promise<void> => {
     if (this.mode === 'view' || !treePath.contains(this.path, this.initialPath)) return;
     const played = this.nodeList.slice(treePath.size(this.initialPath) + 1).map(node => node.uci!);
-    const state = (this.node as XiangqiPuzzleNode).xiangqi;
+    const state = (this.node as XiangqiPuzzleNode).state;
     const stored = this.solutions.at(played);
     const playerMoved = played.length % 2 === 1;
     const terminal = terminalDecision(
@@ -554,6 +515,7 @@ export default class PuzzleCtrl {
         {
           initialFen: this.tree.root.fen,
           moves: this.nodeList.slice(1).map(node => node.uci!),
+          ruleset: this.data.game.ruleset,
         },
         current,
         analysis => {
@@ -691,7 +653,7 @@ export default class PuzzleCtrl {
     !this.xiangqiReplyPending &&
     this.mode !== 'view' &&
     treePath.contains(this.path, this.initialPath) &&
-    (this.node as XiangqiPuzzleNode).xiangqi.turn === (this.pov === 'white' ? 'red' : 'black');
+    (this.node as XiangqiPuzzleNode).state.turn === (this.pov === 'white' ? 'red' : 'black');
 
   canRetry = (): boolean =>
     !this.xiangqiBusy &&
@@ -902,7 +864,7 @@ export default class PuzzleCtrl {
         ...(backward ? { effects: [] } : {}),
       }),
     );
-    if (forward) this.playXiangqiSound(path);
+    if (forward) this.playXiangqiSound(previousPath, path);
     this.autoScrollRequested = true;
     pubsub.emit('ply', this.node.ply);
   };
@@ -939,11 +901,12 @@ export default class PuzzleCtrl {
         const evaluation = await this.getXiangqiEngine().evaluate(this.node.fen, {
           initialFen: this.tree.root.fen,
           moves: this.nodeList.slice(1).map(node => node.uci!),
+          ruleset: this.data.game.ruleset,
         });
         if (generation !== this.xiangqiGeneration || path !== this.path) return;
         if (
           !evaluation.bestMove ||
-          !(this.node as XiangqiPuzzleNode).xiangqi.legalMoves.includes(evaluation.bestMove)
+          !(this.node as XiangqiPuzzleNode).state.legalMoves.includes(evaluation.bestMove)
         )
           throw new Error('Pikafish returned no legal hint');
         const played = this.nodeList.slice(treePath.size(this.initialPath) + 1).map(node => node.uci!);
@@ -1042,7 +1005,7 @@ export default class PuzzleCtrl {
 
   voteTheme = (theme: ThemeKey, v: boolean) => {
     if (this.round) {
-      this.round.themes = this.round.themes || ({} as RoundThemes);
+      this.round.themes = this.round.themes || {};
       if (v === this.round.themes[theme]) {
         delete this.round.themes[theme];
         xhr.voteTheme(this.data.puzzle.id, theme, undefined);

@@ -108,16 +108,19 @@ final class EmbedContext(
 
 object EmbedContext:
   given (using config: EmbedContext): Lang = config.lang
-  def apply(ctx: Context): EmbedContext = new EmbedContext(
-    ctx,
-    uiTheme = HTTPRequest
-      .queryStringGet("uiTheme")(using ctx.req)
-      .filter(lila.pref.UiThemes.contains) | lila.pref.UiThemes.system.key,
-    boardTheme = HTTPRequest
-      .queryStringGet("boardTheme")(using ctx.req)
-      .filter(lila.pref.BoardThemes.contains) | lila.pref.Appearance.default.boardTheme,
-    pieceSet = HTTPRequest
-      .queryStringGet("pieceSet")(using ctx.req)
-      .filter(lila.pref.PieceSets.contains) | lila.pref.Appearance.default.pieceSet,
-    nonce = Nonce.random
-  )
+  /* Board embeds are white widgets: they ignore the visitor's appearance preference
+     unless the hosting page asks for a theme. */
+  def apply(ctx: Context, defaultUiTheme: String = lila.pref.UiThemes.system.key): EmbedContext =
+    new EmbedContext(
+      ctx,
+      uiTheme = HTTPRequest
+        .queryStringGet("uiTheme")(using ctx.req)
+        .filter(lila.pref.UiThemes.contains) | defaultUiTheme,
+      boardTheme = HTTPRequest
+        .queryStringGet("boardTheme")(using ctx.req)
+        .filter(lila.pref.BoardThemes.contains) | lila.pref.Appearance.default.boardTheme,
+      pieceSet = HTTPRequest
+        .queryStringGet("pieceSet")(using ctx.req)
+        .filter(lila.pref.PieceSets.contains) | lila.pref.Appearance.default.pieceSet,
+      nonce = Nonce.random
+    )

@@ -25,9 +25,9 @@ function asHashed(path: string, hash: string) {
 // bump flairs version if a flair is changed only (not added or removed)
 export const flairSrc = (flair: Flair) => url(`flair/img/${flair}.webp`, { pathVersion: '_____4' });
 
-// bump fide fed version if a fide fed is changed only (not added or removed)
-export const fideFedSrc = (fideFed: FideFed) =>
-  url(`fide/fed-webp/${fideFed}.webp`, { pathVersion: '_____2' });
+// Increment the version when a federation flag changes.
+export const playerFederationSrc = (playerFederation: PlayerFederation) =>
+  url(`images/federations/${playerFederation}.webp`, { pathVersion: '_____2' });
 
 export const loadCss = (href: string, key?: string): Promise<void> => {
   return new Promise(resolve => {

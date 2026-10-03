@@ -1,29 +1,89 @@
 import type { VNode, Hooks } from 'snabbdom';
+import { AnalysisTreeView } from 'xiangqi';
 
-import { defined } from 'lib';
-import { throttle } from 'lib/async';
-import { isTouchDevice } from 'lib/device';
-import { addPointerListeners } from 'lib/pointer';
-import type { TreePath } from 'lib/tree/types';
-import { onInsert } from 'lib/view';
+import { hl } from 'lib/view';
 
 import type AnalyseCtrl from '@/ctrl';
 import type { ConcealOf } from '@/interfaces';
 
-import { renderColumnView } from './columnView';
 import { renderContextMenu } from './contextMenu';
-import { renderInlineView } from './inlineView';
 
+/** Connect study navigation and collaborative commands to the shared move-tree renderer. */
 export class TreeView {
   constructor(readonly ctrl: AnalyseCtrl) {}
   private autoScrollRequest: ScrollBehavior | false = false;
+  private view?: AnalysisTreeView;
+  private concealOf?: ConcealOf;
 
   hidden = true;
-  mode: 'column' | 'inline';
+  mode: 'column' | 'inline' = 'column';
 
   render(concealOf?: ConcealOf): VNode {
+    this.concealOf = concealOf;
     this.mode = concealOf || !this.ctrl.settings.inline ? 'column' : 'inline';
-    return this.mode === 'column' ? renderColumnView(this.ctrl, concealOf) : renderInlineView(this.ctrl);
+    return hl('div.xiangqi-analysis__moves', {
+      class: { hidden: this.hidden, 'two-column-notation': this.mode === 'column' },
+      hook: {
+        insert: vnode => {
+          const { ctrl } = this;
+          this.view = new AnalysisTreeView({
+            element: vnode.elm as HTMLElement,
+            tree: () => ctrl.tree,
+            activePath: () => ctrl.path,
+            setActivePath: path => ctrl.userJump(path),
+            navigate: path => {
+              ctrl.userJump(path);
+              ctrl.redraw();
+            },
+            notationLayout: () => (this.mode === 'column' ? 'two-column' : 'compact'),
+            notationStyle: () => ctrl.data.pref.notationStyle ?? 'english',
+            commit: () => ctrl.redraw(),
+            children: node => ctrl.visibleChildren(node),
+            conceal: (node, mainline) => this.concealOf?.(mainline)(node.path, node) ?? null,
+            comments: node =>
+              ctrl.showComments
+                ? (node.comments ?? []).filter(
+                    comment =>
+                      ctrl.settings.showStaticAnalysis ||
+                      !(comment.by.kind === 'site' && comment.text.endsWith(' was best.')),
+                  )
+                : [],
+            glyphs: node => {
+              if (!ctrl.showMoveGlyphs()) return [];
+              const glyphs = [...(node.glyphs ?? [])];
+              const live = ctrl.liveAnnotate?.get(node.path);
+              if (live && ctrl.settings.showLiveAnnotations && !glyphs.some(glyph => glyph.id <= 6))
+                glyphs.push(live);
+              return glyphs;
+            },
+            evaluation: node => ctrl.allowedEval(node) || undefined,
+            moveClasses: node => ({
+              'context-menu': node.path === ctrl.contextMenuPath,
+              'pending-deletion': node.path.startsWith(ctrl.pendingDeletionPath() || ' '),
+              'pending-copy': !!ctrl.pendingCopyPath()?.startsWith(node.path),
+              current: node.path === ctrl.study?.data.chapter.relayPath,
+            }),
+            toggleCollapsed: node => ctrl.idbTree.setCollapsed(node.path, !node.collapsed),
+            contextMenu: (path, x, y) => {
+              renderContextMenu(new MouseEvent('contextmenu', { clientX: x, clientY: y }), ctrl, path);
+              ctrl.redraw();
+            },
+            emptyText: '',
+          });
+          this.update(true);
+        },
+        postpatch: () => this.update(),
+        destroy: () => {
+          this.view?.closeMenu();
+          this.view = undefined;
+        },
+      },
+    });
+  }
+
+  private update(initial = false): void {
+    this.view?.render({ scrollToActive: initial || !!this.autoScrollRequest });
+    this.autoScrollRequest = false;
   }
 
   requestAutoScroll(request: ScrollBehavior | false) {
@@ -31,56 +91,6 @@ export class TreeView {
   }
 
   hook(): Hooks {
-    const { ctrl } = this;
-    return {
-      ...onInsert(el => {
-        if (ctrl.path !== '') this.autoScrollRequest = 'instant';
-        const ctxMenuCallback = (e: MouseEvent) => {
-          renderContextMenu(e, ctrl, eventPath(e) ?? '');
-          ctrl.redraw();
-          return false;
-        };
-        if (site.debug) {
-          el.ondblclick = ctxMenuCallback; // dont steal movelist right clicks from dev tools in debug
-        } else {
-          el.oncontextmenu = ctxMenuCallback; // otherwise, standard prod behavior
-        }
-        if (isTouchDevice()) {
-          el.ondblclick = ctxMenuCallback;
-          addPointerListeners(el, { hold: ctxMenuCallback });
-        }
-        el.addEventListener('pointerup', (e: PointerEvent) => {
-          if (!(e.target instanceof HTMLElement)) return;
-          if (e.target.classList.contains('disclosure') || (defined(e.button) && e.button !== 0)) return;
-          const path = eventPath(e);
-          if (path) ctrl.userJump(path);
-          this.autoScrollRequest = false;
-          ctrl.redraw();
-        });
-      }),
-      postpatch: () => {
-        if (this.autoScrollRequest) {
-          autoScroll(this.autoScrollRequest);
-          this.autoScrollRequest = false;
-        }
-      },
-    };
+    return {};
   }
 }
-
-const eventPath = (e: MouseEvent): TreePath | null => {
-  const target = e.target as HTMLElement;
-  return target.getAttribute('p') || target.parentElement!.getAttribute('p');
-};
-
-const autoScroll = throttle(200, (behavior: ScrollBehavior = 'instant') => {
-  const scrollView = document.querySelector<HTMLElement>('.analyse__moves')!;
-  const moveEl = scrollView.querySelector<HTMLElement>('.active');
-  if (!moveEl) return scrollView.scrollTo({ top: 0, behavior });
-  const [move, view] = [moveEl.getBoundingClientRect(), scrollView.getBoundingClientRect()];
-  const visibleHeight = Math.min(view.bottom, window.innerHeight) - Math.max(view.top, 0);
-  scrollView.scrollTo({
-    top: scrollView.scrollTop + move.top - view.top - (visibleHeight - move.height) / 2,
-    behavior,
-  });
-});

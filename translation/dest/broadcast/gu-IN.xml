@@ -41,11 +41,7 @@
   <string name="definitivelyDeleteTournament">આખી ટુર્નામેન્ટ, તેના બધા રાઉન્ડ અને તેની બધી રમતો ચોક્કસપણે કાઢી નાખો.</string>
   <string name="showScores">રમતના પરિણામોના આધારે ખેલાડીઓના સ્કોર્સ બતાવો</string>
   <string name="replacePlayerTags">વૈકલ્પિક: ખેલાડીઓના નામ, રેટિંગ્સ અને ટાઇટલ બદલો</string>
-  <string name="fideFederations">FIDE ફેડરેશન્સ</string>
   <string name="top10Rating">ટોચના 10 રેટિંગ</string>
-  <string name="fidePlayers">FIDE ખેલાડીઓ</string>
-  <string name="fidePlayerNotFound">FIDE પ્લેયર મળ્યું નથી</string>
-  <string name="fideProfile">FIDE પ્રોફાઇલ</string>
   <string name="federation">ફેડરેશન</string>
   <string name="age">વય</string>
   <string name="unrated">અનરેટેડ</string>
@@ -74,7 +70,6 @@
   <string name="tournamentLocation">ટુર્નામેન્ટ સ્થાન</string>
   <string name="topPlayers">ટોચના ખેલાડીઓ</string>
   <string name="timezone">સમય ઝોન</string>
-  <string name="fideRatingCategory">FIDE રેટિંગ શ્રેણી</string>
   <string name="optionalDetails">વૈકલ્પિક વિગતો</string>
   <string name="pastBroadcasts">ભૂતકાળના પ્રસારણ</string>
   <string name="allBroadcastsByMonth">મહિના પ્રમાણે બધા પ્રસારણ જુઓ</string>

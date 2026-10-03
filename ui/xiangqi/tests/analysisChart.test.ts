@@ -1,18 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { applyServerAnalysis, getNodeList, mainlineEndPath } from 'lib/tree/native';
+
 import { AnalysisChart, chartNodes } from '../src/analysisChart.ts';
-import {
-  applyServerAnalysis,
-  createMoveTreeFromUciMainline,
-  getNodeList,
-  mainlineEndPath,
-} from '../src/tree.ts';
+import { fixtureTree } from './treeFixtures';
 
 const fen = 'rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1';
 
 test('chart adapter keeps zero, missing and terminal evaluations distinct', () => {
-  const tree = createMoveTreeFromUciMainline(fen, ['a4a5', 'a7a6', 'c4c5']);
+  const tree = fixtureTree(fen, ['a4a5', 'a7a6', 'c4c5']);
   applyServerAnalysis(
     tree,
     [
@@ -31,8 +28,8 @@ test('late chart loading selects the active game and navigation uses that game',
   document.body.innerHTML = '<div id="chart"><canvas></canvas></div>';
   const container = document.querySelector<HTMLElement>('#chart')!;
   const canvas = container.querySelector('canvas')!;
-  const first = createMoveTreeFromUciMainline(fen, ['a4a5']);
-  const second = createMoveTreeFromUciMainline(fen, ['c4c5', 'c7c6']);
+  const first = fixtureTree(fen, ['a4a5']);
+  const second = fixtureTree(fen, ['c4c5', 'c7c6']);
   applyServerAnalysis(first, [{ ply: 1, cp: 50, variation: [] }], 20);
   applyServerAnalysis(
     second,
@@ -91,7 +88,7 @@ test('late chart loading selects the active game and navigation uses that game',
     assert.equal(selected, 2);
     select(1);
     assert.equal(navigated, second.root.children[0].path);
-    chart.render(createMoveTreeFromUciMainline(fen, ['e4e5']), '');
+    chart.render(fixtureTree(fen, ['e4e5']), '');
     assert.equal(container.hidden, true);
     assert.equal(destroyed, 1);
   } finally {

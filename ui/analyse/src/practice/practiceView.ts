@@ -1,7 +1,5 @@
-import type { Outcome } from 'chessops/types';
-
 import type { Prop } from 'lib';
-import { fixCrazySan } from 'lib/game/chess';
+import type { Outcome } from 'lib/tree/types';
 import { hl, type VNode, bind, onInsert, type MaybeVNodes } from 'lib/view';
 
 import type AnalyseCtrl from '@/ctrl';
@@ -24,7 +22,7 @@ const commentBest = (c: Comment, ctrl: PracticeCtrl): MaybeVNodes =>
               destroy: () => ctrl.commentShape(false),
             },
           },
-          hl('san', fixCrazySan(c.best.san)),
+          hl('move-text', c.best.notation),
         ),
       )
     : [];
@@ -42,16 +40,18 @@ const renderOffTrack = (ctrl: PracticeCtrl): VNode =>
 
 function renderEnd(root: AnalyseCtrl, end: Outcome): VNode {
   const color = end.winner || root.turnColor();
-  const isFiftyMoves = root.practice?.currentNode().fen.split(' ')[4] === '100';
   return hl('div.player', [
-    color ? hl('div.no-square', hl('piece.king.' + color)) : hl('div.icon.off', '!'),
+    color
+      ? hl('div.no-square', hl('span', i18n.site[color === 'red' ? 'red' : color]))
+      : hl('div.icon.off', '!'),
     hl('div.instruction', [
-      hl('strong', end.winner ? i18n.site.checkmate : i18n.site.draw),
+      hl(
+        'strong',
+        end.winner ? (root.node.state.checkmate ? i18n.site.checkmate : i18n.site.gameOver) : i18n.site.draw,
+      ),
       end.winner
-        ? hl('em', hl('color', i18n.site[end.winner === 'white' ? 'whiteWinsGame' : 'blackWinsGame']))
-        : isFiftyMoves
-          ? i18n.site.drawByFiftyMoves
-          : hl('em', i18n.site.theGameIsADraw),
+        ? hl('em', hl('color', i18n.site[end.winner === 'red' ? 'redWinsGame' : 'blackWinsGame']))
+        : hl('em', i18n.site.theGameIsADraw),
     ]),
   ]);
 }
@@ -59,7 +59,7 @@ function renderEnd(root: AnalyseCtrl, end: Outcome): VNode {
 function renderRunning(root: AnalyseCtrl, ctrl: PracticeCtrl): VNode {
   const hint = ctrl.hinting();
   return hl('div.player.running', [
-    hl('div.no-square', hl('piece.king.' + root.turnColor())),
+    hl('div.no-square', hl('span', i18n.site[root.turnColor() === 'red' ? 'red' : 'black'])),
     hl('div.instruction', [
       ctrl.isMyTurn() ? hl('strong', i18n.site.yourTurn) : hl('strong', i18n.site.computerThinking),
       hl(
@@ -103,9 +103,8 @@ export default function (root: AnalyseCtrl): VNode | undefined {
   const ctrl = root.practice;
   if (!ctrl) return;
   const comment: Comment | null = ctrl.comment();
-  const isFiftyMoves = ctrl.currentNode().fen.split(' ')[4] === '100';
   const running: boolean = ctrl.running();
-  const end = ctrl.currentNode().threefold || isFiftyMoves ? { winner: undefined } : root.node.outcome();
+  const end = root.node.outcome();
   return hl('div.practice-box.training-box.sub-box.' + (comment ? comment.verdict : 'no-verdict'), [
     hl('div.title', i18n.site.practiceWithComputer),
     hl(

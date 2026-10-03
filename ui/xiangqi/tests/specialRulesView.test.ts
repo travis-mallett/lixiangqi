@@ -29,7 +29,7 @@ test('special rules initializes independent authoritative widgets', async () => 
   });
   const scriptFor = (length: number) =>
     Array.from({ length }, (_, index) => ({
-      move: `a${index + 1}a${index + 1}`,
+      move: index % 2 ? 'i10i9' : 'a1a2',
       english: `M${index + 1}`,
       chinese: `中${index + 1}`,
     }));

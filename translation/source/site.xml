@@ -1143,4 +1143,16 @@ Leave empty to start games from the normal initial position.</string>
   <string name="last">Last</string>
   <string name="start">Start</string>
   <string name="embedGame">Embed your game</string>
+  <string name="noMistakesFoundForRed">No mistakes found for Red</string>
+  <string name="reviewRedMistakes">Review Red's mistakes</string>
+  <string name="tryAnotherMoveForRed">Try another move for Red</string>
+  <string name="findBetterMoveForRed">Find a better move for Red</string>
+  <string name="redIsVictorious">Red is victorious</string>
+  <string name="doneReviewingRedMistakes">Done reviewing Red mistakes</string>
+  <string name="redWinsGame">Red wins</string>
+  <string name="red">Red</string>
+  <string name="showAll">Show all</string>
+  <string name="loading">Loading…</string>
+  <string name="focusMoveInput">Press m to enter a move</string>
+  <string name="enterXiangqiMove">Enter a coordinate, WXF, or Chinese move</string>
 </resources>

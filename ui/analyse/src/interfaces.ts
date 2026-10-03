@@ -2,7 +2,16 @@ import type { VNode } from 'snabbdom';
 
 import type { ExternalEngineInfo } from 'lib/ceval';
 import type { ChatCtrl, ChatPlugin, ChatOpts } from 'lib/chat/interfaces';
-import type { Player, Status, Source, Clock, MoveTimeLimit, XiangqiNotationStyle } from 'lib/game';
+import type {
+  Player as BasePlayer,
+  Status,
+  Source,
+  Clock,
+  MoveTimeLimit,
+  XiangqiNotationStyle,
+} from 'lib/game';
+import type { XiangqiSide as Color } from 'lib/game/xiangqi';
+import type { RulesPosition } from 'lib/game/xiangqiNotation';
 import type { Coords, MoveEvent } from 'lib/prefs';
 import type { EnhanceOpts } from 'lib/richText';
 import type {
@@ -20,6 +29,8 @@ import type { AnalyseSocketSend } from './socket';
 import type { StudyDataFromServer } from './study/interfaces';
 import type { RelayData } from './study/relay/interfaces';
 import type * as studyDeps from './study/studyDeps';
+
+export type Player = Omit<BasePlayer, 'color'> & { color: Color };
 
 export interface NvuiPlugin {
   render(deps?: typeof studyDeps): VNode;
@@ -43,8 +54,7 @@ export interface AnalyseData {
   analysis?: Analysis;
   userAnalysis: boolean;
   forecast?: ForecastData;
-  sidelines?: TreeNode[][];
-  treeParts: TreeNodeBase[];
+  tree: TreeNodeBase;
   clock?: Clock;
   pref: AnalysePref;
   userTv?: {
@@ -56,7 +66,6 @@ export interface AnalyseData {
 export interface AnalysePref {
   coords: Coords;
   showDests?: boolean;
-  rookCastle?: boolean;
   destination?: boolean;
   highlight?: boolean;
   showCaptured?: boolean;
@@ -74,6 +83,7 @@ export interface ServerEvalData {
 }
 
 export interface EvalHit {
+  position: RulesPosition;
   fen: FEN;
   knodes: number;
   depth: number;
@@ -82,6 +92,7 @@ export interface EvalHit {
 }
 
 export interface EvalHitMulti extends EvalScore {
+  position: RulesPosition;
   fen: FEN;
 }
 
@@ -107,7 +118,6 @@ export interface Game {
   division?: Division;
   perf: string;
   rated?: boolean;
-  threefold?: boolean;
   moveTime?: MoveTimeLimit;
 }
 
@@ -119,7 +129,7 @@ export interface Division {
 export interface Analysis {
   id: string;
   nodesPerMove: number;
-  white: AnalysisSide;
+  red: AnalysisSide;
   black: AnalysisSide;
   partial?: boolean;
 }
@@ -165,15 +175,14 @@ export interface JustCaptured extends Piece {
 }
 
 export interface EvalGetData {
-  fen: FEN;
+  position: RulesPosition;
   path: string;
-  variant?: VariantKey;
   mpv?: number;
   up?: boolean;
 }
 
-export interface EvalPutData extends ServerEval {
-  variant?: VariantKey;
+export interface EvalPutData extends Omit<ServerEval, 'fen'> {
+  position: RulesPosition;
 }
 
 export type Conceal = false | 'conceal' | 'hide' | null;

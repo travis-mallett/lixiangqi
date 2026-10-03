@@ -27,7 +27,7 @@ class GameAnalysisImportTest extends munit.FunSuite:
     assertEquals(result.infos.head.best, Some("b1c3"))
     assertEquals(
       result.infos.head.variation.map(_.value),
-      List(XiangqiRules.wxf(Xiangqi.startFen, Xiangqi.Uci.unsafe("b1c3")).toOption.get)
+      List("b1c3")
     )
 
   test("incomplete games, missing nonterminal scores, and illegal best moves are rejected"):
@@ -111,8 +111,24 @@ class GameAnalysisImportTest extends munit.FunSuite:
         val legacy = analysis(20).copy(id = Analysis.Id(GameId("legacy01")), depth = None)
         waitFor(repo.save(legacy, None))
         waitFor(repo.save(legacy.copy(depth = Some(30)), None))
-        // Without retained depth there is no evidence that replacement improves it.
-        assertEquals(waitFor(repo.current(legacy.id)).flatMap(_.depth), None)
+        assertEquals(waitFor(repo.current(legacy.id)).flatMap(_.depth), Some(30))
+
+        val chapterId = StudyChapterId("native01")
+        val studyId = Analysis.Id.Study(StudyId("study001"), chapterId)
+        val firstSource = analysis(40).copy(id = studyId, date = java.time.Instant.ofEpochSecond(10))
+        val revisedSource = firstSource.copy(
+          position = game.position.copy(moves = game.moves.take(1)),
+          infos = firstSource.infos.take(1),
+          depth = Some(20),
+          date = java.time.Instant.ofEpochSecond(20)
+        )
+        waitFor(repo.save(firstSource, None))
+        waitFor(repo.save(revisedSource, None))
+        waitFor(repo.save(firstSource.copy(depth = Some(60)), None))
+        assertEquals(waitFor(repo.current(studyId)), Some(revisedSource))
+        waitFor(repo.removeChapters(List(chapterId)))
+        assertEquals(waitFor(repo.current(studyId)), None)
+        assertEquals(waitFor(repo.current(id)).flatMap(_.depth), Some(40))
 
         val games = new lila.game.GameRepo(database.collection[Coll]("games"))
         val native = lila.core.game

@@ -4,7 +4,7 @@ import com.softwaremill.macwire.*
 
 import lila.core.config.CollName
 import lila.core.lilaism.Lilaism.*
-import lila.core.user.PublicFideIdOf
+import lila.core.user.PublicPlayerIdOf
 
 @Module
 final class Env(
@@ -22,7 +22,7 @@ final class Env(
 
   val api = wire[TitleApi]
 
-  val fideIdOf: PublicFideIdOf = api.publicFideIdOf.apply
+  val playerIdOf: PublicPlayerIdOf = api.publicPlayerIdOf.apply
 
   val form = TitleForm
 

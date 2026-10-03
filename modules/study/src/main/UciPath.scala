@@ -1,6 +1,7 @@
 package lila.study
 
-import chess.format.UciPath
+import lila.xiangqi.UciPath
+import lila.xiangqi.XiangqiJson.given
 
 import lila.tree.Node
 
@@ -25,10 +26,10 @@ private[study] object UciPathDb:
 
   // mongodb objects don't support '.' and '$' in keys
   def encodeDbKey(path: UciPath): String =
-    path.value.replace('.', 144.toChar).replace('$', 145.toChar)
+    path.value
 
   def decodeDbKey(key: String): UciPath =
-    UciPath(key.replace(144.toChar, '.').replace(145.toChar, '$'))
+    UciPath(key)
 
   def isMainline(node: Node, path: UciPath): Boolean =
     path.split.forall: (id, rest) =>

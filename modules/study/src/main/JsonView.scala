@@ -1,6 +1,9 @@
 package lila.study
 
-import chess.Square
+import lila.xiangqi.XiangqiGlyph.{ Glyph, Glyphs }
+
+import lila.xiangqi.Xiangqi.Square
+import lila.xiangqi.XiangqiJson.given
 import play.api.libs.json.*
 
 import lila.common.Json.{ *, given }
@@ -17,42 +20,6 @@ final class JsonView(
 
   import JsonView.given
 
-  /** Add the native rules data consumed by the shared analysis tree. */
-  def xiangqiNode(js: JsObject, parentFen: Option[String] = none): JsObject =
-    val withNotation =
-      (parentFen, js.str("uci"))
-        .mapN: (fen, encodedUci) =>
-          Xiangqi.Uci
-            .from(encodedUci.replace(":", "10"))
-            .flatMap(XiangqiRules.chinese(fen, _))
-            .toOption
-            .fold(js)(sanZh => js + ("sanZh" -> JsString(sanZh)))
-        .getOrElse(js)
-    withNotation
-      .str("fen")
-      .flatMap(fen => XiangqiRules.position(Xiangqi.Position(initialFen = fen)).toOption)
-      .fold(withNotation): state =>
-        withNotation ++ Json.obj(
-          "xiangqiLegalMoves" -> state.legalMoves.map(_.value),
-          "xiangqiCheck" -> state.check
-        )
-
-  def xiangqiTree(js: JsValue): JsValue = enrichXiangqiTree(js, none)
-
-  private def enrichXiangqiTree(js: JsValue, parentFen: Option[String]): JsValue = js match
-    case array: JsArray =>
-      var previousFen = parentFen
-      JsArray:
-        array.value.map: value =>
-          val enriched = enrichXiangqiTree(value, previousFen)
-          previousFen = enriched.asOpt[JsObject].flatMap(_.str("fen")).orElse(previousFen)
-          enriched
-    case obj: JsObject =>
-      val currentFen = obj.str("fen")
-      val children = obj.value.get("children").map(enrichXiangqiTree(_, currentFen))
-      xiangqiNode(children.fold(obj)(value => obj + ("children" -> value)), parentFen)
-    case other => other
-
   def full(
       study: Study,
       chapter: Chapter,
@@ -67,7 +34,7 @@ final class JsonView(
     for
       liked <- me.so(studyRepo.liked(study, _))
       relayPath = chapter.relay
-        .filter(_.secondsSinceLastMove.exists(_ < 3600) || chapter.tags.outcome.isEmpty)
+        .filter(_.secondsSinceLastMove.exists(_ < 3600) || StudyPgnTags.points(chapter.tags).isEmpty)
         .map(_.path)
         .filterNot(_.isEmpty)
       jsStudy =
@@ -166,30 +133,33 @@ object JsonView:
 
   case class JsData(study: JsObject, analysis: JsObject)
 
-  def analysisTree(chapter: Chapter, resolved: ChapterAnalysis.Result, lichobile: Boolean): JsValue =
-    val tree = lila.tree.Node.partitionTreeWriter(chapter.root, lichobile)
-    if resolved.sourceGame.isEmpty then tree
-    else
-      import lila.tree.evals.jsonWrites
-      val infos = resolved.analysis.toList.flatMap(_.infos).map(info => info.ply.value -> info.eval).toMap
-      // The partition contains only mainline positions at its top level. Variations,
-      // comments, and existing chapter evaluations keep their own annotations.
-      JsArray:
-        tree
-          .as[JsArray]
-          .value
-          .map: node =>
-            val obj = node.as[JsObject]
-            infos.get((obj \ "ply").as[Int]).filterNot(_.isEmpty) match
-              case Some(eval) if !obj.keys.contains("eval") =>
-                obj + ("eval" -> (Json.toJson(eval).as[JsObject] + ("sourceGame" -> JsBoolean(true))))
-              case _ => obj
+  def analysisTree(chapter: Chapter, resolved: ChapterAnalysis.Result): JsValue =
+    import lila.tree.evals.jsonWrites
+    val infos = if resolved.sourceGame.isEmpty then Map.empty[Int, lila.tree.Eval]
+    else resolved.analysis.toList.flatMap(_.infos).map(info => info.ply.value -> info.eval).toMap
+    val mainline =
+      java.util.Collections.newSetFromMap(new java.util.IdentityHashMap[lila.tree.Node, java.lang.Boolean]())
+    chapter.root.mainline.foreach(mainline.add)
+    lila.tree.Node.writeJson(
+      chapter.root,
+      node =>
+        node.eval
+          .filterNot(_.isEmpty)
+          .map(e => Json.toJson(e).as[JsObject])
+          .orElse(
+            Option
+              .when(mainline.contains(node))(infos.get(node.ply.value))
+              .flatten
+              .filterNot(_.isEmpty)
+              .map(e => Json.toJson(e).as[JsObject] + ("sourceGame" -> JsBoolean(true)))
+          )
+    )
 
   private[study] def chapterServerEval(chapter: Chapter, resolved: ChapterAnalysis.Result): Option[JsObject] =
     resolved.sourceGame
       .map: id =>
         Json.obj("done" -> true, "path" -> chapter.root.mainlinePath, "sourceGame" -> id)
-      .orElse(chapter.serverEval.map(Json.toJsObject(_)))
+      .orElse(chapter.serverEval.filter(_.path == chapter.root.mainlinePath).map(Json.toJsObject(_)))
 
   given OWrites[lila.core.study.IdName] = Json.writes
 
@@ -202,45 +172,43 @@ object JsonView:
 
   def glyphs(using Translate): JsObject =
     import lila.core.i18n.I18nKey.study as trans
-    import chess.format.pgn.Glyph
+
     import Glyph.MoveAssessment.*
     import Glyph.PositionAssessment.*
     import Glyph.Observation.*
     Json.obj(
       "move" -> List(
-        good.copy(name = trans.goodMove.txt()),
-        mistake.copy(name = trans.mistake.txt()),
-        brilliant.copy(name = trans.brilliantMove.txt()),
-        blunder.copy(name = trans.blunder.txt()),
-        interesting.copy(name = trans.interestingMove.txt()),
-        dubious.copy(name = trans.dubiousMove.txt()),
-        only.copy(name = trans.onlyMove.txt()),
-        zugzwang.copy(name = trans.zugzwang.txt())
+        good.withName(trans.goodMove.txt()),
+        mistake.withName(trans.mistake.txt()),
+        brilliant.withName(trans.brilliantMove.txt()),
+        blunder.withName(trans.blunder.txt()),
+        interesting.withName(trans.interestingMove.txt()),
+        dubious.withName(trans.dubiousMove.txt()),
+        only.withName(trans.onlyMove.txt()),
+        zugzwang.withName(trans.zugzwang.txt())
       ),
       "position" -> List(
-        equal.copy(name = trans.equalPosition.txt()),
-        unclear.copy(name = trans.unclearPosition.txt()),
-        whiteSlightlyBetter.copy(name = trans.whiteIsSlightlyBetter.txt()),
-        blackSlightlyBetter.copy(name = trans.blackIsSlightlyBetter.txt()),
-        whiteQuiteBetter.copy(name = trans.whiteIsBetter.txt()),
-        blackQuiteBetter.copy(name = trans.blackIsBetter.txt()),
-        whiteMuchBetter.copy(name = trans.whiteIsWinning.txt()),
-        blackMuchBetter.copy(name = trans.blackIsWinning.txt())
+        equal.withName(trans.equalPosition.txt()),
+        unclear.withName(trans.unclearPosition.txt()),
+        redSlightlyBetter.withName(trans.redIsSlightlyBetter.txt()),
+        blackSlightlyBetter.withName(trans.blackIsSlightlyBetter.txt()),
+        redQuiteBetter.withName(trans.redIsBetter.txt()),
+        blackQuiteBetter.withName(trans.blackIsBetter.txt()),
+        redMuchBetter.withName(trans.redIsWinning.txt()),
+        blackMuchBetter.withName(trans.blackIsWinning.txt())
       ),
       "observation" -> List(
-        novelty.copy(name = trans.novelty.txt()),
-        development.copy(name = trans.development.txt()),
-        initiative.copy(name = trans.initiative.txt()),
-        attack.copy(name = trans.attack.txt()),
-        counterplay.copy(name = trans.counterplay.txt()),
-        timeTrouble.copy(name = trans.timeTrouble.txt()),
-        compensation.copy(name = trans.withCompensation.txt()),
-        withIdea.copy(name = trans.withTheIdea.txt())
+        novelty.withName(trans.novelty.txt()),
+        development.withName(trans.development.txt()),
+        initiative.withName(trans.initiative.txt()),
+        attack.withName(trans.attack.txt()),
+        counterplay.withName(trans.counterplay.txt()),
+        timeTrouble.withName(trans.timeTrouble.txt()),
+        compensation.withName(trans.withCompensation.txt()),
+        withIdea.withName(trans.withTheIdea.txt())
       )
     )
 
-  private given Reads[Square] = Reads: v =>
-    (v.asOpt[String].flatMap { Square.fromKey(_) }).fold[JsResult[Square]](JsError(Nil))(JsSuccess(_))
   private[study] given Writes[Sri] = writeAs(_.value)
   private[study] given Writes[lila.core.study.Visibility] = writeAs(_.toString)
   private[study] given Writes[Study.From] = Writes:
@@ -251,20 +219,6 @@ object JsonView:
   private[study] given Writes[Settings.UserSelection] = Writes(v => JsString(v.key))
   private[study] given Writes[Settings] = Json.writes
 
-  private[study] given Reads[Shape] = Reads:
-    _.asOpt[JsObject]
-      .flatMap { o =>
-        for
-          brush <- o.str("brush")
-          orig <- o.get[Square]("orig")
-        yield o.get[Square]("dest") match
-          case Some(dest) => Shape.Arrow(brush, orig, dest)
-          case _ => Shape.Circle(brush, orig)
-      }
-      .fold[JsResult[Shape]](JsError(Nil))(JsSuccess(_))
-
-  given OWrites[chess.variant.Variant] = OWrites: v =>
-    Json.obj("key" -> v.key, "name" -> v.name)
   given Writes[chess.format.pgn.Tag] = Writes: t =>
     Json.arr(t.name.toString, t.value)
   given Writes[chess.format.pgn.Tags] = Writes: tags =>

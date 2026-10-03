@@ -9,6 +9,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 from tools.xiangqi_data.puzzle_mining import verification as verifier
+from tools.xiangqi_data.puzzle_mining import workers
 from tools.xiangqi_data.puzzle_mining.engine import OfflinePikafish
 from tools.xiangqi_data.puzzle_mining.workers import WorkerClaimLost
 
@@ -132,7 +133,7 @@ class VerificationWorkerTest(unittest.TestCase):
                 dashboard = Mock()
                 for name, value in {
                     "parse_args": Mock(return_value=args),
-                    "open_database": Mock(return_value=db),
+                    "open_database_when_ready": Mock(return_value=db),
                     "OfflinePikafish": Mock(),
                     "verification_signature": Mock(return_value="signature"),
                     "seed_verification": Mock(),
@@ -150,6 +151,32 @@ class VerificationWorkerTest(unittest.TestCase):
                 dashboard.finish.assert_called_once_with(
                     "Verification stopped by an error"
                 )
+
+
+class SupervisorWatchdogTest(unittest.TestCase):
+    class _Supervisor:
+        def __init__(self, alive):
+            self.alive = alive
+
+        def is_alive(self):
+            return self.alive
+
+    def test_worker_stops_when_its_supervisor_disappears(self):
+        stop = threading.Event()
+        with patch.object(workers.mp, "parent_process", return_value=self._Supervisor(False)):
+            workers.watch_supervisor(stop, interval=0.01)
+            self.assertTrue(stop.wait(5))
+
+    def test_running_supervisor_leaves_its_workers_alone(self):
+        stop = threading.Event()
+        try:
+            with patch.object(
+                workers.mp, "parent_process", return_value=self._Supervisor(True)
+            ):
+                workers.watch_supervisor(stop, interval=0.01)
+                self.assertFalse(stop.wait(0.2))
+        finally:
+            stop.set()
 
 
 if __name__ == "__main__":

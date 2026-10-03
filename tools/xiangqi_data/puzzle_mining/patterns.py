@@ -137,10 +137,16 @@ DOUBLE_CANNONS_THEME = "doubleCannons"
 DOUBLE_CANNONS_LOGIC_VERSION = "1.0"
 DOUBLE_CHARIOTS_THEME = "doubleChariotsMate"
 DOUBLE_CHARIOTS_LOGIC_VERSION = "1.1"
+REPATRIATION_THEME = "repatriationOfBuddha"
+REPATRIATION_VERSION = "1.0"
 THREE_IMMORTALS_THEME = "threeImmortalsRefiningTheElixir"
 THREE_IMMORTALS_VERSION = "1.0"
 DOUBLE_GHOSTS_THEME = "doubleGhostsKnocking"
 DOUBLE_GHOSTS_VERSION = "1.1"
+CANNON_CHARIOT_DISCOVERED_THEME = "cannonChariotDiscoveredAttack"
+CANNON_CHARIOT_DISCOVERED_VERSION = "1.0"
+DETONATING_MINE_THEME = "detonatingMineAttack"
+DETONATING_MINE_VERSION = "1.0"
 CHARIOTS_THREATENING_ADVISOR_THEME = "doubleChariotsThreateningAdvisor"
 CHARIOTS_THREATENING_ADVISOR_LOGIC_VERSION = "2.0"
 THROAT_CUTTING_THEME = "throatCuttingMate"
@@ -837,6 +843,9 @@ CHECKMATE_MATCHERS: tuple[PatternMatcher, ...] = (
         and bool(white_faced_general_escape_positions(terminal)),
     ),
     PatternMatcher(
+        REPATRIATION_THEME, REPATRIATION_VERSION, lambda terminal: terminal.checkmate
+    ),
+    PatternMatcher(
         THREE_IMMORTALS_THEME,
         THREE_IMMORTALS_VERSION,
         lambda terminal: terminal.checkmate,
@@ -844,6 +853,16 @@ CHECKMATE_MATCHERS: tuple[PatternMatcher, ...] = (
     PatternMatcher(
         DOUBLE_GHOSTS_THEME,
         DOUBLE_GHOSTS_VERSION,
+        lambda terminal: terminal.checkmate,
+    ),
+    PatternMatcher(
+        CANNON_CHARIOT_DISCOVERED_THEME,
+        CANNON_CHARIOT_DISCOVERED_VERSION,
+        lambda terminal: terminal.checkmate,
+    ),
+    PatternMatcher(
+        DETONATING_MINE_THEME,
+        DETONATING_MINE_VERSION,
         lambda terminal: terminal.checkmate,
     ),
     PatternMatcher(

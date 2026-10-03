@@ -14,10 +14,12 @@
     "editor": "workspace:*",
     "keyboard-move": "workspace:*",
     "lib": "workspace:*",
+    "xiangqi": "workspace:*",
     "prop-types": "^15.8.1",
     "shepherd.js": "11.2.0",
     "sortablejs": "^1.15.6",
-    "@lixiangqi/board": "workspace:*"
+    "@lixiangqi/board": "workspace:*",
+    "@lixiangqi/explorer": "workspace:*"
   },
   "build": {
     "bundle": "src/**/analyse.*ts",

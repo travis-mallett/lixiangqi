@@ -24,8 +24,14 @@ final class TitleModUi(helpers: Helpers)(ui: TitleUi)(using NetDomain):
       )
     )
 
-  def show(req: TitleRequest, user: User, fide: Option[Frag], similar: List[TitleRequest], modZone: Frag)(
-      using Context
+  def show(
+      req: TitleRequest,
+      user: User,
+      directory: Option[Frag],
+      similar: List[TitleRequest],
+      modZone: Frag
+  )(using
+      Context
   ) =
     def pictureIfGranted(idOpt: Option[ImageId]) =
       idOpt.flatMap: id =>
@@ -80,13 +86,13 @@ final class TitleModUi(helpers: Helpers)(ui: TitleUi)(using NetDomain):
               tr(th("Coach"), td(if req.data.coach then goodTag("Yes") else badTag("No"))),
               tr(th("Real name"), td(req.data.realName)),
               tr(
-                th("FIDE profile"),
+                th("Xiangqi player profile"),
                 td(
-                  req.data.fideId match
+                  req.data.playerId match
                     case Some(id) =>
-                      fide match
+                      directory match
                         case Some(found) => found
-                        case None => badTag("Invalid FIDE ID: ", strong(id))
+                        case None => badTag("Invalid Xiangqi player ID: ", strong(id))
                     case None => "None"
                 )
               ),

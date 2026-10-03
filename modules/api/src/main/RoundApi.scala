@@ -182,7 +182,7 @@ final private[api] class RoundApi(
               pov,
               pref,
               initialFen,
-              orientation,
+              if orientation.white then lila.xiangqi.Xiangqi.Side.Red else lila.xiangqi.Xiangqi.Side.Black,
               owner = owner,
               notationStyle = notationStyle
             )
@@ -194,7 +194,7 @@ final private[api] class RoundApi(
       @annotation.unused initialFen: Option[Fen.Full],
       withFlags: ExportOptions
   )(obj: JsObject) =
-    obj + ("treeParts" -> lila.tree.XiangqiTreeJson(pov.game, analysis, withFlags))
+    obj + ("tree" -> lila.tree.XiangqiTreeJson(pov.game, analysis, withFlags))
 
   private def withSteps(pov: Pov)(obj: JsObject) =
     obj + ("steps" -> lila.round.StepBuilder(pov.game))

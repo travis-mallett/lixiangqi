@@ -105,4 +105,17 @@ This setting only affects what you see. Ranked games will still affect your Xian
   <string name="analysisSettings">Analysis settings</string>
   <string name="maneuverArrowsHelp">Sequence of engine moves for one piece</string>
   <string name="hoverOverSettingLabelsForHelp">Hover over setting labels for help</string>
+  <string name="showCheckableGeneral">Show checkable general</string>
+  <string name="showStaticAnalysisHelp">Show saved engine evaluations, the evaluation graph, and annotations.</string>
+  <string name="showGaugeHelp">The gauge shows which side the engine favors: Red or Black.</string>
+  <string name="inlineHelp">Display moves in a continuous line, including variations and comments.</string>
+  <string name="disclosureModeHelp">Expand or collapse move branches to focus on the line you are studying.</string>
+  <string name="showLiveAnnotationsHelp">Show move-quality symbols from the current engine analysis.</string>
+  <string name="showBestMoveArrowsHelp">Show the engine’s highest-ranked move as an arrow on the board.</string>
+  <string name="showVariationArrowsHelp">Show arrows for engine alternatives. Use Shift to cycle between them.</string>
+  <string name="showManeuverMoveArrowsHelp">Show consecutive engine moves by the same piece.</string>
+  <string name="showMoveAnnotationsOnBoardHelp">Show annotation symbols beside the piece that moved.</string>
+  <string name="showUndefendedPiecesHelp">Highlight pieces that an opponent can capture with a material gain.</string>
+  <string name="showPinnedPiecesHelp">Highlight pieces shielding a more valuable piece from an attack.</string>
+  <string name="showCheckableGeneralHelp">Highlight generals that can be checked, with an arrow for the checking move.</string>
 </resources>

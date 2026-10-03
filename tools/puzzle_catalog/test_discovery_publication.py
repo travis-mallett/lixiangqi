@@ -10,9 +10,10 @@ import unittest
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
 
 from tools.puzzle_catalog.discovery_publication import (
+    UPLOAD_RETRY_DELAYS,
     connect_discovery,
     pending_analysis_jobs,
     publish_pending_analysis,
@@ -75,7 +76,7 @@ class DiscoveryPublicationTest(unittest.TestCase):
         self.deliver(job_id)
         self.assertEqual(self.server.depths, {"native01": 20})
         self.assertEqual(len(self.server.uploads), 1)
-        self.stop.wait.assert_called_once_with(1)
+        self.stop.wait.assert_called_once_with(UPLOAD_RETRY_DELAYS[0])
         self.assertEqual(pending_analysis_jobs(self.db, self.origin), [])
 
     def test_depth_rule_and_other_origins(self):
@@ -95,7 +96,10 @@ class DiscoveryPublicationTest(unittest.TestCase):
         self.server.request = Mock(side_effect=OSError("offline"))
         with self.assertRaisesRegex(RuntimeError, "saved locally"):
             self.deliver(job_id)
-        self.assertEqual(self.server.request.call_count, 3)
+        self.assertEqual(self.server.request.call_count, len(UPLOAD_RETRY_DELAYS) + 1)
+        self.assertEqual(
+            self.stop.wait.call_args_list, [call(delay) for delay in UPLOAD_RETRY_DELAYS]
+        )
         self.assertEqual(pending_analysis_jobs(self.db, self.origin), [job_id])
         self.assertEqual(
             self.db.execute("SELECT status FROM game_jobs").fetchone()[0], "complete"

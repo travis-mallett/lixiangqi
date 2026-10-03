@@ -16,13 +16,19 @@ body {
   background: $c-bg-box;
 }
 
-button,
-select {
+button {
   color: inherit;
   background: $c-bg-box;
   border: 1px solid $c-border;
   border-radius: 3px;
   cursor: pointer;
+}
+
+input {
+  color: inherit;
+  background: $c-bg-box;
+  border: 1px solid $c-border;
+  border-radius: 3px;
 }
 
 button:disabled {

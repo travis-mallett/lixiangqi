@@ -39,11 +39,7 @@
   <string name="definitivelyDeleteTournament">永久删除整个锦标赛、其所有轮次及所有对局。</string>
   <string name="showScores">根据对局结果显示棋手得分</string>
   <string name="replacePlayerTags">可选：替换棋手姓名、等级分和头衔</string>
-  <string name="fideFederations">FIDE 成员国/地区</string>
   <string name="top10Rating">前 10 名等级分</string>
-  <string name="fidePlayers">FIDE 棋手</string>
-  <string name="fidePlayerNotFound">未找到 FIDE 棋手</string>
-  <string name="fideProfile">FIDE 档案</string>
   <string name="federation">所属协会</string>
   <string name="age">年龄</string>
   <string name="unrated">无等级分</string>
@@ -74,7 +70,6 @@
   <string name="tournamentLocation">锦标赛地点</string>
   <string name="topPlayers">顶尖棋手</string>
   <string name="timezone">时区</string>
-  <string name="fideRatingCategory">FIDE 等级分类别</string>
   <string name="optionalDetails">可选详细信息</string>
   <string name="pastBroadcasts">往期转播</string>
   <string name="allBroadcastsByMonth">按月查看所有转播</string>
@@ -107,4 +102,12 @@
   <string name="knockouts">淘汰赛</string>
   <string name="underXAgeTournament" comment="%s is the maximum age set by the organiser for a tournament. e.g.    'U18' will mean it is an tournament for under-18 years.    Please use your language's conventions in sporting activities for how the 'U' should be translated and keep it short.">U%s</string>
   <string name="underXEloTournament" comment="%s is the maximum Elo rating set by the organiser for a tournament.     e.g. 'U2000' will mean it is an tournament for players with Elo under 2000.    Please use your language's conventions in sporting activities for how the 'U' should be translated and keep it short.">U%s</string>
+    <string name="directoryPlayers">象棋棋手</string>
+    <string name="directoryPlayerNotFound">未找到象棋棋手</string>
+    <string name="playerFederations">棋手协会</string>
+    <string name="directoryProfile">棋手资料</string>
+    <string name="ratingCategory">等级分类型</string>
+    <string name="playerSource">来源</string>
+    <string name="playerSourceDate">发布日期</string>
+    <string name="directoryUnavailable">没有对应的象棋棋手资料。</string>
 </resources>

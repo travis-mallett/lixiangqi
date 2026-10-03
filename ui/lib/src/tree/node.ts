@@ -1,70 +1,67 @@
-import { Result } from '@badrap/result';
 import { moveDestinations } from '@lixiangqi/board';
-import { type Position, parseUci, makeSquare } from 'chessops';
-import { chessgroundDests, lichessRules, scalachessCharPair } from 'chessops/compat';
-import { parseFen } from 'chessops/fen';
-import { setupPosition } from 'chessops/variant';
 
-import { memoize } from '@/common';
+import type { RulesState } from '../game/xiangqiNotation';
+import { ids, append } from './path';
+import type { Outcome, TreeNode, TreeNodeBase } from './types';
 
-import type { PositionResult, TreeNode, TreeNodeBase } from './types';
-
-// mutates and returns the node
-export const completeNode =
-  (variant: VariantKey) =>
-  (from: TreeNodeBase): TreeNode => {
-    const node = from as TreeNode;
-    if (variant === 'xiangqi') {
-      if (node.uci && !node.id) throw new Error('A Xiangqi tree branch requires a two-character path ID');
-      node.id ??= '';
-      node.children ||= [];
-      node.pos ||= memoize(() =>
-        Result.err(new Error('Xiangqi positions come from the native rules boundary')),
-      );
-      node.dests ||= memoize(() => xiangqiTreeDestinations(node.xiangqiLegalMoves ?? []));
-      node.drops ||= memoize(() => []);
-      node.check ||= memoize(() => node.xiangqiCheck ?? false);
-      node.outcome ||= memoize(() => undefined);
-      node.children.forEach(completeNode(variant));
-      return node;
-    }
-    node.id ||= node.uci ? scalachessCharPair(parseUci(node.uci)!) : '';
-    node.children ||= [];
-    node.pos ||= memoize(() =>
-      parseFen(node.fen).chain(setup => setupPosition(lichessRules(variant), setup)),
-    );
-    node.dests = memoize(() => computeDests(node.pos(), variant === 'chess960'));
-    node.drops = memoize(() => computeDrops(variant, node.pos()));
-    node.check = memoize(() => computeCheck(node.pos()));
-    node.outcome ||= memoize(() => computeOutcome(node.pos()));
-    node.children.forEach(completeNode(variant));
-    return node;
-  };
-
-const computeDests = (position: PositionResult, chess960: boolean) =>
-  withPosition<Dests>(position, new Map(), p => chessgroundDests(p, { chess960 }));
-
-const computeDrops = (variant: VariantKey, position: PositionResult): Key[] | undefined =>
-  variant === 'crazyhouse'
-    ? withPosition(position, undefined, p => Array.from(p.dropDests(), makeSquare))
-    : [];
-
-const computeCheck = (position: PositionResult) => withPosition(position, false, p => p.isCheck());
-
-const computeOutcome = (position: PositionResult) => withPosition(position, undefined, p => p.outcome());
-
-const withPosition = <A>(position: PositionResult, defaultValue: A, f: (p: Position) => A): A =>
-  position.unwrap(f, err => {
-    console.error(err);
-    return defaultValue;
+/** Rules state is produced by replaying root FEN and the branch history at the native rules boundary. */
+export function completeNode(from: TreeNodeBase, parentPath = ''): TreeNode {
+  const node = from as TreeNode;
+  if (node.uci) {
+    if (ids(node.uci).length !== 1) throw new Error('Invalid Xiangqi move identity');
+    if (node.id && node.id !== node.uci)
+      throw new Error('Tree move identity differs from its coordinate move');
+    node.id = node.uci;
+  } else node.id = '';
+  if (!node.state || node.state.fen !== node.fen || node.state.ply !== node.ply)
+    throw new Error('Tree position is missing its native rules state');
+  if (
+    !Number.isSafeInteger(node.ply) ||
+    node.ply < 0 ||
+    !['red', 'black'].includes(node.state.turn) ||
+    !Array.isArray(node.state.legalMoves)
+  )
+    throw new Error('Invalid native tree position');
+  for (const move of node.state.legalMoves)
+    if (ids(move).length !== 1) throw new Error('Invalid legal Xiangqi move');
+  if (node.glyphs?.some(glyph => !Number.isInteger(glyph.id) || glyph.id < 0 || glyph.id > 255))
+    throw new Error('Invalid annotation symbol');
+  if (
+    node.shapes?.some(
+      shape =>
+        !/^[a-i](?:10|[1-9])$/.test(shape.orig) ||
+        (shape.dest !== undefined && !/^[a-i](?:10|[1-9])$/.test(shape.dest)),
+    )
+  )
+    throw new Error('Invalid Xiangqi annotation location');
+  if (
+    [node.clock, node.elapsed].some(time => time !== undefined && (!Number.isSafeInteger(time) || time < 0))
+  )
+    throw new Error('Invalid clock annotation');
+  node.path = node.id ? append(parentPath, node.id) : parentPath;
+  node.children ||= [];
+  if (new Set(node.children.map(child => child.uci)).size !== node.children.length)
+    throw new Error('Duplicate tree branch');
+  node.dests = () => moveDestinations(node.state.legalMoves);
+  node.check = () => node.state.check;
+  node.outcome = () => xiangqiOutcome(node.state);
+  node.children.forEach(child => {
+    if (!child.uci || child.ply !== node.ply + 1) throw new Error('Invalid Xiangqi branch');
+    completeNode(child, node.path);
   });
-
-/** The existing study tree wire format uses two-character squares. Boards consume canonical locations. */
-export function xiangqiTreeDestinations(moves: readonly string[]): Dests {
-  return new Map(
-    [...moveDestinations(moves)].map(([from, to]) => [
-      from.replaceAll('10', ':'),
-      to.map(key => key.replaceAll('10', ':')),
-    ]),
-  ) as Dests;
+  return node;
 }
+
+export function xiangqiOutcome(state: RulesState): Outcome | undefined {
+  switch (state.gameResult) {
+    case '1-0':
+      return { winner: 'red' };
+    case '0-1':
+      return { winner: 'black' };
+    case '1/2-1/2':
+      return {};
+    default:
+      return undefined;
+  }
+}
+export const xiangqiTreeDestinations: typeof moveDestinations = moveDestinations;

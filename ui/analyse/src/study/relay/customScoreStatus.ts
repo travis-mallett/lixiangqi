@@ -1,13 +1,12 @@
-import { opposite } from 'chessops/util';
-
 import { defined } from 'lib';
+import { type XiangqiSide as Color, oppositeSide as opposite } from 'lib/game/xiangqi';
 import { hl, type LooseVNodes, type VNodeChildElement } from 'lib/view';
 
 import type { GamePointsStr } from '../interfaces';
 import type { CustomScoring, RelayRound } from './interfaces';
 
-type ServerPoint = '1' | '0' | '½';
-const points = (point: ServerPoint) => parseFloat(point.replace('½', '.5'));
+type ServerPoint = '1' | '0' | '1/2';
+const points = (point: ServerPoint) => (point === '1/2' ? 0.5 : Number(point));
 const colorClass = (point: ServerPoint) =>
   points(point) === 1 ? 'good' : points(point) === 0 ? 'bad' : 'status';
 
@@ -15,8 +14,8 @@ export const withCustomScore = (
   point: ServerPoint,
   color: Color,
   customScoring?: CustomScoring | number,
-): number | ServerPoint => {
-  if (!defined(customScoring)) return point;
+): number | '½' | ServerPoint => {
+  if (!defined(customScoring)) return point === '1/2' ? '½' : point;
   const base = points(point);
   const p =
     typeof customScoring === 'number'
@@ -47,7 +46,7 @@ export const playerColoredResult = (
   color: Color,
   customScoring?: CustomScoring | number,
 ): { tag: 'good' | 'bad' | 'status'; points: VNodeChildElement } | false => {
-  const resultPart = status.split('-')[color === 'white' ? 0 : 1];
+  const resultPart = status.split('-')[color === 'red' ? 0 : 1];
   return (
     isServerPoint(resultPart) && {
       tag: colorClass(resultPart),
@@ -56,4 +55,4 @@ export const playerColoredResult = (
   );
 };
 
-export const isServerPoint = (s: string): s is ServerPoint => s === '1' || s === '0' || s === '½';
+export const isServerPoint = (s: string): s is ServerPoint => s === '1' || s === '0' || s === '1/2';

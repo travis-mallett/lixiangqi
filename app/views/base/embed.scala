@@ -27,6 +27,7 @@ object embed:
           page.pieceSetImages.load(ctx.pieceSet, lila.pref.PieceSets.assets(ctx.pieceSet)),
           cssTag("lib.theme.embed"),
           cssKeys.map(cssTag),
+          page.ui.lichessFontFaceCss,
           page.ui.scriptsPreload(modules.flatMap(_.map(_.key)))
         ),
         st.body(

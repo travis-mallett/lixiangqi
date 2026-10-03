@@ -70,4 +70,15 @@
   <string name="copyToClipboard">Copy %s to clipboard</string>
   <string name="copiedToClipboard">%s copied to clipboard</string>
   <string name="pgnAndFen">PGN and FEN</string>
+  <string name="pieceLetter">Piece letter</string>
+  <string name="pieceName">Piece name</string>
+  <string name="redUppercaseLetter">Red uppercase letter</string>
+  <string name="redUppercaseName">Red uppercase name</string>
+  <string name="sideLetter">Side letter</string>
+  <string name="sideName">Side name</string>
+  <string name="positionBefore">Coordinate before piece</string>
+  <string name="positionAfter">Coordinate after piece</string>
+  <string name="plainBoard">Plain board layout</string>
+  <string name="tableBoard">Table with rank and file headings</string>
+  <string name="moveFromTo">%1$s to %2$s</string>
 </resources>

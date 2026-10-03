@@ -1,8 +1,9 @@
 import { h, type Hooks, type VNode } from 'snabbdom';
 
 import { requestIdleCallbackSafe } from 'lib';
-import { throttle } from 'lib/async';
+import { throttleWithFlush } from 'lib/async';
 import { licon } from 'lib/licon';
+import { mainlineChild } from 'lib/tree/ops';
 import type { Gamebook, TreeNode } from 'lib/tree/types';
 import { bind, type MaybeVNodes, onInsert, icon } from 'lib/view';
 
@@ -43,7 +44,7 @@ export function render(ctrl: AnalyseCtrl): VNode {
       content = [
         h('div.legend.todo.clickable', { hook: commentHook, class: { done: isCommented } }, [
           icon(licon.BubbleSpeech)(),
-          h('p', 'Help the player find the initial move, with a comment.'),
+          h('p', i18n.study.lessonInitialComment),
         ]),
         renderHint(ctrl),
       ];
@@ -51,11 +52,11 @@ export function render(ctrl: AnalyseCtrl): VNode {
       content = [
         h('div.legend.clickable', { hook: commentHook }, [
           icon(licon.BubbleSpeech)(),
-          h('p', 'Introduce the gamebook with a comment'),
+          h('p', i18n.study.lessonIntroduction),
         ]),
-        h('div.legend.todo', { class: { done: !!ctrl.node.children[0] } }, [
+        h('div.legend.todo', { class: { done: !!mainlineChild(ctrl.node) } }, [
           icon(licon.PlayTriangle)(),
-          h('p', "Put the opponent's first move on the board."),
+          h('p', i18n.study.lessonOpponentFirstMove),
         ]),
       ];
   } else if (ctrl.onMainline) {
@@ -63,7 +64,7 @@ export function render(ctrl: AnalyseCtrl): VNode {
       content = [
         h('div.legend.todo.clickable', { hook: commentHook, class: { done: isCommented } }, [
           icon(licon.BubbleSpeech)(),
-          h('p', 'Explain the opponent move, and help the player find the next move, with a comment.'),
+          h('p', i18n.study.lessonNextMoveComment),
         ]),
         renderHint(ctrl),
       ];
@@ -71,16 +72,13 @@ export function render(ctrl: AnalyseCtrl): VNode {
       content = [
         h('div.legend.clickable', { hook: commentHook }, [
           icon(licon.BubbleSpeech)(),
-          h(
-            'p',
-            "You may reflect on the player's correct move, with a comment; or leave empty to jump immediately to the next move.",
-          ),
+          h('p', i18n.study.lessonCorrectMoveComment),
         ]),
         hasVariation
           ? null
           : h('div.legend.clickable', { hook: bind('click', ctrl.navigate.prev, ctrl.redraw) }, [
               icon(licon.PlayTriangle)(),
-              h('p', 'Add variation moves to explain why specific other moves are wrong.'),
+              h('p', i18n.study.lessonAddVariations),
             ]),
         renderDeviation(ctrl),
       ];
@@ -88,9 +86,9 @@ export function render(ctrl: AnalyseCtrl): VNode {
     content = [
       h('div.legend.todo.clickable', { hook: commentHook, class: { done: isCommented } }, [
         icon(licon.BubbleSpeech)(),
-        h('p', 'Explain why this move is wrong in a comment'),
+        h('p', i18n.study.lessonWrongMoveComment),
       ]),
-      h('div.legend', [h('p', 'Or promote it as the mainline if it is the right move.')]),
+      h('div.legend', [h('p', i18n.study.lessonPromoteCorrectMove)]),
     ];
 
   return h(
@@ -105,10 +103,11 @@ function renderDeviation(ctrl: AnalyseCtrl): VNode {
   return h('div.deviation', [
     h('div.legend.todo', { class: { done: nodeGamebookValue(ctrl.node, field).length > 2 } }, [
       icon(licon.BubbleSpeech)(),
-      h('p', 'When any other wrong move is played:'),
+      h('p', i18n.study.lessonOtherWrongMoves),
     ]),
     h('textarea', {
-      attrs: { placeholder: 'Explain why all other moves are wrong' },
+      key: `${ctrl.study!.data.chapter.id}:${ctrl.path}`,
+      attrs: { placeholder: i18n.study.lessonExplainOtherMoves },
       hook: textareaHook(ctrl, field),
     }),
   ]);
@@ -116,42 +115,54 @@ function renderDeviation(ctrl: AnalyseCtrl): VNode {
 
 const renderHint = (ctrl: AnalyseCtrl): VNode =>
   h('div.hint', [
-    h('div.legend', [icon(licon.InfoCircle)(), h('p', 'Optional, on-demand hint for the player:')]),
+    h('div.legend', [icon(licon.InfoCircle)(), h('p', i18n.study.lessonOptionalHint)]),
     h('textarea', {
-      attrs: { placeholder: 'Give the player a tip so they can find the right move' },
+      key: `${ctrl.study!.data.chapter.id}:${ctrl.path}`,
+      attrs: { placeholder: i18n.study.lessonHintPlaceholder },
       hook: textareaHook(ctrl, 'hint'),
     }),
   ]);
-
-const saveNode = throttle(500, (ctrl: AnalyseCtrl, gamebook: Gamebook) => {
-  ctrl.socket.send('setGamebook', {
-    path: ctrl.path,
-    ch: ctrl.study!.vm.chapterId,
-    gamebook,
-  });
-  ctrl.redraw();
-});
 
 const nodeGamebookValue = (node: TreeNode, field: 'deviation' | 'hint'): string =>
   node.gamebook?.[field] || '';
 
 function textareaHook(ctrl: AnalyseCtrl, field: 'deviation' | 'hint'): Hooks {
-  const value = nodeGamebookValue(ctrl.node, field);
+  const path = ctrl.path,
+    ch = ctrl.study!.data.chapter.id;
   return {
     insert(vnode: VNode) {
-      const el = vnode.elm as HTMLInputElement;
-      el.value = value;
+      const el = vnode.elm as HTMLTextAreaElement;
+      let pending: Gamebook | undefined;
+      const save = throttleWithFlush(500, (gamebook: Gamebook) => {
+        ctrl.socket.send('setGamebook', {
+          path,
+          ch,
+          gamebook,
+        });
+        if (pending === gamebook) pending = undefined;
+      });
+      const flush = () => {
+        if (pending) save.flush(pending);
+        else save.clear();
+      };
+      vnode.data!.flush = flush;
+      vnode.data!.node = ctrl.node;
+      el.value = nodeGamebookValue(ctrl.node, field);
       el.oninput = () => {
-        const node = ctrl.node;
+        const node = ctrl.tree.nodeAtPath(path);
         node.gamebook = node.gamebook || {};
         node.gamebook[field] = el.value.trim();
-        saveNode(ctrl, node.gamebook);
+        pending = { ...node.gamebook };
+        save(pending);
       };
-      vnode.data!.path = ctrl.path;
+      el.onblur = flush;
     },
     postpatch(old: VNode, vnode: VNode) {
-      if (old.data!.path !== ctrl.path) (vnode.elm as HTMLInputElement).value = value;
-      vnode.data!.path = ctrl.path;
+      vnode.data!.flush = old.data!.flush;
+      vnode.data!.node = ctrl.node;
+      if (old.data!.node !== ctrl.node && document.activeElement !== vnode.elm)
+        (vnode.elm as HTMLTextAreaElement).value = nodeGamebookValue(ctrl.node, field);
     },
+    destroy: vnode => vnode.data!.flush?.(),
   };
 }

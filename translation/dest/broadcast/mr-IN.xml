@@ -41,11 +41,7 @@
   <string name="definitivelyDeleteTournament">संपूर्ण स्पर्धा, त्याच्या सर्व फेऱ्या आणि त्याचे सर्व खेळ निश्चितपणे हटवा.</string>
   <string name="showScores">खेळाच्या निकालांवर आधारित खेळाडूंचे अंक दाखवा</string>
   <string name="replacePlayerTags">पर्यायी: खेळाडूंची नावे, रेटिंग्ज आणि शीर्षके बदला</string>
-  <string name="fideFederations">FIDE संघराज्ये </string>
   <string name="top10Rating">सर्वोच्च १० मानांकनांची सरासरी</string>
-  <string name="fidePlayers">FIDE खेळाडू</string>
-  <string name="fidePlayerNotFound">FIDE खेळाडू सापडले नाही</string>
-  <string name="fideProfile">FIDE चरित्र</string>
   <string name="federation">संघराज्य</string>
   <string name="age">वय</string>
   <string name="unrated">अस्थित</string>
@@ -76,7 +72,6 @@
   <string name="tournamentLocation">स्पर्धेचे स्थान</string>
   <string name="topPlayers">शीर्ष खेळाडू</string>
   <string name="timezone">कालविभाग</string>
-  <string name="fideRatingCategory">FIDE मानांकन श्रेणी</string>
   <string name="optionalDetails">पर्यायी तपशील</string>
   <string name="pastBroadcasts">मागील प्रसारणे</string>
   <string name="allBroadcastsByMonth">एका महिन्यातील सर्व प्रसारणे पहा</string>

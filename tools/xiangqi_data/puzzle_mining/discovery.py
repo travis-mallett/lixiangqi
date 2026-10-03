@@ -27,6 +27,7 @@ from external.xiangqi_explorer.catalog_databases import (
 from tools.xiangqi_data.pikafish import _default_executable
 from tools.xiangqi_data.pikafish_rules import START_FEN
 
+from .database_write import begin_write
 from .engine import EngineCancelled, OfflinePikafish, PuzzleEngine
 from .models import CandidateRecord, SearchContext, SearchResult, fen_side
 from .position import (
@@ -47,6 +48,7 @@ from .storage import (
     fail_game_job,
     now,
     open_database,
+    open_database_when_ready,
     reject_game_job,
     recover_stale_game_jobs,
     save_analysis,
@@ -56,6 +58,7 @@ from .workers import (
     renew_claim,
     start_workers,
     stop_workers,
+    watch_supervisor,
     wait_for_due_jobs,
 )
 from .snapshot_import import import_snapshot
@@ -319,6 +322,7 @@ def count_source_games(source_paths: tuple[Path, ...], max_games: int | None) ->
 def _cached_search(
     connection: sqlite3.Connection,
     engine: OfflinePikafish,
+    stop_event=None,
 ) -> AnalysisFunction:
     engine.start()
 
@@ -343,6 +347,7 @@ def _cached_search(
             nnue=engine.nnue,
             settings_hash=settings_key,
             result=result,
+            stop_event=stop_event,
         )
         return result
 
@@ -359,6 +364,7 @@ def _process_job(
     discovery_version: str,
     progress: GameProgress | None = None,
     publication_origin: str | None = None,
+    stop_event=None,
 ) -> tuple[str, dict[str, int]]:
     statistics = {
         "checkmate": 0,
@@ -374,7 +380,7 @@ def _process_job(
         started_at = now()
         started = time.monotonic()
         positions: list[dict] = []
-        cached_search = _cached_search(connection, engine)
+        cached_search = _cached_search(connection, engine, stop_event)
 
         def record_analysis(context: SearchContext, depth: int) -> SearchResult:
             result = cached_search(context, depth)
@@ -417,6 +423,7 @@ def _process_job(
                 "positions": positions,
             },
             publication_origin=publication_origin,
+            stop_event=stop_event,
         )
         if not saved:
             return "rejected", statistics
@@ -424,10 +431,12 @@ def _process_job(
         statistics["duplicate"] = 0
         return "complete", statistics
     except (ValueError, json.JSONDecodeError) as exc:
-        reject_game_job(connection, job, f"{type(exc).__name__}: {exc}")
+        reject_game_job(
+            connection, job, f"{type(exc).__name__}: {exc}", stop_event=stop_event
+        )
         return "rejected", statistics
     except LookupError as exc:
-        reject_game_job(connection, job, str(exc))
+        reject_game_job(connection, job, str(exc), stop_event=stop_event)
         return "rejected", statistics
     except (EngineCancelled, WorkerCancelled):
         # The supervisor is shutting down.  Leave the claim for lease
@@ -441,6 +450,7 @@ def _process_job(
             f"{type(exc).__name__}: {exc}",
             retryable=True,
             max_attempts=max_attempts,
+            stop_event=stop_event,
         )
         return status, statistics
 
@@ -463,7 +473,8 @@ def _worker_main(
     from tools.puzzle_catalog.discovery_publication import publish_pending_analysis
     from tools.puzzle_catalog.live import Publisher
 
-    connection = open_database(Path(output_path))
+    watch_supervisor(stop_event)
+    connection = open_database(Path(output_path), initialize=False)
     publisher = Publisher(publication_origin)
     engine = OfflinePikafish(
         Path(executable),
@@ -513,6 +524,7 @@ def _worker_main(
                 if stop_event.is_set():
                     raise WorkerCancelled("worker shutdown requested")
                 if timestamp - last_lease_at >= 30.0:
+                    begin_write(connection, stop_event)
                     renew_claim(connection, "game_jobs", job.id, job.claim_token)
                     last_lease_at = timestamp
                 if timestamp - last_detail_at >= 1.0:
@@ -538,6 +550,7 @@ def _worker_main(
                 discovery_version,
                 detail_progress,
                 publication_origin,
+                stop_event,
             )
             if status == "complete":
                 publish(job.id)
@@ -667,7 +680,7 @@ def main() -> int:
         engine_threads=args.engine_threads,
         hash_mb=args.hash_mb,
     )
-    output = open_database(args.output.resolve())
+    output = open_database_when_ready(args.output.resolve())
     if args.snapshot:
         import_snapshot(output, args.snapshot.resolve(), args.version, depth=args.depth)
     source_total = count_source_games(paths, args.max_games)

@@ -1,10 +1,15 @@
 package lila.relay
 
+import lila.xiangqi.Xiangqi.Side
+import lila.study.StudyPgnTags
+
 import chess.format.pgn.{ Tag, Tags }
-import chess.{ FideId, PlayerName, PlayerTitle, IntRating }
+import chess.{ PlayerName, IntRating }
+import lila.core.playerDirectory.PlayerTitle
+import lila.core.playerDirectory.PlayerId
 
 import lila.core.socket.Sri
-import lila.core.fide.{ PlayerToken, Federation, diacritics }
+import lila.core.playerDirectory.{ PlayerToken, Federation, diacritics }
 import lila.study.{ Chapter, ChapterRepo, StudyApi, StudyPlayer }
 
 // used to change names and ratings of broadcast players
@@ -12,19 +17,21 @@ private case class RelayPlayerLine(
     name: Option[PlayerName],
     rating: Option[IntRating],
     title: Option[PlayerTitle],
-    fideId: Option[FideId] = none,
-    fideFed: Option[String] = none // unvalidated
+    playerId: Option[PlayerId] = none,
+    playerFederation: Option[String] = none, // checked against the country directory when applied
+    directoryLookup: Boolean = true
 )
 
 private object RelayPlayerLine:
 
   object tokenize:
-    private val nonLetterRegex = """[^a-zA-Z0-9\s]+""".r
-    private val splitRegex = """\W""".r
+    private val nonLetterRegex = """[^\p{L}\p{N}\s]+""".r
+    private val splitRegex = """\s+""".r
     private val titleRegex = """(?i)(dr|prof)\.""".r
-    private val chessTitleRegex = s"""^(${chess.PlayerTitle.acronyms.mkString("|")} )""".r
+    private val playerTitleRegex =
+      s"""^(${lila.core.playerDirectory.PlayerTitle.acronyms.mkString("|")} )""".r
     def apply(str: String): PlayerToken =
-      val trimmed = str.trim.replaceAllIn(chessTitleRegex, "").trim
+      val trimmed = str.trim.replaceAllIn(playerTitleRegex, "").trim
       splitRegex
         .split:
           java.text.Normalizer
@@ -32,7 +39,7 @@ private object RelayPlayerLine:
             .replace(",", " ")
             .replaceAllIn(titleRegex, "")
             .replaceAllIn(nonLetterRegex, "")
-            .toLowerCase
+            .toLowerCase(java.util.Locale.ROOT)
         .toList
         .map(_.trim)
         .filter(_.nonEmpty)
@@ -46,24 +53,40 @@ private case class RelayPlayersTextarea(text: String):
 
   def sortedText = text.linesIterator.toList.sorted.mkString("\n")
 
-  lazy val parse: RelayPlayerLines = RelayPlayerLines:
-    val lines = text.linesIterator
-    lines.nonEmpty.so:
-      text.linesIterator.take(1000).toList.flatMap(parse).toMap
+  lazy val validation: Either[String, RelayPlayerLines] =
+    val lines = text.linesIterator.map(_.trim).filter(_.nonEmpty).toList
+    if lines.size > 1000 then Left("Player overrides exceed 1000 lines")
+    else
+      lines.zipWithIndex
+        .traverse: (line, index) =>
+          val arr = line.split("/", -1).map(_.trim)
+          def field(at: Int) = arr.lift(at).filter(_.nonEmpty)
+          def error(message: String) = Left(s"Player override line ${index + 1}: $message")
+          if arr.length > 6 || field(0).isEmpty then
+            error("expected name / player ID / title / rating / replacement name / federation")
+          else if field(1).exists(v => v != "-" && PlayerId.parse(v).isEmpty) then
+            error("invalid namespaced native player ID")
+          else if field(2).exists(PlayerTitle.get(_).isEmpty) then error("invalid Xiangqi title")
+          else if field(3).exists(v => !v.toIntOption.exists(n => n >= 0 && n <= 4000)) then
+            error("invalid rating")
+          else
+            Right(
+              PlayerName(arr(0)) -> RelayPlayerLine(
+                name = PlayerName.from(field(4)),
+                rating = IntRating.from(field(3).flatMap(_.toIntOption)),
+                title = field(2).flatMap(PlayerTitle.get),
+                playerId = field(1).flatMap(PlayerId.parse),
+                playerFederation = field(5),
+                directoryLookup = !field(1).contains("-")
+              )
+            )
+        .flatMap: parsed =>
+          if parsed.map(_._1).distinct.size != parsed.size then
+            Left("Player overrides contain duplicate names")
+          else Right(RelayPlayerLines(parsed.toMap))
 
-  // Original name / Optional FideID / Optional title / Optional rating / Optional replacement name
-  private def parse(line: String): Option[(PlayerName, RelayPlayerLine)] =
-    val arr = line.split('/').map(_.trim)
-    arr
-      .lift(0)
-      .map: fromName =>
-        PlayerName(fromName) -> RelayPlayerLine(
-          name = PlayerName.from(arr.lift(4).filter(_.nonEmpty)),
-          rating = IntRating.from(arr.lift(3).flatMap(_.toIntOption)),
-          title = arr.lift(2).flatMap(PlayerTitle.get),
-          fideId = arr.lift(1).flatMap(_.toIntOption).map(FideId(_)),
-          fideFed = arr.lift(5)
-        )
+  lazy val parse: RelayPlayerLines =
+    validation.fold(message => throw IllegalArgumentException(message), identity)
 
 private case class RelayPlayerLines(players: Map[PlayerName, RelayPlayerLine]):
 
@@ -112,19 +135,24 @@ private case class RelayPlayerLines(players: Map[PlayerName, RelayPlayerLine]):
         (games :+ game.copy(tags = tags)) -> (ambi ::: ambiguous)
 
   def update(tags: Tags)(using guessFed: Federation.Guess): (Tags, List[RelayPlayerLine.Ambiguous]) =
-    Color.all.foldLeft(tags -> Nil):
+    Side.values.toList.foldLeft(tags -> Nil):
       case ((tags, ambiguous), color) =>
-        val name = tags.names(color)
+        val name = StudyPgnTags.names(tags)(color)
         val matching = name.fold(Matching.NotFound)(findMatching)
         val newTags = tags ++ Tags:
           matching.match
             case Matching.Found(rp) =>
               List(
-                rp.fideId.map(id => Tag(_.fideIds(color), id.toString)),
-                rp.name.map(name => Tag(_.names(color), name)),
-                rp.rating.map(rating => Tag(_.elos(color), rating.toString)),
-                rp.title.map(title => Tag(_.titles(color), title.value)),
-                rp.fideFed.flatMap(guessFed).map(fed => Tag(StudyPlayer.country.tagNames(color), fed.value))
+                rp.playerId.map(id => Tag(color.fold("RedPlayerId", "BlackPlayerId"), id.value)),
+                Option.when(!rp.directoryLookup)(
+                  Tag(color.fold("RedDirectoryLookup", "BlackDirectoryLookup"), "none")
+                ),
+                rp.name.map(name => Tag(color.fold("Red", "Black"), name)),
+                rp.rating.map(rating => Tag(color.fold("RedElo", "BlackElo"), rating.toString)),
+                rp.title.map(title => Tag(color.fold("RedTitle", "BlackTitle"), title.value)),
+                rp.playerFederation
+                  .flatMap(guessFed)
+                  .map(fed => Tag(StudyPlayer.country.tagNames(color), fed.value))
               ).flatten
             case _ => Nil
         val newAmbiguous = matching match
@@ -159,7 +187,7 @@ private case class RelayPlayerLines(players: Map[PlayerName, RelayPlayerLine]):
 private final class RelayPlayerEnrich(
     irc: lila.core.irc.IrcApi,
     roundRepo: RelayRoundRepo,
-    fidePlayerApi: RelayFidePlayerApi,
+    directoryPlayerApi: RelayDirectoryPlayerApi,
     studyApi: StudyApi,
     chapterRepo: ChapterRepo
 )(using Federation.Guess, Executor, org.apache.pekko.stream.Materializer):
@@ -170,7 +198,7 @@ private final class RelayPlayerEnrich(
     rt.tour.players.fold(games): txt =>
       val (updated, ambiguous) = txt.parse.update(games)
       if ambiguous.nonEmpty && rt.tour.official && once(ambiguous) then
-        def show(p: RelayPlayerLine): String = p.fideId.map(_.toString) | p.name.fold("?")(_.value)
+        def show(p: RelayPlayerLine): String = p.playerId.map(_.toString) | p.name.fold("?")(_.value)
         val players = ambiguous.map: a =>
           (a.name.value, a.players.map(show))
         irc.broadcastAmbiguousPlayers(rt.round.id, rt.fullNameNoTrans, players)
@@ -179,14 +207,14 @@ private final class RelayPlayerEnrich(
   /* When the players replacement text of a tournament is updated,
    * we go through all rounds of the tournament and immediately apply
    * the player replacements to all games.
-   * Then we enrich all affected games based on the potentially new FIDE ID
+   * Then we enrich all affected games based on the potentially new native player ID
    * of each player. */
   def onPlayerTextareaUpdate(tour: RelayTour, prev: RelayTour): Funit =
     tour.players.so:
       _.parse
         .diff(prev.players.map(_.parse))
         .so: newPlayers =>
-          val enrichFromFideId = fidePlayerApi.enrichTags(tour)
+          val enrichFromPlayerId = directoryPlayerApi.enrichTags(tour)
           for
             studyIds <- roundRepo.studyIdsOf(tour.id)
             _ <- chapterRepo
@@ -194,7 +222,7 @@ private final class RelayPlayerEnrich(
               .mapAsync(1): chapter =>
                 val (newTags, _) = newPlayers.update(chapter.tags)
                 (newTags != chapter.tags).so:
-                  enrichFromFideId(newTags)
+                  enrichFromPlayerId(newTags)
                     .flatMap: enriched =>
                       val forcedReplacements = newTags.map(_.filterNot(enriched.value.contains))
                       val finalTags = enriched ++ forcedReplacements

@@ -122,6 +122,24 @@ class JobManagerTests(unittest.TestCase):
         self.assertFalse(psutil.pid_exists(pid))
         self.assertEqual(self.events[-1], ("tree", 130))
 
+    def test_forced_stop_does_not_orphan_the_child_tree(self):
+        marker = self.root / "forced.json"
+        code = "import subprocess,time,sys,json,pathlib; c=subprocess.Popen([sys.executable,'-c','import time; time.sleep(30)']); pathlib.Path(sys.argv[1]).write_text(json.dumps([c.pid])); time.sleep(30)"
+        self.assertTrue(self.manager.start("forced", [*self.command(code), str(marker)]))
+        deadline = time.monotonic() + 5
+        while not marker.exists() and time.monotonic() < deadline:
+            self.app.processEvents()
+            time.sleep(0.02)
+        self.assertTrue(marker.exists())
+        pid = json.loads(marker.read_text())[0]
+        self.manager._cancel["forced"] = False
+        self.manager._force("forced", self.manager._jobs["forced"])
+        self.wait("forced", 10)
+        deadline = time.monotonic() + 5
+        while psutil.pid_exists(pid) and time.monotonic() < deadline:
+            time.sleep(0.02)
+        self.assertFalse(psutil.pid_exists(pid))
+
     def test_parent_pipe_loss_stops_generation_but_not_protected_operation(self):
         self.manager.start("ordinary", self.command("import time; time.sleep(20)"))
         self.manager._jobs["ordinary"].closeWriteChannel()

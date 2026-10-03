@@ -1,4 +1,5 @@
 import { prop } from 'lib';
+import type { XiangqiSide as Color } from 'lib/game/xiangqi';
 import { licon } from 'lib/licon';
 import type { TreeNode } from 'lib/tree/types';
 import { type VNode, bind, dataIcon, hl, copyMeInput, type MaybeVNode } from 'lib/view';
@@ -36,8 +37,6 @@ export class StudyShare {
   ) {}
 
   studyId = this.data.id;
-
-  variantKey = this.data.chapter.setup.variant.key;
 
   chapter = this.currentChapter;
   isPrivate = () => this.data.visibility === 'private';
@@ -142,16 +141,15 @@ export function view(ctrl: StudyShare): VNode {
                   ...dataIcon(licon.Download),
                   href: xhrUrl(site.asset.baseUrl() + '/export/fen.gif', {
                     fen: ctrl.currentNode().fen,
-                    color: ctrl.bottomColor(),
+                    orientation: ctrl.bottomColor(),
                     lastMove: ctrl.currentNode().uci,
-                    variant: ctrl.variantKey,
                     theme: document.body.dataset.board,
                     piece: document.body.dataset.pieceSet,
                   }),
                   download: true,
                 },
               },
-              'Board',
+              i18n.site.board,
             ),
             hl(
               'a.button.text',
@@ -206,10 +204,10 @@ export function view(ctrl: StudyShare): VNode {
                   copyMeInput(
                     !isPrivate
                       ? `<iframe ${
-                          ctrl.gamebook ? 'width="320" height="320"' : 'width="600" height="371"'
+                          ctrl.gamebook ? 'width="360" height="400"' : 'width="720" height="520"'
                         } src="${baseUrl()}${addPly(
                           `/study/embed/${studyId}/${chapter.id}`,
-                        )}" frameborder=0></iframe>`
+                        )}" style="border:0;max-width:100%" title="${i18n.site.studyMenu}"></iframe>`
                       : i18n.study.onlyPublicStudiesCanBeEmbedded,
                     { inputAttrs: { readonly: true, disabled: isPrivate } },
                   ),

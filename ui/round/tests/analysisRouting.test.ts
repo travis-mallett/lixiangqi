@@ -86,7 +86,7 @@ test('analysis completion keeps the finished player on the round with Analysis a
   Object.assign(site, { reload: redirect, redirect });
 
   for (const complete of [false, true]) {
-    ctrl.socket.receive('analysisProgress', { complete, treeParts: [{ ply: 7, eval: { cp: 35 } }] });
+    ctrl.socket.receive('analysisProgress', { complete, tree: { ply: 7, eval: { cp: 35 }, children: [] } });
     assert.equal(analysisLink(followUp(ctrl)).data?.attrs?.href, '/abcd1234/white/analysis#7');
     assert.equal(location.href, '/abcd1234wxyz');
     assert.equal(redirect.mock.callCount(), 0);
@@ -110,7 +110,10 @@ test('an analysis completion message cannot expose analysis controls or navigate
   const redirect = mock.fn();
   Object.assign(globalThis, { location: { assign: redirect, reload: redirect, href: '/abcd1234wxyz' } });
   Object.assign(site, { reload: redirect, redirect });
-  ctrl.socket.receive('analysisProgress', { complete: true, treeParts: [{ ply: 7, eval: { cp: 35 } }] });
+  ctrl.socket.receive('analysisProgress', {
+    complete: true,
+    tree: { ply: 7, eval: { cp: 35 }, children: [] },
+  });
   assert.equal(analysisButton(ctrl), false);
   assert.equal(children(followUp(ctrl)).length, 0);
   assert.equal(ctrl.data.game.status.name, 'started');

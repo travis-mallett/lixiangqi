@@ -87,7 +87,7 @@ final class RelayPgnStream(
 
   def filename(tour: RelayTour): String =
     val date = dateFormatter.print(tour.syncedAt | tour.createdAt)
-    fileR.replaceAllIn(s"lichess_broadcast_${tour.slug}_${tour.id}_$date", "")
+    fileR.replaceAllIn(s"lixiangqi_broadcast_${tour.slug}_${tour.id}_$date", "")
 
   def parseExportDate(id: RelayRoundId): Option[Instant] =
     val regex = """_(\d{4})_(\d{2})""".r

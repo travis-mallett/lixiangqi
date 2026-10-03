@@ -32,7 +32,7 @@ final private class Monitor(
 
     monBy.totalSecond(userId).increment(sumOf(result.evaluations)(_.time) / 1000)
 
-    if result.stockfish.isNnue then
+    if result.engine.nnue then
       monBy
         .totalMeganode(userId)
         .increment(sumOf(result.evaluations) { eval =>
@@ -48,7 +48,7 @@ final private class Monitor(
       }
       (nb > 0).option(sum / nb)
     avgOf(_.time).foreach { monBy.movetime(userId).record(_) }
-    if result.stockfish.isNnue then
+    if result.engine.nnue then
       avgOf(_.nodes).foreach { monBy.node(userId).record(_) }
       avgOf(_.cappedNps).foreach { monBy.nps(userId).record(_) }
     avgOf(e => Depth.raw(e.depth)).foreach { monBy.depth(userId).record(_) }

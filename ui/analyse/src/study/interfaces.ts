@@ -1,4 +1,6 @@
 import type { Prop } from 'lib';
+import type { XiangqiSide as Color } from 'lib/game/xiangqi';
+import type { RulesPosition } from 'lib/game/xiangqiNotation';
 import type { TreeNodeBase, TreePath } from 'lib/tree/types';
 
 import type AnalyseCtrl from '../ctrl';
@@ -12,11 +14,11 @@ export type ToolTab = 'tags' | 'comments' | 'glyphs' | 'serverEval' | 'share' | 
 export type Visibility = 'public' | 'unlisted' | 'private';
 export type ChapterId = string;
 export type PointsStr = '1' | '0' | '1/2';
-export type GamePointsStr = '1-0' | '0-1' | '½-½' | '0-0' | '½-0' | '0-½';
+export type GamePointsStr = `${'0' | '1/2' | '1'}-${'0' | '1/2' | '1'}`;
 export type StatusStr = GamePointsStr | '*';
 export type ClockCentis = number;
 export type BothClocks = [ClockCentis?, ClockCentis?];
-export type FideId = number;
+export type PlayerId = string;
 
 export interface StudyTour {
   study(ctrl: AnalyseCtrl): void;
@@ -100,7 +102,7 @@ export interface StudyFeatures {
 export interface StudyChapterConfig {
   id: string;
   name: string;
-  orientation?: Color; // defaults to white
+  orientation?: Color; // defaults to red
   description?: string;
   practice: boolean;
   gamebook: boolean;
@@ -130,12 +132,8 @@ export interface StudyChapterServerEval {
 
 interface StudyChapterSetup {
   gameId?: string;
-  variant: {
-    key: VariantKey;
-    name: string;
-  };
   orientation: Color;
-  fromFen?: string;
+  fromFen?: boolean;
 }
 
 interface StudyChapterFeatures {
@@ -161,6 +159,7 @@ export type TagMap = Map<string, string>;
 export type LocalPaths = Record<string, TreePath>;
 
 export interface ChapterPreviewBase {
+  position: RulesPosition;
   id: ChapterId;
   name: string;
   status?: StatusStr;
@@ -172,7 +171,7 @@ export interface ChapterPreviewFromServer extends ChapterPreviewBase {
   fen?: string; // defaults to initial
   players?: PairOf<StudyPlayerFromServer>;
   thinkTime?: number; // seconds since last move
-  orientation?: Color; // defaults to white
+  orientation?: Color; // defaults to red
 }
 
 export interface ChapterPreview extends ChapterPreviewBase {
@@ -184,7 +183,7 @@ export interface ChapterPreview extends ChapterPreviewBase {
 }
 
 export interface StudyPlayers {
-  white: StudyPlayer;
+  red: StudyPlayer;
   black: StudyPlayer;
 }
 
@@ -199,7 +198,7 @@ export interface StudyPlayerBase {
   title?: string;
   rating?: number;
   clock?: ClockCentis;
-  fideId?: FideId;
+  playerId?: PlayerId;
   team?: string;
 }
 export interface StudyPlayerFromServer extends StudyPlayerBase {
@@ -209,7 +208,7 @@ export interface StudyPlayer extends StudyPlayerBase {
   fed?: Federation;
 }
 
-export type Orientation = 'black' | 'white' | 'auto';
+export type Orientation = 'black' | 'red' | 'auto';
 export type ChapterMode = 'normal' | 'practice' | 'gamebook' | 'conceal';
 
 export interface ChapterData {

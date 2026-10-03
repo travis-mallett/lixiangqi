@@ -40,6 +40,13 @@ case class Puzzle(
   lazy val fenAfterInitialMove: String =
     stateAfterInitialMove.map(_.fen).err(s"Can't apply puzzle $id first move")
 
+  lazy val solutionStates: Vector[Xiangqi.State] =
+    val moves = playback.solutions.head.map(Xiangqi.Uci.from(_).fold(sys.error, identity))
+    val variation = XiangqiRules
+      .variation(initialGame, moves)
+      .fold(error => sys.error(s"Invalid puzzle $id solution: $error"), identity)
+    initialGame.state +: variation.moves.map(_.state)
+
   def color =
     stateAfterInitialMove
       .fold(chess.Color.White)(state =>

@@ -28,6 +28,8 @@ OFFICIAL_THEMES = frozenset(
         "leisurelyStrollMate",
         "headhunterCannonAttack",
         "crossCheckAttack",
+        "cannonChariotDiscoveredAttack",
+        "detonatingMineAttack",
         "ironBolt",
         "smallIronBolt",
         "horseCannonMate",

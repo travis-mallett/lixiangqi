@@ -46,7 +46,7 @@ from .solver import (
     solve_checkmate,
 )
 from .database_write import begin_write, is_database_busy
-from .storage import open_database
+from .storage import open_database, open_database_when_ready
 from .tactic_solver import TacticSolverConfig, solve_tactic
 from .sources import catalog_source_paths, is_native_source, load_game
 from .workers import (
@@ -55,6 +55,7 @@ from .workers import (
     renew_claim,
     start_workers,
     stop_workers,
+    watch_supervisor,
     wait_for_due_jobs,
 )
 
@@ -255,7 +256,8 @@ def _worker_main(
     catalog_path=None,
     reconstruct: bool = False,
 ) -> None:
-    connection = open_database(Path(output_path))
+    watch_supervisor(stop_event)
+    connection = open_database(Path(output_path), initialize=False)
     from .queue_priority import prepare_priority
 
     prepare_priority(connection, catalog_path)
@@ -503,7 +505,7 @@ def main(default_type="checkmate_candidate") -> int:
             else {}
         ),
     )
-    database = open_database(args.database)
+    database = open_database_when_ready(args.database)
     if not args.engine.is_file():
         database.close()
         raise SystemExit(f"Pikafish is not installed at {args.engine}")

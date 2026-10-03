@@ -73,8 +73,7 @@ def show(
     .css("analyse.study")
     .css(ctx.pref.hasKeyboardMove.option("keyboardMove"))
     .css(ctx.blind.option("round.nvui"))
-    .i18n(_.study)
-    .i18n(_.variant)
+    .i18n(_.notation, _.study)
     .i18nOpt(ctx.speechSynthesis, _.nvui)
     .i18nOpt(ctx.blind, _.keyboardMove)
     .js(analyseNvuiTag)
@@ -114,9 +113,8 @@ def show(
         url = routeUrl(routes.Study.show(s.id)),
         description = s"A Xiangqi study by ${titleNameOrId(s.ownerId)}",
         image = fenThumbnailUrl(
-          chapter.root.fen.opening,
-          chapter.setup.orientation.some,
-          chapter.setup.variant
+          chapter.root.state.fen,
+          chapter.setup.orientation.some
         ).some
       )
     ):

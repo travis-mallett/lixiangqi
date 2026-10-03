@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import type { RulesState } from 'lib/tree/native';
+
 import { xiangqiMoveSound } from '../src/sound';
-import type { RulesState } from '../src/tree';
 
 test('stalemate and checkmate use identical mate cues; draws and adjudicated losses do not', () => {
   const state: RulesState = {

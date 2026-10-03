@@ -1,12 +1,12 @@
 import menuHover from 'lib/menuHover';
 
 import EditorCtrl from './ctrl';
-import type { Config, LichessEditor } from './interfaces';
+import type { Config, XiangqiEditor } from './interfaces';
 import EditorView from './view';
 
-export type { LichessEditor } from './interfaces';
+export type { XiangqiEditor } from './interfaces';
 
-export function initModule(config: Config): LichessEditor {
+export function initModule(config: Config): XiangqiEditor {
   const root = config.el ?? document.getElementById('board-editor');
   if (!root) throw new Error('Missing Xiangqi board editor root');
 
@@ -21,7 +21,6 @@ export function initModule(config: Config): LichessEditor {
     getFen: () => ctrl.getFen(),
     setFen: fen => ctrl.setFen(fen),
     setOrientation: orientation => ctrl.setOrientation(orientation),
-    setVariant: variant => ctrl.setVariant(variant),
     destroy: () => view.destroy(),
   };
 }

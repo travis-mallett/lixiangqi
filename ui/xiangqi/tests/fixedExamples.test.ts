@@ -45,8 +45,8 @@ test('fixed examples use native playback, starting frames, annotations and indep
         gameResult: '*',
       })),
       script: [
-        { move: 'b0c2', english: 'H8+7', chinese: '马八进七' },
-        { move: 'b9c7', english: 'h2+3', chinese: '马2进3' },
+        { move: 'b1c3', english: 'H8+7', chinese: '马八进七' },
+        { move: 'b10c8', english: 'h2+3', chinese: '马2进3' },
       ],
     },
   }));

@@ -14,7 +14,7 @@ import lila.core.rank.RankTrackId.*
 final class PgnDump(
     routeUrl: RouteUrl,
     lightUserApi: lila.core.user.LightUserApiMinimal,
-    fideIdOf: lila.core.user.PublicFideIdOf
+    playerIdOf: lila.core.user.PublicPlayerIdOf
 )(using Executor)
     extends lila.core.game.PgnDump:
 
@@ -78,7 +78,7 @@ final class PgnDump(
       teams: Option[ByColor[TeamId]] = None
   ): Fu[Tags] = for
     users <- gameLightUsers(game)
-    fideIds <- users.traverse(_.so(fideIdOf))
+    playerIds <- users.traverse(_.so(playerIdOf))
   yield Tags:
     val importedDate = importedTags.flatMap(_.apply(_.Date))
     List[Option[Tag]](
@@ -106,8 +106,8 @@ final class PgnDump(
       withRating.so(game.rankTrack.map(track => Tag("RankTrack", track.value))),
       users.white.flatMap(_.title).map(Tag("RedTitle", _)),
       users.black.flatMap(_.title).map(Tag("BlackTitle", _)),
-      fideIds.white.map(Tag("RedFideId", _)),
-      fideIds.black.map(Tag("BlackFideId", _)),
+      playerIds.white.map(Tag("RedPlayerId", _)),
+      playerIds.black.map(Tag("BlackPlayerId", _)),
       teams.map(t => Tag("RedTeam", t.white)),
       teams.map(t => Tag("BlackTeam", t.black)),
       game.whitePlayer.berserk.option(Tag("RedBerserk", game.whitePlayer.berserk)),

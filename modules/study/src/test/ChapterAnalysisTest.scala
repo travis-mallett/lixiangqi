@@ -2,7 +2,9 @@ package lila.study
 
 import chess.{ ByColor, Ply }
 import chess.eval.Eval.{ Cp, Mate }
-import chess.format.{ Fen, UciPath }
+import chess.format.Fen
+import lila.xiangqi.UciPath
+import lila.xiangqi.XiangqiJson.given
 import chess.format.pgn.{ Tags, Comment as CommentStr }
 import play.api.libs.json.*
 
@@ -12,6 +14,17 @@ import lila.xiangqi.{ Xiangqi, XiangqiRules }
 
 class ChapterAnalysisTest extends munit.FunSuite:
   given Executor = scala.concurrent.ExecutionContext.global
+
+  test("analysis depth is monotonic only within the same source revision"):
+    val first = analysis(game())
+      .copy(id = Analysis.Id(StudyId("study001"), StudyChapterId("chapter1")), depth = Some(30))
+    val changed = analysis(game(Vector("c4c5", "a7a6")))
+      .copy(id = first.id, depth = Some(12), date = first.date.plusSeconds(1))
+    assert(changed.supersedes(first))
+    assert(!first.supersedes(changed))
+    assert(first.copy(depth = Some(31)).supersedes(first))
+    assert(!first.copy(depth = Some(29), date = first.date.plusSeconds(2)).supersedes(first))
+    assert(first.supersedes(first.copy(depth = None)))
 
   private def game(
       moves: Vector[String] = Vector("a4a5", "a7a6"),
@@ -33,7 +46,7 @@ class ChapterAnalysisTest extends munit.FunSuite:
     .make(
       studyId = StudyId("study001"),
       name = StudyChapterName("Source game"),
-      setup = Chapter.Setup(Some(game.id), game.variant, chess.Color.White),
+      setup = Chapter.Setup(Some(game.id), Xiangqi.Side.Red),
       root = GameToRoot(game, None, withClocks = false),
       tags = Tags.empty,
       order = 1,
@@ -49,6 +62,7 @@ class ChapterAnalysisTest extends munit.FunSuite:
     infos = game.xiangqi.states.tail.toList.map: state =>
       Info(Ply(state.ply), Eval(Some(Cp(state.ply * 15)), None, None), Nil),
     startPly = Ply(game.xiangqi.states.head.ply),
+    position = game.xiangqi.position,
     date = java.time.Instant.EPOCH,
     fk = None,
     nodesPerMove = None
@@ -84,13 +98,15 @@ class ChapterAnalysisTest extends munit.FunSuite:
       resolve(chapter(changed)).map: result =>
         assertEquals(result, ChapterAnalysis.Result(None))
 
-  test("a changed starting FEN, ply offset, or variant cannot inherit source analysis"):
+  test("a changed starting FEN, ply offset, or ruleset cannot inherit source analysis"):
     val source = game()
     val imported = chapter(source)
     val changes = List(
-      imported.copy(root = imported.root.copy(fen = Fen.Full(Xiangqi.startFen.replace("0 1", "1 1")))),
-      imported.copy(root = imported.root.copy(ply = Ply(2))),
-      imported.copy(setup = imported.setup.copy(variant = chess.variant.FromPosition))
+      imported.copy(root =
+        imported.root.copy(state = imported.root.state.copy(fen = Xiangqi.startFen.replace("0 1", "1 1")))
+      ),
+      imported.copy(root = imported.root.copy(state = imported.root.state.copy(ply = 2))),
+      imported.copy(root = imported.root.copy(ruleset = lila.xiangqi.adjudication.Ruleset.Tiantian))
     )
     Future.traverse(changes): changed =>
       resolver(Some(source), Some(analysis(source)))(changed).map: result =>
@@ -146,14 +162,14 @@ class ChapterAnalysisTest extends munit.FunSuite:
     resolver(Some(source), Some(saved))(imported).map: result =>
       assertEquals(result.sourceGame, Some(source.id))
       assertEquals(result.analysis.map(_.startPly), Some(Ply(33)))
-      val node = JsonView.analysisTree(imported, result, lichobile = false).as[JsArray].value(1)
+      val node = (JsonView.analysisTree(imported, result) \ "children")(0)
       assertEquals((node \ "ply").as[Int], 34)
       assertEquals((node \ "eval" \ "cp").as[Int], saved.infos.head.cp.get.value)
 
-  test("an existing chapter analysis is canonical regardless of its pending marker or source edits"):
+  test("a matching chapter analysis is canonical regardless of its pending marker"):
     val source = game()
     val edited = chapter(game(Vector("c4c5"))).copy(serverEval = Some(Chapter.ServerEval(UciPath.root, true)))
-    val saved = analysis(source).copy(id = Analysis.Id(edited.studyId, edited.id))
+    val saved = analysis(game(Vector("c4c5"))).copy(id = Analysis.Id(edited.studyId, edited.id))
     Future.traverse(List(false, true)): done =>
       ChapterAnalysis(
         _ => fail("Chapter analysis must not look up the source"),
@@ -179,7 +195,7 @@ class ChapterAnalysisTest extends munit.FunSuite:
         assertEquals(own.serverEval, Some(marker))
         assertEquals(JsonView.chapterServerEval(own, result).map(js => (js \ "done").as[Boolean]), Some(true))
 
-  test("a pending marker survives when an edited chapter cannot inherit the source"):
+  test("a stale pending marker is hidden when the chapter mainline changed"):
     val source = game()
     val marker = Chapter.ServerEval(chapter(source).root.mainlinePath, false)
     val edited = chapter(game(Vector("c4c5"))).copy(serverEval = Some(marker))
@@ -187,7 +203,7 @@ class ChapterAnalysisTest extends munit.FunSuite:
       assertEquals(result, ChapterAnalysis.Result(None))
       assertEquals(
         JsonView.chapterServerEval(edited, result),
-        Some(Json.obj("done" -> false, "path" -> marker.path))
+        None
       )
 
   test("the read-time overlay preserves chapter evaluations, comments, variations, and mate zero"):
@@ -210,18 +226,19 @@ class ChapterAnalysisTest extends munit.FunSuite:
     val mate =
       saved.copy(infos = saved.infos.init :+ saved.infos.last.copy(eval = Eval(None, Some(Mate(0)), None)))
     val resolved = ChapterAnalysis.Result(Some(mate), Some(source.id))
-    List(false, true).foreach: mobile =>
-      val tree = JsonView.analysisTree(annotated, resolved, lichobile = mobile).as[JsArray].value
-      assertEquals((tree.head \ "eval").toOption, None)
-      assertEquals((tree(1) \ "eval" \ "cp").as[Int], 999)
-      assertEquals((tree(1) \ "eval" \ "sourceGame").toOption, None)
-      val commentJson = (tree(1) \ "comments").as[JsArray].value.head
-      assertEquals((commentJson \ "text").as[String], comment.text.value)
-      assertEquals((tree(2) \ "eval" \ "mate").as[Int], 0)
-      assertEquals((tree(2) \ "eval" \ "sourceGame").as[Boolean], true)
-      val variations = (tree.head \ "children").as[JsArray].value
-      assertEquals(variations.size, 1)
-      assertEquals((variations.head \ "eval").toOption, None)
+    val tree = JsonView.analysisTree(annotated, resolved)
+    val firstJson = (tree \ "children")(0)
+    val secondJson = (firstJson \ "children")(0)
+    assertEquals((tree \ "eval").toOption, None)
+    assertEquals((firstJson \ "eval" \ "cp").as[Int], 999)
+    assertEquals((firstJson \ "eval" \ "sourceGame").toOption, None)
+    val commentJson = (firstJson \ "comments").as[JsArray].value.head
+    assertEquals((commentJson \ "text").as[String], comment.text.value)
+    assertEquals((secondJson \ "eval" \ "mate").as[Int], 0)
+    assertEquals((secondJson \ "eval" \ "sourceGame").as[Boolean], true)
+    val variations = (tree \ "children").as[JsArray].value.tail
+    assertEquals(variations.size, 1)
+    assertEquals((variations.head \ "eval").toOption, None)
     assertEquals(annotated.root.children.first.get.eval, Some(originalScore))
     assertEquals(annotated.root.mainline.last.eval, None)
     assertEquals(
@@ -230,18 +247,20 @@ class ChapterAnalysisTest extends munit.FunSuite:
     )
 
   test("chapter analysis uses the original tree and server-evaluation metadata"):
-    val imported = chapter(game()).copy(serverEval = Some(Chapter.ServerEval(UciPath.root, true)))
+    val initial = chapter(game())
+    val imported = initial.copy(serverEval = Some(Chapter.ServerEval(initial.root.mainlinePath, true)))
     val resolved = ChapterAnalysis.Result(Some(analysis(game())))
     assertEquals(
-      JsonView.analysisTree(imported, resolved, lichobile = false),
-      lila.tree.Node.partitionTreeWriter(imported.root, lichobile = false)
+      JsonView.analysisTree(imported, resolved),
+      lila.tree.Node.writeJson(imported.root)
     )
     assertEquals(
       JsonView.chapterServerEval(imported, resolved),
-      Some(Json.obj("done" -> true, "path" -> UciPath.root))
+      Some(Json.obj("done" -> true, "path" -> imported.root.mainlinePath))
     )
 
-  test("a legacy study import that lost a rank ten move cannot inherit scores for different positions"):
+  test("a native rank ten move preserves exact source analysis"):
     val source = game(Vector("a4a5", "b10c8"))
-    resolver(Some(source), Some(analysis(source)))(chapter(source)).map: result =>
-      assertEquals(result, ChapterAnalysis.Result(None))
+    val saved = analysis(source)
+    resolver(Some(source), Some(saved))(chapter(source)).map: result =>
+      assertEquals(result, ChapterAnalysis.Result(Some(saved), Some(source.id)))

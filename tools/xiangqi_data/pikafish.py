@@ -10,25 +10,26 @@ import subprocess
 import threading
 import time
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, Iterator
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-ENGINE_MOVE = re.compile(r"^([a-i])([0-9])([a-i])([0-9])([a-z]?)$")
-UI_MOVE = re.compile(r"^([a-i])(10|[1-9])([a-i])(10|[1-9])([a-z]?)$")
+ENGINE_MOVE = re.compile(r"^([a-i])([0-9])([a-i])([0-9])$")
+UI_MOVE = re.compile(r"^([a-i])(10|[1-9])([a-i])(10|[1-9])$")
 
 
 def to_engine_move(move: str) -> str:
     match = UI_MOVE.fullmatch(move)
     if not match:
         raise ValueError(f"Invalid Xiangqi move: {move}")
-    return f"{match[1]}{int(match[2]) - 1}{match[3]}{int(match[4]) - 1}{match[5]}"
+    return f"{match[1]}{int(match[2]) - 1}{match[3]}{int(match[4]) - 1}"
 
 
 def to_ui_move(move: str) -> str:
     match = ENGINE_MOVE.fullmatch(move)
     if not match:
         raise ValueError(f"Invalid Pikafish move: {move}")
-    return f"{match[1]}{int(match[2]) + 1}{match[3]}{int(match[4]) + 1}{match[5]}"
+    return f"{match[1]}{int(match[2]) + 1}{match[3]}{int(match[4]) + 1}"
 
 
 def _default_executable() -> Path:
@@ -48,6 +49,7 @@ class Pikafish:
     def __init__(self, executable: Path | None = None) -> None:
         self.executable = executable or _default_executable()
         self.process: subprocess.Popen[str] | None = None
+        self.reader: threading.Thread | None = None
         self.output: queue.Queue[str] = queue.Queue()
         self.lock = threading.Lock()
         self.name = "Pikafish"
@@ -70,29 +72,65 @@ class Pikafish:
     def analyze_stream(
         self, board, *, move_time_ms: int = 900, multi_pv: int = 3
     ) -> Iterator[dict[str, Any]]:
+        """Render native engine snapshots for the offline board consumer."""
+        for snapshot in self.search_stream(
+            initial_fen=board.fen, moves=[], search={"movetime": max(100, min(move_time_ms, 5000))},
+            multi_pv=max(1, min(multi_pv, 5)),
+        ):
+            yield self._snapshot(board, {line["multipv"]: line for line in snapshot["lines"]},
+                                 multi_pv=multi_pv, best_move=snapshot["bestMove"])
+
+    def search_stream(
+        self, *, initial_fen: str, moves: list[str], search: dict[str, int],
+        multi_pv: int = 1, threads: int = 1, hash_mb: int = 128,
+        legal_moves: list[str] | None = None,
+    ) -> Iterator[dict[str, Any]]:
         """Yield a coherent MultiPV snapshot after every completed depth."""
-        move_time_ms = max(100, min(move_time_ms, 5000))
-        multi_pv = max(1, min(multi_pv, 5))
+        if len(search) != 1 or next(iter(search)) not in {"movetime", "depth", "nodes"}:
+            raise ValueError("Exactly one native engine search limit is required")
+        if not all(isinstance(n, int) and n > 0 for n in search.values()):
+            raise ValueError("Engine search limits must be positive integers")
+        if not 1 <= multi_pv <= 10 or not 1 <= threads <= 65536 or not 1 <= hash_mb <= 1048576:
+            raise ValueError("Invalid engine resources")
+        if any(char in initial_fen for char in "\r\n") or len(initial_fen.split()) != 6:
+            raise ValueError("Invalid engine position")
+        history = " ".join(to_engine_move(move) for move in moves)
+        restricted = "" if legal_moves is None else " searchmoves " + " ".join(to_engine_move(move) for move in legal_moves)
+        if legal_moves is not None:
+            if not legal_moves:
+                raise ValueError("Cannot search a terminal position")
+            multi_pv = min(multi_pv, len(legal_moves))
+        red_to_move = (initial_fen.split()[1] == "w") == (len(moves) % 2 == 0)
+        score_context = SimpleNamespace(color=0 if red_to_move else 1)
         with self.lock:
             self._ensure_started()
+            self._send(f"setoption name Threads value {threads}")
+            self._send(f"setoption name Hash value {hash_mb}")
             self._send(f"setoption name MultiPV value {multi_pv}")
             self._send("isready")
             self._read_until("readyok", timeout=5)
-            self._send(f"position fen {board.fen}")
-            self._send(f"go movetime {move_time_ms}")
+            self._send(f"position fen {initial_fen}" + (f" moves {history}" if history else ""))
+            self._send("go " + " ".join(f"{key} {value}" for key, value in search.items()) + restricted)
 
             lines: dict[int, dict[str, Any]] = {}
             last_complete_lines: dict[int, dict[str, Any]] = {}
             best_move: str | None = None
             primary_depth = -1
             completed = False
-            deadline = time.monotonic() + max(8, move_time_ms / 1000 + 5)
+            deadline = time.monotonic() + (search["movetime"] / 1000 + 10 if "movetime" in search else 1200)
+            def snapshot(lines, best_move=None):
+                ordered = [lines[key] for key in sorted(lines)]
+                primary = ordered[0]
+                return {"engine": self.name, "bestMove": best_move, "depth": primary["depth"],
+                        "timeMs": primary["timeMs"], "nodes": primary["nodes"], "lines": ordered}
             try:
                 while True:
                     raw = self._read_line(deadline)
                     if raw.startswith("info "):
-                        parsed = self._parse_info(raw, board)
+                        parsed = self._parse_info(raw, score_context)
                         if not parsed or not parsed["pvMoves"]:
+                            continue
+                        if parsed["score"].get("bound"):
                             continue
                         pv_index = parsed["multipv"]
                         depth = parsed["depth"]
@@ -111,7 +149,7 @@ class Pikafish:
                             last_complete_lines = {
                                 index: dict(line) for index, line in lines.items()
                             }
-                            yield self._snapshot(board, lines, multi_pv=multi_pv)
+                            yield snapshot(lines)
                     elif raw.startswith("bestmove "):
                         token = raw.split()[1]
                         if token not in {"(none)", "0000"}:
@@ -126,9 +164,7 @@ class Pikafish:
                     if all(index in lines for index in range(1, multi_pv + 1))
                     else last_complete_lines or lines
                 )
-                yield self._snapshot(
-                    board, final_lines, multi_pv=multi_pv, best_move=best_move
-                )
+                yield snapshot(final_lines, best_move)
             finally:
                 if not completed:
                     self._stop_and_drain()
@@ -205,12 +241,7 @@ class Pikafish:
             return None
 
         pv_index = tokens.index("pv")
-        ui_moves: list[str] = []
-        for move in tokens[pv_index + 1 :]:
-            try:
-                ui_moves.append(to_ui_move(move))
-            except ValueError:
-                break
+        ui_moves = [to_ui_move(move) for move in tokens[pv_index + 1 :]]
         # UCI scores are relative to the side to move. The browser bar is
         # always Red-relative, independent of whose turn it is.
         red_value = score_value if board.color == 0 else -score_value
@@ -259,7 +290,8 @@ class Pikafish:
             )
         except OSError as exc:
             raise EngineUnavailable(f"Could not start Pikafish: {exc}") from exc
-        threading.Thread(target=self._pump_output, daemon=True, name="pikafish-output").start()
+        self.reader = threading.Thread(target=self._pump_output, daemon=True, name="pikafish-output")
+        self.reader.start()
         self._send("uci")
         deadline = time.monotonic() + 8
         while True:
@@ -319,6 +351,14 @@ class Pikafish:
                 process.wait(timeout=1)
             except (OSError, subprocess.TimeoutExpired):
                 process.kill()
+                process.wait(timeout=5)
+        if self.reader and self.reader is not threading.current_thread():
+            self.reader.join(timeout=5)
+            self.reader = None
+        if process:
+            for stream in (process.stdin, process.stdout):
+                if stream:
+                    stream.close()
         while not self.output.empty():
             try:
                 self.output.get_nowait()

@@ -1,8 +1,7 @@
 package lila.evalCache
 
-import chess.format.{ BinaryFen, Fen }
-import chess.Position
-import chess.variant.Variant
+import lila.xiangqi.Xiangqi.Game
+import lila.xiangqi.XiangqiEvaluation
 
 import lila.core.chess.MultiPv
 import lila.tree.CloudEval
@@ -21,9 +20,6 @@ case class EvalCacheEntry(
       .orElse:
         evals.sortBy(-_.multiPv.value).headOption
 
-opaque type Id = BinaryFen
-object Id extends TotalWrapper[Id, BinaryFen]:
-  def apply(sit: Position): Id = Id(BinaryFen.writeNormalized(sit))
-
-  def from(variant: Variant, fen: Fen.Full): Option[Id] =
-    Fen.read(variant, fen).map(Id.apply)
+opaque type Id = String
+object Id extends OpaqueString[Id]:
+  def apply(game: Game): Id = Id(XiangqiEvaluation.key(game))

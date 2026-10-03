@@ -256,7 +256,7 @@ class XiangqiTest extends FunSuite:
     assertEquals(result.notations.size, 3)
 
   test("native notation import preserves recursive variations"):
-    val tree = XiangqiRules.Notation
+    val tree = XiangqiNotation
       .importTree(
         NotationImport(
           notation = """[Variant "Xiangqi"]
@@ -274,7 +274,7 @@ class XiangqiTest extends FunSuite:
 
   test("imported repetition remains unrestricted and replays with the same policy"):
     val notation = Vector.fill(5)("b1c3 b10c8 c3b1 c8b10").mkString(" ")
-    val imported = XiangqiRules.Notation
+    val imported = XiangqiNotation
       .importTree(NotationImport(notation = notation))
       .fold(fail(_), identity)
       .mainline
@@ -290,7 +290,7 @@ class XiangqiTest extends FunSuite:
     assertEquals(game.state.adjudication, None)
 
   test("native notation import accepts WXF Chinese"):
-    val tree = XiangqiRules.Notation
+    val tree = XiangqiNotation
       .importTree(NotationImport(notation = "1. 兵九进一 卒1进1"))
       .toOption
       .get
@@ -299,14 +299,20 @@ class XiangqiTest extends FunSuite:
     assertEquals(tree.children.head.children.head.move.value, "a7a6")
     assertEquals(tree.children.head.children.head.chineseNotation, "卒1进1")
 
+  test("typed notation accepts WXF case and Chinese traditional characters"):
+    val game = Xiangqi.Game.initial
+    assertEquals(XiangqiRules.resolveNotation(game, "c2.5"), Xiangqi.Uci.from("h3e3"))
+    assertEquals(XiangqiRules.resolveNotation(game, "炮二平五"), Xiangqi.Uci.from("h3e3"))
+    assertEquals(XiangqiRules.resolveNotation(game, "馬八進七"), Xiangqi.Uci.from("b1c3"))
+
   test("native notation import resolves official WXF front/rear subjects"):
     val fen = "4k4/9/9/9/R3P4/9/R8/9/9/4K4 w - - 0 1"
-    val imported = XiangqiRules.Notation.importTree(
+    val imported = XiangqiNotation.importTree(
       NotationImport(initialFen = fen, notation = "+R=8")
     )
     assertEquals(imported.map(_.children.head.move.value), Right("a6b6"))
     assert(
-      XiangqiRules.Notation
+      XiangqiNotation
         .importTree(
           NotationImport(initialFen = fen, notation = "R+=8")
         )
@@ -315,19 +321,19 @@ class XiangqiTest extends FunSuite:
 
   test("native notation keeps diagram comments, variation comments, and glyphs"):
     val diagram =
-      XiangqiRules.Notation.importTree(NotationImport(notation = "{A diagram} *")).fold(fail(_), identity)
-    assertEquals(diagram.comments, Vector("A diagram"))
+      XiangqiNotation.importTree(NotationImport(notation = "{A diagram} *")).fold(fail(_), identity)
+    assertEquals(diagram.annotations.comments.map(_.text), Vector("A diagram"))
     assertEquals(diagram.children.size, 0)
-    val tree = XiangqiRules.Notation
+    val tree = XiangqiNotation
       .importTree(
         NotationImport(
           notation = "{Root} 1. a4a5! {Main move} ( {Alternative} 1. c4c5 $2 ;Line comment\n ) a7a6"
         )
       )
       .fold(fail(_), identity)
-    assertEquals(tree.comments, Vector("Root"))
-    assertEquals(tree.children.head.comments, Vector("Main move"))
+    assertEquals(tree.annotations.comments.map(_.text), Vector("Root"))
+    assertEquals(tree.children.head.annotations.comments.map(_.text), Vector("Main move"))
     assertEquals(tree.children.head.glyphs, Vector(1))
-    assertEquals(tree.children(1).comments, Vector("Alternative", "Line comment"))
+    assertEquals(tree.children(1).annotations.comments.map(_.text), Vector("Alternative", "Line comment"))
     assertEquals(tree.children(1).glyphs, Vector(2))
-    assert(XiangqiRules.Notation.importTree(NotationImport(notation = "{unclosed")).isLeft)
+    assert(XiangqiNotation.importTree(NotationImport(notation = "{unclosed")).isLeft)

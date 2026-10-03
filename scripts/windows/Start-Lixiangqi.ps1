@@ -193,6 +193,30 @@ function Stop-LocalProcess([string]$name, [string[]]$commandPatterns) {
   }
 }
 
+function Stop-ImageExporter([string]$nodeExecutable, [string]$serverPath) {
+  $serverArgument = '(?:^|[\s"])' + [Regex]::Escape($serverPath) + '(?:$|[\s"])'
+  $processes = @(Get-CimInstance Win32_Process -Filter "Name='node.exe'" -ErrorAction SilentlyContinue |
+    Where-Object {
+      $_.ExecutablePath -eq $nodeExecutable -and $_.CommandLine -and
+      $_.CommandLine -match $serverArgument
+    })
+  $listener = Get-NetTCPConnection -State Listen -LocalPort 6175 -ErrorAction SilentlyContinue
+  if ($listener -and $listener.OwningProcess -notin $processes.ProcessId) {
+    throw 'Port 6175 is occupied by an unverified process; the native image exporter was not stopped.'
+  }
+  foreach ($process in $processes) {
+    Write-Step 'Stopping native Xiangqi image exporter'
+    Stop-Process -Id $process.ProcessId -Force -ErrorAction Stop
+  }
+  $deadline = (Get-Date).AddSeconds(10)
+  while ((Get-Date) -lt $deadline -and (Get-NetTCPConnection -State Listen -LocalPort 6175 -ErrorAction SilentlyContinue)) {
+    Start-Sleep -Milliseconds 100
+  }
+  if (Get-NetTCPConnection -State Listen -LocalPort 6175 -ErrorAction SilentlyContinue) {
+    throw 'Native image exporter did not release port 6175.'
+  }
+}
+
 function Remove-StaleSbtBackgroundJobs {
   # SBT creates an isolated target tree for every forked `run`. Force-stopping a
   # preview (which is necessary on Windows when restarting it) can prevent SBT
@@ -232,6 +256,10 @@ $redis = Get-ChildItem (Join-Path $toolsDir 'redis') -Filter redis-server.exe -R
 $java = Get-ChildItem (Join-Path $toolsDir 'jdk-21') -Filter java.exe -Recurse -ErrorAction SilentlyContinue |
   Where-Object { $_.FullName -match '[\\/]bin[\\/]java\.exe$' } |
   Select-Object -First 1 -ExpandProperty FullName
+$node = Get-ChildItem (Join-Path $toolsDir 'node') -Filter node.exe -Recurse -ErrorAction SilentlyContinue |
+  Select-Object -First 1 -ExpandProperty FullName
+if (-not $node) { $node = (Get-Command node.exe -ErrorAction SilentlyContinue).Source }
+$imageServer = Join-Path $projectRoot 'tools\image_export\dist\server.mjs'
 $sbt = Join-Path $toolsDir 'sbt\sbt-launch-2.0.3.jar'
 $python = Join-Path $projectRoot '.venv\Scripts\python.exe'
 $pikafish = Join-Path $toolsDir 'pikafish\Windows\pikafish-avx2.exe'
@@ -250,6 +278,17 @@ if (-not $mongosh) {
 if (-not $mongosh) { throw 'MongoDB Shell installation failed.' }
 if (-not $redis) { throw 'Redis is missing from .tools\redis. Run the Windows bootstrap first.' }
 if (-not $java) { throw 'Temurin JDK 21 is missing from .tools\jdk-21.' }
+if (-not $node) { throw 'Node.js is missing. Install the version declared in .node-version.' }
+if (-not $StopOnly) {
+  $requiredNodeMajor = (Get-Content (Join-Path $projectRoot '.node-version') -Raw).Trim().Split('.')[0].TrimStart('v')
+  # Parse in PowerShell: Windows PowerShell strips embedded quotes in native arguments.
+  $nodeVersion = & $node -p 'process.versions.node'
+  if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($nodeVersion)) {
+    throw "Could not determine the Node.js version at $node."
+  }
+  $nodeMajor = $nodeVersion.Trim().Split('.')[0]
+  if ($nodeMajor -ne $requiredNodeMajor) { throw "Node.js $requiredNodeMajor is required; found $nodeMajor at $node." }
+}
 if (-not (Test-Path $sbt)) { throw 'The SBT launcher is missing from .tools\sbt.' }
 if (-not (Test-Path $python)) { throw 'The Python virtual environment is missing. Run: python -m venv .venv' }
 $pythonRequirements = Join-Path $PSScriptRoot 'requirements.txt'
@@ -308,8 +347,11 @@ if ($applicationTextWithSockets -ne $applicationText) {
 }
 
 if (-not $SkipBuild -and -not $StopOnly) {
+  Write-Step 'Building the native broadcast companion download'
+  & $python (Join-Path $projectRoot 'tools\build_broadcaster.py')
+  if ($LASTEXITCODE) { throw 'Native broadcast companion build failed.' }
   Write-Step 'Building the Lichess asset manifest, browser bundles, and styles'
-  & node ui\.build\src\main.ts --no-install
+  & $node ui\.build\src\main.ts --no-install
   if ($LASTEXITCODE) { throw 'Lichess asset build failed.' }
 }
 
@@ -324,6 +366,7 @@ Stop-LocalService 9664 'Lila websocket service' @(
   '*lila-ws*'
 )
 Stop-LocalService 9002 'Xiangqi explorer' @('*external.xiangqi_explorer.server*')
+Stop-ImageExporter $node $imageServer
 
 # A failed forked JVM can leave its SBT parent (and Windows named-pipe boot
 # lock) alive without a listening port. Port-based cleanup cannot see that
@@ -339,6 +382,7 @@ Stop-LocalProcess 'orphaned Lila websocket service' @(
 )
 Stop-LocalProcess 'orphaned Xiangqi explorer' '*external.xiangqi_explorer.server*'
 Stop-LocalProcess 'Pikafish AI worker' '*external.pikafish_worker.ai*'
+Stop-LocalProcess 'Pikafish analysis worker' '*external.pikafish_worker.analysis*'
 
 # All project-owned SBT launchers and forked JVMs are stopped at this point, so
 # none of these generated per-run directories can still be in use.
@@ -348,6 +392,10 @@ if ($StopOnly) {
   Write-Step 'Project-owned application services are stopped'
   return
 }
+
+Write-Step 'Building the native Xiangqi image exporter'
+& $node (Join-Path $projectRoot 'tools\image_export\build.mjs')
+if ($LASTEXITCODE) { throw 'Native Xiangqi image exporter build failed.' }
 
 if ([Environment]::OSVersion.Version.Build -eq 26200) {
   Write-Step 'Applying the Windows 11 Java selector compatibility patch'
@@ -441,6 +489,23 @@ Write-Step 'Preparing the application password hasher for the preview test accou
 & $java '-Dsbt.server.autostart=false' -jar $sbt stage
 if ($LASTEXITCODE) { throw 'Application staging failed; refusing to create an incompatible preview password.' }
 $previewClasspath = (Join-Path $projectRoot 'conf') + ';' + (Join-Path $projectRoot 'target\universal\stage\lib\*')
+$previewRefreshState = Get-Content (Join-Path $previewEnvironment 'state.json') -Raw | ConvertFrom-Json
+$refreshBackup = [IO.Path]::GetFullPath($previewRefreshState.backup)
+$refreshBackupParent = [IO.Path]::GetFullPath((Join-Path $dataDir 'preview-backups')) + '\'
+if ($previewRefreshState.snapshotId -ne $snapshotId -or
+    -not $refreshBackup.StartsWith($refreshBackupParent, [StringComparison]::OrdinalIgnoreCase) -or
+    -not (Test-Path -LiteralPath (Join-Path $refreshBackup 'mongo.archive.gz'))) {
+  throw 'Preview refresh identity or backup is invalid; native migrations were not run.'
+}
+# Each deliberate snapshot restore removes its prior migration records. Tie the
+# native archives to that restore's own immutable backup, so restoring the same
+# older snapshot again never reuses an unregistered archive or overwrites one.
+$nativeBackupRoot = Join-Path $refreshBackup 'native-schema'
+Write-Step 'Ensuring the restored preview uses the native study and analysis schemas'
+& $python -m tools.data_migration.20260929_native_study_v1 --uri 'mongodb://127.0.0.1:27017/lixiangqi_preview' --backup (Join-Path $nativeBackupRoot 'study') --writers-stopped
+if ($LASTEXITCODE) { throw 'Native study reset failed; original backup is retained and preview writers remain stopped.' }
+& $python -m tools.data_migration.20260929_native_analysis_moves_v1 --uri 'mongodb://127.0.0.1:27017/lixiangqi_preview' --backup (Join-Path $nativeBackupRoot 'analysis') --java $java --classpath $previewClasspath --catalog (Join-Path $dataDir 'xiangqi-games.sqlite3') --writers-stopped
+if ($LASTEXITCODE) { throw 'Native analysis migration failed; original backup is retained and preview writers remain stopped.' }
 & $python -m tools.environment_data.preview_account --java $java --classpath $previewClasspath --backup-dir (Join-Path $dataDir 'preview-account-backups')
 if ($LASTEXITCODE) { throw 'Preview test account provisioning failed.' }
 
@@ -461,9 +526,35 @@ if ($LASTEXITCODE) { throw 'Games database index preparation failed.' }
 
 $env:LIXIANGQI_DOMAIN = $siteDomain
 $env:LIXIANGQI_SOCKET_DOMAIN = "${siteAddress}:9664"
+$previousImageHost, $previousImagePort, $previousImagePublic = $env:HOST, $env:PORT, $env:LIXIANGQI_PUBLIC
+try {
+  $env:HOST = '127.0.0.1'
+  $env:PORT = '6175'
+  $env:LIXIANGQI_PUBLIC = Join-Path $projectRoot 'public'
+  $null = Start-Background 'Native Xiangqi image exporter' $node @(
+    ('"' + $imageServer + '"')
+  ) (Join-Path $logsDir 'image-export.stdout.log') (Join-Path $logsDir 'image-export.stderr.log')
+} finally {
+  $env:HOST, $env:PORT, $env:LIXIANGQI_PUBLIC = $previousImageHost, $previousImagePort, $previousImagePublic
+}
+try {
+  Wait-Port 6175 30 'Native Xiangqi image exporter'
+  $imageDeadline = (Get-Date).AddSeconds(10)
+  $imageReady = $false
+  do {
+    try {
+      $imageReady = (Invoke-WebRequest -Uri 'http://127.0.0.1:6175/health' -UseBasicParsing -TimeoutSec 2).StatusCode -eq 200
+    } catch { Start-Sleep -Milliseconds 250 }
+  } while (-not $imageReady -and (Get-Date) -lt $imageDeadline)
+  if (-not $imageReady) { throw 'Native image worker is not healthy.' }
+} catch {
+  Stop-ImageExporter $node $imageServer
+  throw
+}
 if (-not (Test-Port 9664)) {
   $null = Start-Background 'Lila websocket service' $java @(
     '-Xms32m', '-Xmx512m', '-Dsbt.supershell=false', '-Dsbt.color=false',
+    "-Dlixiangqi.source=$projectRoot",
     "-Dconfig.file=$lilaWsConf", '-Dmongo.uri=mongodb://127.0.0.1:27017/lixiangqi_preview',
     '-Dstudy.mongo.uri=mongodb://127.0.0.1:27017/lixiangqi_preview', '-Dyolo.mongo.uri=mongodb://127.0.0.1:27017/lixiangqi_preview', '-jar', $sbt, 'run'
   ) (Join-Path $logsDir 'lila-ws.stdout.log') (Join-Path $logsDir 'lila-ws.stderr.log') $lilaWsDir
@@ -490,6 +581,14 @@ if (-not (Test-Port 9002)) {
 $null = Start-Background 'Pikafish AI worker' $python @(
   '-m', 'external.pikafish_worker.ai'
 ) (Join-Path $logsDir 'pikafish-worker.stdout.log') (Join-Path $logsDir 'pikafish-worker.stderr.log')
+
+if ($env:LIXIANGQI_FISHNET_KEY) {
+  $null = Start-Background 'Pikafish native analysis worker' $python @(
+    '-m', 'external.pikafish_worker.analysis', 'fishnet', '--endpoint', 'http://127.0.0.1:9663'
+  ) (Join-Path $logsDir 'pikafish-analysis.stdout.log') (Join-Path $logsDir 'pikafish-analysis.stderr.log')
+} else {
+  Write-Step 'Native analysis worker is unconfigured; server analysis has no local worker'
+}
 
 $webProcess = $null
 if (-not (Test-Port 9663)) {

@@ -38,6 +38,22 @@ trait Handlers:
   given NoBSONWriter[UserId] with {}
   given userIdHandler: BSONHandler[UserId] = stringIsoHandler
 
+  given BSONHandler[lila.core.playerDirectory.PlayerId] = BSONStringHandler.as(
+    value =>
+      lila.core.playerDirectory.PlayerId
+        .parse(value)
+        .getOrElse(throw IllegalArgumentException("Invalid Xiangqi player ID")),
+    _.value
+  )
+
+  given nativePlayerTitleHandler: BSONHandler[lila.core.playerDirectory.PlayerTitle] = BSONStringHandler.as(
+    value =>
+      lila.core.playerDirectory.PlayerTitle
+        .get(value)
+        .getOrElse(throw IllegalArgumentException("Invalid Xiangqi player title")),
+    _.value
+  )
+
   given dateTimeHandler: BSONHandler[LocalDateTime] = quickHandler[LocalDateTime](
     { case BSONDateTime(v) => millisToDateTime(v) },
     v => BSONDateTime(v.toMillis)

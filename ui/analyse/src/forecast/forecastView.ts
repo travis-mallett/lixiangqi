@@ -1,12 +1,11 @@
 import { h, type VNode } from 'snabbdom';
 
 import { playable } from 'lib/game';
-import { fixCrazySan } from 'lib/game/chess';
 import { licon } from 'lib/licon';
 import { bind, dataIcon, spinnerVdom as spinner } from 'lib/view';
 
 import type AnalyseCtrl from '../ctrl';
-import { renderNodesHtml } from '../pgnExport';
+import { renderNodesHtml } from '../notationExport';
 import type ForecastCtrl from './forecastCtrl';
 import type { ForecastStep } from './interfaces';
 
@@ -24,7 +23,7 @@ function onMyTurn(fctrl: ForecastCtrl, cNodes: ForecastStep[]): VNode | undefine
     },
     [
       h('span', [
-        h('strong', i18n.site.playX(fixCrazySan(cNodes[0].san))),
+        h('strong', i18n.site.playX(cNodes[0].notation)),
         lines.length
           ? h('span', i18n.site.andSaveNbPremoveLines(lines.length))
           : h('span', i18n.site.noConditionalPremoves),
@@ -39,8 +38,9 @@ function makeCnodes(ctrl: AnalyseCtrl, fctrl: ForecastCtrl): ForecastStep[] {
     afterPly.map(node => ({
       ply: node.ply,
       fen: node.fen,
+      state: node.state,
       uci: node.uci!,
-      san: node.san!,
+      notation: node.notation!,
     })),
   );
 }
@@ -63,12 +63,7 @@ export default function (ctrl: AnalyseCtrl, fctrl: ForecastCtrl): VNode {
                 'click',
                 () =>
                   ctrl.userJump(
-                    fctrl.showForecast(
-                      ctrl.variantKey,
-                      (playable(ctrl.data) && ctrl.initialPath) || '',
-                      ctrl.tree,
-                      nodes,
-                    ),
+                    fctrl.showForecast((playable(ctrl.data) && ctrl.initialPath) || '', ctrl.tree, nodes),
                   ),
                 ctrl.redraw,
               ),

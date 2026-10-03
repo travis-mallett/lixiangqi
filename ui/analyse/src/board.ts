@@ -13,7 +13,7 @@ export function presentation(ctrl: AnalyseCtrl) {
     ...websiteBoardPresentation(
       ctrl.data.pref,
       'interactive',
-      ctrl.bottomColor() === 'white' ? 'red' : 'black',
+      ctrl.bottomColor() === 'red' ? 'red' : 'black',
     ),
     coordinates: ctrl.data.pref.coords !== Prefs.Coords.Hidden,
     ...(site.blindMode ? { motion: { duration: 0 }, drawing: false } : {}),
@@ -23,11 +23,11 @@ export function presentation(ctrl: AnalyseCtrl) {
 export function interaction(ctrl: AnalyseCtrl): BoardInteraction {
   const gamebook = ctrl.gamebookPlay();
   const color = gamebook ? gamebook.movableColor() : ctrl.practice ? ctrl.bottomColor() : ctrl.turnColor();
-  if (!color || !ctrl.node.xiangqiLegalMoves?.length) return { mode: 'display' };
+  if (!color || !ctrl.node.state.legalMoves?.length) return { mode: 'display' };
   return {
     mode: 'play',
-    participant: color === 'white' ? 'red' : 'black',
-    destinations: moveDestinations(ctrl.node.xiangqiLegalMoves),
+    participant: color === 'red' ? 'red' : 'black',
+    destinations: moveDestinations(ctrl.node.state.legalMoves),
     input:
       ctrl.data.pref.moveEvent === Prefs.MoveEvent.Drag
         ? 'drag'
@@ -48,7 +48,7 @@ export function interaction(ctrl: AnalyseCtrl): BoardInteraction {
 export function createStudyBoard(element: HTMLElement, ctrl: AnalyseCtrl): BoardView {
   const board = createXiangqiBoard(
     element,
-    xiangqiPosition(ctrl.node.fen, ctrl.node.uci?.replaceAll(':', '10'), ctrl.node.check()),
+    xiangqiPosition(ctrl.node.fen, ctrl.node.uci, ctrl.node.check()),
     presentation(ctrl),
     interaction(ctrl),
   );

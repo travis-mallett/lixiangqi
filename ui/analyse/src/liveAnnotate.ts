@@ -1,5 +1,6 @@
 import { povChances } from 'lib/ceval/winningChances';
 import type { TreeWrapper } from 'lib/tree';
+import * as treePath from 'lib/tree/path';
 import type { Glyph, TreeNode, TreePath } from 'lib/tree/types';
 
 const glyphs: Record<string, Glyph> = {
@@ -16,14 +17,14 @@ export default class LiveAnnotate {
   readonly onNewCeval = (path: TreePath, node: TreeNode, tree: TreeWrapper): void => {
     const parent = tree.parentNode(path);
     this.update(path, node, parent);
-    node.children.forEach(child => this.update(path + child.id, child, node));
+    node.children.forEach(child => this.update(treePath.append(path, child.id), child, node));
   };
 
   private readonly liveGlyph = (node: TreeNode, parent: TreeNode): Glyph | undefined => {
     if (!parent.ceval || node.uci === parent.ceval.bestmove) return undefined;
     const postMoveEval = parent.ceval.pvs.find(pv => node.uci === pv.moves[0]) ?? node.ceval;
     if (!postMoveEval) return undefined;
-    const color = node.ply % 2 === 1 ? 'white' : 'black';
+    const color = node.ply % 2 === 1 ? 'red' : 'black';
     const loss = povChances(color, parent.ceval) - povChances(color, postMoveEval);
     if (loss > 0.3) return glyphs.blunder;
     if (loss > 0.2) return glyphs.mistake;

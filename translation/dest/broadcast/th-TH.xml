@@ -39,11 +39,7 @@
   <string name="definitivelyDeleteTournament">ลบทัวร์นาเมนต์ทั้งหมดอย่างถาวร รวมถึงรอบการแข่งขันและเกมทั้งหมดด้วย</string>
   <string name="showScores">แสดงคะแนนผู้เล่นอ้างอิงจากผลของเกม</string>
   <string name="replacePlayerTags">ตัวเลือก: แทนที่ชื่อผู้เล่น, เรดติ้ง และ ตำแหน่ง</string>
-  <string name="fideFederations">สหพันธ์ FIDE</string>
   <string name="top10Rating">10 ผู้เล่นที่แต้มสูงสุด</string>
-  <string name="fidePlayers">ผู้เล่น FIDE</string>
-  <string name="fidePlayerNotFound">ไม่พบผู้เล่น FIDE</string>
-  <string name="fideProfile">ประวัติผู้เล่น FIDE</string>
   <string name="federation">สหพันธ์</string>
   <string name="age">อายุ</string>
   <string name="unrated">ไม่มีคะแนน</string>
@@ -73,7 +69,6 @@
   <string name="tournamentLocation">ตำแหน่งของทัวร์นาเมนต์</string>
   <string name="topPlayers">ผู้เล่นท็อป:</string>
   <string name="timezone">เขตเวลา</string>
-  <string name="fideRatingCategory">หมวดหมู่คะแนน FIDE</string>
   <string name="optionalDetails">รายละเอียดเพิ่มเติม</string>
   <string name="pastBroadcasts">การออกอากาศที่ผ่านมา</string>
   <string name="allBroadcastsByMonth">ดูการออกอากาศทั้งหมดตามเดือน</string>

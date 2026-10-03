@@ -9,7 +9,7 @@ import lila.core.study.Visibility
 import lila.db.AsyncColl
 import lila.db.dsl.{ *, given }
 
-final class StudyRepo(private[study] val coll: AsyncColl)(using
+final class StudyRepo(private[study] val coll: AsyncColl, chapterColl: AsyncColl)(using
     Executor,
     org.apache.pekko.stream.Materializer
 ):
@@ -27,7 +27,8 @@ final class StudyRepo(private[study] val coll: AsyncColl)(using
   private[study] val projection = $doc(
     F.uids -> false,
     F.likers -> false,
-    F.rank -> false
+    F.rank -> false,
+    "searchChapters" -> false
   )
 
   private[study] val lightProjection = $doc(
@@ -37,6 +38,16 @@ final class StudyRepo(private[study] val coll: AsyncColl)(using
   )
 
   def byId(id: StudyId) = coll(_.find($id(id), projection.some).one[Study])
+
+  private[study] def canPubliclyEmbed(id: StudyId): Fu[Boolean] =
+    coll(
+      _.exists(
+        $id(id) ++ $doc(
+          "visibility".$ne(Visibility.`private`),
+          "settings.shareable" -> Settings.UserSelection.Everyone
+        )
+      )
+    )
   def publicById(id: StudyId) = coll(_.find($id(id) ++ selectPublic, projection.some).one[Study])
   def publicByIds(ids: Seq[StudyId]) = coll:
     _.find($inIds(ids) ++ selectPublic, projection.some).cursor[Study]().list(ids.size)
@@ -118,15 +129,50 @@ final class StudyRepo(private[study] val coll: AsyncColl)(using
           .cursor[Study]()
           .documentSource()
 
-  def insert(s: Study): Funit =
+  private def chapterSearchText(id: StudyId): Fu[List[String]] = chapterColl:
+    _.find($doc("studyId" -> id), $doc("name" -> true, "description" -> true, "tags" -> true).some)
+      .cursor[Bdoc]()
+      .list(ChapterRepo.maxChaptersToLoad + 1)
+      .map: chapters =>
+        require(chapters.size <= ChapterRepo.maxChaptersToLoad, "Study has too many chapters to index")
+        chapters.map: chapter =>
+          (chapter.getAsOpt[String]("name").toList ++ chapter.getAsOpt[String]("description").toList ++
+            chapter.getAsOpt[List[String]]("tags").getOrElse(Nil).map(_.split(":", 2).last)).mkString(" ")
+
+  private[study] def indexChapters(id: StudyId): Funit =
+    chapterSearchText(id).flatMap: text =>
+      coll(_.updateField($id(id), "searchChapters", text)).void
+
+  def search(
+      query: StudySearch.Query,
+      order: lila.core.study.StudyOrder,
+      viewer: Option[UserId],
+      offset: Int,
+      length: Int
+  ): Fu[List[Study]] =
     coll:
-      _.insert.one:
-        studyHandler.writeTry(s).get ++ $doc(
-          F.uids -> s.members.ids,
-          F.likers -> List(s.ownerId),
-          F.rank -> Study.Rank.compute(s.likes, s.createdAt)
-        )
-    .void
+      _.find(query.selector(viewer), projection.some)
+        .sort(query.sort(order))
+        .skip(offset)
+        .maxTimeMs(3000)
+        .cursor[Study]()
+        .list(length)
+
+  def countSearch(query: StudySearch.Query, viewer: Option[UserId]): Fu[Int] =
+    coll(_.countSel(query.selector(viewer)))
+
+  def insert(s: Study): Funit =
+    chapterSearchText(s.id)
+      .flatMap: chapters =>
+        coll:
+          _.insert.one:
+            studyHandler.writeTry(s).get ++ $doc(
+              F.uids -> s.members.ids,
+              F.likers -> List(s.ownerId),
+              F.rank -> Study.Rank.compute(s.likes, s.createdAt),
+              "searchChapters" -> chapters
+            )
+      .void
 
   def updateSomeFields(s: Study): Funit =
     import toBSONValueOption.given

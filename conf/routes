@@ -97,16 +97,16 @@ GET   /api/player/autocomplete         controllers.User.autocomplete
 GET   /api/player                      controllers.User.apiList
 
 # FIDE Player
-GET   /fide                            controllers.Fide.index(page: Int ?= 1, q: Option[String] ?= None)
-GET   /fide/federation                 controllers.Fide.federations(page: Int ?= 1)
-GET   /fide/federation/:name           controllers.Fide.federation(name, page: Int ?= 1)
-GET   /fide/:fideId/:name              controllers.Fide.show(fideId: chess.FideId, name, page: Int ?= 1)
-POST  /fide/:fideId/follow             controllers.Fide.follow(fideId: chess.FideId, follow: Boolean)
-GET   /api/fide/player/:id             controllers.Fide.apiShow(id: chess.FideId)
-GET   /api/fide/player/:id/ratings     controllers.Fide.apiRatings(id: chess.FideId)
-GET   /api/fide/player                 controllers.Fide.apiSearch(q: String)
-POST  /upload/image/fide/player/:id    controllers.Fide.playerPhoto(id: chess.FideId)
-POST  /fide/player/:id                 controllers.Fide.playerUpdate(id: chess.FideId)
+GET   /players                            controllers.PlayerDirectory.index(page: Int ?= 1, q: Option[String] ?= None)
+GET   /players/federation                 controllers.PlayerDirectory.federations(page: Int ?= 1)
+GET   /players/federation/:name           controllers.PlayerDirectory.federation(name, page: Int ?= 1)
+GET   /players/:playerId/:name              controllers.PlayerDirectory.show(playerId: lila.core.playerDirectory.PlayerId, name, page: Int ?= 1)
+POST  /players/:playerId/follow             controllers.PlayerDirectory.follow(playerId: lila.core.playerDirectory.PlayerId, follow: Boolean)
+GET   /api/players/player/:id             controllers.PlayerDirectory.apiShow(id: lila.core.playerDirectory.PlayerId)
+GET   /api/players/player/:id/ratings     controllers.PlayerDirectory.apiRatings(id: lila.core.playerDirectory.PlayerId)
+GET   /api/players/player                 controllers.PlayerDirectory.apiSearch(q: String)
+POST  /upload/image/players/player/:id    controllers.PlayerDirectory.playerPhoto(id: lila.core.playerDirectory.PlayerId)
+POST  /players/player/:id                 controllers.PlayerDirectory.playerUpdate(id: lila.core.playerDirectory.PlayerId)
 
 GET   /dasher                          controllers.Dasher.get
 
@@ -226,6 +226,10 @@ GET     /embed/xiangqi                    controllers.UserAnalysis.embed
 GET   /embed/analysis                  controllers.UserAnalysis.embed
 POST  /api/analysis/position           controllers.UserAnalysis.position
 POST  /api/analysis/move               controllers.UserAnalysis.move
+POST  /api/analysis/variation          controllers.UserAnalysis.variation
+POST  /api/analysis/motifs             controllers.UserAnalysis.motifs
+POST  /api/analysis/book               controllers.UserAnalysis.book
+POST  /api/analysis/notation-move      controllers.UserAnalysis.notationMove
 POST  /api/analysis/import             controllers.UserAnalysis.importNotation
 GET   /api/analysis/catalog            controllers.UserAnalysis.catalogAnalysis(id: String)
 
@@ -254,6 +258,7 @@ GET   /study/$id<\w{8}>/clone          controllers.Study.cloneStudy(id: StudyId)
 POST  /study/$id<\w{8}>/cloneApply     controllers.Study.cloneApply(id: StudyId)
 GET   /study/$id<\w{8}>/$chapterId<\w{8}>        controllers.Study.chapter(id: StudyId, chapterId: StudyChapterId)
 GET   /study/$id<\w{8}>/$chapterId<\w{8}>/config controllers.Study.chapterConfig(id: StudyId, chapterId: StudyChapterId)
+POST  /study/$id<\w{8}>/$chapterId<\w{8}>/local-analysis controllers.Study.localAnalysis(id: StudyId, chapterId: StudyChapterId)
 GET   /study/embed/$id<\w{8}>/$chapterId<\w{8}>  controllers.Study.embed(id: StudyId, chapterId: StudyChapterId)
 POST  /study/$id<\w{8}>/clear-chat     controllers.Study.clearChat(id: StudyId)
 POST  /study/$id<\w{8}>/import-pgn     controllers.Study.importPgn(id: StudyId)
@@ -505,7 +510,7 @@ GET   /game/export/png/$gameId<\w{8}>.png                     controllers.Export
 GET   /game/export/gif/thumbnail/$gameId<\w{8}>.gif           controllers.Export.gameThumbnail(gameId: GameId, theme: Option[String], piece: Option[String])
 GET   /game/export/gif/$gameId<\w{8}>.gif                     controllers.Export.gif(gameId: GameId, color: Color = Color.white, theme: Option[String], piece: Option[String])
 GET   /game/export/gif/:color/$gameId<\w{8}>.gif              controllers.Export.gif(gameId: GameId, color: Color, theme: Option[String], piece: Option[String])
-GET   /export/fen.gif                                         controllers.Export.fenThumbnail(fen, color: Option[Color], lastMove: Option[String], variant: Option[chess.variant.Variant.LilaKey], theme: Option[String], piece: Option[String])
+GET   /export/fen.gif                                         controllers.Export.fenThumbnail(fen, orientation: Option[String], lastMove: Option[String], theme: Option[String], piece: Option[String])
 
 # Fishnet
 POST  /fishnet/acquire                        controllers.Fishnet.acquire(slow: Boolean ?= false)
@@ -827,6 +832,14 @@ GET   /api/games/export/imports        controllers.Game.apiExportByUserImportedG
 GET   /api/games/export/bookmarks      controllers.Game.apiExportByUserBookmarks()
 
 # External engine
+GET   /api/external-engine             controllers.Analyse.externalEngineList
+POST  /api/external-engine             controllers.Analyse.externalEngineCreate
+POST  /api/external-engine/work/acquire controllers.Analyse.externalEngineAcquire
+POST  /api/external-engine/work/:id     controllers.Analyse.externalEngineSubmit(id)
+GET   /api/external-engine/:id          controllers.Analyse.externalEngineShow(id)
+PUT   /api/external-engine/:id          controllers.Analyse.externalEngineUpdate(id)
+DELETE /api/external-engine/:id         controllers.Analyse.externalEngineDelete(id)
+POST  /api/external-engine/:id/analyse  controllers.Analyse.externalEngineAnalyse(id)
 
 # Bot API
 GET   /api/bot/game/stream/:id         controllers.PlayApi.botGameStream(id: GameId)

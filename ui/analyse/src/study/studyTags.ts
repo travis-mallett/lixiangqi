@@ -1,12 +1,11 @@
 import { type Attrs, h, thunk, type VNode } from 'snabbdom';
 
 import { prop } from 'lib';
-import { throttle } from 'lib/async';
 import { enter, onInsert } from 'lib/view';
 
 import { option } from '../view/util';
 import type { TagArray, TagMap } from './interfaces';
-import { looksLikeLichessGame } from './studyChapters';
+import { looksLikeNativeGame } from './studyChapters';
 import type StudyCtrl from './studyCtrl';
 
 export const tagsToMap = (tags: TagArray[]): TagMap => {
@@ -24,13 +23,13 @@ export class TagsForm {
 
   getChapter = () => this.root.data.chapter;
 
-  private readonly makeChange = throttle(500, (name: string, value: string) => {
+  private readonly makeChange = (name: string, value: string) => {
     this.root.makeChange('setTag', {
       chapterId: this.getChapter().id,
       name,
       value: value.slice(0, 140),
     });
-  });
+  };
 
   editable = () => this.root.vm.mode.write;
 
@@ -60,13 +59,13 @@ const editable = (
     }),
   });
 
-// Set of titles derived from scalachess' PlayerTitle.scala.
-const titles = 'GM|WGM|IM|WIM|FM|WFM|CM|WCM|NM|WNM|LM|BOT';
+// Native titles accepted by core.playerDirectory.PlayerTitle.
+const titles = 'IGM|IM|IFM|GM|NM';
 const acceptableTitlePattern = `${titles}|${titles.toLowerCase()}`;
 
 const inputAttrs: Record<string, Attrs> = (() => {
   const elo = { pattern: '\\d{3,4}' };
-  const fideId = { pattern: '\\d{2,9}' };
+  const playerId = { pattern: '[a-z][a-z0-9-]{1,15}:[A-Za-z0-9._-]{1,80}' };
   const title = { pattern: acceptableTitlePattern };
   return {
     Date: {
@@ -90,31 +89,32 @@ const inputAttrs: Record<string, Attrs> = (() => {
       // PGN specification allows for substition of any numeric value with '?'
       title: 'yyyy.mm.dd or ????.??.??',
     },
-    WhiteElo: elo,
+    RedElo: elo,
     BlackElo: elo,
-    WhiteFideId: fideId,
-    BlackFideId: fideId,
-    WhiteTitle: title,
+    RedPlayerId: playerId,
+    BlackPlayerId: playerId,
+    RedTitle: title,
     BlackTitle: title,
   };
 })();
 
 const fixed = ([key, value]: [string, string]) =>
-  key.endsWith('FideId') ? h('a', { attrs: { href: `/fide/${value}/redirect` } }, value) : fixedValue(value);
+  key.endsWith('PlayerId')
+    ? h('a', { attrs: { href: `/players/${value}/redirect` } }, value)
+    : fixedValue(value);
 
 const fixedValue = (value: string) => h('span', value);
 
 function renderPgnTags(tags: TagsForm, showRatings: boolean): VNode {
   let rows = [];
   const chapter = tags.getChapter();
-  if (chapter.setup.variant.key !== 'standard')
-    rows.push(['Variant', fixedValue(chapter.setup.variant.name)]);
+  rows.push(['Variant', fixedValue('Xiangqi')]);
   rows = rows.concat(
     chapter.tags
       .filter(
         tag =>
           tag[0] !== 'Variant' &&
-          (showRatings || !['WhiteElo', 'BlackElo'].includes(tag[0]) || !looksLikeLichessGame(chapter.tags)),
+          (showRatings || !['RedElo', 'BlackElo'].includes(tag[0]) || !looksLikeNativeGame(chapter.tags)),
       )
       .map(tag => [tag[0], tags.editable() ? editable(tag[0], tag[1], tags.submit) : fixed(tag)]),
   );

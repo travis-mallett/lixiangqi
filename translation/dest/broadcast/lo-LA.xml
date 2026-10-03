@@ -39,11 +39,7 @@
   <string name="definitivelyDeleteTournament">ລຶບການແຂ່ງຂັນທັງໝົດ, ທຸກຮອບ ແລະ ທຸກເກມຢ່າງຖາວອນ.</string>
   <string name="showScores">ສະແດງຄະແນນຜູ້ຫຼິ້ນໂດຍອີງຕາມຜົນການແຂ່ງຂັນ</string>
   <string name="replacePlayerTags">ບໍ່ບັງຄັບ: ແທນທີ່ຊື່ຜູ້ຫຼິ້ນ, ຄະແນນ (Rating) ແລະ ຕຳແໜ່ງ (Title)</string>
-  <string name="fideFederations">ສະຫະພັນ FIDE</string>
   <string name="top10Rating">10 ອັນດັບຄະແນນສູງສຸດ</string>
-  <string name="fidePlayers">ຜູ້ຫຼິ້ນ FIDE</string>
-  <string name="fidePlayerNotFound">ບໍ່ພົບຜູ້ຫຼິ້ນ FIDE</string>
-  <string name="fideProfile">ໂປຣໄຟລ໌ FIDE</string>
   <string name="federation">ສະຫະພັນ</string>
   <string name="age">ອາຍຸ</string>
   <string name="unrated">ບໍ່ມີຄະແນນ (Unrated)</string>
@@ -72,7 +68,6 @@
   <string name="tournamentLocation">ສະຖານທີ່ຈັດການແຂ່ງຂັນ</string>
   <string name="topPlayers">ຜູ້ຫຼິ້ນລະດັບທັອບ</string>
   <string name="timezone">ເຂດເວລາ</string>
-  <string name="fideRatingCategory">ປະເພດຄະແນນ FIDE</string>
   <string name="optionalDetails">ລາຍລະອຽດເພີ່ມເຕີມ (ບໍ່ບັງຄັບ)</string>
   <string name="pastBroadcasts">ການຖ່າຍທອດສົດທີ່ຜ່ານມາ</string>
   <string name="allBroadcastsByMonth">ເບິ່ງການຖ່າຍທອດສົດທັງໝົດຕາມເດືອນ</string>

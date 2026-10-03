@@ -9,7 +9,7 @@ export function canGoForward(ctrl: PuzzleCtrl): boolean {
 export function next(ctrl: PuzzleCtrl): void {
   const child = ctrl.node.children[0];
   if (!child) return;
-  ctrl.userJump(ctrl.path + child.id);
+  ctrl.userJump(treePath.append(ctrl.path, child.id));
 }
 
 export function prev(ctrl: PuzzleCtrl): void {

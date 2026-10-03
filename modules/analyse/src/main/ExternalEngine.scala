@@ -1,6 +1,5 @@
 package lila.analyse
 
-import chess.variant.Variant
 import com.roundeights.hasher.Algo
 import play.api.data.*
 import play.api.data.Forms.*
@@ -20,8 +19,8 @@ case class ExternalEngine(
     name: String,
     maxThreads: Int,
     maxHash: Int,
-    variants: List[Variant.UciKey],
-    officialStockfish: Boolean, // Admissible for cloud evals
+    protocol: String,
+    officialPikafish: Boolean,
     providerSelector: String, // Hash of random secret chosen by the provider, possibly shared between registrations
     providerData: Option[String], // Arbitrary string the provider can use to store associated data
     userId: UserId, // The user it has been registered for
@@ -34,20 +33,18 @@ object ExternalEngine:
       name: String,
       maxThreads: Int,
       maxHash: Int,
-      variants: Option[List[Variant.UciKey]],
-      officialStockfish: Option[Boolean],
+      officialPikafish: Option[Boolean],
       providerSecret: String,
-      providerData: Option[String],
-      defaultDepth: Option[Int] // ignored for compatibility
+      providerData: Option[String]
   ):
     def make(userId: UserId) = ExternalEngine(
       _id = s"eei_${ThreadLocalRandom.nextString(12)}",
       name = name,
       maxThreads = maxThreads,
       maxHash = maxHash,
-      variants = variants.filter(_.nonEmpty) | List(Variant.default.uciKey),
-      officialStockfish = ~officialStockfish,
-      providerSelector = Algo.sha256("providerSecret:" + providerSecret).hex,
+      protocol = "xiangqi-v1",
+      officialPikafish = ~officialPikafish,
+      providerSelector = selector(providerSecret),
       providerData = providerData,
       userId = userId,
       clientSecret = s"ees_${SecureRandom.nextString(16)}"
@@ -62,11 +59,9 @@ object ExternalEngine:
       "name" -> cleanNonEmptyText(1, 200),
       "maxThreads" -> number(1, 65_536),
       "maxHash" -> number(1, 1_048_576),
-      "variants" -> optional(list(typeIn(Variant.list.all.map(_.uciKey).toSet))),
-      "officialStockfish" -> optional(boolean),
+      "officialPikafish" -> optional(boolean),
       "providerSecret" -> nonEmptyText(16, 1024),
-      "providerData" -> optional(text(maxLength = 8192)),
-      "defaultDepth" -> optional(number)
+      "providerData" -> optional(text(maxLength = 8192))
     )(FormData.apply)(lila.common.unapply)
   )
 
@@ -78,12 +73,15 @@ object ExternalEngine:
         "userId" -> e.userId,
         "maxThreads" -> e.maxThreads,
         "maxHash" -> e.maxHash,
-        "variants" -> e.variants,
+        "variants" -> List("xiangqi"),
+        "protocol" -> e.protocol,
         "providerData" -> e.providerData,
         "clientSecret" -> e.clientSecret
       )
-      .add("officialStockfish" -> e.officialStockfish)
+      .add("officialPikafish" -> e.officialPikafish)
   }
+
+  def selector(secret: String): String = Algo.sha256("providerSecret:" + secret).hex
 
 final class ExternalEngineApi(coll: Coll, cacheApi: CacheApi)(using Executor):
 
@@ -106,6 +104,9 @@ final class ExternalEngineApi(coll: Coll, cacheApi: CacheApi)(using Executor):
 
   def find(by: UserId, id: String): Fu[Option[ExternalEngine]] =
     list(by).map(_.find(_._id == id))
+
+  def authenticate(id: String, secret: String): Fu[Option[ExternalEngine]] =
+    coll.one[ExternalEngine]($id(id) ++ $doc("clientSecret" -> secret, "protocol" -> "xiangqi-v1"))
 
   def update(prev: ExternalEngine, data: ExternalEngine.FormData): Fu[ExternalEngine] =
     val engine = data.update(prev)

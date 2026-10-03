@@ -9,7 +9,8 @@ class LpvGameRegexTest extends munit.FunSuite:
   val re = LpvGameRegex(NetDomain("boo.org:8080"))
 
   def chainMatch(text: String, urlRe: Regex, pathRe: Regex): Option[String] = text match
-    case urlRe(g1) => pathRe.findFirstMatchIn(g1).map(_.group(2))
+    // Chapter links also capture the owning study ID for access checks.
+    case urlRe(g1) => pathRe.findFirstMatchIn(g1).map(_.group(if pathRe == re.chapterPgnRe then 3 else 2))
     case _ => None
 
   def forumMatch(text: String, regex: Regex): Option[String] =

@@ -45,11 +45,7 @@
   <string name="definitivelyDeleteTournament">Dokončno izbrišite celoten turnir, vse njegove kroge in vse njegove igre.</string>
   <string name="showScores">Prikaži rezultate igralcev na podlagi rezultatov igre</string>
   <string name="replacePlayerTags">Izbirno: zamenjajte imena igralcev, ratinge in nazive</string>
-  <string name="fideFederations">FIDE države</string>
   <string name="top10Rating">Najboljših 10 po ratingu</string>
-  <string name="fidePlayers">FIDE igralci</string>
-  <string name="fidePlayerNotFound">FIDE igralec ni najden</string>
-  <string name="fideProfile">FIDE profil</string>
   <string name="federation">Država</string>
   <string name="age">Starost</string>
   <string name="unrated">Nima ratinga</string>
@@ -80,7 +76,6 @@
   <string name="tournamentLocation">Lokacija turnirja</string>
   <string name="topPlayers">Najboljši igralci</string>
   <string name="timezone">Časovni pas</string>
-  <string name="fideRatingCategory">FIDE rating kategorija</string>
   <string name="optionalDetails">Neobvezne podrobnosti</string>
   <string name="pastBroadcasts">Pretekle oddaje</string>
   <string name="allBroadcastsByMonth">Oglejte si vse oddaje po mesecih</string>

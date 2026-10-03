@@ -21,6 +21,18 @@ object Json:
 
   given Writes[chess.PlayerTitle] = writeAs(_.value)
 
+  given Format[lila.core.playerDirectory.PlayerId] = Format(
+    Reads.StringReads.flatMapResult(value =>
+      lila.core.playerDirectory.PlayerId
+        .parse(value)
+        .fold[JsResult[lila.core.playerDirectory.PlayerId]](
+          JsError("Invalid Xiangqi player ID")
+        )(JsSuccess(_))
+    ),
+    writeAs(_.value)
+  )
+  given nativePlayerTitleWrites: Writes[lila.core.playerDirectory.PlayerTitle] = writeAs(_.value)
+
   given Writes[lila.core.plan.PatronColorResolved] = writeAs(_.value.id)
 
   given [A: Writes]: OWrites[chess.ByColor[A]] = PlayJson.writes

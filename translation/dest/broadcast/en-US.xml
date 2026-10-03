@@ -41,11 +41,7 @@
   <string name="definitivelyDeleteTournament">Definitively delete the entire tournament, all its rounds and all its games.</string>
   <string name="showScores">Show player scores based on game results</string>
   <string name="replacePlayerTags">Optional: replace player names, ratings and titles</string>
-  <string name="fideFederations">WXF federations</string>
   <string name="top10Rating">Top 10 rating</string>
-  <string name="fidePlayers">WXF players</string>
-  <string name="fidePlayerNotFound">WXF player not found</string>
-  <string name="fideProfile">WXF profile</string>
   <string name="federation">Federation</string>
   <string name="age">Age</string>
   <string name="unrated">Unrated</string>
@@ -76,7 +72,6 @@
   <string name="tournamentLocation">Event location</string>
   <string name="topPlayers">Top players</string>
   <string name="timezone">Time zone</string>
-  <string name="fideRatingCategory">WXF rating category</string>
   <string name="optionalDetails">Optional details</string>
   <string name="pastBroadcasts">Past broadcasts</string>
   <string name="allBroadcastsByMonth">View all broadcasts by month</string>

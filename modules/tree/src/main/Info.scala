@@ -1,11 +1,12 @@
 package lila.tree
 
 import chess.Ply
-import chess.format.pgn.{ Comment, SanStr }
+import chess.format.pgn.Comment
+import lila.xiangqi.Xiangqi.Uci
 import chess.eval.WinPercent
 
 // ply AFTER the move was played
-case class Info(ply: Ply, eval: Eval, variation: List[SanStr]):
+case class Info(ply: Ply, eval: Eval, variation: List[Uci]):
 
   export eval.{ cp, mate, best }
 
@@ -68,12 +69,24 @@ object Info:
       case Array(cp) => Info(ply, Eval(strCp(cp), None, None), Nil).some
       case Array(cp, ma) => Info(ply, Eval(strCp(cp), strMate(ma), None), Nil).some
       case Array(cp, ma, va) =>
-        Info(ply, Eval(strCp(cp), strMate(ma), None), SanStr.from(va.split(' ').toList)).some
+        Info(
+          ply,
+          Eval(strCp(cp), strMate(ma), None),
+          va.split(' ')
+            .toList
+            .filter(_.nonEmpty)
+            .traverse(v => Uci.from(v).toOption)
+            .getOrElse(throw IllegalArgumentException("Invalid stored analysis coordinate variation"))
+        ).some
       case Array(cp, ma, va, be) =>
         Info(
           ply,
           Eval(strCp(cp), strMate(ma), be.nonEmpty.option(be)),
-          SanStr.from(va.split(' ').toList)
+          va.split(' ')
+            .toList
+            .filter(_.nonEmpty)
+            .traverse(v => Uci.from(v).toOption)
+            .getOrElse(throw IllegalArgumentException("Invalid stored analysis coordinate variation"))
         ).some
       case _ => none
 
@@ -86,5 +99,5 @@ object Info:
 
   def encodeList(infos: List[Info]): String = infos.map(_.encode).mkString(listSeparator)
 
-  def apply(cp: Option[Cp], mate: Option[Mate], variation: List[SanStr]): Ply => Info =
+  def apply(cp: Option[Cp], mate: Option[Mate], variation: List[Uci]): Ply => Info =
     ply => Info(ply, Eval(cp, mate, None), variation)

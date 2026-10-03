@@ -1,5 +1,5 @@
 import { plyToTurn } from 'lib/game/chess';
-import { renderComments, renderSan } from 'lib/nvui/render';
+import { renderComments, renderMove } from 'lib/nvui/xiangqi';
 import { path as treePath } from 'lib/tree/tree';
 import { enter, onInsert } from 'lib/view';
 
@@ -45,11 +45,11 @@ export function renderCurrentNode({
   moveStyle,
 }: Pick<AnalyseNvuiContext, 'ctrl' | 'moveStyle'>): string {
   const node = ctrl.node;
-  if (!node.san || !node.uci) return i18n.nvui.gameStart;
+  if (!node.notation || !node.uci) return i18n.nvui.gameStart;
   return [
     plyToTurn(node.ply),
-    node.ply % 2 === 1 ? i18n.site.white : i18n.site.black,
-    renderSan(node.san, node.uci, moveStyle.get()),
+    node.ply % 2 === 1 ? i18n.site.red : i18n.site.black,
+    renderMove(node.notation, node.uci, moveStyle.get()),
     renderLineIndex(ctrl),
     !ctrl.retro && renderComments(node, moveStyle.get()),
   ]

@@ -22,3 +22,23 @@
 @import 'persistence';
 @import 'keyboard';
 @import 'settings';
+@import '../../xiangqi/css/analysis-engine';
+@import '../../xiangqi/css/analysis-gauge';
+@import '../../xiangqi/css/move-tree';
+
+// The shared analysis widgets occupy the study layout's existing grid tracks.
+.analyse:has(> .xiangqi-eval) {
+  ---analysis-gauge-width: 2.2rem;
+}
+
+.analyse > .xiangqi-eval {
+  grid-area: gauge;
+  width: 100%;
+  margin: 0;
+  cursor: default;
+  touch-action: auto;
+
+  &::after {
+    display: none;
+  }
+}

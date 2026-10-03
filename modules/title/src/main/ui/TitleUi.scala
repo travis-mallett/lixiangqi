@@ -135,8 +135,8 @@ Today's date is [current date]""")
       ),
       form3.split(
         form3.group(
-          form("fideId"),
-          "Your FIDE ID or profile URL",
+          form("playerId"),
+          "Your Xiangqi player ID",
           help = frag("If you have one.").some,
           half = true
         )(form3.input(_)),
@@ -152,7 +152,7 @@ Today's date is [current date]""")
           form("public"),
           frag("Public account"),
           help = frag(
-            "Makes your real name and FIDE ID public in your profile. Required for coaching."
+            "Makes your real name and Xiangqi player ID public in your profile. Required for coaching."
           ).some,
           half = true
         ),

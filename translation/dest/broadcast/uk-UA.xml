@@ -45,11 +45,7 @@
   <string name="definitivelyDeleteTournament">Остаточно видалити весь турнір, всі його раунди та всі його ігри.</string>
   <string name="showScores">Показувати результати гравців за результатами гри</string>
   <string name="replacePlayerTags">За бажанням: замінити імена, рейтинги та титули гравців</string>
-  <string name="fideFederations">Федерації FIDE</string>
   <string name="top10Rating">Топ 10 рейтингу</string>
-  <string name="fidePlayers">Гравці FIDE</string>
-  <string name="fidePlayerNotFound">Гравця FIDE не знайдено</string>
-  <string name="fideProfile">Профіль FIDE</string>
   <string name="federation">Федерація</string>
   <string name="age">Вік</string>
   <string name="unrated">Без рейтингу</string>
@@ -80,7 +76,6 @@
   <string name="tournamentLocation">Місце турніру</string>
   <string name="topPlayers">Найкращі гравці</string>
   <string name="timezone">Часовий пояс</string>
-  <string name="fideRatingCategory">Категорія рейтингу FIDE</string>
   <string name="optionalDetails">Додаткові деталі</string>
   <string name="pastBroadcasts">Минулі трансляції</string>
   <string name="allBroadcastsByMonth">Переглянути всі трансляції за місяцями</string>

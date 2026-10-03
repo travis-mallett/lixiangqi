@@ -1,8 +1,11 @@
 package lila.study
 
+import lila.xiangqi.XiangqiGlyph.{ Glyph, Glyphs }
+
 import org.apache.pekko.stream.scaladsl.*
-import chess.format.UciPath
-import chess.format.pgn.{ Glyph, Tags, Comment as CommentStr }
+import lila.xiangqi.UciPath
+import lila.xiangqi.XiangqiJson.given
+import chess.format.pgn.{ Tags, Comment as CommentStr }
 import monocle.syntax.all.*
 import alleycats.Zero
 
@@ -34,8 +37,8 @@ final class StudyApi(
 )(using
     Executor,
     org.apache.pekko.stream.Materializer,
-    lila.core.fide.GetPlayer,
-    lila.core.fide.Federation.GetName
+    lila.core.playerDirectory.GetPlayer,
+    lila.core.playerDirectory.Federation.GetName
 )(using
     scheduler: Scheduler
 ) extends lila.core.study.StudyApi:
@@ -43,6 +46,13 @@ final class StudyApi(
   import sequencer.*
 
   export studyRepo.{ byId, byOrderedIds as byIds, publicIdNames }
+
+  def canPubliclyEmbed(studyId: StudyId, chapterId: Option[StudyChapterId] = None): Fu[Boolean] =
+    studyRepo
+      .canPubliclyEmbed(studyId)
+      .flatMap:
+        case false => fuFalse
+        case true => chapterId.fold(fuTrue)(id => chapterRepo.studyIdOf(id).map(_.contains(studyId)))
 
   def publicByIds(ids: Seq[StudyId]) = byIds(ids).map { _.filter(_.isPublic) }
 
@@ -145,10 +155,9 @@ final class StudyApi(
                 sticky = study.settings.sticky,
                 withRatings
               )(Who(user.id, Sri(""))) >> byIdWithLastChapter(studyId)
-            .rescue: _ =>
-              fuccess(none)
-          case _ => fuccess(none)
-        .orElse(importGame(data.copy(form = data.form.copy(asStr = none)), user, withRatings))
+            .rescue: error =>
+              fufail(StudyValidationException(error.value))
+          case _ => fufail(StudyValidationException("Study not found or contribution is not permitted"))
 
   def create(
       data: StudyMaker.ImportGame,
@@ -258,16 +267,20 @@ final class StudyApi(
       .nodeAt(position.path)
       .so: fromNode =>
         args
-          .node(fromNode.fen)
+          .node(position.chapter.root)
           .map(_.withoutChildren)
           .fold(
-            err => fufail(err.toString),
+            err =>
+              sendTo(study.id)(_.validationError(err.value, who.sri))
+              fufail(err.toString)
+            ,
             node =>
-              if node.ply >= Node.MAX_PLIES then fuccess(none)
-              else if position.chapter.isOverweight then
+              if position.path.depth >= Node.MAX_PLIES then fufail("Study exceeds maximum move depth")
+              else if position.chapter.isOverweight && !fromNode.children.hasNode(node.id) then
                 logger.info(s"Overweight chapter ${study.id}/${position.chapter.id}")
                 reloadSriBecauseOf(study, who.sri, position.chapter.id, "overweight".some)
-                fuccess(none)
+                sendTo(study.id)(_.validationError("Study exceeds maximum node count", who.sri))
+                fufail("Study exceeds maximum node count")
               else
                 position.chapter.addNode(node, position.path, relay) match
                   case None =>
@@ -287,7 +300,6 @@ final class StudyApi(
                             _.addNode(
                               position.ref,
                               node,
-                              parent.fen,
                               sticky = opts.sticky,
                               relay,
                               who
@@ -319,19 +331,17 @@ final class StudyApi(
   def resetRoot(
       studyId: StudyId,
       chapterId: StudyChapterId,
-      newRoot: lila.tree.Root,
-      newVariant: chess.variant.Variant
+      newRoot: lila.tree.Root
   )(who: Who) =
     sequenceStudyWithChapter(studyId, chapterId):
       case Study.WithChapter(study, prevChapter) =>
-        val chapter = prevChapter
-          .copy(root = newRoot)
-          .focus(_.setup.variant)
-          .replace(newVariant)
-        for
-          _ <- chapterRepo.update(chapter)
-          _ = reloadStudy(studyId, who)
-        yield chapter.some
+        Contribute(who.u, study):
+          val chapter = prevChapter.copy(root = newRoot, serverEval = None).updateDenorm
+          for
+            _ <- chapterRepo.update(chapter)
+            _ = Bus.pub(lila.core.fishnet.Bus.StudyChapterDelete(List(chapter.id)))
+            _ = reloadStudy(studyId, who)
+          yield chapter.some
 
   def clearAnnotations(studyId: StudyId, chapterId: StudyChapterId)(who: Who) =
     sequenceStudyWithChapter(studyId, chapterId):
@@ -388,7 +398,9 @@ final class StudyApi(
     sc.chapter.forceVariation(force, path) match
       case Some(newChapter) =>
         for _ <- chapterRepo.forceVariation(force)(newChapter, path)
-        yield sendTo(sc.study.id)(_.forceVariation(Position(newChapter, path).ref, force, who))
+        yield
+          setStudyUpdated(sc.study)
+          sendTo(sc.study.id)(_.forceVariation(Position(newChapter, path).ref, force, who))
       case None =>
         reloadSriBecauseOf(sc.study, who.sri, sc.chapter.id)
         fufail(s"Invalid forceVariation ${Position(sc.chapter, path)} $force")
@@ -476,7 +488,9 @@ final class StudyApi(
           Contribute(who.u, study):
             for
               filledTags <- StudyPgnTags.fillPlayer(chapter.tags, tag)
-              newTags = (filledTags | chapter.tags) + tag
+              newTags =
+                if tag.value.isEmpty then (filledTags | chapter.tags) - tag.name
+                else (filledTags | chapter.tags) + tag
               _ <- doSetTags(study, chapter, StudyPgnTags(newTags), who)
             yield if study.isRelay then Bus.pub(AfterSetTagOnRelayChapter(setTag.chapterId, tag))
 
@@ -536,6 +550,20 @@ final class StudyApi(
       case None =>
         reloadSriBecauseOf(study, who.sri, position.chapter.id)
         fufail(s"Invalid setComment ${study.id} $position")
+
+  def mergeAnnotations(studyId: StudyId, position: Position.Ref, source: lila.tree.Node)(who: Who): Funit =
+    sequenceStudyWithChapter(studyId, position.chapterId):
+      case Study.WithChapter(study, chapter) =>
+        Contribute(who.u, study):
+          chapter.root.nodeAt(position.path).fold(fufail(s"Invalid annotation path: $position")) { current =>
+            val merged = current.mergeAnnotations(source)
+            (merged != current).so:
+              chapterRepo
+                .setAnnotations(merged)(chapter, position.path)
+                .map: _ =>
+                  setStudyUpdated(study)
+                  sendTo(study.id)(_.reloadAll)
+          }
 
   def deleteComment(studyId: StudyId, position: Position.Ref, id: Comment.Id)(who: Who) =
     sequenceStudyWithChapter(studyId, position.chapterId):
@@ -608,7 +636,9 @@ final class StudyApi(
   ): FuRaise[ErrorMsg, List[Chapter]] =
     data.manyGames match
       case Some(datas) =>
-        datas.sequentially(addSingleChapter(studyId, _, sticky, withRatings)(who)).map(_.flatten)
+        importPgns(studyId, datas, sticky, withRatings)(who).flatMap:
+          case (_, Some(error)) => error.raise
+          case (chapters, None) => fuccess(chapters)
       case _ =>
         addSingleChapter(studyId, data, sticky, withRatings)(who).dmap(_.toList)
 
@@ -620,17 +650,14 @@ final class StudyApi(
         _ <- raiseIf(!study.canContribute(who.u))(ErrorMsg("No permission to add chapter"))
         count <- chapterRepo.countByStudyId(study.id)
         _ <- raiseIf(Study.maxChapters <= count)(ErrorMsg("Too many chapters"))
-        _ <- data.initial.so:
-          chapterRepo
-            .firstByStudy(study.id)
-            .flatMap:
-              _.filter(_.isEmptyInitial).so(chapterRepo.delete)
         order <- chapterRepo.nextOrderByStudy(study.id)
         chapter <- chapterMaker(study, data, order, who.u, withRatings, nameOrder = (count + 1).some)
           .recoverWith:
             case StudyValidationException(error) =>
               sendTo(study.id)(_.validationError(error, who.sri))
               ErrorMsg(error).raise
+        _ <- data.initial.so:
+          chapterRepo.firstByStudy(study.id).flatMap(_.filter(_.isEmptyInitial).so(chapterRepo.delete))
         _ <- doAddChapter(study, chapter, sticky, who)
       yield chapter.some
 
@@ -642,11 +669,28 @@ final class StudyApi(
   def importPgns(studyId: StudyId, datas: List[ChapterMaker.Data], sticky: Boolean, withRatings: Boolean)(
       who: Who
   ): Future[(List[Chapter], Option[ErrorMsg])] =
-    datas
-      .sequentiallyRaise:
-        addSingleChapter(studyId, _, sticky, withRatings)(who)
-      .dmap: (oc, errors) =>
-        (oc.flatten, errors)
+    given Zero[(List[Chapter], Option[ErrorMsg])] = Zero(Nil -> None)
+    sequenceStudy(studyId): study =>
+      if !study.canContribute(who.u) then fuccess(Nil -> Some(ErrorMsg("No permission to add chapters")))
+      else
+        (for
+          count <- chapterRepo.countByStudyId(study.id)
+          _ <-
+            if count + datas.size > Study.maxChapters.value then
+              fufail(StudyValidationException("Too many chapters"))
+            else funit
+          order <- chapterRepo.nextOrderByStudy(study.id)
+          chapters <- datas.zipWithIndex.sequentially { (data, index) =>
+            chapterMaker(study, data, order + index, who.u, withRatings, Some(count + index + 1))
+          }
+          // No mutation occurs until every supplied document is valid.
+          _ <- datas.headOption
+            .exists(_.initial)
+            .so(chapterRepo.firstByStudy(study.id).flatMap(_.filter(_.isEmptyInitial).so(chapterRepo.delete)))
+          _ <- chapters.sequentially(doAddChapter(study, _, sticky, who))
+        yield chapters -> Option.empty[ErrorMsg]).recover { case StudyValidationException(error) =>
+          Nil -> Some(ErrorMsg(error))
+        }
 
   def doAddChapter(study: Study, chapter: Chapter, sticky: Boolean, who: Who): Funit =
     for
@@ -761,15 +805,14 @@ final class StudyApi(
       chapterId: StudyChapterId,
       pgn: chess.format.pgn.PgnStr
   )(using me: Me): Fu[Boolean] =
-    byIdWithChapter(studyId, chapterId).flatMapz:
+    sequenceStudyWithChapter(studyId, chapterId):
       case Study.WithChapter(study, chapter) =>
         study.isRelay.not.so:
           Contribute(me, study):
             for
-              parsed <- chapterMaker.toStudyPgn(study, pgn, strict = true)
+              parsed <- chapterMaker.toStudyPgn(study, pgn)
               newChapter = chapter.copy(
                 root = parsed.root,
-                setup = chapter.setup.copy(variant = parsed.variant),
                 conceal = chapter.conceal.map(_ => parsed.root.ply),
                 serverEval = None
               )
@@ -905,6 +948,23 @@ final class StudyApi(
       case Study.WithChapter(study, chapter) =>
         Contribute(userId, study):
           serverEvalRequester(study, chapter, userId, official)
+
+  def saveLocalAnalysis(studyId: StudyId, chapterId: StudyChapterId, data: LocalAnalysis.Data)(
+      who: Who
+  ): Fu[Boolean] =
+    sequenceStudyWithChapter(studyId, chapterId):
+      case Study.WithChapter(study, chapter) =>
+        if !study.canContribute(who.u) then fuFalse
+        else
+          LocalAnalysis.merge(chapter.root, data) match
+            case Left(error) => fufail(IllegalArgumentException(error))
+            case Right(root) =>
+              chapterRepo
+                .update(chapter.copy(root = root, serverEval = None))
+                .map: _ =>
+                  setStudyUpdated(study)
+                  sendTo(study.id)(_.reloadAll)
+                  true
 
   // only for official broadcasts
   def analysisRequestAllChapters(studyId: StudyId): Funit =

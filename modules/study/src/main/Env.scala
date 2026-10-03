@@ -20,7 +20,7 @@ final class Env(
     flairApi: lila.core.user.FlairApi,
     explorer: lila.core.game.Explorer,
     notifyApi: lila.core.notify.NotifyApi,
-    federations: lila.core.fide.Federation.FedsOf,
+    federations: lila.core.playerDirectory.Federation.FedsOf,
     prefApi: lila.core.pref.PrefApi,
     relationApi: lila.core.relation.RelationApi,
     socketKit: lila.core.socket.SocketKit,
@@ -38,9 +38,9 @@ final class Env(
     Scheduler,
     org.apache.pekko.stream.Materializer,
     lila.core.config.RateLimit,
-    lila.core.fide.Federation.Guess,
-    lila.core.fide.GetPlayer,
-    lila.core.fide.Federation.GetName
+    lila.core.playerDirectory.Federation.Guess,
+    lila.core.playerDirectory.GetPlayer,
+    lila.core.playerDirectory.Federation.GetName
 ):
 
   private lazy val studyDb = mongo.asyncDb("study", appConfig.get[String]("study.mongodb.uri"))
@@ -53,8 +53,8 @@ final class Env(
 
   private lazy val socket: StudySocket = wire[StudySocket]
 
-  val studyRepo = StudyRepo(studyDb(CollName("study")))
-  val chapterRepo = ChapterRepo(studyDb(CollName("study_chapter_flat")))
+  val studyRepo = StudyRepo(studyDb(CollName("study")), studyDb(CollName("study_chapter_flat")))
+  val chapterRepo = ChapterRepo(studyDb(CollName("study_chapter_flat")), studyRepo)
   private val topicRepo = StudyTopicRepo(studyDb(CollName("study_topic")))
   private val userTopicRepo = StudyUserTopicRepo(studyDb(CollName("study_user_topic")))
 

@@ -1,6 +1,5 @@
 import { render as renderKeyboardMove } from 'keyboard-move';
 
-import { view as cevalView } from 'lib/ceval';
 import { renderChat } from 'lib/chat/renderChat';
 import { displayColumns } from 'lib/device';
 import { playable } from 'lib/game';
@@ -15,6 +14,7 @@ import { view as keyboardView } from '@/keyboard';
 import { relayView } from '@/study/relay/relayView';
 import type * as studyDeps from '@/study/studyDeps';
 import { studyView } from '@/study/studyView';
+import { renderXiangqiGauge } from '@/view/xiangqiEngine';
 import { wikiToggleBox } from '@/wiki';
 
 import { viewContext, renderBoard, renderMain, renderUnderboard } from './components';
@@ -45,7 +45,7 @@ function analyseView(ctrl: AnalyseCtrl, deps?: typeof studyDeps): VNode {
     ctx,
     ctrl.keyboardHelp && keyboardView(ctrl),
     renderBoard(ctx),
-    ctx.gaugeOn && cevalView.renderGauge(ctrl),
+    ctx.gaugeOn && renderXiangqiGauge(ctrl),
     renderTools(ctx),
     renderControls(ctrl),
     renderUnderboard(ctx),
@@ -71,7 +71,7 @@ function analyseView(ctrl: AnalyseCtrl, deps?: typeof studyDeps): VNode {
               'a.button.button-empty.text',
               {
                 attrs: {
-                  href: router.game(ctrl.data, ctrl.data.player.color),
+                  href: router.game(ctrl.data.game.id, ctrl.data.player.color === 'red' ? 'white' : 'black'),
                   'data-icon': licon.Back,
                 },
               },

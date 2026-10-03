@@ -3,16 +3,14 @@
 /** promisify [indexedDB](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API) and add nothing
  * ### basic usage:
  * ```ts
- *   import { objectStorage } from 'lib/objectStorage';
- *
+ *    *
  *   const store = await objectStorage<number>({ store: 'store' });
  *   const value = await store.get('someKey') ?? 10;
  *   await store.put('someOtherKey', value + 1);
  * ```
  * ### cursors/indices:
  * ```ts
- *   import { objectStorage, range } from 'lib/objectStorage';
- *
+ *    *
  *   const store = await objectStorage<MyObj>({
  *     store: 'store',
  *     indices: [{ name: 'size', keyPath: 'size' }]
@@ -32,8 +30,7 @@
  * ```
  * ### upgrade/migration:
  * ```ts
- *   import { objectStorage } from 'lib/objectStorage';
- *
+ *    *
  *   const upgradedStore = await objectStorage<MyObj>({
  *     store: 'upgradedStore',
  *     version: 2,

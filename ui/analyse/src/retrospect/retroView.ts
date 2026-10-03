@@ -37,7 +37,7 @@ const feedback = {
   find(ctrl: RetroCtrl): VNode[] {
     return [
       hl('div.player', [
-        hl('div.no-square', hl('piece.king.' + ctrl.color)),
+        hl('div.no-square', hl('piece.general.' + ctrl.color)),
         hl('div.instruction', [
           hl(
             'strong',
@@ -45,7 +45,7 @@ const feedback = {
               hl('move', renderIndexAndMove(ctrl.current()!.fault.node, false, true)),
             ),
           ),
-          hl('em', i18n.site[ctrl.color === 'white' ? 'findBetterMoveForWhite' : 'findBetterMoveForBlack']),
+          hl('em', i18n.site[ctrl.color === 'red' ? 'findBetterMoveForRed' : 'findBetterMoveForBlack']),
           skipOrViewSolution(ctrl),
         ]),
       ]),
@@ -71,7 +71,7 @@ const feedback = {
         hl('div.icon', '✗'),
         hl('div.instruction', [
           hl('strong', i18n.site.youCanDoBetter),
-          hl('em', i18n.site[ctrl.color === 'white' ? 'tryAnotherMoveForWhite' : 'tryAnotherMoveForBlack']),
+          hl('em', i18n.site[ctrl.color === 'red' ? 'tryAnotherMoveForRed' : 'tryAnotherMoveForBlack']),
           skipOrViewSolution(ctrl),
         ]),
       ]),
@@ -131,17 +131,17 @@ const feedback = {
     const nothing = !ctrl.completion()[1];
     return [
       hl('div.player', [
-        hl('div.no-square', hl('piece.king.' + ctrl.color)),
+        hl('div.no-square', hl('piece.general.' + ctrl.color)),
         hl('div.instruction', [
           hl(
             'em',
             i18n.site[
               nothing
-                ? ctrl.color === 'white'
-                  ? 'noMistakesFoundForWhite'
+                ? ctrl.color === 'red'
+                  ? 'noMistakesFoundForRed'
                   : 'noMistakesFoundForBlack'
-                : ctrl.color === 'white'
-                  ? 'doneReviewingWhiteMistakes'
+                : ctrl.color === 'red'
+                  ? 'doneReviewingRedMistakes'
                   : 'doneReviewingBlackMistakes'
             ],
           ),
@@ -161,7 +161,7 @@ const feedback = {
                 key: 'flip',
                 hook: bind('click', ctrl.flip),
               },
-              i18n.site[ctrl.color === 'white' ? 'reviewBlackMistakes' : 'reviewWhiteMistakes'],
+              i18n.site[ctrl.color === 'red' ? 'reviewBlackMistakes' : 'reviewRedMistakes'],
             ),
           ]),
         ]),

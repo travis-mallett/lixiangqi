@@ -97,7 +97,7 @@ enum Permission(val key: String, val alsoGrants: List[Permission], val name: Str
   // Set the tier of own broadcasts, making them official. Group own broadcasts.
   case Relay extends Permission("RELAY", "Broadcast official")
   case RelayStream extends Permission("RELAY_STREAM", "Broadcast Live stream")
-  case FidePlayer extends Permission("FIDE_PLAYER", "Edit WXF players")
+  case DirectoryPlayer extends Permission("DIRECTORY_PLAYER", "Edit Xiangqi players")
   case Cli extends Permission("CLI", "Command line")
   case Settings
       extends Permission("SETTINGS", "Lila settings base permission") // tho most settings require SUPER_ADMIN
@@ -245,7 +245,7 @@ enum Permission(val key: String, val alsoGrants: List[Permission], val name: Str
           DisableTwoFactor,
           ChangePermission,
           StudyAdmin,
-          FidePlayer,
+          DirectoryPlayer,
           BroadcastTimeout,
           ApiChallengeAdmin,
           Feed,

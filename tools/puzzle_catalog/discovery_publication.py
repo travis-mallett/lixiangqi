@@ -20,6 +20,11 @@ from .game_analysis import (
 )
 from .live import LOCAL_HOSTS, PublicationApiError, Publisher
 
+# A destination restart, deployment, or network blip must not stop engine work
+# that other workers have in flight, so retry a failed delivery long enough to
+# ride one out before treating the destination as persistently unavailable.
+UPLOAD_RETRY_DELAYS = (5, 15, 30, 60, 120, 120)
+
 
 def connect_discovery(origin):
     """Check credentials before engine work; children inherit the session environment."""
@@ -56,7 +61,8 @@ def publish_pending_analysis(db, publisher, job_id, source_paths, stop_event, re
     Each discovery worker calls this independently, immediately after committing
     its game. Interrupted deliveries remain queued for the next discovery run.
     """
-    for attempt in range(3):
+    attempts = len(UPLOAD_RETRY_DELAYS) + 1
+    for attempt in range(attempts):
         if stop_event.is_set():
             raise WorkerCancelled("analysis publication cancelled")
         try:
@@ -65,13 +71,16 @@ def publish_pending_analysis(db, publisher, job_id, source_paths, stop_event, re
             retryable = not isinstance(error, PublicationApiError) or (
                 error.status == 429 or error.status >= 500
             )
-            if not retryable or attempt == 2:
+            if not retryable or attempt == attempts - 1:
+                retried = f" after {attempt + 1} attempts" if attempt else ""
                 raise RuntimeError(
-                    f"Analysis job {job_id} is saved locally but upload failed: {error}. "
+                    f"Analysis job {job_id} is saved locally but upload failed{retried}: "
+                    f"{error}. "
                     "Restart Discovery or use Publish to retry the saved analysis."
                 ) from error
-            report(f"Upload retry {attempt + 1}/2: {error}")
-            if stop_event.wait(2**attempt):
+            delay = UPLOAD_RETRY_DELAYS[attempt]
+            report(f"Upload retry {attempt + 1}/{attempts - 1} in {delay}s: {error}")
+            if stop_event.wait(delay):
                 raise WorkerCancelled("analysis publication cancelled")
 
 

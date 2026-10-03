@@ -1,7 +1,6 @@
 import { render as renderKeyboardMove } from 'keyboard-move';
 
 import { blurIfPrimaryClick } from 'lib';
-import { view as cevalView } from 'lib/ceval';
 import { renderChat } from 'lib/chat/renderChat';
 import { displayColumns, shareIcon } from 'lib/device';
 import { licon } from 'lib/licon';
@@ -13,6 +12,7 @@ import { watchers } from 'lib/view/watchers';
 import { viewContext, renderBoard, renderMain, renderUnderboard } from '@/view/components';
 import { renderControls } from '@/view/controls';
 import { renderTools } from '@/view/tools';
+import { renderXiangqiGauge } from '@/view/xiangqiEngine';
 import { wikiToggleBox } from '@/wiki';
 
 import type AnalyseCtrl from '../ctrl';
@@ -26,9 +26,9 @@ import { view as descView } from './description';
 import { playButtons as gbPlayButtons, overrideButton as gbOverrideButton } from './gamebook/gamebookButtons';
 import type { Tab, ToolTab } from './interfaces';
 import { view as inviteFormView } from './inviteForm';
+import { view as localAnalysisView } from './localAnalysis';
 import { view as multiBoardView } from './multiBoard';
 import { view as notifView } from './notif';
-import { view as serverEvalView } from './serverEval';
 import { view as chapterView } from './studyChapters';
 import type StudyCtrl from './studyCtrl';
 import { view as studyFormView } from './studyForm';
@@ -47,7 +47,7 @@ export function studyView(ctrl: AnalyseCtrl, study: StudyCtrl, deps: typeof stud
     ctrl.keyboardHelp && keyboardView(ctrl),
     deps.studyView.overboard(study),
     renderBoard(ctx),
-    gaugeOn && cevalView.renderGauge(ctrl),
+    gaugeOn && renderXiangqiGauge(ctrl),
     gamebookPlayView || renderTools(ctx),
     !gamebookPlayView && renderControls(ctrl),
     renderUnderboard(ctx),
@@ -167,7 +167,7 @@ export function underboard(ctrl: AnalyseCtrl): LooseVNodes {
     return [gbPlayButtons(ctrl), descView(study, true), descView(study, false), metadata(study)];
   const showAnalysis = canShowAnalysis(ctrl);
   const availableChart =
-    showAnalysis && ctrl.settings.showStaticAnalysis && study.serverEval.available()
+    showAnalysis && ctrl.settings.showStaticAnalysis && study.localAnalysis.available()
       ? analysisPanel(ctrl)
       : undefined;
   let panel;
@@ -225,7 +225,7 @@ function canShowAnalysis(ctrl: AnalyseCtrl): boolean {
 }
 
 function analysisPanel(ctrl: AnalyseCtrl): VNode {
-  const chart = serverEvalView(ctrl.study!.serverEval);
+  const chart = localAnalysisView(ctrl.study!.localAnalysis);
   return ctrl.study!.relay ? hl('div.eval-chart-and-training', [chart, trainingView(ctrl)]) : chart;
 }
 
@@ -316,13 +316,13 @@ function buttons(root: AnalyseCtrl): VNode {
           shouldBlurIfPrimaryClick: true,
         }),
       canShowAnalysis(root) &&
-        (canContribute || ctrl.serverEval.available()) &&
+        (canContribute || ctrl.localAnalysis.available()) &&
         toolButton({
           ctrl,
           tab: 'serverEval',
           hint: i18n.site.computerAnalysis,
           icon: icon(licon.BarChart)(),
-          count: ctrl.serverEval.available() ? '✓' : undefined,
+          count: ctrl.localAnalysis.available() ? '✓' : undefined,
           shouldBlurIfPrimaryClick: true,
         }),
       toolButton({

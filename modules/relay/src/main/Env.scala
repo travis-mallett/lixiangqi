@@ -7,7 +7,7 @@ import play.api.libs.ws.StandaloneWSClient
 import lila.core.config.*
 import lila.common.Bus
 import lila.core.id.RelayRoundId
-import lila.core.fide.{ Federation, Tokenize }
+import lila.core.playerDirectory.{ Federation, Tokenize }
 
 @Module
 final class Env(
@@ -23,10 +23,10 @@ final class Env(
     gameRepo: lila.game.GameRepo,
     pgnDump: lila.game.PgnDump,
     gameProxy: lila.core.game.GameProxy,
-    guessPlayer: lila.core.fide.GuessPlayer,
-    getPlayer: lila.core.fide.GetPlayer,
-    getPlayerFollowers: lila.core.fide.GetPlayerFollowers,
-    getPhotosJson: lila.core.fide.PhotosJson.Get,
+    guessPlayer: lila.core.playerDirectory.GuessPlayer,
+    getPlayer: lila.core.playerDirectory.GetPlayer,
+    getPlayerFollowers: lila.core.playerDirectory.GetPlayerFollowers,
+    getPhotosJson: lila.core.playerDirectory.PhotosJson.Get,
     cacheApi: lila.memo.CacheApi,
     settingStore: lila.memo.SettingStore.Builder,
     irc: lila.core.irc.IrcApi,
@@ -118,7 +118,7 @@ final class Env(
   // eager init to start the scheduler
   val stats = wire[RelayStatsApi]
 
-  private val relayFidePlayerApi = wire[RelayFidePlayerApi]
+  private val relayDirectoryPlayerApi = wire[RelayDirectoryPlayerApi]
 
   import lila.common.config.given
   private val syncOnlyIds = config.getOptional[List[String]]("relay.syncOnlyIds").map(RelayTourId.from)

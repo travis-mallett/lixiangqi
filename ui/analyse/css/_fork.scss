@@ -7,7 +7,7 @@ $c-fork: $c-primary;
 
   move {
     @include prevent-select;
-    @extend %san, %flex-center;
+    @extend %move-notation, %flex-center;
 
     background: color-mix(in oklab, $c-primary 25%, $c-bg);
     color: $c-font-clear;

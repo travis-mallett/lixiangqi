@@ -1,3 +1,4 @@
+import { mainlineChild } from 'lib/tree/ops';
 import { path as treePath } from 'lib/tree/tree';
 import type { Shape, TreePath } from 'lib/tree/types';
 
@@ -16,6 +17,19 @@ export interface State {
 
 export default class GamebookPlayCtrl {
   state: State;
+  private timers: ReturnType<typeof setTimeout>[] = [];
+  destroy = () => {
+    this.timers.forEach(clearTimeout);
+    this.timers = [];
+  };
+  private readonly later = (action: () => void, delay: number) => {
+    const path = this.root.path;
+    this.timers.push(
+      setTimeout(() => {
+        if (this.root.study?.gamebookPlay === this && this.root.path === path) action();
+      }, delay),
+    );
+  };
 
   constructor(
     readonly root: AnalyseCtrl,
@@ -26,6 +40,7 @@ export default class GamebookPlayCtrl {
   }
 
   private readonly makeState = (): void => {
+    this.destroy();
     const node = this.root.node,
       nodeComment = (node.comments || [])[0],
       state: Partial<State> = {
@@ -36,7 +51,7 @@ export default class GamebookPlayCtrl {
       parPath = treePath.init(this.root.path),
       parNode = this.root.tree.nodeAtPath(parPath);
     if (
-      (this.root.onMainline && !node.children[0]) ||
+      (this.root.onMainline && !mainlineChild(node)) ||
       (!this.root.onMainline && !this.root.tree.pathIsMainline(parPath))
     )
       state.feedback = 'end';
@@ -46,18 +61,18 @@ export default class GamebookPlayCtrl {
     } else if (this.root.onMainline) state.feedback = 'good';
     else {
       state.feedback = 'bad';
-      if (!state.comment) state.comment = parNode.children[0].gamebook?.deviation;
+      if (!state.comment) state.comment = mainlineChild(parNode)?.gamebook?.deviation;
     }
     this.state = state as State;
     if (!state.comment) {
-      if (state.feedback === 'good') setTimeout(this.next, this.root.path ? 1000 : 300);
-      else if (state.feedback === 'bad') setTimeout(this.retry, 800);
+      if (state.feedback === 'good') this.later(this.next, this.root.path ? 1000 : 300);
+      else if (state.feedback === 'bad') this.later(this.retry, 800);
     }
   };
 
   isMyMove = () => this.root.turnColor() === this.root.data.orientation;
 
-  movableColor = () =>
+  movableColor = (): 'red' | 'black' | undefined =>
     ['play', 'good'].includes(this.state.feedback) ? this.root.data.orientation : undefined;
 
   retry = () => {
@@ -69,8 +84,8 @@ export default class GamebookPlayCtrl {
 
   next = () => {
     if (!this.isMyMove()) {
-      const child = this.root.node.children[0];
-      if (child) this.root.userJump(this.root.path + child.id);
+      const child = mainlineChild(this.root.node);
+      if (child) this.root.userJump(treePath.append(this.root.path, child.id));
     }
     this.redraw();
   };
@@ -99,7 +114,7 @@ export default class GamebookPlayCtrl {
 
   solution = () => {
     this.root.board.setMarks(
-      makeShapesFromUci(this.root.turnColor(), this.root.node.children[0].uci, 'green'),
+      makeShapesFromUci(this.root.turnColor(), mainlineChild(this.root.node)?.uci, 'green'),
     );
   };
 
@@ -108,7 +123,7 @@ export default class GamebookPlayCtrl {
   onJump = () => {
     this.makeState();
     // wait for the root ctrl to make the move
-    setTimeout(() => this.root.withBoard(cg => cg.playPremove()), 100);
+    this.later(() => this.root.withBoard(cg => cg.playPremove()), 100);
   };
 
   onShapeChange = (shapes: Shape[]) => {

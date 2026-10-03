@@ -1,6 +1,4 @@
 import { wsConnect } from 'lib/socket';
-import * as xhr from 'lib/xhr';
-
 import {
   applyServerAnalysis,
   getNodeList,
@@ -8,23 +6,17 @@ import {
   type ServerAnalysisInfo,
   type XiangqiMoveTree,
   type XiangqiPositionNode,
-} from './tree';
+} from 'lib/tree/native';
+import { mainlineNodeList } from 'lib/tree/ops';
+import type { TreeNodeBase } from 'lib/tree/types';
+import * as xhr from 'lib/xhr';
 
 export interface ServerAnalysisBootstrap {
   gameId?: string;
-  orientation?: 'white' | 'black';
+  orientation?: 'red' | 'black';
   analysisInProgress?: boolean;
   analysisRequestUrl?: string;
   analysis?: { id: string; depth?: number | null };
-}
-
-interface ServerTreePart {
-  ply: number;
-  eval?: {
-    cp?: number;
-    mate?: number;
-    best?: string;
-  };
 }
 
 interface Options {
@@ -73,12 +65,12 @@ export function bindServerAnalysis(options: Options): {
     options.save();
   };
 
-  const apply = (parts: ServerTreePart[], depth = 0, complete = false): void => {
+  const apply = (tree: TreeNodeBase, depth = 0, complete = false): void => {
     if ((completed.get(nativeTree) ?? -1) > depth) return;
     inProgress = !complete;
     applyServerAnalysis(
       nativeTree,
-      parts.map(part => ({ ply: part.ply, ...part.eval, variation: [] })),
+      mainlineNodeList(tree).map(part => ({ ply: part.ply, ...part.eval, variation: [] })),
       depth,
       nativePositions,
     );
@@ -99,12 +91,15 @@ export function bindServerAnalysis(options: Options): {
       requestButton.hidden = true;
     }
 
-    wsConnect(`/watch/${bootstrap.gameId}/${bootstrap.orientation ?? 'white'}/v6`, false, {
-      receive(type: string, data: { treeParts?: ServerTreePart[]; depth?: number; complete?: boolean }) {
-        if (type === 'analysisProgress' && data.treeParts)
-          apply(data.treeParts, data.depth ?? 0, data.complete);
+    wsConnect(
+      `/watch/${bootstrap.gameId}/${bootstrap.orientation === 'black' ? 'black' : 'white'}/v6`,
+      false,
+      {
+        receive(type: string, data: { tree?: TreeNodeBase; depth?: number; complete?: boolean }) {
+          if (type === 'analysisProgress' && data.tree) apply(data.tree, data.depth ?? 0, data.complete);
+        },
       },
-    });
+    );
   }
 
   requestButton.addEventListener('click', () => {

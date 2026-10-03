@@ -2,6 +2,10 @@
 
 @import 'pieces';
 
+// One revolution of the previous-move shine. The marker sweeps a bright sector
+// around the piece it marks, and breathes in step with that sweep.
+$xiangqi-last-move-cycle: 3.3s;
+
 // Hide the entire stack until its faces and shadow textures decode. Once
 // ready, normal visibility inheritance still governs hidden boards/tooltips.
 body:not(.piece-images-ready) .lixiangqi-board cg-board > piece,
@@ -23,6 +27,15 @@ body:not(.piece-images-ready) .lixiangqi-board cg-board .xiangqi-piece-shadow {
   .xiangqi-piece-shadow,
   .xiangqi-motion-shadow-contact {
     will-change: auto;
+  }
+
+  // A still diagram shows the resting marker, never a moment of its sweep.
+  .xiangqi-last-move-highlight {
+    animation: none;
+
+    &::after {
+      content: none;
+    }
   }
 }
 
@@ -110,7 +123,54 @@ body:not(.piece-images-ready) .lixiangqi-board cg-board .xiangqi-piece-shadow {
       rgb(var(--xiangqi-last-move-rgb) / 0.12) 71%,
       transparent 74%
     );
+    animation: xiangqi-last-move-breathe $xiangqi-last-move-cycle ease-in-out infinite;
     pointer-events: none;
+  }
+
+  // A brighter sector of the same halo revolves around the piece that just
+  // moved, so the marker reads as light travelling over it: it creeps out
+  // from under the piece, sweeps up one side, and flashes across the top -
+  // the side the board's own light comes from - before settling again.
+  .xiangqi-last-move-highlight::after,
+  square.last-move-destination.xiangqi-motion-underlay::before {
+    content: '';
+    position: absolute;
+    inset: -2%;
+    border-radius: 50%;
+
+    // Moving clockwise from the sector's trailing edge: the bright plateau
+    // spans a third of the circle and the start angle puts the flash on the
+    // top of the piece halfway through the cycle.
+    background: conic-gradient(
+      from 56.5deg,
+      rgb(var(--xiangqi-last-move-rgb) / 0) 0deg,
+      rgb(var(--xiangqi-last-move-rgb) / 0.55) 14deg,
+      rgb(var(--xiangqi-last-move-rgb)) 30deg 85deg,
+      rgb(var(--xiangqi-last-move-rgb) / 0.55) 101deg,
+      rgb(var(--xiangqi-last-move-rgb) / 0) 115deg,
+      rgb(var(--xiangqi-last-move-rgb) / 0) 360deg
+    );
+
+    // The sector rides on the marker's own halo: it brightens the glow from
+    // the piece outwards and dies away before the halo's outer edge, so it
+    // reads as the same light rather than a separate ring.
+    mask: radial-gradient(
+      circle,
+      transparent 0 58%,
+      rgb(0 0 0 / 0.5) 60%,
+      rgb(0 0 0) 64% 66%,
+      rgb(0 0 0 / 0.4) 68.5%,
+      transparent 70%
+    );
+    animation:
+      xiangqi-last-move-sweep $xiangqi-last-move-cycle cubic-bezier(0.3, 0.2, 0.45, 1) infinite,
+      xiangqi-last-move-shine $xiangqi-last-move-cycle linear infinite;
+    pointer-events: none;
+  }
+
+  // The highlight is already inset in its piece; only the underlay is a whole square.
+  .xiangqi-last-move-highlight::after {
+    inset: 0;
   }
 
   cg-board > piece.xiangqi-motion-piece {
@@ -237,6 +297,7 @@ body:not(.piece-images-ready) .lixiangqi-board cg-board .xiangqi-piece-shadow {
           rgb(var(--xiangqi-last-move-rgb) / 0.12) 71%,
           transparent 74%
         );
+        animation: xiangqi-last-move-breathe $xiangqi-last-move-cycle ease-in-out infinite;
       }
     }
 
@@ -386,6 +447,61 @@ body:not(.piece-images-ready) .lixiangqi-board cg-board .xiangqi-piece-shadow {
 
   &--checkmate &__image {
     width: 90%;
+  }
+}
+
+// Previous-move motion. The sector carries the marker around the piece in one
+// full turn per cycle and flashes as it crosses the top of the piece; the halo
+// breathes with the same cycle, so a marker always begins dim and grows into
+// its first sweep however quickly pieces are played.
+@keyframes xiangqi-last-move-sweep {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes xiangqi-last-move-shine {
+  0% {
+    opacity: 0.15;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  68% {
+    opacity: 0.25;
+  }
+
+  100% {
+    opacity: 0.15;
+  }
+}
+
+@keyframes xiangqi-last-move-breathe {
+  0%,
+  100% {
+    opacity: 0.94;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+// Consumers that never run the module's motion machinery - a stored static
+// board, or a reader who asked for reduced motion - keep the resting marker.
+@media (prefers-reduced-motion: reduce) {
+  .lixiangqi-board .xiangqi-last-move-highlight {
+    animation: none;
+
+    &::after {
+      content: none;
+    }
   }
 }
 

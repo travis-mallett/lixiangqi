@@ -1,13 +1,13 @@
-import { COLORS } from 'chessops';
-
 import { defined } from 'lib/common';
-import { type MaybeVNodes, type VNode, onInsert, hl, spinnerVdom as spinner } from 'lib/view';
+import { type XiangqiSide as Color, xiangqiSides as COLORS } from 'lib/game/xiangqi';
+import { type MaybeVNodes, type VNode, onInsert, hl } from 'lib/view';
 import { userTitle } from 'lib/view/userLink';
 import { json as xhrJson } from 'lib/xhr';
 
 import { playerFedFlag } from '@/view/util';
 
 import type { ChapterId, ChapterPreview, StudyPlayer, ChapterSelect, TagArray } from '../interfaces';
+import { loading } from '../loading';
 import { type MultiCloudEval, renderScore } from '../multiCloudEval';
 import { gameLinkAttrs, gameLinksListener, StudyChapters } from '../studyChapters';
 import { coloredStatusStr, isServerPoint, withCustomScore } from './customScoreStatus';
@@ -99,7 +99,7 @@ export const teamsView = (ctrl: RelayTeams, chapters: StudyChapters, players: Re
           ctrl.round,
           ctrl.tour.showTeamScores,
         )
-      : [spinner()],
+      : [loading()],
   );
 
 const renderTeams = (
@@ -149,7 +149,7 @@ const renderTeams = (
           const players = chap?.players;
           if (!players) return;
           const sortedPlayers =
-            game.pov === 'white' ? [players.white, players.black] : [players.black, players.white];
+            game.pov === 'red' ? [players.red, players.black] : [players.black, players.red];
           return (
             chap &&
             hl('a.relay-tour__team-match__game', { attrs: gameLinkAttrs(roundPath, chap) }, [
@@ -205,8 +205,8 @@ const evalGauge = (
         hook: {
           postpatch(old, vnode) {
             const prevNodeCloud = old.data?.cloud;
-            const fen = chapters.get(game.id)?.fen;
-            const cev = (fen && cloudEval.getCloudEval(fen)) || prevNodeCloud;
+            const position = chapters.get(game.id)?.position;
+            const cev = (position && cloudEval.getCloudEval(position)) || prevNodeCloud;
             if (cev?.chances !== prevNodeCloud?.chances) {
               const elm = vnode.elm as HTMLElement;
               const gauge = elm.parentNode as HTMLElement;

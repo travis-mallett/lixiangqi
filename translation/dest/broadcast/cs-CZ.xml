@@ -45,11 +45,7 @@
   <string name="definitivelyDeleteTournament">Opravdu smazat celý turnaj, všechna kola a hry.</string>
   <string name="showScores">Zobraz skóre hráču dle herních výsledků</string>
   <string name="replacePlayerTags">Volitelné: nahraď jména hráčů, rating a tituly</string>
-  <string name="fideFederations">FIDE federace</string>
   <string name="top10Rating">Rating top 10</string>
-  <string name="fidePlayers">FIDE hráči</string>
-  <string name="fidePlayerNotFound">FIDE hráč nenalezen</string>
-  <string name="fideProfile">FIDE profil</string>
   <string name="federation">Federace</string>
   <string name="age">Věk</string>
   <string name="unrated">Nehodnocen</string>
@@ -80,7 +76,6 @@
   <string name="tournamentLocation">Místo konání turnaje</string>
   <string name="topPlayers">Nejlepší hráči</string>
   <string name="timezone">Časové pásmo</string>
-  <string name="fideRatingCategory">Kategorie ratingu FIDE</string>
   <string name="optionalDetails">Volitelné detaily</string>
   <string name="pastBroadcasts">Dřívější vysílání</string>
   <string name="allBroadcastsByMonth">Zobrazit všechny vysílání podle měsíce</string>

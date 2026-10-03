@@ -121,7 +121,7 @@ class MatchmakingPage {
           hook: onInsert(element =>
             initMiniBoardWith(element, {
               fen: EMPTY_XIANGQI_FEN,
-              orientation: 'white',
+              orientation: 'red',
               coordinates: true,
             }),
           ),

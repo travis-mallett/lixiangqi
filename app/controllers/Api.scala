@@ -46,7 +46,7 @@ final class Api(env: Env, gameC: => Game) extends LilaController(env):
             withTrophies = getBool("trophies"),
             withCanChallenge = getBool("challenge"),
             withProfile = getBoolOpt("profile") | true,
-            withFideId = getBool("fideId")
+            withPlayerId = getBool("playerId")
           )
         )
         .map(toApiResult)
@@ -274,15 +274,29 @@ final class Api(env: Env, gameC: => Game) extends LilaController(env):
           val cost = if ctx.isAuth then 1 else if suspUA then 5 else 2
           rateLimit(rateLimited, cost = cost):
             get("fen").fold[Fu[Result]](notFoundJson("Missing FEN")): fen =>
-              import chess.variant.Variant
-              env.evalCache.api
-                .getEvalJson(
-                  Variant.orDefault(getAs[Variant.LilaKey]("variant")),
-                  chess.format.Fen.Full.clean(fen),
-                  getIntAs[MultiPv]("multiPv") | MultiPv(1)
+              import lila.xiangqi.{ Xiangqi, XiangqiEvaluation }
+              import lila.xiangqi.adjudication.Ruleset
+              val context = for
+                ruleset <- get("ruleset").fold[Either[String, Ruleset]](Right(Ruleset.Unrestricted))(
+                  Ruleset.fromKey
                 )
-                .map:
-                  _.fold[Result](notFoundJson("No cloud evaluation available for that position"))(JsonOk)
+                moves <- get("moves")
+                  .filter(_.nonEmpty)
+                  .toVector
+                  .flatMap(_.split(" ", -1))
+                  .traverse(Xiangqi.Uci.from)
+                game <- XiangqiEvaluation.game(Xiangqi.Position(fen, moves, ruleset))
+              yield game
+              context.fold(
+                error => fuccess(JsonBadRequest(jsonError(error))),
+                game =>
+                  env.evalCache.api
+                    .getEvalJson(game, (getIntAs[MultiPv]("multiPv") | MultiPv(1)).atMost(5))
+                    .map:
+                      _.fold[Result](
+                        notFoundJson("No cloud evaluation available for that position and history")
+                      )(JsonOk)
+              )
 
   val eventStream =
     Scoped(_.Bot.Play, _.Board.Play, _.Challenge.Read) { _ ?=> me ?=>

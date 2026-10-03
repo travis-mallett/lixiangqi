@@ -14,12 +14,46 @@ from tools.xiangqi_data.puzzle_mining.position import encode_position
 from tools.xiangqi_data.tests import test_puzzle_storage_lifecycle as lifecycle
 
 
+def solved_branch():
+    """A coherent one-ply ledger: the solver answers a4a5 with a7a6.
+
+    Trace-wide motifs such as the cannon chariot discovery need the stored
+    decision boards, so the shared tactic fixture supplies them like a real
+    verification assessment does.
+    """
+    from tools.xiangqi_data.puzzle_mining.models import (
+        PositionStatus,
+        SearchContext,
+        SearchResult,
+        VerifiedDecision,
+    )
+    from tools.xiangqi_data.puzzle_mining.position import FenState, replay_fens
+    from tools.xiangqi_data.puzzle_mining.solver import VerifiedBranch
+
+    before = replay_fens(["a4a5"])[1]
+    state = FenState(before)
+    move = "a7a6"
+    decision = VerifiedDecision(
+        SearchContext(before, ()),
+        "black",
+        (move,),
+        move,
+        SearchResult("test", "test", move, ()),
+        position_fen=before,
+    )
+    state.push(move)
+    branch = VerifiedBranch(
+        (move,), PositionStatus(state.fen(), False, ("a4a5",)), (decision,)
+    )
+    return branch
+
+
 class CandidateClassificationTests(unittest.TestCase):
     def setUp(self):
         self.f = lifecycle.PuzzleStorageLifecycleTest()
         self.f.setUp()
         self.addCleanup(self.f.tearDown)
-        self.f.verify()
+        self.f.verify(result=self.f.result(branches=(solved_branch(),)))
         self.db = self.f.connection
         with self.db:
             self.db.execute("UPDATE candidates SET candidate_type='tactic_candidate'")

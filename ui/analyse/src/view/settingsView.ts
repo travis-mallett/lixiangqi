@@ -1,5 +1,9 @@
+import type { BoardView } from '@lixiangqi/board';
+
 import { frag } from 'lib';
+import { createXiangqiBoard, xiangqiPosition, websiteBoardPresentation } from 'lib/board';
 import { isTouchDevice } from 'lib/device';
+import { XIANGQI_START_FEN } from 'lib/game/xiangqi';
 import { licon } from 'lib/licon';
 import { domDialog, type Dialog } from 'lib/view';
 
@@ -17,76 +21,71 @@ type Setting = {
   listener?: Listener | { events: string[]; action: Listener }; // otherwise defaultToggleListener
 };
 
-const settings: Record<SettingKey, Setting> = {
-  showStaticAnalysis: {
-    label: i18n.preferences.showServerAnalysis,
-    shortcutHtml: '<kbd>z</kbd>',
-    group: i18n.preferences.generalSettings,
-    helpHtml: videoHtml('info-static-analysis'),
-  },
-  showGauge: {
-    label: i18n.preferences.showGauge,
-    group: i18n.preferences.generalSettings,
-    helpHtml: imageHtml('info-evaluation-gauge'),
-  },
-  inline: {
-    label: i18n.preferences.inlineNotation,
-    shortcutHtml: '<kbd>shift</kbd> +<kbd>i</kbd>',
-    group: i18n.preferences.moveListSettings,
-    helpHtml: videoHtml('info-inline-notation'),
-  },
-  disclosureMode: {
-    label: i18n.preferences.disclosureMode,
-    group: i18n.preferences.moveListSettings,
-    helpHtml: videoHtml('info-disclosure-mode'),
-  },
-  showLiveAnnotations: {
-    label: i18n.preferences.showLiveGlyphs,
-    group: i18n.preferences.moveListSettings,
-    helpHtml: videoHtml('info-live-annotations'),
-  },
-  showBestMoveArrows: {
-    label: i18n.preferences.showBestMoveArrows,
-    shortcutHtml: '<kbd>a</kbd>',
-    group: i18n.preferences.boardSettings,
-    helpHtml: videoHtml('info-best-move-arrows'),
-  },
-  showVariationArrows: {
-    label: i18n.preferences.showVariationArrows,
-    shortcutHtml: '<kbd>v</kbd>',
-    group: i18n.preferences.boardSettings,
-    helpHtml: $html`
-      ${videoHtml('info-variation-arrows')}
+let settingValues: Record<SettingKey, Setting> | undefined;
+const getSettings = (): Record<SettingKey, Setting> =>
+  (settingValues ??= {
+    showStaticAnalysis: {
+      label: i18n.preferences.showServerAnalysis,
+      shortcutHtml: '<kbd>z</kbd>',
+      group: i18n.preferences.generalSettings,
+      helpHtml: nativeHelp('showStaticAnalysis'),
+    },
+    showGauge: {
+      label: i18n.preferences.showGauge,
+      group: i18n.preferences.generalSettings,
+      helpHtml: nativeHelp('showGauge'),
+    },
+    inline: {
+      label: i18n.preferences.inlineNotation,
+      shortcutHtml: '<kbd>shift</kbd> +<kbd>i</kbd>',
+      group: i18n.preferences.moveListSettings,
+      helpHtml: nativeHelp('inline'),
+    },
+    disclosureMode: {
+      label: i18n.preferences.disclosureMode,
+      group: i18n.preferences.moveListSettings,
+      helpHtml: nativeHelp('disclosureMode'),
+    },
+    showLiveAnnotations: {
+      label: i18n.preferences.showLiveGlyphs,
+      group: i18n.preferences.moveListSettings,
+      helpHtml: nativeHelp('showLiveAnnotations'),
+    },
+    showBestMoveArrows: {
+      label: i18n.preferences.showBestMoveArrows,
+      shortcutHtml: '<kbd>a</kbd>',
+      group: i18n.preferences.boardSettings,
+      helpHtml: nativeHelp('showBestMoveArrows'),
+    },
+    showVariationArrows: {
+      label: i18n.preferences.showVariationArrows,
+      shortcutHtml: '<kbd>v</kbd>',
+      group: i18n.preferences.boardSettings,
+      helpHtml: $html`
+      ${nativeHelp('showVariationArrows')}
       <span>${i18n.site.keyCycleSelectedVariation} <kbd>shift</kbd></span>`,
-  },
-  showManeuverMoveArrows: {
-    label: i18n.preferences.showManeuverArrows,
-    group: i18n.preferences.boardSettings,
-    helpHtml: $html`
-      ${imageHtml('info-maneuver-arrows')}
-      <span>${i18n.preferences.maneuverArrowsHelp}</span>`,
-  },
-  showMoveAnnotationsOnBoard: {
-    label: i18n.preferences.showMoveAnnotationsOnBoard,
-    group: i18n.preferences.boardSettings,
-    helpHtml: videoHtml('info-move-annotations-on-board'),
-  },
-  showUndefendedPieces: {
-    label: i18n.preferences.showUndefendedPieces,
-    group: i18n.preferences.boardSettings,
-    helpHtml: videoHtml('info-undefended-pieces'),
-  },
-  showPinnedPieces: {
-    label: i18n.preferences.showPinnedPieces,
-    group: i18n.preferences.boardSettings,
-    helpHtml: videoHtml('info-pinned-pieces'),
-  },
-  showCheckableKing: {
-    label: i18n.preferences.showCheckableKing,
-    group: i18n.preferences.boardSettings,
-    helpHtml: videoHtml('info-checkable-king'),
-  },
-};
+    },
+    showMoveAnnotationsOnBoard: {
+      label: i18n.preferences.showMoveAnnotationsOnBoard,
+      group: i18n.preferences.boardSettings,
+      helpHtml: nativeHelp('showMoveAnnotationsOnBoard'),
+    },
+    showUndefendedPieces: {
+      label: i18n.preferences.showUndefendedPieces,
+      group: i18n.preferences.boardSettings,
+      helpHtml: nativeHelp('showUndefendedPieces'),
+    },
+    showPinnedPieces: {
+      label: i18n.preferences.showPinnedPieces,
+      group: i18n.preferences.boardSettings,
+      helpHtml: nativeHelp('showPinnedPieces'),
+    },
+    showCheckableGeneral: {
+      label: i18n.preferences.showCheckableGeneral,
+      group: i18n.preferences.boardSettings,
+      helpHtml: nativeHelp('showCheckableGeneral'),
+    },
+  });
 
 export async function showSettingsDialog(ctrl: AnalyseCtrl): Promise<Dialog> {
   let scrollableDiv: HTMLElement | null = null;
@@ -103,7 +102,7 @@ export async function showSettingsDialog(ctrl: AnalyseCtrl): Promise<Dialog> {
   if (!isTouchDevice()) window.addEventListener('resize', flexTamer);
   return domDialog({
     class: 'analysis-settings-dialog',
-    htmlText: '<h2>Analysis settings</h2>',
+    htmlText: `<h2>${i18n.preferences.analysisSettings}</h2>`,
     append: [{ node: settingsView(ctrl.settings) }],
     modal: !isTouchDevice(),
     easyClose: 'clickOutside',
@@ -115,6 +114,7 @@ export async function showSettingsDialog(ctrl: AnalyseCtrl): Promise<Dialog> {
     onShow: flexTamer,
     onClose: dlg => {
       window.removeEventListener('resize', flexTamer);
+      destroyExamples(dlg.view);
       if (dlg.returnValue !== 'showKeyboardShortcuts') return;
       ctrl.keyboardHelp = true;
       ctrl.redraw();
@@ -123,6 +123,7 @@ export async function showSettingsDialog(ctrl: AnalyseCtrl): Promise<Dialog> {
 }
 
 export function settingsView(ctrl: SettingsCtrl): HTMLElement {
+  const settings = getSettings();
   const groupedHtml = (group: keyof typeof i18n.preferences) => {
     return $html`
       <fieldset>
@@ -162,18 +163,28 @@ export function settingsView(ctrl: SettingsCtrl): HTMLElement {
 }
 
 function setupTouchHelp(view: HTMLElement) {
+  const settings = getSettings();
   view.querySelectorAll<HTMLElement>('.help-button').forEach(el => {
     const key = el.dataset.key as SettingKey;
     if (!settings[key]) return;
     const htmlText = settings[key].helpHtml;
 
     el.addEventListener('click', () =>
-      domDialog({ htmlText, class: 'setting-popup', noCloseButton: true, show: true, easyClose: 'anyClick' }),
+      domDialog({
+        htmlText,
+        class: 'setting-popup',
+        noCloseButton: true,
+        show: true,
+        easyClose: 'anyClick',
+        onShow: dialog => mountExamples(dialog.view),
+        onClose: dialog => destroyExamples(dialog.view),
+      }),
     );
   });
 }
 
 function setupHoverHelp(view: HTMLElement) {
+  const settings = getSettings();
   const helpEl = () => view.querySelector<HTMLElement>('.help-container')!.firstElementChild!;
   const helpPanes = { keyboardHelp: helpEl() } as Record<string, Element>;
 
@@ -195,7 +206,7 @@ function setupHoverHelp(view: HTMLElement) {
                 ${setting.helpHtml}
               </fieldset>`);
           helpEl().replaceWith(helpPaneEl);
-          if (helpPanes[key]) helpPaneEl.querySelector<HTMLVideoElement>('video')?.play();
+          mountExamples(helpPaneEl);
           helpPanes[key] = helpPaneEl;
         },
         helpEl() === helpPanes.keyboardHelp ? 400 : 0,
@@ -219,6 +230,7 @@ function setupHoverHelp(view: HTMLElement) {
 }
 
 function defaultToggleHtml(ctrl: SettingsCtrl, key: SettingKey) {
+  const settings = getSettings();
   const setting = settings[key];
   const label = setting.helpHtml
     ? isTouchDevice()
@@ -240,6 +252,7 @@ function defaultToggleListener(e: Event, ctrl: SettingsCtrl, key: SettingKey) {
 }
 
 function helpHtml() {
+  const settings = getSettings();
   const settingShortcutsHtml = Object.values(settings)
     .filter(opt => opt.shortcutHtml)
     .map(opt => `<div class="setting inert">${opt.label}<span>${opt.shortcutHtml}</span></div>`)
@@ -249,25 +262,58 @@ function helpHtml() {
       <fieldset class="help-pane" data-key="keyboardShortcuts">
         <legend>${i18n.site.keyboardShortcuts}</legend>
         <div class="setting inert">${i18n.site.flipBoard}<kbd>f</kbd></div>
-        <div class="setting inert">Toggle local engine<kbd>l</kbd></div>
+        <div class="setting inert">${i18n.site.toggleLocalAnalysis}<kbd>l</kbd></div>
         ${settingShortcutsHtml}
-        <button class="button button-empty button-dim show-all">Show all</button>
+        <button class="button button-empty button-dim show-all">${i18n.site.showAll}</button>
       </fieldset>
     </div>
     <div class="hover-hint">${i18n.preferences.hoverOverSettingLabelsForHelp}</div>`;
 }
 
-// iOS Safari has trouble rendering HTMLDialogElement content with replaced elements (i.e. <video>). It
-// can't do flex without glitching, it treats block as inline, hence the <br> after videoHtml and imageHtml
+const examples = new Map<HTMLElement, BoardView>();
 
-function videoHtml(path: string) {
-  return $html`
-    <video autoplay loop muted playsinline preload="auto">
-      <source src="${site.asset.url('video/' + path + '.webm')}" type="video/webm">
-    </video>
-    <br>`;
+function nativeHelp(key: SettingKey): string {
+  return $html`<div class="native-setting-example" data-example="${key}"></div><p>${i18n.preferences[`${key}Help` as keyof typeof i18n.preferences]}</p>`;
 }
 
-function imageHtml(path: string) {
-  return `<img src="${site.asset.url('images/help/' + path + '.webp')}" alt=""><br>`;
+function mountExamples(root: Element): void {
+  root.querySelectorAll<HTMLElement>('.native-setting-example').forEach(element => {
+    if (examples.has(element)) return;
+    const key = element.dataset.example;
+    const fen =
+      key === 'showPinnedPieces'
+        ? '4k4/4r4/9/9/9/9/9/9/4R4/3K5 w - - 0 1'
+        : key === 'showCheckableGeneral'
+          ? '4k4/9/9/4R4/9/9/9/9/9/3K5 w - - 0 1'
+          : XIANGQI_START_FEN;
+    const board = createXiangqiBoard(element, xiangqiPosition(fen), websiteBoardPresentation({}, 'preview'));
+    const marks =
+      key === 'showPinnedPieces'
+        ? [
+            { from: 'e2', to: 'e10', brush: 'paleRed' },
+            { from: 'e9', brush: 'red' },
+          ]
+        : key === 'showCheckableGeneral'
+          ? [
+              { from: 'e7', to: 'e9', brush: 'green' },
+              { from: 'e10', brush: 'red' },
+            ]
+          : key === 'showUndefendedPieces'
+            ? [{ from: 'b3', brush: 'yellow' }]
+            : [
+                { from: 'h1', to: 'g3', brush: 'green' },
+                ...(key === 'showVariationArrows' ? [{ from: 'b1', to: 'c3', brush: 'blue' }] : []),
+              ];
+    board.setMarks(marks);
+    examples.set(element, board);
+  });
+}
+
+function destroyExamples(root: Element): void {
+  for (const [element, board] of examples) {
+    if (!element.isConnected || root.contains(element)) {
+      board.destroy();
+      examples.delete(element);
+    }
+  }
 }

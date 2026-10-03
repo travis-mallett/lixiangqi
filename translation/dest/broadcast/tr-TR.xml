@@ -41,11 +41,7 @@
   <string name="definitivelyDeleteTournament">Bütün turnuvayı, turlarını ve oyunlarını kalıcı olarak sil.</string>
   <string name="showScores">Oyuncuların puanlarını oyun sonuçlarına göre göster</string>
   <string name="replacePlayerTags">İsteğe bağlı: Oyuncu adlarını, derecelendirmelerini ve unvanlarını değiştirin</string>
-  <string name="fideFederations">FIDE federasyonları</string>
   <string name="top10Rating">İlk 10 rating</string>
-  <string name="fidePlayers">FIDE oyuncuları</string>
-  <string name="fidePlayerNotFound">FIDE oyuncusu bulunamadı</string>
-  <string name="fideProfile">FIDE profili</string>
   <string name="federation">Federasyon</string>
   <string name="age">Yaş</string>
   <string name="unrated">Derecelendirilmemiş</string>
@@ -76,7 +72,6 @@
   <string name="tournamentLocation">Turnuva Konumu</string>
   <string name="topPlayers">En iyi oyuncular</string>
   <string name="timezone">Zaman dilimi</string>
-  <string name="fideRatingCategory">FIDE derecelendirme kategorisi</string>
   <string name="optionalDetails">İsteğe bağlı ayrıntılar</string>
   <string name="pastBroadcasts">Geçmiş yayınlar</string>
   <string name="allBroadcastsByMonth">Tüm yayınları aylara göre görüntüleyin</string>

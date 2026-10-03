@@ -1,7 +1,8 @@
 package lila.evalCache
 
-import chess.format.Fen
-import chess.variant.Variant
+import lila.memo.CacheApi.invalidate
+
+import lila.xiangqi.Xiangqi.Game
 import play.api.libs.json.JsObject
 
 import lila.core.chess.MultiPv
@@ -13,20 +14,18 @@ final class EvalCacheApi(coll: AsyncCollFailingSilently, cacheApi: lila.memo.Cac
 
   import BSONHandlers.given
 
-  def getEvalJson(variant: Variant, fen: Fen.Full, multiPv: MultiPv): Fu[Option[JsObject]] =
-    Id.from(variant, fen)
-      .so: id =>
-        getEval(id, multiPv)
-          .map2(JsonView.writeEval(_, fen))
-          .addEffect: res =>
-            lila.mon.evalCache.request(res.isDefined).increment()
+  def getEvalJson(game: Game, multiPv: MultiPv): Fu[Option[JsObject]] =
+    getEval(Id(game), multiPv)
+      .map2(JsonView.writeEval(_, game))
+      .addEffect: res =>
+        lila.mon.evalCache.request(res.isDefined).increment()
 
   val getSinglePvEval: CloudEval.GetSinglePvEval = sit => getEval(Id(sit), MultiPv(1))
 
-  private[evalCache] def drop(variant: Variant, fen: Fen.Full): Funit =
-    Id.from(variant, fen)
-      .so: id =>
-        coll(_.delete.one($id(id)).void)
+  private[evalCache] def drop(game: Game): Funit =
+    val id = Id(game)
+    coll(_.delete.one($id(id)).void).addEffect: _ =>
+      cache.invalidate(id)
 
   private def getEval(id: Id, multiPv: MultiPv): Fu[Option[CloudEval]] =
     cache.get(id).map(_.flatMap(_.makeBestMultiPvEval(multiPv)))

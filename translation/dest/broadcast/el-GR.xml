@@ -41,11 +41,7 @@
   <string name="definitivelyDeleteTournament">Οριστική διαγραφή αυτού του τουρνουά, όλων των γύρων του και όλων των παρτίδων του.</string>
   <string name="showScores">Εμφάνιση βαθμών των παικτών βάσει των παρτίδων τους</string>
   <string name="replacePlayerTags">Προαιρετικό: αντικατάσταση ονομάτων, βαθμολογιών και τίτλων παικτών</string>
-  <string name="fideFederations">Ομοσπονδίες FIDE</string>
   <string name="top10Rating">Κορυφαίες 10 βαθμολογίες</string>
-  <string name="fidePlayers">Παίκτες FIDE</string>
-  <string name="fidePlayerNotFound">Δε βρέθηκε κανένας παίκτης FIDE</string>
-  <string name="fideProfile">Προφίλ FIDE</string>
   <string name="federation">Ομοσπονδία</string>
   <string name="age">Ηλικία</string>
   <string name="unrated">Μη βαθμολογημένο</string>
@@ -76,7 +72,6 @@
   <string name="tournamentLocation">Τοποθεσία τουρνουά</string>
   <string name="topPlayers">Κορυφαίοι παίκτες</string>
   <string name="timezone">Ζώνη ώρας</string>
-  <string name="fideRatingCategory">Κατηγορία αξιολόγησης FIDE</string>
   <string name="optionalDetails">Προαιρετικές λεπτομέρειες</string>
   <string name="pastBroadcasts">Προηγούμενες μεταδόσεις</string>
   <string name="allBroadcastsByMonth">Προβολή όλων των μεταδόσεων ανά μήνα</string>

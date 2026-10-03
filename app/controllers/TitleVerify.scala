@@ -54,11 +54,11 @@ final class TitleVerify(env: Env, cmsC: => Cms, reportC: => report.Report, userC
       user <- env.user.api.byId(req.userId).orFail(s"User ${req.userId} not found")
       users <- env.security.userLogins(user, 100)
       logins <- userC.loginsTableData(user, users, 100)
-      fide <- req.data.fideId.so(env.fide.playerApi.fetch)
+      directory <- req.data.playerId.so(env.playerDirectory.playerApi.fetch)
     yield views.title.mod.ModData(
       mod = me,
       user = user,
-      fide = fide,
+      directory = directory,
       logins = logins,
       renderIp = env.mod.ipRender.apply
     )

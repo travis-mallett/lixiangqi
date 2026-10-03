@@ -24,12 +24,13 @@ final private class AnalysisBuilder(evalCache: IFishnetEvalCache)(using Executor
       .flatMap: cachedFull =>
         val cached = if isPartial then cachedFull - 0 else cachedFull
         val merged = mergeEvalsAndCached(work, evals, cached)
+        require(isPartial || merged.forall(_.isDefined), "Completed analysis must cover every position")
         val evaluations = merged.map(
           _.map(e => XiangqiAnalysis.Evaluation(e.score.cp, e.score.mate, e.cappedPv, e.depth.map(_.value)))
         )
         val initialFen = work.game.initialFen.fold(Xiangqi.startFen)(_.value)
         XiangqiRules
-          .game(Xiangqi.Position(initialFen, work.game.uciList.toVector))
+          .game(Xiangqi.Position(initialFen, work.game.uciList.toVector, work.game.ruleset))
           .fold(
             fufail,
             game =>
@@ -37,8 +38,9 @@ final private class AnalysisBuilder(evalCache: IFishnetEvalCache)(using Executor
                 id = Analysis.Id(work.game.studyId, work.game.id),
                 infos = XiangqiAnalysis.infos(game, evaluations, work.startPly),
                 startPly = work.startPly,
+                position = game.position,
                 fk = (!client.lichess).option(client.key.value),
-                date = nowInstant,
+                date = work.createdAt,
                 nodesPerMove = work.origin.map(_.nodesPerMove),
                 depth = XiangqiAnalysis.depth(evaluations)
               )

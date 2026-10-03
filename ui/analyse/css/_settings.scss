@@ -168,3 +168,9 @@
   touch-action: none;
   background: $c-bg-zebra2;
 }
+
+.native-setting-example {
+  width: min(100%, 250px);
+  aspect-ratio: 9 / 10;
+  align-self: center;
+}

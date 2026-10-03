@@ -106,12 +106,20 @@ class SingleHorseTest(unittest.TestCase):
         from tools.xiangqi_data.puzzle_mining.classification_job import (
             reclassify_canonical,
         )
+        from tools.xiangqi_data.tests.test_puzzle_throat_cutting import trace_for
 
         f = PuzzleStorageLifecycleTest()
         f.setUp(themes=None)
         self.addCleanup(f.tearDown)
+        # Trace-wide motifs need the stored decision boards, as a real
+        # verification assessment supplies them.
         t = position()
-        branch = VerifiedBranch(("h9f10",), PositionStatus(t.fen, False, ()))
+        opening = {s: p for s, p in BASE.items() if s != "f10"}
+        opening["h9"] = "N"
+        trace = trace_for(opening, ("h9f10",))
+        branch = VerifiedBranch(
+            trace.moves, PositionStatus(t.fen, False, ()), decisions=trace.decisions
+        )
         f.verify(result=f.result(branches=(branch,)))
         escapes = dict(horse_role_escape_positions(t))
         attacks = {escapes["d10e10"]: ("e1",), escapes["d10d9"]: ("f10",)}
@@ -140,12 +148,19 @@ class SingleHorseTest(unittest.TestCase):
             result.themes,
         )
         other = terminal(BASE)
+        closing = {s: p for s, p in BASE.items() if s != "a5"}
+        closing["b3"] = "N"
+        tail = trace_for(closing, ("b3a5",))
         f.verify(
             force=True,
             result=f.result(
                 branches=(
                     branch,
-                    VerifiedBranch(("b3a5",), PositionStatus(other.fen, True, ())),
+                    VerifiedBranch(
+                        tail.moves,
+                        PositionStatus(other.fen, True, ()),
+                        decisions=tail.decisions,
+                    ),
                 )
             ),
         )

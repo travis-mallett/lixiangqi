@@ -41,11 +41,7 @@
   <string name="definitivelyDeleteTournament">முழு பந்தயத்தையும், அதன் அனைத்து சுற்றுகளையும் அதன் அனைத்து ஆட்டங்களையும் கண்டிப்பாக நீக்கவும்.</string>
   <string name="showScores">விளையாட்டு முடிவுகளின் அடிப்படையில் வீரர்களின் மதிப்பெண்களைக் காட்டு</string>
   <string name="replacePlayerTags">கட்டாயமற்றது: வீரர்களின் பெயர்கள், மதிப்பீடுகள் மற்றும் தலைப்புகளை மாற்றவும்</string>
-  <string name="fideFederations">FIDE பேரவை</string>
   <string name="top10Rating">சிறந்த 10 மதிப்பீடு</string>
-  <string name="fidePlayers">FIDE ஆட்டக்காரர்கள்</string>
-  <string name="fidePlayerNotFound">FIDE ஆட்டக்காரர் கிடைக்கவில்லை</string>
-  <string name="fideProfile">FIDE சுயவிவரம்</string>
   <string name="federation">கூட்டமைப்பு</string>
   <string name="unrated">மதிப்பிடப்படாதது</string>
   <string name="recentTournaments">அண்மைப் பந்தயங்கள்</string>
@@ -73,7 +69,6 @@
   <string name="tournamentLocation">பந்தய இடம்</string>
   <string name="topPlayers">சிறந்த வீரர்கள்</string>
   <string name="timezone">நேர மண்டலம்</string>
-  <string name="fideRatingCategory">FIDE மதிப்பீடு வகை</string>
   <string name="optionalDetails">விருப்ப விவரங்கள்</string>
   <string name="pastBroadcasts">கடந்த ஒளிபரப்புகள்</string>
   <string name="allBroadcastsByMonth">மாதம்தோறும் அனைத்து ஒளிபரப்புகளையும் பார்க்க</string>

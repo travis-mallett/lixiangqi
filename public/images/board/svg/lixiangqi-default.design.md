@@ -221,6 +221,73 @@ The filtered verse output is then clipped—not repositioned—to
 external highlight from extending past the already calibrated top and bottom
 frame edges.
 
+## Central site plaque
+
+The middle of the river carries the `LIXQ.org` signet. It occupies the free gap
+between the retained river labels — `楚河` ends at `x=-124` and `漢界` starts at
+`x=126` — the way mainstream Chinese xiangqi boards place a seal between their
+river labels.
+
+### Plaque geometry
+
+All values are SVG user units in the 900 × 1000 viewBox, centred on the board
+centre `(0, 0)`.
+
+| Element | Value |
+| --- | --- |
+| Recess capsule | `x=-109`, `y=-31`, `width=218`, `height=62`, `rx=31` |
+| Recess floor ink | `#5b2712` at `0.10` opacity |
+| Wordmark ink box | `143.5 × 35.9`, optically centred on the capsule |
+| Wordmark fill | `#f0dab2` |
+
+The capsule clears the `y=±50` river lines by `19` units and `楚河` and `漢界`
+by `15` and `17` units, so the plaque never touches the retained lettering.
+
+### Engraved recess
+
+The recess floor is a translucent ink wash rather than an opaque fill, so the
+wood grain stays visible through it. That rules out the `SourceAlpha`-driven
+engraving filters above, whose rim masks only reach full strength against an
+opaque source; the capsule therefore paints its own edges:
+
+1. the capsule is filled with `#5b2712` at `0.10` opacity and clipped to
+   `xiangqi-plaque-bounds`;
+2. a `1.9`-unit `#250001` outline at `0.28` opacity, offset `+1.2`/`+1.2` and
+   clipped to the capsule, darkens the top-left inner edge;
+3. a `1.9`-unit `#fff6e0` outline at `0.30` opacity, offset `-1.2`/`-1.2` and
+   clipped to the capsule, lights the bottom-right inner edge;
+4. both outlines run through `xiangqi-plaque-recess-soften`
+   (`feGaussianBlur stdDeviation="1.4"`) so the recess reads as a soft worn
+   groove rather than a hard ring.
+
+Measured on the deployed render, the recessed floor is `#e0c198`–`#e1c59c`
+(luminance `196.6`–`200`) against surrounding river wood of luminance
+`207.6`–`218.4`, the same order of recess as the reference treatment that
+prompted this artwork.
+
+### Raised wordmark
+
+The wordmark is set in Roboto Regular at a `27.5`-unit cap height with no
+tracking, converted to outlines, and centred on the capsule by ink bounds
+rather than by advance width. Outlines — not a live `<text>` element and not a
+font reference — are the canonical form, so the board stays self-contained and
+renders identically whatever fonts the host happens to have.
+
+`xiangqi-plaque-text-raise` mirrors the engraving model, which is what makes
+the letters read as raised rather than carved:
+
+1. `SourceAlpha` is blurred once at `stdDeviation="0.65"` and reused by both
+   rims;
+2. the lit rim floods `#fff6e0` at `0.32` opacity through the parts of the
+   silhouette offset by `dx=-0.9`, `dy=-1` that fall outside `SourceAlpha`;
+3. the shadow rim floods `#250001` at `0.30` opacity through the parts offset
+   by `dx=1`, `dy=1.4` that fall outside `SourceAlpha`;
+4. the merge order places both rims beneath the solid `SourceGraphic`.
+
+Both rims therefore sit outside the letterforms and never eat into the stroke
+width, which matters because Roboto Regular stems are only about `4` units wide
+at this cap height.
+
 ## Border-verse optical fitting
 
 The Wikipedia-derived border verses were originally under
@@ -282,7 +349,8 @@ The final visible order is:
 1. embedded transparent-corner wood background;
 2. translucent frame, grid, palace diagonals, and position markers;
 3. engraved border verses;
-4. engraved river text.
+4. engraved river text;
+5. engraved central site plaque and its raised wordmark.
 
 The border verses must not remain beneath the engraved copy inside the
 `0.351560395` grid group. A second dark layer changes both the
@@ -298,6 +366,10 @@ deliberately recalibrated:
 - engraved text base remains `#9e8168` with the recorded filters;
 - river and verse glyph path data remain unchanged unless a typography redesign
   is explicitly intended;
+- the central site plaque stays centred on `(0, 0)` at `218 × 62` with `rx=31`,
+  clear of `楚河`, `漢界`, and the `y=±50` river lines;
+- the wordmark stays outlined path data filled with `#f0dab2`; do not
+  reintroduce it as a live `<text>` element or a font reference;
 - border-verse transforms and `y=±461` terminal alignment remain exact;
 - corners remain transparent and free of white fringe.
 - Xiangqi board containers do not impose CSS corner rounding over the artwork.
@@ -321,3 +393,8 @@ deliberately recalibrated:
 9. Verify a native 900 × 1000 render and a high-resolution render. Confirm that
    no verse effect pixels extend above or below the outer frame, the central
    board matches the calibrated reference measurements, and the transparent corners have no white fringe.
+10. Draw the central site plaque last: recessed capsule first, raised wordmark
+    over it, both centred on `(0, 0)`.
+11. Render the plaque over real wood grain at board scale and at thumbnail
+    scale. Confirm the recess stays visible without reading as a hard outline
+    and that the wordmark never collides with `楚河` or `漢界`.

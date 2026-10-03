@@ -159,12 +159,20 @@ class ServantCrowdingMasterTest(unittest.TestCase):
         from tools.xiangqi_data.tests.test_puzzle_storage_lifecycle import (
             PuzzleStorageLifecycleTest,
         )
+        from tools.xiangqi_data.tests.test_puzzle_throat_cutting import trace_for
 
         fixture = PuzzleStorageLifecycleTest()
         fixture.setUp(themes=None)
         self.addCleanup(fixture.tearDown)
         t = terminal({**BOXED, "d9": "R", "f9": "R", "e8": "P"}, checked=False)
-        branch = VerifiedBranch(("e7e8",), PositionStatus(t.fen, False, ()))
+        # Trace-wide motifs need the stored decision boards, as a real
+        # verification assessment supplies them.
+        trace = trace_for(
+            {**BOXED, "d9": "R", "f9": "R", "e7": "P"}, ("e7e8",)
+        )
+        branch = VerifiedBranch(
+            trace.moves, PositionStatus(t.fen, False, ()), decisions=trace.decisions
+        )
         fixture.verify(result=fixture.result(branches=(branch,)))
         result = reclassify_canonical(fixture.connection, fixture.key)
         self.assertEqual(result.themes, ("mate", "mateIn1", THEME, "stalemateMate"))

@@ -1,6 +1,5 @@
-import { COLORS } from 'chessops';
-
 import { defined, scrollToInnerSelector } from 'lib';
+import { type XiangqiSide as Color, xiangqiSides as COLORS } from 'lib/game/xiangqi';
 import { hl } from 'lib/view';
 import { userTitle } from 'lib/view/userLink';
 
@@ -45,7 +44,7 @@ const gamesList = (study: StudyCtrl, relay: RelayCtrl, pinned: boolean, cloudEva
     : chapters.map((c, i) => {
         if (relay.players.pins.isChapterPinned(c) !== pinned) return;
         const clocks = renderClocks(c);
-        const players = [c.players?.black, c.players?.white];
+        const players = [c.players?.black, c.players?.red];
         if (c.orientation === 'black') {
           players.reverse();
           clocks.reverse();
@@ -94,4 +93,4 @@ const gamesList = (study: StudyCtrl, relay: RelayCtrl, pinned: boolean, cloudEva
 };
 
 const renderClocks = (chapter: ChapterPreview) =>
-  ['black', 'white'].map((color: Color) => renderClock(chapter, color));
+  ['black', 'red'].map((color: Color) => renderClock(chapter, color));

@@ -1,5 +1,5 @@
 import { type Prop, prop } from 'lib';
-import { type NvuiContext, makeContext } from 'lib/nvui/chess';
+import { type NvuiContext, makeContext } from 'lib/nvui/xiangqi';
 
 import type AnalyseCtrl from './ctrl';
 import type { NvuiPlugin } from './interfaces';

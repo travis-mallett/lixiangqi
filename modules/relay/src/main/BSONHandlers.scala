@@ -6,7 +6,7 @@ import lila.db.BSON
 import lila.db.dsl.{ *, given }
 import chess.tiebreak.Tiebreak
 import chess.tiebreak.{ CutModifier, LimitModifier }
-import chess.FideTC
+import lila.core.playerDirectory.RatingCategory
 
 object BSONHandlers:
 
@@ -68,7 +68,7 @@ object BSONHandlers:
     }
   )
 
-  given BSONHandler[FideTC] = stringAnyValHandler[FideTC](_.toString, FideTC.valueOf)
+  given BSONHandler[RatingCategory] = stringAnyValHandler[RatingCategory](_.toString, RatingCategory.valueOf)
 
   given BSONHandler[Tiebreak] = new BSON[Tiebreak]:
 
@@ -95,6 +95,7 @@ object BSONHandlers:
         )
 
   given BSONHandler[RelayRound.CustomScoring] = Macros.handler
+  given BSONDocumentHandler[lila.xiangqi.Xiangqi.BySide[RelayRound.CustomScoring]] = Macros.handler
   given BSONDocumentHandler[RelayRound] = Macros.handler
 
   given BSONDocumentHandler[RelayPinnedStream] = Macros.handler

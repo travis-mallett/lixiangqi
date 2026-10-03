@@ -1,8 +1,8 @@
-import { COLORS } from 'chessops';
 import { h, type VNode } from 'snabbdom';
 
 import { defined, prop } from 'lib';
-import { bind, bindSubmit, onInsert, spinnerVdom as spinner, snabDialog, confirm } from 'lib/view';
+import { xiangqiSides as COLORS } from 'lib/game/xiangqi';
+import { bind, bindSubmit, onInsert, snabDialog, confirm } from 'lib/view';
 
 import type { StudySocketSend } from '../socket';
 import { option, emptyRedButton } from '../view/util';
@@ -17,6 +17,8 @@ import type {
 
 export class StudyChapterEditForm {
   current = prop<ChapterPreview | StudyChapterConfig | null>(null);
+  failed = false;
+  private request = 0;
 
   constructor(
     private readonly send: StudySocketSend,
@@ -26,11 +28,21 @@ export class StudyChapterEditForm {
   ) {}
 
   open = (data: ChapterPreview) => {
+    const request = ++this.request;
+    this.failed = false;
     this.current(data);
-    this.chapterConfig(data.id).then(d => {
-      this.current(d);
-      this.redraw();
-    });
+    void this.chapterConfig(data.id).then(
+      d => {
+        if (request !== this.request || this.current() !== data) return;
+        this.current(d);
+        this.redraw();
+      },
+      () => {
+        if (request !== this.request || this.current() !== data) return;
+        this.failed = true;
+        this.redraw();
+      },
+    );
   };
 
   isEditing = (id: string) => this.current()?.id === id;
@@ -98,7 +110,24 @@ export function view(ctrl: StudyChapterEditForm): VNode | undefined {
                   }),
                 }),
               ]),
-              ...(isLoaded(data) ? viewLoaded(ctrl, data) : [spinner()]),
+              ...(isLoaded(data)
+                ? viewLoaded(ctrl, data)
+                : [
+                    h(
+                      'div',
+                      { attrs: { role: 'status' } },
+                      ctrl.failed
+                        ? h(
+                            'button.button',
+                            {
+                              attrs: { type: 'button' },
+                              hook: bind('click', () => ctrl.open(data), ctrl.redraw),
+                            },
+                            i18n.site.retry,
+                          )
+                        : i18n.site.loading,
+                    ),
+                  ]),
             ],
           ),
         ],
@@ -130,7 +159,7 @@ function viewLoaded(ctrl: StudyChapterEditForm, data: StudyChapterConfig): VNode
         h('label.form-label', { attrs: { for: 'chapter-mode' } }, i18n.study.analysisMode),
         h(
           'select#chapter-mode.form-control',
-          modeChoices.map(c => option(c[0], mode, c[1])),
+          modeChoices().map(c => option(c[0], mode, c[1])),
         ),
       ]),
     ]),

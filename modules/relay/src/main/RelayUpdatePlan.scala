@@ -1,14 +1,16 @@
 package lila.relay
 
+import lila.study.StudyPgnTags
+
 import lila.study.Chapter
 import chess.format.pgn.Tags
-import lila.tree.Node
+import lila.tree.{ Branches, Node }
 
 object RelayUpdatePlan:
 
   case class Input(chapters: List[Chapter], games: RelayGames):
     override def toString: String =
-      s"Input(chapters = ${chapters.map(_.name)}, games = ${games.map(_.tags.names)})"
+      s"Input(chapters = ${chapters.map(_.name)}, games = ${games.map(g => StudyPgnTags.names(g.tags))})"
 
   case class Plan(
       input: Input,
@@ -17,16 +19,45 @@ object RelayUpdatePlan:
       append: RelayGames,
       orphans: List[Chapter] // existing chapters that don't match any of the input games
   ):
+    def validate: Either[String, Unit] =
+      update
+        .collectFirst:
+          case (chapter, game)
+              if chapter.root.children.nonEmpty &&
+                (chapter.root.fen != game.root.fen || chapter.root.ruleset != game.root.ruleset) =>
+            "Broadcast initial position or ruleset changed after moves were recorded"
+          case (chapter, game)
+              if chapter.root.children.countRecursive + addedNodes(
+                chapter.root.children,
+                game.root.children
+              ) > Chapter.maxNodes =>
+            s"Broadcast chapter ${chapter.name} would exceed ${Chapter.maxNodes} nodes; no games were imported"
+        .orElse:
+          append
+            .find(_.root.children.countRecursive > Chapter.maxNodes)
+            .map(_ => s"Broadcast chapter exceeds ${Chapter.maxNodes} nodes; no games were imported")
+        .toLeft(())
+
     def isJustInitialChapterUpdate =
       input.chapters.sizeIs == 1 &&
         input.chapters.headOption.forall(_.isEmptyInitial) &&
         update.sizeIs == 1 && append.isEmpty && orphans.isEmpty
 
     override def toString: String =
-      s"Output(reorder = $reorder, update = ${update.map(_._1.name)}, append = ${append.map(_.tags.names)})"
+      s"Output(reorder = $reorder, update = ${update.map(
+          _._1.name
+        )}, append = ${append.map(g => StudyPgnTags.names(g.tags))})"
 
   def apply(chapters: List[Chapter], games: RelayGames): Plan =
     apply(Input(chapters, games))
+
+  private[relay] def addedNodes(existing: Branches, incoming: Branches): Int =
+    incoming.toList
+      .map: branch =>
+        existing
+          .get(branch.id)
+          .fold(1 + branch.children.countRecursive)(node => addedNodes(node.children, branch.children))
+      .sum
 
   def apply(input: Input): Plan =
     import input.*
@@ -97,19 +128,17 @@ object RelayUpdatePlan:
       }
 
   private[relay] def sameFirstMoves(game: List[Node], chapter: List[Node]): Boolean =
-    val maxMoves = Math.min(game.size, chapter.size)
-    val checkMoveAt = Math.max(0, maxMoves - 1)
-    val found = for
-      g <- game.lift(checkMoveAt)
-      c <- chapter.lift(checkMoveAt)
-    yield g.fen == c.fen
-    ~found
+    game.nonEmpty && chapter.nonEmpty && game.head.fen == chapter.head.fen &&
+      game
+        .zip(chapter)
+        .forall: (left, right) =>
+          left.moveOption.map(_.uci) == right.moveOption.map(_.uci)
 
   private def playerTagsMatch(gameTags: Tags, chapterTags: Tags): Boolean =
-    val bothHaveFideIds = List(gameTags, chapterTags).forall: ts =>
-      RelayGame.fideIdTags.forall(side => ts(side).exists(_ != "0"))
-    if bothHaveFideIds
-    then allSame(RelayGame.fideIdTags)(gameTags, chapterTags)
+    val bothHavePlayerIds = List(gameTags, chapterTags).forall: ts =>
+      RelayGame.playerIdTags.forall(side => ts(side).exists(_ != "0"))
+    if bothHavePlayerIds
+    then allSame(RelayGame.playerIdTags)(gameTags, chapterTags)
     else allSame(RelayGame.nameTags)(gameTags, chapterTags)
 
   private def allSame(tagNames: RelayGame.TagNames)(gameTags: Tags, chapterTags: Tags) = tagNames.forall:

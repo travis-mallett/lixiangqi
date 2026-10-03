@@ -120,9 +120,15 @@ async function hashAndLink(name: string) {
   const link = join(env.hashOutDir, hashedBasename(name, hash));
   const [{ mtime }] = await Promise.all([
     fs.promises.stat(join(env.outDir, name)),
-    fs.promises.symlink(relative(env.hashOutDir, src), link).catch(async () => {
-      await fs.promises.link(src, link).catch(async () => {
-        await fs.promises.copyFile(src, link);
+    fs.promises.symlink(relative(env.hashOutDir, src), link).catch(async error => {
+      // Identical content and basename share a target. Concurrent producers must
+      // never overwrite an existing immutable hash file (or its symlink source).
+      if (error.code === 'EEXIST') return;
+      await fs.promises.link(src, link).catch(async error => {
+        if (error.code === 'EEXIST') return;
+        await fs.promises.copyFile(src, link, fs.constants.COPYFILE_EXCL).catch(error => {
+          if (error.code !== 'EEXIST') throw error;
+        });
       });
     }),
   ]);

@@ -70,6 +70,8 @@ export interface PuzzleReplay {
 }
 
 export interface PuzzleGame {
+  states: RulesState[];
+  ruleset: string;
   id: string;
   url?: string;
   event?: string;
@@ -103,6 +105,8 @@ export interface PuzzleUser {
 }
 
 export interface Puzzle {
+  solutionStates: RulesState[];
+  ruleset: string;
   id: PuzzleId;
   playback: PuzzlePlayback;
   rating: number;
@@ -119,7 +123,7 @@ export interface PuzzleResult {
   replayComplete?: boolean;
 }
 
-export type RoundThemes = Record<ThemeKey, boolean | undefined>;
+export type RoundThemes = Partial<Record<ThemeKey, boolean>>;
 
 export interface PuzzleRound {
   win: boolean;

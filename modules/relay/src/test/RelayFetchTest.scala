@@ -12,19 +12,19 @@ class RelayFetchTest extends munit.FunSuite:
 
   val p1 = PgnStr("""
 [Event "SixDays Budapest June GMA"]
-[BlackFideId "1141058"]
+[BlackPlayerId "fixture:1141058"]
 
-1. d4 { [%eval 0.16] [%clk 1:27:11] }
-1... f5 { [%eval 0.5] [%clk 1:30:31] }
+1. a4a5 { [%eval 0.16] [%clk 1:27:11] }
+1... i7i6 { [%eval 0.5] [%clk 1:30:31] }
 """)
 
   val p2 = PgnStr("""
 [Event "SixDays Budapest June GMA"]
 [TimeControl "5+3"]
-[BlackFideId "1141058"]
+[BlackPlayerId "fixture:1141058"]
 
-1. d4 { [%eval 0.16] [%clk 1:27:11] }
-1... f5 { [%eval 0.5] [%clk 1:30:31] }""")
+1. a4a5 { [%eval 0.16] [%clk 1:27:11] }
+1... i7i6 { [%eval 0.5] [%clk 1:30:31] }""")
 
   val tc = TournamentClock(LimitSeconds(15 * 60), IncrementSeconds(10))
 

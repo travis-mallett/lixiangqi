@@ -7,6 +7,7 @@ import lila.common.Json.given
 import lila.core.chess.Depth
 import lila.fishnet.Work as W
 import lila.xiangqi.Xiangqi
+import lila.xiangqi.XiangqiJson.given
 
 object JsonApi:
 
@@ -14,26 +15,24 @@ object JsonApi:
 
   object Request:
 
-    def isValid(js: JsValue): Boolean = js.arr("analysis").forall(_.value.sizeIs <= 300)
+    def isValid(js: JsValue): Boolean =
+      js.arr("analysis").forall(_.value.sizeIs <= lila.xiangqi.UciPath.maxDepth + 1)
 
-    case class Stockfish(
-        flavor: Option[String]
-    ):
-      def isNnue = flavor.has("nnue")
+    case class Engine(name: String, version: String, nnue: Boolean)
 
     case class Acquire() extends Request
 
     case class PostAnalysis(
-        stockfish: Stockfish,
+        engine: Engine,
         analysis: List[Option[Evaluation.EvalOrSkip]]
     ) extends Request:
 
       def completeOrPartial =
-        if analysis.headOption.so(_.isDefined) then CompleteAnalysis(stockfish, analysis.flatten)
-        else PartialAnalysis(stockfish, analysis)
+        if analysis.nonEmpty && analysis.forall(_.isDefined) then CompleteAnalysis(engine, analysis.flatten)
+        else PartialAnalysis(engine, analysis)
 
     case class CompleteAnalysis(
-        stockfish: Stockfish,
+        engine: Engine,
         analysis: List[Evaluation.EvalOrSkip]
     ):
 
@@ -46,7 +45,7 @@ object JsonApi:
           .flatMap(_.nodes)
 
     case class PartialAnalysis(
-        stockfish: Stockfish,
+        engine: Engine,
         analysis: List[Option[Evaluation.EvalOrSkip]]
     )
 
@@ -81,16 +80,20 @@ object JsonApi:
   case class Game(
       game_id: String,
       position: String,
-      variant: String,
-      moves: String
+      moves: String,
+      ruleset: String,
+      positions: Vector[Position]
   )
+
+  case class Position(legalMoves: Vector[Xiangqi.Uci], result: Xiangqi.Result, turn: Xiangqi.Side)
 
   def fromGame(g: W.Game) =
     Game(
       game_id = if g.studyId.isDefined then "" else g.id,
       position = g.initialFen.fold(Xiangqi.startFen)(_.value),
-      variant = "xiangqi",
-      moves = g.moves
+      moves = g.moves,
+      ruleset = g.ruleset.key,
+      positions = g.nativeGame.states.map(state => Position(state.legalMoves, state.gameResult, state.turn))
     )
 
   sealed trait Work:
@@ -115,13 +118,18 @@ object JsonApi:
   object readers:
     import play.api.libs.functional.syntax.*
     import Request.Evaluation.EvalOrSkip
-    given Reads[Request.Stockfish] = Json.reads
+    given Reads[Request.Engine] = Json.reads
     given Reads[Request.Acquire] = Json.reads
     given Reads[Request.Evaluation.Score] = Json.reads
     given Reads[List[Xiangqi.Uci]] = Reads
       .of[String]
-      .map: moves =>
-        moves.split(' ').iterator.flatMap(Xiangqi.Uci.from(_).toOption).toList
+      .flatMapResult: moves =>
+        moves
+          .split(' ')
+          .toList
+          .filter(_.nonEmpty)
+          .traverse(Xiangqi.Uci.from)
+          .fold(JsError(_), JsSuccess(_))
 
     given EvaluationReads: Reads[Request.Evaluation] = (
       (__ \ "pv")
@@ -141,6 +149,7 @@ object JsonApi:
     given Reads[Request.PostAnalysis] = Json.reads
 
   object writers:
+    given Writes[Position] = Json.writes
     given Writes[Game] = Json.writes
     given OWrites[Work] = OWrites { work =>
       (work match
@@ -149,12 +158,7 @@ object JsonApi:
             "work" -> Json.obj(
               "type" -> "analysis",
               "id" -> a.id,
-              "nodes" -> Json.obj(
-                "sf18" -> a.nodes,
-                "sf17_1" -> a.nodes,
-                "sf16" -> a.nodes,
-                "classical" -> a.nodes * 3
-              ),
+              "nodes" -> a.nodes,
               "timeout" -> Cleaner.timeoutPerPly.toMillis
             ),
             "skipPositions" -> a.skipPositions

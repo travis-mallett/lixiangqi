@@ -374,7 +374,7 @@ object user:
   type GameUser = Option[WithPerf]
   type GameUsers = ByColor[GameUser]
 
-  type PublicFideIdOf = LightUser => Fu[Option[_root_.chess.FideId]]
+  type PublicPlayerIdOf = LightUser => Fu[Option[lila.core.playerDirectory.PlayerId]]
 
   object TrophyKind:
     val marathonWinner = "marathonWinner"

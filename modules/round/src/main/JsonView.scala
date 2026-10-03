@@ -17,7 +17,7 @@ import lila.game.JsonView.given
 import lila.pref.Pref
 import lila.round.RoundGame.*
 import lila.tree.ExportOptions
-import lila.xiangqi.Xiangqi.NotationStyle
+import lila.xiangqi.Xiangqi.{ NotationStyle, Side }
 
 final class JsonView(
     userJsonView: lila.user.JsonView,
@@ -232,12 +232,13 @@ final class JsonView(
       pov: Pov,
       pref: Pref,
       initialFen: Option[Fen.Full],
-      orientation: Color,
+      orientation: Side,
       owner: Boolean,
       notationStyle: NotationStyle,
       division: Option[chess.Division] = None
   ) =
     import pov.*
+    import lila.xiangqi.XiangqiJson.given
     val fen = game.position.fen
     Json
       .obj(
@@ -247,21 +248,22 @@ final class JsonView(
             "variant" -> game.variant,
             "fen" -> fen,
             "turns" -> game.ply,
-            "player" -> game.turnColor.name,
+            "player" -> game.xiangqi.state.turn,
+            "ruleset" -> game.xiangqi.ruleset,
             "status" -> game.status
           )
           .add("initialFen", initialFen)
           .add("division", division)
-          .add("winner", game.winner.map(_.color.name)),
+          .add("winner", game.winner.map(p => if p.color.white then Side.Red else Side.Black)),
         "player" -> Json.obj(
           "id" -> owner.option(pov.playerId),
-          "color" -> color.name
+          "color" -> (if color.white then Side.Red else Side.Black)
         ),
         "opponent" -> Json.obj(
-          "color" -> opponent.color.name,
+          "color" -> (if opponent.color.white then Side.Red else Side.Black),
           "ai" -> opponent.aiLevel
         ),
-        "orientation" -> orientation.name,
+        "orientation" -> orientation,
         "pref" -> Json
           .obj(
             "animationDuration" -> animationMillis(pov, pref),
@@ -271,7 +273,6 @@ final class JsonView(
             "keyboardMove" -> pref.hasKeyboardMove,
             "notationStyle" -> notationStyle.key
           )
-          .add("rookCastle" -> (pref.rookCastle == Pref.RookCastle.YES))
           .add("highlight" -> pref.highlight)
           .add("destination" -> pref.destination),
         "userAnalysis" -> true

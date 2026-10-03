@@ -1,9 +1,11 @@
 package lila.study
 
-import chess.format.UciPath
+import lila.xiangqi.UciPath
+import lila.xiangqi.XiangqiJson.given
 import chess.format.pgn.{ Tag, TagType, Tags }
-import chess.variant.Variant
-import chess.FideId
+import chess.{ PlayerName, IntRating, Centis }
+import lila.core.playerDirectory.{ PlayerId, PlayerTitle }
+import lila.xiangqi.Xiangqi.{ Side, BySide }
 import lila.tree.Clock
 
 private case class SetTag(chapterId: StudyChapterId, name: String, value: String):
@@ -19,105 +21,138 @@ object StudyPgnTags:
   val RedElo = customType("RedElo")
   val RedTitle = customType("RedTitle")
   val RedTeam = customType("RedTeam")
-  val RedFideId = customType("RedFideId")
+  val RedPlayerId = customType("RedPlayerId")
+  val BlackPlayerId = customType("BlackPlayerId")
   val RedClock = customType("RedClock")
 
-  private val redToWhite: Map[TagType, TagType] = Map(
-    Red -> Tag.White,
-    RedElo -> Tag.WhiteElo,
-    RedTitle -> Tag.WhiteTitle,
-    RedTeam -> Tag.WhiteTeam,
-    RedFideId -> Tag.WhiteFideId,
-    RedClock -> Tag.WhiteClock
+  // External tag spellings are normalized once; all internal participant keys are Red/Black.
+  private val externalWhiteNames = Map(
+    "white" -> "Red",
+    "whiteelo" -> "RedElo",
+    "whitetitle" -> "RedTitle",
+    "whiteteam" -> "RedTeam",
+    "whiteplayerid" -> "RedPlayerId",
+    "whiteclock" -> "RedClock",
+    "whitecountry" -> "RedCountry"
   )
-  private val whiteToRed = redToWhite.map(_.swap)
 
   def apply(tags: Tags): Tags =
-    tags.pipe(filterRelevant(Set.empty)).pipe(removeContradictingTermination).pipe(sort)
+    val normalized = tags.value.map { tag =>
+      val name = externalWhiteNames.getOrElse(
+        tag.name.toString.toLowerCase,
+        relevantTypesByLowercase.get(tag.name.toString.toLowerCase).fold(tag.name.toString)(_.toString)
+      )
+      Tag(name, tag.value)
+    }
+    normalized.groupBy(_.name.toString.toLowerCase).foreach { (name, entries) =>
+      require(entries.map(_.value).distinct.size == 1, s"Conflicting notation tag: $name")
+    }
+    normalized.filter(tag => Set("redplayerid", "blackplayerid")(tag.name.toString.toLowerCase)).foreach {
+      tag =>
+        require(PlayerId.parse(tag.value).isDefined, s"Invalid native player ID: ${tag.value}")
+    }
+    sort(removeContradictingTermination(Tags(normalized.distinct)))
 
-  def withRelevantTags(tags: Tags, types: Set[TagType], variant: Variant): Tags =
-    val allExtra = types ++
-      variant.standard.not.so(Set(Tag.Variant)) ++
-      variant.standardInitialPosition.not.so(Set(Tag.FEN))
-    tags.pipe(filterRelevant(allExtra)).pipe(removeContradictingTermination).pipe(sort)
+  def points(tags: Tags): Option[lila.xiangqi.Xiangqi.GamePoints] =
+    tags("Result").flatMap(lila.xiangqi.Xiangqi.GamePoints.fromResult)
+
+  def timeControl(tags: Tags): Option[lila.xiangqi.XiangqiClockControl] =
+    tags("TimeControl").flatMap(value =>
+      lila.xiangqi.XiangqiClockControl
+        .parse(value)
+        .fold(error => throw IllegalArgumentException(error), identity)
+    )
+
+  def clocks(tags: Tags): BySide[Option[Centis]] =
+    BySide(side =>
+      tags(if side.red then "RedClock" else "BlackClock").map { value =>
+        val parsed = lila.xiangqi.XiangqiAnnotations
+          .parse(Vector(s"[%clk $value]"))
+          .fold(error => throw IllegalArgumentException(error), identity)
+        Centis(parsed.clock.get)
+      }
+    )
+
+  def names(tags: Tags): BySide[Option[PlayerName]] =
+    BySide(tags("Red").map(PlayerName.apply), tags("Black").map(PlayerName.apply))
+  def ratings(tags: Tags): BySide[Option[IntRating]] =
+    BySide(
+      tags("RedElo").flatMap(_.toIntOption).map(IntRating.apply),
+      tags("BlackElo").flatMap(_.toIntOption).map(IntRating.apply)
+    )
+  def titles(tags: Tags): BySide[Option[PlayerTitle]] =
+    BySide(tags("RedTitle").flatMap(PlayerTitle.get), tags("BlackTitle").flatMap(PlayerTitle.get))
+  def teams(tags: Tags): BySide[Option[String]] = BySide(tags("RedTeam"), tags("BlackTeam"))
+  def playerIds(tags: Tags): BySide[Option[PlayerId]] =
+    BySide(
+      tags("RedPlayerId").flatMap(PlayerId.parse),
+      tags("BlackPlayerId").flatMap(PlayerId.parse)
+    )
 
   def setRootClockFromTags(c: Chapter): Option[Chapter] =
-    val centis = c.tags.timeControl.map: c =>
-      c.limit + c.increment
+    val centis = timeControl(c.tags).map(control => Centis(control.initial))
     val clock = centis.map(Clock(_, true.some))
     c.updateRoot:
       _.setClockAt(clock, UciPath.root)
     .filter(c !=)
 
-  // clean up tags before exposing them
-  def cleanUpForPublication(tags: Tags) = tags.map:
-    _.flatMap: tag =>
-      val published = whiteToRed.get(tag.name).fold(tag)(name => tag.copy(name = name))
-      published match
-        // We need fideId=0 to know that the player really doesn't have one,
-        // and that we shouldn't alert about it or try to fix it. But we don't
-        // want to publish it.
-        case Tag(RedFideId | Tag.BlackFideId, "0") => none
-        case _ => published.some
-
-  def validate(name: String, value: String): Option[Tag] = for
-    tpe <- relevantTypesByLowercase.get(name.toLowerCase)
-    cleaned = lila.common.String.fullCleanUp(value)
-    if cleaned.length <= 140
-  yield Tag(tpe, cleaned)
+  def validate(name: String, value: String): Option[Tag] =
+    val cleaned = lila.common.String.fullCleanUp(value)
+    val semantic = name.toLowerCase match
+      case "timecontrol" => lila.xiangqi.XiangqiClockControl.parse(cleaned).isRight
+      case "redplayerid" | "blackplayerid" => PlayerId.parse(cleaned).isDefined
+      case "result" => lila.xiangqi.Xiangqi.RecordedResult.fromKey(cleaned).isRight
+      case "redclock" | "blackclock" =>
+        lila.xiangqi.XiangqiAnnotations.parse(Vector(s"[%clk $cleaned]")).isRight
+      case _ => true
+    Option.when(
+      (cleaned.isEmpty || semantic) && name.matches(
+        "[A-Za-z][A-Za-z0-9_]*"
+      ) && name.length <= 64 && cleaned.length <= 1000
+    )(
+      Tag(relevantTypesByLowercase.get(name.toLowerCase).fold(name)(_.toString), cleaned)
+    )
 
   def validateTagTypes(tags: Tags): Either[String, Tags] =
     tags.value
-      .collectFirst:
-        case t if !relevantTypeSet(t.name) => s"Unknown tag type: ${t.name}"
-      .match
-        case Some(err) => Left(err)
-        case None => Right(apply(tags))
+      .find(tag => validate(tag.name.toString, tag.value).isEmpty)
+      .fold[Either[String, Tags]](Right(apply(tags)))(tag => Left(s"Invalid tag: ${tag.name}"))
 
   private[study] def fillPlayer(tags: Tags, newTag: Tag)(using
       Executor
   )(using
-      getPlayer: lila.core.fide.GetPlayer,
-      getFedName: lila.core.fide.Federation.GetName
+      getPlayer: lila.core.playerDirectory.GetPlayer,
+      getFedName: lila.core.playerDirectory.Federation.GetName
   ): Fu[Option[Tags]] =
-    newFideId(newTag)
-      .so: (color, fideId) =>
-        getPlayer(fideId).flatMapz: player =>
+    newPlayerId(newTag)
+      .so: (color, playerId) =>
+        getPlayer(playerId).flatMapz: player =>
           for fedName <- player.fed.so(getFedName)
           yield
             val newTags = List(
-              Tag(if color.white then "White" else "Black", player.name).some,
+              Tag(if color.red then "Red" else "Black", player.name).some,
               player.title.map { title =>
-                Tag(if color.white then "WhiteTitle" else "BlackTitle", title.value)
+                Tag(if color.red then "RedTitle" else "BlackTitle", title.value)
               },
-              fedName.map { fed => Tag(if color.white then "WhiteTeam" else "BlackTeam", fed) }
+              fedName.map { fed => Tag(if color.red then "RedTeam" else "BlackTeam", fed) }
             ).flatten
             Option(tags ++ Tags(newTags))
 
-  private def newFideId(newTag: Tag): Option[(Color, FideId)] =
+  private def newPlayerId(newTag: Tag): Option[(Side, PlayerId)] =
     newTag.name
       .match
-        case RedFideId | Tag.WhiteFideId => Color.White.some
-        case Tag.BlackFideId => Color.Black.some
+        case RedPlayerId => Side.Red.some
+        case BlackPlayerId => Side.Black.some
         case _ => None
-      .flatMap(c => FideId.from(newTag.value.toIntOption).map(c -> _))
-
-  private def filterRelevant(extraTypes: Set[TagType])(tags: Tags) =
-    normalizeRedAliases(tags).map:
-      _.filter: t =>
-        (relevantTypeSet(t.name) || extraTypes(t.name)) && !unknownValues(t.value)
-
-  private def normalizeRedAliases(tags: Tags): Tags = tags.map:
-    _.map: tag =>
-      redToWhite.get(tag.name).fold(tag)(name => tag.copy(name = name))
+      .flatMap(c => PlayerId.parse(newTag.value).map(c -> _))
 
   private def removeContradictingTermination(tags: Tags) =
-    if tags.outcome.isDefined then
+    if points(tags).isDefined then
       tags.map(_.filterNot: t =>
         t.name == Tag.Termination && t.value.toLowerCase == "unterminated")
     else tags
 
-  val clockTags: Set[TagType] = Set(Tag.WhiteClock, Tag.BlackClock)
+  val clockTags: Set[TagType] = Set(RedClock, Tag.BlackClock)
 
   private val unknownValues = Set("", "?", "unknown")
 
@@ -128,12 +163,12 @@ object StudyPgnTags:
       RedElo,
       RedTitle,
       RedTeam,
-      RedFideId,
+      RedPlayerId,
       Black,
       BlackElo,
       BlackTitle,
       BlackTeam,
-      BlackFideId,
+      BlackPlayerId,
       TimeControl,
       Date,
       Result,
@@ -149,7 +184,12 @@ object StudyPgnTags:
   val typesToString = sortedTypes.mkString(",")
 
   private val relevantTypeSet: Set[TagType] =
-    sortedTypes.toSet ++ redToWhite.values ++ StudyPlayer.country.tagTypes.toList
+    sortedTypes.toSet ++ Set(
+      RedClock,
+      Tag.BlackClock,
+      Tag.FEN,
+      Tag.Variant
+    ) ++ StudyPlayer.country.tagTypes.toList
 
   private val relevantTypesByLowercase: Map[String, TagType] =
     relevantTypeSet.map(tagType => tagType.toString.toLowerCase -> tagType).toMap
@@ -161,5 +201,4 @@ object StudyPgnTags:
       tags.value.sortBy: t =>
         typePositions
           .get(t.name)
-          .orElse(whiteToRed.get(t.name).flatMap(typePositions.get))
           .getOrElse(Int.MaxValue)

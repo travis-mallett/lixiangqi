@@ -284,9 +284,9 @@ final class RelayTour(env: Env, apiC: => Api, roundC: => RelayRound) extends Lil
       val json =
         for
           player <- env.relay.playerApi.player(tour, decoded)
-          fideId = player.flatMap(_.fideId)
-          fp <- fideId.so(env.fide.playerApi.withFollow)
-          user <- fideId.so(env.title.api.publicUserOf)
+          playerId = player.flatMap(_.playerId)
+          fp <- playerId.so(env.playerDirectory.playerApi.withFollow)
+          user <- playerId.so(env.title.api.publicUserOf)
         yield player.map(RelayPlayer.json.full(tour)(_, fp.map(_.player), user, fp.map(_.follow)))
       Found(json)(JsonOk)
 

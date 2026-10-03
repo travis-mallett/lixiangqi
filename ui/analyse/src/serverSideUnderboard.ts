@@ -11,7 +11,7 @@ import type AnalyseCtrl from './ctrl';
 import type { AnalyseData } from './interfaces';
 import { baseUrl } from './view/util';
 
-export const stockfishName = 'Pikafish 2026-01-02';
+export const pikafishName = 'Pikafish 2026-01-02';
 
 export default function (element: HTMLElement, ctrl: AnalyseCtrl) {
   $(element).replaceWith(ctrl.opts.$underboard);
@@ -27,11 +27,10 @@ export default function (element: HTMLElement, ctrl: AnalyseCtrl) {
   const updateGifLinks = (fen: FEN) => {
     const ds = document.body.dataset;
     if (positionGifLink)
-      positionGifLink.href = xhrUrl(ds.assetUrl + '/export/fen.gif', {
+      positionGifLink.href = xhrUrl('/export/fen.gif', {
         fen,
-        color: ctrl.bottomColor(),
+        orientation: ctrl.bottomColor(),
         lastMove: ctrl.node.uci,
-        variant: ctrl.data.game.variant.key,
         theme: ds.board,
         piece: ds.pieceSet,
       });
@@ -65,7 +64,7 @@ export default function (element: HTMLElement, ctrl: AnalyseCtrl) {
   }
 
   const chartLoader = () =>
-    `<div id="acpl-chart-container-loader"><span>${stockfishName}<br>server analysis</span>${spinnerHtml}</div>`;
+    `<div id="acpl-chart-container-loader"><span>${pikafishName}<br>${escapeHtml(i18n.site.computerAnalysis)}</span>${spinnerHtml}</div>`;
 
   function startAdvantageChart() {
     if (advChart || site.blindMode) return;

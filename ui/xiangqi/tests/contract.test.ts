@@ -5,8 +5,20 @@ import test from 'node:test';
 import { engineMoveToUi, parsePikafishInfo, PikafishProtocol } from 'lib/ceval';
 import { engineProgress } from 'lib/ceval/engineProgress';
 import { isXiangqiCapture } from 'lib/game';
-import { hydrateXiangqiState, requestXiangqi } from 'lib/game/xiangqiApi';
+import { requestXiangqi } from 'lib/game/xiangqiApi';
 import { MoveEvent } from 'lib/prefs';
+import {
+  addOrSelectChild,
+  createMoveTree,
+  deleteNode,
+  deserializeMoveTree,
+  mainlineEndPath,
+  movesToPath,
+  pathIsMainline,
+  promote,
+  serializeMoveTree,
+  type RulesState,
+} from 'lib/tree/native';
 
 import { boardLocation, rendererKey } from '../../board/src/renderer/coordinates';
 import {
@@ -16,6 +28,7 @@ import {
   startDrag,
   computeSquareCenter,
 } from '../../board/tests/support/renderer.ts';
+import { analysisBoardArrows } from '../src/analysisArrows.ts';
 import {
   ENGINE_SETTINGS_KEY,
   INTERFACE_SETTINGS_KEY,
@@ -49,20 +62,8 @@ import { gaugeDockAtPoint, isGaugeDock } from '../src/gaugeDock.ts';
 import { renderXiangqiNotation, renderXiangqiMovetext } from '../src/notation.ts';
 import { recommendedArrowShapes } from '../src/recommendedArrows.ts';
 import { xiangqiMoveSound, xiangqiTransitionSound } from '../src/sound.ts';
-import {
-  addOrSelectChild,
-  createMoveTree,
-  createMoveTreeFromUciMainline,
-  deleteNode,
-  deserializeMoveTree,
-  mainlineEndPath,
-  movesToPath,
-  pathIsMainline,
-  promote,
-  serializeMoveTree,
-  type RulesState,
-} from '../src/tree.ts';
 import initAncientManuals from '../src/xiangqi.manuals.ts';
+import { fixtureTree } from './treeFixtures';
 
 const state = (fen: string, turn: 'red' | 'black', ply: number): RulesState => ({
   fen,
@@ -215,17 +216,17 @@ test('uses PyChess rank-10 encoding exactly', () => {
     coordinateMove('a10a9')
       .map(key => rendererKey(key, standardXiangqi.geometry))
       .join(''),
-    'a:a9',
+    'a10a9',
   );
-  assert.equal(boardLocation('a:') + boardLocation('a9'), 'a10a9');
+  assert.equal(boardLocation('a10') + boardLocation('a9'), 'a10a9');
   assert.deepEqual(
     coordinateMove('i10h10').map(key => rendererKey(key, standardXiangqi.geometry)),
-    ['i:', 'h:'],
+    ['i10', 'h10'],
   );
 });
 
 test('renders the numbered tapered recommendation style and orthogonal horse route', () => {
-  const shapes = recommendedArrowShapes(['h1e1', 'h10g8'], 'red');
+  const shapes = recommendedArrowShapes([['h1e1', 'h10g8']], 'red');
   assert.equal(shapes.length, 2);
   assert.equal(shapes[0].from, 'h1');
   assert.match(shapes[0].svg ?? '', /fill="#e04b4d"/);
@@ -237,9 +238,150 @@ test('renders the numbered tapered recommendation style and orthogonal horse rou
   assert.match(shapes[1].svg ?? '', /fill="#77a718"/);
 });
 
+test('numbers later plies higher, fading and dashing the last line', () => {
+  const shapes = recommendedArrowShapes(
+    [
+      ['h1e1', 'h10g8'],
+      ['b1c3', 'b10c8'],
+      ['a1a2', 'a10a9'],
+    ],
+    'red',
+  );
+  assert.equal(shapes.length, 6);
+  // The faintest line is drawn first so the primary arrows stay on top.
+  assert.deepEqual(
+    shapes.map(shape => shape.from),
+    ['a1', 'a10', 'b1', 'b10', 'h1', 'h10'],
+  );
+  const primaryRed = shapes[4].svg ?? '';
+  const primaryBlack = shapes[5].svg ?? '';
+  assert.match(primaryRed, /opacity="1"/);
+  assert.match(primaryRed, />1<\/text>/);
+  assert.doesNotMatch(primaryRed, /dashed/);
+  assert.match(primaryBlack, /opacity="1"/);
+  assert.match(primaryBlack, />2<\/text>/);
+  const secondary = shapes[2].svg ?? '';
+  assert.match(secondary, />1<\/text>/);
+  assert.match(secondary, /opacity="0.6"/);
+  assert.doesNotMatch(secondary, /dashed/);
+  const faintest = shapes[0].svg ?? '';
+  assert.match(faintest, />1<\/text>/);
+  assert.match(faintest, /opacity="0.4"/);
+  assert.match(faintest, /xiangqi-recommended-arrow--dashed/);
+  assert.match(faintest, /stroke-dasharray/);
+  // Every line numbers its own plies: 1 for the move, 2 for the reply.
+  assert.deepEqual(
+    shapes.map(shape => /<text[^>]*>(\d+)<\/text>/.exec(shape.svg ?? '')?.[1]),
+    ['1', '2', '1', '2', '1', '2'],
+  );
+});
+
+test('dashes only the final engine line when two lines are selected', () => {
+  const shapes = recommendedArrowShapes(
+    [
+      ['h1e1', 'h10g8'],
+      ['b1c3', 'b10c8'],
+    ],
+    'red',
+  );
+  assert.equal(shapes.length, 4);
+  const [faintRed, faintBlack, primaryRed, primaryBlack] = shapes.map(shape => shape.svg ?? '');
+  assert.deepEqual(
+    shapes.map(shape => shape.from),
+    ['b1', 'b10', 'h1', 'h10'],
+  );
+  assert.match(primaryRed, />1<\/text>/);
+  assert.match(primaryRed, /opacity="1"/);
+  assert.doesNotMatch(primaryRed, /dashed/);
+  assert.match(primaryBlack, />2<\/text>/);
+  assert.doesNotMatch(primaryBlack, /dashed/);
+  assert.match(faintRed, />1<\/text>/);
+  assert.match(faintRed, /opacity="0.6"/);
+  assert.match(faintRed, /xiangqi-recommended-arrow--dashed/);
+  assert.match(faintBlack, />2<\/text>/);
+  assert.match(faintBlack, /xiangqi-recommended-arrow--dashed/);
+});
+
 test('mirrors recommendation geometry with a flipped board', () => {
-  const shape = recommendedArrowShapes(['h10g8'], 'black', 'black')[0];
+  const shape = recommendedArrowShapes([['h10g8']], 'black', 'black')[0];
   assert.match(shape.svg ?? '', /50,-50/);
+});
+
+test('numbers plies from the side to move, so black opens every line at 1', () => {
+  const shapes = recommendedArrowShapes(
+    [
+      ['h10g8', 'b1c3'],
+      ['b10c8', 'c4c5'],
+    ],
+    'black',
+  );
+  assert.deepEqual(
+    shapes.map(shape => /<text[^>]*>(\d+)<\/text>/.exec(shape.svg ?? '')?.[1]),
+    ['1', '2', '1', '2'],
+  );
+  assert.match(shapes[0].svg ?? '', /fill="#282828"/);
+  assert.match(shapes[1].svg ?? '', /fill="#e04b4d"/);
+  assert.match(shapes[2].svg ?? '', /fill="#282828"/);
+  assert.match(shapes[3].svg ?? '', /fill="#e04b4d"/);
+});
+
+test('renders the whole analysis arrow vocabulary from one shared module', () => {
+  const arrows = analysisBoardArrows({
+    engineLines: [['h1e1', 'h10g8']],
+    turn: 'red',
+    orientation: 'red',
+    children: ['b1c3', 'c1e3', 'd1d2', 'f1f2', 'g1g2', 'i1i2'],
+    previewMove: 'a1a2',
+    threatMoves: ['h10g8'],
+  });
+  // Variations first, then the threat, the numbered engine pair and the preview.
+  assert.deepEqual(
+    arrows.map(arrow => arrow.from),
+    ['b1', 'c1', 'd1', 'f1', 'g1', 'h10', 'h1', 'h10', 'a1'],
+  );
+  for (const arrow of arrows) {
+    assert.match(arrow.svg ?? '', /class="xiangqi-recommended-arrow/);
+    assert.equal(arrow.brush, undefined);
+  }
+  assert.doesNotMatch(arrows[8].svg ?? '', /<text/, 'the preview arrow is unnumbered');
+  assert.match(arrows[8].svg ?? '', /fill="#003088"/);
+  assert.match(arrows[5].svg ?? '', /fill="#882020"/);
+  for (const arrow of arrows.slice(0, 5)) assert.match(arrow.svg ?? '', /fill="#4a4a4a"/);
+  assert.match(arrows[6].svg ?? '', /fill="#e04b4d"/);
+  assert.match(arrows[7].svg ?? '', /fill="#282828"/);
+});
+
+test('skips variation arrows when the position has a single continuation', () => {
+  const arrows = analysisBoardArrows({
+    engineLines: [],
+    turn: 'red',
+    orientation: 'red',
+    children: ['b1c3'],
+  });
+  assert.deepEqual(arrows, []);
+});
+
+test('never draws a variation arrow that an engine line already covers', () => {
+  const arrows = analysisBoardArrows({
+    engineLines: [['b1c3', 'b10c8']],
+    turn: 'red',
+    orientation: 'red',
+    children: ['b1c3', 'c1e3'],
+  });
+  assert.deepEqual(
+    arrows.map(arrow => arrow.from),
+    ['b1', 'b10'],
+  );
+  assert.equal(
+    analysisBoardArrows({
+      engineLines: [['b1c3', 'b10c8']],
+      turn: 'red',
+      orientation: 'red',
+      children: ['b1c3'],
+    }).length,
+    2,
+    'an uncovered single continuation still gets no variation arrow',
+  );
 });
 
 test('groups Xiangqi UCI moves for ChessgroundX', () => {
@@ -823,41 +965,21 @@ test('reports a failed non-JSON upstream response without leaking a JSON parser 
   }
 });
 
-test('hydrates sound-relevant position state while preserving transition capture metadata', async () => {
-  const originalFetch = globalThis.fetch;
-  globalThis.fetch = async () =>
-    Response.json({
-      fen: 'hydrated b - - 1 1',
-      ply: 1,
-      turn: 'black',
-      legalMoves: [],
-      check: true,
-      gameResult: '1-0',
-      immediateEnd: { ended: true, result: 1 },
-    });
-  try {
-    const hydrated = await hydrateXiangqiState({
-      fen: 'hydrated b - - 1 1',
-      ply: 1,
-      turn: 'black',
-      legalMoves: [],
-      check: false,
-      capture: true,
-      gameResult: '*',
-      needsHydration: true,
-    });
-    assert.equal(hydrated.capture, true);
-    assert.equal(hydrated.check, true);
-    assert.equal(hydrated.immediateEnd?.ended, true);
-    assert.equal(hydrated.needsHydration, undefined);
-    assert.deepEqual(xiangqiMoveSound(hydrated), {
-      capture: true,
-      check: true,
-      mate: true,
-    });
-  } finally {
-    globalThis.fetch = originalFetch;
-  }
+test('canonical nodes retain complete authoritative sound and termination state', () => {
+  const state: RulesState = {
+    fen: 'recorded b - - 1 1',
+    ply: 1,
+    turn: 'black',
+    legalMoves: [],
+    check: true,
+    capture: true,
+    checkmate: true,
+    gameResult: '1-0',
+    immediateEnd: { ended: true, result: 1 },
+  };
+  const tree = createMoveTree(state);
+  assert.deepEqual(tree.root.state, state);
+  assert.deepEqual(xiangqiMoveSound(tree.root.state), { capture: true, check: true, mate: true });
 });
 
 test('normalizes Pikafish coordinates and side-to-move scores for the red evaluation bar', () => {
@@ -1056,8 +1178,18 @@ test('renders mobile engine rows and placeholders from the resolved MultiPV coun
     let count = 3;
     const suggestions = new AnalysisSuggestions(
       'root w - - 0 1',
-      () => 'white',
+      () => 'red',
       () => count,
+      {
+        eval: document.querySelector('#xiangqi-eval')!,
+        evalFill: document.querySelector('#xiangqi-eval-fill')!,
+        evalScore: document.querySelector('#xiangqi-eval-score')!,
+        engineScore: document.querySelector('#xiangqi-engine-score')!,
+        engineStatus: document.querySelector('#xiangqi-engine-status')!,
+        engineLines: document.querySelector('#xiangqi-engine-lines')!,
+        cloudBadge: document.querySelector('#xiangqi-cloud-badge')!,
+        moreLines: document.querySelector('#xiangqi-more-lines')!,
+      },
     );
     suggestions.showPlaceholders();
     assert.equal(document.querySelectorAll('#xiangqi-engine-lines > .placeholder').length, 3);
@@ -1109,6 +1241,20 @@ test('renders mobile engine rows and placeholders from the resolved MultiPV coun
     count = 5;
     suggestions.showPlaceholders();
     assert.equal(document.querySelectorAll('#xiangqi-engine-lines > .placeholder').length, 5);
+    suggestions.setEvaluation({ redCp: -125 });
+    assert.equal(document.querySelector('#xiangqi-engine-score')!.textContent, '−1.25');
+    suggestions.setEvaluation({ redMate: 2 });
+    assert.equal(document.querySelector('#xiangqi-engine-score')!.textContent, '+M2');
+    suggestions.resetEvaluation();
+    suggestions.setPosition(
+      'other b - - 0 1',
+      { initialFen: 'other b - - 0 1', moves: [], ruleset: 'unrestricted-v1' },
+      () => undefined,
+    );
+    suggestions.setEvaluation();
+    assert.equal(document.querySelector('#xiangqi-engine-score')!.textContent, '+0.00');
+    assert.equal(document.querySelectorAll('#xiangqi-engine-lines > .pv:not(.placeholder)').length, 0);
+    suggestions.destroy();
   } finally {
     window.matchMedia = originalMatchMedia;
     document.body.replaceChildren();
@@ -1150,19 +1296,19 @@ test('creates, selects, promotes, and deletes stable variation paths', () => {
   assert.equal(mainlineEndPath(tree), blackVariation.path);
   assert.equal(pathIsMainline(tree, blackVariation.path), true);
   assert.equal(deleteNode(tree, blackVariation.path), redMain.path);
-  assert.equal(tree.byPath.has(blackVariation.path), false);
+  assert.equal(tree.pathExists(blackVariation.path), false);
 });
 
-test('builds a database game locally without waiting for server-side notation import', () => {
+test('builds a recorded game from explicit position snapshots', () => {
   const initialFen = 'rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1';
-  const tree = createMoveTreeFromUciMainline(initialFen, ['h1g3', 'h10g8', 'g3e2'], ['H2+3', 'H8+7', 'H3-5']);
-  const nodes = [...tree.byPath.values()];
+  const tree = fixtureTree(initialFen, ['h1g3', 'h10g8', 'g3e2'], ['H2+3', 'H8+7', 'H3-5']);
+  const nodes = tree.getNodeList(mainlineEndPath(tree));
 
   assert.equal(nodes.length, 4);
   assert.equal(nodes[1].state.fen, 'rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C4NC1/9/RNBAKAB1R b - - 1 1');
   assert.equal(nodes[2].state.fen, 'rnbakab1r/9/1c4nc1/p1p1p1p1p/9/9/P1P1P1P1P/1C4NC1/9/RNBAKAB1R w - - 2 2');
   assert.equal(nodes[3].state.turn, 'black');
-  assert.equal(nodes[3].state.needsHydration, true);
+  assert.equal(nodes[3].state.ply, 3);
   assert.deepEqual(
     nodes.slice(1).map(node => (node as { notation?: string }).notation),
     ['H2+3', 'H8+7', 'H3-5'],
@@ -1181,7 +1327,7 @@ test('keeps capture metadata and derives transition sounds from the destination 
   });
 
   const captureFen = '4k4/9/9/9/4p4/9/9/9/p8/R3K4 w - - 0 1';
-  const captureTree = createMoveTreeFromUciMainline(captureFen, ['a1a2']);
+  const captureTree = fixtureTree(captureFen, ['a1a2']);
   const capture = captureTree.root.children[0];
 
   assert.equal(capture.state.capture, true);
@@ -1221,18 +1367,16 @@ test('round-trips the canonical versioned move-tree document', () => {
     { text: 'Preferred continuation', author: 'Manual author', language: 'zh' },
   ];
   const stored = serializeMoveTree(tree, initialFen, child.path);
-  stored.nextId = 1;
   const restored = deserializeMoveTree(JSON.parse(JSON.stringify(stored)), initialFen);
 
   assert.equal(restored.activePath, child.path);
   assert.deepEqual(movesToPath(restored.tree, child.path), ['a4a5']);
   assert.equal(restored.tree.root.children[0].notation, 'P9+1');
-  assert.equal(restored.tree.root.children[0].wxfNotation, 'P9+1');
   assert.equal(restored.tree.root.comments?.[0].text, 'Manual introduction');
   assert.equal(restored.tree.root.children[0].comments?.[0].author, 'Manual author');
-  const restoredChinese = deserializeMoveTree(JSON.parse(JSON.stringify(stored)), initialFen, true);
-  assert.equal(restoredChinese.tree.root.children[0].notation, '兵九进一');
-  assert.equal(restoredChinese.tree.root.children[0].wxfNotation, 'P9+1');
+  const restoredChinese = deserializeMoveTree(JSON.parse(JSON.stringify(stored)), initialFen);
+  assert.equal(restoredChinese.tree.root.children[0].chineseNotation, '兵九进一');
+  assert.equal(restoredChinese.tree.root.children[0].notation, 'P9+1');
   const sibling = addOrSelectChild(restored.tree, '', {
     uci: 'c4c5',
     notation: 'P7+1',
@@ -1306,4 +1450,74 @@ test('exports recursive WXF variations using PGN-style parentheses', () => {
   assert.equal(renderXiangqiMovetext(tree), '1. P9+1 P1+1 (1... H2+3)');
   assert.match(renderXiangqiNotation(tree, initialFen), /\[Variant "Xiangqi"\]/);
   assert.match(renderXiangqiNotation(tree, initialFen), /P1\+1 \(1\.\.\. H2\+3\) \*$/);
+});
+
+test('shared move tree applies study concealment on desktop and mobile and delegates commands', () => {
+  const tree = createMoveTree(state('root w - - 0 1', 'red', 0));
+  const first = addOrSelectChild(tree, '', {
+    uci: 'a4a5',
+    notation: 'P9+1',
+    state: state('first b - - 1 1', 'black', 1),
+  });
+  const concealed = addOrSelectChild(tree, first.path, {
+    uci: 'a7a6',
+    notation: 'P1+1',
+    state: state('second w - - 2 2', 'red', 2),
+  });
+  const element = document.createElement('div');
+  let contextPath = '';
+  let navigatedPath = '';
+  let hide = true;
+  const originalMatchMedia = window.matchMedia;
+  const view = new AnalysisTreeView({
+    element,
+    tree: () => tree,
+    activePath: () => '',
+    setActivePath: () => undefined,
+    notationLayout: () => 'two-column',
+    navigate: path => {
+      navigatedPath = path;
+    },
+    commit: () => undefined,
+    conceal: node => (hide && node.path === concealed.path ? 'hide' : null),
+    contextMenu: path => {
+      contextPath = path;
+    },
+  });
+  try {
+    for (const mobile of [false, true]) {
+      window.matchMedia = () => ({ matches: mobile }) as MediaQueryList;
+      view.render({ scrollToActive: false });
+      assert.equal(element.querySelectorAll('.xiangqi-analysis__move').length, 1);
+      const move = element.querySelector('.xiangqi-analysis__move')!;
+      move.dispatchEvent(new window.MouseEvent('contextmenu', { clientX: 20, clientY: 30 }));
+      assert.equal(contextPath, first.path);
+      assert.equal(document.querySelector('.xiangqi-tree-menu'), null);
+    }
+    hide = false;
+    view.render({ scrollToActive: false });
+    assert.equal(element.querySelectorAll('.xiangqi-analysis__move').length, 2);
+    addOrSelectChild(tree, first.path, {
+      uci: 'c7c6',
+      notation: 'P3+1',
+      state: state('variation w - - 2 2', 'red', 2),
+    });
+    window.matchMedia = () => ({ matches: false }) as MediaQueryList;
+    tree.nodeAtPath(first.path).collapsed = true;
+    view.render({ scrollToActive: false });
+    assert.equal(element.querySelectorAll('.xiangqi-analysis__move').length, 2);
+    const disclosure = element.querySelector<HTMLButtonElement>('.xiangqi-analysis__disclosure')!;
+    assert.equal(disclosure.parentElement?.tagName, 'SPAN');
+    assert.equal(disclosure.getAttribute('aria-expanded'), 'false');
+    assert.equal(element.querySelector('button button, button [role="button"]'), null);
+    disclosure.click();
+    assert.equal(navigatedPath, '');
+    assert.equal(tree.nodeAtPath(first.path).collapsed, false);
+    element.querySelector<HTMLButtonElement>('.xiangqi-analysis__move')!.click();
+    assert.equal(navigatedPath, first.path);
+    view.render({ scrollToActive: false });
+    assert.equal(element.querySelectorAll('.xiangqi-analysis__move').length, 3);
+  } finally {
+    window.matchMedia = originalMatchMedia;
+  }
 });

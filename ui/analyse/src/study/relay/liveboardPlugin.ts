@@ -1,7 +1,8 @@
 import { type ChatPlugin } from 'lib/chat/interfaces';
-import { hl, type VNode, spinnerVdom } from 'lib/view';
+import { hl, type VNode } from 'lib/view';
 
 import { type ChapterId } from '../interfaces';
+import { loading } from '../loading';
 import { previewContent } from '../multiBoard';
 import type StudyCtrl from '../studyCtrl';
 import type { RelayRound } from './interfaces';
@@ -25,7 +26,7 @@ export class LiveboardPlugin implements ChatPlugin {
 
   view(): VNode {
     const preview = this.ctrl.chapters.list.get(this.chapterId);
-    if (!preview) return spinnerVdom();
+    if (!preview) return loading();
     const cloudEval = this.ctrl.multiCloudEval?.thisIfShowEval();
     const orientation = this.ctrl.bottomColor();
 

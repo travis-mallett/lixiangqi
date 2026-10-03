@@ -7,7 +7,7 @@ import lila.common.Json.given
 import lila.core.LightUser
 import lila.core.config.*
 import lila.core.perf.UserWithPerfs
-import lila.core.user.PublicFideIdOf
+import lila.core.user.PublicPlayerIdOf
 import lila.user.Trophy
 import lila.round.UrgentGames
 
@@ -27,7 +27,7 @@ final class UserApi(
     shieldApi: lila.tournament.TournamentShieldApi,
     challengeGranter: lila.challenge.ChallengeGranter,
     playbanApi: lila.playban.PlaybanApi,
-    fideIdOf: PublicFideIdOf,
+    playerIdOf: PublicPlayerIdOf,
     net: NetConfig
 )(using Executor):
 
@@ -76,7 +76,7 @@ final class UserApi(
             withCanChallenge.so(challengeGranter.mayChallenge(u.user).dmap(some)),
             forWiki.optionFu(userRepo.email(u.id)),
             withPlayban.so(playbanApi.currentBan(u)),
-            withFideId.so(fideIdOf(u.user.light))
+            withPlayerId.so(playerIdOf(u.user.light))
           ).mapN:
             (
                 gameOption,
@@ -91,7 +91,7 @@ final class UserApi(
                 canChallenge,
                 email,
                 playban,
-                fideId
+                playerId
             ) =>
               jsonView.full(u.user, u.perfs.some, withProfile = withProfile) ++ {
                 Json
@@ -117,7 +117,7 @@ final class UserApi(
                   .add("trophies", trophiesAndAwards.map(trophiesJson))
                   .add("canChallenge", canChallenge)
                   .add("playban", playban)
-                  .add("fideId", fideId)
+                  .add("playerId", playerId)
                   .add(
                     "streamer",
                     streamer.map: s =>
@@ -191,7 +191,7 @@ object UserApi:
       withCanChallenge: Boolean,
       withProfile: Boolean = true,
       withPlayban: Boolean = false,
-      withFideId: Boolean = false,
+      withPlayerId: Boolean = false,
       forWiki: Boolean = false,
       urgent: Preload[UrgentGames] = Preload.none
   )

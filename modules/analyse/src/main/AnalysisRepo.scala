@@ -27,15 +27,20 @@ final class AnalysisRepo(val coll: Coll)(using Executor):
 
   private[analyse] def save(analysis: Analysis, workHash: Option[Array[Byte]]): Funit =
     val bson = toBdoc(analysis).get ++ workHash.so(h => $doc("hash" -> h))
-    // The unique ID and conditional upsert make depth monotonic across publishers
-    // and in-flight Fishnet results. A nonmatching existing ID is a no-op.
-    val shallower = $doc("depth".$lt(analysis.depth.getOrElse(0)))
-    val selector = $id(analysis.id) ++
-      (if analysis.depth.isDefined then shallower else $doc("_id".$exists(false)))
+    // Compare exact source history before depth. An older worker cannot replace
+    // analysis requested for a later chapter revision, even with a deeper search.
+    val source = bson.getAsTry[BSONDocument]("position").get
+    val shallower =
+      $doc("position" -> source) ++ $or("depth".$exists(false), "depth".$lt(analysis.depth.getOrElse(0)))
+    val eligible = analysis.depth.fold($doc("_id".$exists(false)))(_ => shallower)
+    val selector =
+      $id(analysis.id) ++ (if analysis.studyId.isDefined then
+                             $or(eligible, $doc("position".$ne(source), "date".$lt(analysis.date)))
+                           else eligible)
     coll.update.one(selector, bson, upsert = true).void.recoverWith {
       case error: reactivemongo.api.commands.WriteResult if lila.db.isDuplicateKey(error) =>
         current(analysis.id).flatMap:
-          case Some(existing) if !analysis.depth.exists(incoming => existing.depth.exists(_ < incoming)) =>
+          case Some(existing) if !analysis.supersedes(existing) =>
             funit
           // Two first publications can both attempt insertion. If the shallower
           // one won, retry the conditional update against the now-existing ID.
@@ -53,10 +58,12 @@ final class AnalysisRepo(val coll: Coll)(using Executor):
 
   def remove(id: GameId) = coll.delete.one($id(Analysis.Id(id)))
 
-  def removeChapters(ids: Seq[StudyChapterId]) = coll.delete.one($inIds(ids.map(_.value)))
-  def setOrphans(id: Seq[StudyChapterId]) = coll.updateField($inIds(id.map(_.value)), "orphan", true)
+  def removeChapters(ids: Seq[StudyChapterId]) =
+    coll.delete.one($doc("chapterId".$in(ids), "studyId".$exists(true)))
+  def setOrphans(id: Seq[StudyChapterId]) =
+    coll.updateField($doc("chapterId".$in(id), "studyId".$exists(true)), "orphan", true)
 
   def remove(ids: List[GameId]) = coll.delete.one($inIds(ids.map(Analysis.Id(_))))
 
   def exists(id: GameId) = coll.exists($id(Analysis.Id(id)))
-  def chapterExists(id: StudyChapterId) = coll.exists($id(id.value))
+  def chapterExists(id: StudyChapterId) = coll.exists($doc("chapterId" -> id, "studyId".$exists(true)))

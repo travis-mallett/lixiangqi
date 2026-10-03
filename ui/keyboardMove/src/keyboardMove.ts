@@ -17,8 +17,8 @@ export function initModule(opts: Opts): KeyboardMoveHandler | undefined {
     dests: ReadonlyMap<string, readonly string[]> | undefined,
     yourMove: boolean,
   ): void => {
-    // update legal SAN moves
-    opts.ctrl.legalSans =
+    // Update canonical native move identities.
+    opts.ctrl.legalMoves =
       dests && dests.size > 0
         ? Object.fromEntries(
             [...dests].flatMap(([from, destinations]) => destinations.map(to => [from + to, from + to])),
@@ -38,6 +38,7 @@ function makeClear(opts: Opts) {
   return () => {
     opts.input.value = '';
     opts.input.classList.remove('wrong');
+    opts.input.setCustomValidity('');
     opts.ctrl.checker?.clear();
   };
 }

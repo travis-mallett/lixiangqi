@@ -1,4 +1,3 @@
-import { coordinateMove, type BoardMark } from '@lixiangqi/board';
 import { ExplorerCtrl, type ExplorerGame } from '@lixiangqi/explorer';
 import { embedCode } from '@lixiangqi/viewer';
 
@@ -13,44 +12,12 @@ import {
 } from 'lib/board';
 import { PikafishBrowserEngine, type EngineAnalysis, type PikafishStatus } from 'lib/ceval';
 import { engineProgress, engineLoadingText, enginePreparing } from 'lib/ceval/engineProgress';
-import { selectXiangqiNotation, type XiangqiNotationStyle } from 'lib/game';
+import { type XiangqiNotationStyle } from 'lib/game';
 import { formatMs } from 'lib/game/clock/clockWidget';
 import { playMoveNavigationSound } from 'lib/game/replay/moveNavigationSound';
 import { isRecordedClockTimeline, type RecordedClockTimeline } from 'lib/game/replay/recordedClockPlayback';
-import { hydrateXiangqiState, requestXiangqi } from 'lib/game/xiangqiApi';
+import { requestXiangqi } from 'lib/game/xiangqiApi';
 import { storage } from 'lib/storage';
-import { updateProgressBar } from 'lib/view/progressBar';
-import stepwiseScroll from 'lib/view/stepwiseScroll';
-
-import { createArrowCadence } from './analysisArrowCadence';
-import { AnalysisChart } from './analysisChart';
-import { readAnalysisUrl, replayPath } from './analysisHandoff';
-import { bindAnalysisInterfaceControls } from './analysisInterfaceControls';
-import { syncAnalysisLayout } from './analysisLayout';
-import {
-  applyInterfaceSettingsClasses,
-  ENGINE_SETTINGS_KEY,
-  effectiveEngineMultiPv,
-  loadEngineSettings,
-  loadInterfaceSettings,
-  type EngineSettings,
-} from './analysisSettings';
-import { AnalysisSuggestions, MAX_PV_MOVES } from './analysisSuggestions';
-import {
-  ANALYSIS_TABS_STORAGE_KEY,
-  deserializeAnalysisTabs,
-  MAX_ANALYSIS_TABS,
-  serializeAnalysisTabs,
-  type AnalysisTab,
-} from './analysisTabs';
-import { AnalysisTabsView } from './analysisTabsView';
-import { AnalysisTreeView } from './analysisTreeView';
-import { annotationSourceLabel } from './gameCatalog';
-import { XIANGQI_START_FEN } from './index';
-import { renderXiangqiNotation } from './notation';
-import { recommendedArrowShapes } from './recommendedArrows';
-import { bindServerAnalysis } from './serverAnalysis';
-import { playXiangqiMoveSound, playXiangqiTransitionSound } from './sound';
 import {
   addOrSelectChild,
   analysisStorageKey,
@@ -71,7 +38,45 @@ import {
   type XiangqiMoveTree,
   type XiangqiPositionNode,
   type XiangqiTreeNode,
-} from './tree';
+} from 'lib/tree/native';
+import { updateProgressBar } from 'lib/view/progressBar';
+import stepwiseScroll from 'lib/view/stepwiseScroll';
+
+import { createArrowCadence } from './analysisArrowCadence';
+import { analysisBoardArrows } from './analysisArrows';
+import { AnalysisChart } from './analysisChart';
+import {
+  createAnalysisEngineView,
+  createAnalysisGauge,
+  createAnalysisSettings,
+  analysisSuggestionElements,
+} from './analysisEngineView';
+import { readAnalysisUrl, replayPath } from './analysisHandoff';
+import { bindAnalysisInterfaceControls } from './analysisInterfaceControls';
+import { syncAnalysisLayout } from './analysisLayout';
+import {
+  applyInterfaceSettingsClasses,
+  ENGINE_SETTINGS_KEY,
+  effectiveEngineMultiPv,
+  loadEngineSettings,
+  loadInterfaceSettings,
+  type EngineSettings,
+} from './analysisSettings';
+import { AnalysisSuggestions } from './analysisSuggestions';
+import {
+  ANALYSIS_TABS_STORAGE_KEY,
+  deserializeAnalysisTabs,
+  MAX_ANALYSIS_TABS,
+  serializeAnalysisTabs,
+  type AnalysisTab,
+} from './analysisTabs';
+import { AnalysisTabsView } from './analysisTabsView';
+import { AnalysisTreeView } from './analysisTreeView';
+import { annotationSourceLabel } from './gameCatalog';
+import { XIANGQI_START_FEN } from './index';
+import { renderXiangqiNotation } from './notation';
+import { bindServerAnalysis } from './serverAnalysis';
+import { playXiangqiMoveSound, playXiangqiTransitionSound } from './sound';
 
 interface MoveResponse extends RulesState {
   notation: string;
@@ -80,6 +85,7 @@ interface MoveResponse extends RulesState {
 
 interface AnalysisBootstrap extends BoardPreferences {
   gameId?: string;
+  ruleset?: string;
   title?: string;
   initialFen?: string;
   moves?: string[];
@@ -88,7 +94,7 @@ interface AnalysisBootstrap extends BoardPreferences {
   notationStyle?: XiangqiNotationStyle;
   language?: string;
   states?: RulesState[];
-  orientation?: 'white' | 'black';
+  orientation?: 'red' | 'black';
   analysisInProgress?: boolean;
   analysisRequestUrl?: string;
   analysis?: {
@@ -99,6 +105,59 @@ interface AnalysisBootstrap extends BoardPreferences {
   recordedClock?: RecordedClockTimeline;
   explorerEndpoint?: string;
 }
+
+const engineMount = requiredElement('.xiangqi-engine');
+const sharedEngine = createAnalysisEngineView();
+const sharedSettings = createAnalysisSettings([
+  { name: 'use-cloud', label: 'Use Cloud Database', type: 'checkbox', value: true },
+  { name: 'lines-preview', label: 'Show engine lines preview', type: 'checkbox', value: true },
+  { name: 'depth', label: 'Search depth', type: 'range', min: 10, max: 30, value: 20 },
+  { name: 'arrow-updates', label: i18n.site.arrowUpdates, type: 'range', min: 1, max: 4, value: 4 },
+  {
+    name: 'multipv',
+    label: i18n.site.multipleLines,
+    type: 'range',
+    min: 1,
+    max: 5,
+    value: 3,
+    format: value => value + ' / 5',
+  },
+  { name: 'threads', label: i18n.site.threads, type: 'range', min: 1, max: 8, value: 2 },
+  {
+    name: 'hash',
+    label: i18n.site.memory,
+    type: 'range',
+    min: 16,
+    max: 256,
+    step: 16,
+    value: 64,
+    format: value => value + ' MB',
+  },
+]);
+sharedSettings.id = 'xiangqi-engine-settings';
+for (const input of sharedSettings.querySelectorAll<HTMLInputElement>('input')) {
+  input.id = 'xiangqi-engine-' + input.dataset.setting;
+  const value = input.parentElement!.querySelector('.xiangqi-engine-settings__value');
+  if (value) value.id = input.id + '-value';
+}
+const analyseLine = document.createElement('button');
+analyseLine.id = 'xiangqi-analyse-line';
+analyseLine.className = 'button button-empty';
+analyseLine.type = 'button';
+analyseLine.textContent = 'Analyse selected line';
+sharedSettings.append(analyseLine);
+sharedEngine.querySelector('.xiangqi-engine-settings')!.replaceWith(sharedSettings);
+for (const [selector, id] of Object.entries({
+  '.xiangqi-engine__switch input': 'xiangqi-engine-enabled',
+  '.xiangqi-engine__headline-score': 'xiangqi-engine-score',
+  '.xiangqi-analysis__substatus': 'xiangqi-engine-status',
+  '.xiangqi-cloud-badge': 'xiangqi-cloud-badge',
+  '.xiangqi-icon-button': 'xiangqi-engine-settings-button',
+  '.xiangqi-engine__lines': 'xiangqi-engine-lines',
+  '.xiangqi-engine__more': 'xiangqi-more-lines',
+}))
+  sharedEngine.querySelector(selector)!.id = id;
+engineMount.replaceWith(sharedEngine);
 
 const boardElement = requiredElement('#xiangqi-board');
 const statusElement = requiredElement('#xiangqi-status');
@@ -111,9 +170,13 @@ const previousButton = requiredElement<HTMLButtonElement>('#xiangqi-previous');
 const nextButton = requiredElement<HTMLButtonElement>('#xiangqi-next');
 const lastButton = requiredElement<HTMLButtonElement>('#xiangqi-last');
 const recordedClocksElement = requiredElement('#xiangqi-recorded-clocks');
-const recordedWhiteClockElement = requiredElement('#xiangqi-recorded-clock-white');
+const recordedRedClockElement = requiredElement('#xiangqi-recorded-clock-red');
 const recordedBlackClockElement = requiredElement('#xiangqi-recorded-clock-black');
-const evalElement = requiredElement('#xiangqi-eval');
+const evalElement = createAnalysisGauge();
+evalElement.id = 'xiangqi-eval';
+evalElement.querySelector('.xiangqi-eval__red')!.id = 'xiangqi-eval-fill';
+evalElement.querySelector('.xiangqi-eval__score')!.id = 'xiangqi-eval-score';
+requiredElement('#xiangqi-eval').replaceWith(evalElement);
 const engineEnabledElement = requiredElement<HTMLInputElement>('#xiangqi-engine-enabled');
 const analyseLineButton = requiredElement<HTMLButtonElement>('#xiangqi-analyse-line');
 const engineStatusElement = requiredElement('#xiangqi-engine-status');
@@ -156,11 +219,9 @@ export default function init(bootstrap: AnalysisBootstrap = {}): void {
 if (!('site' in window)) init();
 
 async function main(bootstrap: AnalysisBootstrap): Promise<void> {
-  const chineseNotation = bootstrap.notationStyle === 'chinese';
-  const handoff = readAnalysisUrl(location.hash, chineseNotation);
-  const orientation = handoff?.orientation ?? bootstrap.orientation ?? 'white';
-  const notationOf = (move: MoveResponse): string =>
-    selectXiangqiNotation(move.notation, move.chineseNotation, bootstrap.notationStyle || 'english');
+  const handoff = readAnalysisUrl(location.hash);
+  const orientation = handoff?.orientation ?? bootstrap.orientation ?? 'red';
+
   const urlParams = new URLSearchParams(location.search);
   const urlFen = urlParams.get('fen')?.trim();
   const catalogGameId = urlParams.get('game')?.trim();
@@ -181,8 +242,9 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
   let engineSettings = loadEngineSettings();
   const suggestions = new AnalysisSuggestions(
     initialFen,
-    () => (ground.getPresentation().perspective === 'red' ? 'white' : 'black'),
+    () => (ground.getPresentation().perspective === 'red' ? 'red' : 'black'),
     () => effectiveEngineMultiPv(engineSettings, isMobileAnalysisLayout()),
+    analysisSuggestionElements(sharedEngine, evalElement),
   );
   let tree: XiangqiMoveTree =
     handoff?.tree ??
@@ -192,11 +254,11 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
           bootstrap.moves ?? [],
           bootstrap.notations ?? [],
           bootstrap.chineseNotations ?? [],
-          chineseNotation,
           bootstrap.analysis?.infos,
           bootstrap.analysis?.depth ?? 0,
+          bootstrap.ruleset,
         )
-      : createMoveTree(authoritativeRoot));
+      : createMoveTree(authoritativeRoot, bootstrap.ruleset));
   let activePath = handoff?.activePath ?? (nativeStates ? replayPath(tree, location.hash) : '');
   let tabs: AnalysisTab[] = [
     {
@@ -239,9 +301,6 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
   const arrowCadence = createArrowCadence(engineSettings.depth, engineSettings.arrowUpdates);
   let arrowPositionFen = '';
   let interfaceSettings = loadInterfaceSettings();
-  const liveNotation = new Map<string, Promise<MoveResponse>>();
-  const liveNotationValues = new Map<string, MoveResponse>();
-  const hydratingPositions = new WeakMap<XiangqiPositionNode, Promise<void>>();
   const maxThreads = Math.max(1, Math.min(8, (navigator.hardwareConcurrency || 2) - 1));
   engineSettings.threads = Math.min(engineSettings.threads, maxThreads);
   engineThreadsInput.max = String(maxThreads);
@@ -249,6 +308,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
   suggestions.setPreviewEnabled(engineSettings.showLinesPreview);
   applyInterfaceSettingsClasses(interfaceSettings, analysisPageElement, evalElement);
   const treeView = new AnalysisTreeView({
+    notationStyle: () => bootstrap.notationStyle ?? 'english',
     element: moveListElement,
     tree: () => tree,
     activePath: () => activePath,
@@ -278,7 +338,10 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
       treeView.render();
       chart.render(tree, activePath);
     },
-    renderEvaluation: node => suggestions.setEvaluation(node.evaluation?.score),
+    renderEvaluation: node =>
+      suggestions.setEvaluation(
+        node.evaluation ? { redCp: node.evaluation.cp, redMate: node.evaluation.mate } : undefined,
+      ),
     save: saveDraft,
     catalogPositions: async (tree, id) => {
       let game = catalogGames.get(tree);
@@ -324,7 +387,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
       try {
         const storedTabs = localStorage.getItem(ANALYSIS_TABS_STORAGE_KEY);
         if (storedTabs) {
-          const restored = deserializeAnalysisTabs(JSON.parse(storedTabs), chineseNotation);
+          const restored = deserializeAnalysisTabs(JSON.parse(storedTabs));
           tabs = restored.tabs;
           activeTabId = restored.activeId;
           const active = tabs.find(tab => tab.id === activeTabId) ?? tabs[0];
@@ -345,7 +408,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     try {
       const stored = localStorage.getItem(analysisStorageKey(initialFen));
       if (stored) {
-        const restored = deserializeMoveTree(JSON.parse(stored), initialFen, chineseNotation);
+        const restored = deserializeMoveTree(JSON.parse(stored), initialFen);
         restored.tree.root.state = authoritativeRoot;
         tree = restored.tree;
         activePath = restored.activePath;
@@ -380,7 +443,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
   }
 
   function navigate(path: string): void {
-    if (!tree.byPath.has(path)) return;
+    if (!tree.pathExists(path)) return;
     const navigationTree = tree;
     const fromPath = activePath;
     const origin = currentNode();
@@ -396,15 +459,13 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
           playXiangqiTransitionSound(ground, navigationTree, fromPath, path),
         );
     };
-    if (destination.state.needsHydration && destination.state.ply === origin.state.ply + 1)
-      void hydratePosition(destination).then(playSound);
-    else playSound();
+    playSound();
   }
 
   function update(syncPosition = true, slide = false): void {
     const node = currentNode();
     const state = node.state;
-    const lastMove = node.path ? (node as XiangqiTreeNode).uci : undefined;
+    const lastMove = node.path ? node.uci : undefined;
     if (syncPosition) {
       ground.display(xiangqiPosition(state.fen, lastMove, state.check), {
         kind: slide ? 'backward' : 'forward',
@@ -444,42 +505,17 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     renderRecordedClocks();
     if (document.activeElement !== notationInput)
       notationInput.value = renderXiangqiNotation(tree, initialFen);
-    suggestions.setEvaluation(node.evaluation?.score);
+    suggestions.setEvaluation(
+      node.evaluation ? { redCp: node.evaluation.cp, redMate: node.evaluation.mate } : undefined,
+    );
     if (!pending && toolsFen !== state.fen) {
       toolsFen = state.fen;
       if (lineController) {
         arrowCadence.reset(Math.min(engineSettings.depth, 18), engineSettings.arrowUpdates);
         arrowPositionFen = state.fen;
-        suggestions.setPosition(state.fen, moves => void onMoves(moves));
+        suggestions.setPosition(state.fen, tree.positionAt(node.path), moves => void onMoves(moves));
       } else void refreshTools(state, node);
     }
-    if (state.needsHydration) void hydratePosition(node);
-  }
-
-  function hydratePosition(node: XiangqiPositionNode): Promise<void> {
-    if (!node.state.needsHydration) return Promise.resolve();
-    const existing = hydratingPositions.get(node);
-    if (existing) return existing;
-    const fen = node.state.fen;
-    const hydration = (async () => {
-      try {
-        const state = await hydrateXiangqiState(node.state);
-        if (node.state.fen !== fen) return;
-        node.state = state;
-        saveDraft();
-        if (node === currentNode()) update();
-      } catch (error) {
-        if (node === currentNode()) {
-          saveStatusElement.textContent =
-            error instanceof Error ? error.message : 'Could not load legal moves for this position';
-          saveStatusElement.classList.add('error');
-        }
-      } finally {
-        hydratingPositions.delete(node);
-      }
-    })();
-    hydratingPositions.set(node, hydration);
-    return hydration;
   }
 
   async function refreshTools(state: RulesState, node: XiangqiPositionNode): Promise<void> {
@@ -487,11 +523,11 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     browserEngine.stop();
     explorerController?.abort();
     explorerController = new AbortController();
-    const position = { fen: state.fen };
+    const position = { fen: state.fen, ...tree.positionAt(node.path) };
     databaseExplorer.setPosition(position);
     arrowCadence.reset(engineSettings.depth, engineSettings.arrowUpdates);
     arrowPositionFen = state.fen;
-    suggestions.setPosition(state.fen, moves => void onMoves(moves));
+    suggestions.setPosition(state.fen, tree.positionAt(node.path), moves => void onMoves(moves));
     engineProgressDepth = node.evaluation?.depth ?? 0;
     renderEngineProgress();
 
@@ -500,6 +536,8 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
       engineStatusElement.classList.remove('error');
       browserEngine.start({
         fen: state.fen,
+        history: tree.positionAt(node.path),
+        legalMoves: node.state.legalMoves,
         search: { depth: engineSettings.depth },
         multiPv: effectiveEngineMultiPv(engineSettings, isMobileAnalysisLayout()),
         threads: engineSettings.threads,
@@ -508,13 +546,11 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
           if (generation !== toolsGeneration) return;
           engineProgressDepth = result.depth;
           renderEngineProgress();
-          applyKnownLiveNotation(result, state.fen);
           arrowCadence.accept(result, final);
           rememberEvaluation(node, result);
           suggestions.renderEngine(result, moves => void onMoves(moves));
           treeView.render({ scrollToActive: !isMobileAnalysisLayout() });
           chart.render(tree, activePath);
-          void hydrateLiveNotation(result, state.fen, generation, node);
           if (final) saveDraft();
         },
       });
@@ -523,7 +559,9 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
       engineProgressDepth = node.evaluation?.depth ?? 0;
       renderEngineProgress();
       engineStatusElement.textContent = engineEnabledElement.checked ? 'Game over' : 'Engine disabled';
-      suggestions.setEvaluation(node.evaluation?.score);
+      suggestions.setEvaluation(
+        node.evaluation ? { redCp: node.evaluation.cp, redMate: node.evaluation.mate } : undefined,
+      );
     }
   }
 
@@ -541,15 +579,13 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     try {
       for (const move of moves) {
         const next = await requestXiangqi<MoveResponse>('/api/analysis/move', {
-          initialFen: currentState().fen,
-          moves: [],
+          ...tree.positionAt(activePath),
           move,
         });
         playXiangqiMoveSound(ground, next);
         const added = addOrSelectChild(tree, activePath, {
           uci: move,
-          notation: notationOf(next) || move,
-          wxfNotation: next.notation || move,
+          notation: next.notation,
           chineseNotation: next.chineseNotation,
           state: next,
         });
@@ -604,7 +640,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
         notation,
       });
       initialFen = imported.initialFen;
-      tree = createMoveTreeFromImport(imported, chineseNotation);
+      tree = createMoveTreeFromImport(imported);
       activePath = mainlineEndPath(tree);
       setFenUrl(initialFen);
       toolsFen = '';
@@ -738,7 +774,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
         notation: game.notation?.trim() || game.moves.join(' '),
       });
       syncActiveTab();
-      const importedTree = createMoveTreeFromImport(imported, chineseNotation);
+      const importedTree = createMoveTreeFromImport(imported);
       catalogGames.set(importedTree, game);
       const mainline = getNodeList(importedTree, mainlineEndPath(importedTree));
       const nodeAtUciPath = (path: string): XiangqiPositionNode | undefined => {
@@ -763,6 +799,8 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
                   : undefined;
             if (!target) return;
             (target.comments ??= []).push({
+              id: randomId(),
+              by: layer.annotator ? { kind: 'external', name: layer.annotator } : { kind: 'unknown' },
               text: annotation.body,
               source: annotationSourceLabel(witness.collection, witness.collectionName),
               author: layer.annotator,
@@ -842,7 +880,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
         arrowPositionFen = node.state.fen;
         renderSuggestionArrows();
         engineStatusElement.textContent = `Analysing selected line ${index + 1}/${nodes.length}…`;
-        const result = await analyseWithBrowser(node.state.fen, lineController.signal, (snapshot, final) => {
+        const result = await analyseWithBrowser(node, lineController.signal, (snapshot, final) => {
           if (node.path === activePath) arrowCadence.accept(snapshot, final);
           rememberEvaluation(node, snapshot);
           if (node.path === activePath) {
@@ -872,7 +910,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
   }
 
   function analyseWithBrowser(
-    fen: string,
+    node: XiangqiPositionNode,
     signal: AbortSignal,
     onSnapshot: (analysis: EngineAnalysis, final: boolean) => void,
   ): Promise<EngineAnalysis> {
@@ -883,7 +921,9 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
       };
       signal.addEventListener('abort', abort, { once: true });
       browserEngine.start({
-        fen,
+        fen: node.fen,
+        history: tree.positionAt(node.path),
+        legalMoves: node.state.legalMoves,
         search: { depth: Math.min(engineSettings.depth, 18) },
         multiPv: 1,
         threads: engineSettings.threads,
@@ -914,7 +954,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
   }
 
   const ground = createXiangqiBoard(boardElement, xiangqiPosition(currentState().fen), {
-    ...websiteBoardPresentation(bootstrap, 'interactive', orientation === 'white' ? 'red' : 'black'),
+    ...websiteBoardPresentation(bootstrap, 'interactive', orientation === 'red' ? 'red' : 'black'),
     coordinates: interfaceSettings.coordinates,
   });
   makeBoardResizable(ground);
@@ -940,42 +980,31 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     bootstrap.explorerEndpoint || '',
   );
   function renderSuggestionArrows(): void {
-    const shapes: BoardMark[] = [];
+    const engineLines: string[][] = [];
     if (interfaceSettings.bestArrow) {
       const cloudMove = suggestions.explorerResult?.available
         ? suggestions.explorerResult.moves[0]?.move
         : undefined;
-      const engineLine =
-        arrowPositionFen === currentState().fen ? (arrowCadence.published?.lines[0]?.pvMoves ?? []) : [];
-      const recommendedMoves = cloudMove
-        ? engineLine[0] === cloudMove
-          ? engineLine
-          : [cloudMove]
-        : engineLine;
-      shapes.push(
-        ...recommendedArrowShapes(
-          recommendedMoves,
-          currentState().turn,
-          ground.getPresentation().perspective === 'red' ? 'white' : 'black',
-        ),
-      );
+      const publishedLines =
+        arrowPositionFen === currentState().fen
+          ? (arrowCadence.published?.lines ?? []).map(line => line.pvMoves)
+          : [];
+      const recommendedLines = cloudMove
+        ? publishedLines[0]?.[0] === cloudMove
+          ? publishedLines
+          : [[cloudMove]]
+        : publishedLines;
+      engineLines.push(...recommendedLines);
     }
-    const variationMoves: Array<{ move: string; brush: string }> = [];
-    if (interfaceSettings.variationArrows) {
-      currentNode()
-        .children.slice(0, 5)
-        .forEach(child => variationMoves.push({ move: child.uci, brush: 'paleGrey' }));
-    }
-    const seen = new Set<string>();
     ground.setMarks(
-      shapes.concat(
-        variationMoves
-          .filter(entry => !seen.has(entry.move) && seen.add(entry.move))
-          .map(entry => {
-            const [from, to] = coordinateMove(entry.move);
-            return { from, to, brush: entry.brush };
-          }),
-      ),
+      analysisBoardArrows({
+        engineLines,
+        turn: currentState().turn,
+        orientation: ground.getPresentation().perspective === 'red' ? 'red' : 'black',
+        children: interfaceSettings.variationArrows
+          ? currentNode().children.flatMap(child => (child.uci ? [child.uci] : []))
+          : [],
+      }),
       'annotation',
     );
   }
@@ -1159,7 +1188,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
 
   function recordedPositionAtPath(path: string): number | undefined {
     if (!bootstrap.gameId || tabs.find(tab => tab.id === activeTabId)?.gameId !== bootstrap.gameId) return;
-    const nodes = getNodeList(tree, path).slice(1) as XiangqiTreeNode[];
+    const nodes = getNodeList(tree, path).slice(1);
     if (nodes.length > (bootstrap.moves?.length ?? 0)) return;
     return nodes.every((node, index) => node.uci === bootstrap.moves?.[index]) ? nodes.length : undefined;
   }
@@ -1176,7 +1205,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
   }
 
   function renderRecordedClock(position: { white: number; black: number }): void {
-    recordedWhiteClockElement.textContent = formatMs(position.white * 10);
+    recordedRedClockElement.textContent = formatMs(position.white * 10);
     recordedBlackClockElement.textContent = formatMs(position.black * 10);
   }
 
@@ -1184,58 +1213,6 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     if (enginePreparing(browserEngineStatus)) return engineLoadingText(browserEngineStatus);
     if (browserEngineStatus.state === 'error') return browserEngineStatus.error;
     return node.evaluation ? 'Refreshing cached Pikafish evaluation…' : 'Pikafish is calculating…';
-  }
-
-  function applyKnownLiveNotation(result: EngineAnalysis, fen: string): void {
-    result.lines.forEach(line => {
-      let moveFen = fen;
-      line.wxfMoves = [];
-      for (const move of line.pvMoves.slice(0, MAX_PV_MOVES)) {
-        const response = liveNotationValues.get(`${moveFen}|${move}`);
-        if (!response) break;
-        line.wxfMoves.push(notationOf(response) || move);
-        moveFen = response.fen;
-      }
-    });
-  }
-
-  async function hydrateLiveNotation(
-    result: EngineAnalysis,
-    fen: string,
-    generation: number,
-    node: XiangqiPositionNode,
-  ): Promise<void> {
-    await Promise.all(
-      result.lines.map(async line => {
-        let moveFen = fen;
-        const notations: string[] = [];
-        for (const move of line.pvMoves.slice(0, MAX_PV_MOVES)) {
-          const key = `${moveFen}|${move}`;
-          let response = liveNotationValues.get(key);
-          if (!response) {
-            let pendingNotation = liveNotation.get(key);
-            if (!pendingNotation) {
-              pendingNotation = requestXiangqi<MoveResponse>('/api/analysis/move', {
-                initialFen: moveFen,
-                moves: [],
-                move,
-              }).catch(error => {
-                liveNotation.delete(key);
-                throw error;
-              });
-              liveNotation.set(key, pendingNotation);
-            }
-            response = await pendingNotation;
-            liveNotationValues.set(key, response);
-          }
-          notations.push(notationOf(response) || move);
-          moveFen = response.fen;
-        }
-        line.wxfMoves = notations;
-      }),
-    ).catch(() => undefined);
-    if (generation !== toolsGeneration || node.evaluation?.depth !== result.depth) return;
-    suggestions.renderEngine(result, moves => void onMoves(moves));
   }
 }
 
@@ -1271,12 +1248,13 @@ function engineSettingsFromInputs(previous: EngineSettings, includeMultiPv = fal
 }
 
 function rememberEvaluation(node: XiangqiPositionNode, result: EngineAnalysis): void {
-  if (!node.evaluation || result.depth >= node.evaluation.depth)
+  if (!node.evaluation || result.depth >= (node.evaluation.depth ?? 0))
     node.evaluation = {
       engine: result.engine,
       depth: result.depth,
       nodes: result.nodes,
-      score: result.score,
+      cp: result.score.redCp,
+      mate: result.score.redMate,
     };
 }
 

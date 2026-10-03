@@ -1,12 +1,11 @@
 import { type BoardView, boardPresentation } from '@lixiangqi/board';
-import { opposite as cgOpposite, type Color } from 'chessops';
 
 import { createXiangqiBoard, xiangqiPosition, publishBoardDimensions } from 'lib/board';
+import { type XiangqiSide as Color, oppositeSide as cgOpposite, fenSide as fenColor } from 'lib/game/xiangqi';
 const EMPTY_BOARD_FEN = '9/9/9/9/9/9/9/9/9/9 w';
 import { h } from 'snabbdom';
 
 import { type Prop, type Toggle, defined, notNull, prop, toggle } from 'lib';
-import { fenColor } from 'lib/game/chess';
 import { otbClockIsRunning, formatMs } from 'lib/game/clock/clockWidget';
 import { licon } from 'lib/licon';
 import { storage, storedBooleanProp } from 'lib/storage';
@@ -42,7 +41,7 @@ export class MultiBoardCtrl {
     this.showResults = this.relay ? storedBooleanProp('study.showResults', true) : toggle(true);
   }
 
-  gameTeam = (id: ChapterId): string | undefined => this.chapters.get(id)?.players?.white.team;
+  gameTeam = (id: ChapterId): string | undefined => this.chapters.get(id)?.players?.red.team;
 
   maxPerPage = () => Math.min(32, parseInt(this.maxPerPageStorage.get() || '12'));
 
@@ -51,7 +50,7 @@ export class MultiBoardCtrl {
     return (
       (!this.playing() || c.playing) &&
       (!this.relay || !this.pinned() || this.relay.players.pins.isChapterPinned(c)) &&
-      (!t || c.players?.white.team === t || c.players?.black.team === t)
+      (!t || c.players?.red.team === t || c.players?.black.team === t)
     );
   };
   private readonly chapterSorter = (pins: RelayPlayerPin) => (a: ChapterPreview, b: ChapterPreview) => {
@@ -98,7 +97,7 @@ export class MultiBoardCtrl {
   computeTeamList = () => {
     const teams = new Set<string>();
     this.chapters.all().forEach(c => {
-      if (c.players?.white.team) teams.add(c.players.white.team);
+      if (c.players?.red.team) teams.add(c.players.red.team);
       if (c.players?.black.team) teams.add(c.players.black.team);
     });
     return Array.from(teams).sort();
@@ -268,7 +267,7 @@ export const previewContent = (
   const position = () =>
     xiangqiPosition(
       showResults ? preview.fen : EMPTY_BOARD_FEN,
-      showResults ? preview.lastMove?.replaceAll(':', '10') : undefined,
+      showResults ? preview.lastMove : undefined,
       !!preview.check,
     );
   return [
@@ -284,7 +283,7 @@ export const previewContent = (
               vnode.data!.board = createXiangqiBoard(
                 el,
                 position(),
-                boardPresentation('thumbnail', orientation === 'white' ? 'red' : 'black'),
+                boardPresentation('thumbnail', orientation === 'red' ? 'red' : 'black'),
               );
               const scope = dimensionScope?.();
               if (scope) publishBoardDimensions(vnode.data!.board, scope);
@@ -295,9 +294,7 @@ export const previewContent = (
             postpatch(old, vnode) {
               vnode.data!.board = old.data!.board;
               const board = old.data!.board as BoardView;
-              board.setPresentation(
-                boardPresentation('thumbnail', orientation === 'white' ? 'red' : 'black'),
-              );
+              board.setPresentation(boardPresentation('thumbnail', orientation === 'red' ? 'red' : 'black'));
               if (old.data!.showResults !== showResults || old.data!.fen !== preview.fen)
                 board.display(position(), { kind: 'jump' });
               vnode.data!.fen = preview.fen;
@@ -320,7 +317,7 @@ export const verticalEvalGauge = (
   return chap.check === '#'
     ? h(baseTag + ` mini-game__gauge--set`, { attrs: { 'data-id': chap.id, title: 'Checkmate' } }, [
         h('span.mini-game__gauge__black', {
-          attrs: { style: `height: ${fenColor(chap.fen) === 'white' ? 100 : 0}%` },
+          attrs: { style: `height: ${fenColor(chap.fen) === 'red' ? 100 : 0}%` },
         }),
         h('tick'),
       ])
@@ -333,7 +330,7 @@ export const verticalEvalGauge = (
             postpatch(old, vnode) {
               const elm = vnode.elm as HTMLElement;
               const prevNodeCloud: CloudEval | undefined = old.data?.cloud;
-              const cev = cloudEval.getCloudEval(chap.fen) || prevNodeCloud;
+              const cev = cloudEval.getCloudEval(chap.position) || prevNodeCloud;
               if (cev?.chances !== prevNodeCloud?.chances) {
                 (elm.firstChild as HTMLElement).style.height = `${Math.round(
                   ((1 - (cev?.chances || 0)) / 2) * 100,

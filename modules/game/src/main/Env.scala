@@ -31,7 +31,7 @@ final class Env(
     lightUserApi: lila.core.user.LightUserApi,
     cacheApi: lila.memo.CacheApi,
     getTourName: => lila.core.tournament.GetTourName,
-    fideIdOf: lila.core.user.PublicFideIdOf
+    playerIdOf: lila.core.user.PublicPlayerIdOf
 )(using scheduler: Scheduler)(using Executor, Materializer):
   private val config = appConfig.get[GameConfig]("game")(using AutoConfig.loader)
 

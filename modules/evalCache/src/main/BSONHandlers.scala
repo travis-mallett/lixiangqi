@@ -1,6 +1,6 @@
 package lila.evalCache
 
-import chess.format.{ BinaryFen, Uci }
+import lila.xiangqi.Xiangqi.Uci
 import chess.eval.*
 import reactivemongo.api.bson.*
 
@@ -18,7 +18,7 @@ private object BSONHandlers:
       else str.toIntOption.map(Score.cp)
 
     private def movesRead(str: String): Option[Moves] = Moves.from:
-      Uci.readListChars(str).flatMap(_.toNel)
+      str.split(" ", -1).toList.traverse(Uci.from(_).toOption).flatMap(_.toNel)
 
     private val scoreSeparator = ':'
     private val pvSeparator = '/'
@@ -39,9 +39,6 @@ private object BSONHandlers:
             _.toNel.toTry(s"Empty PVs $value")
         case b => lila.db.BSON.handlerBadType[NonEmptyList[Pv]](b)
 
-  given BSONHandler[BinaryFen] = lila.db.dsl.quickHandler[BinaryFen](
-    { case v: BSONBinary => BinaryFen(v.byteArray) },
-    v => BSONBinary(v.value, Subtype.GenericBinarySubtype)
-  )
+  given BSONHandler[Id] = lila.db.dsl.stringAnyValHandler[Id](_.value, Id.apply)
   given BSONDocumentReader[CloudEval] = Macros.reader
   given BSONDocumentReader[EvalCacheEntry] = Macros.reader

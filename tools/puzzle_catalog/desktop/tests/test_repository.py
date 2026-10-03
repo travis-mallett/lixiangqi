@@ -86,6 +86,7 @@ class RepositoryTests(unittest.TestCase):
         for theme in (
             "doubleGhostsKnocking",
             "threeImmortalsRefiningTheElixir",
+            "repatriationOfBuddha",
             "childWorshipsBuddha",
             "crowningMate",
             "eunuchChasingEmperorKill",
@@ -208,6 +209,39 @@ class RepositoryTests(unittest.TestCase):
             all_theme_versions,
         )
         from tools.xiangqi_data.puzzle_mining.spring_horse import THEME, VERSION
+
+        self.add(themes=["centroidPawnMate"])
+        repo = ContentRepository(self.catalog, self.mining, self.state)
+        result = repo.moderate(["abc12"], "tags", json.dumps([THEME, "mateIn1"]))
+        self.assertTrue(result[0]["ok"], result)
+        page = repo.page(theme=THEME)
+        self.assertEqual(page["total"], 1)
+        self.assertEqual(page["rows"][0]["key"], "abc12")
+        self.assertEqual(all_theme_versions()[THEME], VERSION)
+
+    def test_cannon_chariot_discovery_is_editable_filterable_and_auditable(self):
+        from tools.xiangqi_data.puzzle_mining.cannon_chariot_discovered import (
+            THEME,
+            VERSION,
+        )
+        from tools.xiangqi_data.puzzle_mining.classification_job import (
+            all_theme_versions,
+        )
+
+        self.add(themes=["centroidPawnMate"])
+        repo = ContentRepository(self.catalog, self.mining, self.state)
+        result = repo.moderate(["abc12"], "tags", json.dumps([THEME, "mateIn1"]))
+        self.assertTrue(result[0]["ok"], result)
+        page = repo.page(theme=THEME)
+        self.assertEqual(page["total"], 1)
+        self.assertEqual(page["rows"][0]["key"], "abc12")
+        self.assertEqual(all_theme_versions()[THEME], VERSION)
+
+    def test_detonating_mine_is_editable_filterable_and_auditable(self):
+        from tools.xiangqi_data.puzzle_mining.classification_job import (
+            all_theme_versions,
+        )
+        from tools.xiangqi_data.puzzle_mining.detonating_mine import THEME, VERSION
 
         self.add(themes=["centroidPawnMate"])
         repo = ContentRepository(self.catalog, self.mining, self.state)

@@ -45,11 +45,7 @@
   <string name="definitivelyDeleteTournament">Окончательно удалить весь турнир, его туры и партии.</string>
   <string name="showScores">Показать очки игроков по результатам партий</string>
   <string name="replacePlayerTags">Необязательно: заменить имена игроков, рейтинги и звания</string>
-  <string name="fideFederations">Федерации FIDE</string>
   <string name="top10Rating">Топ-10</string>
-  <string name="fidePlayers">Игроки FIDE</string>
-  <string name="fidePlayerNotFound">Профиль FIDE не найден</string>
-  <string name="fideProfile">Профиль FIDE</string>
   <string name="federation">Федерация</string>
   <string name="age">Возраст</string>
   <string name="unrated">Без рейтинга</string>
@@ -80,7 +76,6 @@
   <string name="tournamentLocation">Местоположение турнира</string>
   <string name="topPlayers">Лучшие игроки</string>
   <string name="timezone">Часовой пояс</string>
-  <string name="fideRatingCategory">Категория рейтинга FIDE</string>
   <string name="optionalDetails">Необязательные данные</string>
   <string name="pastBroadcasts">Завершённые трансляции</string>
   <string name="allBroadcastsByMonth">Просмотр всех трансляций за месяц</string>

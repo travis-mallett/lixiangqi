@@ -1,6 +1,5 @@
 import type { AdjudicationPosition } from 'lib/game/view/adjudication';
-
-import type { RulesState } from './tree';
+import type { RulesState } from 'lib/tree/native';
 
 export interface ExamplePlayback {
   ruleset: string;

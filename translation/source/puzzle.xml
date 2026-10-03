@@ -119,4 +119,5 @@ Play rapid and classical games to increase your chances of having a puzzle added
   <string name="noPuzzlesToShow">Nothing to show, go play some puzzles first!</string>
   <string name="improvementAreasDescription">Train these to optimise your progress!</string>
   <string name="strengthDescription">You perform the best in these themes</string>
+  <string name="findTheBestMoveForRed">Find the best move for red.</string>
 </resources>

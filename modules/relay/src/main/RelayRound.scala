@@ -1,12 +1,14 @@
 package lila.relay
 
+import lila.xiangqi.Xiangqi.BySide
+
 import java.time.temporal.ChronoUnit
 import play.api.mvc.Call
 import io.mola.galimatias.{ URL, Host }
 import reactivemongo.api.bson.Macros.Annotations.Key
 import scalalib.ThreadLocalRandom
 import scalalib.model.Seconds
-import chess.{ Rated, ByColor }
+import chess.Rated
 
 import lila.study.Study
 import lila.core.i18n.Translate
@@ -29,9 +31,9 @@ case class RelayRound(
     crowd: Option[Crowd],
     // crowdAt: Option[Instant], // in DB but not used by RelayRound
     rated: Rated = Rated.Yes,
-    customScoring: Option[ByColor[RelayRound.CustomScoring]] = none,
+    customScoring: Option[BySide[RelayRound.CustomScoring]] = none,
     teamCustomScoring: Option[RelayRound.CustomScoring] = none,
-    fideTCOverride: Option[chess.FideTC] = none
+    ratingCategoryOverride: Option[lila.core.playerDirectory.RatingCategory] = none
 ):
   inline def studyId = id.studyId
 
@@ -83,7 +85,7 @@ case class RelayRound(
 
   def withTour(tour: RelayTour) = RelayRound.WithTour(this, tour)
 
-  def ratingAndScoringFields = (rated, customScoring, teamCustomScoring, fideTCOverride)
+  def ratingAndScoringFields = (rated, customScoring, teamCustomScoring, ratingCategoryOverride)
 
   override def toString = s"""relay #$id "$name" $sync"""
 
@@ -246,7 +248,7 @@ object RelayRound:
     def display = round
     def link = round
     def withStudy(study: Study) = WithTourAndStudy(round, tour, study)
-    def fideTC = round.fideTCOverride | tour.info.fideTCOrGuess
+    def ratingCategory = round.ratingCategoryOverride | tour.info.ratingCategoryOrGuess
 
   case class WithTourAndGroup(round: RelayRound, tour: RelayTour, group: Option[RelayGroup.Name])
       extends AndTourAndGroup:

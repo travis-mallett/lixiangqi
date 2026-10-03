@@ -113,12 +113,14 @@ service-account*.json
 /design-mockups/
 /music-review/
 /tmp/
+/.tmp/
 /artifacts/
 /target-codex*/
 /.codex-remote-attachments/
 /replay_pid*.log
 /check_keyframe_*.png
 *.tsbuildinfo
+*.semanticdb
 /tools/bot_levels_optimization/data/*
 !/tools/bot_levels_optimization/data/README.md
 /tools/bot_levels_optimization/*.log
@@ -178,3 +180,4 @@ instance.lock
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+/public/downloads/lixiangqi-broadcaster.pyz

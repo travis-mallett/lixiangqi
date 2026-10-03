@@ -64,6 +64,19 @@
     box-shadow: inset 0 -1px color-mix(in oklab, $c-primary 48%, transparent);
   }
 
+  &.context-menu {
+    color: $c-over;
+    background: $c-accent;
+  }
+
+  &.pending-deletion {
+    background: color-mix(in oklab, $c-bad 30%, transparent);
+  }
+
+  &.pending-copy {
+    background: color-mix(in oklab, $c-good 30%, transparent);
+  }
+
   &.active {
     color: $c-over;
     background: $c-primary;
@@ -76,7 +89,32 @@
   }
 }
 
-.xiangqi-analysis__branch.mainline > .xiangqi-analysis__move {
+.xiangqi-analysis__moves .conceal {
+  opacity: 0.4;
+}
+
+.xiangqi-analysis__move-group {
+  display: inline-flex;
+  align-items: stretch;
+  min-width: 0;
+}
+
+.xiangqi-analysis__disclosure {
+  border: 0;
+  padding: 0.15rem 0.3rem;
+  background: transparent;
+  color: $c-font-dim;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    background: color-mix(in oklab, $c-primary 15%, $c-bg-box);
+    color: $c-font;
+  }
+}
+
+.xiangqi-analysis__branch.mainline > .xiangqi-analysis__move,
+.xiangqi-analysis__branch.mainline > .xiangqi-analysis__move-group > .xiangqi-analysis__move {
   font-size: 1em;
 }
 
@@ -109,7 +147,18 @@
       font-size: 0.78em;
     }
 
-    > .xiangqi-analysis__move {
+    > .xiangqi-analysis__move-group {
+      &.red-move {
+        grid-column: 2;
+      }
+
+      &.black-move {
+        grid-column: 3;
+      }
+    }
+
+    > .xiangqi-analysis__move,
+    > .xiangqi-analysis__move-group > .xiangqi-analysis__move {
       display: flex;
       min-width: 0;
       min-height: 2.25rem;
@@ -223,4 +272,18 @@
       font-size: $move-list-font-size;
     }
   }
+}
+
+.annotations-hidden {
+  .move-eval,
+  .xiangqi-analysis__comments {
+    display: none;
+  }
+}
+
+.xiangqi-analysis__empty {
+  display: block;
+  padding: 1.5rem;
+  color: $c-font-dim;
+  text-align: center;
 }

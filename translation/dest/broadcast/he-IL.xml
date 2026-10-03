@@ -39,11 +39,7 @@
   <string name="definitivelyDeleteTournament">מחיקה לצמיתות של הטורניר הזה, על כל סבביו והמשחקים שבו.</string>
   <string name="showScores">הצגת הניקוד של השחקנים בהתבסס על תוצאות המשחקים</string>
   <string name="replacePlayerTags">אופציונאלי: החלפה של שמות השחקנים, דירוגיהם ותאריהם</string>
-  <string name="fideFederations">איגודי FIDE</string>
   <string name="top10Rating">דירוג עשרת המובילים</string>
-  <string name="fidePlayers">שחקני FIDE</string>
-  <string name="fidePlayerNotFound">לא נמצא שחקן FIDE</string>
-  <string name="fideProfile">פרופיל FIDE</string>
   <string name="federation">איגוד</string>
   <string name="age">גיל</string>
   <string name="unrated">לא מדורג</string>
@@ -72,7 +68,6 @@
   <string name="tournamentLocation">מיקום הטורניר</string>
   <string name="topPlayers">שחקני צמרת</string>
   <string name="timezone">אזור זמן</string>
-  <string name="fideRatingCategory">קטגוריית דירוג FIDE</string>
   <string name="optionalDetails">פרטים אופציונאליים</string>
   <string name="pastBroadcasts">הקרנות עבר</string>
   <string name="allBroadcastsByMonth">צפו בכל ההקרנות לפי חודש</string>

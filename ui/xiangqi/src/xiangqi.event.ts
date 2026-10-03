@@ -419,7 +419,12 @@ async function initializeExplorer(bootstrap: EventPageBootstrap): Promise<void> 
         ),
       );
     }
-    explorer.setPosition({ fen: position.state.fen });
+    explorer.setPosition({
+      fen: position.state.fen,
+      initialFen: positions[0].state.fen,
+      moves: positions.slice(1).map(position => position.move!),
+      ruleset: positions[0].state.ruleset ?? 'unrestricted-v1',
+    });
     explorerBackButton.disabled = positions.length === 1 || pending;
     explorerResetButton.disabled = positions.length === 1 || pending;
     explorerMoves.replaceChildren(
@@ -447,8 +452,9 @@ async function initializeExplorer(bootstrap: EventPageBootstrap): Promise<void> 
     let completedState: RulesState | undefined;
     try {
       const response = await requestXiangqi<MoveResponse>('/api/analysis/move', {
-        initialFen: current().fen,
-        moves: [],
+        initialFen: positions[0].state.fen,
+        moves: positions.slice(1).map(position => position.move!),
+        ruleset: positions[0].state.ruleset ?? 'unrestricted-v1',
         move,
       });
       positions.push({ state: response, move, notation: response.notation || move });

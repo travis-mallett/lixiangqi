@@ -60,7 +60,11 @@ final class ReplayUi(helpers: Helpers)(analyseUi: AnalyseUi):
     val imageLinks = frag(
       a(cls := "text game-gif", dataIcon := Icon.Download)(trans.site.gameAsGIF()),
       copyMeLink(
-        xiangqiFenThumbnailUrl(pov.game.position.fen, pov.color.some, pov.game.lastMoveKeys),
+        fenThumbnailUrl(
+          pov.game.position.fen,
+          Some(if pov.color.white then lila.xiangqi.Xiangqi.Side.Red else lila.xiangqi.Xiangqi.Side.Black),
+          pov.game.lastMoveKeys
+        ),
         trans.site.screenshotCurrentPosition()
       )(cls := "position-gif")
     )

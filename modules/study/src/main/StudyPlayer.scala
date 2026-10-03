@@ -1,36 +1,46 @@
 package lila.study
 
-import chess.{ ByColor, PlayerName, PlayerTitle, FideId, Centis, IntRating }
+import lila.xiangqi.Xiangqi.{ BySide, Side }
+import chess.{ PlayerName, Centis, IntRating }
+import lila.core.playerDirectory.{ PlayerId, PlayerTitle }
 import chess.format.pgn.{ Tag, Tags }
-import lila.core.fide.Federation
+import lila.core.playerDirectory.Federation
 
 case class StudyPlayer(
-    fideId: Option[FideId],
+    playerId: Option[PlayerId],
     title: Option[PlayerTitle],
     name: Option[PlayerName],
     rating: Option[IntRating],
     team: Option[String]
 ):
-  def id: Option[StudyPlayer.Id] = fideId.filter(_ != FideId(0)).orElse(name)
+  def id: Option[StudyPlayer.Id] = playerId.map(_.value).orElse(name.map(_.value))
 
 object StudyPlayer:
 
   case class WithFed(player: StudyPlayer, fed: Option[Federation.Id]):
     export player.*
 
-  type Id = FideId | PlayerName
+  type Id = String
 
   object country:
-    val tagNames = ByColor("WhiteCountry", "BlackCountry")
+    val tagNames = BySide("RedCountry", "BlackCountry")
     val tagTypes = tagNames.map(Tag.tagType)
-    def feds(tags: Tags): ByColor[Option[String]] =
-      ByColor(color => tags.apply(tagNames(color)))
+    def feds(tags: Tags): BySide[Option[String]] =
+      BySide(color => tags.apply(tagNames(color)))
 
-  def fromTags(tags: Tags)(using guessFed: Federation.Guess): Option[ByColor[StudyPlayer.WithFed]] =
-    val names = tags.names
+  def fromTags(tags: Tags)(using guessFed: Federation.Guess): Option[BySide[StudyPlayer.WithFed]] =
+    val names = StudyPgnTags.names(tags)
     Option.when(names.exists(_.isDefined)):
-      val ratings = tags.ratings.map(_.filter(_ > IntRating(0)))
-      val players = (tags.fideIds, tags.titles, names, ratings, tags.teams).mapN(StudyPlayer.apply)
+      val ratings = StudyPgnTags.ratings(tags).map(_.filter(_ > IntRating(0)))
+      val players = BySide((side: Side) =>
+        StudyPlayer(
+          StudyPgnTags.playerIds(tags)(side),
+          StudyPgnTags.titles(tags)(side),
+          names(side),
+          ratings(side),
+          StudyPgnTags.teams(tags)(side)
+        )
+      )
       val feds = country.feds(tags).map(_.flatMap(guessFed))
       players.zip(feds).map(StudyPlayer.WithFed.apply)
 
@@ -43,7 +53,7 @@ object StudyPlayer:
           .obj("name" -> p.name)
           .add("title" -> p.title)
           .add("rating" -> p.rating)
-          .add("fideId" -> p.fideId)
+          .add("playerId" -> p.playerId)
           .add("team" -> p.team)
           .add("fed" -> p.fed)
     given chapterPlayerWrites: OWrites[ChapterPlayer] = OWrites: p =>
@@ -57,7 +67,7 @@ object ChapterPlayer:
 
   def fromTags(tags: Tags, clocks: Chapter.BothClocks)(using
       Federation.Guess
-  ): Option[ByColor[ChapterPlayer]] =
+  ): Option[BySide[ChapterPlayer]] =
     StudyPlayer
       .fromTags(tags)
       .map:

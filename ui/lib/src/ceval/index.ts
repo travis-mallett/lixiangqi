@@ -11,5 +11,5 @@ export {
   type EngineAnalysis,
   type EngineScore,
 } from './engines/pikafishProtocol';
-export { isFirstEvalBetter, renderEval, sanIrreversible } from './util';
+export { isFirstEvalBetter, renderEval } from './util';
 export { CevalCtrl, view, winningChances };

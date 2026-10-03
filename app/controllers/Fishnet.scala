@@ -36,13 +36,16 @@ final class Fishnet(env: Env) extends LilaController(env):
           .postAnalysis(Work.Id(workId), client, data)
           .flatMap:
             case PostAnalysisResult.Complete(analysis) =>
-              env.round.proxyRepo.updateIfPresent(GameId(analysis.id.value)): g =>
-                g.focus(_.metadata.analysed).replace(true)
+              analysis.id.gameId.foreach: gameId =>
+                env.round.proxyRepo.updateIfPresent(gameId): g =>
+                  g.focus(_.metadata.analysed).replace(true)
               onComplete
             case _: PostAnalysisResult.Partial => NoContent.raise
             case PostAnalysisResult.UnusedPartial => NoContent.raise
       .rescue:
-        case _: Error => onComplete
+        case Error.WorkNotFound | Error.GameNotFound =>
+          NotFound(jsonError("Analysis work no longer exists")).raise
+        case Error.NotAcquired => Conflict(jsonError("Analysis work belongs to another worker")).raise
     }
 
   def abort(workId: String) =

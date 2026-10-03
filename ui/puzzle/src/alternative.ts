@@ -1,6 +1,7 @@
 import type { RulesState } from 'xiangqi';
 
 import type { EngineAnalysis, PikafishHistory } from 'lib/ceval/engines/pikafishProtocol';
+import { replayXiangqiVariation } from 'lib/game/xiangqiNotation';
 
 import {
   adjudicateAlternative,
@@ -75,10 +76,24 @@ export async function evaluateAlternative(
       objective.mate && mate !== undefined && mate > 0 && mate <= objective.allowance - playerMoves
         ? await winningContinuation(objective, state, evaluation, playerMoves, history)
         : undefined;
+    const pv = evaluation.lines[0]?.pvMoves ?? [];
+    const variationStates =
+      objective.mate || !pv.length
+        ? undefined
+        : (await replayXiangqiVariation(history.initialFen, history.moves, history.ruleset!, pv)).moves.map(
+            move => move.state,
+          );
     return {
       evaluation,
       continuation,
-      decision: adjudicateAlternative(objective, state, evaluation, playerMoves, continuation),
+      decision: adjudicateAlternative(
+        objective,
+        state,
+        evaluation,
+        playerMoves,
+        continuation,
+        variationStates,
+      ),
     };
   };
   const result = await decide();

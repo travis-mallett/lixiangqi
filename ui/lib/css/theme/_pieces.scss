@@ -45,3 +45,11 @@
 .is2d .king.black {
   background-image: var(---black-king);
 }
+
+@each $side in red, black {
+  @each $role in general, advisor, elephant, horse, chariot, cannon, soldier {
+    .is2d .#{$role}.#{$side} {
+      background-image: var(---#{$side}-#{$role});
+    }
+  }
+}

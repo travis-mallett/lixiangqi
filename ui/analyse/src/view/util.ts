@@ -7,7 +7,7 @@ import {
   type VNodeData,
 } from 'snabbdom';
 
-import { fixCrazySan, plyToTurn } from 'lib/game/chess';
+import { plyToTurn } from 'lib/game/chess';
 import type { TreeNode } from 'lib/tree/types';
 import { hl } from 'lib/view';
 
@@ -20,8 +20,8 @@ export const emptyRedButton = 'button.button.button-red.button-empty';
 export const baseUrl = () => `${window.location.protocol}//${window.location.host}`;
 
 export const nodeFullName = (node: TreeNode): string =>
-  node.san
-    ? plyToTurn(node.ply) + (node.ply % 2 === 1 ? '.' : '...') + ' ' + fixCrazySan(node.san)
+  node.notation
+    ? plyToTurn(node.ply) + (node.ply % 2 === 1 ? '.' : '...') + ' ' + node.notation
     : 'Initial position';
 
 export const plural = (noun: string, nb: number): string => nb + ' ' + (nb === 1 ? noun : noun + 's');
@@ -38,7 +38,7 @@ export const playerFedFlag = (fed?: Federation) =>
   fed &&
   hl('img.mini-game__flag', {
     attrs: {
-      src: site.asset.fideFedSrc(fed.id),
+      src: site.asset.playerFederationSrc(fed.id),
       title: `Federation: ${fed.i18nName}`,
     },
   });

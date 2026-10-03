@@ -1,3 +1,4 @@
+import { mainlineChild } from 'lib/tree/ops';
 import type { TreeNodeBase } from 'lib/tree/types';
 
 export type SourceGameLine = readonly Pick<TreeNodeBase, 'fen' | 'ply' | 'uci'>[];
@@ -28,7 +29,7 @@ export function matchesSourceGame(root: TreeNodeBase, original: SourceGameLine):
   while (node) {
     const expected = original[index++];
     if (!expected || node.ply !== expected.ply || node.uci !== expected.uci) return false;
-    node = node.children?.[0];
+    node = mainlineChild(node);
   }
   return index === original.length;
 }

@@ -1,5 +1,6 @@
 import { prop, notEmpty, type Prop } from 'lib';
 import { completeNode } from 'lib/tree/node';
+import * as treePath from 'lib/tree/path';
 import type { TreeWrapper } from 'lib/tree/tree';
 import type { TreePath } from 'lib/tree/types';
 import { json as xhrJson } from 'lib/xhr';
@@ -113,13 +114,13 @@ export default class ForecastCtrl {
     });
   };
 
-  showForecast = (variant: VariantKey, path: TreePath, tree: TreeWrapper, steps: ForecastStep[]) => {
-    steps.forEach(({ ply, fen, uci, san }) => {
-      const node = completeNode(variant)({ ply, fen, uci, san });
+  showForecast = (path: TreePath, tree: TreeWrapper, steps: ForecastStep[]) => {
+    steps.forEach(step => {
+      const node = completeNode(step);
       // this handles the case where the move isn't in the tree yet
       // if it is, it just returns
       tree.addNode(node, path); // the path before this is its parent;
-      path += node.id;
+      path = treePath.append(path, node.id);
     });
     return path;
   };

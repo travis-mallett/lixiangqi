@@ -39,11 +39,7 @@
   <string name="definitivelyDeleteTournament">トーナメント全体（全ラウンド、全ゲーム）を削除する。</string>
   <string name="showScores">ゲーム結果に応じてプレイヤーのスコアを表示</string>
   <string name="replacePlayerTags">オプション：プレイヤーの名前、レーティング、タイトルの変更</string>
-  <string name="fideFederations">FIDE 加盟協会</string>
   <string name="top10Rating">レーティング トップ10</string>
-  <string name="fidePlayers">FIDE 選手</string>
-  <string name="fidePlayerNotFound">FIDE 選手が見つかりません</string>
-  <string name="fideProfile">FIDE プロフィール</string>
   <string name="federation">所属協会</string>
   <string name="age">年齢</string>
   <string name="unrated">レーティングなし</string>
@@ -74,7 +70,6 @@
   <string name="tournamentLocation">開催地</string>
   <string name="topPlayers">トッププレイヤー</string>
   <string name="timezone">タイムゾーン</string>
-  <string name="fideRatingCategory">FIDE レーティング カテゴリー</string>
   <string name="optionalDetails">その他詳細（オプション）</string>
   <string name="pastBroadcasts">過去の中継</string>
   <string name="allBroadcastsByMonth">すべての中継を月別に表示</string>

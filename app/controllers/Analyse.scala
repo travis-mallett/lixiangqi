@@ -1,6 +1,7 @@
 package controllers
 
-import play.api.libs.json.{ JsArray, Json }
+import play.api.libs.json.{ JsArray, JsError, JsValue, Json, Reads }
+import org.apache.pekko.util.ByteString
 import play.api.mvc.*
 
 import lila.app.*
@@ -47,7 +48,7 @@ final class Analyse(env: Env) extends LilaController(env):
 
   def embedReplayGame(gameId: GameId, color: Color) = Anon:
     Found(env.game.gameRepo.pov(gameId, color)): pov =>
-      given EmbedContext = EmbedContext(summon[Context])
+      given EmbedContext = EmbedContext(summon[Context], defaultUiTheme = lila.pref.UiThemes.light.key)
       Ok.snip(views.boardViewer(UserAnalysis.bootstrap(pov)))
 
   def externalEngineList = ScopedBody(_.Engine.Read) { _ ?=> me ?=>
@@ -88,3 +89,49 @@ final class Analyse(env: Env) extends LilaController(env):
   def externalEngineDelete(id: String) = AuthOrScoped(_.Engine.Write) { _ ?=> me ?=>
     env.analyse.externalEngine.delete(me, id).elseNotFound(jsonOkResult)
   }
+
+  def externalEngineAnalyse(id: String) = AnonBodyOf(parse.json(100_000)): body =>
+    externalInput[lila.analyse.ExternalEngineBroker.Request](body): input =>
+      env.analyse.externalEngineBroker
+        .analyse(id, input)
+        .map:
+          case Left(error) => Status(error.status)(jsonError(error.message))
+          case Right(source) =>
+            Ok.chunked(source.map(json => ByteString(Json.stringify(json) + "\n")))
+              .as("application/x-ndjson")
+              .withHeaders("Cache-Control" -> "no-store", "X-Accel-Buffering" -> "no")
+
+  def externalEngineAcquire = AnonBodyOf(parse.json(4096)): body =>
+    (body \ "providerSecret")
+      .validate[String]
+      .fold(
+        _ => fuccess(BadRequest(jsonError("Missing provider credentials"))),
+        secret =>
+          fuccess(
+            env.analyse.externalEngineBroker
+              .acquire(secret)
+              .fold(
+                error => Status(error.status)(jsonError(error.message)),
+                _.fold(NoContent)(JsonOk(_))
+              )
+          )
+      )
+
+  def externalEngineSubmit(id: String) = AnonBodyOf(parse.json(100_000)): body =>
+    externalInput[lila.analyse.ExternalEngineBroker.Update](body): update =>
+      fuccess(
+        env.analyse.externalEngineBroker
+          .submit(id, update)
+          .fold(
+            error => Status(error.status)(jsonError(error.message)),
+            _ => NoContent
+          )
+      )
+
+  private def externalInput[A: Reads](body: JsValue)(run: A => Fu[Result]): Fu[Result] =
+    body
+      .validate[A]
+      .fold(
+        errors => fuccess(BadRequest(jsonError(JsError.toJson(errors).toString))),
+        run
+      )

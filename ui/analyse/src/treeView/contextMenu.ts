@@ -4,7 +4,7 @@ import type { TreePath } from 'lib/tree/types';
 import { type VNode, onInsert, hl, dataIcon } from 'lib/view';
 
 import type AnalyseCtrl from '@/ctrl';
-import { renderVariationPgn } from '@/pgnExport';
+import { renderVariationNotation } from '@/notationExport';
 import * as studyView from '@/study/studyView';
 import { patch, nodeFullName } from '@/view/util';
 
@@ -141,10 +141,7 @@ function view(ctrl: AnalyseCtrl, path: TreePath, coords: Coords): VNode {
       action(
         licon.Clipboard,
         onMainline ? i18n.site.copyMainLinePgn : i18n.site.copyVariationPgn,
-        () =>
-          navigator.clipboard.writeText(
-            renderVariationPgn(ctrl.data.game, ctrl.tree.getNodeList(extendedPath)),
-          ),
+        () => navigator.clipboard.writeText(renderVariationNotation(ctrl.tree.getNodeList(extendedPath))),
         () => ctrl.pendingCopyPath(extendedPath),
         () => ctrl.pendingCopyPath(null),
       ),

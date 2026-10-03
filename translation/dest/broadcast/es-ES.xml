@@ -41,11 +41,7 @@
   <string name="definitivelyDeleteTournament">Elimina definitivamente todo el torneo, rondas y partidas incluidas.</string>
   <string name="showScores">Mostrar las puntuaciones de los jugadores según los resultados de las partidas</string>
   <string name="replacePlayerTags">Opcional: reemplazar nombres de jugadores, puntuaciones y títulos</string>
-  <string name="fideFederations">Federaciones FIDE</string>
   <string name="top10Rating">Los 10 mejores</string>
-  <string name="fidePlayers">Jugadores FIDE</string>
-  <string name="fidePlayerNotFound">Jugador FIDE no encontrado</string>
-  <string name="fideProfile">Perfil FIDE</string>
   <string name="federation">Federación</string>
   <string name="age">Edad</string>
   <string name="unrated">Sin puntuación</string>
@@ -76,7 +72,6 @@
   <string name="tournamentLocation">Ubicación del torneo</string>
   <string name="topPlayers">Mejores jugadores</string>
   <string name="timezone">Zona horaria</string>
-  <string name="fideRatingCategory">Categoría de calificación de FIDE</string>
   <string name="optionalDetails">Detalles opcionales</string>
   <string name="pastBroadcasts">Transmisiones pasadas</string>
   <string name="allBroadcastsByMonth">Ver todas las transmisiones por mes</string>

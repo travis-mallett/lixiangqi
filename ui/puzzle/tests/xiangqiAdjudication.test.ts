@@ -13,6 +13,7 @@ import {
   winningContinuation,
   type PuzzleObjective,
 } from '../src/xiangqiAdjudication.ts';
+import { fixturePositions } from './positionFixtures.ts';
 
 const fen = '4k4/9/9/9/4p4/9/9/9/9/R3K4 w - - 0 1';
 const state = (gameResult = '*'): RulesState => ({
@@ -68,13 +69,32 @@ test('reply delay exceeds every configured animation and never falls below 750ms
 
 test('objective and allowance come entirely from published metadata', () => {
   const solution = ['a1a2', 'e10d10', 'a2a3'];
-  assert.equal(makeObjective(fen, solution, { objective: 'mate', solutions: [solution] }).allowance, 4);
   assert.equal(
-    makeObjective(fen, solution, { objective: 'tactic', startingCp: 800, solutions: [solution] }).mate,
+    makeObjective(
+      fen,
+      solution,
+      { objective: 'mate', solutions: [solution] },
+      fixturePositions(fen, solution),
+    ).allowance,
+    4,
+  );
+  assert.equal(
+    makeObjective(
+      fen,
+      solution,
+      { objective: 'tactic', startingCp: 800, solutions: [solution] },
+      fixturePositions(fen, solution),
+    ).mate,
     false,
   );
   assert.throws(
-    () => makeObjective(fen, solution, { objective: 'tactic', solutions: [solution] }),
+    () =>
+      makeObjective(
+        fen,
+        solution,
+        { objective: 'tactic', solutions: [solution] },
+        fixturePositions(fen, solution),
+      ),
     /starting advantage/,
   );
   for (const n of [1, 2, 3, 5]) {

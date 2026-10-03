@@ -78,21 +78,21 @@ db.tournament2.createIndex(
 );
 db.relation.createIndex({ u1: 1 });
 db.relation.createIndex({ u2: 1 });
-db.fide_player.createIndex({ token: 1 });
-db.fide_player.createIndex({ fed: 1, standard: -1 });
-db.fide_player.createIndex({ fed: 1, rapid: -1 });
-db.fide_player.createIndex({ fed: 1, blitz: -1 });
-db.fide_player.createIndex({ standard: -1 });
-db.fide_player.createIndex({ rapid: -1 });
-db.fide_player.createIndex({ blitz: -1 });
-db.fide_player.createIndex({ name: 1 });
-db.fide_player.createIndex({ fed: 1 });
-db.fide_player.createIndex({ year: -1 });
-db.fide_player.createIndex(
+db.directory_player.createIndex({ tokens: 1 });
+db.directory_player.createIndex({ fed: 1, standard: -1 });
+db.directory_player.createIndex({ fed: 1, rapid: -1 });
+db.directory_player.createIndex({ fed: 1, blitz: -1 });
+db.directory_player.createIndex({ standard: -1 });
+db.directory_player.createIndex({ rapid: -1 });
+db.directory_player.createIndex({ blitz: -1 });
+db.directory_player.createIndex({ name: 1 });
+db.directory_player.createIndex({ fed: 1 });
+db.directory_player.createIndex({ year: -1 });
+db.directory_player.createIndex(
   { _fts: 'text', _ftsx: 1, standard: -1 },
-  { weights: { token: 1 }, default_language: 'english', language_override: 'language', textIndexVersion: 3 },
+  { weights: { tokens: 1 }, default_language: 'english', language_override: 'language', textIndexVersion: 3 },
 );
-db.fide_player_follower.createIndex({ u: 1 });
+db.directory_player_follower.createIndex({ u: 1 });
 db.note.createIndex({ to: 1, date: -1 });
 db.note.createIndex({ from: 1 }, { partialFilterExpression: { mod: false } });
 db.note.createIndex(
@@ -318,6 +318,21 @@ db.study.createIndex({ createdAt: -1 });
 db.study.createIndex({ updatedAt: -1 });
 db.study.createIndex({ likers: 1 });
 db.study.createIndex({ uids: 1 });
+db.study.createIndex(
+  {
+    name: 'text',
+    topics: 'text',
+    description: 'text',
+    ownerId: 'text',
+    uids: 'text',
+    searchChapters: 'text',
+  },
+  {
+    name: 'native_study_search',
+    default_language: 'none',
+    weights: { name: 3, topics: 2, description: 1, ownerId: 1, uids: 1, searchChapters: 1 },
+  },
+);
 db.study.createIndex({ topics: 1, rank: -1 }, { partialFilterExpression: { topics: { $exists: 1 } } });
 db.study.createIndex({ topics: 1, createdAt: -1 }, { partialFilterExpression: { topics: { $exists: 1 } } });
 db.study.createIndex({ topics: 1, updatedAt: -1 }, { partialFilterExpression: { topics: { $exists: 1 } } });
@@ -325,14 +340,14 @@ db.study.createIndex({ topics: 1, likes: -1 }, { partialFilterExpression: { topi
 db.study.createIndex({ uids: 1, rank: -1 }, { partialFilterExpression: { topics: { $exists: 1 } } });
 db.study_chapter_flat.createIndex({ studyId: 1, order: 1 });
 db.study_chapter_flat.createIndex(
-  { 'relay.fideIds': 1 },
-  { partialFilterExpression: { 'relay.fideIds': { $exists: true } } },
+  { 'relay.playerIds': 1 },
+  { partialFilterExpression: { 'relay.playerIds': { $exists: true } } },
 );
 db.title_request.createIndex({ userId: 1 });
 db.title_request.createIndex({ 'history.0.status.n': 1, 'history.0.at': 1 });
 db.title_request.createIndex(
-  { 'data.fideId': 1, 'history.0.at': -1 },
-  { partialFilterExpression: { 'history.0.status.n': 'approved', 'data.fideId': { $exists: 1 } } },
+  { 'data.playerId': 1, 'history.0.at': -1 },
+  { partialFilterExpression: { 'history.0.status.n': 'approved', 'data.playerId': { $exists: 1 } } },
 );
 
 // you may want to run these on the insight database if it's a different one

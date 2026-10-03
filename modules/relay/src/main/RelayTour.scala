@@ -8,7 +8,8 @@ import scalalib.model.Language
 import lila.memo.{ Dimensions, PicfitUrl }
 import lila.core.id.ImageId
 import lila.core.study.Visibility
-import chess.{ FideTC, TournamentClock }
+import chess.TournamentClock
+import lila.core.playerDirectory.RatingCategory
 import chess.tiebreak.Tiebreak
 
 case class RelayTour(
@@ -105,7 +106,7 @@ object RelayTour:
   case class Info(
       format: Option[String],
       tc: Option[String],
-      fideTC: Option[FideTC],
+      ratingCategory: Option[RatingCategory],
       location: Option[String],
       timeZone: Option[ZoneId],
       players: Option[String],
@@ -114,9 +115,9 @@ object RelayTour:
       regulations: Option[URL]
   ):
     def nonEmpty =
-      List(format, tc, fideTC, location, players, website, standings, regulations).exists(_.nonEmpty)
-    override def toString = List(format, tc, fideTC, location, players).flatten.mkString(" | ")
-    lazy val fideTCOrGuess: FideTC = fideTC | FideTC.standard
+      List(format, tc, ratingCategory, location, players, website, standings, regulations).exists(_.nonEmpty)
+    override def toString = List(format, tc, ratingCategory, location, players).flatten.mkString(" | ")
+    lazy val ratingCategoryOrGuess: RatingCategory = ratingCategory | RatingCategory.standard
     def timeZoneOrDefault: ZoneId = timeZone | ZoneId.systemDefault
     def clock: Option[TournamentClock] = tc.flatMap(TournamentClock.parse(false))
 

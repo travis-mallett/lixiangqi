@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
+import time
 import uuid
 import zlib
 from dataclasses import dataclass, field
@@ -11,6 +12,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 from .discovery_settings import DEFAULT_DEPTH
+from .database_write import begin_write, is_database_busy
 from .models import CandidateRecord, EngineScore, SearchResult
 from .position import position_hash
 from .schema_migration import (
@@ -72,10 +74,88 @@ def now() -> str:
     return datetime.now(UTC).isoformat()
 
 
-def open_database(path: Path) -> sqlite3.Connection:
+def open_database(path: Path, *, initialize: bool = True) -> sqlite3.Connection:
+    """Open the puzzle-mining database.
+
+    ``initialize`` installs the schema, pending migrations, and derived layout.
+    Worker processes spawned by a supervisor that already opened the same
+    database pass ``initialize=False``: the supervisor owns initialization, so
+    a worker connection never needs the writer lock.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(path, timeout=30, uri=True)
     connection.row_factory = sqlite3.Row
+    try:
+        if initialize:
+            _install_schema(connection)
+        else:
+            _require_current_schema(connection)
+    except Exception:
+        connection.close()
+        raise
+    return connection
+
+
+def open_database_when_ready(
+    path: Path, *, interval: float = 1.0
+) -> sqlite3.Connection:
+    """Open an initialized database, waiting out a writer that holds the lock.
+
+    Long-running stages share the store with the Studio and with each other, so
+    a locked database means "wait", not "fail". Migrations commit one step at a
+    time, so retrying resumes from the version the interrupted attempt reached.
+    """
+    waiting = False
+    while True:
+        try:
+            connection = open_database(path)
+        except sqlite3.OperationalError as exc:
+            if not is_database_busy(exc):
+                raise
+            if not waiting:
+                print(f"{path.name} is locked by another writer; waiting.", flush=True)
+                waiting = True
+            time.sleep(interval)
+            continue
+        if waiting:
+            print(f"{path.name} is available; continuing.", flush=True)
+        return connection
+
+
+def _stored_metadata(connection: sqlite3.Connection, key: str) -> str | None:
+    row = connection.execute(
+        "SELECT value FROM metadata WHERE key = ?", (key,)
+    ).fetchone()
+    return None if row is None else row["value"]
+
+
+def _has_table(connection: sqlite3.Connection, name: str) -> bool:
+    return (
+        connection.execute(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", (name,)
+        ).fetchone()
+        is not None
+    )
+
+
+def _require_current_schema(connection: sqlite3.Connection) -> None:
+    """Reject a database the supervisor was supposed to initialize for workers."""
+
+    version = (
+        _stored_metadata(connection, "schema_version")
+        if _has_table(connection, "metadata")
+        else None
+    )
+    if version != str(SCHEMA_VERSION):
+        raise RuntimeError(
+            f"Puzzle-mining database schema is {version}; expected {SCHEMA_VERSION}. "
+            "Initialize it before starting workers."
+        )
+
+
+def _install_schema(connection: sqlite3.Connection) -> None:
+    """Create, migrate, and complete the schema exactly as far as it needs."""
+
     existing_tables = {
         row["name"]
         for row in connection.execute(
@@ -83,104 +163,100 @@ def open_database(path: Path) -> sqlite3.Connection:
         )
     }
     if "candidates" in existing_tables:
-        version = None
-        if "metadata" in existing_tables:
-            row = connection.execute(
-                "SELECT value FROM metadata WHERE key = 'schema_version'"
-            ).fetchone()
-            version = row["value"] if row else None
-        try:
-            migrations = {
-                2: migrate_schema_2_to_3,
-                3: migrate_schema_3_to_4,
-                4: migrate_schema_4_to_5,
-                5: migrate_schema_5_to_6,
-                6: migrate_schema_6_to_7,
-                7: migrate_schema_7_to_8,
-                8: migrate_schema_8_to_9,
-                9: migrate_schema_9_to_10,
-            }
-            from importlib import import_module
-
-            migrations[10] = import_module(
-                "tools.data_migration.20260910_puzzle_assessment_v11"
-            ).migrate
-            migrations[11] = import_module(
-                "tools.data_migration.20260911_puzzle_stages_v12"
-            ).migrate
-            migrations[12] = import_module(
-                "tools.data_migration.20260913_puzzle_categories_v13"
-            ).migrate
-            migrations[13] = import_module(
-                "tools.data_migration.20260915_puzzle_branch_counts_v14"
-            ).migrate
-            migrations[14] = import_module(
-                "tools.data_migration.20260915_preserve_completed_solutions_v15"
-            ).migrate
-            migrations[15] = import_module(
-                "tools.data_migration.20260915_tactic_endpoints_v16"
-            ).migrate
-            migrations[16] = import_module(
-                "tools.data_migration.20260923_canonical_puzzle_solutions_v17"
-            ).migrate
-            migrations[17] = import_module(
-                "tools.data_migration.20260924_unique_puzzle_positions_v18"
-            ).migrate
-            supported_kinds = import_module(
-                "tools.data_migration.20260925_supported_puzzle_kinds_v20"
-            )
-            migrations[18] = supported_kinds.advance_18
-            migrations[19] = supported_kinds.migrate
-            if (
-                version is None
-                or not str(version).isdigit()
-                or not 2 <= int(version) <= SCHEMA_VERSION
-            ):
-                raise RuntimeError(f"Unsupported puzzle-mining schema {version}")
-            if int(version) < SCHEMA_VERSION:
-                # The operator's local mining store is derived work, not the
-                # live puzzle authority. Migrations commit one atomic step at a
-                # time; ordinary tool initialization must not copy the database.
-                for current_version in range(int(version), SCHEMA_VERSION):
-                    migrations[current_version](connection)
-        except Exception:
-            connection.close()
-            raise
-    try:
-        schema = (
-            Path(__file__).with_name("puzzle_schema.sql").read_text(encoding="utf-8")
+        version = (
+            _stored_metadata(connection, "schema_version")
+            if "metadata" in existing_tables
+            else None
         )
-        connection.executescript(schema)
-        from .category_status import CATEGORY_SCHEMA
+        migrations = {
+            2: migrate_schema_2_to_3,
+            3: migrate_schema_3_to_4,
+            4: migrate_schema_4_to_5,
+            5: migrate_schema_5_to_6,
+            6: migrate_schema_6_to_7,
+            7: migrate_schema_7_to_8,
+            8: migrate_schema_8_to_9,
+            9: migrate_schema_9_to_10,
+        }
+        from importlib import import_module
 
-        connection.execute(CATEGORY_SCHEMA)
-        version = connection.execute(
-            "SELECT value FROM metadata WHERE key = 'schema_version'"
-        ).fetchone()
-        if version is not None and int(version["value"]) != SCHEMA_VERSION:
-            raise RuntimeError(
-                f"Puzzle-mining database schema is {version['value']}; "
-                f"expected {SCHEMA_VERSION}. Create a new staging database."
-            )
+        migrations[10] = import_module(
+            "tools.data_migration.20260910_puzzle_assessment_v11"
+        ).migrate
+        migrations[11] = import_module(
+            "tools.data_migration.20260911_puzzle_stages_v12"
+        ).migrate
+        migrations[12] = import_module(
+            "tools.data_migration.20260913_puzzle_categories_v13"
+        ).migrate
+        migrations[13] = import_module(
+            "tools.data_migration.20260915_puzzle_branch_counts_v14"
+        ).migrate
+        migrations[14] = import_module(
+            "tools.data_migration.20260915_preserve_completed_solutions_v15"
+        ).migrate
+        migrations[15] = import_module(
+            "tools.data_migration.20260915_tactic_endpoints_v16"
+        ).migrate
+        migrations[16] = import_module(
+            "tools.data_migration.20260923_canonical_puzzle_solutions_v17"
+        ).migrate
+        migrations[17] = import_module(
+            "tools.data_migration.20260924_unique_puzzle_positions_v18"
+        ).migrate
+        supported_kinds = import_module(
+            "tools.data_migration.20260925_supported_puzzle_kinds_v20"
+        )
+        migrations[18] = supported_kinds.advance_18
+        migrations[19] = supported_kinds.migrate
+        if (
+            version is None
+            or not str(version).isdigit()
+            or not 2 <= int(version) <= SCHEMA_VERSION
+        ):
+            raise RuntimeError(f"Unsupported puzzle-mining schema {version}")
+        if int(version) < SCHEMA_VERSION:
+            # The operator's local mining store is derived work, not the
+            # live puzzle authority. Migrations commit one atomic step at a
+            # time; ordinary tool initialization must not copy the database.
+            for current_version in range(int(version), SCHEMA_VERSION):
+                migrations[current_version](connection)
+
+    schema = Path(__file__).with_name("puzzle_schema.sql").read_text(encoding="utf-8")
+    # Migrations decide their own foreign-key handling; enforce it afterwards
+    # for every connection, including those that skip the schema script.
+    connection.commit()
+    connection.execute("PRAGMA foreign_keys = ON")
+    connection.executescript(schema)
+    from .category_status import CATEGORY_SCHEMA
+
+    connection.execute(CATEGORY_SCHEMA)
+    stored_version = _stored_metadata(connection, "schema_version")
+    if stored_version is not None and int(stored_version) != SCHEMA_VERSION:
+        raise RuntimeError(
+            f"Puzzle-mining database schema is {stored_version}; "
+            f"expected {SCHEMA_VERSION}. Create a new staging database."
+        )
+    # Only a stored value that actually changed is written. An up-to-date
+    # database therefore opens without ever acquiring the writer lock, which
+    # matters when a worker pool starts beside other writing stages.
+    if stored_version != str(SCHEMA_VERSION):
         connection.execute(
             "INSERT OR REPLACE INTO metadata(key, value) VALUES ('schema_version', ?)",
             (str(SCHEMA_VERSION),),
         )
+    if _stored_metadata(connection, "generator_version") != str(GENERATOR_VERSION):
         connection.execute(
             "INSERT OR REPLACE INTO metadata(key, value) VALUES ('generator_version', ?)",
             (str(GENERATOR_VERSION),),
         )
-        connection.commit()
-        from .inventory import install
+    connection.commit()
+    from .inventory import install
 
-        install(connection)
-        from .game_analysis_depth import install_depth_coverage
+    install(connection)
+    from .game_analysis_depth import install_depth_coverage
 
-        install_depth_coverage(connection)
-        return connection
-    except Exception:
-        connection.close()
-        raise
+    install_depth_coverage(connection)
 
 
 def seed_game_job(
@@ -389,7 +465,11 @@ def claim_game_job(
 
 
 def finish_game_job(
-    connection: sqlite3.Connection, job: ClaimedJob, discovered_count: int
+    connection: sqlite3.Connection,
+    job: ClaimedJob,
+    discovered_count: int,
+    *,
+    stop_event=None,
 ) -> None:
     _finish_claim(
         connection,
@@ -399,6 +479,7 @@ def finish_game_job(
         "complete",
         "",
         extra=("discovered_count = ?", (discovered_count,)),
+        stop_event=stop_event,
     )
 
 
@@ -410,6 +491,7 @@ def fail_game_job(
     retryable: bool,
     max_attempts: int,
     retry_delay_seconds: int = 60,
+    stop_event=None,
 ) -> str:
     status = "retry" if retryable and job.attempts < max_attempts else "failed"
     next_attempt = (
@@ -425,12 +507,13 @@ def fail_game_job(
         status,
         diagnostic,
         next_attempt_at=next_attempt,
+        stop_event=stop_event,
     )
     return status
 
 
 def reject_game_job(
-    connection: sqlite3.Connection, job: ClaimedJob, diagnostic: str
+    connection: sqlite3.Connection, job: ClaimedJob, diagnostic: str, *, stop_event=None
 ) -> None:
     _finish_claim(
         connection,
@@ -439,6 +522,7 @@ def reject_game_job(
         job.claim_token,
         "rejected",
         diagnostic,
+        stop_event=stop_event,
     )
 
 
@@ -561,9 +645,10 @@ def apply_discovery_result(
     *,
     game_analysis: dict[str, Any] | None = None,
     publication_origin: str | None = None,
+    stop_event=None,
 ) -> bool:
     """Atomically persist one complete game discovery result and finish its claim."""
-    connection.execute("BEGIN IMMEDIATE")
+    begin_write(connection, stop_event)
     try:
         row = connection.execute(
             "SELECT status, claim_token, discovery_version FROM game_jobs WHERE id = ?",
@@ -689,23 +774,25 @@ def save_analysis(
     nnue: str,
     settings_hash: str,
     result: SearchResult,
+    stop_event=None,
 ) -> None:
-    connection.execute(
-        """
-        INSERT OR REPLACE INTO analysis_cache(
-          context_hash, engine_version, nnue, settings_hash, result_json, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?)
-        """,
-        (
-            context_hash,
-            engine_version,
-            nnue,
-            settings_hash,
-            _json(result.to_dict()),
-            now(),
-        ),
-    )
-    connection.commit()
+    begin_write(connection, stop_event)
+    with connection:
+        connection.execute(
+            """
+            INSERT OR REPLACE INTO analysis_cache(
+              context_hash, engine_version, nnue, settings_hash, result_json, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                context_hash,
+                engine_version,
+                nnue,
+                settings_hash,
+                _json(result.to_dict()),
+                now(),
+            ),
+        )
 
 
 def _finish_claim(
@@ -718,25 +805,26 @@ def _finish_claim(
     *,
     next_attempt_at: str | None = None,
     extra: tuple[str, tuple[Any, ...]] | None = None,
+    stop_event=None,
 ) -> None:
     assignment = ""
     values: tuple[Any, ...] = ()
     if extra is not None:
         assignment = f", {extra[0]}"
         values = extra[1]
-    cursor = connection.execute(
-        f"""
-        UPDATE {table}
-        SET status = ?, diagnostic = ?, claim_token = NULL, claimed_at = NULL,
-            next_attempt_at = ?, updated_at = ?{assignment}
-        WHERE id = ? AND status = 'processing' AND claim_token = ?
-        """,
-        (status, diagnostic, next_attempt_at, now(), *values, row_id, claim_token),
-    )
-    if cursor.rowcount != 1:
-        connection.rollback()
-        raise RuntimeError(f"{table} claim was lost")
-    connection.commit()
+    begin_write(connection, stop_event)
+    with connection:
+        cursor = connection.execute(
+            f"""
+            UPDATE {table}
+            SET status = ?, diagnostic = ?, claim_token = NULL, claimed_at = NULL,
+                next_attempt_at = ?, updated_at = ?{assignment}
+            WHERE id = ? AND status = 'processing' AND claim_token = ?
+            """,
+            (status, diagnostic, next_attempt_at, now(), *values, row_id, claim_token),
+        )
+        if cursor.rowcount != 1:
+            raise RuntimeError(f"{table} claim was lost")
 
 
 def _claimed_candidate(

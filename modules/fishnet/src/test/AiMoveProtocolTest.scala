@@ -2,7 +2,6 @@ package lila.fishnet
 
 import chess.Clock
 import chess.format.Fen
-import chess.variant.Standard
 import play.api.libs.json.Json
 
 import lila.core.fishnet.{ AiMoveRequestId, AiTurnKey }
@@ -17,7 +16,7 @@ class AiMoveProtocolTest extends munit.FunSuite:
         id = "abcd1234",
         initialFen = Some[Fen.Full](Fen.Full(Xiangqi.startFen)),
         studyId = None,
-        variant = Standard,
+        ruleset = lila.xiangqi.adjudication.Ruleset.Tiantian,
         moves = "a4a5 a7a6"
       ),
       level = 5,

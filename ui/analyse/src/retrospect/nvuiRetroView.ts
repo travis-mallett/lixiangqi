@@ -1,7 +1,7 @@
 import { type VNodeData } from 'snabbdom';
 
-import { renderSan } from 'lib/nvui/chess';
 import { liveText } from 'lib/nvui/notify';
+import { renderMove } from 'lib/nvui/xiangqi';
 import { type LooseVNodes, hl } from 'lib/view';
 
 import type { AnalyseNvuiContext } from '@/analyse.nvui';
@@ -39,11 +39,11 @@ function doneWithMistakes({ spoken, ctrl, focusFriendlyHook }: RetroContext, pre
       (prelude ? prelude + '. ' : '') +
         i18n.site[
           noMistakes
-            ? ctrl.retro.color === 'white'
-              ? 'noMistakesFoundForWhite'
+            ? ctrl.retro.color === 'red'
+              ? 'noMistakesFoundForRed'
               : 'noMistakesFoundForBlack'
-            : ctrl.retro.color === 'white'
-              ? 'doneReviewingWhiteMistakes'
+            : ctrl.retro.color === 'red'
+              ? 'doneReviewingRedMistakes'
               : 'doneReviewingBlackMistakes'
         ],
     ),
@@ -51,7 +51,7 @@ function doneWithMistakes({ spoken, ctrl, focusFriendlyHook }: RetroContext, pre
     hl(
       'button.retro-flip',
       focusFriendlyHook(ctrl.retro.flip),
-      i18n.site[ctrl.retro.color === 'white' ? 'reviewBlackMistakes' : 'reviewWhiteMistakes'],
+      i18n.site[ctrl.retro.color === 'red' ? 'reviewBlackMistakes' : 'reviewRedMistakes'],
     ),
   ];
 }
@@ -76,7 +76,7 @@ const retroStateView = {
     const { ctrl, spoken, focusFriendlyHook } = ctx;
     if (!ctrl.retro.current()) return doneWithMistakes(ctx);
     const node = ctrl.retro.current()!.solution.node;
-    const solution = `${i18n.site.solution} ${renderSan(node.san, node.uci, ctx.moveStyle.get())}.`;
+    const solution = `${i18n.site.solution} ${renderMove(node.notation, node.uci, ctx.moveStyle.get())}.`;
     return ctrl.retro.current()
       ? [spoken(solution), hl('button.retro-next', focusFriendlyHook(ctrl.retro.skip), i18n.site.next)]
       : doneWithMistakes(ctx, solution);
@@ -87,10 +87,10 @@ const retroStateView = {
     if (!node) return doneWithMistakes(ctx, prelude);
     const c = ctrl.retro.color;
     const trailer =
-      c === 'white'
+      c === 'red'
         ? tryAgain
-          ? i18n.site.tryAnotherMoveForWhite
-          : i18n.site.findBetterMoveForWhite
+          ? i18n.site.tryAnotherMoveForRed
+          : i18n.site.findBetterMoveForRed
         : tryAgain
           ? i18n.site.tryAnotherMoveForBlack
           : i18n.site.findBetterMoveForBlack;
@@ -98,7 +98,7 @@ const retroStateView = {
       spoken(
         prelude +
           `Turn ${Math.floor((node.ply + 1) / 2)}, ${i18n.site[c]} ` +
-          `played ${renderSan(node.san, node.uci, ctx.moveStyle.get())}, ${trailer}`,
+          `played ${renderMove(node.notation, node.uci, ctx.moveStyle.get())}, ${trailer}`,
       ),
       hl(
         'button.retro-solve',

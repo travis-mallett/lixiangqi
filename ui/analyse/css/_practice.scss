@@ -17,8 +17,8 @@
       color: $c-link;
       transition: 0.3s;
 
-      san {
-        @extend %san;
+      move-text {
+        @extend %move-notation;
       }
     }
 

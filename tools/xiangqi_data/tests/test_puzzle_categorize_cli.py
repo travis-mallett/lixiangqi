@@ -13,8 +13,11 @@ from tools.xiangqi_data.puzzle_mining.storage import open_database
 class CheckmateCliTest(unittest.TestCase):
     def test_first_pass_has_engine_and_signals_publishable_results(self):
         with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / "puzzles.sqlite3"
+            # The supervisor owns initialization; workers open the prepared store.
+            open_database(database).close()
             args = SimpleNamespace(
-                database=Path(directory) / "puzzles.sqlite3",
+                database=database,
                 engine=Path(directory) / "pikafish.exe",
                 hash_mb=16,
                 nodes=100,

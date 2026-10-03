@@ -11,17 +11,17 @@ private object RelayUpdatePlanFixtures:
   def mkChapter(
       order: Chapter.Order,
       tags: Tags,
-      root: Root = Root.default(chess.variant.Standard)
+      root: Root = Root.default
   ): Chapter =
     Chapter(
       id = StudyChapterId(s"chapterId$order"),
       studyId = StudyId("studyId"),
       name = StudyChapterName(s"chapterName$order"),
-      setup = Chapter.Setup(gameId = none, variant = chess.variant.Standard, orientation = chess.Color.White),
+      setup = Chapter.Setup(gameId = none, orientation = lila.xiangqi.Xiangqi.Side.Red),
       root = root,
       tags = tags,
       order = order,
-      ownerId = UserId.lichess,
+      ownerId = UserId("broadcast-owner"),
       createdAt = nowInstant
     )
 
@@ -38,115 +38,115 @@ private object RelayUpdatePlanFixtures:
 [Event "SixDays Budapest June GMA"]
 [Site "Budapest"]
 [Round "9.1"]
-[White "Banh Gia Huy"]
+[Red "Banh Gia Huy"]
 [Black "Yaniv, Yuval"]
-[WhiteElo "2400"]
-[WhiteTitle "FM"]
-[WhiteFideId "12424714"]
+[RedElo "2400"]
+[RedTitle "FM"]
+[RedPlayerId "fixture:12424714"]
 [BlackElo "2335"]
 [BlackTitle "FM"]
-[BlackFideId "2823900"]
+[BlackPlayerId "fixture:2823900"]
 
-1. c4 { [%eval 0.13] } 1... g6 
+1. c4c5 { [%eval 0.13] } 1... g7g6
 
 
 [Event "SixDays Budapest June GMA"]
 [Site "Budapest"]
 [Round "9.2"]
-[White "Ezra Paul Chambers"]
+[Red "Ezra Paul Chambers"]
 [Black "Panesar Vedant"]
-[WhiteElo "2346"]
-[WhiteTitle "FM"]
-[WhiteFideId "20300204"]
+[RedElo "2346"]
+[RedTitle "FM"]
+[RedPlayerId "fixture:20300204"]
 [BlackElo "2460"]
 [BlackTitle "FM"]
-[BlackFideId "35033018"]
+[BlackPlayerId "fixture:35033018"]
 
-1. e4 { [%eval 0.15] [%clk 1:20:10] } 1... c5 { [%eval 0.25] [%clk 1:30:56] } 
+1. e4e5 { [%eval 0.15] [%clk 1:20:10] } 1... c7c6 { [%eval 0.25] [%clk 1:30:56] }
 
 
 [Event "SixDays Budapest June GMA"]
 [Site "Budapest"]
 [Round "9.3"]
-[White "Aczel, Gergely"]
+[Red "Aczel, Gergely"]
 [Black "Ramoutar, Alan-Safar"]
-[WhiteElo "2502"]
-[WhiteTitle "GM"]
-[WhiteFideId "727709"]
+[RedElo "2502"]
+[RedTitle "GM"]
+[RedPlayerId "fixture:727709"]
 [BlackElo "2357"]
 [BlackTitle "IM"]
-[BlackFideId "7704224"]
+[BlackPlayerId "fixture:7704224"]
 
-1. c4 { [%eval 0.13] [%clk 1:27:40] } 1... e6 
+1. c4c5 { [%eval 0.13] [%clk 1:27:40] } 1... e7e6
 
 
 [Event "SixDays Budapest June GMA"]
 [Site "Budapest"]
 [Round "9.4"]
-[White "Berczes, David"]
+[Red "Berczes, David"]
 [Black "Pap, Misa"]
-[WhiteElo "2425"]
-[WhiteTitle "GM"]
-[WhiteFideId "722960"]
+[RedElo "2425"]
+[RedTitle "GM"]
+[RedPlayerId "fixture:722960"]
 [BlackElo "2374"]
 [BlackTitle "GM"]
-[BlackFideId "921610"]
+[BlackPlayerId "fixture:921610"]
 
-1. Nf3 { [%eval 0.14] } 1... Nf6 { [%eval 0.22] } 
+1. h1g3 { [%eval 0.14] } 1... h10g8 { [%eval 0.22] }
 
 
 [Event "SixDays Budapest June GMA"]
 [Site "Budapest"]
 [Round "9.5"]
-[White "Moksh Amit Doshi"]
+[Red "Moksh Amit Doshi"]
 [Black "Paszewski, Mateusz"]
-[WhiteElo "2358"]
-[WhiteTitle "IM"]
-[WhiteFideId "25064967"]
+[RedElo "2358"]
+[RedTitle "IM"]
+[RedPlayerId "fixture:25064967"]
 [BlackElo "2349"]
 [BlackTitle "FM"]
-[BlackFideId "1141058"]
+[BlackPlayerId "fixture:1141058"]
 
-1. d4 { [%eval 0.16] [%clk 1:27:11] } 1... f5 { [%eval 0.5] [%clk 1:30:31] } 
+1. a4a5 { [%eval 0.16] [%clk 1:27:11] } 1... i7i6 { [%eval 0.5] [%clk 1:30:31] }
 """)
 
   val chapters: List[Chapter] = gameChapters(games)
 
   object repeatedPairings:
     val games: RelayGames = readPgns("""
-[White "Banh Gia Huy"]
+[Red "Banh Gia Huy"]
 [Black "Yaniv, Yuval"]
 [Round "1.1"]
 
-1. c4 { [%eval 0.13] } 1... g6 
+1. c4c5 { [%eval 0.13] } 1... g7g6
 
 
-[White "Banh Gia Huy"]
+[Red "Banh Gia Huy"]
 [Black "Yaniv, Yuval"]
 [Round "1.2"]
 
-1. e4 { [%eval 0.15] [%clk 1:20:10] } 1... c5 { [%eval 0.25] [%clk 1:30:56] } 
+1. e4e5 { [%eval 0.15] [%clk 1:20:10] } 1... c7c6 { [%eval 0.25] [%clk 1:30:56] }
 
 
-[White "Banh Gia Huy"]
+[Red "Banh Gia Huy"]
 [Black "Yaniv, Yuval"]
 [Round "1.3"]
 
-1. c4 { [%eval 0.13] [%clk 1:27:40] } 1... e6 
+1. c4c5 { [%eval 0.13] [%clk 1:27:40] } 1... e7e6
 
 
-[White "Berczes, David"]
+[Red "Berczes, David"]
 [Black "Pap, Misa"]
 [Round "1.1"]
 
-1. Nf3 { [%eval 0.14] } 1... Nf6 { [%eval 0.22] } 
+1. h1g3 { [%eval 0.14] } 1... h10g8 { [%eval 0.22] }
 
 
-[White "Berczes, David"]
+[Red "Berczes, David"]
 [Black "Pap, Misa"]
 [Round "1.2"]
 
-1. d4 { [%eval 0.16] [%clk 1:27:11] } 1... f5 { [%eval 0.5] [%clk 1:30:31] } 
+1. a4a5 { [%eval 0.16] [%clk 1:27:11] } 1... i7i6 { [%eval 0.5] [%clk 1:30:31] }
   """)
 
     val chapters: List[Chapter] = gameChapters(games)
@@ -154,49 +154,49 @@ private object RelayUpdatePlanFixtures:
   object switchedBoards:
 
     val games: RelayGames = readPgns("""
-[White "AAA"]
+[Red "AAA"]
 [Black "BBB"]
 [Round "1.1"]
 
-e4 e5 Nf3 Nc6 Nc3 Bb4 Nd5 Nf6 Nxb4 Nxb4 c3 Nc6
+a4a5 a7a6 c4c5 c7c6 e4e5 e7e6 g4g5 g7g6 i4i5 i7i6 b1c3 b10c8
 
 
-[White "CCC"]
+[Red "CCC"]
 [Black "DDD"]
 [Round "1.2"]
 
-1. e4 { [%eval 0.15] [%clk 1:20:10] } 1... c5 { [%eval 0.25] [%clk 1:30:56] } 
+1. e4e5 { [%eval 0.15] [%clk 1:20:10] } 1... c7c6 { [%eval 0.25] [%clk 1:30:56] }
 
 
-[White "EEE"]
+[Red "EEE"]
 [Black "FFF"]
 [Round "1.3"]
 
-1. c4 { [%eval 0.13] [%clk 1:27:40] } 1... e6 
+1. c4c5 { [%eval 0.13] [%clk 1:27:40] } 1... e7e6
 
   """)
 
     val chapters: List[Chapter] = gameChapters(games)
 
     val switchedGames = readPgns("""
-[White "EEE"]
+[Red "EEE"]
 [Black "FFF"]
 [Round "1.1"]
 
-1. c4 { [%eval 0.13] [%clk 1:27:40] } 1... e6 
+1. c4c5 { [%eval 0.13] [%clk 1:27:40] } 1... e7e6
 
 
-[White "CCC"]
+[Red "CCC"]
 [Black "DDD"]
 [Round "1.2"]
 
-1. e4 { [%eval 0.15] [%clk 1:20:10] } 1... c5 { [%eval 0.25] [%clk 1:30:56] } 
+1. e4e5 { [%eval 0.15] [%clk 1:20:10] } 1... c7c6 { [%eval 0.25] [%clk 1:30:56] }
 
 
-[White "AAA"]
+[Red "AAA"]
 [Black "BBB"]
 [Round "1.3"]
 
-e4 e5 Nf3 Nc6 Nc3 Bb4 Nd5 Nf6 Nxb4 Nxb4 c3 Nc6
+a4a5 a7a6 c4c5 c7c6 e4e5 e7e6 g4g5 g7g6 i4i5 i7i6 b1c3 b10c8
 
   """)

@@ -20,7 +20,7 @@ final class Analyser(
 )(using Executor, Scheduler)
     extends lila.core.fishnet.FishnetRequest:
 
-  private val maxPlies = 300
+  private val maxPlies = lila.xiangqi.UciPath.maxDepth
 
   private val dedup = OnceEvery[String](2.seconds)
 
@@ -69,7 +69,7 @@ final class Analyser(
                       case _ =>
                         lila.mon.fishnet.analysis.requestCount("game").increment()
                         evalCache
-                          .skipPositions(work.game)
+                          .skipPositions(work)
                           .monSuccess(lila.mon.fishnet.analysis.skipPositionsGame)
                           .flatMap: skipPositions =>
                             lila.mon.fishnet.analysis.evalCacheHits.record(skipPositions.size)
@@ -90,18 +90,24 @@ final class Analyser(
           apply(game, sender)
 
   def study(req: lila.core.fishnet.Bus.StudyChapterRequest): Fu[Analyser.Result] =
+    require(req.moves.size <= maxPlies, s"Study analysis exceeds $maxPlies moves")
+    val requestedPosition = lila.xiangqi.Xiangqi.Position(
+      req.initialFen.fold(lila.xiangqi.Xiangqi.startFen)(_.value),
+      req.moves.toVector,
+      req.ruleset
+    )
     analysisRepo
-      .chapterExists(req.chapterId)
-      .flatMap:
-        if _ then fuccess(Analyser.Result.NoChapter)
+      .current(lila.tree.Analysis.Id(req.studyId, req.chapterId))
+      .flatMap: existing =>
+        if existing.exists(_.position == requestedPosition) then fuccess(Analyser.Result.NoChapter)
         else
           import req.*
           val gameWork = Work.Game(
             id = chapterId.value,
             initialFen = initialFen,
             studyId = studyId.some,
-            variant = variant,
-            moves = moves.take(maxPlies).map(_.uci).mkString(" ")
+            ruleset = ruleset,
+            moves = moves.map(_.value).mkString(" ")
           )
           analysisRepo
             .byHash(gameWork.hash)
@@ -124,7 +130,16 @@ final class Analyser(
                       val work = makeWork(
                         game = gameWork,
                         // if black moves first, use 1 as startPly so the analysis doesn't get reversed
-                        startPly = Ply(initialFen.map(_.colorOrWhite).so(_.fold(0, 1))),
+                        startPly = Ply(
+                          lila.xiangqi.XiangqiRules
+                            .position(
+                              lila.xiangqi.Xiangqi.Position(
+                                initialFen.fold(lila.xiangqi.Xiangqi.startFen)(_.value),
+                                ruleset = ruleset
+                              )
+                            )
+                            .fold(error => throw IllegalArgumentException(error), _.ply)
+                        ),
                         sender = sender,
                         origin = if req.official then Origin.officialBroadcast else Origin.manualRequest
                       )
@@ -134,7 +149,7 @@ final class Analyser(
                           _.isEmpty.so:
                             lila.mon.fishnet.analysis.requestCount("study").increment()
                             evalCache
-                              .skipPositions(work.game)
+                              .skipPositions(work)
                               .monSuccess(lila.mon.fishnet.analysis.skipPositionsStudy)
                               .withTimeout(2.seconds, s"study analysis skipPositions $work")
                               .recoverDefault
@@ -151,8 +166,8 @@ final class Analyser(
           id = game.id.value,
           initialFen = initialFen,
           studyId = none,
-          variant = game.variant,
-          moves = moves.take(maxPlies).mkString(" ")
+          ruleset = game.xiangqi.ruleset,
+          moves = moves.mkString(" ")
         ),
         startPly = game.startedAtPly,
         sender = sender,

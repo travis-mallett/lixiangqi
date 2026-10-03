@@ -110,7 +110,29 @@ test('feedback belongs to one board, is independent from audio, and acknowledgme
   assert.equal(sounds, 1);
   assert.ok(primary.element.querySelector('.xiangqi-board-animation--capture'));
   primary.display(primary.position(), { kind: 'jump' });
+  assert.ok(primary.element.querySelector('.xiangqi-board-animation--capture'));
+  primary.display(positionFromFen('4k4/9/9/9/9/9/9/9/9/4K4 w', standardXiangqi), { kind: 'jump' });
   assert.equal(primary.element.querySelector('.xiangqi-board-animation'), null);
+});
+
+test('silent position refreshes preserve capture, check and checkmate feedback across replay', () => {
+  let sounds = 0;
+  const board = mount('interactive', undefined, undefined, () => sounds++);
+  const start = board.position();
+  const next = { ...start, active: 'black', lastMove: ['a4', 'a5'] as const };
+  for (const effect of ['capture', 'check', 'checkmate'] as const) {
+    for (let replay = 0; replay < 2; replay++) {
+      board.display(next, { kind: 'forward', effects: [effect] });
+      const overlay = board.element.querySelector(`.xiangqi-board-animation--${effect}`);
+      assert.ok(overlay);
+      board.display({ ...next });
+      board.display({ ...next });
+      assert.equal(board.element.querySelector('.xiangqi-board-animation'), overlay);
+      board.display(start, { kind: 'backward' });
+      assert.equal(board.element.querySelector('.xiangqi-board-animation'), null);
+    }
+  }
+  assert.equal(sounds, 6);
 });
 
 test('thumbnails stay quiet during playback and destroy releases registered playback resources', () => {

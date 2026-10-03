@@ -1,6 +1,7 @@
 import { h, thunk, type VNode } from 'snabbdom';
 
 import { aiLevelName, getPlayer } from 'lib/game';
+import type { XiangqiSide as Color } from 'lib/game/xiangqi';
 import { licon } from 'lib/licon';
 import { bind, dataIcon, onInsert } from 'lib/view';
 import { ratingDiff } from 'lib/view/userLink';
@@ -99,7 +100,7 @@ const doRender = (ctrl: AnalyseCtrl): VNode => {
       }),
     },
     [
-      playerTable(ctrl, 'white'),
+      playerTable(ctrl, 'red'),
       ctrl.study
         ? null
         : h(

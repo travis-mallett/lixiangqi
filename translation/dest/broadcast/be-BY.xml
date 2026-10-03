@@ -33,11 +33,7 @@
   <string name="definitivelyDeleteTournament">Канчаткова выдаліць увесь турнір, усе яго туры і ўсе гульні.</string>
   <string name="showScores">Паказваць ачкі гульцоў па рэзультатах гульняў</string>
   <string name="replacePlayerTags">Па жаданні: змяніць імёны, рэйтынгі і званні гульцоў</string>
-  <string name="fideFederations">Федэрацыі FIDE</string>
   <string name="top10Rating">Топ-10 рэйтынгу</string>
-  <string name="fidePlayers">Гульцы FIDE</string>
-  <string name="fidePlayerNotFound">Гулец FIDE не знойдзены</string>
-  <string name="fideProfile">Профіль FIDE</string>
   <string name="federation">Федэрацыя</string>
   <string name="age">Узрост</string>
   <string name="unrated">Без рейтынгу</string>
@@ -67,7 +63,6 @@
   <string name="tournamentLocation">Месца турніру</string>
   <string name="topPlayers">Найлепшыя гульцы</string>
   <string name="timezone">Часавы пояс</string>
-  <string name="fideRatingCategory">Катэгорыя рэйтынгу FIDE</string>
   <string name="optionalDetails">Дадатковыя звесткі</string>
   <string name="pastBroadcasts">Папярэднія трансляцыі</string>
   <string name="liveboard">Дошка ў эфіры</string>

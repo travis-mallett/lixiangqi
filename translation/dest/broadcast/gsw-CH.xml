@@ -41,11 +41,7 @@
   <string name="definitivelyDeleteTournament">Das ganze Turnier, alli Runde und alli Schpiel definitiv lösche.</string>
   <string name="showScores">Zeigt d\'Erfolg vu de Schpiller, anhand vu Schpiel-Ergäbnis</string>
   <string name="replacePlayerTags">Optional: Schpillernäme, Wertige und Titel weg lah</string>
-  <string name="fideFederations">FIDE Wältschachverband</string>
   <string name="top10Rating">Top 10 Ratings</string>
-  <string name="fidePlayers">FIDE Schpiller</string>
-  <string name="fidePlayerNotFound">FIDE Schpiller nöd g\'funde</string>
-  <string name="fideProfile">FIDE Profil</string>
   <string name="federation">Verband</string>
   <string name="age">Alter</string>
   <string name="unrated">Ungwertet</string>
@@ -75,7 +71,6 @@
   <string name="tournamentLocation">Turnier-Lokal</string>
   <string name="topPlayers">Top-Schpiller</string>
   <string name="timezone">Zitzone</string>
-  <string name="fideRatingCategory">FIDE-Wertigskategorie</string>
   <string name="optionalDetails">Optionali Details</string>
   <string name="pastBroadcasts">G\'machti Überträgige</string>
   <string name="allBroadcastsByMonth">Zeig alli Überträgige im Monet</string>

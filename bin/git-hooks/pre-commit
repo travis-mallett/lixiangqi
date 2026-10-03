@@ -69,11 +69,18 @@ if [ "$blocked_paths" -ne 0 ]; then
   exit 1
 fi
 
-if git diff --cached --no-ext-diff --unified=0 --diff-filter=ACMR -- . \
-  | grep '^+' \
-  | grep -v '^+++' \
-  | grep -Eiq \
-  '(BEGIN (OPENSSH |RSA |EC |DSA )?PRIVATE KEY|AKIA[[:alnum:]]{16}|ASIA[[:alnum:]]{16}|github_pat_[[:alnum:]_]{20,}|gh[pousr]_[[:alnum:]]{30,}|xox[baprs]-[[:alnum:]-]{20,}|https?://[^/@[:space:]]+:[^/@[:space:]]+@)'; then
+staged_additions() {
+  git diff --cached --no-ext-diff --unified=0 --diff-filter=ACMR -- . \
+    | grep '^+' \
+    | grep -v '^+++'
+}
+
+# Provider tokens are case-sensitive. In particular, AWS IDs contain only
+# uppercase letters and digits; case-insensitive matching flags embedded images.
+if staged_additions | grep -Eq \
+  '(^|[^[:alnum:]_])(AKIA[A-Z0-9]{16}|ASIA[A-Z0-9]{16}|github_pat_[[:alnum:]_]{20,}|gh[pousr]_[[:alnum:]]{30,}|xox[baprs]-[[:alnum:]-]{20,})([^[:alnum:]_]|$)' \
+  || staged_additions | grep -Eiq \
+  '(BEGIN (OPENSSH |RSA |EC |DSA )?PRIVATE KEY|https?://[^/@[:space:]]+:[^/@[:space:]]+@)'; then
   printf >&2 'Commit blocked: a high-confidence credential pattern appears in staged additions.\n'
   exit 1
 fi

@@ -6,13 +6,18 @@ import { renderColumnTree, renderIndex, type ColumnTreeNode } from '../src/tree/
 import { hl } from '../src/view';
 
 interface Node extends ColumnTreeNode<Node> {
-  san: string;
+  notation: string;
 }
 
-const node = (id: string, ply: number, san: string, children: Node[] = []): Node => ({
-  id,
+const node = (id: string, ply: number, notation: string, children: Node[] = []): Node => ({
+  id: (
+    { r: '', a: 'a4a5', b: 'a7a6', c: 'c4c5', m: 'c7c6', x: 'i7i6', y: 'i4i5', z: 'i10i9' } as Record<
+      string,
+      string
+    >
+  )[id],
   ply,
-  san,
+  notation,
   children,
 });
 
@@ -34,7 +39,7 @@ function render(root: Node): VNode {
     renderMove: (move, context) =>
       hl('move', { attrs: { p: context.path }, class: { mainline: context.isMainline } }, [
         context.withIndex && renderIndex(move.ply, true),
-        move.san,
+        move.notation,
       ]),
   });
 }

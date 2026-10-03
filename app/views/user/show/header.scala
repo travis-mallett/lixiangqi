@@ -152,8 +152,8 @@ object header:
                 showProfile
                   .so(profile.nonEmptyRealName)
                   .map(strong(cls := List("name" -> true, "muted" -> muted))(_)),
-                info.publicFideId.map: id =>
-                  p(a(href := routes.Fide.show(id, u.username.value))("WXF player #" + id)),
+                info.publicPlayerId.map: id =>
+                  p(a(href := routes.PlayerDirectory.show(id, u.username.value))("Xiangqi player " + id)),
                 (showLinks && showProfile || isGranted(_.AccountInfo))
                   .so(profile.nonEmptyBio)
                   .map: bio =>

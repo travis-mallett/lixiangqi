@@ -2,7 +2,6 @@ package lila.analyse
 
 import chess.Ply
 import chess.eval.Eval.{ Cp, Mate }
-import chess.format.pgn.SanStr
 import play.api.libs.json.*
 
 import lila.tree.{ Analysis, Eval, Info }
@@ -21,30 +20,41 @@ object XiangqiAnalysis:
     )
 
   def infos(game: Xiangqi.Game, evals: List[Option[Evaluation]], startPly: Ply): List[Info] =
+    require(evals.size == game.moves.size + 1, "Analysis must cover the complete game history")
+    evals.zipWithIndex.foreach: (evaluation, index) =>
+      evaluation.foreach: evaluation =>
+        val prefix = game.copy(
+          moves = game.moves.take(index),
+          wxf = game.wxf.take(index),
+          states = game.states.take(index + 1)
+        )
+        require(
+          prefix.state.ended || evaluation.pv.nonEmpty,
+          s"Missing principal variation at ply ${prefix.state.ply}"
+        )
+        XiangqiRules
+          .variation(prefix, evaluation.pv.toVector)
+          .fold(
+            error =>
+              throw IllegalArgumentException(
+                s"Invalid principal variation at ply ${prefix.state.ply}: $error"
+              ),
+            _ => ()
+          )
     game.moves.zipWithIndex
       .map: (move, index) =>
         val before = evals.lift(index).flatten
         val after = evals.lift(index + 1).flatten
         val best = before.flatMap(_.pv.headOption).filter(_ != move)
         val variation = best.isDefined.so:
-          before.toList.flatMap(e => renderVariation(game.states(index).fen, e.pv.take(Info.LineMaxPlies)))
+          before.toList.flatMap(_.pv.take(Info.LineMaxPlies))
         val info = Info(
           startPly + index + 1,
           Eval(after.flatMap(_.cp), after.flatMap(_.mate), best.map(_.value)),
-          variation.map(SanStr.apply)
+          variation
         )
         if game.states(index + 1).turn == Xiangqi.Side.Black then info.invert else info
       .toList
-
-  private def renderVariation(initialFen: String, moves: List[Xiangqi.Uci]): List[String] =
-    moves
-      .foldLeft((initialFen, List.empty[String], true)):
-        case ((fen, notation, false), _) => (fen, notation, false)
-        case ((fen, notation, true), move) =>
-          XiangqiRules.move(Xiangqi.Position(initialFen = fen), move) match
-            case Left(_) => (fen, notation, false)
-            case Right(result) => (result.fen, notation :+ result.notation, true)
-      ._2
 
   def json(analysis: Analysis): JsObject =
     Json.obj(

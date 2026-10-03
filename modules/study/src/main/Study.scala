@@ -1,6 +1,7 @@
 package lila.study
 
-import chess.format.UciPath
+import lila.xiangqi.UciPath
+import lila.xiangqi.XiangqiJson.given
 import reactivemongo.api.bson.Macros.Annotations.Key
 import scalalib.ThreadLocalRandom
 

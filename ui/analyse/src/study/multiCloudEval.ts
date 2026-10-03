@@ -1,8 +1,9 @@
 import { type Prop, defined } from 'lib';
 import { debounce } from 'lib/async';
 import { povChances } from 'lib/ceval/winningChances';
+import { rulesPositionKey, type RulesPosition } from 'lib/game/xiangqiNotation';
 import { storedBooleanPropWithEffect } from 'lib/storage';
-import type { ClientEval, TreeNode } from 'lib/tree/types';
+import type { ClientEval } from 'lib/tree/types';
 
 import type { EvalHitMulti } from '../interfaces';
 import type { ServerNodeMsg } from './interfaces';
@@ -11,7 +12,7 @@ import type { StudyChapters } from './studyChapters';
 export interface CloudEval extends EvalHitMulti {
   chances: number;
 }
-export type GetCloudEval = (fen: FEN) => CloudEval | undefined;
+export type GetCloudEval = (position: RulesPosition) => CloudEval | undefined;
 
 export class MultiCloudEval {
   showEval: Prop<boolean>;
@@ -34,7 +35,6 @@ export class MultiCloudEval {
 
   constructor(
     readonly redraw: () => void,
-    private readonly variant: () => VariantKey,
     private readonly chapters: StudyChapters,
     private readonly send: SocketSend,
   ) {
@@ -53,7 +53,7 @@ export class MultiCloudEval {
 
   private readonly observedIds = () => new Set(Array.from(this.observed).map(el => el.dataset.id));
 
-  private lastRequestedFens: Set<FEN> = new Set();
+  private lastRequestedPositions: Set<FEN> = new Set();
 
   private readonly sendRequestNow = () => {
     if (!this.showEval() || document.hidden) return;
@@ -63,15 +63,13 @@ export class MultiCloudEval {
       .filter(c => ids.has(c.id))
       .slice(0, 32);
     if (chapters.length) {
-      const fensToRequest = new Set(chapters.map(c => c.fen));
-      const alreadyHasAllFens = [...fensToRequest].every(f => this.lastRequestedFens.has(f));
-      const worthSending = !alreadyHasAllFens || fensToRequest.size < this.lastRequestedFens.size / 1.5;
+      const fensToRequest = new Set(chapters.map(c => rulesPositionKey(c.position)));
+      const alreadyHasAllFens = [...fensToRequest].every(f => this.lastRequestedPositions.has(f));
+      const worthSending = !alreadyHasAllFens || fensToRequest.size < this.lastRequestedPositions.size / 1.5;
       if (worthSending) {
-        this.lastRequestedFens = fensToRequest;
-        const variant = this.variant(); // lila-ws only supports one variant for all fens
+        this.lastRequestedPositions = fensToRequest;
         this.send('evalGetMulti', {
-          fens: Array.from(fensToRequest),
-          ...(variant !== 'standard' ? { variant } : {}),
+          positions: chapters.map(chapter => chapter.position),
         });
       }
     }
@@ -80,15 +78,16 @@ export class MultiCloudEval {
   private readonly requestNewEvals = debounce(this.sendRequestNow, 2000);
 
   onCloudEval = (d: EvalHitMulti) => {
-    this.cloudEvals.set(d.fen, { ...d, chances: povChances('white', d) });
+    this.cloudEvals.set(rulesPositionKey(d.position), { ...d, chances: povChances('red', d) });
     this.redraw();
   };
 
-  onLocalCeval = (node: TreeNode, ev: ClientEval) => {
-    this.cloudEvals.set(node.fen, { ...ev, chances: povChances('white', ev) });
+  onLocalCeval = (position: RulesPosition, ev: ClientEval) => {
+    this.cloudEvals.set(rulesPositionKey(position), { ...ev, position, chances: povChances('red', ev) });
   };
 
-  getCloudEval: GetCloudEval = (fen: FEN): CloudEval | undefined => this.cloudEvals.get(fen);
+  getCloudEval: GetCloudEval = (position: RulesPosition): CloudEval | undefined =>
+    this.cloudEvals.get(rulesPositionKey(position));
 
   addNode = (d: ServerNodeMsg) => {
     if (this.observedIds().has(d.p.chapterId)) this.requestNewEvals();

@@ -50,8 +50,8 @@ final private class RelayDelay(colls: RelayColls, cacheApi: CacheApi)(using Exec
     delayed <- round.sync.delayMinusLag match
       case None => fuccess(latest)
       case Some(delay) =>
-        store.putIfNew(source.cacheKey, latest)
-        store.get(source.cacheKey, delay).map(_ | latest.map(_.resetToSetup))
+        store.putIfNew(source.cacheKey, latest) >>
+          store.get(source.cacheKey, delay).map(_ | latest.map(_.resetToSetup))
   yield delayed
 
   // makes sure that an upstream used by several broadcasts
@@ -90,7 +90,12 @@ final private class RelayDelay(colls: RelayColls, cacheApi: CacheApi)(using Exec
         case Some(latestPgn) if latestPgn == newPgn => funit
         case _ =>
           val now = nowInstant
-          val doc = $doc("_id" -> idOf(key, now), "at" -> now, "pgn" -> newPgn)
+          val doc = $doc(
+            "_id" -> idOf(key, now),
+            "at" -> now,
+            "pgn" -> newPgn,
+            "hasMoves" -> games.exists(_.hasMoves)
+          )
           colls.delay:
             _.insert.one(doc).void
 
@@ -117,7 +122,7 @@ final private class RelayDelay(colls: RelayColls, cacheApi: CacheApi)(using Exec
           _.primitiveOne[Instant](
             $doc(
               "_id".$gt(idOf(key, longPast)),
-              "pgn".$regex("\n1\\. ")
+              "hasMoves" -> true
             ),
             $sort.asc("_id"),
             "at"

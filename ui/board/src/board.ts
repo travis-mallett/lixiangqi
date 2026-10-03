@@ -28,6 +28,7 @@ export class BoardView {
   private interaction: BoardInteraction;
   private readonly concealed = new WeakMap<Piece, VisiblePiece>();
   private destroyed = false;
+  private displayedPosition?: string;
   private readonly cleanups: Array<() => void> = [];
   private readonly controls = new Set<HTMLElement>();
   private readonly markListeners = new Set<(marks: readonly BoardMark[]) => void>();
@@ -161,6 +162,12 @@ export class BoardView {
   display(position: BoardPosition, transition: BoardTransition = { kind: 'jump' }): void {
     if (this.destroyed) return;
     const fen = this.placement(position);
+    const positionKey = JSON.stringify([fen, position.active, position.lastMove, position.checked ?? []]);
+    const silentRefresh =
+      transition.kind === 'jump' &&
+      transition.effects === undefined &&
+      positionKey === this.displayedPosition;
+    this.displayedPosition = positionKey;
     const turnColor = this.color(position.active);
     const animated =
       transition.kind === 'forward' || transition.kind === 'backward' || transition.kind === 'confirmation';
@@ -185,7 +192,8 @@ export class BoardView {
       }
     }
     this.renderer.set(this.presentationConfig());
-    this.feedback.present(transition, this.presentation);
+    // Synchronizing an unchanged position must not interrupt feedback for its move.
+    if (!silentRefresh) this.feedback.present(transition, this.presentation);
   }
 
   setPresentation(presentation: BoardPresentation): void {

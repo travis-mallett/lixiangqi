@@ -8,15 +8,12 @@ import {
 } from '@lixiangqi/board';
 
 import { XIANGQI_START_FEN } from 'lib/game/xiangqi';
-import {
-  importXiangqiNotation,
-  notationAnnotations,
-  type ImportedMoveTree,
-  type ImportedTreeNode,
-  type RulesState,
-} from 'lib/game/xiangqiNotation';
+import { importXiangqiNotation, notationAnnotations, type ImportedMoveTree } from 'lib/game/xiangqiNotation';
+import { importedTree } from 'lib/tree/native';
+import type { TreeNode } from 'lib/tree/types';
 
 export interface ViewerNode {
+  node: TreeNode;
   id: string;
   ply: number;
   position: BoardPosition;
@@ -42,77 +39,63 @@ export interface ViewerSource {
 }
 
 export function importedViewerTree(tree: ImportedMoveTree, source: ViewerSource = {}): ViewerNode {
-  let nextId = 0;
-  const build = (
-    state: RulesState,
-    children: ImportedTreeNode[],
-    comments: string[] = [],
-    move?: string,
-    label = '',
-    parent?: ViewerNode,
-  ): ViewerNode => {
-    const position = positionFromFen(state.fen, standardXiangqi);
-    const annotations = notationAnnotations([
-      ...comments,
-      source.annotations?.[String(state.ply - tree.state.ply)] ?? '',
-    ]);
-    const node: ViewerNode = {
-      id: String(nextId++),
-      ply: state.ply,
-      fen: state.fen,
-      move,
-      label,
-      position: {
-        ...position,
-        lastMove: move ? coordinateMove(move) : undefined,
-        checked: state.check
-          ? [...position.pieces]
-              .filter(
-                ([, piece]) =>
-                  piece.face === 'up' && piece.role === 'general' && piece.participant === position.active,
-              )
-              .map(([key]) => key)
-          : [],
-      },
-      comments: annotations.comments,
-      effects: [
-        ...(state.capture ? ['capture' as const] : []),
-        ...(state.check ? ['check' as const] : []),
-        ...(state.checkmate ? ['checkmate' as const] : []),
-      ],
-      marks: [
-        ...annotations.marks,
-        ...(source.marks?.circles ?? []).map(from => ({ from, brush: 'blue' })),
-        ...(source.marks?.squares ?? []).map(from => ({
-          from,
-          svg: '<rect x="8" y="8" width="84" height="84" rx="6" fill="none" stroke="#e6b422" stroke-width="6" />',
-        })),
-      ],
-      parent,
-      children: [],
-    };
-    node.children = children.map(child =>
-      build(
-        child.state,
-        child.children,
-        child.comments,
-        child.move,
-        (document.documentElement.lang.startsWith('zh')
-          ? child.chineseNotation || child.notation
-          : child.notation) +
-          (child.glyphs ?? [])
-            .map(
-              id =>
-                (({ 1: '!', 2: '?', 3: '!!', 4: '??', 5: '!?', 6: '?!' }) as Record<number, string>)[id] ??
-                ` $${id}`,
+  return viewerNode(importedTree(tree), tree.state.ply, source);
+}
+
+/** A presentation projection retains its canonical tree node and native path. */
+export function viewerNode(
+  native: TreeNode,
+  rootPly: number,
+  source: ViewerSource = {},
+  parent?: ViewerNode,
+): ViewerNode {
+  const state = native.state;
+  const move = native.uci;
+  const label =
+    (document.documentElement.lang.startsWith('zh')
+      ? native.chineseNotation || native.notation
+      : native.notation) ?? '';
+  const position = positionFromFen(state.fen, standardXiangqi);
+  const annotations = notationAnnotations([source.annotations?.[String(state.ply - rootPly)] ?? '']);
+  const node: ViewerNode = {
+    node: native,
+    id: native.path,
+    ply: state.ply,
+    fen: state.fen,
+    move,
+    label: label + (native.glyphs ?? []).map(glyph => glyph.symbol).join(''),
+    position: {
+      ...position,
+      lastMove: move ? coordinateMove(move) : undefined,
+      checked: state.check
+        ? [...position.pieces]
+            .filter(
+              ([, piece]) =>
+                piece.face === 'up' && piece.role === 'general' && piece.participant === position.active,
             )
-            .join(''),
-        node,
-      ),
-    );
-    return node;
+            .map(([key]) => key)
+        : [],
+    },
+    comments: [...(native.comments?.map(comment => comment.text) ?? []), ...annotations.comments],
+    effects: [
+      ...(state.capture ? ['capture' as const] : []),
+      ...(state.check ? ['check' as const] : []),
+      ...(state.checkmate ? ['checkmate' as const] : []),
+    ],
+    marks: [
+      ...(native.shapes ?? []).map(shape => ({ from: shape.orig, to: shape.dest, brush: shape.brush })),
+      ...annotations.marks,
+      ...(source.marks?.circles ?? []).map(from => ({ from, brush: 'blue' })),
+      ...(source.marks?.squares ?? []).map(from => ({
+        from,
+        svg: '<rect x="8" y="8" width="84" height="84" rx="6" fill="none" stroke="#e6b422" stroke-width="6" />',
+      })),
+    ],
+    parent,
+    children: [],
   };
-  return build(tree.state, tree.children, tree.comments);
+  node.children = native.children.map(child => viewerNode(child, rootPly, source, node));
+  return node;
 }
 
 export async function loadViewerTree(source: ViewerSource, signal?: AbortSignal): Promise<ViewerNode> {
@@ -136,6 +119,8 @@ export async function loadViewerTree(source: ViewerSource, signal?: AbortSignal)
     return importedViewerTree(
       {
         initialFen: fen,
+        ruleset: 'unrestricted-v1',
+        annotations: { comments: [], shapes: [] },
         state: {
           fen,
           ply,

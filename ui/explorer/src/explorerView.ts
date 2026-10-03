@@ -22,8 +22,22 @@ export function render(ctrl: ExplorerCtrl): void {
   root.classList.toggle('loading', ctrl.loading);
   root.classList.toggle('explorer__config', ctrl.configOpen);
   const overlay = element('div', 'overlay');
-  root.replaceChildren(overlay, ctrl.configOpen ? configView(ctrl) : dataView(ctrl));
-  if (ctrl.options.configurationEnabled !== false) {
+  const modes = element('div', 'explorer-title');
+  for (const [mode, label] of [
+    ['games', i18n.site.games],
+    ['book', i18n.study.openingBook],
+    ['tablebase', i18n.study.endgameTablebase],
+  ] as const) {
+    const choice = button(label, () => ctrl.selectMode(mode));
+    choice.setAttribute('aria-pressed', String(ctrl.config.mode === mode));
+    modes.append(choice);
+  }
+  root.replaceChildren(
+    overlay,
+    modes,
+    ctrl.config.mode !== 'games' ? bookView(ctrl) : ctrl.configOpen ? configView(ctrl) : dataView(ctrl),
+  );
+  if (ctrl.options.configurationEnabled !== false && ctrl.config.mode === 'games') {
     const settings = button('', () => ctrl.toggleConfig(), 'fbt toconf');
     settings.setAttribute('aria-label', ctrl.configOpen ? 'Close configuration' : 'Open configuration');
     settings.dataset.icon = ctrl.configOpen ? '\ue02a' : '\ue005';
@@ -140,7 +154,16 @@ function moveRow(ctrl: ExplorerCtrl, move: ExplorerMove, total: number): HTMLTab
   const row = element('tr');
   row.dataset.uci = move.move;
   row.title = `Play ${move.notation} (${move.move})`;
+  row.tabIndex = 0;
   row.addEventListener('click', () => ctrl.play(move.move));
+  row.addEventListener('keydown', event => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      ctrl.play(move.move);
+    }
+  });
+  row.addEventListener('mouseenter', () => ctrl.options.onHover?.(move.move));
+  row.addEventListener('mouseleave', () => ctrl.options.onHover?.());
   const notation = element('td');
   notation.textContent = move.notation;
   const percent = element('td');
@@ -223,6 +246,14 @@ function gameTable(ctrl: ExplorerCtrl, title: string, games: ExplorerGame[]): HT
     const year = element('td');
     year.textContent = game.month || game.year?.toString() || '';
     row.append(ratings, players, result, year);
+    const actions = ctrl.options.gameActions?.(game);
+    if (actions?.length) {
+      const cell = element('td');
+      cell.addEventListener('click', event => event.stopPropagation());
+      cell.addEventListener('keydown', event => event.stopPropagation());
+      for (const action of actions) cell.append(button(action.label, action.run));
+      row.append(cell);
+    }
     body.append(row);
   }
   table.append(head, body);
@@ -298,4 +329,81 @@ function monthInput(labelText: string, value: string, update: (value: string) =>
   input.addEventListener('change', () => update(input.value));
   label.append(text, input);
   return label;
+}
+
+function bookView(ctrl: ExplorerCtrl): HTMLElement {
+  const wrapper = element('div', 'data');
+  const controls = element('div', 'explorer-title');
+  if (ctrl.config.mode === 'tablebase')
+    for (const metric of ['dtm', 'dtc'] as const) {
+      const item = button(
+        metric === 'dtm' ? i18n.study.distanceToMate : i18n.study.distanceToConversion,
+        () => ctrl.selectMetric(metric),
+      );
+      item.setAttribute('aria-pressed', String(ctrl.config.metric === metric));
+      controls.append(item);
+    }
+  const note = element('p', 'explanation');
+  note.textContent = i18n.study.tablebaseRulesExplanation;
+  wrapper.append(controls, note);
+  if (ctrl.error) {
+    const error = element('p', 'error');
+    error.textContent = ctrl.error;
+    wrapper.append(error);
+    return wrapper;
+  }
+  const data = ctrl.book;
+  if (ctrl.loading && !data) return wrapper;
+  const source = element('a');
+  source.href = data?.sourceUrl ?? 'https://www.chessdb.cn/cloudbook_info_en.html';
+  source.target = '_blank';
+  source.rel = 'noopener';
+  source.textContent = i18n.study.xiangqiCloudDatabase;
+  wrapper.append(source);
+  if (!data?.moves.length) {
+    const empty = element('p');
+    empty.textContent = i18n.study.noBookPosition;
+    wrapper.append(empty);
+    return wrapper;
+  }
+  const table = element('table', 'moves'),
+    body = element('tbody');
+  for (const move of data.moves) {
+    const row = element('tr');
+    row.dataset.uci = move.move;
+    row.tabIndex = 0;
+    row.addEventListener('click', () => ctrl.play(move.move));
+    row.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        ctrl.play(move.move);
+      }
+    });
+    row.addEventListener('mouseenter', () => ctrl.options.onHover?.(move.move));
+    row.addEventListener('mouseleave', () => ctrl.options.onHover?.());
+    const name = element('td'),
+      evaluation = element('td'),
+      detail = element('td');
+    name.textContent = document.documentElement.lang.startsWith('zh')
+      ? (move.chineseNotation ?? move.notation)
+      : move.notation;
+    evaluation.textContent = move.outcome
+      ? i18n.study[
+          move.outcome === 'win'
+            ? 'tablebaseWin'
+            : move.outcome === 'loss'
+              ? 'tablebaseLoss'
+              : 'tablebaseDraw'
+        ]
+      : move.score === undefined
+        ? '?'
+        : String(move.score);
+    detail.textContent =
+      move.dtm !== undefined ? `DTM ${move.dtm}` : move.dtc !== undefined ? `DTC ${move.dtc}` : move.note;
+    row.append(name, evaluation, detail);
+    body.append(row);
+  }
+  table.append(body);
+  wrapper.append(table);
+  return wrapper;
 }

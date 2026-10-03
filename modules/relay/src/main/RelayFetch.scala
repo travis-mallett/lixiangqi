@@ -8,7 +8,7 @@ import scalalib.model.Seconds
 
 import lila.common.LilaScheduler
 import lila.core.lilaism.LilaInvalid
-import lila.core.fide.{ Federation, Tokenize }
+import lila.core.playerDirectory.{ Federation, Tokenize }
 import lila.game.{ GameRepo, PgnDump }
 import lila.memo.CacheApi
 import lila.relay.RelayRound.Sync
@@ -22,7 +22,7 @@ final private class RelayFetch(
     http: HttpClient,
     formatApi: RelayFormatApi,
     delayer: RelayDelay,
-    fidePlayers: RelayFidePlayerApi,
+    directoryPlayers: RelayDirectoryPlayerApi,
     gameRepo: GameRepo,
     studyChapterRepo: lila.study.ChapterRepo,
     pgnDump: PgnDump,
@@ -83,17 +83,20 @@ final private class RelayFetch(
     if !rt.round.sync.playing then fuccess(updating(_.withSync(_.play(rt.tour.official))))
     else
       val syncFu = for
-        allGamesInSourceNoLimit <- fetchGames(rt).mon:
+        allGamesInSource <- fetchGames(rt).mon:
           lila.mon.relay.fetchTime(rt.tour.official, rt.tour.id, rt.tour.slug)
-        allGamesInSource = allGamesInSourceNoLimit.take(maxGamesToRead(rt.tour.official).value)
+        _ <- (allGamesInSource.size > maxGamesToRead(rt.tour.official).value).so:
+          fufail[Unit](LilaInvalid("Broadcast source exceeds the game limit; no games were imported"))
         filtered = RelayGame.filter(rt.round.sync.onlyRound)(allGamesInSource)
         sliced = RelayGame.Slices.filterAndOrder(~rt.round.sync.slices)(filtered)
-        limited = sliced.take(RelayFetch.maxChaptersToShow.value)
-        _ <- (sliced.sizeCompare(limited) != 0 && rt.tour.official)
-          .so(notifyAdmin.tooManyGames(rt, sliced.size, RelayFetch.maxChaptersToShow))
-        withPlayers = playerEnrich.enrichAndReportAmbiguous(rt)(limited)
-        withFide <- fidePlayers.enrichGames(rt)(withPlayers)
-        withReplacements = rt.tour.players.fold(withFide)(_.parse.update(withFide)._1)
+        _ <- (sliced.size > RelayFetch.maxChaptersToShow.value).so:
+          rt.tour.official.so(notifyAdmin.tooManyGames(rt, sliced.size, RelayFetch.maxChaptersToShow)) >>
+            fufail[Unit](
+              LilaInvalid("Broadcast exceeds the chapter limit; select fewer games with source slices")
+            )
+        withPlayers = playerEnrich.enrichAndReportAmbiguous(rt)(sliced)
+        withDirectory <- directoryPlayers.enrichGames(rt)(withPlayers)
+        withReplacements = rt.tour.players.fold(withDirectory)(_.parse.update(withDirectory)._1)
         withTeams = rt.tour.teams.fold(withReplacements)(_.update(withReplacements))
         reordered = rt.round.sync.reorder.fold(withTeams)(_.reorder(withTeams))
         res <- sync
@@ -142,7 +145,7 @@ final private class RelayFetch(
         api.syncTargetsOfSource(round)
         if result.nbMoves > 0 then
           lila.mon.relay.moves(tour.official, tour.id, tour.slug).increment(result.nbMoves)
-          if tour.official then notifyAdmin.missingFideIds.schedule(round.id)
+          if tour.official then notifyAdmin.missingPlayerIds.schedule(round.id)
           if !round.hasStarted && !tour.official
           then irc.broadcastStart(round.id, round.withTour(tour).fullNameNoTrans)
           continueRelay(tour, updating(_.ensureStarted.resume(tour.official)))
@@ -217,14 +220,14 @@ final private class RelayFetch(
       case Sync.Upstream.Urls(urls) =>
         urls.toVector
           .parallel: url =>
-            delayer.urlSource(url, rt.round, fetchFromUpstreamWithRecovery(rt))
+            delayer.urlSource(url, rt.round, fetchFromUpstream(rt))
           .map(_.flatten)
 
   private def fetchFromGameIds(tour: RelayTour, ids: List[GameId]): Fu[RelayGames] =
     gameRepo
       .gamesFromSecondary(ids)
       .flatMap: games =>
-        if games.sizeIs == ids.size then fromLichessGames(tour)(games)
+        if games.sizeIs == ids.size then fromNativeGames(tour)(games)
         else
           fufail:
             LilaInvalid:
@@ -246,10 +249,10 @@ final private class RelayFetch(
         recentlyFinished <- gameRepo.gamesFromSecondary(recentlyFinishedIds.toSeq)
         allGames = recentlyFinished ++ ongoingGames
         _ = ongoingUserGameIdsCache.put(tour.id, ongoingIds)
-        games <- fromLichessGames(tour)(allGames)
+        games <- fromNativeGames(tour)(allGames)
       yield games
 
-  private def fromLichessGames(tour: RelayTour)(dbGames: List[lila.core.game.Game]): Fu[RelayGames] = for
+  private def fromNativeGames(tour: RelayTour)(dbGames: List[lila.core.game.Game]): Fu[RelayGames] = for
     upgraded <- gameProxy.upgradeIfPresent(dbGames)
     withFen <- gameRepo.withInitialFens(upgraded)
     pgnFlags = gameIdsUpstreamPgnFlags.copy(delayMoves = !tour.official)
@@ -292,33 +295,11 @@ final private class RelayFetch(
           case None =>
             fetch().addEffect: game =>
               if game.moves.isEmpty then createdGames.put(key, game)
-              else if game.mergeRoundTags(roundTags).outcome.isDefined then finishedGames.put(key, game)
+              else if lila.study.StudyPgnTags.points(game.mergeRoundTags(roundTags)).isDefined then
+                finishedGames.put(key, game)
               else if index > tailAt then tailGames.put(key, game)
 
-  // used to return the last successful result when a source fails
-  // games are stripped of their moves, only tags are kept.
-  // the point is to avoid messing up slices in multi-URL setups.
-  // if a single URL fails, it should not moves the games of the following URLs.
-  private val multiUrlFetchRecoverCache =
-    cacheApi.notLoadingSync[URL, RelayGames](32, "relay.fetch.recoverCache"):
-      _.expireAfterWrite(1.hour).build()
-
-  private def fetchFromUpstreamWithRecovery(rt: RelayRound.WithTour)(url: URL)(using
-      CanProxy
-  ): Fu[RelayGames] =
-    fetchFromUpstream(rt)(url)
-      .addEffect: games =>
-        multiUrlFetchRecoverCache.put(url, games.map(_.withoutMoves))
-      .recover:
-        case e: Exception =>
-          logger.info(s"Fetch error in multi-url ${rt.round.id} $url ${e.getMessage.take(80)}", e)
-          val recovery = multiUrlFetchRecoverCache.getIfPresent(url)
-          logger.info:
-            recovery.fold(s"No recovery found for $url")(r => s"Recovery found for $url with ${r.size} games")
-          ~recovery
-
   private def fetchFromUpstream(rt: RelayRound.WithTour)(url: URL)(using CanProxy): Fu[RelayGames] =
-    import DgtJson.*
     formatApi
       .get(url)
       .flatMap:
@@ -344,11 +325,8 @@ final private class RelayFetch(
                   val game = i + 1
                   val tags = pairing.tags(lcc.round, game, round.formattedDate)
                   lccCache(lcc, game, tags, lookForStart): () =>
-                    httpGetGameJson(lcc.gameUrl(game)).recover:
-                      case _: Exception => GameJson(moves = Nil, result = none)
+                    httpGetGameJson(lcc.gameUrl(game))
                   .map { _.toPgn(tags) }
-                    .recover: _ =>
-                      PgnStr(s"${tags}\n\n${pairing.result}")
                     .map(game -> _)
                 .parallel
                 .map: pgns =>
@@ -361,7 +339,9 @@ final private class RelayFetch(
             .map: round =>
               MultiPgn:
                 round.pairings.mapWithIndex: (pairing, i) =>
-                  PgnStr(s"${pairing.tags(lcc.round, i + 1, round.formattedDate)}\n\n${pairing.result}")
+                  PgnStr(
+                    s"${pairing.tags(lcc.round, i + 1, round.formattedDate)}\n\n${pairing.result.getOrElse("*")}"
+                  )
             .map(injectTimeControl.in(rt.tour.info.clock))
             .flatMap(multiPgnToGames.future)
 

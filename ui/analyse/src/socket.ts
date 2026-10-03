@@ -1,5 +1,9 @@
+import { requestXiangqi } from 'lib/game/xiangqiApi';
+import type { RulesState } from 'lib/game/xiangqiNotation';
+import { completeNode } from 'lib/tree/node';
 import { ops as treeOps } from 'lib/tree/tree';
 import type { Shape } from 'lib/tree/types';
+import { alert } from 'lib/view';
 
 import type AnalyseCtrl from './ctrl';
 import type { EvalGetData, EvalPutData, ServerEvalData } from './interfaces';
@@ -51,7 +55,6 @@ export interface StudySocketSendParams {
   kick: (username: string) => void;
   editStudy: (d: StudyFormData) => void;
   setTopics: (topics: string[]) => void;
-  requestAnalysis: (chapterId: string) => void;
   invite: (username: string) => void;
   relaySync: (sync: boolean) => void;
   leave: () => void;
@@ -98,9 +101,47 @@ export function make(send: AnalyseSocketSend, ctrl: AnalyseCtrl): Socket {
     evalHit: ctrl.evalCache.onCloudEval,
   };
 
-  function sendAnaMove(req: AnaMove) {
+  let moveSequence = 0;
+  async function sendAnaMove(req: AnaMove) {
     const studyData = ctrl.study?.socketSendNodeData();
-    if (studyData) send('anaMove', { ...req, ...studyData });
+    if (studyData) {
+      send('anaMove', { ...req, ...studyData });
+      return;
+    }
+    const sequence = ++moveSequence,
+      tree = ctrl.tree,
+      chapter = ctrl.study?.vm.chapterId;
+    try {
+      const state = await requestXiangqi<RulesState & { notation: string; chineseNotation: string }>(
+        '/api/analysis/move',
+        {
+          initialFen: tree.root.fen,
+          moves: tree
+            .getNodeList(req.path)
+            .slice(1)
+            .map(node => node.uci!),
+          ruleset: tree.root.ruleset,
+          move: req.orig + req.dest,
+        },
+      );
+      if (sequence !== moveSequence || tree !== ctrl.tree || chapter !== ctrl.study?.vm.chapterId) return;
+      ctrl.addNode(
+        completeNode({
+          ply: state.ply,
+          fen: state.fen,
+          state,
+          uci: req.orig + req.dest,
+          notation: state.notation,
+          chineseNotation: state.chineseNotation,
+        }),
+        req.path,
+      );
+    } catch (error) {
+      if (sequence === moveSequence && tree === ctrl.tree) {
+        ctrl.reset();
+        await alert(error instanceof Error ? error.message : String(error));
+      }
+    }
   }
 
   return {

@@ -14,7 +14,7 @@
   }
 
   .title {
-    @extend %san, %metal-bg;
+    @extend %move-notation, %metal-bg;
 
     padding: 0.4em;
     text-align: center;

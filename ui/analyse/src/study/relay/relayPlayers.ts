@@ -4,33 +4,35 @@ import type { Tablesort } from 'tablesort';
 import { defined } from 'lib';
 import { isTouchDevice } from 'lib/device';
 import perfIcons from 'lib/game/perfIcons';
+import type { XiangqiSide as Color } from 'lib/game/xiangqi';
 import { licon } from 'lib/licon';
 import { pubsub } from 'lib/pubsub';
 import { sortTable, extendTablesortNumber } from 'lib/tablesort';
-import { type VNode, dataIcon, hl, onInsert, spinnerVdom as spinner, type LooseVNodes } from 'lib/view';
+import { type VNode, dataIcon, hl, onInsert, type LooseVNodes } from 'lib/view';
 import { userLink, userTitle } from 'lib/view/userLink';
 import { json as xhrJson } from 'lib/xhr';
 
 import { playerFedFlag } from '@/view/util';
 
-import type { ChapterId, FideId, PointsStr, StudyPlayer, StudyPlayerFromServer } from '../interfaces';
+import type { ChapterId, PlayerId, PointsStr, StudyPlayer, StudyPlayerFromServer } from '../interfaces';
+import { loading } from '../loading';
 import { pinIcon } from '../multiBoard';
 import { convertPlayerFromServer } from '../studyChapters';
 import { playerColoredResult } from './customScoreStatus';
 import { teamLinkData } from './deepLink';
 import type {
-  FideTC,
+  RatingCategory,
   Photo,
   RelayRound,
   RelayTeamName,
   RelayTour,
   RoundId,
-  StatByFideTC,
+  StatByRatingCategory,
 } from './interfaces';
 import { playerId } from './playerId';
 import RelayPlayerPin from './relayPlayerPin';
 
-export type RelayPlayerId = FideId | string;
+export type RelayPlayerId = string;
 
 interface Tiebreak {
   extendedCode: string;
@@ -41,9 +43,9 @@ interface Tiebreak {
 export interface RelayPlayer extends StudyPlayer {
   score?: number;
   played?: number;
-  ratingsMap?: StatByFideTC;
-  ratingDiffs?: StatByFideTC;
-  performances?: StatByFideTC;
+  ratingsMap?: StatByRatingCategory;
+  ratingDiffs?: StatByRatingCategory;
+  performances?: StatByRatingCategory;
   tiebreaks?: Tiebreak[];
   rank?: number;
 }
@@ -54,7 +56,7 @@ interface RelayPlayerGame {
   roundObj?: RelayRound;
   opponent: RelayPlayer;
   color: Color;
-  fideTC: FideTC;
+  ratingCategory: RatingCategory;
   points?: PointsStr;
   customPoints?: number;
   ratingDiff?: number;
@@ -63,12 +65,13 @@ interface RelayPlayerGame {
 
 interface RelayPlayerWithGames extends RelayPlayer {
   games: RelayPlayerGame[];
-  fide?: FidePlayer;
+  directory?: DirectoryPlayer;
   user?: LightUser;
 }
 
-interface FidePlayer {
-  ratings: StatByFideTC;
+interface DirectoryPlayer {
+  ratings?: StatByRatingCategory;
+  provenance: { provider: string; url: string; publishedAt: string };
   year?: number;
   follow?: boolean;
 }
@@ -90,7 +93,7 @@ export default class RelayPlayers {
     readonly switchToPlayerTab: () => void,
     readonly isEmbed: boolean,
     readonly hideResultsSinceRoundId: () => RoundId | undefined,
-    readonly fidePhoto: (id: FideId) => Photo | undefined,
+    readonly directoryPhoto: (id: PlayerId) => Photo | undefined,
     private readonly redraw: Redraw,
   ) {
     this.pins = new RelayPlayerPin(tour.id, redraw);
@@ -146,7 +149,7 @@ export default class RelayPlayers {
 export const playersView = (ctrl: RelayPlayers): VNode =>
   ctrl.show ? playerView(ctrl, ctrl.show) : playersList(ctrl);
 
-const ratingCategs: Record<FideTC, string> = {
+const ratingCategs: Record<RatingCategory, string> = {
   standard: i18n.site.classical,
   rapid: i18n.site.rapid,
   blitz: i18n.site.blitz,
@@ -155,48 +158,64 @@ const playerView = (ctrl: RelayPlayers, show: PlayerToShow): VNode => {
   const tour = ctrl.tour;
   const p = show.player;
   const year = (tour.dates?.[0] ? new Date(tour.dates[0]) : new Date()).getFullYear();
-  const tc = tour.info.fideTC || 'standard';
-  const age: number | undefined = p?.fide?.year && year - p.fide.year;
-  const fidePageAttrs = p ? fidePageLinkAttrs(p, ctrl.isEmbed) : {};
-  const photo = p?.fideId ? ctrl.fidePhoto(p.fideId) : undefined;
+  const tc = tour.info.ratingCategory || 'standard';
+  const age: number | undefined = p?.directory?.year && year - p.directory.year;
+  const directoryPageAttrs = p ? directoryPageLinkAttrs(p, ctrl.isEmbed) : {};
+  const photo = p?.playerId ? ctrl.directoryPhoto(p.playerId) : undefined;
   return hl(
-    'div.fide-player',
+    'div.directory-player',
     {
       class: { loading: !show.player },
     },
     p
       ? [
           hl(
-            'div.fide-player__header',
+            'div.directory-player__header',
             {
               hook: onInsert(el => {
-                site.asset.loadEsm('fidePlayerFollow');
+                site.asset.loadEsm('directoryPlayerFollow');
                 pubsub.emit('content-loaded', el);
               }),
             },
             [
               photo &&
-                hl('div.fide-player__photo', playerPhotoOrFallback(p, photo, 'medium', 'fide-player__photo')),
-              hl('div.fide-player__header__info', [
-                hl('a.fide-player__header__name', { attrs: fidePageAttrs }, [
+                hl(
+                  'div.directory-player__photo',
+                  playerPhotoOrFallback(p, photo, 'medium', 'directory-player__photo'),
+                ),
+              hl('div.directory-player__header__info', [
+                hl('a.directory-player__header__name', { attrs: directoryPageAttrs }, [
                   hl('span', [userTitle(p), p.name]),
                   p.user && userLink({ ...p.user, title: undefined }),
                 ]),
-                p.fide &&
-                  hl('label.fide-player__follow', [
+                p.directory &&
+                  hl('label.directory-player__follow', [
                     hl('span.cmn-favourite', [
-                      hl(`input#fide-follow-${p.fideId}`, {
+                      hl(`input#directory-follow-${p.playerId}`, {
                         attrs: {
                           type: 'checkbox',
-                          'data-action': `/fide/${p.fideId}/follow?follow=true`,
-                          checked: !!p.fide?.follow,
+                          'data-action': `/players/${p.playerId}/follow?follow=true`,
+                          checked: !!p.directory?.follow,
                         },
                       }),
-                      hl('label', { attrs: { for: `fide-follow-${p.fideId}` } }),
+                      hl('label', { attrs: { for: `directory-follow-${p.playerId}` } }),
                     ]),
                     i18n.site.follow,
                   ]),
-                hl('table.fide-player__header__table', [
+                hl('table.directory-player__header__table', [
+                  p.directory &&
+                    hl('tr', [
+                      hl('th', i18n.broadcast.playerSource),
+                      hl('td', [
+                        hl(
+                          'a',
+                          { attrs: { href: p.directory.provenance.url, target: '_blank', rel: 'noopener' } },
+                          p.directory.provenance.provider.toUpperCase(),
+                        ),
+                        ' ',
+                        p.directory.provenance.publishedAt,
+                      ]),
+                    ]),
                   hl('tbody', [
                     p.fed &&
                       hl('tr', [
@@ -204,8 +223,8 @@ const playerView = (ctrl: RelayPlayers, show: PlayerToShow): VNode => {
                         hl(
                           'td',
                           hl(
-                            'a.fide-player__federation',
-                            { attrs: { href: `/fide/federation/${p.fed.name}` } },
+                            'a.directory-player__federation',
+                            { attrs: { href: `/players/federation/${p.fed.name}` } },
                             [playerFedFlag(p.fed), p.fed.i18nName],
                           ),
                         ),
@@ -225,41 +244,41 @@ const playerView = (ctrl: RelayPlayers, show: PlayerToShow): VNode => {
               ]),
             ],
           ),
-          hl('div.fide-player__cards', [
-            p.fide?.ratings &&
-              Object.entries(ratingCategs).map(([key, name]: [FideTC, string]) =>
-                hl(`div.fide-player__card${key === tc ? '.active' : ''}`, [
-                  hl('em', fideTCAttrs(key), name),
-                  hl('span', [p.fide?.ratings[key] || '-']),
+          hl('div.directory-player__cards', [
+            p.directory?.ratings &&
+              Object.entries(ratingCategs).map(([key, name]: [RatingCategory, string]) =>
+                hl(`div.directory-player__card${key === tc ? '.active' : ''}`, [
+                  hl('em', ratingCategoryAttrs(key), name),
+                  hl('span', [p.directory?.ratings?.[key] || '-']),
                 ]),
               ),
             p.score !== undefined &&
-              hl('div.fide-player__card', [
+              hl('div.directory-player__card', [
                 hl('em', i18n.broadcast.score),
                 hl('span', [p.score, ' / ', p.played]),
               ]),
             p.performances &&
-              hl('div.fide-player__card', [
+              hl('div.directory-player__card', [
                 hl('em', i18n.site.performance),
                 Object.entries(p.performances)
-                  .sort(statByFideTCSort)
-                  .map(([tc, value]: [FideTC, number]) =>
+                  .sort(statByRatingCategorySort)
+                  .map(([tc, value]: [RatingCategory, number]) =>
                     hl(
                       'div.performance',
-                      fideTCAttrs(tc),
-                      `${value}${p.games.filter(g => g.fideTC === tc).length < 4 ? '?' : ''}`,
+                      ratingCategoryAttrs(tc),
+                      `${value}${p.games.filter(g => g.ratingCategory === tc).length < 4 ? '?' : ''}`,
                     ),
                   ),
               ]),
             p.ratingDiffs &&
-              hl('div.fide-player__card', [hl('em', i18n.broadcast.ratingDiff), ratingDiff(p)]),
+              hl('div.directory-player__card', [hl('em', i18n.broadcast.ratingDiff), ratingDiff(p)]),
           ]),
           hl('table.relay-tour__player__games.slist.slist-pad', [
             hl('thead', hl('tr', hl('td', { attrs: { colspan: 69 } }, i18n.broadcast.gamesThisTournament))),
             renderPlayerGames(ctrl, p, true),
           ]),
         ]
-      : [spinner()],
+      : [loading()],
   );
 };
 
@@ -270,7 +289,7 @@ const playersList = (ctrl: RelayPlayers): VNode =>
       class: { loading: ctrl.loading, nodata: !ctrl.players },
       hook: onInsert(() => ctrl.loadFromXhr(true)),
     },
-    ctrl.players ? renderPlayers(ctrl, ctrl.players) : [spinner()],
+    ctrl.players ? renderPlayers(ctrl, ctrl.players) : [loading()],
   );
 
 export const renderPlayers = (
@@ -294,7 +313,7 @@ export const renderPlayers = (
         i18n.broadcast.standingsDisclaimer,
       ),
     hl(
-      'table.relay-tour__players__table.fide-players-table.slist.slist-invert.slist-pad',
+      'table.relay-tour__players__table.directory-players-table.slist.slist-invert.slist-pad',
       {
         hook: onInsert(tableAugment),
       },
@@ -432,8 +451,10 @@ export const playerLinkConfig = (ctrl: RelayPlayers, player: StudyPlayer, withTi
     : {};
 };
 
-export const fidePageLinkAttrs = (p: StudyPlayer, blank?: boolean): Attrs | undefined =>
-  p.fideId ? { href: `/fide/${p.fideId}/redirect`, ...(blank ? { target: '_blank' } : {}) } : undefined;
+export const directoryPageLinkAttrs = (p: StudyPlayer, blank?: boolean): Attrs | undefined =>
+  p.playerId
+    ? { href: `/players/${p.playerId}/redirect`, ...(blank ? { target: '_blank' } : {}) }
+    : undefined;
 
 const renderPlayerTipHead = (ctrl: RelayPlayers, p: RelayPlayer): VNode =>
   hl('div.tpp__player', [
@@ -465,13 +486,14 @@ const renderPlayerGames = (ctrl: RelayPlayers, p: RelayPlayerWithGames, withTips
     if (!points) return ongoing && hl('strong', '*');
     if (hideResultsSinceIndex <= index) return hl('span', '?');
 
-    const povResultStr = points === '1/2' ? '½-½' : (points === '1') === (color === 'white') ? '1-0' : '0-1';
+    const povResultStr =
+      points === '1/2' ? '1/2-1/2' : (points === '1') === (color === 'red') ? '1-0' : '0-1';
     const coloredResult = playerColoredResult(povResultStr, color, customPoints);
     return coloredResult && hl(coloredResult.tag, coloredResult.points);
   };
 
   return hl(
-    'tbody.fide-players-table',
+    'tbody.directory-players-table',
     p.games.map((game, i) => {
       return hl('tr', [
         hl(
@@ -499,9 +521,9 @@ const renderPlayerGames = (ctrl: RelayPlayers, p: RelayPlayerWithGames, withTips
 const playerPhoto = (player: StudyPlayer, ctrl: RelayPlayers, which: 'small' | 'medium' = 'small'): VNode =>
   playerPhotoOrFallback(
     player,
-    player.fideId ? ctrl.fidePhoto(player.fideId) : undefined,
+    player.playerId ? ctrl.directoryPhoto(player.playerId) : undefined,
     which,
-    'fide-players__photo',
+    'directory-players__photo',
   );
 
 export const playerPhotoOrFallback = (
@@ -528,7 +550,7 @@ const playerTd = (player: RelayPlayer, ctrl: RelayPlayers, withTips: boolean): V
         player.fed &&
           hl('span.player-intro__fed', [
             hl('img.mini-game__flag', {
-              attrs: { src: site.asset.fideFedSrc(player.fed.id) },
+              attrs: { src: site.asset.playerFederationSrc(player.fed.id) },
             }),
             player.fed.i18nName,
           ]),
@@ -537,19 +559,20 @@ const playerTd = (player: RelayPlayer, ctrl: RelayPlayers, withTips: boolean): V
   );
 };
 
-const fideTCOrder: FideTC[] = ['standard', 'rapid', 'blitz'];
+const ratingCategoryOrder: RatingCategory[] = ['standard', 'rapid', 'blitz'];
 
-const statByFideTCSort = (a: [FideTC, number], b: [FideTC, number]) =>
-  fideTCOrder.indexOf(a[0]) - fideTCOrder.indexOf(b[0]);
+const statByRatingCategorySort = (a: [RatingCategory, number], b: [RatingCategory, number]) =>
+  ratingCategoryOrder.indexOf(a[0]) - ratingCategoryOrder.indexOf(b[0]);
 
 const ratingDiff = (p: RelayPlayer | RelayPlayerGame, showIcons = false) => {
-  if (isRelayPlayerGame(p)) return hl('div.diff', showIcons && fideTCAttrs(p.fideTC), diffNode(p.ratingDiff));
+  if (isRelayPlayerGame(p))
+    return hl('div.diff', showIcons && ratingCategoryAttrs(p.ratingCategory), diffNode(p.ratingDiff));
   if (!p.ratingDiffs) return p.rating;
-  const rds = Object.entries(p.ratingDiffs).sort(statByFideTCSort);
+  const rds = Object.entries(p.ratingDiffs).sort(statByRatingCategorySort);
   const isMultiTc = rds.length > 1;
-  const diffNodes = rds.map(([tc, diff]: [FideTC, number]) => {
+  const diffNodes = rds.map(([tc, diff]: [RatingCategory, number]) => {
     const node = [p.ratingsMap?.[tc], diffNode(diff)];
-    return isMultiTc ? hl('div.diff', fideTCAttrs(tc), node) : node;
+    return isMultiTc ? hl('div.diff', ratingCategoryAttrs(tc), node) : node;
   });
   return isMultiTc ? hl('div.diffs', diffNodes) : hl('div.diff', diffNodes[0]);
 };
@@ -566,7 +589,7 @@ const diffNode = (rd?: number) =>
 const isRelayPlayerGame = (p: RelayPlayer | RelayPlayerGame): p is RelayPlayerGame =>
   'round' in p && 'opponent' in p;
 
-const fideTCAttrs = (tc: FideTC): VNodeData => ({
+const ratingCategoryAttrs = (tc: RatingCategory): VNodeData => ({
   attrs: {
     'data-icon': perfIcons[tc === 'standard' ? 'classical' : tc],
     title: ratingCategs[tc],

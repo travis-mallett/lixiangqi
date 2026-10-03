@@ -30,8 +30,6 @@
   <string name="downloadAllRounds">Descargar totas las rondas</string>
   <string name="resetRound">Reniciar esta ronda</string>
   <string name="deleteRound">Borrar esta ronda</string>
-  <string name="fidePlayers">Chugadors d\'a FIDE</string>
-  <string name="fideProfile">Perfil FIDE</string>
   <string name="unrated">No avaluada</string>
   <string name="recentTournaments">Torneyos recients</string>
   <string name="openLichess">Ubierto en Lichess</string>
@@ -48,7 +46,6 @@
   <string name="tournamentLocation">Puesto d\'o torneyo</string>
   <string name="topPlayers">Millors chugadors</string>
   <string name="timezone">Zona horaria</string>
-  <string name="fideRatingCategory">Categoría de fading FIDE</string>
   <string name="optionalDetails">Detalles opcionals</string>
   <string name="pastBroadcasts">Retransmisions pasadas</string>
   <string name="allBroadcastsByMonth">Veyer totas las retransmisions per mes</string>

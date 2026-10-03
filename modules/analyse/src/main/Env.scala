@@ -11,7 +11,13 @@ final class Env(
     gameRepo: lila.core.game.GameRepo,
     cacheApi: lila.memo.CacheApi,
     net: NetConfig
-)(using Executor, lila.core.config.RateLimit):
+)(using
+    Executor,
+    lila.core.config.RateLimit,
+    Scheduler,
+    org.apache.pekko.stream.Materializer,
+    play.api.libs.ws.StandaloneWSClient
+):
 
   lazy val repo = AnalysisRepo(db(CollName("analysis2")))
 
@@ -23,6 +29,8 @@ final class Env(
   lazy val annotator = Annotator(net.domain)
 
   lazy val externalEngine = ExternalEngineApi(db(CollName("external_engine")), cacheApi)
+  lazy val externalEngineBroker = ExternalEngineBroker(externalEngine)
+  lazy val xiangqiBook = XiangqiBook(summon[play.api.libs.ws.StandaloneWSClient], cacheApi)
 
   val enginesAsJson = MyEnginesAsJson(externalEngine.myExternalEnginesAsJson)
 

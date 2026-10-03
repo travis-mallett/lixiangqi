@@ -1,7 +1,8 @@
 import { coordinateMove, type BoardMark } from '@lixiangqi/board';
+import { analysisBoardArrows } from 'xiangqi';
 
-import { winningChances } from 'lib/ceval';
 import { annotationShapes } from 'lib/game/glyphs';
+import type { XiangqiSide as Color } from 'lib/game/xiangqi';
 
 import type AnalyseCtrl from './ctrl';
 
@@ -12,7 +13,7 @@ export function makeShapesFromUci(
   modifiers?: { lineWidth?: number },
 ): BoardMark[] {
   if (!uci || uci === 'Current Position' || uci === '(none)') return [];
-  const [from, to] = coordinateMove(uci.replaceAll(':', '10'));
+  const [from, to] = coordinateMove(uci);
   return [{ from, to, brush, lineWidth: modifiers?.lineWidth }];
 }
 
@@ -37,55 +38,45 @@ export function compute(ctrl: AnalyseCtrl): BoardMark[] {
   ctrl.fork.hover(hovering?.uci);
   const bad = ctrl.retro?.showBadNode();
   if (bad?.uci) return mark(bad.uci, 'paleRed', 8);
-  const shapes: BoardMark[] = hovering?.fen === node.fen ? mark(hovering.uci, 'paleBlue') : [];
-  if (ctrl.isCevalAllowed() && ctrl.showBestMoveArrows() && ctrl.showEvaluation()) {
-    shapes.push(...mark(node.eval?.best, 'paleGreen'));
-    if (!hovering && ctrl.ceval.search.multiPv) {
-      const pvs = node.ceval?.pvs ?? [];
-      const moves = pvs[0]?.moves ?? [ctrl.nextNodeBest()].filter((move): move is string => !!move);
-      let previous: string | undefined;
-      const occupied = new Set<string>();
-      for (let i = 0; i < Math.min(moves.length, ctrl.settings.showManeuverMoveArrows ? 6 : 1); i += 2) {
-        const next = mark(moves[i], 'paleBlue')[0];
-        if (!next || (previous && next.from !== previous) || occupied.has(next.to!)) break;
-        shapes.push(next);
-        occupied.add(next.from);
-        occupied.add(next.to!);
-        previous = next.to;
-      }
-      pvs.slice(1).forEach(pv => {
-        const shift = winningChances.povDiff(color, pvs[0], pv);
-        if (shift >= 0 && shift < 0.2)
-          shapes.push(...mark(pv.moves[0], 'paleGrey', Math.round(12 - shift * 50)));
-      });
-    }
-  }
-  if (ctrl.isCevalAllowed() && ctrl.threatMode())
-    node.threat?.pvs.forEach(pv => shapes.push(...mark(pv.moves[0], 'paleRed')));
+  // Engine lines, hover previews, threats and continuations are owned by the
+  // shared analysis module so studies, relays and the analysis page cannot
+  // drift apart; this board only supplies their state.
+  const previewMove = hovering?.fen === node.fen ? hovering.uci : undefined;
+  const best = node.eval?.best ?? ctrl.nextNodeBest();
+  const engineLines =
+    ctrl.isCevalAllowed() && ctrl.showBestMoveArrows() && ctrl.showEvaluation()
+      ? node.ceval?.pvs.length
+        ? node.ceval.pvs.map(pv => pv.moves)
+        : best
+          ? [[best]]
+          : []
+      : [];
+  const gamebook = !!(ctrl.study?.data.chapter.gamebook && !ctrl.study.gamebookPlay);
+  const children = ctrl.showVariationArrows()
+    ? ctrl.visibleChildren().flatMap(child => (child.uci ? [child.uci] : []))
+    : [];
+  const shapes: BoardMark[] = analysisBoardArrows({
+    engineLines,
+    turn: color,
+    orientation: ctrl.getOrientation(),
+    children: gamebook ? [] : children,
+    previewMove,
+    threatMoves:
+      ctrl.isCevalAllowed() && ctrl.threatMode()
+        ? node.threat?.pvs.flatMap(pv => (pv.moves[0] ? [pv.moves[0]] : []))
+        : [],
+  });
   if (ctrl.showMoveAnnotations()) {
     const glyphs = [...(node.glyphs ?? [])];
     const live = ctrl.liveAnnotate.get(ctrl.path);
     if (live && ctrl.settings.showLiveAnnotations && !glyphs.some(glyph => glyph.id <= 6)) glyphs.push(live);
     shapes.push(...annotationShapes({ ...node, glyphs }));
   }
-  if (ctrl.showVariationArrows()) {
-    const children = ctrl.visibleChildren();
-    if (children.length > 1)
-      children.forEach((child, index) => {
-        const gamebook = ctrl.study?.data.chapter.gamebook && !ctrl.study.gamebookPlay;
-        shapes.push(
-          ...mark(
-            child.uci,
-            gamebook
-              ? index === 0
-                ? 'paleGreen'
-                : 'paleRed'
-              : index === ctrl.fork.selectedIndex
-                ? 'paleBlue'
-                : 'variation',
-          ),
-        );
-      });
-  }
+  if (gamebook && children.length > 1)
+    children.forEach((child, index) => {
+      shapes.push(...mark(child, index === 0 ? 'paleGreen' : 'paleRed'));
+    });
+  if (ctrl.motifEnabled() && ctrl.motif.any())
+    shapes.push(...ctrl.motif.shapes(ctrl.tree.positionAt(ctrl.path)));
   return shapes;
 }

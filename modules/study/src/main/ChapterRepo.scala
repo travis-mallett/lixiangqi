@@ -1,10 +1,13 @@
 package lila.study
 
+import lila.xiangqi.XiangqiGlyph.{ Glyph, Glyphs }
+
 import scala.collection.immutable.SeqMap
 import org.apache.pekko.stream.scaladsl.*
-import chess.format.UciPath
+import lila.xiangqi.UciPath
+import lila.xiangqi.XiangqiJson.given
 import chess.format.pgn.Tags
-import chess.FideId
+import lila.core.playerDirectory.PlayerId
 import reactivemongo.pekkostream.cursorProducer
 import reactivemongo.api.bson.*
 
@@ -14,7 +17,10 @@ import lila.tree.{ Branch, Branches, Clock }
 
 import Node.BsonFields as F
 
-final class ChapterRepo(val coll: AsyncColl)(using Executor, org.apache.pekko.stream.Materializer):
+final class ChapterRepo(val coll: AsyncColl, studyRepo: StudyRepo)(using
+    Executor,
+    org.apache.pekko.stream.Materializer
+):
 
   import BSONHandlers.{ writeBranch, given }
 
@@ -26,7 +32,8 @@ final class ChapterRepo(val coll: AsyncColl)(using Executor, org.apache.pekko.st
   def studyIdOf(chapterId: StudyChapterId): Fu[Option[StudyId]] =
     coll(_.primitiveOne[StudyId]($id(chapterId), "studyId"))
 
-  def deleteByStudy(s: Study): Funit = coll(_.delete.one($studyId(s.id))).void
+  def deleteByStudy(s: Study): Funit =
+    coll(_.delete.one($studyId(s.id))).void >> studyRepo.indexChapters(s.id)
 
   def deleteByStudyIds(ids: List[StudyId]): Funit = ids.nonEmpty.so:
     coll(_.delete.one($doc("studyId".$in(ids)))).void
@@ -70,27 +77,30 @@ final class ChapterRepo(val coll: AsyncColl)(using Executor, org.apache.pekko.st
       _.find($studyId(studyId))
         .sort($sortOrder)
         .cursor[Chapter]()
-        .list(256)
+        .list(ChapterRepo.maxChaptersToLoad + 1)
+        .map: chapters =>
+          require(chapters.size <= ChapterRepo.maxChaptersToLoad, "Study has too many chapters to load")
+          chapters
 
   def idsByStudyWithServerEval(studyId: StudyId, withEval: Boolean): Fu[List[StudyChapterId]] =
     val selector = $doc("studyId" -> studyId, "serverEval" -> $exists(withEval))
     coll:
       _.distinctEasy[StudyChapterId, List]("_id", selector)
 
-  def studyIdsByRelayFideId(fideId: chess.FideId): Fu[List[StudyId]] =
-    coll(_.distinctEasy[StudyId, List]("studyId", $doc("relay.fideIds" -> fideId)))
+  def studyIdsByRelayPlayerId(playerId: lila.core.playerDirectory.PlayerId): Fu[List[StudyId]] =
+    coll(_.distinctEasy[StudyId, List]("studyId", $doc("relay.playerIds" -> playerId)))
 
-  def fideIdsOf(studyIds: List[StudyId]): Fu[Set[FideId]] =
+  def playerIdsOf(studyIds: List[StudyId]): Fu[Set[PlayerId]] =
     coll:
       _.aggregateOne(): framework =>
         import framework.*
-        Match($doc("studyId".$in(studyIds), "relay.fideIds".$exists(true))) -> List(
-          Project($doc("_id" -> false, "ids" -> "$relay.fideIds")),
+        Match($doc("studyId".$in(studyIds), "relay.playerIds".$exists(true))) -> List(
+          Project($doc("_id" -> false, "ids" -> "$relay.playerIds")),
           UnwindField("ids"),
           Group(BSONNull)("ids" -> AddFieldToSet("ids"))
         )
       .map:
-        _.flatMap(_.getAsOpt[Set[FideId]]("ids")).orZero
+        _.flatMap(_.getAsOpt[Set[PlayerId]]("ids")).orZero
 
   def sort(study: Study, ids: List[StudyChapterId]): Funit =
     coll: c =>
@@ -115,7 +125,9 @@ final class ChapterRepo(val coll: AsyncColl)(using Executor, org.apache.pekko.st
     coll(_.updateField($id(chapterId) ++ $doc("relay.lastMoveAt".$exists(true)), "relay.path", path)).void
 
   def setTagsFor(chapter: Chapter) =
-    coll(_.updateField($id(chapter.id), "tags", chapter.tags)).void
+    coll(_.updateField($id(chapter.id), "tags", chapter.tags)).void >> studyRepo.indexChapters(
+      chapter.studyId
+    )
 
   def setShapes(shapes: lila.tree.Node.Shapes) =
     setNodeValue(F.shapes, shapes.value.nonEmpty.option(shapes))
@@ -126,7 +138,21 @@ final class ChapterRepo(val coll: AsyncColl)(using Executor, org.apache.pekko.st
   def setGamebook(gamebook: lila.tree.Node.Gamebook) =
     setNodeValue(F.gamebook, gamebook.nonEmpty.option(gamebook))
 
-  def setGlyphs(glyphs: chess.format.pgn.Glyphs) = setNodeValue(F.glyphs, glyphs.nonEmpty)
+  def setGlyphs(glyphs: Glyphs) = setNodeValue(F.glyphs, glyphs.nonEmpty)
+
+  private[study] def setAnnotations(node: lila.tree.Node)(chapter: Chapter, path: UciPath): Funit =
+    val values = $doc(
+      F.comments -> node.comments,
+      F.shapes -> node.shapes,
+      F.glyphs -> node.glyphs,
+      F.gamebook -> node.gamebook,
+      F.score -> node.eval.flatMap(_.score),
+      F.elapsed -> node.elapsed,
+      F.evaluationDepth -> node.evaluationDepth,
+      F.result -> node.result
+    )
+    val fields = values.elements.map(e => pathToField(path, e.name) -> e.value).toList
+    coll(_.update.one($id(chapter.id) ++ $doc(path.toDbField.$exists(true)), $set($doc(fields)))).void
 
   def setClockAndDenorm(
       chapter: Chapter,
@@ -144,9 +170,16 @@ final class ChapterRepo(val coll: AsyncColl)(using Executor, org.apache.pekko.st
         )
         .void
 
-  def forceVariation(force: Boolean) = setNodeValue(F.forceVariation, force.option(true))
+  def forceVariation(force: Boolean)(chapter: Chapter, path: UciPath): Funit =
+    coll(
+      _.update.one(
+        $id(chapter.id) ++ $doc(path.toDbField.$exists(true)),
+        $set($doc(pathToField(path, F.forceVariation) -> force, "denorm" -> chapter.denorm))
+      )
+    ).void
 
-  def setName(id: StudyChapterId, name: StudyChapterName) = coll(_.updateField($id(id), "name", name)).void
+  def setName(id: StudyChapterId, name: StudyChapterName) =
+    coll(_.updateField($id(id), "name", name)).void >> studyIdOf(id).flatMap(_.so(studyRepo.indexChapters))
 
   // insert node and its children
   // and updates chapter denormalization
@@ -156,13 +189,18 @@ final class ChapterRepo(val coll: AsyncColl)(using Executor, org.apache.pekko.st
       parentPath: UciPath,
       relay: Option[Chapter.Relay]
   ): Funit =
+    val parent =
+      chapter.root.nodeAt(parentPath).getOrElse(throw IllegalArgumentException("Missing subtree parent"))
+    val order = parent.children.addNode(subTree).toList.map(_.id)
     val set = $doc(subTreeToBsonElements(parentPath, subTree)) ++
+      $doc(pathToField(parentPath, F.order) -> order) ++
       $doc("denorm" -> chapter.denorm) ++
       relay.flatMap(toBdoc).so(r => $doc("relay" -> r))
     coll(_.update.one($id(chapter.id), $set(set))).void
 
   private def subTreeToBsonElements(parentPath: UciPath, subTree: Branch): List[(String, Bdoc)] =
-    (parentPath.depth < Node.MAX_PLIES).so:
+    require(parentPath.depth < Node.MAX_PLIES, "Study exceeds maximum path depth")
+    locally:
       val path = parentPath + subTree.id
       subTree.children.toList
         .flatMap(subTreeToBsonElements(path, _))
@@ -171,14 +209,16 @@ final class ChapterRepo(val coll: AsyncColl)(using Executor, org.apache.pekko.st
 
   // overrides all children sub-nodes in DB! Make the tree merge beforehand.
   def setChildren(children: Branches)(chapter: Chapter, path: UciPath): Funit =
-    val set: Bdoc = $doc(childrenTreeToBsonElements(path, children))
+    val set: Bdoc = $doc(childrenTreeToBsonElements(path, children)) ++
+      $doc(pathToField(path, F.order) -> children.toList.map(_.id))
     coll(_.update.one($id(chapter.id), $set(set))).void
 
   private def childrenTreeToBsonElements(
       parentPath: UciPath,
       children: Branches
   ): List[(String, Bdoc)] =
-    (parentPath.depth < Node.MAX_PLIES).so:
+    require(children.isEmpty || parentPath.depth < Node.MAX_PLIES, "Study exceeds maximum path depth")
+    locally:
       for
         node <- children.toList
         path = parentPath + node.id
@@ -302,11 +342,19 @@ final class ChapterRepo(val coll: AsyncColl)(using Executor, org.apache.pekko.st
   def countByStudyId(studyId: StudyId): Fu[Int] =
     coll(_.countSel($studyId(studyId)))
 
-  def insert(s: Chapter): Funit = coll(_.insert.one(s.updateDenorm)).void
+  def insert(s: Chapter): Funit =
+    coll(_.insert.one(s.updateDenorm)).void >> studyRepo.indexChapters(s.studyId)
 
-  def update(c: Chapter): Funit = coll(_.update.one($id(c.id), c.updateDenorm)).void
+  def update(c: Chapter): Funit =
+    coll(_.update.one($id(c.id), c.updateDenorm)).void >> studyRepo.indexChapters(c.studyId)
 
-  def delete(id: StudyChapterId): Funit = coll(_.delete.one($id(id))).void
+  def delete(id: StudyChapterId): Funit =
+    studyIdOf(id).flatMap: studyId =>
+      coll(_.delete.one($id(id))).void >> studyId.so(studyRepo.indexChapters)
   def delete(c: Chapter): Funit = delete(c.id)
 
   def $studyId(id: StudyId) = $doc("studyId" -> id)
+
+object ChapterRepo:
+  // Broadcast studies can contain more chapters than the regular study editor.
+  private[study] val maxChaptersToLoad = 256

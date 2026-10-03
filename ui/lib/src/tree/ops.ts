@@ -1,12 +1,20 @@
 // no side effects allowed due to re-export by index.ts
 
+import * as pathOps from './path';
 import type { TreeNodeBase, TreeNodeLite, TreePath } from './types';
+
+export const mainlineChild = <T extends TreeNodeBase>(node: T): T | undefined =>
+  node.children?.find(child => !child.forceVariation) as T | undefined;
+export function mainlineFirst<T extends TreeNodeBase>(children: T[]): T[] {
+  const main = children.find(child => !child.forceVariation);
+  return main ? [main, ...children.filter(child => child !== main)] : children;
+}
 
 export function withMainlineChild<U, T extends TreeNodeBase>(
   node: T,
   f: (node: TreeNodeBase) => U,
 ): U | undefined {
-  const next = node.children?.[0];
+  const next = mainlineChild(node);
   return next ? f(next) : undefined;
 }
 
@@ -44,8 +52,9 @@ export function takePathWhile<T extends TreeNodeBase>(
 ): TreePath {
   let path = '';
   for (const n of nodeList) {
-    if (predicate(n)) path += n.id;
-    else break;
+    if (predicate(n)) {
+      if (n.id) path = pathOps.append(path, n.id);
+    } else break;
   }
   return path;
 }
@@ -91,7 +100,7 @@ export const hasBranching = (node: TreeNodeLite, maxDepth: number): boolean =>
   maxDepth <= 0 || !!node.children[1] || (!!node.children[0] && hasBranching(node.children[0], maxDepth - 1));
 
 export const mainlineNodeList = <T extends TreeNodeBase>(from: T): T[] =>
-  collect<T>(from, node => node.children?.[0] as T);
+  collect<T>(from, node => mainlineChild(node));
 
 export function updateAll<T extends TreeNodeBase>(root: T, f: (node: T) => void): void {
   // applies f recursively to all nodes
@@ -103,9 +112,7 @@ export function updateAll<T extends TreeNodeBase>(root: T, f: (node: T) => void)
 }
 
 export function distance(a: TreePath, b: TreePath): number {
-  let i = 0;
-  while (i < a.length && i < b.length && a[i] === b[i] && a[i + 1] === b[i + 1]) i += 2;
-  return (a.length + b.length) / 2 - i;
+  return pathOps.size(a) + pathOps.size(b) - 2 * pathOps.size(pathOps.intersection(a, b));
 }
 
 export function contains<T extends TreeNodeBase>(container: T, descendant: T): boolean {
@@ -116,7 +123,7 @@ export function contains<T extends TreeNodeBase>(container: T, descendant: T): b
 export function structuredCloneLite(node: TreeNodeBase): TreeNodeLite {
   return Object.fromEntries(
     Object.entries(node)
-      .filter(([_, v]) => typeof v !== 'function')
+      .filter(([key, v]) => key !== 'path' && typeof v !== 'function')
       .map(([k, v]) => {
         if (k === 'children') return [k, v.map(structuredCloneLite)];
         return [k, structuredClone(v)];

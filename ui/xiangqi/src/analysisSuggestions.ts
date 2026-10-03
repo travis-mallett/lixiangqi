@@ -3,11 +3,17 @@ import { boardPresentation, type BoardView } from '@lixiangqi/board';
 import { createXiangqiBoard, xiangqiPosition } from 'lib/board';
 import type { EngineAnalysis } from 'lib/ceval';
 import { isTouchDevice } from 'lib/device';
+import {
+  replayXiangqiVariation,
+  rulesPositionKey,
+  type RulesPosition,
+  type VariationMove,
+} from 'lib/game/xiangqiNotation';
 import { licon } from 'lib/licon';
+import type { EngineScore } from 'lib/tree/native';
 import stepwiseScroll from 'lib/view/stepwiseScroll';
 
 import { displayedEvaluation, evaluationShare, formatEvaluation, NEUTRAL_EVALUATION } from './evaluation';
-import { createMoveTreeFromUciMainline, type EngineScore, type XiangqiTreeNode } from './tree';
 
 export interface ExplorerMove {
   move: string;
@@ -27,7 +33,7 @@ export interface ExplorerResult {
   error?: string;
 }
 
-interface Elements {
+export interface AnalysisSuggestionElements {
   eval: HTMLElement;
   evalFill: HTMLElement;
   evalScore: HTMLElement;
@@ -46,44 +52,56 @@ export class AnalysisSuggestions {
 
   private play: ((moves: string[]) => void) | undefined;
   private fen: string;
+  private position: RulesPosition;
+  private readonly variations = new Map<string, VariationMove[]>();
+  private readonly pending = new Map<string, string[]>();
+  private readonly requests = new Set<string>();
+  private timer?: ReturnType<typeof setTimeout>;
   private previewGround: BoardView | undefined;
   private previewEnabled = true;
   private expanded = false;
   private lastEvaluation = NEUTRAL_EVALUATION;
   private updateArrows = (): void => undefined;
-  private readonly elements: Elements;
+  private readonly lifetime = new window.AbortController();
 
   constructor(
     initialFen: string,
-    private readonly orientation: () => 'white' | 'black',
+    private readonly orientation: () => 'red' | 'black',
     private readonly configuredMultiPv: () => number,
+    private readonly elements: AnalysisSuggestionElements,
   ) {
     this.fen = initialFen;
-    this.elements = {
-      eval: requiredElement('#xiangqi-eval'),
-      evalFill: requiredElement('#xiangqi-eval-fill'),
-      evalScore: requiredElement('#xiangqi-eval-score'),
-      engineLines: requiredElement('#xiangqi-engine-lines'),
-      engineScore: requiredElement('#xiangqi-engine-score'),
-      engineStatus: requiredElement('#xiangqi-engine-status'),
-      cloudBadge: requiredElement('#xiangqi-cloud-badge'),
-      moreLines: requiredElement<HTMLButtonElement>('#xiangqi-more-lines'),
-    };
-    this.elements.engineLines.addEventListener('mouseleave', () => this.hidePreview());
-    window.matchMedia('(max-width: 799px)').addEventListener('change', event => {
-      if (event.matches) this.hidePreview();
-      this.render();
+    this.position = { initialFen, moves: [], ruleset: 'unrestricted-v1' };
+    this.elements.engineLines.addEventListener('mouseleave', () => this.hidePreview(), {
+      signal: this.lifetime.signal,
     });
+    window.matchMedia('(max-width: 799px)').addEventListener(
+      'change',
+      event => {
+        if (event.matches) this.hidePreview();
+        this.render();
+      },
+      { signal: this.lifetime.signal },
+    );
+  }
+
+  destroy(): void {
+    this.lifetime.abort();
+    clearTimeout(this.timer);
+    this.hidePreview();
   }
 
   setArrowRenderer(update: () => void): void {
     this.updateArrows = update;
   }
 
-  setPosition(fen: string, play: (moves: string[]) => void): void {
+  setPosition(fen: string, position: RulesPosition, play: (moves: string[]) => void): void {
     this.engineResult = undefined;
     this.explorerResult = undefined;
     this.fen = fen;
+    this.position = position;
+    this.pending.clear();
+    clearTimeout(this.timer);
     this.play = play;
     this.expanded = false;
     this.render();
@@ -99,6 +117,7 @@ export class AnalysisSuggestions {
   }
 
   setEvaluation(score?: EngineScore): void {
+    this.elements.eval.classList.toggle('flipped', this.orientation() === 'black');
     this.lastEvaluation = displayedEvaluation(score, this.lastEvaluation);
     const redShare = evaluationShare(this.lastEvaluation);
     this.elements.evalFill.style.setProperty('--xiangqi-eval-share', `${redShare}%`);
@@ -145,6 +164,7 @@ export class AnalysisSuggestions {
   }
 
   private render(): void {
+    if (this.lifetime.signal.aborted) return;
     this.hidePreview();
     const cloudMoves = this.explorerResult?.available ? this.explorerResult.moves : [];
     const useCloud = cloudMoves.length > 0;
@@ -160,12 +180,12 @@ export class AnalysisSuggestions {
           }),
         )
       : (this.engineResult?.lines ?? [])
-          .filter(line => line.wxfMoves[0])
+          .filter(line => line.pvMoves[0])
           .slice(0, configuredRowCount)
           .map(line =>
             this.suggestionRow({
               moves: line.pvMoves,
-              notations: line.wxfMoves,
+              notations: line.wxfMoves.length ? line.wxfMoves : line.pvMoves,
               value: formatEvaluation(line.score),
             }),
           );
@@ -255,15 +275,41 @@ export class AnalysisSuggestions {
 
   private renderPvMoves(moves: string[], notations: string[]): HTMLElement[] {
     const elements: HTMLElement[] = [];
-    let node: XiangqiTreeNode | undefined;
-    try {
-      node = createMoveTreeFromUciMainline(this.fen, moves).root.children[0];
-    } catch {
-      return elements;
+    const clipped = moves.slice(0, MAX_PV_MOVES);
+    const key = JSON.stringify([this.position, clipped]);
+    const positions = this.variations.get(key);
+    if (!positions && !this.requests.has(key)) {
+      this.pending.set(key, clipped);
+      clearTimeout(this.timer);
+      const positionKey = rulesPositionKey(this.position);
+      const context = this.position;
+      this.timer = setTimeout(() => {
+        const wanted = [...this.pending];
+        this.pending.clear();
+        for (const [requestKey, variation] of wanted.slice(-12)) {
+          this.requests.add(requestKey);
+          void replayXiangqiVariation(context.initialFen, context.moves, context.ruleset, variation)
+            .then(result => {
+              if (this.lifetime.signal.aborted) return;
+              this.variations.set(requestKey, result.moves);
+              while (this.variations.size > 64) this.variations.delete(this.variations.keys().next().value!);
+              if (rulesPositionKey(this.position) === positionKey) this.render();
+            })
+            .catch(error => {
+              if (this.lifetime.signal.aborted) return;
+              if (rulesPositionKey(this.position) === positionKey) {
+                this.elements.engineStatus.textContent = error.message;
+                this.elements.engineStatus.classList.add('error');
+              }
+            })
+            .finally(() => this.requests.delete(requestKey));
+        }
+      }, 180);
     }
     let beforeFen = this.fen;
-    const length = Math.min(moves.length, notations.length, MAX_PV_MOVES);
-    for (let index = 0; index < length && node; index += 1) {
+    const resolvedNotations = positions?.map(move => move.notation) ?? notations;
+    const length = Math.min(moves.length, resolvedNotations.length, MAX_PV_MOVES);
+    for (let index = 0; index < length; index += 1) {
       const prefix = pvMovePrefix(beforeFen, index);
       if (prefix) {
         const moveNumber = document.createElement('span');
@@ -273,12 +319,11 @@ export class AnalysisSuggestions {
       const move = document.createElement('span');
       move.className = 'pv-san';
       move.dataset.moveIndex = String(index);
-      move.dataset.fen = node.state.fen;
+      if (positions?.[index]) move.dataset.fen = positions[index].state.fen;
       move.dataset.uci = moves[index];
-      move.textContent = notations[index];
+      move.textContent = resolvedNotations[index];
       elements.push(move);
-      beforeFen = node.state.fen;
-      node = node.children[0];
+      if (positions?.[index]) beforeFen = positions[index].state.fen;
     }
     return elements;
   }
@@ -298,7 +343,7 @@ export class AnalysisSuggestions {
     this.previewGround = createXiangqiBoard(
       groundElement,
       xiangqiPosition(fen, move),
-      boardPresentation('preview', this.orientation() === 'white' ? 'red' : 'black'),
+      boardPresentation('preview', this.orientation() === 'red' ? 'red' : 'black'),
     );
   }
 
@@ -332,10 +377,4 @@ function formatNodes(nodes: number): string {
     : nodes >= 1_000
       ? `${Math.round(nodes / 1_000)}k`
       : String(nodes);
-}
-
-function requiredElement<T extends HTMLElement = HTMLElement>(selector: string): T {
-  const element = document.querySelector<T>(selector);
-  if (!element) throw new Error(`Missing Xiangqi analysis element: ${selector}`);
-  return element;
 }

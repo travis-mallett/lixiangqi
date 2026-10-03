@@ -2,13 +2,14 @@ import type { Tablesort } from 'tablesort';
 
 import { memoize, throttle } from 'lib';
 import { licon } from 'lib/licon';
-import { dataIcon, hl, onInsert, requiresI18n, spinnerVdom, type VNode } from 'lib/view';
+import { dataIcon, hl, onInsert, requiresI18n, type VNode } from 'lib/view';
 import { json as xhrJson } from 'lib/xhr';
 
 import { playerFedFlag } from '@/view/util';
 
-import * as fideFeds from '../fideFeds';
 import type { Federation, StudyPlayerFromServer } from '../interfaces';
+import { loading } from '../loading';
+import * as playerFederations from '../playerFederations';
 import { convertPlayerFromServer } from '../studyChapters';
 import type {
   RelayTeamName,
@@ -63,7 +64,7 @@ export default class RelayTeamLeaderboard {
 
   standingsView = (): VNode =>
     !this.standings
-      ? spinnerVdom()
+      ? loading()
       : hl(
           'table.relay-tour__teams__standings.slist.slist-pad',
           {
@@ -99,7 +100,7 @@ export default class RelayTeamLeaderboard {
         );
 
   teamView = (): VNode => {
-    if (!this.standings) return spinnerVdom();
+    if (!this.standings) return loading();
     const foundTeam = this.standings.find(t => t.name === this.teamToShow);
     if (!foundTeam) {
       this.teamToShow = undefined;
@@ -221,14 +222,14 @@ export default class RelayTeamLeaderboard {
 
   private readonly teamNameToFed = (teamName: RelayTeamName): Federation | undefined => {
     const teamNameLower = teamName.toLowerCase();
-    const foundFed = Object.entries(fideFeds.federations).find(([_, [engName, _2]]) =>
+    const foundFed = Object.entries(playerFederations.federations).find(([_, [engName, _2]]) =>
       teamNameLower.startsWith(engName.toLowerCase()),
     );
     return (
       foundFed && {
         id: foundFed[0],
         name: foundFed[1][0],
-        i18nName: foundFed[1][1] ? fideFeds.localizedName(foundFed[0]) : undefined,
+        i18nName: foundFed[1][1] ? playerFederations.localizedName(foundFed[0]) : undefined,
       }
     );
   };

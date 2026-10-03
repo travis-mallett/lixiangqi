@@ -2,7 +2,7 @@ import { licon } from 'lib/licon';
 import { type VNode, type MaybeVNode, bind, hl, type VNodeData, icon } from 'lib/view';
 
 import type PuzzleCtrl from '@/ctrl';
-import type { ThemeKey, RoundThemes } from '@/interfaces';
+import type { ThemeKey } from '@/interfaces';
 
 const STUDY_URL = 'https://lixiangqi.org/study/viiWlKjv';
 
@@ -49,7 +49,7 @@ function themeTrans(key: string) {
 
 const editor = (ctrl: PuzzleCtrl): VNode[] => {
   const { puzzle } = ctrl.data;
-  const votedThemes = ctrl.round?.themes ?? ({} as RoundThemes);
+  const votedThemes = ctrl.round?.themes ?? {};
 
   const visibleThemes: ThemeKey[] = [
     ...puzzle.themes.filter(t => !invisibleThemes.has(t)),

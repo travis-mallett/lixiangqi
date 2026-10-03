@@ -1,5 +1,7 @@
 package lila.relay
 
+import lila.xiangqi.XiangqiJson.given
+
 import play.api.libs.json.*
 import scalalib.Json.paginatorWriteNoNbResults
 import scalalib.paginator.Paginator
@@ -13,7 +15,7 @@ import lila.study.Settings
 import lila.core.socket.SocketVersion
 import lila.core.LightUser.GetterSync
 import lila.core.i18n.Translate
-import lila.core.fide.PhotosJson
+import lila.core.playerDirectory.PhotosJson
 
 final class RelayJsonView(
     routeUrl: RouteUrl,
@@ -26,7 +28,7 @@ final class RelayJsonView(
 
   given Writes[RelayTour.Tier] = writeAs(_.v)
 
-  given Writes[chess.FideTC] = writeAs(_.toString)
+  given Writes[lila.core.playerDirectory.RatingCategory] = writeAs(_.toString)
   given Writes[java.time.ZoneId] = writeAs(_.getId)
 
   given OWrites[RelayTour.Info] = Json.writes

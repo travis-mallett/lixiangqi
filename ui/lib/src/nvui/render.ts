@@ -4,7 +4,14 @@ import { charToRole, roleToChar } from 'chessops/util';
 import { h, type VNode, type VNodeChildren } from 'snabbdom';
 
 import { plyToTurn, sanToWords, transRole } from '@/game';
-import type { CrazyPocket, NodeCrazy, TreeComment, TreeNode, TreePath } from '@/tree/types';
+import type { TreeComment, TreeNode, TreePath } from '@/tree/types';
+
+import * as treePath from '../tree/path';
+
+type CrazyPocket = Record<Exclude<Role, 'king'>, number>;
+interface NodeCrazy {
+  pockets: [CrazyPocket, CrazyPocket];
+}
 
 import type { MoveStyle, PieceStyle, PositionStyle, PrefixStyle, BoardStyle } from './setting';
 
@@ -221,11 +228,11 @@ export function renderMainline(
   const res: VNodeChildren = [];
   let path: TreePath = '';
   nodes.forEach(node => {
-    if (!node.san || !node.uci) return;
-    path += node.id;
+    if (!node.notation || !node.uci) return;
+    path = treePath.append(path, node.id);
     const content: VNodeChildren = [
       node.ply & 1 ? plyToTurn(node.ply) + '. ' : null,
-      renderSan(node.san, node.uci, style),
+      renderSan(node.notation, node.uci, style),
     ];
     res.push(h('move', { attrs: { p: path }, class: { active: path === currentPath } }, content));
     if (withComments) res.push(renderComments(node, style));
@@ -236,7 +243,7 @@ export function renderMainline(
 }
 
 export const renderComments = (node: TreeNode, style: MoveStyle): string =>
-  node.comments?.map(c => ` ${augmentLichessComment(c, style)}`).join('.') ?? '';
+  node.comments?.map(c => ` ${augmentSiteComment(c, style)}`).join('.') ?? '';
 
 export const isKey = (maybeKey: string): maybeKey is Key => !!maybeKey.match(/^[a-h][1-8]$/);
 
@@ -289,8 +296,8 @@ const keysWithPiece = (pieces: Pieces, role?: Role, color?: Color, pov?: Color):
     .sort((a, b) => (pov === 'black' ? b.localeCompare(a) : a.localeCompare(b)));
 };
 
-const augmentLichessComment = (comment: TreeComment, style: MoveStyle): string =>
-  comment.by === 'lichess'
+const augmentSiteComment = (comment: TreeComment, style: MoveStyle): string =>
+  comment.by.kind === 'site'
     ? comment.text.replace(
         /([^\s]+) was best\./,
         (_, san) => `Best move was ${renderSan(san, undefined, style)}`,

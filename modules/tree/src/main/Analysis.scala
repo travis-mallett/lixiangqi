@@ -9,6 +9,7 @@ case class StudyAnalysisProgress(analysis: Analysis, complete: Boolean)
 
 trait Analyser:
   def byId(id: Analysis.Id): Fu[Option[Analysis]]
+  def persistStudy(analysis: Analysis, workHash: Array[Byte]): Fu[Analysis]
 
 trait Annotator:
   def toPgnString(pgn: Pgn): PgnStr
@@ -26,6 +27,7 @@ case class Analysis(
     id: Analysis.Id,
     infos: List[Info],
     startPly: Ply,
+    position: lila.xiangqi.Xiangqi.Position,
     date: Instant,
     fk: Option[Analysis.FishnetKey],
     nodesPerMove: Option[Int],
@@ -55,6 +57,11 @@ case class Analysis(
   def nbEmptyInfos = infos.count(_.isEmpty)
   def emptyRatio: Double = nbEmptyInfos.toDouble / infos.size
 
+  /** Later source revisions take precedence; depth is monotonic for the same source. */
+  def supersedes(existing: Analysis): Boolean =
+    if position == existing.position then depth.exists(incoming => existing.depth.forall(_ < incoming))
+    else studyId.isDefined && date.isAfter(existing.date)
+
 object Analysis:
 
   enum Id:
@@ -72,7 +79,7 @@ object Analysis:
 
       def value: String = id match
         case Game(gameId) => gameId.value
-        case Study(_, id) => id.value
+        case Study(study, id) => s"study:${study.value}:${id.value}"
         case Catalog(id) => s"catalog:$id"
 
       def gameId: Option[GameId] = id match

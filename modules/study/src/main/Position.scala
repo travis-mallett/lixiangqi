@@ -1,6 +1,7 @@
 package lila.study
 
-import chess.format.UciPath
+import lila.xiangqi.UciPath
+import lila.xiangqi.XiangqiJson.given
 
 import lila.tree.{ Branch, Node }
 
@@ -26,6 +27,6 @@ case object Position:
 
     def decode(str: String): Option[Ref] =
       str.split(' ') match
-        case Array(chapterId, path) => Ref(StudyChapterId(chapterId), UciPath(path)).some
+        case Array(chapterId, path) => UciPath.from(path).toOption.map(Ref(StudyChapterId(chapterId), _))
         case Array(chapterId) => Ref(StudyChapterId(chapterId), UciPath.root).some
         case _ => none

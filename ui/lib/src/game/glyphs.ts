@@ -5,7 +5,7 @@ import type { TreeNode } from '@/tree/types';
 const maxGlyphs = 4;
 export function annotationShapes(node: TreeNode): BoardMark[] {
   if (!node.uci || !node.glyphs) return [];
-  const [, to] = coordinateMove(node.uci.replaceAll(':', '10'));
+  const [, to] = coordinateMove(node.uci);
   return node.glyphs
     .slice(0, maxGlyphs)
     .map((glyph, index) => {
@@ -45,8 +45,8 @@ const glyphStacktoPx = (stack: number) => {
   };
 };
 
-const whiteIsWinning = composeGlyph(
-  '#bbb',
+const redIsWinning = composeGlyph(
+  '#c33',
   '<path fill="none" stroke="#fff" stroke-width="7" d="M29 27v46M6 50h46m8 0h36"/>',
 );
 
@@ -180,8 +180,8 @@ const glyphToSvg: Dictionary<(stackedNumber: number) => string> = {
   ),
 
   // White is winning
-  '+−': whiteIsWinning,
-  '+-': whiteIsWinning,
+  '+−': redIsWinning,
+  '+-': redIsWinning,
 
   // Black is winning
   '−+': blackIsWinning,

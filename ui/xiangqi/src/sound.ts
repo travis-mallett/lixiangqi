@@ -2,8 +2,7 @@ import type { BoardView, BoardEffect } from '@lixiangqi/board';
 
 import { isXiangqiCapture } from 'lib/game';
 import { isXiangqiMate } from 'lib/game/adjudication';
-
-import { nodeAtPath, parentPath, type RulesState, type XiangqiMoveTree } from './tree';
+import { nodeAtPath, parentPath, type RulesState, type XiangqiMoveTree } from 'lib/tree/native';
 
 export interface XiangqiMoveSound {
   capture: boolean;
@@ -29,7 +28,7 @@ export function xiangqiTransitionSound(
   fromPath: string,
   toPath: string,
 ): XiangqiMoveSound | undefined {
-  if (parentPath(toPath) !== fromPath || !tree.byPath.has(fromPath)) return undefined;
+  if (parentPath(toPath) !== fromPath || !tree.pathExists(fromPath)) return undefined;
   const origin = nodeAtPath(tree, fromPath);
   const destination = nodeAtPath(tree, toPath);
   if (!origin || !destination || destination === tree.root) return undefined;

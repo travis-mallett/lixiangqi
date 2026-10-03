@@ -1,3 +1,5 @@
+import { mainlineChild } from 'lib/tree/ops';
+import * as treePath from 'lib/tree/path';
 import type { TreeNode } from 'lib/tree/types';
 
 import type AnalyseCtrl from './ctrl';
@@ -14,9 +16,9 @@ export class Autoplay {
   constructor(private readonly ctrl: AnalyseCtrl) {}
 
   private move(): boolean {
-    const child = this.ctrl.node.children[0];
+    const child = mainlineChild(this.ctrl.node);
     if (child && !this.ctrl.retro?.preventGoingToNextMove()) {
-      const path = this.ctrl.path + child.id;
+      const path = treePath.append(this.ctrl.path, child.id);
       if (this.ctrl.canJumpTo(path)) {
         this.ctrl.jump(path);
         this.lastMoveAt = Date.now();
@@ -48,7 +50,7 @@ export class Autoplay {
       const slowDown = 30;
       if (this.ctrl.node.ply >= this.ctrl.mainline.length - 1) return 0;
       const currPlyCp = this.evalToCp(this.ctrl.node);
-      const nextPlyCp = this.evalToCp(this.ctrl.node.children[0]);
+      const nextPlyCp = this.evalToCp(mainlineChild(this.ctrl.node)!);
       return Math.max(500, Math.min(10000, Math.abs(currPlyCp - nextPlyCp) * slowDown));
     } else return this.delay!;
   }

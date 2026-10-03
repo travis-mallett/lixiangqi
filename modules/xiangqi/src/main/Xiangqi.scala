@@ -64,15 +64,45 @@ object Xiangqi:
     def orig: String = if uci.startsWith("10", 1) then uci.take(3) else uci.take(2)
     def dest: String = uci.drop(orig.length)
 
+  final case class Move(uci: Uci, notation: String, chineseNotation: String)
+
   enum Side(val key: String):
     case Red extends Side("red")
     case Black extends Side("black")
 
     def unary_! : Side = if this == Red then Black else Red
+    def red: Boolean = this == Red
+    def black: Boolean = this == Black
+    def fold[A](red: => A, black: => A): A = if this == Red then red else black
 
   object Side:
     def fromKey(value: String): Either[String, Side] =
       Side.values.find(_.key == value).toRight(s"Invalid Xiangqi side: $value")
+
+  final case class BySide[A](red: A, black: A):
+    def apply(side: Side): A = side.fold(red, black)
+    def map[B](f: A => B): BySide[B] = BySide(f(red), f(black))
+    def mapList[B](f: A => B): List[B] = List(f(red), f(black))
+    def toList: List[A] = List(red, black)
+    def zip[B](other: BySide[B]): BySide[(A, B)] = BySide(red -> other.red, black -> other.black)
+    def update(side: Side, f: A => A): BySide[A] =
+      side.fold(copy(red = f(red)), copy(black = f(black)))
+    def swap: BySide[A] = BySide(black, red)
+    def toPair: (A, A) = red -> black
+    def forall(f: A => Boolean): Boolean = f(red) && f(black)
+    def exists(f: A => Boolean): Boolean = f(red) || f(black)
+    def zipSide: List[(Side, A)] = List(Side.Red -> red, Side.Black -> black)
+    def mapWithSide[B](f: (Side, A) => B): BySide[B] =
+      BySide(f(Side.Red, red), f(Side.Black, black))
+    def mapReduce[B](f: A => B)(combine: (B, B) => B): B = combine(f(red), f(black))
+    def flatten[B](using ev: A <:< Option[B]): List[B] = toList.flatMap(ev)
+    def traverse[F[_], B](f: A => F[B])(using app: cats.Applicative[F]): F[BySide[B]] =
+      app.map2(f(red), f(black))(BySide(_, _))
+
+  object BySide:
+    def apply[A](f: Side => A): BySide[A] = BySide(f(Side.Red), f(Side.Black))
+    def fill[A](value: => A): BySide[A] = BySide(value, value)
+    def fromPair[A](pair: (A, A)): BySide[A] = BySide(pair._1, pair._2)
 
   enum NotationStyle(val key: String):
     case English extends NotationStyle("english")
@@ -92,19 +122,15 @@ object Xiangqi:
     val byKey = Role.values.map(role => role.key -> role).toMap
     def fromForsyth(value: Char): Option[Role] = byForsyth.get(value.toLower)
 
-  final case class Square(file: Int, rank: Int)
+  final case class Square(file: Int, rank: Int):
+    def key: String = s"${('a' + file).toChar}$rank"
 
   object Square:
+    val all: Vector[Square] = (1 to 10).flatMap(rank => (0 until 9).map(Square(_, rank))).toVector
+    private val pattern = "^[a-i](?:10|[1-9])$".r
+
     def fromKey(value: String): Option[Square] =
-      Option
-        .when(value.length >= 2 && value.length <= 3):
-          val file = value.head.toLower - 'a'
-          val rank = value.tail.toIntOption
-          for
-            parsedRank <- rank
-            if file >= 0 && file < 9 && parsedRank >= 1 && parsedRank <= 10
-          yield Square(file, parsedRank)
-        .flatten
+      Option.when(pattern.matches(value))(Square(value.head - 'a', value.tail.toInt))
 
   final case class Piece(side: Side, role: Role)
 
@@ -161,6 +187,45 @@ object Xiangqi:
     def fromKey(value: String): Either[String, Result] =
       Result.values.find(_.key == value).toRight(s"Invalid Xiangqi result: $value")
 
+  /** Awarded points can differ from a played result, for example a double forfeit. */
+  enum Score(val value: Float, val show: String):
+    case Zero extends Score(0f, "0")
+    case Half extends Score(0.5f, "1/2")
+    case One extends Score(1f, "1")
+
+  object Score:
+    def fromString(value: String): Option[Score] = value match
+      case "0" => Some(Zero)
+      case "1/2" | "0.5" | "½" => Some(Half)
+      case "1" => Some(One)
+      case _ => None
+
+  type GamePoints = BySide[Score]
+
+  object GamePoints:
+    def fromResult(value: String): Option[GamePoints] = value.split("-", -1) match
+      case Array(red, black) =>
+        for
+          redScore <- Score.fromString(red)
+          blackScore <- Score.fromString(black)
+        yield BySide(redScore, blackScore)
+      case _ => None
+
+    def show(points: Option[GamePoints]): String =
+      points.fold("*")(p => s"${p.red.show}-${p.black.show}")
+
+  final case class RecordedResult(points: Option[GamePoints]):
+    def key: String = GamePoints.show(points)
+
+  object RecordedResult:
+    def fromKey(value: String): Either[String, RecordedResult] =
+      if value == "*" then Right(RecordedResult(None))
+      else
+        GamePoints
+          .fromResult(value)
+          .map(p => RecordedResult(Some(p)))
+          .toRight(s"Invalid recorded Xiangqi result: $value")
+
   // Standalone analysis/imports are unrestricted unless an actual game's policy is supplied.
   final case class Position(
       initialFen: String = startFen,
@@ -190,14 +255,37 @@ object Xiangqi:
       id: Option[String] = None,
       exclude: Vector[String] = Vector.empty
   )
-  final case class MoveCommand(initialFen: String = startFen, moves: Vector[Uci] = Vector.empty, move: Uci)
+  final case class MoveCommand(
+      initialFen: String = startFen,
+      moves: Vector[Uci] = Vector.empty,
+      move: Uci,
+      ruleset: Ruleset = Ruleset.Unrestricted
+  )
+  final case class VariationCommand(
+      initialFen: String = startFen,
+      moves: Vector[Uci] = Vector.empty,
+      variation: Vector[Uci],
+      ruleset: Ruleset = Ruleset.Unrestricted
+  )
+  final case class NotationMoveCommand(
+      initialFen: String = startFen,
+      moves: Vector[Uci] = Vector.empty,
+      notation: String,
+      ruleset: Ruleset = Ruleset.Unrestricted
+  )
+  final case class VariationMove(move: Uci, notation: String, chineseNotation: String, state: State)
+  final case class VariationResult(moves: Vector[VariationMove])
   final case class AnalysisCommand(
       initialFen: String = startFen,
       moves: Vector[Uci] = Vector.empty,
       moveTimeMs: Int = 900,
       multiPv: Int = 3
   )
-  final case class NotationImport(initialFen: String = startFen, notation: String)
+  final case class NotationImport(
+      initialFen: String = startFen,
+      notation: String,
+      ruleset: Option[Ruleset] = None
+  )
   final case class Ending(ended: Boolean, result: Int)
   final case class State(
       variant: String,
@@ -369,15 +457,18 @@ object Xiangqi:
       chineseNotation: String,
       state: State,
       children: Vector[ImportedTreeNode],
-      comments: Vector[String] = Vector.empty,
-      glyphs: Vector[Int] = Vector.empty
+      annotations: XiangqiAnnotations.Parsed = XiangqiAnnotations.Parsed(),
+      glyphs: Vector[Int] = Vector.empty,
+      result: Option[RecordedResult] = None
   )
   final case class ImportedMoveTree(
       initialFen: String,
       headers: Map[String, String],
       state: State,
       children: Vector[ImportedTreeNode],
-      comments: Vector[String] = Vector.empty
+      annotations: XiangqiAnnotations.Parsed = XiangqiAnnotations.Parsed(),
+      glyphs: Vector[Int] = Vector.empty,
+      ruleset: Ruleset = Ruleset.Unrestricted
   ):
     def mainline: Game =
       @annotation.tailrec
@@ -387,8 +478,8 @@ object Xiangqi:
           wxf: Vector[String],
           states: Vector[State]
       ): Game =
-        children.headOption match
-          case None => Game(initialFen, moves, wxf, states, Ruleset.Unrestricted)
+        children.find(node => !node.annotations.study.exists(_.forceVariation)) match
+          case None => Game(initialFen, moves, wxf, states, ruleset)
           case Some(node) =>
             collect(node.children, moves :+ node.move, wxf :+ node.notation, states :+ node.state)
       collect(children, Vector.empty, Vector.empty, Vector(state))

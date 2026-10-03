@@ -9,7 +9,7 @@ export function makeGround(element: HTMLElement, ctrl: EditorCtrl): BoardView {
     element,
     xiangqiPosition(ctrl.state.fen),
     {
-      ...boardPresentation('editor', ctrl.orientation === 'white' ? 'red' : 'black'),
+      ...boardPresentation('editor', ctrl.orientation === 'red' ? 'red' : 'black'),
       coordinates: ctrl.cfg.options?.coordinates !== false,
       motion: { duration: ctrl.cfg.animation.duration },
     },

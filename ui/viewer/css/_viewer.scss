@@ -1,10 +1,22 @@
+@import '../../lib/css/base/data-icon';
+@import '../../lib/css/chess/control';
+@import '../../lib/css/component/fbt';
+@import '../../lib/css/component/replay-panel';
+@import '../../lib/css/tree/tree';
+
+/* A white, self-contained replay widget: board, move list, comments, and navigation.
+   The host sizes it, so the panel layout is chosen from the widget's own inline size. */
 .xiangqi-viewer {
   width: 100%;
-  max-width: 640px;
+  max-width: 900px;
   margin: auto;
   padding: 0.5em;
   box-sizing: border-box;
   container-type: inline-size;
+
+  &__layout {
+    display: block;
+  }
 
   &__board {
     position: relative;
@@ -24,57 +36,80 @@
     visibility: visible;
   }
 
-  &__moves {
-    max-height: 8em;
-    overflow: auto;
-
-    button {
-      padding: 0.35em 0.6em;
-    }
-
-    button.active {
-      background: $c-primary;
-      color: $c-over;
-    }
+  &__playback {
+    min-width: 0;
   }
 
-  &__variation {
-    display: block;
-    margin-inline-start: 1em;
-    border-inline-start: 2px solid $c-border;
+  &__panel {
+    @extend %replay-panel;
+  }
+
+  /* Narrow hosts stack the panel below the board. */
+  &__moves {
+    @extend %replay-moves;
+
+    flex: 0 1 auto;
+    min-width: 0;
+    max-height: 9em;
+  }
+
+  &__feedback {
+    @extend %replay-feedback;
+
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: auto;
+    padding: 0.6em 0.8em;
   }
 
   &__comments {
     white-space: pre-line;
-    padding: 0.5em 0;
   }
 
   &__comments:empty {
     display: none;
   }
 
-  &__controls {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.4em;
-    padding-top: 0.5em;
+  &--solo &__playback {
+    display: none;
+  }
+}
+
+/* Without any annotation in the example, the move list alone fills the panel. */
+.xiangqi-viewer:not(.xiangqi-viewer--annotated)
+  .xiangqi-viewer__feedback:has(> .xiangqi-viewer__comments:empty) {
+  display: none;
+}
+
+/* A host wide enough for both columns keeps the panel exactly as tall as the board. */
+@container (min-width: 600px) {
+  .xiangqi-viewer__layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    gap: 1rem;
+    align-items: stretch;
   }
 
-  &__controls button,
-  select {
-    padding: 0.5em;
-  }
-
-  details {
+  .xiangqi-viewer__playback {
     position: relative;
   }
 
-  select {
-    max-width: 15em;
+  .xiangqi-viewer__panel {
+    position: absolute;
+    inset: 0;
   }
 
-  &__explorer {
-    padding: 0.5em 0;
+  .xiangqi-viewer__moves {
+    flex: 2 1 0;
+    max-height: none;
+  }
+
+  .xiangqi-viewer__feedback {
+    flex: 1 1 0;
+  }
+
+  /* A board-only widget uses the whole host width. */
+  .xiangqi-viewer--solo .xiangqi-viewer__layout {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

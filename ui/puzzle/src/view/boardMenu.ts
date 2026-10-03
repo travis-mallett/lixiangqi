@@ -1,8 +1,8 @@
 import { h } from 'snabbdom';
 
 import { toggle } from 'lib';
-import { renderNodesTxt } from 'lib/game/nodePGN';
 import { licon } from 'lib/licon';
+import { renderNodesTxt } from 'lib/tree/notation';
 import { boardMenu as menuDropdown, hl } from 'lib/view';
 
 import type PuzzleCtrl from '../ctrl';

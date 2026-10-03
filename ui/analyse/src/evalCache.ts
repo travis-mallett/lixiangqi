@@ -1,5 +1,6 @@
 import { defined, prop } from 'lib';
 import { throttle } from 'lib/async';
+import { rulesPositionKey, type RulesPosition } from 'lib/game/xiangqiNotation';
 import { pubsub, type PubsubEvents } from 'lib/pubsub';
 import type { ClientEval, PvData, ServerEval, TreeNode, TreePath } from 'lib/tree/types';
 
@@ -7,7 +8,7 @@ import type { EvalHit, EvalGetData, EvalPutData } from './interfaces';
 import type { AnalyseSocketSend } from './socket';
 
 export interface EvalCacheOpts {
-  variant: VariantKey;
+  getPosition(path?: TreePath): RulesPosition | undefined;
   receive(ev: ClientEval, path: TreePath): void;
   send: AnalyseSocketSend;
   getNode(): TreeNode;
@@ -29,9 +30,9 @@ function qualityCheck(ev: ClientEval): boolean {
 }
 
 // from client eval to server eval
-function toPutData(variant: VariantKey, ev: ClientEval): EvalPutData {
+function toPutData(position: RulesPosition, ev: ClientEval): EvalPutData {
   const data: EvalPutData = {
-    fen: ev.fen,
+    position,
     knodes: Math.round(ev.nodes / 1000),
     depth: ev.depth,
     pvs: ev.pvs.map(pv => {
@@ -42,7 +43,6 @@ function toPutData(variant: VariantKey, ev: ClientEval): EvalPutData {
       };
     }),
   };
-  if (variant !== 'standard') data.variant = variant;
   return data;
 }
 
@@ -72,7 +72,7 @@ type AwaitingEval = null;
 const awaitingEval: AwaitingEval = null;
 
 export default class EvalCache {
-  private readonly fetchedByFen: Map<FEN, EvalHit | AwaitingEval> = new Map();
+  private readonly fetchedByPosition: Map<FEN, EvalHit | AwaitingEval> = new Map();
   upgradable = prop(false);
 
   constructor(readonly opts: EvalCacheOpts) {
@@ -87,18 +87,21 @@ export default class EvalCache {
   onLocalCeval = throttle(500, () => {
     const node = this.opts.getNode(),
       ev = node.ceval;
-    const fetched = this.fetchedByFen.get(node.fen);
+    const position = this.opts.getPosition();
+    if (!position) return;
+    const key = rulesPositionKey(position);
+    const fetched = this.fetchedByPosition.get(key);
     if (
       ev &&
       !ev.cloud &&
-      this.fetchedByFen.has(node.fen) &&
+      this.fetchedByPosition.has(key) &&
       fetched !== undefined &&
       (fetched === awaitingEval || fetched.depth < ev.depth) &&
       ev.fen === node.fen &&
       qualityCheck(ev) &&
       this.opts.canPut()
     ) {
-      this.opts.send('evalPut', toPutData(this.opts.variant, ev));
+      this.opts.send('evalPut', toPutData(position, ev));
     }
   });
 
@@ -106,28 +109,32 @@ export default class EvalCache {
     if (document.hidden) return;
     const node = this.opts.getNode();
     if (node.ceval?.cloud || !this.opts.canGet()) return;
-    const fetched = this.fetchedByFen.get(node.fen);
+    const position = this.opts.getPosition();
+    if (!position) return;
+    const key = rulesPositionKey(position);
+    const fetched = this.fetchedByPosition.get(key);
     if (fetched) return this.opts.receive(toCeval(fetched), path);
     else if (fetched === awaitingEval) return;
     const obj: EvalGetData = {
-      fen: node.fen,
+      position,
       path,
     };
-    if (this.opts.variant !== 'standard') obj.variant = this.opts.variant;
     if (multiPv > 1) obj.mpv = multiPv;
     if (this.upgradable()) obj.up = true;
     this.fetchThrottled(obj);
   };
 
   onCloudEval = (ev: EvalHit) => {
-    this.fetchedByFen.set(ev.fen, ev);
-    this.opts.receive(toCeval(ev), ev.path);
+    const key = rulesPositionKey(ev.position);
+    this.fetchedByPosition.set(key, ev);
+    const current = this.opts.getPosition(ev.path);
+    if (current && rulesPositionKey(current) === key) this.opts.receive(toCeval(ev), ev.path);
   };
 
-  clear = () => this.fetchedByFen.clear();
+  clear = () => this.fetchedByPosition.clear();
 
   private readonly fetchThrottled = throttle(700, (obj: EvalGetData) => {
-    this.fetchedByFen.set(obj.fen, awaitingEval); // waiting for response
+    this.fetchedByPosition.set(rulesPositionKey(obj.position), awaitingEval); // waiting for response
     this.opts.send('evalGet', obj);
   });
 }

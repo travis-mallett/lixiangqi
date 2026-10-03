@@ -1,6 +1,5 @@
-import { COLORS } from 'chessops';
-
 import { type Prop, type Toggle, myUserId, notNull, prop, toggle } from 'lib';
+import { xiangqiSides as COLORS } from 'lib/game/xiangqi';
 import { pubsub } from 'lib/pubsub';
 
 import type { BothClocks, ChapterId, ServerClockMsg, TagArray } from '@/study/interfaces';
@@ -78,7 +77,7 @@ export default class RelayCtrl {
       () => this.openTab('players'),
       study.ctrl.isEmbed,
       () => (study.multiBoard.showResults() ? undefined : this.round.id),
-      fideId => data.photos[fideId],
+      playerId => data.photos[playerId],
       this.redraw,
     );
     this.teamLeaderboard = new RelayTeamLeaderboard(

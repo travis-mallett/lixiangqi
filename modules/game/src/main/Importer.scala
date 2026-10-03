@@ -9,7 +9,7 @@ import play.api.data.Forms.*
 import lila.common.Form.into
 import lila.core.game.{ Game, ImportedGame }
 import lila.game.GameExt.finish
-import lila.xiangqi.{ Xiangqi, XiangqiRules }
+import lila.xiangqi.Xiangqi
 
 final class Importer(gameRepo: lila.core.game.GameRepo)(using Executor):
 
@@ -24,7 +24,7 @@ final class Importer(gameRepo: lila.core.game.GameRepo)(using Executor):
         case None =>
           for
             tree <-
-              XiangqiRules.Notation
+              lila.xiangqi.XiangqiNotation
                 .importTree(Xiangqi.NotationImport(notation = pgn.value))
                 .fold(fufail, fuccess)
             g = importedGame(tree, pgn, me)

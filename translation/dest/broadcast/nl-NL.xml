@@ -41,11 +41,7 @@
   <string name="definitivelyDeleteTournament">Verwijder definitief het hele toernooi, inclusief alle rondes en partijen.</string>
   <string name="showScores">Toon scores van spelers op basis van partij-uitslagen</string>
   <string name="replacePlayerTags">Optioneel: vervang spelersnamen, beoordelingen en titels</string>
-  <string name="fideFederations">FIDE-federaties</string>
   <string name="top10Rating">Top 10-rating</string>
-  <string name="fidePlayers">FIDE-spelers</string>
-  <string name="fidePlayerNotFound">FIDE-speler niet gevonden</string>
-  <string name="fideProfile">FIDE-profiel</string>
   <string name="federation">Federatie</string>
   <string name="age">Leeftijd</string>
   <string name="unrated">Zonder rating</string>
@@ -76,7 +72,6 @@
   <string name="tournamentLocation">Toernooilocatie</string>
   <string name="topPlayers">Topspelers</string>
   <string name="timezone">Tijdzone</string>
-  <string name="fideRatingCategory">FIDE-rating categorie</string>
   <string name="optionalDetails">Optionele info</string>
   <string name="pastBroadcasts">Afgelopen uitzendingen</string>
   <string name="allBroadcastsByMonth">Alle uitzendingen per maand weergeven</string>

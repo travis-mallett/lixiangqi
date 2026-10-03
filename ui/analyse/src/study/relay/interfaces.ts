@@ -1,4 +1,4 @@
-import type { Federation, FideId, PointsStr } from '../interfaces';
+import type { Federation, PlayerId, PointsStr } from '../interfaces';
 import type { RelayPlayer } from './relayPlayers';
 
 export interface RelayData {
@@ -15,7 +15,7 @@ export interface RelayData {
   photos: Photos;
 }
 
-export type Photos = Record<FideId, Photo>;
+export type Photos = Record<PlayerId, Photo>;
 
 export interface Photo {
   small: string;
@@ -45,7 +45,7 @@ interface CustomScore {
   draw: number;
 }
 
-export type CustomScoring = ByColor<CustomScore>;
+export type CustomScoring = Record<'red' | 'black', CustomScore>;
 
 export interface RelayRound {
   id: RoundId;
@@ -59,13 +59,13 @@ export interface RelayRound {
   customScoring?: CustomScoring;
 }
 
-export type FideTC = 'standard' | 'rapid' | 'blitz';
-export type StatByFideTC = Record<FideTC, number>;
+export type RatingCategory = 'standard' | 'rapid' | 'blitz';
+export type StatByRatingCategory = Record<RatingCategory, number>;
 
 export interface RelayTourInfo {
   format?: string;
   tc?: string;
-  fideTC?: FideTC;
+  ratingCategory?: RatingCategory;
   location?: string;
   players?: string;
   website?: string;
@@ -86,7 +86,7 @@ export interface RelayTour {
   showTeamScores?: boolean;
   tier?: number;
   dates?: RelayTourDates;
-  tc?: FideTC;
+  tc?: RatingCategory;
   communityOwner?: LightUser;
 }
 

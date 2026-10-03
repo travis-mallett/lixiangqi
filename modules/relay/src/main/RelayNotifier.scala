@@ -1,5 +1,8 @@
 package lila.relay
 
+import lila.xiangqi.Xiangqi.Side
+import lila.study.StudyPgnTags
+
 import scalalib.cache.OnceEvery
 import scalalib.StringOps.addQueryParam
 
@@ -9,28 +12,32 @@ import lila.study.Chapter
 final private class RelayNotifier(
     notifyApi: NotifyApi,
     tourRepo: RelayTourRepo,
-    getPlayerFollowers: lila.core.fide.GetPlayerFollowers
+    getPlayerFollowers: lila.core.playerDirectory.GetPlayerFollowers
 )(using Executor):
 
   private object notifyPlayerFollowers:
 
-    private val dedupByChapterColor = OnceEvery[(StudyChapterId, Color)](1.day)
-    private val dedupByRoundFideId = OnceEvery[(RelayRoundId, chess.FideId)](1.day)
+    private val dedupByChapterSide = OnceEvery[(StudyChapterId, Side)](1.day)
+    private val dedupByRoundPlayerId = OnceEvery[(RelayRoundId, lila.core.playerDirectory.PlayerId)](1.day)
 
-    def ofColor(rt: RelayRound.WithTour, chapter: Chapter)(color: Color): Funit =
-      chapter.tags
-        .fideIds(color)
-        .zip(chapter.tags.names(color))
-        .so: (fideId, name) =>
-          val unique = dedupByChapterColor(chapter.id -> color) && dedupByRoundFideId(rt.round.id -> fideId)
+    def ofSide(rt: RelayRound.WithTour, chapter: Chapter)(color: Side): Funit =
+      StudyPgnTags
+        .playerIds(chapter.tags)(color)
+        .zip(StudyPgnTags.names(chapter.tags)(color))
+        .so: (playerId, name) =>
+          val unique =
+            dedupByChapterSide(chapter.id -> color) && dedupByRoundPlayerId(rt.round.id -> playerId)
           unique.so:
             for
-              followers <- getPlayerFollowers(fideId)
-              opponent = chapter.tags.names(!color).map(name => s" against ${name} ").getOrElse(" ")
+              followers <- getPlayerFollowers(playerId)
+              opponent = StudyPgnTags
+                .names(chapter.tags)(!color)
+                .map(name => s" against ${name} ")
+                .getOrElse(" ")
               _ <- notifyApi.notifyMany(
                 followers,
                 NotificationContent.BroadcastRound(
-                  url = addQueryParam(rt.call(chapter.id).url, "pov", color.name),
+                  url = addQueryParam(rt.call(chapter.id).url, "pov", color.key),
                   title = rt.tour.name.value,
                   text = s"${name} is playing${opponent}in ${rt.round.name}"
                 )
@@ -62,11 +69,11 @@ final private class RelayNotifier(
             yield ()
 
   def onCreate(rt: RelayRound.WithTour, chapter: Chapter): Funit =
-    (!rt.round.isFinished && chapter.tags.outcome.isEmpty).so:
+    (!rt.round.isFinished && lila.study.StudyPgnTags.points(chapter.tags).isEmpty).so:
       for
         _ <- notifyTournamentSubscribers(rt)
         _ <- (rt.tour.isPublic && rt.tour.official).so:
-          Color.all.traverse(notifyPlayerFollowers.ofColor(rt, chapter))
+          Side.values.toList.traverse(notifyPlayerFollowers.ofSide(rt, chapter))
       yield ()
 
   def onUpdate = onCreate

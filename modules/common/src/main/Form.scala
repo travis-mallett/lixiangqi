@@ -277,19 +277,11 @@ object Form:
       formatter.stringTryFormatter(s => PlayerTitle.get(s).toRight("Invalid title"))
     val field = of[PlayerTitle]
 
-  object fideId:
-    import chess.FideId
-    given Formatter[FideId] =
-      val urlRegex = """(?:lichess\.org/fide|fide\.com/profile)/(\d+)""".r.unanchored
-      formatter.stringTryFormatter(s =>
-        s.toIntOption match
-          case Some(i) => Right(FideId(i))
-          case None =>
-            s match
-              case urlRegex(id) => Right(FideId(id.toInt))
-              case _ => Left("Invalid FIDE ID")
-      )
-    val field = of[FideId]
+  object directoryPlayerId:
+    import lila.core.playerDirectory.PlayerId
+    given Formatter[PlayerId] =
+      formatter.stringTryFormatter(s => PlayerId.parse(s.trim).toRight("Invalid Xiangqi player ID"))
+    val field = of[PlayerId]
 
   object byColor:
     import chess.ByColor

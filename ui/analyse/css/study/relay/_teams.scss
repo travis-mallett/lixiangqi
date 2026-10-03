@@ -116,11 +116,11 @@
 }
 
 .eval-gauge-horiz {
-  $white: #c0c0c0;
+  $red: #c0c0c0;
   $black: #444;
 
   @include if-light {
-    $white: #fff;
+    $red: #fff;
     $black: #606060;
   }
 
@@ -140,11 +140,11 @@
   }
 
   opacity: 0.7;
-  background: linear-gradient(to left, $white, $black);
+  background: linear-gradient(to left, $red, $black);
 
   &--set {
     opacity: 1;
-    background: $white !important;
+    background: $red !important;
 
     .eval-gauge-horiz__black {
       display: block;
@@ -161,7 +161,7 @@
   }
 
   &.pov-white {
-    background: linear-gradient(to right, $white, $black);
+    background: linear-gradient(to right, $red, $black);
 
     .eval-gauge-horiz__black {
       right: 0;

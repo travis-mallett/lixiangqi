@@ -2,7 +2,6 @@ package lila.fishnet
 
 import chess.Ply
 import chess.eval.Eval.Cp
-import chess.variant.Standard
 
 import java.time.Instant
 
@@ -25,7 +24,7 @@ final class AnalysisBuilderTest extends munit.FunSuite:
         id = "TaHSAsYD",
         initialFen = None,
         studyId = None,
-        variant = Standard,
+        ruleset = lila.xiangqi.adjudication.Ruleset.Unrestricted,
         moves = actualMoves.map(_.value).mkString(" ")
       ),
       startPly = Ply.initial,
@@ -39,7 +38,7 @@ final class AnalysisBuilderTest extends munit.FunSuite:
     val evaluations = List(
       evaluated(cp = 20, pv = alternative :: Nil),
       evaluated(cp = 35, pv = actualMoves(1) :: Nil),
-      evaluated(cp = 10, pv = Nil)
+      evaluated(cp = 10, pv = List(Xiangqi.Uci.unsafe("c4c5")))
     )
 
     val analysis =
@@ -51,7 +50,7 @@ final class AnalysisBuilderTest extends munit.FunSuite:
     assertEquals(analysis.infos.head.best, Some(alternative.value))
     assertEquals(
       analysis.infos.head.variation.map(_.value),
-      List(XiangqiRules.wxf(Xiangqi.startFen, alternative).toOption.get)
+      List(alternative.value)
     )
     assertEquals(analysis.infos.head.cp, Some(Cp(-35)))
     assertEquals(analysis.infos(1).cp, Some(Cp(10)))

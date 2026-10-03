@@ -90,7 +90,10 @@ body {
     'uchat';
 
   @include mq-at-least-col2 {
-    grid-template-columns: var(---col2-uniboard-width) $analyse-block-gap $col2-uniboard-table;
+    grid-template-columns: var(---col2-uniboard-width) var(
+        ---analysis-gauge-width,
+        #{$analyse-block-gap}
+      ) $col2-uniboard-table;
     grid-template-rows: fit-content(0);
     grid-template-areas:
       'board      gauge tools'
@@ -131,13 +134,15 @@ body {
   }
 
   @include mq-is-col2-squeeze {
-    grid-template-columns: $col2-uniboard-squeeze-width $analyse-block-gap $col2-uniboard-squeeze-table;
+    grid-template-columns:
+      $col2-uniboard-squeeze-width var(---analysis-gauge-width, #{$analyse-block-gap})
+      $col2-uniboard-squeeze-table;
   }
 
   @include mq-at-least-col3 {
     grid-template-columns:
       $col3-uniboard-side $analyse-block-gap var(---col3-uniboard-width)
-      $analyse-block-gap $col3-uniboard-table;
+      var(---analysis-gauge-width, #{$analyse-block-gap}) $col3-uniboard-table;
     grid-template-rows: auto $chat-height auto 2.5em 1fr;
     grid-template-areas:
       'side    . board   gauge tools'

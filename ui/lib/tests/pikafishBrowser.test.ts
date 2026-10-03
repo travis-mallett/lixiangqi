@@ -19,6 +19,59 @@ mock.module(new URL('../src/bigFileStorage.ts', import.meta.url).href, {
 });
 const { PikafishBrowserEngine } = await import('../src/ceval/engines/pikafishBrowser.ts');
 
+test('browser analysis validates whole PV history before publishing and reports prohibited final lines', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const h = moduleHarness();
+  download = async () => new Uint8Array(1);
+  const statuses: string[] = [],
+    emissions: unknown[] = [],
+    requests: any[] = [];
+  let legal = false;
+  t.mock.method(globalThis, 'fetch', async (_url, init) => {
+    const body = JSON.parse(init!.body as string);
+    requests.push(body);
+    return legal
+      ? new Response(JSON.stringify({ moves: body.variation.map((move: string) => ({ move, state: {} })) }))
+      : new Response(JSON.stringify({ error: 'prohibited repetition' }), { status: 400 });
+  });
+  const engine = new PikafishBrowserEngine(status => statuses.push(status.state));
+  await setImmediate();
+  h.module.listen('uciok');
+  h.module.listen('readyok');
+  await engine.prepare();
+  const work = {
+    fen: 'position b - - 0 2',
+    history: { initialFen: 'root w - - 0 1', moves: ['i1i2'], ruleset: 'tiantian-v1' },
+    legalMoves: ['i10i9'],
+    search: { depth: 18 },
+    multiPv: 1,
+    threads: 1,
+    hashSize: 16,
+    emit: (analysis: unknown) => emissions.push(analysis),
+  };
+  engine.start(work);
+  h.module.listen('info depth 18 nodes 100 time 10 score cp 100 pv i9i8');
+  h.module.listen('bestmove i9i8');
+  t.mock.timers.tick(0);
+  await setImmediate();
+  assert.equal(emissions.length, 0);
+  assert.equal(statuses.at(-1), 'error');
+  assert.deepEqual(requests[0], {
+    initialFen: work.history.initialFen,
+    moves: ['i1i2'],
+    ruleset: 'tiantian-v1',
+    variation: ['i10i9'],
+  });
+  legal = true;
+  engine.start(work);
+  h.module.listen('info depth 18 nodes 100 time 10 score cp 100 pv i9i8');
+  h.module.listen('bestmove i9i8');
+  t.mock.timers.tick(0);
+  await setImmediate();
+  assert.equal(emissions.length, 1);
+  engine.destroy();
+});
+
 function moduleHarness() {
   const commands: string[] = [];
   const module = {

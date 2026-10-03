@@ -18,6 +18,7 @@ import lila.study.Study.WithChapter
 import lila.study.{ Who, Chapter, Orders, Settings, Study as StudyModel, StudyForm }
 import lila.ui.Page
 import lila.mon.extensions.*
+import lila.xiangqi.{ Xiangqi, UciPath }
 
 final class Study(
     env: Env,
@@ -27,6 +28,12 @@ final class Study(
 ) extends LilaController(env):
 
   private def pgnDump = env.study.pgnDump
+
+  private lazy val localAnalysisLimit = lila.memo.RateLimit[UserId](
+    credits = 6,
+    duration = 1.minute,
+    key = "study.localAnalysis"
+  )(using env.net.rateLimit)
 
   def search(text: String, page: Int, order: Option[StudyOrder]) =
     OpenOrScopedBody(parse.anyContent)(_.Study.Read, _.Web.Mobile):
@@ -200,11 +207,13 @@ final class Study(
   ): Fu[(WithChapter, JsData)] =
     for
       (studyFromDb, chapterPre) <- env.study.api.maybeResetAndGetChapter(sc.study, sc.chapter)
-      chapter = getColor("pov").foldLeft(chapterPre)(_.withOrientation(_))
+      chapter = get("pov")
+        .flatMap(Xiangqi.Side.fromKey(_).toOption)
+        .foldLeft(chapterPre)(_.withOrientation(_))
       study <- env.relay.api.reconfigureStudy(studyFromDb, chapter)
       previews <- withChapters.optionFu(env.study.preview.jsonList(study.id))
       _ <- env.user.lightUserApi.preloadMany(study.members.ids.toList)
-      pov = userAnalysisC.makePov(chapter.root.fen.some, chapter.setup.variant)
+      pov = userAnalysisC.makePov(chapter.root.gameAt(UciPath.root).fold(sys.error, identity))
       resolvedAnalysis <- env.study.chapterAnalysis(chapter)
       analysis = resolvedAnalysis.analysis
       division = analysis.isDefined.option(env.study.serverEvalMerger.divisionOf(chapter))
@@ -228,15 +237,13 @@ final class Study(
         analysis = resolvedAnalysis
       )
       lichobile = HTTPRequest.isLichobile(ctx.req)
-      nativeTree = env.study.jsonView.xiangqiTree(
-        lila.study.JsonView.analysisTree(chapter, resolvedAnalysis, lichobile)
-      )
+      nativeTree = lila.study.JsonView.analysisTree(chapter, resolvedAnalysis)
       nativeGame = (baseData \ "game").as[JsObject] +
-        ("variant" -> Json.obj("key" -> "xiangqi", "name" -> "Xiangqi"))
+        ("variant" -> Json.obj("key" -> "xiangqi", "name" -> "Xiangqi", "short" -> "Xiangqi"))
     yield WithChapter(study, chapter) -> JsData(
       study = studyJson,
       analysis = (baseData + ("game" -> nativeGame))
-        .add("treeParts" -> nativeTree.some)
+        .add("tree" -> nativeTree.some)
         .add("analysis" -> analysis.map { env.analyse.jsonView.bothPlayers(chapter.root.ply, _) })
     )
 
@@ -258,8 +265,27 @@ final class Study(
           case sc => showQuery(sc)
 
   def chapterConfig(id: StudyId, chapterId: StudyChapterId) = Open:
-    Found(env.study.chapterRepo.byIdAndStudy(chapterId, id)): chapter =>
-      Ok(env.study.jsonView.chapterConfig(chapter))
+    Found(env.study.api.byId(id)): study =>
+      CanView(study) {
+        Found(env.study.chapterRepo.byIdAndStudy(chapterId, id)): chapter =>
+          Ok(env.study.jsonView.chapterConfig(chapter))
+      }(privateForbiddenFu(study), privateForbiddenFu(study))
+
+  def localAnalysis(id: StudyId, chapterId: StudyChapterId) = AuthBody(parse.json(256 * 1024)) {
+    ctx ?=> me ?=>
+      ctx.body.body
+        .validate[lila.study.LocalAnalysis.Data]
+        .fold(
+          _ => fuccess(BadRequest("Invalid chapter analysis")),
+          data =>
+            localAnalysisLimit(me.userId, rateLimited) {
+              env.study.api
+                .saveLocalAnalysis(id, chapterId, data)(Who(me.userId, Sri("local-analysis")))
+                .map(saved => if saved then Ok(Json.obj("saved" -> true)) else Forbidden)
+                .recover { case error: IllegalArgumentException => Conflict(error.getMessage) }
+            }
+        )
+  }
 
   private[controllers] def chatOf(study: lila.study.Study)(using ctx: Context) = {
     ctx.kid.no && ctx.noBot // no public chats for kids and bots
@@ -270,7 +296,7 @@ final class Study(
 
   def createAs = AuthBody { ctx ?=> me ?=>
     bindForm(StudyForm.importGame.form)(
-      _ => Redirect(routes.Study.byOwnerDefault(me.username)),
+      jsonFormError,
       data =>
         for
           owner <- env.study.api.recentByOwnerWithChapterCount(me, 50)
@@ -281,7 +307,7 @@ final class Study(
               val back = HTTPRequest
                 .referer(ctx.req)
                 .orElse:
-                  data.fen.map(fen => editorC.editorUrl(fen, data.variant | chess.variant.Variant.default))
+                  data.fen.map(editorC.editorUrl)
               Ok.page(views.study.create(data, owner, contrib, back))
         yield res
     )
@@ -289,7 +315,7 @@ final class Study(
 
   def create = AuthBody { ctx ?=> me ?=>
     bindForm(StudyForm.importGame.form)(
-      _ => Redirect(routes.Study.byOwnerDefault(me.username)),
+      jsonFormError,
       createStudy
     )
   }
@@ -297,8 +323,11 @@ final class Study(
   private def createStudy(data: StudyForm.importGame.Data)(using ctx: Context, me: Me) =
     val cost = if !data.isNewStudy then 0 else if coachOrTitled then 1 else 2
     limit.studyCreate(me.userId -> ctx.ip, rateLimited, cost):
-      Found(env.study.api.importGame(lila.study.StudyMaker.ImportGame(data), me, ctx.pref.showRatings)): sc =>
-        Redirect(routes.Study.chapter(sc.study.id, sc.chapter.id))
+      Found(env.study.api.importGame(lila.study.StudyMaker.ImportGame(data), me, ctx.pref.showRatings)) {
+        sc =>
+          Redirect(routes.Study.chapter(sc.study.id, sc.chapter.id))
+      }.recover:
+        case lila.study.StudyValidationException(error) => JsonBadRequest(error)
 
   def apiCreate = ScopedBody(_.Study.Write, _.Web.Mobile) { _ ?=> me ?=>
     bindForm(StudyForm.form)(
@@ -339,11 +368,16 @@ final class Study(
   private def doImportPgn(id: StudyId, data: StudyForm.importPgn.Data, sri: Sri)(
       f: (List[Chapter], Option[ErrorMsg]) => Result
   )(using ctx: Context, me: Me): Future[Result] =
-    val chapterDatas = data.toChapterDatas
-    limit.studyPgnImport(me, rateLimited, cost = chapterDatas.size):
-      env.study.api
-        .importPgns(id, chapterDatas, sticky = data.sticky, ctx.pref.showRatings)(Who(me, sri))
-        .map(f.tupled)
+    scala.util
+      .Try(data.toChapterDatas)
+      .fold(
+        error => fuccess(f(Nil, Some(ErrorMsg(error.getMessage)))),
+        chapterDatas =>
+          limit.studyPgnImport(me, rateLimited, cost = chapterDatas.size):
+            env.study.api
+              .importPgns(id, chapterDatas, sticky = data.sticky, ctx.pref.showRatings)(Who(me, sri))
+              .map(f.tupled)
+      )
 
   def importPgn(id: StudyId) = AuthBody { ctx ?=> me ?=>
     get("sri").so: sri =>
@@ -361,7 +395,7 @@ final class Study(
       data =>
         doImportPgn(id, data, Sri("api")): (chapters, errors) =>
           import lila.study.ChapterPreview.json.given
-          import lila.fide.Federation.find
+          import lila.playerDirectory.Federation.find
           val previews = chapters.map(env.study.preview.fromChapter(_))
           JsonOk(Json.obj("chapters" -> previews, "error" -> errors))
     )
@@ -392,7 +426,7 @@ final class Study(
           _.fold(notFound.toFuccess): study =>
             val finalChapterId = if chapterId.value == "autochap" then study.position.chapterId else chapterId
             env.api.textLpvExpand
-              .getChapterPgn(finalChapterId)
+              .getChapterPgn(studyId, finalChapterId)
               .map:
                 case Some(LpvEmbed.PublicPgn(pgn)) => Ok.snip(views.study.embed(study, finalChapterId, pgn))
                 case _ => notFound
@@ -484,7 +518,7 @@ final class Study(
               filename = s"${pgnDump.filename(study, chapter)}.pgn"
               res = Ok(pgn.toString).as(pgnContentType).asAttachment(filename)
               resWithAnalysis = analysisJson.fold(res): a =>
-                res.withHeaders("X-Lichess-Analysis" -> Json.stringify(a))
+                res.withHeaders("X-LiXiangQi-Analysis" -> Json.stringify(a))
             yield resWithAnalysis
           }(studyUnauthorized(study), studyForbidden(study))
         }

@@ -1,4 +1,3 @@
-import { view as cevalView } from 'lib/ceval';
 import { displayColumns, isTouchDevice } from 'lib/device';
 import { type VNode } from 'lib/view';
 
@@ -13,6 +12,7 @@ import {
 } from '@/view/components';
 import { renderControls } from '@/view/controls';
 import { renderTools } from '@/view/tools';
+import { renderXiangqiGauge } from '@/view/xiangqiEngine';
 
 import type * as studyDeps from '../studyDeps';
 import type RelayCtrl from './relayCtrl';
@@ -50,7 +50,7 @@ function renderBoardView(ctx: RelayViewContext) {
   const resizable = !isTouchDevice() && displayColumns() > 2;
   return [
     renderBoard(ctx),
-    gaugeOn && cevalView.renderGauge(ctrl),
+    gaugeOn && renderXiangqiGauge(ctrl),
     renderTools(ctx, relay.userClosedTheVideoEmbed() ? undefined : relay.videoPlayer?.render()),
     renderControls(ctrl),
     !ctrl.isEmbed && renderUnderboard(ctx),

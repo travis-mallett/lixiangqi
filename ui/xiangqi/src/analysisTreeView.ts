@@ -1,6 +1,5 @@
-import { horizontalMoveListScrollPosition } from 'lib/view/horizontalMoveList';
-
-import { formatEvaluation } from './evaluation';
+import { selectXiangqiNotation, type XiangqiNotationStyle } from 'lib/game/xiangqi';
+import { enrichText } from 'lib/richText';
 import {
   canPromote,
   countNodes,
@@ -13,7 +12,13 @@ import {
   type XiangqiMoveTree,
   type XiangqiPositionNode,
   type XiangqiTreeNode,
-} from './tree';
+} from 'lib/tree/native';
+import { mainlineFirst } from 'lib/tree/ops';
+import * as treePath from 'lib/tree/path';
+import type { Glyph, TreeComment } from 'lib/tree/types';
+import { horizontalMoveListScrollPosition } from 'lib/view/horizontalMoveList';
+
+import { formatEvaluation } from './evaluation';
 
 export interface AnalysisTreeViewOptions {
   element: HTMLElement;
@@ -23,8 +28,17 @@ export interface AnalysisTreeViewOptions {
   notationLayout: () => 'two-column' | 'compact';
   navigate: (path: string) => void;
   commit: () => void;
+  notationStyle?: () => XiangqiNotationStyle;
   readOnly?: boolean;
   emptyText?: string;
+  children?: (node: XiangqiPositionNode) => XiangqiTreeNode[];
+  conceal?: (node: XiangqiTreeNode, isMainline: boolean) => false | 'hide' | 'conceal' | null;
+  comments?: (node: XiangqiPositionNode) => TreeComment[];
+  glyphs?: (node: XiangqiTreeNode) => Glyph[];
+  evaluation?: (node: XiangqiTreeNode) => { cp?: number; mate?: number } | undefined;
+  moveClasses?: (node: XiangqiTreeNode) => Record<string, boolean>;
+  contextMenu?: (path: string, x: number, y: number) => void;
+  toggleCollapsed?: (node: XiangqiPositionNode) => void;
 }
 
 export class AnalysisTreeView {
@@ -34,12 +48,12 @@ export class AnalysisTreeView {
   constructor(private readonly opts: AnalysisTreeViewOptions) {}
 
   render({ scrollToActive = true }: { scrollToActive?: boolean } = {}): void {
-    const children = this.opts.tree().root.children;
+    const children = this.children(this.opts.tree().root);
     if (!children.length) {
       const empty = document.createElement('span');
       empty.className = 'xiangqi-analysis__empty';
       empty.textContent = this.opts.emptyText ?? 'Play a move on the board to begin analysis.';
-      this.opts.element.replaceChildren(empty);
+      this.opts.element.replaceChildren(this.commentBlock(this.opts.tree().root), empty);
       return;
     }
 
@@ -49,7 +63,7 @@ export class AnalysisTreeView {
     }
 
     const fragment = document.createDocumentFragment();
-    if (this.opts.tree().root.comments?.length) fragment.append(this.commentBlock(this.opts.tree().root));
+    fragment.append(this.commentBlock(this.opts.tree().root));
     this.renderBranches(children, fragment, 0, true);
     this.opts.element.replaceChildren(fragment);
     if (scrollToActive)
@@ -64,15 +78,16 @@ export class AnalysisTreeView {
   private renderHorizontalMoves(scrollToActive: boolean): void {
     const list = document.createElement('div');
     list.className = 'xiangqi-analysis__horizontal-moves';
-    const activePathParts = this.opts.activePath().split('.').filter(Boolean);
-    let children = this.opts.tree().root.children;
+    const activePathParts = treePath.ids(this.opts.activePath());
+    let children = this.children(this.opts.tree().root);
     let depth = 0;
     let firstInLine = true;
 
     while (children.length) {
       const node = children.find(candidate => candidate.id === activePathParts[depth]) ?? children[0];
-      list.append(this.moveButton(node, firstInLine));
-      children = node.children;
+      if (this.opts.conceal?.(node, pathIsMainline(this.opts.tree(), node.path)) === 'hide') break;
+      list.append(this.moveElement(node, firstInLine));
+      children = this.children(node);
       depth += 1;
       firstInLine = false;
     }
@@ -90,13 +105,17 @@ export class AnalysisTreeView {
     this.menu = undefined;
   }
 
+  private children(node: XiangqiPositionNode): XiangqiTreeNode[] {
+    return this.opts.children?.(node) ?? node.children;
+  }
+
   private renderBranches(
     children: XiangqiTreeNode[],
     container: DocumentFragment | HTMLElement,
     depth: number,
     isMainline: boolean,
   ): void {
-    const [main, ...variations] = children;
+    const [main, ...variations] = isMainline ? mainlineFirst(children) : children;
     if (!main) return;
     if (main.forceVariation && isMainline) {
       children.forEach(child => container.append(this.renderBranch(child, depth + 1, false)));
@@ -125,12 +144,14 @@ export class AnalysisTreeView {
     let siblings = firstSiblings;
     let firstInLine = true;
     while (node) {
-      branch.append(this.moveButton(node, firstInLine));
-      if (node.comments?.length) branch.append(this.commentBlock(node));
-      if (!node.collapsed)
+      if (this.opts.conceal?.(node, isMainline) === 'hide') break;
+      branch.append(this.moveElement(node, firstInLine));
+      branch.append(this.commentBlock(node));
+      if (!this.opts.tree().nodeAtPath(treePath.init(node.path)).collapsed)
         siblings.forEach(sibling => branch.append(this.renderBranch(sibling, depth + 1, false)));
-      siblings = node.children.slice(1);
-      node = node.children[0];
+      const next: XiangqiTreeNode[] = isMainline ? mainlineFirst(this.children(node)) : this.children(node);
+      siblings = next.slice(1);
+      node = next[0];
       firstInLine = false;
     }
     return branch;
@@ -147,6 +168,7 @@ export class AnalysisTreeView {
     let row: HTMLElement | undefined;
     let rowNumber: number | undefined;
     while (node) {
+      if (this.opts.conceal?.(node, true) === 'hide') break;
       const move = moveMeta(node);
       if (!row || rowNumber !== move.number) {
         row = document.createElement('div');
@@ -158,13 +180,39 @@ export class AnalysisTreeView {
         branch.append(row);
         rowNumber = move.number;
       }
-      row.append(this.moveButton(node, false));
-      if (node.comments?.length) branch.append(this.commentBlock(node));
-      if (!node.collapsed)
+      row.append(this.moveElement(node, false));
+      branch.append(this.commentBlock(node));
+      if (!this.opts.tree().nodeAtPath(treePath.init(node.path)).collapsed)
         siblings.forEach(sibling => branch.append(this.renderBranch(sibling, depth + 1, false)));
-      siblings = node.children.slice(1);
-      node = node.children[0];
+      const next: XiangqiTreeNode[] = mainlineFirst(this.children(node));
+      siblings = next.slice(1);
+      node = next[0];
     }
+  }
+
+  private moveElement(node: XiangqiTreeNode, firstInLine: boolean): HTMLElement {
+    const move = this.moveButton(node, firstInLine);
+    if (this.children(node).length < 2) return move;
+    const group = document.createElement('span');
+    group.className = `xiangqi-analysis__move-group ${moveMeta(node).mover}-move`;
+    const disclosure = document.createElement('button');
+    disclosure.type = 'button';
+    disclosure.className = 'xiangqi-analysis__disclosure';
+    disclosure.textContent = node.collapsed ? '＋' : '−';
+    disclosure.setAttribute('aria-expanded', String(!node.collapsed));
+    disclosure.setAttribute(
+      'aria-label',
+      node.collapsed ? i18n.site.expandVariations : i18n.site.collapseVariations,
+    );
+    disclosure.addEventListener('click', () => {
+      if (this.opts.toggleCollapsed) this.opts.toggleCollapsed(node);
+      else {
+        node.collapsed = !node.collapsed;
+        this.opts.commit();
+      }
+    });
+    group.append(move, disclosure);
+    return group;
   }
 
   private moveButton(node: XiangqiTreeNode, firstInLine: boolean): HTMLButtonElement {
@@ -174,6 +222,12 @@ export class AnalysisTreeView {
     button.classList.toggle('active', this.opts.activePath() === node.path);
     button.classList.toggle('branch-point', node.children.length > 1);
     button.classList.add(`${moveMeta(node).mover}-move`);
+    button.classList.toggle(
+      'conceal',
+      this.opts.conceal?.(node, pathIsMainline(this.opts.tree(), node.path)) === 'conceal',
+    );
+    for (const [name, enabled] of Object.entries(this.opts.moveClasses?.(node) ?? {}))
+      button.classList.toggle(name, enabled);
     button.dataset.path = node.path;
     button.title = `${node.notation} (${node.uci})`;
 
@@ -182,12 +236,24 @@ export class AnalysisTreeView {
     prefix.textContent = movePrefix(node, firstInLine);
     const notation = document.createElement('span');
     notation.className = 'move-notation';
-    notation.textContent = node.notation;
+    notation.textContent = selectXiangqiNotation(
+      node.notation ?? '',
+      node.chineseNotation,
+      this.opts.notationStyle?.() ?? 'english',
+    );
     button.append(prefix, notation);
-    if (node.evaluation) {
+    for (const glyph of this.opts.glyphs?.(node) ?? node.glyphs ?? []) {
+      const annotation = document.createElement('span');
+      annotation.className = 'move-glyph';
+      annotation.textContent = glyph.symbol;
+      annotation.title = glyph.name;
+      button.append(annotation);
+    }
+    const evaluation = this.opts.evaluation ? this.opts.evaluation(node) : node.evaluation;
+    if (evaluation) {
       const score = document.createElement('span');
       score.className = 'move-eval';
-      score.textContent = formatEvaluation(node.evaluation.score);
+      score.textContent = formatEvaluation({ redCp: evaluation.cp, redMate: evaluation.mate });
       button.append(score);
     }
 
@@ -219,17 +285,26 @@ export class AnalysisTreeView {
     return button;
   }
 
-  private commentBlock(node: XiangqiPositionNode): HTMLElement {
+  private commentBlock(node: XiangqiPositionNode): HTMLElement | DocumentFragment {
+    const comments = this.opts.comments?.(node) ?? node.comments;
+    if (!comments?.length) return document.createDocumentFragment();
     const wrapper = document.createElement('div');
     wrapper.className = 'xiangqi-analysis__comments';
-    node.comments?.forEach(comment => {
+    wrapper.classList.toggle(
+      'conceal',
+      this.opts.conceal?.(node, pathIsMainline(this.opts.tree(), node.path)) === 'conceal',
+    );
+    comments.forEach(comment => {
       const entry = document.createElement('p');
-      if (comment.source || comment.author) {
+      const author = comment.author ?? (comment.by && 'name' in comment.by ? comment.by.name : undefined);
+      if (comment.source || author) {
         const attribution = document.createElement('strong');
-        attribution.textContent = [comment.source, comment.author].filter(Boolean).join(' · ');
+        attribution.textContent = [comment.source, author].filter(Boolean).join(' · ');
         entry.append(attribution, document.createTextNode(' '));
       }
-      entry.append(document.createTextNode(comment.text));
+      const text = document.createElement('span');
+      text.innerHTML = enrichText(comment.text);
+      entry.append(text);
       wrapper.append(entry);
     });
     return wrapper;
@@ -237,10 +312,11 @@ export class AnalysisTreeView {
 
   private openMenu(path: string, x: number, y: number): void {
     this.closeMenu();
+    if (this.opts.contextMenu) return this.opts.contextMenu(path, x, y);
     const tree = this.opts.tree();
     const node = nodeAtPath(tree, path);
     if (!node?.path) return;
-    const moveNode = node as XiangqiTreeNode;
+    const moveNode = node;
     this.menu = document.createElement('div');
     this.menu.className = 'xiangqi-tree-menu';
     this.menu.style.left = `${Math.min(x, window.innerWidth - 220)}px`;

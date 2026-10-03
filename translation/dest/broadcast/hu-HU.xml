@@ -41,11 +41,7 @@
   <string name="definitivelyDeleteTournament">Az egész verseny végleges törlése az összes fordulóval és játszmáival együtt.</string>
   <string name="showScores">Mutasd a játékosok pontszámait a játszmaeredmények alapján</string>
   <string name="replacePlayerTags">Opcionális: játékosnevek, értékszámok és titulusok változtatása</string>
-  <string name="fideFederations">FIDE szövetségek</string>
   <string name="top10Rating">Top 10 értékszám</string>
-  <string name="fidePlayers">FIDE játékosok</string>
-  <string name="fidePlayerNotFound">Nem találtunk ilyen FIDE-játékost</string>
-  <string name="fideProfile">FIDE-profil</string>
   <string name="federation">Ország</string>
   <string name="age">Életkor</string>
   <string name="unrated">Nem értékelt</string>
@@ -75,7 +71,6 @@
   <string name="tournamentLocation">Verseny helye</string>
   <string name="topPlayers">Top játékosok</string>
   <string name="timezone">Időzóna</string>
-  <string name="fideRatingCategory">FIDE értékszám kategória</string>
   <string name="optionalDetails">Nem kötelező adatok</string>
   <string name="pastBroadcasts">Korábbi közvetítések</string>
   <string name="allBroadcastsByMonth">Minden közvetítés megtekintése havi bontásban</string>

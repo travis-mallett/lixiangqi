@@ -180,7 +180,7 @@ final class LilaComponents(
   lazy val recap: Recap = wire[Recap]
   lazy val bulkPairing: BulkPairing = wire[BulkPairing]
   lazy val cms: Cms = wire[Cms]
-  lazy val fide: Fide = wire[Fide]
+  lazy val playerDirectory: PlayerDirectory = wire[PlayerDirectory]
   lazy val titleVerify: TitleVerify = wire[TitleVerify]
 
   // eagerly wire up all controllers

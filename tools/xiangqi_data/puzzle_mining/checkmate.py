@@ -16,8 +16,13 @@ import time
 from tools.xiangqi_data.pikafish import _default_executable
 from .classification_job import classify_solutions
 from .engine import OfflinePikafish, EngineCancelled
-from .storage import open_database
-from .workers import WorkerCancelled, start_workers, stop_workers
+from .storage import open_database, open_database_when_ready
+from .workers import (
+    WorkerCancelled,
+    start_workers,
+    stop_workers,
+    watch_supervisor,
+)
 
 DEFAULT_DATABASE = Path("data/local/xiangqi-puzzle-mining.sqlite3")
 
@@ -36,8 +41,11 @@ class CategorizerConfig:
 
 
 def _worker_main(index, args, stop, catalog_changed):
+    watch_supervisor(stop)
     with ExitStack() as resources:
-        connection = resources.enter_context(closing(open_database(args.database)))
+        connection = resources.enter_context(
+            closing(open_database(args.database, initialize=False))
+        )
         from .queue_priority import prepare_priority
 
         prepare_priority(connection, getattr(args, "catalog_db", None))
@@ -125,7 +133,7 @@ def _reconcile_catalog(args, catalog_changed):
 
 def main(default_type="checkmate_candidate"):
     args = parse_args(default_type)
-    connection = open_database(args.database)
+    connection = open_database_when_ready(args.database)
     connection.close()
     context = mp.get_context("spawn")
     stop = context.Event()

@@ -1,7 +1,5 @@
-import { defined } from 'lib';
-import { zip } from 'lib/algo';
 import { winningChances } from 'lib/ceval';
-import { fenToEpd } from 'lib/game/chess';
+import type { XiangqiSide as Color } from 'lib/game/xiangqi';
 import type { TreeNode } from 'lib/tree/types';
 
 const hasCompChild = (node: TreeNode): boolean => node.children.some(c => !!c.comp);
@@ -14,7 +12,7 @@ export const nextGlyphSymbol = (
 ): TreeNode | undefined =>
   mainline
     .map((_, i) => mainline[(fromPly - mainline[0].ply + i + 1) % mainline.length])
-    .find(n => n.ply % 2 === (color === 'white' ? 1 : 0) && n.glyphs?.some(g => g.symbol === symbol));
+    .find(n => n.ply % 2 === (color === 'red' ? 1 : 0) && n.glyphs?.some(g => g.symbol === symbol));
 
 export const evalSwings = (mainline: TreeNode[], nodeFilter: (node: TreeNode) => boolean): TreeNode[] =>
   mainline.slice(1).filter((curr, i) => {
@@ -24,30 +22,7 @@ export const evalSwings = (mainline: TreeNode[], nodeFilter: (node: TreeNode) =>
       curr.eval &&
       prev.eval &&
       hasCompChild(prev) &&
-      (Math.abs(winningChances.povDiff('white', prev.eval, curr.eval)) > 0.1 ||
+      (Math.abs(winningChances.povDiff('red', prev.eval, curr.eval)) > 0.1 ||
         (prev.eval.mate && !curr.eval.mate && Math.abs(prev.eval.mate) <= 3))
     );
   });
-
-export function detectThreefold(nodeList: TreeNode[], node: TreeNode): void {
-  if (defined(node.threefold)) return;
-  const currentEpd = fenToEpd(node.fen);
-  node.threefold = nodeList.filter(n => fenToEpd(n.fen) === currentEpd).length > 2;
-}
-
-// can be 3fold or 5fold
-export function add3or5FoldGlyphs(mainlineNodes: TreeNode[]): boolean {
-  // only the last positition can be source of three/five-fold
-  const lastEpd = fenToEpd(mainlineNodes[mainlineNodes.length - 1].fen);
-  const repetitions = mainlineNodes.filter(n => fenToEpd(n.fen) === lastEpd);
-  if (repetitions.length > 2) {
-    const unicodeList = ['①', '②', '③', '④', '⑤'];
-    for (const [i, [node, unicode]] of zip(repetitions, unicodeList).entries()) {
-      const glyph = { symbol: unicode, name: `repetition number ${i + 1}`, id: 9 };
-      if (!node.glyphs) node.glyphs = [glyph];
-      else node.glyphs.push(glyph);
-    }
-    return true;
-  }
-  return false;
-}

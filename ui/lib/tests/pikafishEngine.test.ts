@@ -5,6 +5,27 @@ import type { CevalCtrl } from '../src/ceval/ctrl.ts';
 import { PikafishProtocol, toLocalEval, type EngineAnalysis } from '../src/ceval/engines/pikafishProtocol.ts';
 import type { Work } from '../src/ceval/types.ts';
 
+test('native rule policies restrict engine root moves at the UCI boundary', () => {
+  const commands: string[] = [];
+  const protocol = new PikafishProtocol();
+  protocol.connected(command => commands.push(command));
+  protocol.received('uciok');
+  protocol.received('readyok');
+  protocol.compute({
+    fen: 'current b - - 0 2',
+    history: { initialFen: 'initial w - - 0 1', moves: ['i1i2'], ruleset: 'tiantian-v1' },
+    legalMoves: ['i10i9', 'e10d10'],
+    search: { depth: 18 },
+    multiPv: 2,
+    threads: 1,
+    hashSize: 16,
+    stopRequested: false,
+    emit() {},
+  });
+  assert.ok(commands.includes('position fen initial w - - 0 1 moves i0i1'));
+  assert.equal(commands.at(-1), 'go depth 18 searchmoves i9i8 e9d9');
+});
+
 test('queued work cannot search before native startup acknowledges configured options', () => {
   const commands: string[] = [];
   let ready = false;

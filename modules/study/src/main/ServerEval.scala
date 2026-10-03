@@ -1,14 +1,20 @@
 package lila.study
 
-import chess.format.pgn.Glyphs
-import chess.format.{ Fen, Uci, UciPath }
+import lila.xiangqi.XiangqiGlyph.{ Glyph, Glyphs }
+
+import chess.format.Fen
+import lila.xiangqi.UciPath
+import lila.xiangqi.XiangqiJson.given
+import lila.xiangqi.Xiangqi.Uci
+
 import play.api.libs.json.*
 
 import lila.core.perm.Granter
 import lila.core.relay.GetCrowd
 import lila.db.dsl.bsonWriteOpt
 import lila.tree.Node.Comment
-import lila.tree.{ Advice, Analysis, Branch, Info, Node, Root }
+import lila.tree.{ Advice, Analysis, Branch, Branches, Info, Node, Root }
+import lila.xiangqi.{ Xiangqi, XiangqiRules }
 
 object ServerEval:
 
@@ -25,38 +31,29 @@ object ServerEval:
         resolved.sourceGame.isEmpty.so(request(study, chapter, userId, official))
 
     private def request(study: Study, chapter: Chapter, userId: UserId, official: Boolean): Funit =
-      chapter.serverEval
-        .forall: eval =>
-          !eval.done && onceEvery(chapter.id)
-        .so:
-          for
-            isOfficial <- fuccess(official) >>|
-              fuccess(userId.is(UserId.lichess)) >>|
-              userApi.me(userId).map(_.soUse(Granter.opt(_.Relay)))
-            _ <- chapterRepo.startServerEval(chapter)
-          yield lila.common.Bus.pub(
-            lila.core.fishnet.Bus.StudyChapterRequest(
-              studyId = study.id,
-              chapterId = chapter.id,
-              initialFen = chapter.root.fen.some,
-              variant = chapter.setup.variant,
-              moves = chess.format
-                .UciDump(
-                  moves = chapter.root.mainline.map(_.move.san),
-                  initialFen = chapter.root.fen.some,
-                  variant = chapter.setup.variant
-                )
-                .toOption
-                .map(_.flatMap(chess.format.Uci.apply)) | List.empty,
-              userId = userId,
-              official = isOfficial
-            )
+      onceEvery(chapter.id).so:
+        for
+          isOfficial <- fuccess(official) >>|
+            fuccess(userId.is(UserId.lichess)) >>|
+            userApi.me(userId).map(_.soUse(Granter.opt(_.Relay)))
+          _ <- chapterRepo.startServerEval(chapter)
+        yield lila.common.Bus.pub(
+          lila.core.fishnet.Bus.StudyChapterRequest(
+            studyId = study.id,
+            chapterId = chapter.id,
+            initialFen = chapter.root.fen.some,
+            ruleset = chapter.root.ruleset,
+            moves = chapter.root.mainline.map(_.move.uci),
+            userId = userId,
+            official = isOfficial
           )
+        )
 
   final class Merger(
       sequencer: StudySequencer,
       socket: StudySocket,
       chapterRepo: ChapterRepo,
+      analyser: lila.tree.Analyser,
       divider: lila.core.game.Divider,
       analysisJson: lila.tree.AnalysisJson
   )(using Executor, Scheduler):
@@ -64,17 +61,30 @@ object ServerEval:
     def apply(analysis: Analysis, complete: Boolean): Funit = analysis.id match
       case Analysis.Id.Study(studyId, chapterId) =>
         sequencer.sequenceStudyWithChapter(studyId, chapterId):
-          case Study.WithChapter(_, chapter) =>
+          case Study.WithChapter(_, chapter)
+              if chapter.root.gameAt(chapter.root.mainlinePath).exists(_.position == analysis.position) =>
+            validateTreeBudget(chapter, analysis)
             for
-              _ <- complete.so(chapterRepo.completeServerEval(chapter))
+              retained <-
+                if complete then
+                  val source = chapter.root.gameAt(chapter.root.mainlinePath).toOption.get
+                  analyser.persistStudy(
+                    analysis,
+                    lila.xiangqi.XiangqiEvaluation
+                      .key(source)
+                      .getBytes(java.nio.charset.StandardCharsets.UTF_8)
+                  )
+                else fuccess(analysis)
               _ <- chapter.root.mainline
-                .zip(analysis.infoAdvices)
+                .zip(retained.infoAdvices)
                 .foldM(UciPath.root):
                   case (path, (node, (info, advOpt))) =>
                     saveAnalysis(chapter, node, path, info, advOpt)
-                .andDo(sendProgress(studyId, chapterId, analysis))
                 .logFailure(logger)
+              _ <- complete.so(chapterRepo.completeServerEval(chapter))
+              _ <- sendProgress(studyId, chapterId, retained)
             yield ()
+          case _ => funit
       case _ => funit
 
     private def saveAnalysis(
@@ -91,16 +101,16 @@ object ServerEval:
         chapter.root
           .nodeAt(path)
           .flatMap: parent =>
-            analysisLine(parent, chapter.setup.variant, info).map: subTree =>
-              parent.addChild(subTree) -> subTree
-          .so: (_, subTree) =>
+            analysisLine(chapter.root, path, info).map: subTree =>
+              parent.children.get(subTree.id).fold(subTree)(_.merge(subTree))
+          .so: subTree =>
             chapterRepo.addSubTree(chapter, subTree, path, none)
 
       def saveInfoAdvice() =
         import BSONHandlers.given
         import lila.db.dsl.given
         import lila.study.Node.BsonFields as F
-        ((info.eval.score.isDefined && node.eval.isEmpty) || (advOpt.isDefined && !node.comments.hasLichessComment))
+        ((info.eval.score.isDefined && node.eval.isEmpty) || (advOpt.isDefined && !node.comments.hasSiteComment))
           .so(
             chapterRepo
               .setNodeValues(
@@ -110,18 +120,18 @@ object ServerEval:
                   F.score -> info.eval.score
                     .ifTrue:
                       node.eval.isEmpty ||
-                      advOpt.isDefined && node.comments.findBy(Comment.Author.Lichess).isEmpty
+                      advOpt.isDefined && node.comments.findBy(Comment.Author.Site).isEmpty
                     .flatMap(bsonWriteOpt),
                   F.comments -> advOpt
                     .map: adv =>
                       node.comments + Comment(
                         Comment.Id.make,
                         adv.makeComment(false),
-                        Comment.Author.Lichess
+                        Comment.Author.Site
                       )
                     .flatMap(bsonWriteOpt),
                   F.glyphs -> advOpt
-                    .map(adv => node.glyphs.merge(Glyphs.fromList(List(adv.judgment.glyph))))
+                    .map(adv => node.glyphs.merge(Glyphs.fromList(List(Glyph.fromId(adv.judgment.glyph.id)))))
                     .flatMap(bsonWriteOpt)
                 )
               )
@@ -132,27 +142,40 @@ object ServerEval:
 
     end saveAnalysis
 
-    private def analysisLine(root: Node, variant: chess.variant.Variant, info: Info): Option[Branch] =
-      val setup = chess.Position.AndFullMoveNumber(variant, root.fen)
-      val (result, error) = setup.position
-        .foldRight(info.variation.take(20), setup.ply)(
-          none[Branch],
-          (step, acc) =>
-            inline def branch = makeBranch(step.move, step.ply)
-            acc.fold(branch)(acc => branch.addChild(acc)).some
-        )
-      error.foreach(e => logger.info(e.value))
-      result
+    private def validateTreeBudget(chapter: Chapter, analysis: Analysis): Unit =
+      val (root, _) = chapter.root.mainline
+        .zip(analysis.infos)
+        .foldLeft(chapter.root -> UciPath.root):
+          case ((root, path), (node, info)) =>
+            val updated = analysisLine(root, path, info).fold(root): branch =>
+              root
+                .withChildren(_.addNodeAt(branch, path))
+                .getOrElse(throw IllegalArgumentException("Invalid analysis path"))
+            updated -> (path + node.id)
+      require(root.children.countRecursive <= Chapter.maxNodes, "Analysis exceeds maximum study node count")
+      require(root.children.maxDepth <= UciPath.maxDepth, "Analysis exceeds maximum study move depth")
 
-    private def makeBranch(m: chess.MoveOrDrop, ply: chess.Ply): Branch =
-      Branch(
-        ply = ply,
-        move = Uci.WithSan(m.toUci, m.toSanStr),
-        fen = Fen.write(m.after, ply.fullMoveNumber),
-        crazyData = m.after.position.crazyData,
-        clock = none,
-        forceVariation = false
-      )
+    private def analysisLine(root: Root, path: UciPath, info: Info): Option[Branch] =
+      root
+        .gameAt(path)
+        .flatMap { initial =>
+          XiangqiRules.variation(initial, info.variation.take(20).toVector).map { line =>
+            line.moves.foldRight(Option.empty[Branch]) { (move, child) =>
+              Some(
+                Branch(
+                  move.state,
+                  Xiangqi.Move(move.move, move.notation, move.chineseNotation),
+                  children = Branches(child.toList),
+                  comp = true
+                )
+              )
+            }
+          }
+        }
+        .fold(
+          error => throw IllegalArgumentException(s"Invalid engine line: $error"),
+          identity
+        )
 
     private def sendProgress(
         studyId: StudyId,

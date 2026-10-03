@@ -1,6 +1,6 @@
 package lila.fishnet
 
-import chess.variant.Variant
+import lila.xiangqi.adjudication.Ruleset
 import reactivemongo.api.bson.*
 
 import lila.db.dsl.{ *, given }
@@ -16,10 +16,13 @@ private object BSONHandlers:
 
   given BSONDocumentHandler[Client] = Macros.handler
 
-  given BSONHandler[Variant] = variantByIdHandler
+  given BSONHandler[Ruleset] = tryHandler[Ruleset](
+    { case BSONString(v) => Ruleset.fromKey(v).left.map(error => new IllegalArgumentException(error)).toTry },
+    x => BSONString(x.key)
+  )
 
   private given BSONDocumentHandler[Work.Acquired] = Macros.handler
-  private given BSONDocumentHandler[Work.Game] = Macros.handler
+  given BSONDocumentHandler[Work.Game] = Macros.handler
   private given BSONDocumentHandler[Work.Sender] = Macros.handler
   given BSONHandler[Work.Origin] =
     valueMapHandler(Work.Origin.values.map(o => o.toString -> o).toMap)(_.toString)

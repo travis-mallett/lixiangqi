@@ -26,7 +26,7 @@ import {
   plyLine,
   selectPly,
   tooltipBgColor,
-  whiteFill,
+  redFill,
   axisOpts,
 } from './index';
 import type { AcplChart, AnalyseData, EvaluationChartOptions, EvaluationNode, Player } from './interface';
@@ -40,7 +40,7 @@ export default async function (
 ): Promise<AcplChart> {
   const possibleChart = maybeChart(el);
   if (possibleChart) return possibleChart as AcplChart;
-  const blurBackgroundColorWhite = 'white';
+  const blurBackgroundColorRed = redFill;
   const blurBackgroundColorBlack = 'black';
   const ply = plyLine(0);
   const divisionLines = division(data.game.division);
@@ -53,7 +53,7 @@ export default async function (
   ): { acpl: ChartDataset<'line'>; moveLabels: string[]; adviceHoverColors: string[] } => {
     const pointBackgroundColors: (
       | typeof orangeAccent
-      | typeof blurBackgroundColorWhite
+      | typeof blurBackgroundColorRed
       | typeof blurBackgroundColorBlack
     )[] = [];
     const adviceHoverColors: string[] = [];
@@ -62,29 +62,29 @@ export default async function (
     const pointSizes: number[] = [];
     const winChances: { x: number; y: number }[] = [];
     const blurs = [toBlurArray(d.player), toBlurArray(d.opponent)];
-    if (d.player.color === 'white') blurs.reverse();
+    if (d.player.color === 'red') blurs.reverse();
     mainline.slice(1).map(node => {
-      const isWhite = (node.ply & 1) === 1;
+      const isRed = (node.ply & 1) === 1;
       const turn = plyToTurn(node.ply);
-      const dots = isWhite ? '.' : '...';
-      const winchance = evaluationValue(node, d.game.variant.key);
+      const dots = isRed ? '.' : '...';
+      const winchance = evaluationValue(node);
       // Plot winchance because logarithmic but display the corresponding cp.eval from AnalyseData in the tooltip
       // Chart.js skips non-finite points and leaves a gap for missing analysis.
       winChances.push({ x: node.ply, y: winchance ?? NaN });
 
       const { advice, color: glyphColor } = glyphProperties(node);
-      const side = d.game.variant.key === 'xiangqi' ? `${isWhite ? i18n.site.white : i18n.site.black} ` : '';
-      const label = `${turn}${dots} ${side}${node.san ?? ''}`;
+      const side = `${isRed ? i18n.site.red : i18n.site.black} `;
+      const label = `${turn}${dots} ${side}${node.notation ?? ''}`;
       let annotation = '';
       if (advice) annotation = ` [${i18n.site[advice]}]`;
       const isBlur =
-        blurs[isWhite ? 1 : 0][Math.floor((node.ply - (d.game.startedAtTurn || 0) - 1) / 2)] === '1';
+        blurs[isRed ? 1 : 0][Math.floor((node.ply - (d.game.startedAtTurn || 0) - 1) / 2)] === '1';
       if (isBlur) annotation = ' [blur]';
       moveLabels.push(label + annotation);
       pointStyles.push(isBlur ? 'rect' : 'circle');
       pointSizes.push(isBlur ? 5 : 0);
       pointBackgroundColors.push(
-        isBlur ? (isWhite ? blurBackgroundColorWhite : blurBackgroundColorBlack) : orangeAccent,
+        isBlur ? (isRed ? blurBackgroundColorRed : blurBackgroundColorBlack) : orangeAccent,
       );
       adviceHoverColors.push(glyphColor ?? orangeAccent);
     });
@@ -96,7 +96,7 @@ export default async function (
         fill: {
           target: 'origin',
           below: blackFill,
-          above: whiteFill,
+          above: redFill,
         },
         pointRadius: d.player.blurs || d.opponent.blurs ? pointSizes : 0,
         pointHoverRadius: 5,
@@ -211,7 +211,7 @@ function christmasTree(chart: AcplChart, mainline: EvaluationNode[], hoverColors
   const enter = function (this: HTMLElement) {
     if (!chart.canvas.isConnected) return;
     const symbol = this.getAttribute('data-symbol');
-    const playerColorBit = this.getAttribute('data-color') === 'white' ? 1 : 0;
+    const playerColorBit = this.getAttribute('data-color') === 'red' ? 1 : 0;
     const acplDataset = chart.data.datasets[0];
     if (symbol === '??' || symbol === '?!' || symbol === '?') {
       acplDataset.pointHoverBackgroundColor = hoverColors;

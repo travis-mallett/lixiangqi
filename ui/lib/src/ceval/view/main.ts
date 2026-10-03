@@ -1,18 +1,12 @@
-import { Chessground as makeChessground } from '@lichess-org/chessground';
-import { uciToMove } from '@lichess-org/chessground/util';
 // no side effects allowed due to re-export by index.ts
 import { boardPresentation, type BoardView } from '@lixiangqi/board';
-import type { Position } from 'chessops/chess';
-import { lichessRules } from 'chessops/compat';
-import { parseFen, makeBoardFen } from 'chessops/fen';
-import { makeSanAndPlay } from 'chessops/san';
-import { opposite, parseUci } from 'chessops/util';
-import { setupPosition } from 'chessops/variant';
 import { h } from 'snabbdom';
 
 import { createXiangqiBoard, xiangqiPosition } from '@/board';
 import { isTouchDevice } from '@/device';
-import { blurIfPrimaryClick, defined, notNull, requestIdleCallbackSafe } from '@/index';
+import { selectXiangqiNotation } from '@/game/xiangqi';
+import { replayXiangqiVariation, type VariationMove } from '@/game/xiangqiNotation';
+import { blurIfPrimaryClick, defined, requestIdleCallbackSafe } from '@/index';
 import { licon } from '@/licon';
 import type { ClientEval, LocalEval, PvData } from '@/tree/types';
 import { type VNode, type LooseVNode, type LooseVNodes, bind, hl, onInsert, icon } from '@/view';
@@ -134,7 +128,7 @@ export function renderGauge(ctrl: CevalHandler): VNode | undefined {
   const bestEv = getBestEval(ctrl);
   let ev;
   if (bestEv) {
-    ev = povChances('white', bestEv);
+    ev = povChances('red', bestEv);
     gaugeLast = ev;
   } else ev = gaugeLast;
   return hl(
@@ -175,7 +169,7 @@ export function renderCeval(ctrl: CevalHandler): VNode[] {
     percent = 100;
   } else {
     if (!enabled) pearl = h('pearl', h('icon'));
-    else if (node.outcome() || node.threefold) pearl = h('pearl', '-');
+    else if (node.outcome()) pearl = h('pearl', '-');
     else if (ceval.state === CevalState.Failed) pearl = h('pearl', icon(licon.CautionCircle)('.is-red'));
     else pearl = h('pearl', h('icon.ddloader'));
     percent = node.outcome() ? 100 : 0;
@@ -202,11 +196,9 @@ export function renderCeval(ctrl: CevalHandler): VNode[] {
             'span.info',
             node.outcome()
               ? [i18n.site.gameOver]
-              : node.threefold
-                ? [i18n.site.threefoldRepetition]
-                : threatMode
-                  ? [threatInfo(ctrl, threat)]
-                  : localEvalNodes(ctrl, { client, server }),
+              : threatMode
+                ? [threatInfo(ctrl, threat)]
+                : localEvalNodes(ctrl, { client, server }),
           ),
         ]),
       ]
@@ -276,9 +268,9 @@ function getElPvIndex(e: TouchEvent | MouseEvent): number | null {
 }
 
 function getElUciList(e: TouchEvent | MouseEvent): string[] {
-  return getElPvMoves(e)
-    .filter(notNull)
-    .map(move => move.split('|')[1]);
+  return [
+    ...(e.target as HTMLElement).closest('div.pv')!.querySelectorAll<HTMLElement>('[data-native-move]'),
+  ].map(move => move.dataset.nativeMove!);
 }
 
 function getElPvMoves(e: TouchEvent | MouseEvent): (string | null)[] {
@@ -287,7 +279,7 @@ function getElPvMoves(e: TouchEvent | MouseEvent): (string | null)[] {
   $(e.target as HTMLElement)
     .closest('div.pv')
     .children()
-    .filter('span.pv-san')
+    .filter('span.pv-move')
     .each(function () {
       pvMoves.push($(this).attr('data-board'));
     });
@@ -321,15 +313,6 @@ export function renderPvs(ctrl: CevalHandler): VNode | undefined {
     threat = true;
   } else if (node.ceval) pvs = node.ceval.pvs;
   else pvs = [];
-  if (ceval.opts.variant.key === 'xiangqi') return renderXiangqiPvs(ctrl, pvs, multiPv, node.ply);
-
-  const setup = parseFen(node.fen).unwrap();
-  if (threat) {
-    setup.turn = opposite(setup.turn);
-    if (setup.turn === 'white') setup.fullmoves += 1;
-  }
-  const pos = setupPosition(lichessRules(ceval.opts.variant.key), setup);
-
   const resetPvIndexAndBoard = () => {
     ceval.setPvBoard(null);
     pvIndex = null;
@@ -389,57 +372,100 @@ export function renderPvs(ctrl: CevalHandler): VNode | undefined {
         postpatch: (_, vnode) => !isTouchDevice() && checkHover(vnode.elm as HTMLElement, ceval),
       },
     },
-    [
-      [...Array(multiPv).keys()].map(i =>
-        renderPv(threat, multiPv, pvs[i], pos.isOk ? pos.value : undefined),
-      ),
-      renderPvBoard(ctrl),
-    ],
+    [[...Array(multiPv).keys()].map(i => renderPv(ctrl, threat, multiPv, pvs[i])), renderPvBoard(ctrl)],
   );
 }
 
 const MAX_NUM_MOVES = 16;
 
-function renderXiangqiPvs(ctrl: CevalHandler, pvs: PvData[], multiPv: number, ply: number): VNode {
-  return hl(
-    'div.pv_box',
-    [...Array(multiPv).keys()].map(index => {
-      const pv = pvs[index];
-      const attrs = pv?.moves[0] ? { 'data-uci': pv.moves[0] } : {};
-      const data: any = { attrs };
-      if (pv)
-        data.hook = bind('click', () => {
-          if (!ctrl.threatMode()) ctrl.playUciList(pv.moves);
-        });
-      return hl('div.pv.pv--nowrap', data, [
-        renderPvWrapToggle(),
-        pv && multiPv > 1
-          ? hl('strong', defined(pv.mate) ? `#${pv.mate}` : renderEval(pv.cp ?? 0))
-          : undefined,
-        ...(pv ? renderXiangqiPvMoves(pv.moves.slice(0, MAX_NUM_MOVES), ply) : []),
-      ]);
-    }),
-  );
+interface VariationCache {
+  results: Map<string, VariationMove[]>;
+  requests: Map<string, AbortController>;
+  timer?: ReturnType<typeof setTimeout>;
+  wanted: Map<string, Uci[]>;
+}
+const variations = new WeakMap<CevalCtrl, VariationCache>();
+
+function nativeVariation(ctrl: CevalHandler, moves: Uci[]): VariationMove[] | undefined {
+  const ceval = ctrl.ceval;
+  const started = ceval.lastStarted;
+  if (!started) return;
+  const initialFen = started.threatMode
+    ? ctrl.getNode().fen.replace(/ (w|b) /, ctrl.getNode().state.turn === 'red' ? ' b ' : ' w ')
+    : started.steps[0].fen;
+  const history = started.threatMode ? [] : started.steps.slice(1).map(step => step.uci!);
+  const ruleset = 'unrestricted-v1';
+  const key = JSON.stringify([initialFen, history, ruleset, moves]);
+  let cache = variations.get(ceval);
+  if (!cache) {
+    cache = { results: new Map(), requests: new Map(), wanted: new Map() };
+    variations.set(ceval, cache);
+  }
+  if (cache.results.has(key)) return cache.results.get(key);
+  if (cache.requests.has(key)) return;
+  cache.wanted.set(key, moves);
+  clearTimeout(cache.timer);
+  cache.timer = setTimeout(() => {
+    const pending = [...cache.wanted];
+    cache.wanted.clear();
+    for (const [requestKey, variation] of pending.slice(-ceval.search.multiPv)) {
+      const abort = new AbortController();
+      cache.requests.set(requestKey, abort);
+      const [rootFen, branch, policy] = JSON.parse(requestKey) as [string, string[], string];
+      void replayXiangqiVariation(rootFen, branch, policy, variation, abort.signal)
+        .then(result => {
+          cache.results.set(requestKey, result.moves);
+          while (cache.results.size > 64) cache.results.delete(cache.results.keys().next().value!);
+          ceval.opts.redraw();
+        })
+        .catch(error => {
+          // A PV replay can finish after the user has moved to another branch.
+          // Its failure then belongs to the old search and must not close the
+          // engine dialog for the new position.
+          if (error.name !== 'AbortError' && ceval.lastStarted === started) ceval.engineFailed(error.message);
+        })
+        .finally(() => cache.requests.delete(requestKey));
+    }
+  }, 180);
+  return undefined;
 }
 
-function renderXiangqiPvMoves(moves: Uci[], startPly: number): VNode[] {
-  return moves.flatMap((move, index) => {
-    const movePly = startPly + index;
-    const turn = Math.floor(movePly / 2) + 1;
-    const prefix = movePly % 2 === 0 ? `${turn}.` : index === 0 ? `${turn}...` : '';
-    return [prefix ? hl('span', prefix) : undefined, hl('span.pv-san', move)].filter(
-      (node): node is VNode => !!node,
-    );
-  });
-}
-
-function renderPv(threat: boolean, multiPv: number, pv?: PvData, pos?: Position): VNode {
+function renderPv(ctrl: CevalHandler, threat: boolean, multiPv: number, pv?: PvData): VNode {
   const data: any = {};
   const children: VNode[] = [renderPvWrapToggle()];
   if (pv) {
     if (!threat) data.attrs = { 'data-uci': pv.moves[0] };
     if (multiPv > 1) children.push(hl('strong', defined(pv.mate) ? '#' + pv.mate : renderEval(pv.cp!)));
-    if (pos) children.push(...renderPvMoves(pos.clone(), pv.moves.slice(0, MAX_NUM_MOVES)));
+    const moves = pv.moves.slice(0, MAX_NUM_MOVES);
+    const positions = nativeVariation(ctrl, moves);
+    for (let index = 0; index < moves.length; index++) {
+      const ply = ctrl.getNode().ply + index;
+      const prefix =
+        ply % 2 === 0 ? `${Math.floor(ply / 2) + 1}.` : index === 0 ? `${Math.floor(ply / 2) + 1}...` : '';
+      if (prefix) children.push(hl('span', prefix));
+      const position = positions?.[index];
+      const notation = position
+        ? selectXiangqiNotation(
+            position.notation,
+            position.chineseNotation,
+            ctrl.ceval.opts.notationStyle ?? 'english',
+          )
+        : moves[index];
+      children.push(
+        hl(
+          'span.pv-move',
+          {
+            key: moves.slice(0, index + 1).join('/'),
+            attrs: {
+              'data-move-index': index,
+              ...(position ? { 'data-board': `${position.state.fen}|${moves[index]}` } : {}),
+              'data-native-move': moves[index],
+            },
+          },
+          notation,
+        ),
+      );
+    }
   }
   return hl('div.pv.pv--nowrap', data, children);
 }
@@ -458,75 +484,34 @@ function renderPvWrapToggle(): VNode {
   });
 }
 
-function renderPvMoves(pos: Position, pv: Uci[]): VNode[] {
-  const vnodes: VNode[] = [];
-  let key = makeBoardFen(pos.board);
-  for (let i = 0; i < pv.length; i++) {
-    let text;
-    if (pos.turn === 'white') text = `${pos.fullmoves}.`;
-    else if (i === 0) text = `${pos.fullmoves}...`;
-    if (text) vnodes.push(hl('span', { key: text }, text));
-    const uci = pv[i];
-    const san = makeSanAndPlay(pos, parseUci(uci)!);
-    const fen = makeBoardFen(pos.board); // Chessground uses only board fen
-    if (san === '--') break;
-    key += '|' + uci;
-    vnodes.push(
-      hl('span.pv-san', { key, attrs: { 'data-move-index': i, 'data-board': `${fen}|${uci}` } }, san),
-    );
-  }
-  return vnodes;
-}
-
 function renderPvBoard(ctrl: CevalHandler): VNode | undefined {
   const ceval = ctrl.ceval;
   const pvBoard = ceval.pvBoard();
   if (!pvBoard) return;
   const { fen, uci } = pvBoard;
   const orientation = ctrl.getOrientation();
-  if (ceval.opts.variant.key === 'xiangqi') {
-    return hl(
-      'div.pv-board',
-      hl(
-        'div.pv-board-square',
-        hl('div.cg-wrap', {
-          hook: {
-            insert: vnode => {
-              vnode.data!.board = createXiangqiBoard(
-                vnode.elm as HTMLElement,
-                xiangqiPosition(fen, uci),
-                boardPresentation('preview', orientation === 'white' ? 'red' : 'black'),
-              );
-            },
-            postpatch: (old, vnode) => {
-              vnode.data!.board = old.data!.board;
-              (vnode.data!.board as BoardView).display(xiangqiPosition(fen, uci));
-            },
-            destroy: vnode => (vnode.data!.board as BoardView).destroy(),
+  return hl(
+    'div.pv-board',
+    hl(
+      'div.pv-board-square',
+      hl('div.cg-wrap', {
+        hook: {
+          insert: vnode => {
+            vnode.data!.board = createXiangqiBoard(
+              vnode.elm as HTMLElement,
+              xiangqiPosition(fen, uci),
+              boardPresentation('preview', orientation),
+            );
           },
-        }),
-      ),
-    );
-  }
-  const cgConfig = {
-    fen,
-    lastMove: uciToMove(uci),
-    orientation,
-    coordinates: false,
-    viewOnly: true,
-    drawable: {
-      enabled: false,
-      visible: false,
-    },
-  };
-  const cgVNode = hl('div.cg-wrap.is2d', {
-    hook: {
-      insert: (vnode: any) => (vnode.elm._cg = makeChessground(vnode.elm, cgConfig)),
-      update: (vnode: any) => vnode.elm._cg?.set(cgConfig),
-      destroy: (vnode: any) => vnode.elm._cg?.destroy(),
-    },
-  });
-  return hl('div.pv-board', hl('div.pv-board-square', cgVNode));
+          postpatch: (old, vnode) => {
+            vnode.data!.board = old.data!.board;
+            (vnode.data!.board as BoardView).display(xiangqiPosition(fen, uci));
+          },
+          destroy: vnode => (vnode.data!.board as BoardView).destroy(),
+        },
+      }),
+    ),
+  );
 }
 
 function loadingText(ctrl: CevalHandler): string {

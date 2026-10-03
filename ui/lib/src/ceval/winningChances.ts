@@ -2,7 +2,7 @@
 
 import type { WinningChances } from './types';
 
-const toPov = (color: Color, diff: number): number => (color === 'white' ? diff : -diff);
+const toPov = (color: Color | 'red', diff: number): number => (color === 'black' ? -diff : diff);
 
 /**
  * https://github.com/lichess-org/lila/pull/11148
@@ -27,13 +27,13 @@ const evalWinningChances = (ev: EvalScore): WinningChances =>
 // winning chances for a color
 // 1  infinitely winning
 // -1 infinitely losing
-export const povChances = (color: Color, ev: EvalScore): WinningChances =>
+export const povChances = (color: Color | 'red', ev: EvalScore): WinningChances =>
   toPov(color, evalWinningChances(ev));
 
 // computes the difference, in winning chances, between two evaluations
 // 1  = e1 is infinitely better than e2
 // -1 = e1 is infinitely worse  than e2
-export const povDiff = (color: Color, e1: EvalScore, e2: EvalScore): number =>
+export const povDiff = (color: Color | 'red', e1: EvalScore, e2: EvalScore): number =>
   (povChances(color, e1) - povChances(color, e2)) / 2;
 
 // used to check if two evaluations are similar enough
@@ -41,13 +41,17 @@ export const povDiff = (color: Color, e1: EvalScore, e2: EvalScore): number =>
 //
 // stricter than lichess-puzzler v49 check
 // to avoid false positives and only report really faulty puzzles
-export const areSimilarEvals = (pov: Color, bestEval: EvalScore, secondBestEval: EvalScore): boolean => {
+export const areSimilarEvals = (
+  pov: Color | 'red',
+  bestEval: EvalScore,
+  secondBestEval: EvalScore,
+): boolean => {
   return povDiff(pov, bestEval, secondBestEval) < 0.14;
 };
 
 // used to report puzzles as faulty
 export const hasMultipleSolutions = (
-  color: Color,
+  color: Color | 'red',
   bestEval: EvalScore,
   secondBestEval: EvalScore,
 ): boolean => {

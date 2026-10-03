@@ -1,11 +1,30 @@
 {
   "extends": "../tsconfig.base.json",
-  "compilerOptions": { "noEmit": true, "isolatedDeclarations": false },
+  "compilerOptions": {
+    "noEmit": true,
+    "isolatedDeclarations": false
+  },
   "references": [
-    { "path": "../bits/tsconfig.json" },
-    { "path": "../chart/tsconfig.json" },
-    { "path": "../lib/tsconfig.json" },
-    { "path": "../editor/tsconfig.json" },
-    { "path": "../keyboardMove/tsconfig.json" }
+    {
+      "path": "../xiangqi/tsconfig.json"
+    },
+    {
+      "path": "../bits/tsconfig.json"
+    },
+    {
+      "path": "../chart/tsconfig.json"
+    },
+    {
+      "path": "../lib/tsconfig.json"
+    },
+    {
+      "path": "../editor/tsconfig.json"
+    },
+    {
+      "path": "../keyboardMove/tsconfig.json"
+    },
+    {
+      "path": "../explorer/tsconfig.json"
+    }
   ]
 }

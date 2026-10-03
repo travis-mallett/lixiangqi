@@ -192,7 +192,7 @@ function setupTick(v: VNode, ceval: CevalCtrl) {
   $(tick).toggleClass('recommended', ceval.info()?.threads === ceval.recommendedThreads);
 }
 
-function engineSelection({ ceval }: CevalHandler) {
+export function engineSelection({ ceval }: CevalHandler): VNode {
   const active = ceval.engines.active();
   const engines = ceval.engines.supporting(ceval.opts.variant.key);
   const external = ceval.engines.external;

@@ -1,6 +1,7 @@
 package lila.relay
 
-import chess.format.UciPath
+import lila.xiangqi.UciPath
+import lila.xiangqi.Xiangqi.Side
 import chess.format.pgn.{ Tag, Tags }
 
 import lila.core.socket.Sri
@@ -24,14 +25,17 @@ final private class RelaySync(
   def updateStudyChapters(rt: RelayRound.WithTour, rawGames: RelayGames): Fu[SyncResult.Ok] = for
     study <- studyApi.byId(rt.round.studyId).orFail("Missing relay study!")
     chapters <- chapterRepo.orderedByStudyLoadingAllInMemory(study.id)
-    games = RelayInputSanity.fixGames(rawGames)
+    games = rawGames.filterNot(_.isBye)
     plan = RelayUpdatePlan(chapters, games)
+    _ <- plan.validate.fold(fufail, _ => funit)
+    _ <-
+      if chapters.size + plan.append.size > RelayFetch.maxChaptersToShow.value
+      then fufail("Broadcast chapter limit exceeded; no games were imported")
+      else funit
     _ <- plan.reorder.so(studyApi.sortChapters(study.id, _)(who(study.ownerId)))
     updates <- plan.update.sequentially: (chapter, game) =>
       updateChapter(rt, study, chapter, game)
-    allowedNbChapters <- plan.append.nonEmpty.so:
-      chapterRepo.countByStudyId(study.id).map(RelayFetch.maxChaptersToShow.value - _)
-    appends <- plan.append.take(allowedNbChapters).toList.sequentially(createChapter(rt, study, _))
+    appends <- plan.append.toList.sequentially(createChapter(rt, study, _))
     groupId <- groupRepo.idByTour(rt.tour.id)
     result = SyncResult.Ok(updates ::: appends.flatten, plan)
     _ <- tourRepo.setSyncedNow(rt.tour)
@@ -72,21 +76,27 @@ final private class RelaySync(
     chapterRepo
       .countByStudyId(study.id)
       .flatMap: nb =>
-        (RelayFetch.maxChaptersToShow > nb).so:
+        if nb >= RelayFetch.maxChaptersToShow.value then fufail("Broadcast chapter limit exceeded")
+        else
           for
             chapter <- createChapter(study, game)(using rt.tour)
-            _ <- chapter.tags.outcome.isDefined.so:
-              onChapterEnd(rt.tour, study, chapter)
+            _ <- lila.study.StudyPgnTags
+              .points(chapter.tags)
+              .isDefined
+              .so:
+                onChapterEnd(rt.tour, study, chapter)
           yield
             if chapter.root.mainline.nonEmpty then notifier.onCreate(rt, chapter)
             SyncResult.ChapterResult(chapter.id, true, chapter.root.mainline.size, false).some
 
   private def updateInitialPosition(studyId: StudyId, chapter: Chapter, game: RelayGame): Fu[Chapter] =
-    if chapter.root.mainline.sizeIs > 1 || game.root.fen == chapter.root.fen
+    if game.root.fen == chapter.root.fen && game.root.ruleset == chapter.root.ruleset
     then fuccess(chapter)
+    else if chapter.root.children.nonEmpty then
+      fufail("Broadcast initial position or ruleset changed after moves were recorded")
     else
       studyApi
-        .resetRoot(studyId, chapter.id, game.root.withoutChildren, game.variant)(who(chapter.ownerId))
+        .resetRoot(studyId, chapter.id, game.root.withoutChildren)(who(chapter.ownerId))
         .dmap(_ | chapter)
 
   // because a study always has at least one chapter,
@@ -94,7 +104,7 @@ final private class RelaySync(
   // make sure it has the chapter.relay field set.
   private def ensureChapterRelayField(chapter: Chapter, game: RelayGame)(using RelayTour): Fu[Chapter] =
     val desiredRelay = makeRelayFor(game, chapter.relay.fold(game.root.mainlinePath)(_.path))
-    if chapter.relay.exists(_.fideIds == desiredRelay.fideIds) then fuccess(chapter)
+    if chapter.relay.exists(_.playerIds == desiredRelay.playerIds) then fuccess(chapter)
     else
       for _ <- chapterRepo.setRelay(chapter.id, desiredRelay)
       yield chapter.copy(relay = desiredRelay.some)
@@ -147,18 +157,21 @@ final private class RelaySync(
       Who,
       RelayTour
   ): Funit =
-    for
-      position = Position(chapter, path).ref
-      _ <- node.mainline.foldM(position): (position, n) =>
-        val node = AddNode(
-          studyId = study.id,
-          positionRef = position,
-          node = _ => Right(n),
-          opts = moveOpts,
-          relay = makeRelayFor(game, position.path + n.id).some
+    def insert(parent: UciPath, branch: Branch, mainline: Boolean): Funit =
+      for
+        _ <- studyApi.addNode(
+          AddNode(
+            studyId = study.id,
+            positionRef = Position(chapter, parent).ref,
+            node = _ => Right(branch),
+            opts = moveOpts.copy(promoteToMainline = mainline && !branch.forceVariation),
+            relay = makeRelayFor(game, if mainline then parent + branch.id else game.root.mainlinePath).some
+          )
         )
-        studyApi.addNode(node).inject(position + n)
-    yield ()
+        _ <- branch.children.toList.zipWithIndex.sequentiallyVoid: (child, index) =>
+          insert(parent + branch.id, child, mainline && index == 0)
+      yield ()
+    insert(path, node, game.root.mainlinePath.startsWith(path + node.id))
 
   private def setClock(chapter: Chapter, study: Study, path: UciPath, existing: Node, current: Branch)(using
       by: Who
@@ -174,30 +187,31 @@ final private class RelaySync(
           clock = c
         )(by)
 
-  private def getNewNodeOrSetClockOfExisting(chapter: Chapter, study: Study, game: RelayGame)(using
-      Who
-  ): (UciPath, Option[Branch]) =
-    game.root.mainline.foldLeft(UciPath.root -> none[Branch]):
-      case ((parentPath, None), gameNode) =>
-        val path = parentPath + gameNode.id
-        chapter.root
-          .nodeAt(path)
-          .fold(parentPath -> gameNode.some): existing =>
-            setClock(chapter, study, path, existing, gameNode)
-            path -> none
-      case (found, _) => found
-
   private def updateChapterTree(study: Study, chapter: Chapter, game: RelayGame)(using
       RelayTour
   ): Fu[NbMoves] =
     given Who = who(chapter.ownerId)
+    def size(branch: Branch): Int = 1 + branch.children.toList.map(size).sum
+    def syncChildren(source: Node, parentPath: UciPath): Fu[Int] =
+      source.children.toList
+        .sequentially: incoming =>
+          val path = parentPath + incoming.id
+          chapter.root.nodeAt(path) match
+            case None => addNode(study, chapter, game, parentPath, incoming).inject(size(incoming))
+            case Some(existing) =>
+              (existing.mergeAnnotations(incoming) != existing).so(
+                studyApi.mergeAnnotations(study.id, Position(chapter, path).ref, incoming)(summon[Who])
+              ) >>
+                setClock(chapter, study, path, existing, incoming) >> syncChildren(incoming, path)
+        .map(_.sum)
     for
       gameMainlinePath = game.root.mainlinePath
-      (path, newNodeOpt) = getNewNodeOrSetClockOfExisting(chapter, study, game)
+      _ <- (chapter.root.mergeAnnotations(game.root) != chapter.root)
+        .so(studyApi.mergeAnnotations(study.id, Position(chapter, UciPath.root).ref, game.root)(summon[Who]))
       _ <- forceTailMovesAsVariations(chapter, gameMainlinePath)
-      _ <- newNodeOpt.fold(sendLastNode(study, chapter, game, gameMainlinePath)): newNode =>
-        addNode(study, chapter, game, path, newNode)
-    yield newNodeOpt.so(_.mainline.size)
+      added <- syncChildren(game.root, UciPath.root)
+      _ <- sendLastNode(study, chapter, game, gameMainlinePath)
+    yield added
 
   private def updateChapterTags(
       tour: RelayTour,
@@ -221,7 +235,7 @@ final private class RelaySync(
         StudyPgnTags(chapterTags + tag)
       .pipe: tags =>
         def fewMoves = Seq(chapter.root, game.root).forall(_.mainline.sizeIs < 2)
-        RelayGame.toggleUnplayedTermination(tags, tags.points.isDefined && fewMoves)
+        RelayGame.toggleUnplayedTermination(tags, lila.study.StudyPgnTags.points(tags).isDefined && fewMoves)
     if chapterNewTags == chapter.tags then fuccess(none -> false)
     else
       if vs(chapterNewTags) != vs(chapter.tags) then
@@ -234,7 +248,9 @@ final private class RelaySync(
           tags = chapterNewTags,
           newName = newName.filter(_ != chapter.name)
         )(who(chapter.ownerId))
-        newEnd = chapter.tags.outcome.isEmpty && tags.outcome.isDefined
+        newEnd = lila.study.StudyPgnTags.points(chapter.tags).isEmpty && lila.study.StudyPgnTags
+          .points(tags)
+          .isDefined
         _ <- newEnd.so(onChapterEnd(tour, study, chapter))
       yield (tags.some, newEnd)
 
@@ -249,12 +265,12 @@ final private class RelaySync(
     Chapter.Relay(
       path = path,
       lastMoveAt = path.nonEmpty.option(nowInstant),
-      fideIds = chapterFideIds(game)
+      playerIds = chapterPlayerIds(game)
     )
 
   // we only set the FIDE IDs in official tours
   // because we don't want random users to assign real OTB players to imaginary tournaments
-  private def chapterFideIds(game: RelayGame)(using tour: RelayTour) = tour.official.so(game.fideIdsPair)
+  private def chapterPlayerIds(game: RelayGame)(using tour: RelayTour) = tour.official.so(game.playerIdsPair)
 
   private def chapterName(game: RelayGame, order: Chapter.Order): StudyChapterName =
     Chapter.nameFromPlayerTags(game.tags) | StudyChapterName(s"Board $order")
@@ -264,7 +280,7 @@ final private class RelaySync(
     chapter = Chapter.make(
       studyId = study.id,
       name = chapterName(game, order),
-      setup = Chapter.Setup(none, game.variant, Color.White),
+      setup = Chapter.Setup(none, Side.Red),
       root = game.root,
       tags = game.tags,
       order = order,
@@ -285,7 +301,7 @@ final private class RelaySync(
   private val sri = Sri("")
   private def who(userId: UserId) = Who(userId, sri)
 
-  private def vs(tags: Tags) = s"${tags(_.White) | "?"} - ${tags(_.Black) | "?"}"
+  private def vs(tags: Tags) = s"${tags("Red") | "?"} - ${tags("Black") | "?"}"
 
   private def showSC(study: Study, chapter: Chapter) =
     s"#${study.id} ${chapter.name}"

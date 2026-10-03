@@ -15,7 +15,7 @@ export const chartYMin: number = -chartYMax;
 
 const lightTheme = currentColorScheme() === 'light';
 export const orangeAccent = '#d85000';
-export const whiteFill: string = lightTheme ? 'rgb(255 255 255 / 0.7)' : 'rgb(255 255 255 / 0.3)';
+export const redFill: string = lightTheme ? 'rgb(176 32 32 / 0.35)' : 'rgb(220 64 64 / 0.35)';
 export const blackFill: string = lightTheme ? 'rgb(0 0 0 / 0.2)' : 'rgb(0 0 0 / 1)';
 export const fontColor: string = lightTheme ? '#2F2F2F' : 'hsl(0 0% 73%)';
 export const gridColor: string = lightTheme ? '#ccc' : '#404040';

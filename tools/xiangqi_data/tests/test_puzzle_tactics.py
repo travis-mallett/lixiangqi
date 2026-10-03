@@ -8,7 +8,12 @@ from dataclasses import replace
 from pathlib import Path
 
 from tools.xiangqi_data.pikafish_rules import START_FEN, default_executable
-from tools.xiangqi_data.puzzle_mining import fork, exchange_material
+from tools.xiangqi_data.puzzle_mining import (
+    cannon_chariot_discovered,
+    detonating_mine,
+    exchange_material,
+    fork,
+)
 from tools.xiangqi_data.puzzle_mining.classification_job import (
     reclassify_canonical,
     taxonomy_versions,
@@ -687,12 +692,18 @@ class ReverseForkTests(unittest.TestCase):
                 before = db.execute(
                     "SELECT branches_json,solution_json FROM candidate_assessments"
                 ).fetchone()
-                self.assertEqual(
-                    reclassify_canonical(db, key).status,
-                    "awaiting_classification_evidence",
-                )
-                assessment = reclassify_canonical(db, key, engine=self.engine)
-                self.assertEqual(assessment.status, "classified")
+                # Double-attack detection is switched off by default; this
+                # pipeline test exercises the category explicitly.
+                with patch(
+                    "tools.xiangqi_data.puzzle_mining.classification_job.DOUBLE_ATTACK_DETECTION_ENABLED",
+                    True,
+                ):
+                    self.assertEqual(
+                        reclassify_canonical(db, key).status,
+                        "awaiting_classification_evidence",
+                    )
+                    assessment = reclassify_canonical(db, key, engine=self.engine)
+                    self.assertEqual(assessment.status, "classified")
                 p = db.execute(
                     "SELECT * FROM puzzles WHERE verification_status='active'"
                 ).fetchone()
@@ -715,6 +726,10 @@ class ReverseForkTests(unittest.TestCase):
                     {
                         fork.THEME: fork.VERSION,
                         exchange_material.THEME: exchange_material.VERSION,
+                        cannon_chariot_discovered.THEME: (
+                            cannon_chariot_discovered.VERSION
+                        ),
+                        detonating_mine.THEME: detonating_mine.VERSION,
                         "__consensus__": "2",
                     },
                 )

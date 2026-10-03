@@ -3,8 +3,8 @@ import { test } from 'node:test';
 
 import { notationAnnotations, notationMarks } from '../src/game/xiangqiNotation';
 
-test('notation marks round-trip file i and rank ten without exposing study square encoding', () => {
-  const parsed = notationAnnotations(['Position [%csl Gi10][%csl Ra:] [%cal Bh10g8,Yi:i9]']);
+test('notation marks round-trip file i and rank ten with native coordinate identity', () => {
+  const parsed = notationAnnotations(['Position [%csl Gi10][%csl Ra10] [%cal Bh10g8,Yi10i9]']);
   assert.deepEqual(parsed.comments, ['Position']);
   assert.deepEqual(parsed.marks, [
     { from: 'i10', to: undefined, brush: 'green' },
@@ -17,8 +17,11 @@ test('notation marks round-trip file i and rank ten without exposing study squar
   assert.deepEqual(notationAnnotations([serialized]).marks, parsed.marks);
 });
 
-test('untrusted and invalid annotation payloads cannot supply artwork or invalid locations', () => {
-  const parsed = notationAnnotations(['Keep <svg onload=alert(1)> [%cal Gh10z8,Gh0i1] [%csl Gz9]']);
-  assert.deepEqual(parsed.marks, []);
-  assert.deepEqual(parsed.comments, ['Keep <svg onload=alert(1)>']);
+test('invalid supported annotation payloads fail explicitly, while unknown text stays safe data', () => {
+  for (const input of ['[%cal Gh10z8]', '[%cal Gh0i1]', '[%csl Gz9]', '[%csl Ra:]'])
+    assert.throws(() => notationAnnotations([input]), /Invalid Xiangqi annotation/);
+  assert.deepEqual(notationAnnotations(['Keep <svg onload=alert(1)> [%unknown value]']), {
+    comments: ['Keep <svg onload=alert(1)> [%unknown value]'],
+    marks: [],
+  });
 });

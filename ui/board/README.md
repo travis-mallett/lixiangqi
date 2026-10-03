@@ -25,7 +25,7 @@ Live game / study / puzzle / lessons / editor / preview / shared viewer
 
 The asset build rejects missing faces, backs, supported geometry, or effect files. It also rejects direct application imports of the private backend. Add a supported definition only when every accepted theme covers it. Theme changes automatically reach all consumers and public embeds through the normal asset build and deployment.
 
-`lib/board` is the website adapter: it resolves account preferences, supplies site assets/audio, and owns page resize integration. `@lixiangqi/viewer` owns replay controls, variations, comments, and local theme selection. `@lixiangqi/explorer` owns the shared opening database controller and view. These responsibilities stay outside the renderer.
+`lib/board` is the website adapter: it resolves account preferences, supplies site assets/audio, and owns page resize integration. `@lixiangqi/viewer` owns replay controls, variations, comments, and the embeddable replay presentation. `@lixiangqi/explorer` owns the shared opening database controller and view. These responsibilities stay outside the renderer.
 
 ## Variants
 

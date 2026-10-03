@@ -24,7 +24,7 @@ final class RelayTourForm(langList: lila.core.i18n.LangList, groupForm: RelayGro
   private val infoMapping = mapping(
     "format" -> optional(cleanText(maxLength = 80)),
     "tc" -> optional(cleanText(maxLength = 80)),
-    "fideTC" -> optional(fideTCMapping),
+    "ratingCategory" -> optional(ratingCategoryMapping),
     "location" -> optional(cleanText(maxLength = 80)),
     "timeZone" -> optional(lila.common.Form.timeZone.field),
     "players" -> optional(cleanText(maxLength = 120)),
@@ -63,6 +63,10 @@ final class RelayTourForm(langList: lila.core.i18n.LangList, groupForm: RelayGro
       "teamTable" -> boolean,
       "players" -> optional(
         of(using formatter.stringFormatter[RelayPlayersTextarea](_.sortedText, RelayPlayersTextarea(_)))
+          .verifying(
+            "Invalid native player override: check namespaced IDs, Xiangqi titles, ratings, duplicate names and the 1000-line limit",
+            _.validation.isRight
+          )
       ),
       "teams" -> optional(
         of(using formatter.stringFormatter[RelayTeamsTextarea](_.sortedText, RelayTeamsTextarea(_)))
@@ -93,7 +97,7 @@ final class RelayTourForm(langList: lila.core.i18n.LangList, groupForm: RelayGro
     Data(
       name = tour.name,
       info = tour.info.copy(
-        fideTC = tour.info.fideTCOrGuess.some,
+        ratingCategory = tour.info.ratingCategoryOrGuess.some,
         timeZone = tour.info.timeZoneOrDefault.some
       ),
       markup = tour.markup,
@@ -115,9 +119,9 @@ final class RelayTourForm(langList: lila.core.i18n.LangList, groupForm: RelayGro
 
 object RelayTourForm:
 
-  import chess.FideTC
-  given Formatter[FideTC] = formatter.stringFormatter(_.toString, FideTC.valueOf)
-  val fideTCMapping: Mapping[FideTC] = typeIn(FideTC.values.toSet)
+  import lila.core.playerDirectory.RatingCategory
+  given Formatter[RatingCategory] = formatter.stringFormatter(_.toString, RatingCategory.valueOf)
+  val ratingCategoryMapping: Mapping[RatingCategory] = typeIn(RatingCategory.values.toSet)
 
   case class Data(
       name: RelayTour.Name,

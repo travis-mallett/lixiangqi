@@ -1,8 +1,6 @@
 package lila.xiangqi
 
-import scala.collection.mutable
 import scala.util.Try
-import scala.util.matching.Regex
 
 import lila.xiangqi.Xiangqi.*
 import lila.xiangqi.adjudication.Ruleset
@@ -26,13 +24,33 @@ object XiangqiRules:
 
   private case class Transition(next: Decoded, capture: Boolean)
 
-  extension (side: Side)
-    private def fold[A](red: => A, black: => A): A =
-      if side == Side.Red then red else black
-
   def position(input: Position): Either[String, State] =
     if input.ruleset == Ruleset.Unrestricted then replay(input).map(stateOf)
     else game(input).map(_.state)
+
+  def variation(input: VariationCommand): Either[String, VariationResult] =
+    game(Position(input.initialFen, input.moves, input.ruleset)).flatMap(variation(_, input.variation))
+
+  def variation(initial: Game, moves: Vector[Uci]): Either[String, VariationResult] =
+    if moves.size > 256 || initial.moves.size > UciPath.maxDepth then
+      Left("Analysis variation exceeds the move limit")
+    else
+      moves
+        .foldLeft[Either[String, (Game, Vector[VariationMove])]](
+          Right(initial -> Vector.empty)
+        ): (acc, uci) =>
+          acc.flatMap: (before, nodes) =>
+            move(before, uci).flatMap: result =>
+              before
+                .applyMove(result)
+                .map: after =>
+                  after -> (nodes :+ VariationMove(
+                    uci,
+                    result.notation,
+                    result.chineseNotation,
+                    result.state
+                  ))
+        .map((_, nodes) => VariationResult(nodes))
 
   def initialGame(
       initialFen: Option[String] = None,
@@ -97,6 +115,21 @@ object XiangqiRules:
     legalMoves(Decoded(board, side, 0, 1)).filter: uci =>
       board.pieceAt(uci.dest).exists(_.side != side)
 
+  private[xiangqi] def boardMoves(board: Board, side: Side): Vector[Uci] =
+    legalMoves(Decoded(board, side, 0, 1))
+
+  private[xiangqi] def attackTargets(board: Board, from: Square): Vector[Square] =
+    board.pieceAt(from).toVector.flatMap(pseudoMoves(board, from, _, attacksOnly = true))
+
+  private[xiangqi] def isChecked(board: Board, side: Side): Boolean =
+    attacked(board, generalSquare(board, side), !side)
+
+  private[xiangqi] def movedBoard(board: Board, move: Uci): Board =
+    val orig = Square.fromKey(move.orig).get
+    val dest = Square.fromKey(move.dest).get
+    val piece = board.pieceAt(orig).get
+    applyUnchecked(Decoded(board, piece.side, 0, 1), orig, dest, piece).board
+
   /** Short-circuit recapture test using the same king-safety rules as legal move generation. */
   private[xiangqi] def canCaptureAt(board: Board, side: Side, target: Square): Boolean =
     board.pieceAt(target).exists(_.side != side) && board.pieces.iterator.exists:
@@ -126,6 +159,43 @@ object XiangqiRules:
   def notation(fen: String, uci: Uci, style: NotationStyle): Either[String, String] =
     decode(fen).flatMap: decoded =>
       Try(notation(decoded.board, uci, style)).toEither.left.map(_.getMessage)
+
+  /** Resolve display notation against the legal moves of this exact branch, including adjudication. */
+  def resolveNotation(game: Game, token: String): Either[String, Uci] =
+    notationCandidates(game, token).flatMap:
+      case Vector(single) => Right(single)
+      case _ => Left(s"Ambiguous Xiangqi notation at ply ${game.state.ply + 1}: $token")
+
+  /** All legal interpretations, for offline recovery using the rest of a recorded variation. */
+  def notationCandidates(game: Game, token: String): Either[String, Vector[Uci]] =
+    val legal = game.state.legalMoves
+    val input = token.trim
+    def normalized(value: String): String = value
+      .toLowerCase(java.util.Locale.ROOT)
+      .map:
+        case '.' => '='
+        case '馬' => '马'
+        case '車' => '车'
+        case '帥' => '帅'
+        case '將' => '将'
+        case '進' => '进'
+        case '後' => '后'
+        case '砲' => '炮'
+        case c if "一二三四五六七八九".contains(c) => ('1' + "一二三四五六七八九".indexOf(c)).toChar
+        case c => c
+    Uci.from(input) match
+      case Right(uci) if legal.contains(uci) => Right(Vector(uci))
+      case Right(_) => Left(s"Illegal Xiangqi move at ply ${game.state.ply + 1}: $token")
+      case Left(_) =>
+        decode(game.state.fen).flatMap: current =>
+          val expected = normalized(input)
+          legal.filter(uci =>
+            normalized(wxf(current.board, uci)) == expected || normalized(
+              chinese(current.board, uci)
+            ) == expected
+          ) match
+            case Vector() => Left(s"Unknown or illegal Xiangqi notation at ply ${game.state.ply + 1}: $token")
+            case candidates => Right(candidates)
 
   private def normalizedInitialFen(initialFen: Option[String]): String =
     initialFen.map(_.trim).filter(_.nonEmpty).getOrElse(startFen)
@@ -589,217 +659,3 @@ object XiangqiRules:
             else square.rank <= 7 && (square.rank <= 5 || square.file % 2 == 0)
           Either.cond(reachable, (), s"$color Soldier cannot reach $key")
         case _ => Right(())
-
-  object Notation:
-    private val tagPattern: Regex =
-      """(?m)^\s*\[([A-Za-z][A-Za-z0-9_]*)\s+"((?:\\.|[^"\\])*)"\s*\]\s*$""".r
-    private val moveNumberPattern: Regex = """^\d+\.(?:\.\.)?""".r
-    private val resultTokens = Set("*", "1-0", "0-1", "1/2-1/2")
-    private val maxNodes = 2000
-    private val maxDepth = 64
-
-    def importTree(command: NotationImport): Either[String, ImportedMoveTree] =
-      val text = command.notation
-      if text.trim.isEmpty then Left("notation must be a non-empty string")
-      else if text.length > 500000 then Left("notation is too large")
-      else
-        val headers = tagPattern
-          .findAllMatchIn(text)
-          .map(m => m.group(1).toLowerCase -> unescape(m.group(2)))
-          .toMap
-        val variant = headers.getOrElse("variant", "xiangqi").toLowerCase.replace(" ", "")
-        if !Set("xiangqi", "standardxiangqi")(variant) then
-          Left(s"Unsupported Variant tag: ${headers.getOrElse("variant", "")}")
-        else
-          val initialFen = headers.getOrElse("fen", command.initialFen).trim
-          for
-            root <- decode(initialFen)
-            tokens <- tokenize(tagPattern.replaceAllIn(text, " "))
-            parser = Parser(tokens)
-            roots = mutable.ArrayBuffer.empty[Parser.Node]
-            _ <- parser.parseSequence(root, roots, depth = 0, expectClose = false)
-          yield ImportedMoveTree(
-            initialFen,
-            headers,
-            stateOf(root),
-            roots.map(_.immutable).toVector,
-            parser.comments.toVector
-          )
-
-    private object Parser:
-      final class Node(
-          val move: Uci,
-          val notation: String,
-          val chineseNotation: String,
-          val state: State,
-          val children: mutable.ArrayBuffer[Node] = mutable.ArrayBuffer.empty,
-          val comments: mutable.ArrayBuffer[String] = mutable.ArrayBuffer.empty,
-          val glyphs: mutable.ArrayBuffer[Int] = mutable.ArrayBuffer.empty
-      ):
-        def immutable: ImportedTreeNode =
-          ImportedTreeNode(
-            move,
-            notation,
-            chineseNotation,
-            state,
-            children.map(_.immutable).toVector,
-            comments.toVector,
-            glyphs.toVector
-          )
-
-    private final class Parser(tokens: Vector[String]):
-      import Parser.Node
-
-      var index = 0
-      var nodeCount = 0
-      val comments = mutable.ArrayBuffer.empty[String]
-
-      def parseSequence(
-          start: Decoded,
-          siblings: mutable.ArrayBuffer[Node],
-          depth: Int,
-          expectClose: Boolean
-      ): Either[String, Unit] =
-        if depth > maxDepth then Left("Notation variations are nested too deeply")
-        else
-          var current = start
-          var currentChildren = siblings
-          var lastParent: Option[mutable.ArrayBuffer[Node]] = None
-          var lastBefore: Option[Decoded] = None
-          var lastNode: Option[Node] = None
-          val leadingComments = mutable.ArrayBuffer.empty[String]
-          var error: Option[String] = None
-          var closed = false
-
-          while index < tokens.size && error.isEmpty && !closed do
-            tokens(index) match
-              case comment if comment.startsWith("{") =>
-                lastNode.fold(if depth == 0 then comments else leadingComments)(_.comments) += comment
-                  .drop(1)
-                  .dropRight(1)
-                  .trim
-                index += 1
-              case nag if nag.matches("\\$[0-9]+") =>
-                nag
-                  .drop(1)
-                  .toIntOption
-                  .filter(n => n >= 0 && n <= 255)
-                  .foreach(n => lastNode.foreach(_.glyphs += n))
-                index += 1
-              case ")" =>
-                if !expectClose then error = Some("Unexpected closing variation parenthesis")
-                else
-                  index += 1
-                  closed = true
-              case "(" =>
-                (lastParent, lastBefore) match
-                  case (Some(parent), Some(before)) =>
-                    index += 1
-                    parseSequence(before, parent, depth + 1, expectClose = true) match
-                      case Left(message) => error = Some(message)
-                      case Right(_) => ()
-                  case _ => error = Some("Variation must follow a move")
-              case raw =>
-                index += 1
-                moveToken(raw).foreach: token =>
-                  resolveMove(current, token) match
-                    case Left(message) => error = Some(message)
-                    case Right(uci) =>
-                      val before = current
-                      move(Position(currentFen(current)), uci) match
-                        case Left(message) => error = Some(message)
-                        case Right(result) =>
-                          decode(result.fen) match
-                            case Left(message) => error = Some(message)
-                            case Right(next) =>
-                              val node =
-                                Node(uci, result.notation, result.chineseNotation, result.state)
-                              mergeNode(currentChildren, node) match
-                                case Left(message) => error = Some(message)
-                                case Right(existing) =>
-                                  existing.comments ++= leadingComments
-                                  leadingComments.clear()
-                                  lastNode = Some(existing)
-                                  val suffix = raw.reverse.takeWhile(c => c == '!' || c == '?').reverse
-                                  Map("!" -> 1, "?" -> 2, "!!" -> 3, "??" -> 4, "!?" -> 5, "?!" -> 6)
-                                    .get(suffix)
-                                    .foreach(existing.glyphs += _)
-                                  lastParent = Some(currentChildren)
-                                  lastBefore = Some(before)
-                                  currentChildren = existing.children
-                                  current = next
-
-          if error.isDefined then Left(error.get)
-          else if expectClose && !closed then Left("Unclosed variation parenthesis")
-          else Right(())
-
-      private def mergeNode(
-          nodes: mutable.ArrayBuffer[Node],
-          node: Node
-      ): Either[String, Node] =
-        nodes.indexWhere(_.move == node.move) match
-          case -1 =>
-            nodeCount += 1
-            if nodeCount > maxNodes then return Left("Notation contains too many moves")
-            nodes += node
-            Right(node)
-          case found if nodes(found).state.fen == node.state.fen => Right(nodes(found))
-          case _ => Left(s"Conflicting duplicate move in notation: ${node.move.value}")
-
-      private def resolveMove(position: Decoded, token: String): Either[String, Uci] =
-        Uci.from(token) match
-          case Right(uci) if legalMoves(position).contains(uci) => Right(uci)
-          case Right(_) => Left(s"Illegal Xiangqi move at ply ${position.ply + 1}: $token")
-          case Left(_) =>
-            val matching = legalMoves(position).filter: uci =>
-              wxf(position.board, uci) == token || chinese(position.board, uci) == token
-            matching match
-              case Vector(single) => Right(single)
-              case Vector() => Left(s"Unknown or illegal Xiangqi notation at ply ${position.ply + 1}: $token")
-              case _ => Left(s"Ambiguous Xiangqi notation at ply ${position.ply + 1}: $token")
-
-    private def currentFen(position: Decoded): String = encode(position)
-
-    private def moveToken(raw: String): Option[String] =
-      val token = moveNumberPattern.replaceFirstIn(raw.trim, "")
-      Option(token)
-        .filter(_.nonEmpty)
-        .filterNot(resultTokens)
-        .filterNot(_.startsWith("$"))
-        .map(_.replaceAll("[!?]+$", ""))
-
-    private def unescape(value: String): String =
-      value.replace("\\\"", "\"").replace("\\\\", "\\")
-
-    /** Keep comments as data; never discard article or study annotations while importing. */
-    private def tokenize(text: String): Either[String, Vector[String]] =
-      val tokens = mutable.ArrayBuffer.empty[String]
-      var index = 0
-      var error: Option[String] = None
-      while index < text.length && error.isEmpty do
-        val char = text(index)
-        if char.isWhitespace then index += 1
-        else if char == '{' then
-          val start = index
-          var depth = 1
-          index += 1
-          while index < text.length && depth > 0 do
-            if text(index) == '{' then depth += 1
-            else if text(index) == '}' then depth -= 1
-            index += 1
-          if depth != 0 then error = Some("Unclosed notation comment")
-          else tokens += text.substring(start, index)
-        else if char == ';' then
-          val start = index + 1
-          while index < text.length && text(index) != '\n' && text(index) != '\r' do index += 1
-          tokens += "{" + text.substring(start, index) + "}"
-        else if char == '(' || char == ')' then
-          tokens += char.toString
-          index += 1
-        else
-          val start = index
-          while index < text.length && !text(index).isWhitespace && !"(){};".contains(text(index)) do
-            index += 1
-          if start == index then error = Some("Unexpected closing comment brace")
-          else tokens += text.substring(start, index)
-      error.toLeft(tokens.toVector)

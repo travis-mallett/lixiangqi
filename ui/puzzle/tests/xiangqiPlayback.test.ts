@@ -4,6 +4,7 @@ import { mock, test } from 'node:test';
 import type { EngineAnalysis } from 'lib/ceval/engines/pikafishProtocol';
 
 import type { PuzzleOpts } from '../src/interfaces.ts';
+import { withPositions } from './positionFixtures.ts';
 
 mock.module(new URL('../src/keyboard.ts', import.meta.url).href, { defaultExport: () => {} });
 mock.module('lib/bigFileStorage', { namedExports: { bigFileStorage: () => ({}) } });
@@ -12,34 +13,35 @@ const { default: PuzzleCtrl } = await import('../src/ctrl.ts');
 const { default: XiangqiPuzzleEngine } = await import('../src/xiangqiPuzzleEngine.ts');
 
 const fen = '4k4/9/9/9/4p4/9/9/9/9/R3K4 w - - 0 1';
-const opts = (): PuzzleOpts => ({
-  data: {
-    variant: 'xiangqi',
-    puzzle: {
-      id: 'test',
-      playback: { objective: 'tactic', startingCp: 800, solutions: [['a1a2', 'e10d10', 'a2a3']] },
-      rating: 1500,
-      plays: 1,
-      initialPly: 0,
-      themes: [],
-      state: { fen, ply: 0, turn: 'red', legalMoves: ['a1a2', 'a1a4'], check: false, gameResult: '*' },
+const opts = (): PuzzleOpts =>
+  withPositions({
+    data: {
+      variant: 'xiangqi',
+      puzzle: {
+        id: 'test',
+        playback: { objective: 'tactic', startingCp: 800, solutions: [['a1a2', 'e10d10', 'a2a3']] },
+        rating: 1500,
+        plays: 1,
+        initialPly: 0,
+        themes: [],
+        state: { fen, ply: 0, turn: 'red', legalMoves: ['a1a2', 'a1a4'], check: false, gameResult: '*' },
+      },
+      game: { id: 'test', initialFen: fen, moves: [], rated: false, players: [] as any },
+      angle: { key: 'mix', name: 'mix', desc: '', icon: 'mix.svg' },
     },
-    game: { id: 'test', initialFen: fen, moves: [], rated: false, players: [] as any },
-    angle: { key: 'mix', name: 'mix', desc: '', icon: 'mix.svg' },
-  },
-  pref: {
-    animation: { duration: 0 },
-    notationStyle: 'wxf',
-    coords: 0,
-    destination: true,
-    highlight: true,
-    rookCastle: false,
-    moveEvent: 0,
-    blindfold: false,
-  },
-  settings: { difficulty: 'normal' },
-  showRatings: false,
-});
+    pref: {
+      animation: { duration: 0 },
+      notationStyle: 'wxf',
+      coords: 0,
+      destination: true,
+      highlight: true,
+      rookCastle: false,
+      moveEvent: 0,
+      blindfold: false,
+    },
+    settings: { difficulty: 'normal' },
+    showRatings: false,
+  });
 
 function controller(
   options = opts(),
@@ -67,7 +69,7 @@ function controller(
   (window as any).lichess = {};
   const initialSearch = mock.method(XiangqiPuzzleEngine.prototype, 'evaluate', starting);
   const preparation = mock.method(XiangqiPuzzleEngine.prototype, 'prepare', prepare);
-  const ctrl = new PuzzleCtrl(options, () => {});
+  const ctrl = new PuzzleCtrl(withPositions(options), () => {});
   preparation.mock.restore();
   initialSearch.mock.restore();
   const results: boolean[] = [];
@@ -171,10 +173,10 @@ test('stored solution playback does not invoke the alternative evaluator', async
     },
   };
   const { makeXiangqiNode } = await import('../src/xiangqi.ts');
-  const { linePositions } = await import('../src/xiangqiAdjudication.ts');
+  const { fixturePositions: linePositions } = await import('./positionFixtures.ts');
   const positions = linePositions(fen, ctrl.data.puzzle.playback.solutions[0]);
   for (let index = 0; index < 3; index++) {
-    const state = { ...positions[index + 1], needsHydration: false };
+    const state = { ...positions[index + 1] };
     ctrl.addNode(makeXiangqiNode(state, ctrl.data.puzzle.playback.solutions[0][index], '', 0), ctrl.path);
     await internal.adjudicateXiangqi();
     assert.equal(ctrl.moveEvaluationDepth, undefined);
@@ -214,12 +216,9 @@ test('alternative playback caches the starting evaluation and continues with eng
     },
   };
   const { makeXiangqiNode } = await import('../src/xiangqi.ts');
-  const { linePositions } = await import('../src/xiangqiAdjudication.ts');
+  const { fixturePositions: linePositions } = await import('./positionFixtures.ts');
   const position = linePositions(fen, ['a1a4'])[1];
-  ctrl.addNode(
-    makeXiangqiNode({ ...position, legalMoves: ['e10d10'], needsHydration: false }, 'a1a4', '', 0),
-    ctrl.path,
-  );
+  ctrl.addNode(makeXiangqiNode({ ...position, legalMoves: ['e10d10'] }, 'a1a4', '', 0), ctrl.path);
   await internal.adjudicateXiangqi();
   assert.deepEqual(evaluated, [position.fen]);
   assert.equal(ctrl.lastFeedback, 'good');
@@ -247,9 +246,9 @@ test('a stale deviation evaluation cannot adjudicate the next puzzle', async t =
     },
   };
   const { makeXiangqiNode } = await import('../src/xiangqi.ts');
-  const { linePositions } = await import('../src/xiangqiAdjudication.ts');
+  const { fixturePositions: linePositions } = await import('./positionFixtures.ts');
   const position = linePositions(fen, ['a1a4'])[1];
-  ctrl.addNode(makeXiangqiNode({ ...position, needsHydration: false }, 'a1a4', '', 0), ctrl.path);
+  ctrl.addNode(makeXiangqiNode({ ...position }, 'a1a4', '', 0), ctrl.path);
   const pending = internal.adjudicateXiangqi();
   const resolveOld = resolve;
   assert.equal(ctrl.moveEvaluationDepth, 1);
@@ -268,7 +267,7 @@ test('rules requests preserve history and engine errors leave an explicit retry 
   t.mock.timers.enable({ apis: ['setTimeout'] });
   const { ctrl, results } = await readyController();
   const internal = ctrl as any;
-  const { linePositions } = await import('../src/xiangqiAdjudication.ts');
+  const { fixturePositions: linePositions } = await import('./positionFixtures.ts');
   const requests: { initialFen: string; moves: string[]; move: string }[] = [];
   t.mock.method(globalThis, 'fetch', async (_url, init) => {
     const request = JSON.parse(init!.body as string);
@@ -278,7 +277,7 @@ test('rules requests preserve history and engine errors leave an explicit retry 
       JSON.stringify({
         ...positions[positions.length - 1],
         legalMoves: ['e10d10'],
-        needsHydration: false,
+
         notation: '',
         chineseNotation: '',
       }),
@@ -311,8 +310,7 @@ test('rules requests preserve history and engine errors leave an explicit retry 
   await internal.playXiangqiUciAt(ctrl.path, 'a1a4');
   await internal.playXiangqiUciAt(ctrl.path, 'e10d10');
   assert.deepEqual(requests[2].moves, ['a1a4']);
-  const { puzzleNotationTree } = await import('../src/xiangqi.ts');
-  const exported = puzzleNotationTree(ctrl.initialNode, ctrl.initialPath).tree;
+  const exported = ctrl.tree;
   assert.equal(exported.root.children[0].uci, 'a1a4');
   assert.equal(exported.root.children[0].children[0].uci, 'e10d10');
   assert.equal(requests[2].initialFen, fen);
@@ -332,14 +330,11 @@ test('Ls8lj insufficient mating evidence is unscored', async t => {
   const { ctrl, results } = await readyController(options);
   const internal = ctrl as any;
   const { makeXiangqiNode } = await import('../src/xiangqi.ts');
-  const { linePositions } = await import('../src/xiangqiAdjudication.ts');
+  const { fixturePositions: linePositions } = await import('./positionFixtures.ts');
   const moves = ['e3e2', 'g3f3', 'f4d3', 'b5c3', 'h5g5'];
   const positions = linePositions(initial, moves);
   for (let i = 0; i < moves.length; i++)
-    ctrl.addNode(
-      makeXiangqiNode({ ...positions[i + 1], legalMoves: ['f7f8'], needsHydration: false }, moves[i], '', 0),
-      ctrl.path,
-    );
+    ctrl.addNode(makeXiangqiNode({ ...positions[i + 1], legalMoves: ['f7f8'] }, moves[i], '', 0), ctrl.path);
   internal.xiangqiEngine = {
     evaluate: async (position: string): Promise<EngineAnalysis> => ({
       engine: 'test',
@@ -371,16 +366,16 @@ test('an authoritative draw overrides a matching solution without engine evaluat
   assert.deepEqual(results, [false]);
 });
 
-test('alternative nodes remain distinct after 26 sibling attempts', async () => {
+test('native move identity is independent of sibling insertion order', async () => {
   const { makeXiangqiNode } = await import('../src/xiangqi.ts');
   const state = opts().data.puzzle.state!;
-  const ids = Array.from({ length: 100 }, (_, i) => makeXiangqiNode(state, 'a1a2', '', i).id);
-  assert.equal(new Set(ids).size, ids.length);
-  assert.ok(ids.every(id => id.length === 2));
+  assert.equal(makeXiangqiNode(state, 'a1a2', 'R9+1').id, 'a1a2');
+  assert.equal(makeXiangqiNode(state, 'a1a2', '车九进一').id, 'a1a2');
+  assert.notEqual(makeXiangqiNode(state, 'i10i9', '').id, makeXiangqiNode(state, 'i1i2', '').id);
 });
 
 // These tests exercise controller contracts with mocked native results. The
-// browser's linePositions helper reconstructs boards; it does not adjudicate.
+// test fixture supplies snapshots; the native rules service adjudicates.
 const matingAnalysis = (pvMoves: string[] = []): EngineAnalysis => ({
   engine: 'test',
   depth: 18,
@@ -400,7 +395,7 @@ test('accepted mating continuation supplies replies, hints, and completion witho
   const { ctrl, results } = await readyController(options);
   const internal = ctrl as any;
   const { makeXiangqiNode, nextXiangqiMove } = await import('../src/xiangqi.ts');
-  const { linePositions } = await import('../src/xiangqiAdjudication.ts');
+  const { fixturePositions: linePositions } = await import('./positionFixtures.ts');
   const accepted = ['a1a4', 'e10d10', 'a4a5', 'd10e10', 'a5e5'];
   const positions = linePositions(fen, accepted);
   let searches = 0;
@@ -423,7 +418,7 @@ test('accepted mating continuation supplies replies, hints, and completion witho
       makeXiangqiNode(
         {
           ...positions[i + 1],
-          needsHydration: false,
+
           legalMoves: accepted[i + 1] ? [accepted[i + 1]] : [],
           gameResult: i === accepted.length - 1 ? '1-0' : '*',
         },
@@ -436,7 +431,7 @@ test('accepted mating continuation supplies replies, hints, and completion witho
     await internal.adjudicateXiangqi();
   }
   assert.equal(searches, 1);
-  assert.deepEqual(validations, [{ initialFen: fen, moves: accepted }]);
+  assert.deepEqual(validations, [{ initialFen: fen, moves: accepted, ruleset: 'unrestricted-v1' }]);
   assert.equal(internal.xiangqiObjective.allowance, 4);
   assert.ok(ctrl.solutions.at(accepted)?.complete);
   assert.deepEqual(results, [true]);
@@ -450,7 +445,7 @@ test('failed mating deviations and evaluation errors preserve the accepted conti
   const { ctrl, results } = await readyController(options);
   const internal = ctrl as any;
   const { makeXiangqiNode, nextXiangqiMove } = await import('../src/xiangqi.ts');
-  const { linePositions } = await import('../src/xiangqiAdjudication.ts');
+  const { fixturePositions: linePositions } = await import('./positionFixtures.ts');
   const accepted = ['a1a4', 'e10d10', 'a4a5'];
   const positions = linePositions(fen, accepted);
   let analysis = matingAnalysis(accepted.slice(1));
@@ -491,7 +486,7 @@ test('a stale continuation validation cannot replace the next puzzle solution', 
   const { ctrl, results } = await readyController(options);
   const internal = ctrl as any;
   const { makeXiangqiNode } = await import('../src/xiangqi.ts');
-  const { linePositions } = await import('../src/xiangqiAdjudication.ts');
+  const { fixturePositions: linePositions } = await import('./positionFixtures.ts');
   const position = linePositions(fen, ['a1a4'])[1];
   let resolve!: (response: Response) => void;
   let requested!: () => void;
@@ -540,8 +535,8 @@ test('move allowance retry clears the attempt while preserving the rated result 
   const { ctrl, results } = await readyController();
   const internal = ctrl as any;
   const { makeXiangqiNode } = await import('../src/xiangqi.ts');
-  const { linePositions } = await import('../src/xiangqiAdjudication.ts');
-  const state = { ...linePositions(fen, ['a1a4'])[1], needsHydration: false };
+  const { fixturePositions: linePositions } = await import('./positionFixtures.ts');
+  const state = { ...linePositions(fen, ['a1a4'])[1] };
   ctrl.addNode(makeXiangqiNode(state, 'a1a4', '', 0), ctrl.path);
   const failedPath = ctrl.path;
   const next = ctrl.next;
@@ -590,7 +585,7 @@ test('failed deviations play defense after 750ms, reveal failure after animation
   const { ctrl, results } = await readyController(options);
   t.mock.timers.tick(500);
   const internal = ctrl as any;
-  const { linePositions } = await import('../src/xiangqiAdjudication.ts');
+  const { fixturePositions: linePositions } = await import('./positionFixtures.ts');
   const positions = linePositions(fen, ['a1a4', 'e10d10']);
   const requests: string[] = [];
   t.mock.method(globalThis, 'fetch', async (_url, init) => {
@@ -603,7 +598,6 @@ test('failed deviations play defense after 750ms, reveal failure after animation
         legalMoves: ['e10d10'],
         notation: body.move,
         chineseNotation: body.move,
-        needsHydration: false,
       }),
     );
   });
@@ -683,14 +677,12 @@ test('saved root alternatives use no engine and reveal every nested variation', 
     stop() {},
     evaluate: async () => assert.fail('saved alternatives must not search'),
   };
-  const { linePositions } = await import('../src/xiangqiAdjudication.ts');
+  const { fixturePositions: linePositions } = await import('./positionFixtures.ts');
   t.mock.method(globalThis, 'fetch', async (_url, init) => {
     const body = JSON.parse(init!.body as string);
     const moves = [...body.moves, body.move];
     const position = linePositions(body.initialFen, moves).at(-1)!;
-    return new Response(
-      JSON.stringify({ ...position, notation: body.move, chineseNotation: body.move, needsHydration: false }),
-    );
+    return new Response(JSON.stringify({ ...position, notation: body.move, chineseNotation: body.move }));
   });
   await internal.playXiangqiUciAt(ctrl.path, 'a1a5');
   assert.equal(ctrl.xiangqiBestMove, true);
@@ -712,7 +704,7 @@ test('a native draw on the defender reply is announced only after its animation'
   const { ctrl, results } = await readyController(options);
   t.mock.timers.tick(500);
   const internal = ctrl as any;
-  const { linePositions } = await import('../src/xiangqiAdjudication.ts');
+  const { fixturePositions: linePositions } = await import('./positionFixtures.ts');
   const positions = linePositions(fen, ['a1a2', 'e10d10']);
   t.mock.method(globalThis, 'fetch', async (_url, init) => {
     const body = JSON.parse(init!.body as string);
@@ -723,7 +715,6 @@ test('a native draw on the defender reply is announced only after its animation'
         gameResult: index === 2 ? '1/2-1/2' : '*',
         notation: body.move,
         chineseNotation: body.move,
-        needsHydration: false,
       }),
     );
   });
@@ -743,14 +734,14 @@ test('a native draw on the defender reply is announced only after its animation'
 
 test('Solution replaces source history and attempts with only published branches, preserving rules history', async t => {
   t.mock.timers.enable({ apis: ['setTimeout'] });
-  const { linePositions } = await import('../src/xiangqiAdjudication.ts');
+  const { fixturePositions: linePositions } = await import('./positionFixtures.ts');
   const { makeXiangqiNode } = await import('../src/xiangqi.ts');
   const options = opts();
   const sourceFen = fen.replace(' w ', ' b ');
   options.data.game.initialFen = sourceFen;
   options.data.game.moves = ['e10d10'];
   const position = linePositions(sourceFen, options.data.game.moves)[1];
-  options.data.puzzle.state = { ...position, needsHydration: false };
+  options.data.puzzle.state = { ...position };
   options.data.puzzle.playback.solutions = [
     ['a1a2', 'd10e10', 'a2a3'],
     ['a1a4', 'd10e10', 'a4a5'],
@@ -763,9 +754,7 @@ test('Solution replaces source history and attempts with only published branches
     assert.equal(body.initialFen, sourceFen);
     assert.equal(body.moves[0], 'e10d10');
     const state = linePositions(sourceFen, [...body.moves, body.move]).at(-1)!;
-    return new Response(
-      JSON.stringify({ ...state, needsHydration: false, notation: body.move, chineseNotation: body.move }),
-    );
+    return new Response(JSON.stringify({ ...state, notation: body.move, chineseNotation: body.move }));
   });
   await (ctrl as any).viewXiangqiSolution();
   assert.equal(ctrl.tree.root.fen, position.fen);

@@ -1,5 +1,6 @@
 import { positionFromFen, positionToFen, standardXiangqi, type BoardView } from '@lixiangqi/board';
 
+import type { XiangqiSide as Color } from 'lib/game/xiangqi';
 import * as xhr from 'lib/xhr';
 
 import type { Config, EditorState, Redraw, Selected } from './interfaces';
@@ -24,10 +25,10 @@ export default class EditorCtrl {
     readonly cfg: Config,
     readonly redraw: Redraw,
   ) {
-    this.orientation = cfg.options?.orientation ?? 'white';
+    this.orientation = cfg.options?.orientation ?? 'red';
     const fen = normalizeFen(cfg.fen ?? cfg.startFen, cfg.startFen);
     const fields = fen.split(/\s+/);
-    this.turn = fields[1] === 'b' ? 'black' : 'white';
+    this.turn = fields[1] === 'b' ? 'black' : 'red';
     this.halfmoves = nonNegativeInt(fields[4], 0);
     this.fullmoves = Math.max(1, nonNegativeInt(fields[5], 1));
     this.state = { fen, validating: true, playable: false };
@@ -42,14 +43,14 @@ export default class EditorCtrl {
     const placement = this.ground
       ? positionToFen(this.ground.position(), standardXiangqi).split(' ')[0]
       : this.state.fen.split(/\s+/)[0];
-    return `${placement} ${this.turn === 'white' ? 'w' : 'b'} - - ${this.halfmoves} ${this.fullmoves}`;
+    return `${placement} ${this.turn === 'red' ? 'w' : 'b'} - - ${this.halfmoves} ${this.fullmoves}`;
   }
 
   setFen(rawFen: string): boolean {
     const fen = normalizeFen(rawFen, '');
     if (!fen || !hasBoardShape(fen)) return false;
     const fields = fen.split(/\s+/);
-    this.turn = fields[1] === 'b' ? 'black' : 'white';
+    this.turn = fields[1] === 'b' ? 'black' : 'red';
     this.halfmoves = nonNegativeInt(fields[4], 0);
     this.fullmoves = Math.max(1, nonNegativeInt(fields[5], 1));
     this.state = { fen, validating: true, playable: false };
@@ -63,33 +64,28 @@ export default class EditorCtrl {
   }
 
   clearBoard(): void {
-    this.setFen(`9/9/9/9/9/9/9/9/9/9 ${this.turn === 'white' ? 'w' : 'b'} - - 0 1`);
+    this.setFen(`9/9/9/9/9/9/9/9/9/9 ${this.turn === 'red' ? 'w' : 'b'} - - 0 1`);
   }
 
   flip(): void {
-    this.setOrientation(this.orientation === 'white' ? 'black' : 'white');
+    this.setOrientation(this.orientation === 'red' ? 'black' : 'red');
   }
 
   setOrientation(orientation: Color): void {
     if (this.ground)
       this.ground.setPresentation({
         ...this.ground.getPresentation(),
-        perspective: orientation === 'white' ? 'red' : 'black',
+        perspective: orientation === 'red' ? 'red' : 'black',
       });
     this.orientation = orientation;
     this.changed(false);
-  }
-
-  setVariant(_variant: string): void {
-    // Xiangqi is the sole game. Retain the editor API method for native
-    // embedding callers that previously selected a chess variant.
   }
 
   setTurn(turn: Color): void {
     this.turn = turn;
     if (this.ground)
       this.ground.display(
-        { ...this.ground.position(), active: turn === 'white' ? 'red' : 'black' },
+        { ...this.ground.position(), active: turn === 'red' ? 'red' : 'black' },
         { kind: 'edit' },
       );
     this.changed();
@@ -113,7 +109,7 @@ export default class EditorCtrl {
       history.replaceState(
         null,
         '',
-        fen === this.cfg.startFen && this.orientation === 'white'
+        fen === this.cfg.startFen && this.orientation === 'red'
           ? this.cfg.baseUrl
           : `${this.cfg.baseUrl}/${fen.replace(/ /g, '_')}?color=${this.orientation}`,
       );

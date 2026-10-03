@@ -13,3 +13,9 @@ const xiangqiPieceCount = (fen: string): number => fen.split(/\s/, 1)[0].split(/
 
 export const isXiangqiCapture = (before: string, after: string): boolean =>
   xiangqiPieceCount(after) < xiangqiPieceCount(before);
+
+export type XiangqiSide = 'red' | 'black';
+export const xiangqiSides: readonly XiangqiSide[] = ['red', 'black'];
+export const oppositeSide = (side: XiangqiSide): XiangqiSide => (side === 'red' ? 'black' : 'red');
+export const plySide = (ply: number): XiangqiSide => (ply % 2 === 0 ? 'red' : 'black');
+export const fenSide = (fen: string): XiangqiSide => (fen.split(' ')[1] === 'b' ? 'black' : 'red');

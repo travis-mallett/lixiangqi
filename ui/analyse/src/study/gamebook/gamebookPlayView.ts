@@ -57,11 +57,11 @@ function renderFeedback(ctrl: GamebookPlayCtrl, state: State) {
       'div',
       fb === 'play'
         ? [
-            hl('div.no-square', hl('piece.king.' + color)),
+            hl('div.no-square', hl('piece.general.' + color)),
             hl('div.instruction', [
               hl('strong', i18n.site.yourTurn),
               requiresI18n('puzzle', ctrl.redraw, cat =>
-                hl('em', cat[color === 'white' ? 'findTheBestMoveForWhite' : 'findTheBestMoveForBlack']),
+                hl('em', cat[color === 'red' ? 'findTheBestMoveForRed' : 'findTheBestMoveForBlack']),
               ),
             ]),
           ]

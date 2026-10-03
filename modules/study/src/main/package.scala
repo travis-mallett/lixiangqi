@@ -11,3 +11,6 @@ case class StudyValidationException(message: String) extends lila.core.lilaism.L
 def canUnfeature(using Option[Me]) =
   lila.core.perm.Granter.opt(_.StudyAdmin) ||
     lila.core.perm.Granter.opt(_.Shadowban)
+
+given [A: alleycats.Zero]: alleycats.Zero[lila.xiangqi.Xiangqi.BySide[A]] =
+  alleycats.Zero(lila.xiangqi.Xiangqi.BySide.fill(summon[alleycats.Zero[A]].zero))

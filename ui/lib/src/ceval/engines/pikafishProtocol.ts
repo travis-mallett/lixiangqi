@@ -27,6 +27,7 @@ export interface EngineAnalysis {
 }
 
 export interface PikafishHistory {
+  ruleset?: string;
   initialFen: string;
   moves: readonly string[];
 }
@@ -39,8 +40,10 @@ export interface PikafishOptions {
 export interface PikafishWork {
   fen: string;
   history?: PikafishHistory;
+  legalMoves?: readonly string[];
   search:
     | { depth: number }
+    | { nodes: number }
     | {
         movetime: number;
         extension?: {
@@ -127,6 +130,7 @@ export class PikafishProtocol {
   compute(nextWork?: PikafishWork): void {
     // Reject malformed history before stopping or replacing an active search.
     nextWork?.history?.moves.forEach(uiMoveToEngine);
+    nextWork?.legalMoves?.forEach(uiMoveToEngine);
     this.nextWork = nextWork;
     this.stop();
     this.swapWork();
@@ -266,13 +270,24 @@ export class PikafishProtocol {
       `position fen ${history?.initialFen ?? this.work.fen}${moves?.length ? ` moves ${moves.join(' ')}` : ''}`,
     );
     const { search } = this.work;
-    this.send(
+    const budget =
       'depth' in search
-        ? `go depth ${search.depth}`
-        : search.extension
-          ? 'go infinite'
-          : `go movetime ${search.movetime}`,
-    );
+        ? `depth ${search.depth}`
+        : 'nodes' in search
+          ? `nodes ${search.nodes}`
+          : search.extension
+            ? 'infinite'
+            : `movetime ${search.movetime}`;
+    const allowed = this.work.legalMoves;
+    if (allowed && !allowed.length) {
+      const completed = this.work;
+      this.work = undefined;
+      this.setComputing(false);
+      completed.emit(this.snapshot(), true);
+      this.swapWork();
+      return;
+    }
+    this.send(`go ${budget}${allowed ? ` searchmoves ${allowed.map(uiMoveToEngine).join(' ')}` : ''}`);
   }
 
   private clearSearchTimer(): void {

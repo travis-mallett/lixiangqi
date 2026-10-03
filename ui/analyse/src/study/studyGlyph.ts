@@ -1,9 +1,8 @@
 import { h, type VNode } from 'snabbdom';
 
 import { blurIfPrimaryClick, prop } from 'lib';
-import { throttle } from 'lib/async';
 import type { Glyph, GlyphId, TreeNode } from 'lib/tree/types';
-import { bind, spinnerVdom } from 'lib/view';
+import { bind } from 'lib/view';
 
 import type AnalyseCtrl from '../ctrl';
 import { glyphs as xhrGlyphs } from './studyXhr';
@@ -30,21 +29,29 @@ const renderGlyph = (ctrl: GlyphForm, node: TreeNode) => (glyph: Glyph) =>
 
 export class GlyphForm {
   all = prop<AllGlyphs | null>(null);
+  loading = false;
+  failed = false;
 
   constructor(readonly root: AnalyseCtrl) {}
 
-  loadGlyphs = () => {
-    if (!this.all())
-      xhrGlyphs().then(gs => {
-        this.all(gs);
-        this.root.redraw();
-      });
+  loadGlyphs = async () => {
+    if (this.all() || this.loading) return;
+    this.loading = true;
+    this.failed = false;
+    try {
+      this.all(await xhrGlyphs());
+    } catch {
+      this.failed = true;
+    } finally {
+      this.loading = false;
+      this.root.redraw();
+    }
   };
 
-  toggleGlyph = throttle(500, (id: GlyphId) => {
+  toggleGlyph = (id: GlyphId) => {
     this.root.study!.makeChange('toggleGlyph', this.root.study!.withPosition({ id }));
     this.root.redraw();
-  });
+  };
 }
 
 export const viewDisabled = (why: string): VNode => h('div.study__glyphs', [h('div.study__message', why)]);
@@ -62,6 +69,24 @@ export function view(ctrl: GlyphForm): VNode {
           h('div.position', all.position.map(renderGlyph(ctrl, node))),
           h('div.observation', all.observation.map(renderGlyph(ctrl, node))),
         ]
-      : [h('div.study__message', spinnerVdom())],
+      : [
+          h(
+            'div.study__message',
+            { attrs: { role: 'status' } },
+            ctrl.failed
+              ? [
+                  h('p', i18n.study.glyphsFailedToLoad),
+                  h(
+                    'button.button',
+                    {
+                      attrs: { type: 'button' },
+                      hook: bind('click', ctrl.loadGlyphs, ctrl.root.redraw),
+                    },
+                    i18n.site.retry,
+                  ),
+                ]
+              : i18n.site.loading,
+          ),
+        ],
   );
 }

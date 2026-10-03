@@ -17,6 +17,14 @@ class RelayUpdatePlanTest extends munit.FunSuite:
     assertEquals(games.size, 5)
     assertEquals(chapters.size, 5)
 
+  test("broadcast node budget counts shared paths once and includes nested alternatives"):
+    def root(text: String) =
+      lila.study.StudyPgnImport.result(PgnStr(text), Nil).fold(e => fail(e.value), _.root)
+    val existing = root("1. a4a5 a7a6 (1... c7c6) *")
+    val incoming = root("1. a4a5 a7a6 2. c4c5 (2. e4e5) *")
+    assertEquals(RelayUpdatePlan.addedNodes(existing.children, incoming.children), 2)
+    assertEquals(RelayUpdatePlan.addedNodes(incoming.children, incoming.children), 0)
+
   test("add no game to empty relay"):
     val input = Input(Nil, games.take(0))
     assertEquals(RelayUpdatePlan(input), Plan(input, None, Nil, Vector.empty, Nil))
@@ -123,7 +131,7 @@ class RelayUpdatePlanTest extends munit.FunSuite:
         assert(append.isEmpty)
         assert(orphans.isEmpty)
 
-  def mkTags(w: String, b: String) = Tags(List(Tag(_.White, w), Tag(_.Black, b)))
+  def mkTags(w: String, b: String) = Tags(List(Tag("Red", w), Tag(_.Black, b)))
 
   test("isSameGame based on names only"):
     assert(isSameGameBasedOnTags(mkTags("a", "b"), mkTags("a", "b")), "same names")
@@ -163,29 +171,29 @@ class RelayUpdatePlanTest extends munit.FunSuite:
 
   test("isSameGame based on some tags and first moves"):
     def mainline(moves: String) =
-      if moves.isEmpty then List(lila.tree.Root.default(chess.variant.Standard))
+      if moves.isEmpty then List(lila.tree.Root.default)
       else RelayGame.iso.to(MultiPgn.split(PgnStr(moves), Max(1))).head.root.mainlineNodeList
 
-    assert(sameFirstMoves(mainline("e4 e5"), mainline("e4 e5")))
-    assert(sameFirstMoves(mainline("e4 e5"), mainline("e4")))
-    assert(sameFirstMoves(mainline("e4 e5"), mainline("")))
-    assert(sameFirstMoves(mainline("e4 d6"), mainline("e4")))
-    assert(!sameFirstMoves(mainline("e3 d6"), mainline("e4")))
+    assert(sameFirstMoves(mainline("e4e5 e7e6"), mainline("e4e5 e7e6")))
+    assert(sameFirstMoves(mainline("e4e5 e7e6"), mainline("e4e5")))
+    assert(sameFirstMoves(mainline("e4e5 e7e6"), mainline("")))
+    assert(sameFirstMoves(mainline("e4e5 a7a6"), mainline("e4e5")))
+    assert(!sameFirstMoves(mainline("i4i5 a7a6"), mainline("e4e5")))
     assert(
       sameFirstMoves(
-        mainline("e4 e5 Nf3 Nc6 Nc3 Bb4 Nd5 Nf6 Nxb4 Nxb4 c3 Nc6 Nxe5 Nxe5 d4 Ng6 Bg5"),
-        mainline("e4 e5 Nf3 Nc6 Nc3 Bb4 Nd5 Nf6 Nxb4 Nxb4 c3 Nc6 Nxe5 Nxe5 d4")
+        mainline("a4a5 a7a6 c4c5 c7c6 e4e5 e7e6 g4g5 g7g6 i4i5 i7i6 b1c3 b10c8 h1g3 h10g8 a1a4 a10a7 i1i4"),
+        mainline("a4a5 a7a6 c4c5 c7c6 e4e5 e7e6 g4g5 g7g6 i4i5 i7i6 b1c3 b10c8 h1g3 h10g8 a1a4")
       )
     )
     assert(
       sameFirstMoves(
-        mainline("e4 e5 Nf3 Nc6 Nc3 Bb4 Nd5 Nf6 Nxb4 Nxb4 c3 Nc6 Nxe5 Nxe5 d4 Ng6 Bg5"),
-        mainline("e4 e5 Nf3 Nc6 Nc3 Bb4 Nd5 Nf6 Nxb4 Nxb4 c3 Nc6")
+        mainline("a4a5 a7a6 c4c5 c7c6 e4e5 e7e6 g4g5 g7g6 i4i5 i7i6 b1c3 b10c8 h1g3 h10g8 a1a4 a10a7 i1i4"),
+        mainline("a4a5 a7a6 c4c5 c7c6 e4e5 e7e6 g4g5 g7g6 i4i5 i7i6 b1c3 b10c8")
       )
     )
     assert(
       !sameFirstMoves(
-        mainline("e4 e5 Nf3 Nc6 Nc3 Bb4 Nd5 Nf6 Nxb4 Nxb4 c3 Nc6 Nxe5 Nxe5 d4 Ng6 Bg5"),
-        mainline("e4 e5 Nf3 Nc6 Nc3 Bb4 Nd5 Nf6 Nxb4 Nxb4 c3 Nc6 Nxe5 Nxe5 d3")
+        mainline("a4a5 a7a6 c4c5 c7c6 e4e5 e7e6 g4g5 g7g6 i4i5 i7i6 b1c3 b10c8 h1g3 h10g8 a1a4 a10a7 i1i4"),
+        mainline("a4a5 a7a6 c4c5 c7c6 e4e5 e7e6 g4g5 g7g6 i4i5 i7i6 b1c3 b10c8 h1g3 h10g8 a1a3")
       )
     )

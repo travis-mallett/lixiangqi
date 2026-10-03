@@ -39,11 +39,7 @@
   <string name="definitivelyDeleteTournament">Xóa dứt khoát toàn bộ giải đấu, tất cả các vòng và tất cả ván cờ trong đó.</string>
   <string name="showScores">Hiển thị điểm số của người chơi dựa trên kết quả ván đấu</string>
   <string name="replacePlayerTags">Tùy chọn: biệt danh, hệ số Elo và danh hiệu</string>
-  <string name="fideFederations">Các liên đoàn FIDE</string>
   <string name="top10Rating">Hệ số Elo top 10</string>
-  <string name="fidePlayers">Các kỳ thủ FIDE</string>
-  <string name="fidePlayerNotFound">Không tìm thấy kỳ thủ FIDE</string>
-  <string name="fideProfile">Hồ sơ FIDE</string>
   <string name="federation">Liên đoàn</string>
   <string name="age">Tuổi</string>
   <string name="unrated">Chưa xếp hạng</string>
@@ -74,7 +70,6 @@
   <string name="tournamentLocation">Địa điểm tổ chức giải đấu</string>
   <string name="topPlayers">Những kỳ thủ hàng đầu</string>
   <string name="timezone">Múi giờ</string>
-  <string name="fideRatingCategory">Thể loại xếp hạng FIDE</string>
   <string name="optionalDetails">Tùy chọn chi tiết</string>
   <string name="pastBroadcasts">Các phát sóng đã qua</string>
   <string name="allBroadcastsByMonth">Xem tất cả phát sóng theo tháng</string>

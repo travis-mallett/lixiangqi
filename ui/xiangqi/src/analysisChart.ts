@@ -1,14 +1,17 @@
 import type { AcplChart, AnalyseData, ChartGame, EvaluationNode } from 'chart';
 
-import { getNodeList, mainlineEndPath, type XiangqiMoveTree, type XiangqiPositionNode } from './tree';
+import {
+  getNodeList,
+  mainlineEndPath,
+  type XiangqiMoveTree,
+  type XiangqiPositionNode,
+} from 'lib/tree/native';
 
 export function chartNodes(nodes: XiangqiPositionNode[]): EvaluationNode[] {
   return nodes.map(node => ({
     ply: node.state.ply,
-    san: 'notation' in node ? node.notation : '',
-    ...(node.evaluation
-      ? { eval: { cp: node.evaluation.score.redCp, mate: node.evaluation.score.redMate } }
-      : {}),
+    notation: 'notation' in node ? node.notation : '',
+    ...(node.evaluation ? { eval: { cp: node.evaluation.cp, mate: node.evaluation.mate } } : {}),
   }));
 }
 
@@ -67,9 +70,9 @@ export class AnalysisChart {
     this.nodes = nodes;
     this.signature = signature;
     const data: AnalyseData = {
-      player: { color: 'white' },
+      player: { color: 'red' },
       opponent: { color: 'black' },
-      treeParts: [],
+      tree: tree.root,
       game: { variant: { key: 'xiangqi' }, status: { name: 'finished' } },
       analysis: {},
     };
@@ -104,7 +107,7 @@ export class AnalysisChart {
   }
 
   private select(): void {
-    const node = this.tree?.byPath.get(this.activePath);
+    const node = this.tree?.nodeAtPath(this.activePath);
     if (node) this.chart?.selectPly(node.state.ply, this.nodes.includes(node));
   }
 }

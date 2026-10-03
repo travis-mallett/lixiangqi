@@ -1,6 +1,7 @@
 import { defined } from 'lib';
 import { isTouchDevice } from 'lib/device';
 import { addPointerListeners } from 'lib/pointer';
+import * as treePath from 'lib/tree/path';
 import type { TreeNode } from 'lib/tree/types';
 import { onInsert, hl } from 'lib/view';
 
@@ -65,7 +66,7 @@ export class ForkCtrl {
 
       const childNode = this.forks[it];
       if (defined(childNode)) {
-        this.ctrl.userJumpIfCan(this.ctrl.path + childNode.id);
+        this.ctrl.userJumpIfCan(treePath.append(this.ctrl.path, childNode.id));
         return true;
       }
     }
@@ -101,7 +102,7 @@ export function view(ctrl: AnalyseCtrl, concealOf?: ConcealOf) {
       }),
     },
     ctrl.visibleChildren().map((node, it) => {
-      const conceal = isMainline && concealOf(true)(ctrl.path + node.id, node);
+      const conceal = isMainline && concealOf(true)(treePath.append(ctrl.path, node.id), node);
       if (conceal) return undefined;
 
       return hl(

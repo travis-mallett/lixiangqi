@@ -22,7 +22,10 @@ from . import (
     throat_cutting,
     chariots_threatening_advisor,
     three_immortals,
+    repatriation,
     double_ghosts,
+    cannon_chariot_discovered,
+    detonating_mine,
     moon_scooping,
     spring_horse,
     smothered_cannon,
@@ -70,6 +73,15 @@ from .patterns import (
     matching_assessed_themes,
 )
 
+# Puzzle Studio switch for the tactic categorizer. When off, tactic candidates
+# are no longer scanned for winningMaterialByDoubleAttack: the theme, its
+# detector, stored verdicts and existing puzzle tags are all untouched, and a
+# stored match is reused so already-tagged puzzles keep their tag. Only a
+# missing verdict is filled in as a non-match, without any engine work. Set to
+# True to resume scanning, then force a reclassification pass so the skipped
+# candidates are scanned again.
+DOUBLE_ATTACK_DETECTION_ENABLED = False
+
 
 @dataclass(frozen=True)
 class TaxonomyResult:
@@ -83,9 +95,14 @@ def taxonomy_versions(registry=None, *, candidate_type="checkmate_candidate"):
     """Theme logic and branch-consensus policy, independent of the verifier."""
     classifier = TacticalClassifier(registry)
     if candidate_type == "tactic_candidate":
+        # The cannon chariot discovery and its reversing twin are the motifs
+        # both pools share; the mating pool also receives them through the
+        # terminal matcher registry.
         return {
             fork.THEME: fork.VERSION,
             exchange_material.THEME: exchange_material.VERSION,
+            cannon_chariot_discovered.THEME: cannon_chariot_discovered.VERSION,
+            detonating_mine.THEME: detonating_mine.VERSION,
             **classifier.registry.versions,
             "__consensus__": "2",
         }
@@ -322,6 +339,8 @@ def _evaluate_category(
             bold_chariot.THEME,
             pawn_triple.THEME,
             double_ghosts.THEME,
+            cannon_chariot_discovered.THEME,
+            detonating_mine.THEME,
         }:
             assessor = {
                 fork.THEME: fork,
@@ -329,6 +348,8 @@ def _evaluate_category(
                 bold_chariot.THEME: bold_chariot,
                 pawn_triple.THEME: pawn_triple,
                 double_ghosts.THEME: double_ghosts,
+                cannon_chariot_discovered.THEME: cannon_chariot_discovered,
+                detonating_mine.THEME: detonating_mine,
             }[category]
             setup = (
                 {"pre_fen": current["pre_fen"], "setup_move": current["played_move"]}
@@ -347,6 +368,19 @@ def _evaluate_category(
             ).fetchone()
             record = json.loads(row[0]) if row else None
             outcome = assessor.evidence_outcome(trace, record, **setup)
+            if (
+                outcome is None
+                and category == fork.THEME
+                and not DOUBLE_ATTACK_DETECTION_ENABLED
+            ):
+                # Double-attack detection is switched off. A stored verdict was
+                # already reused above, so existing tags survive; otherwise
+                # record a placeholder non-match instead of scanning.
+                record = {
+                    "outcome": "not_key",
+                    "reason": "double_attack_detection_disabled",
+                }
+                outcome = "not_key"
             if outcome is None:
                 from .solver import SolutionReview
 
@@ -446,6 +480,12 @@ def _evaluate_category(
             evidence[theme] = records
             proofs[(theme, index)] = records
         for theme, version, geometry, assessor in (
+            (
+                repatriation.THEME,
+                repatriation.VERSION,
+                lambda terminal: repatriation.candidate(trace) is not False,
+                repatriation,
+            ),
             (
                 three_immortals.THEME,
                 three_immortals.VERSION,
@@ -587,6 +627,7 @@ def _evaluate_category(
                 if theme
                 in throat_cutting.THEMES
                 | {
+                    repatriation.THEME,
                     three_immortals.THEME,
                     chariots_threatening_advisor.THEME,
                     moon_scooping.THEME,

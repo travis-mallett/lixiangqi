@@ -9,9 +9,10 @@ import { type ViewerLabels, type GameViewer } from './viewer';
 
 interface EmbedOptions extends ViewerSource {
   labels: ViewerLabels;
-  orientation?: 'white' | 'black';
+  orientation?: 'red' | 'black';
   boardTheme?: string;
   pieceSet?: string;
+  ruleset: string;
   states?: RulesState[];
   notations?: string[];
   chineseNotations?: string[];
@@ -19,11 +20,30 @@ interface EmbedOptions extends ViewerSource {
   explorerEndpoint?: string;
 }
 
+/* A hosting page sizes the iframe, so the embed reports the height of its rendered content
+   whenever the layout changes. Hosts that ignore the message keep their own fixed size. */
+function reportEmbedHeight(element: HTMLElement, signal: AbortSignal): void {
+  if (window.parent === window) return;
+  const post = () => {
+    const height = Math.ceil(document.body.getBoundingClientRect().height);
+    if (height > 0) window.parent.postMessage({ type: 'xiangqi-embed:height', height }, '*');
+  };
+  post();
+  if (typeof ResizeObserver === 'undefined') {
+    window.addEventListener('resize', post, { signal });
+    return;
+  }
+  const observer = new ResizeObserver(post);
+  observer.observe(element);
+  signal.addEventListener('abort', () => observer.disconnect(), { once: true });
+}
+
 export async function initModule(options: EmbedOptions): Promise<void> {
   const root = document.querySelector<HTMLElement>('#xiangqi-embed')!;
   let viewer: GameViewer | undefined;
   const abort = new AbortController();
   let audio: ReturnType<typeof createBoardAudio> | undefined;
+  reportEmbedHeight(root, abort.signal);
   window.addEventListener(
     'pagehide',
     () => {
@@ -61,9 +81,19 @@ export async function initModule(options: EmbedOptions): Promise<void> {
             chineseNotation: options.chineseNotations?.[i],
             state: options.states[i + 1],
             children,
+            annotations: { comments: [], shapes: [] },
           },
         ];
-      source = { ...source, tree: { initialFen: options.states[0].fen, state: options.states[0], children } };
+      source = {
+        ...source,
+        tree: {
+          initialFen: options.states[0].fen,
+          ruleset: options.ruleset,
+          annotations: { comments: [], shapes: [] },
+          state: options.states[0],
+          children,
+        },
+      };
     }
     const assetUrl = (path: string) =>
       `${document.body.dataset.assetUrl || ''}/assets/_${document.body.dataset.assetVersion}/${path}`;

@@ -9,7 +9,11 @@
     flex: 1 0 30%;
   }
 
-  button {
+  .study__message {
+    white-space: normal;
+  }
+
+  button[data-symbol] {
     @extend %flex-center-nowrap;
 
     height: 2.3em;

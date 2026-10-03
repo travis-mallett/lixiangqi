@@ -1,0 +1,360 @@
+.xiangqi-engine {
+  position: relative;
+  flex: 0 0 auto;
+  padding-top: 3px; // bar
+  border-bottom: 1px solid $c-border;
+  background: color-mix(in oklab, $c-bg-box 96%, $c-good);
+}
+
+.xiangqi-engine__summary {
+  display: flex;
+  align-items: center;
+  min-height: 3.4rem;
+  gap: 0.55rem;
+  padding: 0.35rem 0.45rem;
+}
+
+.xiangqi-engine__switch {
+  flex: 0 0 2.85rem;
+  cursor: pointer;
+
+  input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  span {
+    position: relative;
+    display: block;
+    width: 2.75rem;
+    height: 1.55rem;
+    border-radius: 2rem;
+    background: $c-bg-zebra;
+    box-shadow: inset 0 0 0 1px $c-border;
+    transition: background 150ms;
+
+    &::after {
+      content: '';
+      position: absolute;
+      width: 1.27rem;
+      height: 1.27rem;
+      inset: 0.14rem auto auto 0.15rem;
+      border-radius: 50%;
+      background: $c-font-dim;
+      transition:
+        transform 150ms,
+        background 150ms;
+    }
+  }
+
+  input:checked + span {
+    background: color-mix(in oklab, $c-good 70%, $c-bg-box);
+
+    &::after {
+      transform: translateX(1.18rem);
+      background: white;
+    }
+  }
+
+  input:focus-visible + span {
+    outline: 2px solid $c-accent;
+    outline-offset: 2px;
+  }
+}
+
+.xiangqi-engine__headline-score {
+  flex: 0 0 3.5rem;
+  color: $c-font-clear;
+  font-size: 1.35rem;
+  text-align: center;
+}
+
+.xiangqi-engine__identity {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.xiangqi-engine__name {
+  color: $c-font;
+  font-weight: 600;
+}
+
+.xiangqi-analysis__substatus {
+  color: $c-font-dim;
+  font-size: 0.72rem;
+
+  &.error {
+    color: $c-bad;
+  }
+}
+
+.xiangqi-cloud-badge {
+  flex: 0 0 auto;
+  border-radius: 3px;
+  padding: 0.1rem 0.3rem;
+  background: color-mix(in oklab, $c-good 62%, $c-bg-box);
+  color: $c-font-clear;
+  font-size: 0.62rem;
+  font-weight: bold;
+  letter-spacing: 0.04em;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.xiangqi-icon-button {
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: $c-font-dim;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible,
+  &[aria-expanded='true'] {
+    color: $c-font-clear;
+    background: $c-bg-zebra;
+  }
+
+  &:disabled {
+    opacity: 0.28;
+    cursor: default;
+  }
+}
+
+.xiangqi-engine__summary > .xiangqi-icon-button {
+  flex: 0 0 2.35rem;
+  align-self: stretch;
+  border-radius: 3px;
+  font-size: 1.1rem;
+}
+
+.xiangqi-engine-settings {
+  position: absolute;
+  z-index: 20;
+  inset: 3.4rem 0 auto;
+  display: grid;
+  gap: 0.9rem;
+  border-top: 2px solid $c-accent;
+  padding: 1rem;
+  background: $c-bg-high;
+  box-shadow: 0 0.55rem 1.25rem #0008;
+
+  &[hidden] {
+    display: none;
+  }
+
+  label {
+    display: grid;
+    grid-template-columns: 7.5rem minmax(0, 1fr) 3.3rem;
+    align-items: center;
+    gap: 0.5rem;
+    color: $c-font-dim;
+    font-size: 0.84rem;
+  }
+
+  label.xiangqi-engine-settings__toggle {
+    grid-template-columns: minmax(0, 1fr) auto;
+    color: $c-font;
+    cursor: pointer;
+
+    input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+  }
+
+  &__toggle-control {
+    position: relative;
+    display: block;
+    width: 2.75rem;
+    height: 1.55rem;
+    border-radius: 2rem;
+    background: $c-bg-zebra;
+    box-shadow: inset 0 0 0 1px $c-border;
+    transition: background 150ms;
+
+    &::after {
+      content: '';
+      position: absolute;
+      width: 1.27rem;
+      height: 1.27rem;
+      inset: 0.14rem auto auto 0.15rem;
+      border-radius: 50%;
+      background: $c-font-dim;
+      transition:
+        transform 150ms,
+        background 150ms;
+    }
+  }
+
+  &__toggle input:checked + &__toggle-control {
+    background: color-mix(in oklab, $c-good 70%, $c-bg-box);
+
+    &::after {
+      transform: translateX(1.18rem);
+      background: white;
+    }
+  }
+
+  &__toggle input:focus-visible + &__toggle-control {
+    outline: 2px solid $c-accent;
+    outline-offset: 2px;
+  }
+
+  input[type='range'] {
+    width: 100%;
+    margin: 0;
+  }
+
+  &__value {
+    color: $c-font;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .button {
+    justify-self: end;
+    padding: 0.45rem 0.75rem;
+  }
+
+  &__provider > .setting {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    label {
+      display: block;
+    }
+
+    select {
+      flex: 1;
+      min-width: 0;
+      padding: 0.4rem;
+    }
+  }
+}
+
+.xiangqi-engine__lines {
+  display: block;
+  padding: 0;
+
+  &.pv_box {
+    // WXF uses piece letters such as R and K as literal notation. The shared
+    // Lichess PV styles use Noto Chess, which turns those letters into chess
+    // figurines unless Xiangqi explicitly keeps its notation in the base font.
+    .pv-move {
+      @extend %base-font;
+    }
+
+    .pv.placeholder {
+      min-height: 2em;
+    }
+
+    // Lichess's preview is square; preserve the exact popup treatment while
+    // accommodating the Xiangqi board's 9-by-10 geometry.
+    .pv-board .pv-board-square {
+      padding-bottom: calc(10 * 100% / 9);
+    }
+  }
+}
+
+.xiangqi-engine__line {
+  display: grid;
+  grid-template-columns: 3.65rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+  min-height: 2rem;
+  border: 0;
+  border-radius: 0;
+  padding: 0.28rem 0.55rem;
+  background: transparent;
+  color: $c-font;
+  text-align: left;
+  cursor: pointer;
+
+  &:nth-child(even) {
+    background: color-mix(in oklab, $c-bg-zebra 65%, transparent);
+  }
+
+  &:hover,
+  &:focus-visible {
+    background: color-mix(in oklab, $c-bg-box 75%, $c-accent);
+  }
+
+  &.placeholder {
+    cursor: default;
+    pointer-events: none;
+  }
+}
+
+.xiangqi-engine__rank,
+.xiangqi-engine__score {
+  color: $c-font-dim;
+  font-size: 0.76rem;
+  text-align: right;
+}
+
+.xiangqi-engine__move {
+  overflow: hidden;
+  color: $c-font-clear;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.xiangqi-engine__source {
+  border-radius: 2px;
+  padding: 0.08rem 0.25rem;
+  background: color-mix(in oklab, $c-good 45%, transparent);
+  color: $c-font-clear;
+  font-size: 0.58rem;
+  font-weight: bold;
+}
+
+.xiangqi-engine__more {
+  width: 100%;
+  border: 0;
+  border-top: 1px solid $c-border;
+  padding: 0.22rem;
+  background: transparent;
+  color: $c-font-dim;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+
+  &[hidden] {
+    display: none;
+  }
+
+  &:hover,
+  &:focus-visible {
+    color: $c-font-clear;
+    background: $c-bg-zebra;
+  }
+}
+
+@media (max-width: 799px) {
+  .xiangqi-engine {
+    overflow-anchor: none;
+
+    &:has(.xiangqi-engine__switch input:not(:checked)) {
+      .xiangqi-engine__lines,
+      .xiangqi-engine__more {
+        display: none;
+      }
+    }
+  }
+
+  .xiangqi-engine-settings__preview-toggle {
+    display: none !important;
+  }
+}

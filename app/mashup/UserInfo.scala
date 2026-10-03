@@ -28,7 +28,7 @@ case class UserInfo(
     teamIds: List[lila.team.TeamId],
     isStreamer: Boolean,
     isCoach: Boolean,
-    publicFideId: Option[chess.FideId]
+    publicPlayerId: Option[lila.core.playerDirectory.PlayerId]
 ):
   export nbs.crosstable
 
@@ -100,7 +100,7 @@ object UserInfo:
       teamApi: lila.team.TeamApi,
       teamCache: lila.team.TeamCached,
       coachApi: lila.coach.CoachApi,
-      fideIdOf: lila.core.user.PublicFideIdOf
+      playerIdOf: lila.core.user.PublicPlayerIdOf
   )(using Executor):
     def fetch(user: User, nbs: NbGames, restricted: Boolean, withBlog: Boolean = true)(using
         ctx: Context
@@ -123,7 +123,7 @@ object UserInfo:
         full.so(ctx.useMe(teamApi.joinedTeamIdsOfUserAsSeenBy(user).mon(lila.mon.user.segment("teamIds")))),
         streamerApi.isActualStreamer(user).mon(lila.mon.user.segment("streamer")),
         coachApi.isListedCoach(user).mon(lila.mon.user.segment("coach")),
-        fideIdOf(user.light)
+        playerIdOf(user.light)
       ).mapN(UserInfo(nbs, _, _, _, _, _, _, _, _, _, _, _, _, _))
 
     def preloadTeams(info: UserInfo) = teamCache.lightCache.preloadMany(info.teamIds)

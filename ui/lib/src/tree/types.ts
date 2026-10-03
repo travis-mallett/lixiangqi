@@ -1,5 +1,8 @@
-import type { Result } from '@badrap/result';
-import type { Outcome, Position } from 'chessops';
+import type { RulesState, CommentAuthor } from '../game/xiangqiNotation';
+
+export interface Outcome {
+  winner?: 'red' | 'black';
+}
 
 export type TreeNodeId = string;
 export type TreePath = string;
@@ -38,11 +41,6 @@ export interface PvData extends EvalScore {
   moves: string[];
 }
 
-export interface TablebaseHit {
-  winner?: Color;
-  best?: Uci;
-}
-
 export interface TreeNodeBase {
   // file://./../../tree/src/tree.ts
   id?: TreeNodeId;
@@ -55,25 +53,33 @@ export interface TreeNodeBase {
   threat?: LocalEval;
   ceval?: ClientEval;
   eval?: ServerEval;
-  tbhit?: TablebaseHit | null;
   glyphs?: Glyph[];
   clock?: Clock;
+  elapsed?: Clock;
+  evaluation?: {
+    cp?: number;
+    mate?: number;
+    depth?: number;
+    engine?: string;
+    nodes?: number;
+    best?: string;
+    variation?: string[];
+  };
   parentClock?: Clock;
+  clockTrust?: boolean;
   forceVariation?: boolean;
   shapes?: Shape[];
   comp?: boolean;
-  san?: string;
-  sanZh?: string;
-  threefold?: boolean;
+  notation?: string;
+  chineseNotation?: string;
+  state: RulesState;
+  ruleset?: string;
+  result?: string;
+  metadata?: Record<string, string>;
   fail?: boolean;
   puzzle?: 'win' | 'fail' | 'good' | 'retry';
-  crazy?: NodeCrazy;
-  xiangqiLegalMoves?: Uci[];
-  xiangqiCheck?: boolean;
   collapsed?: boolean;
-  pos?: () => PositionResult; // precomputed
-  dests?: () => Dests;
-  drops?: () => Key[] | undefined;
+  dests?: () => ReadonlyMap<string, readonly string[]>;
   check?: () => boolean;
   outcome?: () => Outcome | undefined;
 }
@@ -87,32 +93,21 @@ export interface TreeNodeLite extends Omit<TreeNodeBase, TreeNodeFunctionProps<T
   children: TreeNodeLite[];
 }
 
-export type PositionResult = Result<Position>;
-
 export interface TreeNode extends TreeNodeLite {
+  path: TreePath;
   children: TreeNode[];
-  pos: () => PositionResult;
-  dests: () => Dests;
-  drops: () => Key[] | undefined;
+  dests: () => ReadonlyMap<string, readonly string[]>;
   check: () => boolean;
   outcome: () => Outcome | undefined;
 }
 
-export interface NodeCrazy {
-  pockets: [CrazyPocket, CrazyPocket];
-}
-
-export type CrazyPocket = Record<Exclude<Role, 'king'>, number>;
-
 export interface TreeComment {
   id: string;
-  by:
-    | string
-    | {
-        id: string;
-        name: string;
-      };
+  by: CommentAuthor;
   text: string;
+  source?: string;
+  author?: string;
+  language?: string;
 }
 
 export interface Gamebook {
@@ -132,7 +127,7 @@ export interface Glyph {
 export type Clock = number;
 
 export interface Shape {
-  orig: Key;
-  dest?: Key;
+  orig: string;
+  dest?: string;
   brush?: string;
 }

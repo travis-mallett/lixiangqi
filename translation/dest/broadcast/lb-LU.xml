@@ -38,11 +38,7 @@
   <string name="deleteTournament">Dësen Turnéier läschen</string>
   <string name="definitivelyDeleteTournament">De ganzen Turnéier definitiv läschen, all seng Ronnen an all seng Partien.</string>
   <string name="replacePlayerTags">Optional: Spillernimm, Wäertungen an Titelen ersetzen</string>
-  <string name="fideFederations">FIDE-Federatiounen</string>
   <string name="top10Rating">Top-10-Wäertung</string>
-  <string name="fidePlayers">FIDE-Spiller</string>
-  <string name="fidePlayerNotFound">FIDE-Spiller net tfonnt</string>
-  <string name="fideProfile">FIDE-Profil</string>
   <string name="federation">Federatioun</string>
   <string name="age">Alter</string>
   <string name="unrated">Ongewäert</string>
@@ -70,7 +66,6 @@
   <string name="tournamentLocation">Turnéierplaz</string>
   <string name="topPlayers">Topspiller</string>
   <string name="timezone">Zäitzon</string>
-  <string name="fideRatingCategory">FIDE-Wäertungskategorie</string>
   <string name="optionalDetails">Fakultativ Detailler</string>
   <string name="pastBroadcasts">Vergaangen Iwwerdroungen</string>
   <string name="allBroadcastsByMonth">All Iwwerdroungen nom Mount uweisen</string>

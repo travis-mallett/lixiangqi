@@ -46,8 +46,8 @@ final class RelayMenuUi(helpers: Helpers):
           )
       ,
       div(cls := "sep"),
-      a(cls := menu.active("players"), href := routes.Fide.index())(trc.fidePlayers()),
-      a(cls := menu.active("federations"), href := routes.Fide.federations(1))(
-        trc.fideFederations()
+      a(cls := menu.active("players"), href := routes.PlayerDirectory.index())(trc.directoryPlayers()),
+      a(cls := menu.active("federations"), href := routes.PlayerDirectory.federations(1))(
+        trc.playerFederations()
       )
     )

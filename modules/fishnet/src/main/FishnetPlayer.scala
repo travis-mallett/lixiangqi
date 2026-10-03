@@ -28,7 +28,7 @@ final class FishnetPlayer(redis: FishnetRedis)(using Executor):
               id = game.id.value,
               initialFen = Some[Fen.Full](Fen.Full(game.xiangqi.initialFen)),
               studyId = none,
-              variant = game.variant,
+              ruleset = game.xiangqi.ruleset,
               moves = game.xiangqi.moves.map(_.value).mkString(" ")
             ),
             level = lila.core.fishnet.AiTurnKey.effectiveLevel(game, level),

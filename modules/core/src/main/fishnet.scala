@@ -1,7 +1,9 @@
 package lila.core
 package fishnet
 
-import _root_.chess.format.{ Fen, Uci }
+import _root_.chess.format.Fen
+import lila.xiangqi.Xiangqi.Uci
+import lila.xiangqi.adjudication.Ruleset
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import scalalib.ThreadLocalRandom
@@ -19,7 +21,7 @@ enum Bus:
       studyId: StudyId,
       chapterId: StudyChapterId,
       initialFen: Option[Fen.Full],
-      variant: _root_.chess.variant.Variant,
+      ruleset: Ruleset,
       moves: List[Uci],
       userId: UserId,
       official: Boolean

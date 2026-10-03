@@ -2,10 +2,14 @@ import {
   createBoard,
   boardPresentation,
   standardXiangqi,
-  boardAssets,
   type BoardView,
   type BoardServices,
 } from '@lixiangqi/board';
+import { attributesModule, classModule, init, type VNode } from 'snabbdom';
+
+import { licon } from 'lib/licon';
+import { renderColumnTree, renderIndex, type ColumnTreeNode } from 'lib/tree/columnView';
+import { hl, renderReplayControls } from 'lib/view';
 
 import { applyViewerAppearance } from './appearance';
 import { lastNode, type ViewerNode } from './model';
@@ -15,10 +19,6 @@ export interface ViewerLabels {
   previous: string;
   next: string;
   last: string;
-  flip: string;
-  board: string;
-  pieces: string;
-  sound: string;
   moves: string;
   start: string;
   analysis: string;
@@ -29,13 +29,25 @@ export interface ViewerOptions {
   services: BoardServices;
   labels: ViewerLabels;
   initialPly?: number | 'last';
-  orientation?: 'white' | 'black' | 'red';
+  orientation?: 'red' | 'black';
   boardTheme?: string;
   pieceSet?: string;
   showMoves?: boolean;
   showControls?: boolean;
   onPosition?: (node: ViewerNode) => void;
 }
+
+type ViewerAction = 'first' | 'previous' | 'next' | 'last';
+
+/* The column tree identifies a move by its own coordinate move; a viewer node keeps its
+   full native path, so clicks find the exact node even when a move repeats in a branch. */
+interface MoveNode extends ColumnTreeNode<MoveNode> {
+  viewer: ViewerNode;
+}
+
+const hasComments = (node: ViewerNode): boolean => !!node.comments.length || node.children.some(hasComments);
+
+const patch = init([attributesModule, classModule]);
 
 const makeElement = <K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -52,8 +64,13 @@ export class GameViewer {
   private current: ViewerNode;
   private readonly moves = makeElement('div');
   private readonly comments = makeElement('div');
-  private readonly buttons = new Map<string, HTMLButtonElement>();
+  private readonly panel = makeElement('div');
+  private readonly nodes = new Map<string, ViewerNode>();
   private readonly abort = new AbortController();
+  private readonly showMoves: boolean;
+  private readonly showControls: boolean;
+  private movesVNode?: VNode;
+  private controlsVNode?: VNode;
 
   constructor(
     readonly element: HTMLElement,
@@ -63,16 +80,59 @@ export class GameViewer {
     element.replaceChildren();
     element.classList.add('xiangqi-viewer');
     element.tabIndex = 0;
-    const wrap = document.createElement('div');
-    wrap.className = 'xiangqi-viewer__board';
-    const surface = document.createElement('div');
-    wrap.append(surface);
+
+    const layout = makeElement('div');
+    layout.className = 'xiangqi-viewer__layout';
+    const board = makeElement('div');
+    board.className = 'xiangqi-viewer__board';
+    const surface = makeElement('div');
+    board.append(surface);
+    const playback = makeElement('div');
+    playback.className = 'xiangqi-viewer__playback';
+    this.panel.className = 'xiangqi-viewer__panel';
+    playback.append(this.panel);
+    layout.append(board, playback);
+    element.append(layout);
+
+    /* A position without recorded moves is a diagram: it has nothing to replay. */
+    const navigable = !!options.root.children.length;
+    this.showMoves = navigable && options.showMoves !== false;
+    this.showControls = navigable && options.showControls !== false;
+    if (!this.showMoves && !this.showControls && !hasComments(options.root))
+      element.classList.add('xiangqi-viewer--solo');
+    /* An annotated example keeps one stable place for its notes while navigating. */
+    if (hasComments(options.root)) element.classList.add('xiangqi-viewer--annotated');
     this.moves.className = 'xiangqi-viewer__moves';
     this.moves.setAttribute('aria-label', options.labels.moves);
+    if (this.showMoves) {
+      this.panel.append(this.moves);
+      this.moves.addEventListener(
+        'click',
+        event => {
+          const node = this.moveFromEvent(event);
+          if (node) this.go(node);
+        },
+        { signal: this.abort.signal },
+      );
+      this.moves.addEventListener(
+        'keydown',
+        event => {
+          if (event.key !== 'Enter' && event.key !== ' ') return;
+          const node = this.moveFromEvent(event);
+          if (!node) return;
+          event.preventDefault();
+          this.go(node);
+        },
+        { signal: this.abort.signal },
+      );
+    }
+    const feedback = makeElement('div');
+    feedback.className = 'xiangqi-viewer__feedback';
     this.comments.className = 'xiangqi-viewer__comments';
     this.comments.setAttribute('aria-live', 'polite');
-    element.append(wrap, this.comments);
-    if (options.showMoves !== false) element.append(this.moves);
+    feedback.append(this.comments);
+    this.panel.append(feedback);
+
     const presentation = boardPresentation('replay', options.orientation === 'black' ? 'black' : 'red');
     this.board = createBoard(surface, {
       definition: standardXiangqi,
@@ -81,14 +141,17 @@ export class GameViewer {
       interaction: { mode: 'display' },
       services: options.services,
     });
-    if (options.showControls !== false) this.controls();
-    this.renderMoves(options.root);
     element.addEventListener(
       'keydown',
       event => {
         if ((event.target as HTMLElement).matches('select,input,textarea,button')) return;
         const action = (
-          { ArrowLeft: 'previous', ArrowRight: 'next', Home: 'first', End: 'last' } as Record<string, string>
+          {
+            ArrowLeft: 'previous',
+            ArrowRight: 'next',
+            Home: 'first',
+            End: 'last',
+          } as Record<string, ViewerAction>
         )[event.key];
         if (action) {
           event.preventDefault();
@@ -113,7 +176,7 @@ export class GameViewer {
     return node;
   }
 
-  navigate(action: string): void {
+  navigate(action: ViewerAction): void {
     const target =
       action === 'first'
         ? this.options.root
@@ -133,15 +196,6 @@ export class GameViewer {
 
   go(node: ViewerNode): void {
     if (this.abort.signal.aborted) return;
-    if (
-      node.parent &&
-      ![...this.moves.querySelectorAll<HTMLButtonElement>('button')].some(
-        button => button.dataset.node === node.id,
-      )
-    ) {
-      this.moves.replaceChildren();
-      this.renderMoves(this.options.root);
-    }
     const previous = this.current;
     const direction = node.parent === previous ? 'forward' : previous.parent === node ? 'backward' : 'jump';
     this.current = node;
@@ -152,116 +206,86 @@ export class GameViewer {
     });
     this.board.setMarks(node.marks, 'annotation');
     this.comments.textContent = node.comments.join('\n\n');
-    for (const button of this.moves.querySelectorAll<HTMLButtonElement>('button')) {
-      const active = button.dataset.node === node.id;
-      button.classList.toggle('active', active);
-      if (active) button.setAttribute('aria-current', 'step');
-      else button.removeAttribute('aria-current');
-    }
-    for (const [action, button] of this.buttons)
-      button.disabled = action === 'first' || action === 'previous' ? !node.parent : !node.children.length;
+    if (this.showMoves) this.renderMoves();
+    this.renderControls();
     this.options.onPosition?.(node);
   }
 
-  private renderMoves(root: ViewerNode): void {
-    const walk = (parent: ViewerNode, container: HTMLElement) => {
-      for (const [index, node] of parent.children.entries()) {
-        const line = index ? makeElement('span') : container;
-        if (index) {
-          line.className = 'xiangqi-viewer__variation';
-          container.append(line);
-        }
-        const button = makeElement(
-          'button',
-          `${Math.ceil(node.ply / 2)}${node.ply % 2 ? '.' : '…'} ${node.label || node.move}`,
-        );
-        button.type = 'button';
-        button.dataset.node = node.id;
-        button.addEventListener('click', () => this.go(node), { signal: this.abort.signal });
-        line.append(button);
-        walk(node, line);
-      }
-    };
-    walk(root, this.moves);
+  private moveFromEvent(event: Event): ViewerNode | undefined {
+    const target =
+      event.target instanceof HTMLElement ? event.target.closest<HTMLElement>('[data-node]') : null;
+    return target?.dataset.node === undefined ? undefined : this.nodes.get(target.dataset.node);
   }
 
-  private controls(): void {
-    const controls = makeElement('div');
-    controls.className = 'xiangqi-viewer__controls';
-    for (const [action, symbol] of [
-      ['first', '⏮'],
-      ['previous', '◀'],
-      ['next', '▶'],
-      ['last', '⏭'],
-    ] as const) {
-      const button = makeElement('button', symbol);
-      button.type = 'button';
-      button.title = this.options.labels[action];
-      button.setAttribute('aria-label', button.title);
-      button.addEventListener('click', () => this.navigate(action), { signal: this.abort.signal });
-      this.buttons.set(action, button);
-      controls.append(button);
-    }
-    const flip = makeElement('button', this.options.labels.flip);
-    flip.type = 'button';
-    flip.addEventListener(
-      'click',
-      () =>
-        this.board.setPresentation({
-          ...this.board.getPresentation(),
-          perspective: this.board.getPresentation().perspective === 'red' ? 'black' : 'red',
-        }),
-      { signal: this.abort.signal },
+  /** The move list is the canonical replay tree view, shared with analysis and the wiki. */
+  private renderMoves(): void {
+    const current = this.current;
+    this.nodes.clear();
+    const build = (node: ViewerNode): MoveNode => {
+      this.nodes.set(node.id, node);
+      return {
+        id: node.move ?? '',
+        ply: node.ply,
+        viewer: node,
+        children: node.children.map(build),
+      };
+    };
+    this.movesVNode = patch(
+      this.movesVNode ?? this.moves.appendChild(document.createElement('div')),
+      renderColumnTree({
+        root: build(this.options.root),
+        renderMove: (move, context) => {
+          const node = move.viewer;
+          return hl(
+            'move',
+            {
+              attrs: {
+                role: 'button',
+                tabindex: '0',
+                'data-node': node.id,
+                'aria-label': node.label || node.move || '',
+                ...(node.id === current.id ? { 'aria-current': 'step' } : {}),
+              },
+              class: { active: node.id === current.id },
+            },
+            [context.withIndex && renderIndex(node.ply, true), node.label || node.move || ''],
+          );
+        },
+      }),
     );
-    controls.append(flip);
-    if (this.options.services.sound) {
-      const sound = makeElement('button', this.options.labels.sound);
-      sound.type = 'button';
-      sound.setAttribute('aria-pressed', 'false');
-      sound.addEventListener(
-        'click',
-        () => {
-          const settings = this.board.getPresentation();
-          this.board.setPresentation({
-            ...settings,
-            feedback: { ...settings.feedback, audio: !settings.feedback.audio },
-          });
-          sound.setAttribute('aria-pressed', String(!settings.feedback.audio));
+    this.scrollToActive();
+  }
+
+  /** A bounded move list follows the current move without scrolling the hosting page. */
+  private scrollToActive(): void {
+    const active = this.moves.querySelector<HTMLElement>('move.active');
+    if (!active || !this.moves.clientHeight) return;
+    const top =
+      active.getBoundingClientRect().top - this.moves.getBoundingClientRect().top + this.moves.scrollTop;
+    const bottom = top + active.offsetHeight;
+    if (top < this.moves.scrollTop) this.moves.scrollTop = top;
+    else if (bottom > this.moves.scrollTop + this.moves.clientHeight)
+      this.moves.scrollTop = bottom - this.moves.clientHeight;
+  }
+
+  private renderControls(): void {
+    if (!this.showControls) return;
+    const node = this.current;
+    this.controlsVNode = patch(
+      this.controlsVNode ?? this.panel.appendChild(document.createElement('div')),
+      renderReplayControls({
+        selector: 'div.xiangqi-viewer__controls',
+        enabled: {
+          first: !!node.parent,
+          prev: !!node.parent,
+          next: !!node.children.length,
+          last: !!node.children.length,
         },
-        { signal: this.abort.signal },
-      );
-      controls.append(sound);
-    }
-    const themes = makeElement('details'),
-      summary = makeElement('summary', this.options.labels.board);
-    themes.append(summary);
-    for (const [label, items, key] of [
-      [this.options.labels.board, boardAssets.boards, 'boardTheme'],
-      [this.options.labels.pieces, boardAssets.pieceSets, 'pieceSet'],
-    ] as const) {
-      const select = makeElement('select');
-      select.setAttribute('aria-label', label);
-      for (const item of items) {
-        const option = makeElement('option', item.name);
-        option.value = item.key;
-        select.append(option);
-      }
-      select.value =
-        this.options[key] || (key === 'boardTheme' ? boardAssets.defaultBoard : boardAssets.defaultPieces);
-      select.addEventListener(
-        'change',
-        () => {
-          this.options[key] = select.value;
-          void this.appearance().catch(error => {
-            if (!this.abort.signal.aborted) this.comments.textContent = String(error);
-          });
-        },
-        { signal: this.abort.signal },
-      );
-      themes.append(select);
-    }
-    controls.append(themes);
-    this.element.append(controls);
+        previousIcon: licon.JumpPrev,
+        nextIcon: licon.JumpNext,
+        onClick: action => this.navigate(action === 'prev' ? 'previous' : (action as ViewerAction)),
+      }),
+    );
   }
 
   private appearance(): Promise<void> {

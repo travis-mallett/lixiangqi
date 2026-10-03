@@ -46,6 +46,8 @@ final private class FishnetRepo(
     cancelGames(List(id))
   def cancelGames(ids: List[GameId]): Funit = ids.nonEmpty.so:
     analysisColl.delete.one($doc("game.id".$in(ids), "game.studyId".$exists(false)), limit = Some(0)).void
+  def cancelStudyChapters(ids: Seq[StudyChapterId]): Funit = ids.nonEmpty.so:
+    analysisColl.delete.one($doc("game.id".$in(ids), "game.studyId".$exists(true)), limit = Some(0)).void
   def updateOrGiveUpAnalysis(ana: Work.Analysis, update: Work.Analysis => Work.Analysis) =
     if ana.isOutOfTries then
       logger.warn(s"Give up on analysis $ana")
@@ -79,7 +81,7 @@ final private class FishnetRepo(
     )
 
   def getSimilarAnalysis(work: Work.Analysis): Fu[Option[Work.Analysis]] =
-    analysisColl.one[Work.Analysis]($doc("game.id" -> work.game.id))
+    analysisColl.one[Work.Analysis]($doc("game" -> work.game))
 
   private[fishnet] def toKey(keyOrUser: String): Fu[Client.Key] =
     clientColl

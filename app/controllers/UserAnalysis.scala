@@ -1,29 +1,27 @@
 package controllers
 
-import chess.format.Fen
-import chess.variant.{ Standard, Variant }
-import chess.{ ByColor, Position }
+import chess.ByColor
 import play.api.libs.json.{ Json, JsObject, JsError, JsValue, Reads, Writes }
 import play.api.mvc.*
 
 import lila.app.*
 import lila.common.Json.given
 import lila.core.id.GameFullId
-import lila.xiangqi.{ Xiangqi, XiangqiRules }
+import lila.xiangqi.{ Xiangqi, XiangqiRules, XiangqiNotation }
 import lila.xiangqi.XiangqiJson.given
 
 final class UserAnalysis(env: Env) extends LilaController(env) with lila.web.TheftPrevention:
 
-  def index = load(none, Standard)
+  def index = load(none)
 
   def parseArg(arg: String) =
     arg.split("/", 2) match
-      case Array(key) if key == Standard.key.value => load(none, Standard)
-      case Array(key, fen) if key == Standard.key.value => load(fen.some, Standard)
-      case _ => load(arg.some, Standard)
+      case Array("xiangqi") => load(none)
+      case Array("xiangqi", fen) => load(fen.some)
+      case _ => load(arg.some)
 
   def embed = Anon:
-    given EmbedContext = EmbedContext(summon[Context])
+    given EmbedContext = EmbedContext(summon[Context], defaultUiTheme = lila.pref.UiThemes.light.key)
     Ok.snip(views.boardViewer(Json.obj("initialFen" -> get("fen"), "orientation" -> get("color"))))
 
   def catalogAnalysis(id: String) = Open:
@@ -39,7 +37,48 @@ final class UserAnalysis(env: Env) extends LilaController(env) with lila.web.The
 
   def move = AnonBodyOf(parse.json): body =>
     nativeJson[Xiangqi.MoveCommand, Xiangqi.MoveResult](body): command =>
-      XiangqiRules.move(Xiangqi.Position(command.initialFen, command.moves), command.move)
+      XiangqiRules.move(Xiangqi.Position(command.initialFen, command.moves, command.ruleset), command.move)
+
+  def variation = AnonBodyOf(parse.json): body =>
+    nativeJson[Xiangqi.VariationCommand, Xiangqi.VariationResult](body)(XiangqiRules.variation)
+
+  def notationMove = AnonBodyOf(parse.json): body =>
+    nativeJson[Xiangqi.NotationMoveCommand, Xiangqi.MoveResult](body): input =>
+      for
+        _ <- Either.cond(input.notation.length <= 32, (), "Move notation is too long")
+        game <- lila.xiangqi.XiangqiEvaluation.game(
+          Xiangqi.Position(input.initialFen, input.moves, input.ruleset)
+        )
+        move <- XiangqiRules.resolveNotation(game, input.notation)
+        result <- XiangqiRules.move(game, move)
+      yield result
+
+  private val motifsCache = env.memo.cacheApi
+    .notLoadingSync[Xiangqi.Position, Either[String, lila.xiangqi.XiangqiMotifs.Motifs]](
+      256,
+      "xiangqi.motifs"
+    ):
+      _.maximumSize(256).expireAfterWrite(5.minutes).build()
+
+  def motifs = AnonBodyOf(parse.json): body =>
+    nativeJson[Xiangqi.Position, lila.xiangqi.XiangqiMotifs.Motifs](body): position =>
+      motifsCache.get(position, lila.xiangqi.XiangqiMotifs.apply)
+
+  def book = AnonBodyOf(parse.json(100_000)): body =>
+    body
+      .validate[lila.analyse.XiangqiBook.Request]
+      .fold(
+        errors => fuccess(BadRequest(jsonError(JsError.toJson(errors).toString))),
+        request =>
+          env.analyse
+            .xiangqiBook(request)
+            .map(
+              _.fold(
+                error => BadRequest(jsonError(error)),
+                result => JsonOk(Json.toJson(result))
+              )
+            )
+      )
 
   // Repeated short wiki examples share parsed positions. Long user imports remain uncached.
   private val notationCache = env.memo.cacheApi
@@ -48,8 +87,8 @@ final class UserAnalysis(env: Env) extends LilaController(env) with lila.web.The
 
   def importNotation = AnonBodyOf(parse.json): body =>
     nativeJson[Xiangqi.NotationImport, Xiangqi.ImportedMoveTree](body): command =>
-      if command.notation.length <= 4000 then notationCache.get(command, XiangqiRules.Notation.importTree)
-      else XiangqiRules.Notation.importTree(command)
+      if command.notation.length <= 4000 then notationCache.get(command, XiangqiNotation.importTree)
+      else XiangqiNotation.importTree(command)
 
   private def nativeJson[A: Reads, B: Writes](body: JsValue)(run: A => Either[String, B]) =
     body
@@ -64,17 +103,20 @@ final class UserAnalysis(env: Env) extends LilaController(env) with lila.web.The
             )
       )
 
-  private def load(pathFen: Option[String], variant: Variant) = Open:
+  private def load(pathFen: Option[String]) = Open:
     val fen = pathFen.orElse(get("fen").map(_.trim).filter(_.nonEmpty))
-    val orientation = get("color").filter(color => color == "white" || color == "black")
-    Ok.page(
-      views.xiangqi.analysis:
-        Json
-          .obj("variant" -> variant.key.value)
-          .add("initialFen", fen)
-          .add("orientation", orientation)
-          ++ Json.obj("explorerEndpoint" -> env.fishnet.explorerEndpoint)
-    )
+    val orientation = get("color").flatMap(Xiangqi.Side.fromKey(_).toOption)
+    XiangqiRules.game(Xiangqi.Position(initialFen = fen.getOrElse(Xiangqi.startFen))) match
+      case Left(error) => BadRequest(jsonError(error))
+      case Right(_) =>
+        Ok.page(
+          views.xiangqi.analysis:
+            Json
+              .obj("variant" -> "xiangqi", "ruleset" -> lila.xiangqi.adjudication.Ruleset.Unrestricted)
+              .add("initialFen", fen)
+              .add("orientation", orientation)
+              ++ Json.obj("explorerEndpoint" -> env.fishnet.explorerEndpoint)
+        )
 
   def game(gameId: GameId, color: Color) = Open:
     Found(env.game.gameRepo.pov(gameId, color)): pov =>
@@ -92,23 +134,18 @@ final class UserAnalysis(env: Env) extends LilaController(env) with lila.web.The
             ) ++ Json.obj("explorerEndpoint" -> env.fishnet.explorerEndpoint)
         ).dmap(_.noCache)
 
-  private[controllers] def makePov(fen: Option[Fen.Full], variant: Variant): Pov =
-    makePov:
-      Position.AndFullMoveNumber(variant, fen.filter(_.value.nonEmpty))
-
-  private def makePov(from: Position.AndFullMoveNumber): Pov =
+  private[controllers] def makePov(game: Xiangqi.Game): Pov =
     Pov(
       lila.core.game
         .newGame(
-          xiangqi = Xiangqi.Game.initial,
+          xiangqi = game,
           players = ByColor(lila.game.Player.make(_, none)),
           rated = chess.Rated.No,
           source = lila.core.game.Source.Api,
-          pgnImport = None,
-          variant = from.position.variant
+          pgnImport = None
         )
         .withId(lila.game.Game.syntheticId),
-      from.position.color
+      if game.state.turn.red then Color.White else Color.Black
     )
 
   private def forecastReload = JsonOk(Json.obj("reload" -> true))
@@ -177,8 +214,9 @@ object UserAnalysis:
         "notations" -> pov.game.xiangqi.wxf,
         "chineseNotations" -> pov.game.xiangqi.chineseWxf,
         "states" -> pov.game.xiangqi.states,
-        "variant" -> pov.game.variant.key.value,
-        "orientation" -> pov.color.name,
+        "variant" -> "xiangqi",
+        "ruleset" -> pov.game.xiangqi.ruleset,
+        "orientation" -> (if pov.color.white then Xiangqi.Side.Red else Xiangqi.Side.Black),
         "analysisInProgress" -> analysisInProgress,
         "analysisRequestUrl" ->
           (analysis.isEmpty && lila.game.GameExt.analysable(pov.game))

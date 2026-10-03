@@ -1,5 +1,3 @@
-import type { RulesState } from './xiangqiNotation';
-
 interface ErrorResponse {
   error?: string;
 }
@@ -39,24 +37,4 @@ export async function requestXiangqi<T>(path: string, body: object, signal?: Abo
     );
   if (json === undefined) throw new Error('Xiangqi service returned an invalid response');
   return json;
-}
-
-/**
- * Replace a locally reconstructed position with authoritative native-rules state.
- *
- * Capture belongs to the transition into the position, so the position endpoint
- * cannot recover it from the destination FEN. Preserve it while replacing all
- * position-derived fields such as check, mate/end state, and legal moves.
- */
-export async function hydrateXiangqiState(state: RulesState, signal?: AbortSignal): Promise<RulesState> {
-  if (!state.needsHydration) return state;
-  const hydrated = await requestXiangqi<RulesState>(
-    '/api/analysis/position',
-    {
-      initialFen: state.fen,
-      moves: [],
-    },
-    signal,
-  );
-  return { ...hydrated, capture: state.capture };
 }

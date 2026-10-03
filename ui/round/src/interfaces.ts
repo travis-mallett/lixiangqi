@@ -6,7 +6,6 @@ import type { ClockData } from 'lib/game/clock/clockCtrl';
 import type { RecordedClockTimeline } from 'lib/game/replay/recordedClockPlayback';
 import * as Prefs from 'lib/prefs';
 import type { EnhanceOpts } from 'lib/richText';
-import type { NodeCrazy } from 'lib/tree/types';
 import type { VNode } from 'lib/view';
 
 import type { CorresClockData } from './corresClock/corresClockCtrl';
@@ -81,7 +80,6 @@ export interface RoundData extends GameData {
   possibleDrops?: string;
   forecastCount?: number;
   opponentSignal?: number;
-  crazyhouse?: NodeCrazy;
   correspondence?: CorresClockData;
   tv?: Tv;
   userTv?: {
@@ -153,7 +151,6 @@ export interface ApiMove {
   fiftyMoves?: boolean;
   wDraw?: boolean;
   bDraw?: boolean;
-  crazyhouse?: NodeCrazy;
   role?: Role;
   drops?: string;
   promotion?: {

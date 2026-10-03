@@ -1,6 +1,13 @@
 import { defer } from '../../async';
 import { bigFileStorage } from '../../bigFileStorage';
-import { PikafishProtocol, type PikafishWork, type PikafishOptions } from './pikafishProtocol';
+import { requestXiangqi } from '../../game/xiangqiApi';
+import { replayXiangqiVariation, type RulesState, type RulesPosition } from '../../game/xiangqiNotation';
+import {
+  type EngineAnalysis,
+  PikafishProtocol,
+  type PikafishWork,
+  type PikafishOptions,
+} from './pikafishProtocol';
 
 interface PikafishModule {
   listen: (data: string) => void;
@@ -33,6 +40,9 @@ export class PikafishBrowserEngine {
   private readonly readiness = defer<void>();
   private readonly download = new AbortController();
   private startupTimer?: ReturnType<typeof setTimeout>;
+  private searchGeneration = 0;
+  private validation?: AbortController;
+  private validationTimer?: ReturnType<typeof setTimeout>;
 
   constructor(
     private readonly status: (status: PikafishStatus) => void,
@@ -65,16 +75,91 @@ export class PikafishBrowserEngine {
   start(work: Omit<PikafishWork, 'stopRequested'>): void {
     if (this.destroyed) throw new Error('Pikafish engine has been destroyed');
     if (this.failure) throw this.failure;
-    this.protocol.compute({ ...work, stopRequested: false });
+    this.cancelValidation();
+    const generation = ++this.searchGeneration;
+    let pendingEvaluation: { analysis: EngineAnalysis; final: boolean } | undefined;
+    let validating = false;
+    const abort = (this.validation = new AbortController());
+    if (!work.history?.ruleset)
+      throw new Error('Native engine analysis requires a root position, move history, and ruleset');
+    const position: RulesPosition = {
+      ...work.history,
+      ruleset: work.history.ruleset,
+      moves: [...work.history.moves],
+    };
+    const scheduleValidation = () => {
+      if (!pendingEvaluation || abort.signal.aborted) return;
+      clearTimeout(this.validationTimer);
+      this.validationTimer = setTimeout(() => void validate(), pendingEvaluation.final ? 0 : 700);
+    };
+    const start = (legalMoves: readonly string[]) => {
+      if (generation !== this.searchGeneration || abort.signal.aborted) return;
+      this.protocol.compute({
+        ...work,
+        legalMoves,
+        stopRequested: false,
+        emit: (analysis, final) => {
+          pendingEvaluation = { analysis, final };
+          scheduleValidation();
+        },
+      });
+    };
+    const validate = async (): Promise<void> => {
+      if (validating || !pendingEvaluation || abort.signal.aborted) return;
+      const candidate = pendingEvaluation;
+      pendingEvaluation = undefined;
+      validating = true;
+      try {
+        await Promise.all(
+          candidate.analysis.lines.map(line =>
+            replayXiangqiVariation(
+              position.initialFen,
+              position.moves,
+              position.ruleset,
+              line.pvMoves,
+              abort.signal,
+            ),
+          ),
+        );
+        if (generation === this.searchGeneration && !abort.signal.aborted)
+          work.emit(candidate.analysis, candidate.final);
+      } catch (error) {
+        if (!abort.signal.aborted && candidate.final)
+          this.status({ state: 'error', error: error instanceof Error ? error.message : String(error) });
+      } finally {
+        validating = false;
+        scheduleValidation();
+      }
+    };
+    if (work.legalMoves) start(work.legalMoves);
+    else
+      void requestXiangqi<RulesState>('/api/analysis/position', position, abort.signal)
+        .then(state => {
+          if (state.fen !== work.fen)
+            throw new Error('Engine position differs from its native branch history');
+          start(state.legalMoves);
+        })
+        .catch(error => {
+          if (!abort.signal.aborted) this.status({ state: 'error', error: String(error) });
+        });
   }
 
   stop(): void {
+    this.searchGeneration++;
+    this.cancelValidation();
     this.protocol.compute(undefined);
+  }
+
+  private cancelValidation(): void {
+    this.validation?.abort();
+    this.validation = undefined;
+    clearTimeout(this.validationTimer);
   }
 
   destroy(): void {
     if (this.destroyed) return;
     this.destroyed = true;
+    this.cancelValidation();
     this.dispose(new Error('Pikafish engine has been destroyed'));
   }
 

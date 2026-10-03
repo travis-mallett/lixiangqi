@@ -11,8 +11,14 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 from pathlib import Path
 from unittest.mock import patch
+from tools.xiangqi_data.puzzle_mining import storage
 from tools.xiangqi_data.puzzle_mining.database_write import begin_write
-from tools.xiangqi_data.puzzle_mining.storage import open_database, insert_candidate
+from tools.xiangqi_data.puzzle_mining.storage import (
+    SCHEMA_VERSION,
+    insert_candidate,
+    open_database,
+    open_database_when_ready,
+)
 from tools.xiangqi_data.puzzle_mining.models import (
     CandidateRecord,
     EngineScore,
@@ -134,6 +140,70 @@ class PuzzleStorageLifecycleTest(unittest.TestCase):
         stop.set()
         with self.assertRaises(WorkerCancelled):
             begin_write(self.connection, stop)
+
+    def test_reopening_an_initialized_database_writes_nothing(self):
+        statements = []
+        connect = sqlite3.connect
+
+        def traced(*args, **kwargs):
+            connection = connect(*args, **kwargs)
+            connection.set_trace_callback(statements.append)
+            return connection
+
+        with patch.object(storage.sqlite3, "connect", traced):
+            reopened = open_database(self.path)
+        try:
+            writes = [
+                sql
+                for sql in statements
+                if sql.split(None, 1)[0].upper()
+                in {"BEGIN", "INSERT", "UPDATE", "DELETE", "REPLACE"}
+            ]
+            self.assertEqual(writes, [])
+        finally:
+            reopened.close()
+
+    def test_worker_connection_ignores_a_writer_holding_the_lock(self):
+        writer = sqlite3.connect(self.path, timeout=0, isolation_level=None)
+        writer.execute("PRAGMA busy_timeout=1")
+        writer.execute("BEGIN IMMEDIATE")
+        try:
+            worker = open_database(self.path, initialize=False)
+            try:
+                self.assertEqual(
+                    worker.execute(
+                        "SELECT value FROM metadata WHERE key='schema_version'"
+                    ).fetchone()[0],
+                    str(SCHEMA_VERSION),
+                )
+            finally:
+                worker.close()
+        finally:
+            writer.rollback()
+            writer.close()
+
+    def test_worker_connection_rejects_an_uninitialized_database(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(
+                RuntimeError, "Initialize it before starting workers"
+            ):
+                open_database(Path(directory) / "fresh.sqlite3", initialize=False)
+
+    def test_supervisor_constructions_retry_only_a_locked_database(self):
+        with patch.object(
+            storage,
+            "open_database",
+            side_effect=[sqlite3.OperationalError("database is locked"), self.connection],
+        ) as attempt:
+            self.assertIs(
+                open_database_when_ready(self.path, interval=0), self.connection
+            )
+        self.assertEqual(attempt.call_count, 2)
+        with patch.object(
+            storage, "open_database", side_effect=RuntimeError("unsupported schema")
+        ):
+            with self.assertRaisesRegex(RuntimeError, "unsupported schema"):
+                open_database_when_ready(self.path, interval=0)
 
     def test_new_checkmate_policy_reconsiders_rejections_without_reconstruction(self):
         claim = self.claim()

@@ -37,7 +37,7 @@ case class TitleRequest(
   )
 
   def update(data: FormData): TitleRequest =
-    copy(data = data).pushStatus:
+    copy(data = data.copy(fideId = this.data.fideId)).pushStatus:
       if !hasImages then Status.building
       else if status.is(_.building) || status.isFeedback then Status.pending(data.comment | "")
       else status
@@ -58,7 +58,8 @@ object TitleRequest:
       federationUrl: Option[URL],
       public: Boolean,
       coach: Boolean,
-      comment: Option[String]
+      comment: Option[String],
+      playerId: Option[lila.core.playerDirectory.PlayerId] = None
   )
   enum Status:
     case building // until idDocument and selfie are uploaded

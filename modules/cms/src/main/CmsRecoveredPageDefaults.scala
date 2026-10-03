@@ -104,11 +104,15 @@ object CmsRecoveredPageDefaults:
     ),
     "broadcaster-app" -> DefaultPage(
       "Broadcaster App",
-      """Lichess provides a dedicated broadcaster application for chess boards and DGT workflows. That application is not yet a supported Xiangqi ingestion path.
+      """The LiXiangQi Broadcaster watches native Xiangqi score files and sends updates to your broadcast round. It supports multiple files, complete variations, comments, clocks and results. The server validates every game before accepting a batch.
         |
-        |For Lixiangqi, create and manage the event through the [broadcast web interface](/broadcast). Rounds can be updated from supported game-score sources or through the Lila-compatible broadcast API.
+        |[Download LiXiangQi Broadcaster](/assets/downloads/lixiangqi-broadcaster.pyz). Install Python 3.11 or newer with Tk support, then run `python lixiangqi-broadcaster.pyz`. Create a round with the Broadcaster App source, enter its complete URL and an access token with `study:write` permission, choose your UTF-8 score files, and press Start. Your token stays in memory.
         |
-        |Before a large event, test the complete path with a private round and confirm that Xiangqi moves, player colours, clocks, results, and text encoding arrive correctly.
+        |On Windows, run `python lixiangqi-broadcaster.pyz --install-protocol` once to enable the round page's “Open this round in the app” link. Other systems can paste the round URL directly. Board software must export native Xiangqi notation (coordinates, WXF or Chinese moves).
+        |
+        |For unattended use, set `LIXIANGQI_BROADCAST_TOKEN` privately, then run `python lixiangqi-broadcaster.pyz --headless ROUND_URL --file board1.pgn --file board2.pgn`. Add `--once` for a single upload. The client reports rejected batches and retries interrupted updates. Broadcast delay is applied on the server.
+        |
+        |Before an event, test your score source with a private round and confirm that moves, Red/Black participants, clocks and results arrive correctly.
         |""".stripMargin,
       "/broadcast/app"
     ),

@@ -60,6 +60,7 @@ class PublicationTests(Tests):
             for pid, theme in (
                 ("Ghost", "doubleGhostsKnocking"),
                 ("Elixr", "threeImmortalsRefiningTheElixir"),
+                ("Buddh", "repatriationOfBuddha"),
                 ("Child", "childWorshipsBuddha"),
                 ("Crown", "crowningMate"),
                 ("Chase", "eunuchChasingEmperorKill"),
@@ -70,7 +71,7 @@ class PublicationTests(Tests):
                 c.admit(p, {"status": "verified", "assessmentId": pid})
             release = c.build_release()
             self.assertTrue(
-                {"Elixr", "Ghost", "Child", "Crown", "Chase"}
+                {"Buddh", "Elixr", "Ghost", "Child", "Crown", "Chase"}
                 <= {p["_id"] for p in release["puzzles"]}
             )
             validate_release_categories(release["puzzles"])
@@ -96,6 +97,28 @@ class PublicationTests(Tests):
             c.admit(p, {"status": "verified", "assessmentId": "old-pawn"})
             release = c.build_release()
             self.assertIn("OldPw", [p["_id"] for p in release["puzzles"]])
+            validate_release_categories(release["puzzles"])
+
+    def test_cannon_chariot_discovery_is_admitted_to_release(self):
+        with self.c() as c:
+            p = puzzle("CcdAt")
+            p["gameId"] = "cannon-chariot-discovery-game"
+            p["themes"] = ["cannonChariotDiscoveredAttack"]
+            c.admit(
+                p, {"status": "verified", "assessmentId": "cannon-chariot-discovery"}
+            )
+            release = c.build_release()
+            self.assertIn("CcdAt", [p["_id"] for p in release["puzzles"]])
+            validate_release_categories(release["puzzles"])
+
+    def test_detonating_mine_is_admitted_to_release(self):
+        with self.c() as c:
+            p = puzzle("DetMi")
+            p["gameId"] = "detonating-mine-game"
+            p["themes"] = ["detonatingMineAttack"]
+            c.admit(p, {"status": "verified", "assessmentId": "detonating-mine"})
+            release = c.build_release()
+            self.assertIn("DetMi", [p["_id"] for p in release["puzzles"]])
             validate_release_categories(release["puzzles"])
 
     def test_terminal_motifs_are_admitted_to_release(self):

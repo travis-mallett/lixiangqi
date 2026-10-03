@@ -1,9 +1,15 @@
 package lila.study
 
-import chess.format.pgn.{ Glyph, Tags }
-import chess.format.{ Fen, Uci, UciPath }
-import chess.variant.Variant
-import chess.{ ByColor, Centis, Color, Ply }
+import lila.xiangqi.XiangqiGlyph.{ Glyph, Glyphs }
+
+import chess.format.pgn.Tags
+import chess.format.Fen
+import lila.xiangqi.UciPath
+import lila.xiangqi.XiangqiJson.given
+import lila.xiangqi.Xiangqi.Uci
+
+import chess.{ Centis, Ply }
+import lila.xiangqi.Xiangqi.{ Side, BySide }
 import reactivemongo.api.bson.Macros.Annotations.Key
 
 import lila.tree.Node.{ Comment, Gamebook, Shapes }
@@ -33,22 +39,22 @@ case class Chapter(
   override def toString = s"Chapter $id $name"
 
   def updateDenorm: Chapter =
-    val looksLikeGame = tags.names.exists(_.isDefined) || tags.outcome.isDefined
+    val looksLikeGame = StudyPgnTags.names(tags).exists(_.isDefined) || StudyPgnTags.points(tags).isDefined
     val newDenorm = looksLikeGame.option:
       val node = relay.map(_.path).filterNot(_.isEmpty).flatMap(root.nodeAt) | root.lastMainlineNode
       val clocks = relay.so: r =>
         val path = r.path
         val parentPath = path.parent.some.filter(_ != path)
         val parentNode = parentPath.flatMap(root.nodeAt)
-        val clockSwap = ByColor(node.clock, parentNode.flatMap(_.clock).orElse(node.clock))
+        val clockSwap = BySide(node.clock, parentNode.flatMap(_.clock).orElse(node.clock))
         if node.color.black then clockSwap else clockSwap.swap
       val uci = node.moveOption.map(_.uci)
-      val check = node.moveOption
-        .flatMap(_.san.value.lastOption)
-        .collect:
-          case '+' => Chapter.Check.Check
-          case '#' => Chapter.Check.Mate
-      Chapter.LastPosDenorm(node.fen, uci, check, clocks.map(_.map(_.centis)))
+      val check = if node.state.mate then Some(Chapter.Check.Mate)
+      else Option.when(node.state.check)(Chapter.Check.Check)
+      val nodePath =
+        relay.map(_.path).filterNot(_.isEmpty).filter(root.pathExists).getOrElse(root.mainlinePath)
+      val nativePosition = root.gameAt(nodePath).fold(error => throw IllegalStateException(error), _.position)
+      Chapter.LastPosDenorm(node.fen, uci, check, clocks.map(_.map(_.centis)), nativePosition)
     copy(denorm = newDenorm)
 
   def updateRoot(f: Root => Option[Root]) =
@@ -86,7 +92,7 @@ case class Chapter(
         chapter -> chapter.denorm.filter(denorm != _).map(_.clocks)
 
   def forceVariation(force: Boolean, path: UciPath): Option[Chapter] =
-    updateRoot(_.forceVariationAt(force, path))
+    updateRoot(_.forceVariationAt(force, path)).map(_.updateDenorm)
 
   def isEmptyInitial = order == 1 && root.children.isEmpty && tags.value.isEmpty
 
@@ -108,11 +114,11 @@ case class Chapter(
 
   def isOverweight = root.children.countRecursive >= Chapter.maxNodes
 
-  def tagsExport = StudyPgnTags.cleanUpForPublication(tags)
+  def tagsExport = tags
 
   def withTags(t: Tags) = copy(tags = t)
 
-  def withOrientation(color: Color) = copy(setup = setup.copy(orientation = color))
+  def withOrientation(color: Side) = copy(setup = setup.copy(orientation = color))
 
 object Chapter:
 
@@ -130,8 +136,7 @@ object Chapter:
 
   case class Setup(
       gameId: Option[GameId],
-      variant: Variant,
-      orientation: Color,
+      orientation: Side,
       fromFen: Option[Boolean] = None
   ):
     def isFromFen = ~fromFen
@@ -139,7 +144,7 @@ object Chapter:
   case class Relay(
       path: UciPath,
       lastMoveAt: Option[Instant],
-      fideIds: Option[PairOf[Option[chess.FideId]]]
+      playerIds: Option[PairOf[Option[lila.core.playerDirectory.PlayerId]]]
   ):
     def secondsSinceLastMove: Option[Int] = lastMoveAt.map: at =>
       (nowSeconds - at.toSeconds).toInt
@@ -148,14 +153,21 @@ object Chapter:
 
   case class ServerEval(path: UciPath, done: Boolean)
 
-  type BothClocks = ByColor[Option[Centis]]
+  type BothClocks = BySide[Option[Centis]]
+  given alleycats.Zero[BothClocks] = alleycats.Zero(BySide.fill(None))
 
   enum Check:
     case Check, Mate
 
   /* Last position of the main line.
    * Used for chapter previews. */
-  case class LastPosDenorm(fen: Fen.Full, uci: Option[Uci], check: Option[Check], clocks: BothClocks)
+  case class LastPosDenorm(
+      fen: Fen.Full,
+      uci: Option[Uci],
+      check: Option[Check],
+      clocks: BothClocks,
+      position: lila.xiangqi.Xiangqi.Position
+  )
 
   case class IdName(@Key("_id") id: StudyChapterId, name: StudyChapterName)
 
@@ -164,8 +176,8 @@ object Chapter:
   def fixName(n: StudyChapterName) = StudyChapterName(lila.common.String.softCleanUp(n.value).take(80))
 
   def nameFromPlayerTags(tags: Tags): Option[StudyChapterName] = StudyChapterName.from:
-    tags.names
-      .mapN((w, b) => s"$w - $b")
+    (StudyPgnTags.names(tags).red, StudyPgnTags.names(tags).black)
+      .mapN((r, b) => s"$r - $b")
       .orElse(tags.boardNumber.map(b => s"Board $b"))
 
   def makeId = StudyChapterId(scalalib.ThreadLocalRandom.nextString(8))

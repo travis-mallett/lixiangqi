@@ -1,6 +1,7 @@
 package lila.study
 
 import chess.format.Fen
+import lila.xiangqi.Xiangqi.Side
 
 import lila.core.game.WithInitialFen
 
@@ -19,11 +20,17 @@ final private class StudyMaker(
         case Some(WithInitialFen(game, initialFen)) =>
           createFromPov(
             data,
-            Pov(game, data.form.orientation.flatMap(_.resolve) | chess.White),
+            Pov(
+              game,
+              data.form.orientation
+                .flatMap(_.resolve)
+                .fold(chess.White)(s => if s.red then chess.White else chess.Black)
+            ),
             initialFen,
             user,
             withRatings
           )
+        case None if data.form.gameId.isDefined => fufail(StudyValidationException("Game could not be found"))
         case None => createFromScratch(data, user)
       .map { sc =>
         // apply specified From if any
@@ -50,7 +57,6 @@ final private class StudyMaker(
         ChapterMaker.Data(
           game = none,
           name = StudyChapterName("Chapter 1"),
-          variant = data.form.variant,
           fen = data.form.fen,
           pgn = data.form.pgnStr,
           orientation = data.form.orientation | ChapterMaker.Orientation.Auto,
@@ -80,8 +86,7 @@ final private class StudyMaker(
         name = name,
         setup = Chapter.Setup(
           gameId = pov.gameId.some,
-          variant = pov.game.variant,
-          orientation = pov.color
+          orientation = if pov.color.white then Side.Red else Side.Black
         ),
         root = root,
         tags = StudyPgnTags(tags),

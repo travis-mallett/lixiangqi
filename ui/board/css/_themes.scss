@@ -54,10 +54,18 @@ body {
       box-sizing: border-box;
       border: 0.35cqw solid #e1faff;
       background: none;
+      animation: none;
       box-shadow:
         inset 0 0 0 0.25cqw rgb(var(--xiangqi-last-move-rgb)),
         0 0 0 0.2cqw rgb(var(--xiangqi-last-move-rgb)),
         0 0 1.7cqw 0.5cqw rgb(var(--xiangqi-last-move-rgb) / 0.55);
+    }
+
+    // The paper marker is a drawn ring, so the default marker's sweep has
+    // nothing to shine through.
+    .xiangqi-last-move-highlight::after,
+    square.last-move-destination.xiangqi-motion-underlay::before {
+      content: none;
     }
 
     .xiangqi-piece-shadow.xiangqi-last-move-destination {

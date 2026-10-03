@@ -31,6 +31,8 @@ object Dependencies:
   val uaparser = "org.uaparser" %% "uap-scala" % "0.21.0"
   val apacheText = "org.apache.commons" % "commons-text" % "1.15.0"
   val apacheMath = "org.apache.commons" % "commons-math3" % "3.6.1"
+  val pdfbox = "org.apache.pdfbox" % "pdfbox" % "3.0.8"
+  val jsoup = "org.jsoup" % "jsoup" % "1.23.2"
   val dataSketches = "org.apache.datasketches" % "datasketches-java" % "6.2.0"
   val bloomFilter = "com.github.alexandrnikitin" %% "bloom-filter" % "0.13.1_lila-1"
   val kittens = "org.typelevel" %% "kittens" % "3.5.0"

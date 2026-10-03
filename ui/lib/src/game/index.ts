@@ -1,4 +1,4 @@
-import type { GameData, Player } from './interfaces';
+import type { GameData } from './interfaces';
 import { finished, aborted, status } from './status';
 
 export { aiLevelName } from './aiLevel';
@@ -11,7 +11,8 @@ export * from './xiangqi';
 export type { StatusName, Status, StatusId } from './status';
 export { status, statusOf, started, finished, aborted, playing } from './status';
 
-export const playable = (data: GameData): boolean => data.game.status.id < status.aborted && !imported(data);
+export const playable = (data: { game: Pick<GameData['game'], 'status' | 'source'> }): boolean =>
+  data.game.status.id < status.aborted && !imported(data);
 
 export const isPlayerPlaying = (data: GameData): boolean => playable(data) && !data.player.spectator;
 
@@ -20,9 +21,12 @@ export const isPlayerTurn = (data: GameData): boolean =>
 
 export const mandatory = (data: GameData): boolean => !!data.tournament || !!data.simul || !!data.swiss;
 
-export const playedTurns = (data: GameData): number => data.game.turns - (data.game.startedAtTurn || 0);
+export const playedTurns = (data: { game: Pick<GameData['game'], 'turns' | 'startedAtTurn'> }): number =>
+  data.game.turns - (data.game.startedAtTurn || 0);
 
-export const bothPlayersHavePlayed = (data: GameData): boolean => playedTurns(data) > 1;
+export const bothPlayersHavePlayed = (data: {
+  game: Pick<GameData['game'], 'turns' | 'startedAtTurn'>;
+}): boolean => playedTurns(data) > 1;
 
 export const abortable = (data: GameData): boolean =>
   playable(data) && !bothPlayersHavePlayed(data) && !mandatory(data) && !data.game.rules?.includes('noAbort');
@@ -54,13 +58,17 @@ export const moretimeable = (data: GameData): boolean =>
     (!!data.correspondence &&
       data.correspondence[data.opponent.color] < data.correspondence.increment - 3600));
 
-export const imported = (data: GameData): boolean => data.game.source === 'import';
+export const imported = (data: { game: Pick<GameData['game'], 'source'> }): boolean =>
+  data.game.source === 'import';
 
 export const replayable = (data: GameData): boolean =>
   imported(data) || finished(data) || (aborted(data) && bothPlayersHavePlayed(data));
 
-export function getPlayer(data: GameData, color: Color): Player;
-export function getPlayer(data: GameData, color?: Color): Player | null {
+export function getPlayer<P extends { color: string }>(data: { player: P; opponent: P }, color: string): P;
+export function getPlayer<P extends { color: string }>(
+  data: { player: P; opponent: P },
+  color?: string,
+): P | null {
   if (data.player.color === color) return data.player;
   if (data.opponent.color === color) return data.opponent;
   return null;

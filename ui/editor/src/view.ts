@@ -1,4 +1,6 @@
 import { standardXiangqi, type VisiblePiece } from '@lixiangqi/board';
+
+import type { XiangqiSide as Color } from 'lib/game/xiangqi';
 type EditorPiece = Extract<VisiblePiece, { face: 'up' }>;
 type MouchEvent = MouseEvent | TouchEvent;
 
@@ -40,7 +42,7 @@ export default class EditorView {
     board.append(wrap);
     editor.append(board);
 
-    editor.append(this.palette('white', 'bottom'));
+    editor.append(this.palette('red', 'bottom'));
     editor.append(this.controls());
     if (!this.ctrl.cfg.embed) editor.append(this.copyables());
     this.root.append(editor);
@@ -88,12 +90,12 @@ export default class EditorView {
 
   private palette(color: Color, position: 'top' | 'bottom'): HTMLElement {
     const palette = element('div', `spare spare-${position} spare-${color}`);
-    palette.setAttribute('aria-label', `${color === 'white' ? 'Red' : 'Black'} pieces`);
+    palette.setAttribute('aria-label', `${color === 'red' ? 'Red' : 'Black'} pieces`);
     palette.append(this.selectionButton('pointer', 'Move pieces'));
     pieces.forEach(piece =>
       palette.append(
         this.pieceButton(
-          { face: 'up', participant: color === 'white' ? 'red' : 'black', role: piece.role },
+          { face: 'up', participant: color === 'red' ? 'red' : 'black', role: piece.role },
           piece.name,
         ),
       ),
@@ -125,7 +127,7 @@ export default class EditorView {
     const square = element('div');
     square.append(
       pieceElement(
-        `${standardXiangqi.roles[piece.role]}-piece ${piece.participant === 'red' ? 'white' : 'black'}`,
+        `${standardXiangqi.roles[piece.role]}-piece ${piece.participant === 'red' ? 'red' : 'black'}`,
       ),
     );
     button.append(square);
@@ -145,7 +147,7 @@ export default class EditorView {
     const turnLabel = document.createElement('label');
     turnLabel.textContent = 'Side to move';
     const turn = document.createElement('select');
-    turn.append(option('white', 'Red'), option('black', 'Black'));
+    turn.append(option('red', 'Red'), option('black', 'Black'));
     turn.value = this.ctrl.turn;
     turn.addEventListener('change', () => this.ctrl.setTurn(turn.value as Color));
     turnLabel.append(turn);
@@ -190,7 +192,7 @@ export default class EditorView {
 
   private editorUrl(): string {
     const fen = this.ctrl.state.legalFen ?? this.ctrl.state.fen;
-    return fen === this.ctrl.cfg.startFen && this.ctrl.orientation === 'white'
+    return fen === this.ctrl.cfg.startFen && this.ctrl.orientation === 'red'
       ? new URL(this.ctrl.cfg.baseUrl, location.href).href
       : new URL(
           `${this.ctrl.cfg.baseUrl}/${fen.replace(/ /g, '_')}?color=${this.ctrl.orientation}`,

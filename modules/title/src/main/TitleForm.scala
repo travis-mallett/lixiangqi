@@ -3,7 +3,7 @@ package lila.title
 import play.api.data.*
 import play.api.data.Forms.*
 
-import lila.common.Form.{ cleanNonEmptyText, fideId, playerTitle, stringIn, url }
+import lila.common.Form.{ cleanNonEmptyText, directoryPlayerId, playerTitle, stringIn, url }
 
 object TitleForm:
 
@@ -11,15 +11,16 @@ object TitleForm:
     mapping(
       "realName" -> cleanNonEmptyText(minLength = 3, maxLength = 120),
       "title" -> playerTitle.field,
-      "fideId" -> optional(fideId.field),
+      "fideId" -> ignored(Option.empty[chess.FideId]),
       "federationUrl" -> optional(url.field),
       "public" -> boolean,
       "coach" -> boolean,
-      "comment" -> optional(cleanNonEmptyText(maxLength = 2000))
+      "comment" -> optional(cleanNonEmptyText(maxLength = 2000)),
+      "playerId" -> optional(directoryPlayerId.field)
     )(TitleRequest.FormData.apply)(unapply)
       .verifying(
-        "Missing FIDE ID or federation URL.",
-        d => d.fideId.isDefined || d.federationUrl.isDefined
+        "Missing Xiangqi player ID or federation URL.",
+        d => d.playerId.isDefined || d.federationUrl.isDefined
       )
       .verifying(
         "The coach profile requires a public title.",

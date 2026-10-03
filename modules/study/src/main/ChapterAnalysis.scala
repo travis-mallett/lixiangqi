@@ -16,8 +16,10 @@ final class ChapterAnalysis(
     chapter.serverEval.isDefined
       .so(getAnalysis(Analysis.Id(chapter.studyId, chapter.id)))
       .flatMap:
-        case Some(analysis) => fuccess(Result(Some(analysis)))
-        case None => fromSource(chapter)
+        case Some(analysis)
+            if chapter.root.gameAt(chapter.root.mainlinePath).exists(_.position == analysis.position) =>
+          fuccess(Result(Some(analysis)))
+        case _ => fromSource(chapter)
 
   private def fromSource(chapter: Chapter): Fu[Result] =
     chapter.setup.gameId
@@ -26,7 +28,9 @@ final class ChapterAnalysis(
           case Some(game) if matches(chapter, game) =>
             getAnalysis(Analysis.Id(game.id)).map:
               _.filter: analysis =>
-                analysis.id == Analysis.Id(game.id) && analysis.valid &&
+                analysis.id == Analysis.Id(
+                  game.id
+                ) && analysis.valid && analysis.position == game.xiangqi.position &&
                   analysis.startPly == chapter.root.ply &&
                   analysis.infos.map(_.ply) == chapter.root.mainline.map(_.ply)
           case _ => fuccess(none)
@@ -39,7 +43,7 @@ object ChapterAnalysis:
 
   private def matches(chapter: Chapter, game: Game): Boolean =
     game.finishedOrAborted && game.metadata.analysed && chapter.setup.gameId.contains(game.id) &&
-      chapter.setup.variant == game.variant &&
+      chapter.root.ruleset == game.xiangqi.ruleset &&
       chapter.root.fen.value == game.xiangqi.initialFen &&
       chapter.root.ply.value == game.xiangqi.states.head.ply &&
-      chapter.root.mainline.map(_.move.uci.uci.replace(":", "10")) == game.xiangqi.moves.map(_.value).toList
+      chapter.root.mainline.map(_.move.uci.value) == game.xiangqi.moves.map(_.value).toList

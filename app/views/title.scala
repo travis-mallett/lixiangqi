@@ -26,24 +26,24 @@ object mod:
           cls := "mod-zone communication__logins"
         )
       )
-    val fide = data.fide.map: player =>
+    val directory = data.directory.map: player =>
       frag(
-        a(href := routes.Fide.show(player.id, player.slug))(
+        a(href := routes.PlayerDirectory.show(player.id, player.slug))(
           strong(player.id),
           " ",
-          player.title.fold(strong("untitled"))(userTitleTag),
+          player.title.fold(strong("untitled"))(t => span(cls := "utitle")(t.value)),
           " ",
           player.name
         ),
         p(player.ratingsStr),
         p("Year of birth: ", player.year.fold("unknown")(_.toString))
       )
-    modUi.show(req, data.user, fide, similar, modZone)
+    modUi.show(req, data.user, directory, similar, modZone)
 
   case class ModData(
       mod: Me,
       user: User,
-      fide: Option[lila.fide.FidePlayer],
+      directory: Option[lila.playerDirectory.DirectoryPlayer],
       logins: lila.security.UserLogins.TableData[lila.mod.UserWithModlog],
       renderIp: RenderIp
   )

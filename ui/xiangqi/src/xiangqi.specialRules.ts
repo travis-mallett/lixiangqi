@@ -147,7 +147,7 @@ async function initExample(root: HTMLElement, example: Example, animationDuratio
       children: NotationNode[];
     }
     const nodes: NotationNode[] = data.script.map((entry, index) => ({
-      id: String(index + 1),
+      id: entry.move,
       ply: index + 1,
       notation: chinese ? entry.chinese || entry.english : entry.english,
       children: [],

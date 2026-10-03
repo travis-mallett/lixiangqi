@@ -2,8 +2,9 @@ import { ExplorerCtrl, type ExplorerGame } from '@lixiangqi/explorer';
 
 import { requestXiangqi } from 'lib/game/xiangqiApi';
 import type { RulesState } from 'lib/game/xiangqiNotation';
+import { completeNode } from 'lib/tree/node';
 
-import { importedViewerTree, type ViewerNode } from './model';
+import { viewerNode, type ViewerNode } from './model';
 import type { GameViewer } from './viewer';
 
 /** The same explorer used by analysis, player, and event pages; embeds opt out of preference storage. */
@@ -13,7 +14,6 @@ export function attachExplorer(
   label: string,
 ): (node: ViewerNode) => void {
   let current: ViewerNode;
-  let sequence = 0;
   let pending: AbortController | undefined;
   const toggle = document.createElement('button');
   toggle.type = 'button';
@@ -54,17 +54,24 @@ export function attachExplorer(
     try {
       const result = await requestXiangqi<RulesState & { notation: string; chineseNotation: string }>(
         '/api/analysis/move',
-        { initialFen: initial.fen, moves, move },
+        { initialFen: initial.fen, moves, move, ruleset: initial.node.ruleset },
         signal,
       );
       if (signal.aborted || before !== current) return;
-      const node = importedViewerTree({ initialFen: result.fen, state: result, children: [] });
-      node.id = `explorer-${++sequence}`;
-      node.move = move;
-      node.label = result.notation;
-      node.parent = before;
-      const match = /^([a-i](?:10|[1-9]))([a-i](?:10|[1-9]))$/.exec(move)!;
-      node.position = { ...node.position, lastMove: [match[1], match[2]] };
+      const native = completeNode(
+        {
+          uci: move,
+          notation: result.notation,
+          chineseNotation: result.chineseNotation,
+          state: result,
+          fen: result.fen,
+          ply: result.ply,
+          children: [],
+        },
+        before.node.path,
+      );
+      before.node.children.push(native);
+      const node = viewerNode(native, initial.ply, {}, before);
       before.children.push(node);
       viewer.go(node);
     } catch (error) {
@@ -79,6 +86,13 @@ export function attachExplorer(
   return node => {
     current = node;
     pending?.abort();
-    explorer.setPosition({ fen: node.fen });
+    let root = node;
+    const moves: string[] = [];
+    while (root.parent) {
+      moves.unshift(root.move!);
+      root = root.parent;
+    }
+    if (!root.node.ruleset) throw new Error('Viewer is missing its native ruleset');
+    explorer.setPosition({ fen: node.fen, initialFen: root.fen, moves, ruleset: root.node.ruleset });
   };
 }

@@ -6,8 +6,8 @@ import { dispatchChessgroundResize } from 'lib/boardResize';
 import { renderEval as normalizeEval } from 'lib/ceval';
 import { isMobile } from 'lib/device';
 import { playable } from 'lib/game';
-import { fixCrazySan, plyToTurn } from 'lib/game/chess';
-import statusView from 'lib/game/view/status';
+import { adjudicationText } from 'lib/game/adjudication';
+import { plyToTurn } from 'lib/game/chess';
 import { licon } from 'lib/licon';
 import * as Prefs from 'lib/prefs';
 import { storage } from 'lib/storage';
@@ -28,8 +28,8 @@ import stepwiseScroll from 'lib/view/stepwiseScroll';
 import * as chessground from '../board';
 import type AnalyseCtrl from '../ctrl';
 import type { ConcealOf } from '../interfaces';
-import * as pgnExport from '../pgnExport';
-import { renderPgnError } from '../pgnImport';
+import * as notationExport from '../notationExport';
+import { renderNotationError } from '../notationImport';
 import serverSideUnderboard from '../serverSideUnderboard';
 import type RelayCtrl from '../study/relay/relayCtrl';
 import { findTag } from '../study/studyChapters';
@@ -150,9 +150,9 @@ export const renderBoard = ({ ctrl, study, playerBars, playerStrips }: ViewConte
     },
     [
       playerStrips,
-      playerBars?.[ctrl.bottomIsWhite() ? 1 : 0],
+      playerBars?.[ctrl.bottomIsRed() ? 1 : 0],
       chessground.render(ctrl),
-      playerBars?.[ctrl.bottomIsWhite() ? 0 : 1],
+      playerBars?.[ctrl.bottomIsRed() ? 0 : 1],
     ],
   );
 
@@ -208,9 +208,9 @@ export function renderInputs(ctrl: AnalyseCtrl): VNode | undefined {
           class: { 'is-error': !!ctrl.pgnError },
           hook: {
             ...onInsert<HTMLTextAreaElement>(el => {
-              el.value = defined(ctrl.pgnInput) ? ctrl.pgnInput : pgnExport.renderFullTxt(ctrl);
+              el.value = defined(ctrl.pgnInput) ? ctrl.pgnInput : notationExport.renderFullTxt(ctrl);
               const changePgnIfDifferent = () =>
-                el.value !== pgnExport.renderFullTxt(ctrl) && ctrl.changePgn(el.value, true);
+                el.value !== notationExport.renderFullTxt(ctrl) && ctrl.changePgn(el.value, true);
 
               el.addEventListener('input', () => (ctrl.pgnInput = el.value));
 
@@ -224,7 +224,7 @@ export function renderInputs(ctrl: AnalyseCtrl): VNode | undefined {
             postpatch: (_, vnode) => {
               (vnode.elm as HTMLTextAreaElement).value = defined(ctrl.pgnInput)
                 ? ctrl.pgnInput
-                : pgnExport.renderFullTxt(ctrl);
+                : notationExport.renderFullTxt(ctrl);
             },
           },
         }),
@@ -235,7 +235,7 @@ export function renderInputs(ctrl: AnalyseCtrl): VNode | undefined {
               attrs: dataIcon(licon.PlayTriangle),
               hook: bind('click', _ => {
                 const pgn = $('.copyables .pgn textarea').val() as string;
-                if (pgn !== pgnExport.renderFullTxt(ctrl)) ctrl.changePgn(pgn, true);
+                if (pgn !== notationExport.renderFullTxt(ctrl)) ctrl.changePgn(pgn, true);
               }),
             },
             i18n.site.importPgn,
@@ -243,7 +243,7 @@ export function renderInputs(ctrl: AnalyseCtrl): VNode | undefined {
         hl(
           'div.bottom-item.bottom-error',
           { attrs: dataIcon(licon.CautionTriangle), class: { 'is-error': !!ctrl.pgnError } },
-          renderPgnError(ctrl.pgnError),
+          renderNotationError(ctrl.pgnError),
         ),
       ]),
     ]),
@@ -258,23 +258,31 @@ export function renderResult(ctrl: AnalyseCtrl): VNode[] {
   ];
   if (ctrl.data.game.status.id >= 30) {
     const winner = ctrl.data.game.winner;
-    const result = winner === 'white' ? '1-0' : winner === 'black' ? '0-1' : '½-½';
-    return render(result, statusView(ctrl.data));
+    const result = winner === 'red' ? '1-0' : winner === 'black' ? '0-1' : '½-½';
+    return render(
+      result,
+      adjudicationText(ctrl.node.state.termination) ??
+        (ctrl.node.state.checkmate
+          ? i18n.site.checkmate
+          : ctrl.data.game.winner
+            ? i18n.site[ctrl.data.game.winner === 'red' ? 'redIsVictorious' : 'blackIsVictorious']
+            : i18n.site.draw),
+    );
   } else if (ctrl.study?.multiBoard.showResults()) {
-    const result = findTag(ctrl.study.data.chapter.tags, 'result')?.replace('1/2', '½');
+    const result = findTag(ctrl.study.data.chapter.tags, 'result')?.replaceAll('1/2', '½');
     if (!result || result === '*') return [];
-    if (result === '1-0') return render(result, i18n.site.whiteIsVictorious);
+    if (result === '1-0') return render(result, i18n.site.redIsVictorious);
     if (result === '0-1') return render(result, i18n.site.blackIsVictorious);
     if (result === '0-0') return render(result, i18n.study.doubleDefeat);
-    if (result === '½-0') return render(result, i18n.study.blackDefeatWhiteCanNotWin);
-    if (result === '0-½') return render(result, i18n.study.whiteDefeatBlackCanNotWin);
-    return render('½-½', i18n.site.draw);
+    if (result === '½-0') return render(result, i18n.study.blackDefeatRedCanNotWin);
+    if (result === '0-½') return render(result, i18n.study.redDefeatBlackCanNotWin);
+    return render(result, result === '½-½' ? i18n.site.draw : i18n.study.recordedResult);
   }
   return [];
 }
 
 export const renderIndexAndMove = (node: TreeNode, withEval: boolean, withGlyphs: boolean): VNode[] =>
-  node.san ? [renderIndex(node.ply, true), ...renderMoveNodes(node, withEval, withGlyphs)] : [];
+  node.notation ? [renderIndex(node.ply, true), ...renderMoveNodes(node, withEval, withGlyphs)] : [];
 
 export const renderIndex = (ply: Ply, withDots: boolean): VNode =>
   h('index', plyToTurn(ply) + (withDots ? (ply % 2 === 1 ? '.' : '...') : ''));
@@ -285,6 +293,7 @@ export function renderMoveNodes(
   withGlyphs: boolean,
   ev?: ClientEval | ServerEval | false,
   glyphs?: Glyph[],
+  notationStyle: 'english' | 'chinese' = 'english',
 ): VNode[] {
   ev ??= node.ceval ?? node.eval; // ev = false will override withEval
   const evalText = !ev
@@ -294,7 +303,9 @@ export function renderMoveNodes(
       : ev?.mate !== undefined
         ? `#${ev.mate}`
         : '';
-  const nodes = [h('san', fixCrazySan(node.san!))];
+  const nodes = [
+    h('move-text', notationStyle === 'chinese' ? (node.chineseNotation ?? node.notation!) : node.notation!),
+  ];
   const relevantGlyphs = glyphs ?? node.glyphs;
   if (withGlyphs && relevantGlyphs)
     relevantGlyphs.forEach(g => nodes.push(h('glyph', { attrs: { title: g.name } }, g.symbol)));
@@ -354,11 +365,11 @@ function renderPlayerStrips(ctrl: AnalyseCtrl): [VNode, VNode] | undefined {
     hl('div.analyse__player_strip.' + cls, [materialDiff, clock]);
 
   const clocks = renderClocks(ctrl, ctrl.path),
-    whitePov = ctrl.bottomIsWhite(),
+    redPov = ctrl.bottomIsRed(),
     materialDiffs = renderMaterialDiffs(ctrl);
 
   return [
-    renderPlayerStrip('top', materialDiffs[0], clocks?.[whitePov ? 1 : 0]),
-    renderPlayerStrip('bottom', materialDiffs[1], clocks?.[whitePov ? 0 : 1]),
+    renderPlayerStrip('top', materialDiffs[0], clocks?.[redPov ? 1 : 0]),
+    renderPlayerStrip('bottom', materialDiffs[1], clocks?.[redPov ? 0 : 1]),
   ];
 }

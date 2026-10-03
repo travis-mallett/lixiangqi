@@ -45,11 +45,7 @@
   <string name="definitivelyDeleteTournament">Užtikrintai ištrinti visą turnyrą, visus raundus ir visas jų partijas.</string>
   <string name="showScores">Rodyti žaidėjų balus pagal partijų rezultatus</string>
   <string name="replacePlayerTags">Pasirenkama: pakeiskite žaidėjų vardus, reitingus ir titulus</string>
-  <string name="fideFederations">FIDE federacijos</string>
   <string name="top10Rating">10 aukščiausių reitingų</string>
-  <string name="fidePlayers">FIDE žaidėjai</string>
-  <string name="fidePlayerNotFound">FIDE žaidėjas nerastas</string>
-  <string name="fideProfile">FIDE profilis</string>
   <string name="federation">Federacija</string>
   <string name="unrated">Nereitinguota(s)</string>
   <string name="recentTournaments">Neseniai sukurti turnyrai</string>
@@ -77,7 +73,6 @@
   <string name="tournamentLocation">Turnyro vieta</string>
   <string name="topPlayers">Geriausi žaidėjai</string>
   <string name="timezone">Laiko juosta</string>
-  <string name="fideRatingCategory">FIDE reitingo kategorija</string>
   <string name="optionalDetails">Papildoma informacija</string>
   <string name="pastBroadcasts">Ankstesnės transliacijos</string>
   <string name="allBroadcastsByMonth">Rodyti visas transliacijas pagal mėnesį</string>

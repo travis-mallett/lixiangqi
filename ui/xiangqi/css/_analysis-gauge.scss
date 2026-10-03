@@ -1,0 +1,77 @@
+.xiangqi-eval {
+  position: relative;
+  z-index: 2;
+  grid-area: 2 / 1;
+  min-width: 0;
+  min-height: 0;
+  margin-inline-end: var(---xiangqi-dock-gap);
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: #24211f;
+  box-shadow: 0 1px 4px #0008;
+  cursor: grab;
+  touch-action: none;
+  transition:
+    opacity 140ms,
+    border-color 140ms,
+    box-shadow 140ms;
+
+  &::after {
+    content: '';
+    position: absolute;
+    z-index: 2;
+    width: 4px;
+    height: 1.45rem;
+    inset: 50% 0.18rem auto auto;
+    border-radius: 2px;
+    background: repeating-linear-gradient(to bottom, #fff9 0 2px, transparent 2px 5px);
+    opacity: 0;
+    translate: 0 -50%;
+    transition: opacity 140ms;
+  }
+
+  &:hover {
+    border-color: color-mix(in oklab, $c-accent 70%, transparent);
+    box-shadow: 0 2px 9px #000a;
+
+    &::after {
+      opacity: 0.8;
+    }
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.xiangqi-eval__red {
+  position: absolute;
+  inset: auto 0 0;
+  height: var(--xiangqi-eval-share, 50%);
+  background: #b94b45;
+  transition:
+    height 1s,
+    width 1s;
+}
+
+.xiangqi-eval__score {
+  position: absolute;
+  z-index: 1;
+  inset: 0.45rem 0 auto;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: bold;
+  text-align: center;
+  text-shadow: 0 1px 2px #000;
+  writing-mode: vertical-rl;
+}
+
+.xiangqi-eval.flipped .xiangqi-eval__red {
+  inset: 0 0 auto;
+}
+
+.gauge-dock-top .xiangqi-eval.flipped .xiangqi-eval__red,
+.gauge-dock-bottom .xiangqi-eval.flipped .xiangqi-eval__red {
+  inset: 0 0 0 auto;
+}

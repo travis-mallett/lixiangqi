@@ -18,7 +18,7 @@ interface Site {
     baseUrl(): string;
     url(url: string, opts?: AssetUrlOpts): string;
     flairSrc(flair: Flair): string;
-    fideFedSrc(fideFed: FideFed): string;
+    playerFederationSrc(playerFederation: PlayerFederation): string;
     loadCss(href: string, key?: string): Promise<void>;
     loadCssPath(key: string): Promise<void>;
     removeCss(href: string): void;
@@ -63,7 +63,7 @@ interface EsmModuleOpts extends AssetUrlOpts {
 type PairOf<T> = [T, T];
 
 type Flair = string;
-type FideFed = string;
+type PlayerFederation = string;
 type PatronColor = number;
 type Redraw = () => void;
 type RedirectTo = string | { id: string; url: string; cookie?: Cookie };

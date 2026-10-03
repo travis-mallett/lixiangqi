@@ -1,5 +1,4 @@
-import { opposite } from 'chessops';
-
+import { type XiangqiSide as Color, oppositeSide as opposite } from 'lib/game/xiangqi';
 import { licon } from 'lib/licon';
 import { storedBooleanProp } from 'lib/storage';
 import { domDialog, type Dialog } from 'lib/view';

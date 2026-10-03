@@ -17,6 +17,7 @@ export interface EvalMeta {
 }
 
 export interface Work extends EvalMeta {
+  ruleset: string;
   variant: VariantKey;
   threads: number;
   hashSize?: number;
@@ -26,6 +27,7 @@ export interface Work extends EvalMeta {
   multiPv: number;
   initialFen: string;
   currentFen: string;
+  legalMoves?: readonly string[];
   moves: string[];
   emit: (ev: LocalEval, meta: EvalMeta) => void;
 }
@@ -50,7 +52,7 @@ export interface ExternalEngineInfoFromServer extends BaseEngineInfo {
   maxThreads: number;
   providerData?: string;
   clientSecret: string;
-  officialStockfish?: boolean;
+  officialPikafish?: boolean;
   endpoint: string;
 }
 
@@ -113,6 +115,8 @@ export interface CustomCeval extends CustomSearch {
 export interface CevalOpts {
   variant: Variant;
   initialFen?: string;
+  ruleset: string;
+  notationStyle?: 'english' | 'chinese';
   emit: (ev: LocalEval, meta: EvalMeta) => void;
   onUciHover: (hovering: Hovering | null) => void;
   redraw: Redraw;
@@ -139,7 +143,7 @@ export interface CevalHandler {
   showEvalGauge: Prop<boolean>;
   ongoing: boolean;
   playUciList(uciList: string[]): void;
-  getOrientation(): Color;
+  getOrientation(): 'red' | 'black';
   threatMode(): boolean;
   getNode(): TreeNode;
   clearCeval: () => void;
@@ -155,9 +159,10 @@ export interface NodeEvals {
 }
 
 export interface Step {
+  state: TreeNode['state'];
   ply: number;
   fen: string;
-  san?: string;
+  notation?: string;
   uci?: string;
   threat?: ClientEval;
   ceval?: ClientEval;

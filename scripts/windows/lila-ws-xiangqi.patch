@@ -1,5 +1,5 @@
 diff --git a/build.sbt b/build.sbt
-index a2992c8..ed93f34 100644
+index a2992c8..75b5991 100644
 --- a/build.sbt
 +++ b/build.sbt
 @@ -9,7 +9,11 @@ inThisBuild(
@@ -15,7 +15,21 @@ index a2992c8..ed93f34 100644
  val arch = if (sys.props.get("os.arch").exists(_.startsWith("aarch64"))) "aarch-64" else "x86-64"
  val arch_ = arch.replace("-", "_")
  
-@@ -30,7 +34,6 @@ lazy val `lila-ws` = project
+@@ -23,6 +27,13 @@ lazy val `lila-ws` = project
+   .enablePlugins(JavaAppPackaging, DockerPlugin, BuildInfoPlugin)
+   .settings(
+     name := "lila-ws",
++    Compile / unmanagedSourceDirectories += {
++      val root = file(sys.props.getOrElse("lixiangqi.source",
++        sys.error("Set -Dlixiangqi.source to the LiXiangQi source checkout")))
++      val sources = root / "modules" / "xiangqi" / "src" / "main"
++      require(sources.isDirectory, s"Native Xiangqi sources not found: $sources")
++      sources
++    },
+     organization := "org.lichess",
+     resolvers += Resolver.sonatypeCentralSnapshots,
+     resolvers += "jitpack".at("https://jitpack.io"),
+@@ -30,7 +41,6 @@ lazy val `lila-ws` = project
      libraryDependencies ++= Seq(
        ("org.reactivemongo" %% "reactivemongo" % "1.1.0-RC20")
          .exclude("org.scala-lang.modules", "scala-java8-compat_2.13"),
@@ -23,7 +37,7 @@ index a2992c8..ed93f34 100644
        "io.lettuce" % "lettuce-core" % "7.6.0.RELEASE",
        "io.netty" % "netty-handler" % nettyVersion,
        "io.netty" % "netty-codec-http" % nettyVersion,
-@@ -54,7 +57,9 @@ lazy val `lila-ws` = project
+@@ -54,7 +64,9 @@ lazy val `lila-ws` = project
        "com.softwaremill.macwire" %% "macros" % "2.6.7" % "provided",
        "com.roundeights" %% "hasher" % "1.3.1",
        "org.scalameta" %% "munit" % "1.3.4" % Test
@@ -34,7 +48,7 @@ index a2992c8..ed93f34 100644
      scalacOptions := Seq(
        "-encoding",
        "utf-8",
-@@ -68,6 +73,9 @@ lazy val `lila-ws` = project
+@@ -68,6 +80,9 @@ lazy val `lila-ws` = project
        "-Wunused:all"
      ),
      javaOptions ++= Seq("-Xms32m", "-Xmx256m"),
@@ -155,8 +169,472 @@ index 46480d9..8b22222 100644
        case msg: ClientOut.Ping =>
          clientIn(ClientIn.Pong)
          sitePing(state, deps, msg)
+diff --git a/src/main/scala/actor/StudyClientActor.scala b/src/main/scala/actor/StudyClientActor.scala
+index 64351a1..eccf8d4 100644
+--- a/src/main/scala/actor/StudyClientActor.scala
++++ b/src/main/scala/actor/StudyClientActor.scala
+@@ -50,15 +50,9 @@ object StudyClientActor:
+             Behaviors.same
+ 
+           case anaMove: ClientOut.AnaMove =>
+-            clientIn(ClientIn.NodeEmptyForAppBC)
+             forward(anaMove.payload)
+             Behaviors.same
+ 
+-          case anaDrop: ClientOut.AnaDrop =>
+-            clientIn(ClientIn.NodeEmptyForAppBC)
+-            forward(anaDrop.payload)
+-            Behaviors.same
+-
+           case ClientOut.VoiceChatPing =>
+             deps.req.user.map { VoiceChat.respondToPing(state.room.room, _) }.foreach(clientIn)
+             Behaviors.same
+diff --git a/src/main/scala/evalCache/EvalCacheApi.scala b/src/main/scala/evalCache/EvalCacheApi.scala
+index a90a35e..8e28046 100644
+--- a/src/main/scala/evalCache/EvalCacheApi.scala
++++ b/src/main/scala/evalCache/EvalCacheApi.scala
+@@ -2,7 +2,7 @@ package lila.ws
+ package evalCache
+ 
+ import cats.syntax.all.*
+-import chess.format.Fen
++import lila.xiangqi.Xiangqi.Game
+ import com.github.blemale.scaffeine.AsyncLoadingCache
+ import com.softwaremill.macwire.*
+ import com.typesafe.scalalogging.Logger
+@@ -24,27 +24,27 @@ final class EvalCacheApi(mongo: Mongo)(using Executor, Scheduler)(using cacheApi
+   import EvalCacheBsonHandlers.given
+ 
+   def get(sri: Sri, e: EvalGet, emit: Emit[ClientIn]): Unit =
+-    Id.from(e.variant, e.fen)
+-      .foreach: id =>
+-        getEntry(id)
++    Id.game(e.position)
++      .foreach: game =>
++        getEntry(Id(game))
+           .map:
+             _.flatMap(_.makeBestMultiPvEval(e.multiPv))
+-          .map(monitorRequest(e.fen, Monitor.evalCache.single))
++          .map(monitorRequest(game, Monitor.evalCache.single))
+           .foreach:
+             _.foreach: eval =>
+               emit:
+                 ClientIn.EvalHit:
+-                  EvalCacheJsonHandlers.writeEval(eval, e.fen) + ("path" -> JsString(e.path.value))
++                  EvalCacheJsonHandlers.writeEval(eval, game) + ("path" -> JsString(e.path.value))
+     if e.up then upgrade.register(sri, e)
+ 
+   def getMulti(sri: Sri, e: EvalGetMulti, emit: Emit[ClientIn]): Unit =
+-    e.fens
+-      .flatMap(fen => Id.from(e.variant, fen).map(fen -> _))
+-      .traverse: (fen, id) =>
+-        getEntry(id)
++    e.positions
++      .flatMap(Id.game)
++      .traverse: game =>
++        getEntry(Id(game))
+           .map:
+-            _.flatMap(_.makeBestSinglePvEval).map(fen -> _)
+-          .map(monitorRequest(fen, Monitor.evalCache.multi))
++            _.flatMap(_.makeBestSinglePvEval).map(game -> _)
++          .map(monitorRequest(game, Monitor.evalCache.multi))
+       .map(_.flatten)
+       .foreach: evals =>
+         if evals.nonEmpty then
+@@ -61,8 +61,7 @@ final class EvalCacheApi(mongo: Mongo)(using Executor, Scheduler)(using cacheApi
+         .foreach:
+           _.filter(_.isEnough).foreach: trust =>
+             makeInput(
+-              e.variant,
+-              e.fen,
++              e.position,
+               Eval(
+                 pvs = e.pvs,
+                 knodes = e.knodes,
+@@ -81,11 +80,8 @@ final class EvalCacheApi(mongo: Mongo)(using Executor, Scheduler)(using cacheApi
+     else if depth < 50 then depth.value % 2 == 0
+     else depth.value % 5 == 0
+ 
+-  private def monitorRequest[A](fen: Fen.Full, mon: Monitor.evalCache.Style)(res: Option[A]): Option[A] =
+-    Fen
+-      .readPly(fen)
+-      .foreach: ply =>
+-        mon.request(ply.value, res.isDefined).increment()
++  private def monitorRequest[A](game: Game, mon: Monitor.evalCache.Style)(res: Option[A]): Option[A] =
++    mon.request(game.state.ply, res.isDefined).increment()
+     res
+ 
+   private val cache: AsyncLoadingCache[Id, Option[EvalCacheEntry]] = cacheApi(32_768, "evalCache"):
+@@ -107,12 +103,13 @@ final class EvalCacheApi(mongo: Mongo)(using Executor, Scheduler)(using cacheApi
+           Logger("EvalCacheApi.put").info(s"Invalid from ${user} $error ${input.fen}")
+           Future.successful(())
+         case _ =>
++          val stored = input.copy(eval = input.eval.truncatePvs)
+           getEntry(input.id).flatMap:
+             case None =>
+               val entry = EvalCacheEntry(
+                 _id = input.id,
+-                nbMoves = input.position.moves.view.map(_._2.size).sum,
+-                evals = List(input.eval),
++                nbMoves = input.game.state.legalMoves.size,
++                evals = List(stored.eval),
+                 usedAt = LocalDateTime.now,
+                 updatedAt = LocalDateTime.now
+               )
+@@ -120,15 +117,15 @@ final class EvalCacheApi(mongo: Mongo)(using Executor, Scheduler)(using cacheApi
+                 .one(entry)
+                 .recover(mongo.ignoreDuplicateKey)
+                 .map: _ =>
+-                  afterPut(input, entry)
++                  afterPut(stored, entry)
+             case Some(oldEntry) =>
+-              val entry = oldEntry.add(input.eval)
++              val entry = oldEntry.add(stored.eval)
+               if entry.similarTo(oldEntry) then Future.successful(())
+               else
+                 c.update
+                   .one(BSONDocument("_id" -> entry.id), entry, upsert = true)
+                   .map: _ =>
+-                    afterPut(input, entry)
++                    afterPut(stored, entry)
+ 
+   private def afterPut(input: Input, entry: EvalCacheEntry): Unit =
+     cache.put(input.id, Future.successful(entry.some))
+diff --git a/src/main/scala/evalCache/EvalCacheBsonHandlers.scala b/src/main/scala/evalCache/EvalCacheBsonHandlers.scala
+index 06abfb0..1c4097a 100644
+--- a/src/main/scala/evalCache/EvalCacheBsonHandlers.scala
++++ b/src/main/scala/evalCache/EvalCacheBsonHandlers.scala
+@@ -4,7 +4,7 @@ package evalCache
+ import cats.data.NonEmptyList
+ import cats.syntax.all.*
+ import chess.eval.*
+-import chess.format.{ BinaryFen, Uci }
++import lila.xiangqi.Xiangqi.Uci
+ import reactivemongo.api.bson.*
+ import reactivemongo.api.bson.exceptions.TypeDoesNotMatchException
+ 
+@@ -21,9 +21,9 @@ object EvalCacheBsonHandlers:
+       if str.headOption.contains('#')
+       then str.drop(1).toIntOption.map(Score.mate(_))
+       else str.toIntOption.map(Score.cp(_))
+-    private def movesWrite(moves: Moves): String = Uci.writeListChars(moves.value.toList)
++    private def movesWrite(moves: Moves): String = moves.value.toList.map(_.value).mkString(" ")
+     private def movesRead(str: String): Option[Moves] = Moves.from:
+-      Uci.readListChars(str).flatMap(_.toNel)
++      str.split(" ", -1).toList.traverse(Uci.from(_).toOption).flatMap(_.toNel)
+     private val scoreSeparator = ':'
+     private val pvSeparator = '/'
+     private val pvSeparatorStr = pvSeparator.toString
+@@ -57,14 +57,7 @@ object EvalCacheBsonHandlers:
+   private def handlerBadType[T](b: BSONValue): Try[T] =
+     Failure(TypeDoesNotMatchException("BSONValue", b.getClass.getSimpleName))
+ 
+-  given binaryFenHandler: BSONHandler[BinaryFen] = new:
+-    def readTry(bson: BSONValue) =
+-      bson match
+-        case v: BSONBinary => Success(BinaryFen(v.byteArray))
+-        case _ => handlerBadType(bson)
+-    def writeTry(v: BinaryFen) = Success(BSONBinary(v.value, Subtype.GenericBinarySubtype))
+-
+-  given BSONHandler[Id] = binaryFenHandler.as[Id](Id.apply, _.value)
++  given BSONHandler[Id] = summon[BSONHandler[String]].as[Id](Id.apply, _.value)
+ 
+   given BSONDocumentHandler[Eval] = Macros.handler
+   given BSONDocumentHandler[EvalCacheEntry] = Macros.handler
+diff --git a/src/main/scala/evalCache/EvalCacheEntry.scala b/src/main/scala/evalCache/EvalCacheEntry.scala
+index 02e7fe0..ecd3633 100644
+--- a/src/main/scala/evalCache/EvalCacheEntry.scala
++++ b/src/main/scala/evalCache/EvalCacheEntry.scala
+@@ -4,26 +4,20 @@ package evalCache
+ import cats.data.NonEmptyList
+ import cats.implicits.toFoldableOps
+ import chess.eval.Score
+-import chess.format.{ BinaryFen, Fen, Uci }
+-import chess.variant.Variant
+-import chess.{ ErrorStr, Position }
++import lila.xiangqi.Xiangqi.{ Uci, Position, Game }
++import lila.xiangqi.XiangqiEvaluation
+ import com.github.blemale.scaffeine.{ LoadingCache, Scaffeine }
+ import scalalib.zeros.given
+ 
+ import java.time.LocalDateTime
+ 
+-opaque type Id = BinaryFen
+-object Id:
+-  def apply(fen: BinaryFen): Id = fen
+-  def apply(position: Position): Id = BinaryFen.writeNormalized(position)
+-  object from:
+-    private val standardCache: LoadingCache[Fen.Full, Option[Id]] =
+-      Scaffeine().expireAfterWrite(1.minute).build(compute(chess.variant.Standard, _))
+-    private def compute(variant: Variant, fen: Fen.Full): Option[Id] =
+-      Fen.read(variant, fen).map(BinaryFen.writeNormalized)
+-    def apply(variant: Variant, fen: Fen.Full): Option[Id] =
+-      if variant.standard then standardCache.get(fen) else compute(variant, fen)
+-  extension (id: Id) def value: BinaryFen = id
++opaque type Id = String
++object Id extends OpaqueString[Id]:
++  def apply(game: Game): Id = XiangqiEvaluation.key(game)
++  private val positions: LoadingCache[Position, Option[Game]] =
++    Scaffeine().maximumSize(1024).expireAfterWrite(1.minute).build(XiangqiEvaluation.game(_).toOption)
++  def game(position: Position): Option[Game] = positions.get(position)
++  def from(position: Position): Option[Id] = game(position).map(apply)
+ 
+ case class EvalCacheEntry(
+     _id: Id,
+@@ -59,12 +53,17 @@ case class EvalCacheEntry(
+ 
+ object EvalCacheEntry:
+ 
+-  case class Input(id: Id, fen: Fen.Full, position: Position, eval: Eval, sri: Sri):
+-    def validate: Either[ErrorStr, Unit] =
++  case class Input(id: Id, game: Game, eval: Eval, sri: Sri):
++    def fen: String = game.state.fen
++    def position: Position = game.position
++    def validate: Either[String, Unit] =
+       eval.pvs.traverse_ : pv =>
+-        position
+-          .forward(pv.moves.value)
+-          .filterOrElse(pv.isValidMate(_), chess.ErrorStr(s"Invalid mate $pv"))
++        XiangqiEvaluation.validateVariation(
++          game,
++          pv.moves.value.toList,
++          pv.score.mate.map(_.value),
++          MAX_PV_SIZE
++        )
+ 
+   case class Eval(pvs: NonEmptyList[Pv], knodes: Knodes, depth: Depth, by: User.Id, trust: Trust):
+ 
+@@ -76,7 +75,7 @@ object EvalCacheEntry:
+ 
+     def looksValid = pvs.forall(_.looksValid) && uniqueFirstMoves && isSufficientlyAnalysed
+ 
+-    private def uniqueFirstMoves = pvs.map(_.moves.value.head.uci).distinct.size == pvs.size
++    private def uniqueFirstMoves = pvs.map(_.moves.value.head.value).distinct.size == pvs.size
+ 
+     private def isSufficientlyAnalysed =
+       pvs.forall(_.score.mateFound) || (knodes >= MIN_KNODES || depth >= MIN_DEPTH)
+@@ -94,28 +93,11 @@ object EvalCacheEntry:
+       case None => moves.value.toList.sizeIs > MIN_PV_SIZE
+       case Some(mate) => mate.value != 0 // sometimes we get #0. Dunno why.
+ 
+-    def isValidMate(lastPos: Position) =
+-      score.mate.forall: mate =>
+-        val plies = moves.value.size
+-        val mateInPlies = mate.value.abs * 2
+-        if plies == mateInPlies || plies == mateInPlies - 1 then lastPos.checkMate
+-        else plies < mateInPlies && mateInPlies > MAX_PV_SIZE
+-
+     def truncate = copy(moves = Moves.truncate(moves))
+ 
+-  def makeInput(variant: Variant, fen: Fen.Full, eval: Eval, sri: Sri) =
++  def makeInput(position: Position, eval: Eval, sri: Sri) =
+     eval.looksValid.so:
+-      Fen
+-        .read(variant, fen)
+-        .filter(_.playable(false))
+-        .map: position =>
+-          Input(Id(position), fen, position, eval.truncatePvs, sri)
+-
+-  // val fen = "r1bqkb1r/ppp2ppp/2n2n2/3pp1N1/2B1P3/8/PPPP1PPP/RNBQK2R w KQkq - 0 5"
+-  // println("FEN ID: " + evalCache.EvalCacheEntry.showMongoIdForDebug(fen))
+-  // def showMongoIdForDebug(fen: String) =
+-  //   import chess.format.*
+-  //   val position = Fen.read(chess.variant.Standard, Fen.Full(fen)).get
+-  //   val binary = BinaryFen.writeNormalized(position).value
+-  //   val base64 = java.util.Base64.getEncoder.encodeToString(binary)
+-  //   s"Binary.createFromBase64('$base64')"
++      Id.game(position)
++        .filterNot(_.state.ended)
++        .map: game =>
++          Input(Id(game), game, eval, sri)
+diff --git a/src/main/scala/evalCache/EvalCacheJsonHandlers.scala b/src/main/scala/evalCache/EvalCacheJsonHandlers.scala
+index 995e995..74a985f 100644
+--- a/src/main/scala/evalCache/EvalCacheJsonHandlers.scala
++++ b/src/main/scala/evalCache/EvalCacheJsonHandlers.scala
+@@ -3,68 +3,64 @@ package evalCache
+ 
+ import cats.syntax.all.*
+ import chess.eval.*
+-import chess.format.{ Fen, Uci, UciPath }
+-import chess.variant.Variant
++import lila.xiangqi.{ Xiangqi, UciPath }
++import lila.xiangqi.Xiangqi.Uci
++import lila.xiangqi.XiangqiJson.given
+ import play.api.libs.json.*
+ 
+-import evalCache.EvalCacheEntry.*
++import EvalCacheEntry.*
+ 
+ object EvalCacheJsonHandlers:
+ 
+   def readGet(d: JsObject) = for
+-    fen <- d.get[Fen.Full]("fen")
+-    variant = Variant.orDefault(d.get[Variant.LilaKey]("variant"))
++    position <- d.get[Xiangqi.Position]("position")
+     multiPv = d.get[MultiPv]("mpv") | MultiPv(1)
+     path <- d.get[UciPath]("path")
+     up = d.get[Boolean]("up") | false
+-  yield ipc.ClientOut.EvalGet(fen, variant, multiPv, path, up)
++  yield ipc.ClientOut.EvalGet(position, multiPv, path, up)
+ 
+   def readPut(d: JsObject) = for
+-    fen <- d.get[Fen.Full]("fen")
+-    variant = Variant.orDefault(d.get[Variant.LilaKey]("variant"))
++    position <- d.get[Xiangqi.Position]("position")
+     knodes <- d.get[Knodes]("knodes")
+     depth <- d.get[Depth]("depth")
+-    pvObjs <- d.objs("pvs")
++    pvObjs <- d.objs("pvs").filter(pvs => pvs.nonEmpty && pvs.size <= MAX_MULTI_PV.value)
+     pvs <- pvObjs.map(parsePv).sequence.flatMap(_.toNel)
+-  yield ipc.ClientOut.EvalPut(fen, variant, pvs, knodes, depth)
++  yield ipc.ClientOut.EvalPut(position, pvs, knodes, depth)
+ 
+-  def readGetMulti(d: JsObject) = for
+-    fens <- d.get[List[Fen.Full]]("fens")
+-    variant = Variant.orDefault(d.get[Variant.LilaKey]("variant"))
+-  yield ipc.ClientOut.EvalGetMulti(fens.take(32), variant)
++  def readGetMulti(d: JsObject) =
++    for positions <- d.get[List[Xiangqi.Position]]("positions").filter(_.size <= 32)
++    yield ipc.ClientOut.EvalGetMulti(positions)
+ 
+-  def writeEval(e: Eval, fen: Fen.Full) = Json.obj(
+-    "fen" -> fen,
++  def writeEval(e: Eval, game: Xiangqi.Game) = Json.obj(
++    "fen" -> game.state.fen,
++    "position" -> game.position,
+     "knodes" -> e.knodes,
+     "depth" -> e.depth,
+     "pvs" -> JsArray(e.pvs.toList.map(writePv))
+   )
+ 
+-  def writeMultiHit(fen: Fen.Full, e: Eval): JsObject = Json
+-    .obj("fen" -> fen)
++  def writeMultiHit(game: Xiangqi.Game, e: Eval): JsObject = Json
++    .obj("fen" -> game.state.fen, "position" -> game.position)
+     .add("cp" -> e.bestPv.score.cp)
+     .add("mate" -> e.bestPv.score.mate)
+ 
+-  def writeMultiHit(evals: List[(Fen.Full, Eval)]): JsObject = evals match
++  def writeMultiHit(evals: List[(Xiangqi.Game, Eval)]): JsObject = evals match
+     case List(single) => writeMultiHit.tupled(single)
+     case many => Json.obj("multi" -> many.map(writeMultiHit.tupled))
+ 
+   private def writePv(pv: Pv) = Json
+-    .obj("moves" -> pv.moves.value.toList.map(_.uci).mkString(" "))
++    .obj("moves" -> pv.moves.value.toList.map(_.value).mkString(" "))
+     .add("cp" -> pv.score.cp)
+     .add("mate" -> pv.score.mate)
+ 
+   private def parsePv(d: JsObject): Option[Pv] =
+     for
+       movesStr <- d.str("moves")
+-      moves <- Moves.from(
+-        movesStr
+-          .split(' ')
+-          .take(MAX_PV_SIZE)
+-          .foldLeft(List.empty[Uci].some):
+-            case (Some(ucis), str) => Uci(str).map(_ :: ucis)
+-            case _ => None
+-          .flatMap(_.reverse.toNel)
+-      )
+-      score <- d.int("cp").map(Score.cp).orElse(d.int("mate").map(Score.mate))
++      values = movesStr.split(" ", -1).toList
++      if values.size <= 256
++      moves <- values.traverse(Uci.from(_).toOption).flatMap(_.toNel).map(Moves.apply)
++      cp = d.int("cp")
++      mate = d.int("mate")
++      if cp.isDefined != mate.isDefined
++      score <- cp.map(Score.cp).orElse(mate.map(Score.mate))
+     yield Pv(score, moves)
+diff --git a/src/main/scala/evalCache/EvalCacheMulti.scala b/src/main/scala/evalCache/EvalCacheMulti.scala
+index 4569b86..39b5c76 100644
+--- a/src/main/scala/evalCache/EvalCacheMulti.scala
++++ b/src/main/scala/evalCache/EvalCacheMulti.scala
+@@ -3,8 +3,7 @@ package evalCache
+ 
+ import cats.syntax.option.*
+ import chess.eval.WinPercent
+-import chess.format.Fen
+-import chess.variant.Variant
++import lila.xiangqi.Xiangqi.Position
+ import org.apache.pekko.actor.typed.Scheduler
+ import scalalib.zeros.given
+ 
+@@ -28,7 +27,7 @@ final private class EvalCacheMulti private (makeExpirableSris: (Sri => Unit) =>
+       .compute(sri.value): prev =>
+         prev.foreach:
+           _.setups.foreach(unregisterEval(_, sri))
+-        WatchingMember(sri, e.variant, e.fens).some
++        WatchingMember(sri, e.positions).some
+       .so(_.setups)
+       .foreach: id =>
+         evals.compute(id)(_.getOrElse(EvalState.initial).addSri(sri).some)
+@@ -38,7 +37,7 @@ final private class EvalCacheMulti private (makeExpirableSris: (Sri => Unit) =>
+     val sris = onEvalSrisToUpgrade(input)
+     if sris.nonEmpty then
+       val hit = EvalHitMulti:
+-        EvalCacheJsonHandlers.writeMultiHit(input.fen, input.eval)
++        EvalCacheJsonHandlers.writeMultiHit(input.game, input.eval)
+       sris.foreach: sri =>
+         Bus.publish(_.sri(sri), hit)
+       upgradeMon.count.increment(sris.size)
+@@ -65,8 +64,8 @@ final private class EvalCacheMulti private (makeExpirableSris: (Sri => Unit) =>
+ 
+ private object EvalCacheMulti:
+ 
+-  case class WatchingMember(sri: Sri, variant: Variant, fens: List[Fen.Full]):
+-    def setups: List[Id] = fens.flatMap(Id.from(variant, _))
++  case class WatchingMember(sri: Sri, positions: List[Position]):
++    def setups: List[Id] = positions.flatMap(Id.from)
+ 
+   private val upgradeMon = Monitor.evalCache.multi.upgrade
+ 
+diff --git a/src/main/scala/evalCache/EvalCacheUpgrade.scala b/src/main/scala/evalCache/EvalCacheUpgrade.scala
+index bbfd358..dde06b4 100644
+--- a/src/main/scala/evalCache/EvalCacheUpgrade.scala
++++ b/src/main/scala/evalCache/EvalCacheUpgrade.scala
+@@ -3,7 +3,7 @@ package evalCache
+ 
+ import cats.syntax.option.*
+ import chess.eval.{ Score, WinPercent }
+-import chess.format.UciPath
++import lila.xiangqi.UciPath
+ import play.api.libs.json.JsString
+ import scalalib.DebouncerFunction
+ 
+@@ -28,7 +28,7 @@ final private class EvalCacheUpgrade(using ec: Executor, scheduler: Scheduler):
+ 
+   def register(sri: Sri, e: EvalGet): Unit =
+     Id
+-      .from(e.variant, e.fen)
++      .from(e.position)
+       .foreach: entryId =>
+         members.compute(sri.value): prev =>
+           prev.foreach: member =>
+@@ -52,7 +52,7 @@ final private class EvalCacheUpgrade(using ec: Executor, scheduler: Scheduler):
+       .foreach: eval =>
+         val wms = eval.sris.withFilter(_ != input.sri).flatMap(sri => members.get(sri.value))
+         if wms.nonEmpty then
+-          val evalJson = EvalCacheJsonHandlers.writeEval(input.eval, input.fen)
++          val evalJson = EvalCacheJsonHandlers.writeEval(input.eval, input.game)
+           wms
+             .groupBy(_.path)
+             .map: (path, groupedMembers) =>
+diff --git a/src/main/scala/evalCache/package.scala b/src/main/scala/evalCache/package.scala
+index cc45fb3..ba8803c 100644
+--- a/src/main/scala/evalCache/package.scala
++++ b/src/main/scala/evalCache/package.scala
+@@ -2,7 +2,7 @@ package lila.ws
+ package evalCache
+ 
+ import cats.data.NonEmptyList
+-import chess.format.Uci
++import lila.xiangqi.Xiangqi.Uci
+ 
+ val MIN_KNODES = Knodes(3000)
+ val MIN_DEPTH = Depth(20)
 diff --git a/src/main/scala/ipc/ClientIn.scala b/src/main/scala/ipc/ClientIn.scala
-index 7722ec0..40360dd 100644
+index 7722ec0..0ae9c43 100644
 --- a/src/main/scala/ipc/ClientIn.scala
 +++ b/src/main/scala/ipc/ClientIn.scala
 @@ -36,6 +36,18 @@ object ClientIn:
@@ -178,20 +656,36 @@ index 7722ec0..40360dd 100644
    case class Announce(json: JsonString) extends ClientIn:
      lazy val write = cliMsg("announce", json)
  
+@@ -145,9 +157,6 @@ object ClientIn:
+ 
+   def roundFull(data: JsonString) = payload("full", data)
+ 
+-  case object NodeEmptyForAppBC extends ClientIn:
+-    def write = cliMsg("node")
+-
+   case class VoiceChat(userIds: Iterable[User.Id]) extends ClientIn:
+     def write = cliMsg("voiceChat", userIds)
+ 
 diff --git a/src/main/scala/ipc/ClientOut.scala b/src/main/scala/ipc/ClientOut.scala
-index 5ed6e3f..a1e8006 100644
+index 5ed6e3f..ce87476 100644
 --- a/src/main/scala/ipc/ClientOut.scala
 +++ b/src/main/scala/ipc/ClientOut.scala
-@@ -2,7 +2,7 @@ package lila.ws
+@@ -2,9 +2,11 @@ package lila.ws
  package ipc
  
  import cats.data.NonEmptyList
 -import chess.format.{ Fen, Uci, UciPath }
-+import chess.format.{ Fen, UciPath }
- import chess.variant.Variant
- import chess.{ Centis, Color, Square }
+-import chess.variant.Variant
+-import chess.{ Centis, Color, Square }
++import chess.Centis
++import chess.Color
++import lila.xiangqi.{ Xiangqi, UciPath }
++import lila.xiangqi.Xiangqi.{ Uci, Square }
++import lila.xiangqi.XiangqiJson.given
  import play.api.libs.json.*
-@@ -20,6 +20,7 @@ sealed trait ClientOutRacer extends ClientOut
+ 
+ import scala.util.{ Success, Try }
+@@ -20,6 +22,7 @@ sealed trait ClientOutRacer extends ClientOut
  object ClientOut:
  
    case class Ping(lag: Option[Int]) extends ClientOutSite
@@ -199,16 +693,52 @@ index 5ed6e3f..a1e8006 100644
  
    case class Watch(ids: Set[Game.Id]) extends ClientOutSite
    case object StartWatchingTvChannels extends ClientOutSite
-@@ -92,7 +93,7 @@ object ClientOut:
-   // round
+@@ -33,41 +36,26 @@ object ClientOut:
+   case class AnaMove(
+       orig: Square,
+       dest: Square,
+-      fen: Fen.Full,
+       path: UciPath,
+-      variant: Variant,
+-      chapterId: Option[ChapterId],
+-      promotion: Option[chess.PromotableRole],
+-      payload: JsObject
+-  ) extends ClientOutSite
+-
+-  case class AnaDrop(
+-      role: chess.Role,
+-      square: Square,
+-      fen: Fen.Full,
+-      path: UciPath,
+-      variant: Variant,
+       chapterId: Option[ChapterId],
+       payload: JsObject
+   ) extends ClientOutSite
  
-   case class RoundPlayerForward(payload: JsValue) extends ClientOutRound
--  case class RoundMove(uci: Uci, blur: Boolean, lag: ClientMoveMetrics, ackId: Option[Int])
-+  case class RoundMove(uci: XiangqiUci, blur: Boolean, lag: ClientMoveMetrics, ackId: Option[Int])
-       extends ClientOutRound
-   case class RoundHold(mean: Int, sd: Int) extends ClientOutRound
-   case class RoundBerserk(ackId: Option[Int]) extends ClientOutRound
-@@ -134,6 +135,8 @@ object ClientOut:
+   case class EvalGet(
+-      fen: Fen.Full,
+-      variant: Variant,
++      position: Xiangqi.Position,
+       multiPv: MultiPv,
+       path: UciPath,
+       up: Boolean
+   ) extends ClientOutSite
+ 
+   case class EvalPut(
+-      fen: Fen.Full,
+-      variant: Variant,
++      position: Xiangqi.Position,
+       pvs: NonEmptyList[evalCache.EvalCacheEntry.Pv],
+       knodes: evalCache.Knodes,
+       depth: Depth
+   ) extends ClientOutSite
+ 
+-  case class EvalGetMulti(fens: List[Fen.Full], variant: Variant) extends ClientOutSite
++  case class EvalGetMulti(positions: List[Xiangqi.Position]) extends ClientOutSite
+ 
+   case class MsgType(dest: User.Id) extends ClientOutSite
+ 
+@@ -134,6 +122,8 @@ object ClientOut:
            o.str("t")
              .flatMap:
                case "p" => Some(Ping(o.int("l")))
@@ -217,12 +747,35 @@ index 5ed6e3f..a1e8006 100644
                case "startWatching" =>
                  o.str("d")
                    .map { d =>
-@@ -186,19 +189,10 @@ object ClientOut:
+@@ -150,21 +140,8 @@ object ClientOut:
+                   orig <- d.str("orig").flatMap { Square.fromKey(_) }
+                   dest <- d.str("dest").flatMap { Square.fromKey(_) }
+                   path <- d.get[UciPath]("path")
+-                  fen <- d.get[Fen.Full]("fen")
+-                  variant = dataVariant(d)
+                   chapterId = d.get[ChapterId]("ch")
+-                  promotion = d.str("promotion").flatMap { chess.Role.promotable(_) }
+-                yield AnaMove(orig, dest, fen, path, variant, chapterId, promotion, o)
+-              case "anaDrop" =>
+-                for
+-                  d <- o.obj("d")
+-                  role <- d.str("role").flatMap(chess.Role.allByName.get)
+-                  square <- d.str("pos").flatMap { Square.fromKey(_) }
+-                  path <- d.get[UciPath]("path")
+-                  fen <- d.get[Fen.Full]("fen")
+-                  variant = dataVariant(d)
+-                  chapterId = d.get[ChapterId]("ch")
+-                yield AnaDrop(role, square, fen, path, variant, chapterId, o)
++                yield AnaMove(orig, dest, path, chapterId, o)
+               case "evalGet" => o.obj("d").flatMap(evalCache.EvalCacheJsonHandlers.readGet)
+               case "evalPut" => o.obj("d").flatMap(evalCache.EvalCacheJsonHandlers.readPut)
+               case "evalGetMulti" => o.obj("d").flatMap(evalCache.EvalCacheJsonHandlers.readGetMulti)
+@@ -186,19 +163,10 @@ object ClientOut:
                case "move" =>
                  for
                    d <- o.obj("d")
 -                  move <- d.str("u").flatMap(Uci.Move.apply).orElse(parseOldMove(d))
-+                  move <- d.str("u").flatMap(XiangqiUci.from)
++                  move <- d.str("u").flatMap(Uci.from(_).toOption)
                    blur = d.int("b") contains 1
                    ackId = d.int("a")
                  yield RoundMove(move, blur, parseMetrics(d), ackId)
@@ -238,10 +791,13 @@ index 5ed6e3f..a1e8006 100644
                case "hold" =>
                  for
                    d <- o.obj("d")
-@@ -247,13 +241,6 @@ object ClientOut:
-   private def dataVariant(d: JsObject): Variant =
-     Variant.orDefault(d.get[Variant.LilaKey]("variant"))
+@@ -244,16 +212,6 @@ object ClientOut:
  
+   private val emptyPing: Try[ClientOut] = Success(Ping(None))
+ 
+-  private def dataVariant(d: JsObject): Variant =
+-    Variant.orDefault(d.get[Variant.LilaKey]("variant"))
+-
 -  private def parseOldMove(d: JsObject) = for
 -    orig <- d.str("from")
 -    dest <- d.str("to")
@@ -253,18 +809,20 @@ index 5ed6e3f..a1e8006 100644
      ClientMoveMetrics(
        d.int("l").map { Centis.ofMillis(_) },
 diff --git a/src/main/scala/ipc/LilaIn.scala b/src/main/scala/ipc/LilaIn.scala
-index 894d01e..5c2bf41 100644
+index 894d01e..089aebb 100644
 --- a/src/main/scala/ipc/LilaIn.scala
 +++ b/src/main/scala/ipc/LilaIn.scala
-@@ -2,7 +2,6 @@ package lila.ws
+@@ -2,8 +2,8 @@ package lila.ws
  
  package ipc
  
 -import chess.format.Uci
  import chess.{ Centis, Color, MoveMetrics }
++import lila.xiangqi.Xiangqi.Uci
  import play.api.libs.json.*
  
-@@ -69,8 +68,9 @@ object LilaIn:
+ sealed trait LilaIn extends Matchable:
+@@ -69,8 +69,9 @@ object LilaIn:
    case class DisconnectSris(sris: Iterable[Sri]) extends Lobby:
      def write = s"disconnect/sris ${commas(sris)}"
  
@@ -276,12 +834,8 @@ index 894d01e..5c2bf41 100644
  
    case class KeepAlives(roomIds: Iterable[RoomId]) extends AnyRoom:
      def write = s"room/alives ${commas(roomIds)}"
-@@ -96,10 +96,10 @@ object LilaIn:
-   case class RoundPlayerDo(fullId: Game.FullId, payload: JsValue) extends Round:
-     def write = s"r/do $fullId ${Json.stringify(payload)}"
- 
--  case class RoundMove(fullId: Game.FullId, uci: Uci, blur: Boolean, lag: MoveMetrics) extends Round:
-+  case class RoundMove(fullId: Game.FullId, uci: XiangqiUci, blur: Boolean, lag: MoveMetrics) extends Round:
+@@ -99,7 +100,7 @@ object LilaIn:
+   case class RoundMove(fullId: Game.FullId, uci: Uci, blur: Boolean, lag: MoveMetrics) extends Round:
      private def centis(c: Option[Centis]) = optional(c.map(_.centis.toString))
      def write =
 -      s"r/move $fullId ${uci.uci} ${boolean(blur)} ${centis(lag.clientLag)} ${centis(lag.clientMoveTime)} ${centis(lag.frameLag)}"
@@ -289,34 +843,6 @@ index 894d01e..5c2bf41 100644
      override def critical = true
  
    case class RoundBerserk(gameId: Game.Id, userId: User.Id) extends Round:
-diff --git a/src/main/scala/model.scala b/src/main/scala/model.scala
-index 1964951..fdde6a9 100644
---- a/src/main/scala/model.scala
-+++ b/src/main/scala/model.scala
-@@ -114,6 +114,23 @@ object ChapterId extends OpaqueString[ChapterId]
- opaque type JsonString = String
- object JsonString extends OpaqueString[JsonString]
- 
-+opaque type XiangqiUci = String
-+object XiangqiUci:
-+  def from(value: String): Option[XiangqiUci] =
-+    (2 until value.length)
-+      .find(offset => isFile(value(offset)))
-+      .filter(offset => isSquare(value.take(offset)) && isSquare(value.drop(offset)))
-+      .map(_ => value)
-+
-+  private def isFile(char: Char) = char >= 'a' && char <= 'i'
-+
-+  private def isSquare(value: String) =
-+    value.length >= 2 &&
-+      isFile(value.head) &&
-+      value.tail.toIntOption.exists(rank => rank >= 1 && rank <= 10)
-+
-+  extension (uci: XiangqiUci) def value: String = uci
-+
- opaque type SocketVersion = Int
- object SocketVersion extends OpaqueInt[SocketVersion]
- 
 diff --git a/src/main/scala/netty/NettyServer.scala b/src/main/scala/netty/NettyServer.scala
 index dbca620..76823ed 100644
 --- a/src/main/scala/netty/NettyServer.scala
@@ -345,6 +871,185 @@ index dbca620..76823ed 100644
    private val connector = ActorChannelConnector(clients, config, settings, workers)
  
    def start(): Unit =
+diff --git a/src/test/scala/EvalCacheMultiTest.scala b/src/test/scala/EvalCacheMultiTest.scala
+index f749dbe..d203df9 100644
+--- a/src/test/scala/EvalCacheMultiTest.scala
++++ b/src/test/scala/EvalCacheMultiTest.scala
+@@ -3,19 +3,19 @@ package evalCache
+ 
+ import cats.data.NonEmptyList
+ import chess.eval.*
+-import chess.format.*
+-import chess.variant.Standard
++import lila.xiangqi.XiangqiRules
++import lila.xiangqi.Xiangqi.{ Position, Uci }
+ 
+ import lila.ws.ipc.ClientOut.EvalGetMulti
+ 
+ class EvalCacheMultiTest extends munit.FunSuite:
+ 
+-  val fen = Fen.Full("r2q1rk1/pp3pbp/3pb1p1/1P2p3/2P1P3/8/P2BBPPP/2RQ1RK1 b - - 0 17")
++  val position = Position()
+   val sri = Sri.random()
+ 
+   def makeInput(depth: Depth, score: Score) =
+     import EvalCacheEntry.*
+-    val moves = Moves.from(Uci.Move("e2e4").map(NonEmptyList.one)).get
++    val moves = Moves(NonEmptyList.one(Uci.unsafe("b1c3")))
+     val eval = Eval(
+       pvs = NonEmptyList.one(Pv(score, moves)),
+       knodes = MIN_KNODES,
+@@ -23,12 +23,12 @@ class EvalCacheMultiTest extends munit.FunSuite:
+       by = User.Id("user"),
+       trust = Trust(1)
+     )
+-    val position = Fen.read(Standard, fen).get
+-    Input(Id(position), fen, position, eval.truncatePvs, Sri.random())
++    val game = XiangqiRules.game(position).toOption.get
++    Input(Id(game), game, eval.truncatePvs, Sri.random())
+ 
+   test("onEval, only send when depth has changed"):
+     val inst = EvalCacheMulti.mock()
+-    inst.register(sri, EvalGetMulti(List(fen), Standard))
++    inst.register(sri, EvalGetMulti(List(position)))
+     assertEquals(inst.onEvalSrisToUpgrade(makeInput(MIN_DEPTH, Score.cp(-200))), Set(sri))
+     assertEquals(inst.onEvalSrisToUpgrade(makeInput(MIN_DEPTH, Score.cp(200))), Set())
+     assertEquals(inst.onEvalSrisToUpgrade(makeInput(MIN_DEPTH, Score.cp(-200))), Set())
+@@ -37,7 +37,7 @@ class EvalCacheMultiTest extends munit.FunSuite:
+ 
+   test("onEval, only send when winning chances have changed"):
+     val inst = EvalCacheMulti.mock()
+-    inst.register(sri, EvalGetMulti(List(fen), Standard))
++    inst.register(sri, EvalGetMulti(List(position)))
+     assertEquals(inst.onEvalSrisToUpgrade(makeInput(MIN_DEPTH, Score.cp(200))), Set(sri))
+     assertEquals(inst.onEvalSrisToUpgrade(makeInput(MIN_DEPTH + 1, Score.cp(200))), Set())
+     assertEquals(inst.onEvalSrisToUpgrade(makeInput(MIN_DEPTH + 2, Score.cp(-200))), Set(sri))
+diff --git a/src/test/scala/EvalCacheTest.scala b/src/test/scala/EvalCacheTest.scala
+index 528844e..7b939b8 100644
+--- a/src/test/scala/EvalCacheTest.scala
++++ b/src/test/scala/EvalCacheTest.scala
+@@ -3,78 +3,49 @@ package evalCache
+ 
+ import cats.data.NonEmptyList
+ import chess.eval.Score
+-import chess.format.{ Fen, Uci }
+-
++import lila.xiangqi.{ Xiangqi, XiangqiRules }
++import lila.xiangqi.Xiangqi.{ Position, Uci }
+ import EvalCacheEntry.*
+ 
+ class EvalCacheTest extends munit.FunSuite:
+-
+-  private def makeEval(score: Score, moves: String) =
+-    Eval(
+-      pvs = NonEmptyList.one:
+-        Pv(
+-          score,
+-          Moves:
+-            NonEmptyList.fromListUnsafe:
+-              moves
+-                .split(" ")
+-                .toList
+-                .map(Uci.Move.apply)
+-                .flatten
+-        )
+-      ,
+-      knodes = MIN_KNODES,
+-      depth = Depth(25),
+-      by = User.Id("user"),
+-      trust = Trust(1)
+-    )
+-
+-  private def makeInput(
+-      eval: Eval,
+-      fen: String = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+-      variant: chess.variant.Variant = chess.variant.Standard
+-  ) =
+-    EvalCacheEntry.makeInput(
+-      variant = variant,
+-      fen = Fen.Full(fen),
+-      eval = eval,
+-      sri = Sri("sri")
+-    )
+-
+-  test("Multiple repeated lines should be invalid"):
+-    val pv1 = makeEval(Score.cp(50), "e2e4")
+-    val eval = pv1.copy(pvs = pv1.pvs.append(pv1.pvs.head.copy(score = Score.cp(40))))
+-    assertEquals(eval.looksValid, false)
+-
+-  test("Mate eval should be invalid if we reach the last position and it's not mate"):
+-    val moves = "e2e4"
+-    val eval = makeEval(Score.mate(1), moves)
+-    val input = makeInput(eval)
+-    assertEquals(
+-      input.map(_.validate),
+-      Some(Left(chess.ErrorStr("Invalid mate Pv(Mate(1),NonEmptyList(Move(e2e4)))")))
+-    )
+-
+-  test("PV cannot be longer than mate eval"):
+-    val line = "e2e4 e7e5 d2d4"
+-    val eval = makeEval(Score.mate(1), line)
+-    val input = makeInput(eval)
+-    assertEquals(
+-      input.map(_.validate),
+-      Some(
+-        Left(chess.ErrorStr("Invalid mate Pv(Mate(1),NonEmptyList(Move(e2e4), Move(e7e5), Move(d2d4)))"))
+-      )
+-    )
+-
+-  test("Really long mate evals with pvs truncated should be valid"):
+-    val antichess_forced = "b7b5 f1b5 d7d5 b5e8 d5e4 e8f7 d8d2 c1d2 h7h5 f7h5"
+-    val eval = makeEval(Score.mate(-16), antichess_forced)
+-    val input =
+-      makeInput(eval, "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b - - 0 1", chess.variant.Antichess)
+-    assertEquals(input.map(_.validate), Some(Right(())))
+-
+-  test("Valid mate in 2"):
+-    val moves = "c4f7 e8e7 c3d5"
+-    val eval = makeEval(Score.mate(2), moves)
+-    val input = makeInput(eval, "r2qkbnr/ppp2ppp/2np4/4N3/2B1P3/2N5/PPPP1PPP/R1BbK2R w KQkq - 0 6")
+-    assertEquals(input.map(_.validate), Some(Right(())))
++  private def makeEval(score: Score, moves: String) = Eval(
++    pvs = NonEmptyList.one(
++      Pv(score, Moves(NonEmptyList.fromListUnsafe(moves.split(" ").toList.map(Uci.unsafe))))
++    ),
++    knodes = MIN_KNODES,
++    depth = Depth(25),
++    by = User.Id("user"),
++    trust = Trust(1)
++  )
++  private def input(eval: Eval, fen: String = Xiangqi.startFen) =
++    makeInput(Position(initialFen = fen), eval, Sri("sri")).get
++
++  test("multiple repeated lines are rejected"):
++    val pv = makeEval(Score.cp(50), "b1c3")
++    assert(!pv.copy(pvs = pv.pvs.append(pv.pvs.head.copy(score = Score.cp(40)))).looksValid)
++
++  test("a legal move is not a mate certificate"):
++    assert(input(makeEval(Score.mate(1), "b1c3")).validate.isLeft)
++
++  test("a variation cannot exceed its claimed mate"):
++    assert(input(makeEval(Score.mate(1), "b1c3 b10c8 c3e2")).validate.isLeft)
++
++  test("native checkmate validates rank ten without an encoded board"):
++    val fen = "4k4/9/9/9/9/9/3R5/R8/9/5K3 w - - 0 1"
++    assertEquals(input(makeEval(Score.mate(1), "a3e3"), fen).validate, Right(()))
++    assert(input(makeEval(Score.mate(-1), "a3e3"), fen).validate.isLeft)
++
++  test("Xiangqi stalemate is a win"):
++    val fen = "4k4/9/3R1R3/9/9/4P4/9/9/R8/3K5 w - - 0 1"
++    assertEquals(input(makeEval(Score.mate(1), "a2a9"), fen).validate, Right(()))
++
++  test("rank-ten moves are validated by the canonical rules"):
++    val line = "b1c3 b10c8 h1g3 h10g8 a1a2 a10a9 i1i2"
++    assertEquals(input(makeEval(Score.cp(10), line)).validate, Right(()))
++    assert(input(makeEval(Score.cp(10), line + " i10i1")).validate.isLeft)
++
++  test("history is part of evaluation identity"):
++    val moves = Vector("b1c3", "b10c8", "c3b1", "c8b10").map(Uci.unsafe)
++    val game = XiangqiRules.game(Position(moves = moves)).toOption.get
++    val snapshot = XiangqiRules.game(Position(initialFen = game.state.fen)).toOption.get
++    assertNotEquals(Id(game), Id(snapshot))
 diff --git a/src/main/scala/Presence.scala b/src/main/scala/Presence.scala
 new file mode 100644
 index 0000000..63f2738
@@ -455,10 +1160,10 @@ index 0000000..63f2738
 +    def isLobbyOrPool(value: String): Boolean = value == "lobby" || pool.pattern.matcher(value).matches
 diff --git a/src/test/scala/PresenceTest.scala b/src/test/scala/PresenceTest.scala
 new file mode 100644
-index 0000000..604ad8f
+index 0000000..2ca2786
 --- /dev/null
 +++ b/src/test/scala/PresenceTest.scala
-@@ -0,0 +1,82 @@
+@@ -0,0 +1,79 @@
 +package lila.ws
 +
 +import org.apache.pekko.actor.typed.{ ActorRef, ActorSystem }
@@ -520,9 +1225,6 @@ index 0000000..604ad8f
 +    assert(Presence.Activity("pool:15+0").isEmpty)
 +    assert(Presence.Activity("unknown").isEmpty)
 +
-+  test("accepts Xiangqi ten-rank UCI"):
-+    assert(XiangqiUci.from("a9a10").isDefined)
-+
 +  test("groups quick pools into one other count"):
 +    val p = new Presence
 +    val a = ref(); val b = ref(); val c = ref()
@@ -541,3 +1243,40 @@ index 0000000..604ad8f
 +    p.update(b, None, None); assertEquals(p.snapshot(0).activities("other"), 1)
 +    p.update(c, Some("puzzle"), Some("other"));
 +    assertEquals(p.snapshot(0).activities.getOrElse("other", 0), 0)
+diff --git a/src/test/scala/StudyProtocolTest.scala b/src/test/scala/StudyProtocolTest.scala
+new file mode 100644
+index 0000000..02aacc5
+--- /dev/null
++++ b/src/test/scala/StudyProtocolTest.scala
+@@ -0,0 +1,31 @@
++package lila.ws
++
++import ipc.ClientOut
++import play.api.libs.json.Json
++import lila.xiangqi.Xiangqi.Square
++
++class StudyProtocolTest extends munit.FunSuite:
++  private def move(orig: String, dest: String, path: String) = ClientOut
++    .parse(
++      Json.stringify(
++        Json.obj(
++          "t" -> "anaMove",
++          "d" -> Json.obj("orig" -> orig, "dest" -> dest, "path" -> path, "ch" -> "chapter1")
++        )
++      )
++    )
++    .get
++
++  test("study protocol accepts every native intersection and variable-length paths"):
++    Square.all.foreach: square =>
++      assert(move(square.key, "i10", "i1i2/i10i9").isInstanceOf[ClientOut.AnaMove])
++
++  test("malformed coordinates and historical encodings are rejected"):
++    List("a0", "i11", "j1", "a01", "a:", "A1").foreach: square =>
++      assert(move(square, "i10", "").isInstanceOf[ClientOut.Unexpected])
++    List("i1i2/", "abcd", "/i10i9", "i1i2//i10i9").foreach: path =>
++      assert(move("i10", "i9", path).isInstanceOf[ClientOut.Unexpected])
++
++  test("round and study moves use the same canonical coordinate parser"):
++    assert(ClientOut.parse("""{"t":"move","d":{"u":"i10i9"}}""").get.isInstanceOf[ClientOut.RoundMove])
++    assert(ClientOut.parse("""{"t":"move","d":{"u":"i010i9"}}""").get.isInstanceOf[ClientOut.Unexpected])

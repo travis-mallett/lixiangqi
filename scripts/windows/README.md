@@ -2,16 +2,22 @@
 
 Double-click `Start Lixiangqi.cmd` in the repository root. It starts local
 MongoDB and Redis, the native Lila websocket service, the read-only Xiangqi
-explorer, the Pikafish Fishnet move worker, and the full Lixiangqi application.
+explorer, the Pikafish move worker, the native Xiangqi image exporter, and the full Lixiangqi application.
 It then opens `http://lixiangqi.localhost:9663`, a trusted loopback origin that
 allows the browser Pikafish engine to use shared memory.
 
 All processes bind to the local machine. Runtime data is under `data/local`,
 generated assets are under `public`, and diagnostic output is under `logs`.
-When `data/local/xiangqi-puzzle-mining.sqlite3` exists, the launcher
-synchronizes its accepted puzzles and selector paths into Lila. Source games
-remain in their independent read-only catalog databases and are resolved there
-by the puzzle player.
+The launcher refreshes the disposable preview from a verified production
+snapshot, preserving a backup of existing preview content before replacement.
+It then applies the native study and analysis schemas while writers remain
+stopped. Source games remain in their independent read-only catalog databases.
+
+Set `LIXIANGQI_FISHNET_KEY` to a key registered in the preview database to run
+the native server-analysis worker. With no key, startup reports that the local
+worker is unconfigured. Browser analysis and other services remain available.
+`-StopOnly` stops the application, gateway, explorer, image exporter and both
+Pikafish worker modes using process ownership checks.
 
 For a non-interactive check without opening a browser:
 

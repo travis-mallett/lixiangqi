@@ -4,7 +4,7 @@ import type { RelayTeamName } from './interfaces';
 
 export const broadcasterDeepLink = (url: string): string => {
   const parsed = new URL(url);
-  return 'lichess-broadcaster:/' + parsed.pathname;
+  return 'lixiangqi-broadcaster://open?url=' + encodeURIComponent(parsed.href);
 };
 
 export const teamLinkData = (teamName: RelayTeamName): VNodeData => ({

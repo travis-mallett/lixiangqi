@@ -18,7 +18,7 @@ The environment token is checked by the normal server OAuth layer; both scope an
 
 Discovery automatically uploads each completed game analysis to the configured Live Site. Start, Re-scan, and Auto Start request the existing session-only `puzzle:publish` token when needed. The command-line discovery script uses `--publication-origin` (default `https://lixiangqi.com`) and `LIXIANGQI_PUZZLE_TOKEN`, or a hidden token prompt in an interactive terminal. It checks access before starting engines. Preview selection in Publish does not redirect discovery uploads.
 
-Each discovery worker saves the full analysis and its pending delivery atomically, then uploads independently. Multiple workers can upload simultaneously; no database transaction is held while waiting for the website. Transient upload failures receive two retries. A persistent failure stops the run with the analysis still saved; restarting Discovery retries pending uploads concurrently without rerunning engine analysis. Publish can also deliver pending analyses. Credentials are never written to the queue, settings, logs, or command arguments.
+Each discovery worker saves the full analysis and its pending delivery atomically, then uploads independently. Multiple workers can upload simultaneously; no database transaction is held while waiting for the website. Transient upload failures are retried with a bounded backoff for up to six minutes, so a destination restart or network blip does not stop engine work that other workers have in flight. A failure that outlasts the backoff stops the run with the analysis still saved; restarting Discovery retries pending uploads concurrently without rerunning engine analysis. Publish can also deliver pending analyses. Credentials are never written to the queue, settings, logs, or command arguments.
 
 Publish also uploads discovery's completed full-game analyses to each selected destination, including games with no puzzle candidates. It selects the deepest retained completed run for each game and checks destination depths in batches of 100 before decompressing or uploading evidence. Interrupted, rejected, and partial discovery jobs are excluded. Catalog source aliases resolve to the canonical catalog game; native IDs stay tied to their production origin, including when publishing to a preview restored from that origin.
 
@@ -51,7 +51,10 @@ Discover reports source games scanned at the current discovery version. Separate
 tactics**, and **Categorize tactics** cards each have their own Start/Stop buttons
 and repeat controls. Each verifier reports eligible solutions for its candidate
 type. The tactic categorizer detects `winningMaterialByDoubleAttack` and selects
-the capture endpoint. Raw verification evidence is retained. Auto Start starts
+the capture endpoint; that detection is currently switched off
+(`classification_job.DOUBLE_ATTACK_DETECTION_ENABLED`), so only the other tactic
+categories run and already-tagged puzzles keep their tag. Raw verification
+evidence is retained. Auto Start starts
 discovery and all four evidence stages; worker settings apply per type. Worker
 **Running/Stopped** reflects Studio's actual process state; historical database
 claims are not shown as running work.
@@ -169,3 +172,33 @@ and user history; no retirement/replacement or deployment data migration is
 needed for this correction. For `xrG6c`, expect Chariot, Double Chariots
 Checkmate, and Mate in 8 (plus the internal `mate` tag). Application deployment
 alone does not publish the corrected categories.
+
+Cannon Chariot Discovered Attack (`cannonChariotDiscoveredAttack`, logic `1.0`)
+categorizes verified mating and tactical solutions in which a winning chariot
+leaves the cannon line it was masking, so a winning cannon attacks the losing
+general anywhere in the solution. The detector replays the stored decision
+boards and uses exact cannon screen geometry; it performs no engine inspection,
+piece removal, or continuation search. The theme is registered in the checkmate
+and tactic taxonomies, so normal categorization assesses retained verified
+inventory of both kinds, and traces without complete decision boards need
+re-verification before this sequence can be assessed. Studio tagging, filtering,
+audits, and release admission already support the category. The theme, lesson,
+and icon already exist under Basic Kills / Other Named Basic Kills, and
+deployment already packages and validates theme assets. No schema,
+production-data migration, or deployment-script change is needed. Publish newly
+categorized puzzles through Studio.
+
+Detonating Mine Attack (`detonatingMineAttack`, logic `1.0`) is the role-reversed
+twin of the cannon chariot discovery: a winning cannon leaves the line it was
+masking, so a winning chariot attacks the losing general anywhere in the
+solution. It also categorizes verified mating and tactical puzzles, replays the
+stored decision boards, uses exact chariot line geometry, and performs no engine
+inspection, piece removal, or continuation search. It is registered in the
+checkmate and tactic taxonomies, so normal categorization assesses retained
+verified inventory of both kinds, and traces without complete decision boards
+need re-verification before this sequence can be assessed. Studio tagging,
+filtering, audits, and release admission already support the category. The
+theme, lesson, and icon already exist under Basic Kills / Other Named Basic
+Kills, and deployment already packages and validates theme assets. No schema,
+production-data migration, or deployment-script change is needed. Publish newly
+categorized puzzles through Studio.

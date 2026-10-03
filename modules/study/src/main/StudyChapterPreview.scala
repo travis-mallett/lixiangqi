@@ -1,20 +1,26 @@
 package lila.study
 
 import chess.format.pgn.Tags
-import chess.format.{ Fen, Uci }
-import chess.{ ByColor, Color, FideId, Outcome }
+import chess.format.Fen
+import lila.xiangqi.Xiangqi.Uci
+
+import lila.core.playerDirectory.PlayerId
+import lila.xiangqi.Xiangqi.{ BySide, Side, GamePoints }
+import lila.xiangqi.{ Xiangqi, XiangqiJson }
+import XiangqiJson.given
 import play.api.libs.json.*
 import reactivemongo.api.bson.*
 
-import lila.core.fide.Federation
+import lila.core.playerDirectory.Federation
 import lila.db.dsl.{ *, given }
 
 case class ChapterPreview(
     id: StudyChapterId,
     name: StudyChapterName,
-    players: Option[ByColor[ChapterPlayer]],
-    orientation: Color,
+    players: Option[BySide[ChapterPlayer]],
+    orientation: Side,
     fen: Fen.Full,
+    position: Xiangqi.Position,
     lastMove: Option[Uci],
     lastMoveAt: Option[Instant],
     check: Option[Chapter.Check],
@@ -22,11 +28,11 @@ case class ChapterPreview(
      * Some(None) = Result PGN tag is "*", the game is new or ongoing
      * Some(Some(GamePoints)) = Game is over with a result
      */
-    points: Option[Option[Outcome.GamePoints]]
+    points: Option[Option[GamePoints]]
 ):
   def finished = points.exists(_.isDefined)
   def thinkTime = finished.not.so(lastMoveAt.map(at => (nowSeconds - at.toSeconds).toInt))
-  def fideIds: List[FideId] = players.so(_.mapList(_.fideId)).flatten
+  def playerIds: List[PlayerId] = players.so(_.mapList(_.playerId)).flatten
 
 final class ChapterPreviewApi(
     chapterRepo: ChapterRepo,
@@ -78,12 +84,12 @@ final class ChapterPreviewApi(
           .sort(chapterRepo.$sortOrder)
           .cursor[ChapterPreview]()
           .listAll()
-      federations <- federationsOf(withoutFeds.flatMap(_.fideIds))
+      federations <- federationsOf(withoutFeds.flatMap(_.playerIds))
     yield withoutFeds.map: chap =>
       chap.copy(
         players = chap.players.map:
           _.map: player =>
-            player.copy(fed = player.fed orElse player.fideId.flatMap(federations.get))
+            player.copy(fed = player.fed orElse player.playerId.flatMap(federations.get))
       )
 
   def fromChapter(chapter: Chapter)(using Federation.Guess) =
@@ -93,11 +99,12 @@ final class ChapterPreviewApi(
       name = name,
       players = ChapterPlayer.fromTags(tags, denorm.so(_.clocks)),
       orientation = setup.orientation,
-      fen = denorm.fold(Fen.initial)(_.fen),
+      fen = denorm.fold(root.fen)(_.fen),
+      position = denorm.fold(Xiangqi.Position(root.fen.value, ruleset = root.ruleset))(_.position),
       lastMove = denorm.flatMap(_.uci),
       lastMoveAt = relay.flatMap(_.lastMoveAt),
       check = denorm.flatMap(_.check),
-      points = tags.points.isDefined.option(tags.points)
+      points = tags("Result").map(GamePoints.fromResult)
     )
 
   def invalidate(studyId: StudyId): Unit =
@@ -126,15 +133,16 @@ object ChapterPreview:
       Json
         .obj(
           "id" -> c.id,
-          "name" -> c.name
+          "name" -> c.name,
+          "position" -> c.position
         )
-        .add("fen", Option.when(!c.fen.isInitial)(c.fen))
+        .add("fen", Option.when(c.fen.value != Xiangqi.startFen)(c.fen))
         .add("players", c.players.map(_.toList))
         .add("orientation", c.orientation.some.filter(_.black))
         .add("lastMove", c.lastMove)
         .add("check", c.check)
         .add("thinkTime", c.thinkTime)
-        .add("status", c.points.map(o => Outcome.showPoints(o).replace("1/2", "½")))
+        .add("status", c.points.map(o => GamePoints.show(o).replace("1/2", "½")))
 
   object bson:
     import BSONHandlers.given
@@ -145,7 +153,8 @@ object ChapterPreview:
       "tags" -> true,
       "lastMoveAt" -> "$relay.lastMoveAt",
       "orientation" -> "$setup.orientation",
-      "rootFen" -> "$root._.f"
+      "rootFen" -> "$root._.f",
+      "ruleset" -> "$root._.ruleset"
     )
 
     given (using Federation.Guess): BSONDocumentReader[ChapterPreview] =
@@ -156,15 +165,26 @@ object ChapterPreview:
           lastMoveAt = doc.getAsOpt[Instant]("lastMoveAt")
           lastPos = doc.getAsOpt[Chapter.LastPosDenorm]("denorm")
           tags = doc.getAsOpt[Tags]("tags")
-          orientation = doc.getAsOpt[Color]("orientation") | Color.White
+          orientation = doc.getAsOpt[Side]("orientation").get
         yield ChapterPreview(
           id = id,
           name = name,
           players = tags.flatMap(ChapterPlayer.fromTags(_, lastPos.so(_.clocks))),
           orientation = orientation,
-          fen = lastPos.map(_.fen).orElse(doc.getAsOpt[Fen.Full]("rootFen")).getOrElse(Fen.initial),
+          fen = lastPos
+            .map(_.fen)
+            .orElse(doc.getAsOpt[Fen.Full]("rootFen"))
+            .getOrElse(throw IllegalArgumentException("Missing study preview initial position")),
+          position = lastPos
+            .map(_.position)
+            .getOrElse(
+              Xiangqi.Position(
+                doc.getAsOpt[Fen.Full]("rootFen").get.value,
+                ruleset = doc.getAsOpt[lila.xiangqi.adjudication.Ruleset]("ruleset").get
+              )
+            ),
           lastMove = lastPos.flatMap(_.uci),
           lastMoveAt = lastMoveAt,
           check = lastPos.flatMap(_.check),
-          points = tags.filter(_.exists(_.Result)).map(_.points)
+          points = tags.flatMap(_("Result")).map(GamePoints.fromResult)
         )

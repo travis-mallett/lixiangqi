@@ -144,6 +144,8 @@ export interface ExplorerData {
 }
 
 export interface ExplorerConfig {
+  mode: 'games' | 'book' | 'tablebase';
+  metric: 'dtm' | 'dtc';
   db: ExplorerDb;
   since: string;
   until: string;
@@ -154,4 +156,25 @@ export interface ExplorerConfig {
 
 export interface ExplorerPosition {
   fen: string;
+  initialFen: string;
+  moves: readonly string[];
+  ruleset: string;
+}
+
+export interface BookData {
+  sourceUrl: string;
+  metric: 'dtm' | 'dtc';
+  tablebase: boolean;
+  gameResult: string;
+  moves: {
+    move: string;
+    notation: string;
+    chineseNotation?: string;
+    score?: number;
+    rank?: number;
+    note: string;
+    dtm?: number;
+    dtc?: number;
+    outcome?: 'win' | 'draw' | 'loss';
+  }[];
 }

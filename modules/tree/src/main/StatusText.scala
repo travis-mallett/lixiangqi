@@ -1,34 +1,37 @@
 package lila.tree
 
-import chess.variant.Variant
-import chess.{ Color, Status }
+import chess.Status
+import lila.xiangqi.Xiangqi.{ Side, State }
 
 object StatusText:
 
   import Status.*
 
-  def apply(status: Status, win: Option[Color], variant: Variant): String =
+  def apply(status: Status, win: Option[Side], state: State): String =
     status match
       case Aborted => "Game was aborted."
-      case Mate => s"${winner(win)} wins by checkmate."
+      case Mate =>
+        s"${winner(win)} wins by ${
+            if state.termination.contains("stalemate") then "stalemate" else "checkmate"
+          }."
       case Resign => s"${loser(win)} resigns."
       case UnknownFinish if win.isDefined => s"${winner(win)} wins."
-      case Stalemate => "Draw by stalemate."
+      case Stalemate => s"${winner(win)} wins by stalemate."
       case Timeout if win.isDefined => s"${loser(win)} left the game."
       case Timeout | Draw => "The game is a draw."
       case Outoftime =>
         win match
-          case Some(value) => s"${value} wins on time."
-          case None => "Draw by time and insufficient material."
+          case Some(value) => s"${name(value)} wins on time."
+          case None => "The game is a draw."
       case NoStart => s"${winner(win)} wins by forfeit."
       case Cheat => "Cheat detected."
       case VariantEnd =>
-        variant match
-          case chess.variant.KingOfTheHill => s"${winner(win)} brings the king to the center."
-          case chess.variant.ThreeCheck => s"${winner(win)} gives the third check."
-          case chess.variant.RacingKings => s"${winner(win)} wins the race."
-          case _ => "Game ends by variant rule."
+        state.termination match
+          case Some("forced-variation") => s"${loser(win)} cannot make the required variation."
+          case Some(reason) => s"Game ends by Xiangqi adjudication: $reason."
+          case None => "Game ends by Xiangqi adjudication."
       case _ => ""
 
-  private def winner(win: Option[Color]) = win.so(_.toString)
-  private def loser(win: Option[Color]) = winner(win.map(!_))
+  private def name(side: Side): String = if side.red then "Red" else "Black"
+  private def winner(win: Option[Side]) = win.fold("")(name)
+  private def loser(win: Option[Side]) = winner(win.map(!_))

@@ -56,6 +56,12 @@ def install_depth_coverage(connection):
         ).fetchone()
         is not None
     )
+    if backfilled and not connection.execute(
+        "SELECT 1 FROM game_analyses WHERE depth IS NULL LIMIT 1"
+    ).fetchone():
+        # Already installed and complete: reopening the database must not need
+        # the writer lock while other stages are writing.
+        return
     with connection:
         for row in connection.execute(
             """SELECT j.source_database,j.game_id,a.payload_zlib,a.job_id FROM game_analyses a

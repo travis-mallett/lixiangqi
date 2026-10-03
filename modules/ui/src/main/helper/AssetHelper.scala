@@ -57,8 +57,8 @@ trait AssetHelper:
   // bump flairs version if a flair is changed only (not added or removed)
   val flairVersion = "______4"
 
-  // bump fide fed version if a fide fed is changed only (not added or removed)
-  val fideFedVersion = "______2"
+  // Bump the federation asset version when changing an existing flag.
+  val playerFederationVersion = "______2"
 
   def staticAssetUrl(path: String): Url = Url(s"$assetBaseUrl/assets/$path")
 
@@ -85,32 +85,15 @@ trait AssetHelper:
   def pathUrl(path: String): Url = Url(s"${netBaseUrl}$path")
 
   def fenThumbnailUrl(
-      fen: chess.format.StandardFen,
-      color: Option[chess.Color] = None,
-      variant: chess.variant.Variant = chess.variant.Standard
-  )(using ctx: Context): Url = cdnUrl:
-    routes.Export
-      .fenThumbnail(
-        fen.value,
-        color,
-        none,
-        Option.when(variant.exotic)(variant.key),
-        ctx.pref.boardTheme.some,
-        ctx.pref.pieceSet.some
-      )
-      .url
-
-  def xiangqiFenThumbnailUrl(
       fen: String,
-      color: Option[chess.Color] = None,
+      orientation: Option[lila.xiangqi.Xiangqi.Side] = None,
       lastMove: Option[String] = None
   )(using ctx: Context): Url = cdnUrl:
     routes.Export
       .fenThumbnail(
         fen,
-        color,
+        orientation.map(_.key),
         lastMove,
-        none,
         ctx.pref.boardTheme.some,
         ctx.pref.pieceSet.some
       )

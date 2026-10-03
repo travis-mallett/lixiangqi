@@ -43,11 +43,7 @@
   <string name="definitivelyDeleteTournament">Sigur doresc să ștergeți întregul turneu, toate rundele și toate jocurile sale.</string>
   <string name="showScores">Arată scorurile jucătorilor pe baza rezultatelor jocului</string>
   <string name="replacePlayerTags">Opțional: înlocuiește numele jucătorilor, ratingurile și titlurile</string>
-  <string name="fideFederations">Federații FIDE</string>
   <string name="top10Rating">Top 10 evaluări</string>
-  <string name="fidePlayers">Jucători FIDE</string>
-  <string name="fidePlayerNotFound">Jucătorul FIDE nu a fost găsit</string>
-  <string name="fideProfile">Profil FIDE</string>
   <string name="federation">Federație</string>
   <string name="age">Vârstă</string>
   <string name="unrated">Fără rating</string>
@@ -78,7 +74,6 @@
   <string name="tournamentLocation">Locație turneu</string>
   <string name="topPlayers">Jucători de top</string>
   <string name="timezone">Fus orar</string>
-  <string name="fideRatingCategory">Categoria de rating FIDE</string>
   <string name="optionalDetails">Detalii opționale</string>
   <string name="pastBroadcasts">Transmisii anterioare</string>
   <string name="allBroadcastsByMonth">Vezi toate transmisiunile pe fiecare lună</string>

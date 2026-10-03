@@ -1,7 +1,8 @@
-import type { LichessEditor } from 'editor';
-import { chess960IdToFEN, randomPositionId } from 'editor/chess960';
+import { positionFromFen, standardXiangqi } from '@lixiangqi/board';
+import type { XiangqiEditor } from 'editor';
 
 import { defined, prop, type Prop, toggle } from 'lib';
+import type { XiangqiSide as Color } from 'lib/game/xiangqi';
 import { licon } from 'lib/licon';
 import { pubsub } from 'lib/pubsub';
 import { storedProp } from 'lib/storage';
@@ -13,7 +14,6 @@ import {
   onInsert,
   hl,
   dataIcon,
-  spinnerVdom,
   type Dialog,
   type VNode,
   icon,
@@ -23,18 +23,11 @@ import { json as xhrJson, text as xhrText } from 'lib/xhr';
 import type AnalyseCtrl from '../ctrl';
 import type { StudySocketSend } from '../socket';
 import { option } from '../view/util';
-import type {
-  ChapterData,
-  ChapterMode,
-  ChapterTab,
-  Orientation,
-  StudyChapter,
-  StudyTour,
-} from './interfaces';
+import type { ChapterData, ChapterMode, ChapterTab, Orientation, StudyTour } from './interfaces';
 import type { StudyChapters } from './studyChapters';
-import { importPgn, variants as xhrVariants } from './studyXhr';
+import { importPgn } from './studyXhr';
 
-export const modeChoices = [
+export const modeChoices = () => [
   ['normal', i18n.study.normalAnalysis],
   ['practice', i18n.site.practiceWithComputer],
   ['conceal', i18n.study.hideNextMoves],
@@ -44,38 +37,18 @@ export const modeChoices = [
 export const fieldValue = (e: Event, id: string) =>
   ((e.target as HTMLElement).querySelector('#chapter-' + id) as HTMLInputElement)?.value;
 
-const isValidXiangqiFen = (fen: string): boolean => {
-  const parts = fen.trim().split(/\s+/),
-    ranks = parts[0]?.split('/') ?? [];
-  return (
-    parts.length === 6 &&
-    ['w', 'b'].includes(parts[1]) &&
-    parts[2] === '-' &&
-    parts[3] === '-' &&
-    ranks.length === 10 &&
-    ranks.every(
-      rank =>
-        /^[kabnrcpKABNRCP1-9]+$/.test(rank) &&
-        [...rank].reduce((width, char) => width + (char >= '1' && char <= '9' ? Number(char) : 1), 0) === 9,
-    )
-  );
-};
-
 export class StudyChapterNewForm {
   readonly multiPgnMax = 64;
-  variants: Variant[] = [];
   dialog?: Dialog;
   isOpen = toggle(false, val => {
     if (!val) this.dialog?.close();
   });
   initial = toggle(false);
   tab = storedProp<ChapterTab>('analyse.study.form.tab', 'init', str => str as ChapterTab);
-  editor: LichessEditor | null = null;
+  editor: XiangqiEditor | null = null;
   editorFen: Prop<FEN | null> = prop(null);
   isDefaultName = toggle(true);
   orientation: Color | 'automatic';
-  chess960Position: Prop<number> = prop(518); // 518 = standard chess starting position
-  selectedVariant: Prop<VariantKey> = prop('standard');
 
   constructor(
     private readonly send: StudySocketSend,
@@ -83,7 +56,6 @@ export class StudyChapterNewForm {
     readonly isBroadcast: boolean,
     readonly setChaptersTab: () => void,
     readonly root: AnalyseCtrl,
-    private readonly currentChapter: () => StudyChapter,
   ) {
     pubsub.on('analysis.closeAll', () => this.isOpen(false));
     this.orientation = root.bottomColor();
@@ -93,27 +65,16 @@ export class StudyChapterNewForm {
     pubsub.emit('analysis.closeAll');
     this.orientation = this.root.bottomColor();
     this.isOpen(true);
-    this.loadVariants();
     this.initial(false);
     this.isDefaultName(true);
-    this.selectedVariant(this.currentChapter().setup.variant.key);
-    this.chess960Position(518);
   };
 
   toggle = () => (this.isOpen() ? this.isOpen(false) : this.open());
 
   setTab = (key: ChapterTab) => {
     this.tab(key);
-    if (key !== 'pgn' && this.orientation === 'automatic') this.orientation = 'white';
+    if (key !== 'pgn' && this.orientation === 'automatic') this.orientation = 'red';
     this.root.redraw();
-  };
-
-  loadVariants = () => {
-    if (!this.variants.length)
-      xhrVariants().then(vs => {
-        this.variants = vs;
-        this.redraw();
-      });
   };
 
   openInitial = () => {
@@ -121,18 +82,19 @@ export class StudyChapterNewForm {
     this.initial(true);
   };
 
-  submit = (d: Omit<ChapterData, 'initial'>) => {
+  submit = async (d: Omit<ChapterData, 'initial'>) => {
     const study = this.root.study!;
     const showRatings = study.data.showRatings ? undefined : false; // define only if false
     const dd = { ...d, sticky: study.vm.mode.sticky, showRatings, initial: this.initial() };
     if (!dd.pgn) this.send('addChapter', dd);
     else
-      importPgn(study.data.id, dd).catch(e => {
-        if (e.message === 'Too many requests') alert('Limit of 1000 pgn imports every 24 hours');
-        if (e.message === 'Too many chapters')
-          alert('You have reached the maximum number of chapters (64). Some of the games were not imported.');
-        throw e;
-      });
+      try {
+        await importPgn(study.data.id, dd);
+      } catch (e) {
+        await alert(e instanceof Error ? e.message : String(e));
+        return;
+      }
+
     this.isOpen(false);
     this.setChaptersTab();
   };
@@ -168,7 +130,6 @@ export function view(ctrl: StudyChapterNewForm): VNode {
       },
       name,
     );
-  const gameOrPgn = activeTab === 'game' || activeTab === 'pgn';
   const currentChapter = study.data.chapter;
   const mode = currentChapter.practice
     ? 'practice'
@@ -204,14 +165,10 @@ export function view(ctrl: StudyChapterNewForm): VNode {
             ctrl.submit({
               name: fieldValue(e, 'name'),
               game: fieldValue(e, 'game'),
-              variant: fieldValue(e, 'variant') as VariantKey,
               pgn: fieldValue(e, 'pgn'),
               orientation: fieldValue(e, 'orientation') as Orientation,
               mode: fieldValue(e, 'mode') as ChapterMode,
-              fen:
-                tab === 'init' && ctrl.selectedVariant() === 'chess960'
-                  ? chess960IdToFEN(ctrl.chess960Position())
-                  : fieldValue(e, 'fen') || (tab === 'edit' ? ctrl.editorFen() : null),
+              fen: fieldValue(e, 'fen') || (tab === 'edit' ? ctrl.editorFen() : null),
               isDefaultName: ctrl.isDefaultName(),
             });
           }, ctrl.redraw),
@@ -251,25 +208,26 @@ export function view(ctrl: StudyChapterNewForm): VNode {
                       data.fen = ctrl.root.node.fen;
                       data.embed = true;
                       data.options = {
-                        inlineCastling: true,
                         orientation: ctrl.orientation,
                         onChange: ctrl.editorFen,
                         coordinates: true,
                         bindHotkeys: false,
                       };
-                      ctrl.editor = await site.asset.loadEsm<LichessEditor>('editor', { init: data });
+                      ctrl.editor = await site.asset.loadEsm<XiangqiEditor>('editor', { init: data });
                       ctrl.editorFen(ctrl.editor.getFen());
-                      ctrl.editor.setVariant(currentChapter.setup.variant.key);
                     });
                   },
-                  destroy: () => (ctrl.editor = null),
+                  destroy: () => {
+                    ctrl.editor?.destroy();
+                    ctrl.editor = null;
+                  },
                 },
               },
-              [spinnerVdom()],
+              [hl('span', { attrs: { role: 'status' } }, i18n.site.loading)],
             ),
           activeTab === 'game' &&
             hl('div.form-group', [
-              hl('label.form-label', { attrs: { for: 'chapter-game' } }, 'Load Lichess games'),
+              hl('label.form-label', { attrs: { for: 'chapter-game' } }, i18n.study.loadAGameByUrl),
               hl('textarea#chapter-game.form-control', {
                 attrs: { placeholder: i18n.study.urlOfTheGame },
                 hook: onInsert((el: HTMLTextAreaElement) => {
@@ -279,13 +237,7 @@ export function view(ctrl: StudyChapterNewForm): VNode {
                       .trim()
                       .split('\n')
                       .every(line =>
-                        line
-                          .trim()
-                          .match(
-                            new RegExp(
-                              `^((.*${location.host}/\\w{8,12}.*)|\\w{8}|\\w{12}|(.*chessgames\\.com/.*[?&]gid=\\d+.*)|)$`,
-                            ),
-                          ),
+                        line.trim().match(new RegExp(`^((.*${location.host}/\\w{8,12}.*)|\\w{8}|\\w{12}|)$`)),
                       );
                     el.setCustomValidity(ok ? '' : 'Invalid game ID(s) or URL(s)');
                   });
@@ -303,10 +255,13 @@ export function view(ctrl: StudyChapterNewForm): VNode {
                 hook: onInsert((el: HTMLInputElement) => {
                   el.addEventListener('change', () => el.reportValidity());
                   el.addEventListener('input', _ => {
-                    if (isValidXiangqiFen(el.value.trim())) {
+                    try {
+                      positionFromFen(el.value.trim(), standardXiangqi);
                       el.setCustomValidity('');
-                      ctrl.root.node.fen = el.value;
-                    } else el.setCustomValidity('Invalid FEN');
+                      ctrl.editorFen(el.value);
+                    } catch {
+                      el.setCustomValidity('Invalid FEN');
+                    }
                   });
                 }),
               }),
@@ -360,25 +315,6 @@ export function view(ctrl: StudyChapterNewForm): VNode {
             ]),
           hl('div.form-split', [
             hl('div.form-group.form-half', [
-              hl('label.form-label', { attrs: { for: 'chapter-variant' } }, i18n.site.variant),
-              hl(
-                'select#chapter-variant.form-control',
-                {
-                  attrs: { disabled: gameOrPgn },
-                  hook: bind('change', e => {
-                    const v = (e.target as HTMLSelectElement).value as VariantKey;
-                    ctrl.editor?.setVariant(v);
-                    ctrl.selectedVariant(v);
-                    if (v !== 'chess960') ctrl.chess960Position(518);
-                    ctrl.redraw();
-                  }),
-                },
-                gameOrPgn
-                  ? [hl('option', { attrs: { value: 'standard' } }, i18n.study.automatic)]
-                  : ctrl.variants.map(v => option(v.key, currentChapter.setup.variant.key, v.name)),
-              ),
-            ]),
-            hl('div.form-group.form-half', [
               hl('label.form-label', { attrs: { for: 'chapter-orientation' } }, i18n.study.orientation),
               hl(
                 'select#chapter-orientation.form-control',
@@ -390,47 +326,17 @@ export function view(ctrl: StudyChapterNewForm): VNode {
                 },
                 [
                   ...(activeTab === 'pgn' ? [['automatic', i18n.study.automatic]] : []),
-                  ['white', i18n.site.white],
+                  ['red', i18n.site.red],
                   ['black', i18n.site.black],
                 ].map(([value, name]) => value && option(value, ctrl.orientation, name, { key: value })),
               ),
             ]),
           ]),
-          activeTab === 'init' &&
-            ctrl.selectedVariant() === 'chess960' &&
-            hl('div.form-group.chess960-position', [
-              hl('label.form-label', i18n.site.chess960StartPosition(ctrl.chess960Position())),
-              hl('div.chess960-position__inputs', [
-                hl('input.form-control', {
-                  attrs: { type: 'number', min: 0, max: 959, value: ctrl.chess960Position() },
-                  hook: onInsert((el: HTMLInputElement) => {
-                    el.addEventListener('input', () => {
-                      const pos = parseInt(el.value);
-                      if (!isNaN(pos) && pos >= 0 && pos <= 959) {
-                        ctrl.chess960Position(pos);
-                        ctrl.redraw();
-                      }
-                    });
-                  }),
-                }),
-                hl('button.button.button-empty', {
-                  attrs: {
-                    type: 'button',
-                    title: i18n.site.randomChess960Position,
-                    ...dataIcon(licon.DieSix),
-                  },
-                  hook: bind('click', () => {
-                    ctrl.chess960Position(randomPositionId());
-                    ctrl.redraw();
-                  }),
-                }),
-              ]),
-            ]),
           hl('div.form-group' + (ctrl.isBroadcast ? '.none' : ''), [
             hl('label.form-label', { attrs: { for: 'chapter-mode' } }, i18n.study.analysisMode),
             hl(
               'select#chapter-mode.form-control',
-              modeChoices.map(c => option(c[0], mode, c[1])),
+              modeChoices().map(c => option(c[0], mode, c[1])),
             ),
           ]),
           hl(

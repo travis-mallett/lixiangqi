@@ -401,25 +401,25 @@ Hanna Marie ; Kozul, Zdenko"""),
                   )
                 ,
                 form3.group(
-                  form("fideTCOverride"),
-                  trb.fideRatingCategory(),
+                  form("ratingCategoryOverride"),
+                  trb.ratingCategory(),
                   help = frag("Optional. Override the WXF rating category for this round").some,
                   half = true
                 ):
                   form3.select(
                     _,
-                    chess.FideTC.values.map: tc =>
+                    lila.core.playerDirectory.RatingCategory.values.map: tc =>
                       tc.toString -> tc.toString.capitalize,
                     default = "".some
                   )
               )
             ),
-            Color.all.map: color =>
+            lila.xiangqi.Xiangqi.Side.values.toList.map: color =>
               form3.split:
                 List("win", "draw").map: result =>
                   form3.group(
-                    form("customScoring")(color.name)(result),
-                    raw(s"Points for a $result as ${color.name}")
+                    form("customScoring")(color.key)(result),
+                    raw(s"Points for a $result as ${color.key}")
                   )(
                     form3.input(_)(tpe := "number", step := 0.01f, min := 0.0f, max := 10.0f)
                   )
@@ -607,14 +607,14 @@ Hanna Marie ; Kozul, Zdenko"""),
               half = true
             )(form3.input(_)),
             form3.group(
-              form("info.fideTC"),
-              trb.fideRatingCategory(),
+              form("info.ratingCategory"),
+              trb.ratingCategory(),
               help = frag("Which WXF ratings to use").some,
               half = true
             ):
               form3.select(
                 _,
-                chess.FideTC.values.map: tc =>
+                lila.core.playerDirectory.RatingCategory.values.map: tc =>
                   tc.toString -> tc.toString.capitalize
               )
           ),
@@ -681,7 +681,7 @@ Hanna Marie ; Kozul, Zdenko"""),
               form3.checkboxGroup(
                 form("teamTable"),
                 trans.team.teamTournament(),
-                help = frag("Show a team table. Requires WhiteTeam and BlackTeam PGN tags.").some,
+                help = frag("Show a team table. Requires RedTeam and BlackTeam PGN tags.").some,
                 half = true
               ),
               form3.checkboxGroup(
@@ -702,20 +702,20 @@ Hanna Marie ; Kozul, Zdenko"""),
               trb.replacePlayerTags(),
               help = frag( // do not translate
                 "One line per player, formatted as such:",
-                pre("player name / WXF ID"),
+                pre("player name / native player ID"),
                 "Example:",
-                pre("""Xu Yinchuan / 000001"""),
+                pre("""Xu Yinchuan / wxf:IGM0012"""),
                 "Player names ignore case and punctuation, and match all possible combinations of 2 words:",
                 br,
                 """"Jorge Rick Vito" will match "Jorge Rick", "jorge vito", "Rick, Vito", etc.""",
                 br,
-                "If the player is NM or WNM, you can:",
-                pre("""Player Name / WXF ID / title"""),
+                "Native titles include IGM, IM, IFM, GM and NM:",
+                pre("""Player Name / native player ID / title"""),
                 "Alternatively, you may set tags manually, like so:",
-                pre("player name / WXF ID / title / rating / new name / new fed"),
-                "All values are optional. Example:",
-                pre("""Magnus Carlsen / / GM / 2863
-YouGotLittUp / / / 1890 / Louis Litt / FID""")
+                pre("player name / native player ID / title / rating / new name / new fed"),
+                "Fields after the name are optional. Use - as the ID to prevent directory lookup. Examples:",
+                pre("""Xu Yinchuan / wxf:IGM0012 / IGM
+Club Player / - / / 1890 / 林明 / CHN""")
               ).some,
               half = true
             )(form3.textarea(_)(rows := 3, spellcheck := "false", cls := "monospace")),
@@ -724,11 +724,11 @@ YouGotLittUp / / / 1890 / Louis Litt / FID""")
               "Optional: assign players to teams",
               help = frag( // do not translate
                 "One line per player, formatted as such:",
-                pre("Team name; Fide Id or Player name"),
+                pre("Team name; native player ID or player name"),
                 "Example:",
                 pre("""Team Cats ; 3408230
 Team Dogs ; Scooby Doo"""),
-                "By default the PGN tags WhiteTeam and BlackTeam are used."
+                "By default the PGN tags RedTeam and BlackTeam are used."
               ).some,
               half = true
             )(form3.textarea(_)(rows := 3, spellcheck := "false", cls := "monospace"))
@@ -825,7 +825,7 @@ Team Dogs ; Scooby Doo"""),
                   p("Embed a live stream in the broadcast. Examples:"),
                   ul(
                     li("https://www.youtube.com/live/Lg0askmGqvo"),
-                    li("https://www.twitch.tv/tcec_chess_tv")
+                    li("https://www.twitch.tv/channel")
                   )
                 ).some,
                 half = true

@@ -1,13 +1,13 @@
 package lila.relay
 
 import chess.format.pgn.{ PgnStr, Tags }
-import chess.{ ErrorStr, TournamentClock }
+import chess.TournamentClock
 import scalalib.actor.AsyncActorSequencers
 import com.github.blemale.scaffeine.LoadingCache
 import scalalib.net.UserAgent
 
 import lila.study.{ ChapterPreviewApi, MultiPgn, StudyPgnImport }
-import lila.core.fide.{ Federation, Tokenize }
+import lila.core.playerDirectory.{ Federation, Tokenize }
 import lila.relay.RelayPush.*
 import lila.memo.CacheApi
 
@@ -15,7 +15,7 @@ final class RelayPush(
     sync: RelaySync,
     api: RelayApi,
     chapterPreview: ChapterPreviewApi,
-    fidePlayers: RelayFidePlayerApi,
+    directoryPlayers: RelayDirectoryPlayerApi,
     playerEnrich: RelayPlayerEnrich,
     irc: lila.core.irc.IrcApi
 )(using Federation.Guess, Tokenize, Executor)(using scheduler: Scheduler):
@@ -40,15 +40,27 @@ final class RelayPush(
         val response: List[Either[Failure, Success]] =
           parsed.map(_.map(g => Success(g.tags, g.root.mainline.size)))
 
-        rt.round.sync.delayMinusLag
-          .ifTrue(games.exists(_.root.children.nonEmpty))
-          .match
-            case None =>
-              push(rt, games).inject(response)
-            case Some(delay) =>
-              scheduler.scheduleOnce(delay.value.seconds):
+        if parsed.exists(_.isLeft) then
+          fuccess(response.map:
+            case Left(failure) => Left(failure)
+            case Right(success) =>
+              Left(
+                Failure(success.tags, "No games were imported because another game contains invalid input")
+              ))
+        else
+          rt.round.sync.delayMinusLag
+            .ifTrue(games.exists(_.root.children.nonEmpty))
+            .match
+              case None =>
                 push(rt, games)
-              fuccess(response)
+                  .inject(response)
+                  .recover:
+                    case error: Exception =>
+                      games.map(game => Left(Failure(game.tags, error.getMessage))).toList
+              case Some(delay) =>
+                scheduler.scheduleOnce(delay.value.seconds):
+                  push(rt, games).logFailure(logger)
+                fuccess(response)
 
   private def monitor(rt: RelayRound.WithTour)(results: Results)(using me: Me, ua: UserAgent): Unit =
     val client = ua.value.some
@@ -69,15 +81,20 @@ final class RelayPush(
         rt <- api.byIdWithTour(prev.round.id).orFail(s"Relay $prev no longer available")
         _ <- cantHaveUpstream(rt.round).so(fail => fufail[Unit](fail.error))
         withPlayers = playerEnrich.enrichAndReportAmbiguous(rt)(rawGames)
-        withFide <- fidePlayers.enrichGames(rt)(withPlayers)
-        withReplacements = rt.tour.players.fold(withFide)(_.parse.update(withFide)._1)
+        withDirectory <- directoryPlayers.enrichGames(rt)(withPlayers)
+        withReplacements = rt.tour.players.fold(withDirectory)(_.parse.update(withDirectory)._1)
         games = rt.tour.teams.fold(withReplacements)(_.update(withReplacements))
-        event <- sync
+        outcome <- sync
           .updateStudyChapters(rt, games)
-          .map: res =>
-            SyncLog.event(res.nbMoves, none)
+          .map(_.asRight[Exception])
           .recover:
-            case e: Exception => SyncLog.event(0, e.some)
+            case error: Exception => Left(error)
+        event = outcome.fold(
+          error => SyncLog.event(0, Some(error)),
+          result => SyncLog.event(result.nbMoves, None)
+        )
+        _ <- outcome.swap.toOption.so: error =>
+          api.update(rt.round)(_.withSync(_.addLog(event))).flatMap(_ => fufail[Unit](error))
         _ = if !rt.round.hasStarted && !rt.tour.official && event.hasMoves then
           irc.broadcastStart(rt.round.id, rt.fullNameNoTrans)
         allGamesFinished <- (games.nonEmpty && games.forall(_.points.isDefined)).so:
@@ -96,17 +113,20 @@ final class RelayPush(
       .initialCapacity(1024)
       .maximumSize(4096)
       .build: pgn =>
-        lila.tree.ParseImport
-          .full(pgn)
+        StudyPgnImport
+          .result(pgn, Nil)
           .fold(err => Failure(Tags.empty, err.value).asLeft, _.asRight)
-          .map: importResult =>
-            RelayGame.fromStudyImport(StudyPgnImport.result(importResult, Nil))
+          .map(RelayGame.fromStudyImport)
 
   private def pgnToGames(pgnBody: PgnStr, tc: Option[TournamentClock]): List[Either[Failure, RelayGame]] =
-    RelayFetch.injectTimeControl
-      .in(tc)(MultiPgn.split(pgnBody, RelayFetch.maxChaptersToShow))
-      .value
-      .map(pgnCache.get)
+    scala.util
+      .Try {
+        RelayFetch.injectTimeControl
+          .in(tc)(MultiPgn.split(pgnBody, RelayFetch.maxChaptersToShow))
+          .value
+          .map(pgnCache.get)
+      }
+      .fold(error => List(Left(Failure(Tags.empty, error.getMessage))), identity)
 
   private def cantHaveUpstream(round: RelayRound): Option[Failure] =
     round.sync.hasUpstream.option:

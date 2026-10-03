@@ -81,8 +81,8 @@ final class Env(
   val push: lila.push.Env = wire[lila.push.Env]
   val challenge: lila.challenge.Env = wire[lila.challenge.Env]
   val explorer: lila.explorer.Env = wire[lila.explorer.Env]
-  val fide: lila.fide.Env = wire[lila.fide.Env]
-  import fide.given
+  val playerDirectory: lila.playerDirectory.Env = wire[lila.playerDirectory.Env]
+  import playerDirectory.given
   val study: lila.study.Env = wire[lila.study.Env]
   val studySearch: lila.studySearch.Env = wire[lila.studySearch.Env]
   val learn: lila.learn.Env = wire[lila.learn.Env]

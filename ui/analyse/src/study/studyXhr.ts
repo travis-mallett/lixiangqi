@@ -14,10 +14,11 @@ export const reload = (
   return xhrJson(url);
 };
 
-export const variants = () => xhrJson('/variant', { cache: 'default' });
-
 export const glyphs = () =>
-  xhrJson(`/study/glyphs/${document.documentElement.lang}.json`, { cache: 'default' });
+  xhrJson(`/study/glyphs/${document.documentElement.lang}.json`, {
+    cache: 'default',
+    signal: AbortSignal.timeout(15000),
+  });
 
 export const chapterConfig = (studyId: string, chapterId: string): Promise<StudyChapterConfig> =>
   xhrJson(`/study/${studyId}/${chapterId}/config`);

@@ -61,7 +61,7 @@ object Permission:
       Relay,
       RelayStream,
       BroadcastTimeout,
-      FidePlayer,
+      DirectoryPlayer,
       StudyAdmin
     ),
     "Content" -> List(

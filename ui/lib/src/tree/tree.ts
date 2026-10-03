@@ -1,4 +1,6 @@
+import type { RulesPosition } from '../game/xiangqiNotation';
 import { defined } from '../index';
+import { completeNode } from './node';
 import * as ops from './ops';
 import * as treePath from './path';
 import type { Clock, Glyph, Shape, TreeComment, TreeNode, TreePath, TreeNodeLite } from './types';
@@ -9,6 +11,7 @@ export type MaybeNode = TreeNode | undefined;
 
 export interface TreeWrapper {
   root: TreeNode;
+  positionAt(path: TreePath): RulesPosition;
   lastPly(): number;
   nodeAtPath(path: TreePath): TreeNode;
   getNodeList(path: TreePath): TreeNode[];
@@ -42,14 +45,15 @@ export interface TreeWrapper {
 }
 
 export function makeTree(root: TreeNode): TreeWrapper {
-  const lastNode = (): MaybeNode => ops.findInMainline(root, (node: TreeNode) => !node.children.length);
+  const lastNode = (): MaybeNode => ops.findInMainline(root, (node: TreeNode) => !ops.mainlineChild(node));
 
   const nodeAtPath = (path: TreePath): TreeNode => nodeAtPathFrom(root, path);
 
   function nodeAtPathFrom(node: TreeNode, path: TreePath): TreeNode {
     if (path === '') return node;
     const child = ops.childById(node, treePath.head(path));
-    return child ? nodeAtPathFrom(child, treePath.tail(path)) : node;
+    if (!child) throw new Error(`Unknown Xiangqi tree path: ${path}`);
+    return nodeAtPathFrom(child, treePath.tail(path));
   }
 
   const nodeAtPathOrNull = (path: TreePath): MaybeNode => nodeAtPathOrNullFrom(root, path);
@@ -63,7 +67,7 @@ export function makeTree(root: TreeNode): TreeWrapper {
   function longestValidPathFrom(node: TreeNode, path: TreePath): TreePath {
     const id = treePath.head(path);
     const child = ops.childById(node, id);
-    return child ? id + longestValidPathFrom(child, treePath.tail(path)) : '';
+    return child ? treePath.concat(id, longestValidPathFrom(child, treePath.tail(path))) : '';
   }
 
   function getCurrentNodesAfterPly(nodeList: TreeNode[], mainline: TreeNode[], ply: number): TreeNode[] {
@@ -80,7 +84,7 @@ export function makeTree(root: TreeNode): TreeWrapper {
 
   function pathIsMainlineFrom(node: TreeNode, path: TreePath): boolean {
     if (path === '') return true;
-    const child = node.children[0];
+    const child = ops.mainlineChild(node);
     return child?.id === treePath.head(path) && pathIsMainlineFrom(child, treePath.tail(path));
   }
 
@@ -91,23 +95,30 @@ export function makeTree(root: TreeNode): TreeWrapper {
   function lastMainlineNodeFrom(node: TreeNode, path: TreePath): TreeNode {
     if (path === '') return node;
     const pathId = treePath.head(path);
-    const child = node.children[0];
+    const child = ops.mainlineChild(node);
     if (!child || child.id !== pathId) return node;
     return lastMainlineNodeFrom(child, treePath.tail(path));
   }
 
-  const getNodeList = (path: TreePath): TreeNode[] =>
-    ops.collect(root, function (node: TreeNode) {
-      const id = treePath.head(path);
-      if (id === '') return;
-      path = treePath.tail(path);
-      return ops.childById(node, id);
-    });
+  const getNodeList = (path: TreePath): TreeNode[] => {
+    const nodes = [root];
+    let current = root;
+    for (const id of treePath.ids(path)) {
+      const child = ops.childById(current, id);
+      if (!child) throw new Error(`Unknown Xiangqi tree path: ${path}`);
+      nodes.push(child);
+      current = child;
+    }
+    return nodes;
+  };
 
   const extendPath = (path: TreePath, isMainline: boolean): TreePath => {
     let currNode = nodeAtPath(path);
-    while ((currNode = currNode?.children[0]) && !(isMainline && currNode.forceVariation))
-      path += currNode.id;
+    let child: TreeNode | undefined;
+    while ((child = isMainline ? ops.mainlineChild(currNode) : currNode.children[0])) {
+      currNode = child;
+      path = treePath.append(path, child.id);
+    }
     return path;
   };
 
@@ -119,16 +130,16 @@ export function makeTree(root: TreeNode): TreeWrapper {
 
   // returns new path
   function addNode(node: TreeNode, path: TreePath): TreePath | undefined {
-    const newPath = path + node.id,
+    const newPath = treePath.append(path, node.id),
       existing = nodeAtPathOrNull(newPath);
     if (existing) {
-      (['dests', 'drops', 'clock'] as Array<keyof TreeNode>).forEach(key => {
+      (['dests', 'clock'] as Array<keyof TreeNode>).forEach(key => {
         if (defined(node[key]) && !defined(existing[key])) existing[key] = node[key] as never;
       });
       return newPath;
     }
     return updateAt(path, n => {
-      n.children.push(node);
+      n.children.push(completeNode(node, path));
     })
       ? newPath
       : undefined;
@@ -148,7 +159,7 @@ export function makeTree(root: TreeNode): TreeWrapper {
     for (let i = nodes.length - 2; i >= 0; i--) {
       const node = nodes[i + 1];
       const parent = nodes[i];
-      if (parent.children[0].id !== node.id) {
+      if (ops.mainlineChild(parent)?.id !== node.id) {
         ops.removeChild(parent, node.id);
         parent.children.unshift(node);
         if (!toMainline) break;
@@ -198,7 +209,7 @@ export function makeTree(root: TreeNode): TreeWrapper {
       branchOnly = false;
       while (i < node.children.length) {
         const c = node.children[i];
-        if (traverse(c, isMainline && i === 0 && !c.forceVariation)) return true;
+        if (traverse(c, isMainline && c === ops.mainlineChild(node))) return true;
         i++;
       }
       return false;
@@ -209,6 +220,11 @@ export function makeTree(root: TreeNode): TreeWrapper {
 
   return {
     root,
+    positionAt: (path: TreePath): RulesPosition => {
+      if (!root.ruleset) throw new Error('Tree is missing its native ruleset');
+      if (!pathExists(path)) throw new Error(`Unknown tree position: ${path}`);
+      return { initialFen: root.fen, moves: treePath.ids(path), ruleset: root.ruleset };
+    },
     lastPly: (): number => lastNode()?.ply || root.ply,
     nodeAtPath,
     getNodeList,
@@ -235,7 +251,6 @@ export function makeTree(root: TreeNode): TreeWrapper {
     deleteNodeAt,
     promoteAt,
     forceVariationAt: (path: TreePath, force: boolean) => {
-      ops.updateAll(root, n => (n.forceVariation = false));
       return updateAt(path, node => (node.forceVariation = force));
     },
     getCurrentNodesAfterPly,

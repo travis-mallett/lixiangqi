@@ -9,6 +9,7 @@ import play.api.libs.ws.StandaloneWSClient
 import lila.core.lilaism.LilaInvalid
 import lila.tree.Node
 import lila.common.Json.given
+import lila.xiangqi.XiangqiJson.given
 
 final class GifExport(
     ws: StandaloneWSClient,
@@ -25,23 +26,24 @@ final class GifExport(
       .withMethod("POST")
       .addHttpHeaders("Content-Type" -> "application/json")
       .withBody(
-        Json.obj(
-          "delay" -> 80,
-          "orientation" -> chapter.setup.orientation.name,
-          "white" -> List(
-            chapter.tags("RedTitle"),
-            chapter.tags("Red"),
-            chapter.tags("RedElo").map(elo => s"($elo)")
-          ).flatten.mkString(" "),
-          "black" -> List(
-            chapter.tags(_.BlackTitle),
-            chapter.tags(_.Black),
-            chapter.tags(_.BlackElo).map(elo => s"($elo)")
-          ).flatten.mkString(" "),
-          "frames" -> framesRec(chapter.root :: chapter.root.mainline, showGlyphs, Json.arr()),
-          "theme" -> theme.|("brown"),
-          "piece" -> piece.|("cburnett")
-        )
+        Json
+          .obj(
+            "delay" -> 80,
+            "orientation" -> chapter.setup.orientation.key,
+            "red" -> List(
+              chapter.tags("RedTitle"),
+              chapter.tags("Red"),
+              chapter.tags("RedElo").map(elo => s"($elo)")
+            ).flatten.mkString(" "),
+            "black" -> List(
+              chapter.tags(_.BlackTitle),
+              chapter.tags(_.Black),
+              chapter.tags(_.BlackElo).map(elo => s"($elo)")
+            ).flatten.mkString(" "),
+            "frames" -> GifExport.frames(chapter, showGlyphs)
+          )
+          .add("theme", theme)
+          .add("piece", piece)
       )
       .stream()
       .flatMap:
@@ -51,18 +53,26 @@ final class GifExport(
           logger.warn(s"GifExport study ${chapter.studyId}/${chapter.id} ${res.status}")
           fufail(res.statusText)
 
-  @annotation.tailrec
-  private def framesRec(nodes: List[Node], showGlyphs: Boolean, arr: JsArray): JsArray =
-    nodes match
-      case node +: tail =>
-        framesRec(
-          tail,
-          showGlyphs,
-          arr :+ Json
-            .obj("fen" -> node.fen.value)
-            .add("lastMove", node.moveOption.map(_.uci.uci))
-            .add("delay", tail.isEmpty.option(500)) // more delay for last frame
-            .add("glyph", showGlyphs.so(node.glyphs.move.map(_.symbol)))
-            .add("pockets", node.crazyData.map(_.pockets))
+object GifExport:
+  private[study] def frames(chapter: Chapter, showGlyphs: Boolean): JsArray =
+    import lila.xiangqi.Xiangqi.{ Side, BySide }
+    val nodes = chapter.root :: chapter.root.mainline
+    val taggedClocks = StudyPgnTags.clocks(chapter.tags)
+    var clocks = BySide.fill(chapter.root.clock.map(_.centis))
+    JsArray(nodes.zipWithIndex.map { (node, index) =>
+      if node.moveOption.isDefined then
+        clocks = clocks.update(!node.state.turn, old => node.clock.map(_.centis).orElse(old))
+      val last = index == nodes.size - 1
+      if last then clocks = BySide(side => taggedClocks(side).orElse(clocks(side)))
+      Json
+        .obj("fen" -> node.fen.value)
+        .add("check", node.state.check)
+        .add("shapes", node.shapes.value.nonEmpty.option(node.shapes.value))
+        .add(
+          "clock",
+          clocks.exists(_.isDefined).option(Json.obj().add("red", clocks.red).add("black", clocks.black))
         )
-      case _ => arr
+        .add("lastMove", node.moveOption.map(_.uci.value))
+        .add("delay", last.option(500))
+        .add("glyph", showGlyphs.so(node.glyphs.move.map(_.symbol)))
+    })

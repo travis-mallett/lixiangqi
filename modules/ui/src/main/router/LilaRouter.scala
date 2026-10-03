@@ -39,6 +39,11 @@ object LilaRouter:
   given PathBindable[Color] =
     strPath[Color](Color.fromName, "Invalid chess color, should be white or black", _.name)
   given PathBindable[Uci] = strPath[Uci](Uci.apply, "Invalid UCI move", _.uci)
+  given PathBindable[lila.core.playerDirectory.PlayerId] = strPath(
+    lila.core.playerDirectory.PlayerId.parse,
+    "Invalid Xiangqi player ID",
+    _.value
+  )
 
   given PathBindable[StudyOrder] = strPath(
     StudyOrder.byKey.get,

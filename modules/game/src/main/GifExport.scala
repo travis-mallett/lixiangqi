@@ -62,9 +62,8 @@ final class GifExport(
           .withBody(
             Json
               .obj(
-                "comment" -> s"${routeUrl(routes.Round.watcher(pov.game.id, pov.color))} rendered with https://github.com/lichess-org/lila-gif",
+                "comment" -> s"${routeUrl(routes.Round.watcher(pov.game.id, pov.color))} rendered by LiXiangQi",
                 "orientation" -> sideName(pov.color),
-                "variant" -> "xiangqi",
                 "delay" -> targetMedianTime.centis, // default delay for frames
                 "frames" -> frames(pov.game, analysis, options),
                 "theme" -> theme,
@@ -81,7 +80,7 @@ final class GifExport(
         position = game.position,
         red = Namer.playerTextBlocking(game.whitePlayer, withRating = true)(using lightUserApi.sync).some,
         black = Namer.playerTextBlocking(game.blackPlayer, withRating = true)(using lightUserApi.sync).some,
-        orientation = game.naturalOrientation,
+        orientation = if game.naturalOrientation.white then Xiangqi.Side.Red else Xiangqi.Side.Black,
         lastMove = game.lastMoveKeys,
         theme = theme,
         piece = piece,
@@ -92,7 +91,7 @@ final class GifExport(
       position: Xiangqi.State,
       red: Option[String] = None,
       black: Option[String] = None,
-      orientation: Color,
+      orientation: Xiangqi.Side,
       lastMove: Option[String],
       theme: String,
       piece: String,
@@ -104,8 +103,7 @@ final class GifExport(
         .withQueryStringParameters(
           List(
             "fen" -> position.fen,
-            "orientation" -> sideName(orientation),
-            "variant" -> "xiangqi",
+            "orientation" -> orientation.key,
             "theme" -> theme,
             "piece" -> piece
           ) ::: List(
@@ -142,7 +140,7 @@ final class GifExport(
     clocks.map: c =>
       Json
         .obj()
-        .add("white", c.white.lift((ply - 1).atLeast(0) / 2).map(_.centis))
+        .add("red", c.white.lift((ply - 1).atLeast(0) / 2).map(_.centis))
         .add("black", c.black.lift((ply - 2).atLeast(0) / 2).map(_.centis))
 
   private def glyphsMap(analysis: Option[Analysis]): Map[Ply, Glyph] =
@@ -200,8 +198,7 @@ final class GifExport(
     Json
       .obj(
         "fen" -> position.fen,
-        "lastMove" -> uci.map(_.value),
-        "variant" -> "xiangqi"
+        "lastMove" -> uci.map(_.value)
       )
       .add("check", position.check)
       .add("delay", delay.map(_.centis))

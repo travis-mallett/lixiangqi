@@ -2,6 +2,7 @@ import { requestXiangqi } from 'lib/game/xiangqiApi';
 
 import { render } from './explorerView';
 import type {
+  BookData,
   ExplorerColor,
   ExplorerConfig,
   ExplorerData,
@@ -10,9 +11,11 @@ import type {
   ExplorerPosition,
 } from './interfaces';
 
-const STORAGE_KEY = 'lixiangqi.analysis.explorer.v1';
+const STORAGE_KEY = 'lixiangqi.analysis.explorer.v2';
 
 export interface ExplorerCtrlOptions {
+  gameActions?: (game: ExplorerGame) => { label: string; run: () => void }[];
+  onHover?: (move?: string) => void;
   lockedPlayer?: string;
   lockedEvent?: string;
   initialColor?: ExplorerColor;
@@ -23,6 +26,8 @@ export interface ExplorerCtrlOptions {
 
 export default class ExplorerCtrl {
   data?: ExplorerData;
+  book?: BookData;
+  error?: string;
   loading = false;
   configOpen = false;
   config: ExplorerConfig;
@@ -68,7 +73,7 @@ export default class ExplorerCtrl {
   }
 
   setPosition(position: ExplorerPosition): void {
-    if (this.position?.fen === position.fen) return;
+    if (JSON.stringify(this.position) === JSON.stringify(position)) return;
     this.position = position;
     if (this.enabledValue) void this.fetch();
   }
@@ -82,9 +87,24 @@ export default class ExplorerCtrl {
     else this.controller?.abort();
   }
 
+  selectMode(mode: ExplorerConfig['mode']): void {
+    this.config.mode = mode;
+    this.configOpen = false;
+    this.saveConfig();
+    void this.fetch();
+    this.render();
+  }
+
+  selectMetric(metric: ExplorerConfig['metric']): void {
+    this.config.metric = metric;
+    this.saveConfig();
+    void this.fetch();
+  }
+
   selectDb(db: ExplorerDb): void {
     if (this.options.lockedPlayer || this.options.lockedEvent) return;
     this.config.db = db;
+    this.config.mode = 'games';
     this.configOpen = db === 'player' && !this.config.player;
     this.saveConfig();
     if (!this.configOpen) void this.fetch();
@@ -135,8 +155,9 @@ export default class ExplorerCtrl {
     if (
       !this.position ||
       !this.enabledValue ||
-      (this.config.db === 'player' && !this.config.player) ||
-      (this.config.db === 'event' && !this.config.event)
+      (this.config.mode === 'games' &&
+        ((this.config.db === 'player' && !this.config.player) ||
+          (this.config.db === 'event' && !this.config.event)))
     ) {
       this.data = undefined;
       this.render();
@@ -146,8 +167,17 @@ export default class ExplorerCtrl {
     this.controller = new AbortController();
     const signal = this.controller.signal;
     this.loading = true;
+    this.error = undefined;
     this.render();
     try {
+      if (this.config.mode !== 'games') {
+        this.book = await requestXiangqi<BookData>(
+          '/api/analysis/book',
+          { ...this.position, metric: this.config.metric, endgame: this.config.mode === 'tablebase' },
+          signal,
+        );
+        return;
+      }
       this.data = await requestXiangqi<ExplorerData>(
         `${this.endpoint.replace(/\/$/, '')}/explorer`,
         {
@@ -162,7 +192,8 @@ export default class ExplorerCtrl {
         signal,
       );
     } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') return;
+      if (signal.aborted) return;
+      this.error = error instanceof Error ? error.message : String(error);
       this.data = {
         available: false,
         database: this.config.db,
@@ -192,6 +223,8 @@ export default class ExplorerCtrl {
   private loadConfig(): ExplorerConfig {
     const fallback: ExplorerConfig = {
       db: 'masters',
+      mode: 'games',
+      metric: 'dtm',
       since: '',
       until: '',
       player: '',
@@ -201,11 +234,13 @@ export default class ExplorerCtrl {
     if (this.options.persistPreferences === false) return fallback;
     try {
       const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') as Partial<ExplorerConfig>;
-      const storedDb = stored.db === ('lixiangqi' as ExplorerDb) ? 'all' : stored.db;
+      const storedDb = stored.db;
       return {
         db: ['masters', 'all', 'dpxq', 'gdchess', 'xqdao', 'player'].includes(storedDb || '')
           ? storedDb!
           : fallback.db,
+        mode: stored.mode === 'book' || stored.mode === 'tablebase' ? stored.mode : 'games',
+        metric: stored.metric === 'dtc' ? 'dtc' : 'dtm',
         since: stored.since || '',
         until: stored.until || '',
         player: stored.player || '',

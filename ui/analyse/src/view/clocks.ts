@@ -1,8 +1,8 @@
 import { h, type VNode } from 'snabbdom';
 
 import { defined, notNull } from 'lib';
-import { plyColor } from 'lib/game';
 import { formatClockTimeVerbal } from 'lib/game/clock/clockView';
+import { plySide as plyColor } from 'lib/game/xiangqi';
 import { licon } from 'lib/licon';
 import type { TreePath } from 'lib/tree/types';
 import { icon, type MaybeVNode, type MaybeVNodes } from 'lib/view';
@@ -19,11 +19,11 @@ interface ClockOpts {
 
 export default function renderClocks(ctrl: AnalyseCtrl, path: TreePath): [VNode, VNode] | undefined {
   const node = ctrl.tree.nodeAtPath(path),
-    whitePov = ctrl.bottomIsWhite(),
+    redPov = ctrl.bottomIsRed(),
     parentClock = ctrl.tree.getParentClock(node, path),
-    isWhiteTurn = plyColor(node.ply) === 'white',
+    isRedTurn = plyColor(node.ply) === 'red',
     centis: Array<number | undefined> = (
-      isWhiteTurn ? [parentClock, node.clock] : [node.clock, parentClock]
+      isRedTurn ? [parentClock, node.clock] : [node.clock, parentClock]
     ).map(c => (defined(c) && c < 0 ? undefined : c));
 
   if (!centis.some(notNull)) return;
@@ -38,7 +38,7 @@ export default function renderClocks(ctrl: AnalyseCtrl, path: TreePath): [VNode,
 
   if (lastMoveAt) {
     const spent = (Date.now() - lastMoveAt) / 10;
-    const i = isWhiteTurn ? 0 : 1;
+    const i = isRedTurn ? 0 : 1;
     if (centis[i]) centis[i] = Math.max(0, centis[i] - spent);
   }
 
@@ -48,15 +48,15 @@ export default function renderClocks(ctrl: AnalyseCtrl, path: TreePath): [VNode,
   return [
     renderClock({
       centis: centis[0],
-      active: isWhiteTurn,
-      cls: whitePov ? 'bottom' : 'top',
+      active: isRedTurn,
+      cls: redPov ? 'bottom' : 'top',
       showTenths,
       pause,
     }),
     renderClock({
       centis: centis[1],
-      active: !isWhiteTurn,
-      cls: whitePov ? 'top' : 'bottom',
+      active: !isRedTurn,
+      cls: redPov ? 'top' : 'bottom',
       showTenths,
       pause,
     }),

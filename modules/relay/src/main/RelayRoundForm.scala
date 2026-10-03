@@ -1,7 +1,9 @@
 package lila.relay
 
+import lila.xiangqi.Xiangqi.BySide
+
 import io.mola.galimatias.URL
-import chess.{ Rated, ByColor }
+import chess.Rated
 import play.api.Mode
 import play.api.data.*
 import play.api.data.Forms.*
@@ -14,8 +16,7 @@ import lila.common.Form.{
   into,
   stringIn,
   LocalDateTimeOrTimestamp,
-  partial,
-  byColor
+  partial
 }
 import lila.core.perm.Granter
 import lila.relay.RelayRound.Sync
@@ -97,9 +98,11 @@ final class RelayRoundForm(using Mode):
       ,
       "reorder" -> optional(nonEmptyText.into[RelayGame.ReorderNames]),
       "rated" -> optional(boolean.into[Rated]),
-      "customScoring" -> optional(byColor.mappingOf(customScoringMapping)),
+      "customScoring" -> optional(
+        mapping("red" -> customScoringMapping, "black" -> customScoringMapping)(BySide.apply)(unapply)
+      ),
       "teamCustomScoring" -> optional(customScoringMapping),
-      "fideTCOverride" -> optional(RelayTourForm.fideTCMapping)
+      "ratingCategoryOverride" -> optional(RelayTourForm.ratingCategoryMapping)
     )(Data.apply)(unapply)
 
   def create(trs: RelayTour.WithRounds)(using Me) = Form(
@@ -176,7 +179,7 @@ object RelayRoundForm:
       rated = prev.map(_.rated),
       customScoring = prev.flatMap(_.customScoring),
       teamCustomScoring = prev.flatMap(_.teamCustomScoring),
-      fideTCOverride = prev.flatMap(_.fideTCOverride)
+      ratingCategoryOverride = prev.flatMap(_.ratingCategoryOverride)
     )
 
   case class GameIds(ids: List[GameId])
@@ -248,9 +251,9 @@ object RelayRoundForm:
       slices: Option[List[RelayGame.Slice]] = None,
       reorder: Option[RelayGame.ReorderNames] = None,
       rated: Option[Rated] = None,
-      customScoring: Option[ByColor[RelayRound.CustomScoring]] = None,
+      customScoring: Option[BySide[RelayRound.CustomScoring]] = None,
       teamCustomScoring: Option[RelayRound.CustomScoring] = None,
-      fideTCOverride: Option[chess.FideTC] = None
+      ratingCategoryOverride: Option[lila.core.playerDirectory.RatingCategory] = None
   ):
     def upstream: Option[Upstream] = syncSource.match
       case None => syncUrl.orElse(syncUrls).orElse(syncIds).orElse(syncUsers)
@@ -278,7 +281,7 @@ object RelayRoundForm:
         rated = rated | Rated.No,
         customScoring = customScoring,
         teamCustomScoring = teamCustomScoring,
-        fideTCOverride = fideTCOverride
+        ratingCategoryOverride = ratingCategoryOverride
       )
 
     private def makeSync(prev: Option[RelayRound.Sync])(using Me): Sync =
@@ -309,7 +312,7 @@ object RelayRoundForm:
         rated = rated | Rated.No,
         customScoring = customScoring,
         teamCustomScoring = teamCustomScoring,
-        fideTCOverride = fideTCOverride
+        ratingCategoryOverride = ratingCategoryOverride
       )
 
   object Data:
@@ -351,5 +354,5 @@ object RelayRoundForm:
         rated = round.rated.some,
         customScoring = round.customScoring,
         teamCustomScoring = round.teamCustomScoring,
-        fideTCOverride = round.fideTCOverride
+        ratingCategoryOverride = round.ratingCategoryOverride
       )

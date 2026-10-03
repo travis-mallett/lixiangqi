@@ -1,9 +1,10 @@
 import { h } from 'snabbdom';
 
 import { numberFormat } from 'lib/i18n';
-import { onInsert, spinnerVdom as spinner } from 'lib/view';
+import { onInsert } from 'lib/view';
 import { json as xhrJson } from 'lib/xhr';
 
+import { loading } from '../loading';
 import type { RelayRound } from './interfaces';
 
 type Data = {
@@ -48,5 +49,5 @@ export const statsView = (ctrl: RelayStats) =>
             : null,
           h('div', [h('canvas')]),
         ]
-      : [spinner()],
+      : [loading()],
   );

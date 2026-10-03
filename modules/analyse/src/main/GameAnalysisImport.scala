@@ -121,6 +121,7 @@ object GameAnalysisImport:
       id,
       XiangqiAnalysis.infos(game, evals, startPly),
       startPly,
+      game.position,
       nowInstant,
       None,
       None,

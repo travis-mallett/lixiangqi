@@ -1,7 +1,6 @@
 package controllers
 
 import chess.format.Fen
-import chess.variant.Variant
 import lila.app.*
 import lila.xiangqi.Xiangqi
 
@@ -29,19 +28,15 @@ final class Editor(env: Env) extends LilaController(env):
           get("fen")
             .map(_.trim)
             .filter(_.nonEmpty)
-            .fold(editorUrlString(game.xiangqi.state.fen, game.variant))(editorUrlString(_, game.variant))
+            .fold(editorUrlString(game.xiangqi.state.fen))(editorUrlString)
 
   private[controllers] def editorUrl(
-      fen: Fen.Full,
-      variant: Variant
+      fen: Fen.Full
   ): String =
-    editorUrlString(fen.value, variant)
+    editorUrlString(fen.value)
 
   private def editorUrlString(
-      fen: String,
-      variant: Variant
+      fen: String
   ): String =
-    if fen == Xiangqi.startFen && variant.standard then routes.Editor.index.url
-    else
-      val params = if variant.exotic then s"?variant=${variant.key}" else ""
-      routes.Editor.load(fen.replace(' ', '_')).url + params
+    if fen == Xiangqi.startFen then routes.Editor.index.url
+    else routes.Editor.load(fen.replace(' ', '_')).url

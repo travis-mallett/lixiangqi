@@ -170,7 +170,7 @@ export default class RoundController implements MoveRootCtrl {
   };
 
   onBoardMove = (move: MoveIntent): void => {
-    if (!this.keyboardMove?.usedSan && !this.opts.noab)
+    if (!this.keyboardMove?.usedNotation && !this.opts.noab)
       ab.move(
         this,
         { premove: move.premove, ctrlKey: move.controlKey, holdTime: move.holdTime },

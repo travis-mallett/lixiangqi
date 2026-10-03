@@ -41,11 +41,7 @@
   <string name="definitivelyDeleteTournament">Definitivt radera turnering.</string>
   <string name="showScores">Visa spelares poäng efter matchresultat</string>
   <string name="replacePlayerTags">Valfritt: byt ut spelarnamn, ranking och titlar</string>
-  <string name="fideFederations">FIDE-förbund</string>
   <string name="top10Rating">Topp 10 rating</string>
-  <string name="fidePlayers">FIDE-spelare</string>
-  <string name="fidePlayerNotFound">FIDE-spelare hittades inte</string>
-  <string name="fideProfile">FIDE-profil</string>
   <string name="federation">Förbund</string>
   <string name="unrated">Ej rankat</string>
   <string name="recentTournaments">Senaste turneringar</string>
@@ -73,7 +69,6 @@
   <string name="tournamentLocation">Turneringens plats</string>
   <string name="topPlayers">Toppspelare</string>
   <string name="timezone">Tidszon</string>
-  <string name="fideRatingCategory">Kategori för FIDE-rating</string>
   <string name="optionalDetails">Valfri information</string>
   <string name="pastBroadcasts">Tidigare sändningar</string>
   <string name="allBroadcastsByMonth">Visa alla sändningar efter månad</string>

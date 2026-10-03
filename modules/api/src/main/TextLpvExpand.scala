@@ -7,6 +7,7 @@ import lila.analyse.AnalysisRepo
 import lila.core.config.NetDomain
 import lila.core.misc.lpv.*
 import lila.memo.CacheApi
+import lila.memo.CacheApi.invalidate
 
 final class TextLpvExpand(
     gameRepo: lila.core.game.GameRepo,
@@ -20,8 +21,23 @@ final class TextLpvExpand(
 )(using Executor):
 
   def getPgn(id: GameId) = if notGames.contains(id.value) then fuccess(none) else gamePgnCache.get(id)
-  def getChapterPgn(id: StudyChapterId) = chapterPgnCache.get(id)
-  def getStudyPgn(id: StudyId) = studyPgnCache.get(id)
+  def getChapterPgn(studyId: StudyId, id: StudyChapterId): Fu[Option[LpvEmbed]] =
+    studyApi
+      .canPubliclyEmbed(studyId, id.some)
+      .flatMap:
+        case true => chapterPgnCache.get(id)
+        case false =>
+          chapterPgnCache.invalidate(id)
+          fuccess(LpvEmbed.PrivateStudy.some)
+
+  def getStudyPgn(id: StudyId): Fu[Option[LpvEmbed]] =
+    studyApi
+      .canPubliclyEmbed(id)
+      .flatMap:
+        case true => studyPgnCache.get(id)
+        case false =>
+          studyPgnCache.invalidate(id)
+          fuccess(LpvEmbed.PrivateStudy.some)
 
   // forum linkRenderFromText builds a LinkRender from relative game|chapter urls -> lpv div tags.
   // substitution occurs in common/../RawHtml.scala addLinks
@@ -31,7 +47,8 @@ final class TextLpvExpand(
       .map(_.group(1))
       .map:
         case regex.gamePgnRe(url, id) => getPgn(GameId(id)).map(url -> _)
-        case regex.chapterPgnRe(url, id) => getChapterPgn(StudyChapterId(id)).map(url -> _)
+        case regex.chapterPgnRe(url, studyId, id) =>
+          getChapterPgn(StudyId(studyId), StudyChapterId(id)).map(url -> _)
         case regex.studyPgnRe(url, id) => getStudyPgn(StudyId(id)).map(url -> _)
         case link => fuccess(link -> link)
       .parallel
@@ -62,7 +79,8 @@ final class TextLpvExpand(
         case ((counter, replacements), candidate) =>
           val (cost, replacement) = candidate match
             case regex.gamePgnRe(_, id) => 1 -> getPgn(GameId(id)).map(id -> _)
-            case regex.chapterPgnRe(_, id) => 1 -> getChapterPgn(StudyChapterId(id)).map(id -> _)
+            case regex.chapterPgnRe(_, studyId, id) =>
+              1 -> getChapterPgn(StudyId(studyId), StudyChapterId(id)).map(id -> _)
             case regex.studyPgnRe(_, id) => 1 -> getStudyPgn(StudyId(id)).map(id -> _)
             case link => 0 -> fuccess(link -> none)
           (counter - cost) -> (replacement :: replacements)
@@ -126,7 +144,7 @@ private final class LpvGameRegex(domain: NetDomain):
 
   private val quotedDomain = java.util.regex.Pattern.quote(domain.value)
 
-  val pgnCandidates = raw"""(?:https?://)?(?:lichess\.org|$quotedDomain)(/[/\w#]{8,})\b"""
+  val pgnCandidates = raw"""(?:https?://)?$quotedDomain(/[/\w#]{8,})\b"""
 
   val markdownPgnCandidatesRe = pgnCandidates.r
   val forumPgnCandidatesRe = raw"(?m)^$pgnCandidates".r
@@ -134,5 +152,5 @@ private final class LpvGameRegex(domain: NetDomain):
   val params = raw"""(?:#(?:last|\d{1,4}))?"""
 
   val gamePgnRe = raw"^(/(\w{8})(?:\w{4}|/(?:white|black))?$params)$$".r
-  val chapterPgnRe = raw"^(/study/(?:embed/)?(?:\w{8})/(\w{8})$params)$$".r
+  val chapterPgnRe = raw"^(/study/(?:embed/)?(\w{8})/(\w{8})$params)$$".r
   val studyPgnRe = raw"^(/study/(?:embed/)?(\w{8})$params)$$".r

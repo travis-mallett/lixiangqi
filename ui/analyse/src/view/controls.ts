@@ -2,6 +2,7 @@ import { repeater, blurIfPrimaryClick } from 'lib';
 import { renderEval, view as cevalView } from 'lib/ceval';
 import { displayColumns, isTouchDevice } from 'lib/device';
 import { licon } from 'lib/licon';
+import { mainlineChild } from 'lib/tree/ops';
 import { type LooseVNode, hl, renderReplayControls } from 'lib/view';
 
 import type AnalyseCtrl from '../ctrl';
@@ -12,7 +13,7 @@ type EngineMode = 'ceval' | 'practice' | 'retro';
 
 export function renderControls(ctrl: AnalyseCtrl) {
   const canJumpPrev = ctrl.path !== '',
-    canJumpNext = !!ctrl.node.children[0];
+    canJumpNext = !!mainlineChild(ctrl.node);
 
   return renderReplayControls({
     selector: 'div.analyse__controls',

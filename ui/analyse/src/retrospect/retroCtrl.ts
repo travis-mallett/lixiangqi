@@ -1,12 +1,12 @@
-import { opposite } from '@lichess-org/chessground/util';
+import type { ExplorerData } from '@lixiangqi/explorer';
 
 import { isEmpty, type Prop, prop } from 'lib';
 import { winningChances } from 'lib/ceval';
+import type { XiangqiSide as Color } from 'lib/game/xiangqi';
 import { path as treePath } from 'lib/tree/tree';
 import type { TreeNode } from 'lib/tree/types';
 
 import type AnalyseCtrl from '../ctrl';
-import type { OpeningData } from '../explorer/interfaces';
 import { evalSwings } from '../nodeFinder';
 
 export interface RetroCtrl {
@@ -64,7 +64,7 @@ export function make(root: AnalyseCtrl, color: Color): RetroCtrl {
   const isPlyLearnCandidate = (ply: Ply): boolean => candidateNodes.some(n => n.ply === ply);
 
   function findNextNode(): TreeNode | undefined {
-    const colorModulo = color === 'white' ? 1 : 0;
+    const colorModulo = color === 'red' ? 1 : 0;
     candidateNodes = evalSwings(
       root.mainline,
       n => n.ply % 2 === colorModulo && !explorerCancelPlies.includes(n.ply),
@@ -94,21 +94,17 @@ export function make(root: AnalyseCtrl, color: Color): RetroCtrl {
       prev,
       solution: {
         node: solutionNode,
-        path: prevPath + solutionNode.id,
+        path: treePath.append(prevPath, solutionNode.id),
       },
       openingUcis: [],
     });
     // fetch opening explorer moves
-    if (
-      game.variant.key === 'standard' &&
-      game.division &&
-      (!game.division.middle || fault.node.ply < game.division.middle)
-    ) {
-      root.explorer.fetchMasterOpening(prev.node.fen).then((res: OpeningData) => {
+    if (game.division && (!game.division.middle || fault.node.ply < game.division.middle)) {
+      root.explorer.fetchMasterOpening(prev.node.fen).then((res: ExplorerData) => {
         const cur = current()!;
         const ucis: Uci[] = [];
         res.moves.forEach(m => {
-          if (m.white + m.draws + m.black > 1) ucis.push(m.uci);
+          if (m.red + m.draws + m.black > 1) ucis.push(m.move);
         });
         if (ucis.includes(fault.node.uci!)) {
           explorerCancelPlies.push(fault.node.ply);
@@ -137,7 +133,7 @@ export function make(root: AnalyseCtrl, color: Color): RetroCtrl {
       return;
     }
     if (isSolving() && cur.fault.node.ply === node.ply) {
-      if (cur.openingUcis.includes(node.uci!) || node.san?.endsWith('#') || node.comp)
+      if (cur.openingUcis.includes(node.uci!) || node.state.checkmate || node.comp)
         onWin(); // found in opening explorer, checkmate ends the game, or comp solution line
       else if (node.eval)
         onFail(); // the move that was played in the game
@@ -234,11 +230,7 @@ export function make(root: AnalyseCtrl, color: Color): RetroCtrl {
       jumpToNext();
     },
     flip() {
-      if (root.data.game.variant.key !== 'racingKings') root.flip();
-      else {
-        root.retro = make(root, opposite(color));
-        safeRedraw();
-      }
+      root.flip();
     },
     preventGoingToNextMove: () => {
       const cur = current();

@@ -1,7 +1,7 @@
-import { COLORS } from 'chessops';
 import type { VNode } from 'snabbdom';
 
 import { defined } from 'lib';
+import { type XiangqiSide as Color, xiangqiSides as COLORS } from 'lib/game/xiangqi';
 import { intersection } from 'lib/tree/path';
 import type { TreePath } from 'lib/tree/types';
 import { hl } from 'lib/view';
@@ -16,9 +16,9 @@ import type { StudyPlayers, StudyPlayer, StatusStr, TagMap } from './interfaces'
 import { playerColoredResult } from './relay/customScoreStatus';
 import type { RelayRound } from './relay/interfaces';
 import { playerId } from './relay/playerId';
-import RelayPlayers, { fidePageLinkAttrs, playerPhotoOrFallback } from './relay/relayPlayers';
+import RelayPlayers, { directoryPageLinkAttrs, playerPhotoOrFallback } from './relay/relayPlayers';
 import RelayTeamLeaderboard from './relay/relayTeamLeaderboard';
-import { looksLikeLichessGame } from './studyChapters';
+import { looksLikeNativeGame } from './studyChapters';
 import type { StudyCtrl } from './studyDeps';
 import { tagsToMap } from './studyTags';
 import { resultTag } from './studyView';
@@ -46,7 +46,7 @@ export default function (ctrl: AnalyseCtrl): VNode[] | undefined {
       players,
       color,
       tickingColor === color,
-      study.data.showRatings || !looksLikeLichessGame(tags),
+      study.data.showRatings || !looksLikeNativeGame(tags),
       study.relay?.round,
       relayPlayers,
       { show: showTeamLeaderboard, leaderboard: relayTeamLeaderboard },
@@ -82,19 +82,19 @@ function renderPlayer(
     team = tags.get(`${color}team`),
     rawStatus = showResult ? tags.get('result')?.replace(/1\/2/g, '½') : undefined,
     status = rawStatus && rawStatus !== '*' ? (rawStatus as StatusStr) : undefined,
-    result = showResult ? resultOf(tags, color === 'white') : undefined,
+    result = showResult ? resultOf(tags, color === 'red') : undefined,
     top = ctrl.bottomColor() !== color,
     eloTag = tags.get(`${color}elo`),
-    fideIdTag = tags.get(`${color}fideid`),
-    fideId = fideIdTag ? parseInt(fideIdTag) : undefined,
+    playerIdTag = tags.get(`${color}playerid`),
+    directoryId = playerIdTag,
     player: StudyPlayer = {
       ...players?.[color],
       name: tags.get(color),
       title: tags.get(`${color}title`),
       rating: showRatings && eloTag ? parseInt(eloTag) : undefined,
-      fideId,
+      playerId: directoryId,
     },
-    photo = fideId ? relayPlayers?.fidePhoto(fideId) : undefined;
+    photo = directoryId ? relayPlayers?.directoryPhoto(directoryId) : undefined;
   const coloredResult = status && status !== '*' && playerColoredResult(status, color, round?.customScoring);
   const resultNode = coloredResult
     ? hl(`${coloredResult.tag}.result`, coloredResult.points)
@@ -133,7 +133,7 @@ function renderPlayer(
           resultNode,
         ]),
         materialDiffs[top ? 0 : 1],
-        clocks?.[color === 'white' ? 0 : 1],
+        clocks?.[color === 'red' ? 0 : 1],
       ])
     : hl(`div.study__player.study__player-${top ? 'top' : 'bot'}`, { class: { ticking } }, [
         hl('div.left', [
@@ -144,20 +144,20 @@ function renderPlayer(
             !!player.title && userTitle(player),
             playerId(player) &&
               hl(
-                player.fideId ? 'a.name' : 'span.name',
-                { attrs: fidePageLinkAttrs(player, ctrl.isEmbed) },
+                player.playerId ? 'a.name' : 'span.name',
+                { attrs: directoryPageLinkAttrs(player, ctrl.isEmbed) },
                 player.name,
               ),
             player.rating && hl('span.elo', `${player.rating}`),
           ]),
         ]),
         materialDiffs[top ? 0 : 1],
-        clocks?.[color === 'white' ? 0 : 1],
+        clocks?.[color === 'red' ? 0 : 1],
       ]);
 }
 
-function resultOf(tags: TagMap, isWhite: boolean): string | undefined {
+function resultOf(tags: TagMap, isRed: boolean): string | undefined {
   const both = tags.get('result')?.split('-');
-  const mine = both?.length === 2 ? both[isWhite ? 0 : 1] : undefined;
+  const mine = both?.length === 2 ? both[isRed ? 0 : 1] : undefined;
   return mine === '1/2' ? '½' : mine;
 }

@@ -196,9 +196,13 @@ final class IrcApi(
   def broadcastError(id: RelayRoundId, name: String, error: String): Funit =
     zulip(_.broadcast, "lila error log")(s"${markdown.broadcastLink(id, name)} $error")
 
-  def broadcastMissingFideId(id: RelayRoundId, name: String, players: List[(StudyChapterId, String)]): Funit =
-    zulip(_.broadcast, "lila missing FIDE IDs"):
-      s"${players.size} players lack a FIDE ID in ${markdown.broadcastLink(id, name)}\n" + players
+  def broadcastMissingPlayerId(
+      id: RelayRoundId,
+      name: String,
+      players: List[(StudyChapterId, String)]
+  ): Funit =
+    zulip(_.broadcast, "LiXiangQi missing player IDs"):
+      s"${players.size} players lack a Xiangqi player ID in ${markdown.broadcastLink(id, name)}\n" + players
         .map: (chapterId, playerName) =>
           s"- ${markdown.broadcastGameLink(id, chapterId, playerName)}"
         .mkString("\n")
@@ -236,13 +240,13 @@ final class IrcApi(
     zulip(_.mod.adminGeneral, "name 48h closure"):
       s"@**remind** here in 48h to close ${markdown.userLink(name)}"
 
-  def fidePhoto(playerPath: String, picUrl: Url)(using me: Me): Funit =
-    zulip(_.content, "/fide player photos"):
+  def directoryPhoto(playerPath: String, picUrl: Url)(using me: Me): Funit =
+    zulip(_.content, "Xiangqi player photos"):
       s":camera: $playerPath by ${markdown.modLink(me.username)}\n" +
         s"${markdown.fixImageUrl(picUrl.value)}"
 
-  def fidePhotoCredits(playerPath: String, credits: String)(using me: Me): Funit =
-    zulip(_.content, "/fide player photos"):
+  def directoryPhotoCredits(playerPath: String, credits: String)(using me: Me): Funit =
+    zulip(_.content, "Xiangqi player photos"):
       s":note: $playerPath by ${markdown.modLink(me.username)}\n> $credits"
 
   def dailyPuzzle(id: PuzzleId): Funit =

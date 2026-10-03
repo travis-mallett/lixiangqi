@@ -1,10 +1,5 @@
 // no side effects allowed due to re-export by index.ts
 
-import type { Rules } from 'chessops';
-import { lichessRules } from 'chessops/compat';
-import { parseFen } from 'chessops/fen';
-import { setupPosition } from 'chessops/variant';
-
 import { clamp } from '@/algo';
 import { throttleWithFlush } from '@/async';
 import { pubsub } from '@/pubsub';
@@ -26,7 +21,7 @@ import {
   type EngineInfo,
   CevalState,
 } from './types';
-import { sanIrreversible, showEngineError, fewerCores } from './util';
+import { showEngineError, fewerCores } from './util';
 import { povChances } from './winningChances';
 
 interface SearchInfo {
@@ -44,7 +39,6 @@ interface Started {
 }
 
 export class CevalCtrl {
-  rules?: Rules;
   analysable: boolean;
   engines: Engines;
   storedEngine: Prop<string>;
@@ -86,16 +80,7 @@ export class CevalCtrl {
   init(opts?: CevalOpts): void {
     if (opts) this.opts = opts;
     this.reset();
-    if (this.opts.variant.key === 'xiangqi') {
-      this.rules = undefined;
-      this.analysable = true;
-    } else {
-      const rules = lichessRules(this.opts.variant.key);
-      this.rules = rules;
-      this.analysable =
-        !this.opts.initialFen ||
-        parseFen(this.opts.initialFen).chain(setup => setupPosition(rules, setup)).isOk;
-    }
+    this.analysable = true;
     this.engines.setActive(this.opts.custom?.engine?.id ?? this.storedEngine());
     if (this.worker?.getInfo().id !== this.engines.active().id) this.unload();
   }
@@ -234,6 +219,11 @@ export class CevalCtrl {
       return;
     }
     const work: Work = {
+      // Engine principal variations are board analysis. Keep the complete
+      // branch history for the starting position, but do not apply live-game
+      // adjudication (such as Tiantian repetition restrictions) to future PV
+      // moves that the engine is exploring.
+      ruleset: 'unrestricted-v1',
       variant: this.opts.variant.key,
       threads,
       hashSize,
@@ -242,6 +232,7 @@ export class CevalCtrl {
       initialFen: s.steps[0].fen,
       moves: [],
       currentFen: step.fen,
+      legalMoves: s.threatMode ? undefined : step.state.legalMoves,
       path: s.path,
       ply: step.ply,
       search: search.by,
@@ -256,14 +247,10 @@ export class CevalCtrl {
       work.currentFen = fen;
       work.initialFen = fen;
     } else {
-      // send fen after latest castling move and the following moves
-      for (let i = 1; i < s.steps.length; i++) {
-        const step = s.steps[i];
-        if (sanIrreversible(this.opts.variant.key, step.san!)) {
-          work.moves = [];
-          work.initialFen = step.fen;
-        } else work.moves.push(step.uci!);
-      }
+      work.moves = s.steps.slice(1).map(step => {
+        if (!step.uci) throw new Error('Engine history contains a move without coordinate identity');
+        return step.uci;
+      });
     }
 
     if (this.worker?.getInfo().id !== this.engines.active().id) this.unload();
@@ -295,7 +282,7 @@ export class CevalCtrl {
         working.fen = this.curEval.fen;
         storage.fire('ceval.fen', this.curEval.fen); // will pause other tabs
       }
-      const color = meta.ply % 2 === (meta.threatMode ? 1 : 0) ? 'white' : 'black';
+      const color = meta.ply % 2 === (meta.threatMode ? 1 : 0) ? 'red' : 'black';
       this.curEval.pvs.sort((a, b) => povChances(color, b) - povChances(color, a));
 
       if (this.lastStarted && !working.dontStop) {

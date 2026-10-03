@@ -213,6 +213,12 @@ case class Game(
   def loser: Option[Player] = winner.map(opponent)
 
   def winnerColor: Option[Color] = winner.map(_.color)
+
+  /** Recorded adjudication includes resignations, time forfeits, and agreed draws. */
+  def recordedResult: lila.xiangqi.Xiangqi.Result =
+    import lila.xiangqi.Xiangqi.Result
+    if !finished then Result.Ongoing
+    else winnerColor.fold(Result.Draw)(color => if color.white then Result.RedWin else Result.BlackWin)
   def outcome: Option[Outcome] = finished.option(Outcome(winnerColor))
 
   def winnerUserId: Option[UserId] = winner.flatMap(_.userId)

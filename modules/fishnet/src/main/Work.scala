@@ -2,7 +2,7 @@ package lila.fishnet
 
 import chess.Ply
 import chess.format.Fen
-import chess.variant.Variant
+import lila.xiangqi.adjudication.Ruleset
 import scalalib.ThreadLocalRandom
 
 import lila.core.net.IpAddress
@@ -46,15 +46,23 @@ object Work:
       id: String, // can be a study chapter ID, if studyId is set
       initialFen: Option[Fen.Full],
       studyId: Option[StudyId],
-      variant: Variant,
+      ruleset: Ruleset,
       moves: String
   ):
     def uciList: List[Xiangqi.Uci] =
-      moves.split(' ').iterator.flatMap(Xiangqi.Uci.from(_).toOption).toList
-    def hash: Array[Byte] = java.security.MessageDigest
-      .getInstance("MD5")
-      .digest(s"$variant $initialFen $moves".getBytes(java.nio.charset.StandardCharsets.UTF_8))
-      .take(12)
+      moves
+        .split(' ')
+        .toList
+        .filter(_.nonEmpty)
+        .map(v => Xiangqi.Uci.from(v).fold(error => throw IllegalArgumentException(error), identity))
+    lazy val nativeGame: Xiangqi.Game = lila.xiangqi.XiangqiRules
+      .game(
+        Xiangqi.Position(initialFen.fold(Xiangqi.startFen)(_.value), uciList.toVector, ruleset)
+      )
+      .fold(error => throw IllegalArgumentException(error), identity)
+    def hash: Array[Byte] = lila.xiangqi.XiangqiEvaluation
+      .key(nativeGame)
+      .getBytes(java.nio.charset.StandardCharsets.UTF_8)
 
   case class Sender(
       userId: UserId,
@@ -117,11 +125,11 @@ object Work:
 
     def abort = copy(acquired = none)
 
-    def nbMoves = game.moves.count(' ' ==) + 1
+    def nbMoves = game.uciList.size
 
     def nodesPerMove = origin.getOrElse(Origin.manualRequest).nodesPerMove
 
     override def toString =
-      s"id:$id game:${game.id} variant:${game.variant} plies: ${game.moves.count(' ' ==)} tries:$tries requestedBy:$sender acquired:$acquired"
+      s"id:$id game:${game.id} ruleset:${game.ruleset.key} plies: ${game.moves.count(' ' ==)} tries:$tries requestedBy:$sender acquired:$acquired"
 
   def makeId = Id(ThreadLocalRandom.nextString(8))

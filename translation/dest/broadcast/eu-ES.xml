@@ -41,11 +41,7 @@
   <string name="definitivelyDeleteTournament">Txapelketa behin betiko ezabatu, bere txanda eta partida guztiak barne.</string>
   <string name="showScores">Erakutsi jokalarien puntuazioak partiden emaitzen arabera</string>
   <string name="replacePlayerTags">Hautazkoa: aldatu jokalarien izen, puntuazio eta tituluak</string>
-  <string name="fideFederations">FIDE federazioak</string>
   <string name="top10Rating">10 onenak</string>
-  <string name="fidePlayers">FIDE jokalariak</string>
-  <string name="fidePlayerNotFound">FIDE jokalaria ez da aurkitu</string>
-  <string name="fideProfile">FIDE profila</string>
   <string name="federation">Federazioa</string>
   <string name="age">Adina</string>
   <string name="unrated">Ez du sailkapenik</string>
@@ -76,7 +72,6 @@
   <string name="tournamentLocation">Txapelketaren kokalekua</string>
   <string name="topPlayers">Jokalari onenak</string>
   <string name="timezone">Ordu-zona</string>
-  <string name="fideRatingCategory">FIDE rating kategoria</string>
   <string name="optionalDetails">Hautazko xehetasunak</string>
   <string name="pastBroadcasts">Pasatutako zuzenekoak</string>
   <string name="allBroadcastsByMonth">Ikusi zuzeneko guztiak hilabeteka</string>

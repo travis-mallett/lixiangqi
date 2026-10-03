@@ -1,8 +1,7 @@
-import { opposite } from 'chessops/util';
-
 import { prop, defined } from 'lib';
 import { debounce, throttle, throttlePromiseDelay } from 'lib/async';
 import { displayColumns } from 'lib/device';
+import { oppositeSide as opposite } from 'lib/game/xiangqi';
 import { pubsub } from 'lib/pubsub';
 import { storedMap } from 'lib/storage';
 import { completeNode } from 'lib/tree/node';
@@ -39,12 +38,12 @@ import type {
   ChapterPreviewFromServer,
   ChapterSelect,
 } from './interfaces';
+import LocalAnalysis from './localAnalysis';
 import { MultiBoardCtrl } from './multiBoard';
 import { MultiCloudEval } from './multiCloudEval';
 import { NotifCtrl } from './notif';
 import type { RelayData } from './relay/interfaces';
 import RelayCtrl from './relay/relayCtrl';
-import ServerEval from './serverEval';
 import {
   clearSourceGameEvals,
   matchesSourceGame,
@@ -109,7 +108,7 @@ export default class StudyCtrl {
   commentForm: CommentForm;
   glyphForm: GlyphForm;
   topics: TopicsCtrl;
-  serverEval: ServerEval;
+  localAnalysis: LocalAnalysis;
   share: StudyShare;
   tags: TagsForm;
   studyDesc: DescriptionCtrl;
@@ -125,7 +124,8 @@ export default class StudyCtrl {
     relayData?: RelayData,
   ) {
     this.data = data;
-    if (data.chapter.serverEval?.sourceGame) this.sourceGameLine = snapshotSourceGame(ctrl.data.treeParts);
+    if (data.chapter.serverEval?.sourceGame)
+      this.sourceGameLine = snapshotSourceGame(treeOps.mainlineNodeList(ctrl.tree.root));
     this.notif = new NotifCtrl(ctrl.redraw);
     const isManualChapter = data.chapter.id !== data.position.chapterId;
     const sticked =
@@ -166,23 +166,16 @@ export default class StudyCtrl {
       () => this.setTab('chapters'),
       chapterId => xhr.chapterConfig(data.id, chapterId),
       this.ctrl,
-      () => this.data.chapter,
     );
     this.multiCloudEval = this.isCevalAllowed()
-      ? new MultiCloudEval(this.redraw, () => this.ctrl.variantKey, this.chapters.list, this.send)
+      ? new MultiCloudEval(this.redraw, this.chapters.list, this.send)
       : undefined;
     if (relayData) this.relay = new RelayCtrl(this, relayData);
     this.multiBoard = new MultiBoardCtrl(this.chapters.list, this.relay, this.multiCloudEval, this.redraw);
     this.form = new StudyForm(
       (d, isNew) => {
         this.send('editStudy', d);
-        if (
-          isNew &&
-          data.chapter.setup.variant.key === 'standard' &&
-          ctrl.mainline.length === 1 &&
-          !data.chapter.setup.fromFen &&
-          !this.relay
-        ) {
+        if (isNew && ctrl.mainline.length === 1 && !data.chapter.setup.fromFen && !this.relay) {
           this.chapters.newForm.openInitial();
         }
       },
@@ -195,22 +188,23 @@ export default class StudyCtrl {
     this.tags = new TagsForm(this, tagTypes);
     this.studyDesc = new DescriptionCtrl(
       data.description,
-      debounce(t => {
+      t => {
         data.description = t;
-        this.send('descStudy', t);
-      }, 500),
+        return () => this.send('descStudy', t);
+      },
       this.redraw,
     );
     this.chapterDesc = new DescriptionCtrl(
       data.chapter.description,
-      debounce(t => {
+      t => {
         data.chapter.description = t;
-        this.send('descChapter', { id: this.vm.chapterId, desc: t });
-      }, 500),
+        const id = data.chapter.id;
+        return () => this.send('descChapter', { id, desc: t });
+      },
       this.redraw,
     );
 
-    this.serverEval = new ServerEval(ctrl, () => this.vm.chapterId);
+    this.localAnalysis = new LocalAnalysis(ctrl, () => this.vm.chapterId);
 
     this.search = new SearchCtrl(
       this.relay?.fullRoundName() || data.name,
@@ -373,7 +367,9 @@ export default class StudyCtrl {
     this.ctrl.flipped = this.chapterFlipMapProp(this.data.chapter.id);
 
     const merge = !this.vm.mode.write && sameChapter;
-    this.sourceGameLine = s.chapter.serverEval?.sourceGame ? snapshotSourceGame(d.analysis.treeParts) : [];
+    this.sourceGameLine = s.chapter.serverEval?.sourceGame
+      ? snapshotSourceGame(treeOps.mainlineNodeList(d.analysis.tree))
+      : [];
     this.ctrl.reloadData(d.analysis, merge);
     this.invalidateSourceGameAnalysis();
     this.vm.gamebookOverride = undefined;
@@ -403,7 +399,7 @@ export default class StudyCtrl {
     this.vm.justSetChapterId = undefined;
 
     this.configurePractice();
-    this.serverEval.reset();
+    this.localAnalysis.reset();
     this.commentForm.onSetPath(this.data.chapter.id, this.ctrl.path, this.ctrl.node);
     this.redraw();
     this.ctrl.startCeval();
@@ -429,10 +425,11 @@ export default class StudyCtrl {
 
   currentNode = () => this.ctrl.node;
   onMainline = () => this.ctrl.tree.pathIsMainline(this.ctrl.path);
-  bottomColor = () =>
+  bottomColor = (): 'red' | 'black' =>
     this.ctrl.flipped ? opposite(this.data.chapter.setup.orientation) : this.data.chapter.setup.orientation;
 
   instantiateGamebookPlay = () => {
+    this.gamebookPlay?.destroy();
     if (!this.isGamebookPlay()) return (this.gamebookPlay = undefined);
     // ensure all original nodes have a gamebook entry,
     // so we can differentiate original nodes from user-made ones
@@ -493,6 +490,11 @@ export default class StudyCtrl {
       return true;
     }
     this.chapters.scroller.request('smooth');
+    this.localAnalysis.reset();
+    this.chapterDesc.flush();
+    this.studyDesc.flush();
+    this.commentForm.flush();
+    this.gamebookPlay?.destroy();
     this.vm.nextChapterId = id;
     this.vm.justSetChapterId = id;
     if (this.vm.mode.sticky && this.makeChange('setChapter', id)) {
@@ -584,7 +586,7 @@ export default class StudyCtrl {
     delete this.ctrl.data.game.division;
     delete this.data.chapter.serverEval;
     this.sourceGameLine = [];
-    this.serverEval.reset();
+    this.localAnalysis.reset();
   };
 
   deleteNode = (path: TreePath) => {
@@ -702,10 +704,10 @@ export default class StudyCtrl {
     },
     addNode: d => {
       const position = d.p,
-        node = completeNode(this.ctrl.variantKey)(d.n),
+        node = completeNode(d.n),
         who = d.w,
         sticky = d.s;
-      if (d.relayPath === '!') d.relayPath = d.p.path + d.n.id;
+      if (d.relayPath === '!') d.relayPath = treePath.append(d.p.path, d.n.uci!);
       this.setMemberActive(who);
       this.chapters.addNode(d);
       this.multiCloudEval?.addNode(d);
@@ -716,7 +718,7 @@ export default class StudyCtrl {
         return;
       }
       if (sticky && who?.s === site.sri && this.ctrl.variantKey !== 'xiangqi') {
-        this.data.position.path = position.path + node.id;
+        this.data.position.path = treePath.append(position.path, node.id);
         return;
       }
       this.data.chapter.relayPath = d.relayPath;
@@ -847,6 +849,7 @@ export default class StudyCtrl {
       const position = d.p,
         who = d.w;
       this.setMemberActive(who);
+      this.commentForm.acknowledge(position.chapterId, position.path, who.s);
       if (this.wrongChapter(d)) return;
       this.ctrl.tree.setCommentAt(d.c, position.path);
       this.redraw();

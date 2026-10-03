@@ -1,3 +1,4 @@
+import { mainlineChild } from 'lib/tree/ops';
 import { path as treePath } from 'lib/tree/tree';
 import type { TreeNode } from 'lib/tree/types';
 
@@ -9,8 +10,8 @@ export default class Navigate {
   next = (): void => {
     if (this.ctrl.retro?.preventGoingToNextMove()) return;
     if (this.ctrl.fork.proceed()) return;
-    const child = this.ctrl.node.children[0];
-    if (child) this.ctrl.userJumpIfCan(this.ctrl.path + child.id);
+    const child = mainlineChild(this.ctrl.node);
+    if (child) this.ctrl.userJumpIfCan(treePath.append(this.ctrl.path, child.id));
   };
 
   prev = (): void => this.ctrl.userJumpIfCan(treePath.init(this.ctrl.path));
@@ -33,10 +34,10 @@ export default class Navigate {
     let child = this.ctrl.visibleChildren()[this.ctrl.fork.selectedIndex];
     let path = this.ctrl.path;
     while (child && child.children.length < 2) {
-      path += child.id;
+      path = treePath.append(path, child.id);
       child = child.children[0];
     }
-    if (child) this.ctrl.userJumpIfCan(path + child.id);
+    if (child) this.ctrl.userJumpIfCan(treePath.append(path, child.id));
     else if (this.ctrl.tree.pathIsMainline(this.ctrl.path)) this.last();
     else this.exitVariation();
   };
@@ -46,7 +47,7 @@ export default class Navigate {
     let found,
       path = treePath.root;
     this.ctrl.nodeList.slice(1, -1).forEach((n: TreeNode) => {
-      path += n.id;
+      path = treePath.append(path, n.id);
       if (n.children[1]) found = path;
     });
     if (found) this.ctrl.userJump(found);

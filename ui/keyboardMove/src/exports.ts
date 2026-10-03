@@ -1,7 +1,6 @@
 import { h, type VNode } from 'snabbdom';
 
 import { type Prop, propWithEffect } from 'lib';
-import type { SanToUci } from 'lib/game';
 import type { MoveRootCtrl, MoveUpdate } from 'lib/game/moveRootCtrl';
 import { onInsert, snabDialog } from 'lib/view';
 
@@ -22,12 +21,13 @@ export interface KeyboardMove {
   update(up: MoveUpdate): void;
   registerHandler(h: KeyboardMoveHandler): void;
   isFocused: Prop<boolean>;
-  san(orig: string, dest: string): void;
+  move(orig: string, dest: string): void;
   select(key: string): void;
   hasSelected(): string | undefined;
   confirmMove(): void;
-  usedSan: boolean;
-  legalSans: SanToUci | null;
+  usedNotation: boolean;
+  legalMoves: Record<string, string> | null;
+  resolveNotation?: (text: string) => Promise<string | undefined>;
   arrowNavigate(arrowKey: ArrowKey): void;
   justSelected(): boolean;
   draw(): void;
@@ -43,8 +43,8 @@ export interface KeyboardMove {
 
 export interface RootData {
   game: { variant: { key: VariantKey } };
-  player: { color: Color | 'both' };
-  opponent?: { color: Color; user?: { username: string } };
+  player: { color: Color | 'red' | 'both' };
+  opponent?: { color: Color | 'red'; user?: { username: string } };
 }
 
 export type ArrowKey = 'ArrowUp' | 'ArrowDown' | 'ArrowLeft' | 'ArrowRight';
@@ -53,6 +53,7 @@ export interface KeyboardMoveRootCtrl extends MoveRootCtrl {
   userJumpPlyDelta?: (plyDelta: Ply) => void;
   handleArrowKey?: (arrowKey: ArrowKey) => void;
   submitMove?: (v: boolean) => void;
+  resolveNotation?: (text: string) => Promise<string | undefined>;
   data: RootData;
 }
 
@@ -63,7 +64,7 @@ export function loadKeyboardMove(opts: Opts): Promise<KeyboardMoveHandler> {
 export function render(ctrl: KeyboardMove): VNode {
   return h('div.keyboard-move', [
     h('input', {
-      attrs: { spellcheck: 'false', autocomplete: 'off' },
+      attrs: { spellcheck: 'false', autocomplete: 'off', 'aria-label': i18n.site.enterXiangqiMove },
       hook: onInsert((input: HTMLInputElement) =>
         site.asset
           .loadEsm<KeyboardMoveHandler>('keyboardMove', { init: { input, ctrl } })
@@ -71,8 +72,8 @@ export function render(ctrl: KeyboardMove): VNode {
       ),
     }),
     ctrl.isFocused()
-      ? h('em', ['a1a2 / a10a9 ', h('kbd', 'Enter')])
-      : h('strong', ['Press ', h('kbd', 'm'), ' to focus']),
+      ? h('em', ['a1a2 / a10a9 / R9+1 ', h('kbd', 'Enter')])
+      : h('strong', i18n.site.focusMoveInput),
     ctrl.helpModalOpen()
       ? snabDialog({
           class: 'help.keyboard-move-help',
@@ -98,7 +99,7 @@ export function ctrl(root: KeyboardMoveRootCtrl): KeyboardMove {
     else board.select(key);
     lastSelect = performance.now();
   };
-  let usedSan = false;
+  let usedNotation = false;
   return {
     update(up: MoveUpdate) {
       if (up.board) board = up.board;
@@ -109,8 +110,8 @@ export function ctrl(root: KeyboardMoveRootCtrl): KeyboardMove {
       handler = h;
       if (lastFen) handler(lastFen, board?.destinations());
     },
-    san(orig, dest) {
-      usedSan = true;
+    move(orig, dest) {
+      usedNotation = true;
       board?.cancelInput();
       select(orig);
       select(dest);
@@ -119,8 +120,11 @@ export function ctrl(root: KeyboardMoveRootCtrl): KeyboardMove {
     select,
     hasSelected: () => board?.selectedLocation(),
     confirmMove: () => (root.submitMove ? root.submitMove(true) : null),
-    usedSan,
-    legalSans: null,
+    get usedNotation() {
+      return usedNotation;
+    },
+    resolveNotation: root.resolveNotation,
+    legalMoves: null,
     arrowNavigate(arrowKey: ArrowKey) {
       if (root.handleArrowKey) {
         root.handleArrowKey?.(arrowKey);

@@ -1,3 +1,4 @@
+import { json } from '../../xhr';
 import type { CevalCtrl } from '../ctrl';
 import {
   CevalState,
@@ -9,6 +10,7 @@ import {
   type ExternalEngineInfo,
   type Work,
 } from '../types';
+import { ExternalEngine } from './external';
 import { PikafishBrowserEngine, type PikafishStatus } from './pikafishBrowser';
 import { toLocalEval } from './pikafishProtocol';
 
@@ -36,7 +38,9 @@ class PikafishCevalEngine implements CevalEngine {
     this.started = true;
     this.engine.start({
       fen: work.currentFen,
-      search: { depth: searchDepth(work) },
+      legalMoves: work.legalMoves,
+      history: { initialFen: work.initialFen, moves: work.moves, ruleset: work.ruleset },
+      search: 'nodes' in work.search ? { nodes: work.search.nodes } : work.search,
       multiPv: work.multiPv,
       threads: work.threads,
       hashSize: work.hashSize ?? 16,
@@ -85,11 +89,16 @@ class PikafishCevalEngine implements CevalEngine {
 }
 
 export class Engines {
-  readonly externalEngines: ExternalEngineInfo[] = [];
+  readonly externalEngines: ExternalEngineInfo[];
   private readonly info: BrowserEngineInfo;
   private activeEngine: EngineInfo;
 
   constructor(private readonly ctrl: CevalCtrl) {
+    this.externalEngines = (ctrl.opts.externalEngines ?? []).map(engine => ({
+      ...engine,
+      tech: 'EXTERNAL',
+      capabilities: engine.officialPikafish ? ['staticAnalysis', 'cloudEval'] : ['staticAnalysis'],
+    }));
     this.info = {
       id: 'pikafish-web',
       name: 'Pikafish',
@@ -106,22 +115,25 @@ export class Engines {
       minThreads: 1,
       maxThreads: 8,
       maxHash: 256,
-      capabilities: ['staticAnalysis'],
+      capabilities: ['staticAnalysis', 'cloudEval'],
     };
     this.activeEngine = this.info;
   }
 
-  getEngine(_selector?: { id?: string; variant?: VariantKey; capability?: EngineTrust }): EngineInfo {
-    return this.info;
+  getEngine(selector?: { id?: string; variant?: VariantKey; capability?: EngineTrust }): EngineInfo {
+    const engines = this.supporting(selector?.variant ?? 'xiangqi', selector?.capability);
+    const engine = selector?.id ? engines.find(engine => engine.id === selector.id) : engines[0];
+    if (!engine) throw new Error('Selected native engine is unavailable');
+    return engine;
   }
 
   active(): EngineInfo {
     return this.activeEngine;
   }
 
-  setActive(_id: string): EngineInfo {
-    this.activeEngine = this.info;
-    return this.info;
+  setActive(id: string): EngineInfo {
+    this.activeEngine = this.getEngine({ id });
+    return this.activeEngine;
   }
 
   get defaultId(): string {
@@ -129,32 +141,43 @@ export class Engines {
   }
 
   get external(): ExternalEngineInfo | undefined {
-    return undefined;
+    return this.activeEngine.tech === 'EXTERNAL' ? this.activeEngine : undefined;
   }
 
-  async deleteExternal(_id: string): Promise<boolean> {
-    return false;
+  async deleteExternal(id: string): Promise<boolean> {
+    await json(`/api/external-engine/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    const index = this.externalEngines.findIndex(engine => engine.id === id);
+    if (index >= 0) this.externalEngines.splice(index, 1);
+    if (this.activeEngine.id === id) this.ctrl.selectEngine(this.defaultId);
+    return true;
   }
 
   supporting(
     variant: VariantKey,
-    _capability?: EngineTrust,
+    capability?: EngineTrust,
     filter: 'browser' | 'external' | 'all' = 'all',
   ): EngineInfo[] {
-    return filter === 'external' || !this.info.variants?.includes(variant) ? [] : [this.info];
+    const engines =
+      filter === 'browser'
+        ? [this.info]
+        : filter === 'external'
+          ? this.externalEngines
+          : [this.info, ...this.externalEngines];
+    return engines.filter(
+      engine =>
+        engine.variants?.includes(variant) && (!capability || engine.capabilities?.includes(capability)),
+    );
   }
 
-  makeEngine(_selector?: { id?: string; variant?: VariantKey }): CevalEngine {
-    return new PikafishCevalEngine(this.info, status => {
+  makeEngine(selector?: { id?: string; variant?: VariantKey }): CevalEngine {
+    const info = this.getEngine(selector);
+    const notify: EngineNotifier = status => {
       if (status?.error) this.ctrl.engineFailed(status.error);
       this.ctrl.download = status?.download;
       this.ctrl.opts.redraw();
-    });
+    };
+    return info.tech === 'EXTERNAL'
+      ? new ExternalEngine(info, notify)
+      : new PikafishCevalEngine(info, notify);
   }
-}
-
-function searchDepth(work: Work): number {
-  if ('depth' in work.search) return Math.max(1, Math.min(99, work.search.depth));
-  if ('nodes' in work.search) return 24;
-  return work.search.movetime >= 3000 ? 24 : work.search.movetime >= 1000 ? 20 : 16;
 }

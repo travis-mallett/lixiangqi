@@ -8,6 +8,7 @@ import type { PikafishStatus } from 'lib/ceval/engines/pikafishBrowser';
 import { PikafishProtocol, type EngineAnalysis } from 'lib/ceval/engines/pikafishProtocol';
 
 import type { XiangqiPuzzleEngineLike } from '../src/xiangqiPuzzleEngine.ts';
+import { fixturePositions } from './positionFixtures.ts';
 
 mock.module('lib/permalog', { namedExports: { log: () => Promise.resolve() } });
 const {
@@ -239,10 +240,15 @@ test('zalD3 H4+3 keeps searching past the recorded shallow failure, bounded at f
   };
   const { evaluateAlternative } = await import('../src/alternative.ts');
   const { makeObjective } = await import('../src/xiangqiAdjudication.ts');
-  const objective = makeObjective(fixture.puzzleFen, fixture.solution, {
-    objective: 'mate',
-    solutions: [fixture.solution],
-  });
+  const objective = makeObjective(
+    fixture.puzzleFen,
+    fixture.solution,
+    {
+      objective: 'mate',
+      solutions: [fixture.solution],
+    },
+    fixturePositions(fixture.puzzleFen, fixture.solution),
+  );
   for (const reachesDepth20 of [true, false]) {
     const commands: string[] = [];
     const protocol = new PikafishProtocol();

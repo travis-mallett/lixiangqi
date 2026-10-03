@@ -380,3 +380,81 @@ themes are registered with the offline matcher and classifier, exposed to
 Puzzle Studio audits and normal categorization, and admitted by the catalog
 publication allowlist. Their existing theme assets are already packaged, so
 deployment needs no separate static allowlist or migration.
+
+## Cannon Chariot Discovered Attack (车炮抽扯)
+
+Theme key: `cannonChariotDiscoveredAttack`; logic revision: `1.0`.
+
+Anywhere in a verified solution, on a winning turn, a winning chariot may leave
+the cannon line it was masking so that a winning cannon attacks the losing
+general. Replay the stored decision boards and accept a ply only when:
+
+1. the moving piece is a winning chariot;
+2. the chariot's origin lies strictly between one winning cannon and the losing
+   general on a shared rank or file;
+3. the chariot does not finish on that segment, so it left the cannon's line;
+4. that same cannon attacks the general after the move and did not before it.
+
+A cannon attacks the first piece beyond exactly one screen, which is exact board
+geometry. The whole rule therefore needs no Pikafish inspection, piece removal,
+or continuation search. Replay handles occupied destinations, captures along the
+way, either color, either axis, and arbitrary spacing. A chariot arriving on the
+cannon's line to become the screen, a chariot that captures another screen while
+staying on the line, an unmasking horse or pawn, and the losing side's own
+discovery do not qualify. Only the winning side's chariot can trigger the motif.
+
+This motif applies to mating and non-mating puzzles, so the theme is registered
+in both taxonomies: the mating pool receives it through the terminal matcher
+registry, the tactic pool through its own category list, and both use the same
+detector and theme key. The stored evidence is bound to the terminal board and
+every decision board, so reuse recomputes the verdict without engine work.
+Traces whose decision boards are missing or incoherent remain inconclusive and
+need re-verification, like every other trace-level motif. Every verified branch
+must qualify under the existing branch-consensus policy.
+
+The theme, translations, lesson, and `cannonChariotDiscoveredAttack.webp` asset
+already exist under Basic Kills / Other Named Basic Kills, and deployment
+packages and validates theme assets automatically. Registering the category
+queues retained verified inventory of both kinds for normal categorization; no
+schema, data migration, or deployment-script change is needed. Publish newly
+categorized puzzles through Studio.
+
+## Detonating Mine Attack (炮辗丹沙)
+
+Theme key: `detonatingMineAttack`; logic revision: `1.0`.
+
+The role-reversed twin of the cannon chariot discovery. Anywhere in a verified
+solution, on a winning turn, a winning cannon may leave the line it was masking
+so that a winning chariot attacks the losing general. Replay the stored decision
+boards and accept a ply only when:
+
+1. the moving piece is a winning cannon;
+2. the cannon's origin lies strictly between one winning chariot and the losing
+   general on a shared rank or file;
+3. the cannon does not finish on that segment, so it left the chariot's line;
+4. that same chariot attacks the general after the move and did not before it.
+
+A chariot attacks the first piece along an unobstructed rank or file, which is
+exact board geometry. The whole rule therefore needs no Pikafish inspection,
+piece removal, or continuation search. Replay handles occupied destinations,
+captures along the way, either color, either axis, and arbitrary spacing. A
+cannon arriving on the chariot's line, a cannon sliding within it, a second
+blocker that keeps the chariot masked, an unmasking chariot or pawn, and the
+losing side's own discovery do not qualify. Only the winning side's cannon can
+trigger the motif.
+
+This motif applies to mating and non-mating puzzles, so the theme is registered
+in both taxonomies: the mating pool receives it through the terminal matcher
+registry, the tactic pool through its own category list, and both use the same
+detector and theme key. The stored evidence is bound to the terminal board and
+every decision board, so reuse recomputes the verdict without engine work.
+Traces whose decision boards are missing or incoherent remain inconclusive and
+need re-verification, like every other trace-level motif. Every verified branch
+must qualify under the existing branch-consensus policy.
+
+The theme, translations, lesson, and `detonatingMineAttack.webp` asset already
+exist under Basic Kills / Other Named Basic Kills, and deployment packages and
+validates theme assets automatically. Registering the category queues retained
+verified inventory of both kinds for normal categorization; no schema, data
+migration, or deployment-script change is needed. Publish newly categorized
+puzzles through Studio.

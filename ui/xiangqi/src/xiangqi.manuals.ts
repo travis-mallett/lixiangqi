@@ -46,7 +46,7 @@ function renderGames(container: HTMLElement, chapter: AncientManualChapter, chin
 
     initMiniBoardWith(board, {
       fen: game.finalFen,
-      orientation: 'white',
+      orientation: 'red',
       purpose: 'preview',
     });
   });

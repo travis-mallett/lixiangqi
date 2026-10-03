@@ -1,40 +1,34 @@
-# Lixiangqi engine boundary
+# LiXiangQi rules and engine boundary
 
-Lixiangqi starts from the unmodified upstream Lichess tree. The only supported
-game is standard Xiangqi. It does not inherit Lishogi, Shogi roles, drops,
-promotion, color terminology, board geometry, or database variant semantics.
+LiXiangQi is an independent Xiangqi application. The inherited application
+infrastructure remains useful, but former-upstream game behavior is not its
+rules authority.
 
-## Upstream authority
+`modules/xiangqi` owns native legal moves, position transitions, notation and
+versioned adjudication. A rules position is the initial FEN, complete ancestor
+move sequence and ruleset. History-dependent adjudication must not start again
+from a selected node's FEN. See [Tiantian rules](TIANTIAN_RULES.md).
 
-- Lichess owns the application shell, accounts, pairing, clocks, messaging,
-  tournaments, studies, moderation, and presentation outside the board.
-- Lixiangqi owns its ported standard-Xiangqi contract, 9x10 board
-  configuration, WXF renderer, UCI rank-10 encoding, themes, and piece assets.
-  PyChess remains the attributed upstream source for those ports.
-- Official Pikafish owns legal-move generation, FEN transitions, check and
-  end-state detection, every position evaluation, engine search, best-move
-  choice, and principal variation shown by Lixiangqi.
-- `chessgroundx`, as used by PyChess, owns variable board dimensions and the
-  intersection-centered piece transforms. Lichess's 8x8 chessground geometry
-  must not be stretched into a 9x10 board.
+Native coordinates cover `a1` through `i10`. Study trees, APIs, persistence and
+browser components retain literal coordinates. Only the explicit Pikafish UCI
+boundary converts to the engine's zero-based rank convention. The shared
+`chessgroundx` board consumes native ten-rank coordinates directly.
 
-## Integration rule
+Pikafish supplies search and evaluation, in the browser or through the native
+worker. It is not the application's adjudication authority. Requests retain the
+initial position and branch moves, restrict root search to native legal moves,
+and validate complete returned principal variations before application. Invalid
+lines produce an explicit failure; no valid-prefix truncation is substituted.
+Pikafish's search policy and the application's Tiantian policy are distinct:
+search quality and availability in policy-divergent continuations need further
+end-to-end verification.
 
-No Xiangqi rule may be independently invented in Lixiangqi. Server operations
-cross the rules boundary and fail closed if the rules library is unavailable.
-The browser contains no local chess or Fairy-Stockfish analysis runtime;
-analysis requests cross the server boundary to the pinned Pikafish process.
-Shared fixtures check the rules boundary against standard Xiangqi positions.
+Study server analysis and private external engines use the native worker in
+`external/pikafish_worker/analysis.py`. Their queues, authentication, bounded
+resources and source-history checks are documented in
+[native study data](native-study-data.md) and
+[operational recovery](xiangqi-study-operations.md).
 
-The first implementation is intentionally stateless. A rules request contains
-the initial FEN and complete move list, making retries deterministic and keeping
-native engine state out of Lichess actors. Persistent Pikafish sessions are
-guarded independently, with command access serialized per engine process.
-
-## Single-game product policy
-
-The persisted game kind is Xiangqi; it is not exposed as a selectable variant.
-Game setup offers Red, Random, and Black with ordinary Lichess color discs.
-Chess-only controls (variant selector, castling, promotion, en passant, opening
-book, Syzygy, and chess piece themes) are hidden or replaced only where a
-Xiangqi position makes them invalid.
+Browser analysis avoids server search CPU. Server analysis requires an actual
+worker; an unconfigured worker is not a passed verification. The
+[conversion ledger](xiangqi-study-conversion.md) records remaining checks.

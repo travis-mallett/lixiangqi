@@ -1,5 +1,7 @@
 import type { VisiblePiece } from '@lixiangqi/board';
 
+import type { XiangqiSide as Color } from 'lib/game/xiangqi';
+
 export type Redraw = () => void;
 export type Selected = 'pointer' | 'trash' | Extract<VisiblePiece, { face: 'up' }>;
 
@@ -10,11 +12,10 @@ export interface EditorState {
   validating: boolean;
 }
 
-export interface LichessEditor {
+export interface XiangqiEditor {
   getFen(): string;
   setFen(fen: string): boolean;
   setOrientation(orientation: Color): void;
-  setVariant(variant: string): void;
   destroy(): void;
 }
 

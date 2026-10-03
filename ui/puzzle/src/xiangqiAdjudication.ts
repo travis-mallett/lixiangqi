@@ -1,10 +1,4 @@
-import {
-  createMoveTreeFromUciMainline,
-  requestXiangqi,
-  XiangqiRequestError,
-  type RulesState,
-  type XiangqiPositionNode,
-} from 'xiangqi';
+import { requestXiangqi, XiangqiRequestError, type RulesState } from 'xiangqi';
 
 import type { EngineAnalysis, EngineScore, PikafishHistory } from 'lib/ceval/engines/pikafishProtocol';
 import { xiangqiMaterialScore as material } from 'lib/game/material';
@@ -94,6 +88,7 @@ export async function winningContinuation(
     const finalState = await requestXiangqi<RulesState>('/api/analysis/position', {
       initialFen: history.initialFen,
       moves: [...history.moves, ...moves],
+      ruleset: history.ruleset,
     });
     if (terminalDecision(finalState, objective.player, playerMoves + solverMoves, Infinity)?.result === 'win')
       return { moves, finalState };
@@ -126,29 +121,21 @@ export function playerScore(score: EngineScore, player: 'red' | 'black'): { cp?:
   };
 }
 
-export function linePositions(fen: string, moves: string[]): RulesState[] {
-  let node: XiangqiPositionNode = createMoveTreeFromUciMainline(fen, moves).root;
-  const states = [node.state];
-  while (node.children[0]) {
-    node = node.children[0];
-    states.push(node.state);
-  }
-  return states;
-}
-
 const positionKey = (fen: string): string => fen.split(/\s+/).slice(0, 2).join(' ');
 
 export function makeObjective(
   initialFen: string,
   solution: string[],
   playback: PuzzlePlayback,
+  positions: RulesState[],
 ): PuzzleObjective {
   if (!solution.length) throw new Error('Puzzle has no stored solution');
   const player = initialFen.split(/\s+/)[1] === 'b' ? 'black' : 'red';
   const mate = playback.objective === 'mate';
   if (playback.objective === 'tactic' && (!Number.isFinite(playback.startingCp) || playback.startingCp! <= 0))
     throw new Error('Puzzle has no verified starting advantage');
-  const positions = linePositions(initialFen, solution);
+  if (positions.length !== solution.length + 1 || positions[0].fen !== initialFen)
+    throw new Error('Puzzle solution is missing its native rules states');
   const end = positions[positions.length - 1];
   return {
     mate,
@@ -194,6 +181,7 @@ export function adjudicateAlternative(
   evaluation: EngineAnalysis | undefined,
   playerMoves: number,
   continuation?: WinningContinuation,
+  variationStates?: RulesState[],
 ): PuzzleDecision {
   const terminal = terminalDecision(state, objective.player, playerMoves, objective.allowance);
   if (terminal) return terminal;
@@ -216,7 +204,8 @@ export function adjudicateAlternative(
     const realizedGain =
       objective.targetMaterial > objective.startingMaterial &&
       pv.length > 0 &&
-      linePositions(state.fen, pv).every(
+      variationStates?.length === pv.length &&
+      [state, ...variationStates].every(
         pos => material(pos.fen, objective.player) >= objective.targetMaterial,
       );
     if (equivalentPosition || realizedGain) return { result: 'win' };

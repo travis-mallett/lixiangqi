@@ -357,7 +357,7 @@ final class RelayApi(
           ("finishedAt", _.finishedAt),
           ("customScoring", _.customScoring),
           ("teamCustomScoring", _.teamCustomScoring),
-          ("fideTCOverride", _.fideTCOverride)
+          ("ratingCategoryOverride", _.ratingCategoryOverride)
         )
         _ <- roundRepo.coll.update.one($id(round.id), $set(setters) ++ unsets).void
         _ <- (round.sync.playing != from.sync.playing)
@@ -523,7 +523,7 @@ final class RelayApi(
     _.expireAfterWrite(5.seconds).buildAsyncFuture(roundRepo.isInternalWithoutDelay)
 
   def reconfigureStudy(study: Study, chapter: Chapter): Fu[Study] =
-    (study.isRelay && chapter.tags.outcome.isEmpty)
+    (study.isRelay && lila.study.StudyPgnTags.points(chapter.tags).isEmpty)
       .so(isOngoingWithoutDelay.get(study.id.into(RelayRoundId)))
       .map:
         if _ then study.configureForOngoingRelay else study
