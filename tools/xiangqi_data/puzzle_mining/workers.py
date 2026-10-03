@@ -10,6 +10,7 @@ from __future__ import annotations
 import multiprocessing as mp
 import threading
 import time
+from contextlib import contextmanager
 from datetime import UTC, datetime
 from typing import Any
 
@@ -33,9 +34,10 @@ def supervisor_running() -> bool:
     return parent is None or parent.is_alive()
 
 
+@contextmanager
 def watch_supervisor(
     stop_event: mp.synchronize.Event, *, interval: float = 1.0
-) -> None:
+):
     """Stop this worker once the supervisor that spawned it disappears.
 
     A pool outliving its supervisor keeps mining against the shared database
@@ -43,14 +45,25 @@ def watch_supervisor(
     cannot contain descendants when the launcher itself runs inside a job.
     """
 
+    finished = threading.Event()
+
     def watch() -> None:
         while not stop_event.is_set():
             if not supervisor_running():
                 stop_event.set()
                 return
-            stop_event.wait(interval)
+            if finished.wait(interval):
+                return
 
-    threading.Thread(target=watch, name="supervisor-watch", daemon=True).start()
+    # Never leave a daemon waiting on the pool's multiprocessing Event when a
+    # worker exits: abandoned condition waiters can deadlock the next set().
+    thread = threading.Thread(target=watch, name="supervisor-watch", daemon=True)
+    thread.start()
+    try:
+        yield
+    finally:
+        finished.set()
+        thread.join()
 
 
 def renew_claim(

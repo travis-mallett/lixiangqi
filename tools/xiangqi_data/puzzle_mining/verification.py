@@ -256,177 +256,177 @@ def _worker_main(
     catalog_path=None,
     reconstruct: bool = False,
 ) -> None:
-    watch_supervisor(stop_event)
-    connection = open_database(Path(output_path), initialize=False)
-    from .queue_priority import prepare_priority
+    with watch_supervisor(stop_event):
+        connection = open_database(Path(output_path), initialize=False)
+        from .queue_priority import prepare_priority
 
-    prepare_priority(connection, catalog_path)
-    engine = OfflinePikafish(
-        Path(executable),
-        threads=engine_threads,
-        hash_mb=hash_mb,
-        cancel_event=stop_event,
-    )
-    try:
-        signature = verification_signature(config, engine)
-        while not stop_event.is_set():
-            try:
-                claim = claim_verification(
-                    connection,
-                    signature,
-                    reconstruct=reconstruct,
-                    stop_event=stop_event,
-                )
-            except WorkerCancelled:
-                break
-            if claim is None:
-                if continuous and worker_id == 0:
-                    try:
-                        seed_verification(
-                            connection, signature, candidate_type=config.candidate_type
-                        )
-                    except Exception as exc:
-                        if not is_database_busy(exc):
-                            raise
-                        stop_event.wait(0.5)
-                        continue
-                if not wait_for_due_jobs(
-                    connection,
-                    "verification_jobs",
-                    "signature=?",
-                    (signature,),
-                    stop_event=stop_event,
-                ):
-                    if not continuous:
-                        break
-                    report_queue.put(("idle", worker_id))
-                    if stop_event.wait(poll_interval):
-                        break
-                continue
-            candidate = claim.candidate
-            report_queue.put(("started", worker_id, candidate.game_id, candidate.ply))
-            last_detail_at = 0.0
-            last_lease_at = time.monotonic()
-
-            def heartbeat() -> None:
-                nonlocal last_lease_at
-                timestamp = time.monotonic()
-                if stop_event.is_set():
-                    raise WorkerCancelled("worker shutdown requested")
-                if timestamp - last_lease_at >= 30.0:
-                    begin_write(connection, stop_event)
-                    renew_claim(
-                        connection, "verification_jobs", claim.id, candidate.claim_token
-                    )
-                    last_lease_at = timestamp
-
-            def detail_progress(
-                branch: int, branch_total: int, solution_ply: int
-            ) -> None:
-                nonlocal last_detail_at
-                heartbeat()
-                timestamp = time.monotonic()
-                if timestamp - last_detail_at >= 1.0:
-                    report_queue.put(
-                        (
-                            "detail",
-                            worker_id,
-                            candidate.game_id,
-                            candidate.ply,
-                            branch,
-                            branch_total,
-                            solution_ply,
-                        )
-                    )
-                    last_detail_at = timestamp
-
-            try:
-                path = source_paths.get(candidate.source_database)
-                if path is None and not is_native_source(candidate.source_database):
-                    status = fail_verification(
+        prepare_priority(connection, catalog_path)
+        engine = OfflinePikafish(
+            Path(executable),
+            threads=engine_threads,
+            hash_mb=hash_mb,
+            cancel_event=stop_event,
+        )
+        try:
+            signature = verification_signature(config, engine)
+            while not stop_event.is_set():
+                try:
+                    claim = claim_verification(
                         connection,
-                        claim,
-                        "source database is not installed",
-                        max_attempts=max_attempts,
+                        signature,
+                        reconstruct=reconstruct,
+                        stop_event=stop_event,
                     )
-                    puzzle_id = None
-                else:
-                    engine.heartbeat = heartbeat
-                    try:
-                        status, puzzle_id = verify_candidate(
-                            connection,
-                            engine,
-                            claim,
-                            Path(path) if path is not None else None,
-                            config,
-                            progress=detail_progress,
+                except WorkerCancelled:
+                    break
+                if claim is None:
+                    if continuous and worker_id == 0:
+                        try:
+                            seed_verification(
+                                connection, signature, candidate_type=config.candidate_type
+                            )
+                        except Exception as exc:
+                            if not is_database_busy(exc):
+                                raise
+                            stop_event.wait(0.5)
+                            continue
+                    if not wait_for_due_jobs(
+                        connection,
+                        "verification_jobs",
+                        "signature=?",
+                        (signature,),
+                        stop_event=stop_event,
+                    ):
+                        if not continuous:
+                            break
+                        report_queue.put(("idle", worker_id))
+                        if stop_event.wait(poll_interval):
+                            break
+                    continue
+                candidate = claim.candidate
+                report_queue.put(("started", worker_id, candidate.game_id, candidate.ply))
+                last_detail_at = 0.0
+                last_lease_at = time.monotonic()
+
+                def heartbeat() -> None:
+                    nonlocal last_lease_at
+                    timestamp = time.monotonic()
+                    if stop_event.is_set():
+                        raise WorkerCancelled("worker shutdown requested")
+                    if timestamp - last_lease_at >= 30.0:
+                        begin_write(connection, stop_event)
+                        renew_claim(
+                            connection, "verification_jobs", claim.id, candidate.claim_token
                         )
-                    except WorkerClaimLost:
-                        raise
-                    except (WorkerCancelled, EngineCancelled):
-                        release_verification(connection, claim)
-                        stop_event.set()
-                        break
-                    except VerificationInconclusive as exc:
-                        status = fail_verification(
-                            connection,
-                            claim,
-                            f"inconclusive: {exc}; settings={json.dumps(config.settings(), sort_keys=True)}",
-                            max_attempts=max_attempts,
-                            inconclusive=True,
-                        )
-                        puzzle_id = None
+                        last_lease_at = timestamp
+
+                def detail_progress(
+                    branch: int, branch_total: int, solution_ply: int
+                ) -> None:
+                    nonlocal last_detail_at
+                    heartbeat()
+                    timestamp = time.monotonic()
+                    if timestamp - last_detail_at >= 1.0:
                         report_queue.put(
                             (
-                                "warning",
+                                "detail",
                                 worker_id,
                                 candidate.game_id,
                                 candidate.ply,
-                                f"review: {exc} (incomplete; publication unchanged)",
+                                branch,
+                                branch_total,
+                                solution_ply,
                             )
                         )
-                    except Exception as exc:
+                        last_detail_at = timestamp
+
+                try:
+                    path = source_paths.get(candidate.source_database)
+                    if path is None and not is_native_source(candidate.source_database):
                         status = fail_verification(
                             connection,
                             claim,
-                            f"{type(exc).__name__}: {exc}",
+                            "source database is not installed",
                             max_attempts=max_attempts,
                         )
                         puzzle_id = None
-                        report_queue.put(
-                            (
-                                "warning",
-                                worker_id,
-                                candidate.game_id,
-                                candidate.ply,
-                                f"{status}: {type(exc).__name__}: {exc}",
+                    else:
+                        engine.heartbeat = heartbeat
+                        try:
+                            status, puzzle_id = verify_candidate(
+                                connection,
+                                engine,
+                                claim,
+                                Path(path) if path is not None else None,
+                                config,
+                                progress=detail_progress,
                             )
-                        )
-                    finally:
-                        engine.heartbeat = None
-            except WorkerClaimLost as exc:
+                        except WorkerClaimLost:
+                            raise
+                        except (WorkerCancelled, EngineCancelled):
+                            release_verification(connection, claim)
+                            stop_event.set()
+                            break
+                        except VerificationInconclusive as exc:
+                            status = fail_verification(
+                                connection,
+                                claim,
+                                f"inconclusive: {exc}; settings={json.dumps(config.settings(), sort_keys=True)}",
+                                max_attempts=max_attempts,
+                                inconclusive=True,
+                            )
+                            puzzle_id = None
+                            report_queue.put(
+                                (
+                                    "warning",
+                                    worker_id,
+                                    candidate.game_id,
+                                    candidate.ply,
+                                    f"review: {exc} (incomplete; publication unchanged)",
+                                )
+                            )
+                        except Exception as exc:
+                            status = fail_verification(
+                                connection,
+                                claim,
+                                f"{type(exc).__name__}: {exc}",
+                                max_attempts=max_attempts,
+                            )
+                            puzzle_id = None
+                            report_queue.put(
+                                (
+                                    "warning",
+                                    worker_id,
+                                    candidate.game_id,
+                                    candidate.ply,
+                                    f"{status}: {type(exc).__name__}: {exc}",
+                                )
+                            )
+                        finally:
+                            engine.heartbeat = None
+                except WorkerClaimLost as exc:
+                    report_queue.put(
+                        ("warning", worker_id, candidate.game_id, candidate.ply, str(exc))
+                    )
+                    report_queue.put(("idle", worker_id))
+                    continue
                 report_queue.put(
-                    ("warning", worker_id, candidate.game_id, candidate.ply, str(exc))
+                    (
+                        "progress",
+                        worker_id,
+                        candidate.game_id,
+                        candidate.ply,
+                        status,
+                        puzzle_id,
+                    )
                 )
-                report_queue.put(("idle", worker_id))
-                continue
-            report_queue.put(
-                (
-                    "progress",
-                    worker_id,
-                    candidate.game_id,
-                    candidate.ply,
-                    status,
-                    puzzle_id,
-                )
-            )
-    except Exception as exc:
-        report_queue.put(("worker_error", worker_id, f"{type(exc).__name__}: {exc}"))
-        raise
-    finally:
-        engine.close()
-        connection.close()
-        report_queue.put(("worker_done", worker_id))
+        except Exception as exc:
+            report_queue.put(("worker_error", worker_id, f"{type(exc).__name__}: {exc}"))
+            raise
+        finally:
+            engine.close()
+            connection.close()
+            report_queue.put(("worker_done", worker_id))
 
 
 def parse_args(default_type="checkmate_candidate") -> argparse.Namespace:

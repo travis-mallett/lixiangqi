@@ -41,8 +41,8 @@ class CategorizerConfig:
 
 
 def _worker_main(index, args, stop, catalog_changed):
-    watch_supervisor(stop)
     with ExitStack() as resources:
+        resources.enter_context(watch_supervisor(stop))
         connection = resources.enter_context(
             closing(open_database(args.database, initialize=False))
         )

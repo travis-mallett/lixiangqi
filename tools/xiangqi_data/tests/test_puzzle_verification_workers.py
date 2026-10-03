@@ -164,19 +164,42 @@ class SupervisorWatchdogTest(unittest.TestCase):
     def test_worker_stops_when_its_supervisor_disappears(self):
         stop = threading.Event()
         with patch.object(workers.mp, "parent_process", return_value=self._Supervisor(False)):
-            workers.watch_supervisor(stop, interval=0.01)
-            self.assertTrue(stop.wait(5))
+            with workers.watch_supervisor(stop, interval=0.01):
+                self.assertTrue(stop.wait(5))
 
     def test_running_supervisor_leaves_its_workers_alone(self):
         stop = threading.Event()
-        try:
-            with patch.object(
-                workers.mp, "parent_process", return_value=self._Supervisor(True)
-            ):
-                workers.watch_supervisor(stop, interval=0.01)
+        with patch.object(
+            workers.mp, "parent_process", return_value=self._Supervisor(True)
+        ):
+            with workers.watch_supervisor(stop, interval=0.01):
                 self.assertFalse(stop.wait(0.2))
-        finally:
-            stop.set()
+
+    def test_watchdog_is_joined_on_normal_and_exceptional_worker_exit(self):
+        for fail in (False, True):
+            with self.subTest(fail=fail):
+                stop = threading.Event()
+                checked = threading.Event()
+
+                def supervisor():
+                    checked.set()
+                    return True
+
+                before = set(threading.enumerate())
+                with patch.object(workers, "supervisor_running", side_effect=supervisor):
+                    try:
+                        with workers.watch_supervisor(stop, interval=3600):
+                            self.assertTrue(checked.wait(5))
+                            if fail:
+                                raise RuntimeError("worker failed")
+                    except RuntimeError:
+                        if not fail:
+                            raise
+                self.assertFalse(stop.is_set())
+                self.assertFalse(
+                    [t for t in threading.enumerate() if t not in before
+                     and t.name == "supervisor-watch"]
+                )
 
 
 if __name__ == "__main__":

@@ -473,106 +473,106 @@ def _worker_main(
     from tools.puzzle_catalog.discovery_publication import publish_pending_analysis
     from tools.puzzle_catalog.live import Publisher
 
-    watch_supervisor(stop_event)
-    connection = open_database(Path(output_path), initialize=False)
-    publisher = Publisher(publication_origin)
-    engine = OfflinePikafish(
-        Path(executable),
-        threads=engine_threads,
-        hash_mb=hash_mb,
-        cancel_event=stop_event,
-        high_performance=True,
-    )
-    try:
+    with watch_supervisor(stop_event):
+        connection = open_database(Path(output_path), initialize=False)
+        publisher = Publisher(publication_origin)
+        engine = OfflinePikafish(
+            Path(executable),
+            threads=engine_threads,
+            hash_mb=hash_mb,
+            cancel_event=stop_event,
+            high_performance=True,
+        )
+        try:
 
-        def publish(job_id):
-            result = publish_pending_analysis(
-                connection,
-                publisher,
-                job_id,
-                source_paths,
-                stop_event,
-                lambda message: report_queue.put(("publication", worker_id, message)),
-            )
-            if result:
-                report_queue.put(("published", worker_id, result))
-
-        for job_id in pending_publications:
-            publish(job_id)
-        while not stop_event.is_set():
-            job = claim_game_job(connection, discovery_version=discovery_version)
-            if job is None:
-                # A retry may be delayed.  Keep the worker supervisor alive
-                # until all work is actually drained instead of reporting
-                # success while retry rows are still waiting for their timer.
-                if not wait_for_due_jobs(
+            def publish(job_id):
+                result = publish_pending_analysis(
                     connection,
-                    "game_jobs",
-                    "discovery_version = ?",
-                    (discovery_version,),
-                    stop_event=stop_event,
-                ):
-                    break
-                continue
-            report_queue.put(("started", worker_id, job.game_id, job.source_database))
-            last_detail_at = 0.0
-            last_lease_at = 0.0
-
-            def detail_progress(stage: str, current: int, total: int) -> None:
-                nonlocal last_detail_at, last_lease_at
-                timestamp = time.monotonic()
-                if stop_event.is_set():
-                    raise WorkerCancelled("worker shutdown requested")
-                if timestamp - last_lease_at >= 30.0:
-                    begin_write(connection, stop_event)
-                    renew_claim(connection, "game_jobs", job.id, job.claim_token)
-                    last_lease_at = timestamp
-                if timestamp - last_detail_at >= 1.0:
-                    report_queue.put(
-                        (
-                            "detail",
-                            worker_id,
-                            job.game_id,
-                            stage,
-                            current,
-                            total,
-                        )
-                    )
-                    last_detail_at = timestamp
-
-            status, statistics = _process_job(
-                connection,
-                engine,
-                job,
-                {key: Path(value) for key, value in source_paths.items()},
-                config,
-                max_attempts,
-                discovery_version,
-                detail_progress,
-                publication_origin,
-                stop_event,
-            )
-            if status == "complete":
-                publish(job.id)
-            report_queue.put(
-                (
-                    "progress",
-                    worker_id,
-                    job.game_id,
-                    status,
-                    statistics,
-                    job.source_database,
+                    publisher,
+                    job_id,
+                    source_paths,
+                    stop_event,
+                    lambda message: report_queue.put(("publication", worker_id, message)),
                 )
-            )
-    except (WorkerCancelled, EngineCancelled):
-        pass
-    except Exception as error:
-        report_queue.put(("publication_error", worker_id, str(error)))
-        raise
-    finally:
-        engine.close()
-        connection.close()
-        report_queue.put(("worker_done", worker_id))
+                if result:
+                    report_queue.put(("published", worker_id, result))
+
+            for job_id in pending_publications:
+                publish(job_id)
+            while not stop_event.is_set():
+                job = claim_game_job(connection, discovery_version=discovery_version)
+                if job is None:
+                    # A retry may be delayed.  Keep the worker supervisor alive
+                    # until all work is actually drained instead of reporting
+                    # success while retry rows are still waiting for their timer.
+                    if not wait_for_due_jobs(
+                        connection,
+                        "game_jobs",
+                        "discovery_version = ?",
+                        (discovery_version,),
+                        stop_event=stop_event,
+                    ):
+                        break
+                    continue
+                report_queue.put(("started", worker_id, job.game_id, job.source_database))
+                last_detail_at = 0.0
+                last_lease_at = 0.0
+
+                def detail_progress(stage: str, current: int, total: int) -> None:
+                    nonlocal last_detail_at, last_lease_at
+                    timestamp = time.monotonic()
+                    if stop_event.is_set():
+                        raise WorkerCancelled("worker shutdown requested")
+                    if timestamp - last_lease_at >= 30.0:
+                        begin_write(connection, stop_event)
+                        renew_claim(connection, "game_jobs", job.id, job.claim_token)
+                        last_lease_at = timestamp
+                    if timestamp - last_detail_at >= 1.0:
+                        report_queue.put(
+                            (
+                                "detail",
+                                worker_id,
+                                job.game_id,
+                                stage,
+                                current,
+                                total,
+                            )
+                        )
+                        last_detail_at = timestamp
+
+                status, statistics = _process_job(
+                    connection,
+                    engine,
+                    job,
+                    {key: Path(value) for key, value in source_paths.items()},
+                    config,
+                    max_attempts,
+                    discovery_version,
+                    detail_progress,
+                    publication_origin,
+                    stop_event,
+                )
+                if status == "complete":
+                    publish(job.id)
+                report_queue.put(
+                    (
+                        "progress",
+                        worker_id,
+                        job.game_id,
+                        status,
+                        statistics,
+                        job.source_database,
+                    )
+                )
+        except (WorkerCancelled, EngineCancelled):
+            pass
+        except Exception as error:
+            report_queue.put(("publication_error", worker_id, str(error)))
+            raise
+        finally:
+            engine.close()
+            connection.close()
+            report_queue.put(("worker_done", worker_id))
 
 
 def parse_args() -> argparse.Namespace:

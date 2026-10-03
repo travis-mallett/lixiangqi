@@ -126,7 +126,7 @@ test('lesson edits follow a reloaded node and flush to their captured position o
   const mount = document.createElement('div');
   document.body.append(mount);
   let vnode = patch(mount, lessonEditor(ctrl));
-  ctrl.node = makeNode() as unknown as AnalyseCtrl['node'];
+  ctrl.node = { ...ctrl.node, gamebook: {} };
   vnode = patch(vnode, lessonEditor(ctrl));
   const el = (vnode.elm as HTMLElement).querySelector('textarea')!;
   el.value = 'First';
