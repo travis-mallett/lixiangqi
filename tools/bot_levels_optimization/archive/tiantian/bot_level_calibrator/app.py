@@ -5,10 +5,12 @@ import queue
 import threading
 import traceback
 from dataclasses import asdict
+from functools import partial
 from pathlib import Path
 
 from .controller import CalibrationStopped, TIANTIAN_LEVELS, TiantianController
 from .engine import PikafishEngine
+from .paths import REPOSITORY_ROOT
 from .optimizer import balanced_expected_score, probability_balanced_equivalent
 from .progress_chart import RankProgressChart, StrengthProgressChart, score_progress
 from .recognizer import XiangqiRecognizer
@@ -25,11 +27,10 @@ from .strength import describe_profile, initial_profile_for_level, profile_for_s
 
 
 TOOL_ROOT = Path(__file__).resolve().parents[1]
-REPO_ROOT = Path(__file__).resolve().parents[3]
 DATA_DIR = TOOL_ROOT / "data"
 DATABASE = DATA_DIR / "calibration.sqlite3"
 EXPORT_FILE = DATA_DIR / "recommended_profiles.json"
-ENGINE_PATH = REPO_ROOT / ".tools" / "pikafish" / "Windows" / "pikafish-avx2.exe"
+ENGINE_PATH = REPOSITORY_ROOT / ".tools" / "pikafish" / "Windows" / "pikafish-avx2.exe"
 
 
 class CalibrationApp:
@@ -335,6 +336,7 @@ class CalibrationApp:
             DATA_DIR.mkdir(parents=True, exist_ok=True)
             levels: dict[str, object] = {}
             for level in TIANTIAN_LEVELS:
+                profile_for_level_strength = partial(profile_for_strength, opening_book=level == 1)
                 results = self.store.results(level)
                 compatible = strength_calibration_games(self.store, level, results)
                 profile = current_profile(self.store, level, initial_profile_for_level(level))
@@ -353,16 +355,18 @@ class CalibrationApp:
                     ),
                     "strength": profile.strength,
                     "nodes": profile.nodes,
+                    "openingBook": profile.opening_book,
+                    "maxCandidateLoss": profile.max_candidate_loss,
                     "multiPv": profile.multi_pv,
                     "expectedRank": profile.expected_rank,
                     "worseRankProbability": profile.worse_rank_probability,
-                    "moveSelection": "bestmove" if profile.is_bestmove else "adjacent-pikafish-ranks",
+                    "moveSelection": "bestmove" if profile.is_bestmove else "production-rank-sampler" if profile.max_candidate_loss is not None else "adjacent-pikafish-ranks",
                     "optimizerState": self.store.policy_state(level),
                 }
                 if progress is not None:
-                    median = profile_for_strength(progress.estimate.strength)
-                    low = profile_for_strength(progress.estimate.low_95)
-                    high = profile_for_strength(progress.estimate.high_95)
+                    median = profile_for_level_strength(progress.estimate.strength)
+                    low = profile_for_level_strength(progress.estimate.low_95)
+                    high = profile_for_level_strength(progress.estimate.high_95)
                     levels[str(level)]["estimatedParityProfile"] = asdict(median)
                     levels[str(level)]["estimatedParityInterval95"] = [
                         asdict(low), asdict(high)
@@ -397,6 +401,7 @@ class CalibrationApp:
 
     def _refresh_stats(self) -> None:
         level = int(self.level_var.get())
+        profile_for_level_strength = partial(profile_for_strength, opening_book=level == 1)
         results = self.store.results(level)
         compatible = strength_calibration_games(self.store, level, results)
         profile = current_profile(self.store, level, initial_profile_for_level(level))
@@ -443,21 +448,21 @@ class CalibrationApp:
             bracket_text = "No confirmed two-sided bracket"
             if progress.bracket_low is not None and progress.bracket_high is not None:
                 bracket_midpoint = (progress.bracket_low + progress.bracket_high) / 2.0
-                midpoint_profile = profile_for_strength(bracket_midpoint)
+                midpoint_profile = profile_for_level_strength(bracket_midpoint)
                 if profile.is_bestmove:
                     target_value = float(midpoint_profile.nodes if midpoint_profile.is_bestmove else 1)
                     bracket_values = tuple(
                         float(candidate.nodes if candidate.is_bestmove else 1)
                         for candidate in (
-                            profile_for_strength(progress.bracket_low),
-                            profile_for_strength(progress.bracket_high),
+                            profile_for_level_strength(progress.bracket_low),
+                            profile_for_level_strength(progress.bracket_high),
                         )
                     )
                 else:
                     target_value = midpoint_profile.expected_rank
                     bracket_values = (
-                        profile_for_strength(progress.bracket_low).expected_rank,
-                        profile_for_strength(progress.bracket_high).expected_rank,
+                        profile_for_level_strength(progress.bracket_low).expected_rank,
+                        profile_for_level_strength(progress.bracket_high).expected_rank,
                     )
                 target_low, target_high = min(bracket_values), max(bracket_values)
                 bracket_text = (

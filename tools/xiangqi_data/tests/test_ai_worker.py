@@ -3,7 +3,7 @@ from __future__ import annotations
 import unittest
 import json
 import random
-from unittest.mock import Mock, call
+from unittest.mock import Mock, call, patch
 
 from external.pikafish_worker.ai import (
     STRENGTH_PROFILES,
@@ -14,6 +14,9 @@ from external.pikafish_worker.ai import (
 
 
 class PikafishAiWorkerTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.enterContext(patch("external.pikafish_worker.ai.choose_opening_move", return_value=None))
+
     def test_tiantian_turn_key_matches_server_and_includes_policy(self) -> None:
         work = MoveWork(
             "aikey001", 5,
@@ -151,26 +154,22 @@ class PikafishAiWorkerTest(unittest.TestCase):
         self.assertEqual("i10i1", PikafishMoveEngine._to_ui_move("i9i0"))
 
     def test_strength_profiles_span_sampling_then_search_work(self) -> None:
-        self.assertEqual(
-            (
-                (149, 2, 1.2109662691040561),
-                (149, 2, 1.1654821783005245),
-                (149, 2, 1.12170647737457),
-                (149, 2, 1.0795749989234302),
-                (149, 1, 1.0),
-                (7_849, 1, 1.0),
-                (24_389, 1, 1.0),
-                (235_500, 1, 1.0),
-                (3_318_000, 1, 1.0),
-            ),
-            tuple(
-                (profile.nodes, profile.multi_pv, profile.expected_rank)
-                for profile in STRENGTH_PROFILES
-            ),
-        )
-        self.assertGreater(STRENGTH_PROFILES[0].expected_rank, 1.0)
-        self.assertEqual(STRENGTH_PROFILES[-1].expected_rank, 1.0)
-        self.assertEqual(STRENGTH_PROFILES[-1].multi_pv, 1)
+        self.assertEqual(720, len(STRENGTH_PROFILES))
+        self.assertEqual((149, 16, 9.5, 600), tuple(vars(STRENGTH_PROFILES[0]).values()))
+        for previous, current in zip(STRENGTH_PROFILES[:8], STRENGTH_PROFILES[1:9]):
+            self.assertGreater(previous.nodes, current.nodes)
+            self.assertGreater(previous.multi_pv, current.multi_pv)
+            self.assertGreater(previous.expected_rank, current.expected_rank)
+        profiles = STRENGTH_PROFILES[8:]
+        self.assertEqual(1, profiles[0].nodes)
+        self.assertEqual(5_000_000, profiles[-1].nodes)
+        self.assertTrue(all(p.multi_pv == 1 and p.expected_rank == 1 for p in profiles))
+        self.assertTrue(all(a.nodes < b.nodes for a, b in zip(profiles, profiles[1:])))
+        # Inverting the rounded budgets recovers uniform normalized strength.
+        denominator = 1 - (701 / 5_000_700) ** 0.30
+        for i, profile in enumerate(profiles):
+            fraction = (1 - (701 / (profile.nodes + 700)) ** 0.30) / denominator
+            self.assertAlmostEqual(i / 711, fraction, delta=0.00025)
 
     def test_weak_move_sampling_is_seed_reproducible(self) -> None:
         candidates = {1: "a0a1", 2: "b0b1", 3: "c0c1"}
@@ -196,13 +195,13 @@ class PikafishAiWorkerTest(unittest.TestCase):
 
         self.assertEqual("a1a2", move)
         self.assertIn(call("setoption name MultiPV value 1"), engine._send.call_args_list)
-        self.assertIn(call("go nodes 3318000"), engine._send.call_args_list)
+        self.assertIn(call("go nodes 1"), engine._send.call_args_list)
 
     def test_profile_rejects_levels_outside_the_public_range(self) -> None:
         with self.assertRaisesRegex(ValueError, "Unsupported computer level"):
             AiWorker._profile(0)
         with self.assertRaisesRegex(ValueError, "Unsupported computer level"):
-            AiWorker._profile(10)
+            AiWorker._profile(721)
 
     def test_lease_has_headroom_over_the_cold_engine_deadline(self) -> None:
         self.assertGreaterEqual(

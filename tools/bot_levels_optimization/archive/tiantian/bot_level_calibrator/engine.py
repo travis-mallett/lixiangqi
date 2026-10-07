@@ -9,6 +9,11 @@ import subprocess
 import threading
 import time
 from pathlib import Path
+from types import SimpleNamespace
+
+from external.pikafish_worker.ai import BOOK_MISS_PROFILE, PikafishMoveEngine
+from external.pikafish_worker.opening import choose_opening_move
+from external.pikafish_worker.selection import Candidate, candidate_snapshot, sample_candidate
 
 from .strength import StrengthProfile
 
@@ -56,8 +61,19 @@ class PikafishEngine:
     ) -> str | None:
         with self.lock:
             self._ensure_started()
+            self._send("ucinewgame")
             self._send("setoption name Clear Hash")
             self._new_position(moves)
+            if profile.opening_book:
+                opening = choose_opening_move(
+                    SimpleNamespace(moves=moves),
+                    self,
+                    rng or random.Random(),
+                    missing_book_fallback=self._opening_fallback,
+                )
+                if opening is not None:
+                    return PikafishMoveEngine._to_engine_move(opening)
+                self._new_position(moves)
             if profile.is_bestmove:
                 return self._bestmove_search(profile.nodes)
 
@@ -73,10 +89,13 @@ class PikafishEngine:
             self._send(f"go nodes {profile.nodes}")
             deadline = time.monotonic() + max(30.0, profile.nodes / 80_000.0 + 10.0)
             candidates_by_depth: dict[int, dict[int, tuple[float, str]]] = {}
+            production_candidates: dict[int, dict[int, Candidate]] = {}
             reported_bestmove: str | None = None
             while True:
                 line = self._read_line(deadline)
                 match = MULTIPV_PATTERN.search(line)
+                if match and "lowerbound" not in line and "upperbound" not in line:
+                    production_candidates.setdefault(int(match["depth"]), {})[int(match["rank"])] = Candidate(match["move"], match["kind"], int(match["score"]))
                 if match:
                     candidates_by_depth.setdefault(int(match["depth"]), {})[
                         int(match["rank"])
@@ -88,6 +107,13 @@ class PikafishEngine:
                     token = line.split()[1]
                     reported_bestmove = token if MOVE_PATTERN.fullmatch(token) else None
                     break
+            if profile.max_candidate_loss is not None:
+                candidates = candidate_snapshot(production_candidates, legal, profile.multi_pv)
+                if not candidates:
+                    return reported_bestmove
+                return sample_candidate(candidates, multi_pv=profile.multi_pv,
+                                        expected_rank=profile.expected_rank,
+                                        max_candidate_loss=profile.max_candidate_loss, rng=chooser)
             complete = [
                 values for _depth, values in sorted(candidates_by_depth.items(), reverse=True)
                 if len({move for _score, move in values.values() if move in legal}) == multi_pv
@@ -108,6 +134,27 @@ class PikafishEngine:
                 # MultiPV info; Pikafish's reported bestmove remains legal.
                 return reported_bestmove
             return self._sample_adjacent_rank(ranked, profile.expected_rank, chooser)
+
+    def _opening_fallback(self) -> str | None:
+        move = self._bestmove_search(BOOK_MISS_PROFILE.nodes)
+        return PikafishMoveEngine._to_ui_move(move) if move else None
+
+    def book_position(self, work) -> tuple[str, tuple[str, ...]]:
+        """Adapter for the production book policy, using this persistent engine."""
+        self._new_position(work.moves)
+        self._send("d")
+        self._send("isready")
+        deadline = time.monotonic() + 10.0
+        fen = ""
+        while True:
+            line = self._read_line(deadline)
+            if line.startswith("Fen: "):
+                fen = line.removeprefix("Fen: ").strip()
+            if line == "readyok":
+                break
+        if not fen:
+            raise RuntimeError("Pikafish did not return the book position")
+        return fen, tuple(PikafishMoveEngine._to_ui_move(move) for move in self._legal_moves_current_position())
 
     def _bestmove_search(self, nodes: int) -> str | None:
         self._send("setoption name MultiPV value 1")

@@ -18,28 +18,44 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from .opening import choose_opening_move
+from .selection import Candidate, candidate_snapshot, sample_candidate
+
 
 @dataclass(frozen=True)
 class StrengthProfile:
     nodes: int
     multi_pv: int
     expected_rank: float
+    max_candidate_loss: int | None = None
 
 
-# Calibrated against Tiantian's levels 2, 3, 4, 5, 7, 9, 12, 18, and 25,
-# respectively. The public site deliberately exposes only the ordinal levels
-# 1-9; the reference mapping is an implementation and methodology detail.
-STRENGTH_PROFILES = (
-    StrengthProfile(149, 2, 1.2109662691040561),
-    StrengthProfile(149, 2, 1.1654821783005245),
-    StrengthProfile(149, 2, 1.12170647737457),
-    StrengthProfile(149, 2, 1.0795749989234302),
-    StrengthProfile(149, 1, 1.0),
-    StrengthProfile(7_849, 1, 1.0),
-    StrengthProfile(24_389, 1, 1.0),
-    StrengthProfile(235_500, 1, 1.0),
-    StrengthProfile(3_318_000, 1, 1.0),
-)
+BOOK_MISS_PROFILE = StrengthProfile(5_000_000, 1, 1.0)
+
+
+# The first eight profiles fade the beginner sampler into a one-node best move.
+# Node-only levels interpolate normalized strength, not raw search work.
+def nodes_for_level(level: int) -> int:
+    if isinstance(level, bool) or not isinstance(level, int) or not 9 <= level <= 720:
+        raise ValueError("Node-only level must be an integer from 9 through 720")
+    if level == 9:
+        return 1
+    if level == 720:
+        return 5_000_000
+    t = (level - 9) / 711
+    q = (701 / 5_000_700) ** 0.30
+    return max(1, min(5_000_000, int(701 * (1 - (1 - q) * t) ** (-1 / 0.30) - 700 + 0.5)))
+
+
+STRENGTH_PROFILES = tuple(
+    StrengthProfile(
+        nodes=round(149 ** (1 - i / 8)),
+        multi_pv=round(16 - 15 * i / 8),
+        expected_rank=1 + 8.5 * (1 - i / 8),
+        max_candidate_loss=600,
+    )
+    for i in range(8)
+) + tuple(StrengthProfile(nodes_for_level(level), 1, 1.0) for level in range(9, 721))
 
 
 def _command(*parts: str) -> bytes:
@@ -154,7 +170,7 @@ class MoveWork:
             raise ValueError("Invalid AI request ID")
         if not isinstance(turn_key, str) or not re.fullmatch(r"[0-9a-f]{64}", turn_key):
             raise ValueError("Invalid AI turn key")
-        if isinstance(level, bool) or not isinstance(level, int) or not 1 <= level <= 9:
+        if isinstance(level, bool) or not isinstance(level, int) or not 1 <= level <= len(STRENGTH_PROFILES):
             raise ValueError("Invalid AI level")
         if not isinstance(initial_fen, str) or not initial_fen.strip():
             raise ValueError("Invalid AI initial FEN")
@@ -223,9 +239,7 @@ class PikafishMoveEngine:
         self._ensure_started()
         self._send("ucinewgame")
         self._send("setoption name Clear Hash")
-        moves = " ".join(self._to_engine_move(move) for move in work.moves)
-        position = f"position fen {work.initial_fen}"
-        position = f"{position} moves {moves}" if moves else position
+        position = self._position_command(work)
         self._send(position)
 
         if profile.expected_rank > 1.0:
@@ -250,33 +264,52 @@ class PikafishMoveEngine:
         deadline = time.monotonic() + min(
             self.SEARCH_TIMEOUT_SECONDS, max(10, profile.nodes / 250_000 + 5)
         )
-        candidates_by_depth: dict[int, dict[int, str]] = {}
+        candidates_by_depth: dict[int, dict[int, Candidate]] = {}
         reported_bestmove: str | None = None
         while True:
             line = self._read_line(deadline)
             match = self._multipv.search(line)
-            if match:
+            if match and not (
+                profile.max_candidate_loss is not None
+                and ("lowerbound" in line or "upperbound" in line)
+            ):
                 candidates_by_depth.setdefault(int(match["depth"]), {})[
                     int(match["rank"])
-                ] = match["move"]
+                ] = Candidate(match["move"], match["kind"], int(match["score"]))
             if line.startswith("bestmove "):
                 token = line.split()[1]
                 reported_bestmove = None if token in {"(none)", "0000"} else token
                 if profile.expected_rank <= 1.0:
                     return self._permitted_result(reported_bestmove, work)
+                if profile.max_candidate_loss is not None:
+                    available = candidate_snapshot(
+                        candidates_by_depth, legal, profile.multi_pv
+                    )
+                    if not available:
+                        return self._permitted_result(reported_bestmove, work)
+                    selected = self._sample_candidate(
+                        available,
+                        multi_pv=profile.multi_pv,
+                        expected_rank=profile.expected_rank,
+                        max_candidate_loss=profile.max_candidate_loss,
+                        rng=chooser,
+                    )
+                    return self._permitted_result(selected, work)
                 complete = [
                     values
                     for _depth, values in sorted(candidates_by_depth.items(), reverse=True)
-                    if len(set(values.values())) == min(profile.multi_pv, len(legal))
+                    if len({candidate.move for candidate in values.values()})
+                    == min(profile.multi_pv, len(legal))
                 ]
                 available = complete[0] if complete else max(
                     candidates_by_depth.values(),
-                    key=lambda values: len(set(values.values())),
+                    key=lambda values: len({candidate.move for candidate in values.values()}),
                     default={},
                 )
                 ranked: dict[int, str] = {}
                 used: set[str] = set()
-                for rank, move in sorted(available.items()):
+                for rank, candidate in sorted(available.items()):
+                    move = candidate.move
                     if move in legal and move not in used:
                         ranked[rank] = move
                         used.add(move)
@@ -284,6 +317,36 @@ class PikafishMoveEngine:
                     return self._permitted_result(reported_bestmove, work)
                 selected = self._sample_adjacent_rank(ranked, profile.expected_rank, chooser)
                 return self._permitted_result(selected, work)
+
+    def _sample_candidate(self, *args, **kwargs) -> str:
+        """Selection boundary reused by offline calibration; live policy is unchanged."""
+        return sample_candidate(*args, **kwargs)
+
+    def _position_command(self, work: MoveWork) -> str:
+        moves = " ".join(self._to_engine_move(move) for move in work.moves)
+        position = f"position fen {work.initial_fen}"
+        return f"{position} moves {moves}" if moves else position
+
+    def book_position(self, work: MoveWork) -> tuple[str, tuple[str, ...]]:
+        """Resolve the actual position with the existing engine, without searching."""
+        self._ensure_started()
+        self._send(self._position_command(work))
+        self._send("d")
+        self._send("isready")
+        deadline = time.monotonic() + self.READY_TIMEOUT_SECONDS
+        fen = ""
+        while True:
+            line = self._read_line(deadline)
+            if line.startswith("Fen: "):
+                fen = line.removeprefix("Fen: ").strip()
+            if line == "readyok":
+                break
+        if not fen:
+            raise RuntimeError("Pikafish did not return the book position")
+        legal = work.legal_moves
+        if legal is None:
+            legal = tuple(self._to_ui_move(move) for move in self._legal_moves())
+        return fen, legal
 
     def _permitted_result(self, engine_move: str | None, work: MoveWork) -> str | None:
         move = self._to_ui_move(engine_move) if engine_move else None
@@ -508,7 +571,7 @@ class AiWorker:
             if lock != "OK":
                 return
             lease_acquired = True
-            move = self.engine.best_move(work, self._profile(work.level))
+            move = self.choose_move(work)
             if move:
                 if v2:
                     completed = self.publisher.execute(
@@ -552,6 +615,17 @@ class AiWorker:
                 self.publisher.execute(
                     "EVAL", self._RELEASE_LEASE, "1", lock_key, lease_owner
                 )
+
+    def choose_move(self, work: MoveWork) -> str | None:
+        profile = self._profile(work.level)
+        book_move = choose_opening_move(
+            work,
+            self.engine,
+            missing_book_fallback=lambda: self.engine.best_move(
+                work, BOOK_MISS_PROFILE
+            ),
+        )
+        return book_move or self.engine.best_move(work, profile)
 
     def _publish_move(self, work: MoveWork, move: str, *, v2: bool) -> None:
         if not self.publisher:

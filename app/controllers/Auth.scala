@@ -318,7 +318,7 @@ final class Auth(env: Env, accountC: => Account) extends LilaController(env):
                   case RateLimited | ForbiddenNetwork | SimpleSignupDuplicate =>
                     t3Counter(_.signup.failure("rateLimit"))
                     rateLimited
-                  case TurnstileFail =>
+                  case TurnstileFail | EmailCodeInvalid =>
                     t3Counter(_.signup.failure("turnstile"))
                     val f = forms.signup.full(simpleSignup)
                     val form = f.form.withGlobalError("Invalid captcha")
@@ -344,7 +344,7 @@ final class Auth(env: Env, accountC: => Account) extends LilaController(env):
       case AuthVariant.Takex3 => views.authTakex3.signup(form, simple)
       case AuthVariant.Lichess => views.auth.signup(form, simple)
 
-  private def welcome(user: UserModel, email: EmailAddress, sendWelcomeEmail: Boolean)(using
+  private[controllers] def welcome(user: UserModel, email: EmailAddress, sendWelcomeEmail: Boolean)(using
       ctx: Context
   ): Funit =
     garbageCollect(user)(email)

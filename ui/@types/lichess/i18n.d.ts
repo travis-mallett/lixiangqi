@@ -3901,24 +3901,6 @@ interface I18n {
     agreementNice: string;
     /** AI difficulty */
     aiDifficulty: string;
-    /** Advanced (高级) */
-    aiLevelAdvanced: string;
-    /** Elementary (初级) */
-    aiLevelElementary: string;
-    /** Elite (精英) */
-    aiLevelElite: string;
-    /** Grandmaster (特级大师) */
-    aiLevelGrandmaster: string;
-    /** Initiate (入门) */
-    aiLevelInitiate: string;
-    /** Intermediate (中级) */
-    aiLevelIntermediate: string;
-    /** Master (大师) */
-    aiLevelMaster: string;
-    /** Newcomer (小白) */
-    aiLevelNewcomer: string;
-    /** Rookie (菜鸟) */
-    aiLevelRookie: string;
     /** %1$s level %2$s */
     aiNameLevelAiLevel: I18nFormat;
     /** All information is public and optional. */
@@ -4061,6 +4043,10 @@ interface I18n {
     boardStyle: string;
     /** Bookmark this game */
     bookmarkThisGame: string;
+    /** Level %s cleared */
+    botLevelCleared: I18nFormat;
+    /** Level %s locked */
+    botLevelLocked: I18nFormat;
     /** Brightness */
     brightness: string;
     /** Bullet */
@@ -4097,6 +4083,8 @@ interface I18n {
     casualTournament: string;
     /** Challenge a friend */
     challengeAFriend: string;
+    /** Challenge a Higher Level */
+    challengeHigherLevel: string;
     /** Challenge %s */
     challengeX: I18nFormat;
     /** Change email */

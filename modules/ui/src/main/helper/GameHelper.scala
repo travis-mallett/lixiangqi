@@ -148,17 +148,7 @@ trait GameHelper:
   def gameLink(pov: Pov)(using Context): String = gameLink(pov.game, pov.color)
 
   def aiName(level: Int)(using Translate): String =
-    level match
-      case 1 => trans.site.aiLevelNewcomer.txt()
-      case 2 => trans.site.aiLevelRookie.txt()
-      case 3 => trans.site.aiLevelInitiate.txt()
-      case 4 => trans.site.aiLevelElementary.txt()
-      case 5 => trans.site.aiLevelIntermediate.txt()
-      case 6 => trans.site.aiLevelAdvanced.txt()
-      case 7 => trans.site.aiLevelElite.txt()
-      case 8 => trans.site.aiLevelMaster.txt()
-      case 9 => trans.site.aiLevelGrandmaster.txt()
-      case _ => AiLevel.displayName(level)
+    trans.site.aiNameLevelAiLevel.txt("Pikafish", level)
 
   def aiNameFrag(level: Int)(using Translate) =
     raw(aiName(level).replace(" ", "&nbsp;"))

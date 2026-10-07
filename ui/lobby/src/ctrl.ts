@@ -39,6 +39,16 @@ export default class LobbyController {
   homePools: Pool[];
   setupCtrl: SetupController;
   homepageRoom?: HomepageRoom;
+  botMapOpen = false;
+
+  openBotMap = () => {
+    this.leavePool();
+    this.botMapOpen = true;
+    if (this.me) {
+      this.setupCtrl.aiStats = undefined;
+      void this.setupCtrl.loadAiStats();
+    }
+  };
 
   private anonPoolRequest?: { id: string; cancelled: boolean };
   private homepageRoomRequest = 0;

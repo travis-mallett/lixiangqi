@@ -105,6 +105,7 @@ LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1", "lixiangqi.localhost"}
 class PublicationApiError(ValueError):
     def __init__(self, status, detail):
         self.status = status
+        self.detail = detail
         super().__init__(f"Publication API {status}: {detail}")
 
 
@@ -166,7 +167,36 @@ class Publisher:
                 error.close()
             raise PublicationApiError(error.code, detail) from None
 
-    def inventory(self, ids=None):
+    def inventory(self, ids=None, *, retry_timeout=120):
+        # A visible receipt can precede lock release, and another publisher (or
+        # selection refresh) can interrupt any page. Never expose a partial or
+        # mixed-version snapshot to reconciliation, including on a retry.
+        deadline = time.monotonic() + retry_timeout
+        while True:
+            try:
+                rows = list(self._inventory_snapshot(ids))
+            except PublicationApiError as error:
+                try:
+                    message = json.loads(error.detail).get("error")
+                except (ValueError, AttributeError):
+                    raise error
+                if error.status != 409 or message not in (
+                    "Publication in progress; retry inventory after completion",
+                    "Publication changed during inventory read; retry",
+                ):
+                    raise
+            else:
+                yield from rows
+                return
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise ValueError(
+                    "Server inventory remained busy or changed during reconciliation; "
+                    "retry publication to resume the saved operation"
+                )
+            time.sleep(min(2, remaining))
+
+    def _inventory_snapshot(self, ids):
         after = ""
         version = None
         while True:
@@ -176,8 +206,11 @@ class Publisher:
                 else "/inventory?after=" + quote(after)
             )
             if version is not None and page["version"] != version:
-                raise ValueError(
-                    "Publication changed during reconciliation; retry the complete inventory"
+                raise PublicationApiError(
+                    409,
+                    json.dumps(
+                        {"error": "Publication changed during inventory read; retry"}
+                    ),
                 )
             version = page["version"]
             yield from page["puzzles"]
@@ -649,10 +682,14 @@ def sync(settings, state_dir, report=print, *, admit=True, source_origin=None):
     from .game_analysis import sync_game_analyses
 
     sync_game_analyses(
-        settings, Publisher(settings.publication_origin), report,
+        settings,
+        Publisher(settings.publication_origin),
+        report,
         source_origin=source_origin,
     )
-    report("All eligible local changes and completed game analyses published.", flush=True)
+    report(
+        "All eligible local changes and completed game analyses published.", flush=True
+    )
 
 
 def sync_destinations(settings, state_dir, destinations, report=print):

@@ -1,5 +1,7 @@
 import { type Prop, propWithEffect, toggle } from 'lib';
 import { debounce } from 'lib/async';
+import { aiCustomLevel, aiCustomLevelIndex } from 'lib/game';
+import { guestAiProgress, highestBeatenAiLevel, nextAiLevel } from 'lib/game/aiProgress';
 import type { ColorChoice, ColorProp } from 'lib/setup/color';
 import {
   allTimeModeKeys,
@@ -23,6 +25,7 @@ export default class SetupController {
   fenError = false;
   friendUser = '';
   loading = false;
+  startingBot = false;
   aiStats?: AiStatsResponse;
   aiStatsLoading = false;
   aiStatsFailed = false;
@@ -95,7 +98,12 @@ export default class SetupController {
       this.onPropChange,
       this.root.pools,
     );
-    this.aiLevel = this.propWithApply(storeProps.aiLevel);
+    const storedAiLevel = storeProps.aiLevel;
+    this.aiLevel = this.propWithApply(
+      this.gameType === 'ai' && !this.startingBot
+        ? aiCustomLevel(aiCustomLevelIndex(storedAiLevel))
+        : storedAiLevel,
+    );
     this.color(forceOptions?.color || storeProps.color || 'random');
 
     this.enforcePropRules();
@@ -114,6 +122,7 @@ export default class SetupController {
 
   private readonly savePropsToStore = (override: Partial<SetupStore> = {}) =>
     this.gameType &&
+    !this.startingBot &&
     this.store[this.gameType]({
       variant: this.variant(),
       fen: this.fen(),
@@ -159,6 +168,27 @@ export default class SetupController {
     if (gameType === 'ai') void this.loadAiStats();
   };
 
+  startBot = async (level: number) => {
+    if (!this.botProgressReady() || level > nextAiLevel(this.botCompletedLevel())) return;
+    if (this.loading || this.root.hasOngoingRealTimeGame(true)) return;
+    this.startingBot = true;
+    this.gameType = 'ai';
+    this.loading = false;
+    this.forced = undefined;
+    this.friendUser = '';
+    this.ruleset = 'tiantian-v1';
+    this.loadPropsFromStore({ variant: 'standard', timeMode: 'unlimited', color: 'random' });
+    this.aiLevel(level);
+    try {
+      await this.submit();
+    } finally {
+      this.startingBot = false;
+      this.gameType = null;
+      this.loading = false;
+      this.root.redraw();
+    }
+  };
+
   setAiTimeControls = (enabled: boolean) => {
     if (enabled === this.aiTimeControls) return;
     if (!enabled && this.timeControl.mode() !== 'unlimited') {
@@ -168,9 +198,13 @@ export default class SetupController {
     this.timeControl.mode(enabled ? this.aiTimedMode : 'unlimited');
   };
 
-  private readonly loadAiStats = async () => {
+  botProgressReady = () => !this.root.me || !!this.aiStats;
+
+  botCompletedLevel = () =>
+    this.root.me ? highestBeatenAiLevel(this.aiStats?.levels ?? []) : guestAiProgress();
+
+  readonly loadAiStats = async () => {
     const request = ++this.aiStatsRequest;
-    this.aiStats = undefined;
     this.aiStatsLoading = true;
     this.aiStatsFailed = false;
     this.root.redraw();

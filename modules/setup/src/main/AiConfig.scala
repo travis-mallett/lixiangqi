@@ -101,7 +101,7 @@ object AiConfig extends BaseConfig:
     color = TriColor.default
   )
 
-  val levels = (1 to 9).toList
+  val levels = lila.core.game.AiLevel.levels
 
   val levelChoices = levels.map { l =>
     (l.toString, l.toString, none)

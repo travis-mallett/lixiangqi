@@ -89,6 +89,16 @@ class VerificationWorkerTest(unittest.TestCase):
         self.assertFalse(self.stop.is_set())
         self.assertIn("warning", [event[0] for event in self.reports.queue])
 
+    def test_stop_during_inconclusive_write_is_not_worker_failure(self):
+        def search(*args, **kwargs):
+            self.fail.side_effect = workers.WorkerCancelled("stopped waiting for writer")
+            raise verifier.VerificationInconclusive("tactic_repetition")
+
+        self.run_worker(search)
+        self.assertIs(self.fail.call_args.kwargs["stop_event"], self.stop)
+        self.assertNotIn("worker_error", [event[0] for event in self.reports.queue])
+        self.assertIsNone(self.engine.heartbeat)
+
     def test_fatal_worker_error_is_reported_before_completion(self):
         def fail(*args, **kwargs):
             self.fail.side_effect = RuntimeError("database write failed")

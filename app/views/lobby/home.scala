@@ -61,7 +61,6 @@ object home:
         ),
         span(cls := "lobby__variant-card__label lobby__label-en")(s"$english ($chinese)")
       )
-    val meHref = ctx.me.fold(routes.Auth.login.url)(me => routes.User.show(me.username).url)
     Page("")
       .copy(fullTitle = s"$siteName • ${trans.site.freeOnlineChess.txt()}".some)
       .i18n(_.variant)
@@ -148,27 +147,5 @@ object home:
               views.feed.lobbyUpdates(lastUpdates)
             ),
             puzzle.map(dailyPuzzleCard(_, "right"))
-          ),
-          st.nav(cls := "lobby__mobile-nav", attr("aria-label") := "Primary")(
-            a(
-              cls := "lobby__mobile-nav__item active",
-              href := routes.Lobby.home,
-              attr("aria-current") := "page"
-            )(
-              span(cls := "lobby__svg-icon lobby__svg-icon--home", aria.hidden := true),
-              span(cls := "lobby__label-en")("Home")
-            ),
-            a(cls := "lobby__mobile-nav__item", href := routes.Learn.index)(
-              span(cls := "lobby__svg-icon lobby__svg-icon--learn", aria.hidden := true),
-              span(cls := "lobby__label-en")("Learn")
-            ),
-            a(cls := "lobby__mobile-nav__item", href := routes.User.list)(
-              span(cls := "lobby__svg-icon lobby__svg-icon--community", aria.hidden := true),
-              span(cls := "lobby__label-en")("Community")
-            ),
-            a(cls := "lobby__mobile-nav__item", href := meHref)(
-              span(cls := "lobby__svg-icon lobby__svg-icon--user", aria.hidden := true),
-              span(cls := "lobby__label-en")("Me")
-            )
           )
         )

@@ -27,6 +27,99 @@ from tools.environment_data.preview_account import TOKEN as PREVIEW_TOKEN
 
 
 class LivePublicationTests(unittest.TestCase):
+    def test_inventory_waits_for_publication_lock_release(self):
+        client = Publisher("http://localhost:9663", "test")
+        busy = PublicationApiError(
+            409,
+            json.dumps(
+                {"error": "Publication in progress; retry inventory after completion"}
+            ),
+        )
+        with patch.object(
+            client,
+            "request",
+            side_effect=[
+                busy,
+                {"version": "published", "puzzles": [{"id": "Live1"}], "next": None},
+            ],
+        ) as request, patch("tools.puzzle_catalog.live.time.sleep") as sleep:
+            self.assertEqual(list(client.inventory(["Live1"])), [{"id": "Live1"}])
+        self.assertEqual(request.call_args_list[0], request.call_args_list[1])
+        sleep.assert_called_once_with(2)
+
+    def test_inventory_restarts_entire_snapshot_on_concurrent_publication(self):
+        for interruption in (
+            {"version": "new", "puzzles": [{"id": "mixed"}], "next": None},
+            PublicationApiError(
+                409,
+                json.dumps(
+                    {"error": "Publication changed during inventory read; retry"}
+                ),
+            ),
+        ):
+            with self.subTest(interruption=interruption):
+                client = Publisher("http://localhost:9663", "test")
+                with patch.object(
+                    client,
+                    "request",
+                    side_effect=[
+                        {
+                            "version": "old",
+                            "puzzles": [{"id": "stale"}],
+                            "next": "Live1",
+                        },
+                        interruption,
+                        {"version": "new", "puzzles": [{"id": "fresh"}], "next": None},
+                    ],
+                ) as request, patch("tools.puzzle_catalog.live.time.sleep"):
+                    self.assertEqual(list(client.inventory()), [{"id": "fresh"}])
+                self.assertEqual(
+                    [call.args[0] for call in request.call_args_list],
+                    [
+                        "/inventory?after=",
+                        "/inventory?after=Live1",
+                        "/inventory?after=",
+                    ],
+                )
+
+    def test_inventory_busy_timeout_exposes_no_partial_snapshot(self):
+        client = Publisher("http://localhost:9663", "test")
+        with patch.object(
+            client,
+            "request",
+            side_effect=[
+                {"version": "old", "puzzles": [{"id": "stale"}], "next": "Live1"},
+                PublicationApiError(
+                    409,
+                    json.dumps(
+                        {
+                            "error": "Publication in progress; retry inventory after completion"
+                        }
+                    ),
+                ),
+            ],
+        ), patch("tools.puzzle_catalog.live.time.sleep") as sleep:
+            with self.assertRaisesRegex(ValueError, "resume the saved operation"):
+                next(client.inventory(retry_timeout=0))
+        sleep.assert_not_called()
+
+    def test_inventory_does_not_retry_permanent_errors(self):
+        for error in (
+            PublicationApiError(401, "Invalid token"),
+            PublicationApiError(409, json.dumps({"error": "Invalid inventory IDs"})),
+            PublicationApiError(500, "Internal server error"),
+        ):
+            with self.subTest(error=error):
+                client = Publisher("http://localhost:9663", "test")
+                with patch.object(
+                    client, "request", side_effect=error
+                ) as request, patch("tools.puzzle_catalog.live.time.sleep") as sleep:
+                    with self.assertRaises(PublicationApiError) as raised:
+                        list(client.inventory())
+                self.assertIs(raised.exception, error)
+                request.assert_called_once()
+                sleep.assert_not_called()
+
     def test_blocking_stage_reports_wait_and_stops_on_failure(self):
         heartbeat = threading.Event()
         messages = []

@@ -9,7 +9,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Callable
 
 from .catalog_databases import catalog_is_readable
-from .explorer import explore_games
+from .explorer import explore_games, master_book_moves
 from .game_catalog import (
     get_game,
     query_ancient_manuals,
@@ -53,6 +53,7 @@ class ExplorerHandler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:  # noqa: N802
         routes: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
             "/explorer": self._explore,
+            "/opening-book": self._opening_book,
             "/games": query_games,
             "/games/ancient-manuals": query_ancient_manuals,
             "/games/event": query_event,
@@ -72,6 +73,13 @@ class ExplorerHandler(BaseHTTPRequestHandler):
 
             self.log_error("explorer request failed\n%s", traceback.format_exc())
             self._json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": "explorer unavailable"})
+
+    @staticmethod
+    def _opening_book(body: dict[str, Any]) -> dict[str, Any]:
+        fen = body.get("fen")
+        if not isinstance(fen, str) or not fen.strip() or len(fen) > 200:
+            raise ValueError("fen must be a Xiangqi FEN string")
+        return {"moves": master_book_moves(fen)}
 
     @staticmethod
     def _explore(body: dict[str, Any]) -> dict[str, Any]:

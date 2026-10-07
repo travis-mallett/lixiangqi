@@ -17,10 +17,9 @@ from .models import BoardState, DetectedPiece, MoveDetectionError, NoBoardChange
 from .paths import PROJECT_ROOT
 from .recognizer import XiangqiRecognizer
 from .runtime import cv2, np
-from .strength import StrengthProfile
+from .strength import StrengthProfile, TIANTIAN_LEVELS
 
 
-TIANTIAN_LEVELS = (2, 3, 4, 5, 7, 9, 12, 18, 25)
 NO_CAPTURE_DRAW_PLIES = 120
 HARD_DRAW_PLIES = 400
 MOVE_CONFIRMATION_FRAMES = 3
@@ -63,7 +62,6 @@ class TiantianController:
     LEVEL_SLIDER_START_X = 0.27
     LEVEL_SLIDER_END_X = 0.89
     LEVEL_SLIDER_Y = 0.268
-    COMPUTER_SIDE_POINTS = {"red": (0.6875, 0.36), "black": (0.85, 0.36)}
     # Normalized against the fixed 857x1471 captured Tiantian window, which
     # includes its title bar and right-side tool strip.
     RESULT_NEW_ROUND_POINT = (0.27, 0.845)
@@ -403,10 +401,13 @@ class TiantianController:
         for contour in contours:
             x, y, button_width, button_height = cv2.boundingRect(contour)
             aspect = button_width / max(1, button_height)
+            # Modal actions are wide buttons. The setup screen's red-side
+            # segmented toggle also sits below bright paper, but is only
+            # about twice as wide as it is tall and must never count as a modal.
             if not (
                 width * 0.15 <= button_width <= width * 0.45
                 and height * 0.02 <= button_height <= height * 0.12
-                and 2.0 <= aspect <= 5.5
+                and 2.6 <= aspect <= 5.5
             ):
                 continue
             paper_x1 = max(0, round(x - 1.3 * button_width))
@@ -559,8 +560,27 @@ class TiantianController:
     def _set_level(self, level: int) -> None:
         if level not in TIANTIAN_LEVELS:
             raise ValueError(f"Unsupported Tiantian level: {level}")
-        index = TIANTIAN_LEVELS.index(level)
+        # Preserve the existing interior-stop mapping; handle endpoints below.
+        index = TIANTIAN_LEVELS.index(level) - 1
         image, window = self._capture()
+        if level == 1:
+            # Reach the left endpoint by dragging, as for Level 25.
+            start = self._find_level_slider_thumb(image)
+            if start is None:
+                raise RuntimeError("Could not locate Tiantian's difficulty slider thumb.")
+            target_x = image.shape[1] * self.LEVEL_SLIDER_START_X
+            tolerance = image.shape[1] * 0.025
+            if abs(start[0] - target_x) > tolerance:
+                self._drag_visible(start, (target_x, start[1]), window, 0.65)
+                selected, _ = self._capture()
+                thumb = self._find_level_slider_thumb(selected)
+                if thumb is None or abs(thumb[0] - target_x) > tolerance:
+                    raise RuntimeError(
+                        "Tiantian Level 1 slider did not reach its leftmost stop; "
+                        "refusing to record a mislabeled calibration game."
+                    )
+            self.log("Tiantian level 1 visually verified at its leftmost slider stop.")
+            return
         if level == TIANTIAN_LEVELS[-1]:
             # Tiantian implements difficulty as a custom drag-only control: a
             # click or keyboard End leaves the thumb unchanged. Detect the
@@ -596,7 +616,7 @@ class TiantianController:
                 f"after dragging from x={start[0]:.0f}."
             )
             return
-        x = self.LEVEL_SLIDER_START_X + (0.61 * index / (len(TIANTIAN_LEVELS) - 1))
+        x = self.LEVEL_SLIDER_START_X + (0.61 * index / (len(TIANTIAN_LEVELS) - 2))
         self._click_visible((image.shape[1] * x, image.shape[0] * self.LEVEL_SLIDER_Y), window, 0.3)
         self.log(f"Tiantian level {level} selected at its calibrated fixed-theme slider stop.")
 
@@ -646,47 +666,75 @@ class TiantianController:
         _area, center_x, center_y = max(candidates)
         return center_x, center_y
 
+    @staticmethod
+    def _computer_side_control(image: np.ndarray):
+        """Find the complete two-segment pill, then read its darker selection.
+
+        Locate both segments as one control so moving the window, resizing it,
+        or adding title/tool chrome cannot move the click off the toggle.
+        """
+        if image.size == 0:
+            return None
+        height, width = image.shape[:2]
+        x0, y0 = round(width * 0.50), round(height * 0.30)
+        crop = image[y0:round(height * 0.50), x0:round(width * 0.93)]
+        hsv = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
+        blue, green, red = (channel.astype(np.int16) for channel in cv2.split(crop))
+        neutral = (hsv[:, :, 1] < 80) & (hsv[:, :, 2] < 215)
+        selected_red = (red > 130) & (red - green > 35) & (red - blue > 35)
+        mask = ((neutral | selected_red).astype(np.uint8)) * 255
+        kernel = np.ones((max(3, round(height * 0.004)), max(3, round(width * 0.009))), np.uint8)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        candidates = []
+        gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
+        for contour in contours:
+            x, y, w, h = cv2.boundingRect(contour)
+            if not (width * 0.23 < w < width * 0.37
+                    and height * 0.025 < h < height * 0.065
+                    and 3.2 < w / max(1, h) < 5.5):
+                continue
+            if cv2.contourArea(contour) < w * h * 0.70:
+                continue
+            brightness = []
+            for fraction in (0.25, 0.75):
+                center = x + round(w * fraction)
+                region = gray[y + round(h * 0.2):y + round(h * 0.8),
+                              center - round(w * 0.15):center + round(w * 0.15)]
+                brightness.append(float(np.median(region)))
+            if abs(brightness[0] - brightness[1]) < 20:
+                continue
+            points = {"red": (x0 + x + w * 0.25, y0 + y + h * 0.5),
+                      "black": (x0 + x + w * 0.75, y0 + y + h * 0.5)}
+            candidates.append((points, "red" if brightness[0] < brightness[1] else "black"))
+        return candidates[0] if len(candidates) == 1 else None
+
     def _set_computer_side(self, side: str) -> None:
-        image, window = self._capture()
-        point = self._normalized_point(image, self.COMPUTER_SIDE_POINTS[side])
-        self._click_visible(point, window, 0.25)
-        selected_image, selected_window = self._capture()
-        selected = self._read_computer_side(selected_image)
-        if selected != side:
-            self.log(
-                f"Computer-side toggle verification read {selected or 'unknown'} after requesting {side}; retrying once."
-            )
-            retry_point = self._normalized_point(selected_image, self.COMPUTER_SIDE_POINTS[side])
-            self._click_visible(retry_point, selected_window, 0.3)
-            selected_image, _selected_window = self._capture()
+        if side not in ("red", "black"):
+            raise ValueError(f"Unsupported computer side: {side}")
+        for attempt in range(2):
+            image, window = self._capture()
+            control = self._computer_side_control(image)
+            if control is None:
+                raise RuntimeError("Could not locate Tiantian computer-side toggle; refusing an unverified click.")
+            points, selected = control
+            if selected == side:
+                self.log(f"Tiantian computer side visually verified as {side}.")
+                return
+            self._click_visible(points[side], window, 0.25 if attempt == 0 else 0.3)
+            selected_image, _ = self._capture()
             selected = self._read_computer_side(selected_image)
-        if selected != side:
-            raise RuntimeError(
-                f"Could not select Tiantian computer side {side}; visual toggle verification read {selected or 'unknown'}."
-            )
-        self.log(f"Tiantian computer side visually verified as {side}.")
+            if selected == side:
+                self.log(f"Tiantian computer side visually verified as {side}.")
+                return
+            self.log(f"Computer-side toggle verification read {selected or 'unknown'} after requesting {side}.")
+        raise RuntimeError(
+            f"Could not select Tiantian computer side {side}; visual toggle verification read {selected or 'unknown'}."
+        )
 
     def _read_computer_side(self, image: np.ndarray) -> str | None:
-        grayscale = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-        def background_brightness(side: str) -> float:
-            center_x, center_y = (
-                int(round(value))
-                for value in self._normalized_point(image, self.COMPUTER_SIDE_POINTS[side])
-            )
-            half_width = max(18, int(round(image.shape[1] * 0.064)))
-            half_height = max(12, int(round(image.shape[0] * 0.019)))
-            x1 = max(0, center_x - half_width)
-            x2 = min(grayscale.shape[1], center_x + half_width + 1)
-            y1 = max(0, center_y - half_height)
-            y2 = min(grayscale.shape[0], center_y + half_height + 1)
-            return float(np.median(grayscale[y1:y2, x1:x2]))
-
-        red_brightness = background_brightness("red")
-        black_brightness = background_brightness("black")
-        if abs(red_brightness - black_brightness) < 20.0:
-            return None
-        return "red" if red_brightness < black_brightness else "black"
+        control = self._computer_side_control(image)
+        return control[1] if control is not None else None
 
     def _wait_for_board(self, timeout: float, allow_unfinished_prompt: bool = True) -> BoardState:
         deadline = time.monotonic() + timeout
@@ -1544,7 +1592,53 @@ class TiantianController:
         image, window = self.recognizer.capture_window()
         if window is None:
             raise RuntimeError("Live Tiantian window capture did not return window metadata.")
+        close = self._post_game_popup_close(image)
+        if close is not None:
+            self._check_stop()
+            self.log("Closing Tiantian's post-game hint-card popup to reveal the results.")
+            self._click_visible(close, window, 0.5)
+            image, window = self.recognizer.capture_window()
+            if window is None:
+                raise RuntimeError("Tiantian popup dismissal lost window metadata.")
+            if self._post_game_popup_close(image) is not None:
+                raise RuntimeError("Tiantian's post-game popup did not close; refusing to read obscured results.")
         return image, window
+
+    @staticmethod
+    def _post_game_popup_close(image: np.ndarray) -> tuple[float, float] | None:
+        """Locate the white X on the gold hint-card overlay, not the dim exit X.
+
+        Captures can include window chrome. Search a bounded region for the
+        actual cross geometry instead of clicking a normalized point.
+        """
+        if image.size == 0:
+            return None
+        height, width = image.shape[:2]
+        if min(height, width) < 100:
+            return None
+        panel = image[round(height * 0.35):round(height * 0.65),
+                      round(width * 0.35):round(width * 0.65)]
+        hsv = cv2.cvtColor(panel, cv2.COLOR_BGR2HSV)
+        gold = cv2.inRange(hsv, (12, 35, 140), (40, 255, 255))
+        if float(np.mean(gold > 0)) < 0.35:
+            return None
+        x0, y0 = round(width * 0.80), round(height * 0.12)
+        crop = image[y0:round(height * 0.25), x0:round(width * 0.98)]
+        white = ((crop.min(axis=2) > 200) & (np.ptp(crop, axis=2) < 45)).astype(np.uint8)
+        contours, _ = cv2.findContours(white, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        expected = np.zeros((32, 32), dtype=np.uint8)
+        cv2.line(expected, (1, 1), (30, 30), 1, 4)
+        cv2.line(expected, (1, 30), (30, 1), 1, 4)
+        candidates = []
+        for contour in contours:
+            x, y, w, h = cv2.boundingRect(contour)
+            if not (width * 0.022 < w < width * 0.055 and 0.8 < w / max(1, h) < 1.2):
+                continue
+            observed = cv2.resize(white[y:y+h, x:x+w], (32, 32), interpolation=cv2.INTER_NEAREST)
+            overlap = np.count_nonzero(observed & expected) / max(1, np.count_nonzero(observed | expected))
+            if overlap > 0.60:
+                candidates.append((x0 + x + w / 2, y0 + y + h / 2))
+        return candidates[0] if len(candidates) == 1 else None
 
     @staticmethod
     def _normalized_point(

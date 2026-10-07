@@ -45,6 +45,8 @@ OFFICIAL_THEMES = frozenset(
         "threeChariotsHarassingAdvisor",
         "centroidPawnMate",
         "repatriationOfBuddha",
+        "generalDisrobingAttack",
+        "assistingKingAttack",
         "whiteFacedGeneral",
         "chariotMatingMethods",
         "horseMatingMethods",

@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import math
+from functools import partial
 from dataclasses import asdict, dataclass
 
 from .optimizer import Estimate, Observation, estimate_equal_strength
 from .storage import CalibrationStore, GameResult
 from .strength import (
     StrengthProfile,
+    TIANTIAN_LEVELS,
     describe_profile,
     initial_profile_for_level,
     profile_for_expected_rank,
@@ -24,7 +26,6 @@ DIRECTION_CONFIDENCE = 0.70
 MIN_DIRECTION_GAMES = 2
 INITIAL_EXPANSION_STEP = 0.04
 MIN_EXPANSION_STEP = 0.001
-TIANTIAN_LEVELS = (2, 3, 4, 5, 7, 9, 12, 18, 25)
 
 
 @dataclass(frozen=True)
@@ -110,7 +111,8 @@ def is_strength_policy(game: GameResult) -> bool:
         game.expected_rank > 1.0
         and game.multi_pv == math.ceil(game.expected_rank - 1e-12)
     )
-    return fixed_legacy_controls and (deterministic or ranked)
+    production = game.level == 1 and game.profile.max_candidate_loss is not None
+    return fixed_legacy_controls and (deterministic or ranked or production)
 
 
 # Compatibility alias for callers and reports created by version 8.
@@ -122,6 +124,7 @@ def seed_strength_profiles(store: CalibrationStore) -> list[int]:
 
     seeded: list[int] = []
     for level in TIANTIAN_LEVELS:
+        make_profile = partial(profile_for_strength, opening_book=level == 1)
         old = store.policy_state(level)
         if old is not None and int(old.get("version", 0)) >= STATE_VERSION:
             continue
@@ -157,9 +160,9 @@ def seed_strength_profiles(store: CalibrationStore) -> list[int]:
             )
             bracket_low, bracket_high, bracket_conflict = _strength_bounds(reusable)
             profile = (
-                profile_for_strength((bracket_low + bracket_high) / 2.0)
+                make_profile((bracket_low + bracket_high) / 2.0)
                 if bracket_low is not None and bracket_high is not None
-                else profile_for_strength(migrated_estimate.strength)
+                else make_profile(migrated_estimate.strength)
             )
         else:
             bracket_low, bracket_high, bracket_conflict = None, None, False
@@ -198,6 +201,7 @@ def select_profile(
     level: int,
     results: list[GameResult] | None = None,
 ) -> StrengthDecision:
+    make_profile = partial(profile_for_strength, opening_book=level == 1)
     games = store.results(level) if results is None else results
     state = store.policy_state(level)
     if state is None or int(state.get("version", 0)) < STATE_VERSION:
@@ -281,9 +285,9 @@ def select_profile(
             "Decreased" if selected.strength < current.strength else
             "Held"
         )
-        median = profile_for_strength(estimate.strength)
-        low = profile_for_strength(estimate.low_95)
-        high = profile_for_strength(estimate.high_95)
+        median = make_profile(estimate.strength)
+        low = make_profile(estimate.low_95)
+        high = make_profile(estimate.high_95)
         message = (
             f"Completed cohort {cohort_index + 1} ({cohort_size} games). "
             f"{direction} strength to {describe_profile(selected)} after "
@@ -415,6 +419,7 @@ def _select_bisection_profile(
 ) -> tuple[StrengthProfile, str, float]:
     """Choose a noisy-binary-search midpoint or expand until one is bracketed."""
 
+    make_profile = partial(profile_for_strength, opening_book=current.opening_book)
     step = max(
         MIN_EXPANSION_STEP,
         float(state.get("expansion_step", INITIAL_EXPANSION_STEP)),
@@ -428,7 +433,7 @@ def _select_bisection_profile(
         )
     if bracket_low is not None and bracket_high is not None:
         midpoint = (bracket_low + bracket_high) / 2.0
-        midpoint_profile = profile_for_strength(midpoint)
+        midpoint_profile = make_profile(midpoint)
         width = bracket_high - bracket_low
         if _same_profile(current, midpoint_profile):
             current_games = [
@@ -478,7 +483,7 @@ def _select_bisection_profile(
     else:
         candidate = max(0.0, current.strength - step)
         reason = f"current setting is credibly too strong; expanded weaker by {step:.4f}"
-    return profile_for_strength(candidate), reason, min(0.25, step * 2.0)
+    return make_profile(candidate), reason, min(0.25, step * 2.0)
 
 
 def _strength_bracket(games: list[GameResult]) -> tuple[float | None, float | None]:
@@ -523,7 +528,9 @@ def _direction(evidence: OutcomeEvidence) -> str | None:
 
 def _same_profile(left: StrengthProfile, right: StrengthProfile) -> bool:
     return (
-        left.nodes == right.nodes
+        left.max_candidate_loss == right.max_candidate_loss
+        and left.opening_book == right.opening_book
+        and left.nodes == right.nodes
         and left.multi_pv == right.multi_pv
         and abs(left.expected_rank - right.expected_rank) < 1e-9
     )
@@ -531,6 +538,8 @@ def _same_profile(left: StrengthProfile, right: StrengthProfile) -> bool:
 
 def _profile_from_state(state: dict[str, object]) -> StrengthProfile:
     profile = dict(state["profile"])  # type: ignore[arg-type]
+    if profile.get("opening_book", False):
+        return profile_for_strength(float(profile["strength"]), opening_book=True)
     if float(profile.get("expected_rank", 1.0)) > 1.0:
         return profile_for_expected_rank(float(profile["expected_rank"]))
     if int(profile.get("multi_pv", 1)) == 1 and "nodes" in profile:

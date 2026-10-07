@@ -4,6 +4,7 @@
 @import 'box';
 @import 'table';
 @import 'homepage-room';
+@import 'bot-map';
 @import 'correspondence-deck';
 @import 'support';
 @import 'feed';
@@ -487,10 +488,6 @@ body {
     }
   }
 
-  &__mobile-nav {
-    display: none;
-  }
-
   &__overlay {
     box-sizing: border-box;
     width: min(92vw, 780px);
@@ -512,65 +509,12 @@ body {
   @media (max-width: 800px) {
     --lobby-site-counter-height: 60px;
 
-    &__mobile-nav {
-      position: fixed;
-      z-index: 110;
-      right: 0;
-      bottom: 0;
-      left: 0;
-      display: grid;
-      min-height: 72px;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      padding-bottom: env(safe-area-inset-bottom);
-      border-top: $border;
-      background: color-mix(in oklab, $c-bg-page 94%, transparent);
-      box-shadow: 0 -5px 18px rgb(0 0 0 / 0.16);
-      backdrop-filter: blur(16px);
+    // Keep vertical swipes on the page when the rails form a single column.
+    &__leaderboard {
+      max-height: none;
 
-      &__item {
-        position: relative;
-        display: flex;
-        min-width: 0;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-        gap: 1px;
-        padding: 8px 4px 6px;
-        color: $c-font-dim;
-        text-align: center;
-
-        &::before {
-          position: absolute;
-          top: -1px;
-          right: 15%;
-          left: 15%;
-          height: 2px;
-          border-radius: 0 0 2px 2px;
-          background: transparent;
-          content: '';
-        }
-
-        .lobby__svg-icon {
-          width: 27px;
-          height: 27px;
-          margin-bottom: 1px;
-        }
-
-        .lobby__label-en {
-          color: inherit;
-          font-size: 0.68rem;
-          line-height: 1.1;
-        }
-
-        &:hover,
-        &:focus-visible,
-        &.active {
-          color: $c-primary;
-        }
-
-        &.active::before {
-          background: $c-primary;
-        }
+      &__scroll {
+        overflow: visible;
       }
     }
 
@@ -653,7 +597,6 @@ body {
 
   @media (max-width: 600px) {
     &__leaderboard {
-      max-height: 390px;
       border-radius: 10px;
 
       &__header {

@@ -138,6 +138,10 @@ DOUBLE_CANNONS_LOGIC_VERSION = "1.0"
 DOUBLE_CHARIOTS_THEME = "doubleChariotsMate"
 DOUBLE_CHARIOTS_LOGIC_VERSION = "1.1"
 REPATRIATION_THEME = "repatriationOfBuddha"
+GENERAL_DISROBING_THEME = "generalDisrobingAttack"
+GENERAL_DISROBING_VERSION = "1.0"
+ASSISTING_KING_THEME = "assistingKingAttack"
+ASSISTING_KING_VERSION = "1.0"
 REPATRIATION_VERSION = "1.0"
 THREE_IMMORTALS_THEME = "threeImmortalsRefiningTheElixir"
 THREE_IMMORTALS_VERSION = "1.0"
@@ -844,6 +848,16 @@ CHECKMATE_MATCHERS: tuple[PatternMatcher, ...] = (
     ),
     PatternMatcher(
         REPATRIATION_THEME, REPATRIATION_VERSION, lambda terminal: terminal.checkmate
+    ),
+    PatternMatcher(
+        ASSISTING_KING_THEME,
+        ASSISTING_KING_VERSION,
+        lambda terminal: terminal.checkmate or terminal.stalemate,
+    ),
+    PatternMatcher(
+        GENERAL_DISROBING_THEME,
+        GENERAL_DISROBING_VERSION,
+        lambda terminal: terminal.checkmate,
     ),
     PatternMatcher(
         THREE_IMMORTALS_THEME,

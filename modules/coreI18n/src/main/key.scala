@@ -554,6 +554,8 @@ object I18nKey:
     val `configure`: I18nKey = "dgt:configure"
 
   object emails:
+    val `mobileVerificationSubject`: I18nKey = "emails:mobileVerificationSubject"
+    val `mobileVerificationBody`: I18nKey = "emails:mobileVerificationBody"
     val `emailConfirm_subject`: I18nKey = "emails:emailConfirm_subject"
     val `emailConfirm_intro`: I18nKey = "emails:emailConfirm_intro"
     val `emailConfirm_click`: I18nKey = "emails:emailConfirm_click"
@@ -1972,6 +1974,9 @@ object I18nKey:
     val `thisAccountIsClosed`: I18nKey = "settings:thisAccountIsClosed"
 
   object site:
+    val `challengeHigherLevel`: I18nKey = "challengeHigherLevel"
+    val `botLevelCleared`: I18nKey = "botLevelCleared"
+    val `botLevelLocked`: I18nKey = "botLevelLocked"
     val `gameSetup`: I18nKey = "gameSetup"
     val `challengeAFriend`: I18nKey = "challengeAFriend"
     val `playAgainstComputer`: I18nKey = "playAgainstComputer"
@@ -1979,15 +1984,6 @@ object I18nKey:
     val `aiDifficulty`: I18nKey = "aiDifficulty"
     val `difficulty`: I18nKey = "difficulty"
     val `passRate`: I18nKey = "passRate"
-    val `aiLevelNewcomer`: I18nKey = "aiLevelNewcomer"
-    val `aiLevelRookie`: I18nKey = "aiLevelRookie"
-    val `aiLevelInitiate`: I18nKey = "aiLevelInitiate"
-    val `aiLevelElementary`: I18nKey = "aiLevelElementary"
-    val `aiLevelIntermediate`: I18nKey = "aiLevelIntermediate"
-    val `aiLevelAdvanced`: I18nKey = "aiLevelAdvanced"
-    val `aiLevelElite`: I18nKey = "aiLevelElite"
-    val `aiLevelMaster`: I18nKey = "aiLevelMaster"
-    val `aiLevelGrandmaster`: I18nKey = "aiLevelGrandmaster"
     val `timeControls`: I18nKey = "timeControls"
     val `standardHistoryAgainst`: I18nKey = "standardHistoryAgainst"
     val `signInOrRegisterToTrackWinRate`: I18nKey = "signInOrRegisterToTrackWinRate"

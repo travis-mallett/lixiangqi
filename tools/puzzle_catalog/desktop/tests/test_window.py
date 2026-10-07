@@ -394,6 +394,7 @@ class WindowTests(unittest.TestCase):
                 "published",
                 "retired",
                 "uncategorized_checkmate",
+                "single_solution_uncategorized_checkmate",
                 "uncategorized_tactic",
             ],
         )

@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 import hashlib
 import uuid
-import sqlite3
 
 from .database_write import begin_write
 from .workers import WorkerClaimLost
@@ -358,7 +357,7 @@ def finish_verification(
 
 
 def fail_verification(
-    connection, claim, diagnostic, *, inconclusive=False, max_attempts=3
+    connection, claim, diagnostic, *, inconclusive=False, max_attempts=3, stop_event=None
 ):
     status = (
         "incomplete"
@@ -370,15 +369,20 @@ def fail_verification(
         if status == "retry"
         else None
     )
-    cursor = connection.execute(
-        """UPDATE verification_jobs SET status=?,diagnostic=?,claim_token=NULL,
-        claimed_at=NULL,next_attempt_at=?,updated_at=? WHERE id=? AND claim_token=? AND status='processing' """,
-        (status, diagnostic, due, now(), claim.id, claim.candidate.claim_token),
-    )
-    connection.commit()
-    if cursor.rowcount != 1:
-        raise WorkerClaimLost("Verification claim lost")
-    return status
+    begin_write(connection, stop_event)
+    try:
+        cursor = connection.execute(
+            """UPDATE verification_jobs SET status=?,diagnostic=?,claim_token=NULL,
+            claimed_at=NULL,next_attempt_at=?,updated_at=? WHERE id=? AND claim_token=? AND status='processing' """,
+            (status, diagnostic, due, now(), claim.id, claim.candidate.claim_token),
+        )
+        if cursor.rowcount != 1:
+            raise WorkerClaimLost("Verification claim lost")
+        connection.commit()
+        return status
+    except Exception:
+        connection.rollback()
+        raise
 
 
 def release_verification(connection, claim):

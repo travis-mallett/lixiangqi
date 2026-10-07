@@ -23,6 +23,8 @@ from . import (
     chariots_threatening_advisor,
     three_immortals,
     repatriation,
+    general_disrobing,
+    assisting_king,
     double_ghosts,
     cannon_chariot_discovered,
     detonating_mine,
@@ -481,6 +483,18 @@ def _evaluate_category(
             proofs[(theme, index)] = records
         for theme, version, geometry, assessor in (
             (
+                assisting_king.THEME,
+                assisting_king.VERSION,
+                lambda terminal: assisting_king.candidate(trace) is not False,
+                assisting_king,
+            ),
+            (
+                general_disrobing.THEME,
+                general_disrobing.VERSION,
+                lambda terminal: general_disrobing.candidate(trace) is not False,
+                general_disrobing,
+            ),
+            (
                 repatriation.THEME,
                 repatriation.VERSION,
                 lambda terminal: repatriation.candidate(trace) is not False,
@@ -628,6 +642,8 @@ def _evaluate_category(
                 in throat_cutting.THEMES
                 | {
                     repatriation.THEME,
+                    general_disrobing.THEME,
+                    assisting_king.THEME,
                     three_immortals.THEME,
                     chariots_threatening_advisor.THEME,
                     moon_scooping.THEME,

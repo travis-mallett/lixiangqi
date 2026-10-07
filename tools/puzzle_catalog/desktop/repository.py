@@ -21,6 +21,7 @@ class ContentRepository:
         "published",
         "retired",
         "uncategorized_checkmate",
+        "single_solution_uncategorized_checkmate",
         "uncategorized_tactic",
     )
     STATUSES = [
@@ -223,7 +224,7 @@ class ContentRepository:
           FROM mining.puzzle_inventory p JOIN mining.candidate_inventory c ON c.id=p.candidate_id WHERE NOT EXISTS(SELECT 1 FROM authored.catalog_inventory a WHERE a.id=p.id) __MINED_KEY__ __MINED_THEME__
           __CANDIDATE_BRANCH__
         ), readiness AS (
-          SELECT b.*,CASE
+          SELECT b.*,a.id AS verification_assessment_id,CASE
             WHEN b.raw_status!='unpublished' THEN b.raw_status
             WHEN c.id IS NOT NULL AND (a.id IS NULL OR a.coverage!='complete') THEN 'awaiting_verification'
             WHEN c.id IS NOT NULL AND (t.id IS NULL OR t.verification_assessment_id IS NOT c.current_verification_id
@@ -360,11 +361,28 @@ class ContentRepository:
         pool_status = status
         where, args = self._filter(query, "all" if library else status, theme, source)
         if library:
-            if pool_status in {"uncategorized_checkmate", "uncategorized_tactic"}:
+            if pool_status in {
+                "uncategorized_checkmate",
+                "uncategorized_tactic",
+                "single_solution_uncategorized_checkmate",
+            }:
                 where += (
                     " AND " if where else " WHERE "
                 ) + "uncategorized_pool=:pool_status"
-                args["pool_status"] = pool_status
+                args["pool_status"] = (
+                    "uncategorized_checkmate"
+                    if pool_status == "single_solution_uncategorized_checkmate"
+                    else pool_status
+                )
+                if pool_status == "single_solution_uncategorized_checkmate":
+                    where += """ AND EXISTS (
+                        SELECT 1 FROM mining.candidate_assessments single_solution
+                        WHERE single_solution.id=verification_assessment_id
+                          AND CASE WHEN json_valid(single_solution.branches_json)
+                            THEN json_type(single_solution.branches_json)='array'
+                              AND json_array_length(single_solution.branches_json)=1
+                            ELSE 0 END
+                    )"""
             elif pool_status != "all":
                 where += (
                     (" AND " if where else " WHERE ")

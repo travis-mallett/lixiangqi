@@ -25,16 +25,31 @@ Interactive move-delivery invariants, protocol V2, deployment order, and
 operations are documented in
 [`doc/AI_MOVE_DELIVERY.md`](../../doc/AI_MOVE_DELIVERY.md).
 
-The nine strength profiles use one thread and fixed nodes. Levels 1-4 sample
-between adjacent Pikafish ranks at 149 nodes. Levels 5-9 use `MultiPV=1` and
-play `bestmove` at increasing node budgets. Rank sampling is reproducibly seeded
-from game state. There are no score-temperature, tail-mixture, behavior,
-independent-lapse, or opening-book controls.
+The 720 strength profiles use one thread and fixed nodes. Level 1 retains
+149 nodes, MultiPV 16, expected rank 9.5, and the 600 cp candidate-loss limit.
+Levels 2–8 fade search work and guarded rank sampling toward level 9's one-node
+best move. Levels 9–720 use MultiPV 1 and the shifted inverse-power node curve,
+ending at 5,000,000 nodes. Rank sampling remains reproducibly seeded from game
+state. See the production policy below for the exact formulae.
+
+All levels share a master opening book before engine selection. On the bot's
+own turns 1–10, book probability fades from 100% to 10% in ten-point steps.
+When the fade selects the book but no legal book move exists, the worker uses a
+shared 5,000,000-node, MultiPV 1 best-move search; when the fade selects the
+engine, it uses the level's normal profile. Lookup failures fall back to that
+normal profile. Each turn queries the exact position and samples legal
+continuations by master-game frequency. Turn 11 onward uses the unchanged
+engine profile. The explorer URL defaults to
+`http://127.0.0.1:9002`; set `LIXIANGQI_EXPLORER_URL` for a separate host or
+container. The `/opening-book` endpoint returns only master games, all
+continuations, and no game samples, with a 500 ms worker request timeout.
 
 The production profile table and maintenance contract are documented in
 [`doc/PLAY_WITH_COMPUTER.md`](../../doc/PLAY_WITH_COMPUTER.md). Calibration
 methodology lives in
-[`tools/bot_levels_optimization/METHODOLOGY.md`](../../tools/bot_levels_optimization/METHODOLOGY.md).
+[`archived calibration methodology`](../../tools/bot_levels_optimization/archive/tiantian/METHODOLOGY.md).
+The replacement [offline self-play calibrator](../../tools/bot_levels_optimization/README.md)
+generates experimental intermediate profiles without installing them here.
 
 Whole-game server analysis uses the native `/fishnet/*` HTTP work protocol:
 

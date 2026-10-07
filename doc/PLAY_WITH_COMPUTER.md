@@ -1,58 +1,66 @@
 # Play with the computer
 
-Lixiangqi exposes nine ordinal computer levels. The setup UI, setup validation,
-game-search filters, and Pikafish move worker must all support the same range,
-1 through 9.
+LiXiangQi exposes 720 ordinal computer levels. The home-page computer action
+opens a scrollable zigzag map in the center rail, centered on the next unbeaten
+level each time it opens. Selecting an unlocked level starts a normal-position, unlimited-time game
+with a random side. The back button restores the home rail. The fixed footer's
+Challenge a Higher Level button opens the existing setup dialog with ten choices labeled
+0–9. Those choices start the exact same bots as map levels 1, 9, 98, 187, 276,
+364, 453, 542, 631, and 720, respectively. The dialog retains side selection,
+position setup, and optional time controls.
+
+Only level 1 is initially unlocked. A normal-start win at level N clears every
+level through N and unlocks N+1. Cleared levels remain playable and display a
+green check; higher levels show locks. All ten setup choices remain available,
+so winning a higher-level challenge can skip a section of the map. After level
+720 is cleared, all levels are playable and the map opens centered on 720.
+
+Account progress is derived from the highest level with a personal win in the
+existing server-maintained AI statistics. Existing recorded wins count, and
+progress follows the account across browsers. Guest progress is a highest-win
+value in browser storage, updated from normal-start AI game results while
+playing. It stays separate from account progress and is lost if browser storage
+is cleared. Draws, losses, aborted games, spectating and custom-position games
+do not unlock levels. No new server collection or data migration is needed.
 
 ## Runtime policy
 
-The current server-side worker in `external/pikafish_worker/ai.py` uses one
-Pikafish thread, a 128 MB hash, a cleared search state for every move, and fixed
-node budgets. The first four levels sample between the top two reported moves;
-the remaining five always play Pikafish `bestmove`.
+The server-side worker uses the same Pikafish binary and NNUE network, one
+thread, 128 MB hash, pondering off, and clears search state for every move.
 
-| Level |     Nodes | MultiPV | Expected rank |
-| ----: | --------: | ------: | ------------: |
-|     1 |       149 |       2 |  1.2109662691 |
-|     2 |       149 |       2 |  1.1654821783 |
-|     3 |       149 |       2 |  1.1217064774 |
-|     4 |       149 |       2 |  1.0795749989 |
-|     5 |       149 |       1 |           1.0 |
-|     6 |     7,849 |       1 |           1.0 |
-|     7 |    24,389 |       1 |           1.0 |
-|     8 |   235,500 |       1 |           1.0 |
-|     9 | 3,318,000 |       1 |           1.0 |
+Level 1 retains 149 nodes, MultiPV 16, expected rank 9.5, and the 600 cp
+candidate-loss safeguard. For levels 1–8, let `u = (level - 1) / 8`:
 
-For a fractional expected rank `1 + p`, the worker chooses rank 2 with
-probability `p` and rank 1 otherwise. The choice is deterministically seeded by
-game ID, public level, and position history, making retries reproducible without
-making separate games identical.
+- requested nodes: `round(149 ** (1 - u))`;
+- MultiPV: `round(16 - 15 * u)`;
+- expected rank: `1 + 8.5 * (1 - u)`.
 
-The interface intentionally presents only levels 1-9. Calibration provenance
-and the external reference-level mapping belong in the offline tool's
-`METHODOLOGY.md`, not in user-facing copy.
+All eight use the existing guarded rank sampler, including exact-score
+snapshots, mate handling, and the 600 cp safeguard. This fades both search work
+and weaker-move selection toward the level 9 best-move profile. It is an
+engineering progression, not a measured strength calibration.
 
-## Player-facing level names
+For levels 9–720, MultiPV is 1 and the worker returns Pikafish's best move.
+With `t = (level - 9) / 711` and `q = (701 / 5_000_700) ** 0.30`, requested
+nodes are `round(701 * (1 - (1 - q) * t) ** (-1 / 0.30) - 700)`.
+Endpoints are explicitly 1 and 5,000,000. All 712 budgets are distinct and
+strictly increasing. The shifted inverse-power model is an estimated strength
+curve; adjacent levels have not been calibrated through games. Requested nodes
+are not a guarantee of exactly that much engine work, particularly at tiny budgets.
 
-The setup dialog keeps the source game's Chinese rank names visible alongside
-careful English equivalents. These are labels for difficulty, not claims that
-Pikafish holds a human title.
+All 720 levels retain the exact shared opening-book fade. On the bot's own
+moves 1–10, book probability is `(11 - botMoveNumber) / 10`; afterward there is
+no lookup. Legal master continuations are weighted by their game counts.
+A selected book branch without a legal continuation uses a 5,000,000-node,
+MultiPV 1 search. Lookup errors and the normal engine branch use the level's
+profile. The opening policy intentionally overrides level budgets and remains
+independent of rank sampling. Transpositions can re-enter the book during the
+fade window.
 
-| Level | Display name           |
-| ----: | ---------------------- |
-|     1 | Newcomer (小白)        |
-|     2 | Rookie (菜鸟)          |
-|     3 | Initiate (入门)        |
-|     4 | Elementary (初级)      |
-|     5 | Intermediate (中级)    |
-|     6 | Advanced (高级)        |
-|     7 | Elite (精英)           |
-|     8 | Master (大师)          |
-|     9 | Grandmaster (特级大师) |
-
-“Grandmaster” is the established English rendering of the Xiangqi title
-特级大师. “Initiate” preserves the imagery of 入门—having entered the gate—while
-remaining distinct from the adjacent beginner ranks.
+Public names are localized numeric Pikafish levels rather than the previous
+nine rank titles. Existing games and stored level numbers are not rewritten.
+Statistics describe results against those ordinal numbers, including earlier
+profiles; they are not calibrated ratings for the new schedule.
 
 ## Standard-game result statistics
 
@@ -65,7 +73,7 @@ A result counts only when all of the following are true:
 - the game finished and was not aborted;
 - it is a normal-start-position Standard game created by the AI setup flow;
 - the human player is a registered, non-bot account; and
-- the public AI level is in the supported 1-9 range.
+- the public AI level is in the supported 1–720 range.
 
 Wins, draws, and losses are always recorded from the human player's
 perspective. “Pass rate” is the aggregate registered-player win rate:
@@ -73,8 +81,8 @@ perspective. “Pass rate” is the aggregate registered-player win rate:
 
 The finish-game listener performs two atomic upserts: one global level counter
 and one user-and-level counter. This is constant work per completed game. The
-setup endpoint reads all nine levels with a single bounded `_id` query (at most
-18 documents for a signed-in player), so opening the dialog never scans or
+setup endpoint reads all 720 levels with a single bounded `_id` query (at most
+1,440 documents for a signed-in player), so opening the dialog never scans or
 aggregates the game collection. Account deletion removes the personal counter
 documents; aggregate counters contain no user identifiers and remain useful.
 
@@ -86,18 +94,15 @@ required.
 
 ## Maintaining the levels
 
-- Treat `STRENGTH_PROFILES` as the production profile table and cover every
-  value with worker tests.
-- Keep `AiConfig.levels`, lobby level buttons, and game-search level filters in
-  sync with the table length.
-- Recalibrate after changing the Pikafish version, search options, thread count,
-  node budgets, move sampling, or adding an opening book.
-- A future browser/WASM worker must implement the same node and adjacent-rank
-  semantics if it is expected to preserve these strengths. The profiles do not
-  depend on Redis, but engine build differences can affect playing strength.
+`STRENGTH_PROFILES` is the worker's canonical schedule; the tests verify the
+beginner endpoint, transition, normalized curve, and full node-only range.
+`AiLevel.levels` owns the server range; the shared UI `aiLevels` owns its mirror.
+The deployment script packages the worker and application together and restarts
+them. No stored-data migration is required for this range expansion.
 
-The research method and limitations are documented in
-[`tools/bot_levels_optimization/METHODOLOGY.md`](../tools/bot_levels_optimization/METHODOLOGY.md).
+Offline calibration tools remain experimental and do not automatically replace
+production settings. Changes to engine versions or search settings can alter
+actual playing strength even with the same requested budgets.
 
 ## Interactive move delivery
 

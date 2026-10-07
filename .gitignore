@@ -124,6 +124,10 @@ service-account*.json
 /tools/bot_levels_optimization/data/*
 !/tools/bot_levels_optimization/data/README.md
 /tools/bot_levels_optimization/*.log
+/tools/bot_levels_optimization/archive/tiantian/data/*
+!/tools/bot_levels_optimization/archive/tiantian/data/README.md
+/tools/bot_levels_optimization/archive/tiantian/*.log
+/tools/bot_levels_optimization/runs/
 
 # Patch, backup, and operating-system debris
 *.bak

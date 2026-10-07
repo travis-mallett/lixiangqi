@@ -1,13 +1,21 @@
-/** User-facing names for LiXiangQi's numeric computer opponent profiles. */
-export const aiLevelName = (level: number): string =>
-  [
-    i18n.site.aiLevelNewcomer,
-    i18n.site.aiLevelRookie,
-    i18n.site.aiLevelInitiate,
-    i18n.site.aiLevelElementary,
-    i18n.site.aiLevelIntermediate,
-    i18n.site.aiLevelAdvanced,
-    i18n.site.aiLevelElite,
-    i18n.site.aiLevelMaster,
-    i18n.site.aiLevelGrandmaster,
-  ][level - 1] || level.toString();
+/** Public computer difficulty range. */
+export const aiLevels: readonly number[] = Array.from({ length: 720 }, (_, i) => i + 1);
+
+/** Engine levels exposed as the ten choices in the Custom Bot setup. */
+export const aiCustomLevels: readonly number[] = [1, 9, 98, 187, 276, 364, 453, 542, 631, 720];
+
+export const aiCustomLevel = (index: number): number => {
+  if (!Number.isInteger(index) || index < 0 || index >= aiCustomLevels.length)
+    throw new RangeError('Custom bot level must be an integer from 0 through 9');
+  return aiCustomLevels[index];
+};
+
+/** Map any stored engine level to the nearest Custom Bot choice. */
+export const aiCustomLevelIndex = (level: number): number =>
+  aiCustomLevels.reduce(
+    (nearest, candidate, index) =>
+      Math.abs(candidate - level) < Math.abs(aiCustomLevels[nearest] - level) ? index : nearest,
+    0,
+  );
+
+export const aiLevelName = (level: number): string => i18n.site.aiNameLevelAiLevel('Pikafish', level);

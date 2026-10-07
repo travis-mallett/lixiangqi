@@ -70,7 +70,10 @@ export default function main(opts: LobbyOpts) {
   }
 
   function syncHomepageRoomLayout() {
-    centerRailElement?.classList.toggle('lobby__center-rail--homepage-room', !!ctrl.homepageRoom);
+    centerRailElement?.classList.toggle(
+      'lobby__center-rail--homepage-room',
+      !!ctrl.homepageRoom || ctrl.botMapOpen,
+    );
   }
   return ctrl;
 }

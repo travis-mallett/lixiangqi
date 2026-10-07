@@ -802,6 +802,9 @@ POST  /api/stream/games/:streamId      controllers.Api.gamesByIdsStream(streamId
 POST  /api/stream/games/:streamId/add  controllers.Api.gamesByIdsStreamAddIds(streamId)
 GET   /api/stream/game/:id             controllers.Api.moveStream(id: GameId)
 GET   /api/account                     controllers.Account.apiMe
+POST  /api/mobile/auth/login           controllers.MobileAuth.login
+POST  /api/mobile/auth/registration-code controllers.MobileAuth.registrationCode
+POST  /api/mobile/auth/register        controllers.MobileAuth.register
 GET   /api/account/playing             controllers.Account.apiNowPlaying
 GET   /api/account/email               controllers.Account.apiEmail
 GET   /api/account/kid                 controllers.Account.apiKid

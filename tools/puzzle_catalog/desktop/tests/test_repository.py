@@ -87,6 +87,8 @@ class RepositoryTests(unittest.TestCase):
             "doubleGhostsKnocking",
             "threeImmortalsRefiningTheElixir",
             "repatriationOfBuddha",
+            "generalDisrobingAttack",
+            "assistingKingAttack",
             "childWorshipsBuddha",
             "crowningMate",
             "eunuchChasingEmperorKill",
@@ -610,6 +612,50 @@ class ModerationTests(unittest.TestCase):
             )
         self.assertEqual(self.repo.page(library=True)["total"], 2)
         self.assertEqual(self.repo.page(library=True, status="unpublished")["total"], 0)
+
+    def test_single_solution_uncategorized_checkmate_pool(self):
+        pool = "single_solution_uncategorized_checkmate"
+        with closing(sqlite3.connect(self.mining)) as db, db:
+            db.execute('UPDATE puzzles SET themes=\'["mate","mateIn1"]\'')
+            db.execute(
+                "UPDATE candidate_assessments SET branches_json='[{},{}]' WHERE candidate_id=1"
+            )
+            db.execute(
+                "UPDATE candidates SET candidate_type='tactic_candidate' WHERE id=2"
+            )
+            db.execute(
+                "UPDATE puzzles SET themes='[\"doubleCannons\"]' WHERE candidate_id=3"
+            )
+        page = self.repo.page(library=True, status=pool, limit=1)
+        self.assertEqual(page["total"], 1)
+        self.assertEqual([r["id"] for r in page["rows"]], ["Ab000"])
+        self.assertEqual(
+            self.repo.page(library=True, status=pool, offset=1)["rows"], []
+        )
+        self.assertEqual(
+            self.repo.page(library=True, status=pool, query="missing")["total"], 0
+        )
+        self.assertEqual(
+            self.repo.page(
+                library=True, status=pool, theme="mateIn1", source="masters"
+            )["total"],
+            1,
+        )
+        for branches in (None, "[]", "{}", "invalid", "[{},{}]"):
+            with closing(sqlite3.connect(self.mining)) as db, db:
+                db.execute(
+                    "UPDATE candidate_assessments SET branches_json=? WHERE candidate_id=0",
+                    (branches,),
+                )
+            self.assertEqual(self.repo.page(library=True, status=pool)["total"], 0)
+        with closing(sqlite3.connect(self.mining)) as db, db:
+            db.execute(
+                "UPDATE candidate_assessments SET branches_json='[{}]' WHERE candidate_id=0"
+            )
+            db.execute(
+                "UPDATE candidate_assessments SET coverage='partial' WHERE candidate_id=0"
+            )
+        self.assertEqual(self.repo.page(library=True, status=pool)["total"], 0)
 
     def test_uncategorized_library_requires_complete_current_policy_evidence(self):
         for field, value in (

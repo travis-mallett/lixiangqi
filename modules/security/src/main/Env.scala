@@ -137,6 +137,7 @@ final class Env(
   lazy val disposableEmailAttempt = wire[DisposableEmailAttempt]
 
   lazy val signup = wire[Signup]
+  lazy val mobileEmailCode = wire[MobileEmailCode]
 
   private lazy val dnsApi: DnsApi = wire[DnsApi]
 

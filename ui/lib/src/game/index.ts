@@ -1,7 +1,7 @@
 import type { GameData } from './interfaces';
 import { finished, aborted, status } from './status';
 
-export { aiLevelName } from './aiLevel';
+export { aiCustomLevel, aiCustomLevelIndex, aiCustomLevels, aiLevelName, aiLevels } from './aiLevel';
 
 export type * from './interfaces';
 export * from './sanWriter';

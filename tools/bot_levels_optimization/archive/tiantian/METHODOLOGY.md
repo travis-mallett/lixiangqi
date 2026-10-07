@@ -1,5 +1,12 @@
 # Computer-level calibration methodology
 
+The historical calibration below covers Tiantian levels 2–25. Level 1 now
+starts from live map Level 1 / Custom Bot choice 0 (149 nodes, MultiPV 16,
+expected rank 9.5, production sampling with a 600-cp loss limit), with the production
+opening-book fade and 5M-node missing-book fallback retained throughout
+optimization. The historical levels and their stored evidence remain unchanged. See [README.md](README.md) for runtime
+requirements and opening-policy details.
+
 ## Objective
 
 Lixiangqi's computer levels were calibrated by playing fixed Pikafish policies
@@ -31,10 +38,16 @@ Level 5-to-7 gap counts as two equal increments, giving five equal coordinate
 steps from Level 2 to Level 7. Later exploratory games at Level 3 are not used
 as release evidence and do not override this interpolation.
 
-## Release profiles
+## Original calibrated release profiles
 
 The public site calls these levels 1 through 9. Tiantian names are retained
 only here as calibration provenance.
+
+The table below records the calibration results. Public Level 1 has since
+been replaced by the 149-node beginner policy with 16 candidates, expected
+rank 9, and a 600 cp loss safeguard. Levels 2–9 retain these calibrated
+engine policies. Current runtime settings are authoritative in
+[`doc/PLAY_WITH_COMPUTER.md`](../../doc/PLAY_WITH_COMPUTER.md).
 
 | Site level | Reference level |     Nodes | MultiPV | Expected rank | Rank selection                   |
 | ---------: | --------------: | --------: | ------: | ------------: | -------------------------------- |

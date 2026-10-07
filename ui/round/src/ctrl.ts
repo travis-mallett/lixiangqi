@@ -18,6 +18,7 @@ import { xiangqiPosition } from 'lib/board';
 import * as game from 'lib/game';
 import { isXiangqiCapture, plyOpponentColor } from 'lib/game';
 import { isXiangqiMate } from 'lib/game/adjudication';
+import { recordGuestAiWin } from 'lib/game/aiProgress';
 import { plyToTurn, plyColor } from 'lib/game/chess';
 import { ClockCtrl, type ClockOpts } from 'lib/game/clock/clockCtrl';
 import type { MoveRootCtrl } from 'lib/game/moveRootCtrl';
@@ -117,6 +118,7 @@ export default class RoundController implements MoveRootCtrl {
     util.upgradeServerData(opts.data);
 
     const d = (this.data = opts.data);
+    recordGuestAiWin(d);
 
     this.ply = util.lastPly(d);
     this.goneBerserk[d.player.color] = d.player.berserk;
@@ -352,6 +354,7 @@ export default class RoundController implements MoveRootCtrl {
     const activeColor = d.player.color === d.game.player;
     if (o.status) d.game.status = o.status;
     if (o.winner) d.game.winner = o.winner;
+    recordGuestAiWin(d);
     this.playerByColor('white').offeringDraw = o.wDraw;
     this.playerByColor('black').offeringDraw = o.bDraw;
     d.possibleMoves = activeColor ? o.dests : undefined;
@@ -446,6 +449,7 @@ export default class RoundController implements MoveRootCtrl {
     if (posChanged) this.ply = util.lastPly(d);
     util.upgradeServerData(d);
     this.data = d;
+    recordGuestAiWin(d);
     this.shouldSendMoveTime = false;
     this.updateClockCtrl();
     this.captureLatestClock(d.clock);
@@ -474,6 +478,7 @@ export default class RoundController implements MoveRootCtrl {
     const d = this.data;
     d.game.winner = o.winner;
     d.game.status = o.status;
+    recordGuestAiWin(d);
     if (o.termination !== undefined) d.game.termination = o.termination;
     d.game.variation = undefined;
     d.game.abortedBy = o.abortedBy;

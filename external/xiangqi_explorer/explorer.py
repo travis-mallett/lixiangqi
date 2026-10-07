@@ -56,6 +56,45 @@ def database_path():
     return games_database_path()
 
 
+def master_book_moves(fen: str) -> list[tuple[str, int]]:
+    """All master continuations, without the UI limit or game-sample hydration."""
+    connection = open_catalog_connection()
+    if connection is None:
+        return []
+    try:
+        key = position_key(fen)
+        indexed = connection.execute(
+            "SELECT id FROM explorer_positions WHERE position_key = ?", (key,)
+        ).fetchone()
+        if indexed is not None:
+            rows = connection.execute(
+                """
+                SELECT move, sum(masters_red + masters_draws + masters_black) AS games
+                FROM explorer_stats WHERE position_id = ?
+                GROUP BY move HAVING games > 0 ORDER BY move
+                """,
+                (indexed[0],),
+            ).fetchall()
+        else:
+            # Only hot positions have a projection. Cold positions use the same
+            # indexed position lookup and source eligibility as the explorer.
+            rows = connection.execute(
+                f"""
+                SELECT p.move, count(*) AS games
+                FROM game_positions p JOIN games g ON g.id = p.game_id
+                WHERE p.position_key = ? AND g.statistical_eligible = 1
+                  AND g.record_kind = 'played_game'
+                  AND EXISTS (SELECT 1 FROM game_sources gs
+                              WHERE gs.game_id = g.id AND ({DATABASES['masters'][1]}))
+                GROUP BY p.move ORDER BY p.move
+                """,
+                (key,),
+            ).fetchall()
+        return [(row[0], int(row[1])) for row in rows]
+    finally:
+        connection.close()
+
+
 def _month(value: Any, name: str) -> str | None:
     if value in (None, ""):
         return None

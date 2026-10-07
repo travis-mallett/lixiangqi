@@ -133,6 +133,48 @@ class PuzzleStorageLifecycleTest(unittest.TestCase):
             self.connection.rollback()
             self.assertIsNotNone(future.result(timeout=3))
 
+    def test_failure_outcomes_wait_for_writer(self):
+        for inconclusive, attempts, expected in (
+            (True, 3, "incomplete"),
+            (False, 3, "retry"),
+            (False, 1, "failed"),
+        ):
+            with self.subTest(expected=expected):
+                signature = f"contended-{expected}"
+                seed_verification(self.connection, signature)
+                claim = claim_verification(self.connection, signature)
+                stop = threading.Event()
+                waiting = threading.Event()
+
+                def finish():
+                    with closing(sqlite3.connect(self.path, timeout=0.01)) as db:
+                        db.set_trace_callback(
+                            lambda sql: waiting.set() if sql == "BEGIN IMMEDIATE" else None
+                        )
+                        status = fail_verification(
+                            db, claim, "tactic_repetition",
+                            inconclusive=inconclusive, max_attempts=attempts,
+                            stop_event=stop,
+                        )
+                        self.assertFalse(db.in_transaction)
+                        self.assertEqual(db.execute("PRAGMA busy_timeout").fetchone()[0], 10)
+                        return status
+
+                self.connection.execute("BEGIN IMMEDIATE")
+                with ThreadPoolExecutor(max_workers=1) as pool:
+                    future = pool.submit(finish)
+                    try:
+                        self.assertTrue(waiting.wait(3))
+                        time.sleep(0.05)
+                        self.assertFalse(future.done())
+                    finally:
+                        self.connection.rollback()
+                    self.assertEqual(future.result(timeout=3), expected)
+                row = self.connection.execute(
+                    "SELECT status,claim_token FROM verification_jobs WHERE id=?", (claim.id,)
+                ).fetchone()
+                self.assertEqual(tuple(row), (expected, None))
+
     def test_waiting_writer_can_be_cancelled(self):
         from tools.xiangqi_data.puzzle_mining.workers import WorkerCancelled
 

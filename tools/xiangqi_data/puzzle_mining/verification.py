@@ -348,6 +348,7 @@ def _worker_main(
                             claim,
                             "source database is not installed",
                             max_attempts=max_attempts,
+                            stop_event=stop_event,
                         )
                         puzzle_id = None
                     else:
@@ -373,6 +374,7 @@ def _worker_main(
                                 claim,
                                 f"inconclusive: {exc}; settings={json.dumps(config.settings(), sort_keys=True)}",
                                 max_attempts=max_attempts,
+                                stop_event=stop_event,
                                 inconclusive=True,
                             )
                             puzzle_id = None
@@ -391,6 +393,7 @@ def _worker_main(
                                 claim,
                                 f"{type(exc).__name__}: {exc}",
                                 max_attempts=max_attempts,
+                                stop_event=stop_event,
                             )
                             puzzle_id = None
                             report_queue.put(
@@ -404,6 +407,9 @@ def _worker_main(
                             )
                         finally:
                             engine.heartbeat = None
+                except WorkerCancelled:
+                    # Leave the lease recoverable if Stop interrupts a contended write.
+                    break
                 except WorkerClaimLost as exc:
                     report_queue.put(
                         ("warning", worker_id, candidate.game_id, candidate.ply, str(exc))

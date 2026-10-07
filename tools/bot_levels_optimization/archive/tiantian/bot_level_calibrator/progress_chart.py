@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from .runtime import tk
 from .scheduler import calibration_cohort_size, is_censored
 from .storage import GameResult
-from .strength import BESTMOVE_BOUNDARY_NODES, StrengthProfile
+from .strength import StrengthProfile
 
 
 @dataclass(frozen=True)
@@ -133,7 +133,7 @@ def parameter_progress(
         # search cross that boundary, show them at the shared node floor rather
         # than treating rank selection as a different search workload.
         if use_nodes:
-            return float(profile.nodes if profile.is_bestmove else BESTMOVE_BOUNDARY_NODES)
+            return float(profile.nodes)
         return profile.expected_rank
 
     points = [
@@ -173,7 +173,7 @@ def parameter_evidence(
 
     def value(profile: StrengthProfile) -> float:
         if parameter == "nodes":
-            return float(profile.nodes if profile.is_bestmove else BESTMOVE_BOUNDARY_NODES)
+            return float(profile.nodes)
         return profile.expected_rank
 
     current_value = value(current_profile)

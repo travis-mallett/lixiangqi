@@ -74,6 +74,22 @@ final class AccessTokenApi(
         expires = nowInstant.plusMonths(12).some
       )
 
+  /** Called only after the first-party native credential/2FA checks. */
+  def createMobile(userId: UserId)(using ua: UserAgent): Fu[AccessToken] =
+    val plain = Bearer.random()
+    createAndRotate:
+      AccessToken(
+        id = AccessToken.idFrom(plain),
+        plain = plain,
+        userId = userId,
+        description = "LiXiangQi mobile".some,
+        created = nowInstant.some,
+        scopes = TokenScopes(Nil),
+        clientOrigin = Origin("org.lixiangqi.mobile://").some,
+        userAgent = ua.some,
+        expires = nowInstant.plusMonths(12).some
+      )
+
   def adminChallengeTokens(
       setup: OAuthTokenForm.AdminChallengeTokensData,
       admin: User

@@ -1,41 +1,29 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-const names = [
-  'Newcomer (小白)',
-  'Rookie (菜鸟)',
-  'Initiate (入门)',
-  'Elementary (初级)',
-  'Intermediate (中级)',
-  'Advanced (高级)',
-  'Elite (精英)',
-  'Master (大师)',
-  'Grandmaster (特级大师)',
-];
-
 (globalThis as any).i18n = {
-  site: Object.fromEntries(
-    names.map((name, index) => [
-      `aiLevel${['Newcomer', 'Rookie', 'Initiate', 'Elementary', 'Intermediate', 'Advanced', 'Elite', 'Master', 'Grandmaster'][index]}`,
-      name,
-    ]),
-  ),
+  site: { aiNameLevelAiLevel: (name: string, level: number) => `${name} level ${level}` },
 };
+const { aiCustomLevel, aiCustomLevelIndex, aiCustomLevels, aiLevelName, aiLevels } =
+  await import('../src/game/aiLevel');
 
-const { aiLevelName } = await import('../src/game/aiLevel');
-
-test('names all LiXiangQi computer profiles', () => {
-  assert.deepEqual(
-    names.map((_, index) => aiLevelName(index + 1)),
-    names,
-  );
-});
-
-test('preserves unknown numeric profile ids', () => {
-  assert.equal(aiLevelName(10), '10');
+test('names all 720 computer levels', () => {
+  assert.equal(aiLevels.length, 720);
+  for (const level of aiLevels) assert.equal(aiLevelName(level), `Pikafish level ${level}`);
 });
 
 test('reads the active translation when the locale changes', () => {
-  (globalThis as any).i18n.site.aiLevelNewcomer = 'Beginner';
-  assert.equal(aiLevelName(1), 'Beginner');
+  (globalThis as any).i18n.site.aiNameLevelAiLevel = (name: string, level: number) =>
+    `${name} niveau ${level}`;
+  assert.equal(aiLevelName(720), 'Pikafish niveau 720');
+});
+
+test('custom bot choices map to the shared map levels', () => {
+  assert.deepEqual(aiCustomLevels, [1, 9, 98, 187, 276, 364, 453, 542, 631, 720]);
+  aiCustomLevels.forEach((level, index) => {
+    assert.equal(aiCustomLevel(index), level);
+    assert.equal(aiCustomLevelIndex(level), index);
+  });
+  assert.equal(aiCustomLevelIndex(400), 5);
+  assert.throws(() => aiCustomLevel(10), RangeError);
 });

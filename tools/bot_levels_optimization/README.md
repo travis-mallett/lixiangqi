@@ -1,50 +1,164 @@
-# Bot-level calibration tool
+# Offline bot ladder calibration
 
-This Windows-only research tool measures fixed Pikafish policies against the
-nine Tiantian reference levels used to design Lixiangqi's computer strengths.
-It is not imported by the site or by the production Pikafish worker.
+For the independent ordinary Elo player pool (5,000 candidates, concurrent normal
+games, and a 720-level proposal report), see [rating_pool/README.md](rating_pool/README.md).
 
-The optimizer has one objective: a color-balanced match score of 50%, where a
-win is 1, a draw is 0.5, and a loss is 0. It does not optimize style,
-human-likeness, or similarity to Tiantian's move choices.
+This tool solves experimental strength coordinates for Levels 2–8 by paired
+self-play. It never changes production profiles, matchmaking, or saved games.
+The former Tiantian desktop automation, its assets, logs, and local results are
+preserved under `archive/tiantian/`. Its calibration results are historical.
 
 ## Run
 
+Use the repository Python environment and installed Pikafish. No additional
+Python dependencies are required. Run from the repository root:
+
 ```powershell
-.\Launch Bot Level Calibration.cmd
+.venv/Scripts/python.exe -m tools.bot_levels_optimization --prepare-suite tools/bot_levels_optimization/runs/masters.json --suite-size 64 --seed 20261003
+.venv/Scripts/python.exe -m tools.bot_levels_optimization --suite tools/bot_levels_optimization/runs/masters.json --output tools/bot_levels_optimization/runs/ladder-01 --games-per-pair 200 --max-iterations 10 --tolerance 0.05
 ```
 
-The launcher opens the desktop GUI and stores local results under `data/`.
-Tiantian automation is screen-coordinate and image based, so it requires the
-expected Windows display, application layout, and installed Pikafish binary.
+`tools/bot_levels_optimization/calibrate-bot-bosses.cmd` is the Windows wrapper
+for the same command. `python -m tools.bot_levels_optimization --help` lists all
+options. `--prepare-suite` uses the existing read-only games catalog path
+(`LIXIANGQI_GAMES_DB` when configured). It reservoir-samples eligible master
+games only, then records unique positions at plies 20–28, original FENs, and
+complete move prefixes. The resulting JSON is a fixed suite: retain it unchanged
+throughout a run. Export refuses to overwrite an existing suite.
 
-## Repository layout
+Self-play uses a persistent **offline native-rules process**, requiring Java 21
+and the existing `target/universal/stage/lib/` JARs. Build those once with the
+repository's SBT `stage` command if missing or stale. On this Windows checkout:
 
-- `bot_level_calibrator/` contains the optimizer, persistence, Pikafish client,
-  Tiantian automation, recovery, and GUI.
-- `tests/` contains unit and regression coverage.
-- `piece_catalog/` contains source reference images used for board recognition.
-- `data/` contains machine-local databases, games, screenshots, diagnostics,
-  and exports. Git ignores these generated artifacts except for its README.
-- `METHODOLOGY.md` records the final calibration method, release profiles,
-  evidence limitations, and future work.
-- `ALGORITHM_REVIEW.md` records the design decisions that led to the final
-  one-coordinate model.
+```powershell
+& .tools/jdk-21/jdk-21.0.11+10/bin/java.exe '-Dsbt.server.autostart=false' -jar .tools/sbt/sbt-launch-2.0.3.jar stage
+```
 
-## Strength model
+Discover the installed JDK patch directory if it differs. `--java` and
+`--class-path` override the bundled Java and staged JAR paths. `NativeRules.java`
+is run in Java source-file mode against those existing classes; no new library
+or service installation is needed. It calls `XiangqiRules` with `tiantian-v1`
+and retains immutable native game history between moves, giving the same move
+legality and repetition adjudication without repeatedly replaying every ply.
+Actual native JAR hashes are recorded for reproducibility. The full web app,
+MongoDB, Redis, preview snapshots, and network access are not needed for primary
+engine calibration. Build current sources before calibrating; stale JARs are
+recorded but cannot be assumed to match newer source files.
 
-The policy has two continuous regimes:
+Calibration runs serially with one persistent Pikafish process, one engine
+thread and 128 MiB hash, plus a native-rules JVM capped at 512 MiB. Node budgets can still make thousands of games take
+many hours or days. Check `games.jsonl`, SQLite checkpoints, and JSON progress
+on stdout; do not mistake a small smoke run for measured convergence.
 
-- Levels below the bestmove floor use 149 nodes and sample between adjacent
-  Pikafish ranks. Expected rank 1.21, for example, means rank 1 with 79%
-  probability and rank 2 with 21% probability.
-- At and above the floor, `MultiPV=1` always plays Pikafish `bestmove`, and
-  nodes are the only strength parameter.
+## Profiles and sampling
 
-`MultiPV` only asks Pikafish to report enough ranked candidates. It is derived
-from expected rank and is never independently optimized. There are no
-temperature, tail-mixture, lapse, behavior-matching, or opening-book controls.
+The fixed endpoints are the production Level 1 `(149, 16, 9.0, 600 cp)` and
+Level 9 `(3318000, 1, 1.0, no filter)`. The tool checks these against production
+and fails if they have changed. Both call the production search and selection
+implementation, including its seeded randomness, hash clearing and timeouts.
 
-See [METHODOLOGY.md](METHODOLOGY.md) for the release table and statistical
-method. Production behavior is documented in
-[`doc/PLAY_WITH_COMPUTER.md`](../../doc/PLAY_WITH_COMPUTER.md).
+For `0 < s < 1`, profiles are generated by:
+
+- `nodes = floor(149 * (3318000 / 149)^s + 0.5)`
+- `expectedRank = 9 - 8*s`
+- `maxCandidateLoss = 600 * (1-s)` in UCI cp, without integer rounding
+- `MultiPV = clamp(floor(16 - 12*s + 0.5), 4, 16)`
+
+The initial coordinates are `0, 0.125, …, 1`. Intermediate profiles reuse the
+same candidate filtering and probability solver, with the target rank clamped
+to the actual available candidate count before filtering. Original endpoint
+normalization is preserved exactly: Level 1 still conditions its configured
+16-rank distribution when candidates are missing. This intentional endpoint
+exception resolves the requirement to leave Level 1's implementation unchanged.
+The family is an experimental hypothesis; monotonic search parameters do not
+guarantee monotonic playing strength. Measured reversals are reported.
+
+## Measurement and convergence
+
+Every adjacent pair uses the same shuffled opening-suite cycles. Each opening
+has two games with colors reversed and distinct deterministic game IDs/seeds.
+Results are from the higher-coordinate bot's perspective. A half-win plus a
+half-loss pseudocount smooths the reported internal log-odds interval:
+`400 * log10(p / (1-p))`, with `p=(wins + draws/2 + 0.5)/(games+1)`.
+The raw score is also reported. These values are **not human xiangqi Elo**.
+
+The cumulative measured curve starts at zero. Pool-adjacent-violators isotonic
+regression removes reversals only in the fitted curve; raw intervals remain in
+reports. Endpoint-anchored piecewise-linear interpolation cannot overshoot or
+reverse. Inversion at eight equal strength intervals proposes new coordinates.
+`--damping` (default 0.5) mixes the proposal with the measured coordinates to
+reduce oscillation. No positive measured span means no coordinate update.
+
+Defaults are 200 games per adjacent pair for exploratory iterations, 500 for
+refinement, and 2,000 for final verification. Counts must be even and cannot
+decrease between phases. Exploration lasts at most three iterations or ends
+early when its point estimates pass tolerance. Refinement passing tolerance
+promotes the unchanged ladder to a fresh, independently seeded verification
+sample. Only verification can report `converged=true`.
+
+Tolerance means `max(abs(interval - meanInterval))/meanInterval < 0.05`, with
+a positive mean and all requested pairs completed. Wilson confidence bounds
+use color-pair mean scores as independent bounded observations; they are a
+conservative approximation. `precisionSufficient` separately reports whether
+the interval bounds fit within the tolerance scale. Point convergence is **not**
+a claim of statistical certainty: 5% precision may require far more than 2,000
+games per matchup. Increase `--final-games` when needed.
+
+`--max-iterations` bounds the run. After exploration, `--patience` (default 3)
+stops runs without at least a 2% relative improvement in the largest deviation.
+Unconverged runs return exit code 2 and explicitly say why; they still export
+the last measured ladder and a separately labeled next proposal. Coordinates
+are never called verified using results measured at a different set of coordinates.
+
+## Failures, evidence, and resume
+
+Engine timeouts, missing/forbidden moves and native-rules failures are recorded
+as failures, never ordinary losses. If either color fails, the **entire pair**
+is excluded. Games reaching `--max-plies` (default 600 additional plies) are
+censored and excluded, not silently scored as draws. Three excluded pairs
+stop a matchup by default; the run reports incomplete statistics and stops.
+
+The output directory contains:
+
+- `manifest.json`: configuration, complete suite, seed, Python/platform,
+  engine and network SHA-256 hashes, source hashes, native JAR hashes and ruleset.
+- `checkpoint.sqlite3`: transactionally saved games and iteration reports.
+- `games.jsonl`: exported game evidence, including full opening/history,
+  generated Red/Black profiles, seeds, moves, results, timeouts/failures and
+  statistics inclusion. Exports refresh after iterations and on clean exit.
+- `iteration-NNN.json`: profiles, raw cumulative strength, adjacent W/D/L,
+  confidence bounds, fitted curve, next proposal and convergence status.
+- `result.json`: the last **measured** ladder, overall status and separate proposal.
+
+Resume with the exact same arguments plus `--resume`. Fingerprints/configuration
+must match. Completed games are reused; an interrupted, uncommitted game is
+replayed from its deterministic plan. An in-progress pair is included only after
+both games complete. To change budgets or code, start a new output directory,
+optionally using `--profiles old-run/result.json` for starting coordinates.
+There is no profile installation or deployment command.
+
+## Optional complete-bot validation
+
+```powershell
+.venv/Scripts/python.exe -m tools.bot_levels_optimization --mode validate --profiles tools/bot_levels_optimization/runs/ladder-01/result.json --suite tools/bot_levels_optimization/runs/masters.json --output tools/bot_levels_optimization/runs/full-bots-01
+```
+
+This mode evaluates one frozen ladder from the source games' initial positions,
+without forcing their recorded openings. It calls the real production master
+opening/fade selector; after that, it uses the calibrated engine profiles. Start
+the existing local explorer (`python -m external.xiangqi_explorer.server`,
+`--explorer-url`, default localhost:9002). Remote explorer URLs are rejected.
+Book lookup errors exclude the affected pair. Retain the master catalog used
+for validation: its live frequencies are not frozen by the engine opening suite.
+This mode does not redistribute coordinates or modify the production opening code.
+
+## Tests
+
+```powershell
+.venv/Scripts/python.exe -m unittest discover -s tools/bot_levels_optimization/tests
+```
+
+Tests cover profile endpoints, exact production selection reuse, paired games,
+failure exclusion, score orientation, monotone fitting/inversion, simulated
+convergence, phase promotion, resume and immutable manifests. The new tool does
+not run the archived Tiantian automation or its historical test suite.

@@ -6,11 +6,17 @@ import { bind, hl } from 'lib/view';
 import type LobbyController from '@/ctrl';
 import type { Pool } from '@/interfaces';
 
+import botMap from './botMap';
 import correspondenceDeck from './correspondenceDeck';
 import homepageRoomView from './homepageRoom';
 import renderSetupModal from './setup/modal';
 
 export default function table(ctrl: LobbyController) {
+  if (ctrl.botMapOpen)
+    return hl('div.lobby__table.lobby__table--bot-map', [
+      botMap(ctrl),
+      !ctrl.setupCtrl.startingBot && renderSetupModal(ctrl),
+    ]);
   if (ctrl.homepageRoom)
     return hl('div.lobby__table.lobby__table--homepage-room', homepageRoomView(ctrl, ctrl.homepageRoom));
 
@@ -164,7 +170,15 @@ export default function table(ctrl: LobbyController) {
           disabled: hasOngoingRealTimeGame,
           'aria-disabled': hasOngoingRealTimeGame ? 'true' : 'false',
         },
-        hook: hasOngoingRealTimeGame ? {} : bind('click', () => ctrl.setupCtrl.openModal('ai'), ctrl.redraw),
+        hook: hasOngoingRealTimeGame
+          ? {}
+          : bind(
+              'click',
+              () => {
+                ctrl.openBotMap();
+              },
+              ctrl.redraw,
+            ),
       },
       [
         hl('span.lobby__svg-icon.lobby__svg-icon--computer', { attrs: { 'aria-hidden': 'true' } }),

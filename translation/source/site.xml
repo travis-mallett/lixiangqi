@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="challengeHigherLevel">Challenge a Higher Level</string>
+  <string name="botLevelCleared">Level %s cleared</string>
+  <string name="botLevelLocked">Level %s locked</string>
   <string name="gameSetup">Game setup</string>
   <string name="challengeAFriend" comment="be mindful how 'friend' translates in gendered languages. look for a more neutral term if there's an issue, or base your translation on a different phrase like 'invite to a game'. keep it short and convey the button's meaning without offense.">Challenge a friend</string>
   <string name="playAgainstComputer">Play against computer</string>
@@ -7,15 +10,6 @@
   <string name="aiDifficulty">AI difficulty</string>
   <string name="difficulty">Difficulty</string>
   <string name="passRate" comment="Percentage of completed games that registered human players won against a computer difficulty level.">Pass rate</string>
-  <string name="aiLevelNewcomer">Newcomer (小白)</string>
-  <string name="aiLevelRookie">Rookie (菜鸟)</string>
-  <string name="aiLevelInitiate">Initiate (入门)</string>
-  <string name="aiLevelElementary">Elementary (初级)</string>
-  <string name="aiLevelIntermediate">Intermediate (中级)</string>
-  <string name="aiLevelAdvanced">Advanced (高级)</string>
-  <string name="aiLevelElite">Elite (精英)</string>
-  <string name="aiLevelMaster">Master (大师)</string>
-  <string name="aiLevelGrandmaster">Grandmaster (特级大师)</string>
   <string name="timeControls">Time controls</string>
   <string name="standardHistoryAgainst">Standard match history against %1$s · %2$s</string>
   <string name="signInOrRegisterToTrackWinRate">Sign in or register to track your win rate</string>

@@ -48,8 +48,6 @@
   }
 
   @media (max-width: 800px) {
-    padding-bottom: calc(84px + env(safe-area-inset-bottom));
-
     &__center-rail,
     &__left-rail,
     &__right-rail {

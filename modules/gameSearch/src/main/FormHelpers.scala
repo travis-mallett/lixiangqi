@@ -61,7 +61,7 @@ object FormHelpers:
 
   def hasAis(using Translate) = List(0 -> trans.site.human.txt(), 1 -> trans.site.computer.txt())
 
-  val aiLevels = (1 to 9).map { l =>
+  val aiLevels = lila.core.game.AiLevel.levels.map { l =>
     l -> s"level $l"
   }
 

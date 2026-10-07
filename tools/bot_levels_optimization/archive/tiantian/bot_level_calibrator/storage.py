@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .optimizer import Observation
-from .strength import StrengthProfile, profile_from_policy
+from .strength import StrengthProfile, profile_from_policy, profile_for_strength
 
 
 @dataclass(frozen=True)
@@ -31,6 +31,7 @@ class GameResult:
     plies: int
     reason: str
     played_at: str
+    level: int = 0
 
     @property
     def score(self) -> float:
@@ -38,6 +39,8 @@ class GameResult:
 
     @property
     def profile(self) -> StrengthProfile:
+        if self.level == 1:
+            return profile_for_strength(self.strength, opening_book=True)
         return profile_from_policy(self.nodes, self.multi_pv, self.expected_rank)
 
 
@@ -182,7 +185,7 @@ class CalibrationStore:
                 "FROM games WHERE level=? ORDER BY id",
                 (level,),
             ).fetchall()
-        return [GameResult(**dict(row)) for row in rows]
+        return [GameResult(level=level, **dict(row)) for row in rows]
 
     def observations(self, level: int) -> list[Observation]:
         return [Observation(item.profile.strength, item.score, item.side) for item in self.results(level)]

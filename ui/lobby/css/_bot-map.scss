@@ -1,0 +1,104 @@
+.lobby__bot-map {
+  display: flex;
+  flex-direction: column;
+  height: min(760px, calc(100dvh - var(---site-header-height) - 3rem));
+  min-height: 320px;
+  border: $border;
+  border-radius: $box-radius-size;
+  background: $c-bg-box;
+
+  header,
+  footer {
+    padding: 1rem;
+    flex: none;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    border-bottom: $border;
+
+    h2 {
+      font-size: 1.2em;
+    }
+  }
+
+  footer {
+    border-top: $border;
+
+    button {
+      width: 100%;
+    }
+  }
+
+  &__scroll {
+    container-type: size;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  &__status {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+  }
+
+  &__levels {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+
+    // Leave enough space to center even the first and last levels.
+    padding: max(1.5rem, calc(50cqh - 45px)) 1.5rem;
+    list-style: none;
+
+    li {
+      display: flex;
+      justify-content: center;
+      width: 50%;
+      height: 90px;
+      margin-inline-start: 25%;
+      align-items: center;
+
+      &:nth-last-child(4n + 1) {
+        margin-inline-start: 50%;
+      }
+
+      &:nth-last-child(4n + 3) {
+        margin-inline-start: 0;
+      }
+    }
+
+    button {
+      position: relative;
+      width: 4rem;
+      height: 4rem;
+      padding: 0;
+      border-radius: 50%;
+
+      &[aria-current='step'] {
+        outline: 2px solid $c-primary;
+        outline-offset: 3px;
+      }
+
+      .bot-status {
+        position: absolute;
+        bottom: 0;
+        inset-inline-end: 0;
+        border-radius: 50%;
+        background: $c-bg-box;
+        padding: 0.15em;
+      }
+
+      &.cleared .bot-status {
+        color: $c-good;
+      }
+    }
+  }
+}

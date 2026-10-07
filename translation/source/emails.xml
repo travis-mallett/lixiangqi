@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="mobileVerificationSubject">Your LiXiangQi verification code</string>
+  <string name="mobileVerificationBody">Enter this code in the LiXiangQi app: %s
+
+This code expires in 10 minutes. Do not share it. If you did not request this code, ignore this email.</string>
   <string name="emailConfirm_subject">Confirm your lixiangqi.org account, %s</string>
   <string name="emailConfirm_intro">Thanks for registering with Lixiangqi!</string>
   <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a Lichess account.&#10;&#10;The unique reset link is presented just after this string.">Click the link to enable your Lixiangqi account:</string>

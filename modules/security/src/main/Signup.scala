@@ -36,6 +36,7 @@ final class Signup(
   private enum MustConfirmEmail(val value: Boolean):
     case NoCantSend extends MustConfirmEmail(false)
     case NoSimpleSignup extends MustConfirmEmail(false)
+    case NoMobileVerified extends MustConfirmEmail(false)
     case YesAnyway extends MustConfirmEmail(true)
     case YesBecausePrintExists extends MustConfirmEmail(true)
     case YesBecausePrintMissing extends MustConfirmEmail(true)
@@ -48,9 +49,11 @@ final class Signup(
     def apply(
         data: SignupData,
         suspIp: Boolean,
-        simpleSignup: Option[lila.oauth.OAuthSignedClient.SimpleSignup]
+        simpleSignup: Option[lila.oauth.OAuthSignedClient.SimpleSignup],
+        mobileVerified: Boolean
     )(using req: RequestHeader): Fu[MustConfirmEmail] =
-      if !canSendEmails.get() then fuccess(NoCantSend)
+      if mobileVerified then fuccess(NoMobileVerified)
+      else if !canSendEmails.get() then fuccess(NoCantSend)
       else if simpleSignup.exists(_.email == data.email) then fuccess(NoSimpleSignup)
       else
         val ip = HTTPRequest.ipAddress(req)
@@ -70,8 +73,9 @@ final class Signup(
                   else YesBecauseEmailDomain
         }
 
-  private val dedupCache = cacheApi.notLoading[SecurityForm.SignupData, Signup.Result](16, "signup.dedup"):
-    _.expireAfterWrite(3.seconds).buildAsync()
+  private val dedupCache =
+    cacheApi.notLoading[(SecurityForm.SignupData, String), Signup.Result](16, "signup.dedup"):
+      _.expireAfterWrite(3.seconds).buildAsync()
 
   private val dedupSimpleSignupEmail = ExpireSetMemo[EmailAddress](1.day)
 
@@ -81,8 +85,27 @@ final class Signup(
   )(using
       req: Request[?]
   )(using Lang, FormBinding, Option[ValidReferrer], IsProxy): Fu[Signup.Result] =
-    val client = simpleSignup.fold("website")(_.client.clientId.value)
-    val turnstileSuccess = if simpleSignup.isDefined then fuccess(true)
+    submit(blind, simpleSignup, none)
+
+  def mobile(
+      verifyEmail: EmailAddress => Boolean
+  )(using Request[?], Lang, FormBinding, Option[ValidReferrer], IsProxy): Fu[Signup.Result] =
+    submit(blind = false, simpleSignup = none, verifyEmail = verifyEmail.some)
+
+  private def submit(
+      blind: Boolean,
+      simpleSignup: Option[lila.oauth.OAuthSignedClient.SimpleSignup],
+      verifyEmail: Option[EmailAddress => Boolean]
+  )(using
+      req: Request[?],
+      lang: Lang,
+      binding: FormBinding,
+      referrer: Option[ValidReferrer],
+      proxy: IsProxy
+  ): Fu[Signup.Result] =
+    val client = if verifyEmail.isDefined then "lixiangqi_mobile"
+    else simpleSignup.fold("website")(_.client.clientId.value)
+    val turnstileSuccess = if simpleSignup.isDefined || verifyEmail.isDefined then fuccess(true)
     else turnstile.verify()
     turnstileSuccess
       .flatMap: turnstileSuccess =>
@@ -109,48 +132,56 @@ final class Signup(
                     Signup.Result.FormInvalid(err.tap(signupErrLog))
                 ,
                 data =>
-                  dedupCache.getFuture(
-                    data,
-                    _ =>
-                      if simpleSignup.exists(s => dedupSimpleSignupEmail.get(s.email))
-                      then fuccess(Signup.Result.SimpleSignupDuplicate)
-                      else
-                        for
-                          suspIp <- ipTrust.isSuspicious(ip)
-                          pwned <- pwnedApi.isPwned(data.clearPassword)
-                          result <- signupRateLimit(data.username.id, suspIp = suspIp):
-                            MustConfirmEmail(data, suspIp = suspIp, simpleSignup).flatMap: mustConfirm =>
-                              val passwordHash = authenticator.passEnc(data.clearPassword)
-                              userRepo
-                                .create(
-                                  data.username,
-                                  passwordHash,
-                                  data.email,
-                                  blind = blind,
-                                  mustConfirmEmail = mustConfirm.value
-                                )
-                                .orFail(s"No user could be created for ${data.username}")
-                                .addEffect: user =>
-                                  monitor(
-                                    data,
-                                    mustConfirm,
-                                    ipTrust.reqData(req),
-                                    ipSusp = suspIp,
-                                    client = client
-                                  )
-                                  logSignup(
-                                    req,
-                                    user,
+                  if verifyEmail.exists(verify => !verify(data.email)) then
+                    fuccess(Signup.Result.EmailCodeInvalid)
+                  else
+                    dedupCache.getFuture(
+                      data -> client,
+                      _ =>
+                        if simpleSignup.exists(s => dedupSimpleSignupEmail.get(s.email))
+                        then fuccess(Signup.Result.SimpleSignupDuplicate)
+                        else
+                          for
+                            suspIp <- ipTrust.isSuspicious(ip)
+                            pwned <- pwnedApi.isPwned(data.clearPassword)
+                            result <- signupRateLimit(data.username.id, suspIp = suspIp):
+                              MustConfirmEmail(
+                                data,
+                                suspIp = suspIp,
+                                simpleSignup,
+                                mobileVerified = verifyEmail.isDefined
+                              ).flatMap: mustConfirm =>
+                                val passwordHash = authenticator.passEnc(data.clearPassword)
+                                userRepo
+                                  .create(
+                                    data.username,
+                                    passwordHash,
                                     data.email,
-                                    data.fingerPrint,
-                                    mustConfirm,
-                                    pwned
+                                    blind = blind,
+                                    mustConfirmEmail = mustConfirm.value
                                   )
-                                  simpleSignup.foreach(s => dedupSimpleSignupEmail.put(s.email))
-                                .flatMap:
-                                  confirmOrAllSet(data.email, mustConfirm, data.fingerPrint, none, pwned)
-                        yield result
-                  )
+                                  .orFail(s"No user could be created for ${data.username}")
+                                  .addEffect: user =>
+                                    monitor(
+                                      data,
+                                      mustConfirm,
+                                      ipTrust.reqData(req),
+                                      ipSusp = suspIp,
+                                      client = client
+                                    )
+                                    logSignup(
+                                      req,
+                                      user,
+                                      data.email,
+                                      data.fingerPrint,
+                                      mustConfirm,
+                                      pwned
+                                    )
+                                    simpleSignup.foreach(s => dedupSimpleSignupEmail.put(s.email))
+                                  .flatMap:
+                                    confirmOrAllSet(data.email, mustConfirm, data.fingerPrint, none, pwned)
+                          yield result
+                    )
               )
           yield
             lila.mon.user.register.result(client, res.key).increment()
@@ -245,6 +276,7 @@ object Signup:
   enum Result(val key: String):
     case FormInvalid(err: Form[?]) extends Result("formError")
     case TurnstileFail extends Result("turnstileFail")
+    case EmailCodeInvalid extends Result("emailCodeInvalid")
     case RateLimited extends Result("rateLimited")
     case SimpleSignupDuplicate extends Result("simpleSignupDuplicate")
     case ForbiddenNetwork extends Result("forbiddenNetwork")

@@ -24,6 +24,7 @@ STATUS_LABELS = {
     "awaiting_classification": "◷ Needs classification",
     "uncategorized": "◇ Uncategorized",
     "uncategorized_checkmate": "Uncategorized (Checkmate)",
+    "single_solution_uncategorized_checkmate": "Single Solution, Uncategorized Checkmate",
     "uncategorized_tactic": "Uncategorized (Tactic)",
     "published": "● Published",
     "pending_retirement": "◷ Retirement pending",
