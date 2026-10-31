@@ -27,6 +27,7 @@ import { userLink } from 'lib/view/userLink';
 
 import { roundAction } from '../view/actions';
 import { roomBoardMenu } from '../view/boardMenu';
+import { scrollSelectedEvent } from '../view/eventScroll';
 import { replayNavigation, replayMoves, bindReplayKeyboard, replayWheel } from '../view/navigation';
 import { mountRoom, roomView, tableView } from '../view/room';
 import { Chat } from './threeKingdomsChat';
@@ -373,6 +374,16 @@ export class Round {
           replayMoves(
             hl(
               'ol.round__event-moves',
+              {
+                attrs: { 'data-cursor': this.cursor },
+                hook: {
+                  insert: scrollSelectedEvent,
+                  postpatch: (old, vnode) => {
+                    if (old.data?.attrs?.['data-cursor'] !== vnode.data?.attrs?.['data-cursor'])
+                      scrollSelectedEvent(vnode);
+                  },
+                },
+              },
               this.game.events.map((event, index) => {
                 const notation = event.action.includes('>')
                   ? this.rules.notation(this.states[index].position, event.action)
