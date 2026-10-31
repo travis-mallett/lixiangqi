@@ -65,7 +65,9 @@ class DashboardTest(unittest.TestCase):
         return dashboard
 
     def test_categories_sources_and_net_growth_are_readable_at_both_widths(self):
-        dashboard = self.dashboard()
+        with patch('tools.xiangqi_data.puzzle_mining.checkmate_dashboard.time.monotonic',
+                   return_value=1000.0):
+            dashboard = self.dashboard()
         dashboard.inventory = CheckmateInventory((
             CategoryInventory('centroidPawnMate', 'Centroid Pawn Mate', InventoryCounts(7, 3, 4)),
             CategoryInventory('octagonalHorse', 'Octagonal Horse', InventoryCounts()),
