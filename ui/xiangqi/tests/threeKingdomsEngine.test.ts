@@ -85,9 +85,9 @@ test('graph arrows use the shared style, horse legs and all three actual movers,
       [...element.querySelectorAll('.xiangqi-recommended-arrow text')].map(e => e.textContent),
       ['1', '2', '3'],
     );
-    assert.match(marks[0].svg!, /#e04b4d/);
-    assert.match(marks[1].svg!, /#27864a/);
-    assert.match(marks[2].svg!, /#282828/);
+    assert.match(marks[0].svg, /#e04b4d/);
+    assert.match(marks[1].svg, /#27864a/);
+    assert.match(marks[2].svg, /#282828/);
     const points = element
       .querySelector('.xiangqi-recommended-arrow')!
       .getAttribute('data-route')!
@@ -118,7 +118,7 @@ test('a conquered army arrow belongs to the controlling player and no eliminated
   };
   const marks = kingdomArrows(rules, state, 'red', result);
   assert.equal(marks.length, 2);
-  assert.match(marks[1].svg!, /#282828/);
+  assert.match(marks[1].svg, /#282828/);
 });
 
 test('cross-river routes follow the logical file and the horse leg across the frontier', () => {

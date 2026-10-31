@@ -17,7 +17,7 @@ function controller() {
 for (const type of ['ai', 'hook', 'friend'] as const) {
   test(`${type} setup ignores a previously saved Jieqi variant`, () => {
     const { ctrl } = controller();
-    ctrl.store[type]({ ...ctrl.store[type](), variant: 'jieqi', color: 'black' } as any);
+    ctrl.store[type]({ ...ctrl.store[type](), variant: 'jieqi', color: 'black' });
     ctrl.openModal(type);
     assert.equal(ctrl.variant(), 'standard');
     if (type === 'ai') assert.equal(ctrl.color(), 'white');
@@ -62,9 +62,9 @@ test('repetition rule selection stays mounted and usable across redraws', () => 
   const patch = init([attributesModule, propsModule, eventListenersModule]);
   const mount = document.createElement('div');
   document.body.append(mount);
-  let tree: VNode = patch(mount, rulesetPicker(root)!);
+  let tree: VNode = patch(mount, rulesetPicker(root));
   root.redraw = () => {
-    tree = patch(tree, rulesetPicker(root)!);
+    tree = patch(tree, rulesetPicker(root));
   };
   const select = (tree.elm as HTMLElement).querySelector('select')!;
   for (const value of ['unrestricted-v1', 'tiantian-v1', 'unrestricted-v1']) {

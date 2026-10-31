@@ -89,7 +89,9 @@ object Dependencies:
     val actorsPekko = "org.reactivemongo" %% "reactivemongo-actors-pekko" % rmVersion
     val stream = "org.reactivemongo" %% "reactivemongo-pekkostream" % rmVersion
     val shaded = "org.reactivemongo" % s"reactivemongo-shaded-native-$os-$dashArch" % rmVersion
-    def bundle = Seq(driver, actorsPekko, stream)
+    // The unshaded driver declares Netty as provided; module tests need it as well as the application.
+    def bundle = Seq(driver, actorsPekko, stream) ++
+      Option.unless(isWindows)("io.netty" % "netty-handler" % "4.2.15.Final")
 
   object play:
     import lichess.play.sbt.BuildInfo.version as playVersion
