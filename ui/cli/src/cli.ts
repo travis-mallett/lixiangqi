@@ -59,7 +59,8 @@ export function initModule({ input }: { input: HTMLInputElement }) {
   );
 }
 
-function execute(e: string | Entry) {
+export function execute(e: string | Entry) {
+  if (typeof e === 'string') e = e.trim();
   if (!e) return;
   if (typeof e !== 'string' && isLink(e)) location.href = e.href;
   else if (isUser(e)) location.href = userProfilePath(e.name);
