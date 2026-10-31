@@ -102,9 +102,9 @@ final class UserTournament(helpers: Helpers, ui: TournamentUi):
             tr(
               th("Xiangqi"),
               td(data.result.nb.localize),
-              td(data.result.points.median.map(_.toInt)),
+              td(data.result.points.median.fold("-")(_.toInt.toString)),
               td(data.result.points.sum.localize),
-              td(data.result.rankPercentMedian, "%")
+              td(data.result.rankPercentMedian.fold("-")(percent => s"$percent%"))
             )
           )
         )
