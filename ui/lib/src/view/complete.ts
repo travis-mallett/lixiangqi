@@ -53,6 +53,14 @@ export function complete<Result>(opts: CompleteOpts<Result>): void {
 
   opts.input.autocomplete = 'off';
 
+  const hideAfterFocusLeaves = () => {
+    setTimeout(() => {
+      const focused = document.activeElement;
+      if (focused !== opts.input && !$container[0]!.contains(focused)) $container.addClass('none');
+    }, 100);
+  };
+  $container.on('focusout', hideAfterFocusLeaves);
+
   const update = () => {
     const term = opts.input.value.trim();
     if (term.length >= minLength && (!opts.regex || term.match(opts.regex)))
@@ -65,7 +73,7 @@ export function complete<Result>(opts: CompleteOpts<Result>): void {
     focus: update,
     // must be delayed, otherwise the result click event doesn't fire
     blur() {
-      setTimeout(() => $container.addClass('none'), 100);
+      hideAfterFocusLeaves();
       return true;
     },
     keydown(e: KeyboardEvent) {
@@ -95,6 +103,8 @@ export function complete<Result>(opts: CompleteOpts<Result>): void {
   });
 
   const renderResults = (results: Result[]) => {
+    // Do not replace a focused result or reopen a list after focus leaves.
+    if (document.activeElement !== opts.input) return;
     $container.empty();
     if (results[0]) {
       results.forEach(result =>

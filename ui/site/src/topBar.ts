@@ -177,14 +177,17 @@ export default function () {
       loadEsm('cli', { init: { input: $input[0] } }).catch(() => (booted = false));
     };
     $input.on({
-      keydown: blurIfEscape,
-      blur() {
-        $input.val('');
-        $('body').removeClass('clinput');
-      },
       focus() {
         boot();
         $('body').addClass('clinput');
+      },
+    });
+    $wrap.on({
+      keydown: blurIfEscape,
+      focusout(e: FocusEvent) {
+        if (e.relatedTarget instanceof Node && $wrap[0]!.contains(e.relatedTarget)) return;
+        $input.val('');
+        $('body').removeClass('clinput');
       },
     });
     $wrap.find('a').on({
