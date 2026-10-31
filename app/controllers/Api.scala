@@ -146,17 +146,26 @@ final class Api(env: Env, gameC: => Game) extends LilaController(env):
   def tournamentGames(id: TourId) = AnonOrScoped(): ctx ?=>
     env.tournament.tournamentRepo.byId(id).orNotFound { tour =>
       val onlyUserId = getUserStr("player").map(_.id)
-      val config = GameApiV2.ByTournamentConfig(
-        tour = tour,
-        format = GameApiV2.Format.byRequest,
-        flags = gameC.requestPgnFlags(extended = false),
-        perSecond = gamesPerSecond(ctx.me)
-      )
-      GlobalConcurrencyLimitPerIP
-        .download(ctx.req.ipAddress)(env.api.gameApiV2.exportByTournament(config, onlyUserId)): source =>
-          Ok.chunked(source)
-            .asAttachmentStream(env.api.gameApiV2.filename(tour, config.format))
-            .as(gameC.gameContentType(config))
+      if tour.gameVariant == lila.xiangqi.GameVariant.ThreeKingdoms then
+        import env.system
+        val source = env.threeKingdoms.repo
+          .tournamentExport(id, onlyUserId)
+          .throttle(gamesPerSecond(ctx.me).value, 1.second)
+          .map(env.threeKingdoms.json.record)
+        fuccess(GlobalConcurrencyLimitPerIP.download(ctx.req.ipAddress)(source): stream =>
+          jsonDownload(stream).asAttachment(s"three-kingdoms-tournament-${id.value}.ndjson"))
+      else
+        val config = GameApiV2.ByTournamentConfig(
+          tour = tour,
+          format = GameApiV2.Format.byRequest,
+          flags = gameC.requestPgnFlags(extended = false),
+          perSecond = gamesPerSecond(ctx.me)
+        )
+        GlobalConcurrencyLimitPerIP
+          .download(ctx.req.ipAddress)(env.api.gameApiV2.exportByTournament(config, onlyUserId)): source =>
+            Ok.chunked(source)
+              .asAttachmentStream(env.api.gameApiV2.filename(tour, config.format))
+              .as(gameC.gameContentType(config))
     }
 
   def tournamentResults(id: TourId) = Anon:

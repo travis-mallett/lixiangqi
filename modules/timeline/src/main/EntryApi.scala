@@ -16,6 +16,14 @@ final class EntryApi(coll: Coll, userMax: Max)(using Executor):
   def moreUserEntries(userId: UserId, nb: Max, since: Option[Instant]): Fu[Vector[Entry]] =
     userEntries(userId, nb, since)
 
+  def mobileEntries(userId: UserId, page: Int): Fu[Vector[Entry]] =
+    coll
+      .find($doc("users" -> userId, "date".$gt(nowInstant.minusWeeks(2))), projection)
+      .sort($doc("date" -> -1, "_id" -> -1))
+      .skip((page - 1) * 20)
+      .cursor[Entry](ReadPref.sec)
+      .vector(21)
+
   private def userEntries(userId: UserId, max: Max, since: Option[Instant]): Fu[Vector[Entry]] =
     (max > 0).so:
       coll

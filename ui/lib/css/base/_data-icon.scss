@@ -1,3 +1,5 @@
+@import '../abstract/variant-icon';
+
 .is::before,
 [data-icon]::before,
 .is-after::after {
@@ -34,5 +36,11 @@ html[dir='rtl'] {
       display: inline-block;
       transform: scaleX(-1);
     }
+  }
+}
+
+@each $symbol in '帥', '揭', '迷' {
+  [data-icon='#{$symbol}']::before {
+    @include variant-icon;
   }
 }

@@ -460,6 +460,11 @@ export class AppearanceCtrl {
       '---board-image',
       `url(${site.asset.url(`images/board/${board.file}`, { pathOnly: true })})`,
     );
+    for (const [geometry, path] of Object.entries(board.geometries))
+      document.body.style.setProperty(
+        `---board-image-${geometry}`,
+        `url(${site.asset.url(path, { pathOnly: true })})`,
+      );
     document.body.style.setProperty('---cg-ccw', board.coordinateLight);
     document.body.style.setProperty('---cg-ccb', board.coordinateDark);
     document.body.style.setProperty('---cg-cs', 'none');

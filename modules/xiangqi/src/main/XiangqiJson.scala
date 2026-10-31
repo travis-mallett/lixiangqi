@@ -7,6 +7,11 @@ import lila.xiangqi.adjudication.{ Ruleset, MoveFact, AdjudicationState }
 
 object XiangqiJson:
 
+  given Reads[Option[String]] = Reads:
+    case JsNull => JsSuccess(None)
+    case JsString(value) => JsSuccess(Some(value))
+    case _ => JsError("Expected a reveal role or null")
+
   given [A: Reads]: Reads[BySide[A]] = Reads: json =>
     for
       red <- (json \ "red").validate[A]
@@ -56,6 +61,7 @@ object XiangqiJson:
     Writes.StringWrites.contramap(_.key)
   )
   given OFormat[MoveFact] = Json.format
+  given OFormat[Jieqi.Capture] = Json.format
   given OFormat[AdjudicationState] = Json.format
   given OFormat[Position] = Json.using[Json.WithDefaultValues].format
   given OFormat[ExplorerQuery] = Json.format
@@ -64,6 +70,8 @@ object XiangqiJson:
   given OFormat[PuzzleQuery] = Json.format
   given OFormat[MoveCommand] = Json.using[Json.WithDefaultValues].format
   given OFormat[VariationCommand] = Json.using[Json.WithDefaultValues].format
+  given OFormat[MoveLabelsCommand] = Json.format
+  given OFormat[MoveLabels] = Json.format
   given OFormat[NotationMoveCommand] = Json.using[Json.WithDefaultValues].format
   given OFormat[AnalysisCommand] = Json.format
   given OFormat[NotationImport] = Json.format

@@ -6,8 +6,16 @@ object rank:
   opaque type RankTrackId = String
   object RankTrackId extends OpaqueString[RankTrackId]:
     val xiangqi: RankTrackId = "xiangqi"
+    val jieqi: RankTrackId = "jieqi"
+    val minixiangqi: RankTrackId = "minixiangqi"
+    val threeKingdoms: RankTrackId = "threeKingdoms"
 
-    val all: List[RankTrackId] = List(xiangqi)
+    val all: List[RankTrackId] = List(xiangqi, jieqi, minixiangqi, threeKingdoms)
+    def of(variant: lila.xiangqi.GameVariant): RankTrackId =
+      from(variant.key).get
+
+    def variant(track: RankTrackId): lila.xiangqi.GameVariant =
+      lila.xiangqi.GameVariant.fromKey(track.value).fold(sys.error, identity)
 
     def from(value: String): Option[RankTrackId] = all.find(_.value == value)
 
@@ -81,4 +89,5 @@ object rank:
       after: Option[RankCode] = None
   ):
     def scoreAfter: Option[RankScore] = diff.map(score + _)
+    def matchingGroup: Int = if track == RankTrackId.xiangqi then ordinal else ordinal.min(26) / 3
     def publicCode: Option[RankCode] = after.orElse(established.option(code))

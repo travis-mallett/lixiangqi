@@ -37,7 +37,7 @@ final class Env(
 
   private val config = appConfig.get[ForumConfig]("forum")(using AutoConfig.loader)
 
-  lazy val categRepo = new ForumCategRepo(db(CollName("f_categ")))
+  lazy val categRepo = new ForumCategRepo(db(CollName("f_categ")), cacheApi)
   lazy val topicRepo = new ForumTopicRepo(db(CollName("f_topic")))
   lazy val postRepo = new ForumPostRepo(db(CollName("f_post")))
 

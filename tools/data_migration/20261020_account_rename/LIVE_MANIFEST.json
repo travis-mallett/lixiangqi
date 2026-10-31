@@ -1,0 +1,661 @@
+{
+  "migration": "20261020-testing-to-chinesechessoutloud-v1",
+  "capturedAt": {
+    "$date": "2026-10-20T14:50:49.750Z"
+  },
+  "onlineObservation": true,
+  "collections": [
+    {
+      "database": "lichess",
+      "collection": "__lixiangqi_game_completion_backup_6aa1bb267b329df06c95f1d0",
+      "changes": 0,
+      "retainedPaths": {},
+      "disposition": "immutable history",
+      "documents": 234
+    },
+    {
+      "database": "lichess",
+      "collection": "__lixiangqi_migrations",
+      "changes": 0,
+      "retainedPaths": {},
+      "disposition": "immutable history",
+      "documents": 4
+    },
+    {
+      "database": "lichess",
+      "collection": "__lixiangqi_puzzle_playback_v1_backup",
+      "changes": 0,
+      "retainedPaths": {},
+      "disposition": "immutable history",
+      "documents": 4690
+    },
+    {
+      "database": "lichess",
+      "collection": "__lixiangqi_puzzle_playback_v1_plans",
+      "changes": 0,
+      "retainedPaths": {},
+      "disposition": "immutable history",
+      "documents": 4690
+    },
+    {
+      "database": "lichess",
+      "collection": "__lixiangqi_puzzle_publication_v1_backup",
+      "changes": 0,
+      "retainedPaths": {},
+      "disposition": "immutable history",
+      "documents": 108
+    },
+    {
+      "database": "lichess",
+      "collection": "__lixiangqi_puzzle_publication_v1_plans",
+      "changes": 0,
+      "retainedPaths": {},
+      "disposition": "immutable history",
+      "documents": 108
+    },
+    {
+      "database": "lichess",
+      "collection": "__official_blogs_v1_backup",
+      "changes": 0,
+      "retainedPaths": {},
+      "disposition": "immutable history",
+      "documents": 1
+    },
+    {
+      "database": "lichess",
+      "collection": "activity2",
+      "changes": 12,
+      "retainedPaths": {},
+      "documents": 250
+    },
+    {
+      "database": "lichess",
+      "collection": "ai_challenge_stats",
+      "changes": 9,
+      "retainedPaths": {},
+      "documents": 79
+    },
+    {
+      "database": "lichess",
+      "collection": "analysis2",
+      "changes": 0,
+      "retainedPaths": {},
+      "documents": 175450
+    },
+    {
+      "database": "lichess",
+      "collection": "analysis_requester",
+      "changes": 1,
+      "retainedPaths": {},
+      "documents": 11
+    },
+    {
+      "database": "lichess",
+      "collection": "bookmark",
+      "changes": 0,
+      "retainedPaths": {},
+      "documents": 2
+    },
+    {
+      "database": "lichess",
+      "collection": "cache",
+      "changes": 1,
+      "retainedPaths": {},
+      "documents": 82
+    },
+    {
+      "database": "lichess",
+      "collection": "challenge",
+      "changes": 0,
+      "retainedPaths": {},
+      "documents": 0
+    },
+    {
+      "database": "lichess",
+      "collection": "chat",
+      "changes": 5,
+      "retainedPaths": {
+        "l[]": 2
+      },
+      "documents": 20
+    },
+    {
+      "database": "lichess",
+      "collection": "crosstable2",
+      "changes": 5,
+      "retainedPaths": {},
+      "documents": 14
+    },
+    {
+      "database": "lichess",
+      "collection": "daily_feed",
+      "changes": 0,
+      "retainedPaths": {},
+      "documents": 1
+    },
+    {
+      "database": "lichess",
+      "collection": "directory_player",
+      "changes": 0,
+      "retainedPaths": {},
+      "documents": 0
+    },
+    {
+      "database": "lichess",
+      "collection": "directory_player_follower",
+      "changes": 0,
+      "retainedPaths": {},
+      "documents": 0
+    },
+    {
+      "database": "lichess",
+      "collection": "eval_cache2",
+      "changes": 11,
+      "retainedPaths": {},
+      "documents": 13
+    },
+    {
+      "database": "lichess",
+      "collection": "external_engine",
+      "changes": 0,
+      "retainedPaths": {},
+      "documents": 0
+    },
+    {
+      "database": "lichess",
+      "collection": "f_categ",
+      "changes": 0,
+      "retainedPaths": {},
+      "documents": 6
+    },
+    {
+      "database": "lichess",
+      "collection": "fishnet_analysis",
+      "changes": 3,
+      "retainedPaths": {},
+      "documents": 10
+    },
+    {
+      "database": "lichess",
+      "collection": "game2",
+      "changes": 0,
+      "retainedPaths": {},
+      "documents": 0
+    },
+    {
+      "database": "lichess",
+      "collection": "game5",
+      "changes": 49,
+      "retainedPaths": {},
+      "documents": 549
+    },
+    {
+      "database": "lichess",
+      "collection": "history4",
+      "changes": 1,
+      "retainedPaths": {},
+      "documents": 47
+    },
+    {
+      "database": "lichess",
+      "collection": "learn_progress",
+      "changes": 1,
+      "retainedPaths": {},
+      "documents": 16
+    },
+    {
+      "database": "lichess",
+      "collection": "matchup",
+      "changes": 5,
+      "retainedPaths": {},
+      "documents": 14
+    },
+    {
+      "database": "lichess",
+      "collection": "modlog",
+      "changes": 56,
+      "retainedPaths": {
+        "details": 11
+      },
+      "documents": 59
+    },
+    {
+      "database": "lichess",
+      "collection": "msg_msg",
+      "changes": 77,
+      "retainedPaths": {
+        "text": 1
+      },
+      "documents": 80
+    },
+    {
+      "database": "lichess",
+      "collection": "msg_thread",
+      "changes": 5,
+      "retainedPaths": {},
+      "documents": 7
+    },
+    {
+      "database": "lichess",
+      "collection": "notation_score",
+      "changes": 1,
+      "retainedPaths": {},
+      "documents": 9
+    },
+    {
+      "database": "lichess",
+      "collection": "notify",
+      "changes": 43,
+      "retainedPaths": {},
+      "documents": 55
+    },
+    {
+      "database": "lichess",
+      "collection": "notify_pref",
+      "changes": 0,
+      "retainedPaths": {},
+      "documents": 1
+    },
+    {
+      "database": "lichess",
+      "collection": "oauth2_access_token",
+      "changes": 4,
+      "retainedPaths": {},
+      "documents": 5
+    },
+    {
+      "database": "lichess",
+      "collection": "perf_stat",
+      "changes": 5,
+      "retainedPaths": {},
+      "documents": 13
+    },
+    {
+      "database": "lichess",
+      "collection": "picfit_image",
+      "changes": 7,
+      "retainedPaths": {},
+      "documents": 7
+    },
+    {
+      "database": "lichess",
+      "collection": "plan_charge",
+      "changes": 0,
+      "retainedPaths": {},
+      "documents": 3
+    },
+    {
+      "database": "lichess",
+      "collection": "plan_patron",
+      "changes": 1,
+      "retainedPaths": {},
+      "documents": 4
+    },
+    {
+      "database": "lichess",
+      "collection": "playban",
+      "changes": 1,
+      "retainedPaths": {},
+      "documents": 3
+    },
+    {
+      "database": "lichess",
+      "collection": "player_assessment",
+      "changes": 3,
+      "retainedPaths": {},
+      "documents": 6
+    },
+    {
+      "database": "lichess",
+      "collection": "pref",
+      "changes": 1,
+      "retainedPaths": {},
+      "documents": 46
+    },
+    {
+      "database": "lichess",
+      "collection": "push_subscription",
+      "changes": 1,
+      "retainedPaths": {},
+      "documents": 3
+    },
+    {
+      "database": "lichess",
+      "collection": "puzzle2_kids_rewards",
+      "changes": 0,
+      "retainedPaths": {},
+      "documents": 1
+    },
+    {
+      "database": "lichess",
+      "collection": "puzzle2_path",
+      "changes": 0,
+      "retainedPaths": {},
+      "disposition": "shared puzzle paths",
+      "documents": 1110772
+    },
+    {
+      "database": "lichess",
+      "collection": "puzzle2_publication",
+      "changes": 0,
+      "retainedPaths": {},
+      "disposition": "immutable history",
+      "documents": 1446
+    },
+    {
+      "database": "lichess",
+      "collection": "puzzle2_puzzle",
+      "changes": 10,
+      "retainedPaths": {},
+      "documents": 31832
+    },
+    {
+      "database": "lichess",
+      "collection": "puzzle2_round",
+      "changes": 222,
+      "retainedPaths": {},
+      "documents": 965
+    },
+    {
+      "database": "lichess",
+      "collection": "relation",
+      "changes": 4,
+      "retainedPaths": {},
+      "documents": 14
+    },
+    {
+      "database": "lichess",
+      "collection": "round_alarm",
+      "changes": 0,
+      "retainedPaths": {},
+      "documents": 1
+    },
+    {
+      "database": "lichess",
+      "collection": "schema_migration",
+      "changes": 0,
+      "retainedPaths": {},
+      "documents": 4
+    },
+    {
+      "database": "lichess",
+      "collection": "security",
+      "changes": 8,
+      "retainedPaths": {},
+      "documents": 132
+    },
+    {
+      "database": "lichess",
+      "collection": "seek",
+      "changes": 0,
+      "retainedPaths": {},
+      "documents": 0
+    },
+    {
+      "database": "lichess",
+      "collection": "seek_archive",
+      "changes": 0,
+      "retainedPaths": {},
+      "documents": 6
+    },
+    {
+      "database": "lichess",
+      "collection": "seek_archive_pre_native_xiangqi_v1",
+      "changes": 0,
+      "retainedPaths": {},
+      "disposition": "immutable history",
+      "documents": 7
+    },
+    {
+      "database": "lichess",
+      "collection": "seek_pre_native_xiangqi_v1",
+      "changes": 0,
+      "retainedPaths": {},
+      "disposition": "immutable history",
+      "documents": 0
+    },
+    {
+      "database": "lichess",
+      "collection": "shutup",
+      "changes": 1,
+      "retainedPaths": {},
+      "documents": 12
+    },
+    {
+      "database": "lichess",
+      "collection": "study",
+      "changes": 2,
+      "retainedPaths": {
+        "name": 2
+      },
+      "documents": 4
+    },
+    {
+      "database": "lichess",
+      "collection": "study_chapter_flat",
+      "changes": 2,
+      "retainedPaths": {},
+      "documents": 5
+    },
+    {
+      "database": "lichess",
+      "collection": "swiss",
+      "changes": 0,
+      "retainedPaths": {},
+      "documents": 164
+    },
+    {
+      "database": "lichess",
+      "collection": "timeline_entry",
+      "changes": 9,
+      "retainedPaths": {},
+      "documents": 32
+    },
+    {
+      "database": "lichess",
+      "collection": "title_request",
+      "changes": 0,
+      "retainedPaths": {},
+      "documents": 0
+    },
+    {
+      "database": "lichess",
+      "collection": "tournament2",
+      "changes": 0,
+      "retainedPaths": {},
+      "documents": 78
+    },
+    {
+      "database": "lichess",
+      "collection": "tournament2_pre_native_xiangqi_v1",
+      "changes": 0,
+      "retainedPaths": {},
+      "disposition": "immutable history",
+      "documents": 84
+    },
+    {
+      "database": "lichess",
+      "collection": "tournament_player",
+      "changes": 0,
+      "retainedPaths": {},
+      "documents": 0
+    },
+    {
+      "database": "lichess",
+      "collection": "ublog_blog",
+      "changes": 1,
+      "retainedPaths": {},
+      "documents": 1
+    },
+    {
+      "database": "lichess",
+      "collection": "ublog_post",
+      "changes": 1,
+      "retainedPaths": {},
+      "documents": 1
+    },
+    {
+      "database": "lichess",
+      "collection": "user4",
+      "changes": 1,
+      "retainedPaths": {},
+      "documents": 92
+    },
+    {
+      "database": "lichess",
+      "collection": "user4_ranked_count_pre_native_xiangqi_v1",
+      "changes": 0,
+      "retainedPaths": {},
+      "disposition": "immutable history",
+      "documents": 3
+    },
+    {
+      "database": "lichess",
+      "collection": "user_perf",
+      "changes": 1,
+      "retainedPaths": {},
+      "documents": 47
+    },
+    {
+      "database": "lichess",
+      "collection": "user_perf_pre_native_xiangqi_v1",
+      "changes": 0,
+      "retainedPaths": {},
+      "disposition": "immutable history",
+      "documents": 11
+    },
+    {
+      "database": "lichess",
+      "collection": "video",
+      "changes": 14,
+      "retainedPaths": {},
+      "documents": 14
+    },
+    {
+      "database": "lichess",
+      "collection": "video_tag",
+      "changes": 0,
+      "retainedPaths": {},
+      "documents": 6
+    },
+    {
+      "database": "lichess",
+      "collection": "video_view",
+      "changes": 8,
+      "retainedPaths": {},
+      "documents": 15
+    },
+    {
+      "database": "lixiangqi_traffic",
+      "collection": "traffic_attempt",
+      "changes": 101,
+      "retainedPaths": {},
+      "documents": 2018
+    },
+    {
+      "database": "lixiangqi_traffic",
+      "collection": "traffic_browser",
+      "changes": 0,
+      "retainedPaths": {},
+      "documents": 444
+    },
+    {
+      "database": "lixiangqi_traffic",
+      "collection": "traffic_catalog",
+      "changes": 0,
+      "retainedPaths": {},
+      "documents": 29
+    },
+    {
+      "database": "lixiangqi_traffic",
+      "collection": "traffic_erasure",
+      "changes": 0,
+      "retainedPaths": {},
+      "documents": 0
+    },
+    {
+      "database": "lixiangqi_traffic",
+      "collection": "traffic_event",
+      "changes": 135,
+      "retainedPaths": {},
+      "documents": 30386
+    },
+    {
+      "database": "lixiangqi_traffic",
+      "collection": "traffic_game",
+      "changes": 0,
+      "retainedPaths": {},
+      "documents": 256
+    },
+    {
+      "database": "lixiangqi_traffic",
+      "collection": "traffic_rebuild",
+      "changes": 0,
+      "retainedPaths": {},
+      "documents": 0
+    },
+    {
+      "database": "lixiangqi_traffic",
+      "collection": "traffic_rollup",
+      "changes": 0,
+      "retainedPaths": {},
+      "documents": 32914
+    },
+    {
+      "database": "lixiangqi_traffic",
+      "collection": "traffic_snapshot",
+      "changes": 0,
+      "retainedPaths": {},
+      "documents": 1550
+    },
+    {
+      "database": "lixiangqi_traffic",
+      "collection": "traffic_state",
+      "changes": 0,
+      "retainedPaths": {},
+      "documents": 5
+    },
+    {
+      "database": "lixiangqi_traffic",
+      "collection": "traffic_subject",
+      "changes": 1,
+      "retainedPaths": {},
+      "documents": 92
+    },
+    {
+      "database": "lixiangqi_traffic",
+      "collection": "traffic_subject_day",
+      "changes": 20,
+      "retainedPaths": {},
+      "documents": 1591
+    }
+  ],
+  "totalChanges": 849,
+  "analyticsMonths": [
+    {
+      "$date": "2026-07-01T00:00:00Z"
+    },
+    {
+      "$date": "2026-09-01T00:00:00Z"
+    },
+    {
+      "$date": "2026-10-01T00:00:00Z"
+    }
+  ],
+  "errors": [],
+  "evidence": {
+    "host": "lixiangqi.com",
+    "replicaSet": "lixiangqi",
+    "mongoVersion": "8.0.28",
+    "releaseManifestSha256": "4e3fdaf59cb679f70a79339e678685a900133ef6f24990cbdd5ac44c51757f07",
+    "sourceUser": "testing",
+    "destinationUser": "chinesechessoutloud",
+    "destinationDisplay": "ChineseChessOutLoud",
+    "redisKeysObserved": 0,
+    "productionWritesPerformed": false,
+    "sourceHashes": {
+      "rules.py": "31d16f9f7d7eb2a83819325cb95841a5eb9cc8bb2c899f68d723fb03ade9e82c",
+      "migrate.py": "3493b5f09ef2cd9d5a25499af0c05eb5331584b3c586f8dcd5757275012cba57"
+    }
+  }
+}

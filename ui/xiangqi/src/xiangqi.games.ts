@@ -443,7 +443,7 @@ function renderSort(): void {
   });
 }
 
-async function loadGames(): Promise<void> {
+async function loadGames(scrollToResults = false): Promise<void> {
   controller?.abort();
   controller = new AbortController();
   saveUrlState();
@@ -483,7 +483,7 @@ async function loadGames(): Promise<void> {
     renderWeeklyAdded(result.weeklyAdded?.count ?? 0);
     if (total && page > Math.ceil(total / result.pageSize)) {
       page = Math.ceil(total / result.pageSize);
-      await loadGames();
+      await loadGames(scrollToResults);
       return;
     }
     renderGames(result.games);
@@ -495,6 +495,12 @@ async function loadGames(): Promise<void> {
     pageLabel.textContent = `Page ${page} of ${Math.max(1, Math.ceil(total / result.pageSize))}`;
     previous.disabled = page <= 1;
     next.disabled = page * result.pageSize >= total;
+    if (scrollToResults) {
+      rows.closest<HTMLElement>('.games-database__table-wrap')!.scrollTop = 0;
+      status.tabIndex = -1;
+      status.focus({ preventScroll: true });
+      status.scrollIntoView({ block: 'start' });
+    }
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') return;
     total = 0;
@@ -561,12 +567,12 @@ export default function init(opts: { explorerEndpoint?: string; nativeWeeklyAdde
   previous.addEventListener('click', () => {
     if (page <= 1) return;
     page--;
-    void loadGames();
+    void loadGames(true);
   });
   next.addEventListener('click', () => {
     if (page * PAGE_SIZE >= total) return;
     page++;
-    void loadGames();
+    void loadGames(true);
   });
   window.addEventListener('resize', () => {
     clearTimeout(resizeTimer);

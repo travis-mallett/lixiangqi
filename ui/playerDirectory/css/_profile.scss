@@ -1,0 +1,118 @@
+.pro-players__description {
+  color: $c-font-dim;
+  margin-top: 0.7em;
+}
+
+.pro-player-profile {
+  display: grid;
+  grid-template-columns: minmax(120px, 200px) minmax(0, 1fr);
+  gap: 2em;
+  padding: 2em;
+  border-top: $border;
+
+  &__portrait {
+    img {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+      border-radius: $box-radius-size;
+    }
+
+    small {
+      display: block;
+      margin-top: 0.5em;
+      overflow-wrap: anywhere;
+      color: $c-font-dim;
+    }
+  }
+
+  &__identity {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.7em;
+    align-items: center;
+    font-size: 1.3em;
+  }
+
+  &__facts {
+    p {
+      margin: 0.7em 0;
+    }
+
+    .flag {
+      width: 1.5em;
+      margin-inline-end: 0.5em;
+    }
+  }
+
+  &__biography {
+    line-height: 1.7;
+    white-space: pre-line;
+  }
+
+  &__source {
+    margin-inline-end: 1em;
+  }
+
+  &__publication {
+    color: $c-font-dim;
+    font-size: 0.9em;
+  }
+
+  &__back {
+    margin-inline-start: 1em;
+  }
+
+  @media (max-width: 600px) {
+    grid-template-columns: 90px minmax(0, 1fr);
+    padding: 1em;
+    gap: 1em;
+  }
+}
+
+.directory-players-table {
+  .player-intro__name,
+  .player-intro__fed {
+    white-space: normal;
+  }
+
+  .directory-players__photo {
+    object-fit: cover;
+  }
+
+  .player-intro__team {
+    color: $c-font-dim;
+    font-size: 0.9em;
+  }
+
+  @media (max-width: 600px) {
+    &.slist {
+      min-width: 0;
+    }
+
+    th:nth-child(4),
+    td:nth-child(4),
+    th:nth-child(5),
+    td:nth-child(5) {
+      display: none;
+    }
+
+    th,
+    td {
+      padding-inline: 0.5em;
+    }
+
+    .directory-players__photo {
+      width: 36px;
+      height: 36px;
+    }
+
+    .player-intro {
+      gap: 0.5em;
+    }
+
+    .directory-player__follow {
+      padding: 0.3em;
+    }
+  }
+}

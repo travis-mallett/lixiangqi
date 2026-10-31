@@ -38,7 +38,7 @@ $auth-input-bg: rgb(26 22 16 / 1);
 
     align-items: center;
     gap: 0.5rem;
-    margin: -0.5em 0 2em 0;
+    margin: 0 0 1.25rem;
 
     @media (min-width: $large) {
       display: none;
@@ -46,8 +46,8 @@ $auth-input-bg: rgb(26 22 16 / 1);
 
     &__logo {
       display: block;
-      width: 64px;
-      height: 64px;
+      width: 48px;
+      height: 48px;
       background: center no-repeat url('../logo/lichess-white.svg');
       background-size: contain;
 
@@ -58,38 +58,6 @@ $auth-input-bg: rgb(26 22 16 / 1);
 
     &__name {
       font-size: 1.5rem;
-    }
-  }
-
-  .auth-tabs {
-    @extend %flex-center-nowrap;
-
-    margin-bottom: 2rem;
-    border-bottom: $border;
-
-    a {
-      flex: 1 1 auto;
-      text-align: center;
-      font-size: 1.5em;
-      padding: 0.5em 0.2em;
-      color: $c-font;
-      border-bottom: 2px solid transparent;
-
-      @include transition(color border-color, 0.25s);
-
-      &:hover {
-        border-bottom-color: rgb(from $c-accent r g b / calc(alpha * 0.3));
-      }
-
-      &:focus-visible {
-        outline-offset: -2px;
-      }
-
-      &.active {
-        font-weight: bold;
-        color: $c-accent;
-        border-bottom-color: $c-accent;
-      }
     }
   }
 
@@ -217,12 +185,6 @@ $auth-input-bg: rgb(26 22 16 / 1);
     text-transform: none;
   }
 
-  .magic-link {
-    font-size: 1.125rem;
-    font-weight: bold;
-    text-transform: none;
-  }
-
   .or-separator {
     display: flex;
     align-items: center;
@@ -341,4 +303,40 @@ $auth-input-bg: rgb(26 22 16 / 1);
   .password-complexity {
     margin-top: 1rem;
   }
+}
+
+.auth-entry {
+  max-width: 28rem;
+
+  .auth__brand {
+    display: flex;
+    margin: 0 0 1.25rem;
+  }
+
+  h1 {
+    text-align: center;
+    font-size: 1.6rem;
+    margin-bottom: 0.5rem;
+  }
+}
+
+.auth-intro {
+  text-align: center;
+  color: $c-font-dim;
+  margin-bottom: 1.5rem;
+}
+
+.auth-links {
+  display: grid;
+  text-align: center;
+  gap: 0.25rem;
+
+  a {
+    padding: 0.75rem 0;
+  }
+}
+
+.auth-footer {
+  text-align: center;
+  margin: 1.5rem 0 0;
 }

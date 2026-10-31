@@ -13,15 +13,6 @@ object PrefForm:
   private def checkedNumber(choices: Seq[(Int, String)]) =
     number.verifying(containedIn(choices))
 
-  private def bitPresent(anInt: Int, bit: Int): Boolean =
-    (anInt & bit) == bit
-
-  private def bitContainedIn(choices: Seq[(Int, String)]): Int => Boolean =
-    choice => choice == 0 || choices.exists((bit, _) => bitPresent(choice, bit))
-
-  private def bitCheckedNumber(choices: Seq[(Int, String)]) =
-    number.verifying(bitContainedIn(choices))
-
   private lazy val booleanNumber =
     number.verifying(Pref.BooleanPref.verify)
 
@@ -45,7 +36,7 @@ object PrefForm:
     val premove = "premove" -> booleanNumber
     val takeback = "takeback" -> checkedNumber(Pref.Takeback.choices)
     val autoThreefold = "autoThreefold" -> checkedNumber(Pref.AutoThreefold.choices)
-    val submitMove = "submitMove" -> bitCheckedNumber(Pref.SubmitMove.choices)
+    val submitMove = "submitMove" -> number.verifying(v => v >= 0 && (v & ~31) == 0)
     val confirmResign = "confirmResign" -> checkedNumber(Pref.ConfirmResign.choices)
     val moretime = "moretime" -> checkedNumber(Pref.Moretime.choices)
     val clockSound = "clockSound" -> booleanNumber
@@ -56,6 +47,19 @@ object PrefForm:
     val follow = "follow" -> booleanNumber
     val challenge = "challenge" -> checkedNumber(Pref.Challenge.choices)
     val message = "message" -> checkedNumber(Pref.Message.choices)
+    val studyInvite = "studyInvite" -> checkedNumber(Pref.StudyInvite.choices)
+    val insightShare = "insightShare" -> checkedNumber(Pref.InsightShare.choices)
+    val animation = "animation" -> checkedNumber(Pref.Animation.choices)
+    val captured = "captured" -> booleanNumber
+    val highlight = "highlight" -> booleanNumber
+    val destination = "destination" -> booleanNumber
+    val coords = "coords" -> checkedNumber(Pref.Coords.choices)
+    val replay = "replay" -> checkedNumber(Pref.Replay.choices)
+    val resizeHandle = "resizeHandle" -> checkedNumber(Pref.ResizeHandle.choices)
+    val moveEvent = "moveEvent" -> checkedNumber(Pref.MoveEvent.choices)
+    val rookCastle = "rookCastle" -> booleanNumber
+    val clockBar = "clockBar" -> booleanNumber
+    val usingAltSocket = "usingAltSocket" -> boolean
     object board:
       val brightness = "boardBrightness" -> number(20, 140)
       val contrast = "boardContrast" -> number(40, 200)

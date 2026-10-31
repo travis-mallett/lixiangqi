@@ -20,17 +20,17 @@ private[setup] enum AiResult(val field: String):
 
 final class AiStatsApi(coll: AsyncColl)(using Executor):
 
-  def get(userId: Option[UserId]): Fu[List[AiLevelStats]] =
+  def get(userId: Option[UserId], levels: List[Int] = AiConfig.levels): Fu[List[AiLevelStats]] =
     val ids =
-      AiConfig.levels.map(globalId) ::: userId.toList.flatMap: id =>
-        AiConfig.levels.map(userLevelId(id, _))
+      levels.map(globalId) ::: userId.toList.flatMap: id =>
+        levels.map(userLevelId(id, _))
     coll: c =>
       c.find($inIds(ids))
         .cursor[BSONDocument]()
         .listAll()
         .map: docs =>
           val byId = docs.flatMap(doc => doc.getAsOpt[String]("_id").map(_ -> read(doc))).toMap
-          AiConfig.levels.map: level =>
+          levels.map: level =>
             AiLevelStats(
               level = level,
               registered = byId.getOrElse(globalId(level), AiStats()),
@@ -83,7 +83,10 @@ final class AiStatsApi(coll: AsyncColl)(using Executor):
     )
 
   private def countsTowardsStandardHistory(game: Game) =
-    game.finished && !game.aborted && game.variant.standard && game.sourceIs(_.Ai) && !game.fromPosition
+    game.finished && !game.aborted && game.nativeVariant == lila.xiangqi.GameVariant.Xiangqi && game.variant.standard && game
+      .sourceIs(
+        _.Ai
+      ) && !game.fromPosition
 
   private def globalId(level: Int) = s"registered/$level"
   private def userLevelId(userId: UserId, level: Int) = s"user/${userId.value}/$level"

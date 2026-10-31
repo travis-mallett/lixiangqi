@@ -16,6 +16,7 @@ export interface GameData {
 }
 
 export interface Game {
+  captures?: import('./jieqi').JieqiCapture[];
   ruleset?: string;
   variation?: string | null;
   termination?: string | null;
@@ -177,6 +178,7 @@ export interface CheckCount {
 }
 
 export interface RoundStep {
+  captures?: import('./jieqi').JieqiCapture[];
   ply: Ply;
   fen: FEN;
   san: San;

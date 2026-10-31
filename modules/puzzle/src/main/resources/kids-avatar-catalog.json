@@ -1,0 +1,940 @@
+{
+  "version": 1,
+  "defaults": {
+    "skin": "skin_default",
+    "eyes": "eyes_bright",
+    "smile": "smile_beaming",
+    "hair": "hair_buns",
+    "headwear": "hat_none",
+    "top": "top_garden",
+    "bottom": "bottom_ink",
+    "shoes": "shoes_ink",
+    "prop": "prop_piece"
+  },
+  "palettes": {
+    "skin": ["#f9ddbc", "#edb58a", "#d89c74", "#b87c56", "#915d43", "#654536"],
+    "hair": [
+      "#343343",
+      "#544035",
+      "#77513b",
+      "#a26043",
+      "#547e83",
+      "#7c648e",
+      "#b35e76",
+      "#edbd35",
+      "#eb4937",
+      "#f02d97",
+      "#893fea",
+      "#245fe5",
+      "#00babb",
+      "#3bbf49",
+      "#d6e7ed"
+    ],
+    "eyes": [
+      "#70513c",
+      "#3d7774",
+      "#577f9b",
+      "#8a659b",
+      "#373d4d",
+      "#007fbd",
+      "#00926a",
+      "#ad3fa8",
+      "#b47514"
+    ]
+  },
+  "items": [
+    {
+      "id": "skin_default",
+      "category": "skin",
+      "nameKey": "avatarItemSkinDefault",
+      "name": "My skin",
+      "unlock": 0,
+      "coins": 0,
+      "ingots": 0,
+      "parts": {
+        "skin": "assets/art/avatar/skin_default.svg"
+      },
+      "thumbnail": "assets/art/avatar/skin_default-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "eyes_bright",
+      "category": "eyes",
+      "nameKey": "avatarItemEyesBright",
+      "name": "Bright eyes",
+      "unlock": 0,
+      "coins": 0,
+      "ingots": 0,
+      "parts": {
+        "eyes": "assets/art/avatar/eyes_bright.svg"
+      },
+      "thumbnail": "assets/art/avatar/eyes_bright-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "eyes_calm",
+      "category": "eyes",
+      "nameKey": "avatarItemEyesCalm",
+      "name": "Gentle eyes",
+      "unlock": 0,
+      "coins": 0,
+      "ingots": 0,
+      "parts": {
+        "eyes": "assets/art/avatar/eyes_calm.svg"
+      },
+      "thumbnail": "assets/art/avatar/eyes_calm-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "eyes_smile",
+      "category": "eyes",
+      "nameKey": "avatarItemEyesSmile",
+      "name": "Smiling eyes",
+      "unlock": 0,
+      "coins": 0,
+      "ingots": 0,
+      "parts": {
+        "eyes": "assets/art/avatar/eyes_smile.svg"
+      },
+      "thumbnail": "assets/art/avatar/eyes_smile-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "eyes_curious",
+      "category": "eyes",
+      "nameKey": "avatarItemEyesCurious",
+      "name": "Curious eyes",
+      "unlock": 0,
+      "coins": 0,
+      "ingots": 0,
+      "parts": {
+        "eyes": "assets/art/avatar/eyes_curious.svg"
+      },
+      "thumbnail": "assets/art/avatar/eyes_curious-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "eyes_sparkle",
+      "category": "eyes",
+      "nameKey": "avatarItemEyesSparkle",
+      "name": "Lantern sparkle",
+      "unlock": 24,
+      "coins": 0,
+      "ingots": 5,
+      "parts": {
+        "eyes": "assets/art/avatar/eyes_sparkle.svg"
+      },
+      "thumbnail": "assets/art/avatar/eyes_sparkle-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "smile_soft",
+      "category": "smile",
+      "nameKey": "avatarItemSmileSoft",
+      "name": "Soft smile",
+      "unlock": 0,
+      "coins": 0,
+      "ingots": 0,
+      "parts": {
+        "smile": "assets/art/avatar/smile_soft.svg"
+      },
+      "thumbnail": "assets/art/avatar/smile_soft-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "smile_beaming",
+      "category": "smile",
+      "nameKey": "avatarItemSmileBeaming",
+      "name": "Beaming smile",
+      "unlock": 0,
+      "coins": 0,
+      "ingots": 0,
+      "parts": {
+        "smile": "assets/art/avatar/smile_beaming.svg"
+      },
+      "thumbnail": "assets/art/avatar/smile_beaming-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "smile_grin",
+      "category": "smile",
+      "nameKey": "avatarItemSmileGrin",
+      "name": "Big grin",
+      "unlock": 0,
+      "coins": 0,
+      "ingots": 0,
+      "parts": {
+        "smile": "assets/art/avatar/smile_grin.svg"
+      },
+      "thumbnail": "assets/art/avatar/smile_grin-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "smile_giggle",
+      "category": "smile",
+      "nameKey": "avatarItemSmileGiggle",
+      "name": "Little giggle",
+      "unlock": 0,
+      "coins": 0,
+      "ingots": 0,
+      "parts": {
+        "smile": "assets/art/avatar/smile_giggle.svg"
+      },
+      "thumbnail": "assets/art/avatar/smile_giggle-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "smile_cheeky",
+      "category": "smile",
+      "nameKey": "avatarItemSmileCheeky",
+      "name": "Cheeky smile",
+      "unlock": 0,
+      "coins": 0,
+      "ingots": 0,
+      "parts": {
+        "smile": "assets/art/avatar/smile_cheeky.svg"
+      },
+      "thumbnail": "assets/art/avatar/smile_cheeky-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "smile_dimple",
+      "category": "smile",
+      "nameKey": "avatarItemSmileDimple",
+      "name": "Dimple smile",
+      "unlock": 0,
+      "coins": 0,
+      "ingots": 0,
+      "parts": {
+        "smile": "assets/art/avatar/smile_dimple.svg"
+      },
+      "thumbnail": "assets/art/avatar/smile_dimple-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "hair_crop",
+      "category": "hair",
+      "nameKey": "avatarItemHairCrop",
+      "name": "Side-swept pixie",
+      "unlock": 0,
+      "coins": 0,
+      "ingots": 0,
+      "parts": {
+        "hairBack": "assets/art/avatar/hair_crop-hairBack.svg",
+        "hair": "assets/art/avatar/hair_crop-hair.svg"
+      },
+      "thumbnail": "assets/art/avatar/hair_crop-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "hair_bob",
+      "category": "hair",
+      "nameKey": "avatarItemHairBob",
+      "name": "Blunt bob",
+      "unlock": 0,
+      "coins": 0,
+      "ingots": 0,
+      "parts": {
+        "hairBack": "assets/art/avatar/hair_bob-hairBack.svg",
+        "hair": "assets/art/avatar/hair_bob-hair.svg"
+      },
+      "thumbnail": "assets/art/avatar/hair_bob-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "hair_buns",
+      "category": "hair",
+      "nameKey": "avatarItemHairBuns",
+      "name": "Double ribbon buns",
+      "unlock": 0,
+      "coins": 0,
+      "ingots": 0,
+      "parts": {
+        "hairBack": "assets/art/avatar/hair_buns-hairBack.svg",
+        "hair": "assets/art/avatar/hair_buns-hair.svg"
+      },
+      "thumbnail": "assets/art/avatar/hair_buns-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "hair_ponytail",
+      "category": "hair",
+      "nameKey": "avatarItemHairPonytail",
+      "name": "High ponytail",
+      "unlock": 0,
+      "coins": 0,
+      "ingots": 0,
+      "parts": {
+        "hairBack": "assets/art/avatar/hair_ponytail-hairBack.svg",
+        "hair": "assets/art/avatar/hair_ponytail-hair.svg"
+      },
+      "thumbnail": "assets/art/avatar/hair_ponytail-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "hair_long",
+      "category": "hair",
+      "nameKey": "avatarItemHairLong",
+      "name": "Long ocean waves",
+      "unlock": 0,
+      "coins": 0,
+      "ingots": 0,
+      "parts": {
+        "hairBack": "assets/art/avatar/hair_long-hairBack.svg",
+        "hair": "assets/art/avatar/hair_long-hair.svg"
+      },
+      "thumbnail": "assets/art/avatar/hair_long-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "hair_braids",
+      "category": "hair",
+      "nameKey": "avatarItemHairBraids",
+      "name": "Center-part braids",
+      "unlock": 0,
+      "coins": 0,
+      "ingots": 0,
+      "parts": {
+        "hairBack": "assets/art/avatar/hair_braids-hairBack.svg",
+        "hair": "assets/art/avatar/hair_braids-hair.svg"
+      },
+      "thumbnail": "assets/art/avatar/hair_braids-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "hair_tuft",
+      "category": "hair",
+      "nameKey": "avatarItemHairTuft",
+      "name": "Bouncy curls",
+      "unlock": 0,
+      "coins": 0,
+      "ingots": 0,
+      "parts": {
+        "hairBack": "assets/art/avatar/hair_tuft-hairBack.svg",
+        "hair": "assets/art/avatar/hair_tuft-hair.svg"
+      },
+      "thumbnail": "assets/art/avatar/hair_tuft-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "hat_none",
+      "category": "headwear",
+      "nameKey": "avatarItemHatNone",
+      "name": "No headwear",
+      "unlock": 0,
+      "coins": 0,
+      "ingots": 0,
+      "parts": {
+        "headwear": "assets/art/avatar/hat_none.svg"
+      },
+      "thumbnail": "assets/art/avatar/hat_none-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "hat_ribbon",
+      "category": "headwear",
+      "nameKey": "avatarItemHatRibbon",
+      "name": "Peach blossom ribbons",
+      "unlock": 3,
+      "coins": 3,
+      "ingots": 0,
+      "parts": {
+        "headwear": "assets/art/avatar/hat_ribbon.svg"
+      },
+      "thumbnail": "assets/art/avatar/hat_ribbon-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "hat_lotus",
+      "category": "headwear",
+      "nameKey": "avatarItemHatLotus",
+      "name": "Lotus blossom",
+      "unlock": 9,
+      "coins": 0,
+      "ingots": 2,
+      "parts": {
+        "headwear": "assets/art/avatar/hat_lotus.svg"
+      },
+      "thumbnail": "assets/art/avatar/hat_lotus-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "hat_tiger",
+      "category": "headwear",
+      "nameKey": "avatarItemHatTiger",
+      "name": "Little tiger cap",
+      "unlock": 15,
+      "coins": 0,
+      "ingots": 4,
+      "parts": {
+        "headwear": "assets/art/avatar/hat_tiger.svg"
+      },
+      "thumbnail": "assets/art/avatar/hat_tiger-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "hat_bun",
+      "category": "headwear",
+      "nameKey": "avatarItemHatBun",
+      "name": "Steamed-bun daydream",
+      "unlock": 24,
+      "coins": 0,
+      "ingots": 5,
+      "parts": {
+        "headwear": "assets/art/avatar/hat_bun.svg"
+      },
+      "thumbnail": "assets/art/avatar/hat_bun-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "hat_scholar",
+      "category": "headwear",
+      "nameKey": "avatarItemHatScholar",
+      "name": "Blue baseball cap",
+      "unlock": 15,
+      "coins": 0,
+      "ingots": 3,
+      "parts": {
+        "headwear": "assets/art/avatar/hat_scholar.svg"
+      },
+      "thumbnail": "assets/art/avatar/hat_scholar-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "hat_lion",
+      "category": "headwear",
+      "nameKey": "avatarItemHatLion",
+      "name": "Festival lion",
+      "unlock": 45,
+      "coins": 0,
+      "ingots": 10,
+      "parts": {
+        "headwear": "assets/art/avatar/hat_lion.svg"
+      },
+      "thumbnail": "assets/art/avatar/hat_lion-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "hat_cloud",
+      "category": "headwear",
+      "nameKey": "avatarItemHatCloud",
+      "name": "Cloud bucket hat",
+      "unlock": 33,
+      "coins": 0,
+      "ingots": 6,
+      "parts": {
+        "headwear": "assets/art/avatar/hat_cloud.svg"
+      },
+      "thumbnail": "assets/art/avatar/hat_cloud-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "top_garden",
+      "category": "top",
+      "nameKey": "avatarItemTopGarden",
+      "name": "Garden cross-collar",
+      "unlock": 0,
+      "coins": 0,
+      "ingots": 0,
+      "parts": {
+        "top": "assets/art/avatar/top_garden-top.svg",
+        "sleeveLeft": "assets/art/avatar/top_garden-sleeveLeft.svg",
+        "sleeveRight": "assets/art/avatar/top_garden-sleeveRight.svg"
+      },
+      "thumbnail": "assets/art/avatar/top_garden-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "top_peach",
+      "category": "top",
+      "nameKey": "avatarItemTopPeach",
+      "name": "Sunshine T-shirt",
+      "unlock": 0,
+      "coins": 0,
+      "ingots": 0,
+      "parts": {
+        "top": "assets/art/avatar/top_peach-top.svg",
+        "sleeveLeft": "assets/art/avatar/top_peach-sleeveLeft.svg",
+        "sleeveRight": "assets/art/avatar/top_peach-sleeveRight.svg"
+      },
+      "thumbnail": "assets/art/avatar/top_peach-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "top_ink",
+      "category": "top",
+      "nameKey": "avatarItemTopInk",
+      "name": "Pocket hoodie",
+      "unlock": 0,
+      "coins": 0,
+      "ingots": 0,
+      "parts": {
+        "top": "assets/art/avatar/top_ink-top.svg",
+        "sleeveLeft": "assets/art/avatar/top_ink-sleeveLeft.svg",
+        "sleeveRight": "assets/art/avatar/top_ink-sleeveRight.svg"
+      },
+      "thumbnail": "assets/art/avatar/top_ink-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "top_bamboo",
+      "category": "top",
+      "nameKey": "avatarItemTopBamboo",
+      "name": "Go-team jersey",
+      "unlock": 6,
+      "coins": 6,
+      "ingots": 0,
+      "parts": {
+        "top": "assets/art/avatar/top_bamboo-top.svg",
+        "sleeveLeft": "assets/art/avatar/top_bamboo-sleeveLeft.svg",
+        "sleeveRight": "assets/art/avatar/top_bamboo-sleeveRight.svg"
+      },
+      "thumbnail": "assets/art/avatar/top_bamboo-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "top_lotus",
+      "category": "top",
+      "nameKey": "avatarItemTopLotus",
+      "name": "Lotus peplum top",
+      "unlock": 15,
+      "coins": 0,
+      "ingots": 4,
+      "parts": {
+        "top": "assets/art/avatar/top_lotus-top.svg",
+        "sleeveLeft": "assets/art/avatar/top_lotus-sleeveLeft.svg",
+        "sleeveRight": "assets/art/avatar/top_lotus-sleeveRight.svg"
+      },
+      "thumbnail": "assets/art/avatar/top_lotus-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "top_scholar",
+      "category": "top",
+      "nameKey": "avatarItemTopScholar",
+      "name": "Scholar of the garden",
+      "unlock": 15,
+      "coins": 0,
+      "ingots": 4,
+      "parts": {
+        "top": "assets/art/avatar/top_scholar-top.svg",
+        "sleeveLeft": "assets/art/avatar/top_scholar-sleeveLeft.svg",
+        "sleeveRight": "assets/art/avatar/top_scholar-sleeveRight.svg"
+      },
+      "thumbnail": "assets/art/avatar/top_scholar-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "top_tiger",
+      "category": "top",
+      "nameKey": "avatarItemTopTiger",
+      "name": "Tiger varsity jacket",
+      "unlock": 24,
+      "coins": 0,
+      "ingots": 5,
+      "parts": {
+        "top": "assets/art/avatar/top_tiger-top.svg",
+        "sleeveLeft": "assets/art/avatar/top_tiger-sleeveLeft.svg",
+        "sleeveRight": "assets/art/avatar/top_tiger-sleeveRight.svg"
+      },
+      "thumbnail": "assets/art/avatar/top_tiger-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "top_festival",
+      "category": "top",
+      "nameKey": "avatarItemTopFestival",
+      "name": "Lantern-festival jacket",
+      "unlock": 33,
+      "coins": 0,
+      "ingots": 7,
+      "parts": {
+        "top": "assets/art/avatar/top_festival-top.svg",
+        "sleeveLeft": "assets/art/avatar/top_festival-sleeveLeft.svg",
+        "sleeveRight": "assets/art/avatar/top_festival-sleeveRight.svg"
+      },
+      "thumbnail": "assets/art/avatar/top_festival-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "top_cloud",
+      "category": "top",
+      "nameKey": "avatarItemTopCloud",
+      "name": "Denim day jacket",
+      "unlock": 45,
+      "coins": 0,
+      "ingots": 9,
+      "parts": {
+        "top": "assets/art/avatar/top_cloud-top.svg",
+        "sleeveLeft": "assets/art/avatar/top_cloud-sleeveLeft.svg",
+        "sleeveRight": "assets/art/avatar/top_cloud-sleeveRight.svg"
+      },
+      "thumbnail": "assets/art/avatar/top_cloud-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "bottom_ink",
+      "category": "bottom",
+      "nameKey": "avatarItemBottomInk",
+      "name": "Rolled-up jeans",
+      "unlock": 0,
+      "coins": 0,
+      "ingots": 0,
+      "parts": {
+        "bottom": "assets/art/avatar/bottom_ink.svg"
+      },
+      "thumbnail": "assets/art/avatar/bottom_ink-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "bottom_tea",
+      "category": "bottom",
+      "nameKey": "avatarItemBottomTea",
+      "name": "Explorer cargo shorts",
+      "unlock": 0,
+      "coins": 0,
+      "ingots": 0,
+      "parts": {
+        "bottom": "assets/art/avatar/bottom_tea.svg"
+      },
+      "thumbnail": "assets/art/avatar/bottom_tea-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "bottom_peach",
+      "category": "bottom",
+      "nameKey": "avatarItemBottomPeach",
+      "name": "Twirl skater skirt",
+      "unlock": 0,
+      "coins": 0,
+      "ingots": 0,
+      "parts": {
+        "bottom": "assets/art/avatar/bottom_peach.svg"
+      },
+      "thumbnail": "assets/art/avatar/bottom_peach-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "bottom_bamboo",
+      "category": "bottom",
+      "nameKey": "avatarItemBottomBamboo",
+      "name": "Sporty joggers",
+      "unlock": 6,
+      "coins": 5,
+      "ingots": 0,
+      "parts": {
+        "bottom": "assets/art/avatar/bottom_bamboo.svg"
+      },
+      "thumbnail": "assets/art/avatar/bottom_bamboo-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "bottom_lotus",
+      "category": "bottom",
+      "nameKey": "avatarItemBottomLotus",
+      "name": "Lotus petal skirt",
+      "unlock": 15,
+      "coins": 0,
+      "ingots": 3,
+      "parts": {
+        "bottom": "assets/art/avatar/bottom_lotus.svg"
+      },
+      "thumbnail": "assets/art/avatar/bottom_lotus-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "bottom_scholar",
+      "category": "bottom",
+      "nameKey": "avatarItemBottomScholar",
+      "name": "Wide-leg trousers",
+      "unlock": 24,
+      "coins": 0,
+      "ingots": 4,
+      "parts": {
+        "bottom": "assets/art/avatar/bottom_scholar.svg"
+      },
+      "thumbnail": "assets/art/avatar/bottom_scholar-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "bottom_festival",
+      "category": "bottom",
+      "nameKey": "avatarItemBottomFestival",
+      "name": "Festival tiered skirt",
+      "unlock": 33,
+      "coins": 0,
+      "ingots": 6,
+      "parts": {
+        "bottom": "assets/art/avatar/bottom_festival.svg"
+      },
+      "thumbnail": "assets/art/avatar/bottom_festival-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "bottom_cloud",
+      "category": "bottom",
+      "nameKey": "avatarItemBottomCloud",
+      "name": "Track shorts",
+      "unlock": 45,
+      "coins": 0,
+      "ingots": 7,
+      "parts": {
+        "bottom": "assets/art/avatar/bottom_cloud.svg"
+      },
+      "thumbnail": "assets/art/avatar/bottom_cloud-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "shoes_ink",
+      "category": "shoes",
+      "nameKey": "avatarItemShoesInk",
+      "name": "Everyday sneakers",
+      "unlock": 0,
+      "coins": 0,
+      "ingots": 0,
+      "parts": {
+        "shoes": "assets/art/avatar/shoes_ink.svg"
+      },
+      "thumbnail": "assets/art/avatar/shoes_ink-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "shoes_peach",
+      "category": "shoes",
+      "nameKey": "avatarItemShoesPeach",
+      "name": "Strappy pink shoes",
+      "unlock": 0,
+      "coins": 0,
+      "ingots": 0,
+      "parts": {
+        "shoes": "assets/art/avatar/shoes_peach.svg"
+      },
+      "thumbnail": "assets/art/avatar/shoes_peach-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "shoes_tea",
+      "category": "shoes",
+      "nameKey": "avatarItemShoesTea",
+      "name": "Sunny sandals",
+      "unlock": 0,
+      "coins": 0,
+      "ingots": 0,
+      "parts": {
+        "shoes": "assets/art/avatar/shoes_tea.svg"
+      },
+      "thumbnail": "assets/art/avatar/shoes_tea-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "shoes_bamboo",
+      "category": "shoes",
+      "nameKey": "avatarItemShoesBamboo",
+      "name": "Lightning trainers",
+      "unlock": 6,
+      "coins": 4,
+      "ingots": 0,
+      "parts": {
+        "shoes": "assets/art/avatar/shoes_bamboo.svg"
+      },
+      "thumbnail": "assets/art/avatar/shoes_bamboo-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "shoes_lotus",
+      "category": "shoes",
+      "nameKey": "avatarItemShoesLotus",
+      "name": "Lotus ballet flats",
+      "unlock": 15,
+      "coins": 0,
+      "ingots": 2,
+      "parts": {
+        "shoes": "assets/art/avatar/shoes_lotus.svg"
+      },
+      "thumbnail": "assets/art/avatar/shoes_lotus-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "shoes_tiger",
+      "category": "shoes",
+      "nameKey": "avatarItemShoesTiger",
+      "name": "Tiger-toe slippers",
+      "unlock": 24,
+      "coins": 0,
+      "ingots": 4,
+      "parts": {
+        "shoes": "assets/art/avatar/shoes_tiger.svg"
+      },
+      "thumbnail": "assets/art/avatar/shoes_tiger-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "shoes_festival",
+      "category": "shoes",
+      "nameKey": "avatarItemShoesFestival",
+      "name": "Red rain boots",
+      "unlock": 33,
+      "coins": 0,
+      "ingots": 5,
+      "parts": {
+        "shoes": "assets/art/avatar/shoes_festival.svg"
+      },
+      "thumbnail": "assets/art/avatar/shoes_festival-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "shoes_cloud",
+      "category": "shoes",
+      "nameKey": "avatarItemShoesCloud",
+      "name": "Cloud high-tops",
+      "unlock": 45,
+      "coins": 0,
+      "ingots": 6,
+      "parts": {
+        "shoes": "assets/art/avatar/shoes_cloud.svg"
+      },
+      "thumbnail": "assets/art/avatar/shoes_cloud-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "prop_none",
+      "category": "prop",
+      "nameKey": "avatarItemPropNone",
+      "name": "Empty hands",
+      "unlock": 0,
+      "coins": 0,
+      "ingots": 0,
+      "parts": {
+        "prop": "assets/art/avatar/prop_none.svg"
+      },
+      "thumbnail": "assets/art/avatar/prop_none-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "prop_piece",
+      "category": "prop",
+      "nameKey": "avatarItemPropPiece",
+      "name": "My xiangqi chariot",
+      "unlock": 0,
+      "coins": 0,
+      "ingots": 0,
+      "parts": {
+        "prop": "assets/art/avatar/prop_piece.svg"
+      },
+      "thumbnail": "assets/art/avatar/prop_piece-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "prop_fan",
+      "category": "prop",
+      "nameKey": "avatarItemPropFan",
+      "name": "Bamboo breeze fan",
+      "unlock": 3,
+      "coins": 4,
+      "ingots": 0,
+      "parts": {
+        "prop": "assets/art/avatar/prop_fan.svg"
+      },
+      "thumbnail": "assets/art/avatar/prop_fan-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "prop_lantern",
+      "category": "prop",
+      "nameKey": "avatarItemPropLantern",
+      "name": "Little red lantern",
+      "unlock": 9,
+      "coins": 0,
+      "ingots": 2,
+      "parts": {
+        "prop": "assets/art/avatar/prop_lantern.svg"
+      },
+      "thumbnail": "assets/art/avatar/prop_lantern-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "prop_tanghulu",
+      "category": "prop",
+      "nameKey": "avatarItemPropTanghulu",
+      "name": "Tanghulu treat",
+      "unlock": 6,
+      "coins": 6,
+      "ingots": 0,
+      "parts": {
+        "prop": "assets/art/avatar/prop_tanghulu.svg"
+      },
+      "thumbnail": "assets/art/avatar/prop_tanghulu-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "prop_brush",
+      "category": "prop",
+      "nameKey": "avatarItemPropBrush",
+      "name": "Little calligrapher",
+      "unlock": 15,
+      "coins": 0,
+      "ingots": 3,
+      "parts": {
+        "prop": "assets/art/avatar/prop_brush.svg"
+      },
+      "thumbnail": "assets/art/avatar/prop_brush-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "prop_drum",
+      "category": "prop",
+      "nameKey": "avatarItemPropDrum",
+      "name": "Rattle-drum rhythm",
+      "unlock": 24,
+      "coins": 0,
+      "ingots": 4,
+      "parts": {
+        "prop": "assets/art/avatar/prop_drum.svg"
+      },
+      "thumbnail": "assets/art/avatar/prop_drum-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "prop_lotus",
+      "category": "prop",
+      "nameKey": "avatarItemPropLotus",
+      "name": "Lotus lantern",
+      "unlock": 33,
+      "coins": 0,
+      "ingots": 6,
+      "parts": {
+        "prop": "assets/art/avatar/prop_lotus.svg"
+      },
+      "thumbnail": "assets/art/avatar/prop_lotus-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "prop_bun",
+      "category": "prop",
+      "nameKey": "avatarItemPropBun",
+      "name": "Bun on a bamboo tray",
+      "unlock": 24,
+      "coins": 0,
+      "ingots": 5,
+      "parts": {
+        "prop": "assets/art/avatar/prop_bun.svg"
+      },
+      "thumbnail": "assets/art/avatar/prop_bun-thumb.svg",
+      "tags": []
+    },
+    {
+      "id": "prop_kite",
+      "category": "prop",
+      "nameKey": "avatarItemPropKite",
+      "name": "Swallow-kite afternoon",
+      "unlock": 45,
+      "coins": 0,
+      "ingots": 9,
+      "parts": {
+        "prop": "assets/art/avatar/prop_kite.svg"
+      },
+      "thumbnail": "assets/art/avatar/prop_kite-thumb.svg",
+      "tags": []
+    }
+  ]
+}

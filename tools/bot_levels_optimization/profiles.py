@@ -8,8 +8,8 @@ from itertools import pairwise
 
 from external.pikafish_worker.ai import STRENGTH_PROFILES, StrengthProfile
 
-LOW = StrengthProfile(149, 16, 9.0, 600)
-HIGH = StrengthProfile(3_318_000, 1, 1.0)
+LOW = StrengthProfile(149, 16, 9.5, 600)
+HIGH = StrengthProfile(5_000_000, 1, 1.0)
 SEED_COORDINATES = tuple(i / 8 for i in range(9))
 
 
@@ -21,9 +21,9 @@ def profile_at(s: float) -> StrengthProfile:
     if s == 1:
         return HIGH
     return StrengthProfile(
-        math.floor(149 * (3_318_000 / 149) ** s + 0.5),
+        math.floor(LOW.nodes * (HIGH.nodes / LOW.nodes) ** s + 0.5),
         max(4, min(16, math.floor(16 - 12 * s + 0.5))),
-        9 - 8 * s,
+        LOW.expected_rank + (HIGH.expected_rank - LOW.expected_rank) * s,
         600 * (1 - s),
     )
 

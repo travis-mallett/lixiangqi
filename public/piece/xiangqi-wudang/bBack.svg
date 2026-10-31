@@ -1,0 +1,17 @@
+<svg height="100" viewBox="0 0 100 100" width="100" xmlns="http://www.w3.org/2000/svg"><title>Wudang black piece back</title><defs>
+  <radialGradient id="pigment" cx=".34" cy=".27" r=".76">
+    <stop offset="0" stop-color="#2e3c3e"/>
+    <stop offset=".56" stop-color="#152022"/>
+    <stop offset="1" stop-color="#090f10"/>
+  </radialGradient>
+  <filter id="edge" x="-8%" y="-8%" width="116%" height="116%">
+    <feTurbulence type="fractalNoise" baseFrequency=".055" numOctaves="2" seed="23" result="rough"/>
+    <feDisplacementMap in="SourceGraphic" in2="rough" scale="1.15" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</defs>
+
+
+<g id="piece-artwork" transform="matrix(0.9202453987730057 0 0 0.9202453987730057 3.9877300613497013 3.9877300613497013)"><ellipse cx="50" cy="53" rx="44.5" ry="45" fill="#071011" opacity=".26"/><circle cx="50" cy="50" r="47.2" fill="url(#pigment)" stroke="#050a0b" stroke-width="3.4" stroke-dasharray="117 7 38 4 73 8 31 5" stroke-linecap="round" filter="url(#edge)" data-piece-body="true"/><circle cx="50" cy="50" r="42.8" fill="none" stroke="#f0ece2" stroke-opacity=".18" stroke-width="1.5" stroke-dasharray="92 4 44 8 69 5 30 7"/><g stroke="#f0ece2" stroke-opacity=".075" stroke-width="2.1" stroke-linecap="round">
+  <line x1="19" y1="22" x2="56" y2="8"/>
+  <line x1="81" y1="77" x2="45" y2="92"/>
+</g></g></svg>

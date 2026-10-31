@@ -63,9 +63,12 @@ object UserInfo:
       crosstable: Option[Crosstable.WithMatchup],
       playing: Int,
       imported: Int,
-      bookmark: Int
+      bookmark: Int,
+      kingdomsWithMe: Int = 0
   ):
-    def withMe: Option[Int] = crosstable.map(_.crosstable.nbGames)
+    def withMe: Option[Int] = Option.when(crosstable.nonEmpty || kingdomsWithMe > 0)(
+      crosstable.fold(0)(_.crosstable.nbGames) + kingdomsWithMe
+    )
 
   object NbGames:
     given Zero[NbGames] = Zero(NbGames(none, 0, 0, 0))
@@ -73,7 +76,8 @@ object UserInfo:
   final class NbGamesApi(
       bookmarkApi: BookmarkApi,
       gameCached: lila.game.Cached,
-      crosstableApi: lila.game.CrosstableApi
+      crosstableApi: lila.game.CrosstableApi,
+      kingdoms: lila.threeKingdoms.GameRepo
   )(using Executor):
     def apply(u: User, withCrosstable: Boolean)(using me: Option[Me]): Fu[NbGames] =
       (
@@ -83,9 +87,14 @@ object UserInfo:
             .traverse: me =>
               crosstableApi.withMatchup(me.userId, u.id).mon(lila.mon.user.segment("crosstable"))
         ,
-        gameCached.nbPlaying(u.id).mon(lila.mon.user.segment("nbPlaying")),
+        gameCached
+          .nbPlaying(u.id)
+          .zip(kingdoms.countPlaying(u.id))
+          .map(_ + _)
+          .mon(lila.mon.user.segment("nbPlaying")),
         gameCached.nbImportedBy(u.id).mon(lila.mon.user.segment("nbImported")),
-        bookmarkApi.countByUser(u).mon(lila.mon.user.segment("nbBookmarks"))
+        bookmarkApi.countByUser(u).mon(lila.mon.user.segment("nbBookmarks")),
+        withCrosstable.so(me.filter(u.isnt(_)).so(m => kingdoms.countWith(u.id, m.userId)))
       ).mapN(NbGames.apply)
 
   final class UserInfoApi(

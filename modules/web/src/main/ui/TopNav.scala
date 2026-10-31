@@ -60,6 +60,7 @@ final class TopNav(helpers: Helpers):
               else "Special Rules")
             )
           ,
+          a(href := langHref(routes.Cms.variantHome))(trans.site.variants()),
           a(href := langHref(routes.Study.allDefault()))(trans.site.studyMenu()),
           ctx.kid.no.option(a(href := langHref(routes.Coach.all(1)))(trans.site.coaches()))
         )
@@ -78,7 +79,8 @@ final class TopNav(helpers: Helpers):
       st.section(
         linkTitle(routes.User.list.url, trans.site.community()),
         div(role := "group")(
-          a(href := routes.User.list)(trans.site.players()),
+          a(href := routes.User.list)(trans.site.leaderboard()),
+          a(href := routes.PlayerDirectory.index())(trans.broadcast.directoryPlayers()),
           ctx.me.map(me => a(href := routes.Relation.following(me.username))(trans.site.friends())),
           a(href := routes.Team.home())(trans.team.teams()),
           ctx.kid.no.option(a(href := routes.ForumCateg.index)(trans.site.forum())),

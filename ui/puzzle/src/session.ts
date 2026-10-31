@@ -49,7 +49,7 @@ export default class PuzzleSession {
       if (i === -1) {
         s.rounds.push({ id, result });
         if (s.rounds.length > this.maxSize) s.rounds.shift();
-      } else s.rounds[i].result = result;
+      }
       s.at = Date.now();
       return s;
     });
@@ -57,7 +57,7 @@ export default class PuzzleSession {
   setRatingDiff = (id: string, ratingDiff: number) =>
     this.update(s => {
       s.rounds.forEach(r => {
-        if (r.id === id) r.ratingDiff = ratingDiff;
+        if (r.id === id && r.ratingDiff === undefined) r.ratingDiff = ratingDiff;
       });
       return s;
     });

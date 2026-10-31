@@ -35,7 +35,11 @@ function createSeek(ctrl: LobbyController) {
         {
           hook: bind(
             'click',
-            () => ctrl.setupCtrl.openModal('hook', { variant: 'standard', timeMode: 'correspondence' }),
+            () =>
+              ctrl.setupCtrl.openModal('hook', {
+                variant: ctrl.lobbyVariant ?? 'standard',
+                timeMode: 'correspondence',
+              }),
             ctrl.redraw,
           ),
         },
@@ -73,7 +77,9 @@ export default function (ctrl: LobbyController): MaybeVNodes {
             } while (el.nodeName !== 'TABLE');
           }),
         },
-        ctrl.data.seeks.map(renderSeek),
+        ctrl.data.seeks
+          .filter(s => !ctrl.lobbyVariant || s.variant?.key === ctrl.lobbyVariant)
+          .map(renderSeek),
       ),
     ]),
     createSeek(ctrl),

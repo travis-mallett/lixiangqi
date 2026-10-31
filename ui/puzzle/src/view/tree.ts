@@ -4,10 +4,10 @@ import { hl, type VNode } from 'lib/view';
 
 import type PuzzleCtrl from '../ctrl';
 
-const cleanups = new WeakMap<Node, () => void>();
+const views = new WeakMap<Node, { render: () => void; destroy: () => void }>();
 
 export function render(ctrl: PuzzleCtrl): VNode {
-  const render = (vnode: VNode) => {
+  const mount = (vnode: VNode) => {
     const view = new AnalysisTreeView({
       element: vnode.elm as HTMLElement,
       tree: () => ctrl.tree,
@@ -23,20 +23,43 @@ export function render(ctrl: PuzzleCtrl): VNode {
       notationStyle: () => ctrl.pref.notationStyle,
       emptyText: '',
     });
-    view.render({ scrollToActive: ctrl.autoScrollRequested || ctrl.autoScrollNow });
-    ctrl.autoScrollRequested = ctrl.autoScrollNow = false;
+    let frame = 0;
+    const reveal = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => view.scrollToActive());
+    };
+    const render = () => {
+      const scroll = ctrl.autoScrollRequested || ctrl.autoScrollNow;
+      view.render({ scrollToActive: false });
+      ctrl.autoScrollRequested = ctrl.autoScrollNow = false;
+      if (scroll) reveal();
+    };
+    // Initial board/engine layout can settle after the tree's insert hook.
+    const observer = new ResizeObserver(reveal);
+    observer.observe(vnode.elm as HTMLElement);
+    const media = window.matchMedia('(max-width: 799px)');
+    const resize = () => {
+      render();
+      reveal();
+    };
+    media.addEventListener('change', resize);
+    views.set(vnode.elm!, {
+      render,
+      destroy: () => {
+        cancelAnimationFrame(frame);
+        observer.disconnect();
+        media.removeEventListener('change', resize);
+        view.closeMenu();
+      },
+    });
+    render();
+    reveal();
   };
   return hl('div.puzzle__moves.xiangqi-analysis__moves.two-column-notation', {
     hook: {
-      insert: vnode => {
-        render(vnode);
-        const media = window.matchMedia('(max-width: 799px)');
-        const resize = () => render(vnode);
-        media.addEventListener('change', resize);
-        cleanups.set(vnode.elm!, () => media.removeEventListener('change', resize));
-      },
-      postpatch: (_, vnode) => render(vnode),
-      destroy: vnode => cleanups.get(vnode.elm!)?.(),
+      insert: mount,
+      postpatch: (_, vnode) => views.get(vnode.elm!)?.render(),
+      destroy: vnode => views.get(vnode.elm!)?.destroy(),
     },
   });
 }

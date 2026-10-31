@@ -3,11 +3,23 @@ export const XIANGQI_DIMENSIONS = { width: 9, height: 10 } as const;
 
 export type XiangqiNotationStyle = 'english' | 'chinese';
 
+const revealLetters: Record<string, string> = {
+  chariot: 'R',
+  horse: 'H',
+  elephant: 'E',
+  advisor: 'A',
+  cannon: 'C',
+  soldier: 'P',
+};
+
 export const selectXiangqiNotation = (
   english: string,
   chinese: string | undefined,
   style: XiangqiNotationStyle,
-): string => (style === 'chinese' ? chinese || english : english);
+  reveal?: string | null,
+): string =>
+  (style === 'chinese' ? chinese || english : english) +
+  (reveal ? `→${revealLetters[reveal] ?? reveal}` : '');
 
 const xiangqiPieceCount = (fen: string): number => fen.split(/\s/, 1)[0].split(/[a-z]/i).length - 1;
 

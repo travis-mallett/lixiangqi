@@ -8,6 +8,7 @@ import {
   positionFromFen,
   recordedPosition,
   standardXiangqi,
+  miniXiangqi,
   type BoardView,
   type BoardPosition,
   type BoardDefinition,
@@ -15,6 +16,26 @@ import {
 } from '../src';
 
 const initial = 'rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w';
+
+test('live boards bind their own theme geometry and coordinate artwork when variants coexist', () => {
+  const mini = mount(
+    'interactive',
+    positionFromFen('rcnkncr/p1ppp1p/7/7/7/P1PPP1P/RCNKNCR w', miniXiangqi),
+    miniXiangqi,
+  );
+  const regular = mount();
+  for (const [board, geometry, sprite, ratio, files] of [
+    [mini, 'minixiangqi-7x7', 'minixiangqi-file-coordinates.svg', '1', 7],
+    [regular, 'xiangqi-9x10', 'xiangqi-file-coordinates.svg', '0.9', 9],
+  ] as const) {
+    assert.equal(board.element.style.getPropertyValue('--board-image'), `var(---board-image-${geometry})`);
+    assert.ok(board.element.style.getPropertyValue('--board-coordinate-image').includes(sprite));
+    assert.equal(board.element.style.getPropertyValue('--board-aspect-ratio'), ratio);
+    assert.equal(board.element.querySelectorAll('coords.top coord').length, files);
+    board.setPresentation({ ...board.getPresentation(), perspective: 'black' });
+    assert.equal(board.element.querySelectorAll('coords.bottom coord').length, files);
+  }
+});
 const boards: BoardView[] = [];
 afterEach(() => {
   for (const board of boards.splice(0)) {

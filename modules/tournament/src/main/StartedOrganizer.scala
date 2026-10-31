@@ -37,16 +37,19 @@ final private class StartedOrganizer(
       .void
 
   private def processTour(tour: Tournament): Funit =
-    if tour.secondsToFinish.isZero then api.finish(tour)
+    if tour.secondsToFinish.isZero || tour.scoreCutoff.nonEmpty then api.finish(tour)
     else if api.killSchedule contains tour.id then
       api.killSchedule.remove(tour.id)
       api.finish(tour)
-    else if tour.nbPlayers < 2 then funit
-    else if tour.nbPlayers < 30 then
-      playerRepo.nbActivePlayers(tour.id).flatMap { nb =>
-        (nb >= 2).so(startPairing(tour, nb.some))
+    else
+      (runCounter % 60 == 0).so(api.reconcilePlayingGames(tour)) >> {
+        if tour.nbPlayers < tour.gameVariant.playerCount then funit
+        else if tour.nbPlayers < 30 then
+          playerRepo.nbActivePlayers(tour.id).flatMap { nb =>
+            (nb >= tour.gameVariant.playerCount).so(startPairing(tour, nb.some))
+          }
+        else startPairing(tour)
       }
-    else startPairing(tour)
 
   private def startPairing(tour: Tournament, smallTourNbActivePlayers: Option[Int] = None): Funit =
     tour.pairingsClosed.not.so:

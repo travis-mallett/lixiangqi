@@ -54,7 +54,7 @@ test('special rules initializes independent authoritative widgets', async () => 
     };
   };
   globalThis.site = {
-    asset: { loadPieces: Promise.resolve() },
+    asset: { loadPieces: Promise.resolve(), url: (path: string) => `/assets/${path}` },
     sound: { move: (options?: { board?: HTMLElement }) => soundMoves.push(options) },
   } as any;
   window.matchMedia = globalThis.matchMedia;

@@ -25,7 +25,10 @@ from . import (
     repatriation,
     general_disrobing,
     assisting_king,
+    white_horse,
+    drawer,
     double_ghosts,
+    three_chariots,
     cannon_chariot_discovered,
     detonating_mine,
     moon_scooping,
@@ -341,6 +344,7 @@ def _evaluate_category(
             bold_chariot.THEME,
             pawn_triple.THEME,
             double_ghosts.THEME,
+            white_horse.THEME,
             cannon_chariot_discovered.THEME,
             detonating_mine.THEME,
         }:
@@ -350,6 +354,7 @@ def _evaluate_category(
                 bold_chariot.THEME: bold_chariot,
                 pawn_triple.THEME: pawn_triple,
                 double_ghosts.THEME: double_ghosts,
+                white_horse.THEME: white_horse,
                 cannon_chariot_discovered.THEME: cannon_chariot_discovered,
                 detonating_mine.THEME: detonating_mine,
             }[category]
@@ -483,6 +488,12 @@ def _evaluate_category(
             proofs[(theme, index)] = records
         for theme, version, geometry, assessor in (
             (
+                drawer.THEME,
+                drawer.VERSION,
+                lambda terminal: drawer.candidate(trace) is not False,
+                drawer,
+            ),
+            (
                 assisting_king.THEME,
                 assisting_king.VERSION,
                 lambda terminal: assisting_king.candidate(trace) is not False,
@@ -512,6 +523,12 @@ def _evaluate_category(
                 lambda terminal: chariots_threatening_advisor.candidate(trace)
                 is not False,
                 chariots_threatening_advisor,
+            ),
+            (
+                three_chariots.THEME,
+                three_chariots.VERSION,
+                lambda terminal: three_chariots.candidate(trace) is not False,
+                three_chariots,
             ),
             *(
                 (role.theme, role.version, role.candidate, role)
@@ -644,8 +661,10 @@ def _evaluate_category(
                     repatriation.THEME,
                     general_disrobing.THEME,
                     assisting_king.THEME,
+                    drawer.THEME,
                     three_immortals.THEME,
                     chariots_threatening_advisor.THEME,
+                    three_chariots.THEME,
                     moon_scooping.THEME,
                     spring_horse.THEME,
                     smothered_cannon.THEME,
@@ -707,6 +726,11 @@ def _evaluate_category(
                         else ()
                     ),
                 )
+                if theme == three_chariots.THEME:
+                    cache_key += (
+                        trace.moves,
+                        tuple(d.position_fen for d in trace.decisions),
+                    )
                 if cache_key not in terminal_cache:
                     terminal_cache[cache_key] = assessor.assess(engine, subject)
                 record = terminal_cache[cache_key]

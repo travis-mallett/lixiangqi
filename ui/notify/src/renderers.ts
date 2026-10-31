@@ -8,6 +8,22 @@ import type { Notification, Renderer, Renderers } from './interfaces';
 
 export default function makeRenderers(): Renderers {
   return {
+    threeKingdomsChallenge: {
+      html: n =>
+        generic(n, n.content.url, licon.Swords, [
+          h('span', [h('strong', i18n.site.threeKingdoms), drawTime(n)]),
+          h(
+            'span',
+            n.content.started
+              ? i18n.site.threeKingdomsReady
+              : i18n.site.threeKingdomsInvitation(userFullName(n.content.invitedBy)),
+          ),
+        ]),
+      text: n =>
+        n.content.started
+          ? i18n.site.threeKingdomsReady
+          : i18n.site.threeKingdomsInvitation(userFullName(n.content.invitedBy)),
+    },
     streamStart: {
       html: n =>
         generic(n, `/streamer/${n.content.sid}?redirect=1`, licon.Mic, [

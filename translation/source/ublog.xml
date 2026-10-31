@@ -60,4 +60,9 @@
   <string name="blogTips">Our simple tips to write great blog posts</string>
   <string name="discussThisBlogPostInTheForum">Discuss this blog post in the forum</string>
   <string name="youBlockedByBlogAuthor">You are blocked by the blog author.</string>
+  <string name="officialBlog">LiXiangQi</string>
+  <string name="officialPost">Official LiXiangQi post</string>
+  <string name="publishAsOfficial">Publish as an official LiXiangQi post</string>
+  <string name="publishAsOfficialHelp">Published posts appear in the LiXiangQi blog. You remain the author; other official publishers cannot edit your post.</string>
+  <string name="officialPostPermissionRequired">Only the author with official posting permission can change this designation or publish an official draft.</string>
 </resources>

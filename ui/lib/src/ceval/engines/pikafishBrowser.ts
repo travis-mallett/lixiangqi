@@ -1,9 +1,11 @@
 import { defer } from '../../async';
 import { bigFileStorage } from '../../bigFileStorage';
+import { jieqiEngineFen } from '../../game/jieqi';
 import { requestXiangqi } from '../../game/xiangqiApi';
 import { replayXiangqiVariation, type RulesState, type RulesPosition } from '../../game/xiangqiNotation';
 import {
   type EngineAnalysis,
+  type EngineVariant,
   PikafishProtocol,
   type PikafishWork,
   type PikafishOptions,
@@ -34,7 +36,8 @@ export type PikafishStatus =
 export class PikafishBrowserEngine {
   readonly protocol: PikafishProtocol;
 
-  private module?: PikafishModule;
+  private module?: Pick<PikafishModule, 'uci'>;
+  private worker?: Worker;
   private destroyed = false;
   private failure?: Error;
   private readonly readiness = defer<void>();
@@ -47,6 +50,7 @@ export class PikafishBrowserEngine {
   constructor(
     private readonly status: (status: PikafishStatus) => void,
     options?: PikafishOptions,
+    private readonly variant: EngineVariant = 'xiangqi',
   ) {
     this.protocol = new PikafishProtocol(
       computing => {
@@ -59,6 +63,7 @@ export class PikafishBrowserEngine {
         this.status({ state: 'ready' });
       },
       options,
+      variant,
     );
     // Analysis callers can queue work without awaiting preparation themselves.
     void this.readiness.promise.catch(() => {});
@@ -76,6 +81,28 @@ export class PikafishBrowserEngine {
     if (this.destroyed) throw new Error('Pikafish engine has been destroyed');
     if (this.failure) throw this.failure;
     this.cancelValidation();
+    if (this.variant === 'jieqi') {
+      if (!work.observation || work.observation.fen !== work.fen || !work.legalMoves)
+        throw new Error('Jieqi evaluation requires the visible information set and legal moves');
+      this.protocol.compute({
+        ...work,
+        engineFen: jieqiEngineFen(work.observation),
+        stopRequested: false,
+        emit: (analysis, final) => {
+          // A future reveal is a chance event, not a known principal variation.
+          // Show the evaluated root actions without presenting sampled outcomes as fact.
+          const lines = analysis.lines
+            .filter(line => work.legalMoves!.includes(line.pvMoves[0]))
+            .map(line => ({
+              ...line,
+              pvMoves: line.pvMoves.slice(0, 1),
+              wxfMoves: [],
+            }));
+          work.emit({ ...analysis, engine: 'PikaJieQi', lines }, final);
+        },
+      });
+      return;
+    }
     const generation = ++this.searchGeneration;
     let pendingEvaluation: { analysis: EngineAnalysis; final: boolean } | undefined;
     let validating = false;
@@ -171,6 +198,10 @@ export class PikafishBrowserEngine {
     try {
       if (!globalThis.crossOriginIsolated || typeof SharedArrayBuffer === 'undefined')
         throw new Error('Browser Pikafish requires cross-origin isolation and shared memory');
+      if (this.variant !== 'xiangqi') {
+        await this.bootVariant();
+        return;
+      }
       const root = 'pikafish-web';
       // Content hashes keep compatible assets fresh without invalidating the
       // large cached network every time the application server restarts.
@@ -217,6 +248,40 @@ export class PikafishBrowserEngine {
     }
   }
 
+  private async bootVariant(): Promise<void> {
+    const jieqi = this.variant === 'jieqi';
+    const root = jieqi ? 'jieqi-engine' : 'minixiangqi-engine';
+    const asset = (file: string) => site.asset.url(`${root}/${file}`, { documentOrigin: true });
+    const worker = (this.worker = new Worker(asset('worker.js'), { type: jieqi ? 'module' : 'classic' }));
+    await new Promise<void>((resolve, reject) => {
+      worker.onerror = event => {
+        const error = new Error(event.message || 'Variant engine worker failed');
+        reject(error);
+        this.fail(error.message);
+      };
+      worker.onmessage = ({ data }) => {
+        if (this.disposed) return;
+        if (data.type === 'line') this.protocol.received(data.line);
+        else if (data.type === 'diagnostic') console.warn(data.line);
+        else if (data.type === 'error') {
+          const error = new Error(data.error);
+          reject(error);
+          this.fail(error.message);
+        } else if (data.type === 'ready') {
+          this.module = { uci: command => worker.postMessage({ type: 'command', command }) };
+          this.protocol.connected(line => this.module?.uci(line));
+          resolve();
+        }
+      };
+      worker.postMessage({
+        type: 'init',
+        moduleUrl: asset(jieqi ? 'pikajieqi.js' : 'stockfish.js'),
+        wasmUrl: asset(jieqi ? 'pikajieqi.wasm' : 'stockfish.wasm'),
+        workerUrl: jieqi ? undefined : asset('stockfish.worker.js'),
+      });
+    });
+  }
+
   private fail(message: string): void {
     if (this.disposed) return;
     this.failure = new Error(message);
@@ -249,6 +314,8 @@ export class PikafishBrowserEngine {
     }
     this.protocol.disconnected();
     this.module = undefined;
+    this.worker?.terminate();
+    this.worker = undefined;
   }
 }
 

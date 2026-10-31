@@ -36,6 +36,7 @@ enum Permission(val key: String, val alsoGrants: List[Permission], val name: Str
   case StickyPosts extends Permission("STICKY_POSTS", "Sticky forum posts")
   case ModerateForum extends Permission("MODERATE_FORUM", List(StickyPosts), "Moderate forum")
   case ModerateBlog extends Permission("MODERATE_BLOG", "Moderate blog")
+  case PublishOfficialBlog extends Permission("PUBLISH_OFFICIAL_BLOG", "Publish own official LiXiangQi posts")
   case ChatTimeout extends Permission("CHAT_TIMEOUT", "Chat timeout")
   case BroadcastTimeout extends Permission("BROADCAST_TIMEOUT", "Broadcast timeout")
   case PublicChatView extends Permission("VIEW_PUBLIC_CHAT", "See public chat page")

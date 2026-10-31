@@ -4,7 +4,6 @@ package ui
 import play.api.data.*
 import scalalib.paginator.Paginator
 
-import lila.core.i18n.Translate
 import lila.core.team.LightTeam
 import lila.gathering.GatheringClock
 import lila.gathering.ui.GatheringFormUi
@@ -24,8 +23,7 @@ extension (f: Form[?])
   )
 
 final class TournamentForm(val helpers: Helpers, showUi: TournamentShow)(
-    modMenu: Context ?=> Frag,
-    val translatedVariantChoicesWithVariants: Translate ?=> List[(String, String, Option[String])]
+    modMenu: Context ?=> Frag
 ):
   import helpers.{ *, given }
 
@@ -97,8 +95,9 @@ final class TournamentForm(val helpers: Helpers, showUi: TournamentShow)(
       ),
       form3.fieldset("Games", toggle = true.some, disabled = fields.frozen)(
         fields.clock,
-        rulesetField(form),
-        form3.split(fields.variant, fields.startPosition)
+        form3.split(fields.variant, fields.startPosition),
+        fields.ruleset,
+        p(cls := "three-kingdoms-tournament-help none")(trans.threeKingdoms.tournamentClock())
       ),
       fields.waitStart,
       conditionFields(form, fields, teams = leaderTeams, tour = none),
@@ -117,8 +116,9 @@ final class TournamentForm(val helpers: Helpers, showUi: TournamentShow)(
       ),
       form3.fieldset("Games", toggle = false.some, disabled = fields.frozen)(
         fields.clock,
-        rulesetField(form),
-        form3.split(fields.variant, fields.startPosition)
+        form3.split(fields.variant, fields.startPosition),
+        fields.ruleset,
+        p(cls := "three-kingdoms-tournament-help none")(trans.threeKingdoms.tournamentClock())
       ),
       fields.waitStart,
       conditionFields(form, fields, teams = myTeams, tour = tour.some),
@@ -126,10 +126,6 @@ final class TournamentForm(val helpers: Helpers, showUi: TournamentShow)(
     )
 
   private val gatheringFormUi = GatheringFormUi(helpers)
-
-  private def rulesetField(form: Form[?])(using Context, FormPrefix) =
-    form3.group(form.prefix("ruleset"), raw("Xiangqi rules")):
-      form3.select(_, lila.xiangqi.adjudication.Ruleset.values.toList.map(r => r.key -> r.label))
 
   def conditionFields(
       form: Form[?],
@@ -173,6 +169,7 @@ final class TournamentForm(val helpers: Helpers, showUi: TournamentShow)(
           form.prefix("berserkable"),
           trans.arena.allowBerserk(),
           help = trans.arena.allowBerserkHelp().some,
+          disabled = fields.disabledAfterStart,
           half = true
         ),
         form3.hiddenFalse(form.prefix("berserkable")),
@@ -180,6 +177,7 @@ final class TournamentForm(val helpers: Helpers, showUi: TournamentShow)(
           form.prefix("streakable"),
           trans.arena.arenaStreaks(),
           help = trans.arena.arenaStreaksHelp().some,
+          disabled = fields.disabledAfterStart,
           half = true
         ),
         form3.hiddenFalse(form.prefix("streakable"))
@@ -287,7 +285,7 @@ final class TournamentForm(val helpers: Helpers, showUi: TournamentShow)(
                         em(tour.spotlight.map(_.headline))
                       )
                     ),
-                    td(tour.variant.name),
+                    td(tour.gameVariant.name),
                     td(tour.clock.toString),
                     td(tour.minutes, "m"),
                     td(showInstant(tour.startsAt), " ", momentFromNow(tour.startsAt, alwaysRelative = true)),
@@ -338,6 +336,7 @@ final class TourFields(tourForm: TournamentForm)(form: Form[?], tour: Option[Tou
   def isTeamBattle = tour.exists(_.isTeamBattle) || form.prefix("teamBattleByTeam").value.nonEmpty
 
   def disabledAfterStart = tour.exists(!_.isCreated)
+  def gameSettingsLocked = tour.exists(!_.canChangeGame)
 
   def frozen = tour.exists(_.isFinished) && !Granter.opt(_.ManageTournament)
 
@@ -361,13 +360,32 @@ final class TourFields(tourForm: TournamentForm)(form: Form[?], tour: Option[Tou
       )
     }(cls := "tour-name")
   def variant =
-    form3.group(form.prefix("variant"), trans.site.variant(), half = true)(
+    form3.group(form.prefix("gameVariant"), trans.site.variant(), half = true)(
       form3.select(
         _,
-        translatedVariantChoicesWithVariants.map(x => x._1 -> x._2),
-        disabled = disabledAfterStart
+        lila.xiangqi.GameVariant.values.toList.map(v => v.key -> lila.core.i18n.I18nKey(v.nameKey).txt()),
+        disabled = gameSettingsLocked
       )
+    )(
+      attr("data-position-variants") := lila.xiangqi.GameVariant.values
+        .filter(_.supportsCustomPosition)
+        .map(_.key)
+        .mkString(" "),
+      attr("data-ruleset-variants") := lila.xiangqi.GameVariant.values
+        .filter(_.selectableRulesets.nonEmpty)
+        .map(_.key)
+        .mkString(" ")
     )
+  def ruleset =
+    form3.group(form.prefix("ruleset"), trans.site.xiangqiRules(), klass = "ruleset"):
+      form3.select(
+        _,
+        List(
+          lila.xiangqi.adjudication.Ruleset.Tiantian.key -> trans.site.xiangqiRulesTiantian.txt(),
+          lila.xiangqi.adjudication.Ruleset.Unrestricted.key -> trans.site.xiangqiRulesUnrestricted.txt()
+        ),
+        disabled = gameSettingsLocked
+      )
   def startPosition =
     form3.group(
       form.prefix("position"),
@@ -379,14 +397,14 @@ final class TourFields(tourForm: TournamentForm)(form: Form[?], tour: Option[Tou
         .some
     ):
       form3.input(_):
-        tour.exists(t => !t.isCreated && t.position.isEmpty).option(disabled := true)
+        gameSettingsLocked.option(readonly := true)
   def clock =
     form3.split(
       form3.group(form.prefix("clockTime"), trans.site.clockInitialTime(), half = true):
-        form3.select(_, GatheringClock.timeChoices, disabled = disabledAfterStart)
+        form3.select(_, GatheringClock.timeChoices, disabled = gameSettingsLocked)
       ,
       form3.group(form.prefix("clockIncrement"), trans.site.clockIncrement(), half = true):
-        form3.select(_, GatheringClock.incrementChoices, disabled = disabledAfterStart)
+        form3.select(_, GatheringClock.incrementChoices, disabled = gameSettingsLocked)
     )
   def minutes =
     form3.group(form.prefix("minutes"), trans.site.duration(), half = true):

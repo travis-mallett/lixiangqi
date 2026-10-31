@@ -46,11 +46,31 @@ export default function (ctrl: TournamentController): VNode {
         numberRow(i18n.site.gamesPlayed, nb.game),
         nb.game > 0 && [
           numberRow(i18n.site.winRate, [nb.win, nb.game], 'percent'),
-          numberRow(i18n.arena.berserkRate, [nb.berserk, nb.game], 'percent'),
+          ctrl.data.berserkable && numberRow(i18n.arena.berserkRate, [nb.berserk, nb.game], 'percent'),
         ],
       ]),
     ]),
     hl('div', [
+      data.kingdomsPairings &&
+        hl(
+          'table.pairings.sublist',
+          data.kingdomsPairings.map(game =>
+            hl('tr', { key: game.id }, [
+              hl(
+                'td',
+                hl(
+                  'a',
+                  { attrs: { href: `/three-kingdoms/game/${game.id}` } },
+                  game.players
+                    .filter(p => p.id !== data.player.id)
+                    .map(p => p.name)
+                    .join(' · '),
+                ),
+              ),
+              hl('td.result', game.finished ? String(game.score ?? '—') : '*'),
+            ]),
+          ),
+        ),
       hl(
         'table.pairings.sublist',
         {

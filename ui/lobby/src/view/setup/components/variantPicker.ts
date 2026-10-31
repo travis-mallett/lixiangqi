@@ -1,98 +1,25 @@
 import { option } from 'lib/setup/option';
-import { dataIcon, enter, hl } from 'lib/view';
+import { hl } from 'lib/view';
 
-import { variants, variantsForGameType } from '@/options';
+import type { SetupVariant } from '@/interfaces';
 import type SetupController from '@/setupCtrl';
 
-const variantIcon = ({ key, icon }: (typeof variants)[number]) =>
-  hl(`span.variant-icon.variant-icon--${key}`, key === 'standard' ? {} : { attrs: dataIcon(icon) });
+import { variants } from '../../../options';
 
-export const variantPicker = (setupCtrl: SetupController) => {
-  if (site.blindMode) {
-    return hl('div.variant.label-select', [
-      hl('label', { attrs: { for: 'sf_variant' } }, i18n.site.variant),
-      hl(
-        'select#sf_variant',
-        {
-          on: {
-            change: (e: Event) => setupCtrl.variant((e.target as HTMLSelectElement).value as VariantKey),
-          },
-        },
-        variantsForGameType(variants, setupCtrl.gameType!).map(variant =>
-          option(variant, setupCtrl.variant()),
-        ),
-      ),
-    ]);
-  }
-
-  const currentVariant = variants.find(v => v.key === setupCtrl.variant()) || variants[0];
-  const isOpen = setupCtrl.variantMenuOpen();
-  const inputId = 'mselect-variant';
-
-  const toggleVariant = () => setupCtrl.toggleVariantMenu();
-  const updateCheckboxAndToggle = () => {
-    const checkbox = document.querySelector<HTMLInputElement>(`#${inputId}`);
-    if (checkbox) checkbox.checked = false;
-    toggleVariant();
-  };
-
-  const children = [
-    hl('input.mselect__toggle', {
-      attrs: { type: 'checkbox', id: inputId },
-      on: { change: toggleVariant },
-    }),
+export const variantPicker = (setupCtrl: SetupController) =>
+  hl('div.variant.label-select', [
+    hl('label', { attrs: { for: 'sf_variant' } }, i18n.site.variant),
     hl(
-      'label.mselect__label',
+      'select#sf_variant',
       {
-        attrs: { for: inputId },
+        on: {
+          change: (event: Event) =>
+            setupCtrl.variant((event.target as HTMLSelectElement).value as SetupVariant),
+        },
       },
-      [
-        variantIcon(currentVariant),
-        hl('div.text', [hl('span.name', currentVariant.name), hl('span.desc', currentVariant.description)]),
-      ],
+      variants
+        .filter(variant => setupCtrl.gameType !== 'hook' || variant.key !== 'threeKingdoms')
+        .filter(variant => variant.key !== 'fromPosition' || setupCtrl.variant() === 'fromPosition')
+        .map(variant => option(variant, setupCtrl.variant())),
     ),
-  ];
-
-  if (isOpen) {
-    children.push(hl('label.fullscreen-mask', { on: { click: updateCheckboxAndToggle } }));
-    children.push(
-      hl(
-        'div.mselect__list',
-        hl(
-          'table',
-          hl(
-            'tbody',
-            variantsForGameType(variants, setupCtrl.gameType!).map(v =>
-              hl(
-                'tr.mselect__item',
-                {
-                  class: { current: v.key === setupCtrl.variant() },
-                  attrs: { tabindex: '0' },
-                  on: {
-                    click: () => {
-                      setupCtrl.variant(v.key);
-                      updateCheckboxAndToggle();
-                    },
-                    keydown: enter(() => {
-                      setupCtrl.variant(v.key);
-                      updateCheckboxAndToggle();
-                    }),
-                  },
-                },
-                [hl('td.icon', variantIcon(v)), hl('td.name', v.name), hl('td.desc', v.description)],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  return hl(
-    'div.mselect',
-    {
-      class: { mselect__active: isOpen },
-    },
-    children,
-  );
-};
+  ]);

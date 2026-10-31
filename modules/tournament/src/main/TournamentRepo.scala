@@ -26,9 +26,12 @@ final class TournamentRepo(val coll: Coll, playerCollName: CollName)(using Execu
   private def variantSelect(variant: Variant) =
     if variant.standard then $doc("variant".$exists(false))
     else $doc("variant" -> variant.id)
-  // Keep variant-capable tournament storage and APIs intact while only Standard is released.
+  // Native variants share the Standard chess metadata; discover them from their registry.
   private val publicVariantSelect =
-    variantSelect(chess.variant.Standard) ++ $doc("fen".$exists(false))
+    variantSelect(chess.variant.Standard) ++ $or(
+      $doc("gameVariant".$exists(false)),
+      $doc("gameVariant".$in(lila.xiangqi.GameVariant.values.map(_.key).toList))
+    )
   private def nbPlayersSelect(nb: Int) = $doc("nbPlayers".$gte(nb))
   private val nonEmptySelect = nbPlayersSelect(1)
   private[tournament] val selectUnique = $doc("schedule.freq" -> "unique")
@@ -197,6 +200,9 @@ final class TournamentRepo(val coll: Coll, playerCollName: CollName)(using Execu
   def setStatus(tourId: TourId, status: Status) =
     coll.updateField($id(tourId), "status", status.id).void
 
+  def setScoreCutoff(tourId: TourId, at: Instant): Funit =
+    coll.updateField($id(tourId), "scoreCutoff", at).void
+
   def setNbPlayers(tourId: TourId, nb: Int) =
     coll.updateField($id(tourId), "nbPlayers", nb).void
 
@@ -332,6 +338,7 @@ final class TournamentRepo(val coll: Coll, playerCollName: CollName)(using Execu
           tour.conditions.list.isEmpty.option("conditions"),
           tour.position.isEmpty.option("fen"),
           tour.variant.standard.option("variant"),
+          (tour.gameVariant == lila.xiangqi.GameVariant.Xiangqi).option("gameVariant"),
           tour.payouts.isEmpty.option("payouts")
         ).flatten
       )

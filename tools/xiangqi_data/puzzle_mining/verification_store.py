@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 import hashlib
+import time
 import uuid
 
 from .database_write import begin_write
@@ -253,7 +254,7 @@ def claim_verification(
 
 
 def finish_verification(
-    connection, claim, config, engine, *, result=None, invalid=None, commit=True
+    connection, claim, config, engine, *, result=None, invalid=None, commit=True, timing=None
 ):
     """Incomplete attempts are retained but never replace completed authority."""
     if (result is None) == (invalid is None):
@@ -277,10 +278,13 @@ def finish_verification(
             **({"metrics": result.metrics} if result.metrics else {}),
         }
     )
+    lock_started = time.perf_counter()
     if commit:
         begin_write(connection, getattr(engine, "cancel_event", None))
     elif not connection.in_transaction:
         raise RuntimeError("Batch verification requires an enclosing transaction")
+    write_started = time.perf_counter()
+    lock_ms = (write_started - lock_started) * 1000 if commit else 0.0
     try:
         guard = connection.execute(
             "SELECT 1 FROM verification_jobs WHERE id=? AND status='processing' AND claim_token=?",
@@ -354,6 +358,15 @@ def finish_verification(
         if commit:
             connection.rollback()
         raise
+    finally:
+        # Emit after commit/rollback so log I/O never extends our writer lock.
+        write_ms = (time.perf_counter() - write_started) * 1000
+        if timing and commit:
+            timing("verification.lock_wait", {"elapsed_ms": round(lock_ms, 3)})
+            timing(
+                "verification.write",
+                {"elapsed_ms": round(write_ms, 3), "commit": commit},
+            )
 
 
 def fail_verification(

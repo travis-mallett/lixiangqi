@@ -1,0 +1,12 @@
+@mixin variant-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 1.4em;
+  height: 1.4em;
+  border: 0.08em solid currentcolor;
+  border-radius: 50%;
+  font-family: serif;
+  line-height: 1;
+}

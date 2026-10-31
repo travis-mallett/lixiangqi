@@ -34,7 +34,7 @@ final class SecurityApi(
 )(using ec: Executor, mode: play.api.Mode):
 
   private val usernameOrEmailMapping =
-    lila.common.Form.cleanText(minLength = 2, maxLength = EmailAddress.maxLength).into[UserStrOrEmail]
+    lila.common.Form.trim(text(minLength = 2, maxLength = EmailAddress.maxLength)).into[UserStrOrEmail]
   private val loginPasswordMapping = nonEmptyText.transform(ClearPassword(_), _.value)
 
   def loginForm = Form:
@@ -84,6 +84,14 @@ final class SecurityApi(
         else
           pwned.yes.so:
             p.name.exists(proxy2faSetting.get().value.has(_)).option(p)
+
+  def checkExternalLogin(user: User, token: Option[String])(using
+      req: RequestHeader
+  ): Fu[LoginCandidate.Result] =
+    must2fa(req, IsPwned.No).map: required =>
+      LoginCandidate(user, _ => true, isBlanked = false, must2fa = required.isDefined)(
+        PasswordAndToken(ClearPassword(""), token.map(lila.user.TotpToken.apply))
+      )
 
   def loadLoginForm(str: UserStrOrEmail, pwned: IsPwned)(using
       req: RequestHeader

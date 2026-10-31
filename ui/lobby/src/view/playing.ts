@@ -1,5 +1,6 @@
 import { aiLevelName } from 'lib/game';
 import { timeago } from 'lib/i18n';
+import { pubsub } from 'lib/pubsub';
 import { hl, onInsert, initMiniBoard } from 'lib/view';
 
 import type LobbyController from '@/ctrl';
@@ -15,26 +16,52 @@ function timer(pov: NowPlaying) {
 }
 
 export default function (ctrl: LobbyController) {
-  return hl(
-    'div.now-playing',
-    ctrl.data.nowPlaying.map(pov =>
-      hl('a.' + pov.variant.key, { key: `${pov.gameId}${pov.lastMove}`, attrs: { href: '/' + pov.fullId } }, [
-        hl('span.mini-board.cg-wrap.is2d.xiangqi9x10', {
-          attrs: { 'data-state': `${pov.fen},${pov.orientation || pov.color},${pov.lastMove}` },
-          hook: onInsert(initMiniBoard),
-        }),
-        hl('span.meta', [
-          pov.opponent.ai ? aiLevelName(pov.opponent.ai) : pov.opponent.username,
-          hl(
-            'span.indicator',
-            pov.isMyTurn
-              ? !!pov.secondsLeft && pov.hasMoved
-                ? timer(pov)
-                : [i18n.site.yourTurn]
-              : hl('span', '\xa0'),
-          ),
-        ]),
-      ]),
+  return hl('div.now-playing', [
+    ...ctrl.data.nowPlaying
+      .filter(pov => ctrl.lobbyVariant !== 'jieqi' || pov.variant.key === 'jieqi')
+      .map(pov =>
+        hl(
+          'a.' + pov.variant.key,
+          { key: `${pov.gameId}${pov.lastMove}`, attrs: { href: '/' + pov.fullId } },
+          [
+            hl('span.mini-board.cg-wrap.is2d.xiangqi9x10', {
+              attrs: { 'data-state': `${pov.fen},${pov.orientation || pov.color},${pov.lastMove}` },
+              hook: onInsert(initMiniBoard),
+            }),
+            hl('span.meta', [
+              pov.opponent.ai ? aiLevelName(pov.opponent.ai) : pov.opponent.username,
+              hl(
+                'span.indicator',
+                pov.isMyTurn
+                  ? !!pov.secondsLeft && pov.hasMoved
+                    ? timer(pov)
+                    : [i18n.site.yourTurn]
+                  : hl('span', '\xa0'),
+              ),
+            ]),
+          ],
+        ),
+      ),
+    ...(ctrl.data.kingdomsPlaying ?? []).map(game =>
+      hl(
+        'a.threeKingdoms',
+        {
+          key: `${game.gameId}:${game.position}`,
+          attrs: { href: `/three-kingdoms/game/${game.gameId}` },
+        },
+        [
+          hl('span.mini-board', {
+            attrs: { 'data-three-kingdoms-position': game.position },
+            hook: onInsert(() => {
+              void site.asset.loadEsm('threeKingdoms.mini').then(() => pubsub.emit('content-loaded'));
+            }),
+          }),
+          hl('span.meta', [
+            game.players.join(' · '),
+            hl('span.indicator', game.isMyTurn ? i18n.site.yourTurn : i18n.site.threeKingdoms),
+          ]),
+        ],
+      ),
     ),
-  );
+  ]);
 }

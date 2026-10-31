@@ -5,6 +5,9 @@ import type { TreeNode } from './types';
 export const plyPrefix = (node: TreeNode): string =>
   `${Math.floor((node.ply + 1) / 2)}${node.ply % 2 === 1 ? '. ' : '... '}`;
 
+const revealedNotation = (node: TreeNode): string =>
+  node.notation + (node.state.reveal ? '~' + node.state.reveal : '');
+
 export function renderNodesTxt(
   node: TreeNode,
   forcePly: boolean,
@@ -13,13 +16,13 @@ export function renderNodesTxt(
 ): string {
   const renderBranch = (child: TreeNode, force: boolean, main: boolean): string => {
     if (!child.notation) throw new Error('Move is missing its native notation');
-    return `${force || child.ply % 2 ? plyPrefix(child) : ''}${child.notation}${annotations ? nodeAnnotations(child) : ''}${child.children.length ? ' ' + renderNodesTxt(child, false, annotations, main) : ''}${child.result ? ' ' + child.result : ''}`;
+    return `${force || child.ply % 2 ? plyPrefix(child) : ''}${revealedNotation(child)}${annotations ? nodeAnnotations(child) : ''}${child.children.length ? ' ' + renderNodesTxt(child, false, annotations, main) : ''}${child.result ? ' ' + child.result : ''}`;
   };
   const [first, ...variations] = mainline ? mainlineFirst(node.children) : node.children;
   if (!first) return '';
   if (mainline && first.forceVariation)
     return node.children.map(child => `(${renderBranch(child, true, false)})`).join(' ');
-  const prefix = `${forcePly || first.ply % 2 ? plyPrefix(first) : ''}${first.notation}${annotations ? nodeAnnotations(first) : ''}`;
+  const prefix = `${forcePly || first.ply % 2 ? plyPrefix(first) : ''}${revealedNotation(first)}${annotations ? nodeAnnotations(first) : ''}`;
   const branches = variations.map(child => `(${renderBranch(child, true, false)})`);
   const continuation = renderNodesTxt(first, variations.length > 0, annotations, mainline);
   return [prefix, ...branches, continuation, first.result ?? ''].filter(Boolean).join(' ');
@@ -27,16 +30,47 @@ export function renderNodesTxt(
 
 export function renderTreeNotation(root: TreeNode): string {
   if (!root.ruleset) throw new Error('Tree is missing its native ruleset');
-  const tags = { ...root.metadata, Variant: 'Xiangqi', FEN: root.fen, SetUp: '1', Ruleset: root.ruleset };
+  // The import boundary normalizes tag names to lowercase. Normalize saved
+  // metadata too before adding authoritative fields, so each tag appears once.
+  const tags: Record<string, string> = {
+    ...Object.fromEntries(
+      Object.entries(root.metadata ?? {}).map(([key, value]) => [key.toLowerCase(), value]),
+    ),
+    variant:
+      root.state.variant === 'jieqi'
+        ? 'Jieqi'
+        : root.state.variant === 'minixiangqi'
+          ? 'Mini Xiangqi'
+          : 'Xiangqi',
+    fen: root.fen,
+    setup: '1',
+    ruleset: root.ruleset,
+  };
+  const headerNames: Record<string, string> = {
+    red: 'Red',
+    black: 'Black',
+    white: 'White',
+    result: 'Result',
+    variant: 'Variant',
+    fen: 'FEN',
+    setup: 'SetUp',
+    ruleset: 'Ruleset',
+    event: 'Event',
+    site: 'Site',
+    date: 'Date',
+    round: 'Round',
+    annotator: 'Annotator',
+    gameid: 'GameId',
+  };
   const escape = (value: string): string =>
     value.replaceAll('\\', '\\\\').replaceAll('"', '\\"').replaceAll('\n', ' ');
   const headers = Object.entries(tags)
-    .map(([key, value]) => `[${key} "${escape(value)}"]`)
+    .map(([key, value]) => `[${headerNames[key] ?? key} "${escape(value)}"]`)
     .join('\n');
   const moves = renderNodesTxt(root, true, true);
   let last = root;
   while (mainlineChild(last)) last = mainlineChild(last)!;
-  const result = last.result ? '' : (root.metadata?.Result ?? last.state.gameResult);
+  const result = last.result ? '' : (tags.result ?? last.state.gameResult);
   return `${headers}\n\n${nodeAnnotations(root)}${moves}${result ? ' ' + result : ''}`.trim();
 }
 

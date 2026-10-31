@@ -23,6 +23,9 @@ def toJson(p: Pref, lichobileCompat: Boolean) = Json.obj(
   "replay" -> p.replay,
   "challenge" -> p.challenge,
   "message" -> p.message,
+  "studyInvite" -> p.studyInvite,
+  "resizeHandle" -> p.resizeHandle,
+  "usingAltSocket" -> p.isUsingAltSocket,
   "submitMove" -> {
     if lichobileCompat then Pref.SubmitMove.lichobile.serverToApp(p.submitMove)
     else p.submitMove

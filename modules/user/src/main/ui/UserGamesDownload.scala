@@ -11,6 +11,7 @@ final class UserGamesDownload(helpers: Helpers):
   def apply(user: User)(using ctx: Context) =
     Page(s"${user.username} • ${trans.site.exportGames.txt()}")
       .css("bits.search")
+      .i18n(_.search)
       .js(Esm("user.gamesDownload")):
         main(cls := "box page-small search")(
           boxTop(h1(userLink(user), s" • ${trans.site.exportGames.txt()}")),
@@ -18,6 +19,15 @@ final class UserGamesDownload(helpers: Helpers):
             id := "dl-form",
             cls := "box__pad search__form"
           )(
+            p(id := "dl-error", cls := "error", role := "alert"),
+            p(
+              a(href := s"/api/three-kingdoms/user/${user.id.value}/export")(
+                trans.site.threeKingdoms(),
+                " · ",
+                trans.site.download(),
+                " (JSON)"
+              )
+            ),
             table(
               color,
               date,
@@ -39,11 +49,11 @@ final class UserGamesDownload(helpers: Helpers):
               ,
               tr(
                 td(cls := "action", colspan := "2")(
-                  a(
+                  button(
                     id := "dl-button",
                     cls := "button",
-                    href := routes.Game.exportByUser(user.username),
-                    downloadAttr
+                    tpe := "submit",
+                    attr("data-download-path") := routes.Game.exportByUser(user.username)
                   )(trans.site.download())
                 )
               )
@@ -69,7 +79,7 @@ final class UserGamesDownload(helpers: Helpers):
         form3.selectLowLevel(
           name,
           options.map((value, t) => value -> t.txt()),
-          default = "".some
+          default = trans.search.all.txt().some
         )(id := s"dl-$name")
     )
 

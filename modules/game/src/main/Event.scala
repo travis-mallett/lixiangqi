@@ -45,7 +45,22 @@ object Event:
         .add("winner" -> state.winner)
         .add("wDraw" -> state.whiteOffersDraw)
         .add("bDraw" -> state.blackOffersDraw)
+        .add("captures" -> Option.when(result.variant == "jieqi") {
+          import lila.xiangqi.XiangqiJson.given
+          Json.toJson(result.captures)
+        })
     override def moveBy = Some(!state.turns.turn)
+
+  case class PrivateCaptures(game: Game, color: Color) extends Event:
+    def typ = "captures"
+    // `only` already excludes spectators. `owner` means BOTH players in the shared wire protocol.
+    override def only = Some(color)
+    def data =
+      import lila.xiangqi.XiangqiJson.given
+      Json.toJson(
+        lila.xiangqi.Jieqi
+          .captures(game.xiangqi, Some(if color.white then Xiangqi.Side.Red else Xiangqi.Side.Black))
+      )
 
   object PossibleMoves:
     def json(moves: Vector[Xiangqi.Uci]): JsValue =

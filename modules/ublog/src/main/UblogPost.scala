@@ -27,7 +27,8 @@ case class UblogPost(
     likes: UblogPost.Likes,
     views: UblogPost.Views,
     similar: Option[List[UblogSimilar]],
-    automod: Option[UblogAutomod.Assessment]
+    automod: Option[UblogAutomod.Assessment],
+    official: Option[Boolean] = None
 ) extends UblogPost.BasePost
     with lila.core.ublog.UblogPost:
 
@@ -35,12 +36,13 @@ case class UblogPost(
   def isUserBlog[U: UserIdOf](u: U) = blog == UblogBlog.Id.User(u.id)
 
   def indexable = live && (
-    topics.exists(UblogTopic.chessExists) || featured.isDefined || isBy(UserId.lichess)
+    topics.exists(UblogTopic.xiangqiExists) || featured.isDefined || isOfficial
   )
-  def visibleByCrawlers = indexable && automod.exists(_.quality != Quality.spam)
+  def visibleByCrawlers = indexable && (isOfficial || automod.exists(_.quality != Quality.spam))
   def allText = s"$title $intro $markdown"
 
-  def allows = UblogBlog.Allows(created.by)
+  def allows = UblogBlog.Allows(created.by, isOfficial)
+  def canSetOfficial(using me: Me) = isBy(me) && lila.core.perm.Granter(_.PublishOfficialBlog)
   def canView(using Option[Me]) = live || allows.draft
 
 case class UblogImage(id: ImageId, alt: Option[String] = None, credit: Option[String] = None)
@@ -71,7 +73,8 @@ object UblogPost:
     val featured: Option[Featured]
     val sticky: Option[Boolean]
     def slug = UblogPost.slug(title)
-    def isLichess = created.by.is(UserId.lichess)
+    val official: Option[Boolean]
+    def isOfficial = official.contains(true)
 
   case class PreviewPost(
       @Key("_id") id: UblogPostId,
@@ -84,7 +87,8 @@ object UblogPost:
       lived: Option[Recorded],
       featured: Option[Featured],
       sticky: Option[Boolean],
-      topics: List[UblogTopic]
+      topics: List[UblogTopic],
+      official: Option[Boolean] = None
   ) extends BasePost
 
   case class Featured(by: UserId, at: Option[Instant], until: Option[Instant] = none)

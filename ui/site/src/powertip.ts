@@ -178,9 +178,6 @@ $.fn.powerTip = function (opts) {
   const options = Object.assign({}, defaults, opts) as Options,
     tipController = new TooltipController(options);
 
-  // hook mouse and viewport dimension tracking, causes layout reflow
-  requestIdleCallbackSafe(() => initTracking());
-
   // setup the elements
   this.each((_, el: WithTooltip) => {
     const $this = $(el);
@@ -543,6 +540,13 @@ class TooltipController {
   }
 
   hideTip(element: Cash) {
+    const owner = $as<WithTooltip>(element);
+    owner.displayController.cancel();
+    owner.hasActiveHover = false;
+    owner.forcedOpen = false;
+    // A delayed close from the previous trigger must not hide a newly opened shared tooltip.
+    if (this.scoped.activeHover?.[0] !== owner) return;
+
     // reset session
     this.scoped.isClosing = true;
     this.scoped.activeHover = null;
@@ -550,10 +554,6 @@ class TooltipController {
 
     // stop desync polling
     this.scoped.desyncTimeout = clearInterval(this.scoped.desyncTimeout);
-
-    // reset element state
-    $as<WithTooltip>(element).hasActiveHover = false;
-    $as<WithTooltip>(element).forcedOpen = false;
 
     // fade out
     this.tipElement.css('visibility', 'hidden');
@@ -571,6 +571,8 @@ class TooltipController {
   isBasePlacement = (p: string): p is PowerTip.BasePlacement => p in smartPlacementLists;
 
   resetPosition(element: Cash) {
+    // Focus can open a tooltip before an idle callback has measured the viewport.
+    initTracking();
     const { placement, defaultSize } = this.options;
 
     if (this.options.smartPlacement && placement && this.isBasePlacement(placement)) {
@@ -588,7 +590,10 @@ class TooltipController {
         const coords = this.placeTooltip(element, pos);
         const collisions = getViewportCollisions(coords, elementWidth, elementHeight);
         // only attempt to nudge when the issue is horizontal overflow
-        if (collisions & (Collision.left | Collision.right)) {
+        if (
+          !(collisions & (Collision.top | Collision.bottom)) &&
+          collisions & (Collision.left | Collision.right)
+        ) {
           const nudged = nudgeToFit(coords, collisions, elementWidth);
           if (nudged) {
             this.tipElement.css(nudged);
@@ -598,6 +603,14 @@ class TooltipController {
         // continue/break if there were/weren't collisions (cash loop mechanism):
         return collisions !== Collision.none;
       });
+      // A large panel may not fit on any side of its trigger. Keep its content reachable.
+      const tip = this.tipElement[0]!.getBoundingClientRect();
+      if (tip.top < 4 || tip.bottom > session.windowHeight - 4) {
+        this.tipElement.css({
+          top: session.scrollTop + Math.max(4, Math.min(tip.top, session.windowHeight - tip.height - 4)),
+          bottom: 'auto',
+        });
+      }
     } else {
       // if placement is not a base placement (or smartPlacement is off), use regular (non-smart) logic
       this.placeTooltip(element, placement!);
@@ -750,16 +763,19 @@ function nudgeToFit(coords: Coords, collisions: number, tipWidth: number): Coord
   const nudged: Coords = { ...coords };
   const EDGE_OFFSET = 4;
 
-  if (hasHoriz && typeof coords.left === 'number') {
+  const left =
+    typeof coords.left === 'number' ? coords.left : session.windowWidth - Number(coords.right) - tipWidth;
+  if (hasHoriz && Number.isFinite(left)) {
     const vLeft = session.scrollLeft;
     const vRight = session.scrollLeft + session.windowWidth;
     if (collisions & Collision.left) {
-      if (vLeft - coords.left > tipWidth / 2) return null;
-      nudged.left = vLeft - EDGE_OFFSET; // shift right
+      if (vLeft - left > tipWidth / 2) return null;
+      nudged.left = vLeft + EDGE_OFFSET; // shift right
     } else {
-      if (coords.left + tipWidth - vRight > tipWidth / 2) return null;
+      if (left + tipWidth - vRight > tipWidth / 2) return null;
       nudged.left = vRight - tipWidth - EDGE_OFFSET; // shift left
     }
+    nudged.right = 'auto';
   }
 
   return nudged;
@@ -771,22 +787,22 @@ function getViewportCollisions(coords: Coords, elementWidth: number, elementHeig
     viewportBottom = viewportTop + session.windowHeight,
     viewportRight = viewportLeft + session.windowWidth;
   let collisions = Collision.none;
-  if (
-    coords.top < viewportTop ||
-    Math.abs(Number(coords.bottom) - session.windowHeight) - elementHeight < viewportTop
-  ) {
+  const top =
+    typeof coords.top === 'number'
+      ? coords.top
+      : session.windowHeight - Number(coords.bottom) - elementHeight;
+  const left =
+    typeof coords.left === 'number' ? coords.left : session.windowWidth - Number(coords.right) - elementWidth;
+  if (top < viewportTop) {
     collisions |= Collision.top;
   }
-  if (
-    Number(coords.top) + elementHeight > viewportBottom ||
-    Math.abs(Number(coords.bottom) - session.windowHeight) > viewportBottom
-  ) {
+  if (top + elementHeight > viewportBottom) {
     collisions |= Collision.bottom;
   }
-  if (coords.left < viewportLeft || Number(coords.right) + elementWidth > viewportRight) {
+  if (left < viewportLeft) {
     collisions |= Collision.left;
   }
-  if (Number(coords.left) + elementWidth > viewportRight || coords.right < viewportLeft) {
+  if (left + elementWidth > viewportRight) {
     collisions |= Collision.right;
   }
   return collisions;

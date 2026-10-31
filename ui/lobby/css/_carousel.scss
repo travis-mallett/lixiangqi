@@ -1,0 +1,44 @@
+.lobby__blog {
+  min-width: 0;
+
+  .carousel__track {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 80%;
+    gap: 12px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    direction: ltr;
+    padding-block: 12px;
+
+    @media (min-width: 500px) {
+      grid-auto-columns: calc((100% - 12px) / 2);
+    }
+  }
+
+  .ublog-post-card {
+    min-width: 0;
+    scroll-snap-align: start;
+  }
+
+  .carousel__controls {
+    display: flex;
+    justify-content: end;
+    gap: 8px;
+    direction: ltr;
+
+    button {
+      padding: 8px 16px;
+      border: $border;
+      border-radius: $box-radius-size;
+      background: $c-bg-box;
+      color: $c-link;
+
+      &:disabled {
+        color: $c-font-dim;
+        opacity: 0.5;
+        cursor: default;
+      }
+    }
+  }
+}

@@ -23,7 +23,7 @@ final class Account(
 
   private given (using Context): Option[ValidReferrer] = env.web.referrerRedirect.fromReq
 
-  def profile = Auth { _ ?=> me ?=>
+  def profile = AuthOrScoped(_.Preference.Write) { _ ?=> me ?=>
     Ok.page:
       pages.profile(me, env.user.forms.profileOf(me))
   }
@@ -33,7 +33,7 @@ final class Account(
       pages.username(me, env.user.forms.usernameOf(me))
   }
 
-  def profileApply = AuthOrScopedBody(_.Web.Mobile) { _ ?=> me ?=>
+  def profileApply = AuthOrScopedBody(_.Web.Mobile, _.Preference.Write) { _ ?=> me ?=>
     bindForm(env.user.forms.profile)(
       err =>
         negotiate(
@@ -54,7 +54,8 @@ final class Account(
           _ <- bindForm(flairForm)(_ => funit, env.user.repo.setFlair(me, _))
         yield
           env.user.lightUserApi.invalidate(me)
-          Redirect(routes.User.show(me.username)).flashSuccess
+          if ctx.isOAuth then Ok(Json.obj("ok" -> true))
+          else Redirect(routes.User.show(me.username)).flashSuccess
     )
   }
 
@@ -121,12 +122,17 @@ final class Account(
   private def doNowPlaying(using ctx: Context)(using me: Me) =
     for
       all <- env.round.proxyRepo.urgentGames(me)
+      kingdoms <- env.threeKingdoms.repo.activeFor(me.userId)
       selected = all.value.take((getInt("nb") | 9).atMost(50))
       povs = selected.map(env.api.lobbyApi.nowPlaying)
     yield Ok:
       Json.obj(
         "nowPlaying" -> JsArray(povs),
-        "nbMyTurn" -> all.value.count(_.isMyTurn)
+        "kingdomsPlaying" -> kingdoms.map(env.threeKingdoms.json.preview(_, me.userId)),
+        "nbNowPlaying" -> (all.value.size + kingdoms.size),
+        "nbMyTurn" -> (all.value.count(_.isMyTurn) + kingdoms.count(g =>
+          g.playerOf(me.userId).contains(g.position.turn)
+        ))
       )
 
   def dasher = Auth { _ ?=> me ?=>
@@ -141,22 +147,34 @@ final class Account(
             )
   }
 
-  def passwd = Auth { _ ?=> me ?=>
-    env.security.forms.passwdChange.flatMap: form =>
-      Ok.page(pages.password(form))
+  def passwd = Auth { ctx ?=> me ?=>
+    if !env.security.externalLogin.confirmed(me.userId) then
+      Redirect(routes.ExternalAuth.reauthenticate(Some(routes.Account.passwd.url))).toFuccess
+    else
+      env.security.externalIdentities
+        .hasPassword(me.userId)
+        .flatMap: hasPassword =>
+          Ok.page(pages.password(env.security.forms.passwdResetForMe, hasPassword))
   }
 
   def passwdApply = AuthBody { ctx ?=> me ?=>
-    auth.HasherRateLimit:
-      env.security.forms.passwdChange.flatMap: form =>
-        FormFuResult(form)(err => renderPage(pages.password(err))): data =>
-          val newPass = ClearPassword(data.newPasswd1)
-          for
-            _ <- env.security.authenticator.setPassword(me, newPass)
-            _ <- env.mod.logApi.setPassword
-            pwned <- env.security.pwned.isPwned(newPass)
-            res <- refreshSessionId(Redirect(routes.Account.passwd).flashSuccess, pwned)
-          yield res
+    if !env.security.externalLogin.confirmed(me.userId) then
+      Redirect(routes.ExternalAuth.reauthenticate(Some(routes.Account.passwd.url))).toFuccess
+    else
+      auth.HasherRateLimit:
+        env.security.externalIdentities
+          .hasPassword(me.userId)
+          .flatMap: hasPassword =>
+            FormFuResult(env.security.forms.passwdResetForMe)(err =>
+              renderPage(pages.password(err, hasPassword))
+            ): data =>
+              val newPass = ClearPassword(data.newPasswd1)
+              for
+                _ <- env.security.authenticator.setPassword(me, newPass)
+                _ <- env.mod.logApi.setPassword
+                pwned <- env.security.pwned.isPwned(newPass)
+                res <- refreshSessionId(Redirect(routes.ExternalAuth.index).flashSuccess, pwned)
+              yield res
   }
 
   private def refreshSessionId(result: Result, pwned: IsPwned)(using ctx: Context, me: Me): Fu[Result] = for
@@ -166,7 +184,7 @@ final class Account(
     sessionId <- env.security.api.saveAuthentication(me, ctx.mobileApiVersion, pwned)
   yield result.withCookies(env.security.lilaCookie.session(env.security.api.sessionIdKey, sessionId.value))
 
-  private def emailForm(using me: Me) =
+  private def emailForm(using me: Me, ctx: Context) =
     env.user.repo.email(me).flatMap(env.security.forms.changeEmail)
 
   def email = Auth { _ ?=> me ?=>
@@ -337,6 +355,46 @@ final class Account(
     getBoolOptAs[KidMode]("v") match
       case None => BadRequest(jsonError("Missing v parameter"))
       case Some(v) => env.user.api.setKid(me, v).inject(jsonOkResult)
+  }
+
+  // Kids clients can enable protection, but cannot use this permission to disable it.
+  def apiKidEnable = Scoped(_.Kid.Enable) { _ ?=> me ?=>
+    env.user.api.setKid(me, KidMode.Yes).inject(JsonOk(Json.obj("kid" -> true)))
+  }
+
+  def apiKidsAvatar = Scoped(_.Kid.Enable) { _ ?=> me ?=>
+    if !me.kid.yes then fuccess(Forbidden(jsonError("kid_mode_required")))
+    else env.puzzle.kidsAvatar.get(me.userId).map(JsonOk(_))
+  }
+
+  def apiKidsAvatarEquip = ScopedBody(parse.json(maxLength = 4096))(Seq(_.Kid.Enable)) { ctx ?=> me ?=>
+    if !me.kid.yes then fuccess(Forbidden(jsonError("kid_mode_required")))
+    else
+      val body = ctx.body.body
+      ((body \ "revision").asOpt[Long], (body \ "appearance").asOpt[Map[String, String]]) match
+        case (Some(revision), Some(appearance)) =>
+          env.puzzle.kidsAvatar.equip(me.userId, revision, appearance).map {
+            case Right(state) => JsonOk(state)
+            case Left(error) => Conflict(jsonError(error))
+          }
+        case _ => fuccess(BadRequest(jsonError("invalid_request")))
+  }
+
+  def apiKidsAvatarPurchase = ScopedBody(parse.json(maxLength = 1024))(Seq(_.Kid.Enable)) { ctx ?=> me ?=>
+    if !me.kid.yes then fuccess(Forbidden(jsonError("kid_mode_required")))
+    else
+      val body = ctx.body.body
+      (
+        (body \ "itemId").asOpt[String],
+        (body \ "requestId").asOpt[String],
+        (body \ "catalogVersion").asOpt[Int]
+      ) match
+        case (Some(item), Some(request), Some(version)) =>
+          env.puzzle.kidsAvatar.purchase(me.userId, item, request, version).map {
+            case Right(state) => JsonOk(state)
+            case Left(error) => Conflict(jsonError(error))
+          }
+        case _ => fuccess(BadRequest(jsonError("invalid_request")))
   }
 
   def security = Auth { _ ?=> me ?=>

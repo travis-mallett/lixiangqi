@@ -15,7 +15,10 @@ case class GameMetadata(
     simulId: Option[SimulId],
     analysed: Boolean,
     drawOffers: GameDrawOffers,
-    rules: Set[GameRule]
+    rules: Set[GameRule],
+    kidsBotProfile: Option[String] = None,
+    kidsBotReceipt: Option[String] = None,
+    kidsBotAssisted: Boolean = false
 ):
   def pgnDate = pgnImport.flatMap(_.date)
   def pgnUser = pgnImport.flatMap(_.user)

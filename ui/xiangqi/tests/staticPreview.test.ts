@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { mock, test } from 'node:test';
 
-import { Chessground, Notation } from '../../board/tests/support/renderer.ts';
+import { Chessground, Notation, rectangularMotion } from '../../board/tests/support/renderer.ts';
 
 mock.module(new URL('../../lib/src/socket.ts', import.meta.url).href, {
   namedExports: { wsSend: () => {} },
@@ -20,6 +20,7 @@ test('static preview preserves pieces and shadows but cannot enable interaction 
     dimensions,
     notation: Notation.XIANGQI_HANNUM,
     layeredPieces: true,
+    pieceMotion: rectangularMotion,
     staticPreview: true,
     viewOnly: false,
     animation: { enabled: true, duration: 250 },

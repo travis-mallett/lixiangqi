@@ -17,7 +17,8 @@ case class FriendConfig(
     days: Days,
     color: TriColor,
     fen: Option[Fen.Full] = None,
-    override val ruleset: Option[String] = None
+    override val ruleset: Option[String] = None,
+    override val gameVariant: lila.xiangqi.GameVariant = lila.xiangqi.GameVariant.Xiangqi
 ) extends HumanConfig
     with Positional
     with WithColor:
@@ -26,7 +27,18 @@ case class FriendConfig(
   val rated = Rated.No
 
   def >> =
-    (variant.id, timeMode.id, time, increment, moveTimeLimit, days, color.name, fen, ruleset).some
+    (
+      variant.id,
+      timeMode.id,
+      time,
+      increment,
+      moveTimeLimit,
+      days,
+      color.name,
+      fen,
+      ruleset,
+      Some(gameVariant.key)
+    ).some
 
   def isPersistent = timeMode == TimeMode.Unlimited || timeMode == TimeMode.Correspondence
 
@@ -43,7 +55,8 @@ object FriendConfig extends BaseConfig:
       d: Days,
       c: String,
       fen: Option[Fen.Full],
-      ruleset: Option[String] = None
+      ruleset: Option[String] = None,
+      gameVariant: Option[String] = None
   ) =
     new FriendConfig(
       variant = chess.variant.Variant.orDefault(v),
@@ -54,7 +67,10 @@ object FriendConfig extends BaseConfig:
       days = d,
       color = TriColor(c).err("Invalid color " + c),
       fen = fen,
-      ruleset = ruleset
+      ruleset = ruleset,
+      gameVariant = gameVariant.fold(lila.xiangqi.GameVariant.Xiangqi)(
+        lila.xiangqi.GameVariant.fromKey(_).fold(sys.error, identity)
+      )
     )
 
   val default = FriendConfig(
@@ -82,7 +98,12 @@ object FriendConfig extends BaseConfig:
         days = r.get("d"),
         color = TriColor.White,
         fen = r.getO[Fen.Full]("f").filter(_.value.nonEmpty),
-        ruleset = r.strO("ruleset")
+        ruleset = r.strO("ruleset"),
+        gameVariant = r
+          .strO("gameVariant")
+          .fold(lila.xiangqi.GameVariant.Xiangqi)(
+            lila.xiangqi.GameVariant.fromKey(_).fold(sys.error, identity)
+          )
       )
 
     def writes(w: BSON.Writer, o: FriendConfig) =
@@ -94,5 +115,6 @@ object FriendConfig extends BaseConfig:
         "ml" -> o.moveTimeLimit,
         "d" -> o.days,
         "f" -> o.fen,
-        "ruleset" -> o.ruleset
+        "ruleset" -> o.ruleset,
+        "gameVariant" -> o.gameVariant.key
       )

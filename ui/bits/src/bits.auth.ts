@@ -12,7 +12,7 @@ export function initModule(mode: 'login' | 'signup' | 'reset'): void {
 const toggleSubmit = ($submit: Cash, v: boolean) => $submit.prop('disabled', !v);
 
 function loginStart() {
-  const selector = '.auth-login form';
+  const selector = '.auth-login form.form3';
 
   (function load() {
     const form = document.querySelector(selector) as HTMLFormElement,
@@ -70,7 +70,7 @@ function signupStart() {
 
   const usernameCheck = debounce(async () => {
     const name = $username.val() as string;
-    if (name.length < 3) return;
+    if ([...name].length < 2) return;
     const $group = $username.parents('.form-group');
     const res = await xhr.jsonAnyResponse(xhr.url('/api/player/autocomplete', { term: name, exists: 1 }));
     const body = await res.json();

@@ -5,7 +5,7 @@ import chess.variant.Variant
 import lila.core.LightUser.IsBotSync
 
 // most recent first
-case class Sheet(scores: List[Sheet.Score], total: Int, variant: Variant):
+case class Sheet(scores: List[Sheet.Score], total: Int, variant: Variant, gameIds: Set[GameId] = Set.empty):
   import Sheet.*
 
   def isOnFire: Boolean =
@@ -19,6 +19,8 @@ case class Sheet(scores: List[Sheet.Score], total: Int, variant: Variant):
       streakable: Streakable,
       isBotSync: IsBotSync
   ): Sheet =
+    // A cache load may already include this result while its finish event is being processed.
+    if gameIds.contains(p.gameId) then return this
     val berserk =
       if p.berserkOf(userId) then if p.notSoQuickFinish then Berserk.Valid else Berserk.Invalid
       else Berserk.No
@@ -47,13 +49,17 @@ case class Sheet(scores: List[Sheet.Score], total: Int, variant: Variant):
       .filter(_.flag == Flag.StreakStarter && !p.wonBy(userId))
       .fold(scores)(_.withFlag(Flag.Normal) :: scores.tail)
 
-    Sheet(score :: prevScores, score.value + total, variant)
+    Sheet(score :: prevScores, score.value + total, variant, gameIds + p.gameId)
 
   def scoresToString: String =
     val sb = new java.lang.StringBuilder(16)
     scores.foreach: score =>
       sb.append(score.value)
     sb.toString
+
+  def addPlacement(id: GameId, points: Int): Sheet =
+    if gameIds.contains(id) then this
+    else copy(scores = Score.placement(points) :: scores, total = total + points, gameIds = gameIds + id)
 
 object Sheet:
   def empty(variant: Variant) = Sheet(Nil, 0, variant)
@@ -107,6 +113,12 @@ object Sheet:
   object Score:
     def apply(v: Int): Score = v
     def apply(res: Result, flag: Flag, berserk: Berserk): Score = Score(flag | berserk | res)
+    // The upper bits distinguish placement points from two-player streak scoring.
+    def placement(points: Int): Score =
+      require(points >= 0 && points <= 4)
+      Score(0x400 | (points << 6) | (if points == 4 then Result.Win
+                                     else if points == 0 then Result.Loss
+                                     else Result.Draw) | Flag.Normal)
   extension (s: Score)
     // flag:    2 bits
     // berserk: 2 bits
@@ -125,16 +137,18 @@ object Sheet:
 
     def isDraw: Boolean = res == Result.Draw
 
-    def value: Int = ((res, flag) match
-      case (Result.Win, Flag.Double) => 4
-      case (Result.Win, _) => 2
-      case (Result.Draw, Flag.Double) => 2
-      case (Result.Draw, Flag.Null) => 0
-      case (Result.Draw, _) => 1
-      case _ => 0
-    ) + {
-      if res == Result.Win && berserk == Berserk.Valid then 1 else 0
-    }
+    def value: Int = if (s & 0x400) != 0 then (s >> 6) & 0x7
+    else
+      ((res, flag) match
+        case (Result.Win, Flag.Double) => 4
+        case (Result.Win, _) => 2
+        case (Result.Draw, Flag.Double) => 2
+        case (Result.Draw, Flag.Null) => 0
+        case (Result.Draw, _) => 1
+        case _ => 0
+      ) + {
+        if res == Result.Win && berserk == Berserk.Valid then 1 else 0
+      }
 
     def withFlag(newFlag: Flag): Score = Score(res, newFlag, berserk)
 

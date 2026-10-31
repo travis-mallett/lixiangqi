@@ -78,20 +78,6 @@ db.tournament2.createIndex(
 );
 db.relation.createIndex({ u1: 1 });
 db.relation.createIndex({ u2: 1 });
-db.directory_player.createIndex({ tokens: 1 });
-db.directory_player.createIndex({ fed: 1, standard: -1 });
-db.directory_player.createIndex({ fed: 1, rapid: -1 });
-db.directory_player.createIndex({ fed: 1, blitz: -1 });
-db.directory_player.createIndex({ standard: -1 });
-db.directory_player.createIndex({ rapid: -1 });
-db.directory_player.createIndex({ blitz: -1 });
-db.directory_player.createIndex({ name: 1 });
-db.directory_player.createIndex({ fed: 1 });
-db.directory_player.createIndex({ year: -1 });
-db.directory_player.createIndex(
-  { _fts: 'text', _ftsx: 1, standard: -1 },
-  { weights: { tokens: 1 }, default_language: 'english', language_override: 'language', textIndexVersion: 3 },
-);
 db.directory_player_follower.createIndex({ u: 1 });
 db.note.createIndex({ to: 1, date: -1 });
 db.note.createIndex({ from: 1 }, { partialFilterExpression: { mod: false } });
@@ -302,6 +288,17 @@ db.email_domains.createIndex({ nb: -1 });
 db.game5.createIndex({ ca: -1 });
 db.game5.createIndex({ us: 1, ca: -1 });
 db.game5.createIndex({ us: 1, rt: 1, ca: -1 }, { name: 'native_xiangqi_games_by_user' });
+db.game5.createIndex(
+  { us: 1, ca: -1 },
+  {
+    name: 'native_jieqi_games_by_user',
+    partialFilterExpression: { 'xg.states.0.variant': 'jieqi' },
+  },
+);
+db.user_perf.createIndex(
+  { 'ranks.jieqi.s': -1, 'ranks.jieqi.la': -1 },
+  { name: 'native_jieqi_leaderboard', partialFilterExpression: { 'ranks.jieqi.nb': { $gt: 0 } } },
+);
 db.game5.createIndex({ 'pgni.user': 1, 'pgni.ca': -1 }, { sparse: 1 });
 db.game5.createIndex({ ck: 1 }, { sparse: 1 });
 db.game5.createIndex({ pl: 1 }, { sparse: true });

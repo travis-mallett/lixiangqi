@@ -52,6 +52,23 @@ case class Pov(game: Game, color: Color):
   override def toString = ref.toString
 
 object Pov:
+  /** A full id is a player capability only for a guest human. Registered sides require their account. */
+  def forPlayer(
+      game: Game,
+      id: lila.core.id.GameAnyId,
+      userId: Option[lila.core.userId.UserId]
+  ): Option[Pov] =
+    Option
+      .when(id.gameId == game.id):
+        userId
+          .flatMap(Pov(game, _))
+          .orElse:
+            id.playerId
+              .flatMap(game.playerById)
+              .filter(player => !player.hasUser && !player.isAi)
+              .map(Pov(game, _))
+      .flatten
+
   def naturalOrientation(game: Game): Pov = Pov(game, game.naturalOrientation)
   def apply(game: Game, player: Player): Pov = Pov(game, player.color)
   def apply[U: UserIdOf](game: Game, user: U): Option[Pov] =

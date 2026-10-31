@@ -9,6 +9,7 @@ import lila.db.dsl.{ *, given }
 final class Env(
     db: lila.db.Db,
     gameRepo: lila.game.GameRepo,
+    kingdomsRepo: lila.threeKingdoms.GameRepo,
     puzzleColls: lila.puzzle.PuzzleColls,
     lightUserApi: lila.core.user.LightUserApi,
     settingStore: lila.memo.SettingStore.Builder

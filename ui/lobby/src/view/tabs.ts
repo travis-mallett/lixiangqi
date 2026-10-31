@@ -23,7 +23,7 @@ export default function (ctrl: LobbyController) {
     active = ctrl.tab,
     isBot = ctrl.me?.isBot;
   return [
-    isBot ? undefined : tab(ctrl, 'pools', active, [i18n.site.quickPairing]),
+    isBot || ctrl.lobbyVariant === 'jieqi' ? undefined : tab(ctrl, 'pools', active, [i18n.site.quickPairing]),
     isBot ? undefined : tab(ctrl, 'real_time', active, [i18n.site.lobby]),
     isBot ? undefined : tab(ctrl, 'seeks', active, [i18n.site.correspondence]),
     tab(ctrl, 'now_playing', active, [

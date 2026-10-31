@@ -63,6 +63,8 @@ class PublicationTests(Tests):
                 ("Buddh", "repatriationOfBuddha"),
                 ("Disrb", "generalDisrobingAttack"),
                 ("Asist", "assistingKingAttack"),
+                ("White", "whiteHorseMate"),
+                ("Drawr", "drawerMate"),
                 ("Child", "childWorshipsBuddha"),
                 ("Crown", "crowningMate"),
                 ("Chase", "eunuchChasingEmperorKill"),
@@ -73,7 +75,18 @@ class PublicationTests(Tests):
                 c.admit(p, {"status": "verified", "assessmentId": pid})
             release = c.build_release()
             self.assertTrue(
-                {"Asist", "Disrb", "Buddh", "Elixr", "Ghost", "Child", "Crown", "Chase"}
+                {
+                    "Drawr",
+                    "White",
+                    "Asist",
+                    "Disrb",
+                    "Buddh",
+                    "Elixr",
+                    "Ghost",
+                    "Child",
+                    "Crown",
+                    "Chase",
+                }
                 <= {p["_id"] for p in release["puzzles"]}
             )
             validate_release_categories(release["puzzles"])

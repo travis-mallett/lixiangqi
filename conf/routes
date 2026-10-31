@@ -6,6 +6,37 @@ GET   /lobby/seeks                     controllers.Lobby.seeks
 GET   /lobby/live-games/15             controllers.Lobby.liveGames15
 
 # 2-letter routes, then lang route
+GET   /three-kingdoms                    controllers.ThreeKingdoms.page(mode = "home")
+GET   /three-kingdoms/local              controllers.ThreeKingdoms.page(mode = "local")
+GET   /three-kingdoms/history            controllers.ThreeKingdoms.page(mode = "history")
+GET   /three-kingdoms/live               controllers.ThreeKingdoms.page(mode = "live")
+GET   /three-kingdoms/game/$id<\w{8}>    controllers.ThreeKingdoms.game(id: GameId)
+GET   /three-kingdoms/challenge/$id<\w{8}> controllers.ThreeKingdoms.challengePage(id: GameId)
+GET   /variant/threeKingdoms             controllers.Cms.threeKingdoms
+GET   /api/three-kingdoms/game/$id<\w{8}> controllers.ThreeKingdoms.state(id: GameId)
+GET   /api/three-kingdoms/game/$id<\w{8}>/stream controllers.ThreeKingdoms.stream(id: GameId)
+GET   /api/three-kingdoms/game/$id<\w{8}>/export controllers.ThreeKingdoms.record(id: GameId)
+POST  /api/three-kingdoms/game/$id<\w{8}> controllers.ThreeKingdoms.act(id: GameId)
+GET   /api/three-kingdoms/history         controllers.ThreeKingdoms.history(user: Option[String], before: Option[String])
+GET   /api/three-kingdoms/user/:user/export controllers.ThreeKingdoms.exportHistory(user: UserStr)
+GET   /api/three-kingdoms/game/$id<\w{8}>/bookmark controllers.ThreeKingdoms.bookmark(id: GameId)
+GET   /api/three-kingdoms/game/$id<\w{8}>/chat controllers.ThreeKingdoms.chat(id: GameId)
+POST  /api/three-kingdoms/game/$id<\w{8}>/chat controllers.ThreeKingdoms.chatWrite(id: GameId)
+POST  /api/three-kingdoms/game/$id<\w{8}>/bookmark controllers.ThreeKingdoms.setBookmark(id: GameId)
+GET   /api/three-kingdoms/live            controllers.ThreeKingdoms.live
+GET   /api/three-kingdoms/tv              controllers.ThreeKingdoms.tv
+GET   /api/three-kingdoms/tv/stream       controllers.ThreeKingdoms.tvStream
+GET   /api/three-kingdoms/ongoing         controllers.ThreeKingdoms.ongoing
+POST  /api/three-kingdoms/computer        controllers.ThreeKingdoms.computer
+POST  /api/three-kingdoms/complete-local  controllers.ThreeKingdoms.completeLocal
+POST  /api/three-kingdoms/challenge       controllers.ThreeKingdoms.createChallenge
+GET   /api/three-kingdoms/challenge       controllers.ThreeKingdoms.challenges
+GET   /api/three-kingdoms/challenge/$id<\w{8}> controllers.ThreeKingdoms.challengeState(id: GameId)
+POST  /api/three-kingdoms/challenge/$id<\w{8}>/accept controllers.ThreeKingdoms.answer(id: GameId, accept: Boolean = true)
+POST  /api/three-kingdoms/challenge/$id<\w{8}>/decline controllers.ThreeKingdoms.answer(id: GameId, accept: Boolean = false)
+POST  /api/three-kingdoms/pool             controllers.ThreeKingdoms.poolJoin
+DELETE /api/three-kingdoms/pool           controllers.ThreeKingdoms.poolLeave
+
 GET   /tv                              controllers.Tv.index
 GET   /$lang<\w\w>                     controllers.Lobby.homeLang(lang: Language)
 
@@ -112,12 +143,15 @@ GET   /dasher                          controllers.Dasher.get
 
 
 # Blog/Ublog
-GET   /blog                            controllers.Main.movedPermanently(to = "/page/lixiangqi-blog")
+GET   /blog                            controllers.Main.movedPermanently(to = "/blog/official")
+GET   /page/lixiangqi-blog              controllers.Main.movedPermanently(to = "/blog/official")
+GET   /blog/official                   controllers.Ublog.official(page: Int ?= 1)
 GET   /blog/topic                      controllers.Ublog.topics
 GET   /blog/topic/:topic               controllers.Ublog.topic(topic, filter: Option[BlogQualityFilter] ?= None, by: BlogsBy ?= BlogsBy.newest, page: Int ?= 1)
 GET   /blog/monthly                    controllers.Ublog.thisMonth(filter: Option[BlogQualityFilter] ?= None, by: BlogsBy ?= BlogsBy.newest, page: Int ?= 1)
 GET   /blog/monthly/:year/:month       controllers.Ublog.byMonth(year: Int, month: Int, filter: Option[BlogQualityFilter] ?= None, by: BlogsBy ?= BlogsBy.newest, page: Int ?= 1)
-GET   /blog.atom                       controllers.Main.movedPermanently(to = "/blog/community.atom")
+GET   /blog.atom                       controllers.Main.movedPermanently(to = "/blog/official.atom")
+GET   /blog/official.atom              controllers.Ublog.officialAtom
 GET   /api/blog/carousel               controllers.Ublog.apiCarousel
 GET   /blog/friends                    controllers.Ublog.friends(page: Int ?= 1)
 GET   /blog/liked                      controllers.Ublog.liked(page: Int ?= 1)
@@ -230,6 +264,7 @@ POST  /api/analysis/variation          controllers.UserAnalysis.variation
 POST  /api/analysis/motifs             controllers.UserAnalysis.motifs
 POST  /api/analysis/book               controllers.UserAnalysis.book
 POST  /api/analysis/notation-move      controllers.UserAnalysis.notationMove
+POST  /api/analysis/move-labels        controllers.UserAnalysis.moveLabels
 POST  /api/analysis/import             controllers.UserAnalysis.importNotation
 GET   /api/analysis/catalog            controllers.UserAnalysis.catalogAnalysis(id: String)
 
@@ -387,6 +422,7 @@ GET   /bots/dev                       controllers.UserAnalysis.index
 # Round
 GET   /play/room/:poolId                         controllers.Round.matchmaking(poolId: String)
 GET   /round/bootstrap/$fullId<\w{12}>          controllers.Round.playerBootstrap(fullId: GameFullId)
+GET   /round/bootstrap/$id<\w{8}>               controllers.ThreeKingdoms.roundBootstrap(id: GameId)
 GET   /$gameId<\w{8}>                            controllers.Round.watcher(gameId: GameId, color: Color = Color.white)
 GET   /$gameId<\w{8}>/$color<white|black>        controllers.Round.watcher(gameId: GameId, color: Color)
 GET   /$fullId<\w{12}>                           controllers.Round.player(fullId: GameFullId)
@@ -546,6 +582,9 @@ POST  /challenge/rematch-of/$id<\w{8}> controllers.Challenge.offerRematchForGame
 
 # Notify
 GET  /notify                           controllers.Notify.recent(page: Int ?= 1)
+GET   /api/mobile/notifications         controllers.Notify.mobile(page: Int ?= 1)
+POST  /api/mobile/notifications/:id/read controllers.Notify.readMobile(id)
+GET   /api/mobile/activity              controllers.Timeline.mobile(page: Int ?= 1)
 POST /notify/clear                     controllers.Notify.clear
 
 # Video
@@ -576,6 +615,23 @@ GET   /$lang<\w\w\w?>/video/:id              controllers.Video.showLang(lang: La
 POST  /translation/select              controllers.I18n.select
 
 # Authentication
+POST  /auth/external/:provider/start controllers.ExternalAuth.start(provider: String)
+GET   /auth/external/:provider/callback controllers.ExternalAuth.callback(provider: String)
+GET   /auth/external/finish controllers.ExternalAuth.finish
+POST  /auth/external/finish controllers.ExternalAuth.finishPost
+POST  /auth/external/cancel controllers.ExternalAuth.cancel
+GET   /auth/external/link-existing controllers.ExternalAuth.linkExisting
+POST  /auth/external/link-existing controllers.ExternalAuth.linkExistingPost
+POST  /auth/external/start-existing controllers.ExternalAuth.startExisting
+GET   /account/login-methods controllers.ExternalAuth.index
+GET   /auth/external/mobile/:id controllers.ExternalAuth.nativeStart(id)
+POST  /account/login-methods/:provider/link controllers.ExternalAuth.link(provider: String)
+POST  /account/login-methods/:provider/unlink controllers.ExternalAuth.unlink(provider: String)
+GET   /account/login-methods/change/:id controllers.ExternalAuth.change(id: String)
+POST  /account/login-methods/change/:id controllers.ExternalAuth.changeApply(id: String)
+GET   /account/reauthenticate controllers.ExternalAuth.reauthenticate(returnTo: Option[String] ?= None)
+POST  /account/reauthenticate controllers.ExternalAuth.reauthenticatePassword
+POST  /account/reauthenticate/:provider controllers.ExternalAuth.reauthenticateProvider(provider: String, returnTo: Option[String] ?= None)
 GET   /login                           controllers.Auth.login
 POST  /login                           controllers.Auth.authenticate
 GET   /login/takex3                    controllers.Auth.loginTakex3
@@ -732,6 +788,17 @@ GET   /api/mobile/home                 controllers.Api.mobileHome
 GET   /api/mobile/watch                controllers.Api.mobileWatch
 GET   /api/mobile/profile/:username    controllers.Api.mobileProfile(username:  UserStr)
 GET   /api/mobile/my-games             controllers.Api.mobileGames
+GET   /api/mobile/play                 controllers.MobilePlay.home
+POST  /api/mobile/play/computer        controllers.Setup.mobileAi
+GET   /api/mobile/play/computer/stats  controllers.Setup.mobileAiStats
+GET   /api/mobile/kids/bots/profile  controllers.Setup.kidsBotProfile
+POST  /api/mobile/kids/bots/start  controllers.Setup.kidsBotStart
+POST  /api/mobile/kids/bots/game/:id/assist  controllers.Setup.kidsBotAssist(id: GameAnyId)
+POST  /api/mobile/kids/bots/game/:id/result  controllers.Setup.kidsBotResult(id: GameAnyId)
+DELETE /api/mobile/play/seek/:id       controllers.MobilePlay.cancelSeek(id)
+GET   /api/mobile/game/:id/stream       controllers.MobilePlay.gameStream(id: GameAnyId)
+POST  /api/mobile/game/:id/move/:uci    controllers.MobilePlay.move(id: GameAnyId, uci)
+POST  /api/mobile/game/:id/*cmd         controllers.MobilePlay.command(id: GameAnyId, cmd)
 GET   /api/mobile/following            controllers.Relation.apiMobileFollowing
 
 ->    /team                            team.Routes
@@ -773,6 +840,9 @@ GET   /api/game/:id                    controllers.Api.game(id: GameId)
 GET   /api/game/:id/chat               controllers.Api.gameChat(id: GameId)
 GET   /api/room/:id/chat               controllers.Api.roomChat(id: RoomId)
 GET   /api/tournament                  controllers.Api.currentTournaments
+GET   /api/mobile/tournaments          controllers.Tournament.mobileIndex(view: String ?= "home", page: Int ?= 1, freq: String ?= "unique", user: Option[UserStr])
+GET   /api/mobile/tournament/form       controllers.Tournament.mobileForm(id: Option[TourId])
+POST  /api/mobile/tournament/$id<\w{8}> controllers.Tournament.mobileUpdate(id: TourId)
 GET   /api/tournament/$id<\w{8}>            controllers.Tournament.apiShow(id: TourId)
 GET   /api/tournament/$id<\w{8}>/games      controllers.Api.tournamentGames(id: TourId)
 GET   /api/tournament/$id<\w{8}>/results    controllers.Api.tournamentResults(id: TourId)
@@ -803,13 +873,32 @@ POST  /api/stream/games/:streamId/add  controllers.Api.gamesByIdsStreamAddIds(st
 GET   /api/stream/game/:id             controllers.Api.moveStream(id: GameId)
 GET   /api/account                     controllers.Account.apiMe
 POST  /api/mobile/auth/login           controllers.MobileAuth.login
+GET   /api/mobile/auth/config          controllers.MobileAuth.config
+POST  /api/mobile/auth/google          controllers.MobileAuth.googleLogin
+POST  /api/mobile/auth/google/register controllers.MobileAuth.googleRegister
 POST  /api/mobile/auth/registration-code controllers.MobileAuth.registrationCode
 POST  /api/mobile/auth/register        controllers.MobileAuth.register
 GET   /api/account/playing             controllers.Account.apiNowPlaying
 GET   /api/account/email               controllers.Account.apiEmail
 GET   /api/account/kid                 controllers.Account.apiKid
 POST  /api/account/kid                 controllers.Account.apiKidPost
+POST  /api/account/kid/enable          controllers.Account.apiKidEnable
+GET   /api/account/kids/avatar         controllers.Account.apiKidsAvatar
+PUT   /api/account/kids/avatar         controllers.Account.apiKidsAvatarEquip
+POST  /api/account/kids/avatar/purchase controllers.Account.apiKidsAvatarPurchase
 GET   /api/account/preferences         controllers.Pref.apiGet
+GET   /api/mobile/account              controllers.MobileAccount.state
+POST  /api/mobile/account/confirm      controllers.MobileAccount.confirm
+POST  /api/mobile/account/provider/:provider/start controllers.MobileAccount.providerStart(provider)
+POST  /api/mobile/account/provider/:provider/unlink controllers.MobileAccount.unlink(provider)
+POST  /api/mobile/account/verification/:id controllers.MobileAccount.providerFinish(id)
+GET   /api/mobile/account/twofactor-secret controllers.MobileAccount.twoFactorSecret
+POST  /api/mobile/account/change/:kind controllers.MobileAccount.change(kind)
+GET   /api/mobile/account/sessions     controllers.MobileAccount.sessions
+POST  /api/mobile/account/revoke/:kind controllers.MobileAccount.revoke(kind)
+POST  /api/mobile/account/token       controllers.MobileAccount.createToken
+GET   /api/account/preferences/notifications controllers.Pref.apiNotifications
+POST  /api/account/notifications/:name controllers.Pref.apiNotificationsApply(name)
 POST  /api/account/preferences/:name   controllers.Pref.apiSet(name)
 GET   /api/challenge                   controllers.Challenge.apiList
 POST  /api/challenge/open              controllers.Challenge.openCreate
@@ -997,6 +1086,8 @@ GET   /page/:key                       controllers.Cms.lonePage(key: CmsPageKey)
 
 # Variants
 GET   /variant                         controllers.Cms.variantHome
+GET   /variant/minixiangqi             controllers.Cms.miniXiangqi
+GET   /variant/jieqi                    controllers.Cms.jieqi
 GET   /variant/:key                    controllers.Cms.variant(key: chess.variant.Variant.LilaKey)
 
 # Help

@@ -17,7 +17,7 @@ final class AccountPages(helpers: Helpers, ui: AccountUi, flagApi: lila.core.use
       form3.group(form("username"), trans.site.username(), half = true)(
         form3.input(_)(required, autocomplete := "off")
       ),
-      form3.passwordModified(form("passwd"), trans.site.password(), half = true)()
+      ui.passwordField(form("passwd"), trans.site.password(), half = true)()
     )
 
   def close(form: Form[?], managed: Boolean)(using Context)(using me: Me) =
@@ -200,8 +200,8 @@ final class AccountPages(helpers: Helpers, ui: AccountUi, flagApi: lila.core.use
             if managed then p(trans.site.askYourChessTeacherAboutLiftingKidMode())
             else
               postForm(cls := "form3", action := s"${routes.Account.kidPost}?v=${!u.kid}")(
-                form3
-                  .passwordModified(form("passwd"), trans.site.password())(autofocus, autocomplete := "off"),
+                ui
+                  .passwordField(form("passwd"), trans.site.password())(autofocus, autocomplete := "off"),
                 submitButton(
                   cls := List(
                     "button" -> true,
@@ -222,16 +222,12 @@ final class AccountPages(helpers: Helpers, ui: AccountUi, flagApi: lila.core.use
             frag(br, div(cls := "box box-pad page")(div(cls := "body expand-text")(content)))
         )
 
-  def password(form: Form[?])(using Context) =
-    AccountPage(trans.site.changePassword.txt(), "password").js(esmInit("bits.passwordComplexity")):
-      div(cls := "box box-pad")(
-        h1(cls := "box__top")(trans.site.changePassword()),
+  def password(form: Form[?], hasPassword: Boolean)(using Context) =
+    AccountPage(trans.site.loginMethods.txt(), "loginMethods").js(esmInit("bits.passwordComplexity")):
+      div(cls := "box box-pad identity-check")(
+        h1(if hasPassword then trans.site.changePassword() else trans.site.addPassword()),
         standardFlash | flashMessage("warning")(trans.site.passwordSuggestion()),
         postForm(cls := "form3", action := routes.Account.passwdApply)(
-          form3.passwordModified(form("oldPasswd"), trans.site.currentPassword())(
-            autofocus,
-            autocomplete := "current-password"
-          ),
           form3.passwordModified(form("newPasswd1"), trans.site.newPassword())(
             autocomplete := "new-password"
           ),
@@ -240,7 +236,8 @@ final class AccountPages(helpers: Helpers, ui: AccountUi, flagApi: lila.core.use
             autocomplete := "new-password"
           ),
           form3.globalError(form),
-          form3.action(form3.submit(trans.site.apply()))
+          form3.action(form3.submit(trans.site.savePassword())),
+          p(a(href := routes.ExternalAuth.index)(trans.site.cancel()))
         )
       )
 
@@ -269,7 +266,7 @@ final class AccountPages(helpers: Helpers, ui: AccountUi, flagApi: lila.core.use
           frag(
             standardFlash | flashMessage("warning")(trans.site.emailSuggestion()),
             postForm(cls := "form3", action := routes.Account.emailApply)(
-              form3.passwordModified(form("passwd"), trans.site.password())(autofocus),
+              ui.passwordField(form("passwd"), trans.site.password())(autofocus),
               form3.group(form("email"), trans.site.email())(form3.input(_, typ = "email")(required)),
               form3.action(form3.submit(trans.site.apply()))
             )

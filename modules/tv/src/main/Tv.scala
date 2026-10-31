@@ -6,11 +6,9 @@ import scalalib.actor.SyncActor
 import lila.core.LightUser
 import lila.core.rank.{ RankCode, RankTrackId }
 import lila.core.rank.RankCode.*
-import lila.game.GameRepo
 import lila.ui.Icon
 
 final class Tv(
-    gameRepo: GameRepo,
     actor: SyncActor,
     gameProxy: lila.core.game.GameProxy
 )(using Executor):
@@ -22,7 +20,6 @@ final class Tv(
     actor
       .ask[Option[GameId]](TvSyncActor.GetGameId(channel, _))
       .flatMapz(gameProxy.game)
-      .orElse(gameRepo.latestStandard)
 
   def getReplacementGame(channel: Tv.Channel, oldId: GameId, exclude: List[GameId]): Fu[Option[Game]] =
     actor
@@ -35,11 +32,11 @@ final class Tv(
       .flatMap:
         case GameIdAndHistory(gameId, historyIds) =>
           for
-            game <- gameId.so(gameProxy.game).orElse(gameRepo.latestStandard)
+            game <- gameId.so(gameProxy.game)
             games <-
               historyIds
                 .traverse: id =>
-                  gameProxy.game(id).orElse(gameRepo.game(id))
+                  gameProxy.game(id)
                 .dmap(_.flatten)
             history = games.map(Pov.naturalOrientation)
           yield game.map(_ -> history)
@@ -47,6 +44,12 @@ final class Tv(
   def getGames(channel: Tv.Channel, max: Int): Fu[List[Game]] =
     getGameIds(channel, max).flatMap:
       _.map(gameProxy.game).parallel.map(_.flatten)
+
+  def getRecentGames(channel: Tv.Channel): Fu[List[Game]] =
+    actor
+      .ask[GameIdAndHistory](TvSyncActor.GetGameIdAndHistory(channel, _))
+      .flatMap: state =>
+        (state.gameId.toList ::: state.history).distinct.traverse(gameProxy.game).map(_.flatten)
 
   def getGameIds(channel: Tv.Channel, max: Int): Fu[List[GameId]] =
     actor.ask[List[GameId]](TvSyncActor.GetGameIds(channel, max, _))
@@ -59,7 +62,6 @@ final class Tv(
     actor.ask[Champions](TvSyncActor.GetChampions.apply)
 
 object Tv:
-  import chess.variant as V
 
   case class Champion(user: LightUser, rank: Option[RankCode], gameId: GameId, color: Color)
   case class Champions(channels: Map[Channel, Champion]):
@@ -83,18 +85,53 @@ object Tv:
       val secondsSinceLastMove: Int,
       filters: Seq[Candidate => Boolean],
       val listed: Boolean = true,
-      val candidateLifetime: FiniteDuration = 3.minutes
+      val variant: Option[lila.xiangqi.GameVariant] = None
   ):
+    // Refreshed on every move; inactive games need not occupy the selector for an entire game duration.
+    val candidateLifetime: FiniteDuration = (secondsSinceLastMove + 10).seconds
     def isFresh(g: Game): Boolean = fresh(secondsSinceLastMove, g)
-    def filter(c: Candidate): Boolean = filters.forall { _(c) } && isFresh(c.game)
-    val key = lila.common.String.lcfirst(toString)
+    def filter(c: Candidate): Boolean =
+      (c.game.hasClock || c.game.hasAi || (variant.isDefined && c.game.isUnlimited)) &&
+        variant.forall(_ == c.game.nativeVariant) && filters.forall { _(c) } && isFresh(c.game)
+    val key = variant.fold(lila.common.String.lcfirst(toString))(_.key)
+    case Xiangqi
+        extends Channel(
+          name = "Xiangqi",
+          icon = lila.ui.VariantIcon(lila.xiangqi.GameVariant.Xiangqi),
+          secondsSinceLastMove = 180,
+          filters = Nil,
+          variant = Some(lila.xiangqi.GameVariant.Xiangqi)
+        )
+    case Jieqi
+        extends Channel(
+          name = "Jieqi",
+          icon = lila.ui.VariantIcon(lila.xiangqi.GameVariant.Jieqi),
+          secondsSinceLastMove = 180,
+          filters = Nil,
+          variant = Some(lila.xiangqi.GameVariant.Jieqi)
+        )
+    case MiniXiangqi
+        extends Channel(
+          name = "Mini Xiangqi",
+          icon = lila.ui.VariantIcon(lila.xiangqi.GameVariant.MiniXiangqi),
+          secondsSinceLastMove = 180,
+          filters = Nil,
+          variant = Some(lila.xiangqi.GameVariant.MiniXiangqi)
+        )
+    case ThreeKingdoms
+        extends Channel(
+          name = "Game of the Three Kingdoms",
+          icon = lila.ui.VariantIcon(lila.xiangqi.GameVariant.ThreeKingdoms),
+          secondsSinceLastMove = 180,
+          filters = Nil,
+          variant = Some(lila.xiangqi.GameVariant.ThreeKingdoms)
+        )
     case Best
         extends Channel(
           name = "Ranked Xiangqi",
-          icon = Icon.CrownElite,
+          icon = lila.ui.VariantIcon(lila.xiangqi.GameVariant.Xiangqi),
           secondsSinceLastMove = 60 * 3,
-          filters = Seq(rankedXiangqi, standard, noBot),
-          candidateLifetime = 45.minutes
+          filters = Seq(rankedXiangqi, standard, noBot)
         )
     case Bot
         extends Channel(
@@ -116,14 +153,13 @@ object Tv:
     val byKey = list.mapBy(_.key)
 
   private val rankedXiangqi = (c: Candidate) => c.game.rankTrack.contains(RankTrackId.xiangqi)
-  private def variant(variant: chess.variant.Variant) = (c: Candidate) => c.game.variant == variant
-  private val standard = variant(V.Standard)
+  private val standard = (c: Candidate) => c.game.nativeVariant == lila.xiangqi.GameVariant.Xiangqi
   private def computerFromInitialPosition(c: Candidate) = c.game.hasAi && !c.game.fromPosition
   private def hasBot(c: Candidate) = c.hasBot
   private def noBot(c: Candidate) = !c.hasBot
   private def olderThan(g: Game, seconds: Int) = g.movedAt.isBefore(nowInstant.minusSeconds(seconds))
   private def fresh(seconds: Int, game: Game): Boolean =
-    (game.isBeingPlayed && !olderThan(game, seconds)) ||
+    (game.started && game.isBeingPlayed && !olderThan(game, seconds)) ||
       (game.finished && !olderThan(game, 7)) // rematch time
 
   private[tv] val titleScores: Map[PlayerTitle, Int] = Map(

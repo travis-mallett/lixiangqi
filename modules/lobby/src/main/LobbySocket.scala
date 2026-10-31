@@ -31,6 +31,11 @@ final class LobbySocket(
   @volatile private var lastCounters = LobbyCounters(0, 0, Map.empty)
   def counters = lastCounters
 
+  /** Matches served outside round sockets contribute to the same public game counter. */
+  def extraRoundCount(count: Int): Unit = send.exec(s"lobby/extra-rounds ${count.max(0)}")
+
+  def seekRemoved(id: String): Unit = actor ! RemoveSeek(id)
+
   private val actor: SyncActor = new SyncActor:
 
     private val members = lila.memo.CacheApi.scaffeine
@@ -191,7 +196,7 @@ final class LobbySocket(
           user <- member.user
           d <- o.obj("d")
           id <- d.str("id")
-          _ <- poolApi.poolRankTracks.get(PoolConfigId(id))
+          track <- poolApi.poolRankTracks.get(PoolConfigId(id))
           blocking = d.get[UserId]("blocking")
         yield
           lobby ! CancelHook(member.sri) // in case there's one...
@@ -201,7 +206,7 @@ final class LobbySocket(
               userId = user.id,
               sri = member.sri,
               from = PoolFrom.Socket,
-              rank = user.rank,
+              rank = user.rankFor(track),
               lame = user.lame,
               blocking = user.blocking.map(_ ++ blocking),
               traffic = d

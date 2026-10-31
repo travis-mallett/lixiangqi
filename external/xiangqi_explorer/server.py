@@ -1,14 +1,21 @@
-"""Read-only HTTP entry point for the independently deployed Xiangqi explorer."""
+"""Public catalog reads and authenticated internal player-profile writes."""
 
 from __future__ import annotations
 
 import argparse
 import json
+import hmac
+import os
+import threading
+from pathlib import Path
+from contextlib import closing
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Callable
 
 from .catalog_databases import catalog_is_readable
+from . import player_catalog
+from tools.games_database import players
 from .explorer import explore_games, master_book_moves
 from .game_catalog import (
     get_game,
@@ -51,7 +58,23 @@ class ExplorerHandler(BaseHTTPRequestHandler):
             self._json(HTTPStatus.NOT_FOUND, {"error": "not found"})
 
     def do_POST(self) -> None:  # noqa: N802
+        if self.path == '/internal/players':
+            token = os.environ.get('LIXIANGQI_PLAYER_TOKEN', '')
+            if token_file := os.environ.get('LIXIANGQI_PLAYER_TOKEN_FILE'):
+                token = Path(token_file).read_text().strip()
+            if not token or not hmac.compare_digest(self.headers.get('Authorization', ''), f'Bearer {token}'):
+                self._json(HTTPStatus.FORBIDDEN, {'error': 'forbidden'})
+                return
+            try:
+                self._json(HTTPStatus.OK, player_catalog.write(self._read_json()))
+            except ValueError as error:
+                self._json(HTTPStatus.BAD_REQUEST, {'error': str(error)})
+            except Exception:
+                self.log_error('Player catalog update failed')
+                self._json(HTTPStatus.INTERNAL_SERVER_ERROR, {'error': 'player update failed'})
+            return
         routes: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
+            '/players': player_catalog.read,
             "/explorer": self._explore,
             "/opening-book": self._opening_book,
             "/games": query_games,
@@ -107,24 +130,40 @@ class ExplorerHandler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(payload)))
-        self.send_header("Cache-Control", "public, max-age=5")
+        self.send_header("Cache-Control", "no-store" if self.path.startswith('/internal/') else "public, max-age=5")
         self._cors_headers()
         self.end_headers()
         self.wfile.write(payload)
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run the read-only Xiangqi explorer")
+    parser = argparse.ArgumentParser(description="Run the Xiangqi catalog service")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=9002)
     args = parser.parse_args()
     server = ExplorerServer((args.host, args.port), ExplorerHandler)
+    stop = threading.Event()
+
+    def maintain_players() -> None:
+        while not stop.is_set():
+            try:
+                with closing(players.connect()) as db, db:
+                    players.refresh_stats(db)
+            except Exception:
+                import traceback
+                traceback.print_exc()
+            stop.wait(60)
+
+    maintenance = threading.Thread(target=maintain_players, daemon=True)
+    maintenance.start()
     print(f"Xiangqi explorer listening on http://{args.host}:{args.port}", flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
         pass
     finally:
+        stop.set()
+        maintenance.join(timeout=30)
         server.server_close()
 
 

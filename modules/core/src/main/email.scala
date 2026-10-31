@@ -67,7 +67,7 @@ object email:
   object UserStrOrEmail extends OpaqueString[UserStrOrEmail]:
     extension (e: UserStrOrEmail)
       def normalize: UserIdOrEmail =
-        EmailAddress.from(e).fold(e.toLowerCase)(e => EmailAddress.normalize(e).value)
+        EmailAddress.from(e).fold(UsernameRules.id(e))(e => EmailAddress.normalize(e).value)
 
   opaque type UserIdOrEmail = String
   object UserIdOrEmail extends OpaqueString[UserIdOrEmail]

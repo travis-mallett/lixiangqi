@@ -20,19 +20,24 @@ final case class OpenConfig(
     userIds: Option[(UserId, UserId)],
     rules: Set[GameRule] = Set.empty,
     expiresAt: Option[Instant],
-    override val ruleset: Option[String] = None
+    override val ruleset: Option[String] = None,
+    override val gameVariant: lila.xiangqi.GameVariant = lila.xiangqi.GameVariant.Xiangqi
 ) extends lila.core.setup.OpenConfig:
 
   def perfType = lila.rating.PerfType(variant, chess.Speed(clock))
 
   def validFen =
-    if variant == FromPosition then position.exists(fen => Xiangqi.Fen.isValid(fen.value))
-    else position.forall(_.value == Xiangqi.startFen)
+    if gameVariant == lila.xiangqi.GameVariant.Jieqi then position.isEmpty && variant.standard
+    else if variant == FromPosition then
+      position.exists(fen => Xiangqi.Fen.board(fen.value).exists(_.variant == gameVariant))
+    else position.forall(_.value == gameVariant.startFen)
 
   def validMoveTimeLimit = moveTimeLimit.isEmpty || clock.isDefined
 
   def autoVariant =
-    if variant.standard && position.exists(_.value != Xiangqi.startFen)
+    if gameVariant != lila.xiangqi.GameVariant.Jieqi && variant.standard && position.exists(
+        _.value != gameVariant.startFen
+      )
     then copy(variant = FromPosition)
     else this
 
@@ -49,7 +54,8 @@ object OpenConfig:
       usernames: Option[List[UserStr]],
       rules: Option[Set[GameRule]],
       expiresAt: Option[Instant],
-      ruleset: Option[String] = None
+      ruleset: Option[String] = None,
+      gameVariant: Option[String] = None
   ) =
     OpenConfig(
       name = n.map(_.trim).filter(_.nonEmpty),
@@ -64,5 +70,8 @@ object OpenConfig:
       },
       rules = ~rules,
       expiresAt = expiresAt,
-      ruleset = ruleset
+      ruleset = ruleset,
+      gameVariant = gameVariant.fold(lila.xiangqi.GameVariant.Xiangqi)(
+        lila.xiangqi.GameVariant.fromKey(_).fold(sys.error, identity)
+      )
     ).autoVariant

@@ -6,17 +6,21 @@
   }
 
   .node {
-    transition: 1s all;
+    transition:
+      1s all,
+      visibility 0s;
     height: 0;
     opacity: 0;
     overflow: hidden;
     transform: translateX(30px);
+    visibility: hidden;
   }
 
   .node:target {
     height: auto;
     opacity: 1;
     transform: translateX(0);
+    visibility: visible;
   }
 
   .node .back {

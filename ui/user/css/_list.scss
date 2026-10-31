@@ -1,12 +1,14 @@
+@import '../../lib/css/component/variant-icon';
+
 .community {
   display: grid;
   gap: 2rem;
   grid-template-areas: 'online' 'leaders';
 
-  @media (min-width: at-least($xx-small)) {
-    grid-template-columns: min-content 1fr;
+  @media (min-width: at-least($medium)) {
+    grid-template-columns: minmax(12rem, 1fr) minmax(0, 3fr);
     grid-template-rows: min-content;
-    grid-template-areas: 'online leaders' 'online .';
+    grid-template-areas: 'online leaders';
   }
 
   h2 {
@@ -50,5 +52,67 @@
 
   &__leaders {
     grid-area: leaders;
+    min-width: 0;
+  }
+}
+
+.community .leaderboards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+.community .leaderboard {
+  border: 1px solid $c-brag;
+
+  @extend %box-radius;
+
+  overflow: hidden;
+  min-width: 0;
+
+  h3 {
+    background: $c-brag;
+    color: $c-over;
+    padding: 1rem;
+    font-size: 1.5em;
+    text-transform: uppercase;
+  }
+
+  li {
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.9rem 1rem;
+
+    &:nth-child(even) {
+      background: $c-bg-zebra;
+    }
+
+    &.is-me {
+      background: $c-accent-cloud;
+    }
+  }
+
+  .user-link {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .rank {
+    font-weight: bold;
+  }
+
+  .rating {
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__footer {
+    border-top: $border;
+    padding: 1rem;
+    text-align: center;
+  }
+
+  .leaderboard__ellipsis {
+    justify-content: center;
   }
 }

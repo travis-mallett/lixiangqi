@@ -19,7 +19,7 @@ def index(
   val roundApp = views.round.ui.roundAppPreload(pov)
   ui.index(channel, champions, pov, data, cross, history)(page)(roundApp)
 
-def embed(pov: Pov, channelKey: Option[String])(using EmbedContext) =
+def embed(pov: Option[Pov], channelKey: Option[String])(using EmbedContext) =
   val dataStreamUrl = channelKey.fold("/tv/feed?bc=1")(key => s"/tv/${key}/feed?bc=1")
   views.base.embed.minimal(
     title = "lixiangqi.org Xiangqi TV",
@@ -28,7 +28,9 @@ def embed(pov: Pov, channelKey: Option[String])(using EmbedContext) =
   )(
     attr("data-stream-url") := dataStreamUrl,
     div(id := "featured-game", cls := "embedded", title := "lixiangqi.org TV")(
-      views.game.mini.noCtx(pov, tv = true, channelKey)(targetBlank)
+      pov.fold[Frag](p(role := "status")(trans.site.noGameFound())) { p =>
+        views.game.mini.noCtx(p, tv = true, channelKey)(targetBlank)
+      }
     ),
     cashTag,
     chessgroundTag

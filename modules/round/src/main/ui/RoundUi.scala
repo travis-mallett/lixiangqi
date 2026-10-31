@@ -77,7 +77,9 @@ final class RoundUi(helpers: Helpers, gameUi: lila.game.ui.GameUi):
 
     val mode = if game.ranked then trans.site.ranked.txt() else trans.site.casual.txt()
     val variant =
-      if game.fromPosition then "a custom Xiangqi position"
+      if game.nativeVariant == lila.xiangqi.GameVariant.MiniXiangqi then trans.site.miniXiangqi.txt()
+      else if game.isJieqi then trans.site.jieqi.txt()
+      else if game.fromPosition then "a custom Xiangqi position"
       else "Xiangqi"
     import chess.Status.*
     val result = (game.winner, game.loser, game.status) match

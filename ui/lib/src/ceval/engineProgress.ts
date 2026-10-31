@@ -23,11 +23,16 @@ export function engineProgress(
   status: PikafishStatus,
   depth = 0,
   targetDepth = 1,
+  nodes?: { searched: number; target: number; complete: boolean },
 ): ProgressBar {
   const preparing = enginePreparing(status);
   const computing = status.state === 'computing';
-  let percent = Math.min(100, (100 * depth) / targetDepth);
-  if (percent > 0 && !computing) percent = 100;
+  let percent = nodes
+    ? nodes.complete
+      ? 100
+      : Math.min(99, (100 * nodes.searched) / nodes.target)
+    : Math.min(100, (100 * depth) / targetDepth);
+  if (!nodes && percent > 0 && !computing) percent = 100;
   return {
     percent:
       status.state === 'downloading'
@@ -41,6 +46,10 @@ export function engineProgress(
             : 0,
     active: preparing || computing,
     visible: enabled || preparing,
-    label: preparing ? engineLoadingText(status) : i18n.site.depthX(depth),
+    label: preparing
+      ? engineLoadingText(status)
+      : nodes
+        ? i18n.site.engineNodeProgress(nodes.searched.toLocaleString(), nodes.target.toLocaleString())
+        : i18n.site.depthX(depth),
   };
 }

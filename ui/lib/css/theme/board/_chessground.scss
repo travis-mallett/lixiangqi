@@ -78,10 +78,6 @@ square {
     background-color: rgb(20 85 30 / 0.5);
   }
 
-  &.current-premove {
-    background-color: rgb(20 30 85 / 0.5) !important;
-  }
-
   @media (hover: hover) {
     &.move-dest:hover,
     &.move-dest.hover {
@@ -93,6 +89,10 @@ square {
       background: rgb(20 30 85 / 0.2);
     }
   }
+}
+
+.current-premove {
+  background-color: rgb(20 30 85 / 0.5) !important;
 }
 
 .cg-static-preview {
@@ -258,3 +258,4 @@ coords.squares {
 }
 
 @import '../../../../board/css/board';
+@import '../../component/jieqi';

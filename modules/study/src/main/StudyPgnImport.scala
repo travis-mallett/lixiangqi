@@ -21,6 +21,10 @@ object StudyPgnImport:
         .flatMap { imported =>
           scala.util
             .Try {
+              require(
+                imported.state.variant != "jieqi",
+                "Open Jieqi notation in the analysis board; study chapters do not support reveal branches"
+              )
               val author = imported.headers
                 .get("annotator")
                 .filter(_.nonEmpty)

@@ -1,7 +1,7 @@
 import {
   positionFromFen,
   coordinateMove,
-  standardXiangqi,
+  boardDefinitionForFen,
   type BoardPosition,
   type BoardEffect,
   type BoardMark,
@@ -55,7 +55,7 @@ export function viewerNode(
     (document.documentElement.lang.startsWith('zh')
       ? native.chineseNotation || native.notation
       : native.notation) ?? '';
-  const position = positionFromFen(state.fen, standardXiangqi);
+  const position = positionFromFen(state.fen, boardDefinitionForFen(state.fen));
   const annotations = notationAnnotations([source.annotations?.[String(state.ply - rootPly)] ?? '']);
   const node: ViewerNode = {
     node: native,
@@ -110,7 +110,7 @@ export async function loadViewerTree(source: ViewerSource, signal?: AbortSignal)
   // In particular, teaching diagrams may intentionally omit both generals.
   if (source.pgn === undefined && !source.moves?.length) {
     const fen = source.initialFen || XIANGQI_START_FEN;
-    const position = positionFromFen(fen, standardXiangqi);
+    const position = positionFromFen(fen, boardDefinitionForFen(fen));
     const fields = fen.trim().split(/\s+/);
     const fullmove = Number(fields[5] || 1);
     const ply =

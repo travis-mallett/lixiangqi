@@ -21,7 +21,7 @@
   &__board {
     position: relative;
     width: 100%;
-    aspect-ratio: 9 / 10;
+    aspect-ratio: var(--board-aspect-ratio, 0.9);
 
     .cg-wrap {
       position: absolute;

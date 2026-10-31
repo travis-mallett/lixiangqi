@@ -61,12 +61,20 @@ final class UblogFormUi(helpers: Helpers, ui: UblogUi)(
       form: Form[UblogForm.UblogPostData],
       post: Either[User, UblogPost],
       captcha: Option[Captcha]
-  )(using Context)(using imageGetOrigin: ImageGetOrigin) =
+  )(using ctx: Context)(using imageGetOrigin: ImageGetOrigin) =
     postForm(
       cls := "form3 ublog-post-form__main",
       action := post.fold(u => routes.Ublog.create(u.username), p => routes.Ublog.update(p.id))
     )(
       form3.globalError(form),
+      post.toOption.map: p =>
+        if ctx.me.exists(me => p.canSetOfficial(using me)) then
+          form3.checkboxGroup(
+            form("official"),
+            trans.ublog.publishAsOfficial(),
+            help = trans.ublog.publishAsOfficialHelp().some
+          )
+        else form3.hidden(form("official"), p.isOfficial.toString.some),
       post.toOption.map(image(_, form)),
       form3.group(form("title"), trans.ublog.postTitle())(form3.input(_)(autofocus)),
       form3.group(form("intro"), trans.ublog.postIntro())(form3.input(_)(autofocus)),

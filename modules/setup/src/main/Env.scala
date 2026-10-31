@@ -22,14 +22,23 @@ final class Env(
   val processor = wire[Processor]
 
   lazy val aiStats = AiStatsApi(yoloDb(CollName("ai_challenge_stats")))
+  lazy val kidsBots = KidsBots(yoloDb(CollName("kids_bot_games")), processor, gameRepo)
 
   Bus.sub[lila.core.game.FinishGame]: finish =>
+    kidsBots
+      .record(finish)
+      .addFailureEffect: error =>
+        lila.log("kidsBots").error(s"record game ${finish.game.id}", error)
     aiStats
       .record(finish)
       .addFailureEffect: error =>
         lila.log("aiStats").error(s"record game ${finish.game.id}", error)
 
   Bus.sub[lila.core.user.UserDelete]: deleted =>
+    kidsBots
+      .delete(deleted.id)
+      .addFailureEffect: error =>
+        lila.log("kidsBots").error(s"delete user ${deleted.id}", error)
     aiStats
       .delete(deleted.id)
       .addFailureEffect: error =>

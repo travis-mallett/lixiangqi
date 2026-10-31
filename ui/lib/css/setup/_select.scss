@@ -1,0 +1,28 @@
+.label-select {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  text-align: start;
+
+  label {
+    flex: 1 1 8rem;
+    color: $c-font-dim;
+  }
+
+  select {
+    flex: 2 1 16rem;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  @media (max-width: at-most(500px)) {
+    align-items: stretch;
+    flex-direction: column;
+
+    label,
+    select {
+      flex: none;
+    }
+  }
+}

@@ -9,8 +9,10 @@ object xiangqi:
   private def analysisBoard =
     st.section(cls := "xiangqi-analysis-board")(
       div(id := "xiangqi-eval"),
-      st.section(cls := "main-board xiangqi9x10")(
-        div(id := "xiangqi-board", cls := "cg-wrap xiangqi9x10")
+      div(cls := "xiangqi-analysis-surface")(
+        st.section(cls := "main-board xiangqi9x10")(
+          div(id := "xiangqi-board", cls := "cg-wrap xiangqi9x10")
+        )
       ),
       div(cls := "xiangqi-dock-overlay", attr("aria-hidden") := "true")(
         span(cls := "xiangqi-dock-target", attr("data-dock") := "top")("Top"),
@@ -294,9 +296,21 @@ object xiangqi:
         )
       )
 
-  def databasePlayer(explorerEndpoint: String, player: String)(using ctx: Context) =
-    Page(s"$player — Games Database")
+  def databasePlayer(
+      explorerEndpoint: String,
+      player: String,
+      profile: Option[Frag] = None,
+      displayName: Option[String] = None,
+      canonical: Option[Call] = None
+  )(using ctx: Context) =
+    Page(s"${displayName.getOrElse(player)} — ${
+        if profile.isDefined then trans.broadcast.directoryPlayers.txt() else "Games Database"
+      }")
       .css("xiangqi")
+      .css("playerDirectory")
+      .js(esmInit("directoryPlayerFollow"))
+      .js(Granter.opt(_.DirectoryPlayer).option(esmInit("directoryPlayerForm")))
+      .css(Granter.opt(_.DirectoryPlayer).option("directoryPlayerForm"))
       .i18n(_.study)
       .js(
         PageModule(
@@ -311,16 +325,22 @@ object xiangqi:
         )
       )
       .graph(
-        title = s"$player — Xiangqi player database",
-        url = routeUrl(routes.GameCatalog.player(player)),
-        description = s"Games, results, timeline, opponents, and opening repertoire for $player."
+        title = s"${displayName.getOrElse(player)} — Xiangqi player database",
+        url = routeUrl(canonical.getOrElse(routes.GameCatalog.player(player))),
+        description =
+          s"Games, results, timeline, opponents, and opening repertoire for ${displayName.getOrElse(player)}."
       )
       .body(
         main(cls := "player-database box")(
           header(cls := "player-database__header")(
             div(
               a(cls := "player-database__back", href := routes.GameCatalog.index.url)("← Games Database"),
-              h1(id := "player-database-name")(player),
+              profile.map(_ =>
+                a(cls := "pro-player-profile__back", href := routes.PlayerDirectory.index())(
+                  trans.broadcast.directoryPlayers()
+                )
+              ),
+              h1(id := "player-database-name")(displayName.getOrElse(player)),
               p(id := "player-database-range", cls := "player-database__range")(
                 "Loading this player’s database record…"
               )
@@ -333,6 +353,7 @@ object xiangqi:
               attr("aria-atomic") := "true"
             )("Loading player statistics…")
           ),
+          profile,
           div(id := "player-database-content", attr("hidden") := true)(
             st.section(cls := "player-database__metrics", attr("aria-label") := "Player summary")(
               st.article(
@@ -762,9 +783,10 @@ object xiangqi:
       )
 
   def analysis(bootstrap: play.api.libs.json.JsObject = Json.obj())(using ctx: Context) =
-    Page("Xiangqi Analysis Board")
+    Page(trans.site.analysis.txt())
       .css("xiangqi")
       .i18n(_.study)
+      .i18n(_.threeKingdoms)
       .js(
         PageModule(
           "xiangqi.analysis",
@@ -908,7 +930,12 @@ object xiangqi:
             ),
             div(cls := "xiangqi-analysis__fen")(
               label(attr("for") := "xiangqi-fen")("Position (Xiangqi FEN)"),
-              textarea(id := "xiangqi-fen", rows := 2, spellcheck := false),
+              textarea(
+                id := "xiangqi-fen",
+                rows := 2,
+                spellcheck := false,
+                attr("aria-describedby") := "xiangqi-fen-error"
+              ),
               div(cls := "xiangqi-analysis__fen-actions")(
                 button(id := "xiangqi-load-fen", cls := "button", attr("type") := "button")("Load position"),
                 button(id := "xiangqi-copy-fen", cls := "button button-empty", attr("type") := "button")(
@@ -917,7 +944,8 @@ object xiangqi:
                 button(id := "xiangqi-reset", cls := "button button-empty", attr("type") := "button")(
                   "Starting position"
                 )
-              )
+              ),
+              p(id := "xiangqi-fen-error", cls := "error", role := "alert", attr("hidden") := true)
             ),
             div(cls := "xiangqi-analysis__notation")(
               label(attr("for") := "xiangqi-notation")(
@@ -927,6 +955,7 @@ object xiangqi:
                 id := "xiangqi-notation",
                 rows := 6,
                 spellcheck := false,
+                attr("aria-describedby") := "xiangqi-notation-error",
                 placeholder := "1. P9+1 P1+1 (1... H2+3) 2. P7+1"
               ),
               div(cls := "xiangqi-analysis__fen-actions")(
@@ -939,7 +968,8 @@ object xiangqi:
                 button(id := "xiangqi-clear-draft", cls := "button button-empty", attr("type") := "button")(
                   "Clear saved draft"
                 )
-              )
+              ),
+              p(id := "xiangqi-notation-error", cls := "error", role := "alert", attr("hidden") := true)
             ),
             p(cls := "xiangqi-note")(
               "Play from an earlier position to create a variation. Right-click or press and hold a move to promote, convert, or delete a line. Pikafish follows the selected line."
@@ -947,76 +977,67 @@ object xiangqi:
           ),
           div(
             id := "xiangqi-interface-settings",
-            cls := "xiangqi-interface-settings",
             attr("hidden") := true
           )(
-            div(cls := "xiangqi-interface-settings__scrim"),
-            div(
-              cls := "xiangqi-interface-settings__dialog",
-              role := "dialog",
-              attr("aria-modal") := "true",
-              attr("aria-labelledby") := "xiangqi-interface-settings-title"
-            )(
-              div(cls := "xiangqi-interface-settings__header")(
-                h2(id := "xiangqi-interface-settings-title")("Analysis board"),
-                button(
-                  id := "xiangqi-interface-settings-close",
-                  cls := "xiangqi-icon-button",
-                  attr("type") := "button",
-                  attr("aria-label") := "Close settings",
-                  dataIcon := Icon.X
-                )
+            div(cls := "xiangqi-interface-settings__header")(
+              h2(id := "xiangqi-interface-settings-title")("Analysis board"),
+              button(
+                id := "xiangqi-interface-settings-close",
+                cls := "xiangqi-icon-button",
+                attr("type") := "button",
+                attr("aria-label") := "Close settings",
+                dataIcon := Icon.X
+              )
+            ),
+            div(cls := "xiangqi-interface-settings__actions")(
+              button(id := "xiangqi-flip", attr("type") := "button")(
+                strong(dataIcon := Icon.ChasingArrows),
+                span("Flip board")
               ),
-              div(cls := "xiangqi-interface-settings__actions")(
-                button(id := "xiangqi-flip", attr("type") := "button")(
-                  strong(dataIcon := Icon.ChasingArrows),
-                  span("Flip board")
-                ),
-                button(id := "xiangqi-edit-position", attr("type") := "button")(
-                  strong(dataIcon := Icon.Pencil),
-                  span("Board editor")
-                ),
-                button(id := "xiangqi-continue-here", attr("type") := "button")(
-                  strong(dataIcon := Icon.Swords),
-                  span("Continue from here")
-                ),
-                button(id := "xiangqi-share-position", attr("type") := "button")(
-                  strong(dataIcon := Icon.ArrowUpRight),
-                  span("Share position")
-                )
+              button(id := "xiangqi-edit-position", attr("type") := "button")(
+                strong(dataIcon := Icon.Pencil),
+                span(trans.site.pasteTheFenStringHere())
               ),
-              div(cls := "xiangqi-interface-settings__groups")(
-                fieldset(
-                  legend("Move list"),
-                  notationLayoutSettings,
-                  settingToggle("xiangqi-setting-inline", "Inline notation"),
-                  settingToggle("xiangqi-setting-annotations", "Move evaluations")
+              button(id := "xiangqi-continue-here", attr("type") := "button")(
+                strong(dataIcon := Icon.Swords),
+                span("Continue from here")
+              ),
+              button(id := "xiangqi-share-position", attr("type") := "button")(
+                strong(dataIcon := Icon.ArrowUpRight),
+                span("Share position")
+              )
+            ),
+            div(cls := "xiangqi-interface-settings__groups")(
+              fieldset(
+                legend("Move list"),
+                notationLayoutSettings,
+                settingToggle("xiangqi-setting-inline", "Inline notation"),
+                settingToggle("xiangqi-setting-annotations", "Move evaluations")
+              ),
+              fieldset(
+                legend("Board"),
+                settingToggle("xiangqi-setting-gauge", "Evaluation gauge"),
+                div(cls := "xiangqi-setting-radios xiangqi-gauge-dock-settings")(
+                  span(cls := "xiangqi-gauge-dock-settings__label")("Evaluation bar position"),
+                  div(role := "radiogroup", attr("aria-label") := "Evaluation bar position")(
+                    Seq("Top", "Right", "Bottom", "Left").map { position =>
+                      val value = position.toLowerCase
+                      label(attr("for") := s"xiangqi-gauge-dock-$value")(
+                        input(
+                          id := s"xiangqi-gauge-dock-$value",
+                          tpe := "radio",
+                          name := "xiangqi-gauge-dock",
+                          attr("value") := value
+                        ),
+                        span(position)
+                      )
+                    }
+                  )
                 ),
-                fieldset(
-                  legend("Board"),
-                  settingToggle("xiangqi-setting-gauge", "Evaluation gauge"),
-                  div(cls := "xiangqi-setting-radios xiangqi-gauge-dock-settings")(
-                    span(cls := "xiangqi-gauge-dock-settings__label")("Evaluation bar position"),
-                    div(role := "radiogroup", attr("aria-label") := "Evaluation bar position")(
-                      Seq("Top", "Right", "Bottom", "Left").map { position =>
-                        val value = position.toLowerCase
-                        label(attr("for") := s"xiangqi-gauge-dock-$value")(
-                          input(
-                            id := s"xiangqi-gauge-dock-$value",
-                            tpe := "radio",
-                            name := "xiangqi-gauge-dock",
-                            attr("value") := value
-                          ),
-                          span(position)
-                        )
-                      }
-                    )
-                  ),
-                  settingToggle("xiangqi-setting-lock-panels", "Lock panels"),
-                  settingToggle("xiangqi-setting-best-arrow", "Best move arrow"),
-                  settingToggle("xiangqi-setting-variation-arrows", "Variation arrows"),
-                  settingToggle("xiangqi-setting-coordinates", "Board coordinates")
-                )
+                settingToggle("xiangqi-setting-lock-panels", "Lock panels"),
+                settingToggle("xiangqi-setting-best-arrow", "Best move arrow"),
+                settingToggle("xiangqi-setting-variation-arrows", "Variation arrows"),
+                settingToggle("xiangqi-setting-coordinates", "Board coordinates")
               )
             )
           )

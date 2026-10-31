@@ -1,7 +1,14 @@
-import { positionFromFen, positionToFen, recordedPosition, standardXiangqi } from '@lixiangqi/board';
+import {
+  miniXiangqi,
+  positionFromFen,
+  positionToFen,
+  recordedPosition,
+  standardXiangqi,
+} from '@lixiangqi/board';
 import assert from 'node:assert/strict';
 import { afterEach, test, mock } from 'node:test';
 
+import { MINI_XIANGQI_START_FEN } from 'lib/game/minixiangqi';
 import { XIANGQI_START_FEN } from 'lib/game/xiangqi';
 import type { ImportedMoveTree, RulesState } from 'lib/game/xiangqiNotation';
 
@@ -70,6 +77,26 @@ function fixture(): ImportedMoveTree {
     ],
   };
 }
+function miniFixture(): ImportedMoveTree {
+  const start = positionFromFen(MINI_XIANGQI_START_FEN, miniXiangqi);
+  const first = recordedPosition(start, 'a2a3', 'black');
+  const firstFen = positionToFen(first, miniXiangqi);
+  return {
+    initialFen: MINI_XIANGQI_START_FEN,
+    ruleset: 'minixiangqi-v1',
+    state: state(MINI_XIANGQI_START_FEN, 0),
+    annotations: { comments: [], shapes: [] },
+    children: [
+      {
+        move: 'a2a3',
+        notation: 'P7+1',
+        annotations: { comments: [], shapes: [] },
+        state: state(firstFen, 1),
+        children: [],
+      },
+    ],
+  };
+}
 function mountTree(root: Awaited<ReturnType<typeof loadViewerTree>>) {
   mock.method(Image.prototype, 'decode', async () => {});
   const element = document.createElement('div');
@@ -100,6 +127,44 @@ test('viewer renders the replay panel without per-board settings', () => {
     viewer.element.querySelector('.xiangqi-viewer__moves .tview2-column move[data-node]')?.textContent,
     'P9+1',
   );
+});
+
+test('populated viewers use supplied replay labels without a global i18n catalog', () => {
+  const i18nDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'i18n');
+  const bodyChildren = new Set(document.body.children);
+  try {
+    Reflect.deleteProperty(globalThis, 'i18n');
+    const viewer = mount();
+    assert.deepEqual(
+      [...viewer.element.querySelectorAll('.xiangqi-viewer__controls button')].map(button =>
+        button.getAttribute('aria-label'),
+      ),
+      ['first', 'previous', 'next', 'last'],
+    );
+  } finally {
+    if (i18nDescriptor) Object.defineProperty(globalThis, 'i18n', i18nDescriptor);
+    [...document.body.children].filter(child => !bodyChildren.has(child)).forEach(child => child.remove());
+  }
+});
+
+test('populated Mini viewers render replay controls without a global i18n catalog', () => {
+  const i18nDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'i18n');
+  const bodyChildren = new Set(document.body.children);
+  try {
+    Reflect.deleteProperty(globalThis, 'i18n');
+    const viewer = mountTree(importedViewerTree(miniFixture()));
+    assert.equal(viewer.board.getDefinition().id, 'minixiangqi');
+    assert.equal(viewer.position().children.length, 1);
+    assert.deepEqual(
+      [...viewer.element.querySelectorAll('.xiangqi-viewer__controls button')].map(button =>
+        button.getAttribute('aria-label'),
+      ),
+      ['first', 'previous', 'next', 'last'],
+    );
+  } finally {
+    if (i18nDescriptor) Object.defineProperty(globalThis, 'i18n', i18nDescriptor);
+    [...document.body.children].filter(child => !bodyChildren.has(child)).forEach(child => child.remove());
+  }
 });
 
 test('viewer navigates variations, shows safe comments, and treats sibling moves as jumps', () => {

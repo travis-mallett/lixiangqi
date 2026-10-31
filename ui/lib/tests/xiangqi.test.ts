@@ -17,3 +17,18 @@ test('detects captures from consecutive Xiangqi positions', () => {
   assert.equal(isXiangqiCapture(before, afterCapture), true);
   assert.equal(isXiangqiCapture(before, afterQuietMove), false);
 });
+
+test('displays Jieqi reveals with WXF letters in either notation language', () => {
+  for (const [role, letter] of Object.entries({
+    chariot: 'R',
+    horse: 'H',
+    elephant: 'E',
+    advisor: 'A',
+    cannon: 'C',
+    soldier: 'P',
+  })) {
+    assert.equal(selectXiangqiNotation('E7+5', '相七进五', 'english', role), `E7+5→${letter}`);
+    assert.equal(selectXiangqiNotation('e3+5', '象３进５', 'chinese', role), `象３进５→${letter}`);
+  }
+  assert.equal(selectXiangqiNotation('R9+1', undefined, 'english', null), 'R9+1');
+});

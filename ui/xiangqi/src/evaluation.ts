@@ -1,10 +1,10 @@
 import type { EngineScore } from 'lib/tree/native';
 
-export const NEUTRAL_EVALUATION: EngineScore = Object.freeze({ redCp: 0 });
+export const UNKNOWN_EVALUATION: EngineScore = Object.freeze({});
 
 export function displayedEvaluation(
   incoming: EngineScore | undefined,
-  previous: EngineScore = NEUTRAL_EVALUATION,
+  previous: EngineScore = UNKNOWN_EVALUATION,
 ): EngineScore {
   return incoming ?? previous;
 }
@@ -18,6 +18,7 @@ export function evaluationShare(score?: EngineScore): number {
 export function formatEvaluation(score: EngineScore): string {
   if (score.redMate !== undefined)
     return score.redMate > 0 ? `+M${score.redMate}` : `−M${Math.abs(score.redMate)}`;
-  const pawns = (score.redCp ?? 0) / 100;
+  if (score.redCp === undefined) return '—';
+  const pawns = score.redCp / 100;
   return `${pawns >= 0 ? '+' : '−'}${Math.abs(pawns).toFixed(2)}`;
 }

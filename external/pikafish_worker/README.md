@@ -96,3 +96,44 @@ thread/hash use independently of registration limits.
 
 `--once` processes one available job then exits, for operational verification.
 The worker always closes the native process and its pipes on exit.
+
+## Jieqi
+
+The same move queue dispatches `variant: "jieqi"` to `jieqi.py`. Its ten levels
+use 250, 500, 1,000, 2,500, 5,000, 10,000, 25,000, 50,000, 100,000 and 250,000
+nodes, with one thread. They have a separate rank track and do not contribute to
+the Xiangqi bot progression statistics. Jieqi has no takebacks, including bot games.
+
+The worker receives the bot's observation: the public board, known captures,
+remaining unknown inventory and authoritative legal root moves. It never receives
+the server's shuffled deal. A captured face-down piece is known to its capturer;
+it remains unknown to its owner and to spectators. Unknown captured pieces stay
+in that observer's inventory. This distinction also applies to replay and analysis.
+The engine searches an information set, not a position containing the real hidden
+identities. Invalid engine moves are rejected rather than replaced silently.
+
+Jieqi uses the GPL-3.0 Pikafish Jieqi fork at
+[`bcc83f88ee18760e60903d1a3aaa61ef6f70f2c9`](https://github.com/brianhliou/pikafish-jieqi-wasm/tree/bcc83f88ee18760e60903d1a3aaa61ef6f70f2c9),
+with the array-bound and position-state initialization corrections recorded by
+`scripts/jieqi-engine/build.py`. Reveal children preserve the preceding move and
+capture, and concealed-advisor check squares are initialized before searching.
+Stock Fairy-Stockfish is not used for hidden-information play. Rebuild with that
+script and an Emscripten installation; its command-line help describes the paths.
+The generated ESM/WASM files, license and complete corresponding source archive
+live under `public/jieqi-engine/` and are distributed together. The Node bridge is
+`scripts/jieqi-engine/uci.mjs`; set `LIXIANGQI_NODE` if Node is not on PATH.
+After rebuilding, run `node --test scripts/jieqi-engine/repeatability.test.mjs`
+to compare three fresh depth-20 opening searches using the shipped WASM.
+
+Live bots run in this worker because their private capture knowledge cannot be
+sent to the human opponent's browser. Analysis uses the same WASM in the browser,
+inside a dedicated worker, with only the analyst's permitted knowledge. The
+worker keeps synchronous engine initialization off the browser UI thread.
+Scores are estimates, and the user
+chooses hypothetical reveal outcomes when exploring a branch. Ordinary full-game
+Xiangqi analysis and study import are not valid substitutes for this chance tree.
+
+Run `python -m unittest external.pikafish_worker.test_jieqi` to check observation
+validation, all ten packaged engine levels and reproducibility for identical
+observations. The native Scala rules remain authoritative for live legality,
+six-turn chase/check restrictions, draws and game results.

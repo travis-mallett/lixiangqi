@@ -15,7 +15,8 @@ case class HookConfig(
     increment: Clock.IncrementSeconds,
     moveTimeLimit: Option[MoveTimeLimit],
     days: Days,
-    color: TriColor
+    color: TriColor,
+    override val gameVariant: lila.xiangqi.GameVariant = lila.xiangqi.GameVariant.Xiangqi
 ) extends HumanConfig:
 
   val rated = Rated.No
@@ -27,7 +28,8 @@ case class HookConfig(
     increment,
     moveTimeLimit,
     days,
-    color.name.some
+    color.name.some,
+    Some(gameVariant.key)
   ).some
 
   def withTimeModeString(tc: Option[String]) =
@@ -50,6 +52,7 @@ case class HookConfig(
           Hook.make(
             sri = sri,
             variant = variant,
+            gameVariant = gameVariant,
             clock = clock,
             moveTimeLimit = makeMoveTimeLimit,
             color = color,
@@ -62,6 +65,7 @@ case class HookConfig(
           user.map: u =>
             Seek.make(
               variant = variant,
+              gameVariant = gameVariant,
               daysPerTurn = makeDaysPerTurn,
               user = u,
               blocking = blocking
@@ -70,6 +74,7 @@ case class HookConfig(
   def updateFrom(game: Game) =
     val h1 = copy(
       variant = game.variant,
+      gameVariant = game.nativeVariant,
       timeMode = TimeMode.ofGame(game),
       time = game.clock.map(_.limitInMinutes) | time,
       increment = game.clock.map(_.incrementSeconds) | increment,
@@ -89,7 +94,8 @@ object HookConfig extends BaseConfig:
       i: Clock.IncrementSeconds,
       ml: Option[MoveTimeLimit],
       d: Days,
-      c: Option[String]
+      c: Option[String],
+      gameVariant: Option[String] = None
   ) =
     new HookConfig(
       variant = chess.variant.Variant.orDefault(v),
@@ -98,7 +104,10 @@ object HookConfig extends BaseConfig:
       increment = i,
       moveTimeLimit = ml,
       days = d,
-      color = TriColor.orDefault(c)
+      color = TriColor.orDefault(c),
+      gameVariant = gameVariant.fold(lila.xiangqi.GameVariant.Xiangqi)(
+        lila.xiangqi.GameVariant.fromKey(_).fold(sys.error, identity)
+      )
     )
 
   def default(@annotation.unused auth: Boolean): HookConfig = default
@@ -126,7 +135,12 @@ object HookConfig extends BaseConfig:
         increment = r.get("i"),
         moveTimeLimit = r.contains("ml").option(r.get[MoveTimeLimit]("ml")),
         days = r.get("d"),
-        color = TriColor.Random
+        color = TriColor.Random,
+        gameVariant = r
+          .getO[String]("gameVariant")
+          .fold(lila.xiangqi.GameVariant.Xiangqi)(
+            lila.xiangqi.GameVariant.fromKey(_).fold(sys.error, identity)
+          )
       )
 
     def writes(w: BSON.Writer, o: HookConfig) =
@@ -136,5 +150,6 @@ object HookConfig extends BaseConfig:
         "t" -> o.time,
         "i" -> o.increment,
         "ml" -> o.moveTimeLimit,
-        "d" -> o.days
+        "d" -> o.days,
+        "gameVariant" -> o.gameVariant.key
       )

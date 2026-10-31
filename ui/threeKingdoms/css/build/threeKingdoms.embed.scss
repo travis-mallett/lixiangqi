@@ -1,0 +1,18 @@
+@import '../../../lib/css/embed';
+
+body {
+  background: transparent;
+}
+
+.three-kingdoms-embed {
+  display: block;
+  width: min(100%, calc((100vh - 3rem) * var(--board-aspect-ratio, 1)));
+  margin: auto;
+  color: $c-font;
+
+  &__players {
+    text-align: center;
+    padding: 0.4rem;
+    overflow-wrap: anywhere;
+  }
+}

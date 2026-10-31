@@ -32,6 +32,114 @@ final class MobileAuth(env: Env, auth: => Auth) extends LilaController(env):
     else requestLimit(HTTPRequest.ipAddress(req), fuccess(error(429, "rate_limited")))(run)
     result.map(_.withHeaders(CACHE_CONTROL -> "no-store"))
 
+  def config = Anon: ctx ?=>
+    val socketDomain = env.net.socketDomains.headOption.getOrElse(ctx.req.host)
+    val scheme = if env.net.baseUrl.value.startsWith("https:") then "wss" else "ws"
+    Ok(
+      Json.obj(
+        "googleClientId" -> env.security.externalLogin.googleClientId,
+        "presenceSocketUrl" -> s"$scheme://$socketDomain/mobile/presence"
+      )
+    ).withHeaders(CACHE_CONTROL -> "no-store").toFuccess
+
+  private def field(data: Map[String, Seq[String]], name: String): String =
+    data.get(name).flatMap(_.headOption).getOrElse("")
+
+  private def withGoogle(data: Map[String, Seq[String]])(
+      run: lila.security.ExternalLogin.Identity => Fu[Result]
+  ): Fu[Result] =
+    env.security.googleNativeLogin
+      .verify(field(data, "idToken"))
+      .flatMap(run)
+      .recover:
+        case _: lila.security.GoogleNativeLogin.InvalidCredential => error(401, "invalid_provider_credential")
+        case scala.util.control.NonFatal(_) => error(503, "provider_unavailable")
+
+  def googleLogin = AnonBodyOf(parse.formUrlEncoded(16384)): data =>
+    allowed:
+      withGoogle(data): identity =>
+        env.security.externalIdentities
+          .owner(identity.key)
+          .flatMap:
+            case None =>
+              fuccess(
+                Ok(
+                  Json.obj(
+                    "status" -> "registration_required",
+                    "email" -> identity.verifiedEmail.map(_.value)
+                  )
+                )
+              )
+            case Some(user) if user.enabled.no => fuccess(error(403, "account_closed"))
+            case Some(user) =>
+              env.security.api
+                .checkExternalLogin(user, Option(field(data, "token")).filter(_.nonEmpty))
+                .flatMap:
+                  case lila.security.LoginCandidate.Result.Success(_) => completeLogin(user, IsPwned.No, data)
+                  case lila.security.LoginCandidate.Result.MissingTotpToken =>
+                    fuccess(error(401, "missing_totp"))
+                  case lila.security.LoginCandidate.Result.InvalidTotpToken =>
+                    fuccess(error(401, "invalid_totp"))
+                  case _ => fuccess(error(403, "two_factor_required"))
+
+  def googleRegister = AnonBodyOf(parse.formUrlEncoded(16384)): data =>
+    allowed:
+      withGoogle(data): identity =>
+        env.security.externalIdentities
+          .owner(identity.key)
+          .flatMap:
+            case Some(_) => fuccess(error(409, "provider_already_linked"))
+            case None =>
+              env.security.ipTrust
+                .isPubOrTor(req)
+                .flatMap:
+                  if _ then fuccess(error(403, "forbidden_network"))
+                  else
+                    WithProxy: _ ?=>
+                      env.security.signup
+                        .mobile(
+                          email =>
+                            identity.verifiedEmail.contains(email) ||
+                              codes.consume(
+                                field(data, "verificationId"),
+                                field(data, "emailCode"),
+                                email,
+                                "register"
+                              ),
+                          Some(identity)
+                        )
+                        .flatMap(registrationResult)
+
+  private def completeLogin(user: UserModel, pwned: IsPwned, data: Map[String, Seq[String]])(using
+      Context
+  ): Fu[Result] =
+    env.user.repo
+      .mustConfirmEmail(user.id)
+      .flatMap:
+        if _ then
+          env.user.repo
+            .email(user.id)
+            .flatMap:
+              case None => fuccess(error(403, "email_unavailable"))
+              case Some(email) =>
+                val id = field(data, "verificationId")
+                if id.isEmpty then sendCode(email, s"confirm:${user.id.value}", "email_verification_required")
+                else if codes.consume(id, field(data, "emailCode"), email, s"confirm:${user.id.value}") then
+                  env.user.repo.setEmailConfirmed(user.id) >> issue(user, pwned)
+                else fuccess(error(400, "invalid_email_code"))
+        else issue(user, pwned)
+
+  private def registrationResult(result: Signup.Result)(using Context): Fu[Result] = result match
+    case Signup.Result.FormInvalid(form) => fuccess(invalid(form))
+    case Signup.Result.EmailCodeInvalid => fuccess(error(400, "invalid_email_code"))
+    case Signup.Result.RateLimited | Signup.Result.SimpleSignupDuplicate =>
+      fuccess(error(429, "rate_limited"))
+    case Signup.Result.ForbiddenNetwork => fuccess(error(403, "forbidden_network"))
+    case Signup.Result.TurnstileFail | Signup.Result.ConfirmEmail(_, _) =>
+      fuccess(error(500, "registration_failed"))
+    case Signup.Result.AllSet(user, email) =>
+      auth.welcome(user, email, sendWelcomeEmail = true) >> issue(user, IsPwned.No)
+
   def login = AnonBodyOf(parse.formUrlEncoded(16384)): data =>
     allowed:
       env.security.api.loginForm
@@ -70,31 +178,7 @@ final class MobileAuth(env: Env, auth: => Auth) extends LilaController(env):
                               case None => fuccess(error(401, "invalid_credentials"))
                               case Some(user) if user.enabled.no => fuccess(error(403, "account_closed"))
                               case Some(user) =>
-                                env.user.repo
-                                  .mustConfirmEmail(user.id)
-                                  .flatMap:
-                                    if _ then
-                                      env.user.repo
-                                        .email(user.id)
-                                        .flatMap:
-                                          case None => fuccess(error(403, "email_unavailable"))
-                                          case Some(email) =>
-                                            val id = data.get("verificationId").flatMap(_.headOption)
-                                            val code =
-                                              data.get("emailCode").flatMap(_.headOption).getOrElse("")
-                                            id match
-                                              case None =>
-                                                sendCode(
-                                                  email,
-                                                  s"confirm:${user.id.value}",
-                                                  "email_verification_required"
-                                                )
-                                              case Some(id)
-                                                  if codes
-                                                    .consume(id, code, email, s"confirm:${user.id.value}") =>
-                                                env.user.repo.setEmailConfirmed(user.id) >> issue(user, pwned)
-                                              case _ => fuccess(error(400, "invalid_email_code"))
-                                    else issue(user, pwned)
+                                completeLogin(user, pwned, data)
                         )
         )
 
@@ -134,21 +218,15 @@ final class MobileAuth(env: Env, auth: => Auth) extends LilaController(env):
               val code = data.get("emailCode").flatMap(_.headOption).getOrElse("")
               env.security.signup
                 .mobile(email => codes.consume(id, code, email, "register"))
-                .flatMap:
-                  case Signup.Result.FormInvalid(form) => fuccess(invalid(form))
-                  case Signup.Result.EmailCodeInvalid => fuccess(error(400, "invalid_email_code"))
-                  case Signup.Result.RateLimited | Signup.Result.SimpleSignupDuplicate =>
-                    fuccess(error(429, "rate_limited"))
-                  case Signup.Result.ForbiddenNetwork => fuccess(error(403, "forbidden_network"))
-                  case Signup.Result.TurnstileFail | Signup.Result.ConfirmEmail(_, _) =>
-                    fuccess(error(500, "registration_failed"))
-                  case Signup.Result.AllSet(user, email) =>
-                    auth.welcome(user, email, sendWelcomeEmail = true) >> issue(user, IsPwned.No)
+                .flatMap(registrationResult)
 
   private def issue(user: UserModel, pwned: IsPwned)(using Context): Fu[Result] =
     // Reuse the site's session audit and email-confirmation guard, without cookies.
     for
       session <- env.security.api.saveAuthentication(user.id, None, pwned)
       _ <- env.security.store.delete(session)
-      token <- env.oAuth.tokenApi.createMobile(user.id)
+      token <- env.oAuth.tokenApi.createMobile(
+        user.id,
+        kids = HTTPRequest.queryStringGet("client").contains("xiangqi-kids")
+      )
     yield Ok(Json.obj("access_token" -> token.plain, "token_type" -> "Bearer"))

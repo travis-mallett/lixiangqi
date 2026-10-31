@@ -1,0 +1,161 @@
+.signin-methods {
+  &__intro {
+    margin: 1rem 0 2rem;
+  }
+
+  &__list {
+    border: $border;
+    border-radius: $box-radius-size;
+  }
+
+  &__note {
+    color: $c-font-dim;
+    margin-top: 1.5rem;
+  }
+}
+
+.signin-method {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 1.25rem;
+
+  + .signin-method {
+    border-top: $border;
+  }
+
+  h2 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0 0 0.4rem;
+    white-space: normal;
+
+    &::after {
+      display: none;
+    }
+  }
+
+  &__status {
+    color: $c-font-dim;
+    margin: 0;
+
+    &--linked {
+      color: $c-font;
+      display: flex;
+      gap: 0.4rem;
+      align-items: center;
+
+      [data-icon] {
+        color: $c-good;
+      }
+    }
+  }
+
+  &__hint {
+    color: $c-font-dim;
+    font-size: 0.9rem;
+    margin: 0.5rem 0 0;
+  }
+
+  &__action {
+    display: inline-block;
+    padding: 0.65rem 1rem;
+    border: 1px solid $c-link;
+    border-radius: $box-radius-size;
+    color: $c-link;
+    background: transparent;
+    font-size: 1rem;
+    text-align: center;
+
+    &:hover:not(:disabled) {
+      background: $c-bg-zebra;
+    }
+
+    &:focus-visible {
+      outline: $outline;
+      outline-offset: 3px;
+    }
+
+    &--danger {
+      color: color-mix(in srgb, $c-bad 50%, $c-font);
+      border-color: transparent;
+
+      @include if-light {
+        color: $c-bad;
+      }
+    }
+
+    &:disabled {
+      color: $c-font-dim;
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+  }
+
+  .provider-icon:not(.provider-icon--google) {
+    filter: invert(1);
+
+    @include if-light {
+      filter: none;
+    }
+  }
+
+  @media (max-width: 600px) {
+    grid-template-columns: 24px minmax(0, 1fr);
+
+    > form,
+    > a {
+      grid-column: 2;
+      justify-self: start;
+    }
+  }
+}
+
+.identity-check {
+  max-width: 520px;
+  margin: 0 auto;
+
+  h1 {
+    font-size: 2rem;
+  }
+
+  &__intro {
+    margin: 1rem 0 1.5rem;
+  }
+
+  &__divider {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    color: $c-font-dim;
+    margin: 1.5rem 0;
+
+    &::before,
+    &::after {
+      content: '';
+      height: 1px;
+      background: $c-border;
+      flex: 1;
+    }
+  }
+
+  .form-actions {
+    padding: 0;
+    border: 0;
+  }
+
+  .form-actions .submit {
+    width: 100%;
+  }
+
+  &__cancel {
+    margin-top: 1.5rem;
+    text-align: center;
+  }
+
+  &__remaining {
+    margin: 1rem 0 1.5rem 1.25rem;
+    list-style: disc;
+  }
+}

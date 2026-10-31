@@ -10,26 +10,53 @@ import ScalatagsTemplate.{ *, given }
 final class CategUi(helpers: Helpers, bits: ForumBits):
   import helpers.{ *, given }
 
-  def index(categs: List[CategView])(using Context) =
+  def index(categs: List[CategView], canWrite: Boolean)(using Context) =
     Page(trans.site.forum.txt())
       .css("bits.forum")
       .csp(_.withInlineIconFont)
       .graph(
-        title = "Lichess community forum",
+        title = s"LiXiangQi ${trans.site.forum.txt()}",
         url = routeUrl(routes.ForumCateg.index),
-        description = "Chess discussions and feedback about Lichess development"
+        description = s"LiXiangQi ${trans.site.forum.txt()}"
       ):
         val (teamCategs, globalCategs) = categs.partition(_.categ.isTeam)
+        val (privateCategs, publicCategs) = globalCategs.partition(_.categ.hidden)
         main(cls := "forum index box")(
           boxTop(
-            h1(dataIcon := Icon.BubbleConvo, cls := "text")("Lichess Forum"),
-            bits.searchForm()
+            h1(dataIcon := Icon.BubbleConvo, cls := "text")("LiXiangQi ", trans.site.forum()),
+            div(cls := "forum-index__actions")(
+              bits.searchForm(),
+              (canWrite && publicCategs.nonEmpty).option(
+                tag("details")(cls := "forum-compose")(
+                  tag("summary")(cls := "button text", dataIcon := Icon.Pencil)(trans.forum.newTopic()),
+                  div(cls := "forum-compose__choices")(
+                    p(trans.forum.chooseSection()),
+                    publicCategs.map: view =>
+                      a(href := routes.ForumTopic.form(view.slug))(bits.categName(view.categ))
+                  )
+                )
+              )
+            )
           ),
-          showCategs(globalCategs),
-          teamCategs.nonEmpty.option(
-            frag(
-              boxTop(h1("Your Team Boards")),
-              showCategs(categs.filter(_.categ.isTeam))
+          div(cls := "forum-directory")(
+            p(cls := "forum-directory__intro")(trans.forum.introduction()),
+            h2(trans.forum.sections()),
+            showCategs(publicCategs),
+            teamCategs.nonEmpty.option(
+              st.section(
+                h2(trans.forum.teamBoards()),
+                showCategs(teamCategs)
+              )
+            ),
+            privateCategs.nonEmpty.option(
+              tag("details")(cls := "forum-private")(
+                tag("summary")(
+                  if Granter.opt(_.ModerateForum) then trans.forum.moderatorBoards()
+                  else trans.forum.privateDiscussions()
+                ),
+                Granter.opt(_.ModerateForum).option(p(trans.forum.moderatorBoardsDescription())),
+                showCategs(privateCategs)
+              )
             )
           )
         )
@@ -41,12 +68,16 @@ final class CategUi(helpers: Helpers, bits: ForumBits):
       stickyPosts: List[TopicView]
   )(using Context) =
 
+    // Public-board pagination uses an approximate total to avoid counting large forums.
+    // The actual page contents determine whether there is anything to render.
+    val hasTopics = topics.currentPageResults.nonEmpty || stickyPosts.nonEmpty
+
     def showTopic(sticky: Boolean)(topic: TopicView) =
       tr(cls := List("sticky" -> sticky))(
         td(cls := "subject")(
           a(href := routes.ForumTopic.show(categ.id, topic.slug))(topic.name)
         ),
-        td(cls := "right")(topic.nbReplies.localize),
+        td(cls := "right", attr("data-label") := trans.site.replies.txt())(topic.nbReplies.localize),
         td(
           topic.lastPost.map: post =>
             frag(
@@ -59,24 +90,24 @@ final class CategUi(helpers: Helpers, bits: ForumBits):
         )
       )
 
-    Page(categ.name)
+    Page(bits.categName(categ))
       .css("bits.forum")
       .csp(_.withInlineIconFont)
       .js(infiniteScrollEsmInit)
       .graph(
-        title = s"Forum: ${categ.name}",
+        title = s"Forum: ${bits.categName(categ)}",
         url = routeUrl(routes.ForumCateg.show(categ.id)),
-        description = categ.desc
+        description = bits.categDescription(categ)
       ):
         main(cls := "forum forum-categ box")(
+          st.nav(cls := "forum-breadcrumb", attr("aria-label") := trans.site.forum.txt())(
+            a(href := routes.ForumCateg.index)(trans.site.forum()),
+            span(attr("aria-hidden") := "true")(" / "),
+            span(attr("aria-current") := "page")(bits.categName(categ))
+          ),
           boxTop(
             h1(
-              a(
-                href := categ.team.fold(routes.ForumCateg.index)(routes.Team.show(_)),
-                dataIcon := Icon.LessThan,
-                cls := "text"
-              ),
-              categ.team.fold(frag(categ.name))(teamLink(_, true))
+              categ.team.fold(frag(bits.categName(categ)))(teamLink(_, true))
             ),
             div(cls := "box__top__actions")(
               Granter
@@ -90,69 +121,80 @@ final class CategUi(helpers: Helpers, bits: ForumBits):
               canWrite.option(
                 a(
                   href := routes.ForumTopic.form(categ.id),
-                  cls := "button button-empty button-green text",
+                  cls := "button text",
                   dataIcon := Icon.Pencil
                 )(trans.site.createANewTopic())
               )
             )
           ),
-          table(cls := "topics slist slist-pad")(
-            thead(
-              tr(
-                th,
-                th(cls := "right")(trans.site.replies()),
-                th(trans.site.lastPost())
+          p(cls := "forum-categ__description")(bits.categDescription(categ)),
+          (!hasTopics).option(
+            div(cls := "forum-empty")(
+              h2(trans.forum.noDiscussions()),
+              p(trans.forum.firstTopic()),
+              canWrite.option(
+                a(cls := "button text", dataIcon := Icon.Pencil, href := routes.ForumTopic.form(categ.id))(
+                  trans.site.createANewTopic()
+                )
               )
-            ),
-            tbody(cls := "infinite-scroll")(
-              stickyPosts.map(showTopic(sticky = true)),
-              topics.currentPageResults.map(showTopic(sticky = false)),
-              pagerNextTable(topics, n => routes.ForumCateg.show(categ.id, n).url)
+            )
+          ),
+          hasTopics.option(
+            table(cls := "topics slist slist-pad")(
+              thead(
+                tr(
+                  th(trans.forum.topic()),
+                  th(cls := "right")(trans.site.replies()),
+                  th(trans.site.lastPost())
+                )
+              ),
+              tbody(cls := "infinite-scroll")(
+                stickyPosts.map(showTopic(sticky = true)),
+                topics.currentPageResults.map(showTopic(sticky = false)),
+                pagerNextTable(topics, n => routes.ForumCateg.show(categ.id, n).url)
+              )
             )
           )
         )
 
   private def showCategs(categs: List[CategView])(using Context) =
-    table(cls := "categs slist slist-pad")(
-      thead(
-        tr(
-          th,
-          th(cls := "right")(trans.site.topics()),
-          th(cls := "right")(trans.site.posts()),
-          th(trans.site.lastPost())
-        )
-      ),
-      tbody:
-        categs.map: view =>
-          view.lastPost match
-            case None =>
-              tr( // the last post was deleted!
-                td(cls := "subject")(
-                  h2(a(href := routes.ForumCateg.show(view.slug))(view.name)),
-                  p(view.desc)
-                ),
-                td(cls := "right")(view.nbTopics.localize),
-                td(cls := "right")(view.nbPosts.localize),
-                td
-              )
-            case Some((topic, post, page)) =>
-              val canBrowse = !view.categ.hidden
-                || Granter.opt(_.ModerateForum)
-                || (view.categ.isDiagnostic && Granter.opt(_.Diagnostics))
-              val postUrl = s"${routes.ForumTopic.show(view.slug, topic.slug, page)}#${post.id}"
-              val categUrl =
-                if canBrowse then routes.ForumCateg.show(view.slug)
-                else routes.ForumTopic.show(view.slug, topic.slug, 1)
-              tr(
-                td(cls := "subject")(h2(a(href := categUrl)(view.name)), p(view.desc)),
-                td(cls := "right")((if canBrowse then view.nbTopics else 1).localize),
-                td(cls := "right")((if canBrowse then view.nbPosts else topic.nbPosts).localize),
-                td(
-                  a(href := postUrl)(momentFromNow(post.createdAt)),
-                  br,
-                  trans.site.by(bits.authorLink(post))
+    ul(cls := "forum-sections")(
+      categs.map: view =>
+        val canBrowse = !view.categ.hidden || Granter.opt(_.ModerateForum)
+          || (view.categ.isDiagnostic && Granter.opt(_.Diagnostics))
+        val categUrl = view.lastPost.filter(_ => !canBrowse).fold(routes.ForumCateg.show(view.slug)) {
+          case (topic, _, _) => routes.ForumTopic.show(view.slug, topic.slug, 1)
+        }
+        li(cls := "forum-section")(
+          div(cls := "forum-section__identity")(
+            h3(a(href := categUrl)(bits.categName(view.categ))),
+            p(bits.categDescription(view.categ)),
+            a(cls := "forum-section__browse", href := categUrl)(trans.forum.viewTopics())
+          ),
+          dl(cls := "forum-section__counts")(
+            div(dt(trans.site.topics()), dd((if canBrowse then view.nbTopics else 1).localize)),
+            div(
+              dt(trans.site.posts()),
+              dd((if canBrowse then view.nbPosts else view.lastPost.fold(0)(_._1.nbPosts)).localize)
+            )
+          ),
+          div(cls := "forum-section__latest")(
+            span(cls := "forum-section__label")(trans.forum.latestDiscussion()),
+            view.lastPost.fold[Frag](p(cls := "forum-section__empty")(trans.forum.noDiscussions())) {
+              case (topic, post, page) =>
+                frag(
+                  a(
+                    cls := "forum-section__topic",
+                    href := s"${routes.ForumTopic.show(view.slug, topic.slug, page)}#${post.id}"
+                  )(topic.name),
+                  div(cls := "forum-section__byline")(
+                    bits.authorLink(post),
+                    momentFromNow(post.createdAt)
+                  )
                 )
-              )
+            }
+          )
+        )
     )
 
   def modFeed(
@@ -160,7 +202,7 @@ final class CategUi(helpers: Helpers, bits: ForumBits):
       posts: Paginator[PostView]
   )(using Context) =
     paginationByQuery(routes.ForumCateg.modFeed(categ.id, 1), posts, showPost = true)
-    Page(categ.name)
+    Page(bits.categName(categ))
       .css("bits.forum")
       .csp(_.withInlineIconFont)
       .js(infiniteScrollEsmInit):
@@ -171,7 +213,7 @@ final class CategUi(helpers: Helpers, bits: ForumBits):
                 href := routes.ForumCateg.show(categ.id),
                 dataIcon := Icon.LessThan,
                 cls := "text"
-              )(categ.name),
+              )(bits.categName(categ)),
               " mod feed"
             )
           ),

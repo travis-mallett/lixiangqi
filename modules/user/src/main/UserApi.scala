@@ -128,8 +128,12 @@ final class UserApi(userRepo: UserRepo, perfsRepo: UserPerfsRepo, cacheApi: Cach
             perfs = perfsRepo.aggregate.readFirst(doc, user)
           yield UserWithPerfs(user, perfs)
 
-  def enabledWithPerf[U: UserIdOf](id: U, perfType: PerfType): Fu[Option[WithPerf]] =
-    byIdWithPerf(id, perfType).dmap(_.filter(_.user.enabled.yes))
+  def enabledWithPerf[U: UserIdOf](
+      id: U,
+      perfType: PerfType,
+      track: RankTrackId = RankTrackId.xiangqi
+  ): Fu[Option[WithPerf]] =
+    byIdWithPerf(id, perfType, track).dmap(_.filter(_.user.enabled.yes))
 
   def listWithPerfs[U: UserIdOf](
       us: List[U],
@@ -153,8 +157,12 @@ final class UserApi(userRepo: UserRepo, perfsRepo: UserPerfsRepo, cacheApi: Cach
             perfs = perfsRepo.aggregate.readFirst(doc, user)
           yield UserWithPerfs(user, perfs)
 
-  def byIdWithPerf[U: UserIdOf](id: U, pk: PerfKey): Fu[Option[WithPerf]] =
-    userRepo.byId(id).flatMapz(perfsRepo.withPerf(_, pk).dmap(some))
+  def byIdWithPerf[U: UserIdOf](
+      id: U,
+      pk: PerfKey,
+      track: RankTrackId = RankTrackId.xiangqi
+  ): Fu[Option[WithPerf]] =
+    userRepo.byId(id).flatMapz(perfsRepo.withPerf(_, pk, track).dmap(some))
 
   def pairWithPerfs(userIds: ByColor[Option[UserId]]): Fu[ByColor[Option[UserWithPerfs]]] =
     listWithPerfs(userIds.flatten, includeClosed = true, fromPri = true).map: users =>

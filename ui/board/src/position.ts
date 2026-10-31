@@ -3,6 +3,7 @@ import type { BoardDefinition, BoardPosition, VisiblePiece } from './types';
 
 /** Visible position only; move counters and rule history belong to the rules layer. */
 export function positionToFen(position: BoardPosition, definition: BoardDefinition): string {
+  if (definition.geometry.kind === 'graph') throw new Error('FEN requires a rectangular board');
   const { columns, rows } = definition.geometry;
   const active = definition.participants.indexOf(position.active);
   if (active !== 0 && active !== 1) throw new Error(`Unknown participant: ${position.active}`);
@@ -18,7 +19,12 @@ export function positionToFen(position: BoardPosition, definition: BoardDefiniti
       }
       if (empty) result += String(empty);
       empty = 0;
-      if (piece.face === 'down') result += '*';
+      if (piece.face === 'down')
+        result += piece.participant
+          ? definition.participants.indexOf(piece.participant) === 0
+            ? 'X'
+            : 'x'
+          : '*';
       else {
         const letter = definition.roles[piece.role];
         const participant = definition.participants.indexOf(piece.participant);
@@ -58,15 +64,16 @@ export function recordedPosition(position: BoardPosition, move: string, active: 
   const pieces = new Map(position.pieces);
   pieces.delete(from);
   pieces.set(to, piece);
-  return { pieces, active, lastMove: [from, to] };
+  return { board: position.board, pieces, active, lastMove: [from, to] };
 }
 
 /** Codec for rectangular visible positions. Hidden identities are never accepted here. */
 export function positionFromFen(fen: string, definition: BoardDefinition): BoardPosition {
+  const geometry = definition.geometry;
+  if (geometry.kind === 'graph') throw new Error('FEN requires a rectangular board');
   const [placement, turn = 'w'] = fen.trim().split(/\s+/);
   const ranks = placement.split('/');
-  if (ranks.length !== definition.geometry.rows || !['w', 'b'].includes(turn))
-    throw new Error('Invalid board position');
+  if (ranks.length !== geometry.rows || !['w', 'b'].includes(turn)) throw new Error('Invalid board position');
   const pieces = new Map<string, VisiblePiece>();
   ranks.forEach((rank, index) => {
     let file = 0;
@@ -78,21 +85,25 @@ export function positionFromFen(fen: string, definition: BoardDefinition): Board
         const role = Object.keys(definition.roles).find(
           role => definition.roles[role] === token.toLowerCase(),
         );
-        if (!role && token !== '*') throw new Error(`Invalid piece: ${token}`);
+        if (!role && !['*', 'x', 'X'].includes(token)) throw new Error(`Invalid piece: ${token}`);
         pieces.set(
-          `${String.fromCharCode(97 + file)}${definition.geometry.rows - index}`,
+          `${String.fromCharCode(97 + file)}${geometry.rows - index}`,
           role
             ? {
                 face: 'up',
                 participant: definition.participants[token === token.toUpperCase() ? 0 : 1],
                 role,
               }
-            : { face: 'down', back: 'default' },
+            : {
+                face: 'down',
+                back: 'default',
+                ...(token === '*' ? {} : { participant: definition.participants[token === 'X' ? 0 : 1] }),
+              },
         );
         file++;
       }
     }
-    if (file !== definition.geometry.columns) throw new Error('Invalid board width');
+    if (file !== geometry.columns) throw new Error('Invalid board width');
   });
-  return { pieces, active: definition.participants[turn === 'w' ? 0 : 1] };
+  return { board: definition.id, pieces, active: definition.participants[turn === 'w' ? 0 : 1] };
 }

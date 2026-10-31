@@ -133,7 +133,7 @@ final class Report(env: Env, userC: => User, modC: => Mod) extends LilaControlle
         api.inquiries.toggle(Left(report.id)).inject(NoContent)
   }
 
-  def form = Auth { _ ?=> _ ?=>
+  def form = AuthOrScoped(_.Mobile.Inbox) { _ ?=> _ ?=>
     getUserStr("username").so(env.user.repo.byId).flatMap { user =>
       if user.exists(_.is(UserId.lichess)) then Redirect(routes.Main.contact)
       else
@@ -150,13 +150,16 @@ final class Report(env: Env, userC: => User, modC: => Mod) extends LilaControlle
   private val reportRateLimit =
     env.security.ipTrust.rateLimit(30, 3.hours, "report.create", _.proxyMultiplier(3))
 
-  def create = AuthBody { _ ?=> me ?=>
+  def create = AuthOrScopedBody(_.Mobile.Inbox) { ctx ?=> me ?=>
     bindForm(env.report.forms.create)(
       err =>
-        for
-          user <- getUserStr("username").so(env.user.repo.byId)
-          page <- renderPage(views.report.ui.form(err, user, none))
-        yield BadRequest(page),
+        negotiate(
+          html = for
+            user <- getUserStr("username").so(env.user.repo.byId)
+            page <- renderPage(views.report.ui.form(err, user, none))
+          yield BadRequest(page),
+          json = jsonFormError(err)
+        ),
       data =>
         if me.is(data.user.id) then BadRequest("You cannot report yourself")
         else
@@ -164,7 +167,9 @@ final class Report(env: Env, userC: => User, modC: => Mod) extends LilaControlle
             for
               _ <- api.create(data, Reporter(me), Nil)
               _ <- api.isAutoBlock(data).so(env.relation.api.block(me, data.user.id))
-            yield Redirect(routes.Report.thanks).flashing("reported" -> data.user.name.value)
+            yield
+              if ctx.isOAuth then Ok(play.api.libs.json.Json.obj("ok" -> true))
+              else Redirect(routes.Report.thanks).flashing("reported" -> data.user.name.value)
     )
   }
 
@@ -193,7 +198,7 @@ final class Report(env: Env, userC: => User, modC: => Mod) extends LilaControlle
       )
   }
 
-  def flag = AuthOrScopedBody(_.Web.Mobile) { _ ?=> me ?=>
+  def flag = AuthOrScopedBody(_.Web.Mobile, _.Mobile.Inbox, _.Mobile.Forum) { _ ?=> me ?=>
     bindForm(env.report.forms.flag)(
       _ => BadRequest,
       data =>

@@ -5,6 +5,8 @@ import type { EngineAnalysis } from 'lib/ceval';
 import { isTouchDevice } from 'lib/device';
 import {
   replayXiangqiVariation,
+  rootMoveLabels,
+  type MoveLabels,
   rulesPositionKey,
   type RulesPosition,
   type VariationMove,
@@ -13,7 +15,7 @@ import { licon } from 'lib/licon';
 import type { EngineScore } from 'lib/tree/native';
 import stepwiseScroll from 'lib/view/stepwiseScroll';
 
-import { displayedEvaluation, evaluationShare, formatEvaluation, NEUTRAL_EVALUATION } from './evaluation';
+import { displayedEvaluation, evaluationShare, formatEvaluation, UNKNOWN_EVALUATION } from './evaluation';
 
 export interface ExplorerMove {
   move: string;
@@ -56,11 +58,14 @@ export class AnalysisSuggestions {
   private readonly variations = new Map<string, VariationMove[]>();
   private readonly pending = new Map<string, string[]>();
   private readonly requests = new Set<string>();
+  private readonly rootLabels = new Map<string, MoveLabels>();
+  private readonly labelRequests = new Set<string>();
+  private labelTimer?: ReturnType<typeof setTimeout>;
   private timer?: ReturnType<typeof setTimeout>;
   private previewGround: BoardView | undefined;
   private previewEnabled = true;
   private expanded = false;
-  private lastEvaluation = NEUTRAL_EVALUATION;
+  private lastEvaluation = UNKNOWN_EVALUATION;
   private updateArrows = (): void => undefined;
   private readonly lifetime = new window.AbortController();
 
@@ -69,6 +74,7 @@ export class AnalysisSuggestions {
     private readonly orientation: () => 'red' | 'black',
     private readonly configuredMultiPv: () => number,
     private readonly elements: AnalysisSuggestionElements,
+    private readonly notationStyle: () => 'english' | 'chinese' = () => 'english',
   ) {
     this.fen = initialFen;
     this.position = { initialFen, moves: [], ruleset: 'unrestricted-v1' };
@@ -88,6 +94,7 @@ export class AnalysisSuggestions {
   destroy(): void {
     this.lifetime.abort();
     clearTimeout(this.timer);
+    clearTimeout(this.labelTimer);
     this.hidePreview();
   }
 
@@ -100,7 +107,11 @@ export class AnalysisSuggestions {
     this.explorerResult = undefined;
     this.fen = fen;
     this.position = position;
+    this.resetEvaluation();
+    this.setEvaluation();
     this.pending.clear();
+    this.labelRequests.clear();
+    clearTimeout(this.labelTimer);
     clearTimeout(this.timer);
     this.play = play;
     this.expanded = false;
@@ -113,7 +124,7 @@ export class AnalysisSuggestions {
   }
 
   resetEvaluation(): void {
-    this.lastEvaluation = NEUTRAL_EVALUATION;
+    this.lastEvaluation = UNKNOWN_EVALUATION;
   }
 
   setEvaluation(score?: EngineScore): void {
@@ -122,22 +133,58 @@ export class AnalysisSuggestions {
     const redShare = evaluationShare(this.lastEvaluation);
     this.elements.evalFill.style.setProperty('--xiangqi-eval-share', `${redShare}%`);
     this.elements.eval.setAttribute('aria-valuenow', redShare.toFixed(1));
+    this.elements.eval.setAttribute('aria-valuetext', formatEvaluation(this.lastEvaluation));
     this.elements.engineScore.textContent = formatEvaluation(this.lastEvaluation);
     this.elements.evalScore.textContent = formatEvaluation(this.lastEvaluation);
   }
 
-  renderEngine(result: EngineAnalysis, play: (moves: string[]) => void): void {
+  renderEngine(result: EngineAnalysis, play: (moves: string[]) => void, final = false): void {
     this.elements.engineStatus.classList.remove('error');
-    this.elements.engineStatus.textContent = `Depth ${result.depth} · ${formatNodes(result.nodes)} nodes`;
+    this.elements.engineStatus.textContent =
+      (this.position.ruleset === 'jieqi-v1' ? i18n.site.jieqiAnalysisEstimate + ' · ' : '') +
+      i18n.site.engineSearchStatus(i18n.site.depthX(result.depth), formatNodes(result.nodes)) +
+      (final ? ' · ' + i18n.site.engineSearchComplete : '');
     this.setEvaluation(result.score);
     this.engineResult = result;
     this.play = play;
     this.render();
+    if (this.position.ruleset === 'jieqi-v1') this.resolveRootLabels();
+  }
+
+  private resolveRootLabels(): void {
+    clearTimeout(this.labelTimer);
+    this.labelTimer = setTimeout(() => {
+      const fen = this.fen;
+      const moves = [
+        ...new Set((this.engineResult?.lines ?? []).map(line => line.pvMoves[0]).filter(Boolean)),
+      ]
+        .filter(move => !this.rootLabels.has(`${fen}:${move}`) && !this.labelRequests.has(`${fen}:${move}`))
+        .slice(0, 16);
+      if (!moves.length) return;
+      for (const move of moves) this.labelRequests.add(`${fen}:${move}`);
+      void rootMoveLabels(fen, moves, this.lifetime.signal)
+        .then(labels => {
+          if (this.lifetime.signal.aborted) return;
+          for (const [move, label] of Object.entries(labels)) this.rootLabels.set(`${fen}:${move}`, label);
+          while (this.rootLabels.size > 256) this.rootLabels.delete(this.rootLabels.keys().next().value!);
+          if (this.fen === fen) this.render();
+        })
+        .catch(() => {
+          if (this.lifetime.signal.aborted || this.fen !== fen) return;
+          this.elements.engineStatus.textContent = i18n.site.engineMoveLabelsFailed;
+          this.elements.engineStatus.classList.add('error');
+        });
+    }, 180);
   }
 
   renderExplorer(result: ExplorerResult, play: (moves: string[]) => void): void {
     this.explorerResult = result;
     this.play = play;
+    if (result.available && result.moves.length) {
+      this.elements.engineStatus.classList.remove('error');
+      this.elements.engineStatus.textContent = i18n.site.cloudAnalysis;
+      this.setEvaluation(this.explorerScore(result.moves[0].score));
+    }
     this.render();
   }
 
@@ -176,7 +223,7 @@ export class AnalysisSuggestions {
           this.suggestionRow({
             moves: entry.pvMoves?.length ? entry.pvMoves : [entry.move],
             notations: entry.wxfMoves?.length ? entry.wxfMoves : [entry.notation],
-            value: formatExplorerScore(entry.score),
+            value: formatEvaluation(this.explorerScore(entry.score) ?? UNKNOWN_EVALUATION),
           }),
         )
       : (this.engineResult?.lines ?? [])
@@ -206,6 +253,11 @@ export class AnalysisSuggestions {
     row.className = 'pv pv--nowrap placeholder';
     row.setAttribute('aria-hidden', 'true');
     return row;
+  }
+
+  private explorerScore(score?: number): EngineScore | undefined {
+    // CDB uses the side to move; every analysis score is displayed from Red's perspective.
+    return score === undefined ? undefined : { redCp: score * (this.fen.split(' ')[1] === 'w' ? 1 : -1) };
   }
 
   private suggestionRow(entry: { moves: string[]; notations: string[]; value: string }): HTMLDivElement {
@@ -278,7 +330,7 @@ export class AnalysisSuggestions {
     const clipped = moves.slice(0, MAX_PV_MOVES);
     const key = JSON.stringify([this.position, clipped]);
     const positions = this.variations.get(key);
-    if (!positions && !this.requests.has(key)) {
+    if (this.position.ruleset !== 'jieqi-v1' && !positions && !this.requests.has(key)) {
       this.pending.set(key, clipped);
       clearTimeout(this.timer);
       const positionKey = rulesPositionKey(this.position);
@@ -321,7 +373,16 @@ export class AnalysisSuggestions {
       move.dataset.moveIndex = String(index);
       if (positions?.[index]) move.dataset.fen = positions[index].state.fen;
       move.dataset.uci = moves[index];
-      move.textContent = resolvedNotations[index];
+      const rootLabel = this.rootLabels.get(`${this.fen}:${moves[index]}`);
+      move.textContent =
+        this.position.ruleset === 'jieqi-v1'
+          ? rootLabel
+            ? this.notationStyle() === 'chinese'
+              ? rootLabel.chineseNotation
+              : rootLabel.notation
+            : '…'
+          : resolvedNotations[index];
+      if (this.position.ruleset === 'jieqi-v1') move.title = i18n.site.jieqiCandidateMoveHelp;
       elements.push(move);
       if (positions?.[index]) beforeFen = positions[index].state.fen;
     }
@@ -363,12 +424,6 @@ function pvMovePrefix(fen: string, index: number): string | undefined {
   const fullmove = Math.max(1, Number.parseInt(fields[5] || '1', 10) || 1);
   if (fields[1] === 'w') return `${fullmove}.`;
   return index === 0 ? `${fullmove}...` : undefined;
-}
-
-function formatExplorerScore(score?: number): string {
-  if (score === undefined) return '—';
-  const pawns = score / 100;
-  return `${pawns >= 0 ? '+' : '−'}${Math.abs(pawns).toFixed(2)}`;
 }
 
 function formatNodes(nodes: number): string {

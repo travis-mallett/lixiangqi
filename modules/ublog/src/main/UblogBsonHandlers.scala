@@ -43,7 +43,8 @@ private object UblogBsonHandlers:
       "lived" -> true,
       "featured" -> true,
       "topics" -> true,
-      "sticky" -> true
+      "sticky" -> true,
+      "official" -> true
     )
 
   val userLiveSort = $doc("sticky" -> -1, "lived.at" -> -1)

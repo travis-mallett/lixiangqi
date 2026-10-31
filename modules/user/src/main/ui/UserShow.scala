@@ -46,10 +46,21 @@ final class UserShow(helpers: Helpers, bits: UserBits):
         then div(cls := "upt__info__warning")(trans.site.thisAccountViolatedTos())
         else
           div(cls := "upt__info__ranks")(
-            u.perfs.xiangqiRank.map: perf =>
-              span(cls := "upt__rank", dataIcon := Icon.Crown)(
-                XiangqiRank.catalog.code(perf.score).value
-              )
+            lila.core.rank.RankTrackId.all.flatMap: track =>
+              u.perfs
+                .rank(track)
+                .filter(_.established)
+                .map: perf =>
+                  span(cls := "upt__rank")(
+                    span(
+                      dataIcon := VariantIcon(lila.core.rank.RankTrackId.variant(track)),
+                      aria.hidden := true
+                    ),
+                    span(cls := "upt__rank__name")(
+                      lila.core.i18n.I18nKey(lila.core.rank.RankTrackId.variant(track).nameKey)()
+                    ),
+                    strong(lila.rating.RankPolicy(track).catalog.code(perf.score).value)
+                  )
           )
       ),
       ctx.userId.map: myId =>

@@ -1,6 +1,14 @@
 @import 'table';
 
 .directory-players {
+  &__pagination {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem;
+  }
+
   a {
     font-weight: bold;
   }

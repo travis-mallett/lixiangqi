@@ -14,7 +14,7 @@ The complete appearance pack registered as `wudang` composes:
 
 The background lives at
 `public/images/background/seeking-the-dao-at-wudang.webp`, the board at
-`public/images/board/xiangqi-wudang.webp`, and the generated brush-seal
+`public/images/board/svg/xiangqi-wudang.svg`, and the generated brush-seal
 pieces at `public/piece/xiangqi-wudang/`.
 
 ## Material contract

@@ -18,6 +18,9 @@ object GameFilterMenu:
     val filters: NonEmptyList[GameFilter] = NonEmptyList(
       GameFilter.all,
       List(
+        Some(GameFilter.jieqi),
+        Some(GameFilter.minixiangqi),
+        Some(GameFilter.threeKingdoms),
         (~nbs.withMe > 0).option(GameFilter.me),
         (user.count.ranked > 0).option(GameFilter.ranked),
         (user.count.win > 0).option(GameFilter.win),
@@ -40,6 +43,7 @@ object GameFilterMenu:
     filter match
       case GameFilter.bookmark => nbs.map(_.bookmark)
       case GameFilter.imported => nbs.map(_.imported)
+      case GameFilter.jieqi | GameFilter.minixiangqi | GameFilter.threeKingdoms => None
       case GameFilter.all => user.count.game.some
       case GameFilter.me => nbs.flatMap(_.withMe)
       case GameFilter.ranked => user.count.ranked.some
@@ -76,6 +80,10 @@ object GameFilterMenu:
         case GameFilter.all =>
           std(Query.started(user.id)).flatMap:
             _.mapFutureResults(gameProxyRepo.upgradeIfPresent)
+        case GameFilter.jieqi | GameFilter.minixiangqi =>
+          std(Query.started(user.id) ++ $doc("xg.states.0.variant" -> filter.name))
+        case GameFilter.threeKingdoms =>
+          fufail("Three-seat history must use GameHistory")
         case GameFilter.me => std(Query.opponents(user, meOpt.fold(user)(_.value)))
         case GameFilter.ranked => std(Query.ranked(user.id))
         case GameFilter.win => std(Query.win(user.id))

@@ -158,3 +158,8 @@
     grid-area: board;
   }
 }
+
+.jieqi-round-board {
+  display: flex;
+  flex-direction: column;
+}

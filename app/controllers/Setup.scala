@@ -7,6 +7,7 @@ import play.api.mvc.{ EssentialAction, Result }
 import lila.app.{ *, given }
 import lila.common.HTTPRequest
 import lila.core.socket.Sri
+import lila.core.id.GameAnyId
 import lila.game.AnonCookie
 import lila.setup.Processor.HookResult
 import lila.xiangqi.Xiangqi
@@ -18,6 +19,65 @@ final class Setup(
     with lila.web.TheftPrevention:
 
   import env.setup.{ forms, processor }
+
+  private def withKidsOwner(f: String => Fu[Result])(using ctx: Context): Fu[Result] =
+    if ctx.me.exists(!_.kid.yes) then fuccess(Forbidden(jsonError("Kid mode required")))
+    else
+      lila.setup.KidsBots.owner(ctx.userId, ctx.req.headers.get("X-Kids-Guest")) match
+        case None => fuccess(BadRequest(jsonError("Missing guest identity")))
+        case Some(owner) =>
+          f(owner).recover:
+            case e: IllegalArgumentException => BadRequest(jsonError(e.getMessage))
+
+  def kidsBotProfile = AnonOrScoped(_.Mobile.Play): ctx ?=>
+    withKidsOwner(owner =>
+      env.setup.kidsBots.profile(owner).map(j => Ok(j).withHeaders(CACHE_CONTROL -> "no-store"))
+    )
+
+  def kidsBotStart = AnonOrScopedBody(parse.anyContent)(_.Mobile.Play): ctx ?=>
+    NoBot:
+      limit.setupPost(ctx.ip, rateLimited):
+        withKidsOwner: owner =>
+          val fields =
+            ctx.body.body.asFormUrlEncoded.getOrElse(Map.empty).flatMap((k, v) => v.headOption.map(k -> _))
+          lila.setup.KidsBots.request(fields) match
+            case Left(error) => fuccess(BadRequest(jsonError(error)))
+            case Right(request) =>
+              env.setup.kidsBots
+                .start(owner, request)
+                .map(j => Created(j).withHeaders(CACHE_CONTROL -> "no-store"))
+
+  def kidsBotAssist(id: GameAnyId) = AnonOrScopedBody(parse.anyContent)(_.Mobile.Play): ctx ?=>
+    withKidsOwner(owner => env.setup.kidsBots.assist(owner, id.gameId).inject(jsonOkResult))
+
+  def kidsBotResult(id: GameAnyId) = AnonOrScopedBody(parse.anyContent)(_.Mobile.Play): ctx ?=>
+    withKidsOwner(owner =>
+      env.setup.kidsBots.reconcile(owner, id.gameId).map(j => Ok(j).withHeaders(CACHE_CONTROL -> "no-store"))
+    )
+
+  // Share the website's validated setup, game creation and engine orchestration.
+  // Account games return a public ID; only guests need a private player capability.
+  def mobileAi = AnonOrScopedBody(parse.anyContent)(_.Mobile.Play): ctx ?=>
+    NoBot:
+      limit.setupPost(ctx.ip, rateLimited):
+        bindForm(forms.mobileAi)(
+          doubleJsonFormError,
+          config =>
+            processor
+              .ai(config)
+              .map: pov =>
+                Created(Json.obj("id" -> ctx.userId.fold(pov.fullId.value)(_ => pov.gameId.value)))
+                  .withHeaders(CACHE_CONTROL -> "no-store")
+        )
+
+  def mobileAiStats = AnonOrScoped(_.Mobile.Play): ctx ?=>
+    env.setup.aiStats
+      .get(ctx.userId, lila.core.game.AiLevel.customLevels)
+      .map: levels =>
+        Ok(Json.obj("levels" -> levels.map: level =>
+          Json
+            .obj("level" -> level.level, "registered" -> statsJson(level.registered))
+            .add("mine", level.mine.map(statsJson)))).withHeaders(CACHE_CONTROL -> "no-store")
 
   def ai = OpenBody:
     limit.setupBotAi(ctx.userId | UserId(""), rateLimited, cost = ctx.me.exists(_.isBot).so(1)):
@@ -49,14 +109,20 @@ final class Setup(
           )
 
   def friend(userId: Option[UserStr]) =
-    OpenBody: ctx ?=>
+    OpenOrScopedBody(parse.anyContent)(_.Mobile.Play): ctx ?=>
       limit.setupPost(ctx.ip, rateLimited):
         bindForm(forms.friend)(
           doubleJsonFormError,
           config =>
             for
-              origUser <- ctx.user.traverse(env.user.perfsRepo.withPerf(_, config.perfType))
-              destUser <- userId.so(env.user.api.enabledWithPerf(_, config.perfType))
+              origUser <- ctx.user.traverse(
+                env.user.perfsRepo
+                  .withPerf(_, config.perfType, lila.core.rank.RankTrackId.of(config.gameVariant))
+              )
+              destUser <- userId.so(
+                env.user.api
+                  .enabledWithPerf(_, config.perfType, lila.core.rank.RankTrackId.of(config.gameVariant))
+              )
               denied <- destUser.so(u => env.challenge.granter.isDenied(u.user, config.perfKey.some))
               result <- denied match
                 case Some(denied) =>
@@ -82,6 +148,7 @@ final class Setup(
                       )
                       val challenge = lila.challenge.Challenge.make(
                         variant = config.variant,
+                        gameVariant = config.gameVariant,
                         initialFen = config.fen,
                         timeControl = timeControl,
                         rated = config.rated,
@@ -116,7 +183,7 @@ final class Setup(
         )
     case HookResult.Refused => JsonBadRequest(("Game was not created"))
 
-  def hook(sri: Sri) = OpenOrScopedBody(parse.anyContent)(_.Web.Mobile, _.Web.Takex3): ctx ?=>
+  def hook(sri: Sri) = OpenOrScopedBody(parse.anyContent)(_.Mobile.Play, _.Web.Mobile, _.Web.Takex3): ctx ?=>
     NoBot:
       NoPlaybanOrCurrent:
         bindForm(forms.hook)(
@@ -137,7 +204,7 @@ final class Setup(
                 yield hookResponse(res)
         )
 
-  def like(sri: Sri, gameId: GameId) = Open:
+  def like(sri: Sri, gameId: GameId) = OpenOrScoped(_.Mobile.Play):
     NoBot:
       limit.setupPost(ctx.ip, rateLimited):
         NoPlaybanOrCurrent:

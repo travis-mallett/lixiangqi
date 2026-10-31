@@ -66,12 +66,13 @@ final private[round] class Drawer(
   def no(pov: Pov)(using proxy: GameProxy): Fu[Events] = pov.game.drawable.so:
     pov match
       case Pov(g, color) if pov.opponent.isOfferingDraw =>
-        proxy
-          .save:
-            messenger.system(g, color.fold(trans.site.whiteDeclinesDraw, trans.site.blackDeclinesDraw).txt())
-            Progress(g).map: g =>
-              g.updatePlayer(!color, _.copy(isOfferingDraw = false))
-          .inject(List(Event.DrawOffer(by = none)))
+        messenger.system(g, color.fold(trans.site.whiteDeclinesDraw, trans.site.blackDeclinesDraw).txt())
+        val progress = Progress(g).map: g =>
+          g.updatePlayer(!color, _.copy(isOfferingDraw = false))
+        for
+          _ <- proxy.save(progress)
+          _ = publishDrawOffer(progress.game)
+        yield List(Event.DrawOffer(by = none))
       case _ => fuccess(List(Event.ReloadOwner))
     : Fu[Events]
 
@@ -91,11 +92,10 @@ final private[round] class Drawer(
       Bus.pub(
         lila.core.round.CorresDrawOfferEvent(game.id)
       )
-    if lila.game.Game.mightBeBoardOrBotCompatible(game) then
-      Bus.publishDyn(
-        lila.game.actorApi.BoardDrawOffer(game),
-        lila.game.actorApi.BoardDrawOffer.makeChan(game.id)
-      )
+    Bus.publishDyn(
+      lila.game.actorApi.BoardDrawOffer(game),
+      lila.game.actorApi.BoardDrawOffer.makeChan(game.id)
+    )
 
   private def optionalDrawAvailable(game: Game) =
     game.position.optionalEnd.ended &&

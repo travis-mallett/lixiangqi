@@ -68,5 +68,12 @@ private object BSONHandlers:
         case a: Challenger.Anonymous => anonHandler.writes(w, a)
         case _ => $empty
 
+  given BSONHandler[lila.xiangqi.GameVariant] = tryHandler(
+    { case BSONString(key) =>
+      scala.util.Try(lila.xiangqi.GameVariant.fromKey(key).fold(sys.error, identity))
+    },
+    variant => BSONString(variant.key)
+  )
+
   given BSONDocumentHandler[Challenge.Open] = Macros.handler
   given BSONDocumentHandler[Challenge] = Macros.handler

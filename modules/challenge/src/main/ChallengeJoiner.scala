@@ -3,7 +3,7 @@ package lila.challenge
 import chess.ByColor
 
 import lila.core.user.GameUser
-import lila.xiangqi.{ Xiangqi, XiangqiRules }
+import lila.xiangqi.Xiangqi
 
 final private class ChallengeJoiner(
     gameRepo: lila.game.GameRepo,
@@ -14,7 +14,9 @@ final private class ChallengeJoiner(
   def apply(c: Challenge, destUser: GameUser): FuRaise[String, Pov] = for
     exists <- gameRepo.exists(c.gameId)
     _ <- raiseIf(exists)("The challenge has already been accepted")
-    origUser <- c.challengerUserId.so(userApi.byIdWithPerf(_, c.perfType))
+    origUser <- c.challengerUserId.so(
+      userApi.byIdWithPerf(_, c.perfType, lila.core.rank.RankTrackId.of(c.gameVariant))
+    )
     game <- ChallengeJoiner.createGame(c, origUser, destUser).raiseIfLeft
     _ <- gameRepo.insertDenormalized(game)
     _ <- onStartOrRetry(game.id).recover: _ =>
@@ -64,7 +66,7 @@ private object ChallengeJoiner:
       .start
 
   def gameSetup(c: Challenge): Either[String, Xiangqi.Game] =
-    XiangqiRules.initialGame(
+    c.gameVariant.initialGame(
       c.initialFen
         .filter(_ => c.variant.fromPosition)
         .map(_.value),

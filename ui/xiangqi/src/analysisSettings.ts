@@ -1,6 +1,8 @@
 import { gaugeDockAtPoint, isGaugeDock, type GaugeDock } from './gaugeDock';
 
 export const ENGINE_SETTINGS_KEY = 'lixiangqi.analysis.engine.v1';
+export const engineSettingsKey = (variant: string): string =>
+  variant === 'xiangqi' ? ENGINE_SETTINGS_KEY : `lixiangqi.analysis.engine.${variant}.v1`;
 export const INTERFACE_SETTINGS_KEY = 'lixiangqi.analysis.interface.v1';
 
 export interface EngineSettings {
@@ -8,8 +10,7 @@ export interface EngineSettings {
   showLinesPreview: boolean;
   depth: number;
   arrowUpdates: number;
-  /** Absent until user chooses a count; defaults follow layout. */
-  multiPv?: number;
+  multiPv: number;
   threads: number;
   hashSize: number;
 }
@@ -26,32 +27,27 @@ export interface InterfaceSettings {
   coordinates: boolean;
 }
 
-export function loadEngineSettings(): EngineSettings {
+export function loadEngineSettings(variant = 'xiangqi'): EngineSettings {
+  const kingdoms = variant === 'threeKingdoms';
   const defaults: EngineSettings = {
     useCloud: true,
     showLinesPreview: true,
-    depth: 20,
+    depth: kingdoms ? 3 : 20,
     arrowUpdates: 4,
+    multiPv: 1,
     threads: 2,
     hashSize: 64,
   };
-  const stored = readStoredSettings<Partial<EngineSettings>>(ENGINE_SETTINGS_KEY, {});
+  const stored = readStoredSettings<Partial<EngineSettings>>(engineSettingsKey(variant), {});
   return {
     useCloud: stored.useCloud !== false,
     showLinesPreview: stored.showLinesPreview !== false,
-    depth: clampNumber(stored.depth, 10, 30, defaults.depth),
+    depth: clampNumber(stored.depth, kingdoms ? 1 : 10, kingdoms ? 6 : 30, defaults.depth),
     arrowUpdates: clampNumber(stored.arrowUpdates, 1, 4, defaults.arrowUpdates),
-    multiPv:
-      typeof stored.multiPv === 'number' && Number.isFinite(stored.multiPv)
-        ? clampNumber(stored.multiPv, 1, 5, 1)
-        : undefined,
+    multiPv: clampNumber(stored.multiPv, 1, 5, defaults.multiPv),
     threads: clampNumber(stored.threads, 1, 8, defaults.threads),
     hashSize: clampNumber(stored.hashSize, 16, 256, defaults.hashSize, 16),
   };
-}
-
-export function effectiveEngineMultiPv(settings: EngineSettings, mobile: boolean): number {
-  return settings.multiPv ?? (mobile ? 1 : 3);
 }
 
 export function loadInterfaceSettings(): InterfaceSettings {
@@ -94,7 +90,7 @@ export function setupGaugeDocking(
   layoutChanged: () => void,
 ): void {
   const page = requiredElement('.xiangqi-analysis-page');
-  const board = requiredElement('.xiangqi-analysis-board > .main-board');
+  const board = requiredElement('.xiangqi-analysis-surface > .main-board');
   const overlay = requiredElement('.xiangqi-dock-overlay');
   const targets = new Map<GaugeDock, HTMLElement>();
   overlay.querySelectorAll<HTMLElement>('[data-dock]').forEach(target => {

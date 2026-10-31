@@ -30,6 +30,7 @@ enum BusChan:
   case team
   case swiss
   case global
+  case threeKingdoms
 object BusChan:
   type Select = BusChan.type => BusChan
 
@@ -46,11 +47,13 @@ enum PublicSource(val typeName: String, val someId: Any):
   case Forum(id: ForumPostId) extends PublicSource("forum", id)
   case Ublog(id: UblogPostId) extends PublicSource("ublog", id)
   case Relay(id: RelayRoundId) extends PublicSource("relay", id)
+  case ThreeKingdoms(gameId: GameId) extends PublicSource("threeKingdoms", gameId)
 
   def resourceId: ResourceId = ResourceId:
     this match
       case PublicSource.Watcher(gameId) => s"game/$gameId"
       case PublicSource.Player(gameId) => gameId.value
+      case PublicSource.ThreeKingdoms(gameId) => s"three-kingdoms/game/$gameId"
       case _ => s"$typeName/$someId"
 
 object PublicSource:
@@ -59,6 +62,7 @@ object PublicSource:
       case Array("tournament", id) => Some(PublicSource.Tournament(TourId(id)))
       case Array("simul", id) => Some(PublicSource.Simul(SimulId(id)))
       case Array("game", id) => Some(PublicSource.Watcher(GameId(id)))
+      case Array("three-kingdoms", "game", id) => Some(PublicSource.ThreeKingdoms(GameId(id)))
       case Array("study", id) => Some(PublicSource.Study(StudyId(id)))
       case Array("team", id) => Some(PublicSource.Team(TeamId(id)))
       case Array("swiss", id) => Some(PublicSource.Swiss(SwissId(id)))

@@ -33,11 +33,15 @@ final class PlayerDirectory(env: Env) extends LilaController(env):
               else
                 for
                   user <- env.title.api.publicUserOf(player.id)
-                  tours <- env.relay.playerTour.playerTours(player, page)
                   isFollowing <- ctx.userId.so(env.playerDirectory.repo.follower.isFollowing(_, id))
-                  ratings <- env.playerDirectory.repo.rating.get(player.id)
                   rendered <- renderPage(
-                    views.playerDirectory.player.show(player, user, tours, ratings, isFollowing)
+                    views.xiangqi.databasePlayer(
+                      env.fishnet.explorerEndpoint,
+                      player.id.value,
+                      Some(views.playerDirectory.player.profile(player, isFollowing, user)),
+                      Some(player.displayName.value),
+                      Some(playerUrl(player))
+                    )
                   )
                 yield Ok(rendered)
 
@@ -95,18 +99,14 @@ final class PlayerDirectory(env: Env) extends LilaController(env):
               pic <- env.playerDirectory.playerApi.uploadPhoto(p, photo)
               picUrl = DirectoryPlayer.PlayerPhoto(env.memo.picfitUrl, pic.id, _.Small)
               _ <- env.irc.api.directoryPhoto(playerUrl(p).url, picUrl)
-            yield Redirect(routes.Coach.edit)
+            yield Redirect(playerUrl(p))
           case None => Redirect(playerUrl(p))
     }
 
   def playerUpdate(id: lila.core.playerDirectory.PlayerId) = SecureBody(_.DirectoryPlayer) { ctx ?=> _ ?=>
     Found(env.playerDirectory.repo.player.fetch(id)): p =>
-      bindForm(DirectoryPlayer.form.credit(p))(
-        _ => funit,
-        credit =>
-          for
-            _ <- env.playerDirectory.playerApi.setPhotoCredit(p, credit)
-            _ <- env.irc.api.directoryPhotoCredits(playerUrl(p).url, credit | "-")
-          yield ()
-      ).inject(Redirect(playerUrl(p)))
+      bindForm(DirectoryPlayer.form.edit(p, ctx.lang.code))(
+        errors => fuccess(BadRequest(errors.errors.map(_.message).mkString("; "))),
+        edit => env.playerDirectory.playerApi.edit(p, ctx.lang.code, edit).inject(Redirect(playerUrl(p)))
+      )
   }

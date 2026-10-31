@@ -19,6 +19,10 @@ final class TvUi(helpers: lila.ui.Helpers)(
   extension (channel: Tv.Channel)
     private def translate(using Context): String =
       channel match
+        case Tv.Channel.Xiangqi => trans.site.xiangqi.txt()
+        case Tv.Channel.Jieqi => trans.site.jieqi.txt()
+        case Tv.Channel.MiniXiangqi => trans.site.miniXiangqi.txt()
+        case Tv.Channel.ThreeKingdoms => trans.site.threeKingdoms.txt()
         case Tv.Channel.Computer => trans.site.computer.txt()
         case _ => channel.name
 
@@ -44,7 +48,10 @@ final class TvUi(helpers: lila.ui.Helpers)(
         main(cls := "round tv-single")(
           st.aside(cls := "round__side")(
             side.meta(pov),
-            side.channels(channel, champions, "/tv")
+            side.channels(channel, champions, "/tv"),
+            a(cls := "button button-empty", href := routes.Tv.gamesChannel(channel.key))(
+              trans.site.currentGames()
+            )
           ),
           roundApp,
           div(cls := "round__underboard")(
@@ -52,12 +59,23 @@ final class TvUi(helpers: lila.ui.Helpers)(
             div(cls := "tv-history")(
               h2(trans.site.previouslyOnLichessTV()),
               div(cls := "now-playing"):
-                history.map { gameUi.mini(_) }
+                frag(
+                  history.isEmpty.option(p(cls := "box__pad", role := "status")(trans.site.noGameFound())),
+                  history.map { gameUi.mini(_) }
+                )
             )
           )
         )
 
-  def games(channel: Tv.Channel, povs: List[Pov], champions: Tv.Champions)(using Context) =
+  def games(
+      channel: Tv.Channel,
+      povs: List[Pov],
+      champions: Tv.Champions,
+      baseUrl: String = "/games",
+      recent: List[Pov] = Nil
+  )(using
+      Context
+  ) =
     Page(s"${channel.translate} • ${trans.site.currentGames.txt()}")
       .css("bits.tv.games")
       .js(Esm("bits.tvGames")):
@@ -66,10 +84,22 @@ final class TvUi(helpers: lila.ui.Helpers)(
           dataRel := routeUrl(routes.Tv.gameChannelReplacement(channel.key, GameId("gameId"), Nil))
         )(
           st.aside(cls := "page-menu__menu"):
-            side.channels(channel, champions, "/games")
+            side.channels(channel, champions, baseUrl)
           ,
-          div(cls := "page-menu__content now-playing"):
-            povs.map(gameUi.mini(_))
+          div(cls := "page-menu__content")(
+            h1(channel.translate),
+            a(cls := "button button-empty", href := routes.Tv.onChannel(channel.key))(trans.site.watch()),
+            h2(trans.site.currentGames()),
+            div(cls := "tv-current now-playing")(
+              povs.isEmpty.option(p(cls := "box__pad", role := "status")(trans.site.noGameFound())),
+              povs.map(gameUi.mini(_))
+            ),
+            h2(trans.site.previouslyOnLichessTV()),
+            div(cls := "tv-recent now-playing")(
+              recent.isEmpty.option(p(cls := "box__pad", role := "status")(trans.site.noGameFound())),
+              recent.map(gameUi.mini(_))
+            )
+          )
         )
 
   object side:
@@ -87,7 +117,7 @@ final class TvUi(helpers: lila.ui.Helpers)(
                 separator,
                 rankedName(game.ranked),
                 separator,
-                variantLink(game.variant, game.perfKey, shortName = true)
+                nativeVariantLink(game, game.perfKey)
               )
             )
           ),

@@ -33,7 +33,11 @@ object LilaRouter:
     def bind(_key: String, value: String) = parse(value).toRight(error)
     def unbind(_key: String, value: A) = write(value)
 
-  given PathBindable[UserStr] = strPath[UserStr](UserStr.read, "Invalid Lixiangqi username")
+  given PathBindable[UserStr] = strPath[UserStr](
+    UserStr.read,
+    "Invalid Lixiangqi username",
+    value => java.net.URLEncoder.encode(value.value, java.nio.charset.StandardCharsets.UTF_8)
+  )
   given PathBindable[PerfKey] = strPath[PerfKey](PerfKey.apply, "Invalid Lixiangqi performance key")
   given PathBindable[GameId] = summon[PathBindable[GameAnyId]].transform(_.gameId, _.into(GameAnyId))
   given PathBindable[Color] =

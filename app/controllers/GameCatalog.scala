@@ -32,7 +32,13 @@ final class GameCatalog(env: Env) extends LilaController(env):
   def player(player: String) = Open:
     val normalized = player.trim
     if normalized.isEmpty || normalized.length > 100 then BadRequest("Invalid database player")
-    else Ok.page(views.xiangqi.databasePlayer(env.fishnet.explorerEndpoint, normalized))
+    else
+      env.playerDirectory.repo.player
+        .resolve(normalized)
+        .flatMap:
+          case Some(player) =>
+            fuccess(Redirect(routes.PlayerDirectory.show(player.id, player.slug).url, ctx.req.queryString))
+          case None => Ok.page(views.xiangqi.databasePlayer(env.fishnet.explorerEndpoint, normalized))
 
   def event(event: String) = Open:
     val normalized = event.trim

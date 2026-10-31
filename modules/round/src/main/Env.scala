@@ -184,6 +184,19 @@ final class Env(
 
   lazy val moretimer = wire[Moretimer]
 
+  def mobileGameControls(pov: Pov): Fu[(Boolean, Boolean)] =
+    takebacker
+      .isAllowedIn(pov.game, scalalib.data.Preload.none)
+      .zip(moretimer.isAllowedIn(pov.game, scalalib.data.Preload.none, force = false))
+
+  def mobileMove(pov: Pov, move: lila.xiangqi.Xiangqi.Uci, metrics: chess.MoveMetrics): Funit =
+    val promise = Promise[Unit]()
+    roundApi.tell(
+      pov.gameId,
+      HumanPlay(pov.playerId, move, blur = false, moveMetrics = metrics, promise = promise.some)
+    )
+    promise.future
+
   val playing = wire[PlayingUsers]
 
   val apiMoveStream = wire[ApiMoveStream]

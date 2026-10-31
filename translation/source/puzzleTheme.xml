@@ -318,14 +318,8 @@
   <string name="chariotHorseCannonSoldierMatingMethods">Chariot, horse, cannon, and soldier</string>
   <string name="chariotHorseCannonSoldierMatingMethodsDescription">Practice mating attacks using chariots, horses, cannons, and soldiers.</string>
   <string name="otherNamedBasicKills">Other Named Basic Kills</string>
-  <string name="threeChariotAttack">Three Chariot Attack (三把手)</string>
-  <string name="threeChariotAttackDescription">Two chariots batter the gate; the general lends the invisible third hand.</string>
   <string name="smallIronBolt">Small Iron Bolt (小铁门栓)</string>
   <string name="smallIronBoltDescription">The cannon commands the center; little ghosts knock at the gate.</string>
-  <string name="bachelorChariotAttack">Bachelor Chariot Attack (单车耳)</string>
-  <string name="bachelorChariotAttackDescription">One pillar cannot hold the palace; one advisor cannot save the throne.</string>
-  <string name="bachelorChariotAttackLesson">A chariot threatens an advisor beside the general, tying down the palace defense.</string>
-  <string name="bachelorChariotAttackFinish">Here, drive the general to the back rank and coordinate both chariots to finish the attack.</string>
   <string name="boldChariotAttack">Bold Chariot Attack (大胆车)</string>
   <string name="boldChariotAttackDescription">Offer the chariot without flinching: taking it opens the road to mate.</string>
   <string name="boldChariotAttackLesson">Offer a chariot to remove a defender or open the lines needed for a decisive attack.</string>
@@ -338,10 +332,6 @@
   <string name="eunuchChasingEmperorKillDescription">The servant gives chase; the sovereign runs out of palace.</string>
   <string name="eunuchChasingEmperorKillLesson">A soldier inside the palace pursues the general with checks, driving it toward a mating position.</string>
   <string name="eunuchChasingEmperorKillFinish">Use the chariot to restrict escape while the soldier continues the pursuit.</string>
-  <string name="chariotPawnZugzwang">Chariot Pawn Zugzwang (花心采蜜)</string>
-  <string name="chariotPawnZugzwangDescription">Hold the flower’s heart; let the defender’s next move surrender the nectar.</string>
-  <string name="chariotPawnZugzwangLesson">Combine chariot pressure with a timely soldier move that forces the defender into a worse position.</string>
-  <string name="chariotPawnZugzwangFinish">Here, Black uses a soldier check to displace the general, then arranges the chariots for the soldier’s final blow.</string>
   <string name="oldPawnSearchingMountain">Old Pawn Searching Mountain (老卒搜山)</string>
   <string name="oldPawnSearchingMountainDescription">At the far edge of the battlefield, the old soldier turns sideways and hunts through the general’s last refuges.</string>
   <string name="oldPawnSearchingMountainLesson">A soldier on the back rank cannot advance or promote, but it can still check sideways.</string>
@@ -354,10 +344,6 @@
   <string name="whiteHorseMateDescription">A backward leap reveals the hoof: the horse checks from the corner, and the chariot strikes.</string>
   <string name="whiteHorseMateLesson">Place a horse on the throat rank in front of an enemy horse’s starting square, supporting an attack on an advisor.</string>
   <string name="whiteHorseMateFinish">Here, sacrifice a chariot for the advisor, then bring the horse to the palace corner so the other chariot can mate.</string>
-  <string name="chariotHorseZugzwang">Chariot Horse Zugzwang (车马冷着)</string>
-  <string name="chariotHorseZugzwangDescription">A chariot and horse leave the defender to undo his own position.</string>
-  <string name="chariotHorseZugzwangLesson">Use the chariot and horse together to restrict the general and force the defenders into awkward positions.</string>
-  <string name="chariotHorseZugzwangFinish">Here, pin the advisor, check with the horse, and sacrifice one chariot so the other can finish under the horse’s protection.</string>
   <string name="cannonChariotDiscoveredAttack">Cannon Chariot Discovered Attack (车炮抽扯)</string>
   <string name="cannonChariotDiscoveredAttackDescription">The chariot moves and the cannon speaks; the forced reply prepares the next blow.</string>
   <string name="cannonChariotDiscoveredAttackLesson">Move a chariot away from the cannon’s line to uncover check, gaining time to attack another enemy piece.</string>
@@ -410,10 +396,6 @@
   <string name="crossCheckAttackDescription">Turn the parry into the killing stroke: the move that saves your general threatens theirs.</string>
   <string name="crossCheckAttackLesson">Resolve a check against your general with a move that also checks the enemy general.</string>
   <string name="crossCheckAttackFinish">Here, the chariot blocks the enemy chariot’s check while clearing the horse’s leg for a countercheck.</string>
-  <string name="hidingBehindLeavesAttack">Hiding Behind Leaves Attack (叶底藏花)</string>
-  <string name="hidingBehindLeavesAttackDescription">The chariot blooms from behind its own defenses; the harmless foliage concealed an ambush.</string>
-  <string name="hidingBehindLeavesAttackLesson">Keep an attacker, often a cannon, behind friendly pieces until moving a blocker reveals its attack.</string>
-  <string name="hidingBehindLeavesAttackFinish">Here, an advisor interposes against the enemy chariot and uncovers a cannon check; the ensuing attack ends in stalemate.</string>
   <string name="generalDisrobingAttack">General Disrobing Attack (三把手)</string>
   <string name="generalDisrobingAttackDescription">Cast off the general’s robe: move his own guards aside and let his uncovered gaze join the attack.</string>
   <string name="generalDisrobingAttackLesson">Move a friendly piece off the general’s file so the flying-general rule pins an enemy defender.</string>

@@ -3,12 +3,14 @@
 @import 'app/playing';
 @import 'box';
 @import 'table';
+@import 'variant-menu';
 @import 'homepage-room';
 @import 'bot-map';
 @import 'correspondence-deck';
 @import 'support';
 @import 'feed';
 @import 'layout';
+@import 'carousel';
 
 body {
   overflow-y: scroll;
@@ -230,8 +232,7 @@ body {
     &__scroll {
       min-height: 0;
       overflow-x: hidden;
-      overflow-y: auto;
-      scrollbar-width: thin;
+      overflow-y: hidden;
     }
 
     table {
@@ -308,7 +309,7 @@ body {
     }
 
     &__place-column {
-      width: 52px;
+      width: calc(7ch + 2 * var(--leaderboard-cell-padding-inline));
     }
 
     &__place-heading,
@@ -321,6 +322,7 @@ body {
     }
 
     &__footer {
+      flex: 0 0 auto;
       margin: 0;
       padding: 10px 14px;
       border-top: $border;
@@ -390,10 +392,6 @@ body {
 
       &__rank-column {
         width: 54px;
-      }
-
-      &__place-column {
-        width: 44px;
       }
 
       th {

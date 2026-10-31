@@ -27,7 +27,11 @@ trait TheftPrevention:
   protected def isMyPov(pov: Pov)(using Context) = !isTheft(pov)
 
   protected def playablePovForReq(game: lila.core.game.Game)(using ctx: Context) =
-    (!game.isPgnImport && game.playable).so:
+    game.playable.so(ownedPovForReq(game))
+
+  /** Authenticated identity or the existing anonymous-player cookie, independent of board orientation. */
+  protected def ownedPovForReq(game: lila.core.game.Game)(using ctx: Context) =
+    (!game.isPgnImport).so:
       ctx.userId
         .flatMap(game.player)
         .orElse:

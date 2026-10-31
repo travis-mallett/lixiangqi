@@ -185,6 +185,12 @@ final class PlayerRepo(private[tournament] val coll: Coll)(using Executor):
   def removeNotInTeams(tourId: TourId, teamIds: Set[TeamId]) =
     coll.delete.one(selectTour(tourId) ++ $doc("t".$nin(teamIds))).void
 
+  private[tournament] def removeNotInAllowList(tourId: TourId, userIds: Set[UserId]) =
+    coll.delete.one(selectTour(tourId) ++ $doc("uid".$nin(userIds))).void
+
+  private[tournament] def removeBots(tourId: TourId) =
+    coll.delete.one(selectTour(tourId) ++ selectBot).void
+
   def existsActive(tourId: TourId, userId: UserId) =
     coll.exists(selectTourUser(tourId, userId) ++ selectActive)
 
@@ -284,6 +290,7 @@ final class PlayerRepo(private[tournament] val coll: Coll)(using Executor):
 
   private def rankPlayers(players: List[Player], ranking: Ranking): RankedPlayers =
     players
+      .filter(_.active)
       .flatMap: p =>
         ranking.get(p.userId).map(RankedPlayer(_, p))
       .sortBy(_.rank)(using intOrdering)

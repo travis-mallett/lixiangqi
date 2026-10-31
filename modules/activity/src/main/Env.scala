@@ -14,6 +14,8 @@ import lila.core.round.CorresMoveEvent
 final class Env(
     db: lila.db.AsyncDb @@ lila.db.YoloDb,
     gameRepo: lila.core.game.GameRepo,
+    kingdomsRepo: lila.threeKingdoms.GameRepo,
+    cacheApi: lila.memo.CacheApi,
     forumPostApi: lila.core.forum.ForumPostApi,
     ublogApi: lila.core.ublog.UblogApi,
     simulApi: lila.core.simul.SimulApi,

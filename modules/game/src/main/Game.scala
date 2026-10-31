@@ -53,7 +53,7 @@ object GameExt:
       everyOther(mts.toList))
 
   def analysable(g: Game) =
-    g.replayable && g.playedPlies > 4 &&
+    g.replayable && g.nativeVariant == lila.xiangqi.GameVariant.Xiangqi && g.playedPlies > 4 &&
       Game.analysableVariants(g.variant)
 
   extension (clockHistory: ClockHistory)
@@ -137,9 +137,16 @@ object GameExt:
       // This must be computed eagerly
       // because it depends on the current time
       val newClockHistory = for
-        clk <- g.clock
+        clk <- clock
         ch <- g.clockHistory
       yield ch.recordNewClock(g.turnColor, clk)
+
+      // Both sides get their first move before the cumulative clock starts.
+      // The native rules game does not own the real-time clock lifecycle.
+      val nextClock = clock.map: c =>
+        if !c.isRunning && !g.moveTimePaused && game.state.ply - g.startedAtPly.value >= 2 && !game.state.ended
+        then c.start
+        else c
 
       val updated = g.copy(
         players = game.state.gameResult.winner.fold(g.players.map(copyPlayer)): side =>
@@ -147,7 +154,7 @@ object GameExt:
           g.players.map(copyPlayer).update(winner, _.copy(isWinner = true.some))
         ,
         xiangqi = game,
-        clock = clock,
+        clock = nextClock,
         binaryMoveTimes = (!g.sourceIs(_.Import) && g.clock.isEmpty).option {
           BinaryFormat.moveTime.write {
             g.binaryMoveTimes.so { t =>
@@ -180,7 +187,11 @@ object GameExt:
         .orElse:
           updated.playableCorrespondenceClock.map(Event.CorrespondenceClock.apply)
 
-      val events = Event.Move(move, state, clockEvent) :: Nil
+      val events = Event.Move(move, state, clockEvent) :: (
+        if updated.isJieqi then
+          List(Event.PrivateCaptures(updated, Color.White), Event.PrivateCaptures(updated, Color.Black))
+        else Nil
+      )
 
       Progress(g, updated, events)
     end applyMove

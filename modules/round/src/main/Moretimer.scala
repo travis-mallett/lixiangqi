@@ -46,11 +46,10 @@ final class Moretimer(messenger: Messenger, prefApi: PrefApi):
       (game.withClock(newClock)) ++ colors.map { Event.ClockInc(_, centis, newClock) }
 
   private def tellTheBus(game: Game): Unit =
-    if lila.game.Game.isBoardCompatible(game) then
-      lila.common.Bus.publishDyn(
-        lila.game.actorApi.BoardMoretime(game),
-        lila.game.actorApi.BoardMoretime.makeChan(game.id)
-      )
+    lila.common.Bus.publishDyn(
+      lila.game.actorApi.BoardMoretime(game),
+      lila.game.actorApi.BoardMoretime.makeChan(game.id)
+    )
 
   private def isAllowedByPrefs(game: Game, prefs: Preload[ByColor[Pref]]): Fu[Boolean] =
     prefs

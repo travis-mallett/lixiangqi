@@ -34,6 +34,7 @@ export interface TournamentData {
   id: string;
   socketVersion: number;
   fullName: string;
+  gameVariant?: string;
   teamBattle?: TeamBattle;
   teamStanding?: RankedTeam[];
   myTeam?: RankedTeam;
@@ -45,6 +46,7 @@ export interface TournamentData {
   me?: {
     rank: number;
     gameId?: string;
+    kingdomsGameId?: string;
     withdraw?: boolean;
     pauseDelay?: number;
   };
@@ -87,10 +89,12 @@ export interface TournamentData {
     moves: number;
     whiteWins: number;
     blackWins: number;
+    greenWins?: number;
     draws: number;
     berserks: number;
   };
   duels: Duel[];
+  kingdomsGames?: KingdomsGame[];
   duelTeams?: DuelTeams;
   myUsername?: string;
   reloadDelay?: number;
@@ -179,6 +183,16 @@ export interface Pairing {
 export interface PlayerInfo {
   player: Player;
   pairings: Pairing[];
+  kingdomsPairings?: KingdomsGame[];
+}
+
+export interface KingdomsGame {
+  id: string;
+  position: string;
+  finished: boolean;
+  players: LightUser[];
+  place?: number;
+  score?: number;
 }
 
 export interface TeamInfo {

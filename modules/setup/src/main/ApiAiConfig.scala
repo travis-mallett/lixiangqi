@@ -17,7 +17,8 @@ final case class ApiAiConfig(
     color: TriColor,
     level: Int,
     fen: Option[Fen.Full] = None,
-    override val ruleset: Option[String] = None
+    override val ruleset: Option[String] = None,
+    override val gameVariant: lila.xiangqi.GameVariant = lila.xiangqi.GameVariant.Xiangqi
 ) extends Config
     with Positional
     with WithColor:
@@ -49,8 +50,9 @@ final case class ApiAiConfig(
               then newPlayer(c, user)
               else newPlayer.anon(c, level.some),
             rated = chess.Rated.No,
-            source = if xiangqiGame.initialFen == lila.xiangqi.Xiangqi.startFen then Source.Ai
-            else Source.Position,
+            source =
+              if xiangqiGame.initialFen == xiangqiGame.variant.startFen then Source.Ai
+              else Source.Position,
             daysPerTurn = makeDaysPerTurn,
             pgnImport = None,
             clock = makeClock.map(_.toClock),
@@ -64,7 +66,9 @@ final case class ApiAiConfig(
     game(user).dmap { Pov(_, creatorColor) }
 
   def autoVariant =
-    if variant.standard && fen.exists(_.value != lila.xiangqi.Xiangqi.startFen)
+    if gameVariant != lila.xiangqi.GameVariant.Jieqi && variant.standard && fen.exists(
+        _.value != gameVariant.startFen
+      )
     then copy(variant = FromPosition)
     else this
 
@@ -80,7 +84,8 @@ object ApiAiConfig extends BaseConfig:
       d: Option[Days],
       c: Option[String],
       pos: Option[Fen.Full],
-      ruleset: Option[String] = None
+      ruleset: Option[String] = None,
+      gameVariant: Option[String] = None
   ) =
     ApiAiConfig(
       variant = Variant.orDefault(v),
@@ -90,5 +95,8 @@ object ApiAiConfig extends BaseConfig:
       color = TriColor.orDefault(~c),
       level = l,
       fen = pos,
-      ruleset = ruleset
+      ruleset = ruleset,
+      gameVariant = gameVariant.fold(lila.xiangqi.GameVariant.Xiangqi)(
+        lila.xiangqi.GameVariant.fromKey(_).fold(sys.error, identity)
+      )
     ).autoVariant

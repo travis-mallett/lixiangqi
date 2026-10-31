@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" height="100" width="100" viewBox="0 0 100 100">
+  <clipPath id="wood-clip">
+    <ellipse cx="405" cy="53.61076" rx="57.869461" ry="57.869461"/>
+  </clipPath>
+  <radialGradient id="a" cx="-638.67987" cy="63.566608" gradientTransform="matrix(1.0751961 .02369973 -.02469788 1.1204806 875.45216 -171.12662)" gradientUnits="userSpaceOnUse" r="57.869461">
+    <stop offset="0" stop-color="#f3bf86"/>
+    <stop offset=".76315546" stop-color="#f3bb7f"/>
+    <stop offset=".89982331" stop-color="#dca05c"/>
+    <stop offset="1" stop-color="#a17e53"/>
+  </radialGradient>
+  <filter id="c" color-interpolation-filters="sRGB" height="1.3720994" width="1.2298259" x="-0.11491295" y="-0.18604969">
+    <feGaussianBlur stdDeviation="1.438904" id="feGaussianBlur4"/>
+  </filter>
+  <filter id="d" color-interpolation-filters="sRGB" height="1.211246" width="1.211246" x="-.105623" y="-.105623">
+    <feGaussianBlur stdDeviation="3.0476689"/>
+  </filter>
+
+
+<g id="piece-artwork" transform="matrix(1.1337748765945435 0 0 1.1337748765945435 -2.1536715030670166 -2.153649812273791)"><g>
+    <g transform="matrix(.68586115 0 0 .68586115 -231.77377 9.230463)">
+      <g transform="translate(216.73288 159.42387)">
+        <ellipse cx="188.26712" cy="-105.81311" fill="url(#a)" rx="57.869461" ry="57.869461" data-piece-body="true"/>
+      </g>
+      <g transform="translate(216.73288 159.42387)">
+        <ellipse cx="187.662686" cy="-110.937426" rx="46.87182" ry="46.87182" fill="#f6b97b"/>
+      </g>
+      <image x="347.130539" y="-6.026458" width="115.738922" height="119.274436" preserveAspectRatio="none" opacity=".035" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAQBAMAAACigOGCAAAAMFBMVEX///+oqKilpaWioqKSkpKEhIR2dnZlZWVfX19cXFxaWlpYWFhXV1dFRUUTExMAAACc2NaXAAAA50lEQVR42nXQr06CcRhH8Q+/F9gMOnB0sRgsvhvTZIA7YDO7Mb0hK5uKm9nNO4DNpBYsBovYmTBNIH8Mj9UnnW94TjiObcwa3TybZZe92WPey7Nuo3fhIc35goI5Nyqww01acgVrCwam8MQwZYxhZcLECPrkqaxwCpxwGPRa0UkrdmPWaAVtM0o/frJQfXMQqvzefVpYJFi65s0Q6gOD5J9LRcUVZM7Yk8OoqZlKSktINnlRh2FbOyXe43lMP+iTeppb38a84zlofxpJaqGqUg1V6y/JeUQs0oyIR5HEVkQs04mIH3R+ATsiRBU+gRZeAAAAAElFTkSuQmCC" clip-path="url(#wood-clip)"/>
+      <path d="m 364.59856,82.111505 c 0,0 7.02475,11.74977 12.9047,14.84925 4.48776,2.36562 17.14735,3.712295 17.14735,3.712295 -11.1995,-3.414035 -23.09518,-10.904865 -30.05205,-18.561545 z" fill="#fff0cb" filter="url(#c)" opacity="0.15" id="path6" style="opacity:0.72759857;filter:url(#c)"/>
+      <circle cx="-402.375" cy="-180.875" fill="#efd49c" filter="url(#d)" opacity=".08" r="34.625" transform="matrix(1.1102782 0 0 1.1102782 850.68122 243.85686)"/>
+      <g transform="translate(216.73288 159.42387)">
+        <ellipse cx="187.662686" cy="-110.937426" rx="46.87182" ry="46.87182" fill="none" stroke="#2c663e" stroke-width="3.261493" stroke-linecap="round" stroke-linejoin="round" id="ring"/>
+      </g>
+    </g>
+  </g><g id="symbol"><g id="three-kingdoms-symbol" aria-label="向" transform="translate(45.585438 42.485431) scale(44.59379540067438) translate(0.0008125901222229004 0.0029356181621551514) scale(1 1.3)" fill="#2c663e" color="#2c663e"><g aria-label="向" transform="scale(0.004393994873672647 -0.004393994873672647) translate(-120.29166666666667 -88.9090909090909)"><path d="M96 137Q106 136 116 163Q120 171 132 168Q146 164 146 155Q147 148 129 141Q128 140 129 139Q173 139 198 135Q201 135 207 138Q215 144 224 138Q235 132 234 125Q234 123 233 118Q229 88 230 71Q230 62 232 46Q234 32 234 25Q233 10 208 9Q203 10 202 15Q202 23 202 46Q203 105 202 115Q202 119 200 119Q136 123 78 119Q76 119 76 115V83Q73 14 30 13Q16 14 7 30Q5 37 11 37Q54 41 54 87Q54 116 51 124Q51 145 71 141Q77 135 96 137ZM94 43Q94 47 92 59Q91 76 90 87Q90 95 97 99Q103 102 111 100Q114 99 116 99H150Q158 99 162 100Q172 102 181 99Q187 95 186 85Q185 81 184 74Q184 58 184 47Q184 34 160 39Q157 40 138 39Q128 39 124 39Q121 39 111 37Q110 36 109 36Q97 32 94 43ZM116 57Q141 52 160 57Q162 57 162 61Q164 69 162 79Q162 83 158 83Q140 83 118 83Q115 83 114 80Q114 80 114 79Q113 70 114 61Q114 60 115 59Q115 57 116 57Z" stroke="currentColor" stroke-width="3" stroke-linejoin="round" paint-order="stroke fill"/></g></g></g></g></svg>

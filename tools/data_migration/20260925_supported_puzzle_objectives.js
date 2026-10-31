@@ -2,11 +2,15 @@
 // votes and counters) survive in an immutable recovery collection. Player rounds,
 // accounts, games and preferences are untouched. Interrupted runs are resumable.
 (() => {
-  if (db.puzzle2_publication.findOne({ _id: 'control', operation: { $exists: true, $ne: null } }))
-    throw new Error('Recover pending puzzle publication before removing unsupported objectives');
   const puzzles = db.puzzle2_puzzle;
   const backup = db.getCollection('__retired_puzzle_objectives_v1');
   const unsupported = { 'playback.objective': { $exists: true, $nin: ['mate', 'tactic'] } };
+  // A no-op deployment must leave the journal available for server recovery.
+  if (
+    puzzles.findOne(unsupported) &&
+    db.puzzle2_publication.findOne({ _id: 'control', operation: { $exists: true, $ne: null } })
+  )
+    throw new Error('Recover pending puzzle publication before removing unsupported objectives');
   let removed = 0;
   for (const original of puzzles.find(unsupported)) {
     const saved = backup.findOne({ _id: original._id });

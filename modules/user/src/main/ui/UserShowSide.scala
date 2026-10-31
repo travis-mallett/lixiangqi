@@ -18,16 +18,20 @@ final class UserShowSide(helpers: Helpers):
       active: Option[PerfKey]
   )(using ctx: Context) =
 
-    def showXiangqiRank =
-      val rank = u.perfs.xiangqiRank
-      div(
-        dataIcon := Icon.Crown,
+    def showRank(track: lila.core.rank.RankTrackId) =
+      val policy = lila.rating.RankPolicy(track)
+      val rank = u.perfs.rank(track).filter(_.established)
+      a(
+        href := s"${routes.User.list.url}#${policy.catalog.track.value}",
         cls := List("xiangqi-rank" -> true, "empty" -> rank.isEmpty)
       )(
-        span(
-          h3("Xiangqi"),
+        span(cls := "variant-icon", aria.hidden := true)(
+          lila.core.rank.RankTrackId.variant(track).symbol
+        ),
+        span(cls := "xiangqi-rank__details")(
+          h3(lila.core.i18n.I18nKey(lila.core.rank.RankTrackId.variant(track).nameKey)()),
           st.rating(
-            strong(rank.fold("Unranked")(perf => XiangqiRank.catalog.code(perf.score).value)),
+            strong(rank.fold("Unranked")(perf => policy.catalog.code(perf.score).value)),
             ctx
               .is(u)
               .option:
@@ -35,8 +39,7 @@ final class UserShowSide(helpers: Helpers):
                   span(cls := "rank-detail")(
                     " ",
                     perf.score.value,
-                    " points · ",
-                    s"${perf.wins}-${perf.draws}-${perf.losses}"
+                    " points"
                   )
           )
         )
@@ -90,7 +93,7 @@ final class UserShowSide(helpers: Helpers):
     div(cls := "side sub-ratings")(
       (!u.lame || ctx.is(u) || Granter.opt(_.AccountInfo)).option(
         frag(
-          showXiangqiRank,
+          lila.core.rank.RankTrackId.all.map(showRank),
           u.noBot.option(
             frag(
               hr,

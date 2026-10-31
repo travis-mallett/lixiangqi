@@ -68,7 +68,8 @@ final private class PoolActor(
     case RunWave =>
       nextWave.cancel()
       // #TODO #FIXME race condition.
-      hookThieve.candidates(config.clock, config.moveTimeLimit).pipeTo(self)
+      if !config.acceptsLobbyHooks then self ! HookThieve.PoolHooks(Vector.empty)
+      else hookThieve.candidates(config.clock, config.moveTimeLimit).pipeTo(self)
 
     case HookThieve.PoolHooks(hooks) =>
       val candidates = members ++ hooks.map(_.member)

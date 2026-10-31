@@ -12,7 +12,7 @@ const result = (depth: number): EngineAnalysis => ({
   nps: 1,
   timeMs: 1,
   score: {},
-  lines: [],
+  lines: [{ multipv: 1, depth, seldepth: depth, score: {}, pvMoves: ['b10c8'], wxfMoves: [] }],
 });
 
 test('spaces four arrow updates from depth five through the target', () => {
@@ -73,6 +73,24 @@ test('new searches clear the old recommendation and restart at depth five', () =
   cadence.accept(result(20), true);
   cadence.reset(10, 4);
   assert.equal(cadence.published, undefined);
-  assert.equal(cadence.accept(result(4), true), undefined);
+  assert.equal(cadence.accept(result(4), true)?.depth, 4);
   assert.equal(cadence.accept(result(5), false)?.depth, 5);
+});
+
+test('node searches publish a first candidate and a shallow completed result', () => {
+  const cadence = createArrowCadence({ nodes: 250000 }, 4);
+  const first = { ...result(1), nodes: 100 };
+  assert.equal(cadence.accept(first, false), first);
+  assert.equal(cadence.accept({ ...result(2), nodes: 1000 }, false), undefined);
+  const next = { ...result(2), nodes: 100000 };
+  assert.equal(cadence.accept(next, false), next);
+  const completed = { ...result(3), nodes: 250000 };
+  assert.equal(cadence.accept(completed, true), completed);
+  assert.equal(cadence.accept(completed, true), undefined);
+});
+
+test('empty engine snapshots cannot consume the first recommendation', () => {
+  const cadence = createArrowCadence({ nodes: 250000 });
+  assert.equal(cadence.accept({ ...result(1), lines: [] }, false), undefined);
+  assert.equal(cadence.accept(result(1), false)?.depth, 1);
 });

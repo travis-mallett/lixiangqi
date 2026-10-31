@@ -7,9 +7,11 @@ object I18n:
   def serialize(
       sourceDir: File,
       destDir: File,
-      dbs: List[String],
       outputDir: File
   ): Seq[File] =
+    // The XML sources are the canonical namespace list for both server and browser builds.
+    val dbs = (sourceDir * "*.xml").get().map(_.getName.stripSuffix(".xml")).sorted.toList
+    require(dbs.contains("site"), s"Missing translation sources in $sourceDir")
     val locales = "en-GB" :: (destDir / "site").listFiles.map(_.getName.takeWhile(_ != '.')).sorted.toList
 
     outputDir.mkdirs()

@@ -5,7 +5,6 @@ import play.api.data.Forms.*
 import lila.common.Form.{
   cleanFewSymbolsAndNonEmptyText,
   cleanFewSymbolsText,
-  cleanNonEmptyText,
   cleanTextWithSymbols,
   into,
   playerTitle
@@ -16,7 +15,8 @@ final class UserForm:
 
   def username(user: User): Form[UserName] = Form(
     single(
-      "username" -> cleanNonEmptyText
+      "username" -> lila.common.Form
+        .trim(nonEmptyText)
         .into[UserName]
         .verifying(
           "changeUsernameNotSame",

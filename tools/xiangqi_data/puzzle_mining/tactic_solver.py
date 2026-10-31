@@ -5,8 +5,11 @@ only when both alternatives retain the advantage; search limits never qualify.
 """
 
 import math
+import time
+from contextlib import contextmanager
 from dataclasses import dataclass
 
+from .engine import ConstructionTimeout, check_deadline, construction_budget
 from .models import SearchContext, TacticEndpoint, VerifiedDecision, fen_side
 from .position import FenState, normalized_fen
 from .solver import (
@@ -21,6 +24,7 @@ from .solver import (
 
 @dataclass(frozen=True)
 class TacticSolverConfig(SolverConfig):
+    construction_seconds: float = 300.0
     max_positions: int = 4096
     advantage: float = 0.55
     uniqueness_gap: float = 0.50
@@ -31,6 +35,8 @@ class TacticSolverConfig(SolverConfig):
 
     def __post_init__(self):
         super().__post_init__()
+        if not math.isfinite(self.construction_seconds) or self.construction_seconds <= 0:
+            raise ValueError("construction_seconds must be finite and positive")
         if self.max_positions < 1:
             raise ValueError("max_positions must be positive")
         if not math.isfinite(self.advantage) or not 0 < self.advantage < 1:
@@ -51,6 +57,48 @@ def expected_scores(decision, solver):
 
 
 def solve_tactic(engine, base, attacker_side, config, progress=None, *, timing=None):
+    started = time.monotonic()
+    metrics = dict(searches=0, search_ms=0.0, positions=0, max_multipv=0)
+    try:
+        with construction_budget(engine, config.construction_seconds):
+            return _solve_tactic(
+                engine, base, attacker_side, config, progress, timing, metrics
+            )
+    except ConstructionTimeout:
+        return SolveResult(
+            (),
+            engine.engine_version,
+            engine.nnue,
+            0,
+            0,
+            uncertainty=("construction_time_limit",),
+            complete=False,
+            metrics=metrics,
+        )
+    finally:
+        metrics["elapsed_seconds"] = round(time.monotonic() - started, 3)
+        metrics["search_ms"] = round(metrics["search_ms"], 3)
+        if timing:
+            timing("solution.summary", metrics.copy())
+
+
+def _solve_tactic(engine, base, attacker_side, config, progress, timing, metrics):
+    @contextmanager
+    def timed(label, **details):
+        check_deadline(engine)
+        started = time.perf_counter()
+        try:
+            yield
+            check_deadline(engine)
+        finally:
+            elapsed = (time.perf_counter() - started) * 1000
+            if label == "engine.search":
+                metrics["searches"] += 1
+                metrics["search_ms"] += elapsed
+                metrics["max_multipv"] = max(metrics["max_multipv"], details["multipv"])
+            if timing:
+                timing(label, {**details, "elapsed_ms": round(elapsed, 3)})
+
     if getattr(engine, "threads", 1) != 1:
         raise ValueError("final verification requires one engine thread")
     moves, decisions, positions = [], [], []
@@ -69,7 +117,13 @@ def solve_tactic(engine, base, attacker_side, config, progress=None, *, timing=N
             endpoint,
         )
         return SolveResult(
-            (branch,), engine.engine_version, engine.nnue, nodes, depth, complete=True
+            (branch,),
+            engine.engine_version,
+            engine.nnue,
+            nodes,
+            depth,
+            complete=True,
+            metrics=metrics,
         )
 
     # Two extra inspections/searches can prove the endpoint after the final
@@ -79,7 +133,9 @@ def solve_tactic(engine, base, attacker_side, config, progress=None, *, timing=N
             raise SolutionReview("tactic_position_limit")
         if progress:
             progress(1, 1, len(moves))
-        status = engine.inspect(context)
+        with timed("engine.inspect", ply=len(moves)):
+            status = engine.inspect(context)
+        metrics["positions"] += 1
         side = fen_side(status.fen)
         if not positions and side != attacker_side:
             raise SolutionRejected("tactic_side_mismatch")
@@ -105,13 +161,22 @@ def solve_tactic(engine, base, attacker_side, config, progress=None, *, timing=N
             # These require rule adjudication beyond this finite material line.
             raise SolutionReview("tactic_repetition")
         seen.add(key)
-        result = _analyse_with_retry(
-            engine,
-            context,
-            depth=config.depth,
-            multi_pv=min(2, len(status.legal_moves)),
-            config=config,
-        )
+        width = min(2, len(status.legal_moves)) if side == attacker_side else 1
+        with timed("engine.search", ply=len(moves), multipv=width, depth=config.depth):
+            result = _analyse_with_retry(
+                engine, context, depth=config.depth, multi_pv=width, config=config
+            )
+        if timing:
+            timing(
+                "engine.search.result",
+                dict(
+                    ply=len(moves),
+                    multipv=width,
+                    nodes=max(line.nodes for line in result.lines),
+                    lines=len(result.lines),
+                    depth=max(line.depth for line in result.lines),
+                ),
+            )
         if any(line.moves[0] not in status.legal_moves for line in result.lines):
             raise SolutionReview("illegal_tactic_engine_move")
         nodes += max(line.nodes for line in result.lines)

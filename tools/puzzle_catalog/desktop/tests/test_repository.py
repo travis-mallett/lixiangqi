@@ -89,6 +89,8 @@ class RepositoryTests(unittest.TestCase):
             "repatriationOfBuddha",
             "generalDisrobingAttack",
             "assistingKingAttack",
+            "whiteHorseMate",
+            "drawerMate",
             "childWorshipsBuddha",
             "crowningMate",
             "eunuchChasingEmperorKill",

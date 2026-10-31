@@ -21,7 +21,7 @@ final class Ublog(env: Env) extends LilaController(env):
   import scalalib.paginator.Paginator.given
 
   def index(username: UserStr, page: Int) = Open:
-    NotForKidsUnlessOfficial(username):
+    NotForKids:
       FoundPage(meOrFetch(username)): user =>
         for
           blog <- env.ublog.api.getUserBlog(user)
@@ -51,7 +51,7 @@ final class Ublog(env: Env) extends LilaController(env):
 
   private def handlePost(post: UblogPost)(using Context) =
     val createdBy = post.created.by
-    NotForKidsUnlessOfficial(createdBy):
+    NotForKidsUnlessOfficial(post.isOfficial):
       WithBlogOf(createdBy): (user, blog) =>
         (canViewBlogOf(user, blog) && post.canView).so:
           if HTTPRequest.acceptsMarkdown
@@ -312,6 +312,17 @@ final class Ublog(env: Env) extends LilaController(env):
         if ctx.isAuth then communityIndex(lang.some, filterOpt, page)
         else communityIndex(lang.some, filterOpt, page)(using ctx.withLang(lang))
 
+  def official(page: Int) = Open:
+    Reasonable(page, Max(200)):
+      pageHit
+      Ok.async(env.ublog.paginator.official(page).map(views.ublog.ui.official))
+
+  def officialAtom = Anon:
+    env.ublog.paginator
+      .official(1)
+      .map: posts =>
+        Ok.snip(views.ublog.ui.atom.official(posts.currentPageResults)).as(XML)
+
   def communityAll(filterOpt: Option[QualityFilter], page: Int) = Open:
     communityIndex(none, filterOpt, page)
 
@@ -393,8 +404,8 @@ final class Ublog(env: Env) extends LilaController(env):
 
   private def isBlogVisible(user: UserModel, blog: UblogBlog) = user.enabled.yes && blog.visible
 
-  private def NotForKidsUnlessOfficial(username: UserStr)(f: => Fu[Result])(using Context): Fu[Result] =
-    if username.is(UserId.lichess) then f else NotForKids(f)
+  private def NotForKidsUnlessOfficial(official: Boolean)(f: => Fu[Result])(using Context): Fu[Result] =
+    if official then f else NotForKids(f)
 
   private def canViewBlogOf(user: UserModel, blog: UblogBlog)(using ctx: Context) =
     ctx.is(user) || isGrantedOpt(_.ModerateBlog) || isBlogVisible(user, blog)

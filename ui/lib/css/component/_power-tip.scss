@@ -23,6 +23,8 @@
 #siteTooltip {
   width: min(21rem, calc(100vw - 2rem));
   min-height: 0;
+  max-height: calc(100dvh - 1rem);
+  overflow-y: auto;
 }
 
 .upt {
@@ -70,15 +72,15 @@
       text-align: center;
     }
 
-    &__ratings,
     &__ranks {
-      @extend %flex-between;
+      @extend %flex-column;
 
       margin-top: 3px;
 
       > span {
-        flex: 0 0 25%;
-        max-width: 25%;
+        display: flex;
+        align-items: center;
+        gap: 0.5em;
         padding: 2px 3px;
         text-align: left;
       }

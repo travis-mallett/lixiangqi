@@ -52,7 +52,10 @@ object embed:
     page.ui.dataSocketDomains,
     style := {
       val board = lila.pref.BoardThemes(ctx.boardTheme)
-      s"---board-image:url(${assetUrl(s"images/board/${board.file}").value});" +
+      board.geometries.toList
+        .map((geometry, path) => s"---board-image-$geometry:url(${assetUrl(path).value});")
+        .mkString +
+        s"---board-image:url(${assetUrl(s"images/board/${board.file}").value});" +
         s"---cg-ccw:${board.coordinateLight};---cg-ccb:${board.coordinateDark};" +
         "---cg-cs:none;---board-opacity:100;---board-brightness:100;---board-contrast:100;---board-saturation:100;---board-hue:0;"
     }

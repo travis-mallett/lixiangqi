@@ -29,6 +29,22 @@ object PoolList:
     PoolConfig(30 ++ 20, Wave(60.seconds, 20.players))
   )
 
+  val jieqi = PoolConfig(
+    RankedGame.jieqiClock,
+    Wave(13.seconds, 30.players),
+    RankedGame.jieqiMoveTime.some,
+    RankTrackId.jieqi.some
+  )
+
+  val minixiangqi = jieqi.copy(rankTrack = RankTrackId.minixiangqi.some)
+
+  val threeKingdoms = PoolConfig(
+    15 ++ 0,
+    Wave(13.seconds, 30.players),
+    MoveTimeLimit(60, None).some,
+    RankTrackId.threeKingdoms.some
+  )
+
   val homepage: List[PoolConfig] = List(
     PoolConfig(
       clock = RankedGame.xiangqiClock,
@@ -38,10 +54,14 @@ object PoolList:
     ),
     homepagePool(minutes = 5, normalMoveSeconds = 60, wave = Wave(14.seconds, 40.players)),
     homepagePool(minutes = 10, normalMoveSeconds = 60, wave = Wave(13.seconds, 30.players)),
-    homepagePool(minutes = 20, normalMoveSeconds = 60, wave = Wave(30.seconds, 20.players))
+    homepagePool(minutes = 20, normalMoveSeconds = 60, wave = Wave(30.seconds, 20.players)),
+    jieqi,
+    minixiangqi,
+    threeKingdoms
   )
 
-  val all: List[PoolConfig] = lobby ::: homepage
+  // Three-seat pairing is owned by the Three Kingdoms pool, not the two-seat actors.
+  val all: List[PoolConfig] = lobby ::: homepage.filterNot(_ == threeKingdoms)
 
   private def homepagePool(
       minutes: Int,

@@ -3,13 +3,14 @@ package views.user.show
 import scalalib.paginator.Paginator
 
 import lila.app.UiEnv.{ *, given }
+import lila.app.mashup.GameHistoryEntry
 
 object gamesContent:
 
   def apply(
       u: User,
       nbs: lila.app.mashup.UserInfo.NbGames,
-      pager: Paginator[Game],
+      pager: Paginator[GameHistoryEntry],
       filters: lila.game.GameFilterMenu,
       filterName: String
   )(using ctx: Context) =
@@ -34,8 +35,7 @@ object gamesContent:
                 strong(trans.search.gamesFound.plural(pager.nbResults, pager.nbResults.localize))
               ),
               div(cls := "search__rows infinite-scroll")(
-                views.game
-                  .widgets(pager.currentPageResults, user = u.some, ownerLink = ctx.is(u)),
+                widgets(pager.currentPageResults, u),
                 pagerNext(pager, np => routes.User.games(u.username, filterName, np).url)
               )
             )
@@ -49,11 +49,22 @@ object gamesContent:
           )(
             if filterName == "playing" && pager.nbResults > 2 then
               pager.currentPageResults
-                .flatMap { Pov(_, u) }
+                .flatMap {
+                  case GameHistoryEntry.Duel(g) => Pov(g, u)
+                  case _ => None
+                }
                 .map: pov =>
                   views.game.mini(pov)(cls := "paginated")
-            else views.game.widgets(pager.currentPageResults, user = u.some, ownerLink = ctx.is(u)),
+            else widgets(pager.currentPageResults, u),
+            (filterName == "playing" && pager.nbResults > 2).option(pager.currentPageResults.collect {
+              case GameHistoryEntry.Kingdoms(g) => views.threeKingdoms.widget(g)
+            }),
             pagerNext(pager, np => routes.User.games(u.username, filterName, np).url)
           )
       )
     )
+
+  private def widgets(games: Seq[GameHistoryEntry], user: User)(using ctx: Context): Frag =
+    games.map:
+      case GameHistoryEntry.Duel(game) => views.game.widgets(Seq(game), user.some, ownerLink = ctx.is(user))
+      case GameHistoryEntry.Kingdoms(game) => views.threeKingdoms.widget(game)

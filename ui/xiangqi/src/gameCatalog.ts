@@ -75,12 +75,12 @@ export interface PlayerDatabaseIdentity {
 
 export interface PlayerDatabaseSummary {
   totalGames: number;
-  firstPlayedAt?: string;
-  lastPlayedAt?: string;
+  firstPlayedAt?: string | null;
+  lastPlayedAt?: string | null;
   opponents: number;
   events: number;
-  averageMoves?: number;
-  averageRating?: number;
+  averageMoves?: number | null;
+  averageRating?: number | null;
   overall: PlayerOutcome;
   red: PlayerOutcome;
   black: PlayerOutcome;
@@ -101,7 +101,7 @@ export interface PlayerDatabaseSummary {
 export interface PlayerDatabaseResult {
   available: boolean;
   player?: PlayerDatabaseIdentity;
-  summary?: PlayerDatabaseSummary;
+  summary?: PlayerDatabaseSummary | null;
   total: number;
   page: number;
   pageSize: number;
@@ -120,16 +120,16 @@ export interface EventStanding extends CatalogPlayer {
   score: number;
   redGames: number;
   blackGames: number;
-  averageRating?: number;
+  averageRating?: number | null;
 }
 
 export interface EventDatabaseSummary {
   totalGames: number;
-  firstPlayedAt?: string;
-  lastPlayedAt?: string;
+  firstPlayedAt?: string | null;
+  lastPlayedAt?: string | null;
   players: number;
   rounds: number;
-  averageMoves?: number;
+  averageMoves?: number | null;
   recordedOpenings: number;
   redWins: number;
   draws: number;
@@ -157,7 +157,7 @@ export interface EventDatabaseResult {
     query: string;
     name: string;
   };
-  summary?: EventDatabaseSummary;
+  summary?: EventDatabaseSummary | null;
   rounds: EventDatabaseRound[];
   sourceCounts: Record<CatalogCountSource, number>;
   error?: string;
@@ -180,6 +180,29 @@ export const sourceLabels: Record<CatalogSource, string> = {
 
 export function isCatalogSource(value: string): value is CatalogSource {
   return catalogSources.includes(value as CatalogSource);
+}
+
+/** A catalog date can know only a year or month. Never let Date normalize unknown components. */
+export function formatRecordedDate(value?: string | null, locale?: string): string {
+  if (!value) return '—';
+  const match = /^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?(?:$|[ T])/.exec(value);
+  if (!match) return value;
+  const year = Number(match[1]);
+  const month = Number(match[2] ?? 0);
+  const day = Number(match[3] ?? 0);
+  if (!year) return '—';
+  if (!month) return String(year);
+  if (month > 12) return value;
+  const date = new Date(0);
+  date.setUTCFullYear(year, month - 1, day || 1);
+  if (date.getUTCMonth() !== month - 1) return value;
+  return new Intl.DateTimeFormat(locale ?? (document.documentElement.lang || undefined), {
+    calendar: 'gregory',
+    ...(day ? { day: 'numeric' as const } : {}),
+    month: day ? 'short' : 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(date);
 }
 
 export function countedSourceLabel(label: string, count: number): string {

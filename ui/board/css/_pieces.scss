@@ -86,7 +86,11 @@ piece.k-piece.black {
 }
 
 piece._-piece {
-  --xiangqi-piece-image: var(--board-piece-back);
+  --xiangqi-piece-image: var(--board-piece-back-red);
 
   background-image: var(--xiangqi-piece-image);
+}
+
+piece._-piece.black {
+  --xiangqi-piece-image: var(--board-piece-back-black);
 }

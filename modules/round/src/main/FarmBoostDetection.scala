@@ -35,7 +35,7 @@ final private class FarmBoostDetection(
             .gamesFromSecondary(ct.results.reverse.take(PREV_GAMES).map(_.gameId))
             .map:
               _.exists: prev =>
-                g.winnerUserId === prev.winnerUserId &&
+                g.nativeVariant == prev.nativeVariant && g.winnerUserId === prev.winnerUserId &&
                   g.sans.take(SAME_PLIES) === prev.sans.take(SAME_PLIES)
             .addEffect:
               if _ then lila.mon.round.farming.bot.increment()
@@ -58,7 +58,8 @@ final private class FarmBoostDetection(
   private def newAccountBoostingInFavorOf(g: Game, users: ByColor[UserWithPerfs], favor: Color): Fu[Boolean] =
     (!users(favor).user.createdSinceDays(7))
       .so:
-        val rank = users(favor).perfs.rank(RankTrackId.xiangqi).getOrElse(XiangqiRank.initial)
+        val track = g.rankTrack.getOrElse(RankTrackId.xiangqi)
+        val rank = users(favor).perfs.rank(track).getOrElse(lila.rating.RankPolicy(track).initial)
         val minSeconds = linearInterpolation(rank.games)(0 -> 90, 5 -> 60)
         def minPliesForPerfNb =
           if g.variant.standard

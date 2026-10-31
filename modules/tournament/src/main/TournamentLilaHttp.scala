@@ -23,10 +23,10 @@ final class TournamentLilaHttp(
     redisClient: RedisClient
 )(using org.apache.pekko.stream.Materializer, Scheduler, Executor):
 
-  def handles(tour: Tournament) = isOnLilaHttp.get(tour.id)
+  def handles(tour: Tournament) = tour.gameVariant.playerCount == 2 && isOnLilaHttp.get(tour.id)
   private def handledIds = isOnLilaHttp.keys
   def hit(tour: Tournament) =
-    if tour.nbPlayers > 10 && !tour.isFinished && hitCounter(tour.id)
+    if tour.gameVariant.playerCount == 2 && tour.nbPlayers > 10 && !tour.isFinished && hitCounter(tour.id)
     then isOnLilaHttp.put(tour.id)
 
   private val isOnLilaHttp = ExpireSetMemo[TourId](3.hours)

@@ -15,6 +15,7 @@ import type {
   ForceSetupOptions,
   LobbyMe,
   HomepageRoom,
+  SetupVariant,
 } from './interfaces';
 import * as seekRepo from './seekRepo';
 import SetupController from './setupCtrl';
@@ -40,6 +41,8 @@ export default class LobbyController {
   setupCtrl: SetupController;
   homepageRoom?: HomepageRoom;
   botMapOpen = false;
+  lobbyVariant?: VariantKey;
+  variantPool = (variant: string): Pool => this.homePools.find(p => p.rankTrack === variant)!;
 
   openBotMap = () => {
     this.leavePool();
@@ -56,6 +59,7 @@ export default class LobbyController {
   private readonly poolInStorage: LichessStorage;
   private flushHooksTimeout?: number;
   private readonly alreadyWatching: string[] = [];
+  private readonly kingdomsWatching = new Map<string, EventSource>();
 
   constructor(
     readonly opts: LobbyOpts,
@@ -92,7 +96,7 @@ export default class LobbyController {
       const friendUser = urlParams.get('user') ?? undefined;
       const variant = urlParams.get('variant');
 
-      if (variant) forceOptions.variant = variant as VariantKey;
+      if (variant) forceOptions.variant = variant as SetupVariant;
 
       if (locationHash !== 'hook' && urlParams.get('fen')) {
         forceOptions.fen = urlParams.get('fen')!;
@@ -156,6 +160,14 @@ export default class LobbyController {
     this.flushHooksSchedule();
 
     this.startWatching();
+    window.addEventListener(
+      'pagehide',
+      () => {
+        for (const source of this.kingdomsWatching.values()) source.close();
+        this.kingdomsWatching.clear();
+      },
+      { once: true },
+    );
 
     if (this.playban) {
       if (this.playban.remainingSeconds < 86400)
@@ -201,14 +213,21 @@ export default class LobbyController {
           ? 'lobby'
           : undefined;
     const activityPool = activity ? this.homePools.find(pool => pool.id === activity) : undefined;
-    wsSetActivity(activity, activity && activityPool?.lim !== 15 ? 'other' : undefined);
+    wsSetActivity(
+      activity,
+      activity &&
+        (!activityPool?.rankTrack || activityPool.rankTrack === 'xiangqi') &&
+        activityPool?.lim !== 15
+        ? 'other'
+        : undefined,
+    );
   };
   isPoolSeeking = (id: string): boolean => this.poolMember?.id === id || this.seekingPoolId === id;
   hasPoolSeeking = (): boolean => !!this.poolMember || !!this.seekingPoolId;
 
   openHomepagePool = (pool: Pool) => {
     if (this.redirecting) return;
-    if (pool.lim !== 15) return this.openHomepageMatchmaking(pool);
+    if (pool.lim !== 15 || pool.rankTrack === 'threeKingdoms') return this.openHomepageMatchmaking(pool);
 
     const request = ++this.homepageRoomRequest;
     void xhr
@@ -381,6 +400,7 @@ export default class LobbyController {
   };
 
   hasOngoingRealTimeGame = (requireTurn: boolean) =>
+    this.data.kingdomsPlaying?.some(g => !g.hasBots && (g.isMyTurn || !requireTurn)) ||
     this.data.nowPlaying.some(
       nowPlaying =>
         nowPlaying.speed !== 'correspondence' &&
@@ -389,9 +409,14 @@ export default class LobbyController {
     );
 
   gameActivity = (gameId: string) => {
-    if (this.data.nowPlaying.some(p => p.gameId === gameId))
+    if (
+      this.data.nowPlaying.some(p => p.gameId === gameId) ||
+      this.data.kingdomsPlaying?.some(p => p.gameId === gameId)
+    )
       xhr.nowPlaying().then(res => {
         this.data.nowPlaying = res.nowPlaying;
+        this.data.kingdomsPlaying = res.kingdomsPlaying;
+        this.data.nbNowPlaying = res.nbNowPlaying;
         this.data.nbMyTurn = res.nbMyTurn;
         this.startWatching();
         this.redraw();
@@ -399,6 +424,20 @@ export default class LobbyController {
   };
 
   private startWatching() {
+    const kingdomIds = (this.data.kingdomsPlaying ?? []).slice(0, 3).map(g => g.gameId);
+    for (const [id, source] of this.kingdomsWatching)
+      if (!kingdomIds.includes(id)) {
+        source.close();
+        this.kingdomsWatching.delete(id);
+      }
+    for (const id of kingdomIds)
+      if (!this.kingdomsWatching.has(id)) {
+        const source = new EventSource(`/api/three-kingdoms/game/${id}/stream`);
+        source.onmessage = event => {
+          if (JSON.parse(event.data).position) this.gameActivity(id);
+        };
+        this.kingdomsWatching.set(id, source);
+      }
     const newIds = this.data.nowPlaying.map(p => p.gameId).filter(id => !this.alreadyWatching.includes(id));
     if (newIds.length) {
       setTimeout(() => this.socket.send('startWatching', newIds.join(' ')), 2000);

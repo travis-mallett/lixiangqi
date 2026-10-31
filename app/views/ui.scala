@@ -25,7 +25,10 @@ val dgt = lila.web.ui.DgtUi(helpers)
 
 val relation = lila.relation.ui.RelationUi(helpers)
 
-val auth = lila.web.ui.AuthUi(helpers)
+val auth: lila.web.ui.AuthUi =
+  lila.web.ui.AuthUi(helpers)(() => env.security.externalLogin.providers.map(p => p.id -> p.name))
+lazy val externalAuth: lila.security.ui.ExternalAuthUi =
+  lila.security.ui.ExternalAuthUi(helpers)(account.ui.AccountPage)
 val authTakex3 = lila.web.ui.AuthTakex3Ui(helpers)
 
 object oAuth:
@@ -48,7 +51,9 @@ val event = lila.event.ui.EventUi(helpers)(views.mod.ui.menu("event"))
 val userTournament = lila.tournament.ui.UserTournament(helpers, tournament.ui)
 
 object account:
-  val ui = lila.pref.ui.AccountUi(helpers)
+  val ui: lila.pref.ui.AccountUi = lila.pref.ui.AccountUi(helpers)(ctx =>
+    ctx.userId.exists(id => env.security.externalLogin.confirmed(id)(using ctx.req))
+  )
   val pages = lila.pref.ui.AccountPages(helpers, ui, flagApi)
   val pref = lila.pref.ui.AccountPref(helpers, prefHelper, ui)
   val twoFactor = lila.pref.ui.TwoFactorUi(helpers, ui)(netConfig.domain)

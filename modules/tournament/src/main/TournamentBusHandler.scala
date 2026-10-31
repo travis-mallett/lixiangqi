@@ -11,6 +11,10 @@ final private class TournamentBusHandler(
 )(using Executor):
 
   Bus.sub[lila.core.game.FinishGame](finished => api.finishGame(finished.game))
+  Bus.sub[lila.threeKingdoms.MatchUpdated](event =>
+    if event.game.position.finished && event.game.tournamentId.nonEmpty then
+      api.finishKingdoms(event.game).logFailure(logger)
+  )
   Bus.sub[lila.core.mod.MarkCheater]:
     case lila.core.mod.MarkCheater(userId, true) =>
       for

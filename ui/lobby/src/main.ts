@@ -4,13 +4,17 @@ import { domDialog, type Dialog } from 'lib/view';
 
 import makeCtrl from './ctrl';
 import type { LobbyOpts } from './interfaces';
+import { fitLeaderboards } from './leaderboard';
 import appView from './view/main';
+import { occupancy } from './view/occupancy';
 import siteCountersView from './view/siteCounters';
 import tableView from './view/table';
+import variantMenu from './view/variantMenu';
 
 export const patch = init([classModule, attributesModule, propsModule, eventListenersModule]);
 
 export default function main(opts: LobbyOpts) {
+  fitLeaderboards();
   const ctrl = new makeCtrl(opts, redraw);
 
   opts.appElement.innerHTML = '';
@@ -45,7 +49,7 @@ export default function main(opts: LobbyOpts) {
 
   ctrl.openSetupFromLobby = gameType => {
     const openSetup = () => {
-      ctrl.setupCtrl.openModal(gameType);
+      ctrl.setupCtrl.openModal(gameType, ctrl.lobbyVariant ? { variant: ctrl.lobbyVariant } : undefined);
       redraw();
     };
     if (!lobbyOverlayOpen) return openSetup();
@@ -62,7 +66,60 @@ export default function main(opts: LobbyOpts) {
   siteCountersElement.innerHTML = '';
   let siteCountersVNode = patch(siteCountersElement, siteCountersView(ctrl));
 
+  const variantMenus = (['jieqi', 'minixiangqi', 'threeKingdoms'] as const).map(variant => {
+    let vnode: ReturnType<typeof variantMenu> | undefined;
+    let dialog: Dialog | undefined;
+    let opening = false;
+    let afterClose: (() => void) | undefined;
+    const navigate = (action: () => void) => {
+      afterClose = action;
+      dialog?.close();
+    };
+    const trigger = document.querySelector<HTMLAnchorElement>(
+      `.lobby__variant-card[href="/?variant=${variant}"]`,
+    );
+    let counter = trigger
+      ? patch(trigger.appendChild(document.createElement('span')), occupancy(ctrl.poolCount(variant)))
+      : undefined;
+    const open = () => {
+      if (opening || dialog) return;
+      opening = true;
+      vnode = patch(document.createElement('div'), variantMenu(ctrl, variant, navigate));
+      void domDialog({
+        class: 'lobby__variant-menu-dialog',
+        append: [{ node: vnode.elm as HTMLElement }],
+        attrs: { dialog: { 'aria-labelledby': 'variant-menu-title' } },
+        modal: true,
+        easyClose: 'clickOutside',
+        onClose: () => {
+          vnode = undefined;
+          dialog = undefined;
+          trigger?.focus();
+          const action = afterClose;
+          afterClose = undefined;
+          if (action) requestAnimationFrame(action);
+        },
+      }).then(created => {
+        opening = false;
+        dialog = created;
+        void created.show();
+      });
+    };
+    trigger?.setAttribute('aria-haspopup', 'dialog');
+    trigger?.addEventListener('click', event => {
+      if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+      event.preventDefault();
+      open();
+    });
+    if (new URLSearchParams(location.search).get('variant') === variant && !location.hash) open();
+    return () => {
+      if (counter) counter = patch(counter, occupancy(ctrl.poolCount(variant)));
+      if (vnode) vnode = patch(vnode, variantMenu(ctrl, variant, navigate));
+    };
+  });
+
   function redraw() {
+    variantMenus.forEach(redrawMenu => redrawMenu());
     appVNode = patch(appVNode, appView(ctrl));
     tableVNode = patch(tableVNode, tableView(ctrl));
     siteCountersVNode = patch(siteCountersVNode, siteCountersView(ctrl));

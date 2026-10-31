@@ -41,7 +41,11 @@ object AiTurnKey extends OpaqueString[AiTurnKey]:
     game.aiLevel.map(level => apply(game, effectiveLevel(game, level)))
 
   def effectiveLevel(game: lila.core.game.Game, level: Int): Int =
-    if level < 3 && game.clock.exists(_.config.limitSeconds < 60) then 3 else level
+    if game.nativeVariant == lila.xiangqi.GameVariant.Xiangqi && level < 3 && game.clock.exists(
+        _.config.limitSeconds < 60
+      )
+    then 3
+    else level
 
   /** Identifies all inputs that define one AI turn.
     *
@@ -49,14 +53,14 @@ object AiTurnKey extends OpaqueString[AiTurnKey]:
     * Xiangqi repetition rules cannot be represented by the current board FEN alone.
     */
   def apply(game: lila.core.game.Game, level: Int): AiTurnKey =
-    val canonical = List(
+    val canonical = (List(
       "lixiangqi-ai-turn-v2",
       game.id.value,
       level.toString,
       game.xiangqi.initialFen,
       game.xiangqi.moves.map(_.value).mkString(" "),
       game.xiangqi.ruleset.key
-    ).mkString("\u0000")
+    ) ++ game.metadata.kidsBotProfile.toList).mkString("\u0000")
     val bytes = MessageDigest
       .getInstance("SHA-256")
       .digest(canonical.getBytes(StandardCharsets.UTF_8))

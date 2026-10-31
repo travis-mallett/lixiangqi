@@ -22,6 +22,8 @@ private def publicLineSource(source: PublicSource)(using Translate, ClientName):
   case PublicSource.Team(id) => teamLink(id)
   case PublicSource.Watcher(id) => a(href := routes.Round.watcher(id, Color.white))("Game #", id)
   case PublicSource.Player(id) => a(href := routes.Round.watcher(id, Color.white))("Game #", id)
+  case PublicSource.ThreeKingdoms(id) =>
+    a(href := routes.ThreeKingdoms.game(id))(trans.site.threeKingdoms(), " #", id)
   case PublicSource.Study(id) => a(href := routes.Study.show(id))("Study #", id)
   case PublicSource.Swiss(id) => views.swiss.ui.link(id)
   case PublicSource.Forum(id) => a(href := routes.ForumPost.redirect(id))("Forum #", id)

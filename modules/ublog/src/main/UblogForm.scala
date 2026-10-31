@@ -28,6 +28,7 @@ final class UblogForm(val captcher: CaptchaApi, langList: LangList):
       "discuss" -> boolean,
       "sticky" -> boolean,
       "ads" -> boolean,
+      "official" -> boolean,
       "gameId" -> of[GameId],
       "move" -> text
     )(UblogPostData.apply)(unapply)
@@ -35,7 +36,12 @@ final class UblogForm(val captcher: CaptchaApi, langList: LangList):
   val create = Form:
     base.verifying(lila.core.captcha.failMessage, captcher.validateSync)
 
-  def edit(post: UblogPost) = Form(base).fill:
+  def edit(post: UblogPost)(using Me) = Form(
+    base.verifying(
+      "ublog:officialPostPermissionRequired",
+      data => data.canUpdateOfficial(post)
+    )
+  ).fill:
     UblogPostData(
       title = post.title,
       intro = post.intro,
@@ -48,6 +54,7 @@ final class UblogForm(val captcher: CaptchaApi, langList: LangList):
       discuss = ~post.discuss,
       sticky = ~post.sticky,
       ads = ~post.ads,
+      official = post.isOfficial,
       gameId = GameId(""),
       move = ""
     )
@@ -66,9 +73,13 @@ object UblogForm:
       discuss: Boolean,
       sticky: Boolean,
       ads: Boolean,
+      official: Boolean,
       gameId: GameId,
       move: String
   ) extends WithCaptcha:
+
+    def canUpdateOfficial(prev: UblogPost)(using Me): Boolean =
+      (official == prev.isOfficial && !(official && live && !prev.live)) || prev.canSetOfficial
 
     def create(user: User) =
       UblogPost(
@@ -107,6 +118,7 @@ object UblogForm:
         discuss = Option(discuss),
         sticky = Option(sticky),
         ads = Option(ads),
+        official = Option(official),
         updated = UblogPost.Recorded(user.id, nowInstant).some,
         lived = prev.lived.orElse(live.option(UblogPost.Recorded(user.id, nowInstant)))
       )

@@ -75,7 +75,11 @@ object XiangqiNotation:
         _ <- headers.get("variant") match
           case None => Right(())
           case Some(value) =>
-            Either.cond(value.equalsIgnoreCase("xiangqi"), (), s"Unsupported Variant tag: $value")
+            Either.cond(
+              GameVariant.values.exists(v => value.equalsIgnoreCase(v.key) || value.equalsIgnoreCase(v.name)),
+              (),
+              s"Unsupported Variant tag: $value"
+            )
         taggedRuleset <- headers.get("ruleset").map(Ruleset.fromKey).sequence
         _ <- Either.cond(
           command.ruleset.isEmpty || taggedRuleset.isEmpty || command.ruleset == taggedRuleset,
@@ -83,8 +87,30 @@ object XiangqiNotation:
           "The Ruleset tag conflicts with the requested ruleset"
         )
         ruleset = taggedRuleset.orElse(command.ruleset).getOrElse(Ruleset.Unrestricted)
-        initialFen = headers.getOrElse("fen", command.initialFen).trim
+        initialFen = headers
+          .getOrElse(
+            "fen",
+            if command.initialFen == startFen then
+              headers
+                .get("variant")
+                .flatMap(value =>
+                  GameVariant.values
+                    .find(v => value.equalsIgnoreCase(v.key) || value.equalsIgnoreCase(v.name))
+                )
+                .fold(command.initialFen)(_.startFen)
+            else command.initialFen
+          )
+          .trim
         root <- XiangqiRules.game(Position(initialFen, ruleset = ruleset))
+        _ <- Either.cond(
+          headers
+            .get("variant")
+            .forall(value =>
+              value.equalsIgnoreCase(root.variant.key) || value.equalsIgnoreCase(root.variant.name)
+            ),
+          (),
+          "The Variant tag conflicts with the position"
+        )
         headerResult <- headers.get("result").map(RecordedResult.fromKey).sequence
         parser = Parser(tokens.dropWhile(_.isInstanceOf[Token.Header]))
         children = mutable.ArrayBuffer.empty[Builder]
@@ -103,14 +129,14 @@ object XiangqiNotation:
         children = nodes,
         annotations = annotations,
         glyphs = parser.glyphs.toVector.distinct,
-        ruleset = ruleset
+        ruleset = root.ruleset
       )
 
   /** Render the same native tree grammar accepted by importTree, without interpreting comment data. */
   def exportTree(tree: ImportedMoveTree, style: NotationStyle = NotationStyle.English): String =
     val result = tree.headers.getOrElse("result", tree.mainline.state.gameResult.key)
     val headers = tree.headers ++ Map(
-      "variant" -> "Xiangqi",
+      "variant" -> Fen.board(tree.initialFen).get.variant.name,
       "moveformat" -> (if style == NotationStyle.Chinese then "Chinese" else "WXF"),
       "ruleset" -> tree.ruleset.key,
       "fen" -> tree.initialFen,
@@ -138,6 +164,7 @@ object XiangqiNotation:
       val dots = if node.state.ply % 2 == 1 then "." else "..."
       val notation = if style == NotationStyle.Chinese then node.chineseNotation else node.notation
       output.append(s"$number$dots $notation")
+      node.state.reveal.foreach(role => output.append(s"~$role"))
       annotations(node.annotations, node.glyphs)
 
     def line(children: Vector[ImportedTreeNode]): Unit = children.headOption.foreach: main =>
@@ -275,9 +302,17 @@ object XiangqiNotation:
                     else if length >= maxPlies then
                       error = Some(s"Notation exceeds $maxPlies plies in a branch")
                     else
+                      val parts = raw.dropRight(suffix.length).split("~", -1)
                       val next = for
-                        uci <- XiangqiRules.resolveNotation(current, raw.dropRight(suffix.length))
-                        moved <- XiangqiRules.move(current, uci)
+                        _ <- Either.cond(
+                          parts.length <= 2 && (current.isJieqi || parts.length == 1),
+                          (),
+                          "Invalid reveal notation"
+                        )
+                        uci <- XiangqiRules.resolveNotation(current, parts.head)
+                        moved <-
+                          if current.isJieqi then Jieqi.analysisMove(current, uci, parts.lift(1))
+                          else XiangqiRules.move(current, uci)
                         game <- current.applyMove(moved)
                         node <- merge(children, moved, depth)
                       yield (game, node)
@@ -305,7 +340,7 @@ object XiangqiNotation:
         result: MoveResult,
         depth: Int
     ): Either[String, Builder] =
-      nodes.find(_.move == result.move) match
+      nodes.find(node => node.move == result.move && node.state.reveal == result.reveal) match
         case Some(node) if node.state == result.state =>
           node.depth = node.depth.min(depth)
           nodes.sortInPlaceBy(_.depth)

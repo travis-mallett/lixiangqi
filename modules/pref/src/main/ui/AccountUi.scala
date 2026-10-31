@@ -4,8 +4,30 @@ import lila.ui.*
 
 import ScalatagsTemplate.{ *, given }
 
-final class AccountUi(helpers: Helpers):
+final class AccountUi(helpers: Helpers)(confirmed: Context => Boolean):
   import helpers.{ *, given }
+
+  def passwordField(field: play.api.data.Field, content: Frag, half: Boolean = false)(
+      modifiers: Modifier*
+  )(using ctx: Context): Frag =
+    if confirmed(ctx) then
+      frag(
+        form3.hidden(field.name, ""),
+        p(cls := "form-help")(trans.site.identityConfirmed())
+      )
+    else
+      frag(
+        form3.group(field, content, half = half): f =>
+          div(cls := "password-wrapper")(
+            form3.input(f, typ = "password")(modifiers),
+            form3.passwordRevealButton
+          ),
+        p(cls := "form-help")(
+          a(href := routes.ExternalAuth.reauthenticate(Some(ctx.req.path)))(
+            trans.site.confirmWithLinkedAccount()
+          )
+        )
+      )
 
   def AccountPage(title: String, active: String)(using lila.ui.Context) =
     Page(title)
@@ -152,9 +174,7 @@ final class AccountUi(helpers: Helpers):
                 trans.coach.lichessCoach()
               )
             ),
-          a(activeCls("password"), href := routes.Account.passwd)(
-            trans.site.changePassword()
-          ),
+          a(activeCls("loginMethods"), href := routes.ExternalAuth.index)(trans.site.loginMethods()),
           a(activeCls("email"), href := routes.Account.email)(
             trans.site.changeEmail()
           ),

@@ -37,6 +37,18 @@ final class ActivityUi(helpers: Helpers)(
               a.racer.map(renderRacer),
               a.streak.map(renderStreak),
               a.games.map(renderGames),
+              a.kingdoms.map: score =>
+                entryTag(
+                  iconTag(lila.ui.VariantIcon(lila.xiangqi.GameVariant.ThreeKingdoms)),
+                  div(
+                    trans.activity.playedNbGames.plural(
+                      score.size,
+                      score.size,
+                      st.a(href := routes.User.games(u.username, "threeKingdoms"))(trans.site.threeKingdoms())
+                    )
+                  ),
+                  scoreFrag(score)
+                ),
               canSeeForumPosts(u).option(a.forumPosts.map(renderForumPosts)),
               ublogPosts(a),
               a.corresMoves.map(renderCorresMoves),
@@ -110,7 +122,7 @@ final class ActivityUi(helpers: Helpers)(
   private def renderGames(games: Games)(using Context) =
     val score = games.value.values.foldLeft(lila.activity.Score.empty)(_.plus(_))
     entryTag(
-      iconTag(Icon.Crown),
+      iconTag(lila.ui.VariantIcon(lila.xiangqi.GameVariant.Xiangqi)),
       div(trans.activity.playedNbGames.plural(score.size, score.size, "Xiangqi")),
       scoreFrag(score.copy(rp = none))
     )

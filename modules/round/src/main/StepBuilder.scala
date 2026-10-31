@@ -8,6 +8,7 @@ object StepBuilder:
     apply(game.xiangqi)
 
   private[round] def apply(game: lila.xiangqi.Xiangqi.Game): JsArray =
+    import lila.xiangqi.XiangqiJson.given
     JsArray:
       game.states.zipWithIndex.map: (state, index) =>
         Json.obj(
@@ -17,5 +18,6 @@ object StepBuilder:
           "sanZh" -> game.chineseWxf.lift(index - 1),
           "fen" -> state.fen,
           "check" -> state.check,
-          "mate" -> state.mate
+          "mate" -> state.mate,
+          "captures" -> state.captures
         )

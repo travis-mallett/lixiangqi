@@ -13,7 +13,7 @@ from typing import Iterable, Sequence
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIRECTORY = PROJECT_ROOT / "data" / "local"
 DEFAULT_DATABASE = DATA_DIRECTORY / "xiangqi-games.sqlite3"
-SCHEMA_VERSION = 9
+SCHEMA_VERSION = 10
 SCHEMA_PATH = Path(__file__).with_name("schema.sql")
 
 
@@ -75,6 +75,9 @@ def stable_game_id(identity: bytes) -> str:
 
 def initialize(connection: sqlite3.Connection) -> None:
     connection.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
+    from .players import initialize as initialize_players
+
+    initialize_players(connection)
     connection.execute(
         """
         UPDATE game_sources

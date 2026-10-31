@@ -27,7 +27,12 @@ export function interaction(ctrl: RoundController, playing: boolean = ctrl.isPla
               : 'both',
         showDestinations: data.pref.destination && !ctrl.blindfold(),
         onMove: ctrl.onBoardMove,
-        premove: data.pref.enablePremove ? { destinations: xiangqiPremoveTargets } : undefined,
+        premove: data.pref.enablePremove
+          ? {
+              destinations: (position, from) =>
+                xiangqiPremoveTargets(position, from, data.game.variant.key === 'jieqi'),
+            }
+          : undefined,
       }
     : { mode: 'display' };
 }

@@ -21,8 +21,8 @@ object home:
       a(cls := "lobby__support-link", href := "/swag")(
         iconTag(Icon.Tshirt),
         span(cls := "lobby__support-link__text")(
-          strong("Swag Store"),
-          span("Play Xiangqi in style")
+          strong(trans.site.lichessMerchandise()),
+          span(trans.site.lichessMerchandiseDescription())
         )
       )
     def dailyPuzzleCard(daily: lila.puzzle.DailyPuzzle.WithHtml, placement: String) =
@@ -32,7 +32,7 @@ object home:
       )(
         h2(id := s"daily-puzzle-title-$placement", cls := "lobby__rail-title")(
           iconTag(Icon.Target),
-          "Puzzle of the day"
+          trans.puzzle.puzzleOfTheDay()
         ),
         a(
           cls := "lobby__daily-puzzle__link",
@@ -41,17 +41,23 @@ object home:
         )(
           daily.html,
           span(cls := "lobby__daily-puzzle__turn")(
-            daily.puzzle.color.fold("Red to play", "Black to play"),
+            daily.puzzle.color.fold(trans.site.whitePlays(), trans.site.blackPlays()),
             " ›"
           )
         )
       )
     def variantCard(icon: String, chinese: String, english: String) =
-      st.article(cls := "lobby__variant-card", attr("aria-disabled") := "true")(
-        span(cls := "lobby__coming-soon")(trans.site.comingSoon()),
+      (if Set("jieqi", "mini-xiangqi", "threeKingdoms").contains(icon) then
+         a(href := s"/?variant=${if icon == "mini-xiangqi" then "minixiangqi" else icon}")
+       else st.article(attr("aria-disabled") := "true")) (cls := "lobby__variant-card")(
+        if Set("jieqi", "mini-xiangqi", "threeKingdoms").contains(icon) then
+          span(cls := "lobby__variant-ribbon lobby__variant-ribbon--new")(trans.site.newFeature())
+        else span(cls := "lobby__variant-ribbon")(trans.site.comingSoon()),
         img(
-          cls := "lobby__variant-icon",
-          src := assetUrl(s"images/homepage/variants/$icon.png"),
+          cls := s"lobby__variant-icon lobby__variant-icon--$icon",
+          src := assetUrl(
+            s"images/homepage/variants/${if icon == "threeKingdoms" then "three-player" else icon}.png"
+          ),
           alt := "",
           aria.hidden := "true",
           widthA := 224,
@@ -64,6 +70,7 @@ object home:
     Page("")
       .copy(fullTitle = s"$siteName • ${trans.site.freeOnlineChess.txt()}".some)
       .i18n(_.variant)
+      .i18n(_.threeKingdoms)
       .js(
         PageModule(
           "lobby",
@@ -98,18 +105,20 @@ object home:
             st.section(cls := "lobby__site-stats lobby__rail-card", attr("aria-label") := "Site statistics")(
               div(cls := "lobby__site-counters")
             ),
-            featured.map: game =>
-              st.section(
-                cls := "lobby__tv lobby__rail-card",
-                attr("aria-labelledby") := "lobby-tv-title",
-                attr("data-mini-game-animation") := ctx.pref.animationMillis
-              )(
-                h2(id := "lobby-tv-title", cls := "lobby__rail-title")(
-                  iconTag(Icon.AnalogTv),
-                  "Lixiangqi TV"
-                ),
-                views.game.mini(Pov.naturalOrientation(game), tv = true, replayFinished = true)
+            st.section(
+              cls := "lobby__tv lobby__rail-card",
+              attr("aria-labelledby") := "lobby-tv-title",
+              attr("data-mini-game-animation") := ctx.pref.animationMillis
+            )(
+              h2(id := "lobby-tv-title", cls := "lobby__rail-title")(
+                iconTag(Icon.AnalogTv),
+                a(href := routes.Tv.index)("LiXiangQi TV")
               ),
+              div(cls := "lobby__tv__game")(
+                featured.fold[Frag](p(cls := "box__pad", role := "status")(trans.site.noGameFound())): game =>
+                  views.game.mini(Pov.naturalOrientation(game), tv = true, replayFinished = true)
+              )
+            ),
             puzzle.map(dailyPuzzleCard(_, "left")),
             donateLink,
             swagLink
@@ -130,12 +139,13 @@ object home:
               div(cls := "lobby__variant-grid")(
                 variantCard("jieqi", "揭棋", "Jieqi / Reveal Chess"),
                 variantCard("banqi", "暗棋", "Banqi / Dark Chess"),
-                variantCard("mini-xiangqi", "迷你象棋", "Mini Xiangqi"),
-                variantCard("three-player", "三人象棋", "Three-Player Xiangqi"),
+                variantCard("mini-xiangqi", "迷你象棋", trans.site.miniXiangqi.txt()),
+                variantCard("threeKingdoms", "三国棋", trans.site.threeKingdoms.txt()),
                 variantCard("manchu", "满洲棋", "Manchu Chess"),
                 variantCard("other", "其他变体", "Other Variants")
               )
-            )
+            ),
+            blogPosts.nonEmpty.option(views.ublog.ui.homeCarousel(blogPosts))
           ),
           st.aside(cls := "lobby__right-rail", attr("aria-label") := "Community highlights")(
             bits.homepageLeaderboard(leaderboard, leaderboardFlags, personal),

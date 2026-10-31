@@ -14,8 +14,11 @@ object bits:
       leaderboard: List[lila.core.user.LightRank],
       flags: Map[UserId, lila.core.user.FlagCode],
       personal: Option[lila.user.XiangqiPersonalRank],
-      showMoreLink: Boolean = true
+      showMoreLink: Boolean = true,
+      track: lila.core.rank.RankTrackId = lila.core.rank.RankTrackId.xiangqi
   )(using ctx: Context) =
+    val jieqi = track == lila.core.rank.RankTrackId.jieqi
+    val mini = track == lila.core.rank.RankTrackId.minixiangqi
     val ranked = personal.collect { case lila.user.XiangqiPersonalRank.Ranked(place, entry) =>
       place -> entry
     }
@@ -43,7 +46,9 @@ object bits:
       header(cls := "lobby__leaderboard__header")(
         h2(
           span(cls := "lobby__leaderboard__icon", aria.hidden := true),
-          "Leaderboard"
+          if jieqi then trans.site.jieqiLeaderboard()
+          else if mini then trans.site.miniXiangqiLeaderboard()
+          else trans.site.leaderboard()
         ),
         showMoreLink.option(a(cls := "more", href := routes.User.list)("More ›"))
       ),
@@ -106,7 +111,8 @@ object bits:
         attr("popover") := "auto",
         aria.label := "How Xiangqi ratings change"
       )(
-        p("Ratings are zero-sum: points gained by one player are lost by the other."),
+        p(if jieqi || mini then trans.site.jieqiRatingExplanation()
+        else frag("Ratings are zero-sum: points gained by one player are lost by the other.")),
         ul(
           li("Same-rank win: +10 / −10"),
           li("Lower rank beats an adjacent rank: +15 / −15"),
@@ -123,21 +129,26 @@ object bits:
         attr("popover") := "auto",
         aria.label := "About Xiangqi ranks"
       )(
-        p("Xiangqi ranks are categorized into three levels:"),
-        dl(
-          div(dt("学"), dd("Student Rank")),
-          div(dt("业"), dd("Amateur Rank")),
-          div(dt("专"), dd("Professional Rank"))
-        ),
-        p("Each level is divided into multiple sub-levels:"),
-        ul(
-          li("学1-1 to 学3-3"),
-          li("业1-1 to 业9-3"),
-          li("专1-1 to 专3-3")
-        ),
-        p(cls := "lobby__leaderboard__rating-more")(
-          a(href := routes.Learn.xiangqiRankings)("Learn More")
-        )
+        if jieqi then frag(p(trans.site.jieqiRankExplanation()))
+        else if mini then frag(p(trans.site.miniXiangqiRankExplanation()))
+        else
+          frag(
+            p("Xiangqi ranks are categorized into three levels:"),
+            dl(
+              div(dt("学"), dd("Student Rank")),
+              div(dt("业"), dd("Amateur Rank")),
+              div(dt("专"), dd("Professional Rank"))
+            ),
+            p("Each level is divided into multiple sub-levels:"),
+            ul(
+              li("学1-1 to 学3-3"),
+              li("业1-1 to 业9-3"),
+              li("专1-1 to 专3-3")
+            ),
+            p(cls := "lobby__leaderboard__rating-more")(
+              a(href := routes.Learn.xiangqiRankings)("Learn More")
+            )
+          )
       ),
       personal match
         case None =>
@@ -148,7 +159,10 @@ object bits:
           )
         case Some(lila.user.XiangqiPersonalRank.Unplayed) =>
           p(cls := "lobby__leaderboard__footer")(
-            a(href := routes.Round.matchmaking("15+0-m90-30x3"))(trans.site.playRatedGameToGetRanked())
+            a(href := (if jieqi || mini then s"/?variant=${track.value}"
+                       else routes.Round.matchmaking("15+0-m90-30x3").url))(
+              trans.site.playRatedGameToGetRanked()
+            )
           )
         case _ => emptyFrag
     )

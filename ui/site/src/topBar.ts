@@ -55,6 +55,15 @@ export default function () {
     return false;
   });
 
+  top.addEventListener('keydown', event => {
+    if (event.key !== 'Escape') return;
+    const open = (event.target as HTMLElement).closest<HTMLElement>('.shown');
+    if (!open) return;
+    event.preventDefault();
+    open.classList.remove('shown');
+    open.querySelector<HTMLElement>('.toggle')?.focus();
+  });
+
   {
     // challengeApp
     let instance: Promise<any> | undefined;

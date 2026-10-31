@@ -19,9 +19,9 @@ final class JsonView(rematches: Rematches):
       .obj(
         "id" -> game.id,
         "ruleset" -> game.xiangqi.ruleset.key,
-        "variant" -> game.variant,
+        "variant" -> JsonView.variant(game),
         "speed" -> game.speed.key,
-        "perf" -> "xiangqi",
+        "perf" -> game.nativeVariant.key,
         "ranked" -> game.ranked,
         "source" -> game.source,
         "createdAt" -> game.createdAt
@@ -35,13 +35,15 @@ final class JsonView(rematches: Rematches):
       .add("rules" -> game.metadata.nonEmptyRules)
 
   def base(game: Game, initialFen: Option[Fen.Full]) =
+    import lila.xiangqi.XiangqiJson.given
     immutable(game, initialFen) ++ Json
       .obj(
         "fen" -> game.position.fen,
         "variation" -> game.position.variation,
         "termination" -> game.position.termination,
         "turns" -> game.ply,
-        "status" -> game.status
+        "status" -> game.status,
+        "captures" -> game.position.captures
       )
       .add("winner" -> game.winnerColor)
       .add("abortedBy" -> game.abortedBy)
@@ -68,9 +70,9 @@ final class JsonView(rematches: Rematches):
         "lastMove" -> (pov.game.lastMoveKeys | ""),
         "source" -> pov.game.source,
         "status" -> pov.game.status,
-        "variant" -> pov.game.variant,
+        "variant" -> JsonView.variant(pov.game),
         "speed" -> pov.game.speed.key,
-        "perf" -> "xiangqi",
+        "perf" -> pov.game.nativeVariant.key,
         "ranked" -> pov.game.ranked,
         "hasMoved" -> pov.hasMoved,
         "opponent" -> Json
@@ -81,7 +83,9 @@ final class JsonView(rematches: Rematches):
           )
           .add("rank" -> pov.opponent.rank.flatMap(_.publicCode).map(_.value))
           .add("ai" -> pov.opponent.aiLevel),
-        "isMyTurn" -> pov.isMyTurn
+        "isMyTurn" -> pov.isMyTurn,
+        "drawOffer" -> pov.opponent.isOfferingDraw,
+        "takebackOffer" -> pov.opponent.isProposingTakeback
       )
       .add("secondsLeft" -> pov.remainingSeconds)
       .add("tournamentId" -> pov.game.tournamentId)
@@ -102,6 +106,15 @@ final class JsonView(rematches: Rematches):
       .add("blindfold" -> p.blindfold)
 
 object JsonView:
+
+  def variant(game: Game): JsObject =
+    if game.nativeVariant != lila.xiangqi.GameVariant.Xiangqi then
+      Json.obj(
+        "key" -> game.nativeVariant.key,
+        "name" -> game.nativeVariant.name,
+        "short" -> game.nativeVariant.name
+      )
+    else Json.toJsObject(game.variant)
 
   def expiration(game: Game) =
     game.hasFirstMoveDeadline.option:

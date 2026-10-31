@@ -36,4 +36,6 @@
     <item quantity="other">%s games found</item>
   </plurals>
   <string name="ratingExplanation">The average rating of both players</string>
+  <string name="invalidDateRange">The start date and time must be before the end date and time.</string>
+  <string name="all">All</string>
 </resources>

@@ -73,9 +73,6 @@ def migrate(db, catalog, origin, *, check=False, interrupt=None):
     markers = db.get_collection("__lixiangqi_migrations")
     backup = db.get_collection(BACKUP)
     plans = db.get_collection(PLANS)
-    control = db.puzzle2_publication.find_one({"_id": "control"})
-    if control and control.get("operation"):
-        raise ValueError("pending publication must recover before migration")
     marker = markers.find_one({"_id": MIGRATION})
     if marker and marker.get("state") not in {"preparing", "prepared", "complete"}:
         raise ValueError("unknown puzzle migration state")
@@ -83,6 +80,12 @@ def migrate(db, catalog, origin, *, check=False, interrupt=None):
         count = marker["count"]
         if backup.count_documents({}) != count or plans.count_documents({}) != count:
             raise ValueError("puzzle migration recovery evidence is missing")
+    # Completed migrations only validate current records. Keep the publication
+    # journal intact so the newly deployed server can resume interrupted work.
+    if not marker or marker["state"] != "complete":
+        control = db.puzzle2_publication.find_one({"_id": "control"})
+        if control and control.get("operation"):
+            raise ValueError("pending publication must recover before migration")
     if not marker or marker["state"] == "preparing":
         pending = []
         for original in puzzles.find({}).sort("_id", 1):

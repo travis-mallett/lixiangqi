@@ -1,0 +1,143 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 200" color="#272829">
+  <!-- Coordinates follow the supplied 1918 × 820 reference. Each symbol has
+       a 200-unit square, centered horizontally on its wooden face. -->
+  <defs>
+    <linearGradient id="lacquer" x1=".12" y1="0" x2=".85" y2="1">
+      <stop stop-color="#484b4d" data-tone="light"/>
+      <stop offset=".24" stop-color="#303234" data-tone="mid"/>
+      <stop offset=".62" stop-color="#272829" data-tone="ink"/>
+      <stop offset="1" stop-color="#18191a" data-tone="dark"/>
+    </linearGradient>
+    <linearGradient id="lacquer-edge" x1="0" y1="0" x2=".8" y2="1">
+      <stop stop-color="#272829" data-tone="ink"/>
+      <stop offset="1" stop-color="#18191a" data-tone="dark"/>
+    </linearGradient>
+    <linearGradient id="shade" x1="0" y1="0" x2="1" y2=".6"><stop stop-color="#000" stop-opacity=".15"/><stop offset="1" stop-color="#000" stop-opacity=".3"/></linearGradient>
+
+
+    <filter id="carved-edge" x="-4%" y="-4%" width="108%" height="108%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceAlpha" stdDeviation=".35"/>
+      <feOffset dx=".65" dy=".8" result="bevel"/>
+      <feFlood flood-color="#ffe0a4"/>
+      <feComposite in2="bevel" operator="in"/>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+
+    <linearGradient id="ivory" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#fff0cf"/>
+      <stop offset=".6" stop-color="#f1e3c4"/>
+      <stop offset="1" stop-color="#c6b699"/>
+    </linearGradient>
+  <mask id="N-eye" maskUnits="userSpaceOnUse" x="329" y="140" width="200" height="200"><rect x="329" y="140" width="200" height="200" fill="white"/><path d="M396 200 Q401 187 407 190 Q412 192 410 197 L405 200 L402 197 Z" fill="black"/></mask><mask id="B-eye" maskUnits="userSpaceOnUse" x="595" y="140" width="200" height="200"><rect x="595" y="140" width="200" height="200" fill="white"/><path d="M655 207 Q660 202 663 208 Q665 213 658 216 Q651 212 655 207 Z" fill="black"/></mask></defs>
+
+  <symbol id="R" viewBox="62 140 200 200">
+    <g stroke="currentColor" stroke-width="2.3" stroke-linejoin="round">
+      <path fill="url(#lacquer)" d="M125 211 Q160 207 200 212 L209 291 Q163 285 115 291 Z"/>
+      <path fill="url(#shade)" stroke="none" d="M145 214 C175 213 185 242 189 286 L208 289 L199 213 Z"/>
+      <path fill="url(#lacquer)" d="M110 172 Q109 169 113 168 L129 165 Q131 165 132 169 L135 186 L147 185 L150 164 Q150 162 153 162 L175 162 Q178 162 178 165 L180 186 L193 187 L197 169 Q197 166 200 167 L216 171 Q219 171 218 174 L213 199 Q212 210 201 214 Q164 209 128 215 Q116 213 114 201 Z"/>
+      <path fill="url(#lacquer)" d="M100 317 L100 305 Q100 292 115 288 Q160 281 208 290 Q223 293 224 304 L224 317 Z"/>
+    </g>
+    <g fill="none" stroke="#efc583" stroke-width="2" stroke-linecap="round">
+      <path d="M126 215 Q162 209 199 215"/>
+      <path d="M113 290 Q161 283 211 292"/>
+      <path d="M101 318 H223" stroke-width="1.1"/>
+    </g>
+    <path d="M104 302 Q159 294 219 303" fill="none" stroke="#ffffff" stroke-opacity=".3" stroke-width="1.2"/>
+  </symbol>
+
+  <symbol id="N" viewBox="329 140 200 200"><g mask="url(#N-eye)">
+    <path fill="url(#lacquer)" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round" d="M371 319 L371 305 Q371 294 385 291 C390 275 400 265 415 253 C426 245 429 234 430 224 C420 236 411 242 398 240 C390 237 385 244 378 252 Q375 257 369 254 L355 248 Q347 244 351 235 C357 223 369 211 375 197 C378 185 387 176 399 168 L404 152 Q405 147 409 151 L425 167 C446 171 464 180 477 197 C493 219 501 254 483 291 Q493 296 493 306 L493 319 Z"/>
+    <path fill="url(#shade)" d="M425 168 C452 187 473 209 473 237 C472 255 458 275 443 291 L482 292 C499 259 494 222 478 200 C465 181 448 173 425 168 Z"/>
+    <path fill="url(#shade)" d="M437 204 C435 220 428 229 416 233 C427 222 433 217 437 204 Z"/>
+
+    <path fill="url(#lacquer)" stroke="currentColor" stroke-width="2.3" d="M371 319 L371 306 Q371 294 386 292 Q432 287 477 292 Q493 294 493 306 L493 319 Z"/>
+    <path d="M384 292 Q431 287 480 294" fill="none" stroke="#efc583" stroke-width="2" stroke-linecap="round"/>
+    <path d="M374 303 Q431 296 490 303" fill="none" stroke="#ffffff" stroke-opacity=".3" stroke-width="1.2"/>
+    <path d="M372 320 H492" fill="none" stroke="#efc583" stroke-width="1.1"/>
+  </g></symbol>
+
+  <symbol id="B" viewBox="595 140 200 200"><g mask="url(#B-eye)">
+    <g stroke="currentColor" stroke-width="2.3" stroke-linejoin="round">
+      <path fill="url(#lacquer)" d="M673 248 C686 257 691 274 683 293 L768 301 C776 279 767 248 751 229 L708 219 Z"/>
+      <path fill="url(#shade)" stroke="none" d="M727 239 C745 256 747 272 741 290 L771 296 C772 270 764 245 751 230 Z"/>
+      <path fill="url(#lacquer)" d="M697 166 C678 160 659 165 646 176 C630 189 624 210 621 232 C617 247 614 268 619 284 C623 298 636 304 649 298 C658 294 661 282 655 278 Q650 274 646 280 Q641 286 639 279 C636 272 639 260 645 254 C665 258 680 252 689 239 L714 209 Z"/>
+      <path fill="url(#shade)" stroke="none" d="M689 179 C699 211 688 244 670 251 Q655 257 643 252 C665 246 681 233 685 210 Z"/>
+      <path fill="url(#lacquer)" d="M685 181 C693 162 709 157 726 160 C746 163 759 179 761 197 C764 217 749 241 727 254 C716 260 705 262 699 254 C691 244 695 226 697 210 Q700 196 694 188"/>
+      <path fill="url(#ivory)" d="M608 236 C620 243 636 241 646 234 C651 234 653 240 653 245 C643 253 630 254 619 250 Q607 246 607 240 Q606 236 608 236 Z"/>
+
+      <path fill="url(#lacquer)" d="M664 320 L664 309 Q665 296 682 293 Q718 287 759 293 Q770 295 774 302 Q770 312 763 320 Z"/>
+    </g>
+    <g fill="none" stroke="#efc583" stroke-width="2" stroke-linecap="round">
+      <path d="M685 181 Q690 170 697 166"/>
+      <path d="M694 188 C700 202 695 215 694 231 C692 248 696 258 705 260 C718 261 738 245 751 231"/>
+      <path d="M682 293 Q721 288 766 295"/>
+      <path d="M665 321 H762" stroke-width="1.1"/>
+    </g>
+    <path d="M609 239 Q629 248 649 239" fill="none" stroke="#fff5de" stroke-width="1.1"/>
+  </g></symbol>
+
+  <symbol id="A" viewBox="0 0 200 200">
+    <!-- Shield paths follow the supplied 1254 × 1254 shield reference. -->
+    <g transform="translate(-35.432 -34) scale(.216)">
+      <path fill="url(#lacquer-edge)" d="M512 825 C505 846 487 855 468 859 C422 869 393 895 391 936 L390 983 Q390 1002 408 1002 H846 Q864 1002 864 984 L864 950 C863 907 832 871 785 861 C765 858 751 849 740 827 Z"/>
+      <path fill="url(#lacquer)" d="M417 976 L417 938 C419 904 452 883 488 879 Q550 871 626 880 Q704 871 768 879 C806 885 835 908 838 937 L838 976 Z"/>
+      <path fill="#fff" opacity=".18" d="M417 934 C424 906 454 886 488 879 Q550 871 626 880 Q704 871 768 879 C803 884 829 905 837 933 C804 908 745 903 627 903 C511 903 451 909 417 934 Z"/>
+      <path fill="url(#lacquer-edge)" d="M627 251 C613 251 605 256 590 265 C529 307 466 328 380 340 C356 344 347 355 347 376 L346 431 C346 614 385 734 509 839 C545 872 585 893 610 899 Q627 905 646 897 C685 879 719 861 745 838 C864 734 909 613 909 431 L909 377 C909 354 898 344 879 341 C791 328 730 310 663 265 C648 256 638 251 627 251 Z"/>
+      <path fill="url(#lacquer)" d="M627 280 C616 280 611 286 597 294 C534 333 469 355 389 365 C378 367 374 373 374 386 L374 433 C374 610 418 721 527 814 C558 841 591 862 616 873 Q627 879 639 872 C676 854 704 836 728 814 C838 720 881 609 881 432 L881 382 Q881 369 867 366 C784 353 719 334 656 294 C642 286 637 280 627 280 Z"/>
+      <path fill="#fff" opacity=".2" d="M627 280 C616 280 611 286 597 294 C534 333 469 355 389 365 C378 367 374 373 374 386 L374 433 C374 558 395 653 451 731 C407 647 393 551 393 435 L393 396 Q393 379 408 377 C492 366 563 341 618 307 Q630 296 637 302 C701 341 775 362 880 378 Q879 368 867 366 C784 353 719 334 656 294 C642 286 637 280 627 280 Z"/>
+      <path fill="url(#shade)" d="M797 356 C821 429 799 574 764 655 C727 743 671 807 602 866 L616 873 Q627 879 639 872 C676 854 704 836 728 814 C838 720 881 609 881 432 L881 382 Q881 369 867 366 Z"/>
+    </g>
+  </symbol>
+
+  <symbol id="K" viewBox="1122 140 200 200">
+    <path fill="url(#lacquer)" fill-rule="evenodd" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" d="M1162 318 L1162 306 Q1162 295 1177 291 C1169 279 1153 265 1146 251 C1135 229 1144 208 1161 199 C1175 191 1192 195 1207 202 L1211 184 L1198 184 L1198 164 L1212 164 L1212 149 L1232 149 L1232 164 L1247 164 L1247 184 L1233 184 L1237 202 C1254 194 1270 191 1284 199 C1303 210 1308 232 1298 252 C1291 266 1275 281 1266 292 Q1282 296 1282 307 L1282 318 Z M1205 262 L1205 236 C1199 227 1189 221 1180 226 C1172 230 1174 238 1178 244 L1194 262 Z M1240 262 L1251 262 L1267 243 C1272 236 1273 228 1265 225 C1257 222 1245 228 1240 235 Z"/>
+    <path fill="url(#shade)" opacity=".35" d="M1280 198 C1294 214 1294 234 1285 249 L1250 291 L1266 292 C1278 277 1293 264 1299 250 C1308 229 1302 211 1287 201 Z"/>
+    <path fill="url(#lacquer)" stroke="currentColor" stroke-width="2.3" d="M1162 318 L1162 307 Q1162 295 1178 292 Q1221 287 1265 293 Q1282 296 1282 307 L1282 318 Z"/>
+    <path d="M1177 293 Q1222 287 1266 294" fill="none" stroke="#efc583" stroke-width="2" stroke-linecap="round"/>
+    <path d="M1163 319 H1281" fill="none" stroke="#efc583" stroke-width="1.1"/>
+  </symbol>
+
+  <symbol id="C" viewBox="1387 140 200 200">
+    <g stroke="currentColor" stroke-width="2.3" stroke-linejoin="round">
+      <path fill="url(#lacquer)" d="M1450 295 C1452 280 1459 266 1476 253 L1518 270 L1551 295 Z"/>
+      <path fill="url(#lacquer)" d="M1545 232 C1562 231 1573 234 1574 245 C1577 261 1567 281 1555 287 L1532 279 Z"/>
+      <path fill="url(#shade)" stroke="none" d="M1568 239 Q1578 262 1556 284 L1544 278 Z"/>
+      <path fill="url(#lacquer)" d="M1438 185 L1559 222 C1566 237 1568 258 1546 286 L1420 242 Z"/>
+      <path fill="url(#shade)" stroke="none" d="M1429 218 L1563 253 Q1561 269 1546 286 L1420 242 Z"/>
+      <path fill="none" stroke="#ffffff" stroke-opacity=".6" stroke-width="1.3" d="M1444 190 L1556 225"/>
+      <path fill="url(#lacquer)" d="M1431 177 Q1437 177 1444 182 C1455 191 1447 223 1435 241 Q1429 251 1421 248 L1409 243 C1397 237 1400 215 1407 199 C1414 184 1423 174 1431 177 Z"/>
+      <path fill="url(#shade)" d="M1425 190 C1434 188 1431 205 1427 216 C1423 228 1418 232 1414 230 C1407 227 1414 200 1421 193 Q1423 190 1425 190 Z"/>
+      <path fill="url(#lacquer)" d="M1433 318 L1434 306 Q1436 295 1450 293 L1555 291 Q1569 295 1570 308 L1567 318 Z"/>
+      <path fill="url(#lacquer)" d="M1551 278 C1551 301 1535 320 1512 320 C1487 320 1469 302 1469 278 C1469 255 1486 237 1510 237 C1533 237 1551 254 1551 278 Z"/>
+      <path fill="url(#shade)" stroke="none" d="M1528 243 C1557 267 1545 308 1517 319 C1537 316 1552 299 1551 278 C1551 262 1542 249 1528 243 Z"/>
+      <path fill="url(#shade)" d="M1523 278 C1523 287 1517 293 1509 293 C1501 293 1495 287 1495 279 C1495 270 1501 264 1509 264 C1517 264 1523 270 1523 278 Z"/>
+    </g>
+    <g fill="none" stroke="#efc583" stroke-width="2.3" stroke-linecap="round">
+      <path d="M1445 187 C1450 201 1442 231 1431 243" stroke-width="1.6"/>
+      <path d="M1425 191 C1420 193 1416 203 1413 213 Q1409 227 1414 230" stroke-width="1.8"/>
+      <path d="M1551 278 C1551 301 1535 320 1512 320 C1487 320 1469 302 1469 278 C1469 255 1486 237 1510 237 C1533 237 1551 254 1551 278 Z"/>
+      <path d="M1523 278 C1523 287 1517 293 1509 293 C1501 293 1495 287 1495 279 C1495 270 1501 264 1509 264 C1517 264 1523 270 1523 278 Z"/>
+      <path d="M1450 293 L1465 291 M1555 291 L1562 294"/>
+      <path d="M1434 319 H1497 M1529 319 H1566" stroke-width="1.1"/>
+    </g>
+  </symbol>
+
+  <symbol id="P" viewBox="1658 140 200 200">
+    <g stroke="currentColor" stroke-width="2.5" stroke-linejoin="round">
+      <path fill="url(#lacquer)" d="M1700 316 L1700 308 C1701 292 1709 281 1721 270 C1733 259 1740 246 1743 231 L1772 231 C1775 247 1782 259 1794 270 C1808 282 1816 292 1817 305 L1817 316 Z"/>
+      <path fill="url(#shade)" opacity=".3" stroke="none" d="M1765 233 C1769 255 1773 266 1788 275 C1804 286 1813 299 1815 315 L1817 315 L1817 304 C1813 285 1801 276 1791 267 C1780 255 1776 244 1772 232 Z"/>
+      <path fill="url(#lacquer)" d="M1742 211 C1729 201 1727 186 1735 173 C1744 158 1761 156 1774 164 C1790 174 1789 198 1775 211 L1789 219 Q1794 222 1790 229 L1788 234 L1728 234 Q1725 234 1725 230 L1724 222 Z"/>
+      <path fill="url(#shade)" stroke="none" d="M1769 163 C1786 178 1784 199 1771 209 L1765 213 L1777 218 L1783 232 L1788 232 L1790 223 L1775 211 C1789 197 1789 176 1776 166 Z"/>
+    </g>
+    <path d="M1745 234 H1770" fill="none" stroke="#efc583" stroke-width="2" stroke-linecap="round"/>
+    <path d="M1701 317 H1816" fill="none" stroke="#efc583" stroke-width="1.1"/>
+  </symbol>
+
+  <use href="#R" x="0" width="200" height="200"/>
+  <use href="#N" x="200" width="200" height="200"/>
+  <use href="#B" x="400" width="200" height="200"/>
+  <use href="#A" x="600" width="200" height="200"/>
+  <use href="#K" x="800" width="200" height="200"/>
+  <use href="#C" x="1000" width="200" height="200"/>
+  <use href="#P" x="1200" width="200" height="200"/>
+</svg>

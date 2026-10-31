@@ -8,7 +8,7 @@ import scalalib.model.Days
 import lila.lobby.TriColor
 import lila.rating.PerfType
 import lila.core.game.MoveTimeLimit
-import lila.xiangqi.{ Xiangqi, XiangqiRules }
+import lila.xiangqi.Xiangqi
 
 private[setup] trait Config:
 
@@ -29,6 +29,7 @@ private[setup] trait Config:
 
   // Xiangqi ruleset
   val variant: Variant
+  def gameVariant: lila.xiangqi.GameVariant = lila.xiangqi.GameVariant.Xiangqi
 
   def hasClock = timeMode == TimeMode.RealTime
 
@@ -75,22 +76,23 @@ trait Positional:
   def strictFen: Boolean
 
   def ruleset: Option[String] = None
-  def effectiveRuleset = ruleset.fold(lila.xiangqi.adjudication.Ruleset.default): key =>
-    lila.xiangqi.adjudication.Ruleset.fromKey(key).fold(sys.error, identity)
+  def effectiveRuleset = if gameVariant.selectableRulesets.isEmpty then gameVariant.defaultRuleset
+  else
+    ruleset.fold(lila.xiangqi.adjudication.Ruleset.default): key =>
+      lila.xiangqi.adjudication.Ruleset.fromKey(key).fold(sys.error, identity)
 
   lazy val validFen =
-    variant != FromPosition || fen.exists(value => Xiangqi.Fen.isValid(value.value))
+    if gameVariant == lila.xiangqi.GameVariant.Jieqi then variant.standard && fen.isEmpty
+    else
+      variant != FromPosition || fen.exists(value =>
+        Xiangqi.Fen.board(value.value).exists(_.variant == gameVariant)
+      )
 
-  def isCustomPosition = fen.exists(_.value != Xiangqi.startFen)
+  def isCustomPosition = fen.exists(_.value != gameVariant.startFen)
 
   def fenGame(builder: Xiangqi.Game => Fu[Game]): Fu[Game] =
-    XiangqiRules
-      .initialGame(
-        fen
-          .filter(_ => variant == FromPosition)
-          .map(_.value),
-        effectiveRuleset
-      )
+    gameVariant
+      .initialGame(fen.filter(_ => variant == FromPosition).map(_.value), effectiveRuleset)
       .fold(fufail, builder)
 
 object Config extends BaseConfig

@@ -28,4 +28,8 @@ case class BoardMoretime(game: Game)
 object BoardMoretime:
   def makeChan(gameId: GameId) = s"boardMoretime:$gameId"
 
+case class BoardBerserk(game: Game)
+object BoardBerserk:
+  def makeChan(gameId: GameId) = s"boardBerserk:$gameId"
+
 case class NotifyRematch(rematchOf: GameId, newGame: Game)

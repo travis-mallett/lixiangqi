@@ -28,7 +28,6 @@ final class PlayerDirectoryUi(helpers: Helpers)(menu: String => Context ?=> Frag
     Page(title)
       .css("playerDirectory")
       .css(editor.option("directoryPlayerForm"))
-      .js(infiniteScrollEsmInit)
       .js(esmInit("directoryPlayerFollow"))
       .js(editor.option(esmInit("directoryPlayerForm")))
       .pipe(pageMods):
@@ -42,7 +41,7 @@ final class PlayerDirectoryUi(helpers: Helpers)(menu: String => Context ?=> Frag
     def index(feds: Paginator[Federation])(using Context) =
       def ratingCell(stats: lila.core.playerDirectory.Federation.Stats) =
         td(if stats.top10Rating > 0 then stats.top10Rating else "-")
-      page(trb.playerFederations.txt(), "federations")(
+      page(trb.playerFederations.txt(), "federations", _.js(infiniteScrollEsmInit))(
         cls := "directory-federations",
         boxTop(h1(trb.playerFederations())),
         table(cls := "slist slist-pad")(

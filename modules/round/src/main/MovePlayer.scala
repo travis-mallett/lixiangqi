@@ -142,13 +142,13 @@ final private class MovePlayer(
       blur: Boolean,
       metrics: MoveMetrics
   ): Either[String, MoveResult] =
-    val steppedClock = game.clock.map(_.step(metrics))
     XiangqiRules
       .move(game.xiangqi, uci)
       .flatMap: move =>
         game.xiangqi
           .applyMove(move)
           .map: next =>
+            val steppedClock = game.clock.map(_.step(metrics, gameActive = !next.state.ended))
             steppedClock match
               case Some(stepped)
                   if stepped.value.outOfTime(game.turnColor, withGrace = false) ||
@@ -180,6 +180,7 @@ final private class MovePlayer(
     )
 
     Bus.publishDyn(MoveGameEvent(game, moveEvent.fen, moveEvent.move), MoveGameEvent.makeChan(game.id))
+    Bus.pub(MoveGameEvent(game, moveEvent.fen, moveEvent.move))
 
     if game.isCorrespondence && game.nonAi then
       Bus.pub:

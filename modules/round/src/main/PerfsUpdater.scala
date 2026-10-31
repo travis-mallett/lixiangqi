@@ -4,7 +4,7 @@ import chess.ByColor
 
 import lila.core.perf.UserWithPerfs
 import lila.core.rank.{ RankChange, RankDiff, RankTrackId }
-import lila.rating.XiangqiRank
+import lila.rating.RankPolicy
 import lila.user.UserApi
 
 /** Settles the native Xiangqi assessment attached to a ranked game. Puzzle Glicko is unrelated. */
@@ -15,8 +15,7 @@ final class PerfsUpdater(
 )(using Executor):
 
   def save(game: Game, users: ByColor[UserWithPerfs]): Fu[Option[ByColor[RankChange]]] =
-    if !game.rankTrack.contains(RankTrackId.xiangqi) || !game.finished || game.playedPlies < 2 then
-      fuccess(none)
+    if game.rankTrack.isEmpty || !game.finished || game.playedPlies < 2 then fuccess(none)
     else persistedChanges(game).fold(settle(game, users))(changes => fuccess(changes.some))
 
   private def persistedChanges(game: Game): Option[ByColor[RankChange]] =
@@ -40,8 +39,8 @@ final class PerfsUpdater(
     outcome <- game.outcome
     if !users.exists(_.user.lame)
     snapshots <- game.players.traverse(_.rank)
-    if snapshots.forall(_.track == RankTrackId.xiangqi)
-    settlement <- XiangqiRank
+    if snapshots.forall(s => game.rankTrack.contains(s.track))
+    settlement <- RankPolicy(game.rankTrack.get)
       .settle(snapshots.white, snapshots.black, outcome)
       .left
       .map(message => logger.warn(s"Cannot settle native rank for game ${game.id}: $message"))
@@ -53,11 +52,13 @@ final class PerfsUpdater(
       users: ByColor[UserWithPerfs],
       diffs: ByColor[RankDiff]
   ): Fu[Option[ByColor[RankChange]]] =
+    val track = game.rankTrack.get
+    val policy = RankPolicy(track)
     val drawn = game.outcome.exists(_.winner.isEmpty)
     users
       .mapWithColor: (color, user) =>
-        userApi.updateRankAtomically(user.id, RankTrackId.xiangqi, XiangqiRank.initial): perf =>
-          XiangqiRank.applyResult(
+        userApi.updateRankAtomically(user.id, track, policy.initial): perf =>
+          policy.applyResult(
             perf = perf,
             delta = diffs(color),
             won = game.winnerColor.contains(color),
@@ -70,7 +71,7 @@ final class PerfsUpdater(
         val current = updates.map(_._2)
         val actualDiffs = current.map: perfs =>
           perfs
-            .rank(RankTrackId.xiangqi)
+            .rank(track)
             .flatMap(_.settlement(game.id))
             .getOrElse(RankDiff.zero)
         val updatedUsers = users.zip(current, (user, perfs) => user.copy(perfs = perfs))
@@ -79,7 +80,7 @@ final class PerfsUpdater(
           (diff, perfs) =>
             RankChange(
               diff,
-              XiangqiRank.catalog.code(perfs.rank(RankTrackId.xiangqi).getOrElse(XiangqiRank.initial).score)
+              policy.catalog.code(perfs.rank(track).getOrElse(policy.initial).score)
             )
         )
         lila.common.Bus.pub(lila.core.game.PerfsUpdate(game, updatedUsers))

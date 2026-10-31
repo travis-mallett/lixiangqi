@@ -1,7 +1,6 @@
 import { type XiangqiNotationStyle } from 'lib/game';
-import { requestXiangqi } from 'lib/game/xiangqiApi';
-import type { RulesState } from 'lib/game/xiangqiNotation';
-import { createMoveTreeFromStates } from 'lib/tree/native';
+import { replayXiangqiVariation, type RulesState } from 'lib/game/xiangqiNotation';
+import { addOrSelectChild, createMoveTree, createMoveTreeFromStates } from 'lib/tree/native';
 import { completeNode } from 'lib/tree/node';
 import { path as pathOps } from 'lib/tree/tree';
 import type { TreeNode } from 'lib/tree/types';
@@ -18,42 +17,32 @@ export async function buildSolutionTree(
   data: PuzzleData,
   notationStyle: XiangqiNotationStyle,
   current: () => boolean,
+  signal?: AbortSignal,
 ): Promise<XiangqiPuzzleNode | undefined> {
   let initial = buildXiangqiTree(data, notationStyle);
   while (initial.children[0]) initial = initial.children[0];
-  const root: XiangqiPuzzleNode = {
-    ...initial,
-    path: '',
-    id: '',
-    uci: undefined,
-    notation: undefined,
-    ruleset: data.game.ruleset,
-    children: [],
-  };
+  const tree = createMoveTree(initial.state, data.game.ruleset);
   for (const line of data.puzzle.playback.solutions) {
-    let parent = root;
+    const replay = await replayXiangqiVariation(
+      data.game.states[0].fen,
+      data.game.moves ?? [],
+      data.game.ruleset,
+      line,
+      signal ? AbortSignal.any([signal, AbortSignal.timeout(15_000)]) : AbortSignal.timeout(15_000),
+    );
+    if (!current()) return;
+    let path = '';
     for (let index = 0; index < line.length; index++) {
-      const uci = line[index];
-      let child = parent.children.find(node => node.uci === uci);
-      if (!child) {
-        const state = await requestXiangqi<RulesState & { notation: string; chineseNotation: string }>(
-          '/api/analysis/move',
-          {
-            initialFen: data.game.initialFen || data.puzzle.displayFen,
-            moves: [...(data.game.moves ?? []), ...line.slice(0, index)],
-            move: uci,
-            ruleset: data.game.ruleset,
-          },
-        );
-        if (!current()) return;
-        child = makeXiangqiNode(state, uci, state.notation);
-        child.chineseNotation = state.chineseNotation;
-        parent.children.push(child);
-      }
-      parent = child;
+      const move = replay.moves[index];
+      path = addOrSelectChild(tree, path, {
+        uci: line[index],
+        state: move.state,
+        notation: move.notation,
+        chineseNotation: move.chineseNotation,
+      }).path;
     }
   }
-  return root;
+  return tree.root;
 }
 
 export function buildXiangqiTree(data: PuzzleData, _notationStyle: XiangqiNotationStyle): XiangqiPuzzleNode {

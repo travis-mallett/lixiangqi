@@ -248,19 +248,6 @@ html.wood {
       }
     }
 
-    .signup {
-      border: 1px solid #6f1c18;
-      background: linear-gradient(to bottom, #ad4037, var(--wood-cinnabar));
-      color: #fffaf1;
-      box-shadow: var(--wood-shadow-button);
-      text-shadow: 0 1px 1px rgb(55 17 13 / 0.65);
-
-      &:hover {
-        background: linear-gradient(to bottom, #bd4c42, var(--wood-cinnabar-hover));
-        color: #fff !important;
-      }
-    }
-
     .dropdown {
       border: 1px solid var(--wood-border);
       background: var(--wood-paper-high);
@@ -645,7 +632,7 @@ html.wood {
   }
 
   // Rankings use a furniture-dark title rail over an otherwise quiet paper list.
-  .community__leaders .leaderboards {
+  .community__leaders .leaderboard {
     overflow: hidden;
     border: 1px solid var(--wood-border);
     background: var(--wood-paper);
@@ -653,7 +640,7 @@ html.wood {
       var(--wood-shadow-contact),
       0 7px 18px rgb(66 38 18 / 0.1);
 
-    h2 {
+    h3 {
       border-bottom: 1px solid var(--wood-walnut-dark);
       background: linear-gradient(160deg, #825334, var(--wood-walnut) 62%, #5d351f);
 

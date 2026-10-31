@@ -449,6 +449,7 @@ function renderPv(ctrl: CevalHandler, threat: boolean, multiPv: number, pv?: PvD
             position.notation,
             position.chineseNotation,
             ctrl.ceval.opts.notationStyle ?? 'english',
+            position.state.reveal,
           )
         : moves[index];
       children.push(

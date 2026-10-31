@@ -3,8 +3,17 @@ package lila.game
 import lila.core.LightUser
 import lila.core.game.{ AiLevel, Game, Player }
 import lila.core.rank.RankCode.*
+import lila.game.Player.nameSplit
 
 object Namer extends lila.core.game.Namer:
+
+  /** Stable recorded identities shared by game exports and replay metadata. */
+  def recordedPlayerText(player: Player, user: Option[LightUser]): String =
+    player.aiLevel.fold(
+      user.fold(
+        player.nameSplit.map(_._1.value).orElse(player.name.map(_.value)).getOrElse(UserName.anonymous.value)
+      )(_.name.value)
+    )(AiLevel.displayName)
 
   def playerTextBlocking(player: Player, withRating: Boolean = false)(using
       lightUser: LightUser.GetterSync

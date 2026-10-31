@@ -131,19 +131,9 @@ final class FaqUi(helpers: Helpers, sitePages: SitePages):
           ),
           question(
             "en-passant",
-            trf.discoveringEnPassant.txt(),
-            p(
-              trf.explainingEnPassant(
-                a(href := "https://en.wikipedia.org/wiki/Xiangqi#Rules")(trf.goodIntroduction()),
-                a(href := fideHandbookUrl)(trf.fideHandbook()),
-                a(href := s"${routes.Learn.index}#/15")(trf.lichessTraining())
-              )
-            ),
-            p(
-              trf.watchIMRosenCheckmate(
-                a(href := "https://en.wikipedia.org/wiki/Xiangqi#Rules")("generals")
-              )
-            )
+            trans.site.pawnCaptures.txt(),
+            p(trans.site.xiangqiPawnCaptureRules()),
+            p(a(href := fideHandbookUrl)(trf.fideHandbook()))
           ),
           question(
             "threefold",

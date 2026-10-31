@@ -25,15 +25,20 @@ object XiangqiRules:
   private case class Transition(next: Decoded, capture: Boolean)
 
   def position(input: Position): Either[String, State] =
-    if input.ruleset == Ruleset.Unrestricted then replay(input).map(stateOf)
+    if input.ruleset == Ruleset.Unrestricted && Fen
+        .board(input.initialFen)
+        .exists(_.variant == GameVariant.Xiangqi)
+    then replay(input).map(stateOf)
     else game(input).map(_.state)
 
   def variation(input: VariationCommand): Either[String, VariationResult] =
-    game(Position(input.initialFen, input.moves, input.ruleset)).flatMap(variation(_, input.variation))
+    XiangqiEvaluation
+      .game(Position(input.initialFen, input.moves, input.ruleset))
+      .flatMap(variation(_, input.variation))
 
   def variation(initial: Game, moves: Vector[Uci]): Either[String, VariationResult] =
-    if moves.size > 256 || initial.moves.size > UciPath.maxDepth then
-      Left("Analysis variation exceeds the move limit")
+    // Tree path limits belong to tree consumers; imported games can have longer histories.
+    if moves.size > 256 then Left("Analysis variation exceeds the move limit")
     else
       moves
         .foldLeft[Either[String, (Game, Vector[VariationMove])]](
@@ -60,7 +65,9 @@ object XiangqiRules:
 
   def game(input: Position): Either[String, Game] =
     decode(input.initialFen).flatMap: initial =>
-      input.moves
+      val ruleset = if initial.board.variant != GameVariant.Xiangqi then initial.board.variant.defaultRuleset
+      else input.ruleset
+      input.moves.zipWithIndex
         .foldLeft[Either[String, Game]](
           Right(
             Game(
@@ -68,17 +75,25 @@ object XiangqiRules:
               moves = Vector.empty,
               wxf = Vector.empty,
               states = Vector(
-                input.ruleset.policy.fold(stateOf(initial))(_.initial(stateOf(initial)))
+                ruleset.policy.fold(stateOf(initial))(_.initial(stateOf(initial)))
               ),
-              ruleset = input.ruleset
+              ruleset = ruleset
             )
           )
-        ): (result, uci) =>
+        ): (result, indexed) =>
+          val (uci, index) = indexed
           result.flatMap: game =>
-            move(game, uci).flatMap(game.applyMove)
+            val next = if game.isJieqi then Jieqi.analysisMove(game, uci, input.reveals.lift(index).flatten)
+            else move(game, uci)
+            next
+              .flatMap(game.applyMove)
+              .flatMap(g => if g.isJieqi then Jieqi.withKnownCaptures(g, input.knownCaptures) else Right(g))
 
   def move(input: Position, uci: Uci): Either[String, MoveResult] =
-    if input.ruleset == Ruleset.Unrestricted then replay(input).flatMap(move(_, uci)).map(_._1)
+    if input.ruleset == Ruleset.Unrestricted && Fen
+        .board(input.initialFen)
+        .exists(_.variant == GameVariant.Xiangqi)
+    then replay(input).flatMap(move(_, uci)).map(_._1)
     else game(input).flatMap(move(_, uci))
 
   /** Apply one move to the current immutable game state.
@@ -87,7 +102,8 @@ object XiangqiRules:
     * history of position snapshots and forcing facts.
     */
   def move(game: Game, uci: Uci): Either[String, MoveResult] =
-    if game.ruleset == Ruleset.Unrestricted then boardMove(game.state.fen, uci)
+    if game.isJieqi then Jieqi.move(game, uci)
+    else if game.ruleset == Ruleset.Unrestricted then boardMove(game.state.fen, uci)
     else if game.state.ended then Left("This Xiangqi game has ended")
     else if !game.state.legalMoves.contains(uci) then
       Left(game.state.variation.fold(s"Illegal Xiangqi move: ${uci.value}"): reason =>
@@ -109,6 +125,38 @@ object XiangqiRules:
 
   private[xiangqi] def boardMove(fen: String, uci: Uci): Either[String, MoveResult] =
     decode(fen).flatMap(move(_, uci)).map(_._1)
+
+  private[xiangqi] def revealedMove(fen: String, uci: Uci, reveal: Option[Role]): Either[String, MoveResult] =
+    decode(fen).flatMap: current =>
+      advance(current, uci).map: transition =>
+        val dest = Square.fromKey(uci.dest).get
+        val board = transition.next.board
+        val revealed = reveal.fold(board)(role =>
+          board.copy(
+            pieces = board.pieces.updated(dest, Piece(current.turn, role)),
+            concealed = board.concealed - dest
+          )
+        )
+        val state = stateOf(transition.next.copy(board = revealed))
+        MoveResult(
+          uci,
+          wxf(current.board, uci),
+          chinese(current.board, uci),
+          transition.capture,
+          state.mate,
+          state.variant,
+          state.fen,
+          state.ply,
+          state.turn,
+          state.legalMoves,
+          state.check,
+          insufficientMaterial = false,
+          gameResult = state.gameResult,
+          immediateEnd = state.immediateEnd,
+          optionalEnd = state.optionalEnd,
+          termination = state.termination,
+          reveal = reveal.map(_.key)
+        )
 
   /** Board-level captures, including discovered attacks; never consult adjudication here. */
   private[xiangqi] def captures(board: Board, side: Side): Vector[Uci] =
@@ -152,6 +200,16 @@ object XiangqiRules:
 
   def wxf(fen: String, uci: Uci): Either[String, String] =
     notation(fen, uci, NotationStyle.English)
+
+  /** Format independent root actions without inventing a hidden-piece reveal or playing a variation. */
+  def moveLabels(input: MoveLabelsCommand): Either[String, Map[String, MoveLabels]] =
+    for
+      _ <- Either.cond(input.moves.size <= 16 && input.fen.length <= 256, (), "Too many move labels")
+      decoded <- decode(input.fen)
+      labels <- Try(input.moves.map { move =>
+        move.value -> MoveLabels(wxf(decoded.board, move), chinese(decoded.board, move))
+      }.toMap).toEither.left.map(_.getMessage)
+    yield labels
 
   def chinese(fen: String, uci: Uci): Either[String, String] =
     notation(fen, uci, NotationStyle.Chinese)
@@ -276,7 +334,7 @@ object XiangqiRules:
       else if position.turn == Side.Red then Result.BlackWin
       else Result.RedWin
     State(
-      variant = "xiangqi",
+      variant = position.board.variant.key,
       fen = encode(position),
       ply = position.ply,
       turn = position.turn,
@@ -328,12 +386,12 @@ object XiangqiRules:
       case Role.General =>
         val steps = orthogonal.iterator
           .map((dx, dy) => Square(orig.file + dx, orig.rank + dy))
-          .filter(onBoard)
-          .filter(inPalace(_, piece.side))
+          .filter(onBoard(board, _))
+          .filter(inPalace(board, _, piece.side))
           .filter(board.pieceAt(_).forall(_.side != piece.side))
           .toVector
         val flying =
-          ray(orig, 0, piece.side.fold(1, -1))
+          ray(board, orig, 0, piece.side.fold(1, -1))
             .dropWhile(board.pieceAt(_).isEmpty)
             .headOption
             .filter: square =>
@@ -343,8 +401,8 @@ object XiangqiRules:
       case Role.Advisor =>
         diagonal.iterator
           .map((dx, dy) => Square(orig.file + dx, orig.rank + dy))
-          .filter(onBoard)
-          .filter(inPalace(_, piece.side))
+          .filter(onBoard(board, _))
+          .filter(dest => (board.jieqi && !board.concealed(orig)) || inPalace(board, dest, piece.side))
           .filter(board.pieceAt(_).forall(_.side != piece.side))
           .toVector
       case Role.Elephant =>
@@ -354,8 +412,8 @@ object XiangqiRules:
               Square(orig.file + dx, orig.rank + dy)
           )
           .filter((dest, eye) =>
-            onBoard(dest) &&
-              piece.side.fold(dest.rank <= 5, dest.rank >= 6) &&
+            onBoard(board, dest) &&
+              ((board.jieqi && !board.concealed(orig)) || piece.side.fold(dest.rank <= 5, dest.rank >= 6)) &&
               board.pieceAt(eye).isEmpty &&
               board.pieceAt(dest).forall(_.side != piece.side)
           )
@@ -369,7 +427,7 @@ object XiangqiRules:
               else Square(orig.file, orig.rank + math.signum(dy))
             Square(orig.file + dx, orig.rank + dy) -> leg
           .filter((dest, leg) =>
-            onBoard(dest) &&
+            onBoard(board, dest) &&
               board.pieceAt(leg).isEmpty &&
               board.pieceAt(dest).forall(_.side != piece.side)
           )
@@ -381,10 +439,10 @@ object XiangqiRules:
         sliding(board, orig, piece.side, cannon = true, attacksOnly)
       case Role.Soldier =>
         val forward = piece.side.fold(1, -1)
-        val crossedRiver = piece.side.fold(orig.rank >= 6, orig.rank <= 5)
+        val crossedRiver = board.mini || piece.side.fold(orig.rank >= 6, orig.rank <= 5)
         ((0, forward) +: crossedRiver.option(Vector((-1, 0), (1, 0))).getOrElse(Vector.empty)).iterator
           .map((dx, dy) => Square(orig.file + dx, orig.rank + dy))
-          .filter(onBoard)
+          .filter(onBoard(board, _))
           .filter(board.pieceAt(_).forall(_.side != piece.side))
           .toVector
 
@@ -396,7 +454,7 @@ object XiangqiRules:
       attacksOnly: Boolean
   ): Vector[Square] =
     orthogonal.flatMap: (dx, dy) =>
-      val squares = ray(orig, dx, dy)
+      val squares = ray(board, orig, dx, dy)
       if !cannon then
         squares.takeWhile(board.pieceAt(_).isEmpty) ++
           squares
@@ -412,37 +470,44 @@ object XiangqiRules:
           .filter(board.pieceAt(_).exists(_.side != side))
         if attacksOnly then capture.toVector else beforeScreen ++ capture
 
-  private def ray(orig: Square, dx: Int, dy: Int): Vector[Square] =
+  private def ray(board: Board, orig: Square, dx: Int, dy: Int): Vector[Square] =
     Iterator
       .iterate(Square(orig.file + dx, orig.rank + dy))(s => Square(s.file + dx, s.rank + dy))
-      .takeWhile(onBoard)
+      .takeWhile(onBoard(board, _))
       .toVector
 
   private def applyUnchecked(position: Decoded, orig: Square, dest: Square, piece: Piece): Decoded =
     Decoded(
-      board = position.board.copy(pieces = position.board.pieces - orig + (dest -> piece)),
+      board = position.board.copy(
+        pieces = position.board.pieces - orig + (dest -> piece),
+        concealed =
+          (position.board.concealed - orig - dest) ++ Option.when(position.board.concealed(orig))(dest)
+      ),
       turn = !position.turn,
-      halfMove = if position.board.pieceAt(dest).isDefined then 0 else position.halfMove + 1,
+      halfMove =
+        if position.board.pieceAt(dest).isDefined then 0
+        else position.halfMove + 1,
       fullMove = position.fullMove + position.turn.fold(0, 1)
     )
 
   private def encode(position: Decoded): String =
-    val ranks = (10 to 1 by -1).map: rank =>
+    val ranks = (position.board.variant.ranks to 1 by -1).map: rank =>
       val encoded = StringBuilder()
       var empty = 0
-      (0 until 9).foreach: file =>
+      (0 until position.board.variant.files).foreach: file =>
         position.board.pieceAt(Square(file, rank)) match
           case None => empty += 1
           case Some(piece) =>
             if empty > 0 then
               encoded.append(empty)
               empty = 0
-            val char = piece.role.forsyth
+            val char = if position.board.concealed(Square(file, rank)) then 'x' else piece.role.forsyth
             encoded.append(if piece.side == Side.Red then char.toUpper else char)
       if empty > 0 then encoded.append(empty)
       encoded.result()
     val turn = position.turn.fold("w", "b")
-    s"${ranks.mkString("/")} $turn - - ${position.halfMove} ${position.fullMove}"
+    val variant = if position.board.jieqi then "j" else "-"
+    s"${ranks.mkString("/")} $turn $variant - ${position.halfMove} ${position.fullMove}"
 
   private def wxf(board: Board, uci: Uci): String =
     val orig = Square.fromKey(uci.orig).getOrElse(throw Error(s"Invalid Xiangqi origin: ${uci.orig}"))
@@ -469,13 +534,13 @@ object XiangqiRules:
         val frontOrRear = if orig == sameFile.head then "+" else "-"
         s"$frontOrRear$roleName"
       else if sameFile.size >= 3 && piece.role == Role.Soldier then
-        s"${sameFile.indexOf(orig) + 1}${fileNumber(orig.file, red)}"
-      else s"$roleName${fileNumber(orig.file, red)}"
+        s"${sameFile.indexOf(orig) + 1}${fileNumber(orig.file, red, board.variant.files)}"
+      else s"$roleName${fileNumber(orig.file, red, board.variant.files)}"
     val forward = if red then dest.rank > orig.rank else dest.rank < orig.rank
     val (action, target) =
-      if dest.rank == orig.rank then "=" -> fileNumber(dest.file, red)
+      if dest.rank == orig.rank then "=" -> fileNumber(dest.file, red, board.variant.files)
       else if Set(Role.Horse, Role.Elephant, Role.Advisor)(piece.role) then
-        (if forward then "+" else "-") -> fileNumber(dest.file, red)
+        (if forward then "+" else "-") -> fileNumber(dest.file, red, board.variant.files)
       else (if forward then "+" else "-") -> math.abs(dest.rank - orig.rank)
     s"$subject$action$target"
 
@@ -507,7 +572,7 @@ object XiangqiRules:
       .sortBy(_.rank)(using if red then Ordering.Int.reverse else Ordering.Int)
     val subject =
       sameFile.size match
-        case 1 => s"$pieceName${chineseNumber(fileNumber(orig.file, red), red)}"
+        case 1 => s"$pieceName${chineseNumber(fileNumber(orig.file, red, board.variant.files), red)}"
         case 2 => s"${if orig == sameFile.head then "前" else "后"}$pieceName"
         case 3 if piece.role == Role.Soldier =>
           s"${Vector("前", "中", "后")(sameFile.indexOf(orig))}$pieceName"
@@ -516,9 +581,9 @@ object XiangqiRules:
         case _ => throw Error(s"Cannot disambiguate Chinese notation for ${uci.value}")
     val forward = if red then dest.rank > orig.rank else dest.rank < orig.rank
     val (action, target) =
-      if dest.rank == orig.rank then "平" -> fileNumber(dest.file, red)
+      if dest.rank == orig.rank then "平" -> fileNumber(dest.file, red, board.variant.files)
       else if Set(Role.Horse, Role.Elephant, Role.Advisor)(piece.role) then
-        (if forward then "进" else "退") -> fileNumber(dest.file, red)
+        (if forward then "进" else "退") -> fileNumber(dest.file, red, board.variant.files)
       else (if forward then "进" else "退") -> math.abs(dest.rank - orig.rank)
     s"$subject$action${chineseNumber(target, red)}"
 
@@ -526,18 +591,22 @@ object XiangqiRules:
     if red then Vector("一", "二", "三", "四", "五", "六", "七", "八", "九")(number - 1)
     else number.toString
 
-  private def fileNumber(file: Int, red: Boolean): Int =
-    if red then 9 - file else file + 1
+  private def fileNumber(file: Int, red: Boolean, files: Int): Int =
+    if red then files - file else file + 1
 
   private def squareKey(square: Square): String =
     s"${('a' + square.file).toChar}${square.rank}"
 
-  private def onBoard(square: Square): Boolean =
-    square.file >= 0 && square.file < 9 && square.rank >= 1 && square.rank <= 10
+  private def onBoard(board: Board, square: Square): Boolean =
+    square.file >= 0 && square.file < board.variant.files && square.rank >= 1 && square.rank <= board.variant.ranks
 
-  private def inPalace(square: Square, side: Side): Boolean =
-    square.file >= 3 && square.file <= 5 &&
-      side.fold(square.rank >= 1 && square.rank <= 3, square.rank >= 8 && square.rank <= 10)
+  private def inPalace(board: Board, square: Square, side: Side): Boolean =
+    val center = board.variant.files / 2
+    square.file >= center - 1 && square.file <= center + 1 &&
+    side.fold(
+      square.rank >= 1 && square.rank <= 3,
+      square.rank >= board.variant.ranks - 2 && square.rank <= board.variant.ranks
+    )
 
   private val orthogonal = Vector((1, 0), (-1, 0), (0, 1), (0, -1))
   private val diagonal = Vector((1, 1), (1, -1), (-1, 1), (-1, -1))
@@ -628,7 +697,7 @@ object XiangqiRules:
             yield ()
         _ <- board.pieces.foldLeft[Either[String, Unit]](Right(())):
           case (result, (square, piece)) =>
-            result.flatMap(_ => validateReachable(square, piece))
+            result.flatMap(_ => validateReachable(board, square, piece))
         _ <-
           val red = generalSquare(board, Side.Red)
           val black = generalSquare(board, Side.Black)
@@ -641,12 +710,16 @@ object XiangqiRules:
           Either.cond(!face.contains(true), (), "The Generals face each other on an open file")
       yield ()
 
-    private def validateReachable(square: Square, piece: Piece): Either[String, Unit] =
+    private def validateReachable(board: Board, square: Square, piece: Piece): Either[String, Unit] =
       val key = squareKey(square)
       val color = if piece.side == Side.Red then "Red" else "Black"
       piece.role match
         case Role.General =>
-          Either.cond(inPalace(square, piece.side), (), s"$color General is outside its palace at $key")
+          Either.cond(
+            inPalace(board, square, piece.side),
+            (),
+            s"$color General is outside its palace at $key"
+          )
         case Role.Advisor =>
           val points = if piece.side == Side.Red then redAdvisorPoints else blackAdvisorPoints
           Either.cond(points(key), (), s"$color Advisor cannot reach $key")

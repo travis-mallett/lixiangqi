@@ -5,6 +5,7 @@
   "dependencies": {
     "keyboard-move": "workspace:*",
     "lib": "workspace:*",
+    "threeKingdoms": "workspace:*",
     "shepherd.js": "11.2.0",
     "voice": "workspace:*",
     "@lixiangqi/board": "workspace:*"

@@ -42,7 +42,8 @@ final class TournamentShow(helpers: Helpers, gathering: GatheringUi)(using NetDo
           ,
           div(cls := "tour__main")(div(cls := "box")),
           tour.isCreated.option(div(cls := "tour__faq"):
-            faq(tour.isPrivate.option(tour.id)))
+            if tour.gameVariant == lila.xiangqi.GameVariant.ThreeKingdoms then kingdomsFaq
+            else faq(tour.isPrivate.option(tour.id)))
         )
 
   def restricted(tour: Tournament)(using ctx: Context) =
@@ -64,18 +65,20 @@ final class TournamentShow(helpers: Helpers, gathering: GatheringUi)(using NetDo
             )
         ),
         tour.isCreated.option(div(cls := "tour__faq"):
-          faq(tour.isPrivate.option(tour.id)))
+          if tour.gameVariant == lila.xiangqi.GameVariant.ThreeKingdoms then kingdomsFaq
+          else faq(tour.isPrivate.option(tour.id)))
       )
 
   private def basePage(tour: Tournament)(using ctx: Context) =
     Page(s"${tour.name()} #${tour.id}")
       .i18n(_.arena)
+      .i18nOpt(tour.gameVariant == lila.xiangqi.GameVariant.ThreeKingdoms, _.threeKingdoms)
       .i18nOpt(tour.isTeamBattle, _.team)
       .css:
         if tour.isTeamBattle then "tournament.show.team-battle"
         else "tournament.show"
       .graph(
-        title = s"${tour.name()}: ${tour.variant.name} ${tour.clock.show} Casual #${tour.id}",
+        title = s"${tour.name()}: ${tour.gameVariant.name} ${tour.clock.show} Casual #${tour.id}",
         url = routeUrl(routes.Tournament.show(tour.id)),
         description =
           s"${tour.nbPlayers} players compete in the ${showEnglishDate(tour.startsAt)} ${tour.name()}. " +
@@ -83,6 +86,13 @@ final class TournamentShow(helpers: Helpers, gathering: GatheringUi)(using NetDo
             tour.winnerId.fold("Winner is not yet decided."): winnerId =>
               s"${titleNameOrId(winnerId)} takes the prize home!"
       )
+
+  private def kingdomsFaq(using Context) = frag(
+    h2(trans.site.threeKingdoms()),
+    p(trans.threeKingdoms.tournamentRules()),
+    p(trans.threeKingdoms.tournamentClock()),
+    a(href := "/variant/threeKingdoms")(trans.threeKingdoms.rules())
+  )
 
   object side:
 
@@ -102,9 +112,17 @@ final class TournamentShow(helpers: Helpers, gathering: GatheringUi)(using NetDo
               p(
                 tour.clock.show,
                 separator,
-                tour.ruleset.label,
-                separator,
-                if tour.variant.standard then "Xiangqi" else tour.variant.name,
+                lila.core.i18n.I18nKey(tour.gameVariant.nameKey).txt(),
+                tour.gameVariant.selectableRulesets
+                  .contains(tour.ruleset)
+                  .option(
+                    frag(
+                      separator,
+                      if tour.ruleset == lila.xiangqi.adjudication.Ruleset.Unrestricted then
+                        trans.site.xiangqiRulesUnrestricted()
+                      else trans.site.xiangqiRulesTiantian()
+                    )
+                  ),
                 tour.position.isDefined.so(s"$separator${trans.site.customPosition.txt()}"),
                 separator,
                 tour.durationString
@@ -146,10 +164,10 @@ final class TournamentShow(helpers: Helpers, gathering: GatheringUi)(using NetDo
               st.section(cls := "description")(markdownLinksOrRichText(d)),
             tour.payouts.map(gathering.payouts),
             List(
-              tour.noBerserk.option(
+              (!tour.berserkable).option(
                 div(cls := "text", dataIcon := Icon.Berserk)(trans.arena.noBerserkAllowed())
               ),
-              tour.noStreak.option(
+              (!tour.streakable).option(
                 div(cls := "text", dataIcon := Icon.Fire)(trans.arena.noArenaStreaks())
               ),
               tour.isScheduled.not.option(frag(small(trans.site.by(userIdLink(tour.createdBy.some))), br)),

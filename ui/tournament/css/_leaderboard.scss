@@ -51,8 +51,16 @@ $user-list-width: 35ch;
 .tournament-shields {
   h2 {
     position: relative;
+    display: flex;
+    align-items: center;
+    min-height: 100px;
     padding-inline-start: 95px;
     border-bottom: $border;
+
+    .shield-trophy {
+      top: 50%;
+      transform: translateY(-50%);
+    }
   }
 }
 

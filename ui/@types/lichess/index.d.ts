@@ -218,6 +218,8 @@ interface Navigator {
 }
 
 type VariantKey =
+  | 'jieqi'
+  | 'minixiangqi'
   | 'xiangqi'
   | 'standard'
   | 'chess960'
@@ -232,7 +234,7 @@ type VariantKey =
 
 type Speed = 'ultraBullet' | 'bullet' | 'blitz' | 'rapid' | 'classical' | 'correspondence';
 
-type Perf = Exclude<VariantKey, 'standard'> | Speed;
+type Perf = Exclude<VariantKey, 'standard'> | Speed | 'threeKingdoms';
 
 type UserId = string;
 type Uci = string;

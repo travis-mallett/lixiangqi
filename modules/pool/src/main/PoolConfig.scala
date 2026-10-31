@@ -12,8 +12,13 @@ case class PoolConfig(
     rankTrack: Option[RankTrackId] = None
 ):
   val perfKey = PerfKey(chess.Speed(clock).key.value) | PerfKey.classical
-  val id = PoolConfig.toId(clock, moveTimeLimit)
+  def gameVariant = rankTrack.fold(lila.xiangqi.GameVariant.Xiangqi)(RankTrackId.variant)
+  val id = if gameVariant != lila.xiangqi.GameVariant.Xiangqi then
+    PoolConfigId(s"${gameVariant.key}-v1-ranked-${PoolConfig.toId(clock, moveTimeLimit).value}")
+  else PoolConfig.toId(clock, moveTimeLimit)
+  def jieqi = rankTrack.contains(RankTrackId.jieqi)
   def ranked = rankTrack.isDefined
+  def acceptsLobbyHooks = gameVariant == lila.xiangqi.GameVariant.Xiangqi
 
 object PoolConfig:
 
@@ -33,7 +38,8 @@ object PoolConfig:
         "id" -> p.id,
         "lim" -> p.clock.limitInMinutes,
         "inc" -> p.clock.incrementSeconds,
-        "name" -> "Xiangqi",
+        "name" -> p.gameVariant.name,
+        "variant" -> p.gameVariant.key,
         "ranked" -> p.ranked
       )
       .add("rankTrack" -> p.rankTrack.map(_.value))

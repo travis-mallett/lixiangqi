@@ -22,14 +22,13 @@ case class PuzzleTheme(key: PuzzleTheme.Key, name: I18nKey, description: I18nKey
             "horseCannonMatingMethods" | "horseSoldierMatingMethods" | "cannonSoldierMatingMethods" |
             "chariotHorseCannonMatingMethods" | "chariotHorseSoldierMatingMethods" |
             "chariotCannonSoldierMatingMethods" | "horseCannonSoldierMatingMethods" |
-            "chariotHorseCannonSoldierMatingMethods" | "bachelorChariotAttack" | "boldChariotAttack" |
-            "pawnTripleAdvancementAttack" | "eunuchChasingEmperorKill" | "chariotPawnZugzwang" |
-            "oldPawnSearchingMountain" | "threeImmortalsRefiningTheElixir" | "whiteHorseMate" |
-            "chariotHorseZugzwang" | "cannonChariotDiscoveredAttack" | "detonatingMineAttack" |
+            "chariotHorseCannonSoldierMatingMethods" | "boldChariotAttack" | "pawnTripleAdvancementAttack" |
+            "eunuchChasingEmperorKill" | "oldPawnSearchingMountain" | "threeImmortalsRefiningTheElixir" |
+            "whiteHorseMate" | "cannonChariotDiscoveredAttack" | "detonatingMineAttack" |
             "headhunterCannonAttack" | "childWorshipsBuddha" | "servantCrowdingMasterAttack" |
             "stalemateMate" | "leisurelyStrollMate" | "flankingTrioMate" | "drawerMate" | "doubleCheckMate" |
-            "tripleCheckMate" | "quadrupleCheckMate" | "crossCheckAttack" | "hidingBehindLeavesAttack" |
-            "generalDisrobingAttack" | "assistingKingAttack" | "threeChariotAttack" | "smallIronBolt" =>
+            "tripleCheckMate" | "quadrupleCheckMate" | "crossCheckAttack" | "generalDisrobingAttack" |
+            "assistingKingAttack" | "smallIronBolt" =>
           s"${key.value}.webp"
         case _ => "mix.svg"
 
@@ -201,21 +200,17 @@ object PuzzleTheme:
   val chariotHorseCannonSoldierMatingMethods =
     PuzzleTheme(i.chariotHorseCannonSoldierMatingMethods, i.chariotHorseCannonSoldierMatingMethodsDescription)
 
-  val threeChariotAttack = PuzzleTheme(i.threeChariotAttack, i.threeChariotAttackDescription)
   val smallIronBolt = PuzzleTheme(i.smallIronBolt, i.smallIronBoltDescription)
-  val bachelorChariotAttack = PuzzleTheme(i.bachelorChariotAttack, i.bachelorChariotAttackDescription)
   val boldChariotAttack = PuzzleTheme(i.boldChariotAttack, i.boldChariotAttackDescription)
   val pawnTripleAdvancementAttack =
     PuzzleTheme(i.pawnTripleAdvancementAttack, i.pawnTripleAdvancementAttackDescription)
   val eunuchChasingEmperorKill =
     PuzzleTheme(i.eunuchChasingEmperorKill, i.eunuchChasingEmperorKillDescription)
-  val chariotPawnZugzwang = PuzzleTheme(i.chariotPawnZugzwang, i.chariotPawnZugzwangDescription)
   val oldPawnSearchingMountain =
     PuzzleTheme(i.oldPawnSearchingMountain, i.oldPawnSearchingMountainDescription)
   val threeImmortalsRefiningTheElixir =
     PuzzleTheme(i.threeImmortalsRefiningTheElixir, i.threeImmortalsRefiningTheElixirDescription)
   val whiteHorseMate = PuzzleTheme(i.whiteHorseMate, i.whiteHorseMateDescription)
-  val chariotHorseZugzwang = PuzzleTheme(i.chariotHorseZugzwang, i.chariotHorseZugzwangDescription)
   val cannonChariotDiscoveredAttack =
     PuzzleTheme(i.cannonChariotDiscoveredAttack, i.cannonChariotDiscoveredAttackDescription)
   val detonatingMineAttack = PuzzleTheme(i.detonatingMineAttack, i.detonatingMineAttackDescription)
@@ -231,23 +226,17 @@ object PuzzleTheme:
   val tripleCheckMate = PuzzleTheme(i.tripleCheckMate, i.tripleCheckMateDescription)
   val quadrupleCheckMate = PuzzleTheme(i.quadrupleCheckMate, i.quadrupleCheckMateDescription)
   val crossCheckAttack = PuzzleTheme(i.crossCheckAttack, i.crossCheckAttackDescription)
-  val hidingBehindLeavesAttack =
-    PuzzleTheme(i.hidingBehindLeavesAttack, i.hidingBehindLeavesAttackDescription)
   val generalDisrobingAttack = PuzzleTheme(i.generalDisrobingAttack, i.generalDisrobingAttackDescription)
   val assistingKingAttack = PuzzleTheme(i.assistingKingAttack, i.assistingKingAttackDescription)
 
   val otherNamedBasicKills: List[PuzzleTheme] = List(
-    threeChariotAttack,
-    bachelorChariotAttack,
     boldChariotAttack,
     smallThroatCuttingMate,
     pawnTripleAdvancementAttack,
     eunuchChasingEmperorKill,
-    chariotPawnZugzwang,
     oldPawnSearchingMountain,
     threeImmortalsRefiningTheElixir,
     whiteHorseMate,
-    chariotHorseZugzwang,
     smallIronBolt,
     cannonChariotDiscoveredAttack,
     detonatingMineAttack,
@@ -262,7 +251,6 @@ object PuzzleTheme:
     tripleCheckMate,
     quadrupleCheckMate,
     crossCheckAttack,
-    hidingBehindLeavesAttack,
     generalDisrobingAttack,
     assistingKingAttack
   )

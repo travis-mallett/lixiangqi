@@ -3,7 +3,8 @@ import {
   boardPresentation,
   positionFromFen,
   coordinateMove,
-  standardXiangqi,
+  boardDefinition,
+  boardDefinitionForFen,
   moveDestinations,
   type BoardView,
   type BoardPosition,
@@ -21,6 +22,10 @@ export function makeBoardResizable(
   ply = 0,
   visible?: (ply: number) => boolean,
 ): void {
+  document.body.style.setProperty(
+    '--board-aspect-ratio',
+    board.element.style.getPropertyValue('--board-aspect-ratio'),
+  );
   publishBoardDimensions(board, document.body);
   if (preference === ShowResizeHandle.Never) return;
   const container = document.createElement('span');
@@ -52,6 +57,14 @@ export interface BoardPreferences {
   highlight?: boolean;
 }
 
+export function boardInput(preferences: BoardPreferences = {}): 'drag' | 'click' | 'both' {
+  return preferences.moveEvent === MoveEvent.Drag
+    ? 'drag'
+    : preferences.moveEvent === MoveEvent.ClickOrDrag
+      ? 'both'
+      : 'click';
+}
+
 /** Resolve website preferences once at the boundary; standalone embeds choose their own settings. */
 export function websiteBoardPresentation(
   preferences: BoardPreferences = {},
@@ -61,7 +74,7 @@ export function websiteBoardPresentation(
   const preset = boardPresentation(purpose, perspective);
   const configured = Number.parseInt(document.body.dataset.boardAnimations ?? '', 10);
   const mask = Number.isInteger(configured) ? configured : 15;
-  const bits = { capture: 2, check: 4, checkmate: 8 };
+  const bits = { capture: 2, check: 4, checkmate: 8, defeat: 8 };
   return {
     ...preset,
     highlight: preferences.highlight ?? preset.highlight,
@@ -88,12 +101,7 @@ export function xiangqiPlay(
     mode: 'play',
     participant,
     destinations: moveDestinations(moves),
-    input:
-      preferences.moveEvent === MoveEvent.Drag
-        ? 'drag'
-        : preferences.moveEvent === MoveEvent.ClickOrDrag
-          ? 'both'
-          : 'click',
+    input: boardInput(preferences),
     showDestinations: true,
     onMove: ({ from, to }) => {
       board.setInteraction({ mode: 'display' });
@@ -109,13 +117,14 @@ export function createXiangqiBoard(
   presentation: BoardPresentation = boardPresentation('interactive', 'red'),
   interaction: BoardInteraction = { mode: 'display' },
 ): BoardView {
-  return createBoard(element, {
-    definition: standardXiangqi,
+  const board = createBoard(element, {
+    definition: boardDefinition(position.board ?? 'xiangqi'),
     position,
     presentation,
     interaction,
     services: {
       assetUrl: path => site.asset.url(path),
+      inactivePieceLabel: i18n.threeKingdoms?.fallenGeneral,
       reducedMotion: () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches,
       sound: cue => {
         if (cue.move)
@@ -133,10 +142,16 @@ export function createXiangqiBoard(
       },
     },
   });
+  // The website's outer frame reserves space for its absolutely positioned renderer.
+  // Keep this local: a history page can contain several different board geometries.
+  const frame = element.parentElement;
+  if (frame?.classList.contains('main-board'))
+    frame.style.setProperty('--board-aspect-ratio', element.style.getPropertyValue('--board-aspect-ratio'));
+  return board;
 }
 
 export function xiangqiPosition(fen: string, lastMove?: string, check = false): BoardPosition {
-  const position = positionFromFen(fen, standardXiangqi);
+  const position = positionFromFen(fen, boardDefinitionForFen(fen));
   return {
     ...position,
     lastMove: lastMove ? coordinateMove(lastMove) : undefined,

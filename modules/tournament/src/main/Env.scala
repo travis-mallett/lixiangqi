@@ -30,7 +30,10 @@ final class Env(
     settingStore: lila.memo.SettingStore.Builder,
     ircApi: lila.core.irc.IrcApi,
     routeUrl: RouteUrl,
-    teamApi: lila.core.team.TeamApi
+    teamApi: lila.core.team.TeamApi,
+    kingdomsRepo: lila.threeKingdoms.GameRepo,
+    kingdomsMaker: lila.threeKingdoms.GameMaker,
+    kingdomsApi: lila.threeKingdoms.GameApi
 )(using scheduler: Scheduler)(using
     Executor,
     ActorSystem,
@@ -69,6 +72,7 @@ final class Env(
   private lazy val socket = wire[TournamentSocket]
 
   private lazy val pairingSystem = wire[arena.PairingSystem]
+  private lazy val kingdomsPairing = wire[ThreeKingdomsPairing]
 
   private lazy val apiCallbacks = TournamentApi.Callbacks(
     clearJsonViewCache = jsonView.clearCache,
@@ -134,7 +138,8 @@ final class Env(
   // has that user recently played a game of this tournament
   // or is hanging out in the tournament lobby (joined or not)
   def hasUser(tourId: TourId, userId: UserId): Fu[Boolean] =
-    fuccess(socket.hasUser(tourId, userId)) >>| pairingRepo.isRecentPlayer(tourId, userId)
+    fuccess(socket.hasUser(tourId, userId)) >>| pairingRepo.isRecentPlayer(tourId, userId) >>|
+      kingdomsRepo.tournamentGames(tourId, Some(userId), limit = 1).map(_.nonEmpty)
 
   lila.common.Cli.handle:
     // case "tournament" :: "leaderboard" :: "generate" :: Nil =>

@@ -7,7 +7,7 @@ import lila.db.dsl.{ *, given }
 
 final class BookmarkApi(val coll: Coll, gameApi: GameApi, paginator: PaginatorBuilder)(using Executor):
 
-  private def exists(gameId: GameId, userId: UserId): Fu[Boolean] =
+  def exists(gameId: GameId, userId: UserId): Fu[Boolean] =
     coll.exists(selectId(gameId, userId))
 
   def exists(game: Game, userId: UserId): Fu[Boolean] =
@@ -49,6 +49,12 @@ final class BookmarkApi(val coll: Coll, gameApi: GameApi, paginator: PaginatorBu
         lila.db.ignoreDuplicateKey
 
   def countByUser(user: User): Fu[Int] = coll.countSel(userIdQuery(user.id))
+
+  // Games with more than two seats share the same bookmark identity and user collection.
+  // Their game aggregate does not maintain the two-player game's denormalized count.
+  def setForMultiPlayer(gameId: GameId, userId: UserId, value: Boolean): Funit =
+    (if value then add(gameId, userId, nowInstant) else remove(gameId, userId))
+      .recover(lila.db.ignoreDuplicateKey)
 
   def gamePaginatorByUser(user: User, page: Int) = paginator.byUser(user, page)
 

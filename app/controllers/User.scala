@@ -32,34 +32,48 @@ final class User(
 
   def tv(username: UserStr) = Open:
     Found(meOrFetch(username)): user =>
-      env.round.currentlyPlaying
-        .exec(user.id)
-        .orElse(env.round.lastPlayed(user.id))
-        .flatMap:
-          _.fold(fuccess(Redirect(routes.User.show(username)))): pov =>
-            ctx.me.filterNot(_ => pov.game.bothPlayersHaveMoved).flatMap { Pov(pov.game, _) } match
-              case Some(mine) => Redirect(routes.Round.player(mine.fullId))
-              case _ => roundC.watch(pov, userTv = user.some)
+      tvGame(user.id).flatMap:
+        case None => fuccess(Redirect(routes.User.show(username)))
+        case Some(Right(game)) => fuccess(Redirect(routes.ThreeKingdoms.game(game.id)))
+        case Some(Left(pov)) =>
+          ctx.me.filterNot(_ => pov.game.bothPlayersHaveMoved).flatMap { Pov(pov.game, _) } match
+            case Some(mine) => Redirect(routes.Round.player(mine.fullId))
+            case _ => roundC.watch(pov, userTv = user.some)
 
   def tvExport(username: UserStr) = Anon:
-    env.game.cached
-      .lastPlayedPlayingId(username.id)
-      .orElse(env.game.gameRepo.quickLastPlayedId(username.id))
-      .flatMap:
-        case None => NotFound("No ongoing game")
-        case Some(gameId) => gameC.exportGame(gameId)
+    tvGame(username.id).flatMap:
+      case None => NotFound("No ongoing game")
+      case Some(game) => gameC.exportGame(game.fold(_.gameId, _.id))
+
+  private def tvGame(user: UserId): Fu[Option[Either[Pov, lila.threeKingdoms.KingdomGame]]] =
+    val duel = env.round.currentlyPlaying.exec(user).orElse(env.round.lastPlayed(user))
+    val kingdoms = env.threeKingdoms.repo
+      .activeFor(user)
+      .map(_.headOption)
+      .orElse(env.threeKingdoms.repo.history(Some(user), None, 1).map(_.headOption))
+    duel
+      .zip(kingdoms)
+      .map:
+        case (Some(pov), Some(game)) =>
+          val chooseKingdoms = if pov.game.playable != !game.position.finished then !game.position.finished
+          else game.movedAt.isAfter(pov.game.movedAt)
+          Some(if chooseKingdoms then Right(game) else Left(pov))
+        case (pov, game) => game.map(Right(_)).orElse(pov.map(Left(_)))
 
   private def gamesForLichobile(u: UserModel, filter: String, page: Int)(using BodyContext[?]) =
-    userGames(u, filter, page).flatMap(env.game.userGameApi.jsPaginator).map { res =>
-      Ok(res ++ Json.obj("filter" -> GameFilter.all.name))
-    }
+    userGames(u, filter, page).map: pag =>
+      import scalalib.Json.given
+      given Writes[lila.app.mashup.GameHistoryEntry] = Writes:
+        case lila.app.mashup.GameHistoryEntry.Duel(g) => env.game.userGameApi.write(g, ctx.me)(using ctx.lang)
+        case lila.app.mashup.GameHistoryEntry.Kingdoms(g) => env.threeKingdoms.json(g)
+      Ok(Json.obj("paginator" -> pag, "filter" -> filter))
 
   private val userShowHtmlRateLimit =
     env.security.ipTrust.rateLimit(3_000, 1.day, "user.show.html.ip", _.antiScraping(dch = 10, others = 4))
 
-  def show(username: UserStr) = OpenBody:
+  def show(username: UserStr) = OpenOrScopedBody(parse.anyContent)(_.Mobile.Inbox):
     EnabledUser(username): u =>
-      negotiate(
+      negotiateByAccept(
         renderShow(u),
         gamesForLichobile(u, GameFilter.all.name, 1)
       )
@@ -110,45 +124,46 @@ final class User(
 
   def gamesAll(username: UserStr, page: Int) = games(username, GameFilter.all.name, page)
 
-  def games(username: UserStr, filter: String, page: Int) = OpenBody:
-    Reasonable(page):
-      WithProxy: proxy ?=>
-        limit.enumeration.userProfile(rateLimited)(ctx.req.uri):
-          EnabledUser(username): u =>
-            val isSearch = filter == GameFilter.search.name
-            if isSearch && ctx.isAnon
-            then
-              negotiate(
-                Unauthorized.page(views.gameSearch.login(u.count.game)),
-                Unauthorized(jsonError("Login required"))
-              )
-            else
-              negotiate(
-                html = for
-                  nbs <- env.userNbGames(u, withCrosstable = true)
-                  filters = lila.app.mashup.GameFilterMenu(u, nbs, filter, ctx.isAuth)
-                  pag <- env.gamePaginator(user = u, nbs = nbs.some, filter = filters.current, page = page)
-                  _ <- lightUserApi.preloadMany(pag.currentPageResults.flatMap(_.userIds))
-                  _ <- env.tournament.cached.nameCache.preloadMany:
-                    pag.currentPageResults.flatMap(_.tournamentId).map(tid => tid -> ctx.lang)
-                  _ <- env.swiss.cache.name.preloadMany:
-                    pag.currentPageResults.flatMap(_.swissId)
-                  res <-
-                    if HTTPRequest.isSynchronousHttp(ctx.req) then
-                      for
-                        info <- env.userInfo.fetch(u, nbs, restricted = isRestricted, withBlog = !isSearch)
-                        _ <- env.team.cached.lightCache.preloadMany(info.teamIds)
-                        social <- env.socialInfo(u)
-                        searchForm = (filters.current == GameFilter.search).option(
-                          lila.app.mashup.GameFilterMenu.searchForm(userGameSearch, filters.current)
-                        )
-                        res <- Ok.page:
-                          views.user.show.page.games(info, pag, filters, searchForm, social)
-                      yield res
-                    else Ok.snip(views.user.show.gamesContent(u, nbs, pag, filters, filter)).toFuccess
-                yield res.withCanonical(routes.User.games(u.username, filters.current.name)),
-                json = gamesForLichobile(u, filter, page)
-              )
+  def games(username: UserStr, filter: String, page: Int) =
+    OpenOrScopedBody(parse.anyContent)(_.Mobile.Inbox):
+      Reasonable(page):
+        WithProxy: proxy ?=>
+          limit.enumeration.userProfile(rateLimited)(ctx.req.uri):
+            EnabledUser(username): u =>
+              val isSearch = filter == GameFilter.search.name
+              if isSearch && ctx.isAnon
+              then
+                negotiateByAccept(
+                  Unauthorized.page(views.gameSearch.login(u.count.game)),
+                  Unauthorized(jsonError("Login required"))
+                )
+              else
+                negotiateByAccept(
+                  html = for
+                    nbs <- env.userNbGames(u, withCrosstable = true)
+                    filters = lila.app.mashup.GameFilterMenu(u, nbs, filter, ctx.isAuth)
+                    pag <- env.gameHistory(user = u, nbs = nbs.some, filter = filters.current, page = page)
+                    _ <- lightUserApi.preloadMany(pag.currentPageResults.flatMap(_.userIds))
+                    _ <- env.tournament.cached.nameCache.preloadMany:
+                      pag.currentPageResults.flatMap(_.tournamentId).map(tid => tid -> ctx.lang)
+                    _ <- env.swiss.cache.name.preloadMany:
+                      pag.currentPageResults.flatMap(_.swissId)
+                    res <-
+                      if HTTPRequest.isSynchronousHttp(ctx.req) then
+                        for
+                          info <- env.userInfo.fetch(u, nbs, restricted = isRestricted, withBlog = !isSearch)
+                          _ <- env.team.cached.lightCache.preloadMany(info.teamIds)
+                          social <- env.socialInfo(u)
+                          searchForm = (filters.current == GameFilter.search).option(
+                            lila.app.mashup.GameFilterMenu.searchForm(userGameSearch, filters.current)
+                          )
+                          res <- Ok.page:
+                            views.user.show.page.games(info, pag, filters, searchForm, social)
+                        yield res
+                      else Ok.snip(views.user.show.gamesContent(u, nbs, pag, filters, filter)).toFuccess
+                  yield res.withCanonical(routes.User.games(u.username, filters.current.name)),
+                  json = gamesForLichobile(u, filter, page)
+                )
 
   private def EnabledUser(username: UserStr)(f: UserModel => Fu[Result])(using ctx: Context): Fu[Result] =
     if username.id.isGhost
@@ -221,39 +236,47 @@ final class User(
       u: UserModel,
       filterName: String,
       page: Int
-  )(using ctx: BodyContext[?]): Fu[Paginator[GameModel]] =
+  )(using ctx: BodyContext[?]): Fu[Paginator[lila.app.mashup.GameHistoryEntry]] =
     limit.userGames(
       ctx.ip,
-      fuccess(Paginator.empty[GameModel]),
+      fuccess(Paginator.empty[lila.app.mashup.GameHistoryEntry]),
       cost = page,
       msg = s"on ${u.username}"
     ):
       lila.mon.http.userGamesCost.increment(page.toLong)
       for
-        pagFromDb <- env.gamePaginator(user = u, nbs = none, filter = GameFilter(filterName), page = page)
-        pag <- pagFromDb.mapFutureResults(env.round.proxyRepo.upgradeIfPresent)
+        pag <- env.gameHistory(user = u, nbs = none, filter = GameFilter(filterName), page = page)
         _ <- env.tournament.cached.nameCache.preloadMany:
           pag.currentPageResults.flatMap(_.tournamentId).map(_ -> ctx.lang)
         _ <- lightUserApi.preloadMany(pag.currentPageResults.flatMap(_.userIds))
       yield pag
 
-  def list = Open:
-    env.user.xiangqiRankingApi.top(100).flatMap { leaderboard =>
-      negotiate(
-        html = for
-          personal <- ctx.user.traverse(env.user.xiangqiRankingApi.personal(_, leaderboard))
-          topOnline <- env.user.cached.getTop50Online
-          page <- renderPage:
-            views.user.list(topOnline, leaderboard, personal)
-        yield Ok(page),
-        json = JsonOk(Json.obj("xiangqi" -> leaderboard.map(env.user.jsonView.lightRankIsOnline)))
-      )
-    }
+  def list = OpenOrScoped(_.Mobile.Inbox):
+    val track =
+      get("variant").flatMap(lila.core.rank.RankTrackId.from).getOrElse(lila.core.rank.RankTrackId.xiangqi)
+    negotiateByAccept(
+      html = for
+        leaderboards <- lila.core.rank.RankTrackId.all.traverse: discipline =>
+          for
+            entries <- env.user.xiangqiRankingApi.top(100, discipline)
+            personal <- ctx.user.traverse(env.user.xiangqiRankingApi.personal(_, entries, discipline))
+          yield (discipline, entries, personal)
+        topOnline <- env.user.cached.getTop50Online
+        page <- renderPage:
+          views.user.list(topOnline, leaderboards)
+      yield Ok(page),
+      json = env.user.xiangqiRankingApi
+        .top(100, track)
+        .map: entries =>
+          JsonOk(Json.obj(track.value -> entries.map(env.user.jsonView.lightRankIsOnline)))
+    )
 
   def apiList = Anon:
+    val track =
+      get("variant").flatMap(lila.core.rank.RankTrackId.from).getOrElse(lila.core.rank.RankTrackId.xiangqi)
     env.user.xiangqiRankingApi
-      .top(100)
-      .map(entries => JsonOk(Json.obj("xiangqi" -> entries.map(env.user.jsonView.lightRankIsOnline))))
+      .top(100, track)
+      .map(entries => JsonOk(Json.obj(track.value -> entries.map(env.user.jsonView.lightRankIsOnline))))
 
   def top(@annotation.unused perfKey: PerfKey, @annotation.unused page: Int) = Open:
     fuccess(Redirect(routes.User.list))
@@ -474,10 +497,12 @@ final class User(
         result <- f(user)
       yield result
 
-  def deleteNote(id: String) = Auth { ctx ?=> me ?=>
+  def deleteNote(id: String) = AuthOrScoped(_.Mobile.Inbox) { ctx ?=> me ?=>
     Found(env.user.noteApi.byId(id)): note =>
       (note.isFrom(me) && !note.mod).so:
-        env.user.noteApi.delete(note._id).inject(Redirect(routes.User.show(note.to).url + "?note"))
+        env.user.noteApi
+          .delete(note._id)
+          .flatMap(_ => negotiate(Redirect(routes.User.show(note.to).url + "?note"), jsonOkResult))
   }
 
   def setDoxNote(id: String, dox: Boolean) = Secure(_.Admin) { ctx ?=> _ ?=>
@@ -486,7 +511,7 @@ final class User(
         env.user.noteApi.setDox(note._id, dox).inject(Redirect(routes.User.show(note.to).url + "?note"))
   }
 
-  def opponents = Auth { ctx ?=> me ?=>
+  def opponents = AuthOrScoped(_.Follow.Read) { ctx ?=> me ?=>
     val user = meOrFetch(getUserStr("u")).map(_.filter(u => ctx.is(u) || isGrantedOpt(_.BoostHunter)))
     Found(user): user =>
       for

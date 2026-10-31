@@ -1,0 +1,54 @@
+.auth-providers {
+  display: grid;
+  gap: 0.75rem;
+
+  .auth-provider {
+    display: grid;
+    grid-template-columns: 20px 1fr 20px;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    min-height: 48px;
+    padding: 0.75rem 1rem;
+    border: $border;
+    border-radius: $box-radius-size;
+    background: $c-bg-box;
+    color: $c-font;
+    font-size: 1rem;
+    line-height: 1.4;
+    text-align: center;
+
+    &:hover {
+      background: $c-bg-zebra;
+    }
+
+    &:focus-visible {
+      outline: $outline;
+      outline-offset: 3px;
+    }
+
+    img {
+      object-fit: contain;
+    }
+
+    &:not(.auth-provider--google) img {
+      filter: invert(1);
+
+      @include if-light {
+        filter: none;
+      }
+    }
+  }
+
+  .auth-provider--google {
+    background: #fff;
+    color: #1f1f1f;
+    border-color: #747775;
+    font-family: Arial, sans-serif;
+    font-weight: 500;
+
+    &:hover {
+      background: #f2f2f2;
+    }
+  }
+}

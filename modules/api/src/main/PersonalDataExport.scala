@@ -14,6 +14,8 @@ final class PersonalDataExport(
     msgEnv: lila.msg.Env,
     forumEnv: lila.forum.Env,
     gameEnv: lila.game.Env,
+    kingdomsRepo: lila.threeKingdoms.GameRepo,
+    kingdomsJson: lila.threeKingdoms.JsonView,
     noteApi: lila.round.NoteApi,
     chatEnv: lila.chat.Env,
     relationEnv: lila.relation.Env,
@@ -248,6 +250,14 @@ final class PersonalDataExport(
 
     List[Source[String, ?]](
       intro,
+      Source
+        .single(textTitle("Three Kingdoms games"))
+        .concat(
+          kingdomsRepo
+            .exportUser(user.id)
+            .throttle(heavyPerSecond, 1.second)
+            .map(g => play.api.libs.json.Json.stringify(kingdomsJson.record(g)) + "\n")
+        ),
       titleRequests,
       connections,
       followedUsers,

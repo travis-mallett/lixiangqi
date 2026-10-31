@@ -242,20 +242,30 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
     coll.update.one($id(id), $inc($doc(incs*)))
 
   def incToints(id: UserId, nb: Int): Funit = coll.update.one($id(id), $inc("toints" -> nb)).void
+
+  def countFinishedGameInTransaction(
+      id: UserId,
+      ranked: Boolean,
+      result: Int,
+      db: reactivemongo.api.DB
+  ): Funit =
+    new UserRepo(db.collection(coll.name)).incNbGames(id, ranked, result, None, None, false).void
   def removeAllToints = coll.update.one($empty, $unset("toints"), multi = true)
 
   def create(
       name: UserName,
-      passwordHash: HashedPassword,
+      passwordHash: Option[HashedPassword],
       email: EmailAddress,
       blind: Boolean,
       mustConfirmEmail: Boolean,
       lang: Option[LangTag] = None,
-      kid: KidMode = KidMode.No
+      kid: KidMode = KidMode.No,
+      externalIdentity: Option[String] = None
   ): Fu[Option[User]] =
     exists(name).not.flatMapz:
       val doc = newUser(name, passwordHash, email, blind, mustConfirmEmail, lang, kid) ++
-        ("len" -> BSONInteger(name.value.length))
+        ("len" -> BSONInteger(lila.core.UsernameRules.length(name.value))) ++
+        externalIdentity.fold($empty)(key => $doc("externalLogins" -> List(key)))
       (coll.insert.one(doc) >> byId(name.id)).addEffect: created =>
         created.foreach: user =>
           lila.common.Bus.pub(
@@ -402,6 +412,7 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
         blind,
         salt,
         bpass,
+        "externalLogins",
         "mustConfirmEmail",
         colorIt,
         F.foreverClosed,
@@ -439,7 +450,7 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
       coll.updateOrUnsetField($id(userId), F.delete, delete).void
 
   def getPasswordHash(id: UserId): Fu[Option[String]] =
-    coll.byId[AuthData](id, AuthData.projection).map2(_.bpass.bytes.sha512.hex)
+    coll.primitiveOne[HashedPassword]($id(id), F.bpass).map2(_.bytes.sha512.hex)
 
   def blankPassword(id: UserId): Funit =
     coll.updateField($id(id), F.bpass, HashedPassword(Array.empty)).void
@@ -613,7 +624,7 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
 
   private def newUser(
       name: UserName,
-      passwordHash: HashedPassword,
+      passwordHash: Option[HashedPassword],
       email: EmailAddress,
       blind: Boolean,
       mustConfirmEmail: Boolean,

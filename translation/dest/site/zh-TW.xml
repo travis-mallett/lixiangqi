@@ -315,7 +315,7 @@
   <string name="subject">主題</string>
   <string name="send">發送</string>
   <string name="incrementInSeconds">增加秒數</string>
-  <string name="freeOnlineChess">免費線上西洋棋</string>
+  <string name="freeOnlineChess">免費線上象棋</string>
   <plurals name="nbRated">
     <item quantity="other">%s 場排位賽</item>
   </plurals>
@@ -769,9 +769,9 @@
   <string name="pieceSet">棋子外觀設定</string>
   <string name="embedInYourWebsite">嵌入您的網站</string>
   <string name="usernameAlreadyUsed">該使用者名稱已被使用，請換一個試試！</string>
-  <string name="usernamePrefixInvalid">使用者名稱必須以字母開頭</string>
-  <string name="usernameSuffixInvalid">使用者名稱的結尾必須為字母或數字</string>
-  <string name="usernameCharsInvalid">使用者名稱只能包含字母、 數字、 底線和短劃線。</string>
+  <string name="usernamePrefixInvalid">使用者名稱必須以英文字母或漢字開頭。</string>
+  <string name="usernameSuffixInvalid">使用者名稱必須以英文字母、漢字或數字結尾。</string>
+  <string name="usernameCharsInvalid">使用者名稱只能包含英文字母、漢字、數字、底線和連字號。不允許連續的底線或連字號。</string>
   <string name="usernameUnacceptable">無法套用此使用者名稱</string>
   <string name="playChessInStyle">下棋也要穿得好看</string>
   <string name="chessBasics">基本常識</string>
@@ -962,4 +962,14 @@
   <string name="clearSearch">清除搜索</string>
   <string name="thereAreNoResultsForX">找不到符合「%s」的結果</string>
   <string name="tags">標籤</string>
+  <string name="miniXiangqi">迷你象棋</string>
+  <string name="miniXiangqiTitle">迷你象棋</string>
+  <string name="playRatedMiniXiangqi">迷你象棋等級分對局</string>
+  <string name="miniXiangqiAnalysisBoard">迷你象棋分析棋盤</string>
+  <string name="miniXiangqiLearnToPlay">迷你象棋玩法</string>
+  <string name="miniXiangqiSetupText">迷你象棋使用七路七線棋盤，無河界。每方有一將（帥）、雙車、雙馬、雙炮和五兵（卒），沒有士和象。</string>
+  <string name="miniXiangqiMovementText">車、馬、炮的走法與象棋相同。將帥只能在三乘三的九宮內移動，不能在同一路上無子相隔。兵卒從開局即可向前或橫向走一步，不能後退，也不升變。</string>
+  <string name="miniXiangqiWinningText">將死或困斃對方均獲勝。同一局面出現三次判和，但若只有一方連續將軍，該方判負。雙方各走五十步沒有吃子也判和。</string>
+  <string name="miniXiangqiRankExplanation">迷你象棋擁有獨立等級，從迷1-1至迷9-4，分數門檻和計算方式與揭棋相同。等級分快速配對每方十分鐘，每步限時六十秒，每方前三步限時三十秒。</string>
+  <string name="miniXiangqiLeaderboard">迷你象棋排行榜</string>
 </resources>

@@ -14,7 +14,7 @@ import lila.oauth.{ AccessTokenRequest, AuthorizationRequest, OAuthScopes, OAuth
 
 import Api.ApiResult
 
-final class OAuth(env: Env, apiC: => Api) extends LilaController(env):
+final class OAuth(env: Env, apiC: => Api, externalAuth: => ExternalAuth) extends LilaController(env):
 
   private def withPrompt(f: AuthorizationRequest.Prompt => Fu[Result])(using ctx: Context): Fu[Result] =
     AuthorizationRequest.fromReq match
@@ -39,10 +39,13 @@ final class OAuth(env: Env, apiC: => Api) extends LilaController(env):
           given Me = me
           Ok.page(views.oAuth.authorize(prompt, signedClient, authRoute("login", signedClient)))
         case None =>
-          Redirect(
-            authRoute(action, signedClient).url,
-            Map("referrer" -> List(req.uri))
-          ).toFuccess
+          get("provider") match
+            case Some(provider) => externalAuth.loginForOAuth(provider, req.uri)
+            case None =>
+              Redirect(
+                authRoute(action, signedClient).url,
+                Map("referrer" -> List(req.uri))
+              ).toFuccess
 
   def legacyAuthorize = Anon:
     MovedPermanently(s"${routes.OAuth.authorize}?${req.rawQueryString}")

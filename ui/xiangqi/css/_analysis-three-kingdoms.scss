@@ -1,0 +1,211 @@
+// Army identity stays consistent between balance, PVs and history. The black
+// army uses a lighter ink in dark themes so its curve remains visible.
+.kingdom-color--red {
+  --kingdom-color: #b94b45;
+}
+
+.kingdom-color--green {
+  --kingdom-color: #27864a;
+}
+
+.kingdom-color--black {
+  --kingdom-color: #{$c-font-dim};
+}
+
+.xiangqi-analysis-page.xiangqi-analysis-page--three-players {
+  ---xiangqi-analysis-board-offset: 0rem;
+  ---xiangqi-dock-left: 0rem;
+  ---xiangqi-dock-right: 0rem;
+  ---xiangqi-dock-top: 0rem;
+  ---xiangqi-dock-bottom: 0rem;
+
+  .kingdom-balance {
+    margin-top: 0.6rem;
+  }
+
+  &.gauge-hidden .kingdom-balance {
+    display: none;
+  }
+}
+
+.kingdom-balance {
+  padding: 0.55rem 0.65rem;
+  border-radius: $box-radius-size;
+  background: $c-bg-box;
+
+  &__bar {
+    display: flex;
+    height: 0.55rem;
+    overflow: hidden;
+    border-radius: 3px;
+    background: $c-bg-zebra;
+
+    > span {
+      flex-basis: 0;
+      background: var(--kingdom-color);
+      transition: flex-grow 250ms;
+    }
+
+    &.unknown > span {
+      opacity: 0.2;
+    }
+  }
+
+  &__labels {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.65rem;
+    margin-top: 0.45rem;
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__label {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: baseline;
+    column-gap: 0.3rem;
+    border-inline-start: 3px solid var(--kingdom-color);
+    padding-inline-start: 0.35rem;
+
+    small {
+      grid-column: 1 / -1;
+      color: $c-font-dim;
+    }
+  }
+
+  &__name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.xiangqi-analysis__chart.kingdom-chart {
+  height: auto;
+}
+
+.kingdom-chart {
+  &__heading {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  > svg {
+    display: block;
+    width: 100%;
+    height: clamp(10rem, 20vw, 14rem);
+    margin-top: 0.5rem;
+    cursor: crosshair;
+
+    text {
+      fill: $c-font-dim;
+      font-size: 10px;
+    }
+  }
+
+  > input {
+    width: 100%;
+    margin: 0;
+  }
+
+  &__grid {
+    stroke: $c-border;
+    stroke-dasharray: 3 4;
+  }
+
+  &__curve {
+    fill: none;
+    stroke: var(--kingdom-color);
+    stroke-width: 2.5;
+    vector-effect: non-scaling-stroke;
+
+    &.kingdom-color--green {
+      stroke-dasharray: 8 4;
+    }
+
+    &.kingdom-color--red {
+      stroke-dasharray: 2 3;
+    }
+  }
+
+  &__point {
+    fill: var(--kingdom-color);
+  }
+
+  &__cursor {
+    stroke: $c-accent;
+    stroke-width: 1;
+  }
+
+  &__help {
+    margin: 0.35rem 0 0;
+    color: $c-font-dim;
+    font-size: 0.8rem;
+    line-height: 1.4;
+  }
+}
+
+.kingdom-engine .pv.kingdom-engine__pv {
+  display: block;
+  padding: 0.25rem 0.5rem;
+}
+
+.kingdom-engine {
+  &__pv-heading {
+    display: flex;
+    gap: 0.4rem;
+    color: $c-font-dim;
+
+    > strong {
+      flex: 0 0 1rem;
+    }
+
+    .kingdom-balance__labels {
+      flex: 1;
+      margin: 0;
+      gap: 0.4rem;
+      font-size: 0.68rem;
+      line-height: 1.3;
+    }
+
+    .kingdom-balance__label {
+      display: block;
+
+      strong {
+        width: auto;
+      }
+    }
+
+    .kingdom-balance__name {
+      display: block;
+    }
+  }
+
+  &__moves {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 0.55rem;
+
+    button {
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: $c-font;
+      font: inherit;
+      cursor: pointer;
+
+      &:hover,
+      &:focus-visible {
+        color: $c-accent;
+      }
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kingdom-balance__bar > span {
+    transition: none;
+  }
+}

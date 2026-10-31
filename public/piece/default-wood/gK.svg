@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" height="100" width="100" viewBox="0 0 100 100">
+  <clipPath id="wood-clip">
+    <ellipse cx="405" cy="53.61076" rx="57.869461" ry="57.869461"/>
+  </clipPath>
+  <radialGradient id="a" cx="-638.67987" cy="63.566608" gradientTransform="matrix(1.0751961 .02369973 -.02469788 1.1204806 875.45216 -171.12662)" gradientUnits="userSpaceOnUse" r="57.869461">
+    <stop offset="0" stop-color="#f3bf86"/>
+    <stop offset=".76315546" stop-color="#f3bb7f"/>
+    <stop offset=".89982331" stop-color="#dca05c"/>
+    <stop offset="1" stop-color="#a17e53"/>
+  </radialGradient>
+  <filter id="c" color-interpolation-filters="sRGB" height="1.3720994" width="1.2298259" x="-0.11491295" y="-0.18604969">
+    <feGaussianBlur stdDeviation="1.438904" id="feGaussianBlur4"/>
+  </filter>
+  <filter id="d" color-interpolation-filters="sRGB" height="1.211246" width="1.211246" x="-.105623" y="-.105623">
+    <feGaussianBlur stdDeviation="3.0476689"/>
+  </filter>
+
+
+<g id="piece-artwork" transform="matrix(1.1337748765945435 0 0 1.1337748765945435 -2.1536715030670166 -2.153649812273791)"><g>
+    <g transform="matrix(.68586115 0 0 .68586115 -231.77377 9.230463)">
+      <g transform="translate(216.73288 159.42387)">
+        <ellipse cx="188.26712" cy="-105.81311" fill="url(#a)" rx="57.869461" ry="57.869461" data-piece-body="true"/>
+      </g>
+      <g transform="translate(216.73288 159.42387)">
+        <ellipse cx="187.662686" cy="-110.937426" rx="46.87182" ry="46.87182" fill="#f6b97b"/>
+      </g>
+      <image x="347.130539" y="-6.026458" width="115.738922" height="119.274436" preserveAspectRatio="none" opacity=".035" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAQBAMAAACigOGCAAAAMFBMVEX///+oqKilpaWioqKSkpKEhIR2dnZlZWVfX19cXFxaWlpYWFhXV1dFRUUTExMAAACc2NaXAAAA50lEQVR42nXQr06CcRhH8Q+/F9gMOnB0sRgsvhvTZIA7YDO7Mb0hK5uKm9nNO4DNpBYsBovYmTBNIH8Mj9UnnW94TjiObcwa3TybZZe92WPey7Nuo3fhIc35goI5Nyqww01acgVrCwam8MQwZYxhZcLECPrkqaxwCpxwGPRa0UkrdmPWaAVtM0o/frJQfXMQqvzefVpYJFi65s0Q6gOD5J9LRcUVZM7Yk8OoqZlKSktINnlRh2FbOyXe43lMP+iTeppb38a84zlofxpJaqGqUg1V6y/JeUQs0oyIR5HEVkQs04mIH3R+ATsiRBU+gRZeAAAAAElFTkSuQmCC" clip-path="url(#wood-clip)"/>
+      <path d="m 364.59856,82.111505 c 0,0 7.02475,11.74977 12.9047,14.84925 4.48776,2.36562 17.14735,3.712295 17.14735,3.712295 -11.1995,-3.414035 -23.09518,-10.904865 -30.05205,-18.561545 z" fill="#fff0cb" filter="url(#c)" opacity="0.15" id="path6" style="opacity:0.72759857;filter:url(#c)"/>
+      <circle cx="-402.375" cy="-180.875" fill="#efd49c" filter="url(#d)" opacity=".08" r="34.625" transform="matrix(1.1102782 0 0 1.1102782 850.68122 243.85686)"/>
+      <g transform="translate(216.73288 159.42387)">
+        <ellipse cx="187.662686" cy="-110.937426" rx="46.87182" ry="46.87182" fill="none" stroke="#2c663e" stroke-width="3.261493" stroke-linecap="round" stroke-linejoin="round" id="ring"/>
+      </g>
+    </g>
+  </g><g id="symbol"><g id="three-kingdoms-symbol" aria-label="吳" transform="translate(45.585438 42.485431) scale(48.217666632668845) translate(0.001335442066192627 0.001744300127029419) scale(1 1.3)" fill="#2c663e" color="#2c663e"><g aria-label="吳" transform="scale(0.00414651002073255 -0.00414651002073255) translate(-128.58333333333331 -89.08)"><path d="M245 83Q250 83 249 79Q242 60 232 55Q222 51 202 57Q167 69 141 67Q135 67 135 65Q98 10 63 12Q37 14 36 28Q36 33 43 33Q91 36 106 62Q109 69 102 69Q59 68 25 54Q13 49 10 54Q6 62 10 69Q20 89 39 83Q40 83 41 82Q44 81 45 82Q57 83 80 82Q97 81 107 81Q114 81 114 90Q114 97 107 97Q67 95 65 93Q54 88 47 95Q40 104 46 114Q49 117 49 126Q49 142 48 149Q43 172 57 170Q69 169 67 150Q67 130 68 120Q68 113 75 111Q99 110 137 110Q170 109 179 110Q185 110 191 116Q193 117 194 118Q211 123 215 106Q214 103 212 97Q207 80 211 81Q215 81 229 82Q242 83 245 83ZM98 117Q88 117 84 128Q83 134 80 145Q79 148 79 150Q76 161 86 165Q93 167 98 165Q103 162 104 162Q148 164 168 161Q171 161 176 163Q183 165 189 161Q197 156 195 150Q194 145 191 133Q191 126 186 121Q181 117 171 121Q166 123 163 123Q141 119 113 123Q111 123 106 120Q105 120 103 119Q99 117 98 117ZM210 8Q169 21 146 34Q130 48 141 59Q151 67 168 53Q197 30 214 20Q220 17 219 13Q216 8 210 8ZM147 133Q150 133 156 134Q161 134 164 134Q170 135 170 143Q170 151 149 151Q120 151 112 150Q101 147 101 141Q101 135 107 134Q108 134 112 134Q128 133 147 133ZM144 80Q164 80 184 80Q194 92 186 97Q179 98 162 97Q151 97 144 97Q135 98 135 89Q135 80 144 80Z" stroke="currentColor" stroke-width="3" stroke-linejoin="round" paint-order="stroke fill"/></g></g></g></g></svg>

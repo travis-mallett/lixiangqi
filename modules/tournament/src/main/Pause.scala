@@ -46,7 +46,7 @@ object Pause:
       pauses = pauses + 1,
       pausedAt = nowInstant
     )
-  val newRecord = Record(1, nowInstant)
+  def newRecord = Record(1, nowInstant)
 
   // pause counter of a player
   opaque type Delay = Int

@@ -1,0 +1,9 @@
+{
+  "baseUrl": "https://lixiangqi.org",
+  "enginePath": "/absolute/path/to/pikafish",
+  "engineCwd": "/absolute/path/containing/pikafish.nnue",
+  "emailTemplate": "{username}@your-test-mail-domain.example",
+  "headless": false,
+  "registrationSpacingSeconds": 130,
+  "registrationTimeoutSeconds": 600
+}

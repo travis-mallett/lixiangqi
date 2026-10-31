@@ -21,6 +21,7 @@ trait OpenConfig:
   val rules: Set[game.GameRule]
   val expiresAt: Option[Instant]
   def ruleset: Option[String] = None
+  def gameVariant: lila.xiangqi.GameVariant = lila.xiangqi.GameVariant.Xiangqi
 
 trait SetupForm:
   import play.api.data.Mapping

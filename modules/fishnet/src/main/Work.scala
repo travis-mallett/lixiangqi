@@ -81,7 +81,9 @@ object Work:
       clock: Option[Work.Clock],
       turnKey: lila.core.fishnet.AiTurnKey,
       ruleset: lila.xiangqi.adjudication.Ruleset = lila.xiangqi.adjudication.Ruleset.Unrestricted,
-      legalMoves: Vector[Xiangqi.Uci] = Vector.empty
+      legalMoves: Vector[Xiangqi.Uci] = Vector.empty,
+      botProfile: Option[String] = None,
+      observation: Option[lila.xiangqi.Jieqi.Observation] = None
   )
 
   enum Origin(val nodesPerMove: Int, val slowOk: Boolean):

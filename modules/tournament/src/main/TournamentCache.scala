@@ -11,7 +11,8 @@ final class TournamentCache(
     pairingRepo: PairingRepo,
     tournamentRepo: TournamentRepo,
     cacheApi: CacheApi,
-    lightUserApi: lila.core.user.LightUserApi
+    lightUserApi: lila.core.user.LightUserApi,
+    kingdomsRepo: lila.threeKingdoms.GameRepo
 )(using Executor, Scheduler)(using translator: lila.core.i18n.Translator):
 
   object tourCache:
@@ -40,6 +41,10 @@ final class TournamentCache(
   def ranking(tour: lila.core.tournament.Tournament): Fu[FullRanking] =
     if tour.isFinished then finishedRanking.get(tour.id)
     else ongoingRanking.get(tour.id)
+
+  def clearRanking(id: TourId): Unit =
+    ongoingRanking.invalidate(id)
+    finishedRanking.invalidate(id)
 
   // only applies to ongoing tournaments
   private val ongoingRanking = cacheApi[TourId, FullRanking](64, "tournament.ongoingRanking"):
@@ -78,7 +83,9 @@ final class TournamentCache(
         userId: UserId,
         variant: Variant,
         version: Sheet.Version,
-        streakable: Sheet.Streakable
+        streakable: Sheet.Streakable,
+        kingdoms: Boolean,
+        finishesAt: Instant
     )
 
     def apply(tour: Tournament, userId: UserId): Fu[Sheet] =
@@ -111,21 +118,30 @@ final class TournamentCache(
         userId,
         tour.variant,
         Sheet.Version.of(tour.startsAt),
-        Sheet.Streakable(tour.streakable)
+        Sheet.Streakable(tour.streakable),
+        tour.gameVariant == lila.xiangqi.GameVariant.ThreeKingdoms,
+        tour.scoredUntil
       )
 
     private def compute(key: SheetKey): Fu[Sheet] =
-      pairingRepo
-        .finishedByPlayerChronological(key.tourId, key.userId)
-        .map:
-          arena.Sheet.buildFromScratch(
-            key.userId,
-            _,
-            key.version,
-            key.streakable,
-            key.variant,
-            lightUserApi.isBotSync
-          )
+      if key.kingdoms then
+        kingdomsRepo
+          .tournamentResults(key.tourId, Some(key.userId), Some(key.finishesAt))
+          .map:
+            _.foldLeft(Sheet.empty(key.variant)): (sheet, result) =>
+              result.points(key.userId).fold(sheet)(sheet.addPlacement(result.id, _))
+      else
+        pairingRepo
+          .finishedByPlayerChronological(key.tourId, key.userId)
+          .map:
+            arena.Sheet.buildFromScratch(
+              key.userId,
+              _,
+              key.version,
+              key.streakable,
+              key.variant,
+              lightUserApi.isBotSync
+            )
 
     private val cache = cacheApi[SheetKey, Sheet](32_768, "tournament.sheet"):
       _.expireAfterAccess(4.minutes)

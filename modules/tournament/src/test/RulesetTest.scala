@@ -39,3 +39,24 @@ class RulesetTest extends munit.FunSuite:
     assertEquals(handler.readDocument(oldCreated).get.ruleset, Ruleset.Tiantian)
     val oldStarted = handler.writeTry(tournament.copy(status = Status.started)).get -- "ruleset"
     assertEquals(handler.readDocument(oldStarted).get.ruleset, Ruleset.Unrestricted)
+
+  test("native organizer full-form edits clear optional fields and preserve an active clock"):
+    val original = tournament.copy(password = Some("invite"), description = Some("Previous description"))
+    val setup = TournamentForm()
+      .fillFromTour(original)
+      .copy(
+        password = None,
+        description = None,
+        clockTime = 10,
+        hasChat = Some(false),
+        berserkable = Some(false),
+        streakable = Some(false)
+      )
+    val updated = setup.updateAll(original)
+    assertEquals(updated.password, None)
+    assertEquals(updated.description, None)
+    assertEquals(updated.clock.limitSeconds.value, 600)
+    assert(!updated.hasChat)
+    assert(!updated.berserkable)
+    assert(!updated.streakable)
+    assertEquals(setup.updateAll(original.copy(status = Status.started)).clock, original.clock)

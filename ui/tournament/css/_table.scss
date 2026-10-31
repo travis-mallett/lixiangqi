@@ -1,3 +1,13 @@
 .tour__table {
   @extend %flex-column;
 }
+
+.tour__kingdoms-game {
+  display: block;
+  padding: 0.5em;
+
+  .three-kingdoms__mini {
+    width: 100%;
+    aspect-ratio: 1;
+  }
+}

@@ -6,7 +6,8 @@ import monocle.syntax.all.*
 object Rewind:
 
   def apply(game: CoreGame): Either[ErrorStr, Progress] =
-    if game.xiangqi.moves.isEmpty then Left(ErrorStr("Cannot rewind a game without moves"))
+    if game.isJieqi then Left(ErrorStr("Takebacks are not allowed in Jieqi"))
+    else if game.xiangqi.moves.isEmpty then Left(ErrorStr("Cannot rewind a game without moves"))
     else
       val rewinded =
         game.xiangqi.copy(
@@ -30,6 +31,11 @@ object Rewind:
           },
           loadClockHistory = _ => game.clockHistory.map(_.update(!color, _.dropRight(1))),
           movedAt = nowInstant,
-          metadata = game.metadata.focus(_.drawOffers).modify(_.beforePly(chess.Ply(rewinded.state.ply)))
+          metadata = game.metadata
+            .focus(_.drawOffers)
+            .modify(_.beforePly(chess.Ply(rewinded.state.ply)))
+            .copy(
+              kidsBotAssisted = game.metadata.kidsBotAssisted || game.metadata.kidsBotProfile.isDefined
+            )
         )
         Progress(game, newGame)

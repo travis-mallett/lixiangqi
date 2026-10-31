@@ -8,6 +8,7 @@ import { userLink } from '@/view/userLink';
 
 import { licon } from '../licon';
 import * as enhance from '../richText';
+import { mentionsUser, usernamePattern } from '../username';
 import type { ChatCtrl } from './chatCtrl';
 import type { Line } from './interfaces';
 import { lineAction as modLineAction, flagReport } from './moderation';
@@ -234,9 +235,24 @@ const updateText = (opts?: enhance.EnhanceOpts) => (oldVnode: VNode, vnode: VNod
     (vnode.elm as HTMLElement).innerHTML = enhance.enhance((vnode.data as VNodeData).lichessChat, opts);
 };
 
-const profileLinkRegex = /(https:\/\/)?lichess\.org\/@\/([a-zA-Z0-9_-]+)/g;
-
-const processProfileLink = (text: string) => text.replace(profileLinkRegex, '@$2');
+const processProfileLink = (text: string) =>
+  text.replace(/https?:\/\/[^\s<>]+/gu, link => {
+    try {
+      const url = new URL(link);
+      const parts = url.pathname.split('/');
+      const name = decodeURIComponent(parts[2] ?? '');
+      return url.origin === location.origin &&
+        parts.length === 3 &&
+        parts[1] === '@' &&
+        usernamePattern.test(name) &&
+        !url.search &&
+        !url.hash
+        ? '@' + name
+        : link;
+    } catch {
+      return link;
+    }
+  });
 
 function renderText(t: string, opts?: enhance.EnhanceOpts) {
   const processedText = processProfileLink(t);
@@ -280,11 +296,7 @@ function renderLine(ctrl: ChatCtrl, line: Line): VNode {
   const userId = line.u?.toLowerCase();
 
   const myUserId = ctrl.data.userId;
-  const mentioned =
-    !!myUserId &&
-    !!line.t
-      .match(enhance.userPattern)
-      ?.find(mention => mention.trim().toLowerCase() === `@${ctrl.data.userId}`);
+  const mentioned = !!myUserId && mentionsUser(line.t, myUserId);
 
   return h(
     'li',

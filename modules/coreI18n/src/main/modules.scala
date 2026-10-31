@@ -5,6 +5,6 @@ enum I18nModule:
     coach,
     broadcast, streamer, tfa, settings, preferences, team, perfStat, search, tourname, faq, lag, swiss,
     puzzle, puzzleTheme, challenge, storm, ublog, insight, keyboardMove, timeago, oauthScope, dgt,
-    video, voiceCommands, onboarding, features, nvui, variant, recap, app
+    video, voiceCommands, onboarding, features, nvui, variant, recap, app, threeKingdoms
 object I18nModule:
   type Selector = I18nModule.type => I18nModule

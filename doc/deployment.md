@@ -149,9 +149,76 @@ procedure or stop only positively identified task-started processes. Do not clai
 cleanup command ran when it was unavailable. Report unresolved leftovers rather than killing
 unrelated processes in an attempt to guarantee an empty process list.
 
+## Forum category provisioning
+
+The forum repository provisions the standard LiXiangQi boards on its first category read,
+including direct category and topic links. The four public boards are Xiangqi Discussion,
+Game Analysis, LiXiangQi Feedback, and Off-Topic. Blog discussions and diagnostic reports
+also receive their required hidden categories. Team boards continue to be created by the
+team service. Site-wide categories are code-managed; moderators create topics within them.
+
+Provisioning uses insert-only upserts and waits for completion before returning categories.
+Existing category metadata, counters, and post references are preserved. Successful
+provisioning is cached for the process; failed initialization can retry. A normal
+`push-local-live` application release includes this behavior without a separate migration,
+seed import, or production data reset.
+
+The MongoDB integration regression can be run with `forum/test` and
+`LIXIANGQI_FORUM_TEST_URI` pointing to an isolated local MongoDB instance. It creates and
+removes a uniquely named test database and checks fresh initialization, concurrent callers,
+partial initialization, and preservation of populated and team categories across restarts.
+
+## User-uploaded images
+
+The deployment scaffold provisions Picfit separately from the game-image renderer.
+The application uploads to `http://picfit:3001`; signed image reads use
+`https://<site-domain>/_images/display`. Caddy exposes only GET/HEAD on that path.
+Upload, deletion and diagnostic routes remain private to the Docker network.
+
+Originals and generated images live in the persistent `picfit-data` Docker volume,
+outside rotating application releases. Include that volume and Redis's image-cache
+metadata in backups alongside MongoDB and the stable signing key. The deployment
+uses the existing `PLAY_SECRET` for signing; changing it invalidates previously
+embedded signed image URLs. Do not delete the volume during a release or rollback.
+
+`push-local-live` builds a pinned Picfit revision, starts it, and checks upload,
+signed original retrieval, PNG resizing and WebP thumbnails before restarting the
+application and reopening Caddy. A failed check stops activation. No image-data
+migration or manual seed step is needed. Metadata left by earlier failed uploads
+is repaired when the same image is uploaded again: the application stores bytes
+before recording metadata, and only detaches a previous image after both succeed.
+
 ## Completion criteria
 
 A deployment-affecting coding change is ready for review when required server steps are
 integrated; backup, migration, validation, and startup ordering is explicit; failure leaves a
 recoverable state; and task-started local services have been cleaned up. Production execution
 remains a separate action unless explicitly included in the user's request.
+
+## Official blog publishing
+
+`/blog` and `/blog.atom` list published official posts from individual authors. Grant
+**Publish own official LiXiangQi posts** (`ROLE_PUBLISH_OFFICIAL_BLOG`) through the
+existing permission editor. This permission does not grant community moderation or
+editing rights over another author. Even blog moderators and administrators cannot
+edit, delete, or replace images on someone else's official post through blog routes.
+Community moderation controls still manage visibility and homepage promotion.
+
+After saving a draft, its author can select **Publish as an official LiXiangQi post**
+and publish it using the normal editor. A revoked publisher can still maintain
+existing published work, but cannot publish an official draft or change its designation.
+
+The normal `push-local-live` deployment packages and runs
+`tools/data_migration/20261018_official_blogs_v1.js` while writers are stopped. It
+creates the feed index, converts any former system-account posts to explicit official
+posts, and grants the existing enabled `testing` account this one permission. The
+completed migration never restores a subsequently revoked grant. It fails clearly
+if that account is missing, disabled, or has malformed roles.
+
+Original account and converted post documents are retained in
+`__official_blogs_v1_backup`; the completion marker is `official-blogs-v1` in
+`__lixiangqi_migrations`. For recovery, use each backup's `original` document and
+`source` collection to restore only the affected roles or official designation while
+writers are stopped, preserving any subsequent unrelated edits. Remove the completion
+marker only when intentionally rerunning the migration. Include these collections in
+normal MongoDB backups.

@@ -43,8 +43,8 @@ export default function actions(ctrl: PuzzleCtrl): VNode {
             [icon(licon.Search)(), hl('span', i18n.puzzle.analyze)],
           )
         : action('hint', i18n.puzzle.hint, licon.InfoCircle, ctrl.toggleHint, !ctrl.canHint()),
-      action('solution', i18n.site.solution, licon.Book, ctrl.viewSolution, !enabled),
-      action('next', i18n.site.next, licon.PlayTriangle, ctrl.nextPuzzle, !enabled),
+      action('solution', i18n.site.solution, licon.Book, ctrl.viewSolution, !ctrl.canViewSolution()),
+      action('next', i18n.site.next, licon.JumpNext, ctrl.nextPuzzle, !enabled),
     ],
   );
 }

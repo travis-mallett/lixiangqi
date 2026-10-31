@@ -10,7 +10,7 @@ object Query:
 
   import Game.BSONFields as F
 
-  val ranked: Bdoc = F.rankTrack.$eq(lila.core.rank.RankTrackId.xiangqi.value)
+  val ranked: Bdoc = F.rankTrack.$in(lila.core.rank.RankTrackId.all.map(_.value))
 
   def ranked(u: UserId): Bdoc = user(u) ++ ranked
 

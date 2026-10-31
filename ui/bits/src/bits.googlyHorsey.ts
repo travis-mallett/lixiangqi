@@ -1,4 +1,4 @@
-import type { BoardMark, BoardView } from '@lixiangqi/board';
+import { graphPoint, type BoardMark, type BoardView } from '@lixiangqi/board';
 
 /** Each board owns its pointer tracking; destroying one board cannot affect another. */
 export function initModule({ board, redraw }: { board: BoardView; redraw: Redraw }) {
@@ -24,17 +24,22 @@ export function initModule({ board, redraw }: { board: BoardView; redraw: Redraw
   });
   return {
     makeGooglyShapes: (): BoardMark[] => {
-      const {
-        geometry: { columns, rows },
-        participants,
-      } = board.getDefinition();
+      const { geometry, participants } = board.getDefinition();
       const reverse = board.getPresentation().perspective !== participants[0];
       return [...board.position().pieces].flatMap(([location, piece]) => {
         if (piece.face !== 'up' || piece.role !== 'horse') return [];
-        const file = location.charCodeAt(0) - 97,
-          rank = Number(location.slice(1)) - 1;
-        const x = (reverse ? columns - file - 0.5 : file + 0.5) / columns;
-        const y = (reverse ? rank + 0.5 : rows - rank - 0.5) / rows;
+        let x: number, y: number;
+        if (geometry.kind === 'graph') {
+          const point = graphPoint(geometry, location, board.getPresentation().perspective);
+          x = point[0] / geometry.width;
+          y = point[1] / geometry.height;
+        } else {
+          const { columns, rows } = geometry;
+          const file = location.charCodeAt(0) - 97,
+            rank = Number(location.slice(1)) - 1;
+          x = (reverse ? columns - file - 0.5 : file + 0.5) / columns;
+          y = (reverse ? rank + 0.5 : rows - rank - 0.5) / rows;
+        }
         const length = Math.hypot(pointer.x - x, pointer.y - y) || 1;
         const dx = (4 * (pointer.x - x)) / length,
           dy = (4 * (pointer.y - y)) / length;

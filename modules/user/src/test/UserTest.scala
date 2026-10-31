@@ -78,5 +78,5 @@ class UserTest extends munit.FunSuite:
     assert(canSignup("g-foO"))
     assert(canSignup("FOOO"))
     assert(canSignup("AB"))
-    assert(canSignup("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"))
-    assert(canSignup("A12345678901234567890123456789"))
+    assert(canSignup("aaaaaaaaaaaaaaaaaaaa"))
+    assert(canSignup("A1234567890123456789"))

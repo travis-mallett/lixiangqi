@@ -1,6 +1,7 @@
 package views.user
 
-import lila.app.UiEnv.*
+import lila.app.UiEnv.{ *, given }
+import lila.core.rank.RankTrackId
 import lila.core.perf.UserWithPerfs
 import lila.core.user.LightRank
 
@@ -10,12 +11,8 @@ object list:
 
   def apply(
       online: List[UserWithPerfs],
-      leaderboard: List[LightRank],
-      personal: Option[lila.user.XiangqiPersonalRank]
+      leaderboards: List[(RankTrackId, List[LightRank], Option[lila.user.XiangqiPersonalRank])]
   )(using Context) =
-    ui.page(
-      online,
-      views.lobby.bits.homepageLeaderboard(leaderboard, Map.empty, personal, showMoreLink = false)
-    )
+    ui.page(online, leaderboards)
 
   def bots(users: List[UserWithPerfs])(using Context) = ui.bots(users)

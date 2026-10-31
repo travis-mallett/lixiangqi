@@ -5,7 +5,7 @@ import lila.xiangqi.Xiangqi.{ Fen, Position, Role, Side, Uci }
 import lila.xiangqi.XiangqiRules
 
 class PuzzleThemeLessonTest extends munit.FunSuite:
-  private val awaitingLessons = Set(PuzzleTheme.threeChariotAttack, PuzzleTheme.smallIronBolt)
+  private val awaitingLessons = Set(PuzzleTheme.smallIronBolt)
 
   private val basicKills = PuzzleTheme.categorized.head.categories
     .flatMap(_.themes)
@@ -20,8 +20,7 @@ class PuzzleThemeLessonTest extends munit.FunSuite:
   private val stalemates = Set(
     PuzzleTheme.singleHorseCapturesKing,
     PuzzleTheme.stalemateMate,
-    PuzzleTheme.leisurelyStrollMate,
-    PuzzleTheme.hidingBehindLeavesAttack
+    PuzzleTheme.leisurelyStrollMate
   )
 
   test("established named kills have lessons; pending, piece-type and other themes do not"):

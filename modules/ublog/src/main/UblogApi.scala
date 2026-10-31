@@ -42,7 +42,7 @@ final class UblogApi(
 
   def myCarousel(using kid: KidMode) =
     for posts <- carouselCache.get({})
-    yield posts.filter(_.isLichess || kid.no)
+    yield posts.filter(_.isOfficial || kid.no)
 
   def create(data: UblogForm.UblogPostData, author: User): Fu[UblogPost] =
     val post = data.create(author)
@@ -54,6 +54,9 @@ final class UblogApi(
   def getByPrismicId(id: String): Fu[Option[UblogPost]] = colls.post.one[UblogPost]($doc("prismicId" -> id))
 
   def update(data: UblogForm.UblogPostData, prev: UblogPost)(using me: Me): Fu[UblogPost] = for
+    _ <- fuccess(()).map: _ =>
+      require(prev.allows.edit, "Only an authorized editor can update a post")
+      require(data.canUpdateOfficial(prev), "Official publication permission required")
     author <- userApi.byId(prev.created.by).map(_ | me.value)
     blog <- getUserBlog(author, insertMissing = true)
     post = data.update(me.value, prev)
@@ -178,7 +181,7 @@ final class UblogApi(
         )
         .cursor[UblogPost.PreviewPost](ReadPref.sec)
         .list(9)
-      mix = (similar ++ sameAuthor).filter(_.isLichess || kid.no)
+      mix = (similar ++ sameAuthor).filter(_.isOfficial || kid.no)
     yield scala.util.Random.shuffle(mix).take(6)
 
   private def sendPostToZulip(
@@ -350,7 +353,7 @@ final class UblogApi(
   }.flatMap: t =>
     modBlog(userId, t.some, none)
 
-  def canBlog(u: User) = u.isVerified || {
+  def canBlog(u: User) = lila.core.perm.Granter.of(_.PublishOfficialBlog)(u) || u.isVerified || {
     !u.isBot && {
       (u.count.game > 0 && u.createdSinceDays(2)) || u.hasTitle || u.isPatron
     }

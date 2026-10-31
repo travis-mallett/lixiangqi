@@ -9,8 +9,16 @@
   .page-menu__content {
     @extend %box-radius-force;
 
-    grid-template-columns: repeat(auto-fill, minmax(15em, 1fr));
     align-content: start;
     max-width: 100vw;
+
+    h1,
+    h2 {
+      margin: 1em 0;
+    }
+
+    .now-playing {
+      grid-template-columns: repeat(auto-fill, minmax(min(15em, 100%), 1fr));
+    }
   }
 }

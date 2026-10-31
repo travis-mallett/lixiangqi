@@ -1,5 +1,7 @@
+import type { BoardView } from '@lixiangqi/board';
 import { attributesModule, classModule, init, type VNode } from 'snabbdom';
 
+import { createXiangqiBoard, websiteBoardPresentation, makeBoardResizable } from 'lib/board';
 import { pubsub } from 'lib/pubsub';
 import type { MoveTimeLimitConfig } from 'lib/setup/interfaces';
 import { formatMoveTime } from 'lib/setup/timeControl';
@@ -17,6 +19,7 @@ interface MatchmakingPool {
   lim: number;
   inc: number;
   ranked: boolean;
+  variant: 'xiangqi' | 'jieqi' | 'minixiangqi' | 'threeKingdoms';
   moveTime?: MoveTimeLimitConfig;
 }
 
@@ -46,6 +49,8 @@ export function initModule(opts: MatchmakingOpts): void {
 }
 
 class MatchmakingPage {
+  private board?: BoardView;
+  private error?: string;
   private phase: Phase = 'ready';
   private vnode: VNode;
   private readonly session: PoolMatchmakingSession;
@@ -54,16 +59,18 @@ class MatchmakingPage {
     trackTraffic('room.entered', { pool: opts.pool.id });
     trafficActivity('matchmaking.room', undefined, { pool: opts.pool.id });
     const element = document.querySelector('.round__app') as HTMLElement;
+    element.replaceChildren();
     this.vnode = patch(element, this.view());
     this.session = new PoolMatchmakingSession(
       opts.pool,
       !!opts.userId,
       pairing => void this.handoff(pairing),
-      () => {
+      error => {
+        this.error = error;
         if (this.phase === 'matching') {
           this.phase = 'ready';
-          this.redraw();
         }
+        this.redraw();
       },
     );
   }
@@ -75,15 +82,19 @@ class MatchmakingPage {
   private readonly start = () => {
     if (this.phase !== 'ready') return;
     this.phase = 'matching';
-    wsSetActivity(this.opts.pool.id, this.opts.pool.lim === 15 ? undefined : 'other');
+    this.error = undefined;
+    wsSetActivity(
+      this.opts.pool.id,
+      this.opts.pool.variant !== 'xiangqi' || this.opts.pool.lim === 15 ? undefined : 'other',
+    );
     this.redraw();
     void this.session.start();
   };
 
-  private readonly cancelAndLeave = () => {
-    this.session.cancel();
+  private readonly cancelAndLeave = async () => {
+    const gameUrl = await this.session.cancel();
     wsSetActivity();
-    site.redirect('/');
+    site.redirect(gameUrl ?? '/');
   };
 
   private async handoff(pairing: PairingRedirect): Promise<void> {
@@ -98,6 +109,8 @@ class MatchmakingPage {
 
       const mainWrap = document.getElementById('main-wrap');
       if (!mainWrap) throw new Error('Round page container is missing');
+      this.board?.destroy();
+      this.board = undefined;
       mainWrap.innerHTML = bootstrap.html;
       history.replaceState(null, '', bootstrap.url);
       document.title = bootstrap.title;
@@ -114,29 +127,60 @@ class MatchmakingPage {
   }
 
   private readonly view = () =>
-    hl('div.round__app.variant-standard.round__app--matchmaking', [
-      hl('div.round__app__board.main-board.xiangqi9x10.round__matchmaking-board', [
-        hl('div.cg-wrap.is2d.xiangqi9x10', {
-          attrs: { 'aria-label': i18n.site.xiangqiBoardReady },
-          hook: onInsert(element =>
-            initMiniBoardWith(element, {
-              fen: EMPTY_XIANGQI_FEN,
-              orientation: 'red',
-              coordinates: true,
-            }),
-          ),
-        }),
-        this.phase === 'ready' ? this.readyPanel() : this.matchingPanel(),
-      ]),
-      hl('div.round__app__table.round__matchmaking-table'),
-      hl('div.ruser.ruser-top.round__matchmaking-user', i18n.site.opponent),
-      hl('div.ruser.ruser-bottom.round__matchmaking-user', this.opts.username || i18n.site.anonymous),
-      this.stoppedClock('top'),
-      this.stoppedClock('bottom'),
-    ]);
+    hl(
+      'div.round__app.variant-standard.round__app--matchmaking',
+      {
+        class: { 'round__app--three-players': this.opts.pool.variant === 'threeKingdoms' },
+      },
+      [
+        hl(
+          'div.round__app__board.round__matchmaking-board',
+          {
+            class: {
+              'main-board': this.opts.pool.variant !== 'threeKingdoms',
+              xiangqi9x10: this.opts.pool.variant !== 'threeKingdoms',
+            },
+          },
+          [
+            this.opts.pool.variant === 'threeKingdoms'
+              ? hl('div.round__matchmaking-three-board', {
+                  hook: onInsert(element => {
+                    const board = (this.board = createXiangqiBoard(
+                      element,
+                      { board: 'threeKingdoms', active: 'red', pieces: new Map() },
+                      websiteBoardPresentation({}, 'replay', 'red'),
+                    ));
+                    makeBoardResizable(board);
+                    window.addEventListener('pagehide', () => this.board?.destroy(), { once: true });
+                  }),
+                })
+              : hl('div.cg-wrap.is2d.xiangqi9x10', {
+                  attrs: { 'aria-label': i18n.site.xiangqiBoardReady },
+                  hook: onInsert(element =>
+                    initMiniBoardWith(element, {
+                      fen:
+                        this.opts.pool.variant === 'minixiangqi'
+                          ? '7/7/7/7/7/7/7 w - - 0 1'
+                          : EMPTY_XIANGQI_FEN,
+                      orientation: 'red',
+                      coordinates: true,
+                    }),
+                  ),
+                }),
+            this.phase === 'ready' ? this.readyPanel() : this.matchingPanel(),
+          ],
+        ),
+        hl('div.round__matchmaking-players', [
+          this.player(i18n.site.opponent),
+          this.opts.pool.variant === 'threeKingdoms' && this.player(i18n.site.opponent),
+          this.player(this.opts.username || i18n.site.anonymous),
+        ]),
+      ],
+    );
 
   private readonly readyPanel = () =>
     hl('div.round__matchmaking-panel', [
+      this.error && hl('p.error', { attrs: { role: 'alert' } }, this.error),
       hl('span.round__matchmaking-eyebrow', this.opts.pool.ranked ? i18n.site.ranked : i18n.site.casual),
       hl('h2', i18n.site.timeControls),
       hl('dl.round__matchmaking-details', [
@@ -164,17 +208,33 @@ class MatchmakingPage {
         attrs: {
           role: 'status',
           'aria-live': 'polite',
-          'aria-label': i18n.site.matchingOpponent,
+          'aria-label':
+            this.opts.pool.variant === 'threeKingdoms'
+              ? i18n.threeKingdoms.searching
+              : i18n.site.matchingOpponent,
         },
       },
       [
-        hl('span', i18n.site.matchingOpponent),
+        hl(
+          'span',
+          this.opts.pool.variant === 'threeKingdoms'
+            ? i18n.threeKingdoms.searching
+            : i18n.site.matchingOpponent,
+        ),
         hl('span.round__matchmaking-dots', { attrs: { 'aria-hidden': 'true' } }, '....'),
+        hl(
+          'button.round__matchmaking-cancel',
+          { attrs: { type: 'button' }, hook: bind('click', this.cancelAndLeave) },
+          i18n.site.cancel,
+        ),
       ],
     );
 
-  private readonly stoppedClock = (position: 'top' | 'bottom') =>
-    hl(`div.rclock.rclock-${position}.round__matchmaking-clock`, this.initialClockText());
+  private readonly player = (name: string) =>
+    hl('div.round__matchmaking-player', [
+      hl('div.round__matchmaking-user', name),
+      hl('div.round__matchmaking-clock', this.initialClockText()),
+    ]);
 
   private readonly initialClockText = () => {
     const wholeMinutes = Math.floor(this.opts.pool.lim);
@@ -183,8 +243,8 @@ class MatchmakingPage {
   };
 }
 
-class PoolMatchmakingSession {
-  attempt = trafficAttemptId();
+export class PoolMatchmakingSession {
+  attempt: string = trafficAttemptId();
   private startedAt = 0;
   private active = false;
   private completed = false;
@@ -194,14 +254,20 @@ class PoolMatchmakingSession {
   private readonly poolStorage = storage.make('lobby.pool-in');
   private readonly unlistenPoolStorage: () => void;
   private readonly socket: ReturnType<typeof wsConnect>;
+  private pollTimer?: ReturnType<typeof setTimeout>;
+  private joining?: Promise<{ gameId?: string; error?: string }>;
+  private cancelling?: Promise<string | undefined>;
 
   constructor(
     private readonly pool: MatchmakingPool,
     private readonly authenticated: boolean,
     private readonly onPaired: (pairing: PairingRedirect) => void,
-    private readonly onCancelled: () => void,
+    private readonly onCancelled: (error?: string) => void,
   ) {
-    wsSetActivity(this.pool.id, this.pool.lim === 15 ? undefined : 'other');
+    wsSetActivity(
+      this.pool.id,
+      this.pool.variant !== 'xiangqi' || this.pool.lim === 15 ? undefined : 'other',
+    );
     this.socket = wsConnect('/lobby/socket/v5', false, {
       options: { reloadOnResume: false },
       events: {
@@ -213,13 +279,18 @@ class PoolMatchmakingSession {
         },
       },
     });
-    this.unlistenPoolStorage = this.poolStorage.listen(() => this.cancel());
+    this.unlistenPoolStorage = this.poolStorage.listen(
+      () =>
+        void this.cancel().then(url => {
+          if (url) site.redirect(url);
+        }),
+    );
     pubsub.on('socket.open', this.onSocketOpen);
     window.addEventListener('beforeunload', this.cancelOnUnload);
   }
 
   async start(): Promise<void> {
-    if (this.active || this.completed) return;
+    if (this.active || this.completed || this.cancelling) return;
     this.attempt = trafficAttemptId();
     this.startedAt = performance.now();
     trafficActivity('matchmaking.search', this.attempt, { pool: this.pool.id });
@@ -230,7 +301,8 @@ class PoolMatchmakingSession {
     await pubsub.after('socket.hasConnected');
     if (!this.isCurrent(generation)) return;
 
-    if (this.authenticated) this.joinAuthenticatedPool();
+    if (this.pool.variant === 'threeKingdoms') void this.pollThreePlayers(generation);
+    else if (this.authenticated) this.joinAuthenticatedPool();
     else {
       try {
         await xhrJson('/setup/hook/' + site.sri, {
@@ -261,8 +333,9 @@ class PoolMatchmakingSession {
     }
   }
 
-  cancel = (): void => {
-    if (!this.active || this.completed) return;
+  cancel = async (): Promise<string | undefined> => {
+    if (this.cancelling) return this.cancelling;
+    if (!this.active || this.completed) return undefined;
     trackTraffic(
       'search.cancelled',
       { pool: this.pool.id },
@@ -273,15 +346,32 @@ class PoolMatchmakingSession {
     this.active = false;
     ++this.generation;
     wsSetActivity();
+    clearTimeout(this.pollTimer);
+    if (this.pool.variant === 'threeKingdoms') {
+      this.cancelling = (async () => {
+        // Order leave after an in-flight join so a cancelled search cannot re-enter the queue.
+        await this.joining?.catch(() => undefined);
+        return this.leaveThreePlayers();
+      })();
+      try {
+        return await this.cancelling;
+      } finally {
+        this.cancelling = undefined;
+        this.onCancelled();
+      }
+    }
     if (this.authenticated) this.socket.send('poolOut', this.pool.id);
     else this.socket.send('cancel', undefined);
+    this.joinedConnection = -1;
     this.onCancelled();
+    return undefined;
   };
 
   complete(): void {
     this.completed = true;
     this.active = false;
     ++this.generation;
+    clearTimeout(this.pollTimer);
     pubsub.off('socket.open', this.onSocketOpen);
     this.unlistenPoolStorage();
     window.removeEventListener('beforeunload', this.cancelOnUnload);
@@ -300,11 +390,53 @@ class PoolMatchmakingSession {
 
   private readonly onSocketOpen = () => {
     ++this.connection;
-    if (this.active && this.authenticated) this.joinAuthenticatedPool();
+    if (this.active && this.authenticated && this.pool.variant !== 'threeKingdoms')
+      this.joinAuthenticatedPool();
   };
 
+  private async pollThreePlayers(generation: number): Promise<void> {
+    try {
+      const result = await (this.joining = xhrJson<{ gameId?: string; error?: string }>(
+        '/api/three-kingdoms/pool',
+        {
+          method: 'POST',
+        },
+      ));
+      if (result.error) throw new Error(result.error);
+      if (!this.isCurrent(generation)) return;
+      if (result.gameId) {
+        this.onPaired({ id: result.gameId, url: `/three-kingdoms/game/${result.gameId}` });
+        return;
+      }
+      this.pollTimer = setTimeout(() => void this.pollThreePlayers(generation), 4000);
+    } catch (error) {
+      if (!this.isCurrent(generation)) return;
+      const url = await this.cancel();
+      if (url) site.redirect(url);
+      const translated =
+        error instanceof Error && (i18n.threeKingdoms as unknown as Record<string, unknown>)[error.message];
+      this.onCancelled(typeof translated === 'string' ? translated : i18n.threeKingdoms.error);
+      console.warn('Could not enter the matchmaking pool', error);
+    }
+  }
+
+  private async leaveThreePlayers(): Promise<string | undefined> {
+    try {
+      const response = await fetch('/api/three-kingdoms/pool', {
+        method: 'DELETE',
+        keepalive: true,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      });
+      const result = await response.json();
+      if (result.gameId) return `/three-kingdoms/game/${result.gameId}`;
+    } catch {
+      /* The server expires disconnected leases. */
+    }
+    return undefined;
+  }
+
   private readonly cancelOnUnload = () => {
-    if (this.active) this.cancel();
+    if (this.active) void this.cancel();
   };
 }
 

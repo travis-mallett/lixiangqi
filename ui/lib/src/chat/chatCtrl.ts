@@ -29,6 +29,7 @@ export class ChatCtrl {
   private maxLinesDrop = 50; // how many lines to drop at once
   private readonly storedTabKey: Prop<string>;
   private readonly allTabs: Tab[] = [];
+  private subscriptions: SubPair[] = [];
 
   chatEnabled: Prop<boolean>;
   voiceChat: VoiceChatData;
@@ -83,7 +84,8 @@ export class ChatCtrl {
 
     this.instanciateModeration();
 
-    const subs: SubPair[] = [
+    if (opts.post) return;
+    this.subscriptions = [
       ['socket.in.message', this.onMessage],
       ['socket.in.chat_timeout', this.onTimeout],
       ['socket.in.chat_reinstate', this.onReinstate],
@@ -91,7 +93,7 @@ export class ChatCtrl {
       ['chat.permissions', this.onPermissions],
       ['voiceChat.toggle', this.voiceChat.enabled],
     ];
-    subs.forEach(([eventName, callback]) => pubsub.on(eventName, callback));
+    this.subscriptions.forEach(([eventName, callback]) => pubsub.on(eventName, callback));
   }
 
   get isOptional(): boolean {
@@ -121,11 +123,20 @@ export class ChatCtrl {
       alert('Max length: 140 chars. ' + text.length + ' chars used.');
       return false;
     }
+    if (this.opts.post) return this.opts.post(text);
     pubsub.emit('socket.send', 'talk', text);
     return true;
   };
 
-  listenToIncoming = (cb: (line: Line) => void): void => pubsub.on('socket.in.message', cb);
+  listenToIncoming = (cb: (line: Line) => void): void => {
+    this.subscriptions.push(['socket.in.message', cb]);
+    pubsub.on('socket.in.message', cb);
+  };
+
+  destroy(): void {
+    this.subscriptions.forEach(([eventName, callback]) => pubsub.off(eventName, callback));
+    this.subscriptions = [];
+  }
 
   private readonly onTimeout = (userId: string): void => {
     let change = false;

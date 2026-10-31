@@ -3,7 +3,6 @@ package lila.lobby
 import chess.ByColor
 
 import lila.core.socket.Sri
-import lila.xiangqi.Xiangqi
 
 final private class Biter(
     userApi: lila.core.user.UserApi,
@@ -60,9 +59,15 @@ final private class Biter(
 
   private def makeGame(hook: Hook, users: ByColor[Option[LobbyUser]]) = lila.core.game
     .newGame(
-      xiangqi = Xiangqi.Game.initial,
+      xiangqi = hook.gameVariant.initialGame(None, hook.gameVariant.defaultRuleset).fold(sys.error, identity),
       players = users.mapWithColor: (color, user) =>
-        user.fold(newPlayer.anon(color))(u => newPlayer(color, u.id, u.rank)),
+        user.fold(newPlayer.anon(color))(u =>
+          newPlayer(
+            color,
+            u.id,
+            u.rankFor(Some(lila.core.rank.RankTrackId.of(hook.gameVariant)))
+          )
+        ),
       rated = chess.Rated.No,
       source = lila.core.game.Source.Lobby,
       pgnImport = None,
@@ -74,9 +79,18 @@ final private class Biter(
 
   private def makeGame(seek: Seek, users: ByColor[Option[LobbyUser]]) = lila.core.game
     .newGame(
-      xiangqi = Xiangqi.Game.initial,
+      xiangqi = lila.xiangqi.GameVariant
+        .fromKey(seek.gameVariant)
+        .flatMap(v => v.initialGame(None, v.defaultRuleset))
+        .fold(sys.error, identity),
       players = users.mapWithColor: (color, user) =>
-        user.fold(newPlayer.anon(color))(u => newPlayer(color, u.id, u.rank)),
+        user.fold(newPlayer.anon(color))(u =>
+          newPlayer(
+            color,
+            u.id,
+            u.rankFor(lila.core.rank.RankTrackId.from(seek.gameVariant))
+          )
+        ),
       rated = chess.Rated.No,
       source = lila.core.game.Source.Lobby,
       daysPerTurn = seek.daysPerTurn,

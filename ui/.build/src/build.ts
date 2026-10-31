@@ -15,6 +15,7 @@ import { parsePackages } from './parse.ts';
 import { sass, stopSass } from './sass.ts';
 import { sync } from './sync.ts';
 import { makeTask, stopTask, taskOk } from './task.ts';
+import { checkThreeKingdomsEngine } from './threeKingdomsEngine.ts';
 import { tsc, stopTsc } from './tsc.ts';
 
 export async function build(pkgs: string[]): Promise<void> {
@@ -26,6 +27,7 @@ export async function build(pkgs: string[]): Promise<void> {
       chdir(env.rootDir);
       if (env.install) execSync('pnpm install', { stdio: 'inherit' });
       checkBoardAssets(env.rootDir);
+      checkThreeKingdomsEngine(env.rootDir);
       if (!pkgs.length) env.log(`Parsing packages in '${c.cyan(env.uiDir)}'`);
 
       await Promise.allSettled([parsePackages(), fs.promises.mkdir(env.buildTempDir)]);

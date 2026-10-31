@@ -14,6 +14,13 @@ final class JSONHandlers(getLightUser: LightUser.GetterSync):
     private def writeBody(content: NotificationContent) =
       import NotificationContent.*
       content match
+        case ThreeKingdomsChallenge(invitedBy, gameId, started) =>
+          Json.obj(
+            "invitedBy" -> getLightUser(invitedBy),
+            "gameId" -> gameId,
+            "started" -> started,
+            "url" -> s"/three-kingdoms/${if started then "game" else "challenge"}/${gameId.value}"
+          )
         case MentionedInThread(mentionedBy, topic, _, category, postId) =>
           Json.obj(
             "mentionedBy" -> getLightUser(mentionedBy),
@@ -92,6 +99,7 @@ final class JSONHandlers(getLightUser: LightUser.GetterSync):
 
     def writes(notification: Notification) =
       Json.obj(
+        "id" -> notification.id.value,
         "content" -> writeBody(notification.content),
         "type" -> notification.content.key,
         "read" -> notification.read.value,

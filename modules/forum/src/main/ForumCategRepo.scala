@@ -3,16 +3,28 @@ package lila.forum
 import lila.db.dsl.{ *, given }
 import lila.core.perm.Granter
 
-final private class ForumCategRepo(val coll: Coll)(using Executor):
+final private class ForumCategRepo(val coll: Coll, cacheApi: lila.memo.CacheApi)(using Executor):
 
   import BSONHandlers.given
 
-  def byId(id: ForumCategId) = coll.byId[ForumCateg](id)
+  // Wait for provisioning on first use, including direct category/topic URLs. Successful
+  // initialization is cached for this process; failed loads are evicted and can retry.
+  // Insert-only upserts preserve existing posts, counters, and category settings.
+  private val provisioned = cacheApi.unit[Unit]("forum.siteBoards"):
+    _.buildAsyncFuture: _ =>
+      ForumCateg.siteBoards
+        .sequentially: categ =>
+          coll.update
+            .one($id(categ.id), $doc("$setOnInsert" -> categ), upsert = true)
+            .void
+        .void
+
+  def byId(id: ForumCategId) = provisioned.get(()) >> coll.byId[ForumCateg](id)
 
   def visibleWithTeams(teams: Iterable[TeamId], forUser: Option[User]): Fu[List[ForumCateg]] =
     val (isMod, isDev) = forUser.fold((false, false)): u =>
       (Granter.of(_.ModerateForum)(u), Granter.of(_.Diagnostics)(u))
-    coll
+    provisioned.get(()) >> coll
       .find(
         $or(
           List(
@@ -22,7 +34,7 @@ final private class ForumCategRepo(val coll: Coll)(using Executor):
           ).flatten*
         )
       )
-      .cursor[ForumCateg](ReadPref.sec)
+      .cursor[ForumCateg]()
       .list(100)
 
   def nbPosts(id: String): Fu[Int] =

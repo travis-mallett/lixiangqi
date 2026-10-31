@@ -7,7 +7,8 @@ Live game / study / puzzle / lessons / editor / preview / shared viewer
              | position + presentation + interaction + services
              v
                    @lixiangqi/board
-             | private rectangular rendering backend
+             | shared motion, indicators and feedback
+             | rectangular / graph geometry adapters
              v
                   DOM / CSS / board assets
 ```
@@ -18,22 +19,64 @@ Live game / study / puzzle / lessons / editor / preview / shared viewer
 - `definitions.ts`: supported board definitions and named presentation defaults (`interactive`, `replay`, `editor`, `thumbnail`, `preview`).
 - `position.ts`: visible FEN and coordinate codecs; relocation of already validated recorded moves. These helpers never determine move legality.
 - `board.ts`: the only application-facing renderer API. Callers never access backend mutable state.
+- `motion/`: the canonical lift, carry, landing, backward slide, Jieqi turnover, shadows, and move indicators. `MotionHost` supplies screen coordinates and piece reconciliation; it contains no board rules or rectangular coordinate assumptions. Both renderers use this implementation, including the paper theme's animated connector.
 - `feedback.ts` and `audio.ts`: per-board effects, duplicate acknowledgment suppression, and opt-in standalone sound.
 - `catalog.json`: the single board/piece/effect/sound asset catalog. The backend preference catalog is generated from this same source. Existing preference keys remain stable.
 - `css/`: geometry, faces, shadows, coordinates, and motion styling.
-- `patches/`: the maintained private ChessgroundX dependency patch. Its existing rendering, hit-testing, drag, resize, and animation machinery is retained; its library name is an implementation detail, not our public API. Preserve dependency licensing and attribution.
+- `patches/`: the maintained private ChessgroundX dependency patch. It retains rendering, hit-testing, drag, resize, and move planning, and delegates layered presentation to the board package through lifecycle hooks. It does not contain a second copy of the motion sequence or last-move indicators. Preserve dependency licensing and attribution.
 
 The asset build rejects missing faces, backs, supported geometry, or effect files. It also rejects direct application imports of the private backend. Add a supported definition only when every accepted theme covers it. Theme changes automatically reach all consumers and public embeds through the normal asset build and deployment.
 
 `lib/board` is the website adapter: it resolves account preferences, supplies site assets/audio, and owns page resize integration. `@lixiangqi/viewer` owns replay controls, variations, comments, and the embeddable replay presentation. `@lixiangqi/explorer` owns the shared opening database controller and view. These responsibilities stay outside the renderer.
 
+## Board and piece artwork requirements
+
+All standard Xiangqi themes use one renderer geometry from `standardXiangqi.geometry.frame`.
+Measurements below are SVG units from the top-left of the canvas; grid lines are
+measured at their stroke center. A centered SVG viewBox is also valid.
+
+| Property | Required value |
+| --- | ---: |
+| Board canvas | 900 × 1000 |
+| Left and right grid margins | 58 each |
+| Top and bottom grid margins | 59 each |
+| Grid spacing on both axes | 98 |
+| First and last file | x = 58 and 842 |
+| First and last rank | y = 59 and 941 |
+| Piece canvas | 100 × 100, `viewBox="0 0 100 100"` |
+| Piece body center | (50, 50) |
+| Piece body diameter, including outline | 90 |
+| Piece render scale | 1 |
+
+Intersection `(column, row)` is `(58 + 98 × column, 59 + 98 × row)`, where
+column is 0…8 and row is 0…9. The river is the interval between rows 4 and 5.
+The renderer's cell rectangle is `(9, 10, 882, 980)` inside the artwork.
+
+Piece bodies occupy `(5, 5)…(95, 95)` in their asset. Mark the body geometry
+with `data-piece-body="true"` so the asset tests can measure its outline.
+Decorative ink filters may soften the outline within the transparent padding.
+Provide all seven roles in both colors and a concealed back using the same
+dimensions. Cast shadows are separate shared assets; do not bake them into faces.
+All pieces render with an 88.2-unit body diameter on the reference board.
+
+`pieceGeometry` in `layout.ts` owns the shared piece scale. Faces, lifted faces,
+shadows, halos, and destination markers follow it. Themes may choose marker
+colors and styles, but have no board geometry or piece-size overrides.
+Static image exports use the same geometry and size as the live board.
+
+Wood, paper, tournament, and Wudang SVG artwork follow this specification.
+
 ## Variants
 
 A variant's rules own legality, history, setup restrictions, and hidden information. The board receives only the visible projection. A face-down piece contains a back identifier and optional visible participant, never its hidden role.
 
-The implemented backend supports two participants on rectangular boards, 1–16 files/ranks, with cell or intersection placement. Standard Xiangqi is the only registered production definition. Tests exercise a smaller cell board and conceal/reveal transitions. Jieqi, mini Xiangqi, and Banqi still need their rules, assets, and product integration before registration. Their geometry can use this backend.
+The rectangular backend supports two participants on boards of 1–16 files/ranks, with cell or intersection placement. Standard Xiangqi and Jieqi share the 9×10 definition. Mini Xiangqi uses its own 7×7 definition: a 700×700 canvas, 56-unit margins, and 98-unit spacing, placing the first and last intersections at 56 and 644 on both axes.
 
-A genuinely different topology, such as a three-player board, needs a geometry/rendering backend behind this same public module. It must not be forced into a rectangular two-player model or implemented as a page-specific board. New topology support is future work, not an enabled game in this change.
+Each mounted board selects `---board-image-<geometry.id>` from the theme catalog through its local `--board-image` property. The definition also supplies the coordinate sprite. Hosts provide all geometry-specific theme variables so changing themes preserves each board's geometry. Website frames reserve space using the mounted board's local aspect ratio; previews must not inherit the main board's ratio.
+
+Three Kingdoms uses the graph backend with 135 explicit intersections and three seat rotations. `renderer/graphPieces.ts` owns piece identity, orientation and screen geometry; `renderer/rectangularMotion.ts` adapts Chessground's keys and move plans to the same motion owner. Click targets stay at board intersections while separate piece elements travel. Resizing, changing perspective, correcting a position and destroying a board cancel the shared animation lifecycle.
+
+Three Kingdoms live and analysis playback use adjacent forward/backward transitions. Jumps and branch changes remain quiet; backward playback restores captures without replaying capture/check effects. Non-move events such as resignation do not replay the preceding move. The existing deployment installs the locked dependency patch and builds all board consumers, so no migration or additional deployment step is required.
 
 ## Contracts
 
@@ -57,5 +100,30 @@ The study board now uses the canonical renderer, but its pre-existing server tre
 The required follow-up is a native study tree and move/shape codec, followed by migration of study persistence, paths, socket messages, import/export, and consumers. Back up original study documents before that migration, validate every existing FEN and branch, fail on unsupported data, and integrate the migration into deployment. Do not extend chess's 64-square type with dummy squares, silently discard branches, or add a parallel runtime fallback. This renderer refactor does not perform that data-model migration.
 
 ## Verification
+
+### Jieqi reveal timing
+
+The concealed-piece motion uses the measured cadence of reference recording
+`244597A0-AE0A-4329-B6AB-738C7C5B41BA.MP4` (30 fps). At normal animation speed:
+
+| Phase | Duration | End from move start |
+| --- | ---: | ---: |
+| Lift and travel | 100 ms | 100 ms |
+| Landing | 33⅓ ms | 133⅓ ms |
+| Settled hold | 66⅔ ms | 200 ms |
+| Turnover | 133⅓ ms | 333⅓ ms |
+
+In zero-based reference frames, the first reveal travels at 69–71, settles at 72,
+holds through 74, and turns at 75–78. The same sequence occurs at 150–159 and
+180–189. Capture timestamps have small jitter; a 30 fps recording cannot establish
+subframe source timing. These are the nominal timings matching its repeated poses,
+not a claim of submillisecond measurement from the video.
+
+The shared motion owner retains the existing selection, capture, interruption,
+and cleanup behavior. Concealed travel/landing and turnover use one browser timeline
+so phase completion callbacks do not accumulate extra frame delays. An authoritative
+reveal consumes the elapsed hold; if it arrives late, the full turnover starts immediately.
+Animation speed preferences scale this schedule, and disabled/reduced motion still wins.
+Already visible pieces keep the normal Xiangqi timing.
 
 Run the repository formatting/lint/asset/test checks. Focused regressions live in `ui/board/tests`, `ui/viewer/tests`, and the consuming feature tests. Public routes are `/embed/xiangqi`, existing analysis/game embed routes, and existing study embeds; study visibility checks remain server-side.

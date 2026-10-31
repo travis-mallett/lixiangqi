@@ -78,13 +78,6 @@ object BSONHandlers:
         freq <- doc.getAsOpt[Schedule.Freq]("freq")
         at = doc.getAsOpt[LocalDateTime]("at") | startsAt.dateTime
       yield Scheduled(freq, at)
-      val storedConditions = r.getD[TournamentCondition.All]("conditions")
-      // Deployments preserve the live tournament collection. Open scheduled
-      // tournaments that have not started yet, while leaving tournament
-      // history and events already in progress unchanged.
-      val conditions =
-        if schedule.isDefined && status == Status.created then TournamentCondition.All.empty
-        else storedConditions
       Tournament(
         id = r.get[TourId]("_id"),
         name = r.str("name"),
@@ -92,10 +85,15 @@ object BSONHandlers:
         clock = r.get[chess.Clock.Config]("clock"),
         minutes = r.int("minutes"),
         variant = variant,
+        gameVariant = r
+          .strO("gameVariant")
+          .fold(lila.xiangqi.GameVariant.Xiangqi): key =>
+            lila.xiangqi.GameVariant.fromKey(key).fold(sys.error, identity),
+        scoreCutoff = r.dateO("scoreCutoff"),
         position = position,
         rated = Rated.No,
         password = r.strO("password"),
-        conditions = conditions,
+        conditions = r.getD[TournamentCondition.All]("conditions"),
         teamBattle = r.getO[TeamBattle]("teamBattle"),
         noBerserk = r.boolD("noBerserk"),
         noStreak = r.boolD("noStreak"),
@@ -123,6 +121,8 @@ object BSONHandlers:
         "clock" -> o.clock,
         "minutes" -> o.minutes,
         "variant" -> o.variant.some.filterNot(_.standard).map(_.id),
+        "gameVariant" -> o.gameVariant.key.some.filterNot(_ == lila.xiangqi.GameVariant.Xiangqi.key),
+        "scoreCutoff" -> o.scoreCutoff,
         "fen" -> o.position,
         "password" -> o.password,
         "conditions" -> o.conditions.nonEmpty.option(o.conditions),

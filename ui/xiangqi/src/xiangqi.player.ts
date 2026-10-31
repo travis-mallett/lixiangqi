@@ -12,8 +12,10 @@ import { requestXiangqi } from 'lib/game/xiangqiApi';
 
 import {
   analysisGameUrl,
+  catalogSources,
   databaseEventUrl,
   databasePlayerUrl,
+  formatRecordedDate,
   resultLabel,
   sourceLabels,
   type CatalogDirection,
@@ -98,6 +100,7 @@ let total = 0;
 let profileController: AbortController | undefined;
 let resizeTimer: ReturnType<typeof setTimeout> | undefined;
 let currentTimeline: PlayerDatabaseResult['timeline'] | undefined;
+let openingExplorer: ExplorerCtrl | undefined;
 
 function selectedSources(): CatalogSource[] {
   return sourceInputs.flatMap(input =>
@@ -128,7 +131,7 @@ function restoreUrlState(): ExplorerColor {
 function saveUrlState(side?: ExplorerColor): void {
   const url = new URL(location.href);
   const sources = selectedSources();
-  if (sources.length === 11) url.searchParams.delete('sources');
+  if (sources.length === catalogSources.length) url.searchParams.delete('sources');
   else url.searchParams.set('sources', sources.join(','));
   if (sort === 'date') url.searchParams.delete('sort');
   else url.searchParams.set('sort', sort);
@@ -149,17 +152,6 @@ function percentage(value: number, totalValue: number): number {
 
 function formatPercent(value: number): string {
   return `${value.toFixed(value % 1 ? 1 : 0)}%`;
-}
-
-function formatRecordedDate(value?: string): string {
-  const match = value?.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (!match) return value || 'unknown';
-  return new Intl.DateTimeFormat('en-US', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    timeZone: 'UTC',
-  }).format(new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]))));
 }
 
 function renderOutcome(id: 'red' | 'black', outcome: PlayerOutcome): void {
@@ -192,8 +184,7 @@ function renderMetrics(summary: PlayerDatabaseSummary): void {
   required('#player-metric-score').textContent = formatPercent(percentage(points, summary.overall.games));
   required('#player-metric-opponents').textContent = summary.opponents.toLocaleString();
   required('#player-metric-rating').textContent = summary.averageRating?.toLocaleString() ?? '—';
-  required('#player-metric-moves').textContent =
-    summary.averageMoves === undefined ? '—' : summary.averageMoves.toLocaleString();
+  required('#player-metric-moves').textContent = summary.averageMoves?.toLocaleString() ?? '—';
   renderOutcome('red', summary.red);
   renderOutcome('black', summary.black);
 }
@@ -506,7 +497,8 @@ function renderProfile(result: PlayerDatabaseResult): void {
   if (!result.available) throw new Error(result.error || 'The games database is unavailable.');
   if (!result.player) throw new Error(`No database player matches “${requestedPlayer}”.`);
   playerNameElement.textContent = result.player.name;
-  document.title = `${result.player.name} — Games Database`;
+  if (!document.querySelector('.pro-player-profile'))
+    document.title = `${result.player.name} — Games Database`;
   renderSourceCounts(result);
   renderTimeline(result.timeline);
   renderGames(result.games);
@@ -521,7 +513,7 @@ function renderProfile(result: PlayerDatabaseResult): void {
   previousButton.disabled = page <= 1;
   nextButton.disabled = page * result.pageSize >= total;
 
-  if (result.summary) {
+  if (result.summary?.totalGames) {
     renderMetrics(result.summary);
     renderInsights(result.summary);
     const firstDate = formatRecordedDate(result.summary.firstPlayedAt);
@@ -600,11 +592,15 @@ async function initializeExplorer(initialSide: ExplorerColor, bootstrap: PlayerP
     endpoint,
     {
       lockedPlayer: requestedPlayer,
+      lockedPlayerName: playerNameElement.textContent || requestedPlayer,
       initialColor: initialSide,
       initiallyEnabled: true,
       configurationEnabled: false,
+      sources: selectedSources(),
     },
   );
+
+  openingExplorer = explorer;
 
   const current = () => positions[positions.length - 1].state;
 
@@ -720,6 +716,7 @@ export default function init(bootstrap: PlayerPageBootstrap = {}): void {
   sourceInputs.forEach(input =>
     input.addEventListener('change', () => {
       page = 1;
+      openingExplorer?.setSources(selectedSources());
       void loadProfile();
     }),
   );

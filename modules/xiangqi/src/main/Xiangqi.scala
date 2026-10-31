@@ -7,30 +7,44 @@ object Xiangqi:
     "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1"
 
   object Fen:
-    private val pieces = "kabnrcpKABNRCP"
+    private val pieces = "kabnrcpxKABNRCPX"
 
     def isValid(value: String): Boolean =
       value.trim.split("\\s+").toList match
-        case board :: turn :: "-" :: "-" :: halfMove :: fullMove :: Nil =>
+        case board :: turn :: variant :: "-" :: halfMove :: fullMove :: Nil =>
           val ranks = board.split("/", -1)
-          ranks.length == 10 &&
-          ranks.forall(validRank) &&
+          val mini = ranks.length == 7
+          (variant == "-" || (variant == "j" && !mini)) &&
+          (variant == "j" || !board.exists(c => c == 'x' || c == 'X')) && (ranks.length == 10 || mini) &&
+          ranks.forall(validRank(_, if mini then 7 else 9)) &&
+          (!mini || !board.exists(c => "abxABX".contains(c))) && validConcealedSlots(ranks) &&
           (turn == "w" || turn == "b") &&
           halfMove.toIntOption.exists(_ >= 0) &&
           fullMove.toIntOption.exists(_ >= 1)
         case _ => false
 
-    private def validRank(rank: String): Boolean =
+    private def validConcealedSlots(ranks: Array[String]): Boolean =
+      ranks.zipWithIndex.forall: (rank, row) =>
+        var file = 0
+        rank.forall: char =>
+          val square = Square(file, 10 - row)
+          file += (if char.isDigit then char.asDigit else 1)
+          char.toLower != 'x' || Jieqi.startingPieces
+            .get(square)
+            .exists(p => p.role != Role.General && p.side.red == char.isUpper)
+
+    private def validRank(rank: String, files: Int): Boolean =
       rank.nonEmpty && rank
         .foldLeft(Option(0 -> false)): (state, char) =>
           state.flatMap: (width, previousWasDigit) =>
             if char >= '1' && char <= '9' && !previousWasDigit then Some((width + char.asDigit) -> true)
             else if pieces.contains(char) then Some((width + 1) -> false)
             else None
-        .exists(_._1 == 9)
+        .exists(_._1 == files)
 
     def board(value: String): Option[Board] =
       Option.when(isValid(value)):
+        val rows = value.takeWhile(_ != ' ').count(_ == '/') + 1
         val pieces = Map.newBuilder[Square, Piece]
         value
           .takeWhile(_ != ' ')
@@ -44,10 +58,37 @@ object Xiangqi:
                 val side = if char.isUpper then Side.Red else Side.Black
                 Role
                   .fromForsyth(char.toLower)
+                  .orElse(
+                    Option
+                      .when(char.toLower == 'x')(
+                        Jieqi.startingPieces
+                          .get(Square(file, rows - rankIndex))
+                          .filter(p => p.side == side && p.role != Role.General)
+                          .map(_.role)
+                      )
+                      .flatten
+                  )
                   .foreach: role =>
-                    pieces += Square(file, 10 - rankIndex) -> Piece(side, role)
+                    pieces += Square(file, rows - rankIndex) -> Piece(side, role)
                 file += 1
-        Board(pieces.result())
+        val result = pieces.result()
+        val hidden = value
+          .takeWhile(_ != ' ')
+          .split('/')
+          .zipWithIndex
+          .flatMap: (rank, row) =>
+            var file = 0
+            rank.flatMap: char =>
+              val square = Square(file, 10 - row)
+              file += (if char.isDigit then char.asDigit else 1)
+              Option.when(char.toLower == 'x')(square)
+        Board(
+          result,
+          hidden.toSet,
+          if value.split(' ').lift(2).contains("j") then GameVariant.Jieqi
+          else if rows == 7 then GameVariant.MiniXiangqi
+          else GameVariant.Xiangqi
+        )
 
   opaque type Uci = String
 
@@ -134,7 +175,13 @@ object Xiangqi:
 
   final case class Piece(side: Side, role: Role)
 
-  final case class Board(pieces: Map[Square, Piece]):
+  final case class Board(
+      pieces: Map[Square, Piece],
+      concealed: Set[Square] = Set.empty,
+      variant: GameVariant = GameVariant.Xiangqi
+  ):
+    def jieqi: Boolean = variant == GameVariant.Jieqi
+    def mini: Boolean = variant == GameVariant.MiniXiangqi
     def pieceAt(square: Square): Option[Piece] = pieces.get(square)
     def pieceAt(square: String): Option[Piece] = Square.fromKey(square).flatMap(pieceAt)
 
@@ -230,7 +277,9 @@ object Xiangqi:
   final case class Position(
       initialFen: String = startFen,
       moves: Vector[Uci] = Vector.empty,
-      ruleset: Ruleset = Ruleset.Unrestricted
+      ruleset: Ruleset = Ruleset.Unrestricted,
+      reveals: Vector[Option[String]] = Vector.empty,
+      knownCaptures: Map[String, String] = Map.empty
   )
   final case class ExplorerQuery(
       initialFen: String = startFen,
@@ -259,8 +308,14 @@ object Xiangqi:
       initialFen: String = startFen,
       moves: Vector[Uci] = Vector.empty,
       move: Uci,
-      ruleset: Ruleset = Ruleset.Unrestricted
+      ruleset: Ruleset = Ruleset.Unrestricted,
+      reveals: Vector[Option[String]] = Vector.empty,
+      reveal: Option[String] = None,
+      knownCaptures: Map[String, String] = Map.empty
   )
+  final case class MoveLabelsCommand(fen: String, moves: Vector[Uci])
+  final case class MoveLabels(notation: String, chineseNotation: String)
+
   final case class VariationCommand(
       initialFen: String = startFen,
       moves: Vector[Uci] = Vector.empty,
@@ -302,7 +357,9 @@ object Xiangqi:
       optionalEnd: Ending,
       adjudication: Option[AdjudicationState] = None,
       termination: Option[String] = None,
-      variation: Option[String] = None
+      variation: Option[String] = None,
+      captures: Vector[Jieqi.Capture] = Vector.empty,
+      reveal: Option[String] = None
   ):
     def ended = gameResult != Result.Ongoing
     // Both checkmate and stalemate are board wins with the same mate events.
@@ -331,7 +388,9 @@ object Xiangqi:
       optionalEnd: Ending,
       adjudication: Option[AdjudicationState] = None,
       termination: Option[String] = None,
-      variation: Option[String] = None
+      variation: Option[String] = None,
+      captures: Vector[Jieqi.Capture] = Vector.empty,
+      reveal: Option[String] = None
   ):
     def state = State(
       variant = variant,
@@ -348,7 +407,9 @@ object Xiangqi:
       optionalEnd = optionalEnd,
       adjudication = adjudication,
       termination = termination,
-      variation = variation
+      variation = variation,
+      captures = captures,
+      reveal = reveal
     )
 
   /** Canonical immutable state of a native Lixiangqi game.
@@ -361,7 +422,8 @@ object Xiangqi:
       moves: Vector[Uci],
       wxf: Vector[String],
       states: Vector[State],
-      ruleset: Ruleset = Ruleset.default
+      ruleset: Ruleset = Ruleset.default,
+      deal: Option[Jieqi.Deal] = None
   ):
     require(initialFen.nonEmpty, "A Xiangqi game requires an initial FEN")
     require(moves.size == wxf.size, "Every Xiangqi move requires one WXF value")
@@ -369,6 +431,8 @@ object Xiangqi:
     require(state.ply >= moves.size, "The current Xiangqi ply cannot precede its stored moves")
 
     def state = states.last
+    def variant = GameVariant.fromKey(state.variant).fold(sys.error, identity)
+    def isJieqi = variant == GameVariant.Jieqi
 
     lazy val chineseWxf: Vector[String] =
       moves
@@ -390,7 +454,13 @@ object Xiangqi:
         s"Invalid Xiangqi transition from ply ${state.ply} to ${result.ply}"
       )
 
-    def position = Position(initialFen, moves, ruleset)
+    def position = Position(
+      initialFen,
+      moves,
+      ruleset,
+      if isJieqi then states.drop(1).map(_.reveal) else Vector.empty,
+      state.captures.filter(_.concealed).flatMap(c => c.role.map(c.square -> _)).toMap
+    )
 
   object Game:
     lazy val initial: Game =

@@ -52,4 +52,33 @@ object ForumCateg:
   val ublogId = ForumCategId("community-blog-discussions")
   val diagnosticId = ForumCategId("diagnostic")
 
+  // Site boards are provisioned by the repository; team boards are created with their team.
+  val publicBoards: List[ForumCateg] = List(
+    empty("general-xiangqi-discussion", "Xiangqi Discussion", "Discuss xiangqi strategy, news, and events."),
+    empty("game-analysis", "Game Analysis", "Share games and analyse positions with the community."),
+    empty(
+      "lixiangqi-feedback",
+      "LiXiangQi Feedback",
+      "Report problems and suggest improvements to LiXiangQi."
+    ),
+    empty("off-topic-discussion", "Off-Topic", "Community discussions beyond xiangqi.")
+  )
+
+  val siteBoards: List[ForumCateg] = publicBoards ++ List(
+    empty(ublogId.value, "Community Blog Discussions", "Discuss community blog posts.").copy(hidden = true),
+    empty(diagnosticId.value, "Diagnostics", "Your diagnostic reports").copy(hidden = true, quiet = true)
+  )
+
+  private def empty(id: String, name: String, desc: String): ForumCateg = ForumCateg(
+    id = ForumCategId(id),
+    name = name,
+    desc = desc,
+    nbTopics = 0,
+    nbPosts = 0,
+    lastPostId = ForumPostId(""),
+    nbTopicsTroll = 0,
+    nbPostsTroll = 0,
+    lastPostIdTroll = ForumPostId("")
+  )
+
   def fromTeamId(id: TeamId): ForumCategId = ForumCategId(s"team-$id")

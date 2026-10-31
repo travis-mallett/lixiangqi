@@ -26,6 +26,150 @@ final class Tournament(env: Env, apiC: => Api)(using org.apache.pekko.stream.Mat
   def home = Open(serveHome)
   def homeLang = LangPage(routes.Tournament.home)(serveHome)
 
+  /** Native discovery uses the same pagers and visibility rules as the unified website. */
+  def mobileIndex(view: String, page: Int, freq: String, user: Option[UserStr]) = AnonOrScoped():
+    Reasonable(page):
+      def items(tours: Seq[Tour]) = tours.toList.map(env.tournament.apiJsonView.fullJson).parallel
+      def pager(p: scalalib.paginator.Paginator[Tour]) =
+        items(p.currentPageResults).map: ts =>
+          Ok(Json.obj("items" -> ts, "nextPage" -> p.nextPage)).noCache
+      view match
+        case "home" =>
+          for
+            teams <- ctx.userId.so(env.team.cached.teamIdsList)
+            (scheduled, visible) <- env.tournament.featuring.tourIndex.get(teams)
+            current <- env.tournament.apiJsonView(visible)
+            open <- api.enterable(page, teams)
+            openJson <- items(open.currentPageResults)
+            finished <- api.notableFinished.flatMap(items)
+            scheduledJson <- items(scheduled)
+          yield Ok(
+            current ++ Json.obj(
+              "open" -> openJson,
+              "scheduled" -> scheduledJson,
+              "finished" -> finished,
+              "nextPage" -> open.nextPage
+            )
+          ).noCache
+        case "calendar" =>
+          api.calendar.map(ts => Ok(env.tournament.apiJsonView.calendar(ts)).noCache)
+        case "history" =>
+          lila.tournament.Schedule.Freq.byName
+            .get(freq)
+            .fold(notFoundJson("Unknown frequency").toFuccess): f =>
+              api.history(f, page).flatMap(pager)
+        case "winners" =>
+          for
+            winners <- env.tournament.winners.all
+            _ <- env.user.lightUserApi.preloadMany(winners.userIds)
+          yield JsonOk(
+            Json.obj(
+              "winners" -> winners.recent
+                .take(30)
+                .map: w =>
+                  Json.obj(
+                    "id" -> w.tourId,
+                    "name" -> w.tourName,
+                    "date" -> w.date,
+                    "user" -> env.user.lightUserApi.syncFallback(w.userId)
+                  )
+            )
+          )
+        case "shields" =>
+          for
+            history <- env.tournament.shieldApi.history(none)
+            _ <- env.user.lightUserApi.preloadMany(history.userIds)
+          yield JsonOk(Json.obj("shields" -> history.sorted.map: (category, awards) =>
+            Json.obj(
+              "key" -> category.key,
+              "name" -> category.name,
+              "awards" -> awards.map: a =>
+                Json.obj(
+                  "id" -> a.tourId,
+                  "date" -> a.date,
+                  "user" -> env.user.lightUserApi.syncFallback(a.owner)
+                )
+            )))
+        case "created" | "upcoming" | "recent" | "best" | "chart" =>
+          Found(user.fold(fuccess(ctx.me.map(_.value)))(meOrFetch)): owner =>
+            view match
+              case "created" => api.byOwnerPager(owner, page).flatMap(pager)
+              case "upcoming" if ctx.is(owner) => api.upcomingByPlayerPager(owner, page).flatMap(pager)
+              case "upcoming" =>
+                Forbidden(jsonError("Only your upcoming tournaments are available")).toFuccess
+              case "chart" =>
+                env.tournament.leaderboardApi
+                  .chart(owner)
+                  .map: chart =>
+                    JsonOk(
+                      Json.obj(
+                        "chart" -> Json.obj(
+                          "tournaments" -> chart.result.nb,
+                          "points" -> chart.result.points.sum,
+                          "medianPoints" -> chart.result.points.median.map(_.toInt),
+                          "rankPercent" -> chart.result.rankPercentMedian
+                        )
+                      )
+                    )
+              case _ =>
+                val fetch = if view == "best" then env.tournament.leaderboardApi.bestByUser(owner, page)
+                else env.tournament.leaderboardApi.recentByUser(owner, page)
+                fetch.map: p =>
+                  JsonOk(
+                    Json.obj(
+                      "items" -> p.currentPageResults.map(env.tournament.apiJsonView.byPlayer),
+                      "nextPage" -> p.nextPage
+                    )
+                  )
+        case _ => notFoundJson("Unknown tournament view").toFuccess
+
+  def mobileForm(id: Option[TourId]) = Scoped(_.Tournament.Write): ctx ?=>
+    me ?=>
+      def render(tour: Option[Tour]) = NoBot:
+        env.team.api
+          .lightsByTourLeader(me)
+          .map: teams =>
+            val form = tour.fold(forms.create(teams))(forms.edit(teams, _))
+            Ok(
+              Json.obj(
+                "values" -> form.data,
+                "teams" -> teams.map(t => Json.obj("id" -> t.id, "name" -> t.name)),
+                "clockTimes" -> lila.gathering.GatheringClock.times,
+                "increments" -> lila.gathering.GatheringClock.incrementChoices.map(_._1),
+                "durations" -> TournamentForm.minuteChoicesKeepingCustom(tour).map(_._1),
+                "waitMinutes" -> TournamentForm.waitMinutes,
+                "accountAges" -> lila.gathering.ConditionForm.accountAges,
+                "rulesets" -> lila.xiangqi.adjudication.Ruleset.values.toList
+                  .map(r => Json.obj("key" -> r.key, "name" -> r.label)),
+                "canSetTitled" -> (me.hasTitle || isGranted(_.ManageTournament)),
+                "canSetPayouts" -> isGranted(_.ManageTournament),
+                "started" -> tour.exists(!_.isCreated),
+                "finished" -> tour.exists(_.isFinished),
+                "teamBattle" -> tour
+                  .flatMap(_.teamBattle)
+                  .map(b => Json.obj("teams" -> b.sortedTeamIds, "nbLeaders" -> b.nbLeaders))
+              )
+            ).withHeaders(CACHE_CONTROL -> "no-store")
+      id.fold(render(none))(id => WithEditableTournament(id)(t => render(t.some)))
+
+  // Full-form updates intentionally use the website's replacement semantics,
+  // including clearing an entry code, FEN or description.
+  def mobileUpdate(id: TourId) = ScopedBody(_.Tournament.Write): ctx ?=>
+    me ?=>
+      WithEditableTournament(id): tour =>
+        env.team.api
+          .lightsByTourLeader(me)
+          .flatMap: teams =>
+            bindForm(forms.edit(teams, tour))(
+              jsonFormError,
+              data =>
+                api
+                  .update(tour, data)
+                  .map: updated =>
+                    env.report.api.automodComms(data.automodText, routes.Tournament.show(id).url).discard
+                    JsonOk(Json.obj("id" -> updated.id))
+            )
+
   private def serveHome(using ctx: Context) = NoBot:
     for
       teamIds <- ctx.userId.so(env.team.cached.teamIdsList)
@@ -130,7 +274,7 @@ final class Tournament(env: Env, apiC: => Api)(using org.apache.pekko.stream.Mat
 
   def apiShow(id: TourId) = AnonOrScoped(): ctx ?=>
     WithVisibleTournament(id): tour =>
-      val maxPage = if ctx.isMobileOauth then 5_000 else 200
+      val maxPage = if ctx.isMobileOauth || ctx.oauth.exists(_.has(_.Tournament.Write)) then 5_000 else 200
       val page = (getInt("page") | 1).atLeast(1).atMost(maxPage)
       given GetMyTeamIds = me => env.team.cached.teamIdsList(me.userId)
       for
@@ -145,32 +289,46 @@ final class Tournament(env: Env, apiC: => Api)(using org.apache.pekko.stream.Mat
           withAllowList = true
         )
         chatOpt <- getBool("chat").so(loadChat(tour, data))
-        jsChat = chatOpt.map(env.chat.json.mobile(_))
+        jsChat = chatOpt.map(c => env.chat.json.mobile(c, writeable = ctx.isAuth && !c.locked && !c.timeout))
         socketVersion <- getBool("socketVersion").optionFu(env.tournament.version(tour.id))
-      yield JsonOk:
-        data.add("chat", jsChat).add("socketVersion" -> socketVersion)
+      yield
+        val socketDomain = env.net.socketDomains.headOption.getOrElse(ctx.req.host)
+        val scheme = if env.net.baseUrl.value.startsWith("https:") then "wss" else "ws"
+        JsonOk(
+          data.add("chat", jsChat).add("socketVersion" -> socketVersion) ++ Json.obj(
+            "ruleset" -> tour.ruleset.key,
+            "descriptionHtml" -> tour.description.map(text =>
+              lila.common.String.html.markdownLinksOrRichText(text)(using env.net.domain).render
+            ),
+            "passwordRequired" -> tour.password.isDefined,
+            "canEdit" -> ctx.me.exists(me =>
+              isGrantedOpt(_.ManageTournament) || (tour.createdBy.is(me) && !tour.isFinished)
+            ),
+            "socketUrl" -> s"$scheme://$socketDomain/tournament/$id/socket/v5"
+          )
+        ).noCache
 
   private def isRestricted(tour: Tour)(using Context) =
     if tour.isEnterable || tour.isRecentlyFinished then fuFalse else couldBeEnum
 
-  def standing(id: TourId, page: Int) = Open:
+  def standing(id: TourId, page: Int) = OpenOrScoped():
     WithVisibleTournament(id): tour =>
       JsonOk:
         env.tournament.standingApi(tour, page, withScores = getBoolOpt("scores") | true)
 
-  def pageOf(id: TourId, userId: UserStr) = Open:
+  def pageOf(id: TourId, userId: UserStr) = OpenOrScoped():
     WithVisibleTournament(id): tour =>
       Found(api.pageOf(tour, userId.id)): page =>
         JsonOk:
           env.tournament.standingApi(tour, page, withScores = getBoolOpt("scores") | true)
 
-  def player(tourId: TourId, userId: UserStr) = Open:
+  def player(tourId: TourId, userId: UserStr) = OpenOrScoped():
     WithVisibleTournament(tourId): tour =>
       Found(api.playerInfo(tour, userId.id)): player =>
         JsonOk:
           jsonView.playerInfoExtended(tour, player)
 
-  def teamInfo(tourId: TourId, teamId: TeamId) = Open:
+  def teamInfo(tourId: TourId, teamId: TeamId) = OpenOrScoped():
     WithVisibleTournament(tourId): tour =>
       Found(env.team.lightTeam(teamId)): team =>
         for

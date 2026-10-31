@@ -154,6 +154,7 @@ final class ChatApi(
               case "tournament" => _.tournament
               case "swiss" => _.swiss
               case "team" => _.team
+              case "threeKingdoms" => _.threeKingdoms
               case _ => _.study
           )
 
@@ -231,13 +232,15 @@ final class ChatApi(
           case _ => none
 
     def removeMessagesBy(gameIds: Seq[GameId], userId: UserId) =
+      removeMessagesIn(gameIds.flatMap(id => List(ChatId(id.value), ChatId(s"${id.value}/w"))), userId)
+
+    def removeMessagesIn(ids: Seq[ChatId], userId: UserId): Funit =
       val regex = s"^$userId[" + Line.separatorChars.mkString("") + "]"
       val update = $pull("l".$regex(regex, "i"))
-      val allIds = for
-        id <- gameIds
-        both <- List(id.value, s"${id.value}/w")
-      yield both
-      coll.update.one($inIds(allIds), update, multi = true).void
+      coll.update
+        .one($inIds(ids), update, multi = true)
+        .map: _ =>
+          ids.foreach(cached.invalidate)
 
   private object Speaker:
     def get(userId: UserId): Fu[Option[Speaker]] = userApi.byIdAs[Speaker](userId.value, Speaker.projection)

@@ -337,7 +337,7 @@ You can re-open it at ${routeUrl(routes.Clas.show(clas.id))}"""
         user <- userRepo
           .create(
             name = data.username,
-            passwordHash = authenticator.passEnc(password),
+            passwordHash = authenticator.passEnc(password).some,
             email = email,
             blind = false,
             mustConfirmEmail = false,

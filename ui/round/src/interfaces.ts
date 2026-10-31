@@ -129,6 +129,7 @@ export interface ChatOpts extends BaseChatOpts {
 }
 
 export interface ApiMove {
+  captures?: import('lib/game/jieqi').JieqiCapture[];
   variation?: string | null;
   termination?: string | null;
   dests: EncodedDests;

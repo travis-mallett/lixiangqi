@@ -71,11 +71,8 @@ test('engine is lazy, sequential, and uses identical fixed settings for each pos
   assert.equal((await second).score.redCp, 400);
   for (const request of h.work) {
     assert.ok('movetime' in request.search);
-    assert.equal(request.search.movetime, 4000);
-    assert.equal(request.search.extension?.minMovetime, 2000);
-    assert.equal(request.search.extension?.maxMovetime, 11000);
-    assert.equal(request.search.extension?.needed(result()), false);
-    assert.equal(request.search.extension?.complete(result()), true);
+    assert.equal(request.search.movetime, 3500);
+    assert.equal(request.search.extension, undefined);
     assert.equal(request.multiPv, 1);
     assert.equal(request.threads, puzzleEngineThreads());
     assert.equal(request.hashSize, 16);
@@ -87,16 +84,14 @@ test('engine is lazy, sequential, and uses identical fixed settings for each pos
 test('progress belongs only to the active request and stops after cancellation or completion', async () => {
   const h = harness();
   const depths: number[] = [];
-  const first = h.evaluator.evaluate('first', undefined, undefined, analysis => depths.push(analysis.depth));
+  const first = h.evaluator.evaluate('first', undefined, analysis => depths.push(analysis.depth));
   const rejected = assert.rejects(first, /cancelled/);
   await setImmediate();
   h.work[0].emit({ ...result(), depth: 3 }, false);
   assert.deepEqual(depths, [3]);
   h.evaluator.stop();
   await rejected;
-  const second = h.evaluator.evaluate('second', undefined, undefined, analysis =>
-    depths.push(analysis.depth),
-  );
+  const second = h.evaluator.evaluate('second', undefined, analysis => depths.push(analysis.depth));
   await setImmediate();
   h.work[0].emit({ ...result(), depth: 30 }, false);
   h.work[1].emit({ ...result(), depth: 5 }, false);
@@ -228,7 +223,7 @@ test('threads use half the reported logical CPUs with a minimum of one', () => {
     assert.equal(puzzleEngineThreads(cpus), threads);
 });
 
-test('zalD3 H4+3 keeps searching past the recorded shallow failure, bounded at fifteen seconds', async t => {
+test('zalD3 H4+3 uses a single 3.5-second search even for a shallow failure', async t => {
   t.mock.timers.enable({ apis: ['setTimeout'] });
   const fixture = JSON.parse(readFileSync(new URL('./fixtures/zalD3.json', import.meta.url), 'utf8')) as {
     initialFen: string;
@@ -249,7 +244,7 @@ test('zalD3 H4+3 keeps searching past the recorded shallow failure, bounded at f
     },
     fixturePositions(fixture.puzzleFen, fixture.solution),
   );
-  for (const reachesDepth20 of [true, false]) {
+  {
     const commands: string[] = [];
     const protocol = new PikafishProtocol();
     protocol.connected(command => commands.push(command));
@@ -285,27 +280,14 @@ test('zalD3 H4+3 keeps searching past the recorded shallow failure, bounded at f
     };
     receive(0);
     receive(1);
-    tickTo(4000);
-    receive(2);
-    tickTo(6000);
-    assert.equal(commands.at(-1), 'go infinite', 'depth 19 must not end as an error at six seconds');
-    if (reachesDepth20) receive(3);
-    else {
-      tickTo(14999);
-      assert.equal(commands.at(-1), 'go infinite');
-      tickTo(15000);
-    }
-    assert.equal(commands.at(-1), 'stop');
+    assert.equal(commands.at(-1), 'go movetime 3500');
+    tickTo(3500);
     protocol.received('bestmove e9f9');
     const result = await evaluation;
-    assert.equal(result?.evaluation.depth, reachesDepth20 ? 20 : 19);
-    assert.equal(result?.evaluation.score.redCp, reachesDepth20 ? -945 : -943);
+    assert.equal(result?.evaluation.depth, 17);
+    assert.equal(result?.evaluation.score.redCp, -886);
     assert.deepEqual(result?.decision, { result: 'fail', reason: 'forcedMateLost' });
-    assert.equal(
-      commands.filter(c => c.startsWith('go ')).length,
-      1,
-      'confirmation never restarts the search',
-    );
+    assert.equal(commands.filter(c => c.startsWith('go ')).length, 1, 'failure never starts another search');
     assert.ok(
       commands.some(c => c.startsWith(`position fen ${fixture.initialFen} moves `) && c.endsWith('f6g8')),
     );

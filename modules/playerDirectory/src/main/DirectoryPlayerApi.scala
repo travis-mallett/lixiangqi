@@ -4,18 +4,15 @@ import chess.PlayerName
 import lila.xiangqi.Xiangqi.BySide
 import lila.core.playerDirectory.PlayerTitle
 import lila.core.playerDirectory.PlayerId
-import reactivemongo.api.bson.*
 
 import lila.core.playerDirectory.Federation
-import lila.db.dsl.{ *, given }
 import lila.memo.{ CacheApi, PicfitApi }
 import lila.memo.PicfitImage
+import lila.memo.CacheApi.invalidate
 
 final class DirectoryPlayerApi(repo: DirectoryRepo, cacheApi: CacheApi, picfitApi: PicfitApi)(using Executor):
 
-  import repo.player.handler
-
-  export repo.player.{ fetch, setPhotoCredit }
+  export repo.player.fetch
   export repo.rating.get as getRatings
 
   def players(ids: BySide[Option[PlayerId]]): Fu[BySide[Option[DirectoryPlayer]]] =
@@ -44,7 +41,12 @@ final class DirectoryPlayerApi(repo: DirectoryRepo, cacheApi: CacheApi, picfitAp
     for
       pic <- picfitApi.uploadFile(photo, me.userId, s"directoryPlayer:${p.id}".some, requestAutomod = false)
       _ <- repo.player.setPhoto(p.id, DirectoryPlayer.PlayerPhoto(pic.id, none))
-    yield pic
+    yield
+      idToPlayerCache.invalidate(p.id)
+      pic
+
+  def edit(p: DirectoryPlayer, language: String, edit: DirectoryPlayer.form.Edit): Funit =
+    repo.player.edit(p, language, edit).map(_ => idToPlayerCache.invalidate(p.id))
 
   private val idToPlayerCache =
     cacheApi[PlayerId, Option[DirectoryPlayer]](8_192, "player.directoryPlayer.byId"):
@@ -59,9 +61,6 @@ final class DirectoryPlayerApi(repo: DirectoryRepo, cacheApi: CacheApi, picfitAp
         _.flatten.flatMap: p =>
           p.photo.map(p.id -> _)
       .map(_.toMap)
-
-  private[playerDirectory] def delete(id: PlayerId): Funit =
-    repo.playerColl.delete.one($id(id)).void
 
   object guessPlayer:
 
@@ -78,12 +77,10 @@ final class DirectoryPlayerApi(repo: DirectoryRepo, cacheApi: CacheApi, picfitAp
     private val cache =
       cacheApi[TitleName, Option[DirectoryPlayer]](1024, "player.directoryPlayer.byName"):
         _.expireAfterWrite(5.minutes).buildAsyncFuture: p =>
-          val token = DirectoryPlayer.tokenize.exec(p.name.value)
-          token.nonEmpty.so:
-            repo.playerColl
-              .find($doc("tokens" -> token) ++ p.title.so(t => $doc("title" -> t)))
-              .cursor[DirectoryPlayer]()
-              .list(2)
-              .map:
-                case List(onlyMatch) => onlyMatch.some
-                case _ => none
+          repo.player
+            .resolve(p.name.value)
+            .map(
+              _.filter(player =>
+                p.title.forall(t => player.titles.exists(a => a.code == t.value && a.status == "recorded"))
+              )
+            )

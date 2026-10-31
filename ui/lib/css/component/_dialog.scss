@@ -3,6 +3,8 @@ body:has(dialog.touch-scroll) {
 }
 
 dialog {
+  --dialog-vertical-space: 16px;
+
   @extend %box-radius, %popup-shadow;
   @include inline-start(50%);
 
@@ -30,7 +32,10 @@ dialog {
   }
 
   > div.scrollable {
-    max-height: min(calc(var(---viewport-height) - 16px), calc(100dvh - 16px));
+    max-height: min(
+      calc(var(---viewport-height) - var(--dialog-vertical-space)),
+      calc(100dvh - var(--dialog-vertical-space))
+    );
     overflow-x: clip;
     overflow-y: auto;
     overscroll-behavior-y: contain;
@@ -65,6 +70,8 @@ dialog {
   }
 
   &:not(.touch-scroll) {
+    --dialog-vertical-space: 48px;
+
     margin-top: 16px;
     overflow: visible;
 

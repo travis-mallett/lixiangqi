@@ -5,7 +5,6 @@ import lila.core.playerDirectory.PlayerTitle
 import lila.core.playerDirectory.RatingCategory
 import lila.core.playerDirectory.PlayerId
 import chess.rating.{ Elo, KFactor }
-import reactivemongo.api.bson.Macros.Annotations.Key
 
 import java.text.Normalizer
 
@@ -13,8 +12,9 @@ import lila.core.playerDirectory.{ PlayerToken, Tokenize, diacritics }
 import lila.core.id.ImageId
 
 case class DirectoryPlayer(
-    @Key("_id") id: PlayerId,
+    id: PlayerId,
     name: PlayerName,
+    displayName: PlayerName,
     token: PlayerToken,
     aliases: List[PlayerName],
     tokens: List[PlayerToken],
@@ -32,7 +32,13 @@ case class DirectoryPlayer(
     year: Option[Int],
     deceasedYear: Option[Int] = None,
     gender: Option[DirectoryPlayer.Gender] = None,
-    inactive: Boolean
+    inactive: Boolean,
+    biography: Map[String, String] = Map.empty,
+    biographySources: List[String] = Nil,
+    team: Option[String] = None,
+    teamAsOf: Option[String] = None,
+    stats: DirectoryPlayer.GameStats = DirectoryPlayer.GameStats(),
+    titles: List[DirectoryPlayer.RecordedTitle] = Nil
 ) extends lila.core.playerDirectory.Player:
 
   def ratingOf(tc: RatingCategory): Option[Elo] = tc match
@@ -60,27 +66,6 @@ case class DirectoryPlayer(
   def ratingsMap: Map[RatingCategory, Elo] =
     RatingCategory.values.flatMap(tc => ratingOf(tc).map(tc -> _)).toMap
 
-  def isSame(other: DirectoryPlayer) = sourceData == other.sourceData
-
-  private def sourceData =
-    (
-      name,
-      aliases,
-      provenance,
-      ratingSources,
-      fed,
-      title,
-      standard,
-      standardK,
-      rapid,
-      rapidK,
-      blitz,
-      blitzK,
-      year,
-      gender,
-      inactive
-    )
-
   def ratingsStr = List(
     "Standard" -> standard,
     "Rapid" -> rapid,
@@ -91,7 +76,32 @@ case class DirectoryPlayer(
 
 object DirectoryPlayer:
 
-  case class PlayerPhoto(id: ImageId, credit: Option[String] = None)
+  case class RecordedTitle(
+      issuer: String,
+      code: String,
+      status: String,
+      source: lila.core.playerDirectory.Provenance,
+      statusSource: Option[lila.core.playerDirectory.Provenance]
+  )
+
+  case class GameStats(
+      games: Int = 0,
+      wins: Int = 0,
+      draws: Int = 0,
+      losses: Int = 0,
+      lastPlayedAt: Option[String] = None,
+      team: Option[String] = None,
+      teamAsOf: Option[String] = None
+  )
+
+  case class PlayerPhoto(
+      id: ImageId,
+      credit: Option[String] = None,
+      url: Option[String] = None,
+      sourceUrl: Option[String] = None,
+      license: Option[String] = None,
+      licenseUrl: Option[String] = None
+  )
 
   object PlayerPhoto:
     enum Size(val width: Int):
@@ -104,11 +114,45 @@ object DirectoryPlayer:
     def apply(picfitUrl: lila.memo.PicfitUrl, image: ImageId, size: SizeSelector): Url =
       picfitUrl.thumbnail(image)(size(Size).dimensions)
 
+    def apply(picfitUrl: lila.memo.PicfitUrl, photo: PlayerPhoto, size: SizeSelector): Url =
+      photo.url.map(Url(_)).getOrElse(apply(picfitUrl, photo.id, size))
+
   object form:
     import play.api.data.*
     import play.api.data.Forms.*
-    def credit(p: DirectoryPlayer) =
-      Form(single("photo.credit" -> optional(nonEmptyText))).fill(p.photo.flatMap(_.credit))
+    case class Edit(credit: Option[String], biography: Option[String], sources: Option[String])
+    def edit(p: DirectoryPlayer, language: String) =
+      val fields = mapping(
+        "photo.credit" -> optional(text(maxLength = 500)),
+        "biography" -> optional(text(maxLength = 6000)),
+        "sources" -> optional(text(maxLength = 4000))
+      )(Edit.apply)(e => Some((e.credit, e.biography, e.sources)))
+        .verifying(
+          "A biography requires HTTP source URLs",
+          e =>
+            val urls = e.sources.toList.flatMap(_.linesIterator.map(_.trim).filter(_.nonEmpty))
+            (urls.nonEmpty || (e.biography.isEmpty && (p.biography - language).isEmpty)) &&
+            urls.forall(u =>
+              scala.util
+                .Try(java.net.URI(u))
+                .toOption
+                .exists(uri =>
+                  Set("https", "http")
+                    .contains(uri.getScheme) && uri.getHost != null && uri.getUserInfo == null
+                )
+            )
+        )
+        .verifying(
+          "External portraits require a credit",
+          e => !p.photo.exists(_.url.isDefined) || e.credit.exists(_.trim.nonEmpty)
+        )
+      Form(fields).fill(
+        Edit(
+          p.photo.flatMap(_.credit),
+          p.biography.get(language),
+          Option.when(p.biographySources.nonEmpty)(p.biographySources.mkString("\n"))
+        )
+      )
 
   case class WithFollow(player: DirectoryPlayer, follow: Boolean)
 

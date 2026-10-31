@@ -11,15 +11,33 @@ final private[setup] class Processor(
     onStart: lila.core.game.OnStart
 )(using Executor, lila.core.game.IdGenerator, lila.core.game.NewPlayer):
 
-  def ai(config: AiConfig)(using me: Option[Me]): Fu[Pov] = for
-    me <- me.map(_.value).traverse(userApi.withPerf(_, config.perfType))
+  private[setup] def prepareAi(config: AiConfig)(using me: Option[Me]): Fu[Pov] = for
+    me <- me
+      .map(_.value)
+      .traverse(userApi.withPerf(_, config.perfType, lila.core.rank.RankTrackId.of(config.gameVariant)))
     pov <- config.pov(me)
+  yield pov
+
+  private[setup] def insertKidsAi(pov: Pov): Funit =
+    gameRepo
+      .insertDenormalized(pov.game)
+      .void
+      .recover(lila.db.ignoreDuplicateKey)
+      .map: _ =>
+        // The round system deduplicates AI turns. Reissuing start also recovers a
+        // process failure after insertion but before the first start notification.
+        onStart.exec(pov.gameId)
+
+  private[setup] def startKidsAi(id: GameId): Unit = onStart.exec(id)
+
+  def ai(config: AiConfig)(using me: Option[Me]): Fu[Pov] = for
+    pov <- prepareAi(config)
     _ <- gameRepo.insertDenormalized(pov.game)
     _ = onStart.exec(pov.gameId)
   yield pov
 
   def apiAi(config: ApiAiConfig)(using me: Me): Fu[Pov] = for
-    me <- userApi.withPerf(me, config.perfType)
+    me <- userApi.withPerf(me, config.perfType, lila.core.rank.RankTrackId.of(config.gameVariant))
     pov <- config.pov(me.some)
     _ <- gameRepo.insertDenormalized(pov.game)
     _ = onStart.exec(pov.gameId)

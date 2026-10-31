@@ -4,26 +4,57 @@ export type Participant = string;
 export type PieceRole = string;
 
 export type VisiblePiece =
-  | { face: 'up'; participant: Participant; role: PieceRole }
+  | {
+      face: 'up';
+      participant: Participant;
+      role: PieceRole;
+      controller?: Participant | null;
+      inactive?: boolean;
+    }
   | { face: 'down'; back: string; participant?: Participant };
 
-export interface BoardGeometry {
+export interface RectangularGeometry {
+  readonly kind?: 'rectangular';
   readonly id: string;
   readonly columns: number;
   readonly rows: number;
   readonly placement: 'intersections' | 'cells';
+  /** Artwork units; opposite margins are equal. Omit for full cell-based boards. */
+  readonly frame?: { readonly cellSize: number; readonly marginX: number; readonly marginY: number };
 }
 
-export interface BoardDefinition {
+/** Explicit artwork locations. Neither hit testing nor perspective assumes a rectangular grid. */
+export interface GraphGeometry {
+  readonly kind: 'graph';
   readonly id: string;
-  readonly geometry: BoardGeometry;
+  readonly placement: 'intersections';
+  readonly width: number;
+  readonly height: number;
+  readonly pieceSize: number;
+  readonly locations: Readonly<Record<Location, readonly [number, number]>>;
+  /** Clockwise artwork rotation in degrees, around the canvas center. */
+  readonly rotations: Readonly<Record<Participant, number>>;
+  readonly territoryAnchors?: Readonly<Record<Participant, readonly [number, number]>>;
+  readonly riverAnchors?: Readonly<Record<string, readonly [number, number]>>;
+}
+
+export type BoardGeometry = RectangularGeometry | GraphGeometry;
+
+export interface BoardDefinition<G extends BoardGeometry = BoardGeometry> {
+  readonly id: string;
+  readonly geometry: G;
+  readonly pieceFamily?: string;
   readonly participants: readonly Participant[];
   readonly roles: Readonly<Record<PieceRole, string>>;
   readonly royalRoles: readonly PieceRole[];
   readonly coordinates: 'xiangqi' | 'algebraic';
+  readonly coordinateImage?: string;
+  /** Piece-facing angle in artwork coordinates, before applying the viewer's rotation. */
+  readonly pieceRotation?: (location: Location, piece: VisiblePiece) => number;
 }
 
 export interface BoardPosition {
+  readonly board?: string;
   readonly pieces: ReadonlyMap<Location, VisiblePiece>;
   readonly active: Participant;
   readonly lastMove?: readonly [Location, Location];
@@ -54,7 +85,7 @@ export type BoardInteraction =
     }
   | { mode: 'edit'; onChange: (pieces: ReadonlyMap<Location, VisiblePiece>) => void };
 
-export type BoardEffect = 'capture' | 'check' | 'checkmate';
+export type BoardEffect = 'capture' | 'check' | 'checkmate' | 'defeat';
 export type TransitionKind =
   | 'initial'
   | 'forward'
@@ -70,6 +101,10 @@ export interface BoardTransition {
   readonly id?: string;
   /** Supplying effects opts into feedback; [] announces an ordinary move. Omit for silent position sync. */
   readonly effects?: readonly BoardEffect[];
+  /** Original armies affected by each effect; explicit-location boards resolve their anchors. */
+  readonly effectTargets?: Partial<Record<BoardEffect, readonly Participant[]>>;
+  readonly effectRoutes?: Partial<Record<BoardEffect, readonly (readonly [Participant, Participant])[]>>;
+  readonly winners?: readonly Participant[];
 }
 
 export interface BoardPresentation {
@@ -94,6 +129,7 @@ export interface BoardServices {
   readonly assetUrl: (path: string) => string;
   readonly sound?: (cue: { move: boolean; effects: readonly BoardEffect[] }) => void;
   readonly reducedMotion?: () => boolean;
+  readonly inactivePieceLabel?: string;
 }
 
 export interface BoardOptions {

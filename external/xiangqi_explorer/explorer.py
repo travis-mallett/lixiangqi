@@ -13,6 +13,7 @@ from collections import OrderedDict
 from typing import Any
 
 from .catalog_databases import games_database_path, open_catalog_connection
+from .catalog_sources import parse_sources, source_filter
 from .name_romanization import normalized_name_key
 from tools.games_database.explorer_index import DATABASE_IDS, STAT_PREFIXES
 
@@ -386,6 +387,7 @@ def _raw_explore(
     player: str | None,
     event: str | None,
     color: str,
+    sources: list[str] | None,
 ) -> dict[str, Any]:
     cte = ""
     if player:
@@ -445,11 +447,26 @@ def _raw_explore(
             "g.statistical_eligible = 1",
             "g.record_kind = 'played_game'",
         ]
+    if player:
+        from tools.games_database import players
+
+        profile = players.find(connection, player)
+        if profile:
+            cte, parameters = players.selection(profile['id'])
+            parameters.extend([key, color])
+            clauses.append("selected.player_color = ?")
     if database not in {"all", "lixiangqi", "player", "event"}:
         clauses.append(
             "EXISTS (SELECT 1 FROM game_sources gs "
             f"WHERE gs.game_id = g.id AND ({source_predicate}))"
         )
+    if sources is not None:
+        source_clause, source_parameters = source_filter(sources)
+        clauses.append(
+            "EXISTS (SELECT 1 FROM game_sources selected_source "
+            f"WHERE selected_source.game_id = g.id AND ({source_clause}))"
+        )
+        parameters.extend(source_parameters)
     if since:
         clauses.append("g.month >= ?")
         parameters.append(since)
@@ -519,6 +536,7 @@ def explore_games(fen: str, query: dict[str, Any]) -> dict[str, Any]:
             "database must be masters, all, dpxq, gdchess, xqdao, player, or event"
         )
     source_name, source_predicate, source_url = DATABASES[database]
+    sources = parse_sources(query["sources"]) if "sources" in query else None
     since = _month(query.get("since"), "since")
     until = _month(query.get("until"), "until")
     player = _player(query.get("player")) if database == "player" else None
@@ -554,6 +572,7 @@ def explore_games(fen: str, query: dict[str, Any]) -> dict[str, Any]:
         player,
         event,
         color,
+        tuple(sources) if sources is not None else None,
     )
     cached = _cache_get(cache_key, database)
     if cached is not None:
@@ -564,13 +583,17 @@ def explore_games(fen: str, query: dict[str, Any]) -> dict[str, Any]:
         return empty
     try:
         key = position_key(fen)
-        result = _indexed_explore(
-            connection,
-            database=database,
-            source_predicate=source_predicate,
-            key=key,
-            since=since,
-            until=until,
+        result = (
+            _indexed_explore(
+                connection,
+                database=database,
+                source_predicate=source_predicate,
+                key=key,
+                since=since,
+                until=until,
+            )
+            if sources is None
+            else None
         )
         if result is None:
             result = _raw_explore(
@@ -583,6 +606,7 @@ def explore_games(fen: str, query: dict[str, Any]) -> dict[str, Any]:
                 player=player,
                 event=event,
                 color=color,
+                sources=sources,
             )
         response = {
             **empty,

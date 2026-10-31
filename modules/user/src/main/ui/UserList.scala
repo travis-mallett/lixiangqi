@@ -3,6 +3,9 @@ package ui
 
 import lila.core.perf.UserWithPerfs
 import lila.core.rank.RankCode.*
+import lila.core.rank.RankTrackId
+import lila.core.rank.RankScore.*
+import lila.core.user.LightRank
 import lila.rating.UserPerfsExt.*
 import lila.ui.*
 
@@ -13,14 +16,13 @@ final class UserList(helpers: Helpers, bits: UserBits):
 
   def page(
       online: List[UserWithPerfs],
-      leaderboard: Frag
+      leaderboards: List[(RankTrackId, List[LightRank], Option[XiangqiPersonalRank])]
   )(using ctx: Context) =
-    Page(trans.site.players.txt())
+    Page(trans.site.leaderboard.txt())
       .css("user.list")
-      .css("lobby")
       .flag(_.fullScreen)
       .graph(
-        title = "Xiangqi players and leaderboard",
+        title = trans.site.leaderboard.txt(),
         url = routeUrl(routes.User.list),
         description = "The native Xiangqi rank leaderboard, from 学1-1 through 专3-3"
       ):
@@ -37,10 +39,56 @@ final class UserList(helpers: Helpers, bits: UserBits):
                   )
             ),
             div(cls := "community__leaders")(
-              leaderboard
+              h2(trans.site.leaderboard()),
+              div(cls := "leaderboards")(
+                leaderboards.map((track, entries, personal) => leaderboard(track, entries, personal))
+              )
             )
           )
         )
+
+  private def leaderboard(
+      track: RankTrackId,
+      entries: List[LightRank],
+      personal: Option[XiangqiPersonalRank]
+  )(using ctx: Context) =
+    val ranked = personal.collect { case XiangqiPersonalRank.Ranked(place, entry) => place -> entry }
+    val extra = ranked.filterNot((_, entry) => entries.exists(_.user.id == entry.user.id))
+    def row(entry: LightRank, place: Int) =
+      li(st.value := place, cls := ranked.exists(_._2.user.id == entry.user.id).option("is-me"))(
+        lightUserLink(entry.user),
+        span(cls := "rank")(entry.rank.value),
+        span(cls := "rating")(entry.score.value)
+      )
+    st.section(cls := "leaderboard", id := track.value)(
+      h3(
+        span(cls := "variant-icon", aria.hidden := true)(RankTrackId.variant(track).symbol),
+        " ",
+        lila.core.i18n.I18nKey(RankTrackId.variant(track).nameKey)()
+      ),
+      ol(cls := "user-top")(
+        entries.zipWithIndex.map((entry, index) => row(entry, index + 1)),
+        extra.nonEmpty.option(li(cls := "leaderboard__ellipsis", aria.hidden := true)("…")),
+        extra.map((place, entry) => row(entry, place))
+      ),
+      personal match
+        case None =>
+          p(cls := "leaderboard__footer")(
+            a(href := s"${routes.Auth.login.url}?referrer=${ctx.req.path}")(
+              trans.site.loginToSeeYourRanking()
+            )
+          )
+        case Some(XiangqiPersonalRank.Unplayed) =>
+          p(cls := "leaderboard__footer")(
+            a(href := (if track == RankTrackId.threeKingdoms then
+                         "/play/room/threeKingdoms-v1-ranked-15+0-m60"
+                       else if track == RankTrackId.xiangqi then "/"
+                       else s"/?variant=${track.value}"))(
+              trans.site.playRatedGameToGetRanked()
+            )
+          )
+        case _ => emptyFrag
+    )
 
   def bots(users: List[UserWithPerfs])(using Context) =
     val title = s"${users.size} Online bots"

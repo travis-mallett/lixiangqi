@@ -40,7 +40,11 @@ final class FishnetPlayer(redis: FishnetRedis)(using Executor):
               ),
             turnKey = request.turnKey,
             ruleset = game.xiangqi.ruleset,
-            legalMoves = game.position.legalMoves
+            legalMoves = game.position.legalMoves,
+            botProfile = game.metadata.kidsBotProfile,
+            observation = Option.when(game.isJieqi)(
+              lila.xiangqi.Jieqi.observation(game.xiangqi, Some(game.position.turn))
+            )
           )
       else fufail(s"[fishnet] Too many moves (${game.ply}), won't play ${game.id}")
     else fufail(s"[fishnet] invalid or stale Xiangqi AI turn on ${game.id}")

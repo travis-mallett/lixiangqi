@@ -9,6 +9,7 @@ import type { Pool } from '@/interfaces';
 import botMap from './botMap';
 import correspondenceDeck from './correspondenceDeck';
 import homepageRoomView from './homepageRoom';
+import { occupancy } from './occupancy';
 import renderSetupModal from './setup/modal';
 
 export default function table(ctrl: LobbyController) {
@@ -26,7 +27,9 @@ export default function table(ctrl: LobbyController) {
   const quickDisabled =
     opts.playban || opts.hasUnreadLichessMessage || !!ctrl.me?.isBot || hasOngoingRealTimeGame;
   const performance = ctrl.homePools.find(pool => pool.lim === 15)!;
-  const quickRooms = ctrl.homePools.filter(pool => pool.lim !== 15).sort((a, b) => a.lim - b.lim);
+  const quickRooms = ctrl.homePools
+    .filter(pool => pool.lim !== 15 && (!pool.rankTrack || pool.rankTrack === 'xiangqi'))
+    .sort((a, b) => a.lim - b.lim);
   const quickRoomCounts = new Map(quickRooms.map(pool => [pool.id, ctrl.poolCount(pool.id)]));
   const customRoomCount = ctrl.poolCount('lobby');
   const otherTimeControlsCount = ctrl.poolCount('other');
@@ -46,11 +49,15 @@ export default function table(ctrl: LobbyController) {
           {
             class: { transp: poolSeeking },
             attrs: { type: 'button' },
-            hook: bind('click', ctrl.openLobbyOverlay),
+            hook: bind('click', () => {
+              ctrl.lobbyVariant = undefined;
+              ctrl.openSetupFromLobby('hook');
+              ctrl.redraw();
+            }),
           },
           [
             hl('span.lobby__quick-room__summary', [
-              englishLabel('Custom', 'lobby__quick-room__label'),
+              englishLabel(i18n.site.custom, 'lobby__quick-room__label'),
               occupancy(customRoomCount),
               chevron('lobby__quick-room__chevron'),
             ]),
@@ -60,7 +67,7 @@ export default function table(ctrl: LobbyController) {
     ]),
     hl('div.lobby__actions', [
       computerButton(),
-      hl('a.lobby__action.lobby__action--puzzle', { attrs: { href: '/training' } }, [
+      hl('a.lobby__action.lobby__action--puzzle', { attrs: { href: '/training/themes' } }, [
         hl('span.lobby__svg-icon.lobby__svg-icon--puzzle', { attrs: { 'aria-hidden': 'true' } }),
         englishLabel(i18n.site.puzzles, 'lobby__action__label'),
         actionActivity(ctrl.poolCount('puzzle')),
@@ -207,22 +214,6 @@ export default function table(ctrl: LobbyController) {
     return hl(`span.${className}.text`, {
       attrs: { 'data-icon': licon.GreaterThan, 'aria-hidden': 'true' },
     });
-  }
-
-  function occupancy(count: number, highlighted = false) {
-    const formatted = numberFormat(count);
-    return hl(
-      'span.lobby__occupancy.text',
-      {
-        class: { 'lobby__occupancy--online': highlighted },
-        attrs: {
-          'data-icon': licon.Group,
-          title: i18n.site.nbPlayers(count, formatted),
-          'aria-label': i18n.site.nbPlayers(count, formatted),
-        },
-      },
-      formatted,
-    );
   }
 
   function clickPool(pool: Pool) {

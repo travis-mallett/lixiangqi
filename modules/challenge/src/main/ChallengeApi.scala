@@ -36,6 +36,7 @@ final class ChallengeApi(
   def createOpen(config: lila.core.setup.OpenConfig)(using me: Option[Me]): Fu[Challenge] =
     val c = Challenge.make(
       variant = config.variant,
+      gameVariant = config.gameVariant,
       initialFen = config.position,
       timeControl = Challenge.makeTimeControl(config.clock, config.days, config.moveTimeLimit),
       rated = config.rated,
@@ -112,6 +113,9 @@ final class ChallengeApi(
         case Some(Status.Offline) => repo.setSeenAgain(id) >> byId(id).map { _.foreach(uncacheAndNotify) }
         case _ => fuccess(socketReload(id))
 
+  def keepAlive(id: ChallengeId, by: User | String): Funit =
+    activeByIdBy(id, by).flatMapz(challenge => ping(challenge.id))
+
   def decline(c: Challenge, reason: Challenge.DeclineReason) =
     for _ <- repo.decline(c, reason)
     yield
@@ -132,7 +136,9 @@ final class ChallengeApi(
       requestedColor: Option[Color] = None
   )(using me: Option[Me]): FuRaise[String, Option[Pov]] =
     acceptQueue:
-      def withPerf = me.map(_.value).traverse(userApi.withPerf(_, c.perfType))
+      def withPerf = me
+        .map(_.value)
+        .traverse(userApi.withPerf(_, c.perfType, lila.core.rank.RankTrackId.of(c.gameVariant)))
       if c.canceled
       then "The challenge has been canceled.".raise
       else if c.declined
@@ -176,7 +182,7 @@ final class ChallengeApi(
     }
 
   def setDestUser(c: Challenge, u: User): Funit = for
-    user <- userApi.withPerf(u, c.perfType)
+    user <- userApi.withPerf(u, c.perfType, lila.core.rank.RankTrackId.of(c.gameVariant))
     challenge = c.setDestUser(user)
     _ <- repo.update(challenge)
   yield

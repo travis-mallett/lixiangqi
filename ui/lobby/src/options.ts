@@ -1,27 +1,20 @@
-import { licon } from 'lib/licon';
-
-import type { GameType, Variant } from './interfaces';
+import type { Variant } from './interfaces';
 
 export const variants: Variant[] = [
   {
     id: 1,
-    icon: licon.DiscOutline,
     key: 'standard',
-    name: i18n.variant.standard,
-    description: i18n.variant.standardTitle,
+    name: i18n.site.xiangqi,
   },
   {
     id: 3,
-    icon: licon.Pencil,
     key: 'fromPosition',
     name: i18n.variant.fromPosition,
-    description: 'Xiangqi from a custom FEN position',
   },
+  { id: 1, key: 'jieqi', name: i18n.site.jieqi },
+  { id: 1, key: 'minixiangqi', name: i18n.site.miniXiangqi },
+  { id: 1, key: 'threeKingdoms', name: i18n.site.threeKingdoms },
 ];
-
-// From-position is selected by the editor links, not offered as a ruleset.
-export const variantsForGameType = (baseVariants: Variant[], _gameType: GameType): Variant[] =>
-  baseVariants.filter(({ key }) => key === 'standard');
 
 export const keyToId = (key: string, items: { id: number; key: string }[]): number =>
   items.find(item => item.key === key)!.id;

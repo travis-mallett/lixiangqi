@@ -1,0 +1,4 @@
+https://github.com/brianhliou/pikafish-jieqi-wasm.git
+Revision: bcc83f88ee18760e60903d1a3aaa61ef6f70f2c9
+Build, hash-table sizing and position-state fixes: scripts/jieqi-engine/build.py
+Corresponding source, including the fixes: source.zip

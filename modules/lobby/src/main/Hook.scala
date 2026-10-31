@@ -22,7 +22,8 @@ case class Hook(
     user: Option[LobbyUser],
     createdAt: Instant,
     boardApi: Boolean,
-    traffic: Option[lila.core.traffic.TrafficSearch] = None
+    traffic: Option[lila.core.traffic.TrafficSearch] = None,
+    gameVariant: lila.xiangqi.GameVariant = lila.xiangqi.GameVariant.Xiangqi
 ):
 
   val realVariant = Variant.orDefault(variant)
@@ -32,6 +33,7 @@ case class Hook(
   def compatibleWith(h: Hook) =
     isAuth == h.isAuth &&
       variant == h.variant &&
+      gameVariant == h.gameVariant &&
       clock == h.clock &&
       moveTimeLimit == h.moveTimeLimit &&
       color.compatibleWith(h.color) &&
@@ -53,13 +55,18 @@ case class Hook(
       "id" -> id,
       "sri" -> sri,
       "clock" -> clock.show,
-      "perf" -> "xiangqi",
+      "perf" -> gameVariant.key,
       "t" -> clock.estimateTotalSeconds,
       "i" -> (if clock.incrementSeconds > 0 then 1 else 0)
     )
     .add("u" -> user.map(_.username))
-    .add("rank" -> user.flatMap(_.rank.publicCode).map(_.value))
-    .add("variant" -> realVariant.exotic.option(realVariant.key))
+    .add(
+      "rank" -> user
+        .flatMap(_.rankFor(Some(lila.core.rank.RankTrackId.of(gameVariant))).publicCode)
+        .map(_.value)
+    )
+    .add("variant" -> (if gameVariant != lila.xiangqi.GameVariant.Xiangqi then Some(gameVariant.key)
+                       else realVariant.exotic.option(realVariant.key.value)))
     .add("moveTime" -> moveTimeLimit.map: limit =>
       Json
         .obj("seconds" -> limit.seconds)
@@ -79,7 +86,8 @@ object Hook:
       user: Option[UserWithPerfs],
       sid: Option[String],
       blocking: lila.core.pool.Blocking,
-      boardApi: Boolean = false
+      boardApi: Boolean = false,
+      gameVariant: lila.xiangqi.GameVariant = lila.xiangqi.GameVariant.Xiangqi
   ): Hook =
     new Hook(
       id = ThreadLocalRandom.nextString(idSize),
@@ -91,5 +99,6 @@ object Hook:
       user = user.map(LobbyUser.make(_, blocking)),
       sid = sid,
       createdAt = nowInstant,
-      boardApi = boardApi
+      boardApi = boardApi,
+      gameVariant = gameVariant
     )

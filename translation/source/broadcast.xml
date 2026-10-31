@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <resources>
+  <string name="noPlayersFound">No players found.</string>
   <string name="broadcasts">Broadcasts</string>
   <string name="myBroadcasts">My broadcasts</string>
   <plurals name="nbBroadcasts">
@@ -44,7 +45,7 @@
   <string name="replacePlayerTags">Optional: replace player names, ratings and titles</string>
   <string name="playerFederations">Player federations</string>
   <string name="top10Rating">Top 10 rating</string>
-  <string name="directoryPlayers">Xiangqi players</string>
+  <string name="directoryPlayers">Pro Players</string>
   <string name="directoryPlayerNotFound">Xiangqi player not found</string>
   <string name="directoryProfile">Player directory profile</string>
   <string name="federation">Federation</string>
@@ -121,4 +122,17 @@ Please use your language's conventions in sporting activities for how the 'U' sh
   <string name="playerSource">Source</string>
   <string name="playerSourceDate">Published</string>
   <string name="directoryUnavailable">No matching Xiangqi player directory entry is available.</string>
+  <string name="catalogPlayerDescription">Titled players and their recorded games. Statistics reflect our catalog coverage.</string>
+  <string name="recordedTitle">Recorded title</string>
+  <string name="revokedTitle">Revoked title</string>
+  <string name="registeredTeam">Registered affiliation</string>
+  <string name="catalogGames">Games</string>
+  <string name="catalogScore">Score</string>
+  <string name="lastRecordedTeam">Last recorded team</string>
+  <string name="catalogLastSeen">Last played</string>
+  <string name="born">Born</string>
+  <string name="searchPlayers">Search for players</string>
+  <string name="editProfile">Edit player profile</string>
+  <string name="biography">Biography</string>
+  <string name="biographySources">Biography source URLs (one per line)</string>
 </resources>

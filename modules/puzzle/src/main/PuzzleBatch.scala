@@ -13,6 +13,23 @@ final class PuzzleBatch(
 
   import BsonHandlers.given
 
+  // World one teaches only single-move double-cannon finishes. Filter before
+  // sampling so an exhausted pool never falls back to unrelated puzzles.
+  def lotus(nb: Int): Fu[Vector[Puzzle]] =
+    if nb < 1 then fuccess(Vector.empty)
+    else
+      colls.puzzle:
+        _.aggregateList(nb): framework =>
+          import framework.*
+          Match(
+            Puzzle.activeSelector ++ $doc(
+              "themes" -> "doubleCannons",
+              "playback.objective" -> "mate",
+              "playback.solutions.0" -> $doc("$size" -> 1)
+            )
+          ) -> List(Sample(nb))
+        .map(_.flatMap(puzzleReader.readOpt).toVector)
+
   def nextForMe(difficulty: PuzzleDifficulty, nb: Int)(using Option[Me], Perf): Fu[Vector[Puzzle]] =
     nextForMe(PuzzleAngle.mix, PuzzleSettings(difficulty, none), nb)
 

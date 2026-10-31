@@ -3,6 +3,7 @@
   "compilerOptions": { "emitDeclarationOnly": true },
   "references": [
     { "path": "../lib/tsconfig.json" },
+    { "path": "../threeKingdoms/tsconfig.json" },
     { "path": "../keyboardMove/tsconfig.json" },
     { "path": "../voice/tsconfig.json" }
   ]

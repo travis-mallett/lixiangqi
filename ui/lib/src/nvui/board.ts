@@ -21,7 +21,12 @@ export function pieceText(piece: VisiblePiece, options: AccessibleBoardStyle = {
     cannon: i18n.nvui.cannon,
     soldier: i18n.nvui.soldier,
   };
-  const side = piece.participant === 'red' ? i18n.site.red : i18n.site.black;
+  const side =
+    piece.participant === 'red'
+      ? i18n.site.red
+      : piece.participant === 'green'
+        ? i18n.site.green
+        : i18n.site.black;
   const prefix = options.prefixStyle === 'none' ? '' : options.prefixStyle === 'letter' ? side[0] : side;
   const letters: Record<string, string> = {
     general: 'k',
@@ -61,10 +66,9 @@ export function accessibleBoard(
   perspective: string = board.getPresentation().perspective,
   options: AccessibleBoardStyle = {},
 ): VNode {
-  const {
-    geometry: { columns, rows },
-    participants,
-  } = board.getDefinition();
+  const { geometry, participants } = board.getDefinition();
+  if (geometry.kind === 'graph') return accessibleGraphBoard(board, announce, options);
+  const { columns, rows } = geometry;
   const files = Array.from({ length: columns }, (_, file) => String.fromCharCode(97 + file));
   const ranks = Array.from({ length: rows }, (_, rank) => rows - rank);
   if (perspective !== participants[0]) {
@@ -153,5 +157,56 @@ export function accessibleBoard(
         ),
       ),
     ],
+  );
+}
+
+function accessibleGraphBoard(
+  board: BoardView,
+  announce: (text: string) => void,
+  options: AccessibleBoardStyle,
+): VNode {
+  const geometry = board.getDefinition().geometry;
+  if (geometry.kind !== 'graph') throw new Error('Expected a graph board');
+  const locations = Object.keys(geometry.locations);
+  return hl(
+    'div.board-wrapper',
+    { attrs: { 'aria-label': i18n.site.board } },
+    locations.map((location, index) => {
+      const piece = board.position().pieces.get(location);
+      const text = `${location}: ${piece ? pieceText(piece, options) : i18n.nvui.emptyLocation}`;
+      return hl(
+        'button',
+        {
+          key: location,
+          attrs: {
+            type: 'button',
+            'data-location': location,
+            'aria-label': text,
+            'aria-pressed': board.selectedLocation() === location,
+          },
+          hook: onInsert(element => {
+            element.addEventListener('click', () => {
+              board.select(location);
+              announce(text);
+            });
+            element.addEventListener('keydown', event => {
+              if (event.key === 'm')
+                announce((board.destinations().get(location) ?? []).join(', ') || i18n.site.none);
+              else {
+                const delta = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -1, ArrowDown: 1 }[event.key];
+                if (delta === undefined) return;
+                event.preventDefault();
+                const next = locations[(index + delta + locations.length) % locations.length];
+                element
+                  .closest('.board-wrapper')
+                  ?.querySelector<HTMLButtonElement>(`[data-location="${next}"]`)
+                  ?.focus();
+              }
+            });
+          }),
+        },
+        text,
+      );
+    }),
   );
 }

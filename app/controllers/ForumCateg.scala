@@ -6,7 +6,7 @@ import lila.forum.ForumCateg.{ diagnosticId, ublogId }
 
 final class ForumCateg(env: Env) extends LilaController(env) with ForumController:
 
-  def index = Open:
+  def index = OpenOrScoped(_.Mobile.Forum):
     NotForKids:
       for
         allTeamIds <- ctx.userId.so(env.team.cached.teamIdsList)
@@ -14,10 +14,11 @@ final class ForumCateg(env: Env) extends LilaController(env) with ForumControlle
           env.team.api.forumAccessOf(_).map(_ != lila.core.team.Access.None)
         categs <- postApi.categsForUser(teamIds, ctx.me)
         _ <- env.user.lightUserApi.preloadMany(categs.flatMap(_.lastPostUserId))
-        page <- renderPage(views.forum.categ.index(categs))
+        canWrite <- access.isGrantedWrite(lila.forum.ForumCateg.publicBoards.head.id)
+        page <- renderPage(views.forum.categ.index(categs, canWrite))
       yield Ok(page)
 
-  def show(id: ForumCategId, page: Int) = Open:
+  def show(id: ForumCategId, page: Int) = OpenOrScoped(_.Mobile.Forum):
     if id == ublogId && !isGrantedOpt(_.ModerateForum) then Redirect(routes.Ublog.communityAll())
     else if id == diagnosticId && !isGrantedOpt(_.ModerateForum) && !isGrantedOpt(_.Diagnostics) then notFound
     else

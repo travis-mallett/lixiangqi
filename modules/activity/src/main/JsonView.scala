@@ -98,6 +98,7 @@ final class JsonView(
         .obj("interval" -> a.interval)
         .add("games", a.games)
         .add("puzzles", a.puzzles)
+        .add("threeKingdoms", a.kingdoms.map(Writers.scoreWithoutRating))
         .add("storm", a.storm)
         .add("racer", a.racer)
         .add("streak", a.streak)

@@ -134,8 +134,7 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
           testId("login")
         )(
           trans.site.signIn()
-        ),
-        a(href := routes.Auth.signup, cls := "button signup")(trans.site.signUp())
+        )
       ),
       div(cls := "dasher")(
         button(cls := "toggle anon link", title := prefs, aria.label := prefs, dataIcon := Icon.Gear),

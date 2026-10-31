@@ -2,8 +2,12 @@ import { h } from 'snabbdom';
 
 import type SetupController from '@/setupCtrl';
 
-export const aiSide = ({ color }: SetupController) =>
-  h('div.ai-side', { attrs: { role: 'radiogroup', 'aria-labelledby': 'ai-side-label' } }, [
+import { kingdomSide } from './kingdomSetup';
+
+export const aiSide = (ctrl: SetupController) => {
+  if (ctrl.isThreeKingdoms()) return kingdomSide(ctrl);
+  const { color } = ctrl;
+  return h('div.ai-side', { attrs: { role: 'radiogroup', 'aria-labelledby': 'ai-side-label' } }, [
     h('span#ai-side-label.ai-side__label', i18n.site.side),
     h('div.ai-side__controls', [
       h('div.ai-side__toggle', [
@@ -30,3 +34,4 @@ export const aiSide = ({ color }: SetupController) =>
       ]),
     ]),
   ]);
+};

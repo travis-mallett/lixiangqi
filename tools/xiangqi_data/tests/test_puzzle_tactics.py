@@ -137,8 +137,51 @@ class TacticConstructionTests(unittest.TestCase):
         self.assertTrue(capture_preserves_advantage(trace, 3))
         self.assertTrue(capture_preserves_advantage(trace, 1))
         self.assertEqual(VerifiedTrace.from_dict(trace.to_dict()), trace)
-        self.assertEqual([c[2] for c in engine.calls], [2] * 5)
+        self.assertEqual([c[2] for c in engine.calls], [2, 1, 2, 1, 2])
         self.assertEqual({c[1] for c in engine.calls}, {20})
+
+    def test_search_timings_include_endpoint_evidence(self):
+        events = []
+        result = solve_tactic(
+            LineEngine(),
+            SearchContext(START_FEN, ()),
+            "red",
+            TacticSolverConfig(),
+            timing=lambda stage, details: events.append((stage, details)),
+        )
+        searches = [d for stage, d in events if stage == "engine.search"]
+        self.assertEqual([d["multipv"] for d in searches], [2, 1, 2, 1, 2])
+        self.assertEqual([d["depth"] for d in searches], [20] * 5)
+        self.assertEqual(result.metrics["searches"], 5)
+        self.assertEqual(events[-1][0], "solution.summary")
+
+    def test_timeout_never_accepts_partial_line_and_restores_deadline(self):
+        from unittest.mock import patch
+        from tools.xiangqi_data.puzzle_mining.engine import ConstructionTimeout
+
+        engine = LineEngine()
+        analyse = engine.analyse
+
+        def expire(context, **kwargs):
+            if len(context.moves) == 1:
+                raise ConstructionTimeout("construction_time_limit")
+            return analyse(context, **kwargs)
+
+        with patch.object(engine, "analyse", side_effect=expire):
+            result = self.solve(engine)
+        self.assertFalse(result.complete)
+        self.assertEqual(result.branches, ())
+        self.assertEqual(result.uncertainty, ("construction_time_limit",))
+        self.assertEqual(result.metrics["searches"], 2)
+        self.assertIsNone(engine.construction_deadline)
+
+    def test_expired_outer_deadline_prevents_search(self):
+        engine = LineEngine()
+        engine.construction_deadline = 0
+        result = self.solve(engine)
+        self.assertEqual(result.uncertainty, ("construction_time_limit",))
+        self.assertEqual(engine.calls, [])
+        self.assertEqual(engine.construction_deadline, 0)
 
     def test_gap_boundary_and_advantage_boundary(self):
         engine = LineEngine(values=[(0.75, 0.25), (-0.55, -0.7), (0.55, 0.55)])
@@ -164,7 +207,7 @@ class TacticConstructionTests(unittest.TestCase):
     def test_forced_move_does_not_stop(self):
         engine = LineEngine(forced=(0, 2))
         self.assertEqual(len(self.solve(engine).primary.moves), 3)
-        self.assertEqual([c[2] for c in engine.calls], [1, 2, 1, 2, 2])
+        self.assertEqual([c[2] for c in engine.calls], [1, 1, 1, 1, 2])
 
     def test_length_limit_is_not_success_but_endpoint_lookahead_is_allowed(self):
         self.assertEqual(len(self.solve(max_solution_plies=3).primary.moves), 3)
@@ -198,6 +241,8 @@ class TacticConstructionTests(unittest.TestCase):
             {"advantage": float("nan")},
             {"uniqueness_gap": 0},
             {"depth": 0},
+            {"construction_seconds": 0},
+            {"construction_seconds": float("nan")},
         ):
             with self.assertRaises(ValueError):
                 TacticSolverConfig(**settings)

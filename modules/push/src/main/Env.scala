@@ -33,8 +33,9 @@ final class Env(
     namer: lila.core.game.Namer,
     notifyAllows: lila.core.notify.GetNotifyAllows,
     postApi: lila.core.forum.ForumPostApi,
-    getLightUser: lila.core.LightUser.GetterFallback
-)(using Executor, Scheduler):
+    getLightUser: lila.core.LightUser.GetterFallback,
+    userApi: lila.core.user.UserApi
+)(using Executor, Scheduler, lila.core.i18n.Translator):
 
   private val config = appConfig.get[PushConfig]("push")(using AutoConfig.loader)
 

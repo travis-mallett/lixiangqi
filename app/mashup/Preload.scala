@@ -13,6 +13,7 @@ import lila.mon.extensions.*
 
 final class Preload(
     tv: lila.tv.Tv,
+    ublogApi: lila.ublog.UblogApi,
     gameRepo: lila.game.GameRepo,
     perfsRepo: lila.user.UserPerfsRepo,
     lobbyApi: lila.api.LobbyApi,
@@ -22,6 +23,7 @@ final class Preload(
     userCached: lila.user.Cached,
     xiangqiRankingApi: lila.user.XiangqiRankingApi,
     gameCached: lila.game.Cached,
+    threeKingdomsCached: lila.threeKingdoms.Cached,
     roundProxy: lila.round.GameProxyRepo,
     getLastUpdates: lila.feed.Feed.GetLastUpdates,
     tryDailyPuzzle: lila.puzzle.DailyPuzzle.Try,
@@ -35,18 +37,19 @@ final class Preload(
     nbNotifications <- ctx.me.so(notifyApi.unreadCount(_))
     withPerfs <- ctx.user.traverse(perfsRepo.withPerfs)
     given Option[UserWithPerfs] = withPerfs
-    ((data, povs), (gameStats, nbRegistered)) <- lobbyApi.get
+    ((data, povs), ((gameStats, threeStats), nbRegistered)) <- lobbyApi.get
       .mon(lila.mon.lobby.segment("lobbyApi"))
-      .zip(gameCached.homepageStats.zip(userCached.nbRegistered))
+      .zip(gameCached.homepageStats.zip(threeKingdomsCached.homepageStats).zip(userCached.nbRegistered))
     dataWithStats = data + (
       "stats" -> Json.obj(
-        "gamesPlayedToday" -> gameStats.gamesPlayedToday,
+        "gamesPlayedToday" -> (gameStats.gamesPlayedToday + threeStats.gamesPlayedToday),
         "registeredUsers" -> nbRegistered,
-        "gamesPlayedAllTime" -> gameStats.gamesPlayedAllTime
+        "gamesPlayedAllTime" -> (gameStats.gamesPlayedAllTime + threeStats.gamesPlayedAllTime)
       )
     )
-    featured <- tv.getBestGame.mon(lila.mon.lobby.segment("tvBestGame"))
+    featured <- tv.getGame(lila.tv.Tv.Channel.Xiangqi).mon(lila.mon.lobby.segment("tvBestGame"))
     puzzle <- tryDailyPuzzle().mon(lila.mon.lobby.segment("dailyPuzzle"))
+    blogPosts <- ublogApi.myCarousel
     playban <- ctx.userId.so(playbanApi.currentBan).mon(lila.mon.lobby.segment("playban"))
     lichessMsg <- ctx.userId.ifTrue(nbNotifications > 0).so(unreadCount.hasLichessMsg)
     leaderboard <- userCached.top10Ranks.get({}).mon(lila.mon.lobby.segment("leaderboard"))
@@ -65,6 +68,7 @@ final class Preload(
     dataWithStats,
     featured,
     puzzle,
+    blogPosts,
     playban,
     currentGame,
     getLastUpdates(),
@@ -98,6 +102,7 @@ object Preload:
       data: JsObject,
       featured: Option[Game],
       puzzle: Option[lila.puzzle.DailyPuzzle.WithHtml],
+      blogPosts: List[lila.ublog.UblogPost.PreviewPost],
       playban: Option[TempBan],
       currentGame: Option[Preload.CurrentGame],
       lastUpdates: List[lila.feed.Feed.Update],

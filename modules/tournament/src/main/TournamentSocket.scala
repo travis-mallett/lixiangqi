@@ -37,10 +37,14 @@ final private class TournamentSocket(
 
   def getWaitingUsers(tour: Tournament): Fu[WaitingUsers] =
     given play.api.i18n.Lang = lila.core.i18n.defaultLang
-    send.exec(Protocol.Out.getWaitingUsers(tour.id.into(RoomId), tour.name()))
     val promise = Promise[WaitingUsers]()
     waitingUsers.registerNextPromise(tour, promise)
+    send.exec(Protocol.Out.getWaitingUsers(tour.id.into(RoomId), tour.name()))
     promise.future.withTimeout(2.seconds, "TournamentSocket.getWaitingUsers")
+
+  def startKingdoms(tourId: TourId, game: lila.threeKingdoms.KingdomGame): Unit =
+    game.userIds.foreach: userId =>
+      send.exec(RP.Out.tellRoomUser(tourId.into(RoomId), userId, makeMessage("redirectKingdoms", game.id)))
 
   def hasUser = waitingUsers.hasUser
 

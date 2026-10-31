@@ -65,7 +65,7 @@ final class Relation(env: Env, apiC: => Api) extends LilaController(env):
   }
   def unfollowBc = unfollow
 
-  def block(username: UserStr) = AuthOrScoped(_.Follow.Write, _.Web.Mobile) { ctx ?=> me ?=>
+  def block(username: UserStr) = AuthOrScoped(_.Follow.Write, _.Web.Mobile, _.Mobile.Inbox) { ctx ?=> me ?=>
     RatelimitWith(username): user =>
       for
         _ <- api.block(me, user.id).recoverDefault
@@ -77,7 +77,7 @@ final class Relation(env: Env, apiC: => Api) extends LilaController(env):
       yield res
   }
 
-  def unblock(username: UserStr) = AuthOrScoped(_.Follow.Write, _.Web.Mobile) { ctx ?=> me ?=>
+  def unblock(username: UserStr) = AuthOrScoped(_.Follow.Write, _.Web.Mobile, _.Mobile.Inbox) { ctx ?=> me ?=>
     RatelimitWith(username): user =>
       api.unblock(me, user.id).recoverDefault >> negotiate(
         renderActions(user.name, getBool("mini")),
@@ -85,13 +85,13 @@ final class Relation(env: Env, apiC: => Api) extends LilaController(env):
       )
   }
 
-  def following(username: UserStr, page: Int) = Open:
+  def following(username: UserStr, page: Int) = OpenOrScoped(_.Follow.Read):
     Reasonable(page, Max(20)):
       Found(meOrFetch(username)): user =>
         for
           _ <- (page == 1).so(api.unfollowInactiveAccounts(user.id))
           pag <- RelatedPager(api.followingPaginatorAdapter(user.id), page)
-          res <- negotiate(
+          res <- negotiateByAccept(
             if ctx.is(user) || isGrantedOpt(_.CloseAccount)
             then Ok.page(views.relation.friends(user, pag))
             else Found(ctx.me)(me => Redirect(routes.Relation.following(me.username))),
@@ -135,7 +135,7 @@ final class Relation(env: Env, apiC: => Api) extends LilaController(env):
           "perfs" -> lila.user.JsonView.perfsJson(r.user.perfs)
         .add("online" -> env.socket.isOnline.exec(r.user.id)))
 
-  def blocks(page: Int) = Auth { ctx ?=> me ?=>
+  def blocks(page: Int) = AuthOrScoped(_.Follow.Read) { ctx ?=> me ?=>
     Reasonable(page, Max(20)):
       Ok.async:
         RelatedPager(api.blockingPaginatorAdapter(me), page, includeClosed = true).map:

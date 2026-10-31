@@ -22,6 +22,7 @@ from external.xiangqi_explorer.game_catalog import (
     query_games,
     query_player,
 )
+from external.xiangqi_explorer.explorer import explore_games
 from tools.games_database.dpxq_ancient_manuals import (
     AncientManualImporter,
     Manual,
@@ -110,6 +111,45 @@ class GameCatalogTest(unittest.TestCase):
         self.assertEqual(["Network Red", "Blitz Red"], [game["red"]["name"] for game in result["games"]])
         self.assertEqual("Online Tournaments", result["games"][0]["sources"][0]["name"])
         self.assertEqual("Top Blitz Games", result["games"][1]["sources"][0]["name"])
+
+    def test_profile_explorers_share_source_scope_and_cache_isolation(self) -> None:
+        # One canonical game has two witnesses: selecting either must count it once.
+        with closing(sqlite3.connect(self.database)) as connection:
+            connection.execute("UPDATE games SET event = 'Scoped Event'")
+            connection.execute("""
+                INSERT INTO game_sources(game_id, source, collection, collection_name, external_id, source_url)
+                SELECT id, 'dpxq', 'n', 'Online Tournaments', 'duplicate-witness', '' FROM games WHERE red_name = 'Master Red'
+            """)
+            connection.commit()
+        for database, identity in [('event', 'Scoped Event'), ('player', 'Master Red')]:
+            query = {'database': database, database: identity}
+            for sources in [['m'], ['n'], ['m', 'n'], [], ['gd'], ['n', 'm'], ['m']]:
+                with self.subTest(database=database, sources=sources):
+                    summary = (query_event if database == 'event' else query_player)(
+                        {database: identity, 'sources': sources}
+                    )
+                    expected = (summary.get('summary') or {}).get('totalGames', 0)
+                    result = explore_games(START_FEN, {**query, 'sources': sources})
+                    self.assertTrue(result['available'])
+                    self.assertEqual(expected, result['red'] + result['draws'] + result['black'])
+                    if not expected:
+                        self.assertEqual([], result['moves'])
+                        self.assertEqual([], result['topGames'])
+                        self.assertEqual([], result['recentGames'])
+        with self.assertRaises(ValueError):
+            explore_games(START_FEN, {'sources': ['not-a-source']})
+
+    def test_empty_event_summary_clears_every_derived_value(self) -> None:
+        result = query_event({'event': 'Masters', 'sources': ['gd']})
+        self.assertTrue(result['available'])
+        self.assertEqual([], result['rounds'])
+        summary = result['summary']
+        for key in ['totalGames', 'players', 'rounds', 'recordedOpenings', 'redWins', 'draws', 'blackWins']:
+            self.assertEqual(0, summary[key], key)
+        for key in ['averageMoves', 'firstPlayedAt', 'lastPlayedAt']:
+            self.assertIsNone(summary[key], key)
+        for key in ['standings', 'topOpenings', 'places']:
+            self.assertEqual([], summary[key], key)
 
     def test_reports_the_quantity_available_in_every_source(self) -> None:
         result = query_games(
@@ -466,6 +506,25 @@ class GameCatalogTest(unittest.TestCase):
         )
         self.assertEqual(1, masters_only["summary"]["totalGames"])
         self.assertEqual(1, masters_only["summary"]["red"]["wins"])
+
+    def test_canonical_player_shares_directory_stats_games_and_openings(self) -> None:
+        from tools.games_database import players
+        from external.xiangqi_explorer import player_catalog
+        from external.xiangqi_explorer.explorer import explore_games
+        from tools.games_database.test_players import profile
+
+        with closing(players.connect(self.database)) as db, db:
+            players.upsert(db, profile('wxf:IM0900', 'Master Red', ['Master Red']))
+            players.refresh_stats(db)
+        directory = player_catalog.read({'action': 'get', 'id': 'wxf:IM0900'})['player']
+        result = query_player({'player': 'wxf:IM0900', 'sources': ['m']})
+        self.assertEqual(result['player']['key'], 'wxf:IM0900')
+        self.assertEqual(directory['stats']['games'], result['summary']['overall']['games'])
+        self.assertEqual(directory['stats']['wins'], result['summary']['overall']['wins'])
+        red = explore_games(START_FEN, {'database': 'player', 'player': 'wxf:IM0900', 'color': 'red'})
+        black = explore_games(START_FEN, {'database': 'player', 'player': 'wxf:IM0900', 'color': 'black'})
+        self.assertEqual(red['red'] + red['draws'] + red['black'], 1)
+        self.assertEqual(black['red'] + black['draws'] + black['black'], 0)
 
     def test_event_profile_has_complete_standings_rounds_and_source_filters(self) -> None:
         with closing(sqlite3.connect(self.database)) as connection:

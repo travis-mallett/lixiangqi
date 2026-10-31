@@ -5,7 +5,6 @@ import { replayXiangqiVariation } from 'lib/game/xiangqiNotation';
 
 import {
   adjudicateAlternative,
-  alternativeScoreFailure,
   hasUsableScore,
   playerScore,
   winningContinuation,
@@ -13,7 +12,7 @@ import {
   type PuzzleObjective,
   type WinningContinuation,
 } from './xiangqiAdjudication';
-import { type default as XiangqiPuzzleEngine, XIANGQI_PUZZLE_CONFIRM_DEPTH } from './xiangqiPuzzleEngine';
+import type XiangqiPuzzleEngine from './xiangqiPuzzleEngine';
 
 export interface AlternativeResult {
   evaluation: EngineAnalysis;
@@ -21,17 +20,6 @@ export interface AlternativeResult {
   decision: PuzzleDecision;
 }
 
-function needsDeeperSearch(objective: PuzzleObjective, decision: PuzzleDecision, depth: number): boolean {
-  return (
-    decision.result === 'fail' &&
-    (['forcedMateLost', 'mateExceedsAllowance', 'advantageLost'].includes(decision.reason) ||
-      (!objective.mate && decision.reason === 'moveAllowanceExceeded')) &&
-    depth < XIANGQI_PUZZLE_CONFIRM_DEPTH
-  );
-}
-
-/** Inspect the running search at four and six seconds. Only a still-shallow
- * adverse result needs the longer confirmation budget; all search stays continuous. */
 export async function evaluateAlternative(
   engine: XiangqiPuzzleEngine,
   objective: PuzzleObjective,
@@ -41,33 +29,7 @@ export async function evaluateAlternative(
   current: () => boolean,
   onProgress?: (analysis: EngineAnalysis) => void,
 ): Promise<AlternativeResult | undefined> {
-  const searchDecision = (analysis: EngineAnalysis): PuzzleDecision | undefined => {
-    if (!hasUsableScore(analysis)) return;
-    try {
-      return objective.mate
-        ? (alternativeScoreFailure(objective, analysis, playerMoves) ?? { result: 'continue' })
-        : adjudicateAlternative(objective, state, analysis, playerMoves);
-    } catch {
-      // Incomplete intermediate evidence can improve with more search. Final
-      // adjudication still reports invalid or unverifiable analysis as unscored.
-      return undefined;
-    }
-  };
-  const evaluation = await engine.evaluate(
-    state.fen,
-    history,
-    {
-      extend: analysis => {
-        const decision = searchDecision(analysis);
-        return current() && (!decision || decision.result === 'fail');
-      },
-      needsConfirmation: analysis => {
-        const decision = searchDecision(analysis);
-        return current() && !!decision && needsDeeperSearch(objective, decision, analysis.depth);
-      },
-    },
-    onProgress,
-  );
+  const evaluation = await engine.evaluate(state.fen, history, onProgress);
   if (!current()) return;
   const decide = async (): Promise<AlternativeResult> => {
     if (!hasUsableScore(evaluation)) throw new Error('Pikafish returned no usable puzzle score');
@@ -97,6 +59,5 @@ export async function evaluateAlternative(
     };
   };
   const result = await decide();
-  // Depth 20 is a search target, not a requirement for using the deadline result.
   return current() ? result : undefined;
 }

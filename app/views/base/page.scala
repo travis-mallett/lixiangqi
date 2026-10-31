@@ -28,7 +28,10 @@ object page:
 
   def boardStyle(zoomable: Boolean)(using ctx: Context) =
     val board = lila.pref.BoardThemes(ctx.pref.boardTheme)
-    s"---board-image:url(${assetUrl(s"images/board/${board.file}").value});" +
+    board.geometries.toList
+      .map((geometry, path) => s"---board-image-$geometry:url(${assetUrl(path).value});")
+      .mkString +
+      s"---board-image:url(${assetUrl(s"images/board/${board.file}").value});" +
       s"---cg-ccw:${board.coordinateLight};" +
       s"---cg-ccb:${board.coordinateDark};" +
       "---cg-cs:none;" +

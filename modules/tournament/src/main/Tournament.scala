@@ -37,13 +37,17 @@ case class Tournament(
     description: Option[String] = None,
     payouts: Option[Payouts] = None,
     hasChat: Boolean = true,
-    ruleset: lila.xiangqi.adjudication.Ruleset = lila.xiangqi.adjudication.Ruleset.default
+    ruleset: lila.xiangqi.adjudication.Ruleset = lila.xiangqi.adjudication.Ruleset.default,
+    gameVariant: lila.xiangqi.GameVariant = lila.xiangqi.GameVariant.Xiangqi,
+    scoreCutoff: Option[Instant] = None
 ) extends lila.core.tournament.Tournament:
 
   def isCreated = status == Status.created
   def isStarted = status == Status.started
   def isFinished = status == Status.finished
   def isEnterable = !isFinished
+  def canChangeGame = isCreated && nbPlayers == 0
+  def rankTrack = lila.core.rank.RankTrackId.of(gameVariant)
 
   def isPrivate = password.isDefined
 
@@ -68,6 +72,7 @@ case class Tournament(
   def isScheduled = schedule.isDefined
 
   def finishesAt = startsAt.plusMinutes(minutes)
+  def scoredUntil = scoreCutoff.getOrElse(finishesAt)
 
   def imminentStart = isCreated && (startsAt.toMillis - nowMillis) < 1000
 
@@ -83,7 +88,9 @@ case class Tournament(
       val remaining = secondsToFinish.value
       100 - (remaining * 100 / total)
 
-  def pairingsClosed = secondsToFinish < Seconds(math.max(30, math.min(clock.limitSeconds.value / 2, 120)))
+  def pairingsClosed = scoreCutoff.nonEmpty || secondsToFinish < Seconds(
+    math.max(30, math.min(clock.limitSeconds.value / 2, 120))
+  )
 
   def isStillWorthEntering = isEnterable && {
     isMarathon || isUnique || {
@@ -122,8 +129,8 @@ case class Tournament(
     if minutes < 60 then s"${minutes}m"
     else s"${minutes / 60}h" + (if minutes % 60 != 0 then s" ${minutes % 60}m" else "")
 
-  def berserkable = !noBerserk && clock.berserkable
-  def streakable = !noStreak
+  def berserkable = gameVariant.playerCount == 2 && !noBerserk && clock.berserkable
+  def streakable = gameVariant.playerCount == 2 && !noStreak
 
   def clockStatus =
     val s = secondsToFinish.value
@@ -188,6 +195,7 @@ object Tournament:
       createdAt = nowInstant,
       nbPlayers = 0,
       variant = setup.realVariant,
+      gameVariant = setup.realGameVariant,
       position = setup.realPosition,
       rated = setup.realRated,
       password = setup.password,

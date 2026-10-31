@@ -14,6 +14,7 @@ import lila.common.Json.given
 import lila.core.LightUser
 import lila.db.dsl.{ *, given }
 import lila.game.JsonView.given
+import lila.xiangqi.XiangqiJson.given
 import lila.game.PgnDump.{ WithFlags, applyDelay }
 import lila.game.{ Divider, Query }
 import lila.round.GameProxyRepo
@@ -70,8 +71,8 @@ final class GameApiV2(
       fileR.replaceAllIn(
         "lixiangqi_%s_%s_vs_%s.%s.%s".format(
           Tag.UTCDate.format.print(game.createdAt),
-          pgnDump.dumper.player.tupled(users.white),
-          pgnDump.dumper.player.tupled(users.black),
+          lila.game.Namer.recordedPlayerText.tupled(users.white),
+          lila.game.Namer.recordedPlayerText.tupled(users.black),
           game.id,
           format.toString.toLowerCase
         ),
@@ -320,9 +321,10 @@ final class GameApiV2(
       "id" -> g.id,
       "initialFen" -> g.xiangqi.initialFen,
       "ranked" -> g.ranked,
-      "variant" -> g.variant.key,
+      "variant" -> (if g.nativeVariant != lila.xiangqi.GameVariant.Xiangqi then g.nativeVariant.key
+                    else g.variant.key.value),
       "speed" -> g.speed.key,
-      "perf" -> "xiangqi",
+      "perf" -> g.nativeVariant.key,
       "createdAt" -> g.createdAt,
       "lastMoveAt" -> g.movedAt,
       "status" -> g.status.name,
@@ -342,6 +344,12 @@ final class GameApiV2(
     })
     .add("uci" -> flags.moves.option {
       applyDelay(g.xiangqi.moves, flags.keepDelayIf(g.playable)).map(_.value).mkString(" ")
+    })
+    .add("reveals" -> (flags.moves && g.isJieqi).option {
+      applyDelay(g.xiangqi.states.drop(1), flags.keepDelayIf(g.playable)).map(_.reveal)
+    })
+    .add("captures" -> (flags.moves && g.isJieqi).option {
+      applyDelay(g.xiangqi.states, flags.keepDelayIf(g.playable)).lastOption.toVector.flatMap(_.captures)
     })
     .add("clocks" -> flags.clocks.so(g.bothClockStates).map { clocks =>
       applyDelay(clocks, flags.keepDelayIf(g.playable))

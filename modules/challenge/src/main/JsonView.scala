@@ -7,7 +7,6 @@ import lila.core.id.GameFullId
 import lila.core.rank.RankCode.*
 import lila.core.socket.{ SocketVersion, userLag }
 import lila.game.JsonView.given
-import lila.ui.Icon
 
 final class JsonView(
     baseUrl: lila.core.config.BaseUrl,
@@ -63,7 +62,13 @@ final class JsonView(
         "status" -> c.status.name,
         "challenger" -> c.challengerUser,
         "destUser" -> c.destUser,
-        "variant" -> c.variant,
+        "variant" -> (if c.gameVariant != lila.xiangqi.GameVariant.Xiangqi then
+                        Json.obj(
+                          "key" -> c.gameVariant.key,
+                          "name" -> c.gameVariant.name,
+                          "short" -> c.gameVariant.name
+                        )
+                      else Json.toJsObject(c.variant)),
         "timeControl" -> c.timeControl.match
           case TimeControl.Clock(clock, moveTimeLimit) =>
             Json
@@ -88,8 +93,8 @@ final class JsonView(
         "color" -> c.colorChoice.toString.toLowerCase,
         "finalColor" -> c.finalColor.toString.toLowerCase,
         "perf" -> Json.obj(
-          "icon" -> (if c.variant == chess.variant.FromPosition then Icon.Feather else Icon.CrownElite),
-          "name" -> "Xiangqi"
+          "icon" -> lila.ui.VariantIcon(c.gameVariant),
+          "name" -> c.gameVariant.name
         )
       )
       .add("rematchOf" -> c.rematchOf)

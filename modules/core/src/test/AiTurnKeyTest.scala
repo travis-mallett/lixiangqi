@@ -39,6 +39,15 @@ class AiTurnKeyTest extends munit.FunSuite:
     assertEquals(AiTurnKey.from(fast), Some(AiTurnKey(fast, 3)))
     assertNotEquals(AiTurnKey.from(normal), AiTurnKey.from(fast))
 
+  test("Kids profile versions participate in turn identity"):
+    val original = game()
+    val kids = original.copy(metadata = original.metadata.copy(kidsBotProfile = Some("v1/dou-dou")))
+    assertNotEquals(AiTurnKey.from(original), AiTurnKey.from(kids))
+    assertNotEquals(
+      AiTurnKey.from(kids),
+      AiTurnKey.from(kids.copy(metadata = kids.metadata.copy(kidsBotProfile = Some("v1/kou-kou"))))
+    )
+
   private def game(level: Int = 5): Game =
     lila.core.game
       .newGame(

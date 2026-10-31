@@ -33,7 +33,7 @@ object Recap:
   val schemaVersion = 1
 
   case class Counted[A](value: A, count: Int)
-  case class Perf(key: PerfKey, games: Int)
+  case class Perf(key: String, games: Int)
 
   type QueueEntry = ParallelQueue.Entry[UserId]
 

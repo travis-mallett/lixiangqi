@@ -3,8 +3,7 @@ import { throttle } from 'lib/async';
 import { displayColumns } from 'lib/device';
 import { finished, aborted, userAnalysable, playable } from 'lib/game';
 import viewStatus from 'lib/game/view/status';
-import { licon, type LiconKey } from 'lib/licon';
-import { addPointerListeners } from 'lib/pointer';
+import { licon } from 'lib/licon';
 import {
   toggleButton as boardMenuToggleButton,
   type VNode,
@@ -14,6 +13,7 @@ import {
   bind,
   onInsert,
   dataIcon,
+  bindReplayEvents,
 } from 'lib/view';
 import { horizontalMoveListScrollPosition } from 'lib/view/horizontalMoveList';
 
@@ -21,14 +21,14 @@ import type RoundController from '../ctrl';
 import type { Step } from '../interfaces';
 import * as util from '../util';
 import boardMenu from './boardMenu';
+import { replayNavigation, replayMoves } from './navigation';
 
 const scrollMax = 99999,
   moveTag = 'Z7yx',
   indexTag = 'qZM',
   indexTagUC = indexTag.toUpperCase(),
   movesTag = 'aPp',
-  rmovesTag = 'i5d',
-  rbuttonsTag = 'bo3';
+  rmovesTag = 'i5d';
 
 const autoScroll = throttle(100, (movesEl: HTMLElement, ctrl: RoundController) =>
   window.requestAnimationFrame(() => {
@@ -155,34 +155,29 @@ const goThroughMoves = (ctrl: RoundController, e: Event) => {
   );
 };
 
+const replayEvents = (ctrl: RoundController) =>
+  bindReplayEvents(
+    e => {
+      const target = e.target as HTMLButtonElement;
+      if (target.disabled) return;
+      const ply = Number(target.dataset.ply);
+      if (Number.isFinite(ply)) ctrl.userJump(ply);
+      ctrl.redraw();
+      blurIfPrimaryClick(e);
+    },
+    e => goThroughMoves(ctrl, e),
+  );
+
 function renderButtons(ctrl: RoundController) {
-  const firstPly = util.firstPly(ctrl.data),
-    lastPly = util.lastPly(ctrl.data);
-  return hl(rbuttonsTag, [
-    recordedClockPlaybackButton(ctrl) || analysisButton(ctrl) || hl('div.noop'),
-    [
-      ['JumpFirst', firstPly],
-      ['JumpPrev', ctrl.ply - 1],
-      ['JumpNext', ctrl.ply + 1],
-      ['JumpLast', lastPly],
-    ].map((b: [LiconKey, number], i) => {
-      const enabled = ctrl.ply !== b[1] && b[1] >= firstPly && b[1] <= lastPly;
-      return hl('button.fbt.repeatable', {
-        class: { glowing: i === 3 && ctrl.isLate() },
-        attrs: { disabled: !enabled, 'data-icon': licon[b[0]], 'data-ply': enabled ? b[1] : '-' },
-        hook: onInsert(el =>
-          addPointerListeners(el, {
-            click: e => {
-              goThroughMoves(ctrl, e);
-              blurIfPrimaryClick(e);
-            },
-            hold: 'click',
-          }),
-        ),
-      });
-    }),
+  return replayNavigation(
+    util.firstPly(ctrl.data),
+    ctrl.ply,
+    util.lastPly(ctrl.data),
+    replayEvents(ctrl),
+    recordedClockPlaybackButton(ctrl) || analysisButton(ctrl),
     boardMenuToggleButton(ctrl.menu, i18n.site.menu),
-  ]);
+    ctrl.isLate(),
+  );
 }
 
 function recordedClockPlaybackButton(ctrl: RoundController): LooseVNode {
@@ -216,12 +211,6 @@ function initMessage(ctrl: RoundController) {
     ])
   );
 }
-
-const col1Button = (ctrl: RoundController, dir: number, icon: string, disabled: boolean) =>
-  hl('button.fbt', {
-    attrs: { disabled, 'data-icon': icon, 'data-ply': ctrl.ply + dir },
-    hook: onInsert(el => addPointerListeners(el, { click: e => goThroughMoves(ctrl, e), hold: 'click' })),
-  });
 
 export function render(ctrl: RoundController): LooseVNode {
   const d = ctrl.data,
@@ -264,13 +253,7 @@ export function render(ctrl: RoundController): LooseVNode {
       renderButtons(ctrl),
       boardMenu(ctrl),
       initMessage(ctrl) ||
-        (displayColumns() === 1
-          ? hl('div.col1-moves', [
-              col1Button(ctrl, -1, licon.JumpPrev, ctrl.ply === util.firstPly(d)),
-              renderMovesOrResult,
-              col1Button(ctrl, 1, licon.JumpNext, ctrl.ply === util.lastPly(d)),
-            ])
-          : renderMovesOrResult),
+        replayMoves(renderMovesOrResult, ctrl.ply, util.firstPly(d), util.lastPly(d), replayEvents(ctrl)),
     ])
   );
 }

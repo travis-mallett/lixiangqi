@@ -1,7 +1,7 @@
 import {
   createBoard,
   boardPresentation,
-  standardXiangqi,
+  boardDefinitionForFen,
   type BoardView,
   type BoardServices,
 } from '@lixiangqi/board';
@@ -85,6 +85,11 @@ export class GameViewer {
     layout.className = 'xiangqi-viewer__layout';
     const board = makeElement('div');
     board.className = 'xiangqi-viewer__board';
+    const definition = boardDefinitionForFen(this.current.fen);
+    element.style.setProperty(
+      '--board-aspect-ratio',
+      String(definition.geometry.columns / definition.geometry.rows),
+    );
     const surface = makeElement('div');
     board.append(surface);
     const playback = makeElement('div');
@@ -135,7 +140,7 @@ export class GameViewer {
 
     const presentation = boardPresentation('replay', options.orientation === 'black' ? 'black' : 'red');
     this.board = createBoard(surface, {
-      definition: standardXiangqi,
+      definition,
       position: this.current.position,
       presentation: { ...presentation, feedback: { ...presentation.feedback, audio: false } },
       interaction: { mode: 'display' },
@@ -280,6 +285,12 @@ export class GameViewer {
           prev: !!node.parent,
           next: !!node.children.length,
           last: !!node.children.length,
+        },
+        labels: {
+          first: this.options.labels.first,
+          prev: this.options.labels.previous,
+          next: this.options.labels.next,
+          last: this.options.labels.last,
         },
         previousIcon: licon.JumpPrev,
         nextIcon: licon.JumpNext,

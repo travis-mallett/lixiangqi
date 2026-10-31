@@ -49,7 +49,7 @@ object page:
 
   def games(
       info: UserInfo,
-      games: scalalib.paginator.Paginator[Game],
+      games: scalalib.paginator.Paginator[lila.app.mashup.GameHistoryEntry],
       filters: lila.game.GameFilterMenu,
       searchForm: Option[Form[?]],
       social: UserInfo.Social
@@ -61,6 +61,7 @@ object page:
       .js(pageModule(info))
       .js(esModules(filters.current.name == "search"))
       .css("user.show")
+      .js(PageModule("threeKingdoms.mini", play.api.libs.json.Json.obj()))
       .css((filters.current.name == "search").option("user.show.search"))
       .css(isGranted(_.UserModView).option("mod.user"))
       .flag(_.noRobots, !indexable(u)):
@@ -104,6 +105,9 @@ object page:
   def userGameFilterTitleNoTag(u: User, nbs: UserInfo.NbGames, filter: GameFilter)(using Translate): String =
     import ui.transLocalize
     filter match
+      case GameFilter.jieqi => "Jieqi (揭棋)"
+      case GameFilter.minixiangqi => trans.site.miniXiangqi.txt()
+      case GameFilter.threeKingdoms => trans.site.threeKingdoms.txt()
       case GameFilter.all => transLocalize(trans.site.nbGames, u.count.game)
       case GameFilter.me => nbs.withMe.so { transLocalize(trans.site.nbGamesWithYou, _) }
       case GameFilter.ranked => transLocalize(trans.site.nbRanked, u.count.ranked)

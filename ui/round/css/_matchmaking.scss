@@ -1,4 +1,9 @@
 .round {
+  &__app--matchmaking {
+    grid-template-areas: 'board players';
+    grid-template-rows: auto;
+  }
+
   &__matchmaking-side {
     @extend %box-radius, %box-shadow;
 
@@ -26,6 +31,10 @@
 
   &__matchmaking-board {
     position: relative;
+  }
+
+  &__matchmaking-three-board {
+    width: 100%;
   }
 
   &__matchmaking-panel,
@@ -119,6 +128,11 @@
     color: $c-font-clear;
     font-size: 1.05rem;
     font-weight: 600;
+
+    button {
+      grid-column: 1 / -1;
+      margin-top: 0.5rem;
+    }
   }
 
   &__matchmaking-dots {
@@ -130,8 +144,20 @@
     white-space: nowrap;
   }
 
-  &__matchmaking-table {
-    min-height: 12rem;
+  &__matchmaking-players {
+    grid-area: players;
+    display: grid;
+    align-content: space-around;
+    gap: $block-gap;
+  }
+
+  &__matchmaking-player {
+    @extend %box-radius;
+
+    display: grid;
+    gap: 0.5rem;
+    padding: 1rem;
+    background: $c-bg-box;
   }
 
   &__matchmaking-user {
@@ -148,6 +174,25 @@
   }
 
   @include mq-is-col1 {
+    &__app--matchmaking {
+      grid-template-areas: 'board' 'players';
+    }
+
+    &__matchmaking-players {
+      grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+      padding-top: $block-gap;
+      gap: 0.5rem;
+    }
+
+    &__matchmaking-player {
+      padding: 0.5rem;
+      text-align: center;
+    }
+
+    &__matchmaking-clock {
+      font-size: 1.6em;
+    }
+
     &__matchmaking-side {
       margin-top: $block-gap;
     }

@@ -15,7 +15,20 @@ object SetupForm:
   import Mappings.*
 
   private val adjudicationRules = "ruleset" -> optional(
-    text.verifying("Unsupported Xiangqi ruleset", v => lila.xiangqi.adjudication.Ruleset.fromKey(v).isRight)
+    text.verifying(
+      "Unsupported Xiangqi ruleset",
+      v =>
+        lila.xiangqi.adjudication.Ruleset
+          .fromKey(v)
+          .exists(lila.xiangqi.GameVariant.Xiangqi.selectableRulesets.contains)
+    )
+  )
+
+  private val nativeVariant = "gameVariant" -> optional(
+    text.verifying(
+      "Unsupported two-player game variant",
+      v => lila.xiangqi.GameVariant.fromKey(v).exists(_.playerCount == 2)
+    )
   )
 
   def aiFilled(fen: Option[Fen.Full]): Form[AiConfig] =
@@ -33,15 +46,30 @@ object SetupForm:
       "level" -> level,
       "color" -> color,
       "fen" -> fenField,
-      adjudicationRules
+      adjudicationRules,
+      nativeVariant
     )(AiConfig.from)(_.>>)
       .verifying("invalidFen", _.validFen)
+      .verifying(
+        "Unsupported variant level",
+        c => c.gameVariant == lila.xiangqi.GameVariant.Xiangqi || (1 to 10).contains(c.level)
+      )
       .verifying("Time per move requires a real-time clock", _.validMoveTimeLimit)
       .verifying("Can't play that time control from a position", _.timeControlFromPosition)
 
   def friendFilled(fen: Option[Fen.Full])(using Option[Me]): Form[FriendConfig] =
     friend.fill(fen.foldLeft(FriendConfig.default): (config, f) =>
       config.copy(fen = f.some, variant = chess.variant.FromPosition))
+
+  lazy val mobileAi = Form:
+    ai.mapping
+      .verifying(
+        "Unsupported difficulty",
+        c =>
+          if c.gameVariant != lila.xiangqi.GameVariant.Xiangqi then (1 to 10).contains(c.level)
+          else lila.core.game.AiLevel.customLevels.contains(c.level)
+      )
+      .verifying("Invalid clock", _.validClock)
 
   def friend(using me: Option[Me]) = Form:
     mapping(
@@ -53,7 +81,8 @@ object SetupForm:
       "days" -> days,
       "color" -> color,
       "fen" -> fenField,
-      adjudicationRules
+      adjudicationRules,
+      nativeVariant
     )(FriendConfig.from)(_.>>)
       .verifying("Invalid clock", _.validClock)
       .verifying("Time per move requires a real-time clock", _.validMoveTimeLimit)
@@ -72,7 +101,8 @@ object SetupForm:
       "increment" -> increment,
       moveTimeLimit,
       "days" -> days,
-      "color" -> lila.common.Form.empty
+      "color" -> lila.common.Form.empty,
+      nativeVariant
     )(HookConfig.from)(_.>>)
       .verifying("Invalid clock", _.validClock)
       .verifying("Time per move requires a real-time clock", _.validMoveTimeLimit)
@@ -161,7 +191,8 @@ object SetupForm:
         "keepAliveStream" -> optional(boolean),
         rules,
         "onlyIfOpponentFollowsMe" -> optional(boolean),
-        adjudicationRules
+        adjudicationRules,
+        nativeVariant
       )(ApiConfig.from)(_ => none)
         .verifying("invalidFen", _.validFen)
         .verifying("Time per move requires a clock", _.validMoveTimeLimit)
@@ -176,8 +207,13 @@ object SetupForm:
         optionalDays,
         "color" -> optional(color),
         "fen" -> fenField,
-        adjudicationRules
+        adjudicationRules,
+        nativeVariant
       )(ApiAiConfig.from)(_ => none)
+        .verifying(
+          "Unsupported variant level",
+          c => c.gameVariant == lila.xiangqi.GameVariant.Xiangqi || (1 to 10).contains(c.level)
+        )
         .verifying("invalidFen", _.validFen)
         .verifying("Time per move requires a clock", _.validMoveTimeLimit)
 
@@ -206,7 +242,8 @@ object SetupForm:
         inTheFuture(ISOInstantOrTimestamp.mapping)
           .verifying("Open challenges must expire within 2 weeks", _.isBefore(nowInstant.plusWeeks(2)))
       ,
-      adjudicationRules
+      adjudicationRules,
+      nativeVariant
     )(OpenConfig.from)(_ => none)
       .verifying("invalidFen", _.validFen)
       .verifying("Time per move requires a clock", _.validMoveTimeLimit)

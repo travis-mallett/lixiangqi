@@ -79,6 +79,7 @@ object GameDiff:
       dOpt(s"$name$proposeTakebackAt", player(_).proposeTakebackAt, ply => w.intO(ply.value))
       dTry(s"$name$blursBits", player(_).blurs, Blurs.blursHandler.writeTry)
     dTry(movedAt, _.movedAt, instantHandler.writeTry)
+    d("kidsHelp", _.metadata.kidsBotAssisted, BSONBoolean.apply)
 
     // Keep the background flag check aligned with the effective clock. This is
     // persisted in the same update as the move, without adding a database write.

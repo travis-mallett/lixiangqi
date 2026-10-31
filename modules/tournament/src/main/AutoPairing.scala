@@ -4,8 +4,6 @@ import chess.{ Black, ByColor, Color, White }
 import monocle.syntax.all.*
 
 import lila.core.game.Source
-import lila.xiangqi.XiangqiRules
-
 final class AutoPairing(
     gameRepo: lila.core.game.GameRepo,
     newPlayer: lila.core.game.NewPlayer,
@@ -15,7 +13,9 @@ final class AutoPairing(
 )(using Executor):
 
   def apply(tour: Tournament, pairing: Pairing.WithPlayers, ranking: Ranking): Fu[Game] = for
-    xiangqiGame <- XiangqiRules.initialGame(tour.position.map(_.value), tour.ruleset).fold(fufail, fuccess)
+    xiangqiGame <- tour.gameVariant
+      .initialGame(tour.position.map(_.value), tour.ruleset)
+      .fold(fufail, fuccess)
     clock = tour.clock.toClock
     game = lila.core.game
       .newGame(

@@ -23,7 +23,7 @@ test('fixed examples use native playback, starting frames, annotations and indep
   });
   const sounds: unknown[] = [];
   globalThis.site = {
-    asset: { loadPieces: Promise.resolve() },
+    asset: { loadPieces: Promise.resolve(), url: (path: string) => `/assets/${path}` },
     sound: { move: (options: unknown) => sounds.push(options) },
   } as any;
   window.matchMedia = globalThis.matchMedia;

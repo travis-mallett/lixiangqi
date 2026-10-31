@@ -18,6 +18,7 @@ object PublicSource:
       case Array("t", id) => Success(Source.Tournament(TourId(id)))
       case Array("s", id) => Success(Source.Simul(SimulId(id)))
       case Array("w", id) => Success(Source.Watcher(GameId(id)))
+      case Array("k", id) => Success(Source.ThreeKingdoms(GameId(id)))
       case Array("u", id) => Success(Source.Study(StudyId(id)))
       case Array("e", id) => Success(Source.Team(TeamId(id)))
       case Array("i", id) => Success(Source.Swiss(SwissId(id)))
@@ -30,6 +31,7 @@ object PublicSource:
       case Source.Simul(id) => s"s:$id"
       case Source.Study(id) => s"u:$id"
       case Source.Watcher(gameId) => s"w:$gameId"
+      case Source.ThreeKingdoms(gameId) => s"k:$gameId"
       case Source.Team(id) => s"e:$id"
       case Source.Swiss(id) => s"i:$id"
       case Source.Forum(id) => s"f:$id"

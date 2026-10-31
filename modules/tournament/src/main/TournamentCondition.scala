@@ -57,14 +57,6 @@ object TournamentCondition:
 
     def similar(other: All) = titled == other.titled && teamMember == other.teamMember
 
-    // if the new allowList is empty, assume the tournament is open to all, kick nobody
-    def removedFromAllowList(prev: All): Set[UserId] =
-      allowList
-        .so(_.userIds)
-        .nonEmptyOption
-        .so: current =>
-          prev.allowList.so(_.userIds.diff(current))
-
     def allowsBots = bots.exists(_.allowed)
 
   object All:

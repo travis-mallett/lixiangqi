@@ -30,13 +30,15 @@ final class Signup(
     verifyMail: VerifyMail,
     pwnedApi: PwnedApi,
     cacheApi: lila.memo.CacheApi,
-    netConfig: NetConfig
+    netConfig: NetConfig,
+    externalIdentities: lila.user.ExternalIdentityRepo
 )(using Executor, lila.core.config.RateLimit):
 
   private enum MustConfirmEmail(val value: Boolean):
     case NoCantSend extends MustConfirmEmail(false)
     case NoSimpleSignup extends MustConfirmEmail(false)
     case NoMobileVerified extends MustConfirmEmail(false)
+    case NoProviderVerified extends MustConfirmEmail(false)
     case YesAnyway extends MustConfirmEmail(true)
     case YesBecausePrintExists extends MustConfirmEmail(true)
     case YesBecausePrintMissing extends MustConfirmEmail(true)
@@ -50,9 +52,11 @@ final class Signup(
         data: SignupData,
         suspIp: Boolean,
         simpleSignup: Option[lila.oauth.OAuthSignedClient.SimpleSignup],
-        mobileVerified: Boolean
+        mobileVerified: Boolean,
+        providerEmail: Option[EmailAddress]
     )(using req: RequestHeader): Fu[MustConfirmEmail] =
-      if mobileVerified then fuccess(NoMobileVerified)
+      if providerEmail.contains(data.email) then fuccess(NoProviderVerified)
+      else if mobileVerified then fuccess(NoMobileVerified)
       else if !canSendEmails.get() then fuccess(NoCantSend)
       else if simpleSignup.exists(_.email == data.email) then fuccess(NoSimpleSignup)
       else
@@ -74,28 +78,36 @@ final class Signup(
         }
 
   private val dedupCache =
-    cacheApi.notLoading[(SecurityForm.SignupData, String), Signup.Result](16, "signup.dedup"):
+    cacheApi.notLoading[(SecurityForm.SignupData, String, Option[String]), Signup.Result](16, "signup.dedup"):
       _.expireAfterWrite(3.seconds).buildAsync()
 
   private val dedupSimpleSignupEmail = ExpireSetMemo[EmailAddress](1.day)
 
   def website(
       blind: Boolean,
-      simpleSignup: Option[lila.oauth.OAuthSignedClient.SimpleSignup]
+      simpleSignup: Option[lila.oauth.OAuthSignedClient.SimpleSignup],
+      externalIdentity: Option[ExternalLogin.Identity] = None
   )(using
       req: Request[?]
   )(using Lang, FormBinding, Option[ValidReferrer], IsProxy): Fu[Signup.Result] =
-    submit(blind, simpleSignup, none)
+    submit(blind, simpleSignup, none, externalIdentity)
 
   def mobile(
-      verifyEmail: EmailAddress => Boolean
+      verifyEmail: EmailAddress => Boolean,
+      externalIdentity: Option[ExternalLogin.Identity] = None
   )(using Request[?], Lang, FormBinding, Option[ValidReferrer], IsProxy): Fu[Signup.Result] =
-    submit(blind = false, simpleSignup = none, verifyEmail = verifyEmail.some)
+    submit(
+      blind = false,
+      simpleSignup = none,
+      verifyEmail = verifyEmail.some,
+      externalIdentity = externalIdentity
+    )
 
   private def submit(
       blind: Boolean,
       simpleSignup: Option[lila.oauth.OAuthSignedClient.SimpleSignup],
-      verifyEmail: Option[EmailAddress => Boolean]
+      verifyEmail: Option[EmailAddress => Boolean],
+      externalIdentity: Option[ExternalLogin.Identity] = None
   )(using
       req: Request[?],
       lang: Lang,
@@ -122,7 +134,7 @@ final class Signup(
                 verifyMail.refreshIfOk(emailDomain)
             _ <- forms.preloadEmailDns()
             res <- forms.signup
-              .full(simpleSignup)
+              .full(simpleSignup, external = externalIdentity.isDefined)
               .form
               .bindFromRequest()
               .fold[Fu[Signup.Result]](
@@ -136,30 +148,35 @@ final class Signup(
                     fuccess(Signup.Result.EmailCodeInvalid)
                   else
                     dedupCache.getFuture(
-                      data -> client,
+                      (data, client, externalIdentity.map(_.key)),
                       _ =>
                         if simpleSignup.exists(s => dedupSimpleSignupEmail.get(s.email))
                         then fuccess(Signup.Result.SimpleSignupDuplicate)
                         else
                           for
                             suspIp <- ipTrust.isSuspicious(ip)
-                            pwned <- pwnedApi.isPwned(data.clearPassword)
+                            pwned <-
+                              if externalIdentity.isDefined then fuccess(IsPwned.No)
+                              else pwnedApi.isPwned(data.clearPassword)
                             result <- signupRateLimit(data.username.id, suspIp = suspIp):
                               MustConfirmEmail(
                                 data,
                                 suspIp = suspIp,
                                 simpleSignup,
-                                mobileVerified = verifyEmail.isDefined
+                                mobileVerified = verifyEmail.isDefined,
+                                providerEmail = externalIdentity.flatMap(_.verifiedEmail)
                               ).flatMap: mustConfirm =>
-                                val passwordHash = authenticator.passEnc(data.clearPassword)
-                                userRepo
+                                val passwordHash = Option
+                                  .when(externalIdentity.isEmpty)(authenticator.passEnc(data.clearPassword))
+                                (externalIdentity.isDefined.so(externalIdentities.ready) >> userRepo
                                   .create(
                                     data.username,
                                     passwordHash,
                                     data.email,
                                     blind = blind,
-                                    mustConfirmEmail = mustConfirm.value
-                                  )
+                                    mustConfirmEmail = mustConfirm.value,
+                                    externalIdentity = externalIdentity.map(_.key)
+                                  ))
                                   .orFail(s"No user could be created for ${data.username}")
                                   .addEffect: user =>
                                     monitor(
@@ -186,6 +203,16 @@ final class Signup(
           yield
             lila.mon.user.register.result(client, res.key).increment()
             res
+      .recover(
+        lila.db.recoverDuplicateKey(_ =>
+          Signup.Result.FormInvalid(
+            forms.signup
+              .full(simpleSignup, external = externalIdentity.isDefined)
+              .form
+              .withGlobalError("usernameAlreadyUsed")
+          )
+        )
+      )
 
   private def confirmOrAllSet(
       email: EmailAddress,

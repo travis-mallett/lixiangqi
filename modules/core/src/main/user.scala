@@ -217,10 +217,18 @@ object user:
     def countEngines(userIds: List[UserId]): Fu[Int]
     def filterEngines(userIds: Seq[UserId]): Fu[Set[UserId]]
     def getTitle(id: UserId): Fu[Option[PlayerTitle]]
-    def withPerf(id: User, pk: PerfKey): Fu[WithPerf]
+    def withPerf(
+        id: User,
+        pk: PerfKey,
+        track: lila.core.rank.RankTrackId = lila.core.rank.RankTrackId.xiangqi
+    ): Fu[WithPerf]
     def withPerfs(u: User): Fu[UserWithPerfs]
     def withPerfs[U: UserIdOf](id: U): Fu[Option[UserWithPerfs]]
-    def byIdWithPerf[U: UserIdOf](id: U, pk: PerfKey): Fu[Option[WithPerf]]
+    def byIdWithPerf[U: UserIdOf](
+        id: U,
+        pk: PerfKey,
+        track: lila.core.rank.RankTrackId = lila.core.rank.RankTrackId.xiangqi
+    ): Fu[Option[WithPerf]]
     def listWithPerfs[U: UserIdOf](
         us: List[U],
         includeClosed: Boolean,

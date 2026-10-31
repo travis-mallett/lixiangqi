@@ -1,42 +1,54 @@
 export {}; // for tsc isolatedModules
 
-function generateSearchParams(): string {
-  const searchParams = new URLSearchParams();
+const form = document.querySelector<HTMLFormElement>('#dl-form')!;
+const button = document.querySelector<HTMLButtonElement>('#dl-button')!;
+const error = document.querySelector<HTMLElement>('#dl-error')!;
+const untilDate = document.querySelector<HTMLInputElement>('#dl-date-until')!;
 
-  $('#dl-form')
-    .find('input[name], select[name]')
-    .each((_, e: HTMLInputElement | HTMLSelectElement) => {
-      const val = e.type === 'checkbox' ? e.checked.toString() : e.value;
-      if (val && e.name) searchParams.append(e.name, val);
-    });
-
-  ['since', 'until'].forEach(name => {
-    const minTimestamp = 1356998400070; // 01/01/2013, 01:00:00
-    const date = ($(`#dl-date-${name}`).val() as string).replace(/-/g, '/'); // for Safari https://stackoverflow.com/a/4310986/11955835
-    const time = $(`#dl-time-${name}`).val() as string;
-    if (date.length === 10) {
-      // the 00:00:00 is necessary for the time to be interpreted in the local timezone
-      const datetime = new Date(`${date} ${time.length === 8 ? time : '00:00:00'}`);
-      // Include all games played on date-until if no time is specified
-      if (time.length !== 8 && name === 'until') datetime.setDate(datetime.getDate() + 1);
-      searchParams.append(name, Math.max(datetime.getTime(), minTimestamp).toString());
+function generateSearchParams(): URLSearchParams {
+  const params = new URLSearchParams();
+  for (const e of form.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input[name], select[name]')) {
+    let value = e.value;
+    if (e instanceof HTMLInputElement) {
+      if (e.type === 'checkbox') value = String(e.checked);
+      else if (e.type === 'number' && value) value = String(e.valueAsNumber);
     }
-  });
-
-  return searchParams.toString();
-}
-
-function update() {
-  const params = generateSearchParams();
-  const apiUrl = $('#dl-api-url');
-  const apiPath = apiUrl.data('apiPath');
-  if (apiPath) {
-    apiUrl.find('input').val(`${window.location.protocol}//${window.location.host}${apiPath}?${params}`);
+    if (value) params.set(e.name, value);
   }
-  const btn = $('#dl-button');
-  btn.prop('href', btn.prop('href').split('?')[0] + '?' + params);
+  for (const name of ['since', 'until']) {
+    const date = document.querySelector<HTMLInputElement>(`#dl-date-${name}`)!.value;
+    const time = document.querySelector<HTMLInputElement>(`#dl-time-${name}`)!.value;
+    if (!date) continue;
+    const datetime = new Date(`${date}T${time || '00:00:00'}`);
+    // A date without a time includes that entire day in the upper bound.
+    if (!time && name === 'until') datetime.setDate(datetime.getDate() + 1);
+    params.set(name, String(datetime.getTime()));
+  }
+  return params;
 }
 
-$('#dl-form').find('input, select').on('change', update);
+function update(): URLSearchParams {
+  const params = generateSearchParams();
+  const since = params.get('since');
+  const until = params.get('until');
+  untilDate.setCustomValidity(
+    since && until && Number(since) >= Number(until) ? i18n.search.invalidDateRange : '',
+  );
+  const invalid = [...form.querySelectorAll<HTMLInputElement>('input')].find(input => !input.validity.valid);
+  error.textContent = invalid?.validationMessage ?? '';
+  button.disabled = !!invalid;
+  const apiUrl = document.querySelector<HTMLInputElement>('#dl-api-url input')!;
+  const apiPath = document.querySelector<HTMLElement>('#dl-api-url')!.dataset.apiPath;
+  apiUrl.value = invalid ? '' : `${location.origin}${apiPath}?${params}`;
+  return params;
+}
 
+form.addEventListener('input', update);
+form.addEventListener('change', update);
+form.addEventListener('submit', event => {
+  event.preventDefault();
+  const params = update();
+  if (form.reportValidity()) location.assign(`${button.dataset.downloadPath}?${params}`);
+});
+window.addEventListener('pageshow', update);
 update();

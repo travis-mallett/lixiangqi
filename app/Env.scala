@@ -55,8 +55,20 @@ final class Env(
   val fishnet: lila.fishnet.Env = wire[lila.fishnet.Env]
   val history: lila.history.Env = wire[lila.history.Env]
   val bookmark: lila.bookmark.Env = wire[lila.bookmark.Env]
+  val poolParticipation = new lila.core.pool.PoolParticipation
+  val mayJoinPool = lila.core.pool.MayJoinPool(id => threeKingdoms.repo.countPlaying(id).map(_ == 0))
   val pool: lila.pool.Env = wire[lila.pool.Env]
   val round: lila.round.Env = wire[lila.round.Env]
+  val setup: lila.setup.Env = wire[lila.setup.Env]
+  val challenge: lila.challenge.Env = wire[lila.challenge.Env]
+  val threeKingdoms: lila.threeKingdoms.Env = wire[lila.threeKingdoms.Env]
+  lila.common.Bus.sub[lila.threeKingdoms.MatchUpdated]: event =>
+    val g = event.game
+    round.playing.update(
+      g.id,
+      g.userIds,
+      g.userIds.filter(id => !g.position.finished && g.playerOf(id).exists(g.position.active.contains)).toSet
+    )
   val search: lila.search.Env = wire[lila.search.Env]
   val gameSearch: lila.gameSearch.Env = wire[lila.gameSearch.Env]
   val perfStat: lila.perfStat.Env = wire[lila.perfStat.Env]
@@ -68,7 +80,8 @@ final class Env(
   val forum: lila.forum.Env = wire[lila.forum.Env]
   val forumSearch: lila.forumSearch.Env = wire[lila.forumSearch.Env]
   val lobby: lila.lobby.Env = wire[lila.lobby.Env]
-  val setup: lila.setup.Env = wire[lila.setup.Env]
+  scheduler.scheduleWithFixedDelay(5.seconds, 15.seconds): () =>
+    threeKingdoms.cached.nbPlaying.foreach(lobby.socket.extraRoundCount)
   val simul: lila.simul.Env = wire[lila.simul.Env]
   val appeal: lila.appeal.Env = wire[lila.appeal.Env]
   val timeline: lila.timeline.Env = wire[lila.timeline.Env]
@@ -79,7 +92,6 @@ final class Env(
   val video: lila.video.Env = wire[lila.video.Env]
   val insight: lila.insight.Env = wire[lila.insight.Env]
   val push: lila.push.Env = wire[lila.push.Env]
-  val challenge: lila.challenge.Env = wire[lila.challenge.Env]
   val explorer: lila.explorer.Env = wire[lila.explorer.Env]
   val playerDirectory: lila.playerDirectory.Env = wire[lila.playerDirectory.Env]
   import playerDirectory.given
@@ -112,11 +124,12 @@ final class Env(
   val userInfo = wire[mashup.UserInfo.UserInfoApi]
   val teamInfo = wire[mashup.TeamInfoApi]
   val gamePaginator = wire[mashup.GameFilterMenu.PaginatorBuilder]
+  val gameHistory = wire[mashup.GameHistory]
   val pageCache = wire[http.PageCache]
 
   lila.common.Bus.sub[lila.tv.RenderFeaturedJs]:
-    case lila.tv.RenderFeaturedJs(game, promise) =>
-      promise.success(Html(views.game.mini.noCtx(Pov.naturalOrientation(game), tv = true)))
+    case lila.tv.RenderFeaturedJs(game, promise, channelKey) =>
+      promise.success(Html(views.game.mini.noCtx(Pov.naturalOrientation(game), tv = true, channelKey)))
   lila.common.Bus.sub[lila.puzzle.DailyPuzzle.Render]:
     case lila.puzzle.DailyPuzzle.Render(puzzle, fen, lastMove, promise) =>
       promise.success(Html(views.puzzle.bits.daily(puzzle, fen, lastMove)))

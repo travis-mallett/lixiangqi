@@ -38,7 +38,7 @@ final class SitePages(helpers: Helpers):
       a(activeCls("thanks"), href := "/thanks")(trans.site.thankYou()),
       sep,
       a(activeCls("webmasters"), href := routes.Main.webmasters)(trans.site.webmasters()),
-      a(activeCls("database"), href := "/games")(trans.site.database(), external),
+      a(activeCls("database"), href := routes.GameCatalog.index)(trans.site.database()),
       a(activeCls("api"), href := "/api")("API", external),
       sep,
       a(activeCls("lag"), href := routes.Main.lag)(trans.lag.isLichessLagging()),

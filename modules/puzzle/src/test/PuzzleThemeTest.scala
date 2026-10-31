@@ -5,10 +5,10 @@ class PuzzleThemeTest extends munit.FunSuite:
     val sections = PuzzleTheme.categorized.take(2)
     assertEquals(
       sections.map(_.categories.map(_.themes.size)),
-      List(List(4, 8, 8, 4, 1, 28, 15), List(4, 3))
+      List(List(4, 8, 8, 4, 1, 23, 15), List(4, 3))
     )
     val themes = sections.flatMap(_.categories.flatMap(_.themes))
-    assertEquals(themes.map(_.key).distinct.size, 75)
+    assertEquals(themes.map(_.key).distinct.size, 70)
     themes.foreach: theme =>
       assertEquals(PuzzleTheme.findDynamic(theme.key.value), Some(theme))
       assertEquals(PuzzleAngle.find(theme.key.value).flatMap(_.asTheme), Some(theme.key))
@@ -35,7 +35,7 @@ class PuzzleThemeTest extends munit.FunSuite:
     assertEquals(categories.last.themes, PuzzleTheme.pieceTypeMates)
     val category = categories.init.last
     assertEquals(category.themes, PuzzleTheme.otherNamedBasicKills)
-    assertEquals(category.themes.head, PuzzleTheme.threeChariotAttack)
+    assertEquals(category.themes.head, PuzzleTheme.boldChariotAttack)
     val smallThroatIndex = category.themes.indexOf(PuzzleTheme.smallThroatCuttingMate)
     assertEquals(category.themes(smallThroatIndex - 1), PuzzleTheme.boldChariotAttack)
     assertEquals(category.themes(smallThroatIndex + 1), PuzzleTheme.pawnTripleAdvancementAttack)
@@ -44,3 +44,20 @@ class PuzzleThemeTest extends munit.FunSuite:
     category.themes.foreach: theme =>
       assert(PuzzleTheme.allMates(theme.key))
       assertEquals(theme.iconFile, s"${theme.key.value}.webp")
+
+  test("removed themes cannot be selected or submitted as tags"):
+    List(
+      "threeChariotAttack",
+      "bachelorChariotAttack",
+      "chariotPawnZugzwang",
+      "chariotHorseZugzwang",
+      "hidingBehindLeavesAttack"
+    ).foreach: key =>
+      assert(!PuzzleTheme.visible.exists(_.key.value == key))
+      assertEquals(PuzzleTheme.findAny(key), None)
+      assertEquals(PuzzleTheme.findDynamic(key), None)
+      assertEquals(PuzzleAngle.find(key), None)
+      assertEquals(
+        JsonView.simplifyThemes(Set(PuzzleTheme.Key(key), PuzzleTheme.boldChariotAttack.key)),
+        Set(PuzzleTheme.boldChariotAttack.key)
+      )

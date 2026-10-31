@@ -1,5 +1,6 @@
 import { type Attrs, h, type VNode, type VNodeData } from 'snabbdom';
 
+import { userProfilePath } from '../username';
 import { type MaybeVNodes } from './snabbdom';
 
 export type AnyUser = {
@@ -32,7 +33,7 @@ export const userLink = (u: AnyUser): VNode =>
 export const userLinkData = (u: AnyUser): VNodeData => ({
   // can't be inlined because of thunks
   class: { 'user-link': true, ulpt: u.name !== 'ghost', online: !!u.online },
-  attrs: { href: `/@/${u.name}`, ...u.attrs },
+  attrs: { href: userProfilePath(u.name), ...u.attrs },
 });
 
 export const userFlair = (u: Pick<AnyUser, 'flair'>): VNode | undefined =>

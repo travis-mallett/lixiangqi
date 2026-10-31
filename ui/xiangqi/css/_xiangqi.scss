@@ -1,5 +1,7 @@
 #main-wrap {
-  ---main-max-width: calc((100vh - #{$site-header-outer-height} - #{$col1-uniboard-controls}) * 9 / 10);
+  ---main-max-width: calc(
+    (100vh - #{$site-header-outer-height} - #{$col1-uniboard-controls}) * var(--board-aspect-ratio, 0.9)
+  );
 
   @include mq-at-least-col2 {
     ---main-max-width: auto;
@@ -18,7 +20,10 @@
 
   // This is Lichess's col2 uniboard calculation adapted from a square to the
   // 9:10 Xiangqi board. Width or height can be the limiting dimension.
-  ---xiangqi-board-max-width: min(#{$col2-uniboard-max-width}, calc(#{$col2-uniboard-max-height} * 9 / 10));
+  ---xiangqi-board-max-width: min(
+    #{$col2-uniboard-max-width},
+    calc(#{$col2-uniboard-max-height} * var(--board-aspect-ratio, 0.9))
+  );
   ---xiangqi-board-width: calc(var(---xiangqi-board-max-width) * var(---xiangqi-board-scale));
   ---xiangqi-board-column-width: var(---xiangqi-board-width);
 
@@ -53,7 +58,7 @@
   ---xiangqi-dock-bottom: 0rem;
   ---xiangqi-board-max-width: min(
     calc(#{$col2-uniboard-max-width} - var(---xiangqi-analysis-board-offset)),
-    calc(#{$col2-uniboard-max-height} * 9 / 10)
+    calc(#{$col2-uniboard-max-height} * var(--board-aspect-ratio, 0.9))
   );
   ---xiangqi-board-column-width: calc(var(---xiangqi-board-width) + var(---xiangqi-analysis-board-offset));
 
@@ -71,7 +76,10 @@
     ---xiangqi-dock-right: 0rem;
     ---xiangqi-board-max-width: min(
       #{$col2-uniboard-max-width},
-      calc((#{$col2-uniboard-max-height} - var(---xiangqi-analysis-board-offset)) * 9 / 10)
+      calc(
+        (#{$col2-uniboard-max-height} - var(---xiangqi-analysis-board-offset)) *
+          var(--board-aspect-ratio, 0.9)
+      )
     );
     ---xiangqi-board-column-width: var(---xiangqi-board-width);
   }
@@ -96,12 +104,40 @@
     grid-template-columns 180ms cubic-bezier(0.2, 0, 0, 1),
     grid-template-rows 180ms cubic-bezier(0.2, 0, 0, 1);
 
-  > .main-board {
+  > .xiangqi-analysis-surface {
     grid-area: 2 / 2;
+    min-width: 0;
+  }
+}
+
+.xiangqi-analysis-variant {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 0.65rem;
+  border-bottom: 1px solid $c-border;
+
+  select {
+    min-width: 0;
+    max-width: 70%;
+  }
+}
+
+.xiangqi-analysis__editor {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+
+  label {
+    display: grid;
+    gap: 0.3rem;
   }
 }
 
 @import 'analysis-gauge';
+@import 'analysis-three-kingdoms';
 
 .gauge-dock-right .xiangqi-eval {
   grid-area: 2 / 3;
@@ -158,7 +194,10 @@
   ---xiangqi-dock-right: 0rem;
   ---xiangqi-dock-top: 0rem;
   ---xiangqi-dock-bottom: 0rem;
-  ---xiangqi-board-max-width: min(#{$col2-uniboard-max-width}, calc(#{$col2-uniboard-max-height} * 9 / 10));
+  ---xiangqi-board-max-width: min(
+    #{$col2-uniboard-max-width},
+    calc(#{$col2-uniboard-max-height} * var(--board-aspect-ratio, 0.9))
+  );
   ---xiangqi-board-column-width: var(---xiangqi-board-width);
 
   .xiangqi-eval {
@@ -597,33 +636,10 @@
   }
 }
 
-.xiangqi-interface-settings {
-  position: fixed;
-  z-index: 1100;
-  inset: 0;
-  display: grid;
-  place-items: center;
-
-  &[hidden] {
-    display: none;
-  }
-}
-
-.xiangqi-interface-settings__scrim {
-  position: absolute;
-  inset: 0;
-  background: #000a;
-}
-
-.xiangqi-interface-settings__dialog {
-  position: relative;
+.dialog-content.xiangqi-interface-settings-modal {
   width: min(92vw, 680px);
-  max-height: min(90vh, 720px);
-  overflow: auto;
-  border-radius: 7px;
   padding: 1.2rem;
-  background: $c-bg-high;
-  box-shadow: 0 1rem 3rem #000b;
+  text-align: start;
 }
 
 .xiangqi-interface-settings__header {
@@ -785,6 +801,18 @@
 .xiangqi-note {
   color: $c-font-dim;
   line-height: 1.5;
+}
+
+.xiangqi-embed-dialog {
+  width: 42rem;
+  max-width: calc(100vw - 2rem);
+  box-sizing: border-box;
+
+  textarea {
+    width: 100%;
+    min-width: 0;
+    margin-top: 0.5em;
+  }
 }
 
 .games-database {
@@ -1044,6 +1072,7 @@
 
   &__status {
     min-height: 2.5rem;
+    scroll-margin-top: calc(var(---site-header-height) + 1rem);
     padding: 0.75rem 0 0.55rem;
     color: $c-font-dim;
 
@@ -1053,7 +1082,8 @@
   }
 
   &__table-wrap {
-    overflow-x: auto;
+    max-height: 70vh;
+    overflow: auto;
     border: 1px solid $c-border;
     border-radius: 4px;
   }
@@ -1064,6 +1094,9 @@
     border-collapse: collapse;
 
     th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
       padding: 0;
       color: $c-font-dim;
       background: $c-bg-zebra;
@@ -1545,7 +1578,7 @@
 
   &__board {
     width: 100%;
-    aspect-ratio: 9 / 10;
+    aspect-ratio: var(--board-aspect-ratio, 0.9);
   }
 
   &__explorer-panel {

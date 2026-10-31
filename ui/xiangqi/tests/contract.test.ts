@@ -32,7 +32,6 @@ import { analysisBoardArrows } from '../src/analysisArrows.ts';
 import {
   ENGINE_SETTINGS_KEY,
   INTERFACE_SETTINGS_KEY,
-  effectiveEngineMultiPv,
   loadEngineSettings,
   loadInterfaceSettings,
 } from '../src/analysisSettings.ts';
@@ -46,7 +45,7 @@ import {
 } from '../src/analysisTabs.ts';
 import { AnalysisTreeView } from '../src/analysisTreeView.ts';
 import { ancientManuals } from '../src/ancientManuals.ts';
-import { displayedEvaluation, formatEvaluation, NEUTRAL_EVALUATION } from '../src/evaluation.ts';
+import { displayedEvaluation, formatEvaluation, UNKNOWN_EVALUATION } from '../src/evaluation.ts';
 import {
   annotationSourceLabel,
   analysisGameUrl,
@@ -421,9 +420,9 @@ test('distinguishes the origin and destination of the last move', () => {
   document.body.append(element);
   const ground = makeRenderer(element, { lastMove: 'h1g3', viewOnly: true });
 
-  assert.equal(element.querySelectorAll('square.last-move').length, 2);
-  assert.ok(element.querySelector('square.last-move-origin'));
-  assert.ok(element.querySelector('square.last-move-destination'));
+  assert.equal(element.querySelectorAll('.board-marker').length, 2);
+  assert.ok(element.querySelector('.board-marker.last-move-origin'));
+  assert.ok(element.querySelector('.board-marker.last-move-destination'));
 
   ground.destroy();
   element.remove();
@@ -652,10 +651,10 @@ test('renders Xiangqi moves immediately when piece animation is disabled', () =>
 
     ground.selectSquare('h1');
     ground.state.dom.redrawNow();
-    assert.ok(element.querySelector('square.selected'));
-    assert.ok(element.querySelector('square.move-dest'));
-    assert.equal(element.querySelector('square.xiangqi-lift-origin'), null);
-    assert.equal(element.querySelector('square.xiangqi-move-dest'), null);
+    assert.ok(element.querySelector('square.xiangqi-lift-origin'));
+    assert.ok(element.querySelector('square.xiangqi-move-dest'));
+    assert.equal(element.querySelector('square.selected'), null);
+    assert.equal(element.querySelector('square.move-dest'), null);
     ground.move('h1', 'g3');
 
     assert.equal(element.querySelector('.xiangqi-motion-piece'), null);
@@ -681,13 +680,13 @@ test('uses the measured layered carry path and keeps its destination underlay at
   try {
     ground.move('h1', 'g3');
 
-    const destination = element.querySelector<HTMLElement>('square.last-move-destination');
+    const destination = element.querySelector<HTMLElement>('.board-marker.last-move-destination');
     const movedPiece = [...element.querySelectorAll<HTMLElement>('cg-board > piece')].find(
       piece => (piece as HTMLElement & { cgKey?: string }).cgKey === 'g3',
     );
     assert.ok(destination);
     assert.ok(movedPiece);
-    assert.equal(destination.style.transform, movedPiece.style.transform);
+    assert.equal(destination.dataset.location, 'g3');
     assert.ok(movedPiece.classList.contains('xiangqi-motion-piece'));
 
     const carry = animations.calls.find(call => call.element === movedPiece);
@@ -994,10 +993,12 @@ test('normalizes Pikafish coordinates and side-to-move scores for the red evalua
   assert.deepEqual(line?.wxfMoves, []);
 });
 
-test('retains the displayed evaluation until the new position receives an engine score', () => {
+test('retains scores only within a position and distinguishes unknown evaluations from equality', () => {
   const previous = { redCp: 87 };
   assert.equal(displayedEvaluation(undefined, previous), previous);
-  assert.deepEqual(displayedEvaluation(undefined), NEUTRAL_EVALUATION);
+  assert.deepEqual(displayedEvaluation(undefined), UNKNOWN_EVALUATION);
+  assert.equal(formatEvaluation(UNKNOWN_EVALUATION), '—');
+  assert.equal(formatEvaluation({ redCp: 0 }), '+0.00');
 
   const incoming = { redCp: -32 };
   assert.equal(displayedEvaluation(incoming, previous), incoming);
@@ -1126,25 +1127,21 @@ test('normalizes persisted analysis settings at their storage boundary', () => {
   }
 });
 
-test('uses responsive MultiPV defaults only when no preference is stored', () => {
+test('defaults to one engine line and preserves explicit MultiPV preferences', () => {
   const original = localStorage.getItem(ENGINE_SETTINGS_KEY);
   try {
     localStorage.removeItem(ENGINE_SETTINGS_KEY);
     const settings = loadEngineSettings();
-    assert.equal(settings.multiPv, undefined);
-    assert.equal(effectiveEngineMultiPv(settings, true), 1);
-    assert.equal(effectiveEngineMultiPv(settings, false), 3);
+    assert.equal(settings.multiPv, 1);
 
     for (const value of [1, 3, 5]) {
       localStorage.setItem(ENGINE_SETTINGS_KEY, JSON.stringify({ multiPv: value }));
       const saved = loadEngineSettings();
       assert.equal(saved.multiPv, value);
-      assert.equal(effectiveEngineMultiPv(saved, true), value);
-      assert.equal(effectiveEngineMultiPv(saved, false), value);
     }
 
     localStorage.setItem(ENGINE_SETTINGS_KEY, JSON.stringify({ multiPv: '3' }));
-    assert.equal(loadEngineSettings().multiPv, undefined);
+    assert.equal(loadEngineSettings().multiPv, 1);
     localStorage.setItem(ENGINE_SETTINGS_KEY, JSON.stringify({ multiPv: 99 }));
     assert.equal(loadEngineSettings().multiPv, 5);
   } finally {
@@ -1193,6 +1190,22 @@ test('renders mobile engine rows and placeholders from the resolved MultiPV coun
     );
     suggestions.showPlaceholders();
     assert.equal(document.querySelectorAll('#xiangqi-engine-lines > .placeholder').length, 3);
+    let arrowUpdates = 0;
+    suggestions.setArrowRenderer(() => arrowUpdates++);
+    const cloud = {
+      available: true,
+      source: 'CDB',
+      moves: [
+        { move: 'a4a5', notation: 'P9+1', score: 125, note: '', pvMoves: ['a4a5'], wxfMoves: ['P9+1'] },
+      ],
+    };
+    suggestions.renderExplorer(cloud, () => undefined);
+    assert.equal(suggestions.engineResult, undefined);
+    assert.equal(arrowUpdates, 1);
+    assert.equal(document.querySelector('#xiangqi-cloud-badge')!.hasAttribute('hidden'), false);
+    assert.equal(document.querySelector('#xiangqi-engine-score')!.textContent, '+1.25');
+    assert.equal(document.querySelectorAll('#xiangqi-engine-lines > .pv:not(.placeholder)').length, 1);
+    suggestions.clearResults();
     count = 2;
     mobile = true;
     suggestions.renderEngine(
@@ -1245,15 +1258,21 @@ test('renders mobile engine rows and placeholders from the resolved MultiPV coun
     assert.equal(document.querySelector('#xiangqi-engine-score')!.textContent, '−1.25');
     suggestions.setEvaluation({ redMate: 2 });
     assert.equal(document.querySelector('#xiangqi-engine-score')!.textContent, '+M2');
-    suggestions.resetEvaluation();
     suggestions.setPosition(
       'other b - - 0 1',
       { initialFen: 'other b - - 0 1', moves: [], ruleset: 'unrestricted-v1' },
       () => undefined,
     );
     suggestions.setEvaluation();
-    assert.equal(document.querySelector('#xiangqi-engine-score')!.textContent, '+0.00');
+    assert.equal(document.querySelector('#xiangqi-engine-score')!.textContent, '—');
+    assert.equal(document.querySelector('#xiangqi-eval')!.getAttribute('aria-valuenow'), '50.0');
     assert.equal(document.querySelectorAll('#xiangqi-engine-lines > .pv:not(.placeholder)').length, 0);
+    suggestions.renderExplorer(cloud, () => undefined);
+    assert.equal(document.querySelector('#xiangqi-engine-score')!.textContent, '−1.25');
+    assert.equal(
+      document.querySelector('#xiangqi-engine-lines .xiangqi-engine__score')!.textContent,
+      '−1.25',
+    );
     suggestions.destroy();
   } finally {
     window.matchMedia = originalMatchMedia;
@@ -1452,6 +1471,46 @@ test('exports recursive WXF variations using PGN-style parentheses', () => {
   assert.match(renderXiangqiNotation(tree, initialFen), /P1\+1 \(1\.\.\. H2\+3\) \*$/);
 });
 
+test('Jieqi sibling reveals remain distinguishable in every move tree layout', () => {
+  const tree = createMoveTree({ ...state('root w j - 0 1', 'red', 0), variant: 'jieqi' });
+  for (const reveal of ['chariot', 'horse'])
+    addOrSelectChild(tree, '', {
+      uci: 'c1e3',
+      notation: 'E7+5',
+      chineseNotation: '相七进五',
+      state: { ...state(`${reveal} b j - 1 1`, 'black', 1), variant: 'jieqi', reveal },
+    });
+  const originalMatchMedia = window.matchMedia;
+  try {
+    for (const mobile of [false, true])
+      for (const layout of ['two-column', 'compact'] as const)
+        for (const style of ['english', 'chinese'] as const) {
+          window.matchMedia = () => ({ matches: mobile }) as MediaQueryList;
+          const element = document.createElement('div');
+          let activePath = tree.root.children[0].path;
+          const view = new AnalysisTreeView({
+            element,
+            tree: () => tree,
+            activePath: () => activePath,
+            setActivePath: () => undefined,
+            notationLayout: () => layout,
+            notationStyle: () => style,
+            navigate: () => undefined,
+            commit: () => undefined,
+          });
+          view.render({ scrollToActive: false });
+          const base = style === 'english' ? 'E7+5' : '相七进五';
+          assert.equal(element.querySelector('.move-notation')?.textContent, `${base}→R`);
+          assert.ok(element.querySelector(`[title="${base}→R (c1e3)"]`));
+          activePath = tree.root.children[1].path;
+          view.render({ scrollToActive: false });
+          assert.ok(element.querySelector(`[title="${base}→H (c1e3)"]`));
+        }
+  } finally {
+    window.matchMedia = originalMatchMedia;
+  }
+});
+
 test('shared move tree applies study concealment on desktop and mobile and delegates commands', () => {
   const tree = createMoveTree(state('root w - - 0 1', 'red', 0));
   const first = addOrSelectChild(tree, '', {
@@ -1519,5 +1578,86 @@ test('shared move tree applies study concealment on desktop and mobile and deleg
     assert.equal(element.querySelectorAll('.xiangqi-analysis__move').length, 3);
   } finally {
     window.matchMedia = originalMatchMedia;
+  }
+});
+
+test('Escape dismisses the native analysis move menu', () => {
+  const tree = createMoveTree(state('root w - - 0 1', 'red', 0));
+  const move = addOrSelectChild(tree, '', {
+    uci: 'a4a5',
+    notation: 'P9+1',
+    state: state('next b - - 0 1', 'black', 1),
+  });
+  const element = document.createElement('div');
+  const view = new AnalysisTreeView({
+    element,
+    tree: () => tree,
+    activePath: () => move.path,
+    setActivePath() {},
+    notationLayout: () => 'two-column',
+    navigate() {},
+    commit() {},
+  });
+  document.body.append(element);
+  view.render({ scrollToActive: false });
+  element.querySelector('button')!.dispatchEvent(new window.MouseEvent('contextmenu', { bubbles: true }));
+  assert.ok(document.querySelector('.xiangqi-tree-menu'));
+  document.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape' }));
+  assert.equal(document.querySelector('.xiangqi-tree-menu'), null);
+  element.remove();
+});
+
+test('deleting the selected ancestor commits a valid tree, selection and serialized draft together', () => {
+  for (const deleteActiveLine of [true, false]) {
+    const tree = createMoveTree(state('root w - - 0 1', 'red', 0));
+    const first = addOrSelectChild(tree, '', {
+      uci: 'a4a5',
+      notation: 'P9+1',
+      state: state('first b - - 0 1', 'black', 1),
+    });
+    const second = addOrSelectChild(tree, first.path, {
+      uci: 'a7a6',
+      notation: 'P1+1',
+      state: state('second w - - 0 2', 'red', 2),
+    });
+    const variation = addOrSelectChild(tree, '', {
+      uci: 'c4c5',
+      notation: 'P7+1',
+      state: state('variation b - - 0 1', 'black', 1),
+    });
+    let active = second.path;
+    let committed = false;
+    const element = document.createElement('div');
+    const view = new AnalysisTreeView({
+      element,
+      tree: () => tree,
+      activePath: () => active,
+      setActivePath: path => {
+        active = path;
+      },
+      notationLayout: () => 'two-column',
+      navigate() {},
+      commit() {
+        const draft = serializeMoveTree(tree, tree.root.fen, active);
+        assert.equal(draft.activePath, deleteActiveLine ? '' : second.path);
+        assert.equal(tree.pathExists(deleteActiveLine ? first.path : variation.path), false);
+        committed = true;
+        view.render({ scrollToActive: false });
+      },
+    });
+    document.body.append(element);
+    view.render({ scrollToActive: false });
+    const path = deleteActiveLine ? first.path : variation.path;
+    element
+      .querySelector(`[data-path="${path}"]`)!
+      .dispatchEvent(new window.MouseEvent('contextmenu', { bubbles: true }));
+    const remove = Array.from(document.querySelectorAll<HTMLButtonElement>('.xiangqi-tree-menu button')).find(
+      button => button.textContent?.startsWith('Delete'),
+    )!;
+    remove.click();
+    assert.equal(committed, true);
+    assert.equal(element.querySelectorAll('.xiangqi-analysis__move').length, deleteActiveLine ? 1 : 2);
+    view.closeMenu();
+    element.remove();
   }
 });

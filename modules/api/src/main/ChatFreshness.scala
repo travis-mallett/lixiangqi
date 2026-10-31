@@ -5,11 +5,19 @@ import lila.swiss.{ Swiss, SwissCache }
 import lila.tournament.{ Tournament, TournamentCache }
 
 /* Checks that a chat can still be posted to */
-final class ChatFreshness(tourCache: TournamentCache, swissCache: SwissCache)(using Executor):
+final class ChatFreshness(
+    tourCache: TournamentCache,
+    swissCache: SwissCache,
+    kingdomsRepo: lila.threeKingdoms.GameRepo
+)(using Executor):
 
   def of: PublicSource => Fu[Boolean] =
     case PublicSource.Tournament(id) => tourCache.tourCache.byId(id).mapz(of)
     case PublicSource.Swiss(id) => swissCache.swissCache.byId(id).mapz(of)
+    case PublicSource.ThreeKingdoms(id) =>
+      kingdomsRepo
+        .byId(id)
+        .map(_.exists(g => !g.position.finished || g.movedAt.isAfter(nowInstant.minusSeconds(3600))))
     case _ => fuTrue
 
   def of(tour: Tournament) =

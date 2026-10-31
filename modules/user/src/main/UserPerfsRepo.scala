@@ -21,10 +21,9 @@ final class UserPerfsRepo(c: Coll)(using Executor) extends lila.core.user.PerfsR
   import lila.rating.Perf.perfHandler
   import lila.rating.Glicko.glickoHandler
 
-  private def rankSnapshot(perfs: UserPerfs): RankSnapshot =
-    lila.rating.XiangqiRank.snapshot(
-      perfs.rank(RankTrackId.xiangqi).getOrElse(lila.rating.XiangqiRank.initial)
-    )
+  private def rankSnapshot(perfs: UserPerfs, track: RankTrackId = RankTrackId.xiangqi): RankSnapshot =
+    val policy = lila.rating.RankPolicy(track)
+    policy.snapshot(perfs.rank(track).getOrElse(policy.initial))
 
   def glickoField(perf: PerfKey) = s"$perf.gl"
 
@@ -191,15 +190,20 @@ final class UserPerfsRepo(c: Coll)(using Executor) extends lila.core.user.PerfsR
         val perfs = allPerfs.getOrElse(user.id, lila.rating.UserPerfs.default(user.id))
         WithPerf(user, perfs(perfKey), rankSnapshot(perfs).some)
 
-  def withPerf(user: User, perfKey: PerfKey): Fu[WithPerf] =
+  def withPerf(user: User, perfKey: PerfKey, track: RankTrackId = RankTrackId.xiangqi): Fu[WithPerf] =
     perfsOf(user).dmap: perfs =>
-      WithPerf(user, perfs(perfKey), rankSnapshot(perfs).some)
+      WithPerf(user, perfs(perfKey), rankSnapshot(perfs, track).some)
 
-  def withPerf(us: PairOf[User], perfKey: PerfKey, readPref: ReadPref): Fu[PairOf[WithPerf]] =
+  def withPerf(
+      us: PairOf[User],
+      perfKey: PerfKey,
+      readPref: ReadPref,
+      track: RankTrackId
+  ): Fu[PairOf[WithPerf]] =
     idsMap(List(us._1, us._2), readPref).dmap: allPerfs =>
       def one(user: User) =
         val perfs = allPerfs.getOrElse(user.id, lila.rating.UserPerfs.default(user.id))
-        WithPerf(user, perfs(perfKey), rankSnapshot(perfs).some)
+        WithPerf(user, perfs(perfKey), rankSnapshot(perfs, track).some)
       one(us._1) -> one(us._2)
 
   def perfOf[U: UserIdOf](us: PairOf[U], perfKey: PerfKey, readPref: ReadPref): Fu[PairOf[Perf]] =

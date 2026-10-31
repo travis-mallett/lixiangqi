@@ -19,6 +19,7 @@ body {
       height: 100%;
       overflow: visible;
       pointer-events: none;
+      z-index: $z-cg-below-pieces-1;
 
       line {
         stroke: rgb(var(--xiangqi-last-move-rgb));
@@ -29,42 +30,46 @@ body {
       }
     }
 
-    square.last-move-origin {
-      background: radial-gradient(
-        circle,
-        rgb(var(--xiangqi-last-move-rgb)) 0 11%,
-        transparent 13% 29%,
-        rgb(var(--xiangqi-last-move-rgb)) 31% 36%,
-        #e1faff 38% 42%,
-        transparent 44%
-      );
+    .board-marker.last-move-origin {
+      &::after {
+        background: radial-gradient(
+          circle,
+          rgb(var(--xiangqi-last-move-rgb)) 0 11%,
+          transparent 13% 29%,
+          rgb(var(--xiangqi-last-move-rgb)) 31% 36%,
+          #e1faff 38% 42%,
+          transparent 44%
+        );
+      }
 
       &::before {
         content: '';
         position: absolute;
         inset: 21%;
         border-radius: 50%;
-        box-shadow: 0 0 2cqw 0.5cqw rgb(var(--xiangqi-last-move-rgb) / 0.5);
+        box-shadow: 0 0 calc(var(--board-cell-size) * 0.18) calc(var(--board-cell-size) * 0.045)
+          rgb(var(--xiangqi-last-move-rgb) / 0.5);
       }
     }
 
     .xiangqi-last-move-highlight,
-    square.last-move-destination.xiangqi-motion-underlay::after {
+    .board-marker.last-move-destination.xiangqi-motion-underlay::after {
       inset: 0;
       box-sizing: border-box;
-      border: 0.35cqw solid #e1faff;
+      border: calc(var(--board-cell-size) * 0.0315) solid #e1faff;
       background: none;
       animation: none;
       box-shadow:
-        inset 0 0 0 0.25cqw rgb(var(--xiangqi-last-move-rgb)),
-        0 0 0 0.2cqw rgb(var(--xiangqi-last-move-rgb)),
-        0 0 1.7cqw 0.5cqw rgb(var(--xiangqi-last-move-rgb) / 0.55);
+        inset 0 0 0 calc(var(--board-cell-size) * 0.0225) rgb(var(--xiangqi-last-move-rgb)),
+        0 0 0 calc(var(--board-cell-size) * 0.018) rgb(var(--xiangqi-last-move-rgb)),
+        0 0 calc(var(--board-cell-size) * 0.153) calc(var(--board-cell-size) * 0.045)
+          rgb(var(--xiangqi-last-move-rgb) / 0.55);
     }
 
     // The paper marker is a drawn ring, so the default marker's sweep has
     // nothing to shine through.
     .xiangqi-last-move-highlight::after,
-    square.last-move-destination.xiangqi-motion-underlay::before {
+    .board-marker.last-move-destination.xiangqi-motion-underlay::before {
       content: none;
     }
 

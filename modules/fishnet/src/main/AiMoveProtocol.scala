@@ -31,12 +31,16 @@ private[fishnet] object AiMoveProtocol:
         "gameId" -> work.game.id,
         "turnKey" -> work.turnKey.value,
         "level" -> work.level,
+        "botProfile" -> work.botProfile,
         "position" -> Json.obj(
-          "variant" -> "xiangqi",
+          "variant" -> work.game.initialFen
+            .flatMap(f => Xiangqi.Fen.board(f.value))
+            .fold("xiangqi")(_.variant.key),
           "ruleset" -> work.ruleset.key,
           "legalMoves" -> work.legalMoves.map(_.value),
           "initialFen" -> work.game.initialFen.fold(Xiangqi.startFen)(_.value),
-          "moves" -> work.game.moves.split(' ').filter(_.nonEmpty)
+          "moves" -> work.game.moves.split(' ').filter(_.nonEmpty),
+          "observation" -> work.observation.map(o => Json.obj("fen" -> o.fen, "remaining" -> o.remaining))
         ),
         "clock" -> work.clock.fold[JsValue](JsNull): clock =>
           Json.obj("wtime" -> clock.wtime, "btime" -> clock.btime, "inc" -> clock.inc.value)

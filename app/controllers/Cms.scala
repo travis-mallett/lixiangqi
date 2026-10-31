@@ -102,6 +102,15 @@ final class Cms(env: Env) extends LilaController(env):
       Ok(lila.web.StaticContent.variantsJson)
     )
 
+  def miniXiangqi = Open:
+    Ok.async(views.site.variant.miniXiangqi)
+
+  def threeKingdoms = Open:
+    Ok.async(views.site.variant.threeKingdoms)
+
+  def jieqi = Open:
+    Ok.async(views.site.variant.jieqi)
+
   import chess.variant.Variant
   def variant(key: Variant.LilaKey) = Open:
     (for

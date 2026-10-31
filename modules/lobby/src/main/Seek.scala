@@ -17,7 +17,8 @@ case class Seek(
     variant: Variant.Id,
     daysPerTurn: Option[Days],
     user: LobbyUser,
-    createdAt: Instant
+    createdAt: Instant,
+    gameVariant: String = "xiangqi"
 ):
   inline def id = _id
 
@@ -27,16 +28,20 @@ case class Seek(
     user.id != h.user.id &&
       compatibilityProperties == h.compatibilityProperties
 
-  private def compatibilityProperties = (variant, daysPerTurn)
+  private def compatibilityProperties = (variant, gameVariant, daysPerTurn)
 
   def render: JsObject =
     Json
       .obj(
         "id" -> _id,
         "username" -> user.username,
-        "rank" -> user.rank.publicCode.map(_.value),
-        "variant" -> Json.obj("key" -> realVariant.key),
-        "perf" -> Json.obj("key" -> "xiangqi"),
+        "rank" -> user
+          .rankFor(RankTrackId.from(gameVariant))
+          .publicCode
+          .map(_.value),
+        "variant" -> Json.obj("key" -> (if gameVariant != "xiangqi" then gameVariant
+                                        else realVariant.key.value)),
+        "perf" -> Json.obj("key" -> gameVariant),
         "mode" -> Rated.No.id // protocol compatibility; correspondence challenges are casual
       )
       .add("days" -> daysPerTurn)
@@ -52,13 +57,15 @@ object Seek:
       variant: chess.variant.Variant,
       daysPerTurn: Option[Days],
       user: UserWithPerfs,
-      blocking: lila.core.pool.Blocking
+      blocking: lila.core.pool.Blocking,
+      gameVariant: lila.xiangqi.GameVariant = lila.xiangqi.GameVariant.Xiangqi
   ): Seek = Seek(
     _id = makeId,
     variant = variant.id,
     daysPerTurn = daysPerTurn,
     user = LobbyUser.make(user, blocking),
-    createdAt = nowInstant
+    createdAt = nowInstant,
+    gameVariant = gameVariant.key
   )
 
   def renew(seek: Seek) = Seek(
@@ -66,7 +73,8 @@ object Seek:
     variant = seek.variant,
     daysPerTurn = seek.daysPerTurn,
     user = seek.user,
-    createdAt = nowInstant
+    createdAt = nowInstant,
+    gameVariant = seek.gameVariant
   )
 
   import reactivemongo.api.bson.*

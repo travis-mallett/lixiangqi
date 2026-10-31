@@ -336,13 +336,16 @@ final class GameUi(helpers: Helpers):
               frag(" ", trans.site.by(userIdLink(user.some, None, withOnline = false)))
             },
             separator,
-            variantLink(g.variant, g.perfType)
+            nativeVariantLink(g, g.perfType)
           )
         else
           frag(
             showClock(g),
             separator,
-            if g.fromPosition then g.variant.name else "Xiangqi",
+            if g.isJieqi then trans.site.jieqi()
+            else if g.nativeVariant == lila.xiangqi.GameVariant.MiniXiangqi then trans.site.miniXiangqi()
+            else if g.fromPosition then g.variant.name
+            else "Xiangqi",
             separator,
             rankedName(g.ranked)
           )

@@ -23,13 +23,19 @@ export const join = throttlePromiseDelay(
         }),
         headers: { 'Content-Type': 'application/json' },
       })
-      .then(res => {
+      .then(async res => {
         if (!res.ok)
-          res.json().then(t => {
-            if (t.error) alert(t.error);
+          await res.json().then(async t => {
+            if (t.error) await alert(t.error);
             else site.reload();
           });
-      }, onFail),
+        await reloadNow(ctrl);
+      })
+      .catch(onFail)
+      .finally(() => {
+        ctrl.joinSpinner = false;
+        ctrl.redraw();
+      }),
 );
 
 export const withdraw = throttlePromiseDelay(
@@ -39,7 +45,11 @@ export const withdraw = throttlePromiseDelay(
       .text('/tournament/' + ctrl.data.id + '/withdraw', {
         method: 'POST',
       })
-      .then(() => {}, onFail),
+      .then(() => reloadNow(ctrl), onFail)
+      .finally(() => {
+        ctrl.joinSpinner = false;
+        ctrl.redraw();
+      }),
 );
 
 export const loadPage = throttlePromiseDelay(

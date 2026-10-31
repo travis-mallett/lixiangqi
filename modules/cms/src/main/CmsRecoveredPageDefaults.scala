@@ -271,19 +271,6 @@ object CmsRecoveredPageDefaults:
         |""".stripMargin,
       "/page/userstyles"
     ),
-    "lixiangqi-blog" -> DefaultPage(
-      "Lixiangqi posts",
-      """Official Lixiangqi release notes and engineering updates are currently published with the project rather than through a seeded system blog account.
-        |
-        |* [Repository and README](https://github.com/travis-mallett/lixiangqi)
-        |* [Commit history](https://github.com/travis-mallett/lixiangqi/commits/master)
-        |* [Issue tracker](https://github.com/travis-mallett/lixiangqi/issues)
-        |* [Community blogs](/blog/community)
-        |
-        |This page replaces the Lichess system-account blog link, whose database posts are not part of a clean Lila installation.
-        |""".stripMargin,
-      "/page/lixiangqi-blog"
-    ),
     "learn-from-your-mistakes" -> DefaultPage(
       "Learn from your Xiangqi mistakes",
       """After a game, open the analysis board and request computer analysis. Lixiangqi can mark positions where the evaluation changed sharply.

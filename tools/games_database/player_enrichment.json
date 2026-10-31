@@ -1,0 +1,33 @@
+{
+  "wxf:IGM0012": {
+    "nativeName": "许银川",
+    "fields": {
+      "biography": {
+        "en": "Xu Yinchuan is a Chinese xiangqi grandmaster from Huilai, Guangdong. Born in 1975, he began learning the game as a child and joined the Guangdong provincial team in 1988.",
+        "zh-CN": "许银川，1975年出生于广东惠来，中国象棋特级大师。自幼学习象棋，1988年进入广东省象棋队。"
+      },
+      "biographySources": ["https://en.wikipedia.org/wiki/Xu_Yinchuan"],
+      "photo": {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/0/09/Xu_Yinchuan_2019.png",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:Xu_Yinchuan_2019.png",
+        "credit": "中國新聞網 / Wikimedia Commons",
+        "license": "CC BY 3.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/3.0/"
+      },
+      "gameNames": ["许银川", "許銀川"]
+    }
+  },
+  "wxf:IGM0002": {
+    "nativeName": "胡荣华",
+    "fields": {
+      "biography": {
+        "en": "Hu Ronghua, born in Shanghai in 1945, won fourteen Chinese national individual championships. His first title came in 1960 and his last in 2000. He also represented Shanghai in national team competitions.",
+        "zh-CN": "胡荣华，1945年出生于上海，十四次获得全国象棋个人赛冠军，首次夺冠在1960年，最后一次在2000年。他也曾代表上海参加全国团体赛事。"
+      },
+      "biographySources": [
+        "https://www.xqinenglish.com/index.php?Itemid=526&catid=171&id=177%3Achina-hu-ronghua-igm&lang=en&option=com_content&view=article"
+      ],
+      "gameNames": ["胡荣华", "胡榮華"]
+    }
+  }
+}

@@ -5,21 +5,25 @@
 import type { Hooks, VNode } from 'snabbdom';
 
 import { escapeHtml } from './common';
+import { hanCharacters, usernameMentionPattern, userProfilePath } from './username';
 
 // from https://github.com/bryanwoods/autolink-js/blob/master/autolink.js
 
 /* oxlint-disable no-inferrable-types */
 // Our TS config require explicit type annotation on exported code due to `isolatedDeclarations` flag.
-export const linkRegex: RegExp =
-  /(^|[\s\n\(]|<[A-Za-z]*\/?>)((?:(?:https?|ftp):\/\/|lichess\.org)[\-A-Z0-9+\u0026\u2019@#\/%?=()~_|!:,.;]*[\-A-Z0-9+\u0026@#\/%=~()_|][\-A-Z0-9+\u0026@#\/%=~(_|])/gi;
+export const linkRegex: RegExp = new RegExp(
+  String.raw`(^|[\s\n\(]|<[A-Za-z]*\/?>)((?:(?:https?|ftp):\/\/|lichess\.org)[\-A-Z0-9${hanCharacters}+\u0026\u2019@#\/%?=()~_|!:,.;]*[\-A-Z0-9${hanCharacters}+\u0026@#\/%=~()_|][\-A-Z0-9${hanCharacters}+\u0026@#\/%=~(_|])`,
+  'giu',
+);
 export const newLineRegex: RegExp = /\n/g;
-export const userPattern: RegExp = /(^|[^\w@#/])@([a-z0-9_-]{2,30})/gi;
+export const userPattern: RegExp = usernameMentionPattern;
 export const movePattern: RegExp =
   /\b(\d+)\s*(\.+)\s*(?:[o0-]+[o0]|[NBRQK\u2654\u2655\u2656\u2657\u2658]?[a-h]?[1-8]?[x@]?[a-h][1-8](?:=[NBRQK\u2654\u2655\u2656\u2657\u2658\u2659])?)\+?#?[!\?=]{0,5}/gi;
 /* oxlint-enable no-inferrable-types */
 
 // looks like it has a @mention or #gameid or a url.tld
-export const isMoreThanText = (str: string): boolean => /(\n|(@|#|\.)\w{2,}|(board|game) \d)/i.test(str);
+export const isMoreThanText = (str: string): boolean =>
+  str.includes('@') || /(\n|(#|\.)\w{2,}|(board|game) \d)/i.test(str);
 
 const linkHtml = (href: string, content: string, expandable = true): string =>
   `<a${expandable ? '' : ' class="text"'} target="_blank" rel="nofollow noreferrer" href="${href}">${content}</a>`;
@@ -53,7 +57,7 @@ export function linkReplace(href: string, body?: string, expandable = true): str
 }
 
 export const userLinkReplace = (_: string, prefix: string, user: string): string =>
-  prefix + linkReplace('/@/' + user, '@' + user);
+  prefix + linkReplace(userProfilePath(user), '@' + user);
 
 export const expandMentions = (html: string): string => html.replace(userPattern, userLinkReplace);
 

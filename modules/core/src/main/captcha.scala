@@ -2,7 +2,7 @@ package lila.core
 package captcha
 
 import _root_.chess.Color
-import _root_.chess.format.BoardFen
+import _root_.chess.format.Fen
 
 import lila.core.id.GameId
 
@@ -10,7 +10,7 @@ type Solutions = NonEmptyList[String]
 
 case class Captcha(
     gameId: GameId,
-    fen: BoardFen,
+    fen: Fen.Full,
     color: Color,
     solutions: Solutions,
     moves: Map[String, Vector[String]]

@@ -32,13 +32,14 @@ class StudyDeploymentTests(unittest.TestCase):
         for command in commands:
             tokens = shlex.split(command)
             mounts = [tokens[i + 1] for i, token in enumerate(tokens[:-1]) if token == "-v"]
-            # Both prepare and apply use the migration container; ordinary explorer
-            # service mounts remain read-only. Recovery must work without rebuilding.
+            # Both prepare and apply use the migration container.
+            # Recovery must work without rebuilding.
             self.assertEqual(mounts.count(expected), 2)
             self.assertIn("--phase prepare --catalog /analysis-catalog/xiangqi-games.sqlite3", command)
             self.assertNotIn(remote + "/data/sqlite:/app/data/local:rw", mounts)
         compose = (DEPLOYMENT / "upload/compose.yaml").read_text()
-        self.assertIn("./data/sqlite:/app/data/local:ro", compose)
+        # Player registry updates require the explorer's shared catalog to be writable.
+        self.assertIn("./data/sqlite:/app/data/local:rw", compose)
 
     def test_reset_is_last_migration_before_resuming_writers(self):
         transport = self.transport
@@ -82,6 +83,7 @@ class StudyDeploymentTests(unittest.TestCase):
             Path(self.transport.study_migration_pending(remote.as_posix())).touch()
             with patch.object(self.transport, "study_migration_apply_command", return_value=reset), \
                  patch.object(self.transport, "analysis_migration_apply_command", return_value=":; "), \
+                 patch.object(self.transport, "player_catalog_migration_command", return_value=":; "), \
                  patch.object(self.transport, "rank_migration_commit_command", return_value=":; "), \
                  patch.object(self.transport, "video_migration_commit_command", return_value=":; "), \
                  patch.object(self.transport, "journal_command", return_value=":; "), \
@@ -102,7 +104,8 @@ class StudyDeploymentTests(unittest.TestCase):
         self.assertIn("The packaged native study migration differs from the source", source)
         self.assertIn("The packaged native analysis migration differs from the source", source)
         self.assertIn('"-Dlixiangqi.source=$StageSource"', source)
-        self.assertIn("native-xiangqi/$relative=", source)
+        self.assertIn("@('xiangqi', 'threeKingdomsCore')", source)
+        self.assertIn("native-$nativeModule/$relative=", source)
         self.assertIn("external/pikafish_worker", source)
         self.assertIn("tools/xiangqi_data/pikafish.py", source)
         self.assertIn("Release inputs changed during assembly", source)
@@ -203,7 +206,7 @@ if (($script:stopped -join ',') -ne '100') { throw 'Orphan cleanup did not retai
             (source / "ui/board/src").mkdir(parents=True)
             assets = ("images/board/native.svg", "piece/native/red.svg", "piece/native/back.png", "piece/native/shadow.png")
             catalog = {"boards": [{"geometries": {"xiangqi-9x10": assets[0]}}],
-                       "pieceSets": [{"variants": {"xiangqi": {"back": assets[2], "faces": {"red": {"general": assets[1]}}}}}],
+                       "pieceSets": [{"variants": {"xiangqi": {"back": {"red": assets[2]}, "faces": {"red": {"general": assets[1]}}}}}],
                        "shadows": {"rest": assets[3]}}
             (source / "ui/board/src/catalog.json").write_text(json.dumps(catalog))
             for asset in (*assets, "unlisted.svg"):

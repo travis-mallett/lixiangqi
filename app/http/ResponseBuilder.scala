@@ -74,6 +74,16 @@ trait ResponseBuilder(using Executor)
     then json.dmap(_.withHeaders(VARY -> "Accept").as(JSON))
     else html.dmap(_.withHeaders(VARY -> "Accept"))
 
+  /** Explicit representation negotiation for scoped native HTML adapters. Call only after endpoint scope
+    * checks; ordinary OAuth APIs remain JSON.
+    */
+  def negotiateByAccept(html: => Fu[Result], json: => Fu[Result])(using ctx: Context): Fu[Result] =
+    val result =
+      if HTTPRequest.acceptsJson(ctx.req)
+      then json.dmap(_.withHeaders(VARY -> "Accept").as(JSON))
+      else html.dmap(_.withHeaders(VARY -> "Accept"))
+    if ctx.isOAuth then result.dmap(_.withHeaders(CACHE_CONTROL -> "no-store")) else result
+
   def negotiateJson(result: => Fu[Result])(using Context): Fu[Result] =
     negotiate(
       notFound("This endpoint only returns JSON, add the header `Accept: application/json`".some),

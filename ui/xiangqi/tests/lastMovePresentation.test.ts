@@ -3,7 +3,18 @@ import test from 'node:test';
 
 import { makeRenderer } from '../../board/tests/support/renderer.ts';
 
-test('last-move connector follows moves, orientation, and highlight visibility', () => {
+test('last-move connector follows moves, orientation, and highlight visibility', t => {
+  t.mock.method(window.HTMLElement.prototype, 'getBoundingClientRect', () => ({
+    x: 0,
+    y: 0,
+    left: 0,
+    top: 0,
+    width: 900,
+    height: 1000,
+    right: 900,
+    bottom: 1000,
+    toJSON() {},
+  }));
   const element = document.createElement('div');
   document.body.append(element);
   const ground = makeRenderer(element, {

@@ -4,6 +4,9 @@ package lila.core.game
 object AiLevel:
   val levels = (1 to 720).toList
 
+  /** The ten main setup choices, displayed as difficulty 0 through 9. */
+  val customLevels = List(1, 9, 98, 187, 276, 364, 453, 542, 631, 720)
+
   def name(level: Int): Option[String] =
     Option.when(level >= 1 && level <= 720)(s"Pikafish level $level")
 

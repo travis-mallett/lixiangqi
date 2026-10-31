@@ -194,7 +194,6 @@ test('alternative playback caches the starting evaluation and continues with eng
     evaluate: async (
       position: string,
       _history: unknown,
-      _policy: unknown,
       progress: (analysis: EngineAnalysis) => void,
     ): Promise<EngineAnalysis> => {
       assert.equal(ctrl.moveEvaluationDepth, 1);
@@ -237,7 +236,7 @@ test('a stale deviation evaluation cannot adjudicate the next puzzle', async t =
   let progress!: (analysis: EngineAnalysis) => void;
   internal.xiangqiEngine = {
     stop() {},
-    evaluate: (_fen: string, _history: unknown, _policy: unknown, onProgress: typeof progress) => {
+    evaluate: (_fen: string, _history: unknown, onProgress: typeof progress) => {
       progress = onProgress;
       evaluations++;
       return new Promise<EngineAnalysis>(r => {
@@ -609,7 +608,10 @@ test('failed deviations play defense after 750ms, reveal failure after animation
       return { ...matingAnalysis(['e10d10']), depth: 20, score: { redCp: 800 } };
     },
   };
+  ctrl.lastFeedback = 'good';
+  ctrl.xiangqiBestMove = false;
   await internal.playXiangqiUciAt(ctrl.path, 'a1a4');
+  assert.equal(ctrl.lastFeedback, 'init', 'a rejected move must not retain previous success feedback');
   assert.deepEqual(results, []);
   assert.equal(ctrl.xiangqiFailure, undefined);
   t.mock.timers.tick(749);
@@ -620,6 +622,7 @@ test('failed deviations play defense after 750ms, reveal failure after animation
   assert.deepEqual(results, []);
   t.mock.timers.tick(249);
   assert.equal(ctrl.xiangqiFailure, undefined);
+  assert.equal(ctrl.lastFeedback, 'init', 'defense animation must not imply acceptance');
   t.mock.timers.tick(1);
   assert.equal(ctrl.xiangqiFailure, 'forcedMateLost');
   assert.equal(ctrl.node.uci, 'e10d10');
@@ -680,6 +683,17 @@ test('saved root alternatives use no engine and reveal every nested variation', 
   const { fixturePositions: linePositions } = await import('./positionFixtures.ts');
   t.mock.method(globalThis, 'fetch', async (_url, init) => {
     const body = JSON.parse(init!.body as string);
+    if (body.variation)
+      return new Response(
+        JSON.stringify({
+          moves: body.variation.map((move: string, i: number) => ({
+            move,
+            notation: move,
+            chineseNotation: move,
+            state: linePositions(body.initialFen, [...body.moves, ...body.variation.slice(0, i + 1)]).at(-1)!,
+          })),
+        }),
+      );
     const moves = [...body.moves, body.move];
     const position = linePositions(body.initialFen, moves).at(-1)!;
     return new Response(JSON.stringify({ ...position, notation: body.move, chineseNotation: body.move }));
@@ -753,8 +767,16 @@ test('Solution replaces source history and attempts with only published branches
     const body = JSON.parse(init!.body as string);
     assert.equal(body.initialFen, sourceFen);
     assert.equal(body.moves[0], 'e10d10');
-    const state = linePositions(sourceFen, [...body.moves, body.move]).at(-1)!;
-    return new Response(JSON.stringify({ ...state, notation: body.move, chineseNotation: body.move }));
+    return new Response(
+      JSON.stringify({
+        moves: body.variation.map((move: string, i: number) => ({
+          move,
+          notation: move,
+          chineseNotation: move,
+          state: linePositions(sourceFen, [...body.moves, ...body.variation.slice(0, i + 1)]).at(-1)!,
+        })),
+      }),
+    );
   });
   await (ctrl as any).viewXiangqiSolution();
   assert.equal(ctrl.tree.root.fen, position.fen);
@@ -766,9 +788,75 @@ test('Solution replaces source history and attempts with only published branches
     ['a1a2', 'a1a4'],
   );
   assert.equal(ctrl.boardSetup().canMove, false);
+  const { AnalysisTreeView } = await import('../../xiangqi/src/analysisTreeView.ts');
+  const moves = document.createElement('div');
+  const view = new AnalysisTreeView({
+    element: moves,
+    tree: () => ctrl.tree,
+    activePath: () => ctrl.path,
+    notationLayout: () => 'two-column',
+    navigate: ctrl.userJump,
+    setActivePath() {},
+    commit() {},
+    readOnly: true,
+  });
+  view.render({ scrollToActive: false });
+  // Direct selection must work in reverse order too, without first replaying ancestors.
+  for (const button of [...moves.querySelectorAll<HTMLButtonElement>('button[data-path]')].reverse()) {
+    button.click();
+    assert.equal(ctrl.path, button.dataset.path);
+    assert.equal(ctrl.node.fen, ctrl.tree.nodeAtPath(button.dataset.path!).fen);
+  }
   ctrl.completed = true;
   ctrl.retryPuzzle();
   assert.equal(ctrl.initialNode.fen, position.fen);
   assert.equal(ctrl.initialNode.children.length, 0);
+  assert.equal(ctrl.viewingSolution, false);
+});
+
+test('Solution batches a long line and remains cancellable through Restart', async t => {
+  const options = opts();
+  options.data.puzzle.id = 'batch-cancel';
+  options.data.puzzle.playback.solutions = [['a1a3', 'e10d10', 'a3a4']];
+  const { ctrl } = await readyController(options);
+  ctrl.completed = true;
+  let signal: AbortSignal | undefined;
+  let requests = 0;
+  t.mock.method(globalThis, 'fetch', async (url, init) => {
+    requests++;
+    assert.equal(url, '/api/analysis/variation');
+    assert.deepEqual(JSON.parse(init!.body as string).variation, options.data.puzzle.playback.solutions[0]);
+    signal = init!.signal as AbortSignal;
+    return new Promise<Response>((_resolve, reject) =>
+      signal!.addEventListener('abort', () => reject(signal!.reason)),
+    );
+  });
+  const work = (ctrl as any).viewXiangqiSolution();
+  assert.equal(ctrl.canUseActions(), true);
+  assert.equal(ctrl.canViewSolution(), false);
+  assert.equal(ctrl.viewingSolution, false);
+  ctrl.retryPuzzle();
+  await work;
+  assert.equal(requests, 1);
+  assert.equal(signal!.aborted, true);
+  assert.equal(ctrl.viewingSolution, false);
+  assert.equal(ctrl.initialNode.children.length, 0);
+  assert.equal((ctrl as any).xiangqiBusy, false);
+});
+
+test('Solution request failure releases controls and permits a retry', async t => {
+  const options = opts();
+  options.data.puzzle.playback.solutions = [['a1a7']];
+  const { ctrl } = await readyController(options);
+  ctrl.completed = true;
+  t.mock.method(console, 'error', () => {});
+  t.mock.method(globalThis, 'fetch', async () => {
+    throw new Error('offline');
+  });
+  await (ctrl as any).viewXiangqiSolution();
+  assert.equal(ctrl.canUseActions(), true);
+  assert.equal(ctrl.canViewSolution(), true);
+  assert.equal(ctrl.canRetry(), true);
+  assert.equal(ctrl.xiangqiEngineError, true);
   assert.equal(ctrl.viewingSolution, false);
 });

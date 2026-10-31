@@ -193,11 +193,15 @@ final class PuzzleUi(helpers: Helpers, val bits: PuzzleBits):
                 value := query,
                 cls := "form-control user-autocomplete",
                 placeholder := trans.clas.lichessUsername.txt(),
+                attr("aria-label") := trans.clas.lichessUsername.txt(),
                 autocomplete := "off",
                 dataTag := "span",
                 autofocus
               ),
               submitButton(cls := "button")(trans.puzzle.searchPuzzles.txt())
+            ),
+            Option.when(query.trim.nonEmpty && user.isEmpty)(
+              p(role := "status")(trans.site.usernameNotFound(query))
             ),
             div(cls := "puzzle-of-player__results"):
               (user, puzzles).tupled.map: (u, pager) =>

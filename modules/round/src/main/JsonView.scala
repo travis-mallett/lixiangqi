@@ -65,25 +65,16 @@ final class JsonView(
     pref = prefs(pov.color)
   yield
     import pov.*
-    val presence =
-      if game.isBeingPlayed then
-        game.source match
-          case Some(lila.core.game.Source.Ai) => "ai".some
-          case Some(lila.core.game.Source.Friend) => "friend".some
-          case _ =>
-            game.clockConfig
-              .flatMap(poolApi.homepagePoolOf(_, game.moveTimeLimit))
-              .map(_.value)
-              .orElse("lobby".some)
-      else none
-    val presenceGroup = presence.flatMap: activity =>
-      val featured =
-        game.clockConfig.contains(lila.core.game.RankedGame.xiangqiClock) &&
-          game.moveTimeLimit.contains(lila.core.game.RankedGame.xiangqiMoveTime)
-      Option.when(activity == "lobby" || (activity != "ai" && activity != "friend" && !featured))("other")
+    val (presence, presenceGroup) = lila.core.game.GamePresence(game, poolApi)
     Json
       .obj(
-        "game" -> gameJsonView.baseWithPosition(game, initialFen),
+        "game" -> (gameJsonView.baseWithPosition(game, initialFen) ++ {
+          import lila.xiangqi.XiangqiJson.given
+          Json.obj(
+            "captures" -> lila.xiangqi.Jieqi
+              .captures(game.xiangqi, Some(if color.white then Side.Red else Side.Black))
+          )
+        }),
         "player" -> {
           commonPlayerJson(game, player, users(pov.color), flags) ++ Json
             .obj(
@@ -245,7 +236,7 @@ final class JsonView(
         "game" -> Json
           .obj(
             "id" -> gameId,
-            "variant" -> game.variant,
+            "variant" -> lila.game.JsonView.variant(game),
             "fen" -> fen,
             "turns" -> game.ply,
             "player" -> game.xiangqi.state.turn,

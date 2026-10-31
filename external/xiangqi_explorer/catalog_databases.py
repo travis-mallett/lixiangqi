@@ -87,7 +87,7 @@ def catalog_database_id(value: str | Path) -> str:
 
 def _open_readonly(path: Path) -> sqlite3.Connection:
     connection = sqlite3.connect(
-        f"{path.resolve().as_uri()}?mode=ro&immutable=1",
+        f"{path.resolve().as_uri()}?mode=ro",
         uri=True,
         timeout=5,
         check_same_thread=False,

@@ -214,7 +214,7 @@ final class PostUi(helpers: Helpers, bits: ForumBits):
                       frag(
                         td(
                           a(cls := "post", href := routes.ForumPost.redirect(view.post.id))(
-                            view.categ.name,
+                            bits.categName(view.categ),
                             " - ",
                             view.topic.name
                           ),

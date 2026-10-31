@@ -17,7 +17,7 @@ final class CrudApi(tournamentRepo: TournamentRepo, tourApi: TournamentApi, crud
     crudForm.edit(tour)
 
   def update(old: Tournament, data: CrudForm.Data)(using MyId) =
-    tourApi.updateTour(old, data.setup, data.update(old)).void
+    tourApi.updateTour(old, data.setup, data.update).void
 
   def createForm(using Me) = crudForm(none)
 

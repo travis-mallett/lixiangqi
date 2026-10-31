@@ -46,7 +46,7 @@ def generate(count: int, seed: int):
         # Independent settings explore the parameter space rather than assuming a strength curve.
         nodes = round(LOW.nodes * (HIGH.nodes / LOW.nodes) ** rng.random())
         multipv = rng.randint(1, 16)
-        rank = round(rng.uniform(1, min(9, multipv)), 6)
+        rank = round(rng.uniform(1, min(LOW.expected_rank, multipv)), 6)
         loss = rng.randint(0, 600)
         key = (nodes, multipv, rank, loss)
         if key not in seen:

@@ -20,8 +20,10 @@ trait GameHelper:
       .flatMap(clock => g.moveTimeLimit.map(clock.config -> _))
       .fold(speedName): (clock, limit) =>
         s"$speedName (${clock.show} · ${shortMoveTimeLimitName(limit)})"
-    val variant = g.variant.exotic.so(s" ${g.variant.name}")
-    s"$speed$variant Xiangqi • ${playerText(g.whitePlayer)} vs ${playerText(g.blackPlayer)}"
+    val variant = if g.isJieqi then trans.site.jieqi.txt()
+    else if g.nativeVariant == lila.xiangqi.GameVariant.MiniXiangqi then trans.site.miniXiangqi.txt()
+    else "Xiangqi"
+    s"$speed $variant • ${playerText(g.whitePlayer)} vs ${playerText(g.blackPlayer)}"
 
   def shortClockName(clock: Option[Clock.Config])(using t: Translate): Frag =
     clock.fold[Frag](trans.site.unlimited())(shortClockName)
@@ -152,6 +154,30 @@ trait GameHelper:
 
   def aiNameFrag(level: Int)(using Translate) =
     raw(aiName(level).replace(" ", "&nbsp;"))
+
+  def nativeVariantLink(
+      game: Game,
+      pk: PerfKey,
+      initialFen: Option[chess.format.Fen.Full] = None
+  )(using Translate): Frag =
+    nativeVariantLink(game.nativeVariant, game.variant, pk, initialFen)
+
+  def nativeVariantLink(
+      nativeVariant: lila.xiangqi.GameVariant,
+      variant: chess.variant.Variant,
+      pk: PerfKey,
+      initialFen: Option[chess.format.Fen.Full]
+  )(using Translate): Frag =
+    nativeVariant match
+      case lila.xiangqi.GameVariant.Jieqi =>
+        a(cls := "variant-link", href := s"${routes.Lobby.home}?variant=jieqi")(trans.site.jieqi())
+      case lila.xiangqi.GameVariant.MiniXiangqi =>
+        a(cls := "variant-link", href := s"${routes.Lobby.home}?variant=minixiangqi")(
+          trans.site.miniXiangqi()
+        )
+      case lila.xiangqi.GameVariant.Xiangqi => variantLink(variant, pk, initialFen, shortName = true)
+      case lila.xiangqi.GameVariant.ThreeKingdoms =>
+        a(cls := "variant-link", href := "/three-kingdoms")(trans.site.threeKingdoms())
 
   def variantLink(
       variant: chess.variant.Variant,

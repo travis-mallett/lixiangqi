@@ -10,8 +10,8 @@ import playerInfo from './playerInfo';
 import tourTable from './table';
 import teamInfo from './teamInfo';
 
-function joinTheGame(gameId: string) {
-  return h('a.tour__ur-playing.button.is.is-after', { attrs: { href: '/' + gameId } }, [
+function joinTheGame(url: string) {
+  return h('a.tour__ur-playing.button.is.is-after', { attrs: { href: url } }, [
     i18n.site.youArePlaying,
     h('br'),
     i18n.site.joinTheGame,
@@ -28,9 +28,16 @@ export const name = 'started';
 
 export function main(ctrl: TournamentController): MaybeVNodes {
   const gameId = ctrl.myGameId();
+  const kingdomsId = ctrl.data.me?.kingdomsGameId;
   return [
     header(ctrl),
-    gameId ? joinTheGame(gameId) : ctrl.isIn() ? notice(ctrl) : null,
+    kingdomsId
+      ? joinTheGame(`/three-kingdoms/game/${kingdomsId}`)
+      : gameId
+        ? joinTheGame('/' + gameId)
+        : ctrl.isIn()
+          ? notice(ctrl)
+          : null,
     teamStanding(ctrl, 'started'),
     controls(ctrl),
     standing(ctrl, 'started'),

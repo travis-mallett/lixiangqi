@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="496" height="896" viewBox="0 0 496 896">
+  <title>LiXiangQi paper Banqi board</title>
+  <desc>Four columns and eight rows of 100-unit square cells. Grid bounds (48,48) to (448,848). Ink, line weights, and playing frame match paper-board.svg. Styles synchronized by bin/gen/banqi-board-styles.mjs.</desc>
+
+  <rect id="banqi-paper" x="0" y="0" width="496" height="896" fill="#f2f1ec"/>
+  <defs>
+
+  </defs>
+  <g id="banqi-artwork" fill="none" stroke="#cd7770" stroke-linecap="butt" stroke-linejoin="miter" opacity="1">
+
+
+
+    <rect id="banqi-playing-frame" x="42" y="42" width="412" height="812" stroke-width="5.5" stroke="#d44b42"/>
+
+    <g id="banqi-grid" stroke-width="1.4" data-columns="4" data-rows="8" data-cell-size="100">
+      <rect id="banqi-grid-bounds" x="48" y="48" width="400" height="800"/>
+      <path id="banqi-grid-columns" d="M148 48V848 M248 48V848 M348 48V848"/>
+      <path id="banqi-grid-rows" d="M48 148H448 M48 248H448 M48 348H448 M48 448H448 M48 548H448 M48 648H448 M48 748H448"/>
+    </g>
+  </g>
+</svg>

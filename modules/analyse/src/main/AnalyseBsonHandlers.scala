@@ -8,21 +8,7 @@ import lila.db.dsl.given
 import lila.tree.{ Analysis, Info }
 
 object AnalyseBsonHandlers:
-  private given BSONHandler[lila.xiangqi.Xiangqi.Uci] = lila.db.dsl.tryHandler(
-    { case BSONString(value) => scala.util.Try(lila.xiangqi.Xiangqi.Uci.unsafe(value)) },
-    move => BSONString(move.value)
-  )
-  private given BSONHandler[lila.xiangqi.adjudication.Ruleset] = lila.db.dsl.tryHandler(
-    { case BSONString(value) =>
-      lila.xiangqi.adjudication.Ruleset
-        .fromKey(value)
-        .left
-        .map(error => new IllegalArgumentException(error))
-        .toTry
-    },
-    ruleset => BSONString(ruleset.key)
-  )
-  private given BSONDocumentHandler[lila.xiangqi.Xiangqi.Position] = Macros.handler
+  private given BSONDocumentHandler[lila.xiangqi.Xiangqi.Position] = lila.db.XiangqiBson.positionHandler
 
   given BSONWriter[Analysis.Id] = BSONWriter(id => BSONString(id.value))
 

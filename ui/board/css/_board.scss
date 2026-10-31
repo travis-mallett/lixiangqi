@@ -1,6 +1,7 @@
-// Shared rectangular-board presentation. Geometry comes from each board definition.
+// Shared board presentation. Renderer adapters supply geometry and piece orientation.
 
 @import 'pieces';
+@import 'graph';
 
 // One revolution of the previous-move shine. The marker sweeps a bright sector
 // around the piece it marks, and breathes in step with that sweep.
@@ -8,8 +9,8 @@ $xiangqi-last-move-cycle: 3.3s;
 
 // Hide the entire stack until its faces and shadow textures decode. Once
 // ready, normal visibility inheritance still governs hidden boards/tooltips.
-body:not(.piece-images-ready) .lixiangqi-board cg-board > piece,
-body:not(.piece-images-ready) .lixiangqi-board cg-board .xiangqi-piece-shadow {
+body:not(.piece-images-ready) .lixiangqi-board :is(cg-board, .board-surface) > piece,
+body:not(.piece-images-ready) .lixiangqi-board :is(cg-board, .board-surface) .xiangqi-piece-shadow {
   visibility: hidden;
 }
 
@@ -20,6 +21,13 @@ body:not(.piece-images-ready) .lixiangqi-board cg-board .xiangqi-piece-shadow {
 .mini-board.xiangqi9x10,
 .mini-game .cg-wrap.xiangqi9x10 {
   padding-bottom: calc(10 * 100% / 9);
+}
+
+// Each mounted board supplies its own artwork ratio, including mixed-variant previews.
+.main-board:has(> .lixiangqi-board),
+.mini-board.lixiangqi-board,
+.mini-game .lixiangqi-board {
+  padding-bottom: calc(100% / var(--board-aspect-ratio));
 }
 
 .lixiangqi-board.cg-static-preview {
@@ -42,11 +50,25 @@ body:not(.piece-images-ready) .lixiangqi-board cg-board .xiangqi-piece-shadow {
 .lixiangqi-board {
   container-type: inline-size;
 
+  --board-cell-size: calc(100cqw * var(--board-layout-width, 1) / var(--board-columns, 9));
+
+  // Theme artwork and the renderer share the same inset cell rectangle.
+  cg-container {
+    left: calc(100% * var(--board-layout-left, 0));
+    top: calc(100% * var(--board-layout-top, 0));
+    width: calc(100% * var(--board-layout-width, 1));
+    height: calc(100% * var(--board-layout-height, 1));
+    right: auto;
+  }
+
   // A board also renders outside the website's body-level appearance classes.
   cg-board::before {
-    background-image: var(---board-image);
-    top: 0;
-    height: 100%;
+    background-image: var(--board-image);
+    left: calc(-100% * var(--board-layout-left, 0) / var(--board-layout-width, 1));
+    top: calc(-100% * var(--board-layout-top, 0) / var(--board-layout-height, 1));
+    width: calc(100% / var(--board-layout-width, 1));
+    height: calc(100% / var(--board-layout-height, 1));
+    background-size: 100% 100%;
   }
 
   // Xiangqi board artwork defines its own edge treatment. Do not impose the
@@ -63,13 +85,35 @@ body:not(.piece-images-ready) .lixiangqi-board cg-board .xiangqi-piece-shadow {
     height: calc(100% / var(--board-rows, 10));
   }
 
-  cg-board > piece {
+  :is(cg-board, .board-surface) > piece {
     isolation: isolate;
     background-image: none !important;
     filter: none;
   }
 
-  cg-board > piece::after {
+  // Scale artwork inside each cell, never the renderer's translated piece node.
+  :is(cg-board, .board-surface) > piece::after,
+  .xiangqi-motion-camera,
+  .xiangqi-motion-shadow-contact,
+  .xiangqi-motion-shadow-airborne,
+  .xiangqi-last-move-highlight,
+  .board-marker.last-move-origin::before,
+  .board-marker.last-move-origin::after,
+  .xiangqi-lift-origin::after,
+  .xiangqi-move-dest::after,
+  .board-marker.last-move-destination.xiangqi-motion-underlay::before,
+  .board-marker.last-move-destination.xiangqi-motion-underlay::after,
+  square.check::after {
+    scale: var(--board-piece-scale, 1);
+  }
+
+  cg-container > piece.ghost,
+  cg-auto-pieces > piece {
+    background-position: center;
+    background-size: calc(100% * var(--board-piece-scale, 1));
+  }
+
+  :is(cg-board, .board-surface) > piece::after {
     content: '';
     position: absolute;
     pointer-events: none;
@@ -78,18 +122,34 @@ body:not(.piece-images-ready) .lixiangqi-board cg-board .xiangqi-piece-shadow {
   // Clip decorative shadow textures at the board edge without clipping draggable pieces.
   .xiangqi-shadow-layer {
     position: absolute;
-    inset: 0;
+    left: calc(-100% * var(--board-layout-left, 0) / var(--board-layout-width, 1));
+    top: calc(-100% * var(--board-layout-top, 0) / var(--board-layout-height, 1));
+    width: calc(100% / var(--board-layout-width, 1));
+    height: calc(100% / var(--board-layout-height, 1));
     z-index: 0;
-    overflow: hidden;
+
+    // Cover the artwork, then clip both paint and scroll overflow at its edge.
+    // A clip-path alone leaves the oversized texture boxes in the page's scroll bounds.
+    overflow: clip;
+    pointer-events: none;
+  }
+
+  .board-marker {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: $z-cg-below-pieces-1;
     pointer-events: none;
   }
 
   // A board-level companion keeps every contact shadow below every face.
   // Piece transforms/isolation must never contain a resting shadow.
-  cg-board .xiangqi-piece-shadow {
+  :is(cg-board, .board-surface) .xiangqi-piece-shadow {
     position: absolute;
-    top: 0;
-    left: 0;
+    top: calc(100% * var(--board-layout-top, 0));
+    left: calc(100% * var(--board-layout-left, 0));
+    width: calc(100% * var(--board-layout-width, 1) / var(--board-columns, 9));
+    height: calc(100% * var(--board-layout-height, 1) / var(--board-rows, 10));
     z-index: 0;
     pointer-events: none;
     will-change: transform;
@@ -99,7 +159,7 @@ body:not(.piece-images-ready) .lixiangqi-board cg-board .xiangqi-piece-shadow {
     }
   }
 
-  cg-board > piece::after {
+  :is(cg-board, .board-surface) > piece::after {
     z-index: 2;
     inset: 0;
     background-image: var(--xiangqi-piece-image);
@@ -107,6 +167,12 @@ body:not(.piece-images-ready) .lixiangqi-board cg-board .xiangqi-piece-shadow {
     background-repeat: no-repeat;
     background-size: contain;
     filter: var(--cg-piece-brightness, none);
+  }
+
+  // Static and lifted faces keep the topology adapter's file/seat orientation.
+  :is(cg-board, .board-surface) > piece::after,
+  .xiangqi-motion-face {
+    rotate: var(--board-face-rotation, 0deg);
   }
 
   .xiangqi-last-move-highlight {
@@ -132,7 +198,7 @@ body:not(.piece-images-ready) .lixiangqi-board cg-board .xiangqi-piece-shadow {
   // from under the piece, sweeps up one side, and flashes across the top -
   // the side the board's own light comes from - before settling again.
   .xiangqi-last-move-highlight::after,
-  square.last-move-destination.xiangqi-motion-underlay::before {
+  .board-marker.last-move-destination.xiangqi-motion-underlay::before {
     content: '';
     position: absolute;
     inset: -2%;
@@ -173,11 +239,11 @@ body:not(.piece-images-ready) .lixiangqi-board cg-board .xiangqi-piece-shadow {
     inset: 0;
   }
 
-  cg-board > piece.xiangqi-motion-piece {
+  :is(cg-board, .board-surface) > piece.xiangqi-motion-piece {
     z-index: 30;
   }
 
-  cg-board > piece.xiangqi-motion-piece::after {
+  :is(cg-board, .board-surface) > piece.xiangqi-motion-piece::after {
     content: none;
   }
 
@@ -237,9 +303,21 @@ body:not(.piece-images-ready) .lixiangqi-board cg-board .xiangqi-piece-shadow {
     filter: var(--cg-piece-brightness, none);
   }
 
+  .jieqi-reveal-stack {
+    backface-visibility: visible;
+
+    .xiangqi-motion-face {
+      backface-visibility: hidden;
+    }
+
+    .jieqi-reveal-front {
+      transform: rotateX(180deg);
+    }
+  }
+
   .xiangqi-motion-rim {
     position: absolute;
-    inset: 6.25%;
+    inset: calc(50% * (1 - var(--board-piece-diameter, 0.9)));
     box-sizing: border-box;
     border: 1px solid rgb(30 16 10 / 0.28);
     border-radius: 50%;
@@ -262,8 +340,25 @@ body:not(.piece-images-ready) .lixiangqi-board cg-board .xiangqi-piece-shadow {
     will-change: opacity;
   }
 
-  square {
+  .jieqi-reveal-body {
+    transform: none;
+    background:
+      repeating-linear-gradient(88deg, transparent 0 7%, rgb(110 65 20 / 0.08) 7.5%, transparent 8%),
+      radial-gradient(circle at 36% 25%, rgb(255 255 255 / 0.25), transparent 65%),
+      var(--xiangqi-piece-depth-color, #eabb80);
+  }
+
+  square,
+  .board-marker,
+  .graph-board__location {
     &.last-move-origin {
+      background: none;
+    }
+
+    &.last-move-origin::after {
+      content: '';
+      position: absolute;
+      inset: 0;
       background: radial-gradient(
         circle,
         rgb(var(--xiangqi-last-move-rgb) / 0.98) 0 9%,
@@ -326,7 +421,7 @@ body:not(.piece-images-ready) .lixiangqi-board cg-board .xiangqi-piece-shadow {
   // Selection feedback belongs to the piece-lift system. Xiangqi therefore
   // uses the mockup's ring and destination markers instead of Chessground's
   // legacy filled selection square and occupied-destination treatment.
-  square.xiangqi-lift-origin {
+  .xiangqi-lift-origin {
     z-index: $z-cg-below-pieces-1;
     background: none;
 
@@ -341,7 +436,7 @@ body:not(.piece-images-ready) .lixiangqi-board cg-board .xiangqi-piece-shadow {
     }
   }
 
-  square.xiangqi-move-dest {
+  .xiangqi-move-dest {
     z-index: $z-cg-below-pieces-1;
     background: none;
     pointer-events: auto;
@@ -357,13 +452,36 @@ body:not(.piece-images-ready) .lixiangqi-board cg-board .xiangqi-piece-shadow {
       background: rgb(40 105 46 / 0.62);
       box-shadow: 0 0 0 1px rgb(243 255 226 / 0.35);
     }
+
+    // Keep the same center-dot marker visible on occupied capture squares.
+    &.oc {
+      z-index: $z-cg__piece-2 + 1;
+    }
+  }
+}
+
+.lixiangqi-board.graph-board {
+  .board-surface > piece,
+  .board-surface .xiangqi-piece-shadow {
+    position: absolute;
+    width: var(--graph-piece-width);
+    height: var(--graph-piece-height);
+    top: 0;
+    left: 0;
+    pointer-events: none;
+  }
+
+  :where(.board-surface) > piece {
+    z-index: $z-cg__piece-2;
+  }
+
+  .board-surface > piece.dragging {
+    z-index: 40;
   }
 }
 
 .lixiangqi-board[data-board-coordinates='xiangqi'] {
-  // The playable grid is the inner 800x900 rectangle in the 900x1000 board
-  // artwork. The 816x916 rectangle around it is a decorative border, leaving
-  // an exact 42-unit band between that border and each horizontal board edge.
+  // Coordinates use the same inset viewport as the pieces and grid.
   // Keep Chessground's native coordinate rows, but paint the public-domain
   // CNS11643 Kai glyph outlines used by the source Wikipedia board.
   coords.top,
@@ -371,9 +489,9 @@ body:not(.piece-images-ready) .lixiangqi-board cg-board .xiangqi-piece-shadow {
     left: 0;
     z-index: $z-cg-below-pieces-1;
     width: 100%;
-    height: 4.2%;
+    height: calc(42% / var(--board-rows));
     align-items: center;
-    background-image: url('../images/board/svg/xiangqi-file-coordinates.svg');
+    background-image: var(--board-coordinate-image);
     background-repeat: no-repeat;
     background-size: 100% 400%;
     text-align: center;
@@ -387,7 +505,7 @@ body:not(.piece-images-ready) .lixiangqi-board cg-board .xiangqi-piece-shadow {
     }
 
     coord {
-      flex: 1 1 calc(100% / 9);
+      flex: 1 1 calc(100% / var(--board-columns));
       padding: 0;
       color: transparent;
     }
@@ -438,6 +556,18 @@ body:not(.piece-images-ready) .lixiangqi-board cg-board .xiangqi-piece-shadow {
   overflow: hidden;
   pointer-events: none;
 
+  span.xiangqi-board-animation__image {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 1;
+    line-height: 1;
+    font-size: clamp(1.5rem, 6vw, 5rem);
+    text-align: center;
+    font-weight: bold;
+    color: #ffd36a;
+    text-shadow: 0 2px 4px #362209;
+  }
+
   &__image {
     display: block;
     width: 45%;
@@ -448,6 +578,21 @@ body:not(.piece-images-ready) .lixiangqi-board cg-board .xiangqi-piece-shadow {
   &--checkmate &__image {
     width: 90%;
   }
+
+  &--localized &__image {
+    position: absolute;
+    width: 24%;
+    transform: translate(-50%, -50%);
+  }
+
+  &--localized#{&}--checkmate &__image {
+    width: 40%;
+  }
+}
+
+piece.fallen-general {
+  opacity: 0.5;
+  filter: grayscale(1);
 }
 
 // Previous-move motion. The sector carries the marker around the piece in one

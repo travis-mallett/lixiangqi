@@ -62,6 +62,7 @@ from .workers import (
 DEFAULT_DATABASE = Path("data/local/xiangqi-puzzle-mining.sqlite3")
 # Player-only branching with shortest-path reconciliation and a puzzle deadline.
 CHECKMATE_VERIFIER_VERSION = "6"
+TACTIC_VERIFIER_VERSION = "tactic-2"
 TIMING_LOG = Path("data/local/puzzle-verification-timing.jsonl")
 
 
@@ -96,7 +97,7 @@ class VerifierConfig(SolverConfig):
 
 @dataclass(frozen=True)
 class TacticVerifierConfig(TacticSolverConfig):
-    version: str = "tactic-1"
+    version: str = TACTIC_VERIFIER_VERSION
     engine_threads: int = 1
     hash_mb: int = 128
 
@@ -128,35 +129,8 @@ from .verification_store import (
 
 
 def verify_candidate(connection, engine, claim, source_path, config, progress=None):
-    if config.candidate_type != "checkmate_candidate":
-        return _verify_candidate(
-            connection, engine, claim, source_path, config, progress
-        )
-    started = time.monotonic()
-    try:
-        with construction_budget(engine, config.construction_seconds):
-            return _verify_candidate(
-                connection, engine, claim, source_path, config, progress
-            )
-    except ConstructionTimeout:
-        # Reset/setup can exhaust the same budget before the solver is entered.
-        result = SolveResult(
-            (),
-            engine.engine_version,
-            engine.nnue,
-            0,
-            0,
-            ("construction_time_limit",),
-            False,
-            metrics={"elapsed_seconds": round(time.monotonic() - started, 3)},
-        )
-        return finish_verification(connection, claim, config, engine, result=result)
-
-
-def _verify_candidate(connection, engine, claim, source_path, config, progress=None):
     candidate = claim.candidate
     TIMING_LOG.parent.mkdir(parents=True, exist_ok=True)
-    engine.new_game()
 
     def timing(stage, details):
         record = {
@@ -170,6 +144,33 @@ def _verify_candidate(connection, engine, claim, source_path, config, progress=N
         }
         with TIMING_LOG.open("a", encoding="utf-8") as log:
             log.write(json.dumps(record, separators=(",", ":")) + "\n")
+
+    started = time.monotonic()
+    try:
+        with construction_budget(engine, config.construction_seconds):
+            return _verify_candidate(
+                connection, engine, claim, source_path, config, progress, timing
+            )
+    except ConstructionTimeout:
+        # Reset/setup can exhaust the same budget before the solver is entered.
+        result = SolveResult(
+            (),
+            engine.engine_version,
+            engine.nnue,
+            0,
+            0,
+            ("construction_time_limit",),
+            False,
+            metrics={"elapsed_seconds": round(time.monotonic() - started, 3)},
+        )
+        return finish_verification(
+            connection, claim, config, engine, result=result, timing=timing
+        )
+
+
+def _verify_candidate(connection, engine, claim, source_path, config, progress, timing):
+    candidate = claim.candidate
+    engine.new_game()
 
     def stage(name, action):
         begin = time.perf_counter()
@@ -231,11 +232,13 @@ def _verify_candidate(connection, engine, claim, source_path, config, progress=N
         return stage(
             "verification.persist",
             lambda: finish_verification(
-                connection, claim, config, engine, result=result
+                connection, claim, config, engine, result=result, timing=timing
             ),
         )
     except SolutionRejected as exc:
-        return finish_verification(connection, claim, config, engine, invalid=str(exc))
+        return finish_verification(
+            connection, claim, config, engine, invalid=str(exc), timing=timing
+        )
     except SolutionReview as exc:
         raise VerificationInconclusive(str(exc)) from exc
 
@@ -458,7 +461,7 @@ def parse_args(default_type="checkmate_candidate") -> argparse.Namespace:
         "--max-positions",
         type=int,
         default=4096,
-        help="tactic construction only; checkmates use a 300-second deadline",
+        help="tactic position limit; both constructors use a 300-second deadline",
     )
     parser.add_argument("--max-attempts", type=int, default=3)
     parser.add_argument(
@@ -495,7 +498,8 @@ def main(default_type="checkmate_candidate") -> int:
         )
     tactic = args.candidate_type == "tactic_candidate"
     config = (TacticVerifierConfig if tactic else VerifierConfig)(
-        version=args.version or ("tactic-1" if tactic else CHECKMATE_VERIFIER_VERSION),
+        version=args.version
+        or (TACTIC_VERIFIER_VERSION if tactic else CHECKMATE_VERIFIER_VERSION),
         depth=args.depth,
         max_uncertainty_retries=args.max_uncertainty_retries,
         max_solution_plies=args.max_solution_plies,

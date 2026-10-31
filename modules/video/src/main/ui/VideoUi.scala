@@ -154,7 +154,7 @@ final class VideoUi(helpers: Helpers)(using NetDomain):
           "views" -> trv.mostViewed.txt(),
           "title" -> trv.titleOrder.txt()
         ).map: (key, text) =>
-          st.option(value := key, selected := (control.sort.key == key))(text)
+          VideoSortSelectOption(control.sort, key, text)
       ),
       button(cls := "button", tpe := "submit")(trans.site.apply())
     )
@@ -355,3 +355,9 @@ final class VideoUi(helpers: Helpers)(using NetDomain):
           pagerNext(videos, np => s"${langHref(routes.Video.index)}?${control.queryString}&page=$np")
         )
       )
+
+private[video] object VideoSortSelectOption:
+  import lila.ui.ScalatagsTemplate.*
+
+  def apply(sort: VideoSort, key: String, text: String): Frag =
+    st.option(value := key, (sort.key == key).option(st.selected))(text)

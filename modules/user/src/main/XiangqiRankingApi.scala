@@ -6,7 +6,7 @@ import lila.core.rank.RankTrackId
 import lila.core.rank.RankTrackId.*
 import lila.core.user.LightRank
 import lila.db.dsl.{ *, given }
-import lila.rating.{ UserPerfs, XiangqiRank }
+import lila.rating.{ UserPerfs, RankPolicy }
 
 enum XiangqiPersonalRank:
   case Ranked(place: Int, entry: LightRank)
@@ -18,10 +18,9 @@ final class XiangqiRankingApi(perfsRepo: UserPerfsRepo, userRepo: UserRepo)(usin
 
   import UserPerfs.rankPerfHandler
 
-  def top(nb: Int): Fu[List[LightRank]] =
+  def top(nb: Int, track: RankTrackId = RankTrackId.xiangqi): Fu[List[LightRank]] =
     if nb <= 0 then fuccess(Nil)
     else
-      val track = RankTrackId.xiangqi
       val batchSize = (nb * 3).max(100)
 
       def loop(skip: Int, found: List[LightRank]): Fu[List[LightRank]] =
@@ -53,7 +52,7 @@ final class XiangqiRankingApi(perfsRepo: UserPerfsRepo, userRepo: UserRepo)(usin
                         user = user.light,
                         track = track,
                         score = perf.score,
-                        rank = XiangqiRank.catalog.code(perf.score),
+                        rank = RankPolicy(track).catalog.code(perf.score),
                         progress = perf.progress
                       )
                 if next.size >= nb || docs.size < batchSize then fuccess(next.take(nb))
@@ -64,7 +63,11 @@ final class XiangqiRankingApi(perfsRepo: UserPerfsRepo, userRepo: UserRepo)(usin
   /** The displayed slice together with the exact place of a ranked user. Uses displayed position when
     * available; otherwise counts higher eligible accounts with the same ordering as top.
     */
-  def personal(user: User, displayed: List[LightRank]): Fu[XiangqiPersonalRank] =
+  def personal(
+      user: User,
+      displayed: List[LightRank],
+      track: RankTrackId = RankTrackId.xiangqi
+  ): Fu[XiangqiPersonalRank] =
     if !user.rankable then fuccess(XiangqiPersonalRank.Ineligible)
     else
       displayed.zipWithIndex.find(_._1.user.id == user.id) match
@@ -73,19 +76,23 @@ final class XiangqiRankingApi(perfsRepo: UserPerfsRepo, userRepo: UserRepo)(usin
           perfsRepo
             .byId(user)
             .flatMap: perfs =>
-              perfs.rank(RankTrackId.xiangqi).filter(_.games > 0) match
+              perfs.rank(track).filter(_.games > 0) match
                 case None => fuccess(XiangqiPersonalRank.Unplayed)
-                case Some(perf) => personalByCount(user, perf)
+                case Some(perf) => personalByCount(user, perf, track)
 
-  private def personalByCount(user: User, perf: lila.core.rank.RankPerf): Fu[XiangqiPersonalRank] =
-    val s = "ranks.xiangqi.s"
-    val la = "ranks.xiangqi.la"
+  private def personalByCount(
+      user: User,
+      perf: lila.core.rank.RankPerf,
+      track: RankTrackId
+  ): Fu[XiangqiPersonalRank] =
+    val s = s"ranks.${track.value}.s"
+    val la = s"ranks.${track.value}.la"
     val newer = perf.latest.fold($doc(la -> $doc("$ne" -> reactivemongo.api.bson.BSONNull)))(date =>
       $doc(la -> $doc("$gt" -> date))
     )
     val equal = perf.latest.fold($doc(la -> reactivemongo.api.bson.BSONNull))(date => $doc(la -> date))
     val higher = $doc(
-      "ranks.xiangqi.nb" -> $doc("$gt" -> 0),
+      s"ranks.${track.value}.nb" -> $doc("$gt" -> 0),
       "$or" -> List(
         $doc(s -> $doc("$gt" -> perf.score.value)),
         $doc(s -> perf.score.value) ++ newer,
@@ -116,9 +123,9 @@ final class XiangqiRankingApi(perfsRepo: UserPerfsRepo, userRepo: UserRepo)(usin
           doc.flatMap(_.getAsOpt[Int]("n")).getOrElse(0) + 1,
           LightRank(
             user.light,
-            RankTrackId.xiangqi,
+            track,
             perf.score,
-            XiangqiRank.catalog.code(perf.score),
+            RankPolicy(track).catalog.code(perf.score),
             perf.progress
           )
         )

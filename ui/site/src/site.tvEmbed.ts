@@ -2,14 +2,19 @@ import { initMiniGame, updateMiniGame } from 'lib/view';
 
 function resize() {
   const el = document.querySelector('#featured-game') as HTMLElement;
-  if (el.offsetHeight > window.innerHeight)
-    el.style.maxWidth =
-      window.innerHeight - (el.querySelector('.mini-game__player') as HTMLElement).offsetHeight * 2 + 'px';
+  const player = el.querySelector<HTMLElement>('.mini-game__player');
+  el.style.maxWidth = '';
+  if (player && el.offsetHeight > window.innerHeight)
+    el.style.maxWidth = Math.max(0, window.innerHeight - player.offsetHeight * 2) + 'px';
 }
 
 window.onload = () => {
-  const findGame = () => document.getElementsByClassName('mini-game').item(0) as HTMLElement;
-  const setup = () => initMiniGame(findGame());
+  const findGame = () => document.querySelector<HTMLElement>('.mini-game');
+  const setup = () => {
+    const game = findGame();
+    if (game) initMiniGame(game);
+    resize();
+  };
   setup();
   if (window.EventSource)
     new EventSource(document.body.getAttribute('data-stream-url')!).addEventListener(
@@ -20,7 +25,8 @@ window.onload = () => {
           document.getElementById('featured-game')!.innerHTML = msg.d.html;
           setup();
         } else if (msg.t === 'fen') {
-          updateMiniGame(findGame(), msg.d);
+          const game = findGame();
+          if (game) updateMiniGame(game, msg.d);
         }
       },
       false,

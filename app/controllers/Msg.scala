@@ -7,7 +7,7 @@ import lila.common.Json.given
 
 final class Msg(env: Env) extends LilaController(env):
 
-  def home(before: Option[Long] = None) = AuthOrScoped(_.Web.Mobile) { _ ?=> me ?=>
+  def home(before: Option[Long] = None) = AuthOrScoped(_.Web.Mobile, _.Mobile.Inbox) { _ ?=> me ?=>
     before match
       case None =>
         negotiateApi(
@@ -22,40 +22,41 @@ final class Msg(env: Env) extends LilaController(env):
           yield contacts
   }
 
-  def convo(username: UserStr, before: Option[Long] = None) = AuthOrScoped(_.Web.Mobile) { _ ?=> me ?=>
-    if username.is(UserStr("new"))
-    then Redirect(getUserStr("user").fold(routes.Msg.home())(routes.Msg.convo(_)))
-    else
-      env.msg.api
-        .convoWithMe(username, before)
-        .flatMap:
-          case None => negotiate(Redirect(routes.Msg.home()), notFoundJson())
-          case Some(c) =>
-            def json = inboxJson(c.contact.id.some).map { _ + ("convo" -> env.msg.json.convo(c)) }
-            negotiateApi(
-              html = Ok.async(json.map(views.msg.home)),
-              api = _ => JsonOk(json)
-            ).map(_.hasPersonalData)
+  def convo(username: UserStr, before: Option[Long] = None) = AuthOrScoped(_.Web.Mobile, _.Mobile.Inbox) {
+    _ ?=> me ?=>
+      if username.is(UserStr("new"))
+      then Redirect(getUserStr("user").fold(routes.Msg.home())(routes.Msg.convo(_)))
+      else
+        env.msg.api
+          .convoWithMe(username, before)
+          .flatMap:
+            case None => negotiate(Redirect(routes.Msg.home()), notFoundJson())
+            case Some(c) =>
+              def json = inboxJson(c.contact.id.some).map { _ + ("convo" -> env.msg.json.convo(c)) }
+              negotiateApi(
+                html = Ok.async(json.map(views.msg.home)),
+                api = _ => JsonOk(json)
+              ).map(_.hasPersonalData)
   }
 
-  def search(q: String) = AuthOrScoped(_.Web.Mobile) { _ ?=> me ?=>
+  def search(q: String) = AuthOrScoped(_.Web.Mobile, _.Mobile.Inbox) { _ ?=> me ?=>
     JsonOk:
       q.trim.nonEmptyOption match
         case None => env.msg.json.searchResult(env.msg.search.empty)
         case Some(q) => env.msg.search(q).flatMap(env.msg.json.searchResult)
   }
 
-  def unreadCount = AuthOrScoped(_.Web.Mobile) { _ ?=> me ?=>
+  def unreadCount = AuthOrScoped(_.Web.Mobile, _.Mobile.Inbox) { _ ?=> me ?=>
     JsonOk:
       env.msg.unreadCount.mobile(me)
   }
 
-  def convoDelete(username: UserStr) = AuthOrScoped(_.Web.Mobile) { _ ?=> me ?=>
+  def convoDelete(username: UserStr) = AuthOrScoped(_.Web.Mobile, _.Mobile.Inbox) { _ ?=> me ?=>
     env.msg.api.delete(username) >>
       JsonOk(inboxJson(none))
   }
 
-  def apiPost(username: UserStr) = AuthOrScopedBody(_.Msg.Write) { ctx ?=> me ?=>
+  def apiPost(username: UserStr) = AuthOrScopedBody(_.Msg.Write, _.Mobile.Inbox) { ctx ?=> me ?=>
     val userId = username.id
     if ctx.isWebAuth then // compat: reply
       env.msg.compat

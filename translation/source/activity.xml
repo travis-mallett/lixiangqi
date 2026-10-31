@@ -67,7 +67,7 @@
     <item quantity="other">Competed in %s Swiss tournaments</item>
   </plurals>
   <string name="rankedInSwissTournament">Ranked #%1$s in %2$s</string>
-  <string name="signedUp">Signed up to lixiangqi.org</string>
+  <string name="signedUp">Joined LiXiangQi</string>
   <plurals name="joinedNbTeams">
     <item quantity="one">Joined %s team</item>
     <item quantity="other">Joined %s teams</item>

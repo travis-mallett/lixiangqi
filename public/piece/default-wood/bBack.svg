@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <radialGradient id="wood" cx=".35" cy=".29" r=".75">
+      <stop stop-color="#f3bf86"/><stop offset=".76" stop-color="#f3bb7f"/>
+      <stop offset=".9" stop-color="#dca05c"/><stop offset="1" stop-color="#a17e53"/>
+    </radialGradient>
+    <radialGradient id="face" cx=".4" cy=".28" r=".8">
+      <stop stop-color="#ffdaa0"/><stop offset="1" stop-color="#f2bb7d"/>
+    </radialGradient>
+    <clipPath id="grain"><circle cx="49.5" cy="46" r="36.5"/></clipPath>
+    <g id="knot" fill="none" stroke="#3b3938" stroke-width=".65" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M45.6 10.5h4.1v3.1h-2.6v-1.7h1.3M53.4 15.6h-4.1v-3.1h2.6v1.7h-1.3"/>
+      <path d="M45.6 10.5v4.1l1.5 1M53.4 15.6v-4.1l-1.5-1"/>
+    </g>
+  </defs>
+  <g id="piece-artwork">
+    <circle cx="50" cy="50" r="45" fill="url(#wood)" data-piece-body="true"/>
+    <circle cx="49.5" cy="46" r="37" fill="url(#face)" stroke="#ffe5b8" stroke-width="1.1"/>
+    <g clip-path="url(#grain)" fill="none" stroke="#a97a4f" stroke-width=".45" opacity=".12">
+      <path d="M22 7c8 25-6 44 2 77M27 7c7 25-5 45 2 77M33 7c5 26-4 47 2 77M39 7c4 25-4 47 2 77M47 7c3 24-2 48 1 77M55 7c-4 26 5 49 1 77M64 7c-7 25 5 44 2 77M73 7c-9 25 3 46-2 77"/>
+    </g>
+    <g fill="none" stroke="#3b3938">
+      <circle cx="49.5" cy="46" r="36.3" stroke-width=".9"/>
+      <circle cx="49.5" cy="46" r="30.1" stroke-width=".8"/>
+      <circle cx="49.5" cy="46" r="29" stroke-width=".35"/>
+    </g>
+    <use href="#knot" transform="rotate(0 49.5 46)"/>
+    <use href="#knot" transform="rotate(15 49.5 46)"/>
+    <use href="#knot" transform="rotate(30 49.5 46)"/>
+    <use href="#knot" transform="rotate(45 49.5 46)"/>
+    <use href="#knot" transform="rotate(60 49.5 46)"/>
+    <use href="#knot" transform="rotate(75 49.5 46)"/>
+    <use href="#knot" transform="rotate(90 49.5 46)"/>
+    <use href="#knot" transform="rotate(105 49.5 46)"/>
+    <use href="#knot" transform="rotate(120 49.5 46)"/>
+    <use href="#knot" transform="rotate(135 49.5 46)"/>
+    <use href="#knot" transform="rotate(150 49.5 46)"/>
+    <use href="#knot" transform="rotate(165 49.5 46)"/>
+    <use href="#knot" transform="rotate(180 49.5 46)"/>
+    <use href="#knot" transform="rotate(195 49.5 46)"/>
+    <use href="#knot" transform="rotate(210 49.5 46)"/>
+    <use href="#knot" transform="rotate(225 49.5 46)"/>
+    <use href="#knot" transform="rotate(240 49.5 46)"/>
+    <use href="#knot" transform="rotate(255 49.5 46)"/>
+    <use href="#knot" transform="rotate(270 49.5 46)"/>
+    <use href="#knot" transform="rotate(285 49.5 46)"/>
+    <use href="#knot" transform="rotate(300 49.5 46)"/>
+    <use href="#knot" transform="rotate(315 49.5 46)"/>
+    <use href="#knot" transform="rotate(330 49.5 46)"/>
+    <use href="#knot" transform="rotate(345 49.5 46)"/>
+  </g>
+</svg>

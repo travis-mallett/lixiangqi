@@ -17,6 +17,7 @@ final class UserApi(
     bookmarkApi: lila.bookmark.BookmarkApi,
     crosstableApi: lila.game.CrosstableApi,
     gameCache: lila.game.Cached,
+    kingdomsRepo: lila.threeKingdoms.GameRepo,
     userApi: lila.user.UserApi,
     userRepo: lila.user.UserRepo,
     prefApi: lila.pref.PrefApi,
@@ -65,11 +66,17 @@ final class UserApi(
           import opts.*
           (
             opts.urgent.orLoad(gameProxyRepo.urgentGames(u)).dmap(_.value.headOption),
-            as.filter(me => u.user.isnt(me)).so(me => crosstableApi.nbGames(me.userId, u.id)),
+            as.filter(me => u.user.isnt(me))
+              .so(me =>
+                crosstableApi
+                  .nbGames(me.userId, u.id)
+                  .zip(kingdomsRepo.countWith(me.userId, u.id))
+                  .map(_ + _)
+              ),
             as.isDefined.so(prefApi.followable(u.id)),
             as.map(_.userId).so(relationApi.fetchRelation(_, u.id)),
             bookmarkApi.countByUser(u.user),
-            gameCache.nbPlaying(u.id),
+            gameCache.nbPlaying(u.id).zip(kingdomsRepo.countPlaying(u.id)).map(_ + _),
             gameCache.nbImportedBy(u.id),
             (withTrophies && !u.lame).optionFu(getTrophiesAndAwards(u.user)),
             streamerApi.listed(u.user),

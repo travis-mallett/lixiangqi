@@ -8,38 +8,6 @@ import lila.puzzle.PuzzleTheme
   */
 private[ui] object PuzzleOtherNamedKillLessons:
   val all: List[PuzzleThemeLesson] = List(
-    // First example, 3:26:01.
-    PuzzleThemeLesson(
-      PuzzleTheme.bachelorChariotAttack,
-      "t9qar8u6KIQ",
-      "1r3a3/4k4/4b4/p8/6b2/2p6/P4R1RP/2r1B4/4A2np/2BAK4 w - - 0 1",
-      List(
-        "h4h9" -> true,
-        "e9e10" -> false,
-        "f4f9" -> false,
-        "h2f3" -> true,
-        "e1f1" -> false,
-        "b10b9" -> false,
-        "f9b9" -> false,
-        "c5b5" -> false,
-        "b9f9" -> false,
-        "c3c9" -> false,
-        "f9c9" -> false,
-        "f3h2" -> true,
-        "f1e1" -> false,
-        "g6i8" -> false,
-        "h9d9" -> false,
-        "h2f3" -> true,
-        "e2f3" -> false,
-        "f10e9" -> false,
-        "c9c10" -> true,
-        "e9d10" -> false,
-        "c10d10" -> true
-      ),
-      i.bachelorChariotAttackLesson,
-      i.bachelorChariotAttackFinish,
-      videoStartSeconds = 12361
-    ),
     // First example, 3:27:30.
     PuzzleThemeLesson(
       PuzzleTheme.boldChariotAttack,
@@ -105,24 +73,6 @@ private[ui] object PuzzleOtherNamedKillLessons:
       i.eunuchChasingEmperorKillFinish,
       videoStartSeconds = 12580
     ),
-    // First example, 3:30:24.
-    PuzzleThemeLesson(
-      PuzzleTheme.chariotPawnZugzwang,
-      "t9qar8u6KIQ",
-      "2bak4/4a4/9/p1p6/6p2/4p4/PN6P/9/4K4/2BA1rr2 b - - 0 1",
-      List(
-        "g1g2" -> true,
-        "e2e3" -> false,
-        "e5e4" -> true,
-        "e3d3" -> false,
-        "f1f3" -> true,
-        "c1e3" -> false,
-        "e4e3" -> true
-      ),
-      i.chariotPawnZugzwangLesson,
-      i.chariotPawnZugzwangFinish,
-      videoStartSeconds = 12624
-    ),
     // First example, 3:31:37.
     PuzzleThemeLesson(
       PuzzleTheme.oldPawnSearchingMountain,
@@ -176,24 +126,6 @@ private[ui] object PuzzleOtherNamedKillLessons:
       i.whiteHorseMateLesson,
       i.whiteHorseMateFinish,
       videoStartSeconds = 12830
-    ),
-    // First example, 3:35:13.
-    PuzzleThemeLesson(
-      PuzzleTheme.chariotHorseZugzwang,
-      "t9qar8u6KIQ",
-      "2baka3/1R7/4b4/4R4/4N4/9/9/4B4/5pr2/4K2c1 w - - 0 1",
-      List(
-        "e7e8" -> true,
-        "d10e9" -> false,
-        "e6f8" -> true,
-        "e10d10" -> false,
-        "e8d8" -> true,
-        "e9d8" -> false,
-        "b9d9" -> true
-      ),
-      i.chariotHorseZugzwangLesson,
-      i.chariotHorseZugzwangFinish,
-      videoStartSeconds = 12913
     ),
     // First example, 3:36:24. The source ends after winning a chariot.
     PuzzleThemeLesson(
@@ -369,29 +301,6 @@ private[ui] object PuzzleOtherNamedKillLessons:
       i.crossCheckAttackLesson,
       i.crossCheckAttackFinish,
       videoStartSeconds = 13515
-    ),
-    // First example, 3:45:49.
-    PuzzleThemeLesson(
-      PuzzleTheme.hidingBehindLeavesAttack,
-      "t9qar8u6KIQ",
-      "4k4/9/5R3/5P2r/9/n8/9/4BA3/4Ap3/2BKC4 b - - 0 1",
-      List(
-        "i7i1" -> false,
-        "e2f1" -> true,
-        "f2e2" -> false,
-        "f1e2" -> false,
-        "i1i4" -> false,
-        "e2f1" -> true,
-        "i4e4" -> false,
-        "e1e4" -> false,
-        "a5c4" -> false,
-        "f7e7" -> true,
-        "c4e5" -> false,
-        "f8f9" -> false
-      ),
-      i.hidingBehindLeavesAttackLesson,
-      i.hidingBehindLeavesAttackFinish,
-      videoStartSeconds = 13549
     ),
     // First example, 3:46:39.
     PuzzleThemeLesson(

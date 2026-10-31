@@ -5,7 +5,7 @@ import type { TreeNodeBase, TreeNodeLite, TreePath } from './types';
 
 export const mainlineChild = <T extends TreeNodeBase>(node: T): T | undefined =>
   node.children?.find(child => !child.forceVariation) as T | undefined;
-export function mainlineFirst<T extends TreeNodeBase>(children: T[]): T[] {
+export function mainlineFirst<T extends { forceVariation?: boolean }>(children: T[]): T[] {
   const main = children.find(child => !child.forceVariation);
   return main ? [main, ...children.filter(child => child !== main)] : children;
 }

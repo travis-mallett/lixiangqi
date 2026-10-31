@@ -57,6 +57,8 @@ case class Game(
   export players.{ white as whitePlayer, black as blackPlayer, apply as player }
 
   def position = xiangqi.state
+  def nativeVariant = xiangqi.variant
+  def isJieqi = xiangqi.isJieqi
   def ply = Ply(xiangqi.state.ply)
   def sans = xiangqi.wxf.map(SanStr.apply)
   def turnColor = if xiangqi.state.turn == Xiangqi.Side.Red then Color.White else Color.Black
@@ -203,7 +205,7 @@ case class Game(
   def replayable = isPgnImport || finished || (aborted && bothPlayersHaveMoved)
 
   def fromPosition =
-    variant.fromPosition || xiangqi.initialFen != Xiangqi.startFen || source.has(Source.Position)
+    variant.fromPosition || xiangqi.initialFen != nativeVariant.startFen || source.has(Source.Position)
 
   def sourceIs(f: Source.type => Source): Boolean = source contains f(Source)
   def lobbyOrPool = source.exists(s => s == Source.Lobby || s == Source.Pool)

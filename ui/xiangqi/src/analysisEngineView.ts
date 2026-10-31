@@ -1,6 +1,39 @@
 import { licon } from 'lib/licon';
 
+import type { analysisEngineConfig } from './analysisEngineConfig';
 import type { AnalysisSuggestionElements } from './analysisSuggestions';
+
+export function updateAnalysisEngineIdentity(
+  engine: HTMLElement,
+  gauge: HTMLElement,
+  config: ReturnType<typeof analysisEngineConfig>,
+): void {
+  engine.querySelector('.xiangqi-engine__name')!.textContent = i18n.site.engineOnDevice(config.name);
+  engine.setAttribute('aria-label', i18n.site.engineAnalysisName(config.name));
+  gauge.setAttribute('aria-label', i18n.site.engineRedEvaluation(config.name));
+  const settings = engine.querySelector<HTMLButtonElement>('.xiangqi-icon-button')!;
+  settings.title = settings.ariaLabel = i18n.site.engineSettingsName(config.name);
+  let help = engine.querySelector<HTMLElement>('.xiangqi-engine__help');
+  if (!help) {
+    help = document.createElement('p');
+    help.className = 'xiangqi-engine__help';
+    engine.querySelector('.xiangqi-engine-settings')!.prepend(help);
+  }
+  help.hidden = !config.candidateMoves;
+  help.textContent = i18n.site.jieqiEngineHelp;
+  for (const input of engine.querySelectorAll<HTMLInputElement>('.xiangqi-engine-settings input'))
+    input.closest('label')!.hidden = config.hiddenSettings.includes(input.dataset.setting!);
+  const candidateLabel = engine
+    .querySelector('[data-setting="multipv"]')
+    ?.closest('label')?.firstElementChild;
+  if (candidateLabel) candidateLabel.textContent = i18n.site.multipleLines;
+  engine
+    .querySelector('.xiangqi-engine__lines')!
+    .setAttribute(
+      'aria-label',
+      config.candidateMoves ? i18n.site.engineCandidateMoves : i18n.site.multipleLines,
+    );
+}
 
 export interface AnalysisSetting {
   name: string;
@@ -12,6 +45,41 @@ export interface AnalysisSetting {
   step?: number;
   format?: (value: number) => string;
   change?: (value: number | boolean) => void;
+}
+
+export function bindEngineSettings(button: HTMLButtonElement, panel: HTMLElement): void {
+  const lifetime = new window.AbortController();
+  const close = () => {
+    panel.hidden = true;
+    button.setAttribute('aria-expanded', 'false');
+  };
+  button.addEventListener(
+    'click',
+    () => {
+      panel.hidden = !panel.hidden;
+      button.setAttribute('aria-expanded', String(!panel.hidden));
+    },
+    { signal: lifetime.signal },
+  );
+  document.addEventListener(
+    'pointerdown',
+    event => {
+      if (!panel.hidden && !panel.contains(event.target as Node) && !button.contains(event.target as Node))
+        close();
+    },
+    { signal: lifetime.signal },
+  );
+  panel.addEventListener(
+    'keydown',
+    event => {
+      if (event.key === 'Escape') {
+        close();
+        button.focus();
+      }
+    },
+    { signal: lifetime.signal },
+  );
+  window.addEventListener('pagehide', () => lifetime.abort(), { once: true });
 }
 
 /** Both clients supply state/callbacks; layout and interaction are owned here. */
@@ -65,7 +133,7 @@ export function createAnalysisGauge(): HTMLElement {
   gauge.setAttribute('aria-valuemin', '0');
   gauge.setAttribute('aria-valuemax', '100');
   gauge.setAttribute('aria-valuenow', '50');
-  gauge.innerHTML = '<div class="xiangqi-eval__red"></div><span class="xiangqi-eval__score">+0.00</span>';
+  gauge.innerHTML = '<div class="xiangqi-eval__red"></div><span class="xiangqi-eval__score">—</span>';
   return gauge;
 }
 

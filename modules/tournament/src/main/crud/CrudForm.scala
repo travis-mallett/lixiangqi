@@ -17,7 +17,7 @@ final class CrudForm(repo: TournamentRepo, forms: TournamentForm):
       "image" -> stringIn(imageChoices),
       "headline" -> text(minLength = 5, maxLength = 30),
       "teamBattle" -> boolean,
-      "setup" -> forms.create(Nil).mapping
+      "setup" -> tour.fold(forms.create(Nil))(forms.edit(Nil, _)).mapping
     )(Data.apply)(unapply)
   ).fill(
     Data(

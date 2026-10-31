@@ -17,11 +17,13 @@ export interface ExplorerCtrlOptions {
   gameActions?: (game: ExplorerGame) => { label: string; run: () => void }[];
   onHover?: (move?: string) => void;
   lockedPlayer?: string;
+  lockedPlayerName?: string;
   lockedEvent?: string;
   initialColor?: ExplorerColor;
   initiallyEnabled?: boolean;
   configurationEnabled?: boolean;
   persistPreferences?: boolean;
+  sources?: readonly string[];
 }
 
 export default class ExplorerCtrl {
@@ -34,6 +36,7 @@ export default class ExplorerCtrl {
   private enabledValue = false;
   private position?: ExplorerPosition;
   private controller?: AbortController;
+  private sources?: readonly string[];
 
   constructor(
     readonly element: HTMLElement,
@@ -44,6 +47,7 @@ export default class ExplorerCtrl {
     readonly options: ExplorerCtrlOptions = {},
   ) {
     this.config = this.loadConfig();
+    this.sources = this.options.sources;
     if (this.options.lockedPlayer?.trim()) {
       this.config.db = 'player';
       this.config.player = this.options.lockedPlayer.trim();
@@ -76,6 +80,13 @@ export default class ExplorerCtrl {
     if (JSON.stringify(this.position) === JSON.stringify(position)) return;
     this.position = position;
     if (this.enabledValue) void this.fetch();
+  }
+
+  setSources(sources: readonly string[]): void {
+    if (JSON.stringify(this.sources) === JSON.stringify(sources)) return;
+    this.sources = [...sources];
+    this.data = undefined;
+    if (this.enabledValue && this.config.mode === 'games') void this.fetch();
   }
 
   toggle(): void {
@@ -186,6 +197,7 @@ export default class ExplorerCtrl {
           player: this.config.db === 'player' ? this.config.player : undefined,
           event: this.config.db === 'event' ? this.config.event : undefined,
           color: this.config.color,
+          sources: this.sources,
           since: this.config.since || undefined,
           until: this.config.until || undefined,
         },
@@ -231,7 +243,8 @@ export default class ExplorerCtrl {
       event: '',
       color: 'red',
     };
-    if (this.options.persistPreferences === false) return fallback;
+    if (this.options.persistPreferences === false || this.options.lockedPlayer || this.options.lockedEvent)
+      return fallback;
     try {
       const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') as Partial<ExplorerConfig>;
       const storedDb = stored.db;
@@ -253,7 +266,7 @@ export default class ExplorerCtrl {
   }
 
   private saveConfig(): void {
-    if (this.options.persistPreferences !== false)
+    if (this.options.persistPreferences !== false && !this.options.lockedPlayer && !this.options.lockedEvent)
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.config));
   }
 }

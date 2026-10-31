@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="sections">Sections</string>
+  <string name="introduction">Choose a section to browse topics or start a discussion.</string>
+  <string name="newTopic">New topic</string>
+  <string name="chooseSection">Choose a section for your topic</string>
+  <string name="viewTopics">View topics</string>
+  <string name="latestDiscussion">Latest discussion</string>
+  <string name="noDiscussions">No discussions yet</string>
+  <string name="firstTopic">Start the first topic in this section.</string>
+  <string name="teamBoards">Your team sections</string>
+  <string name="moderatorBoards">Moderator boards</string>
+  <string name="privateDiscussions">Private discussions</string>
+  <string name="moderatorBoardsDescription">Blog discussions and diagnostic reports are kept separate from the community sections.</string>
+  <string name="topic">Topic</string>
+  <string name="blogDiscussions">Community Blog Discussions</string>
+  <string name="blogDiscussionsDescription">Discuss community blog posts.</string>
+  <string name="diagnostics">Diagnostics</string>
+  <string name="diagnosticsDescription">Your diagnostic reports</string>
+  <string name="xiangqiDiscussion">Xiangqi Discussion</string>
+  <string name="xiangqiDiscussionDescription">Discuss xiangqi strategy, news, and events.</string>
+  <string name="gameAnalysis">Game Analysis</string>
+  <string name="gameAnalysisDescription">Share games and analyse positions with the community.</string>
+  <string name="feedback">LiXiangQi Feedback</string>
+  <string name="feedbackDescription">Report problems and suggest improvements to LiXiangQi.</string>
+  <string name="offTopic">Off-Topic</string>
+  <string name="offTopicDescription">Community discussions beyond xiangqi.</string>
+  <string name="diagnosticPrivacy">Only you and the LiXiangQi moderators can see this forum.</string>
+</resources>

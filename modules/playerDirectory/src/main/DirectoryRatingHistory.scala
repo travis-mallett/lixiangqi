@@ -1,6 +1,5 @@
 package lila.playerDirectory
 
-import reactivemongo.api.bson.Macros.Annotations.Key
 import java.time.YearMonth
 import play.api.libs.json.*
 import monocle.syntax.all.*
@@ -9,7 +8,7 @@ import lila.core.playerDirectory.PlayerId
 import chess.rating.Elo
 
 case class DirectoryRatingHistory(
-    @Key("_id") id: PlayerId,
+    id: PlayerId,
     standard: DirectoryRatingHistory.RatingPoints,
     rapid: DirectoryRatingHistory.RatingPoints,
     blitz: DirectoryRatingHistory.RatingPoints
@@ -50,6 +49,11 @@ private object DirectoryRatingPoint extends OpaqueInt[DirectoryRatingPoint]:
     def elo: Elo = Elo(point % 10000)
 
 object DirectoryRatingHistory:
+
+  def fromJson(id: lila.core.playerDirectory.PlayerId, json: JsObject): DirectoryRatingHistory =
+    def points(key: String): RatingPoints =
+      (json \ key).asOpt[List[Int]].getOrElse(Nil).map(DirectoryRatingPoint(_))
+    DirectoryRatingHistory(id, points("standard"), points("rapid"), points("blitz"))
 
   type RatingPoints = List[DirectoryRatingPoint] // chronological order, oldest first
 

@@ -1,0 +1,5 @@
+@import '../abstract/variant-icon';
+
+.variant-icon {
+  @include variant-icon;
+}

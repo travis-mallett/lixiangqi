@@ -46,6 +46,61 @@ from tools.xiangqi_data.tests.test_puzzle_equal_mates import TreeEngine
 
 
 class PuzzleStorageLifecycleTest(unittest.TestCase):
+    def test_persistence_timings_exclude_lock_wait_and_log_after_commit(self):
+        events = []
+
+        def timing(stage, details):
+            self.assertFalse(self.connection.in_transaction)
+            events.append((stage, details))
+
+        claim = self.claim()
+        with patch(
+            "tools.xiangqi_data.puzzle_mining.verification_store.time.perf_counter",
+            side_effect=[10.0, 12.0, 12.5],
+        ):
+            finish_verification(
+                self.connection,
+                claim,
+                self.config,
+                self.engine,
+                result=self.result(),
+                timing=timing,
+            )
+        self.assertEqual(
+            events,
+            [
+                ("verification.lock_wait", {"elapsed_ms": 2000.0}),
+                ("verification.write", {"elapsed_ms": 500.0, "commit": True}),
+            ],
+        )
+
+    def test_tactic_setup_timeout_preserves_existing_verification(self):
+        from tools.xiangqi_data.puzzle_mining.engine import ConstructionTimeout
+        from tools.xiangqi_data.puzzle_mining.verification import (
+            TacticVerifierConfig,
+            verify_candidate,
+        )
+
+        self.verify()
+        previous = self.current()["current_verification_id"]
+        seed_verification(self.connection, "tactic-timeout", reconstruct=True)
+        claim = claim_verification(self.connection, "tactic-timeout", reconstruct=True)
+        timing_log = self.path.parent / "timeout-timing.jsonl"
+        with (
+            patch("tools.xiangqi_data.puzzle_mining.verification.TIMING_LOG", timing_log),
+            patch.object(
+                self.engine, "new_game", side_effect=ConstructionTimeout(), create=True
+            ),
+        ):
+            status, _ = verify_candidate(
+                self.connection, self.engine, claim, None, TacticVerifierConfig()
+            )
+        self.assertEqual(status, "incomplete")
+        self.assertEqual(self.current()["current_verification_id"], previous)
+        self.assertIsNone(self.engine.construction_deadline)
+        events = [json.loads(line)["stage"] for line in timing_log.read_text().splitlines()]
+        self.assertEqual(events, ["verification.lock_wait", "verification.write"])
+
     def test_expired_verifier_cannot_overwrite_reclaimed_job(self):
         from tools.xiangqi_data.puzzle_mining.workers import WorkerClaimLost
 

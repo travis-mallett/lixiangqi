@@ -35,12 +35,25 @@ final class Timeline(env: Env) extends LilaController(env):
   def api = AuthOrScoped():
     apiOutput(getIntAs[Max]("nb").fold(Max(15))(_.atMost(Max(30))))
 
+  def mobile(page: Int) = AuthOrScoped(_.Mobile.Notifications) { _ ?=> me ?=>
+    Reasonable(page, Max(50), notFound):
+      env.timeline.entryApi
+        .mobileEntries(me, page)
+        .map: found =>
+          Ok(
+            Json.obj(
+              "entries" -> found.take(20),
+              "nextPage" -> Option.when(found.size > 20 && page < 50)(page + 1)
+            )
+          )
+  }
+
   private def apiOutput(max: Max)(using ctx: Context, me: Me) = for
     entries <- env.timeline.entryApi.moreUserEntries(me, max, since = getTimestamp("since"))
     users <- env.user.lightUserApi.asyncManyFallback(entries.flatMap(_.userIds).distinct)
     userMap = users.mapBy(_.id)
   yield Ok(Json.obj("entries" -> entries, "users" -> Json.toJsObject(userMap)))
 
-  def unsub(channel: String) = Auth { ctx ?=> me ?=>
+  def unsub(channel: String) = AuthOrScoped(_.Mobile.Forum) { ctx ?=> me ?=>
     env.timeline.unsubApi.set(channel, me, ~get("unsub") == "on").inject(NoContent)
   }

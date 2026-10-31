@@ -61,13 +61,13 @@ opaque type Tokenize = String => PlayerToken
 object Tokenize extends FunctionWrapper[Tokenize, String => PlayerToken]
 
 enum DirectoryPlayerOrder:
-  case name, standard, rapid, blitz, year, follow
+  case name, games, score, standard, rapid, blitz, year, follow
   def key = toString
 
 object DirectoryPlayerOrder:
   def all: List[DirectoryPlayerOrder] = values.toList
   val byKey = values.mapBy(_.key)
-  val default: DirectoryPlayerOrder = name
+  val default: DirectoryPlayerOrder = games
 
 object diacritics:
   private val replacements = List("ö" -> "oe", "ø" -> "o", "å" -> "aa", "ä" -> "ae", "ü" -> "ue", "ß" -> "ss")

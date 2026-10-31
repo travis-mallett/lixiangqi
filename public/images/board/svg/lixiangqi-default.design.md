@@ -11,6 +11,30 @@ Markdown is used because this document is human-readable, diffable in version
 control, and can live beside the asset it describes without becoming a runtime
 dependency.
 
+## Shared geometry (October 2026)
+
+The final board uses the exact shared specification documented in
+`ui/board/README.md`: a 900 × 1000 canvas, 58-unit left/right margins,
+59-unit top/bottom margins, and 98-unit spacing on both axes. Grid margins
+are measured to stroke centers. The outer intersections are (58, 59) and
+(842, 941) in canvas coordinates.
+
+The `board-artwork` group uniformly scales the centered vector artwork by
+0.98. Construction measurements below describe coordinates **before** this
+final transform. The wood background remains full-canvas. This preserves
+the artwork's internal proportions while giving opposite edges equal margins.
+
+`standardXiangqi.geometry.frame` owns the renderer geometry. Live boards and
+image exports use the same `boardLayout` calculation. The renderer viewport
+includes half a cell beyond each outer intersection and occupies
+(9, 10, 882, 980) in canvas coordinates. Hit testing, arrows, motion, and
+coordinates use that viewport.
+
+All piece assets have a 100 × 100 canvas and a 90-unit body centered at (50, 50),
+including the outline. They render at scale 1, producing an 88.2-unit body on
+this board. Piece sizing and the associated shadows and markers are shared;
+there is no wooden-theme size adjustment.
+
 ## Assets
 
 | File | Role |

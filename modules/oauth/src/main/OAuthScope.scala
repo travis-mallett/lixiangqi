@@ -42,6 +42,9 @@ object OAuthScope:
   object Email:
     case object Read extends OAuthScope("email:read", trans.emailRead)
 
+  object Kid:
+    case object Enable extends OAuthScope("kid:enable", I18nKey.site.enableKidMode)
+
   object Challenge:
     case object Read extends OAuthScope("challenge:read", trans.challengeRead)
     case object Write extends OAuthScope("challenge:write", trans.challengeWrite)
@@ -77,6 +80,14 @@ object OAuthScope:
   object Board:
     case object Play extends OAuthScope("board:play", trans.boardPlay)
 
+  object Mobile:
+    case object Account extends OAuthScope("mobile:account", I18nKey.site.security)
+    case object Play extends OAuthScope("mobile:play", I18nKey.site.play)
+    case object Inbox extends OAuthScope("mobile:inbox", I18nKey.site.inbox)
+    case object Forum extends OAuthScope("mobile:forum", I18nKey.site.forum)
+    case object Notifications
+        extends OAuthScope("mobile:notifications", I18nKey("Read and acknowledge notifications"))
+
   object Bot:
     case object Play extends OAuthScope("bot:play", trans.botPlay)
 
@@ -100,6 +111,7 @@ object OAuthScope:
   val all: List[OAuthScope] = List(
     Preference.Read,
     Preference.Write,
+    Kid.Enable,
     Email.Read,
     Challenge.Read,
     Challenge.Write,
@@ -118,6 +130,11 @@ object OAuthScope:
     Follow.Write,
     Msg.Write,
     Board.Play,
+    Mobile.Play,
+    Mobile.Inbox,
+    Mobile.Forum,
+    Mobile.Notifications,
+    Mobile.Account,
     Bot.Play,
     Engine.Read,
     Engine.Write,
@@ -127,30 +144,50 @@ object OAuthScope:
   )
 
   val classified: List[(I18nKey, List[OAuthScope])] = List(
-    I18nKey("User account") -> List(Email.Read, Preference.Read, Preference.Write, Web.Mod),
-    I18nKey("Interactions") -> List(Follow.Read, Follow.Write, Msg.Write),
+    I18nKey("User account") -> List(
+      Email.Read,
+      Preference.Read,
+      Preference.Write,
+      Kid.Enable,
+      Mobile.Account,
+      Web.Mod
+    ),
+    I18nKey("Interactions") -> List(
+      Follow.Read,
+      Follow.Write,
+      Msg.Write,
+      Mobile.Inbox,
+      Mobile.Forum,
+      Mobile.Notifications
+    ),
     I18nKey("Play games") -> List(Challenge.Read, Challenge.Write, Challenge.Bulk, Tournament.Write),
     I18nKey("Teams") -> List(Team.Read, Team.Write, Team.Lead),
     I18nKey("Puzzles") -> List(Puzzle.Read, Puzzle.Write, Puzzle.Publish, Racer.Write),
     I18nKey("Studies & Broadcasts") -> List(Study.Read, Study.Write),
-    I18nKey("External play") -> List(Board.Play, Bot.Play),
+    I18nKey("External play") -> List(Board.Play, Mobile.Play, Bot.Play),
     I18nKey("External engine") -> List(Engine.Read, Engine.Write)
   )
 
   val dangerList: OAuthScopes = OAuthScope.select(
+    _.Mobile.Account,
     _.Team.Lead,
     _.Web.Mod,
     _.Web.Mobile,
     _.Web.Takex3,
-    _.Msg.Write
+    _.Msg.Write,
+    _.Mobile.Forum,
+    _.Mobile.Inbox
   )
 
   val relevantToMods: OAuthScopes = OAuthScope.select(
+    _.Mobile.Account,
     _.Team.Lead,
     _.Web.Mobile,
     _.Web.Takex3,
     _.Web.Mod,
     _.Msg.Write,
+    _.Mobile.Forum,
+    _.Mobile.Inbox,
     _.Board.Play
   )
 

@@ -1,10 +1,7 @@
 import { PikafishBrowserEngine, type PikafishStatus } from 'lib/ceval/engines/pikafishBrowser';
 import type { EngineAnalysis, PikafishHistory, PikafishWork } from 'lib/ceval/engines/pikafishProtocol';
 
-export const XIANGQI_PUZZLE_ENGINE_MOVETIME_MS = 4_000;
-export const XIANGQI_PUZZLE_CONFIRM_DEPTH = 20;
-export const XIANGQI_PUZZLE_CONFIRM_MOVETIME_MS = 2_000;
-export const XIANGQI_PUZZLE_MAX_SEARCH_MS = 15_000;
+export const XIANGQI_PUZZLE_ENGINE_MOVETIME_MS = 3_500;
 export const XIANGQI_PUZZLE_ENGINE_MULTIPV = 1;
 export const puzzleEngineThreads = (cpus = globalThis.navigator?.hardwareConcurrency ?? 2): number =>
   Math.max(1, Math.floor(cpus / 2));
@@ -22,15 +19,9 @@ export type XiangqiPuzzleEngineFactory = (
   status: (status: PikafishStatus) => void,
 ) => XiangqiPuzzleEngineLike;
 
-export interface PuzzleSearchPolicy {
-  extend: (analysis: EngineAnalysis) => boolean;
-  needsConfirmation: (analysis: EngineAnalysis) => boolean;
-}
-
 type Pending = {
   fen: string;
   history?: PikafishHistory;
-  policy?: PuzzleSearchPolicy;
   onProgress?: (analysis: EngineAnalysis) => void;
   resolve: (analysis: EngineAnalysis) => void;
   reject: (error: Error) => void;
@@ -84,7 +75,6 @@ export default class XiangqiPuzzleEngine {
   evaluate(
     fen: string,
     history?: PikafishHistory,
-    policy?: PuzzleSearchPolicy,
     onProgress?: (analysis: EngineAnalysis) => void,
   ): Promise<EngineAnalysis> {
     if (this.destroyed) return Promise.reject(new Error('Pikafish puzzle engine is destroyed'));
@@ -92,7 +82,6 @@ export default class XiangqiPuzzleEngine {
       this.queue.push({
         fen,
         history: history && { ...history, moves: [...history.moves] },
-        policy,
         onProgress,
         resolve,
         reject,
@@ -153,12 +142,6 @@ export default class XiangqiPuzzleEngine {
           history: request.history,
           search: {
             movetime: XIANGQI_PUZZLE_ENGINE_MOVETIME_MS,
-            extension: {
-              minMovetime: XIANGQI_PUZZLE_CONFIRM_MOVETIME_MS,
-              maxMovetime: XIANGQI_PUZZLE_MAX_SEARCH_MS - XIANGQI_PUZZLE_ENGINE_MOVETIME_MS,
-              needed: analysis => request.policy?.extend(analysis) ?? false,
-              complete: analysis => !request.policy?.needsConfirmation(analysis),
-            },
           },
           multiPv: XIANGQI_PUZZLE_ENGINE_MULTIPV,
           threads: puzzleEngineThreads(),

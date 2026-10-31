@@ -5,7 +5,7 @@ import lila.core.rank.{ RankDiff, RankTrackId }
 import lila.core.rank.RankDiff.*
 import lila.db.dsl.*
 import lila.game.Query
-import lila.rating.XiangqiRank
+import lila.rating.RankPolicy
 import lila.report.Suspect
 import lila.user.UserApi
 
@@ -42,33 +42,33 @@ final private class RankRefund(
 
   private def refunds(suspect: Suspect, games: List[Game]): List[Refund] =
     games
-      .foldLeft(Map.empty[UserId, List[(GameId, RankDiff)]]): (all, game) =>
+      .foldLeft(Map.empty[(UserId, RankTrackId), List[(GameId, RankDiff)]]): (all, game) =>
         val lost = for
           opponent <- game.opponentOf(suspect.user)
           victim <- opponent.userId
           rank <- opponent.rank
-          if rank.track == RankTrackId.xiangqi
+          if game.rankTrack.contains(rank.track)
           diff <- rank.diff
           if diff.value < 0
-        yield victim -> (game.id -> RankDiff(-diff.value))
+        yield (victim -> rank.track) -> (game.id -> RankDiff(-diff.value))
         lost.fold(all): (victim, loss) =>
           all.updated(victim, loss :: all.getOrElse(victim, Nil))
-      .map((victim, losses) => Refund(victim, losses))
+      .map((key, losses) => Refund(key._1, key._2, losses))
       .toList
 
   private def applyRefund(refund: Refund): Funit =
     userApi
       .withPerfs(refund.victim)
       .flatMapz: victim =>
-        if victim.perfs.rank(RankTrackId.xiangqi).isEmpty then funit
+        if victim.perfs.rank(refund.track).isEmpty then funit
         else
           userApi
-            .updateRankAtomically(victim.id, RankTrackId.xiangqi, XiangqiRank.initial): perf =>
-              XiangqiRank.restoreLosses(perf, refund.losses)._1
+            .updateRankAtomically(victim.id, refund.track, RankPolicy(refund.track).initial): perf =>
+              RankPolicy(refund.track).restoreLosses(perf, refund.losses)._1
             .flatMap: (before, after) =>
               val restored = for
-                oldRank <- before.rank(RankTrackId.xiangqi)
-                newRank <- after.rank(RankTrackId.xiangqi)
+                oldRank <- before.rank(refund.track)
+                newRank <- after.rank(refund.track)
               yield newRank.score.value - oldRank.score.value
               restored.filter(_ > 0).so(points => notifier.rankRefund(victim.user, points))
 
@@ -76,4 +76,4 @@ private object RankRefund:
 
   val delay = 1.minute
 
-  case class Refund(victim: UserId, losses: List[(GameId, RankDiff)])
+  case class Refund(victim: UserId, track: RankTrackId, losses: List[(GameId, RankDiff)])

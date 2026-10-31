@@ -16,7 +16,10 @@ response to an actual lobby ping and contains only players and games.
 Activity labels are `ai`, `friend`, `puzzle`, `lobby`, or a configured homepage
 pool ID. A page may also declare `activityGroup: "other"`; this contributes an
 identity once to the `other` union across lobby and homepage pool activities.
-Puzzle, AI, and friend activities cannot join that union.
+Puzzle, AI, friend, and Jieqi activities cannot join that union.
+Jieqi uses its ranked pool ID, `jieqi-ai`, and `jieqi-friend`. The gateway
+automatically adds these activities to the `jieqi` union, deduplicating players
+across modes for the homepage card. The dialog shows the individual counts.
 Round player JSON supplies a label only for an ongoing playable player view;
 spectators and finished games are excluded. Puzzle, lobby, and matchmaking
 pages report their current activity through the shared client presence path.

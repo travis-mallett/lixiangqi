@@ -48,7 +48,8 @@ final class SelfReport(
                 val score = pov.player.rank
                   .map(_.score)
                   .getOrElse:
-                    u.perfs.rank(RankTrackId.xiangqi).getOrElse(XiangqiRank.initial).score
+                    val track = RankTrackId.of(pov.game.nativeVariant)
+                    u.perfs.rank(track).getOrElse(lila.rating.RankPolicy(track).initial).score
                 val delayBase =
                   if score.value >= 2100 then 2
                   else if score.value >= 1200 then 10

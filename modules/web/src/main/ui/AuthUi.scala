@@ -9,11 +9,14 @@ import lila.core.misc.AuthCustomUi
 import lila.ui.*
 import lila.ui.ScalatagsTemplate.{ *, given }
 
-final class AuthUi(helpers: Helpers):
+final class AuthUi(helpers: Helpers)(providers: () => List[(String, String)]):
   import helpers.{ *, given }
 
   private def addReferrer(url: String)(using referrer: Option[ValidReferrer]): String =
     referrer.fold(url)(ref => addQueryParam(url, "referrer", ref.value))
+
+  private def providerButtons(using Translate, Option[ValidReferrer]) =
+    lila.ui.ProviderUi(helpers).buttons(providers(), id => addReferrer(routes.ExternalAuth.start(id).url))
 
   private def logoOrConnection(using custom: Option[AuthCustomUi]) = custom match
     case None =>
@@ -37,6 +40,29 @@ final class AuthUi(helpers: Helpers):
       lila.web.ui.bits.logo
     )
 
+  def entry(using ctx: Context, referrer: Option[ValidReferrer]) =
+    Page(trans.site.signIn.txt())
+      .css("bits.auth")
+      .hrefLangs(lila.ui.LangPath(routes.Auth.login)):
+        main(cls := "auth auth-entry box box-pad")(
+          div(cls := "auth__brand")(span(cls := "auth__brand__logo", aria.hidden := "true")),
+          h1(trans.site.welcomeToLiXiangQi()),
+          p(cls := "auth-intro")(trans.site.signInOrCreateAccount()),
+          providerButtons,
+          div(cls := "or-separator")(span(trans.site.orSeparator())),
+          div(cls := "auth-links")(
+            a(href := addReferrer(s"${routes.Auth.login.url}?method=password"))(
+              trans.site.signInWithPassword()
+            ),
+            a(href := addReferrer(s"${routes.Auth.signup.url}?method=email"))(
+              trans.site.createAccountWithEmail()
+            )
+          )
+        )
+
+  private def backToMethods(using Translate, Option[ValidReferrer]) =
+    p(cls := "auth-footer")(a(href := addReferrer(routes.Auth.login.url))(trans.site.otherSignInOptions()))
+
   def login(form: Form[?], isRememberMe: Boolean = true)(using
       TurnstilePublicConfig,
       Option[ValidReferrer]
@@ -50,7 +76,7 @@ final class AuthUi(helpers: Helpers):
       .hrefLangs(lila.ui.LangPath(routes.Auth.login)):
         main(cls := "auth auth-login box box-pad")(
           logoOrConnection,
-          authTabs("login"),
+          h1(trans.site.signInWithPassword()),
           postForm(
             cls := "form3",
             action := addReferrer(routes.Auth.authenticate.url)
@@ -106,13 +132,14 @@ final class AuthUi(helpers: Helpers):
             turnstile.widget(hidden = true),
             turnstile.submit(trans.site.signIn())(testId("login-submit"))
           ),
-          div(cls := "or-separator")(span(trans.site.orSeparator())),
-          a(href := addReferrer(routes.Auth.magicLink.url), cls := "button button-empty magic-link")(
-            trans.site.logInByEmail()
-          )
+          p(cls := "auth-footer")(
+            a(href := addReferrer(routes.Auth.magicLink.url))(trans.site.emailMeSignInLink())
+          ),
+          backToMethods
         )
 
-  def signup(form: Form[?], simple: Boolean)(using
+  def signup(form: Form[?], simple: Boolean, external: Boolean = false, providerEmail: Option[String] = None)(
+      using
       ctx: Context,
       custom: Option[AuthCustomUi]
   )(using TurnstilePublicConfig, Option[ValidReferrer]) =
@@ -130,7 +157,14 @@ final class AuthUi(helpers: Helpers):
           )
         )(
           logoOrConnection,
-          authTabs("signup"),
+          h1(if external then trans.site.finishCreatingAccount() else trans.site.createAccountWithEmail()),
+          external.option(
+            postForm(cls := "auth-intro", action := routes.ExternalAuth.startExisting)(
+              submitButton(cls := "button button-empty")(
+                trans.site.signInToLinkExisting()
+              )
+            )
+          ),
           postForm(
             id := "signup-form",
             cls := "form3",
@@ -141,7 +175,8 @@ final class AuthUi(helpers: Helpers):
             form3.group(
               form("username"),
               trans.site.username(),
-              help = simple.not.option(trans.site.signupUsernameHint())
+              help = simple.not.option(if external then trans.site.externalSignupHelp()
+              else trans.site.signupUsernameHint())
             ): f =>
               frag(
                 div(cls := "text-wrapper")(
@@ -150,7 +185,7 @@ final class AuthUi(helpers: Helpers):
                 ),
                 p(cls := "error username-exists none")(trans.site.usernameAlreadyUsed())
               ),
-            form3.group(form("password"), trans.site.password()): f =>
+            (!external).option(form3.group(form("password"), trans.site.password()): f =>
               frag(
                 div(cls := "password-wrapper")(
                   form3.input(f, typ = "password")(required)(autocomplete := "new-password"),
@@ -162,16 +197,25 @@ final class AuthUi(helpers: Helpers):
                 form3.passwordComplexityMeter(trans.site.newPasswordStrength())(
                   cls := f.value.orZero.isEmpty.option("none")
                 )
-              ),
-            form3.group(
-              form("email"),
-              trans.site.email(),
-              help = simple.not.option(trans.site.signupEmailPromise())
-            ): f =>
-              div(cls := "text-wrapper")(
-                form3.input(f, typ = "email")(required),
-                clearFieldButton
-              ),
+              )),
+            if providerEmail.isDefined && !form.errors.exists(_.key == "email") && form("email").value
+                .forall(providerEmail.contains)
+            then
+              frag(
+                form3.hidden("email", providerEmail.get),
+                p(cls := "form-help")(trans.site.recoveryEmailFromGoogle(providerEmail.get))
+              )
+            else
+              form3.group(
+                form("email"),
+                trans.site.email(),
+                help = simple.not.option(trans.site.signupEmailPromise())
+              ): f =>
+                div(cls := "text-wrapper")(
+                  form3.input(f, typ = "email")(required),
+                  clearFieldButton
+                )
+            ,
             input(id := "signup-fp-input", name := "fp", tpe := "hidden"),
             simple.not.option:
               div(cls := "form-group text", dataIcon := Icon.InfoCircle)(
@@ -193,7 +237,12 @@ final class AuthUi(helpers: Helpers):
             simple.not.option(turnstile.widget(hidden = true)),
             turnstile.submit(trans.site.signUp()),
             simple.option(small(cls := "form-help")(tosLink))
-          )
+          ),
+          if external then
+            postForm(cls := "auth-footer", action := routes.ExternalAuth.cancel)(
+              submitButton(cls := "button button-empty")(trans.site.otherSignInOptions())
+            )
+          else backToMethods
         )
 
   private def tosLink(using Translate) = trans.site.byRegisteringYouAgreeToBeBoundByOur(
@@ -401,16 +450,6 @@ final class AuthUi(helpers: Helpers):
           button(cls := "button button-red", tpe := "submit")(trans.site.logOut.txt())
         )
       )
-
-  private def authTabs(active: String)(using Context, Translate, Option[ValidReferrer]) =
-    div(cls := "auth-tabs")(
-      a(href := addReferrer(langHref(routes.Auth.login)), cls := (active == "login").option("active"))(
-        trans.site.signIn()
-      ),
-      a(href := addReferrer(langHref(routes.Auth.signup)), cls := (active == "signup").option("active"))(
-        trans.site.signUp()
-      )
-    )
 
   private def agreement(form: play.api.data.Field, error: Boolean)(using Context) =
     div(cls := "form-group agreement")(

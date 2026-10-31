@@ -4,6 +4,62 @@ import { test } from 'node:test';
 import ExplorerCtrl from '../src/explorerCtrl.ts';
 import { openingReferences, renderOpeningReferences } from '../src/references.ts';
 
+test('a profile explorer keeps source selection across side and position changes without saved analysis filters', async t => {
+  const requests: any[] = [];
+  localStorage.setItem('lixiangqi.analysis.explorer.v2', JSON.stringify({ mode: 'book', since: '2026-01' }));
+  t.after(() => localStorage.clear());
+  t.mock.method(globalThis, 'fetch', async (_url, init) => {
+    requests.push(JSON.parse(init!.body as string));
+    return new Response(
+      JSON.stringify({
+        available: true,
+        red: 0,
+        draws: 0,
+        black: 0,
+        moves: [],
+        topGames: [],
+        recentGames: [],
+      }),
+    );
+  });
+  const ctrl = new ExplorerCtrl(
+    document.createElement('div'),
+    document.createElement('button'),
+    () => {},
+    () => {},
+    '/native-explorer',
+    {
+      lockedPlayer: 'Lv Qin',
+      initiallyEnabled: true,
+      sources: ['m', 'gd'],
+    },
+  );
+  assert.equal(ctrl.config.mode, 'games');
+  assert.equal(ctrl.config.since, '');
+  const position = { fen: 'current', initialFen: 'root', moves: [], ruleset: 'unrestricted-v1' };
+  ctrl.setPosition(position);
+  await new Promise<void>(done => setImmediate(done));
+  ctrl.setSources(['gd']);
+  await new Promise<void>(done => setImmediate(done));
+  ctrl.selectColor('black');
+  await new Promise<void>(done => setImmediate(done));
+  ctrl.setSources([]);
+  await new Promise<void>(done => setImmediate(done));
+  ctrl.setPosition({ ...position, fen: 'next', moves: ['a1a2'] });
+  await new Promise<void>(done => setImmediate(done));
+  assert.deepEqual(
+    requests.map(r => [r.sources, r.color]),
+    [
+      [['m', 'gd'], 'red'],
+      [['gd'], 'red'],
+      [['gd'], 'black'],
+      [[], 'black'],
+      [[], 'black'],
+    ],
+  );
+  ctrl.destroy();
+});
+
 test('endgame queries retain rule history and expose rank-ten moves through keyboard interaction', async t => {
   const requests: any[] = [],
     played: string[] = [];

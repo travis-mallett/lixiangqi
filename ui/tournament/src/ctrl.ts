@@ -105,6 +105,11 @@ export default class TournamentController {
   }
 
   private redirectToMyGame() {
+    const kingdoms = this.data.me?.kingdomsGameId;
+    if (kingdoms) {
+      redirectFirst(kingdoms, false, `/three-kingdoms/game/${kingdoms}`);
+      return;
+    }
     const gameId = this.myGameId();
     if (gameId) redirectFirst(gameId);
   }

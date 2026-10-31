@@ -37,7 +37,10 @@ object XiangqiAnnotations:
     require(name.forall(n => n.nonEmpty && n.length <= 150), "Invalid comment author name")
     require(
       kind match
-        case "user" => id.exists(_.matches("[a-z0-9_-]{2,30}")) && name.isDefined
+        // This interchange boundary accepts Han IDs independently of the JVM's Unicode version.
+        // Account registration owns the narrower repertoire and naming policy.
+        case "user" =>
+          id.exists(_.matches("[a-z0-9_\\p{IsHan}\\x{20000}-\\x{323AF}-]{2,30}")) && name.isDefined
         case "external" => id.isEmpty && name.isDefined
         case "site" | "unknown" => id.isEmpty && name.isEmpty
         case _ => false

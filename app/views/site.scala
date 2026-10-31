@@ -34,6 +34,71 @@ object page:
 
 object variant:
 
+  def threeKingdoms(using Context) =
+    val t = trans.threeKingdoms
+    page(title = t.title.txt(), klass = "box-pad page variant", kingdomsActive = true):
+      frag(
+        h1(t.title()),
+        div(cls := "body")(
+          h2(trans.site.jieqiSetupHeading()),
+          p(t.rulesIntro()),
+          p(t.timeControl()),
+          h2(trans.site.jieqiMovementHeading()),
+          p(t.rulesMovement()),
+          p(t.rulesFlyingGeneral()),
+          p(t.rulesSoldier()),
+          h2(trans.site.jieqiWinningHeading()),
+          p(t.rulesCapture()),
+          p(t.rulesTurnOrder()),
+          p(t.rulesWithdrawal()),
+          p(t.rulesFallen()),
+          p(t.rulesStalemate()),
+          p(t.rulesDuel()),
+          p(t.rulesDraw()),
+          p(t.rulesPerpetual()),
+          p(t.rulesRating()),
+          p(t.rulesConvention()),
+          a(cls := "button", href := "/?variant=threeKingdoms")(t.title())
+        )
+      )
+
+  def miniXiangqi(using Context) =
+    page(title = trans.site.miniXiangqiTitle.txt(), klass = "box-pad page variant", miniActive = true):
+      frag(
+        h1(trans.site.miniXiangqiTitle()),
+        h2(trans.site.miniXiangqiLearnToPlay()),
+        div(cls := "body")(
+          h2(trans.site.jieqiSetupHeading()),
+          p(trans.site.miniXiangqiSetupText()),
+          h2(trans.site.jieqiMovementHeading()),
+          p(trans.site.miniXiangqiMovementText()),
+          h2(trans.site.jieqiWinningHeading()),
+          p(trans.site.miniXiangqiWinningText()),
+          p(trans.site.miniXiangqiRankExplanation()),
+          a(cls := "button", href := "/?variant=minixiangqi")(trans.site.playRatedMiniXiangqi())
+        )
+      )
+
+  def jieqi(using Context) =
+    page(title = trans.site.jieqiTitle.txt(), klass = "box-pad page variant", jieqiActive = true):
+      frag(
+        h1(trans.site.jieqiTitle()),
+        h2(trans.site.jieqiLearnToPlay()),
+        div(cls := "body")(
+          h2(trans.site.jieqiSetupHeading()),
+          p(trans.site.jieqiSetupText()),
+          h2(trans.site.jieqiRevealHeading()),
+          p(trans.site.jieqiRevealText()),
+          h2(trans.site.jieqiMovementHeading()),
+          p(trans.site.jieqiMovementText()),
+          h2(trans.site.jieqiCapturesHeading()),
+          p(trans.site.jieqiCapturesText()),
+          h2(trans.site.jieqiWinningHeading()),
+          p(trans.site.jieqiWinningText()),
+          a(cls := "button", href := "/?variant=jieqi")(trans.site.playRatedJieqi())
+        )
+      )
+
   def show(
       p: CmsPage.Render,
       variant: chess.variant.Variant,
@@ -59,6 +124,15 @@ object variant:
           "Xiangqi variants introduce different boards, pieces, information, or player counts while retaining a shared game-selection workflow."
         ),
         div(cls := "variants")(
+          a(cls := "variant text box__pad", href := routes.Cms.threeKingdoms)(
+            span(h2(trans.site.threeKingdoms()), h3(cls := "headline")(trans.threeKingdoms.title()))
+          ),
+          a(cls := "variant text box__pad", href := routes.Cms.miniXiangqi)(
+            span(h2(trans.site.miniXiangqi()), h3(cls := "headline")(trans.site.miniXiangqiTitle()))
+          ),
+          a(cls := "variant text box__pad", href := routes.Cms.jieqi)(
+            span(h2(trans.site.jieqi()), h3(cls := "headline")(trans.site.jieqiTitle()))
+          ),
           lila.rating.PerfType.variants.map: perfKey =>
             val variant = lila.rating.PerfType.variantOf(perfKey)
             val perfType = lila.rating.PerfType(perfKey)
@@ -74,13 +148,29 @@ object variant:
         )
       )
 
-  private def page(title: String, klass: String, active: Option[PerfKey] = None)(using Context) =
+  private def page(
+      title: String,
+      klass: String,
+      active: Option[PerfKey] = None,
+      jieqiActive: Boolean = false,
+      kingdomsActive: Boolean = false,
+      miniActive: Boolean = false
+  )(using Context) =
     Page(title)
       .css("bits.variant")
       .js(Esm("bits.expandText"))
       .wrap: body =>
         main(cls := "page-menu")(
           lila.ui.bits.pageMenuSubnav(
+            a(cls := List("text" -> true, "active" -> kingdomsActive), href := routes.Cms.threeKingdoms)(
+              trans.site.threeKingdoms()
+            ),
+            a(cls := List("text" -> true, "active" -> miniActive), href := routes.Cms.miniXiangqi)(
+              trans.site.miniXiangqi()
+            ),
+            a(cls := List("text" -> true, "active" -> jieqiActive), href := routes.Cms.jieqi)(
+              trans.site.jieqi()
+            ),
             lila.rating.PerfType.variants.map: perfKey =>
               val variant = lila.rating.PerfType.variantOf(perfKey)
               a(

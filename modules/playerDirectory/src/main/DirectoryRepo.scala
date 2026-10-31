@@ -1,68 +1,87 @@
 package lila.playerDirectory
 
-import scala.util.Success
-import java.time.YearMonth
-import lila.core.playerDirectory.RatingCategory
-import lila.core.playerDirectory.PlayerId
-import chess.rating.Elo
-import reactivemongo.api.bson.*
-
-import lila.core.playerDirectory.{ Federation, DirectoryPlayerOrder }
+import lila.core.playerDirectory.{ PlayerId, Federation as CoreFederation }
 import lila.db.dsl.{ *, given }
+import play.api.libs.json.*
 
 final private class DirectoryRepo(
-    private[playerDirectory] val playerColl: Coll,
-    private[playerDirectory] val ratingColl: Coll,
-    private[playerDirectory] val federationColl: Coll,
+    catalog: DirectoryCatalog,
     private[playerDirectory] val followerColl: Coll
 )(using Executor):
-
   object player:
-    given BSONDocumentHandler[lila.core.playerDirectory.Provenance] = Macros.handler
-    given BSONDocumentHandler[DirectoryPlayer.PlayerPhoto] = Macros.handler
-    given BSONHandler[DirectoryPlayer.Gender] = quickHandler(
-      { case BSONString(g) if g.nonEmpty => DirectoryPlayer.Gender(g.head) },
-      g => BSONString(g.toString)
-    )
-    given handler: BSONDocumentHandler[DirectoryPlayer] = Macros.handler
-    val selectActive: Bdoc = $doc("inactive".$ne(true))
-    def selectFed(fed: Federation.Id): Bdoc = $doc("fed" -> fed)
-    def sortStandard: Bdoc = $sort.desc("standard")
-    def sortBy(o: DirectoryPlayerOrder) = o match
-      case DirectoryPlayerOrder.name => $sort.asc("name")
-      case DirectoryPlayerOrder.standard => $sort.desc("standard")
-      case DirectoryPlayerOrder.rapid => $sort.desc("rapid")
-      case DirectoryPlayerOrder.blitz => $sort.desc("blitz")
-      case DirectoryPlayerOrder.year => $sort.desc("year")
-      case DirectoryPlayerOrder.follow => $empty // TODO
-    def fetch(id: PlayerId): Fu[Option[DirectoryPlayer]] = playerColl.byId[DirectoryPlayer](id)
+    def fetch(id: PlayerId): Fu[Option[DirectoryPlayer]] = catalog.fetch(id.value)
+    def resolve(reference: String): Fu[Option[DirectoryPlayer]] = catalog.fetch(reference)
     def fetch(ids: Seq[PlayerId]): Fu[List[DirectoryPlayer]] =
-      playerColl.find($inIds(ids)).cursor[DirectoryPlayer](ReadPref.sec).listAll()
-    def countAll = playerColl.count()
+      catalog
+        .query(Json.obj("action" -> "batch", "ids" -> ids.map(_.value)))
+        .map(j => (j \ "players").as[List[JsValue]].map(DirectoryCatalog.read))
+    def countAll: Fu[Int] = catalog.query(Json.obj("pageSize" -> 1)).map(j => (j \ "total").as[Int])
     def setPhoto(id: PlayerId, photo: DirectoryPlayer.PlayerPhoto): Funit =
-      playerColl.updateField($id(id), "photo", photo).void
-    def setPhotoCredit(p: DirectoryPlayer, credit: Option[String]): Funit =
-      playerColl.updateOrUnsetField($id(p.id) ++ $doc("photo.id".$exists(true)), "photo.credit", credit).void
+      catalog.edit(id, Json.obj("photo" -> Json.obj("id" -> photo.id.value, "credit" -> photo.credit)))
+    def edit(p: DirectoryPlayer, language: String, edit: DirectoryPlayer.form.Edit): Funit =
+      val biography = edit.biography.fold(p.biography - language)(text => p.biography.updated(language, text))
+      val fields = Json.obj(
+        "biography" -> biography,
+        "biographySources" -> edit.sources.toList.flatMap(_.linesIterator.map(_.trim).filter(_.nonEmpty))
+      )
+      val photo = p.photo
+        .map(ph =>
+          Json.obj(
+            "photo" -> Json.obj(
+              "id" -> ph.id.value,
+              "credit" -> edit.credit,
+              "url" -> ph.url,
+              "sourceUrl" -> ph.sourceUrl,
+              "license" -> ph.license,
+              "licenseUrl" -> ph.licenseUrl
+            )
+          )
+        )
+        .getOrElse(Json.obj())
+      catalog.edit(p.id, fields ++ photo)
     def setDeceasedYear(id: PlayerId, year: Option[Int]): Funit =
-      playerColl.updateOrUnsetField($id(id), "deceasedYear", year).void
+      catalog.edit(id, Json.obj("deceasedYear" -> year))
+
+  def list(query: JsObject): Fu[(Int, List[DirectoryPlayer])] =
+    catalog
+      .query(query)
+      .map(j => ((j \ "total").as[Int], (j \ "players").as[List[JsValue]].map(DirectoryCatalog.read)))
 
   object rating:
-    given BSONDocumentHandler[DirectoryRatingHistory] = Macros.handler
     def get(id: PlayerId): Fu[DirectoryRatingHistory] =
-      ratingColl.byId[DirectoryRatingHistory](id).map(_ | DirectoryRatingHistory.empty(id))
-    def set(id: PlayerId, date: YearMonth, elos: Map[RatingCategory, Elo]): Funit = elos.nonEmpty.so:
-      for
-        history <- get(id)
-        updated = history.set(date, elos)
-        _ <- ratingColl.update.one($id(id), updated, upsert = true)
-      yield ()
+      catalog
+        .query(Json.obj("action" -> "get", "id" -> id.value))
+        .map: j =>
+          val history = j \ "player" \ "ratingsHistory"
+          DirectoryRatingHistory.fromJson(id, history.asOpt[JsObject].getOrElse(Json.obj()))
 
   object federation:
-    given BSONDocumentHandler[Federation.Stats] = Macros.handler
-    given handler: BSONDocumentHandler[Federation] = Macros.handler
-    def upsert(fed: Federation): Funit =
-      federationColl.update.one($id(fed.id), fed, upsert = true).void
-    def fetch(code: Federation.Id): Fu[Option[Federation]] = federationColl.byId[Federation](code)
+    def all: Fu[List[Federation]] =
+      catalog
+        .query(Json.obj("action" -> "federations"))
+        .map: j =>
+          (j \ "federations")
+            .as[List[JsValue]]
+            .map: row =>
+              val id = CoreFederation.Id((row \ "id").as[String])
+              val count = (row \ "nbPlayers").as[Int]
+              def stats(category: String) =
+                val value = row \ category
+                CoreFederation.Stats(
+                  (value \ "rank").asOpt[Int].getOrElse(0),
+                  (value \ "nbPlayers").asOpt[Int].getOrElse(0),
+                  (value \ "top10Rating").asOpt[Int].getOrElse(0)
+                )
+              Federation(
+                id,
+                Federation.name(id),
+                count,
+                stats("standard"),
+                stats("rapid"),
+                stats("blitz"),
+                nowInstant
+              )
+    def fetch(code: CoreFederation.Id): Fu[Option[Federation]] = all.map(_.find(_.id == code))
 
   object follower:
     // { _id: '14204118/thibault', u: 'thibault', p: 14204118 }
@@ -80,8 +99,9 @@ final private class DirectoryRepo(
       .so:
         for ids <- followerColl.distinctEasy[FollowId, Set]("_id", "_id".$startsWith(s"$p/"))
         yield ids.map(followId.toUserId)
-    def follow(u: UserId, p: PlayerId) = playerColl
-      .exists($id(p))
+    def follow(u: UserId, p: PlayerId) = player
+      .fetch(p)
+      .map(_.isDefined)
       .flatMapz:
         followerColl.update.one($id(followId.make(p, u)), $doc("u" -> u, "p" -> p), upsert = true).void
     def unfollow(u: UserId, p: PlayerId) = followerColl.delete.one($id(followId.make(p, u))).void
@@ -97,3 +117,6 @@ final private class DirectoryRepo(
         .map: followedIds =>
           players.map: p =>
             DirectoryPlayer.WithFollow(p, followedIds.contains(p.id))
+
+    def followedIds(u: UserId): Fu[List[PlayerId]] =
+      followerColl.distinctEasy[PlayerId, List]("p", $doc("u" -> u))

@@ -29,6 +29,9 @@ opaque type IsClockCompatible = (Clock.Config, Option[MoveTimeLimit]) => Boolean
 object IsClockCompatible
     extends FunctionWrapper[IsClockCompatible, (Clock.Config, Option[MoveTimeLimit]) => Boolean]
 
+opaque type MayJoinPool = UserId => Fu[Boolean]
+object MayJoinPool extends FunctionWrapper[MayJoinPool, UserId => Fu[Boolean]]
+
 enum PoolFrom:
   case Socket, Api, Hook
 
@@ -67,9 +70,14 @@ trait PoolApi:
   def homepagePoolIds: Set[PoolConfigId]
   def join(poolId: PoolConfigId, member: PoolMember): Unit
   def leave(poolId: PoolConfigId, user: UserId): Unit
-  def poolOf(clock: Clock.Config, moveTimeLimit: Option[MoveTimeLimit]): Option[PoolConfigId]
+  def poolOf(
+      clock: Clock.Config,
+      moveTimeLimit: Option[MoveTimeLimit],
+      variant: lila.xiangqi.GameVariant
+  ): Option[PoolConfigId]
 
   final def homepagePoolOf(
       clock: Clock.Config,
-      moveTimeLimit: Option[MoveTimeLimit]
-  ): Option[PoolConfigId] = poolOf(clock, moveTimeLimit).filter(homepagePoolIds)
+      moveTimeLimit: Option[MoveTimeLimit],
+      variant: lila.xiangqi.GameVariant
+  ): Option[PoolConfigId] = poolOf(clock, moveTimeLimit, variant).filter(homepagePoolIds)

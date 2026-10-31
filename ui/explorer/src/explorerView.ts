@@ -66,7 +66,7 @@ function titleView(ctrl: ExplorerCtrl): HTMLDivElement {
       const strong = element('strong');
       strong.textContent =
         db === 'player' && ctrl.config.player
-          ? ctrl.config.player
+          ? ctrl.options.lockedPlayerName || ctrl.config.player
           : db === 'event' && ctrl.config.event
             ? ctrl.config.event
             : name;

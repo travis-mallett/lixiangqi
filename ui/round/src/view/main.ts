@@ -1,55 +1,65 @@
-import { displayColumns, isTouchDevice } from 'lib/device';
 import { playable } from 'lib/game';
-import { storage } from 'lib/storage';
-import { type VNode, hl, bind } from 'lib/view';
+import { capturedPieces } from 'lib/game/view/captures';
+import { type VNode, hl } from 'lib/view';
 import { renderBlindfoldToggle } from 'lib/view/blindfold';
-import stepwiseScroll from 'lib/view/stepwiseScroll';
 
-import { render as renderGround } from '../board';
+import { render as renderGround, boardOrientation } from '../board';
 import type RoundController from '../ctrl';
 import { next, prev, view } from '../keyboard';
+import { replayWheel } from './navigation';
+import { roomView } from './room';
 import { renderTable } from './table';
 
 export function main(ctrl: RoundController): VNode {
   const d = ctrl.data;
+  const jieqi = d.game.variant.key === 'jieqi';
   const hideBoard = ctrl.data.player.blindfold && playable(ctrl.data);
   return ctrl.nvui
     ? ctrl.nvui.render()
-    : hl(
-        'div.round__app.variant-' + d.game.variant.key,
-        {
-          class: {
-            'swap-clock': isTouchDevice() && displayColumns() === 1 && storage.boolean('swapClock').get(),
+    : roomView(d.game.variant.key, [
+        renderBlindfoldToggle(ctrl.blindfold),
+        hl(
+          'div.round__app__board' +
+            (jieqi ? '.jieqi-round-board' : '.main-board.xiangqi9x10') +
+            (hideBoard ? '.blindfold' : ''),
+          {
+            hook: replayWheel(
+              () => {
+                prev(ctrl);
+                ctrl.redraw();
+              },
+              () => {
+                next(ctrl);
+                ctrl.redraw();
+              },
+              () => ctrl.isPlaying(),
+            ),
           },
-        },
-        [
-          renderBlindfoldToggle(ctrl.blindfold),
-          hl(
-            'div.round__app__board.main-board.xiangqi9x10' + (hideBoard ? '.blindfold' : ''),
-            {
-              hook:
-                'ontouchstart' in window || !storage.boolean('scrollMoves').getOrDefault(true)
-                  ? undefined
-                  : bind(
-                      'wheel',
-                      stepwiseScroll(
-                        e => {
-                          if (e.deltaY > 0) next(ctrl);
-                          else if (e.deltaY < 0) prev(ctrl);
-                          ctrl.redraw();
-                        },
-                        () => ctrl.isPlaying(),
-                      ),
-                      undefined,
-                      false,
-                    ),
-            },
-            [renderGround(ctrl)],
-          ),
-          ctrl.keyboardHelp && view(ctrl),
-          renderTable(ctrl),
-        ],
-      );
+          [
+            jieqi &&
+              hl(
+                'div.jieqi-captures-top',
+                capturedPieces(
+                  d.game.captures ?? d.steps.find(s => s.ply === ctrl.ply)?.captures ?? [],
+                  boardOrientation(d, ctrl.flip) === 'white' ? 'red' : 'black',
+                  ctrl.ply,
+                ),
+              ),
+            jieqi ? hl('div.main-board.xiangqi9x10', renderGround(ctrl)) : renderGround(ctrl),
+            jieqi &&
+              hl(
+                'div.jieqi-captures-bottom',
+                capturedPieces(
+                  d.game.captures ?? d.steps.find(s => s.ply === ctrl.ply)?.captures ?? [],
+                  boardOrientation(d, ctrl.flip) === 'white' ? 'black' : 'red',
+                  ctrl.ply,
+                ),
+              ),
+          ],
+        ),
+        ctrl.keyboardHelp && view(ctrl),
+        renderTable(ctrl),
+      ]);
 }
 
 export function endGameView(): void {

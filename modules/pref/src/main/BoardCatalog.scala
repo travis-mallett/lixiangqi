@@ -18,7 +18,8 @@ private[pref] object BoardCatalog:
         (entry \ "geometries" \ "xiangqi-9x10").as[String].stripPrefix("images/board/"),
         (entry \ "coordinateLight").as[String],
         (entry \ "coordinateDark").as[String],
-        (entry \ "matchingPieceSet").asOpt[String]
+        (entry \ "matchingPieceSet").asOpt[String],
+        (entry \ "geometries").as[Map[String, String]]
       )
 
   val pieceEntries = (json \ "pieceSets").as[List[JsObject]]
@@ -38,9 +39,14 @@ private[pref] object BoardCatalog:
     val entry = pieceEntries.find(entry => (entry \ "key").as[String] == key).get
     val assets = entry \ "variants" \ variant
     val faces = (assets \ "faces").as[Map[String, Map[String, String]]]
+    val prefix = if variant == "xiangqi" then "" else s"$variant-"
     val images = faces.toList.flatMap: (participant, roles) =>
-      roles.toList.map { (role, path) => path -> s"---$participant-$role" }
-    images :+ ((assets \ "back").as[String] -> "--board-piece-back")
+      roles.toList.map { (role, path) => path -> s"---$prefix$participant-$role" }
+    images ++ (assets \ "back")
+      .as[Map[String, String]]
+      .toList
+      .map: (participant, path) =>
+        path -> s"--board-piece-back-$participant"
 
   val shadows: List[(String, String)] = List(
     (json \ "shadows" \ "rest").as[String] -> "--xiangqi-rest-shadow-image",

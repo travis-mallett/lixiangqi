@@ -42,7 +42,7 @@ def meta(
                 div(
                   a(href := routes.Importer.importGame, title := trans.site.importGame.txt())("IMPORT"),
                   separator,
-                  variantLink(game.variant, game.perfType, initialFen = initialFen, shortName = true)
+                  nativeVariantLink(game, game.perfType, initialFen)
                 )
               else
                 frag(
@@ -50,7 +50,7 @@ def meta(
                   separator,
                   rankedName(game.ranked),
                   separator,
-                  variantLink(game.variant, game.perfType, initialFen, shortName = true)
+                  nativeVariantLink(game, game.perfType, initialFen)
                 )
             ),
             game.pgnImport.flatMap(_.date).fold(pastMomentWithPreload(game.createdAt))(frag(_))

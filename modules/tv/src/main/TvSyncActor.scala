@@ -12,6 +12,7 @@ final private class TvSyncActor(
     onTvGame: lila.game.core.OnTvGame,
     gameProxy: lila.core.game.GameProxy,
     rematches: lila.game.Rematches,
+    historyRepo: TvHistory,
     userApi: lila.core.user.UserApi
 )(using Executor, Scheduler)
     extends SyncActor:
@@ -19,6 +20,7 @@ final private class TvSyncActor(
   import TvSyncActor.*
 
   Bus.subscribeActor[lila.core.game.StartGame](this)
+  Bus.subscribeActor[lila.game.actorApi.MoveGameEvent](this)
 
   private val channelActors: Map[Tv.Channel, ChannelSyncActor] = Tv.Channel.values.map { c =>
     c -> ChannelSyncActor(
@@ -27,7 +29,8 @@ final private class TvSyncActor(
       gameProxy,
       rematches.getAcceptedId,
       lightUserApi.sync,
-      userApi
+      userApi,
+      historyRepo
     )
   }.toMap
 
@@ -53,16 +56,16 @@ final private class TvSyncActor(
     case GetChampions(promise) => promise.success(Tv.Champions(channelChampions))
 
     case lila.core.game.StartGame(g, users) =>
-      if g.hasClock then
-        val candidate = Tv.Candidate(g, users.exists(_.exists(_.isBot)))
-        channelActors
-          .collect:
-            case (chan, actor) if chan.filter(candidate) => actor
-          .foreach(_.addCandidate(g))
+      addCandidate(Tv.Candidate(g, users.exists(_.exists(_.isBot))))
+
+    // Activity refreshes candidates and discovers games resumed after a server restart.
+    case lila.game.actorApi.MoveGameEvent(game, _, _) =>
+      addCandidate(Tv.Candidate(game, game.userIds.flatMap(lightUserApi.sync).exists(_.isBot)))
 
     case s @ TvSyncActor.Select => channelActors.foreach(_._2 ! s)
 
     case Selected(channel, game) =>
+      addCandidate(Tv.Candidate(game, game.userIds.flatMap(lightUserApi.sync).exists(_.isBot)))
       if channel.listed then
         import lila.core.socket.makeMessage
         given Ordering[lila.core.game.Player] = Ordering.by: p =>
@@ -70,8 +73,10 @@ final private class TvSyncActor(
             .flatMap(lightUserApi.sync)
             .flatMap(_.title)
             .flatMap(Tv.titleScores.get)
-        val player = game.players.all.sorted.lastOption | game.player(game.naturalOrientation)
+        val player =
+          game.players.all.filter(_.userId.isDefined).sorted.lastOption | game.player(game.naturalOrientation)
         val user = player.userId.flatMap(lightUserApi.sync)
+        channelChampions -= channel
         user.foreach: u =>
           channelChampions += (channel -> Tv.Champion(
             u,
@@ -92,9 +97,9 @@ final private class TvSyncActor(
             )
         )
         Bus.pub(lila.core.game.TvSelect(game.id, game.speed, channel.key, data))
-        if channel == Tv.Channel.Best then
+        if channel == Tv.Channel.Xiangqi then
           lila.common.Bus
-            .ask[Html, RenderFeaturedJs](RenderFeaturedJs(game, _))
+            .ask[Html, RenderFeaturedJs](RenderFeaturedJs(game, _, channel.key.some))
             .foreach: html =>
               Bus.pub:
                 lila.core.game.ChangeFeatured:
@@ -106,6 +111,10 @@ final private class TvSyncActor(
                       "id" -> game.id
                     )
                   )
+
+  private def addCandidate(candidate: Tv.Candidate): Unit =
+    channelActors.foreach: (channel, actor) =>
+      if channel.filter(candidate) then actor.addCandidate(candidate.game)
 
 private object TvSyncActor:
 

@@ -19,18 +19,18 @@ export type PropWithEffect<T> = Prop<T>;
 // like mithril prop but with type safety
 export const prop = <A>(initialValue: A): Prop<A> => {
   let value = initialValue;
-  return (v?: A) => {
-    if (defined(v)) value = v;
+  return (...args: [] | [A]) => {
+    if (args.length) value = args[0];
     return value;
   };
 };
 
 export const propWithEffect = <A>(initialValue: A, effect: (value: A) => void): PropWithEffect<A> => {
   let value = initialValue;
-  return (v?: A) => {
-    if (defined(v)) {
-      value = v;
-      effect(v);
+  return (...args: [] | [A]) => {
+    if (args.length) {
+      value = args[0];
+      effect(value);
     }
     return value;
   };
@@ -38,11 +38,11 @@ export const propWithEffect = <A>(initialValue: A, effect: (value: A) => void): 
 
 export const withEffect =
   <T>(prop: Prop<T>, effect: (v: T) => void): PropWithEffect<T> =>
-  (v?: T) => {
+  (...args: [] | [T]) => {
     let returnValue;
-    if (defined(v)) {
-      returnValue = prop(v);
-      effect(v);
+    if (args.length) {
+      returnValue = prop(args[0]);
+      effect(args[0]);
     } else returnValue = prop();
     return returnValue;
   };

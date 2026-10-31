@@ -5,6 +5,8 @@ import type { EnhanceOpts } from '@/richText';
 export type { ChatCtrl } from './chatCtrl';
 
 export interface ChatOpts {
+  /** Supplied by rooms whose authoritative chat transport is not the site socket. */
+  post?: (text: string) => boolean;
   data: ChatData;
   writeable: boolean;
   kobold: boolean; // a.k.a. troll

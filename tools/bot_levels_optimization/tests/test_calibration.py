@@ -53,7 +53,7 @@ class ProfileTests(unittest.TestCase):
     def test_endpoints_and_monotonic_family(self):
         validate_endpoints()
         self.assertEqual(STRENGTH_PROFILES[0], profile_at(0))
-        self.assertEqual(STRENGTH_PROFILES[8], profile_at(1))
+        self.assertEqual(STRENGTH_PROFILES[-1], profile_at(1))
         previous = profile_at(0)
         for n in range(1, 1001):
             current = profile_at(n / 1000)

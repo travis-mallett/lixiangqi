@@ -51,7 +51,7 @@ textarea.form-control {
   height: auto;
 }
 
-.form-control:invalid,
+.form-control:user-invalid,
 .form-group.is-invalid .form-control {
   border-color: $c-error;
 }

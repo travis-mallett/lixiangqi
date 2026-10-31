@@ -6,7 +6,6 @@ import play.api.libs.json.*
 
 import lila.common.Json.given
 import lila.common.Json.lightUser.writeNoId
-import lila.common.Uptime
 import lila.core.LightUser
 import lila.core.chess.Rank
 import lila.core.rank.RankSnapshot
@@ -37,7 +36,8 @@ final class JsonView(
     duelStore: DuelStore,
     standingApi: TournamentStandingApi,
     pause: Pause,
-    reloadEndpointSetting: SettingStore[String] @@ TournamentReloadEndpoint
+    reloadEndpointSetting: SettingStore[String] @@ TournamentReloadEndpoint,
+    kingdomsRepo: lila.threeKingdoms.GameRepo
 )(using Executor, lila.core.i18n.Translator):
 
   import JsonView.{ *, given }
@@ -108,13 +108,15 @@ final class JsonView(
             "system" -> "arena", // BC
             "fullName" -> tour.name(),
             "minutes" -> tour.minutes,
-            "perf" -> Json.obj("key" -> "xiangqi"),
+            "perf" -> Json.obj("key" -> tour.gameVariant.key),
+            "gameVariant" -> tour.gameVariant.key,
+            "ruleset" -> tour.ruleset.key,
             "clock" -> tour.clock,
             "variant" -> tour.variant.key
           )
           .add("spotlight" -> tour.spotlight)
           .add("berserkable" -> tour.berserkable)
-          .add("noStreak" -> tour.noStreak)
+          .add("noStreak" -> !tour.streakable)
           .add("position" -> tour.position.ifTrue(full).map(position))
           .add("verdicts" -> verdicts.map(verdictsFor(_, tour.perfType)))
           .add("schedule" -> tour.scheduleData.map(scheduleJson))
@@ -155,11 +157,23 @@ final class JsonView(
 
   def fetchMyInfo(tour: Tournament, me: User): Fu[Option[MyInfo]] =
     playerRepo.find(tour.id, me.id).flatMapz { player =>
-      for
-        gameId <- fetchCurrentGameId(tour, me)
-        pov <- gameId.so(gameProxy.pov(_, me))
-        rank <- getOrGuessRank(tour, player)
-      yield MyInfo(rank + 1, player.withdraw, pov.map(_.fullId), player.team).some
+      if tour.gameVariant == lila.xiangqi.GameVariant.ThreeKingdoms then
+        for
+          games <- kingdomsRepo.tournamentGames(tour.id, Some(me.id), playingOnly = true)
+          rank <- getOrGuessRank(tour, player)
+        yield MyInfo(
+          rank + 1,
+          player.withdraw,
+          None,
+          player.team,
+          games.find(g => g.playerOf(me.id).exists(g.position.active.contains)).map(_.id)
+        ).some
+      else
+        for
+          gameId <- fetchCurrentGameId(tour, me)
+          pov <- gameId.so(gameProxy.pov(_, me))
+          rank <- getOrGuessRank(tour, player)
+        yield MyInfo(rank + 1, player.withdraw, pov.map(_.fullId), player.team).some
     }
 
   // if the user is not yet in the cached ranking,
@@ -174,41 +188,64 @@ final class JsonView(
     sheet <- cached.sheet(tour, info.userId)
     user <- lightUserApi.asyncFallback(info.userId)
     _ <- lightUserApi.preloadMany(info.recentPovs.flatMap(_.opponent.userId))
+    triples <- (tour.gameVariant == lila.xiangqi.GameVariant.ThreeKingdoms)
+      .so(kingdomsRepo.tournamentGames(tour.id, Some(info.userId)))
   yield
     import info.*
     val isPlaying = recentPovs.headOption.so(_.game.playable)
     val povScores: List[(LightPov, Option[arena.Sheet.Score])] = recentPovs.zip:
       (isPlaying.so(List(none[arena.Sheet.Score]))) ::: sheet.scores.map(some)
+    Json
+      .obj(
+        "player" -> {
+          Json.toJsObject(user) ++ Json
+            .obj(
+              "rankTitle" -> player.rank.publicCode.map(_.value),
+              "score" -> player.score,
+              "fire" -> player.fire,
+              "nb" -> sheetNbs(sheet)
+            )
+            .add("rank" -> ranking.ranking.get(user.id).map(_ + 1))
+            .add("withdraw" -> player.withdraw)
+            .add("team" -> player.team)
+        },
+        "pairings" -> povScores.map: (pov, score) =>
+          Json
+            .obj(
+              "id" -> pov.gameId,
+              "color" -> pov.color.name,
+              "op" -> gameUserJson(pov.opponent.userId, pov.opponent.rank, pov.opponent.berserk),
+              "win" -> score.flatMap(_.isWin),
+              "status" -> pov.game.status.id,
+              "score" -> score.map(_.value)
+            )
+            .add("berserk" -> pov.player.berserk)
+      )
+      .add("kingdomsPairings" -> Option.when(triples.nonEmpty)(triples.map: game =>
+        kingdomsGameJson(game) ++ Json.obj(
+          "place" -> game.playerOf(user.id).flatMap(game.position.placement),
+          "score" -> game
+            .playerOf(user.id)
+            .flatMap(game.position.placement)
+            .filter(_ => sheet.gameIds.contains(game.id))
+            .map(p => ((3d - p) * 2).toInt)
+        )))
+
+  private def kingdomsGameJson(game: lila.threeKingdoms.KingdomGame): JsObject =
     Json.obj(
-      "player" -> {
-        Json.toJsObject(user) ++ Json
-          .obj(
-            "rankTitle" -> player.rank.publicCode.map(_.value),
-            "score" -> player.score,
-            "fire" -> player.fire,
-            "nb" -> sheetNbs(sheet)
-          )
-          .add("rank" -> ranking.ranking.get(user.id).map(_ + 1))
-          .add("withdraw" -> player.withdraw)
-          .add("team" -> player.team)
-      },
-      "pairings" -> povScores.map: (pov, score) =>
-        Json
-          .obj(
-            "id" -> pov.gameId,
-            "color" -> pov.color.name,
-            "op" -> gameUserJson(pov.opponent.userId, pov.opponent.rank, pov.opponent.berserk),
-            "win" -> score.flatMap(_.isWin),
-            "status" -> pov.game.status.id,
-            "score" -> score.map(_.value)
-          )
-          .add("berserk" -> pov.player.berserk)
+      "id" -> game.id,
+      "position" -> lila.threeKingdoms.PositionCodec.write(game.position),
+      "finished" -> game.position.finished,
+      "players" -> game.userIds.map(id => Json.toJson(lightUserApi.syncFallback(id)))
     )
 
   private def fetchCurrentGameId(tour: Tournament, user: User): Fu[Option[GameId]] =
-    if Uptime.startedSinceSeconds(60)
-    then fuccess(duelStore.find(tour, user.id))
-    else pairingRepo.playingByTourAndUserId(tour.id, user.id)
+    // Duels are an in-memory display index. After a restart, or before the ranking
+    // cache includes a new entrant, absence here does not mean the player is idle.
+    duelStore
+      .find(tour, user.id)
+      .fold(pairingRepo.playingByTourAndUserId(tour.id, user.id)): id =>
+        fuccess(id.some)
 
   private def fetchFeaturedGame(tour: Tournament): Fu[Option[FeaturedGame]] =
     tour.featured
@@ -256,11 +293,15 @@ final class JsonView(
                     (userId.value, JsString(teamId.value))).some
           featured <- tour.so(fetchFeaturedGame)
           podium <- tour.exists(_.isFinished).so(podiumJsonCache.get(id))
+          kingdoms <- tour
+            .exists(_.gameVariant == lila.xiangqi.GameVariant.ThreeKingdoms)
+            .so(kingdomsRepo.tournamentGames(id, playingOnly = true, limit = 6))
         yield CachableData(
           duels = jsonDuels,
           duelTeams = duelTeams,
           featured = featured.map(featuredJson),
-          podium = podium
+          podium = podium,
+          kingdoms = kingdoms.map(kingdomsGameJson)
         )
 
   private def featuredJson(featured: FeaturedGame) =
@@ -302,6 +343,7 @@ final class JsonView(
       .add("withdraw", i.withdraw)
       .add("gameId", i.fullId.map(_.gameId))
       .add("fullId", i.fullId)
+      .add("kingdomsGameId", i.kingdomsGame)
       .add("pauseDelay", delay)
 
   private def gameUserJson(
@@ -471,6 +513,7 @@ final class JsonView(
       .add("stats" -> stats)
       .add("teamStanding" -> teamStanding)
       .add("duelTeams" -> data.duelTeams)
+      .add("kingdomsGames", Option.when(data.kingdoms.nonEmpty)(data.kingdoms))
 
 object JsonView:
 
@@ -478,7 +521,8 @@ object JsonView:
       duels: JsArray,
       duelTeams: Option[JsObject],
       featured: Option[JsObject],
-      podium: Option[JsArray]
+      podium: Option[JsArray],
+      kingdoms: List[JsObject] = Nil
   )
 
   def top(t: TournamentTop, getLightUser: LightUser.GetterSync): JsArray =

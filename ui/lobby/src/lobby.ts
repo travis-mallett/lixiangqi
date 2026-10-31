@@ -2,11 +2,13 @@ import { pubsub } from 'lib/pubsub';
 import { wsConnect } from 'lib/socket';
 import * as xhr from 'lib/xhr';
 
+import { initCarousel } from './carousel';
 import { applyCounterSnapshot } from './counterSnapshot';
 import type { LobbyOpts } from './interfaces';
 import main from './main';
 
 export function initModule(opts: LobbyOpts) {
+  initCarousel();
   opts.appElement = document.createElement('div');
   opts.appElement.className = 'lobby__app';
   opts.tableElement = document.querySelector('.lobby__table') as HTMLElement;
@@ -25,10 +27,7 @@ export function initModule(opts: LobbyOpts) {
         });
       },
       featured(o: { html: string }) {
-        const $tv = $('.lobby__tv'),
-          $game = $tv.find('.mini-game');
-        if ($game.length) $game.replaceWith(o.html);
-        else $tv.append(o.html);
+        $('.lobby__tv__game').html(o.html);
         pubsub.emit('content-loaded');
       },
       redirect(e: RedirectTo) {

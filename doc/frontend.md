@@ -81,6 +81,12 @@ content. Internal identifiers, developer logs, and code comments are not ordinar
 content. Do not translate every language manually or fabricate translations merely because a
 source-language key was added; follow the established translation workflow.
 
+Both the server resource generator and the browser asset build discover translation
+namespaces from `translation/source/*.xml`. Regenerate Scala keys with
+`pnpm run i18n-file-gen` after adding messages. New namespaces must also pass a server
+translation test against the packaged resources: generating typed keys alone does not
+verify that rendered pages can resolve their text.
+
 Do not assume every screen should display both English and Chinese.
 
 ### Fixed Chinese reference terms

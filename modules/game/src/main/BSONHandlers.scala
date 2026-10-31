@@ -65,6 +65,8 @@ object BSONHandlers:
   )
   private given BSONDocumentHandler[MoveFact] = Macros.handler
   private given BSONDocumentHandler[AdjudicationState] = Macros.handler
+  private given BSONDocumentHandler[lila.xiangqi.Jieqi.Capture] = Macros.handler
+  private given BSONDocumentHandler[lila.xiangqi.Jieqi.Deal] = Macros.handler
   private given BSONDocumentHandler[Xiangqi.State] = Macros.handler
   private[game] given xiangqiGameHandler: BSON[Xiangqi.Game] with
     def reads(r: BSON.Reader) = Xiangqi.Game(
@@ -73,14 +75,16 @@ object BSONHandlers:
       wxf = r.get[Vector[String]]("wxf"),
       states = r.get[Vector[Xiangqi.State]]("states"),
       // A missing identifier is historical behavior, never the mutable new-game default.
-      ruleset = if r.contains("ruleset") then r.get[Ruleset]("ruleset") else Ruleset.Unrestricted
+      ruleset = if r.contains("ruleset") then r.get[Ruleset]("ruleset") else Ruleset.Unrestricted,
+      deal = r.getO[lila.xiangqi.Jieqi.Deal]("deal").map(_.validate.fold(sys.error, identity))
     )
     def writes(w: BSON.Writer, game: Xiangqi.Game) = BSONDocument(
       "initialFen" -> game.initialFen,
       "moves" -> game.moves,
       "wxf" -> game.wxf,
       "states" -> game.states,
-      "ruleset" -> game.ruleset
+      "ruleset" -> game.ruleset,
+      "deal" -> game.deal
     )
 
   private[game] given gameDrawOffersHandler: BSONHandler[GameDrawOffers] = tryHandler[GameDrawOffers](
@@ -174,7 +178,10 @@ object BSONHandlers:
           simulId = r.getO[SimulId](F.simulId),
           analysed = r.boolD(F.analysed),
           drawOffers = r.getD(F.drawOffers, emptyDrawOffers),
-          rules = r.getD(F.rules, Set.empty)
+          rules = r.getD(F.rules, Set.empty),
+          kidsBotProfile = r.strO("kidsBot"),
+          kidsBotReceipt = r.strO("kidsReceipt"),
+          kidsBotAssisted = r.boolD("kidsHelp")
         ),
         abortedBy = r.getO[Color](F.abortedBy),
         variant = light.variant
@@ -216,6 +223,9 @@ object BSONHandlers:
         F.movedAt -> w.date(o.movedAt),
         F.completedAt -> o.completedAt,
         F.source -> o.metadata.source,
+        "kidsBot" -> o.metadata.kidsBotProfile,
+        "kidsReceipt" -> o.metadata.kidsBotReceipt,
+        "kidsHelp" -> Option.when(o.metadata.kidsBotAssisted)(true),
         F.pgnImport -> o.metadata.pgnImport,
         F.tournamentId -> o.metadata.tournamentId,
         F.swissId -> o.metadata.swissId,

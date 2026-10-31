@@ -67,6 +67,11 @@ final class Env(
 
   val api: PuzzleApi = wire[PuzzleApi]
 
+  val kidsRewards =
+    new KidsRewards(db(CollName("puzzle2_kids_rewards")), id => api.puzzle.find(id).map(_.isDefined))
+
+  val kidsAvatar = new KidsAvatar(db(CollName("kids_avatar")), kidsRewards)
+
   val session: PuzzleSessionApi = wire[PuzzleSessionApi]
 
   val anon: PuzzleAnon = wire[PuzzleAnon]
@@ -96,10 +101,8 @@ final class Env(
   private val tagger = wire[PuzzleTagger]
 
   val tryDailyPuzzle: lila.puzzle.DailyPuzzle.Try = () =>
-    Future {
-      daily.get
-    }.flatMap(identity)
-      .withTimeoutDefault(50.millis, none)
+    daily.get
+      .withTimeoutDefault(2.seconds, none)
       .recover { case e: Exception =>
         logger.warn("daily", e)
         none

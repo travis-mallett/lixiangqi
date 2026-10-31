@@ -31,6 +31,14 @@ function stats(ctrl: TournamentController): VNode | undefined {
     numberRow(i18n.site.blackWins, [data.stats.blackWins, data.stats.games], 'percent'),
     numberRow(i18n.site.drawRate, [data.stats.draws, data.stats.games], 'percent'),
   ];
+  if (data.gameVariant === 'threeKingdoms')
+    tableData.splice(
+      2,
+      2,
+      numberRow(i18n.threeKingdoms.red, [data.stats.whiteWins, data.stats.games], 'percent'),
+      numberRow(i18n.threeKingdoms.black, [data.stats.blackWins, data.stats.games], 'percent'),
+      numberRow(i18n.threeKingdoms.green, [data.stats.greenWins ?? 0, data.stats.games], 'percent'),
+    );
 
   if (data.berserkable) {
     tableData.push(numberRow(i18n.arena.berserkRate, [data.stats.berserks / 2, data.stats.games], 'percent'));

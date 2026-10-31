@@ -25,7 +25,7 @@ final class UserGameApi(
         write(g, ctx.me)(using ctx.lang)
       Json.obj("paginator" -> pag)
 
-  private def write(g: Game, as: Option[User])(using Lang) =
+  def write(g: Game, as: Option[User])(using Lang) =
     Json
       .obj(
         "id" -> g.id,

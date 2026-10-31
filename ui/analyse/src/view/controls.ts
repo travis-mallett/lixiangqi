@@ -96,7 +96,7 @@ function holdControl(ctrl: AnalyseCtrl, action: Action, e: PointerEvent) {
   } else clickControl(ctrl, action, e);
 }
 
-function clickControl(ctrl: AnalyseCtrl, action: Action, e: PointerEvent) {
+function clickControl(ctrl: AnalyseCtrl, action: Action, e: MouseEvent) {
   if (!(e.target instanceof HTMLElement)) return;
   if (!action) return;
   if (action === 'prev') ctrl.navigate.prev();

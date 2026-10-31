@@ -11,12 +11,20 @@ import lila.mon.extensions.*
 private final class RecapBuilder(
     repo: RecapRepo,
     gameRepo: lila.game.GameRepo,
+    kingdomsRepo: lila.threeKingdoms.GameRepo,
     puzzleColls: lila.puzzle.PuzzleColls
 )(using Executor, org.apache.pekko.stream.Materializer):
 
   def compute(userId: UserId): Funit = for
     recap <- (
-      runGameScan(userId).map(makeGameRecap),
+      runGameScan(userId)
+        .flatMap(scan =>
+          kingdomsRepo
+            .exportUser(userId, Some(dateStart), Some(dateEnd))
+            .filter(_.position.finished)
+            .runFold(scan)((s, g) => s.addKingdoms(userId, g))
+        )
+        .map(makeGameRecap),
       runPuzzleScan(userId).map(_ | RecapPuzzles())
     ).mapN: (game, puzzle) =>
       Recap(userId, Recap.schemaVersion, yearToRecap, game, puzzle, nowInstant)
@@ -83,8 +91,30 @@ private final class RecapBuilder(
       firstRedMoves: Map[String, Int] = Map.empty,
       sources: Map[Source, Int] = Map.empty,
       opponents: Map[UserId, Int] = Map.empty,
-      perfs: Map[PerfKey, Int] = Map.empty
+      perfs: Map[String, Int] = Map.empty
   ):
+    def addKingdoms(user: UserId, game: lila.threeKingdoms.KingdomGame): GameScan =
+      val player = game.playerOf(user).get
+      val elapsed =
+        math.max(0L, game.clock.config.initialSeconds * 1000L - game.clock.remaining(player.ordinal)) / 1000
+      val source = game.source match
+        case "pool" => Source.Pool
+        case "computer" => Source.Ai
+        case "tournament" => Source.Arena
+        case _ => Source.Friend
+      copy(
+        nbs = NbWin(nbs.total + 1, nbs.win + (if game.position.placement(player).contains(1d) then 1 else 0)),
+        nbMoves = nbMoves + game.events.count(e =>
+          e.actor == player && lila.threeKingdoms.Move.parse(e.action).nonEmpty
+        ),
+        secondsPlaying = secondsPlaying + elapsed.toInt,
+        sources = sources.updatedWith(source)(n => Some(n.getOrElse(0) + 1)),
+        opponents = game.userIds
+          .filterNot(_ == user)
+          .foldLeft(opponents)((all, id) => all.updatedWith(id)(n => Some(n.getOrElse(0) + 1))),
+        perfs = perfs.updatedWith("threeKingdoms")(n => Some(n.getOrElse(0) + 1))
+      )
+
     def addGame(userId: UserId)(g: Game): GameScan =
       g.player(userId)
         .fold(this): player =>
@@ -108,6 +138,6 @@ private final class RecapBuilder(
               sources.updatedWith(source)(_.fold(1)(_ + 1).some),
             opponents = opponent.fold(opponents): op =>
               opponents.updatedWith(op)(_.fold(1)(_ + 1).some),
-            perfs = perfs.updatedWith(g.perfKey): pk =>
+            perfs = perfs.updatedWith(g.perfKey.value): pk =>
               some(pk.orZero + 1)
           )

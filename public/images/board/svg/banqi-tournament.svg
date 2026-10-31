@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="496" height="896" viewBox="0 0 496 896">
+  <title>LiXiangQi tournament Banqi board</title>
+  <desc>Four columns and eight rows of 100-unit square cells. Grid bounds (48,48) to (448,848). Ink, line weights, and playing frame match xiangqi-tournament.svg. Styles synchronized by bin/gen/banqi-board-styles.mjs.</desc>
+  <defs>
+<linearGradient id="bevel-matched-top" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#694324" stop-opacity="0.1" id="stop1"/>
+      <stop offset=".28" stop-color="#ffe7ad" stop-opacity="0.08" id="stop2"/>
+      <stop offset=".46" stop-color="#ffe7ad" stop-opacity="0.0496" id="stop3"/>
+      <stop offset=".72" stop-color="#8d5a30" stop-opacity="0.05" id="stop4"/>
+      <stop offset=".88" stop-color="#8d5a30" stop-opacity="0.021" id="stop5"/>
+      <stop offset="1" stop-color="#8d5a30" stop-opacity="0" id="stop6"/>
+    </linearGradient>
+<linearGradient id="bevel-matched-left" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#694324" stop-opacity="0.1" id="stop7"/>
+      <stop offset=".28" stop-color="#ffe7ad" stop-opacity="0.08" id="stop8"/>
+      <stop offset=".46" stop-color="#ffe7ad" stop-opacity="0.0496" id="stop9"/>
+      <stop offset=".72" stop-color="#8d5a30" stop-opacity="0.05" id="stop10"/>
+      <stop offset=".88" stop-color="#8d5a30" stop-opacity="0.021" id="stop11"/>
+      <stop offset="1" stop-color="#8d5a30" stop-opacity="0" id="stop12"/>
+    </linearGradient>
+<linearGradient id="bevel-matched-right" x1="1" y1="0" x2="0" y2="0">
+      <stop offset="0" stop-color="#694324" stop-opacity="0.18" id="stop13"/>
+      <stop offset=".28" stop-color="#ffe7ad" stop-opacity="0.07" id="stop14"/>
+      <stop offset=".46" stop-color="#ffe7ad" stop-opacity="0.0434" id="stop15"/>
+      <stop offset=".72" stop-color="#8d5a30" stop-opacity="0.065" id="stop16"/>
+      <stop offset=".88" stop-color="#8d5a30" stop-opacity="0.0273" id="stop17"/>
+      <stop offset="1" stop-color="#8d5a30" stop-opacity="0" id="stop18"/>
+    </linearGradient>
+<linearGradient id="bevel-matched-bottom" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#694324" stop-opacity="0.18" id="stop19"/>
+      <stop offset=".28" stop-color="#ffe7ad" stop-opacity="0.07" id="stop20"/>
+      <stop offset=".46" stop-color="#ffe7ad" stop-opacity="0.0434" id="stop21"/>
+      <stop offset=".72" stop-color="#8d5a30" stop-opacity="0.065" id="stop22"/>
+      <stop offset=".88" stop-color="#8d5a30" stop-opacity="0.0273" id="stop23"/>
+      <stop offset="1" stop-color="#8d5a30" stop-opacity="0" id="stop24"/>
+    </linearGradient>
+<radialGradient id="global-light-bloom" gradientUnits="userSpaceOnUse" cx="29" cy="-64" r="760" gradientTransform="matrix(1 0 0 .926 0 -4.736)">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.28" id="stop25"/>
+      <stop offset=".25" stop-color="#fff" stop-opacity="0.247" id="stop26"/>
+      <stop offset=".5" stop-color="#fff" stop-opacity="0.17" id="stop27"/>
+      <stop offset=".75" stop-color="#fff" stop-opacity="0.091" id="stop28"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0" id="stop29"/>
+    </radialGradient>
+<radialGradient id="global-light-vignette" gradientUnits="userSpaceOnUse" cx="29" cy="-64" r="760" gradientTransform="matrix(1 0 0 .926 0 -4.736)">
+      <stop offset="0" stop-color="#000" stop-opacity="0" id="stop30"/>
+      <stop offset=".5" stop-color="#000" stop-opacity="0" id="stop31"/>
+      <stop offset=".72" stop-color="#000" stop-opacity="0.0336" id="stop32"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0.14" id="stop33"/>
+    </radialGradient>
+<linearGradient id="global-light-direction" gradientUnits="userSpaceOnUse" x1="-450" y1="-500" x2="450" y2="500">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.05" id="stop34"/>
+      <stop offset=".48" stop-color="#fff" stop-opacity="0" id="stop35"/>
+      <stop offset=".52" stop-color="#000" stop-opacity="0" id="stop36"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0.05" id="stop37"/>
+    </linearGradient>
+
+  </defs>
+
+  <g id="banqi-tournament-surface" transform="translate(248 448) scale(0.5511111111111111 0.896)">
+    <rect width="900" height="1000" x="-450" y="-500" fill="#ffc400" id="rect37"/>
+    <g aria-label="Measured global board illumination" pointer-events="none" id="g40">
+    <rect x="-450" y="-500" width="900" height="1000" fill="url(#global-light-bloom)" id="rect38"/>
+    <rect x="-450" y="-500" width="900" height="1000" fill="url(#global-light-vignette)" id="rect39"/>
+    <rect x="-450" y="-500" width="900" height="1000" fill="url(#global-light-direction)" id="rect40"/>
+  </g>
+  </g>
+
+  <g id="banqi-tournament-bevel">
+    <path d="M0 0H496L490.25 5.75H5.75Z" fill="url(#bevel-matched-top)"/>
+    <path d="M0 0L5.75 5.75V890.25L0 896Z" fill="url(#bevel-matched-left)"/>
+    <path d="M496 0L490.25 5.75V890.25L496 896Z" fill="url(#bevel-matched-right)"/>
+    <path d="M0 896L5.75 890.25H490.25L496 896Z" fill="url(#bevel-matched-bottom)"/>
+    <path d="M0 .5H496 M.5 0V896" fill="none" stroke="#674126" stroke-width="1" opacity=".10"/>
+    <path d="M495.5 0V896 M0 895.5H496" fill="none" stroke="#674126" stroke-width="1" opacity=".22"/>
+    <rect x="2.645" y="2.645" width="490.71" height="890.71" fill="none" stroke="#ffe5a8" stroke-width="1.15" opacity=".12"/>
+    <rect x="5.06" y="5.06" width="485.88" height="885.88" fill="none" stroke="#87552e" stroke-width="1.035" opacity=".05"/>
+  </g>
+
+  <g id="banqi-artwork" fill="none" stroke="#000" stroke-linecap="butt" stroke-linejoin="miter" opacity="1">
+
+
+
+
+
+    <g id="banqi-grid" stroke-width="2" data-columns="4" data-rows="8" data-cell-size="100">
+      <rect id="banqi-grid-bounds" x="48" y="48" width="400" height="800"/>
+      <path id="banqi-grid-columns" d="M148 48V848 M248 48V848 M348 48V848"/>
+      <path id="banqi-grid-rows" d="M48 148H448 M48 248H448 M48 348H448 M48 448H448 M48 548H448 M48 648H448 M48 748H448"/>
+    </g>
+  </g>
+</svg>

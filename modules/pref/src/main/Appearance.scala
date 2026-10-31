@@ -189,7 +189,8 @@ case class BoardTheme(
     file: String,
     coordinateLight: String,
     coordinateDark: String,
-    matchingPieceSet: Option[String] = None
+    matchingPieceSet: Option[String] = None,
+    geometries: Map[String, String] = Map.empty
 )
 
 object BoardThemes:
@@ -224,7 +225,10 @@ object PieceSets:
   val western = byKey("xiangqi-western")
   val default = byKey((BoardCatalog.json \ "defaultPieces").as[String])
 
-  def assets(key: String): List[(String, String)] = BoardCatalog.pieceAssets(get(Some(key)).key, "xiangqi")
+  def assets(key: String): List[(String, String)] =
+    val selected = get(Some(key)).key
+    (BoardCatalog
+      .pieceAssets(selected, "xiangqi") ++ BoardCatalog.pieceAssets(selected, "threeKingdoms")).distinct
 
   def get(key: Option[String]): PieceSet = key.flatMap(byKey.get) | default
   def contains(key: String): Boolean = byKey.contains(key)

@@ -1,0 +1,69 @@
+.dialog-content.lobby__variant-menu-dialog {
+  width: min(36rem, calc(100vw - 2rem));
+  padding: 0;
+  text-align: start;
+}
+
+.lobby__variant-menu {
+  &-heading {
+    padding: 1.5rem;
+    text-align: center;
+
+    h2 {
+      margin: 0 0 0.75rem;
+      font-size: 1.5rem;
+    }
+  }
+
+  &-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    min-height: 4.5rem;
+    padding: 1rem 1.25rem;
+    border: 0;
+    border-top: $border;
+    background: $c-bg-box;
+    color: $c-font;
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      background: $c-bg-zebra;
+      color: $c-link;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    &--rated {
+      color: $c-primary;
+    }
+  }
+
+  &-icon {
+    color: $c-primary;
+    font-size: 1.6rem;
+  }
+
+  &-label {
+    flex: 1;
+    min-width: 0;
+
+    small {
+      display: block;
+      margin-top: 0.25rem;
+      color: $c-font-dim;
+    }
+  }
+
+  &-chevron {
+    color: $c-font-dim;
+    font-size: 0.8rem;
+  }
+}

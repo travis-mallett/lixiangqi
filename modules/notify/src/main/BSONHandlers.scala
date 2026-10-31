@@ -26,12 +26,14 @@ private object BSONHandlers:
   private given BSONDocumentHandler[Recap] = Macros.handler
   private given mentionHandler: BSONDocumentHandler[MentionedInThread] = Macros.handler
   private given inviteHandler: BSONDocumentHandler[InvitedToStudy] = Macros.handler
+  private given BSONDocumentHandler[ThreeKingdomsChallenge] = Macros.handler
 
   given lila.db.BSON[NotificationContent] with
     private def writeNotificationContent(notificationContent: NotificationContent) = {
       notificationContent match
         case x: MentionedInThread => mentionHandler.writeTry(x).get
         case x: InvitedToStudy => inviteHandler.writeTry(x).get
+        case x: ThreeKingdomsChallenge => summon[BSONHandler[ThreeKingdomsChallenge]].writeTry(x).get
         case x: PrivateMessage => summon[BSONHandler[PrivateMessage]].writeTry(x).get
         case x: StreamStart => summon[BSONHandler[StreamStart]].writeTry(x).get
         case x: TeamJoined => summon[BSONHandler[TeamJoined]].writeTry(x).get
@@ -55,6 +57,7 @@ private object BSONHandlers:
       reader.str("type") match
         case "mention" => reader.as[MentionedInThread]
         case "invitedStudy" => reader.as[InvitedToStudy]
+        case "threeKingdomsChallenge" => reader.as[ThreeKingdomsChallenge]
         case "privateMessage" => reader.as[PrivateMessage]
         case "teamJoined" => reader.as[TeamJoined]
         case "titledTourney" => reader.as[TitledTournamentInvitation]

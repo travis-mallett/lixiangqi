@@ -76,7 +76,7 @@ enum PerfType(
       extends PerfType(
         PerfId(5),
         key = PerfKey.standard,
-        icon = Icon.Crown,
+        icon = lila.ui.VariantIcon(lila.xiangqi.GameVariant.Xiangqi),
         nameKey = I18nKey.variant.standard,
         descKey = I18nKey.variant.standardTitle
       )
@@ -124,7 +124,7 @@ object PerfType:
   def variantOf(perfKey: PerfKey): variant.Variant = variant.Standard
 
   def iconByVariant(variant: chess.variant.Variant): Icon =
-    PerfKey.byVariant(variant).fold(Icon.CrownElite)(_.icon)
+    PerfKey.byVariant(variant).fold(lila.ui.VariantIcon(lila.xiangqi.GameVariant.Xiangqi))(_.icon)
 
   val nonPuzzle: List[PerfType] = all.filter(_ != Puzzle)
 

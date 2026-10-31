@@ -5,6 +5,7 @@
   "dependencies": {
     "chart": "workspace:*",
     "lib": "workspace:*",
+    "threeKingdoms": "workspace:*",
     "@lixiangqi/board": "workspace:*",
     "@lixiangqi/viewer": "workspace:*",
     "@lixiangqi/explorer": "workspace:*"

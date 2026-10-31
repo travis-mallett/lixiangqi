@@ -33,6 +33,12 @@ final class Env(
 
   lazy val seekApi = wire[SeekApi]
 
+  def cancelSeek(id: String, userId: UserId): Funit =
+    seekApi
+      .removeBy(id, userId)
+      .map: _ =>
+        socket.seekRemoved(id)
+
   lazy val boardApiHookStream = wire[BoardApiHookStream]
 
   private lazy val lobbySyncActor = LobbySyncActor.start(

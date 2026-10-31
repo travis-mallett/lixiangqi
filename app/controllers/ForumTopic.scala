@@ -10,7 +10,7 @@ import lila.forum.ForumTopic.problemReportSlug
 
 final class ForumTopic(env: Env) extends LilaController(env) with ForumController:
 
-  def form(categId: ForumCategId) = Auth { _ ?=> me ?=>
+  def form(categId: ForumCategId) = AuthOrScoped(_.Mobile.Forum) { _ ?=> me ?=>
     NoBot:
       NotForKids:
         FoundPage(env.forum.categRepo.byId(categId)): categ =>
@@ -19,7 +19,7 @@ final class ForumTopic(env: Env) extends LilaController(env) with ForumControlle
           }
   }
 
-  def create(categId: ForumCategId) = AuthBody { ctx ?=> me ?=>
+  def create(categId: ForumCategId) = AuthOrScopedBody(_.Mobile.Forum) { ctx ?=> me ?=>
     NoBot:
       CategGrantWrite(categId):
         Found(env.forum.categRepo.byId(categId)): categ =>
@@ -39,7 +39,7 @@ final class ForumTopic(env: Env) extends LilaController(env) with ForumControlle
           }
   }
 
-  def show(categId: ForumCategId, slug: ForumTopicSlug, page: Int) = Open:
+  def show(categId: ForumCategId, slug: ForumTopicSlug, page: Int) = OpenOrScoped(_.Mobile.Forum):
     NotForKids:
       Found(topicApi.show(categId, slug, page)): (categ, topic, posts) =>
         if categId == diagnosticId &&
@@ -68,14 +68,14 @@ final class ForumTopic(env: Env) extends LilaController(env) with ForumControlle
               else notFound
           yield res
 
-  def close(categId: ForumCategId, slug: ForumTopicSlug) = Auth { _ ?=> me ?=>
+  def close(categId: ForumCategId, slug: ForumTopicSlug) = AuthOrScoped(_.Mobile.Forum) { _ ?=> me ?=>
     TopicGrantModBySlug(categId, slug):
       Found(topicApi.show(categId, slug, 1)): (categ, topic, pag) =>
         for _ <- topicApi.toggleClose(categ, topic)
         yield Redirect(routes.ForumTopic.show(categId, slug, pag.nbPages))
   }
 
-  def sticky(categId: ForumCategId, slug: ForumTopicSlug) = Auth { _ ?=> me ?=>
+  def sticky(categId: ForumCategId, slug: ForumTopicSlug) = AuthOrScoped(_.Mobile.Forum) { _ ?=> me ?=>
     access.isGrantedMod(categId).flatMap { granted =>
       if granted || isGranted(_.ModerateForum) || isGrantedOpt(_.StickyPosts) then
         Found(topicApi.show(categId, slug, 1)): (categ, topic, pag) =>
@@ -88,14 +88,14 @@ final class ForumTopic(env: Env) extends LilaController(env) with ForumControlle
 
   /** Returns a list of the usernames of people participating in a forum topic conversation
     */
-  def participants(topicId: ForumTopicId) = Auth { _ ?=> _ ?=>
+  def participants(topicId: ForumTopicId) = AuthOrScoped(_.Mobile.Forum) { _ ?=> _ ?=>
     for
       userIds <- postApi.allUserIds(topicId)
       usernames <- env.user.repo.usernamesByIds(userIds)
     yield Ok(Json.toJson(usernames.sortBy(_.value.toLowerCase)))
   }
 
-  def diagnostic = AuthBody { ctx ?=> me ?=>
+  def diagnostic = AuthOrScopedBody(_.Mobile.Forum) { ctx ?=> me ?=>
     NoBot:
       val slug = problemReportSlug(me.userId)
       bindForm(env.forum.forms.diagnostic)(
@@ -112,7 +112,7 @@ final class ForumTopic(env: Env) extends LilaController(env) with ForumControlle
       )
   }
 
-  def clearDiagnostic(slug: ForumTopicSlug) = Auth { _ ?=> me ?=>
+  def clearDiagnostic(slug: ForumTopicSlug) = AuthOrScoped(_.Mobile.Forum) { _ ?=> me ?=>
     if slug != problemReportSlug(me.userId) && !isGranted(_.ModerateForum) then notFound
     else env.forum.topicApi.removeTopic(diagnosticId, slug).inject(Redirect(routes.ForumCateg.index))
   }

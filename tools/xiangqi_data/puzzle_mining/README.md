@@ -3,6 +3,27 @@
 The offline checkmate and tactic pipelines have independent stages. None changes the
 LiXiangQi playback implementation or the published puzzle database schema.
 
+## Three chariots harassing advisor (`threeChariotsHarassingAdvisor`, version 1.0)
+
+Puzzle Catalog's checkmate categorizer uses `three_chariots.py`. Only verified
+checkmates qualify. All final checking pieces must be attacking chariots/pawns.
+A different chariot/pawn must attack the general after an adjacent palace escape
+is applied (including captures, excluding friendly-occupied destinations). A third
+distinct chariot/pawn must have checked after a solver move, including discovered
+checks, or captured a defending advisor during the solution. Track identities,
+not squares; the third piece may have been sacrificed. At least one selected
+piece must be a pawn, and a selected piece must have captured an advisor or pinned
+one to the general somewhere in the line. A pin means exactly one intervening
+piece, the advisor, on the chariot/general rank or file; no capture is required.
+
+Escape control need not be exclusive. Historical checks have no move-distance
+cutoff. A stationary pin alone does not satisfy the third piece's check/capture
+requirement. Other simultaneous final checkers (horse, cannon, general, etc.)
+reject the category. Attack inspections use Pikafish without additional searches;
+versioned evidence is bound to the complete solution ledger and reused by the
+existing category worker. Registration makes older category inventories stale
+through the existing version mechanism; no database migration is required.
+
 ## Tactic construction and double attack
 
 Studio has separate Start/Stop, reconstruction, and category recheck controls
@@ -20,12 +41,19 @@ runs a finite category pass. The verifier supports the existing reconstruction
 and force options, scoped to tactic candidates. Neither category command solves
 or extends a line.
 
-### Construction policy (`tactic-1`)
+### Construction policy (`tactic-2`)
 
 Use Pikafish `E=(wins-losses)/1000`, from the solver's perspective. Each search
-uses MultiPV 2 (1 if only one legal move exists) and depth 20 (no node budget). Default
+uses depth 20 (no node budget). Solver turns use MultiPV 2 (1 if only one legal
+move exists); defender turns use MultiPV 1. Default
 CLI settings are `--advantage 0.55`, `--uniqueness-gap 0.50`, and
-`--max-solution-plies 31`.
+`--max-solution-plies 31`. Construction has a 300-second deadline, including
+setup; timeout evidence remains incomplete and cannot replace an existing solution.
+Per-search timings and summary metrics are written to
+`data/local/puzzle-verification-timing.jsonl`. Persistence records separately measure
+`verification.lock_wait` (writer acquisition) and `verification.write` (transaction
+work including commit), emitting those records after the transaction.
+The new verifier signature distinguishes these settings from prior evidence.
 
 - At every searched decision, `E(best) < advantage` rejects the candidate.
 - Defender turns follow their engine-ranked best move; no gap test applies.

@@ -1,3 +1,5 @@
+export type EngineVariant = 'xiangqi' | 'jieqi' | 'minixiangqi';
+
 export interface EngineScore {
   cp?: number;
   mate?: number;
@@ -38,6 +40,8 @@ export interface PikafishOptions {
 }
 
 export interface PikafishWork {
+  observation?: import('../../game/jieqi').JieqiObservation;
+  engineFen?: string;
   fen: string;
   history?: PikafishHistory;
   legalMoves?: readonly string[];
@@ -91,6 +95,7 @@ export class PikafishProtocol {
     private readonly onComputingChange: (computing: boolean) => void = () => undefined,
     private readonly onReady: () => void = () => undefined,
     startupOptions?: PikafishOptions,
+    private readonly variant: EngineVariant = 'xiangqi',
   ) {
     this.startupOptions = startupOptions;
   }
@@ -109,6 +114,10 @@ export class PikafishProtocol {
   received(command: string): void {
     const parts = command.trim().split(/\s+/);
     if (parts[0] === 'uciok') {
+      if (this.variant === 'minixiangqi') {
+        this.setOption('UCI_Variant', 'minixiangqi');
+        this.setOption('Use NNUE', 'false');
+      }
       const options = this.startupOptions ?? this.nextWork;
       if (options) {
         this.setOption('Threads', options.threads);
@@ -129,8 +138,8 @@ export class PikafishProtocol {
 
   compute(nextWork?: PikafishWork): void {
     // Reject malformed history before stopping or replacing an active search.
-    nextWork?.history?.moves.forEach(uiMoveToEngine);
-    nextWork?.legalMoves?.forEach(uiMoveToEngine);
+    nextWork?.history?.moves.forEach(move => uiMoveToEngine(move, this.variant));
+    nextWork?.legalMoves?.forEach(move => uiMoveToEngine(move, this.variant));
     this.nextWork = nextWork;
     this.stop();
     this.swapWork();
@@ -176,7 +185,7 @@ export class PikafishProtocol {
         Math.max(0, search.movetime - Number(elapsed[1])),
       );
     }
-    const line = parsePikafishInfo(command, work.fen);
+    const line = parsePikafishInfo(command, work.fen, this.variant);
     if (!line || (line.score.bound && line.multipv === 1)) return;
 
     if (line.multipv === 1) {
@@ -230,7 +239,10 @@ export class PikafishProtocol {
     this.work = undefined;
     this.setComputing(false);
     if (work && !work.stopRequested) {
-      const move = bestMove && !['(none)', '0000'].includes(bestMove) ? engineMoveToUi(bestMove) : undefined;
+      const move =
+        bestMove && !['(none)', '0000'].includes(bestMove)
+          ? engineMoveToUi(bestMove, this.variant)
+          : undefined;
       // Completion without a usable PV is still completion. Consumers decide
       // whether the result qualifies; it must not masquerade as a timeout.
       work.emit(this.snapshot(move), true);
@@ -264,10 +276,10 @@ export class PikafishProtocol {
     this.setOption('Threads', this.work.threads);
     this.setOption('Hash', this.work.hashSize);
     this.setOption('MultiPV', Math.max(1, this.work.multiPv));
-    const history = this.work.history;
-    const moves = history?.moves.map(uiMoveToEngine);
+    const history = this.work.engineFen ? undefined : this.work.history;
+    const moves = history?.moves.map(move => uiMoveToEngine(move, this.variant));
     this.send(
-      `position fen ${history?.initialFen ?? this.work.fen}${moves?.length ? ` moves ${moves.join(' ')}` : ''}`,
+      `position fen ${this.work.engineFen ?? history?.initialFen ?? this.work.fen}${moves?.length ? ` moves ${moves.join(' ')}` : ''}`,
     );
     const { search } = this.work;
     const budget =
@@ -287,7 +299,9 @@ export class PikafishProtocol {
       this.swapWork();
       return;
     }
-    this.send(`go ${budget}${allowed ? ` searchmoves ${allowed.map(uiMoveToEngine).join(' ')}` : ''}`);
+    this.send(
+      `go ${budget}${allowed ? ` searchmoves ${allowed.map(move => uiMoveToEngine(move, this.variant)).join(' ')}` : ''}`,
+    );
   }
 
   private clearSearchTimer(): void {
@@ -319,7 +333,11 @@ export class PikafishProtocol {
   }
 }
 
-export function parsePikafishInfo(command: string, fen: string): ParsedInfo | undefined {
+export function parsePikafishInfo(
+  command: string,
+  fen: string,
+  variant: EngineVariant = 'xiangqi',
+): ParsedInfo | undefined {
   const tokens = command.trim().split(/\s+/);
   if (tokens[0] !== 'info' || !tokens.includes('pv') || !tokens.includes('score')) return;
 
@@ -348,7 +366,7 @@ export function parsePikafishInfo(command: string, fen: string): ParsedInfo | un
   const pvIndex = tokens.indexOf('pv');
   const pvMoves: string[] = [];
   for (const token of tokens.slice(pvIndex + 1)) {
-    const move = engineMoveToUi(token);
+    const move = engineMoveToUi(token, variant);
     if (!move) break;
     pvMoves.push(move);
   }
@@ -371,13 +389,18 @@ export function parsePikafishInfo(command: string, fen: string): ParsedInfo | un
   };
 }
 
-export function engineMoveToUi(move: string): string | undefined {
+export function engineMoveToUi(move: string, variant: EngineVariant = 'xiangqi'): string | undefined {
+  if (variant === 'minixiangqi') return /^[a-g][1-7][a-g][1-7]$/.test(move) ? move : undefined;
   const match = /^([a-i])([0-9])([a-i])([0-9])$/i.exec(move);
   if (!match) return;
   return `${match[1].toLowerCase()}${Number(match[2]) + 1}${match[3].toLowerCase()}${Number(match[4]) + 1}`;
 }
 
-function uiMoveToEngine(move: string): string {
+function uiMoveToEngine(move: string, variant: EngineVariant): string {
+  if (variant === 'minixiangqi') {
+    if (!/^[a-g][1-7][a-g][1-7]$/.test(move)) throw new Error(`Invalid Mini Xiangqi move: ${move}`);
+    return move;
+  }
   const match = /^([a-i])(10|[1-9])([a-i])(10|[1-9])$/.exec(move);
   if (!match) throw new Error(`Invalid Xiangqi history move: ${move}`);
   return `${match[1]}${Number(match[2]) - 1}${match[3]}${Number(match[4]) - 1}`;

@@ -29,10 +29,12 @@ final class Auth(env: Env, accountC: => Account) extends LilaController(env):
       u: UserModel,
       pwned: IsPwned,
       remember: Boolean,
-      result: => Option[Result] = None
+      result: => Option[Result] = None,
+      confirmIdentity: Boolean = false
   )(using ctx: Context): Fu[Result] = {
     for
       sessionId <- api.saveAuthentication(u.id, ctx.mobileApiVersion, pwned)
+      _ = if confirmIdentity then env.security.externalLogin.confirmSession(u.id, sessionId.value)
       res <- negotiate(
         result | Redirect(referrerOr(routes.Lobby.home)),
         for
@@ -125,7 +127,10 @@ final class Auth(env: Env, accountC: => Account) extends LilaController(env):
       case None =>
         val prefillUsername = UserStrOrEmail(~switch.filter(_ != "1"))
         val form = api.loginFormFilled(prefillUsername)
-        Ok.page(loginPage(variant, form)).map(_.withCanonical(canonical))
+        val password = variant == AuthVariant.Takex3 || authCustomUi(variant).isDefined ||
+          get("method").contains("password") || switch.isDefined
+        Ok.page(if password then loginPage(variant, form) else views.auth.entry)
+          .map(_.withCanonical(canonical))
 
   def authenticate = OpenBody:
     serveAuthenticate(AuthVariant.Lichess)
@@ -203,7 +208,13 @@ final class Auth(env: Env, accountC: => Account) extends LilaController(env):
                                   t3Counter(_.login.success)
                                   env.user.repo.email(u.id).foreach(_.foreach(garbageCollect(u)))
                                   val ref = referrerOr(routes.Lobby.home)
-                                  authenticateUser(u, pwned, isRemember, redirectTo(ref).some)
+                                  authenticateUser(
+                                    u,
+                                    pwned,
+                                    isRemember,
+                                    redirectTo(ref).some,
+                                    confirmIdentity = true
+                                  )
                             )
                         }
                 else
@@ -282,12 +293,23 @@ final class Auth(env: Env, accountC: => Account) extends LilaController(env):
       variant: AuthVariant,
       canonical: Call
   )(using Context, Option[ValidReferrer]) = NoTor:
-    t3Counter(_.signup.load)
-    val form = forms.signup.full(simpleSignup)
-    Ok.page(signupPage(variant, form.form, form.simple)).map(_.withCanonical(canonical))
+    if simpleSignup.isEmpty && externalSignup.isEmpty && !get("method").contains("email") then
+      redirectWithReferrer(routes.Auth.login).toFuccess
+    else
+      t3Counter(_.signup.load)
+      val form = forms.signup.full(simpleSignup, external = externalSignup.isDefined)
+      Ok.page(signupPage(variant, form.form, form.simple)).map(_.withCanonical(canonical))
 
   private def simpleSignup(using ref: Option[ValidReferrer]) =
     ref.flatMap(env.oAuth.signedClients.simpleSignupFrom)
+
+  private def externalSignup(using ctx: Context, ref: Option[ValidReferrer]) =
+    if ctx.isAuth || simpleSignup.isDefined then None else env.security.externalLogin.signupIdentity
+
+  private def clearExternalSignup()(using ctx: Context): Unit =
+    ctx.req.cookies
+      .get(lila.security.ExternalLogin.cookieName)
+      .foreach(c => env.security.externalLogin.clear(c.value))
 
   private def authLog(user: UserName, email: Option[EmailAddress], msg: String)(using ctx: Context) =
     for proxy <- env.security.ip2proxy.ofReq(ctx.req)
@@ -313,25 +335,27 @@ final class Auth(env: Env, accountC: => Account) extends LilaController(env):
             limit.enumeration.signup(rateLimited):
               import Signup.Result.*
               env.security.signup
-                .website(ctx.blind, simpleSignup)
+                .website(ctx.blind, simpleSignup, externalSignup)
                 .flatMap:
                   case RateLimited | ForbiddenNetwork | SimpleSignupDuplicate =>
                     t3Counter(_.signup.failure("rateLimit"))
                     rateLimited
                   case TurnstileFail | EmailCodeInvalid =>
                     t3Counter(_.signup.failure("turnstile"))
-                    val f = forms.signup.full(simpleSignup)
+                    val f = forms.signup.full(simpleSignup, external = externalSignup.isDefined)
                     val form = f.form.withGlobalError("Invalid captcha")
                     BadRequest.page(signupPage(variant, form, f.simple))
                   case FormInvalid(err) =>
                     t3Counter(_.signup.failure("form"))
-                    val f = forms.signup.full(simpleSignup)
+                    val f = forms.signup.full(simpleSignup, external = externalSignup.isDefined)
                     BadRequest.page(signupPage(variant, err, f.simple))
                   case ConfirmEmail(user, email) =>
+                    clearExternalSignup()
                     t3Counter(_.signup.step("emailConfirm"))
                     redirectWithReferrer(routes.Auth.checkYourEmail).withCookies:
                       EmailConfirm.cookie.newSession(env.security.lilaCookie, user, email)
                   case AllSet(user, email) =>
+                    clearExternalSignup()
                     t3Counter(_.signup.success)
                     welcome(user, email, sendWelcomeEmail = true) >> redirectNewUser(user)
 
@@ -342,7 +366,13 @@ final class Auth(env: Env, accountC: => Account) extends LilaController(env):
     given Option[AuthCustomUi] = authCustomUi(variant)
     variant match
       case AuthVariant.Takex3 => views.authTakex3.signup(form, simple)
-      case AuthVariant.Lichess => views.auth.signup(form, simple)
+      case AuthVariant.Lichess =>
+        views.auth.signup(
+          form,
+          simple,
+          external = externalSignup.isDefined,
+          providerEmail = externalSignup.flatMap(_.verifiedEmail).map(_.value)
+        )
 
   private[controllers] def welcome(user: UserModel, email: EmailAddress, sendWelcomeEmail: Boolean)(using
       ctx: Context

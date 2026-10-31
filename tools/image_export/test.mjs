@@ -46,6 +46,19 @@ test('every native board theme and piece set renders all ten ranks', () => {
     assert.deepEqual(pngSize(renderImage({ ...request, piece: piece.key }, root)), [180, 200]);
 });
 
+test('every piece set rasterizes distinct red and black concealed backs', () => {
+  for (const piece of catalog.pieceSets) {
+    const images = ['X', 'x'].map(token =>
+      renderImage(
+        { ...request, piece: piece.key, frames: [{ fen: `9/9/9/9/4${token}4/9/9/9/9/9 w` }] },
+        root,
+      ),
+    );
+    for (const image of images) assert.deepEqual(pngSize(image), [180, 200]);
+    assert.notDeepEqual(images[0], images[1], piece.key);
+  }
+});
+
 test('orientation, native rank-ten marks, clocks and labels survive rasterization', () => {
   const input = {
     ...request,

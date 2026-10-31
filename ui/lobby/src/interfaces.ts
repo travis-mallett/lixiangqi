@@ -1,17 +1,15 @@
-import type { LiconValue } from 'lib/licon';
 import type { ColorChoice } from 'lib/setup/color';
 import type { ClockConfig, MoveTimeLimitConfig } from 'lib/setup/interfaces';
 import type { TimeMode } from 'lib/setup/timeControl';
 
 export type Tab = 'pools' | 'real_time' | 'seeks' | 'now_playing';
 export type GameType = 'hook' | 'friend' | 'ai';
+export type SetupVariant = VariantKey | 'threeKingdoms';
 
 export interface Variant {
   id: number;
-  key: VariantKey;
+  key: SetupVariant;
   name: string;
-  icon: LiconValue;
-  description: string;
 }
 
 export interface Hook {
@@ -77,9 +75,18 @@ export interface LobbyData {
   nbNowPlaying: number;
   nbMyTurn: number;
   nowPlaying: NowPlaying[];
+  kingdomsPlaying?: KingdomsPlaying[];
   counters: { members: number; rounds: number };
   stats?: { gamesPlayedToday: number; registeredUsers: number; gamesPlayedAllTime: number };
   poolCounts: Record<string, number>;
+}
+
+export interface KingdomsPlaying {
+  gameId: string;
+  position: string;
+  players: string[];
+  isMyTurn: boolean;
+  hasBots: boolean;
 }
 
 export interface NowPlaying {
@@ -114,7 +121,6 @@ export interface PoolMember {
 
 export type PoolId = string;
 export interface SetupStore {
-  variant: VariantKey;
   fen: FEN;
   timeMode: TimeMode;
   color: ColorChoice;
@@ -144,7 +150,7 @@ export interface AiStatsResponse {
 }
 
 export interface ForceSetupOptions {
-  variant?: VariantKey;
+  variant?: SetupVariant;
   fen?: FEN;
   timeMode?: TimeMode;
   time?: number;

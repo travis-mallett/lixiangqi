@@ -18,7 +18,18 @@ final class Pref(env: Env) extends LilaController(env):
       JsonOk:
         Json
           .obj("prefs" -> lila.pref.toJson(prefs, lichobileCompat = false))
-          .add("language" -> me.lang)
+          .add("language" -> me.lang) ++ Json.obj(
+          "catalogs" -> Json.obj(
+            "uiTheme" -> lila.pref.UiThemes.all.map(t => Json.obj("key" -> t.key, "name" -> t.name)),
+            "background" -> lila.pref.Backgrounds.all.map(t => Json.obj("key" -> t.key, "name" -> t.name)),
+            "boardTheme" -> lila.pref.BoardThemes.all.map(t => Json.obj("key" -> t.key, "name" -> t.name)),
+            "pieceSet" -> lila.pref.PieceSets.all.map(t => Json.obj("key" -> t.key, "name" -> t.name)),
+            "soundSet" -> lila.pref.SoundSets.all.map(t => Json.obj("key" -> t.key, "name" -> t.name)),
+            "musicSet" -> lila.pref.MusicSets.all.map(t => Json.obj("key" -> t.key, "name" -> t.name)),
+            "language" -> lila.i18n.LangList.allChoices
+              .map((key, name) => Json.obj("key" -> key, "name" -> name))
+          )
+        )
     }
   }
 
@@ -89,14 +100,44 @@ final class Pref(env: Env) extends LilaController(env):
               yield Ok(()).withCookies(cookie)
           )
 
-  def apiSet(name: String) = ScopedBody(_.Web.Mobile) { ctx ?=> me ?=>
-    lila.pref.PrefSingleChange.changes
-      .get(name)
-      .so: change =>
-        bindForm(change.form)(
-          jsonFormError,
-          v => api.setPref(me, change.update(v)).inject(NoContent)
-        )
+  def apiSet(name: String) = ScopedBody(_.Web.Mobile, _.Preference.Write) { ctx ?=> me ?=>
+    if name == "language" then
+      bindForm(lila.i18n.LangForm.select)(
+        jsonFormError,
+        code => env.user.repo.setLang(me, lila.i18n.LangPicker.byStr(code).get).inject(NoContent)
+      )
+    else
+      lila.pref.PrefSingleChange.changes
+        .get(name)
+        .so: change =>
+          bindForm(change.form)(
+            jsonFormError,
+            v => api.setPref(me, change.update(v)).inject(NoContent)
+          )
+  }
+
+  def apiNotifications = Scoped(_.Preference.Read) { _ ?=> me ?=>
+    env.notifyM.api.prefs.form(me).map(form => JsonOk(Json.toJson(form.data)))
+  }
+
+  def apiNotificationsApply(name: String) = ScopedBody(_.Preference.Write) { ctx ?=> me ?=>
+    val fixed = Set("privateMessage.bell", "challenge.bell", "tournamentSoon.bell", "gameEvent.bell")
+    env.notifyM.api.prefs
+      .form(me)
+      .flatMap: current =>
+        if !current.data.contains(name) || fixed(name) then
+          BadRequest(jsonError("invalid_preference")).toFuccess
+        else
+          bindForm(play.api.data.Form(play.api.data.Forms.single("v" -> play.api.data.Forms.boolean)))(
+            jsonFormError,
+            v =>
+              NotificationPref.form.form
+                .bind(current.data.updated(name, v.toString))
+                .fold(
+                  jsonFormError,
+                  data => env.notifyM.api.prefs.set(me, data).inject(NoContent)
+                )
+          )
   }
 
   def network = Auth { ctx ?=> me ?=>

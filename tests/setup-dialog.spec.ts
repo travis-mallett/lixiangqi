@@ -10,8 +10,7 @@ const sizes = [
 for (const size of sizes) {
   test(`computer setup remains reachable at ${size.name}`, async ({ page }) => {
     await page.setViewportSize({ width: size.width, height: size.height });
-    await page.goto('/');
-    await page.locator('.lobby__action--ai').click();
+    await page.goto('/#ai');
 
     const dialog = page.locator('dialog:has(.game-setup--ai)');
     await expect(dialog).toBeVisible();
@@ -72,8 +71,7 @@ test.describe('touch dialog', () => {
   test('swipe advances the computer setup scroll boundary', async ({ page, browserName }) => {
     test.skip(browserName !== 'chromium', 'Touch CDP coverage runs on Chromium only');
     await page.setViewportSize({ width: 375, height: 667 });
-    await page.goto('/');
-    await page.locator('.lobby__action--ai').click();
+    await page.goto('/#ai');
     const dialog = page.locator('dialog:has(.game-setup--ai)');
     await dialog.locator('details.advanced-settings summary').click();
     await dialog.locator('#ai-time-controls').check();
@@ -130,8 +128,7 @@ test('from-position setup opens Advanced Settings without resetting disclosure o
   await expect(timing).not.toBeChecked();
 
   // Updating the variant prop redraws the form; the native disclosure state must survive it.
-  await advanced.locator('.mselect__label').first().click();
-  await advanced.locator('.mselect__item').first().click();
+  await dialog.locator('#sf_variant').selectOption('standard');
   await expect(advanced).toHaveAttribute('open', '');
   await expect(timing).not.toBeChecked();
 });

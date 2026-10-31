@@ -115,13 +115,13 @@ test('shared study engine renders PVs, obeys concealment and permissions, and re
     hidden = false;
     allowed = false;
     redraw();
-    assert.equal(document.querySelector('.xiangqi-eval__score')!.textContent, '+0.00');
+    assert.equal(document.querySelector('.xiangqi-eval__score')!.textContent, '—');
     assert.equal(document.querySelectorAll('.xiangqi-engine__lines > .pv:not(.placeholder)').length, 0);
     allowed = true;
     enabled = false;
     chapter = 'second';
     redraw();
-    assert.equal(document.querySelector('.xiangqi-eval__score')!.textContent, '+0.00');
+    assert.equal(document.querySelector('.xiangqi-eval__score')!.textContent, '—');
     vnode = patch(vnode, h('div'));
     assert.equal(lifetimes[0].aborted, true);
     enabled = true;

@@ -7,8 +7,7 @@ import chess.{ ByColor, Centis, Color, Outcome, Ply, Tree }
 import lila.core.LightUser
 import lila.core.config.RouteUrl
 import lila.core.game.PgnDump.WithFlags
-import lila.core.game.{ AiLevel, Game, Player }
-import lila.game.Player.nameSplit
+import lila.core.game.{ Game, Player }
 import lila.core.rank.RankTrackId.*
 
 final class PgnDump(
@@ -43,7 +42,14 @@ final class PgnDump(
     tagsFuture.map: ts =>
       val tree = flags.moves.so:
         makeTree(
-          applyDelay(game.sans, flags.keepDelayIf(game.playable)),
+          applyDelay(
+            game.sans
+              .zip(game.xiangqi.states.drop(1))
+              .map((notation, state) =>
+                chess.format.pgn.SanStr(notation.value + state.reveal.fold("")("~" + _))
+              ),
+            flags.keepDelayIf(game.playable)
+          ),
           flags.clocks.so(~game.bothClockStates),
           game.startColor
         )
@@ -58,16 +64,12 @@ final class PgnDump(
 
   private def rank(p: Player) = p.rank.flatMap(_.publicCode).fold("Unranked")(_.value)
 
-  def player(p: Player, u: Option[LightUser]): String | UserName =
-    p.aiLevel.fold(
-      u.fold(p.nameSplit.map(_._1.value).orElse(p.name.map(_.value)) | UserName.anonymous)(_.name)
-    )(AiLevel.displayName)
-
   private def eventOf(game: Game) =
     game.tournamentId
       .map(id => s"Xiangqi tournament ${routeUrl(routes.Tournament.show(id))}")
       .orElse(game.simulId.map(id => s"Xiangqi simul ${routeUrl(routes.Simul.show(id))}"))
-      .getOrElse(if game.ranked then "Ranked Xiangqi game" else "Casual Xiangqi game")
+      .getOrElse(if game.ranked then s"Ranked ${game.nativeVariant.name} game"
+      else s"Casual ${game.nativeVariant.name} game")
 
   def tags(
       game: Game,
@@ -92,8 +94,8 @@ final class PgnDump(
       Tag(_.GameId, game.id).some,
       Tag(_.Date, importedDate | Tag.UTCDate.format.print(game.createdAt)).some,
       Tag(_.Round, importedTags.flatMap(_.apply(_.Round)) | "-").some,
-      Tag("Red", player(game.whitePlayer, users.white)).some,
-      Tag("Black", player(game.blackPlayer, users.black)).some,
+      Tag("Red", Namer.recordedPlayerText(game.whitePlayer, users.white)).some,
+      Tag("Black", Namer.recordedPlayerText(game.blackPlayer, users.black)).some,
       Tag(_.Result, result(game)).some,
       importedDate.isEmpty.option:
         Tag(_.UTCDate, importedTags.flatMap(_.apply(_.UTCDate)) | Tag.UTCDate.format.print(game.createdAt))
@@ -112,7 +114,7 @@ final class PgnDump(
       teams.map(t => Tag("BlackTeam", t.black)),
       game.whitePlayer.berserk.option(Tag("RedBerserk", game.whitePlayer.berserk)),
       game.blackPlayer.berserk.option(Tag("BlackBerserk", game.blackPlayer.berserk)),
-      Tag(_.Variant, "Xiangqi").some,
+      Tag(_.Variant, game.nativeVariant.name).some,
       Tag("MoveFormat", "WXF").some,
       Tag("Ruleset", game.xiangqi.ruleset.key).some,
       game.position.termination.map(Tag("Adjudication", _)),

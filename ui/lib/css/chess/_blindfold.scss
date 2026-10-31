@@ -1,6 +1,8 @@
 .blindfold {
   &.main-board piece,
-  .now-playing piece {
+  &.main-board .xiangqi-shadow-layer,
+  .now-playing piece,
+  .now-playing .xiangqi-shadow-layer {
     opacity: 0 !important;
   }
 

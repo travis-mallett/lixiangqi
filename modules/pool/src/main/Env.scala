@@ -9,7 +9,9 @@ final class Env(
     newPlayer: lila.core.game.NewPlayer,
     idGenerator: lila.core.game.IdGenerator,
     hasCurrentPlayban: lila.core.playban.HasCurrentPlayban,
-    rageSitOf: lila.core.playban.RageSitOf
+    rageSitOf: lila.core.playban.RageSitOf,
+    participation: lila.core.pool.PoolParticipation,
+    mayJoinPool: lila.core.pool.MayJoinPool
 )(using Executor, org.apache.pekko.actor.ActorSystem, Scheduler):
 
   private val hookThieve = wire[HookThieve]
@@ -19,5 +21,8 @@ final class Env(
   private val gameStarter = wire[GameStarter]
 
   val api = wire[PoolApi]
+
+  lila.common.Bus.sub[lila.core.game.FinishGame]: event =>
+    participation.release(event.game.id, event.game.userIds)
 
   export PoolList.{ all, isClockCompatible }

@@ -36,6 +36,7 @@ export interface BackgroundData extends CatalogItem {
 }
 
 export interface BoardThemeData extends CatalogItem {
+  geometries: Record<string, string>;
   file: string;
   coordinateLight: string;
   coordinateDark: string;

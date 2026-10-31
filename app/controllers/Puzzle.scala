@@ -22,7 +22,6 @@ import lila.ui.LangPath
 import scalalib.model.Days
 import lila.common.HTTPRequest
 import lila.common.Json.given
-import java.time.Instant
 
 final class Puzzle(env: Env, apiC: => Api) extends LilaController(env):
 
@@ -426,14 +425,30 @@ final class Puzzle(env: Env, apiC: => Api) extends LilaController(env):
         .find(angleStr)
         .fold(fuccess(notFoundJson(s"No $angleStr puzzles found"))): angle =>
           WithPuzzlePerf:
-            for puzzles <- batchSelect(angle, reqSettings, nb)
-            yield Ok(puzzles)
+            for
+              puzzles <- batchSelect(
+                angle,
+                reqSettings,
+                nb,
+                get("client").contains("xiangqi-kids") && get("map").contains("lotus")
+              )
+              rewards <- kidsRewardsJson
+            yield Ok(puzzles ++ rewards)
+
+  private def kidsRewardsJson(using ctx: Context): Fu[JsObject] =
+    ctx.me.filter(me => me.kid.yes && get("client").contains("xiangqi-kids")) match
+      case Some(me) => env.puzzle.kidsAvatar.balance(me.userId).map(r => Json.obj("rewards" -> r))
+      case None => fuccess(Json.obj())
 
   private def reqSettings(using req: RequestHeader) =
     PuzzleSettings(PuzzleDifficulty.orDefault(~get("difficulty")), getColor())
 
-  private def batchSelect(angle: PuzzleAngle, settings: PuzzleSettings, nb: Int)(using Option[Me], Perf) =
-    env.puzzle.batch.nextForMe(angle, settings, nb.atMost(50)).flatMap(env.puzzle.jsonView.batch)
+  private def batchSelect(angle: PuzzleAngle, settings: PuzzleSettings, nb: Int, lotus: Boolean = false)(using
+      Option[Me],
+      Perf
+  ) =
+    (if lotus then env.puzzle.batch.lotus(nb.atMost(50))
+     else env.puzzle.batch.nextForMe(angle, settings, nb.atMost(50))).flatMap(env.puzzle.jsonView.batch)
 
   private val solveRateLimit =
     env.security.ipTrust.rateLimit(400, 1.hour, "puzzle.solve.ip", _.proxyMultiplier(2))
@@ -460,6 +475,16 @@ final class Puzzle(env: Env, apiC: => Api) extends LilaController(env):
                       for
                         solves <- env.puzzle.finisher.batch(angle, data.solutions)
                         _ <- env.puzzle.session.onComplete(me.userId, angle, solves.size)
+                        _ <- (get("client").contains("xiangqi-kids") && me.kid.yes).so:
+                          env.puzzle.kidsRewards.award(
+                            me.userId,
+                            solves
+                              .map(_._1)
+                              .filter(r =>
+                                data.solutions
+                                  .exists(s => s.id == r.id.puzzleId && s.solved.contains(true))
+                              )
+                          )
                       yield solves.map(env.puzzle.jsonView.roundJson.api.tupled)
                   case None =>
                     data.solutions
@@ -468,7 +493,8 @@ final class Puzzle(env: Env, apiC: => Api) extends LilaController(env):
                 given Option[Me] <- ctx.me.so(env.user.repo.me)
                 nextPuzzles <- WithPuzzlePerf:
                   batchSelect(angle, reqSettings, ~getInt("nb"))
-                result = nextPuzzles ++ Json.obj("rounds" -> rounds)
+                rewards <- kidsRewardsJson
+                result = nextPuzzles ++ Json.obj("rounds" -> rounds) ++ rewards
               yield Ok(result)
         )
 

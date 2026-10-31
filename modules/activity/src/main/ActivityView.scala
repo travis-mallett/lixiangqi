@@ -28,10 +28,12 @@ case class ActivityView(
     tours: Option[ActivityView.Tours] = None,
     swisses: Option[List[(SwissIdName, Rank)]] = None,
     stream: Boolean = false,
-    signup: Boolean = false
+    signup: Boolean = false,
+    kingdoms: Option[Score] = None
 ):
   def isEmpty = !stream && List(
     games,
+    kingdoms,
     puzzles,
     storm,
     racer,

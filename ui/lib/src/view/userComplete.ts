@@ -2,6 +2,7 @@ import debounce from 'debounce-promise';
 
 import * as xhr from '@/xhr';
 
+import { usernameSearchPattern, userProfilePath } from '../username';
 import { complete } from './complete';
 
 export interface UserCompleteResult {
@@ -26,11 +27,12 @@ export function userComplete(opts: UserCompleteOpts): void {
 
   complete<LightUserOnline>({
     input: opts.input,
+    minLength: opts.minLength ?? 2,
     fetch: t => debouncedXhr(t).then(checkDebouncedResultAgainstTerm(t)),
     render: (o: LightUserOnline) => renderUserEntry(o, opts.tag),
     populate: opts.populate || (r => r.name),
     onSelect: opts.onSelect,
-    regex: /^[a-z][\w-]{2,29}$/i,
+    regex: usernameSearchPattern,
   });
   if (opts.focus) setTimeout(() => opts.input.focus());
 }
@@ -66,5 +68,5 @@ export const renderUserEntry = (o: LightUserOnline, tag = 'a'): string => {
     ? `<span class="utitle"${o.title === 'BOT' ? ' data-bot="data-bot"' : ''}>${o.title}</span>&nbsp;`
     : '';
   const flair = o.flair ? `<img class="uflair" src="${site.asset.flairSrc(o.flair)}" alt="" />` : '';
-  return `<${tag} class="complete-result ulpt user-link${o.online ? ' online' : ''}" ${hrefAttr}="/@/${o.name}"><icon class="line${o.patron ? ' patron' : ''}${patronClass}"></icon>${title}${o.name}${flair}</${tag}>`;
+  return `<${tag} class="complete-result ulpt user-link${o.online ? ' online' : ''}" ${hrefAttr}="${userProfilePath(o.name)}"><icon class="line${o.patron ? ' patron' : ''}${patronClass}"></icon>${title}${o.name}${flair}</${tag}>`;
 };

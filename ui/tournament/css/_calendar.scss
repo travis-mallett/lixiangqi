@@ -1,10 +1,19 @@
+#main-wrap > main {
+  min-width: 0;
+}
+
 #tournament-calendar {
   @include prevent-select;
+
+  --calendar-date-width: 4.5em;
+
+  overflow-x: auto;
 
   group {
     @extend %flex-column;
 
     width: 100%;
+    min-width: 850px;
     position: relative;
   }
 
@@ -15,18 +24,26 @@
   day {
     display: flex;
     align-items: center;
+    background: $c-bg-box;
 
     &:nth-child(even) {
       background: $c-bg-zebra;
     }
 
     date {
-      flex: 0 0 40px;
-      margin-inline: -55px 15px;
+      flex: 0 0 var(--calendar-date-width);
+      position: sticky;
+      inset-inline-start: 0;
+      z-index: 1;
+      background: inherit;
+      padding-inline: 0.5em;
+      text-align: center;
     }
 
     lanes {
-      flex: 1 1 100%;
+      flex: 1 1 0;
+      min-width: 0;
+      min-height: 2.3em;
       overflow: hidden;
       padding: 5px 0;
     }
@@ -131,6 +148,9 @@
   .timeline {
     @extend %abs-100;
 
+    inset-inline-start: var(--calendar-date-width);
+    width: calc(100% - var(--calendar-date-width));
+    pointer-events: none;
     border-top: $border;
   }
 
@@ -145,8 +165,4 @@
       border: none;
     }
   }
-}
-
-#main-wrap {
-  ---main-max-width: min(90vw, 100vw - 140px);
 }

@@ -1,13 +1,10 @@
 package lila.playerDirectory
 package ui
-
 import scalalib.paginator.Paginator
-
 import lila.core.playerDirectory.DirectoryPlayerOrder
 import lila.ui.*
 import lila.ui.ScalatagsTemplate.{ *, given }
 import lila.core.id.ImageId
-
 final class DirectoryPlayerUi(
     helpers: Helpers,
     directoryUi: PlayerDirectoryUi,
@@ -15,7 +12,6 @@ final class DirectoryPlayerUi(
 ):
   import helpers.{ *, given }
   import trans.{ site as trs, broadcast as trb }
-
   def index(players: Paginator[DirectoryPlayer.WithFollow], query: String, order: DirectoryPlayerOrder)(using
       Context
   ) =
@@ -23,8 +19,17 @@ final class DirectoryPlayerUi(
       cls := "directory-players",
       boxTop(
         h1(trb.directoryPlayers()),
+        p(cls := "pro-players__description")(trb.catalogPlayerDescription()),
         div(cls := "box__top__actions"):
           searchForm(query)
+      ),
+      players.currentPageResults.isEmpty.option(
+        div(cls := "box__pad", role := "status")(
+          p(trb.noPlayersFound()),
+          query.nonEmpty.option(
+            a(cls := "button button-empty", href := routes.PlayerDirectory.index())(trs.clearSearch())
+          )
+        )
       ),
       playerList(
         players,
@@ -33,7 +38,6 @@ final class DirectoryPlayerUi(
         sortable = query.isEmpty
       )
     )
-
   def notFound(id: lila.core.playerDirectory.PlayerId)(using Context) =
     directoryUi.page(trb.directoryPlayerNotFound.txt(), "players")(
       cls := "directory-players",
@@ -47,8 +51,7 @@ final class DirectoryPlayerUi(
         p(strong(id.value))
       )
     )
-
-  def searchForm(q: String) =
+  def searchForm(q: String)(using Context) =
     st.form(
       cls := "directory-players__search-form",
       action := routes.PlayerDirectory.index(),
@@ -57,7 +60,7 @@ final class DirectoryPlayerUi(
       input(
         cls := "directory-players__search-form__input",
         name := "q",
-        st.placeholder := "Search for players",
+        st.placeholder := trb.searchPlayers.txt(),
         st.value := q,
         autofocus := true,
         autocomplete := "off",
@@ -65,7 +68,6 @@ final class DirectoryPlayerUi(
       ),
       submitButton(cls := "button", dataIcon := Icon.Search)
     )
-
   def playerList(
       players: Paginator[DirectoryPlayer.WithFollow],
       order: DirectoryPlayerOrder,
@@ -82,60 +84,88 @@ final class DirectoryPlayerUi(
           )(label)
         )
       else th(label)
-    div(cls := "slist-wrapper")(
-      table(
-        cls := List(
-          "slist slist-pad directory-players-table" -> true,
-          "directory-players-table--sortable" -> sortable
-        )
-      )(
-        thead:
-          tr(
-            header(trs.name(), DirectoryPlayerOrder.name),
-            header(trs.classical(), DirectoryPlayerOrder.standard),
-            header(trs.rapid(), DirectoryPlayerOrder.rapid),
-            header(trs.blitz(), DirectoryPlayerOrder.blitz),
-            header(trb.age(), DirectoryPlayerOrder.year),
-            ctx.isAuth.option(header(trs.follow(), DirectoryPlayerOrder.follow))
+    frag(
+      div(cls := "slist-wrapper")(
+        table(
+          cls := List(
+            "slist slist-pad directory-players-table" -> true,
+            "directory-players-table--sortable" -> sortable
           )
-        ,
-        tbody(cls := "infinite-scroll")(
-          players.currentPageResults.map: p =>
-            val player = p.player
-            val link = a(href := routes.PlayerDirectory.show(player.id, player.slug))
-            tr(cls := "paginated")(
-              td(cls := "player-intro-td")(
-                span(cls := "player-intro")(
-                  link(cls := "player-intro__photo"):
-                    player.photo
-                      .fold(
-                        thumbnail.fallback(
-                          cls := "directory-players__photo directory-players__photo--fallback"
-                        )
-                      ): photo =>
-                        img(src := thumbnail.url(photo.id, _.Small), cls := "directory-players__photo")
-                  ,
-                  span(cls := "player-intro__info")(
-                    link(cls := "player-intro__name")(
-                      player.title.map(t => span(cls := "utitle")(t.value)),
-                      player.name
-                    ),
-                    player.fed.map: fed =>
-                      span(cls := "player-intro__fed")(
-                        directoryUi.federation.flag(fed, none),
-                        Federation.i18nName(fed)
-                      )
-                  )
-                )
-              ),
-              td(player.standard),
-              td(player.rapid),
-              td(player.blitz),
-              td(player.age),
-              ctx.isAuth.option(td(followButton(p)))
+        )(
+          thead:
+            tr(
+              header(trs.name(), DirectoryPlayerOrder.name),
+              header(trb.catalogGames(), DirectoryPlayerOrder.games),
+              header(trb.catalogScore(), DirectoryPlayerOrder.score),
+              th(trb.catalogLastSeen()),
+              ctx.isAuth.option(header(trs.follow(), DirectoryPlayerOrder.follow))
             )
           ,
-          pagerNextTable(players, np => addQueryParam(url(np).url, "order", order.key))
+          tbody(
+            players.currentPageResults.map: p =>
+              val player = p.player
+              val link = a(href := routes.PlayerDirectory.show(player.id, player.slug))
+              tr(
+                td(cls := "player-intro-td")(
+                  span(cls := "player-intro")(
+                    link(cls := "player-intro__photo"):
+                      player.photo
+                        .fold(
+                          thumbnail.fallback(
+                            cls := "directory-players__photo directory-players__photo--fallback"
+                          )
+                        ): photo =>
+                          img(
+                            src := thumbnail.url(photo, _.Small),
+                            cls := "directory-players__photo",
+                            alt := "",
+                            attr("loading") := "lazy"
+                          )
+                    ,
+                    span(cls := "player-intro__info")(
+                      link(cls := "player-intro__name")(
+                        player.title.map(t => frag(span(cls := "utitle")(t.value), " ")),
+                        player.displayName
+                      ),
+                      player.team
+                        .orElse(player.stats.team)
+                        .map(team =>
+                          span(cls := "player-intro__team", title := trb.lastRecordedTeam.txt())(team)
+                        ),
+                      player.fed.map: fed =>
+                        span(cls := "player-intro__fed")(
+                          directoryUi.federation.flag(fed, none),
+                          Federation.i18nName(fed)
+                        )
+                    )
+                  )
+                ),
+                td(player.stats.games.localize),
+                td(if player.stats.games == 0 then "—"
+                else
+                  s"${math.round(100.0 * (player.stats.wins + player.stats.draws * 0.5) / player.stats.games)}%"),
+                td(player.stats.lastPlayedAt.map(_.take(4))),
+                ctx.isAuth.option(td(followButton(p)))
+              )
+          )
+        )
+      ),
+      players.hasToPaginate.option(
+        st.nav(cls := "directory-players__pagination")(
+          (players.currentPage > 1).option(
+            a(
+              cls := "button button-empty",
+              href := addQueryParam(url(players.currentPage - 1).url, "order", order.key)
+            )(trs.previous())
+          ),
+          span(s"${players.currentPage} / ${players.nbPages}"),
+          players.nextPage.map(np =>
+            a(
+              cls := "button button-empty",
+              rel := "next",
+              href := addQueryParam(url(np).url, "order", order.key)
+            )(trs.next())
+          )
         )
       )
     )
@@ -150,98 +180,87 @@ final class DirectoryPlayerUi(
         cssClass = "cmn-favourite"
       )
     )
-
-  def show(
-      player: DirectoryPlayer,
-      user: Option[User],
-      tours: Option[Frag],
-      ratings: DirectoryRatingHistory,
-      isFollowing: Boolean
-  )(using ctx: Context) =
-    directoryUi.page(
-      s"${player.name} - ${trb.directoryPlayers.txt()}",
-      "players",
-      _.js(esmInit("directoryRatingChart", ratings.toJson))
-    )(
-      cls := "box-pad directory-player",
-      div(cls := "directory-player__header")(
-        player.photo.map: photo =>
-          div(cls := "directory-player__photo")(
-            img(src := thumbnail.url(photo.id, _.Medium)),
-            photo.credit.map: credit =>
-              span(cls := "directory-player__photo__credit")("Credit: ", credit)
-          ),
-        div(cls := "directory-player__header__info")(
-          h1(cls := "directory-player__header__name")(
-            span(player.title.map(t => span(cls := "utitle")(t.value)), player.name),
-            user.map(userLink(_, withTitle = false))
-          ),
-          ctx.isAuth.option(
-            followButton(DirectoryPlayer.WithFollow(player, isFollowing))(trans.site.follow())
-          ),
-          table(cls := "directory-player__header__table")(
-            tbody(
-              player.fed.map: fed =>
-                tr(
-                  th(trb.federation()),
-                  td(
-                    a(
-                      cls := "directory-player__federation",
-                      href := routes.PlayerDirectory.federation(Federation.idToSlug(fed))
-                    )(
-                      directoryUi.federation.flag(fed, none),
-                      Federation.i18nName(fed)
-                    )
-                  )
-                ),
-              tr(
-                th(trb.directoryProfile()),
-                td(player.id)
-              ),
-              tr(
-                th(trb.playerSource()),
-                td(a(href := player.provenance.url, targetBlank)(player.provenance.provider.toUpperCase))
-              ),
-              tr(th(trb.playerSourceDate()), td(player.provenance.publishedAt)),
-              player.age.map: age =>
-                tr(
-                  th(trb.age()),
-                  td(
-                    age,
-                    for by <- player.year; dy <- player.deceasedYear
-                    yield s" ($by - $dy)"
-                  )
+  def profile(player: DirectoryPlayer, isFollowing: Boolean, user: Option[User])(using ctx: Context): Frag =
+    val lang = ctx.lang.code
+    val biography = player.biography
+      .get(lang)
+      .orElse(player.biography.get(ctx.lang.language))
+      .orElse(player.biography.get("en"))
+    val recordedTeam = player.stats.team.map(_ -> player.stats.teamAsOf)
+    frag(
+      div(cls := "pro-player-profile")(
+        div(cls := "pro-player-profile__portrait")(
+          player.photo.fold(thumbnail.fallback): photo =>
+            frag(
+              img(src := thumbnail.url(photo, _.Medium), alt := player.displayName.value),
+              photo.credit.map: credit =>
+                small(
+                  photo.sourceUrl.fold[Frag](frag(credit))(url => a(href := url, targetBlank)(credit))
                 )
             )
-          )
+        ),
+        div(cls := "pro-player-profile__facts")(
+          div(cls := "pro-player-profile__identity")(
+            player.title.map(t => span(cls := "utitle")(t.value)),
+            player.aliases.map(n => span(n.value)),
+            user.map(userLink(_, withTitle = false)),
+            ctx.isAuth.option(followButton(DirectoryPlayer.WithFollow(player, isFollowing)))
+          ),
+          player.fed.map(fed => p(directoryUi.federation.flag(fed, none), Federation.i18nName(fed))),
+          player.titles.map: award =>
+            p(
+              if award.status == "revoked" then trb.revokedTitle() else trb.recordedTitle(),
+              ": ",
+              strong(s"${award.issuer} ${award.code}"),
+              " · ",
+              a(href := award.source.url, targetBlank)(award.source.publishedAt),
+              award.statusSource.map(s => frag(" · ", a(href := s.url, targetBlank)(s.publishedAt)))
+            ),
+          player.team.map: team =>
+            p(trb.registeredTeam(), ": ", team, player.teamAsOf.map(date => small(s" (${date.take(10)})"))),
+          recordedTeam.map: (team, date) =>
+            p(
+              trb.lastRecordedTeam(),
+              ": ",
+              team,
+              date.map(value => small(s" (${value.take(10)})"))
+            ),
+          player.year.map(year => p(trb.born(), ": ", year)),
+          biography.map(text => p(cls := "pro-player-profile__biography")(text)),
+          player.biographySources.zipWithIndex.map: (url, index) =>
+            a(cls := "pro-player-profile__source", href := url, targetBlank)(
+              trb.playerSource(),
+              s" ${index + 1}"
+            ),
+          p(cls := "pro-player-profile__publication")(
+            a(href := player.provenance.url, targetBlank)(player.provenance.provider.toUpperCase),
+            s" · ${player.provenance.publishedAt}"
+          ),
+          player.ratingsMap.toList.map: (category, rating) =>
+            val publication = player.ratingSources(category.key)
+            p(
+              strong(s"${category.key}: ${rating.value}"),
+              " · ",
+              a(href := publication.url, targetBlank)(
+                s"${publication.provider.toUpperCase} · ${publication.publishedAt}"
+              )
+            )
         )
       ),
-      Granter.opt(_.DirectoryPlayer).option(photoForm(player)),
-      div(cls := "directory-player__ratings")(
-        directoryUi.tcTrans.map: (tc, name, icon) =>
-          div(cls := "directory-player__rating")(
-            div(cls := "directory-player__rating__text")(
-              em(dataIcon := icon, cls := "text")(name()),
-              strong(player.ratingOf(tc).fold(trb.unrated())(_.toString))
-            ),
-            canvas(cls := s"directory-player__rating__history directory-player__rating__history--$tc")
-          )
-      ),
-      tours.map: tours =>
-        div(cls := "directory-player__tours")(h2(trb.recentTournaments()), tours)
+      Granter.opt(_.DirectoryPlayer).option(photoForm(player))
     )
-
   object thumbnail:
     def apply(image: Option[ImageId], size: DirectoryPlayer.PlayerPhoto.SizeSelector): Tag =
       image.fold(fallback): id =>
         img(src := url(id, size))
     def fallback = img(src := staticAssetUrl("images/anon-face.webp"))
+    def url(photo: DirectoryPlayer.PlayerPhoto, size: DirectoryPlayer.PlayerPhoto.SizeSelector) =
+      DirectoryPlayer.PlayerPhoto(picfitUrl, photo, size)
     def url(id: ImageId, size: DirectoryPlayer.PlayerPhoto.SizeSelector) =
       DirectoryPlayer.PlayerPhoto(picfitUrl, id, size)
-
   private def photoForm(player: DirectoryPlayer)(using ctx: Context) =
-    val credit = lila.playerDirectory.DirectoryPlayer.form.credit(player)
-    form3.fieldset("Photo", toggle = player.photo.isEmpty.some)(
+    val edit = lila.playerDirectory.DirectoryPlayer.form.edit(player, ctx.lang.code)
+    form3.fieldset(trb.editProfile.txt(), toggle = player.photo.isEmpty.some)(
       postForm(
         cls := "form3 directory-player__form",
         action := routes.PlayerDirectory.playerUpdate(player.id)
@@ -257,8 +276,22 @@ final class DirectoryPlayerUi(
             ),
             form3.file.selectImage()
           ),
-          form3.group(credit("photo.credit"), trans.ublog.imageCredit(), half = true)(form3.input(_))
+          form3.group(edit("photo.credit"), trans.ublog.imageCredit(), klass = "", half = true)(
+            form3.input(_)
+          )
         ),
-        form3.action(form3.submit("Save"))
+        form3.group(
+          edit("biography"),
+          frag(trb.biography(), s" (${ctx.lang.code})"),
+          klass = "",
+          half = false,
+          help = None
+        )(
+          form3.textarea(_)(rows := 5)
+        ),
+        form3.group(edit("sources"), trb.biographySources(), klass = "", half = false, help = None)(
+          form3.textarea(_)(rows := 3)
+        ),
+        form3.action(form3.submit(trs.save()))
       )
     )

@@ -91,8 +91,19 @@ final private class RoundAsyncActor(
             isHostingSimul.map: x =>
               (!x).option(timeoutMillis + since - now)
 
-    def setBotConnected(v: Boolean) =
+    def setBotConnected(v: Boolean): Unit =
+      val wasConnected = botConnected
       botConnections = Math.max(0, botConnections + (if v then 1 else -1))
+      if !wasConnected && botConnected then
+        bye = false
+        proxy.withGameOptionSync: game =>
+          if game.forceResignableNow then notifyGone(game.pov(color), gone = false)
+          publishBoardBotGone(game.pov(color), none)
+      else if wasConnected && !botConnected then
+        // A stream kept this player online. Begin their disconnect grace now,
+        // while preserving a browser connection represented by None.
+        offlineSince = offlineSince.map(_ => nowMillis)
+        bye = false
   end Player
 
   private val players = ByColor(Player(_))
@@ -227,10 +238,11 @@ final private class RoundAsyncActor(
 
     case RoundBus.Resign(playerId) =>
       handle(playerId): pov =>
-        pov.game.resignable.so(
-          if RoundGame.cannotLose(pov) then finisher.other(pov.game, _.InsufficientMaterialClaim, None)
-          else finisher.other(pov.game, _.Resign, Some(!pov.color))
-        )
+        pov.game.resignable
+          .so(
+            if RoundGame.cannotLose(pov) then finisher.other(pov.game, _.InsufficientMaterialClaim, None)
+            else finisher.other(pov.game, _.Resign, Some(!pov.color))
+          )
 
     case ResignAi =>
       handleAi: pov =>
@@ -244,6 +256,10 @@ final private class RoundAsyncActor(
             for
               _ <- proxy.save(progress)
               _ <- gameRepo.goBerserk(pov)
+              _ = lila.common.Bus.publishDyn(
+                lila.game.actorApi.BoardBerserk(progress.game),
+                lila.game.actorApi.BoardBerserk.makeChan(gameId)
+              )
             yield progress.events
           _ = promise.success(berserked.isDefined)
         yield events
@@ -450,12 +466,10 @@ final private class RoundAsyncActor(
     socketSend.exec(Protocol.Out.goneIn(pov.fullId, millis))
 
   private def publishBoardBotGone(pov: Pov, millis: Option[Long]) =
-    if lila.game.Game.mightBeBoardOrBotCompatible(pov.game)
-    then
-      lila.common.Bus.publishDyn(
-        lila.game.actorApi.BoardGone(pov, millis.map(m => (m.atLeast(0) / 1000).toInt)),
-        lila.game.actorApi.BoardGone.makeChan(gameId)
-      )
+    lila.common.Bus.publishDyn(
+      lila.game.actorApi.BoardGone(pov, millis.map(m => (m.atLeast(0) / 1000).toInt)),
+      lila.game.actorApi.BoardGone.makeChan(gameId)
+    )
 
   private def handle(op: Game => Fu[Events]): Funit =
     proxy.withGame: g =>

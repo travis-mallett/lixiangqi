@@ -29,6 +29,16 @@ private[adjudication] object TiantianSequences:
   def mutualChase(facts: Vector[MoveFact]) =
     Side.values.forall(side => chaseTail(facts, side).size >= forcingLimit)
 
+  def forbiddenJieqi(facts: Vector[MoveFact], candidate: MoveFact): Option[String] =
+    val next = facts :+ candidate
+    val checks = sideTail(next, candidate.side, _.check)
+    if candidate.check && candidate.checkers.exists: piece =>
+        checks.reverse.takeWhile(_.checkers.contains(piece)).size > forcingLimit
+    then Some("perpetual-check")
+    else if candidate.chase && chaseTail(next, candidate.side).size > forcingLimit then
+      Some("perpetual-chase")
+    else None
+
   def forbidden(facts: Vector[MoveFact], candidate: MoveFact): Option[String] =
     if candidate.capture then None
     else

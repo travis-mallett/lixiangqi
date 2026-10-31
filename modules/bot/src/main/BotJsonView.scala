@@ -13,10 +13,10 @@ final class BotJsonView(
     rematches: lila.game.Rematches
 )(using Executor):
 
-  def gameFull(game: Game): Fu[JsObject] = gameRepo.withInitialFen(game).flatMap(gameFull)
+  def gameFull(game: Game): Fu[JsObject] = gameRepo.withInitialFen(game).flatMap(wf => gameFull(wf))
 
-  def gameFull(wf: WithInitialFen): Fu[JsObject] =
-    gameState(wf).map: state =>
+  def gameFull(wf: WithInitialFen, viewer: Option[Color] = None): Fu[JsObject] =
+    gameState(wf, viewer).map: state =>
       gameImmutable(wf) ++ Json.obj(
         "type" -> "gameFull",
         "state" -> state
@@ -28,9 +28,9 @@ final class BotJsonView(
       .obj(
         "id" -> game.id,
         "ruleset" -> game.xiangqi.ruleset.key,
-        "variant" -> game.variant,
+        "variant" -> lila.game.JsonView.variant(game),
         "speed" -> game.speed.key,
-        "perf" -> Json.obj("name" -> "Xiangqi"),
+        "perf" -> Json.obj("name" -> game.nativeVariant.name),
         "ranked" -> game.ranked,
         "createdAt" -> game.createdAt,
         "red" -> playerJson(game.pov(Color.white)),
@@ -41,13 +41,28 @@ final class BotJsonView(
       .add("moveTime" -> game.moveTimeLimit)
       .add("daysPerTurn" -> game.daysPerTurn)
       .add("tournamentId" -> game.tournamentId)
+      .add("source" -> game.source.map(_.name))
 
-  def gameState(wf: WithInitialFen): Fu[JsObject] =
+  def gameState(wf: WithInitialFen, viewer: Option[Color] = None): Fu[JsObject] =
     import wf.*
+    import lila.xiangqi.XiangqiJson.given
+    val side =
+      viewer.map(c => if c.white then lila.xiangqi.Xiangqi.Side.Red else lila.xiangqi.Xiangqi.Side.Black)
     fuccess(
       Json
         .obj(
           "type" -> "gameState",
+          "fen" -> game.position.fen,
+          "variant" -> game.nativeVariant.key,
+          "captures" -> lila.xiangqi.Jieqi.captures(game.xiangqi, side),
+          "reveals" -> game.xiangqi.states.drop(1).map(_.reveal),
+          "turn" -> sideName(game.turnColor),
+          "ply" -> game.ply.value,
+          "check" -> game.position.check,
+          "clockRunning" -> (game.playable && (game.clock.exists(
+            _.isRunning
+          ) || game.correspondenceClock.isDefined)),
+          "canAbort" -> game.abortableByUser,
           "ruleset" -> game.xiangqi.ruleset.key,
           "legalMoves" -> game.position.legalMoves.map(_.value),
           "variation" -> game.position.variation,
@@ -55,8 +70,8 @@ final class BotJsonView(
           "moves" -> game.xiangqi.moves.map(_.value).mkString(" "),
           "rtime" -> millisRemaining(game, Color.white),
           "btime" -> millisRemaining(game, Color.black),
-          "rinc" -> game.clock.so[Long](_.config.increment.millis),
-          "binc" -> game.clock.so[Long](_.config.increment.millis),
+          "rinc" -> game.clock.so[Long](_.incrementOf(Color.white).millis),
+          "binc" -> game.clock.so[Long](_.incrementOf(Color.black).millis),
           "status" -> game.status.name
         )
         .add("rdraw" -> game.whitePlayer.isOfferingDraw)
@@ -65,6 +80,8 @@ final class BotJsonView(
         .add("btakeback" -> game.blackPlayer.isProposingTakeback)
         .add("winner" -> game.winnerColor.map(sideName))
         .add("rematch" -> rematches.getAcceptedId(game.id))
+        .add("rrematch" -> rematches.isOffering(game.pov(Color.white).ref))
+        .add("brematch" -> rematches.isOffering(game.pov(Color.black).ref))
         .add("moveTime" -> game.moveTimeRemaining.map(_.millis.toInt))
         .add("expiration" -> lila.game.JsonView.expiration(game))
     )

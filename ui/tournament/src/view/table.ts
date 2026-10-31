@@ -1,6 +1,7 @@
 import { opposite } from '@lichess-org/chessground/util';
 
 import { licon } from 'lib/licon';
+import { pubsub } from 'lib/pubsub';
 import { type VNode, bind, onInsert, hl, initMiniGames, icon } from 'lib/view';
 
 import type TournamentController from '../ctrl';
@@ -64,11 +65,34 @@ function renderDuel(ctrl: TournamentController) {
     ]);
 }
 
-const initMiniGame = (node: VNode) => initMiniGames(node.elm as HTMLElement);
+const initMiniGame = (node: VNode) => {
+  const element = node.elm as HTMLElement;
+  initMiniGames(element);
+  if (element.querySelector('[data-three-kingdoms-position]')) {
+    void site.asset.loadEsm('threeKingdoms.mini').then(() => pubsub.emit('content-loaded', element));
+  }
+};
 
 export default function (ctrl: TournamentController): VNode {
   return hl('div.tour__table', { hook: { insert: initMiniGame, postpatch: initMiniGame } }, [
     ctrl.data.featured && featured(ctrl.data.featured),
+    ctrl.data.kingdomsGames &&
+      hl('section.tour__duels', [
+        hl('h2', i18n.site.topGames),
+        ...ctrl.data.kingdomsGames.map(game =>
+          hl(
+            'a.tour__kingdoms-game',
+            {
+              key: game.id,
+              attrs: { href: `/three-kingdoms/game/${game.id}` },
+            },
+            [
+              hl('div.three-kingdoms__mini', { attrs: { 'data-three-kingdoms-position': game.position } }),
+              hl('span', game.players.map(p => p.name).join(' · ')),
+            ],
+          ),
+        ),
+      ]),
     ctrl.data.duels.length > 0 &&
       hl(
         'section.tour__duels',

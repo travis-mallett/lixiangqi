@@ -44,7 +44,6 @@ final class ChallengeUi(helpers: Helpers):
       clock.moveTimeLimit.fold(clock.config.show): limit =>
         s"${clock.config.show} · ${shortMoveTimeLimitName(limit)}"
     }
-    val variant = c.variant.exotic.so(s" ${c.variant.name}")
     val challenger = c.challengerUser.fold(trans.site.anonymous.txt()): reg =>
       s"${titleNameOrId(reg.id)} (${reg.rank.fold("Unranked")(_.value)})"
     val players =
@@ -52,7 +51,7 @@ final class ChallengeUi(helpers: Helpers):
       else
         c.destUser.fold(s"Challenge from $challenger"): dest =>
           s"$challenger challenges ${titleNameOrId(dest.id)} (${dest.rank.fold("Unranked")(_.value)})"
-    s"$clockDescription$variant ${trans.site.casual.txt()} Xiangqi • $players"
+    s"$clockDescription ${trans.site.casual.txt()} ${c.gameVariant.name} • $players"
 
   private def details(c: Challenge, requestedColor: Option[Color])(using ctx: Context) =
     div(cls := "details-wrapper")(
@@ -62,7 +61,7 @@ final class ChallengeUi(helpers: Helpers):
           dataIcon := (if c.initialFen.isDefined then Icon.Feather else c.perfType.icon)
         )(
           div(
-            variantLink(c.variant, c.perfType, c.initialFen),
+            nativeVariantLink(c.gameVariant, c.variant, c.perfType.key, c.initialFen),
             br,
             span(cls := "clock"):
               c.daysPerTurn
@@ -306,7 +305,8 @@ final class ChallengeUi(helpers: Helpers):
       val params: Map[String, String] = List(
         List(
           "user" -> user.id.value,
-          "variant" -> variant.key.value,
+          "variant" -> (if c.gameVariant == lila.xiangqi.GameVariant.Xiangqi then variant.key.value
+                        else c.gameVariant.key),
           "gameMode" -> "casual"
         ),
         timeControl.match

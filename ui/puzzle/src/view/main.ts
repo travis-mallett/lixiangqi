@@ -106,6 +106,7 @@ function session(ctrl: PuzzleCtrl): MaybeVNode {
           class: { current: currentId === id, 'result-empty': !rd },
           attrs: {
             href: `/training/${theme}/${id}`,
+            'aria-current': currentId === id ? 'true' : 'false',
             ...(ctrl.streak ? { target: '_blank' } : {}),
           },
         },
@@ -113,14 +114,18 @@ function session(ctrl: PuzzleCtrl): MaybeVNode {
       );
     }),
     rounds.some(r => r.id === currentId)
-      ? !ctrl.streak && hl('a.session-new', { key: 'new', attrs: { href: `/training/${theme}` } })
+      ? !ctrl.streak &&
+        hl('a.session-new', {
+          key: 'new',
+          attrs: { href: `/training/${theme}`, title: i18n.site.next, 'aria-label': i18n.site.next },
+        })
       : hl(
-          'a.result-cursor.current',
+          'span.result-cursor.current',
           {
             key: currentId,
-            attrs: ctrl.streak ? {} : { href: `/training/${theme}/${currentId}` },
+            attrs: { title: i18n.site.yourTurn, 'aria-label': i18n.site.yourTurn, 'aria-current': 'true' },
           },
-          ctrl.streak && (ctrl.streak.data.index + 1).toString(),
+          ctrl.streak ? (ctrl.streak.data.index + 1).toString() : '…',
         ),
   ]);
 }

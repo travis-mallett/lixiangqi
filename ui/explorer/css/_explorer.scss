@@ -11,6 +11,13 @@
   overflow-y: auto;
   font-size: 0.9em;
 
+  .explanation {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    padding: 0 8px;
+    margin-block: 0.5em;
+  }
+
   &.reduced {
     flex: 0.3 3 0;
 

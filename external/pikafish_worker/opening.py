@@ -42,6 +42,10 @@ def choose_opening_move(
     # The side now moving has played floor(history plies / 2) times, even
     # for Black-first custom positions. FEN fullmove numbers are not bot turns.
     move_number = len(work.moves) // 2 + 1
+    # Beginner Kids friends practice recognisable piece play from the first turn.
+    # Do not give them ten master-level opening moves or a 5M-node book miss.
+    if work.bot_profile and work.level <= 187:
+        return None
     if move_number > 10:
         return None
     use_missing_book_fallback = False
@@ -57,6 +61,8 @@ def choose_opening_move(
             # Separate from engine rank sampling; retries repeat the decision,
             # while different games sample independently at every level.
             seed = f"master-opening|{work.game_id}|{work.initial_fen}|{' '.join(work.moves)}"
+            if work.bot_profile:
+                seed += f"|{work.bot_profile}"
             rng = random.Random(hashlib.sha256(seed.encode()).digest())
         if rng.random() >= (11 - move_number) / 10:
             return None

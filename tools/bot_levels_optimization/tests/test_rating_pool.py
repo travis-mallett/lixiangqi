@@ -27,11 +27,11 @@ class PoolTests(unittest.TestCase):
         low, high = bots["endpoint-low"], bots["endpoint-high"]
         self.assertEqual(
             (low.nodes, low.MultiPV, low.expectedRank, low.maxCandidateLoss),
-            (149, 16, 9, 600),
+            (149, 16, 9.5, 600),
         )
         self.assertEqual(
             (high.nodes, high.MultiPV, high.expectedRank, high.maxCandidateLoss),
-            (3318000, 1, 1, None),
+            (5000000, 1, 1, None),
         )
         self.assertEqual(
             len(
@@ -43,12 +43,12 @@ class PoolTests(unittest.TestCase):
             5000,
         )
         for bot in bots.values():
-            self.assertTrue(149 <= bot.nodes <= 3318000)
-            self.assertTrue(1 <= bot.expectedRank <= min(9, bot.MultiPV))
+            self.assertTrue(149 <= bot.nodes <= 5000000)
+            self.assertTrue(1 <= bot.expectedRank <= min(9.5, bot.MultiPV))
             self.assertEqual(bot.elo, 1500)
         # Uniform log sampling puts half the population below the geometric mean.
         self.assertTrue(
-            2300 < sum(b.nodes < (149 * 3318000) ** 0.5 for b in bots.values()) < 2700
+            2300 < sum(b.nodes < (149 * 5000000) ** 0.5 for b in bots.values()) < 2700
         )
 
     def test_elo_updates_are_zero_sum_and_counters_match(self):

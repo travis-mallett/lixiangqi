@@ -28,7 +28,7 @@ final class TopicUi(helpers: Helpers, bits: ForumBits, postUi: PostUi)(
           boxTop(
             h1(
               a(href := routes.ForumCateg.show(categ.id), dataIcon := Icon.LessThan, cls := "text"),
-              categ.name
+              bits.categName(categ)
             )
           ),
           st.section(cls := "warning")(
@@ -106,7 +106,9 @@ final class TopicUi(helpers: Helpers, bits: ForumBits, postUi: PostUi)(
     val teamOnly = categ.team.filterNot(isMyTeamSync)
     val pager = paginationByQuery(routes.ForumTopic.show(categ.id, topic.slug, 1), posts, showPost = true)
     val topicFirstPostId = (posts.currentPage == 1).so(posts.currentPageResults.headOption).map(_.post.id)
-    Page(s"${topic.name} • page ${posts.currentPage}/${posts.nbPages} • ${categ.name}").markdownTextarea
+    Page(
+      s"${topic.name} • page ${posts.currentPage}/${posts.nbPages} • ${bits.categName(categ)}"
+    ).markdownTextarea
       .css("bits.forum")
       .csp(_.withInlineIconFont.withTwitter)
       .js(Esm("bits.forum") ++ Esm("bits.expandText") ++ formWithCaptcha.isDefined.so(captchaEsm))
@@ -245,7 +247,7 @@ final class TopicUi(helpers: Helpers, bits: ForumBits, postUi: PostUi)(
           st.section(cls := "warning")(
             h2(dataIcon := Icon.CautionTriangle, cls := "text")(trans.site.important()),
             p("Describe your issue above the report. Unsolicited diagnostics will be ignored."),
-            p("Only you and the Lichess moderators can see this forum.")
+            p(trans.forum.diagnosticPrivacy())
           ),
           postForm(cls := "form3", action := routes.ForumTopic.create(categ.id))(
             form3.group(form("post")("text"), trans.site.message())(f =>
@@ -279,16 +281,9 @@ final class TopicUi(helpers: Helpers, bits: ForumBits, postUi: PostUi)(
       )
     )
 
-  private val relocateTo = List(
-    "general-chess-discussion" -> "General Chess Discussion",
-    "lichess-feedback" -> "Lichess Feedback",
-    "game-analysis" -> "Game Analysis",
-    "off-topic-discussion" -> "Off-Topic Discussion"
-  )
-
-  private def relocateModal(from: lila.forum.ForumCateg) =
-    val options = relocateTo.collect:
-      case (slug, name) if slug != from.id.value => (slug, name)
+  private def relocateModal(from: lila.forum.ForumCateg)(using Context) =
+    val options = lila.forum.ForumCateg.publicBoards.collect:
+      case categ if categ.id != from.id => (categ.id.value, bits.categName(categ))
     div(cls := "forum-relocate-modal none")(
       p("Move the entire thread to another forum"),
       st.form(method := "post", cls := "form3")(

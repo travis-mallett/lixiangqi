@@ -151,6 +151,12 @@ final class PairingRepo(coll: Coll)(using Executor, Materializer):
   def playingUserIds(tourId: TourId): Fu[Set[UserId]] =
     coll.distinctEasy[UserId, Set]("u", selectTour(tourId) ++ selectPlaying)
 
+  private[tournament] def playing(tourId: TourId): Fu[List[Pairing]] =
+    coll.list[Pairing](selectTour(tourId) ++ selectPlaying)
+
+  private[tournament] def removeMissingGame(id: GameId): Funit =
+    coll.delete.one($id(id) ++ selectPlaying).void
+
   private[tournament] def finishedByPlayerChronological(
       tourId: TourId,
       userId: UserId
@@ -172,11 +178,11 @@ final class PairingRepo(coll: Coll)(using Executor, Materializer):
     if g.aborted then coll.delete.one($id(g.id)).inject(none)
     else
       coll.findAndUpdateSimplified[Pairing](
-        selector = $id(g.id),
+        selector = $id(g.id) ++ selectPlaying,
         update = $set(
           "s" -> g.status.id,
           "w" -> g.winnerColor.map(_.white),
-          "t" -> g.ply
+          "t" -> g.playedPlies
         ),
         fetchNewObject = true
       )

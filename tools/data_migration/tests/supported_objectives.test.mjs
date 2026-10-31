@@ -18,6 +18,7 @@ function harness() {
     db: {
       puzzle2_publication: { findOne: () => (pending ? { operation: 'pending' } : null) },
       puzzle2_puzzle: {
+        findOne: () => [...puzzles.values()].find(matches),
         find: () => [...puzzles.values()].filter(matches),
         countDocuments: () => [...puzzles.values()].filter(matches).length,
         deleteOne: ({ _id }) => {
@@ -66,4 +67,13 @@ test('stops before changes when publication is pending or recovery data differs'
   h.backup.set('old', { ...h.original, plays: 1 });
   assert.throws(h.run, /differs/);
   assert.equal(h.puzzles.size, 2);
+});
+
+test('leaves pending publication for server recovery when no objectives need migration', () => {
+  const h = harness();
+  h.puzzles.delete('old');
+  h.pending(true);
+  h.run();
+  assert.equal(h.backup.size, 0);
+  assert.equal(h.puzzles.get('keep').plays, 28);
 });

@@ -1,5 +1,6 @@
 import { myUserId } from 'lib';
 import { currencyFormat } from 'lib/i18n';
+import { usernamePattern } from 'lib/username';
 import { spinnerHtml, prompt } from 'lib/view';
 import * as xhr from 'lib/xhr';
 
@@ -137,7 +138,7 @@ export function initModule({
 
   const getGiftDest = () => {
     const raw = ($userInput.val() as string).trim().toLowerCase();
-    return raw !== myUserId() && raw.match(/^[a-z0-9][\w-]{2,29}$/) ? raw : null;
+    return raw !== myUserId() && usernamePattern.test(raw) ? raw : null;
   };
 
   const toggleCheckout = () => {
@@ -200,7 +201,9 @@ export function initModule({
   }
   for (const name of ['giftUsername']) {
     if (queryParams.has(name))
-      $(`input[name=${name}]`).val(queryParams.get(name)!.replace(/[^a-z0-9_-]/gi, ''));
+      $(`input[name=${name}]`).val(
+        usernamePattern.test(queryParams.get(name)!) ? queryParams.get(name)! : '',
+      );
   }
 
   updateFeeLabel();

@@ -1,10 +1,9 @@
-import { attributesModule, classModule, init } from 'snabbdom';
+import type { Bootstrap as KingdomBootstrap } from 'threeKingdoms';
 
 import { myUserId } from 'lib';
 import standaloneChat from 'lib/chat/standalone';
 import { finished, type TourPlayer } from 'lib/game';
 import { setClockWidget } from 'lib/game/clock/clockWidget';
-import menuHover from 'lib/menuHover';
 import { pubsub } from 'lib/pubsub';
 import { wsConnect, wsDestroy, wsSetActivity } from 'lib/socket';
 import { storage } from 'lib/storage';
@@ -16,10 +15,15 @@ import type { RoundData, RoundOpts } from './interfaces';
 import type MoveOn from './moveOn';
 import { tourStandingCtrl, type TourStandingCtrl } from './tourStanding';
 import { main as view } from './view/main';
+import { mountRoom } from './view/room';
 
-const patch = init([classModule, attributesModule]);
-
-export async function initModule(opts: RoundOpts): Promise<RoundController> {
+export async function initModule(
+  opts: RoundOpts | KingdomBootstrap,
+): Promise<RoundController | { destroy(): void }> {
+  if ('mode' in opts) {
+    const { initThreeKingdoms } = await import('./variants/threeKingdoms');
+    return initThreeKingdoms(opts);
+  }
   wsSetActivity(opts.data.presence, opts.data.presenceGroup);
   await site.asset.loadPieces;
   return opts.data.local ? app(opts) : boot(opts, app);
@@ -27,23 +31,16 @@ export async function initModule(opts: RoundOpts): Promise<RoundController> {
 
 async function app(opts: RoundOpts): Promise<RoundController> {
   const ctrl = new RoundController(opts, redraw);
-  const blueprint = view(ctrl);
-  const el = (opts.element ?? document.querySelector('.round__app')) as HTMLElement;
-
-  let vnode = patch(el, blueprint);
-
+  const element = (opts.element ?? document.querySelector('.round__app')) as HTMLElement;
+  const room = mountRoom(
+    element,
+    () => view(ctrl),
+    () => ctrl.autoScroll(),
+  );
   function redraw() {
-    vnode = patch(vnode, view(ctrl));
+    room.redraw();
   }
-
-  window.addEventListener('resize', () => {
-    redraw(); // col1 / col2+ transition
-    ctrl.autoScroll();
-  });
-
-  if (ctrl.isPlaying()) menuHover();
-
-  site.sound.preloadBoardSounds();
+  window.addEventListener('pagehide', () => room.destroy(), { once: true });
 
   return ctrl;
 }
@@ -69,8 +66,8 @@ async function boot(
       tvSelect({ channel, player }: TVOptions) {
         if (data.tv?.channel === channel) site.reload();
         else
-          $(`.tv-channels .${channel} .champion`).html(
-            player ? [player.title, player.name, player.rank].filter(x => x).join('&nbsp') : 'Anonymous',
+          $(`.tv-channel.${channel} .champion`).text(
+            player ? [player.title, player.name, player.rank].filter(x => x).join(' ') : '—',
           );
       },
       endData() {
@@ -122,6 +119,7 @@ async function boot(
     }
     if (chat.noteId && (chat.noteAge || 0) < 10) chat.noteText = '';
     chat.instance = standaloneChat(chat);
+    window.addEventListener('pagehide', () => chat.instance?.destroy(), { once: true });
     if (!data.tournament && !data.simul && !data.swiss) {
       opts.onChange = (d: RoundData) => chat.instance!.preset.setGroup(getPresetGroup(d));
       if (myUserId())

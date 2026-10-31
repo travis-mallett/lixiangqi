@@ -6,6 +6,7 @@ import { Notation, type Color } from 'chessgroundx/types';
 import { standardXiangqi } from '../../src/definitions';
 import { coordinateMove } from '../../src/position';
 import { rendererKey } from '../../src/renderer/coordinates';
+import { rectangularMotion } from '../../src/renderer/rectangularMotion';
 
 interface Options {
   fen?: string;
@@ -41,6 +42,7 @@ export function makeRenderer(element: HTMLElement, options: Options = {}) {
     viewOnly: options.viewOnly ?? false,
     autoCastle: false,
     layeredPieces: true,
+    pieceMotion: rectangularMotion,
     lastMove: options.lastMove ? coordinateMove(options.lastMove).map(key) : undefined,
     movable: { free: false, color: options.movableColor, dests, rookCastle: false },
     premovable: {
@@ -67,6 +69,6 @@ export function setCoordinates(board: ReturnType<typeof makeRenderer>, coordinat
   board.redrawAll();
 }
 
-export { Chessground, Notation };
+export { Chessground, Notation, rectangularMotion };
 export { end as endDrag, start as startDrag } from 'chessgroundx/drag';
 export { computeSquareCenter } from 'chessgroundx/util';

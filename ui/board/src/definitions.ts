@@ -1,8 +1,23 @@
-import type { BoardDefinition, BoardPresentation, Participant } from './types';
+import threePlayerGeometry from './three-player-geometry.json' with { type: 'json' };
+import type {
+  BoardDefinition,
+  BoardPresentation,
+  Participant,
+  RectangularGeometry,
+  GraphGeometry,
+  Location,
+  VisiblePiece,
+} from './types';
 
-export const standardXiangqi: BoardDefinition = Object.freeze({
+export const standardXiangqi: BoardDefinition<RectangularGeometry> = Object.freeze({
   id: 'xiangqi',
-  geometry: Object.freeze({ id: 'xiangqi-9x10', columns: 9, rows: 10, placement: 'intersections' as const }),
+  geometry: Object.freeze({
+    id: 'xiangqi-9x10',
+    columns: 9,
+    rows: 10,
+    placement: 'intersections' as const,
+    frame: Object.freeze({ cellSize: 98, marginX: 58, marginY: 59 }),
+  }),
   participants: ['red', 'black'] as const,
   roles: Object.freeze({
     general: 'k',
@@ -15,9 +30,106 @@ export const standardXiangqi: BoardDefinition = Object.freeze({
   }),
   royalRoles: ['general'],
   coordinates: 'xiangqi' as const,
+  coordinateImage: 'images/board/svg/xiangqi-file-coordinates.svg',
 });
 
-export const supportedBoards: readonly BoardDefinition[] = [standardXiangqi];
+export const miniXiangqi: BoardDefinition<RectangularGeometry> = Object.freeze({
+  ...standardXiangqi,
+  id: 'minixiangqi',
+  pieceFamily: 'xiangqi',
+  coordinateImage: 'images/board/svg/minixiangqi-file-coordinates.svg',
+  geometry: Object.freeze({
+    id: 'minixiangqi-7x7',
+    columns: 7,
+    rows: 7,
+    placement: 'intersections' as const,
+    frame: Object.freeze({ cellSize: 98, marginX: 56, marginY: 56 }),
+  }),
+  roles: Object.freeze({ general: 'k', horse: 'n', chariot: 'r', cannon: 'c', soldier: 'p' }),
+});
+
+export const threeKingdoms: BoardDefinition<GraphGeometry> = Object.freeze({
+  ...standardXiangqi,
+  id: 'threeKingdoms',
+  pieceFamily: 'threeKingdoms',
+  participants: ['red', 'black', 'green'],
+  coordinateImage: undefined,
+  pieceRotation: (location: Location, piece: VisiblePiece) => {
+    const territories: Record<string, 'red' | 'black' | 'green'> = { wei: 'black', shu: 'red', wu: 'green' };
+    const [region, file] = location.split(':');
+    const territory = territories[region];
+    if (!territory) throw new Error('Unknown Three Kingdoms territory');
+    const points: Record<string, readonly number[]> = threePlayerGeometry.locations;
+    const bottom = points[`${region}:${file}:0`];
+    const forward = points[`${region}:${file}:1`];
+    if (!bottom || !forward) throw new Error('Unknown Three Kingdoms file');
+    // Follow the local file's skew. Across a river, invading armies point toward
+    // the defending army's bottom rank instead of back toward the river.
+    const angle = (Math.atan2(forward[0] - bottom[0], bottom[1] - forward[1]) * 180) / Math.PI;
+    return angle + (piece.participant === territory ? 0 : 180);
+  },
+  geometry: Object.freeze({
+    ...threePlayerGeometry,
+    kind: 'graph' as const,
+    placement: 'intersections' as const,
+    territoryAnchors: Object.freeze(
+      Object.fromEntries(
+        [
+          ['black', 'wei'],
+          ['green', 'wu'],
+          ['red', 'shu'],
+        ].map(([color, kingdom]) => {
+          const palace =
+            threePlayerGeometry.locations[`${kingdom}:4:1` as keyof typeof threePlayerGeometry.locations];
+          return [
+            color,
+            [
+              (palace[0] + threePlayerGeometry.width / 2) / 2,
+              (palace[1] + threePlayerGeometry.height / 2) / 2,
+            ] as const,
+          ];
+        }),
+      ),
+    ),
+    riverAnchors: Object.freeze(
+      Object.fromEntries(
+        [
+          ['black', 'wei', 'green', 'wu'],
+          ['black', 'wei', 'red', 'shu'],
+          ['green', 'wu', 'red', 'shu'],
+        ].map(([a, ak, b, bk]) => {
+          const points = threePlayerGeometry.locations as Record<string, number[]>;
+          const x = (points[`${ak}:4:1`][0] + points[`${bk}:4:1`][0]) / 2 - threePlayerGeometry.width / 2;
+          const y = (points[`${ak}:4:1`][1] + points[`${bk}:4:1`][1]) / 2 - threePlayerGeometry.height / 2;
+          const radius = (threePlayerGeometry.height / 2 - 59) * 0.535;
+          const length = Math.hypot(x, y);
+          return [
+            [a, b].sort().join(':'),
+            [
+              threePlayerGeometry.width / 2 + (radius * x) / length,
+              threePlayerGeometry.height / 2 + (radius * y) / length,
+            ] as const,
+          ];
+        }),
+      ),
+    ),
+    locations: Object.freeze(
+      Object.fromEntries(
+        Object.entries(threePlayerGeometry.locations).map(([location, point]) => [
+          location,
+          Object.freeze(point) as readonly [number, number],
+        ]),
+      ),
+    ),
+  }),
+});
+
+export const supportedBoards: readonly BoardDefinition[] = [standardXiangqi, miniXiangqi, threeKingdoms];
+
+/** Native FEN geometry determines the board; positionFromFen validates the entire placement. */
+export function boardDefinitionForFen(fen: string): BoardDefinition<RectangularGeometry> {
+  return fen.trim().split(/\s+/, 1)[0].split('/').length === 7 ? miniXiangqi : standardXiangqi;
+}
 
 export function boardDefinition(id: string): BoardDefinition {
   const definition = supportedBoards.find(board => board.id === id);

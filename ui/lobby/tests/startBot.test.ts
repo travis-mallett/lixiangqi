@@ -38,7 +38,7 @@ test('map games use their level and standard defaults without overwriting custom
     assert.equal(ctrl.aiLevel(), 720);
     assert.equal(ctrl.variant(), 'standard');
     assert.equal(ctrl.timeControl.mode(), 'unlimited');
-    assert.equal(ctrl.color(), 'random');
+    assert.equal(ctrl.color(), 'white');
     assert.equal(ctrl.propsToFormData('random').get('level'), '720');
   };
   await ctrl.startBot(720);

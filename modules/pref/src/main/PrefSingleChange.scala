@@ -69,6 +69,34 @@ object PrefSingleChange:
       _.copy(challenge = v),
     changing(_.message): v =>
       _.copy(message = v),
+    changing(_.studyInvite): v =>
+      _.copy(studyInvite = v),
+    changing(_.insightShare): v =>
+      _.copy(insightShare = v),
+    changing(_.animation): v =>
+      _.copy(animation = v),
+    changing(_.captured): v =>
+      _.copy(captured = v == 1),
+    changing(_.highlight): v =>
+      _.copy(highlight = v == 1),
+    changing(_.destination): v =>
+      _.copy(destination = v == 1),
+    changing(_.coords): v =>
+      _.copy(coords = v),
+    changing(_.replay): v =>
+      _.copy(replay = v),
+    changing(_.resizeHandle): v =>
+      _.copy(resizeHandle = v),
+    changing(_.moveEvent): v =>
+      _.copy(moveEvent = v),
+    changing(_.rookCastle): v =>
+      _.copy(rookCastle = v),
+    changing(_.clockBar): v =>
+      _.copy(clockBar = v == 1),
+    changing(_.flairs): v =>
+      _.copy(flairs = v),
+    changing(_.usingAltSocket): v =>
+      _.copy(usingAltSocket = v.some),
     changing(_.board.brightness): v =>
       changeAppearance(appearance => appearance.copy(board = appearance.board.copy(brightness = v))),
     changing(_.board.contrast): v =>

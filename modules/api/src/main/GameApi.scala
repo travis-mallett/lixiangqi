@@ -17,6 +17,7 @@ import lila.db.dsl.{ *, given }
 import lila.db.paginator.Adapter
 import lila.game.BSONHandlers.given
 import lila.game.JsonView.given
+import lila.xiangqi.XiangqiJson.given
 import lila.game.Game.BSONFields as G
 
 final private[api] class GameApi(
@@ -149,9 +150,10 @@ final private[api] class GameApi(
         "id" -> g.id,
         "initialFen" -> g.xiangqi.initialFen,
         "ranked" -> g.ranked,
-        "variant" -> g.variant.key,
+        "variant" -> (if g.nativeVariant != lila.xiangqi.GameVariant.Xiangqi then g.nativeVariant.key
+                      else g.variant.key.value),
         "speed" -> g.speed.key,
-        "perf" -> "xiangqi",
+        "perf" -> g.nativeVariant.key,
         "createdAt" -> g.createdAt,
         "lastMoveAt" -> g.movedAt,
         "turns" -> g.ply,
@@ -185,6 +187,8 @@ final private[api] class GameApi(
         "analysis" -> analysisOption.ifTrue(withFlags.analysis).map(analysisJson.moves(_)),
         "moves" -> withFlags.moves.option(g.sans.mkString(" ")),
         "uci" -> withFlags.moves.option(g.xiangqi.moves.map(_.value).mkString(" ")),
+        "reveals" -> (withFlags.moves && g.isJieqi).option(g.xiangqi.states.drop(1).map(_.reveal)),
+        "captures" -> (withFlags.moves && g.isJieqi).option(g.position.captures),
         "fens" -> (withFlags.fens && g.finished).option(JsArray(g.xiangqi.states.map(s => JsString(s.fen)))),
         "winner" -> g.winnerColor.map(sideName),
         "url" -> makeUrl(g)

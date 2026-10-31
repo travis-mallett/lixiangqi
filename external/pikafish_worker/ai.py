@@ -20,6 +20,7 @@ from typing import Any
 
 from .opening import choose_opening_move
 from .selection import Candidate, candidate_snapshot, sample_candidate
+from .kids import prefer_candidate, valid_profile
 
 
 @dataclass(frozen=True)
@@ -127,6 +128,9 @@ class MoveWork:
     turn_key: str | None = None
     ruleset: str | None = None
     legal_moves: tuple[str, ...] | None = None
+    bot_profile: str | None = None
+    variant: str = "xiangqi"
+    observation: dict | None = None
 
     @classmethod
     def parse(cls, payload: str) -> "MoveWork":
@@ -144,8 +148,17 @@ class MoveWork:
         if value.get("version") != 2 or value.get("type") != "move":
             raise ValueError("Unsupported AI move work version")
         position = value.get("position")
-        if not isinstance(position, dict) or position.get("variant") != "xiangqi":
+        if not isinstance(position, dict) or position.get("variant") not in {"xiangqi", "jieqi", "minixiangqi"}:
             raise ValueError("Unsupported AI move position")
+        variant = position["variant"]
+        observation = position.get("observation")
+        if variant == "jieqi":
+            from .jieqi import validate_observation
+            validate_observation(observation)
+            if position.get("ruleset") != "jieqi-v1" or not 1 <= value.get("level", 0) <= 10:
+                raise ValueError("Invalid Jieqi difficulty or ruleset")
+        elif observation is not None:
+            raise ValueError("Unexpected hidden-piece information")
         game_id = value.get("gameId")
         request_id = value.get("requestId")
         turn_key = value.get("turnKey")
@@ -154,8 +167,11 @@ class MoveWork:
         moves = position.get("moves")
         ruleset = position.get("ruleset")
         legal_moves = position.get("legalMoves")
+        bot_profile = value.get("botProfile")
+        if bot_profile is not None and (not valid_profile(bot_profile) or ruleset is None):
+            raise ValueError("Invalid Kids bot profile")
         if ruleset is not None:
-            if ruleset not in {"tiantian-v1", "unrestricted-v1"}:
+            if ruleset not in {"tiantian-v1", "unrestricted-v1", "jieqi-v1", "minixiangqi-v1"}:
                 raise ValueError("Unsupported AI ruleset")
             if not isinstance(legal_moves, list) or not legal_moves or not all(
                 isinstance(move, str) and re.fullmatch(r"[a-i](?:10|[1-9])[a-i](?:10|[1-9])", move)
@@ -180,6 +196,17 @@ class MoveWork:
             for move in moves
         ):
             raise ValueError("Invalid AI move history")
+        if variant == "minixiangqi":
+            from .minixiangqi import strength
+            strength(level)
+            ranks = initial_fen.split()[0].split("/")
+            if ruleset != "minixiangqi-v1" or bot_profile is not None or len(ranks) != 7 or any(
+                not re.fullmatch(r"[rnckpRNCKP1-7]+", rank)
+                or sum(int(c) if c.isdigit() else 1 for c in rank) != 7 for rank in ranks
+            ) or not all(re.fullmatch(r"[a-g][1-7][a-g][1-7]", move) for move in moves + (legal_moves or [])):
+                raise ValueError("Invalid Mini Xiangqi position")
+        elif ruleset == "minixiangqi-v1":
+            raise ValueError("Mini Xiangqi rules require the Mini Xiangqi variant")
         work = cls(
             game_id=game_id,
             level=level,
@@ -189,6 +216,9 @@ class MoveWork:
             turn_key=turn_key,
             ruleset=ruleset,
             legal_moves=tuple(legal_moves) if legal_moves is not None else None,
+            bot_profile=bot_profile,
+            variant=variant,
+            observation=observation,
         )
         if not secrets.compare_digest(work.turn_key, work.computed_turn_key):
             raise ValueError("AI turn key does not match its position")
@@ -208,6 +238,7 @@ class MoveWork:
                 self.initial_fen,
                 " ".join(self.moves),
             ) + ((self.ruleset,) if self.ruleset else ())
+              + ((self.bot_profile,) if self.bot_profile else ())
         )
         return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
@@ -242,15 +273,18 @@ class PikafishMoveEngine:
         position = self._position_command(work)
         self._send(position)
 
-        if profile.expected_rank > 1.0:
+        multi_pv = max(profile.multi_pv, 4) if work.bot_profile else profile.multi_pv
+        if profile.expected_rank > 1.0 or work.bot_profile:
             legal = [self._to_engine_move(move) for move in work.legal_moves] if work.legal_moves is not None else self._legal_moves()
             if not legal:
                 return None
             seed_material = f"{work.game_id}|{work.level}|{' '.join(work.moves)}"
+            if work.bot_profile:
+                seed_material += f"|{work.bot_profile}"
             seed = int.from_bytes(hashlib.sha256(seed_material.encode()).digest()[:8], "big")
             chooser = random.Random(seed)
             self._send(position)
-            self._send(f"setoption name MultiPV value {min(profile.multi_pv, len(legal))}")
+            self._send(f"setoption name MultiPV value {min(multi_pv, len(legal))}")
         else:
             legal = []
             self._send("setoption name MultiPV value 1")
@@ -270,7 +304,7 @@ class PikafishMoveEngine:
             line = self._read_line(deadline)
             match = self._multipv.search(line)
             if match and not (
-                profile.max_candidate_loss is not None
+                (profile.max_candidate_loss is not None or work.bot_profile)
                 and ("lowerbound" in line or "upperbound" in line)
             ):
                 candidates_by_depth.setdefault(int(match["depth"]), {})[
@@ -279,6 +313,18 @@ class PikafishMoveEngine:
             if line.startswith("bestmove "):
                 token = line.split()[1]
                 reported_bestmove = None if token in {"(none)", "0000"} else token
+                if work.bot_profile:
+                    available = candidate_snapshot(candidates_by_depth, legal, multi_pv)
+                    if available:
+                        selected = available[1].move if profile.expected_rank <= 1 else self._sample_candidate(
+                            available, multi_pv=multi_pv, expected_rank=profile.expected_rank,
+                            max_candidate_loss=profile.max_candidate_loss or 0, rng=chooser,
+                        )
+                        selected = prefer_candidate(work.bot_profile, work.initial_fen, work.moves,
+                                                    available, selected, chooser,
+                                                    max_loss=profile.max_candidate_loss or 25)
+                        return self._permitted_result(selected, work)
+                    return self._permitted_result(reported_bestmove, work)
                 if profile.expected_rank <= 1.0:
                     return self._permitted_result(reported_bestmove, work)
                 if profile.max_candidate_loss is not None:
@@ -389,6 +435,15 @@ class PikafishMoveEngine:
                 process.wait(timeout=1)
             except (OSError, subprocess.TimeoutExpired):
                 process.kill()
+                process.wait(timeout=5)
+        if process:
+            if process.stdin:
+                process.stdin.close()
+            if process.stdout:
+                process.stdout.close()
+
+    def _executable_command(self) -> list[str]:
+        return [str(self.executable)]
 
     def _ensure_started(self) -> None:
         if self.process and self.process.poll() is None:
@@ -400,7 +455,7 @@ class PikafishMoveEngine:
                 "Run scripts/windows/Install-Pikafish.ps1."
             )
         self.process = subprocess.Popen(
-            [str(self.executable)],
+            self._executable_command(),
             cwd=str(self.executable.parents[1]),
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
@@ -494,6 +549,10 @@ class AiWorker:
         self.redis_port = redis_port
         self.publisher: RedisConnection | None = None
         self.engine = PikafishMoveEngine()
+        from .jieqi import JieqiMoveEngine
+        self.jieqi_engine = JieqiMoveEngine()
+        from .minixiangqi import MiniXiangqiMoveEngine
+        self.minixiangqi_engine = MiniXiangqiMoveEngine()
 
     def run(self) -> None:
         """Stay available across Redis restarts and transient network failures.
@@ -546,6 +605,8 @@ class AiWorker:
                         self.publisher = None
         finally:
             self.engine.close()
+            self.jieqi_engine.close()
+            self.minixiangqi_engine.close()
 
     def _process(self, payload: str, *, v2: bool = False) -> None:
         lock_key: str | None = None
@@ -617,6 +678,12 @@ class AiWorker:
                 )
 
     def choose_move(self, work: MoveWork) -> str | None:
+        if work.variant == "jieqi":
+            from .jieqi import strength
+            return self.jieqi_engine.best_move(work, strength(work.level))
+        if work.variant == "minixiangqi":
+            from .minixiangqi import strength
+            return self.minixiangqi_engine.best_move(work, strength(work.level))
         profile = self._profile(work.level)
         book_move = choose_opening_move(
             work,

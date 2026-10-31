@@ -40,6 +40,7 @@ final class ApiJsonView(lightUserApi: lila.core.user.LightUserApi, routeUrl: Rou
       .obj(
         "id" -> tour.id,
         "ruleset" -> tour.ruleset.key,
+        "gameVariant" -> tour.gameVariant.key,
         "createdBy" -> tour.createdBy,
         "system" -> "arena", // BC
         "minutes" -> tour.minutes,
@@ -54,7 +55,7 @@ final class ApiJsonView(lightUserApi: lila.core.user.LightUserApi, routeUrl: Rou
         "startsAt" -> tour.startsAt,
         "finishesAt" -> tour.finishesAt,
         "status" -> tour.status.id,
-        "perf" -> nativePerfJson
+        "perf" -> Json.obj("key" -> tour.gameVariant.key, "name" -> tour.gameVariant.name, "position" -> 0)
       )
       .add("secondsToStart", tour.secondsToStart.some.filter(_.nonZero))
       .add("onlyTitled", tour.conditions.titled.isDefined)
@@ -88,9 +89,3 @@ final class ApiJsonView(lightUserApi: lila.core.user.LightUserApi, routeUrl: Rou
           "rank" -> e.entry.rank
         )
     )
-
-  private val nativePerfJson = Json.obj(
-    "key" -> "xiangqi",
-    "name" -> "Xiangqi",
-    "position" -> 0
-  )

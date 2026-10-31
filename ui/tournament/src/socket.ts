@@ -14,6 +14,10 @@ export function makeSocket(send: SocketSend, ctrl: TournamentController) {
       redirectFirst(fullId.slice(0, 8), true);
       return true; // prevent default redirect
     },
+    redirectKingdoms(id: string) {
+      redirectFirst(id, true, `/three-kingdoms/game/${id}`);
+      return true;
+    },
   };
 
   return {

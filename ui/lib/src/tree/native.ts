@@ -30,7 +30,14 @@ export const annotationGlyph = (id: number): Glyph => ({
   symbol: ({ 1: '!', 2: '?', 3: '!!', 4: '??', 5: '!?', 6: '?!' } as Record<number, string>)[id] ?? `$${id}`,
 });
 
-export function createMoveTree(state: RulesState, ruleset = 'unrestricted-v1'): TreeWrapper {
+export function createMoveTree(
+  state: RulesState,
+  ruleset: string = state.variant === 'jieqi'
+    ? 'jieqi-v1'
+    : state.variant === 'minixiangqi'
+      ? 'minixiangqi-v1'
+      : 'unrestricted-v1',
+): TreeWrapper {
   return makeTree(completeNode({ fen: state.fen, ply: state.ply, state, ruleset, children: [] }));
 }
 
@@ -43,7 +50,7 @@ export function importedTree(imported: ImportedMoveTree): TreeNode {
     annotations: NotationAnnotations,
     move?: ImportedTreeNode,
   ): TreeNodeBase => ({
-    id: move?.move ?? '',
+    id: move ? move.move + (state.reveal ? `~${state.reveal}` : '') : '',
     uci: move?.move,
     notation: move?.notation,
     chineseNotation: move?.chineseNotation,
@@ -54,8 +61,8 @@ export function importedTree(imported: ImportedMoveTree): TreeNode {
       id: comment.id ?? `import-${commentId++}`,
       by:
         comment.by ??
-        (imported.headers?.Annotator
-          ? { kind: 'external', name: imported.headers.Annotator }
+        (imported.headers?.annotator
+          ? { kind: 'external', name: imported.headers.annotator }
           : { kind: 'unknown' }),
       text: comment.text,
     })),
@@ -147,7 +154,7 @@ export function addOrSelectChild(
   path: string,
   move: { uci: string; notation: string; chineseNotation?: string; state: RulesState },
 ): { path: string; created: boolean } {
-  const target = pathOps.append(path, move.uci);
+  const target = pathOps.append(path, move.uci + (move.state.reveal ? `~${move.state.reveal}` : ''));
   if (tree.pathExists(target)) return { path: target, created: false };
   const added = tree.addNode(
     completeNode({ ...move, fen: move.state.fen, ply: move.state.ply, children: [] }),

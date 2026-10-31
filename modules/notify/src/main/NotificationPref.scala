@@ -40,7 +40,7 @@ case class NotificationPref(
 object NotificationPref:
   export lila.core.notify.NotificationPref.*
 
-  val events = PrefEvent.values.mapBy(_.key)
+  val events = PrefEvent.values.mapBy(_.key) + ("threeKingdomsChallenge" -> PrefEvent.challenge)
 
   val default: NotificationPref = NotificationPref(
     privateMessage = core.Allows(BELL | PUSH),

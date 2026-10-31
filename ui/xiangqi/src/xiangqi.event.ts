@@ -14,6 +14,7 @@ import {
   analysisGameUrl,
   catalogSources,
   databasePlayerUrl,
+  formatRecordedDate,
   type CatalogGame,
   type CatalogPlayer,
   type CatalogSource,
@@ -64,6 +65,7 @@ const explorerMoves = required<HTMLOListElement>('#event-explorer-moves');
 let endpoint = '';
 let requestedEvent = '';
 let controller: AbortController | undefined;
+let openingExplorer: ExplorerCtrl | undefined;
 
 function selectedSources(): CatalogSource[] {
   return sourceInputs.flatMap(input =>
@@ -92,17 +94,6 @@ function saveUrlState(): void {
   history.replaceState(null, '', url);
 }
 
-function formatRecordedDate(value?: string): string {
-  const match = value?.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (!match) return value || 'unknown date';
-  return new Intl.DateTimeFormat('en-US', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    timeZone: 'UTC',
-  }).format(new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]))));
-}
-
 function playerSearchTerm(player: CatalogPlayer): string {
   return player.romanizedName || player.nativeName || player.name;
 }
@@ -120,9 +111,7 @@ function renderMetrics(summary: EventDatabaseSummary): void {
   required('#event-metric-players').textContent = summary.players.toLocaleString();
   required('#event-metric-rounds').textContent = summary.rounds.toLocaleString();
   required('#event-metric-moves').textContent =
-    summary.averageMoves === undefined
-      ? '—'
-      : summary.averageMoves.toLocaleString(undefined, { maximumFractionDigits: 1 });
+    summary.averageMoves?.toLocaleString(undefined, { maximumFractionDigits: 1 }) ?? '—';
   required('#event-metric-openings').textContent = summary.recordedOpenings.toLocaleString();
 }
 
@@ -233,7 +222,7 @@ function roundTitle(name: string): string {
 }
 
 function roundDate(dates: string[]): string {
-  const labels = [...new Set(dates.map(formatRecordedDate))];
+  const labels = [...new Set(dates.map(date => formatRecordedDate(date)))];
   if (!labels.length) return 'Date not recorded';
   if (labels.length === 1) return labels[0];
   return `${labels[0]} – ${labels[labels.length - 1]}`;
@@ -316,7 +305,7 @@ function renderEvent(result: EventDatabaseResult): void {
   eventNameElement.textContent = result.event.name;
   document.title = `${result.event.name} — Games Database`;
   renderSourceCounts(result);
-  if (result.summary) {
+  if (result.summary?.totalGames) {
     renderMetrics(result.summary);
     renderStandings(result.summary);
     renderInsights(result.summary);
@@ -398,8 +387,11 @@ async function initializeExplorer(bootstrap: EventPageBootstrap): Promise<void> 
       lockedEvent: requestedEvent,
       initiallyEnabled: true,
       configurationEnabled: false,
+      sources: selectedSources(),
     },
   );
+
+  openingExplorer = explorer;
   const current = () => positions[positions.length - 1].state;
 
   function update(syncPosition = true, slide = false): void {
@@ -493,7 +485,12 @@ export default function init(bootstrap: EventPageBootstrap = {}): void {
     return;
   }
   restoreUrlState();
-  sourceInputs.forEach(input => input.addEventListener('change', () => void loadEvent()));
+  sourceInputs.forEach(input =>
+    input.addEventListener('change', () => {
+      openingExplorer?.setSources(selectedSources());
+      void loadEvent();
+    }),
+  );
   void loadEvent();
   void initializeExplorer(bootstrap).catch(error => {
     pageStatus.textContent = error instanceof Error ? error.message : String(error);

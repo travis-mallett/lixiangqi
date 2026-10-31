@@ -13,10 +13,15 @@ object XiangqiEvaluation:
     else XiangqiRules.game(position)
 
   def key(game: Game): String =
+    val knowledge = if game.isJieqi then
+      val position = game.position
+      "\n" + position.reveals.map(_.getOrElse("-")).mkString(" ") + "\n" +
+        position.knownCaptures.toVector.sorted.map((square, role) => s"$square=$role").mkString(" ")
+    else ""
     val context = s"${game.ruleset.key}\n${game.states.head.fen}\n${game.moves.map(_.value).mkString(" ")}"
     "xiangqi-v1:" + HexFormat
       .of()
-      .formatHex(MessageDigest.getInstance("SHA-256").digest(context.getBytes(UTF_8)))
+      .formatHex(MessageDigest.getInstance("SHA-256").digest((context + knowledge).getBytes(UTF_8)))
 
   def validateVariation(
       game: Game,

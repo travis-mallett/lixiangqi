@@ -20,6 +20,19 @@ class GameAnalysisImportTest extends munit.FunSuite:
   )
   private def analysis(depth: Int) = GameAnalysisImport.build(id, game, positions(depth))
 
+  test("catalog publication validates principal variations after ply 600"):
+    val cycle = Vector("b1c3", "b10c8", "c3b1", "c8b10")
+    val moves = Vector.fill(151)(cycle).flatten
+    val longGame = XiangqiRules
+      .game(Xiangqi.Position(moves = moves.map(Xiangqi.Uci.unsafe)))
+      .fold(fail(_), identity)
+    val evaluations = (0 to moves.size).map: index =>
+      Json.obj("cp" -> 10, "depth" -> 20, "pv" -> List(cycle(index % cycle.size)))
+    val result = GameAnalysisImport.build(Analysis.Id.Catalog("long-game"), longGame, evaluations.toList)
+    assertEquals(result.infos.size, moves.size)
+    assertEquals(result.infos.last.ply, Ply(604))
+    assertEquals(result.depth, Some(20))
+
   test("offline publication uses achieved minimum depth and native Red-perspective scores"):
     val result = analysis(20)
     assertEquals(result.depth, Some(20))

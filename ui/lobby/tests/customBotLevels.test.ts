@@ -22,6 +22,10 @@ const patch = init([attributesModule, propsModule, classModule, eventListenersMo
 test('custom bot slider exposes ten choices and selects the shared level', () => {
   let selected = 98;
   const ctrl = {
+    variant: () => 'standard',
+    isThreeKingdoms: () => false,
+    variantLevelCount: () => 10,
+    usesVariantLevels: () => false,
     aiLevel: (value?: number) => (value === undefined ? selected : (selected = value)),
     aiStats: undefined,
     aiStatsLoading: false,
@@ -41,5 +45,49 @@ test('custom bot slider exposes ten choices and selects the shared level', () =>
   slider.value = '9';
   slider.dispatchEvent(new window.Event('input', { bubbles: true }));
   assert.equal(selected, 720);
+  root.remove();
+});
+
+test('Jieqi exposes levels one through ten without Xiangqi progression statistics', () => {
+  let selected = 1;
+  const ctrl = {
+    variant: () => 'jieqi',
+    isThreeKingdoms: () => false,
+    variantLevelCount: () => 10,
+    usesVariantLevels: () => true,
+    aiLevel: (value?: number) => (value === undefined ? selected : (selected = value)),
+    color: () => 'random',
+  } as any;
+  const mount = document.createElement('div');
+  document.body.append(mount);
+  const root = patch(mount, levelButtons(ctrl)).elm as HTMLElement;
+  const slider = root.querySelector<HTMLInputElement>('#sf_level')!;
+  assert.equal(root.querySelector('output')?.textContent, '1');
+  assert.equal(root.querySelector('.ai-level-summary__rate'), null);
+  slider.value = '9';
+  slider.dispatchEvent(new window.Event('input', { bubbles: true }));
+  assert.equal(selected, 10);
+  root.remove();
+});
+
+test('Mini Xiangqi exposes levels one through ten without Xiangqi progression statistics', () => {
+  let selected = 1;
+  const ctrl = {
+    variant: () => 'minixiangqi',
+    isThreeKingdoms: () => false,
+    variantLevelCount: () => 10,
+    usesVariantLevels: () => true,
+    aiLevel: (value?: number) => (value === undefined ? selected : (selected = value)),
+    color: () => 'random',
+  } as any;
+  const mount = document.createElement('div');
+  document.body.append(mount);
+  const root = patch(mount, levelButtons(ctrl)).elm as HTMLElement;
+  const slider = root.querySelector<HTMLInputElement>('#sf_level')!;
+  assert.equal(root.querySelector('output')?.textContent, '1');
+  assert.equal(root.querySelector('.ai-level-summary__rate'), null);
+  slider.value = '9';
+  slider.dispatchEvent(new window.Event('input', { bubbles: true }));
+  assert.equal(selected, 10);
   root.remove();
 });

@@ -261,12 +261,18 @@ const renderPerf = (perf: RecapPerf): VNode => {
   return hl('span', [
     icon(perfIcons[perf.key])('.text'),
     perf.key === 'xiangqi'
-      ? 'Xiangqi'
-      : !perfIsSpeed(perf.key)
-        ? i18n.variant[perf.key]
-        : perf.key !== 'ultraBullet'
-          ? i18n.site[perf.key]
-          : perf.key,
+      ? i18n.site.xiangqi
+      : perf.key === 'jieqi'
+        ? i18n.site.jieqi
+        : perf.key === 'minixiangqi'
+          ? i18n.site.miniXiangqi
+          : perf.key === 'threeKingdoms'
+            ? i18n.site.threeKingdoms
+            : !perfIsSpeed(perf.key)
+              ? i18n.variant[perf.key]
+              : perf.key !== 'ultraBullet'
+                ? i18n.site[perf.key]
+                : perf.key,
   ]);
 };
 

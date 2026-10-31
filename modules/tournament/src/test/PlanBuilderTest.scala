@@ -19,14 +19,14 @@ class PlanBuilderTest extends munit.FunSuite:
     val tournament = Schedule(Daily, Blitz, Standard, None, dt, conditions).plan.build
     assert(tournament.conditions.list.isEmpty)
 
-  test("only upcoming scheduled records discard stored entry conditions"):
+  test("stored entry conditions survive at every tournament stage"):
     val dt = LocalDateTime.of(2026, 8, 5, 12, 0)
     val conditions = TournamentCondition.All.empty.copy(titled = lila.gathering.Condition.Titled.some)
     val base = Schedule(Daily, Blitz, Standard, None, dt).plan.build
     val handler = BSONHandlers.tourHandler
 
     val upcoming = handler.read(handler.write(base.copy(conditions = conditions)))
-    assert(upcoming.conditions.list.isEmpty)
+    assertEquals(upcoming.conditions, conditions)
 
     val inProgress = handler.read(handler.write(base.copy(status = Status.started, conditions = conditions)))
     assertEquals(inProgress.conditions, conditions)

@@ -7,7 +7,8 @@ const sent: unknown[][] = [];
 mock.module(new URL('../src/socket.ts', import.meta.url).href, {
   namedExports: { wsSend: (...args: unknown[]) => sent.push(args) },
 });
-const { initMiniGames, initMiniGame, getBoard, updateMiniGame } = await import('../src/view/miniBoard');
+const { initMiniBoard, initMiniGames, initMiniGame, getBoard, updateMiniGame } =
+  await import('../src/view/miniBoard');
 const { pubsub } = await import('../src/pubsub');
 // Load the same small DOM library shipped with the page.
 const cash = await import('../../../public/javascripts/vendor/cash.min.js');
@@ -23,6 +24,50 @@ afterEach(() => {
 });
 
 const movedFen = 'rnbakabnr/9/1c5c1/p1p1p1p1p/9/P8/2P1P1P1P/1C5C1/9/RNBAKABNR b - - 0 1';
+
+for (const [fen, perspective, from, to, participant] of [
+  [
+    '2bak2nr/4a4/2c1b2c1/p3pCp1p/9/2p4R1/P3P1P1P/3A4C/1rN1K1n2/R2A2BN1 b - - 0 1',
+    'black',
+    'b2',
+    'c2',
+    'black',
+  ],
+  ['4k4/9/9/9/9/9/3R5/R8/9/5K3 w - - 0 1', 'black', 'a3', 'e3', 'red'],
+])
+  test(`CAPTCHA mini-board can play ${participant}, independently of perspective`, async () => {
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = '<div class="cg-wrap mini-board"></div>';
+    document.body.append(wrapper);
+    boards.push(wrapper);
+    const element = wrapper.querySelector<HTMLElement>('.cg-wrap')!;
+    element.dataset.state = `${fen},${perspective},`;
+    initMiniBoard(element);
+    const board = getBoard(element)!;
+    board.setPresentation({ ...board.getPresentation(), motion: { duration: 0 } });
+    const position = board.position();
+    assert.equal(position.active, participant);
+    const moves: string[] = [];
+    const enable = () =>
+      board.setInteraction({
+        mode: 'play',
+        participant: position.active,
+        input: 'both',
+        destinations: new Map([[from, [to]]]),
+        onMove: ({ from, to }) => moves.push(`${from} ${to}`),
+      });
+    enable();
+    board.select(from);
+    board.select(to);
+    await new Promise(resolve => setTimeout(resolve, 20));
+    assert.deepEqual(moves, [`${from} ${to}`]);
+    board.display(position, { kind: 'correction' });
+    enable();
+    board.select(from);
+    board.select(to);
+    await new Promise(resolve => setTimeout(resolve, 20));
+    assert.equal(moves.length, 2);
+  });
 
 function mini(): HTMLElement {
   const node = document.createElement('a');

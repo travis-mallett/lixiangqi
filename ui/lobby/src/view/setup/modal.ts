@@ -1,3 +1,4 @@
+import { formatClock } from 'lib/setup/timeControl';
 import { timePickerAndSliders } from 'lib/setup/view/timeControl';
 import { hl, type VNode, type LooseVNodes, snabDialog, spinnerVdom } from 'lib/view';
 
@@ -7,6 +8,7 @@ import { advancedSettings } from './components/advancedSettings';
 import { aiHistory } from './components/aiHistory';
 import { colorButtons } from './components/colorButtons';
 import { fenInput } from './components/fenInput';
+import { kingdomClock, kingdomOpponents } from './components/kingdomSetup';
 import { levelButtons } from './components/levelButtons';
 import { rulesetPicker } from './components/rulesetPicker';
 import { variantPicker } from './components/variantPicker';
@@ -16,7 +18,11 @@ export default function setupModal(ctrl: LobbyController): VNode[] | null {
   if (!setupCtrl.gameType) return null;
   const buttonText = {
     hook: i18n.site.createLobbyGame,
-    friend: setupCtrl.friendUser ? i18n.site.challengeX(setupCtrl.friendUser) : i18n.site.challengeAFriend,
+    friend: setupCtrl.isThreeKingdoms()
+      ? i18n.site.challengeTwoFriends
+      : setupCtrl.friendUser
+        ? i18n.site.challengeX(setupCtrl.friendUser)
+        : i18n.site.challengeAFriend,
     ai: i18n.site.startTheChallenge,
   }[setupCtrl.gameType];
   const disabled = !setupCtrl.valid() || setupCtrl.loading;
@@ -36,6 +42,17 @@ export default function setupModal(ctrl: LobbyController): VNode[] | null {
         hl('h2#lobby-setup-modal-title', i18n.site.gameSetup),
         hl('div.setup-content', views[setupCtrl.gameType](ctrl)),
         hl('div.footer', [
+          setupCtrl.gameType === 'ai' &&
+            hl(
+              'p',
+              setupCtrl.isThreeKingdoms()
+                ? formatClock(`${setupCtrl.kingdomTime()}+0`, { seconds: setupCtrl.kingdomMoveTime() })
+                : setupCtrl.timeControl.mode() === 'realTime'
+                  ? formatClock(setupCtrl.timeControl.clockStr(), setupCtrl.timeControl.moveTime())
+                  : setupCtrl.timeControl.mode() === 'correspondence'
+                    ? `${i18n.site.correspondence} · ${i18n.site.nbDays(setupCtrl.timeControl.days())}`
+                    : i18n.site.unlimited,
+            ),
           hl(
             `button.button.button-metal.lobby__start__button.lobby__start__button--${setupCtrl.friendUser ? 'friend-user' : setupCtrl.gameType}`,
             {
@@ -46,6 +63,7 @@ export default function setupModal(ctrl: LobbyController): VNode[] | null {
             buttonText,
           ),
           setupCtrl.loading && spinnerVdom(),
+          setupCtrl.error && hl('p.error', { attrs: { role: 'alert' } }, setupCtrl.error),
         ]),
       ],
       onInsert: dlg => {
@@ -63,13 +81,16 @@ const views = {
     colorButtons(ctrl.setupCtrl),
   ],
   friend: (ctrl: LobbyController): LooseVNodes => [
-    rulesetPicker(ctrl),
     variantPicker(ctrl.setupCtrl),
+    rulesetPicker(ctrl),
     fenInput(ctrl.setupCtrl),
-    timePickerAndSliders(ctrl.setupCtrl.timeControl, 0),
-    colorButtons(ctrl.setupCtrl),
+    ctrl.setupCtrl.isThreeKingdoms()
+      ? kingdomClock(ctrl.setupCtrl)
+      : timePickerAndSliders(ctrl.setupCtrl.timeControl, 0),
+    ctrl.setupCtrl.isThreeKingdoms() ? kingdomOpponents(ctrl.setupCtrl) : colorButtons(ctrl.setupCtrl),
   ],
   ai: (ctrl: LobbyController): LooseVNodes => [
+    variantPicker(ctrl.setupCtrl),
     levelButtons(ctrl.setupCtrl),
     advancedSettings(ctrl),
     aiHistory(ctrl.setupCtrl, ctrl),

@@ -7,14 +7,18 @@ import lila.core.playerDirectory.PhotosJson
 final class DirectoryJson(picfitUrl: lila.memo.PicfitUrl):
 
   given OWrites[lila.core.playerDirectory.Provenance] = Json.writes
+  given OWrites[DirectoryPlayer.GameStats] = Json.writes
 
   given photoWrites: OWrites[DirectoryPlayer.PlayerPhoto] = OWrites: p =>
     Json
       .obj(
-        "small" -> DirectoryPlayer.PlayerPhoto(picfitUrl, p.id, _.Small),
-        "medium" -> DirectoryPlayer.PlayerPhoto(picfitUrl, p.id, _.Medium)
+        "small" -> DirectoryPlayer.PlayerPhoto(picfitUrl, p, _.Small),
+        "medium" -> DirectoryPlayer.PlayerPhoto(picfitUrl, p, _.Medium)
       )
       .add("credit" -> p.credit)
+      .add("sourceUrl" -> p.sourceUrl)
+      .add("license" -> p.license)
+      .add("licenseUrl" -> p.licenseUrl)
 
   given Writes[DirectoryPlayer.Gender] = writeAs(_.value.toString)
 
@@ -28,11 +32,17 @@ final class DirectoryJson(picfitUrl: lila.memo.PicfitUrl):
       .obj(
         "id" -> p.id,
         "name" -> p.name,
+        "displayName" -> p.displayName,
         "federation" -> p.fed,
         "year" -> p.year,
         "aliases" -> p.aliases,
         "provenance" -> p.provenance,
-        "ratingSources" -> p.ratingSources
+        "ratingSources" -> p.ratingSources,
+        "biography" -> p.biography,
+        "biographySources" -> p.biographySources,
+        "stats" -> p.stats,
+        "team" -> p.team.orElse(p.stats.team),
+        "teamAsOf" -> p.teamAsOf.orElse(p.stats.teamAsOf)
       )
       .add("title" -> p.title)
       .add("inactive" -> p.inactive)

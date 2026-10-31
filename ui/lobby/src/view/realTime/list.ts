@@ -36,6 +36,7 @@ const isStandard = (value: boolean) => (hook: Hook) => (hook.variant === 'standa
 const isNotMine = (hook: Hook) => !isMine(hook);
 
 export const render = (ctrl: LobbyController, allHooks: Hook[]) => {
+  allHooks = allHooks.filter(h => !ctrl.lobbyVariant || h.variant === ctrl.lobbyVariant);
   const mine = allHooks.find(isMine);
   const max = mine ? 13 : 14;
   const hooks = allHooks.slice(0, max);

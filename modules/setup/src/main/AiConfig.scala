@@ -19,7 +19,8 @@ case class AiConfig(
     level: Int,
     color: TriColor,
     fen: Option[Fen.Full] = None,
-    override val ruleset: Option[String] = None
+    override val ruleset: Option[String] = None,
+    override val gameVariant: lila.xiangqi.GameVariant = lila.xiangqi.GameVariant.Xiangqi
 ) extends Config
     with Positional
     with WithColor:
@@ -27,7 +28,19 @@ case class AiConfig(
   val strictFen = true
 
   def >> =
-    (variant.id, timeMode.id, time, increment, moveTimeLimit, days, level, color.name, fen, ruleset).some
+    (
+      variant.id,
+      timeMode.id,
+      time,
+      increment,
+      moveTimeLimit,
+      days,
+      level,
+      color.name,
+      fen,
+      ruleset,
+      Some(gameVariant.key)
+    ).some
 
   private def game(user: GameUser)(using
       idGenerator: IdGenerator,
@@ -44,8 +57,9 @@ case class AiConfig(
               then newPlayer(c, user)
               else newPlayer.anon(c, level.some),
             rated = chess.Rated.No,
-            source = if xiangqiGame.initialFen == lila.xiangqi.Xiangqi.startFen then Source.Ai
-            else Source.Position,
+            source =
+              if xiangqiGame.initialFen == xiangqiGame.variant.startFen then Source.Ai
+              else Source.Position,
             daysPerTurn = makeDaysPerTurn,
             pgnImport = None,
             clock = makeClock.map(_.toClock),
@@ -75,7 +89,8 @@ object AiConfig extends BaseConfig:
       level: Int,
       c: String,
       fen: Option[Fen.Full],
-      ruleset: Option[String] = None
+      ruleset: Option[String] = None,
+      gameVariant: Option[String] = None
   ) =
     new AiConfig(
       variant = chess.variant.Variant.orDefault(v),
@@ -87,7 +102,10 @@ object AiConfig extends BaseConfig:
       level = level,
       color = TriColor(c).err("Invalid color " + c),
       fen = fen,
-      ruleset = ruleset
+      ruleset = ruleset,
+      gameVariant = gameVariant.fold(lila.xiangqi.GameVariant.Xiangqi)(
+        lila.xiangqi.GameVariant.fromKey(_).fold(sys.error, identity)
+      )
     )
 
   val default = AiConfig(
@@ -123,7 +141,12 @@ object AiConfig extends BaseConfig:
         level = r.int("l"),
         color = TriColor.White,
         fen = r.getO[Fen.Full]("f").filter(_.value.nonEmpty),
-        ruleset = r.strO("ruleset")
+        ruleset = r.strO("ruleset"),
+        gameVariant = r
+          .strO("gameVariant")
+          .fold(lila.xiangqi.GameVariant.Xiangqi)(
+            lila.xiangqi.GameVariant.fromKey(_).fold(sys.error, identity)
+          )
       )
 
     def writes(w: BSON.Writer, o: AiConfig) =
@@ -136,5 +159,6 @@ object AiConfig extends BaseConfig:
         "d" -> o.days,
         "l" -> o.level,
         "f" -> o.fen,
-        "ruleset" -> o.ruleset
+        "ruleset" -> o.ruleset,
+        "gameVariant" -> o.gameVariant.key
       )

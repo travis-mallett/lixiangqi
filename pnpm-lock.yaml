@@ -6,7 +6,7 @@ settings:
 
 patchedDependencies:
   '@toast-ui/editor@3.2.2': 0a324facc984b3c00201cd2ac957c0e51db9ee66ce33c37306031ca67d5aa7ba
-  chessgroundx@10.7.5: 455dbe68221a64c74393b216b70f8c1eae323ec0fc729f84266a94b4ad7d4d48
+  chessgroundx@10.7.5: 57a03e5f24a32c3c49226045adf0302a7a115413764a0c435b5d29ad109ec734
 
 importers:
 
@@ -244,7 +244,7 @@ importers:
     dependencies:
       chessgroundx:
         specifier: 10.7.5
-        version: 10.7.5(patch_hash=455dbe68221a64c74393b216b70f8c1eae323ec0fc729f84266a94b4ad7d4d48)
+        version: 10.7.5(patch_hash=57a03e5f24a32c3c49226045adf0302a7a115413764a0c435b5d29ad109ec734)
 
   ui/challenge:
     dependencies:
@@ -445,15 +445,6 @@ importers:
       bits:
         specifier: workspace:*
         version: link:../bits
-      chart.js:
-        specifier: 4.5.1
-        version: 4.5.1
-      chartjs-adapter-dayjs-4:
-        specifier: ^1.0.4
-        version: 1.0.4(chart.js@4.5.1)(dayjs@1.11.21)
-      dayjs:
-        specifier: ^1.11.19
-        version: 1.11.21
       lib:
         specifier: workspace:*
         version: link:../lib
@@ -505,6 +496,9 @@ importers:
       shepherd.js:
         specifier: 11.2.0
         version: 11.2.0
+      threeKingdoms:
+        specifier: workspace:*
+        version: link:../threeKingdoms
       voice:
         specifier: workspace:*
         version: link:../voice
@@ -546,6 +540,18 @@ importers:
       flatpickr:
         specifier: ^4.6.13
         version: 4.6.13
+      lib:
+        specifier: workspace:*
+        version: link:../lib
+
+  ui/threeKingdoms:
+    dependencies:
+      '@lixiangqi/board':
+        specifier: workspace:*
+        version: link:../board
+      '@lixiangqi/viewer':
+        specifier: workspace:*
+        version: link:../viewer
       lib:
         specifier: workspace:*
         version: link:../lib
@@ -630,6 +636,9 @@ importers:
       lib:
         specifier: workspace:*
         version: link:../lib
+      threeKingdoms:
+        specifier: workspace:*
+        version: link:../threeKingdoms
 
 packages:
 
@@ -2951,7 +2960,7 @@ snapshots:
       undici: 7.27.2
       whatwg-mimetype: 4.0.0
 
-  chessgroundx@10.7.5(patch_hash=455dbe68221a64c74393b216b70f8c1eae323ec0fc729f84266a94b4ad7d4d48): {}
+  chessgroundx@10.7.5(patch_hash=57a03e5f24a32c3c49226045adf0302a7a115413764a0c435b5d29ad109ec734): {}
 
   chessops@0.15.1:
     dependencies:

@@ -86,6 +86,7 @@
 .xiangqi-analysis__substatus {
   color: $c-font-dim;
   font-size: 0.72rem;
+  overflow-wrap: anywhere;
 
   &.error {
     color: $c-bad;
@@ -143,6 +144,8 @@
   gap: 0.9rem;
   border-top: 2px solid $c-accent;
   padding: 1rem;
+  max-height: 70dvh;
+  overflow-y: auto;
   background: $c-bg-high;
   box-shadow: 0 0.55rem 1.25rem #0008;
 
@@ -157,6 +160,10 @@
     gap: 0.5rem;
     color: $c-font-dim;
     font-size: 0.84rem;
+
+    &[hidden] {
+      display: none;
+    }
   }
 
   label.xiangqi-engine-settings__toggle {
@@ -240,6 +247,13 @@
       padding: 0.4rem;
     }
   }
+}
+
+.xiangqi-engine__help {
+  margin: 0;
+  color: $c-font-dim;
+  font-size: 0.84rem;
+  line-height: 1.4;
 }
 
 .xiangqi-engine__lines {

@@ -113,7 +113,21 @@ final class RoundMobile(
         .obj(
           "game" -> {
             jsonView.base(game, initialFen) ++ Json
-              .obj("pgn" -> game.sans.mkString(" "))
+              .obj(
+                "pgn" -> game.sans.mkString(" "),
+                "captures" -> {
+                  import lila.xiangqi.XiangqiJson.given
+                  Json.toJson(
+                    lila.xiangqi.Jieqi.captures(
+                      game.xiangqi,
+                      myPlayer.map(p =>
+                        if p.color.white then lila.xiangqi.Xiangqi.Side.Red
+                        else lila.xiangqi.Xiangqi.Side.Black
+                      )
+                    )
+                  )
+                }
+              )
               .add("drawOffers" -> (!game.drawOffers.isEmpty).option(game.drawOffers.normalizedPlies))
           },
           "white" -> playerJson(Color.White),

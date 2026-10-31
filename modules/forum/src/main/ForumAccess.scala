@@ -40,6 +40,7 @@ final class ForumAccess(
 
   private def canWriteInAnyForum(using me: Option[Me]) = me.exists: me =>
     !me.isBot && {
+      Granter(_.ModerateForum)(using me) ||
       (me.count.game > 0 && me.createdSinceDays(2)) || me.hasTitle || me.isVerified || me.isPatron
     }
 

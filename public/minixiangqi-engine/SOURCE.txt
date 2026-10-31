@@ -1,0 +1,12 @@
+Fairy-Stockfish WebAssembly, GPL-3.0-or-later
+https://github.com/fairy-stockfish/fairy-stockfish.wasm
+Commit b2e693ef1e111233ce3fb40685921708b3276ed6
+npm fairy-stockfish-nnue.wasm@1.1.12
+Integrity sha512-E0z5fvgZgIK0NoLmI6krWt5g362G4mZguANy8obTXL7EFPzyOyQn9A8OmBcjRe/s4see2s9okfULTGVnCu+1XQ==
+
+stockfish.js, stockfish.wasm, stockfish.worker.js, Copying.txt and AUTHORS
+are unmodified files from that npm release. source.zip contains the corresponding
+source, including the build instructions and Emscripten build configuration.
+No neural network is required: Mini Xiangqi uses the classical evaluator.
+worker.js and scripts/minixiangqi-engine/uci.mjs are LiXiangQi adapters.
+See scripts/minixiangqi-engine/import.mjs to reproduce the vendor import.

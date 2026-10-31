@@ -93,6 +93,7 @@ export default class PuzzleCtrl {
   cgVersion = 1;
   private xiangqiBusy = false;
   viewingSolution = false;
+  private solutionAbort?: AbortController;
   private readonly alternatives = new Map<string, AlternativeResult & { bestMove: boolean }>();
   xiangqiEvaluating = false;
   moveEvaluationDepth?: number;
@@ -384,6 +385,8 @@ export default class PuzzleCtrl {
   };
 
   private readonly cancelXiangqiWork = (): void => {
+    this.solutionAbort?.abort();
+    this.solutionAbort = undefined;
     this.xiangqiGeneration++;
     this.xiangqiEngine?.stop();
     this.xiangqiBusy = false;
@@ -411,8 +414,11 @@ export default class PuzzleCtrl {
     const generation = this.xiangqiGeneration;
     const mode = this.mode;
     const parent = this.tree.nodeAtPath(path);
-    if ((treePath.size(path) - treePath.size(this.initialPath)) % 2 === 0)
+    if ((treePath.size(path) - treePath.size(this.initialPath)) % 2 === 0) {
       this.xiangqiPlayerMoveAt = performance.now();
+      // Feedback belongs to this attempt, not the previously accepted move.
+      if (mode !== 'view') this.lastFeedback = 'init';
+    }
     try {
       const state = await requestXiangqi<XiangqiMoveResponse>('/api/analysis/move', {
         initialFen: this.tree.root.fen,
@@ -644,7 +650,10 @@ export default class PuzzleCtrl {
   };
 
   canUseActions = (): boolean =>
-    this.engineReady() && this.completed && !this.xiangqiBusy && !this.xiangqiReplyPending;
+    this.engineReady() &&
+    this.completed &&
+    (!this.xiangqiBusy || !!this.solutionAbort) &&
+    !this.xiangqiReplyPending;
 
   canHint = (): boolean =>
     this.engineReady() &&
@@ -763,7 +772,8 @@ export default class PuzzleCtrl {
       this.data.user.rating = next.user.rating;
       this.data.user.provisional = next.user.provisional;
       this.round = res.round;
-      if (res.round?.ratingDiff) this.session.setRatingDiff(this.data.puzzle.id, res.round.ratingDiff);
+      if (res.round?.ratingDiff !== undefined)
+        this.session.setRatingDiff(this.data.puzzle.id, res.round.ratingDiff);
     }
     if (next) {
       this.next.resolve(this.data.replay && res.replayComplete ? this.data.replay : next);
@@ -935,10 +945,12 @@ export default class PuzzleCtrl {
     this.redraw();
   };
 
+  canViewSolution = (): boolean => this.canUseActions() && !this.xiangqiBusy;
+
   viewSolution = (): void => {
     trackTraffic('puzzle.revealed', {}, {}, this.trafficAttempt);
     trafficActivity('puzzle.review', this.trafficAttempt, { theme: this.data.angle.key });
-    if (this.canUseActions()) void this.viewXiangqiSolution();
+    if (this.canViewSolution()) void this.viewXiangqiSolution();
   };
 
   private readonly viewXiangqiSolution = async (): Promise<void> => {
@@ -948,15 +960,21 @@ export default class PuzzleCtrl {
     this.xiangqiFailureDetail = undefined;
     this.xiangqiFailedPath = undefined;
     this.sendResult(false);
-    this.mode = 'view';
-    this.viewingSolution = true;
+    this.solutionAbort = new AbortController();
     this.xiangqiBusy = true;
     const generation = this.xiangqiGeneration;
     const current = () => generation === this.xiangqiGeneration;
     this.redraw();
     try {
-      const root = await buildSolutionTree(this.data, this.pref.notationStyle, current);
+      const root = await buildSolutionTree(
+        this.data,
+        this.pref.notationStyle,
+        current,
+        this.solutionAbort.signal,
+      );
       if (!root || !current()) return;
+      this.mode = 'view';
+      this.viewingSolution = true;
       this.tree = makeTree(root);
       this.initialPath = treePath.root;
       this.initialNode = root;
@@ -968,6 +986,7 @@ export default class PuzzleCtrl {
       this.xiangqiRetry = this.viewSolution;
     } finally {
       if (current()) {
+        this.solutionAbort = undefined;
         this.xiangqiBusy = false;
         this.withGround(this.showGround);
         this.redraw();

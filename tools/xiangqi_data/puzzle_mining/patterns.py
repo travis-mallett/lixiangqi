@@ -142,11 +142,16 @@ GENERAL_DISROBING_THEME = "generalDisrobingAttack"
 GENERAL_DISROBING_VERSION = "1.0"
 ASSISTING_KING_THEME = "assistingKingAttack"
 ASSISTING_KING_VERSION = "1.0"
+WHITE_HORSE_THEME = "whiteHorseMate"
+DRAWER_THEME = "drawerMate"
+DRAWER_VERSION = "1.2"
 REPATRIATION_VERSION = "1.0"
 THREE_IMMORTALS_THEME = "threeImmortalsRefiningTheElixir"
 THREE_IMMORTALS_VERSION = "1.0"
 DOUBLE_GHOSTS_THEME = "doubleGhostsKnocking"
 DOUBLE_GHOSTS_VERSION = "1.1"
+THREE_CHARIOTS_THEME = "threeChariotsHarassingAdvisor"
+THREE_CHARIOTS_VERSION = "1.0"
 CANNON_CHARIOT_DISCOVERED_THEME = "cannonChariotDiscoveredAttack"
 CANNON_CHARIOT_DISCOVERED_VERSION = "1.0"
 DETONATING_MINE_THEME = "detonatingMineAttack"
@@ -255,6 +260,7 @@ HORSE_ROLE_VERSIONS = {
     )
     for theme in HORSE_ROLE_THEMES
 }
+WHITE_HORSE_VERSION = "2.0"
 
 
 def horse_cannon_screens(terminal: TerminalPosition) -> dict[str, str]:
@@ -849,6 +855,12 @@ CHECKMATE_MATCHERS: tuple[PatternMatcher, ...] = (
     PatternMatcher(
         REPATRIATION_THEME, REPATRIATION_VERSION, lambda terminal: terminal.checkmate
     ),
+    PatternMatcher(DRAWER_THEME, DRAWER_VERSION, lambda terminal: terminal.checkmate),
+    PatternMatcher(
+        WHITE_HORSE_THEME,
+        WHITE_HORSE_VERSION,
+        lambda terminal: bool(horse_role_candidate_squares(terminal, "palcornerHorse")),
+    ),
     PatternMatcher(
         ASSISTING_KING_THEME,
         ASSISTING_KING_VERSION,
@@ -867,6 +879,11 @@ CHECKMATE_MATCHERS: tuple[PatternMatcher, ...] = (
     PatternMatcher(
         DOUBLE_GHOSTS_THEME,
         DOUBLE_GHOSTS_VERSION,
+        lambda terminal: terminal.checkmate,
+    ),
+    PatternMatcher(
+        THREE_CHARIOTS_THEME,
+        THREE_CHARIOTS_VERSION,
         lambda terminal: terminal.checkmate,
     ),
     PatternMatcher(

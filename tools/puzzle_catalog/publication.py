@@ -47,6 +47,8 @@ OFFICIAL_THEMES = frozenset(
         "repatriationOfBuddha",
         "generalDisrobingAttack",
         "assistingKingAttack",
+        "whiteHorseMate",
+        "drawerMate",
         "whiteFacedGeneral",
         "chariotMatingMethods",
         "horseMatingMethods",

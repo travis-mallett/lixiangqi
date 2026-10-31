@@ -63,6 +63,10 @@ final class Env(
 
   lazy val authenticator = wire[Authenticator]
 
+  lazy val externalLogin = ExternalLogin(appConfig, net, ws, cacheApi)
+  lazy val externalIdentities = lila.user.ExternalIdentityRepo(userRepo)
+  lazy val googleNativeLogin = GoogleNativeLogin(ws, cacheApi, () => externalLogin.googleClientId)
+
   lazy val turnstileCookie = TurnstileCookie(lilaCookie, config.loginTokenSecret)
   val turnstilePublicConfig = config.turnstile.public
   lazy val turnstile: Turnstile =

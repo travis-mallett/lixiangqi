@@ -3,6 +3,56 @@ import play.sbt.routes.RoutesKeys
 
 import BuildSettings.*
 import Dependencies.*
+import org.scalajs.linker.interface.ModuleKind
+
+lazy val threeKingdomsBrowser = taskKey[Unit]("Build the shared Three Kingdoms rules and browser engine")
+
+lazy val threeKingdomsCore = Project("threeKingdomsCore", file("modules/threeKingdomsCore"))
+  .settings(buildSettings, srcMain)
+  .settings(libraryDependencies += munit)
+
+lazy val threeKingdomsJs = Project("threeKingdomsJs", file("modules/threeKingdomsJs"))
+  .enablePlugins(ScalaJSPlugin)
+  .settings(
+    scalaVersion := globalScalaVersion,
+    Compile / scalaSource := baseDirectory.value / "src" / "main",
+    Compile / unmanagedSourceDirectories += (LocalRootProject / baseDirectory).value / "modules/threeKingdomsCore/src/main",
+    scalaJSLinkerConfig ~= (_.withModuleKind(ModuleKind.ESModule)),
+    Compile / fullLinkJS / scalaJSLinkerConfig ~= (_.withSourceMap(false)),
+    threeKingdomsBrowser := {
+      (Compile / fullLinkJS).value
+      val linked = (Compile / fullLinkJSOutput).value
+      val rootDirectory = (LocalRootProject / baseDirectory).value
+      Def.uncached {
+        val destination = rootDirectory / "public/three-kingdoms-engine"
+        IO.createDirectory(destination)
+        IO.delete((destination ** "*.map").get())
+        IO.copyDirectory(linked, destination, overwrite = true)
+        val sources = Seq("threeKingdomsCore", "threeKingdomsJs")
+          .flatMap { name =>
+            ((rootDirectory / "modules" / name / "src" / "main") ** "*.scala").get()
+          }
+          .sortBy(_.getPath)
+        def digest(bytes: Array[Byte]) = java.security.MessageDigest
+          .getInstance("SHA-256")
+          .digest(bytes)
+          .map(b => f"${b & 0xff}%02x")
+          .mkString
+        val entries = sources
+          .map { source =>
+            val path = IO.relativize(rootDirectory, source).get.replace('\\', '/')
+            val hash =
+              digest(IO.read(source).replace("\r\n", "\n").getBytes(java.nio.charset.StandardCharsets.UTF_8))
+            s"\"$path\":\"$hash\""
+          }
+          .mkString(",")
+        IO.write(
+          destination / "manifest.json",
+          s"{\"version\":1,\"sources\":{$entries},\"javascript\":\"${digest(IO.readBytes(destination / "main.js"))}\"}\n"
+        )
+      }
+    }
+  )
 
 // sbt 2.0 lints "unused" keys on load. native-packager defines Debian/Rpm/Linux/Universal
 // packaging keys that lila legitimately doesn't use (we only run `stage`), and RoutesCompiler
@@ -13,7 +63,7 @@ Global / lintUnusedKeysOnLoad := false
 lazy val root = Project("lila", file("."))
   .enablePlugins(JavaServerAppPackaging, RoutesCompiler)
   .dependsOn(api)
-  .aggregate(api)
+  .aggregate(api, threeKingdomsCore, threeKingdomsJs)
   .settings(buildSettings)
   .settings(
     // These configure the root "lila" app specifically (flat app/ + conf/ layout, native-packager
@@ -34,12 +84,12 @@ lazy val root = Project("lila", file("."))
     Compile / RoutesKeys.generateForwardRouter := true,
     Compile / sourceDirectory := baseDirectory.value / "app",
     Compile / scalaSource := baseDirectory.value / "app",
-    // Keep the native-packager stage output at target/universal/stage — lila CI tars that exact
+    // Keep the native-packager stage output at target/universal/stage â€” lila CI tars that exact
     // path (.github/workflows/server.yml). Scope this to Universal/target rather than overriding the
     // whole project `target`: stagingDirectory = Universal/target / "stage", and the default
     // Universal/target = <project target> / "universal". Overriding only Universal/target leaves the
     // project target at sbt 2.0's default, so crossTarget stays target/out/jvm/scala-3.8.4/lila and
-    // zinc's inc_compile_3.zip stays inside the cache root — no "Cannot cache" warning.
+    // zinc's inc_compile_3.zip stays inside the cache root â€” no "Cannot cache" warning.
     Universal / target := baseDirectory.value / "target" / "universal"
   )
 
@@ -59,7 +109,7 @@ ThisBuild / usePipelining := false
 ivyLoggingLevel := UpdateLogging.DownloadOnly
 
 // format: off
-libraryDependencies ++= pekko.bundle ++ playWs.bundle ++ macwire.bundle ++ scalalib.bundle ++ chess.bundle ++ Seq(
+root / libraryDependencies ++= pekko.bundle ++ playWs.bundle ++ macwire.bundle ++ scalalib.bundle ++ chess.bundle ++ Seq(
   play.json, play.logback, compression, hasher,
   reactivemongo.driver, /* reactivemongo.kamon, */ maxmind, scalatags,
   kamon.core, kamon.influxdb, kamon.metrics,
@@ -70,7 +120,7 @@ libraryDependencies ++= pekko.bundle ++ playWs.bundle ++ macwire.bundle ++ scala
 // matches https://github.com/ornicar/lila-dep-graphs
 lazy val modules = Seq(
   // level 1
-  xiangqi, core, coreI18n,
+  xiangqi, core, coreI18n, threeKingdoms,
   // level 2
   common, ui, mon, tree, markdown,
   // level 3
@@ -115,7 +165,7 @@ lazy val coreI18n = module("coreI18n",
 )
 
 lazy val xiangqi = module("xiangqi",
-  Seq(),
+  Seq(threeKingdomsCore),
   Seq(chess.playJson) ++ tests.bundle
 )
 
@@ -126,7 +176,7 @@ lazy val mon = module("mon",
 
 lazy val common = module("common",
   Seq(core),
-  Seq(kamon.core, scaffeine, apacheText, chess.playJson)
+  Seq(kamon.core, scaffeine, apacheText, chess.playJson) ++ tests.bundle
 )
 
 lazy val markdown = module("markdown",
@@ -141,7 +191,7 @@ lazy val db = module("db",
 
 lazy val memo = module("memo",
   Seq(db, mon, markdown),
-  Seq(scaffeine, bloomFilter) ++ playWs.bundle
+  Seq(scaffeine, bloomFilter) ++ playWs.bundle ++ tests.bundle
 )
 
 lazy val i18n = module("i18n",
@@ -152,7 +202,6 @@ lazy val i18n = module("i18n",
     I18n.serialize(
       sourceDir = new File("translation/source"),
       destDir = new File("translation/dest"),
-      dbs = "activity app appeal arena broadcast challenge class coach contact notation dgt emails faq features insight keyboardMove lag learn nvui oauthScope onboarding patron perfStat preferences puzzle puzzleTheme recap search settings site streamer storm study swiss team timeago tfa tourname traffic ublog variant video voiceCommands msg".split(' ').toList,
       outputDir = (Compile / resourceManaged).value
     )
   }.taskValue
@@ -185,7 +234,7 @@ lazy val racer = module("racer",
 
 lazy val video = module("video",
   Seq(memo, ui),
-  macwire.bundle
+  macwire.bundle ++ tests.bundle
 )
 
 lazy val coach = module("coach",
@@ -210,7 +259,7 @@ lazy val feed = module("feed",
 
 lazy val ublog = module("ublog",
   Seq(search, report),
-  Seq(bloomFilter)
+  Seq(bloomFilter) ++ tests.bundle
 )
 
 lazy val evaluation = module("evaluation",
@@ -275,8 +324,8 @@ lazy val gameSearch = module("gameSearch",
 
  // good dep to game
 lazy val tv = module("tv",
-  Seq(game),
-  Seq(hasher)
+  Seq(game, threeKingdoms),
+  Seq(hasher) ++ tests.bundle
 )
 
 lazy val bot = module("bot",
@@ -300,7 +349,7 @@ lazy val pool = module("pool",
 )
 
 lazy val activity = module("activity",
-  Seq(puzzle),
+  Seq(puzzle, threeKingdoms),
   Seq()
 )
 
@@ -311,7 +360,7 @@ lazy val lobby = module("lobby",
 
 lazy val setup = module("setup",
   Seq(lobby),
-  Seq()
+  tests.bundle
 )
 
 lazy val insight = module("insight",
@@ -330,7 +379,7 @@ lazy val gathering = module("gathering",
 )
 
 lazy val tournament = module("tournament",
-  Seq(gathering, room, memo),
+  Seq(gathering, room, memo, threeKingdoms),
   Seq(lettuce) ++ tests.bundle
 ).dependsOn(coreI18n % "test->test")
 
@@ -346,7 +395,7 @@ lazy val simul = module("simul",
 
 lazy val fishnet = module("fishnet",
   Seq(analyse),
-  tests.bundle
+  Seq(lettuce) ++ tests.bundle
 )
 
 lazy val irwin = module("irwin",
@@ -361,7 +410,7 @@ lazy val oauth = module("oauth",
 
 lazy val security = module("security",
   Seq(oauth, user, mailer),
-  Seq(maxmind, hasher, uaparser) ++ tests.bundle
+  Seq(maxmind, hasher, uaparser, googleOAuth) ++ tests.bundle
 )
 
 lazy val shutup = module("shutup",
@@ -376,7 +425,7 @@ lazy val challenge = module("challenge",
 
 lazy val playerDirectory = module("playerDirectory",
   Seq(memo, ui, xiangqi),
-  Seq(pdfbox, jsoup) ++ tests.bundle
+  tests.bundle
 )
 
 lazy val title = module("title",
@@ -415,7 +464,7 @@ lazy val playban = module("playban",
 )
 
 lazy val push = module("push",
-  Seq(db, mon),
+  Seq(db, mon, coreI18n),
   playWs.bundle ++ Seq(googleOAuth)
 )
 
@@ -436,7 +485,7 @@ lazy val relation = module("relation",
 
 lazy val pref = module("pref",
   Seq(memo, ui),
-  Seq()
+  tests.bundle
 ).settings(
   Compile / resourceGenerators += Def.task {
     val source = (LocalRootProject / baseDirectory).value / "ui" / "board" / "src" / "catalog.json"
@@ -453,7 +502,7 @@ lazy val msg = module("msg",
 
 lazy val forum = module("forum",
   Seq(memo, ui),
-  Seq()
+  tests.bundle
 )
 
 lazy val forumSearch = module("forumSearch",
@@ -498,11 +547,11 @@ lazy val explorer = module("explorer",
 
 lazy val notifyModule = module("notify",
   Seq(memo, ui),
-  Seq()
+  tests.bundle
 )
 
 lazy val recap = module("recap",
-  Seq(user, game, puzzle),
+  Seq(user, game, puzzle, threeKingdoms),
   Seq()
 )
 
@@ -547,3 +596,8 @@ lazy val api = module("api",
   Runtime / aggregate := false,
   Test / aggregate := true  // Test <: Runtime
 ).aggregate(moduleRefs*)
+
+lazy val threeKingdoms = module("threeKingdoms",
+  Seq(threeKingdomsCore, core, db, user, rating, memo, mon, notifyModule, challenge),
+  tests.bundle
+)

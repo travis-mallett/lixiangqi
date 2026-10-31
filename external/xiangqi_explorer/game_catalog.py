@@ -31,28 +31,10 @@ from .catalog_databases import (
     games_database_path,
     open_catalog_connection,
 )
+from .catalog_sources import SOURCE_SPECS, SOURCE_IDS, parse_sources, source_filter
 from .explorer import _game
 from .name_romanization import normalized_name_key
 
-SOURCE_SPECS = {
-    "m": ("dpxq", "m", "Master Games"),
-    "am": ("dpxq", "ancient_manuals", "Ancient Manuals"),
-    "n": ("dpxq", "n", "Online Tournaments"),
-    "t": ("dpxq", "t", "Top Games"),
-    "k": ("dpxq", "k", "Top Blitz Games"),
-    "o": ("dpxq", "o", "Other Games"),
-    "b": ("dpxq", "b", "Games Under 24 Moves"),
-    "u": ("dpxq", "u", "Player Uploads"),
-    "w": ("dpxq", "w", "Unassigned Games"),
-    "gd": ("gdchess_01xq", "games", "GDChess/01xq"),
-    "xqd": ("xqdao", "games", "XQDao"),
-    "ec": ("elephantchess", "games", "Elephantchess.io"),
-}
-SOURCES = frozenset(SOURCE_SPECS)
-SOURCE_IDS = {
-    (source, collection): source_id
-    for source_id, (source, collection, _label) in SOURCE_SPECS.items()
-}
 ONLINE_SOURCES = ONLINE_SOURCE_IDS
 ANCIENT_MANUAL_ROOT = (
     "http://www.dpxq.com/hldcg/share/"
@@ -108,18 +90,6 @@ def _integer(value: Any, name: str, minimum: int, maximum: int) -> int:
         raise ValueError(f"{name} must be an integer from {minimum} to {maximum}")
     return value
 
-
-def _collections(value: Any) -> list[str]:
-    if value is None:
-        return list(SOURCE_SPECS)
-    if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
-        raise ValueError("sources must be an array of source identifiers")
-    requested = set(value)
-    invalid = [item for item in requested if item not in SOURCES]
-    if invalid:
-        raise ValueError(f"unsupported game source: {invalid[0]}")
-    # Canonical ordering gives equivalent source sets one aggregate-cache key.
-    return [source_id for source_id in SOURCE_SPECS if source_id in requested]
 
 
 def _search(value: Any) -> str:
@@ -191,16 +161,6 @@ def _cached_aggregate(key: tuple[Any, ...], loader: Callable[[], Any]) -> Any:
         _aggregate_inflight.pop(key).set()
     return value
 
-
-def _source_filter(selected: list[str], alias: str = "selected_source") -> tuple[str, list[str]]:
-    specs = [SOURCE_SPECS[source_id] for source_id in selected]
-    clause = " OR ".join(
-        f"({alias}.source = ? AND {alias}.collection = ?)" for _ in specs
-    )
-    parameters = [
-        value for source, collection, _label in specs for value in (source, collection)
-    ]
-    return clause or "0", parameters
 
 
 def _source_rows(
@@ -295,7 +255,7 @@ def _catalog_timeline(
 
 
 def _game_filter(selected: list[str]) -> tuple[str, list[Any]]:
-    source_clause, source_parameters = _source_filter(selected)
+    source_clause, source_parameters = source_filter(selected)
     return (
         "EXISTS (SELECT 1 FROM game_sources selected_source "
         f"WHERE selected_source.game_id = g.id AND ({source_clause}))",
@@ -470,7 +430,7 @@ def _player_selection(player: str) -> tuple[str, list[str]]:
 
 
 def _player_source_where(selected: list[str]) -> tuple[str, list[str]]:
-    source_clause, parameters = _source_filter(selected)
+    source_clause, parameters = source_filter(selected)
     return (
         "EXISTS (SELECT 1 FROM game_sources selected_source "
         f"WHERE selected_source.game_id = g.id AND ({source_clause}))",
@@ -545,7 +505,7 @@ def _player_source_counts(
         source_id = SOURCE_IDS.get((row["source"], row["collection"]))
         if source_id is not None:
             counts[source_id] = int(row["game_count"])
-    online_clause, online_parameters = _source_filter(
+    online_clause, online_parameters = source_filter(
         list(ONLINE_SOURCES), "online_source"
     )
     counts["online"] = int(
@@ -746,7 +706,7 @@ def _event_source_counts(
         source_id = SOURCE_IDS.get((row["source"], row["collection"]))
         if source_id is not None:
             counts[source_id] = int(row["game_count"])
-    online_clause, online_parameters = _source_filter(
+    online_clause, online_parameters = source_filter(
         list(ONLINE_SOURCES), "online_source"
     )
     counts["online"] = int(
@@ -941,7 +901,7 @@ def _round_sort_key(label: str) -> tuple[Any, ...]:
 
 def query_event(query: dict[str, Any]) -> dict[str, Any]:
     event = _event_name(query.get("event"))
-    selected = _collections(query.get("sources"))
+    selected = parse_sources(query.get("sources"))
     empty_counts = {
         **{source_id: 0 for source_id in SOURCE_SPECS},
         "online": 0,
@@ -1263,7 +1223,7 @@ def query_ancient_manuals(_query: dict[str, Any]) -> dict[str, Any]:
 
 
 def query_games(query: dict[str, Any]) -> dict[str, Any]:
-    selected = _collections(query.get("sources"))
+    selected = parse_sources(query.get("sources"))
     search = _search(query.get("search"))
     timeline_unit = _timeline_unit(query.get("timelineUnit"))
     sort = query.get("sort", "date")
@@ -1392,7 +1352,7 @@ def query_games(query: dict[str, Any]) -> dict[str, Any]:
 
 def query_player(query: dict[str, Any]) -> dict[str, Any]:
     player = _player_name(query.get("player"))
-    selected = _collections(query.get("sources"))
+    selected = parse_sources(query.get("sources"))
     timeline_unit = _timeline_unit(query.get("timelineUnit"))
     sort = query.get("sort", "date")
     direction = query.get("direction", "desc")
@@ -1423,16 +1383,25 @@ def query_player(query: dict[str, Any]) -> dict[str, Any]:
         }
 
     try:
-        cte, selection_parameters = _player_selection(player)
+        from tools.games_database import players
+
+        profile = players.find(connection, player)
+        cte, selection_parameters = players.selection(profile['id']) if profile else _player_selection(player)
         database_key = str(games_database_path())
         identity = _cached_aggregate(
-            (database_key, "player-identity", normalized_name_key(player)),
+            (database_key, "player-identity", profile['id'] if profile else player),
             lambda: _player_identity(
                 connection, cte, selection_parameters, requested=player
             ),
         )
+        if profile:
+            identity = {
+                'query': profile['id'], 'key': profile['id'], 'name': profile['name'],
+                'nativeName': next(iter(profile.get('aliases', [])), profile['name']),
+                'romanizedName': profile['name'],
+            }
         source_counts = _cached_aggregate(
-            (database_key, "player-source-counts", normalized_name_key(player)),
+            (database_key, "player-source-counts", profile['id'] if profile else player),
             lambda: _player_source_counts(connection, cte, selection_parameters),
         )
         if identity is None or not selected:

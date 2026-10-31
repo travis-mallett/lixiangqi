@@ -57,9 +57,9 @@ object userId:
   opaque type UserName = String
   object UserName extends OpaqueString[UserName]:
     extension (e: UserName) def str = UserStr(e)
-    given UserIdOf[UserName] = n => UserId(n.value.toLowerCase)
+    given UserIdOf[UserName] = n => UserId(UsernameRules.id(n.value))
     // what existing usernames are like
-    val historicalRegex = "[a-zA-Z0-9_-]{2,30}".r
+    val historicalRegex = UsernameRules.existing
     val anonymous: UserName = "Anonymous"
     val lichess: UserName = "lichess"
     val anonMod: String = "A Lichess Moderator"
@@ -67,7 +67,8 @@ object userId:
     // word (i.e. preceded and followed by space or appropriate punctuation):
     // Yes: everyone says @ornicar is a pretty cool guy
     // No: contact@lixiangqi.org, @1, http://example.com/@happy0, @lixiangqi.org
-    val atRegex = """@(?<![\w@#/\[]@)([\w-]{2,30}+)(?![@\w-]|\.\w)""".r
+    val atRegex =
+      raw"""@(?<![\w@#/\[]@)([${UsernameRules.characters}]{2,30}+)(?![@${UsernameRules.characters}]|\.\w)""".r
 
   // maybe an Id, maybe a Name... something that's probably cased wrong
   opaque type UserStr = String
@@ -76,7 +77,7 @@ object userId:
       def couldBeUsername: Boolean = UserId.noGhost(e.id) && UserName.historicalRegex.matches(e)
       def validate: Option[UserStr] = e.couldBeUsername.option(e)
       def validateId: Option[UserId] = validate.map(_.id)
-    given UserIdOf[UserStr] = n => UserId(n.value.toLowerCase)
+    given UserIdOf[UserStr] = n => UserId(UsernameRules.id(n.value))
     // these conversions are using when generating routes containing UserStr
     // so we can give them usernames and userIds
     given Conversion[UserName, UserStr] = _.value
@@ -90,10 +91,10 @@ object userId:
   // "chess-" is a valid username prefix, but not a valid username
   opaque type UserSearch = String
   object UserSearch extends OpaqueString[UserSearch]:
-    private val regex = "(?i)[a-z0-9][a-z0-9_-]{2,28}".r
+    private val regex = UsernameRules.search
     def read(str: String): Option[UserSearch] =
       val clean = str.trim.takeWhile(' ' !=)
-      if regex.matches(clean) then Some(clean.toLowerCase) else None
+      if regex.matches(clean) then Some(UsernameRules.id(clean)) else None
 
   opaque type ModId = String
   object ModId extends OpaqueUserId[ModId]

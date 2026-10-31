@@ -1,6 +1,6 @@
 package lila.game
 
-import chess.format.BoardFen
+import chess.format.Fen
 
 import scala.util.Success
 
@@ -29,7 +29,7 @@ final private class CaptchaApi(gameRepo: GameRepo)(using Executor) extends ICapt
 
     val default = Captcha(
       gameId = GameId("00000000"),
-      fen = BoardFen("4k4/9/9/9/9/9/3R5/R8/9/5K3"),
+      fen = Fen.Full("4k4/9/9/9/9/9/3R5/R8/9/5K3 w - - 0 1"),
       color = chess.White,
       solutions = NonEmptyList.one("a3 e3"),
       moves = Map("a3" -> Vector("e3"))
@@ -57,21 +57,22 @@ final private class CaptchaApi(gameRepo: GameRepo)(using Executor) extends ICapt
       gameRepo.game(id).flatMapz(fromGame)
 
     def fromGame(game: Game): Fu[Option[Captcha]] =
-      fuccess(makeCaptcha(game))
+      fuccess(CaptchaApi.makeCaptcha(game))
 
-    def makeCaptcha(game: Game): Option[Captcha] =
-      for
-        lastMove <- game.xiangqi.moves.lastOption
-        before <- game.xiangqi.states.dropRight(1).lastOption
-        if game.status == chess.Status.Mate
-        if game.xiangqi.state.check && game.xiangqi.state.immediateEnd.ended
-        legalMoves = before.legalMoves.groupMap(_.orig)(_.dest)
-        solutions: Solutions = NonEmptyList.one(s"${lastMove.orig} ${lastMove.dest}")
-        color = if before.turn == Xiangqi.Side.Red then chess.White else chess.Black
-      yield Captcha(
-        gameId = game.id,
-        fen = BoardFen(before.fen.takeWhile(_ != ' ')),
-        color = color,
-        solutions = solutions,
-        moves = legalMoves
-      )
+private[game] object CaptchaApi:
+  def makeCaptcha(game: Game): Option[Captcha] =
+    for
+      lastMove <- game.xiangqi.moves.lastOption
+      before <- game.xiangqi.states.dropRight(1).lastOption
+      if game.status == chess.Status.Mate
+      if game.xiangqi.state.check && game.xiangqi.state.immediateEnd.ended
+      legalMoves = before.legalMoves.groupMap(_.orig)(_.dest)
+      solutions: Solutions = NonEmptyList.one(s"${lastMove.orig} ${lastMove.dest}")
+      color = if before.turn == Xiangqi.Side.Red then chess.White else chess.Black
+    yield Captcha(
+      gameId = game.id,
+      fen = Fen.Full(before.fen),
+      color = color,
+      solutions = solutions,
+      moves = legalMoves
+    )

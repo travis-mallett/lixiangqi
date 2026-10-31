@@ -1,4 +1,4 @@
-import { type Prop, propWithEffect, toggle } from 'lib';
+import { type Prop, propWithEffect } from 'lib';
 import { debounce } from 'lib/async';
 import { aiCustomLevel, aiCustomLevelIndex } from 'lib/game';
 import { guestAiProgress, highestBeatenAiLevel, nextAiLevel } from 'lib/game/aiProgress';
@@ -14,7 +14,7 @@ import { alert } from 'lib/view';
 import * as xhr from 'lib/xhr';
 
 import type LobbyController from './ctrl';
-import type { AiStatsResponse, ForceSetupOptions, GameType, SetupStore } from './interfaces';
+import type { AiStatsResponse, ForceSetupOptions, GameType, SetupStore, SetupVariant } from './interfaces';
 import { keyToId, variants } from './options';
 
 export default class SetupController {
@@ -24,6 +24,11 @@ export default class SetupController {
   lastValidFen = '';
   fenError = false;
   friendUser = '';
+  friendUserTwo = '';
+  kingdom: Prop<'red' | 'green' | 'black' | 'random'> = propWithEffect('red', () => this.root.redraw());
+  kingdomTime: Prop<number> = propWithEffect(15, () => this.root.redraw());
+  kingdomMoveTime: Prop<number> = propWithEffect(60, () => this.root.redraw());
+  error?: string;
   loading = false;
   startingBot = false;
   aiStats?: AiStatsResponse;
@@ -37,12 +42,9 @@ export default class SetupController {
   forced?: ForceSetupOptions;
 
   // Store props
-  variant: Prop<VariantKey>;
+  variant: Prop<SetupVariant>;
   fen: Prop<string>;
   aiLevel: Prop<number>;
-
-  variantMenuOpen = toggle(false);
-  rulesetMenuOpen = toggle(false);
 
   timeControl: TimeControl;
 
@@ -63,22 +65,21 @@ export default class SetupController {
 
   makeSetupStore = (gameType: GameType) =>
     storedJsonProp<SetupStore>(this.storeKey(gameType), () => ({
-      variant: 'standard',
       fen: '',
       timeMode: gameType === 'hook' ? 'realTime' : 'unlimited',
       time: 5,
       increment: 3,
       moveTime: undefined,
       days: 2,
-      color: 'random',
+      color: gameType === 'ai' ? 'white' : 'random',
       aiLevel: 1,
       aiTimeControls: false,
     }));
 
   private readonly loadPropsFromStore = (forceOptions?: ForceSetupOptions) => {
     const storeProps = this.store[this.gameType!]();
-    // Load props from the store, but override any store values with values found in forceOptions
-    this.variant = propWithEffect(forceOptions?.variant || storeProps.variant, this.onDropdownChange);
+    // Variant is an explicit entry-point choice, never a remembered preference.
+    this.variant = propWithEffect(forceOptions?.variant || 'standard', this.onVariantChange);
     this.fen = this.propWithApply(forceOptions?.fen || storeProps.fen);
     const canChangeTimeMode = !!this.root.me || this.gameType !== 'hook';
     const requestedTimeMode =
@@ -98,23 +99,28 @@ export default class SetupController {
       this.onPropChange,
       this.root.pools,
     );
-    const storedAiLevel = storeProps.aiLevel;
-    this.aiLevel = this.propWithApply(
-      this.gameType === 'ai' && !this.startingBot
-        ? aiCustomLevel(aiCustomLevelIndex(storedAiLevel))
-        : storedAiLevel,
-    );
-    this.color(forceOptions?.color || storeProps.color || 'random');
+    this.aiLevel = this.propWithApply(storeProps.aiLevel);
+    this.color(forceOptions?.color || (this.gameType === 'ai' ? 'white' : storeProps.color || 'random'));
 
     this.enforcePropRules();
     // Upon loading the props from the store, overriding with forced options, and enforcing rules,
-    // immediately save them to the store. This way, the user can know that whatever they saw last
-    // in the modal will be there when they open it at a later time.
+    // save the timing and difficulty preferences for the next setup.
     this.savePropsToStore();
   };
 
+  isThreeKingdoms = () => this.variant() === 'threeKingdoms';
+
+  usesVariantLevels = () => ['jieqi', 'minixiangqi', 'threeKingdoms'].includes(this.variant());
+
+  variantLevelCount = () => (this.isThreeKingdoms() ? 5 : 10);
+
   private readonly enforcePropRules = () => {
     // reassign with this.propWithApply in this function to avoid calling this.onPropChange
+
+    if (this.usesVariantLevels() && this.aiLevel)
+      this.aiLevel = this.propWithApply(Math.max(1, Math.min(this.variantLevelCount(), this.aiLevel())));
+    else if (this.gameType === 'ai' && !this.startingBot && this.aiLevel)
+      this.aiLevel = this.propWithApply(aiCustomLevel(aiCustomLevelIndex(this.aiLevel())));
 
     // replace underscores with spaces in FEN
     if (this.variant() === 'fromPosition') this.fen = this.propWithApply(this.fen().replace(/_/g, ' '));
@@ -124,7 +130,6 @@ export default class SetupController {
     this.gameType &&
     !this.startingBot &&
     this.store[this.gameType]({
-      variant: this.variant(),
       fen: this.fen(),
       timeMode: this.timeControl.mode(),
       time: this.timeControl.time(),
@@ -148,6 +153,12 @@ export default class SetupController {
     this.root.redraw();
   };
 
+  private readonly onVariantChange = () => {
+    this.onDropdownChange();
+    if (this.gameType === 'ai' && !this.usesVariantLevels() && !this.aiStats && !this.aiStatsLoading)
+      void this.loadAiStats();
+  };
+
   private readonly propWithApply = <A>(value: A) => propWithEffect(value, this.onPropChange);
 
   openModal = (
@@ -161,11 +172,11 @@ export default class SetupController {
     this.fenError = false;
     this.lastValidFen = '';
     this.friendUser = friendUser || '';
-    this.variantMenuOpen(false);
-    this.rulesetMenuOpen(false);
+    this.friendUserTwo = '';
+    this.error = undefined;
     this.forced = forceOptions;
     this.loadPropsFromStore(forceOptions);
-    if (gameType === 'ai') void this.loadAiStats();
+    if (gameType === 'ai' && !this.usesVariantLevels()) void this.loadAiStats();
   };
 
   startBot = async (level: number) => {
@@ -177,7 +188,7 @@ export default class SetupController {
     this.forced = undefined;
     this.friendUser = '';
     this.ruleset = 'tiantian-v1';
-    this.loadPropsFromStore({ variant: 'standard', timeMode: 'unlimited', color: 'random' });
+    this.loadPropsFromStore({ variant: 'standard', timeMode: 'unlimited', color: 'white' });
     this.aiLevel(level);
     try {
       await this.submit();
@@ -223,16 +234,6 @@ export default class SetupController {
 
   closeModal?: () => void; // managed by view/setup/modal.ts
 
-  toggleVariantMenu = () => {
-    this.variantMenuOpen.toggle();
-    this.root.redraw();
-  };
-
-  toggleRulesetMenu = () => {
-    this.rulesetMenuOpen.toggle();
-    this.root.redraw();
-  };
-
   validateFen = debounce(() => {
     const fen = this.fen();
     if (!fen) return;
@@ -259,6 +260,7 @@ export default class SetupController {
   propsToFormData = (color: ColorChoice) =>
     xhr.form({
       variant: keyToId(this.variant(), variants).toString(),
+      gameVariant: this.usesVariantLevels() ? this.variant() : 'xiangqi',
       fen: this.variant() === 'fromPosition' ? this.fen() : undefined,
       timeMode: keyToId(this.timeControl.mode(), timeModes).toString(),
       time: this.timeControl.time().toString(),
@@ -277,21 +279,32 @@ export default class SetupController {
       days: this.timeControl.days().toString(),
       days_range: this.timeControl.daysV().toString(),
       level: this.aiLevel().toString(),
-      ruleset: this.gameType === 'hook' ? undefined : this.ruleset,
+      ruleset: this.gameType === 'hook' || this.usesVariantLevels() ? undefined : this.ruleset,
       color,
     });
 
   validFen = () => this.variant() !== 'fromPosition' || (!this.fenError && !!this.fen());
 
   valid = () =>
-    this.validFen() && this.timeControl.valid(this.minimumTimeIfReal()) && this.validConstraints();
+    this.isThreeKingdoms()
+      ? this.gameType !== 'hook' &&
+        [7, 10, 15].includes(this.kingdomTime()) &&
+        [15, 30, 60].includes(this.kingdomMoveTime()) &&
+        (this.gameType !== 'friend' ||
+          (!!this.root.me &&
+            [this.friendUser, this.friendUserTwo].every(user => /^[\w-]{2,30}$/.test(user.trim())) &&
+            new Set(
+              [this.friendUser, this.friendUserTwo, this.root.me.username].map(user =>
+                user.trim().toLowerCase(),
+              ),
+            ).size === 3))
+      : this.validFen() && this.timeControl.valid(this.minimumTimeIfReal()) && this.validConstraints();
 
   private readonly invalid = <A>(forced: A | undefined, current: A) =>
     forced !== undefined && forced !== current;
 
   private readonly validConstraints = () => {
     if (this.forced) {
-      if (this.invalid(this.forced.variant, this.variant())) return false;
       if (this.invalid(this.forced.timeMode, this.timeControl.mode())) return false;
       if (this.invalid(this.forced.color, this.color())) return false;
       if (
@@ -316,6 +329,8 @@ export default class SetupController {
   minimumTimeIfReal = () => (this.gameType === 'ai' && this.variant() === 'fromPosition' ? 1 : 0);
 
   submit = async () => {
+    if (!this.valid() || this.loading) return;
+    if (this.isThreeKingdoms()) return this.submitThreeKingdoms();
     const color = this.color();
     if (this.gameType === 'hook') this.root.setTab(this.timeControl.isRealTime() ? 'real_time' : 'seeks');
     this.loading = true;
@@ -358,6 +373,46 @@ export default class SetupController {
     } else {
       this.loading = false;
       this.closeModal?.();
+    }
+  };
+
+  private readonly submitThreeKingdoms = async () => {
+    this.loading = true;
+    this.error = undefined;
+    this.root.redraw();
+    const config = {
+      initialSeconds: this.kingdomTime() * 60,
+      moveSeconds: this.kingdomMoveTime(),
+      level: this.aiLevel(),
+      color:
+        this.kingdom() === 'random'
+          ? ['red', 'green', 'black'][Math.floor(Math.random() * 3)]
+          : this.kingdom(),
+      opponents: [this.friendUser.trim(), this.friendUserTwo.trim()],
+    };
+    try {
+      if (this.gameType === 'ai' && !this.root.me) {
+        sessionStorage.setItem('threeKingdoms.localSetup', JSON.stringify(config));
+        site.redirect('/three-kingdoms/local');
+        return;
+      }
+      const response = await xhr.jsonAnyResponse(
+        `/api/three-kingdoms/${this.gameType === 'ai' ? 'computer' : 'challenge'}`,
+        {
+          method: 'POST',
+          headers: { ...xhr.xhrHeader, 'Content-Type': 'application/json' },
+          body: JSON.stringify(config),
+        },
+      );
+      const result = (await response.json()) as { id?: string; error?: string };
+      if (!response.ok || !result.id || result.error) throw new Error(result.error);
+      site.redirect(`/three-kingdoms/${this.gameType === 'ai' ? 'game' : 'challenge'}/${result.id}`);
+    } catch (error) {
+      const translated =
+        error instanceof Error && (i18n.threeKingdoms as unknown as Record<string, unknown>)[error.message];
+      this.error = typeof translated === 'string' ? translated : i18n.threeKingdoms.error;
+      this.loading = false;
+      this.root.redraw();
     }
   };
 }

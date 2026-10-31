@@ -1,3 +1,5 @@
+@import '../../lib/css/component/variant-icon';
+
 .sub-ratings {
   a {
     @extend %box-radius-left, %flex-center-nowrap, %page-text;
@@ -42,7 +44,7 @@
       }
     }
 
-    > span {
+    > span:not(.variant-icon) {
       flex: 1 1 100%;
 
       @extend %flex-column;
@@ -76,6 +78,37 @@
       font-size: 0.8em;
       opacity: 0.6;
       line-height: 1em;
+    }
+  }
+
+  .xiangqi-rank {
+    display: flex;
+    align-items: center;
+    gap: 0.75em;
+    padding: 0.7em 0.4em;
+
+    &.empty {
+      opacity: 0.5;
+    }
+
+    .variant-icon {
+      font-size: 2em;
+    }
+
+    &__details {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25em;
+      min-width: 0;
+    }
+
+    h3 {
+      display: block;
+    }
+
+    .rank-detail {
+      display: block;
+      font-size: 0.9em;
     }
   }
 
@@ -132,13 +165,28 @@
         font-size: 1.5em;
       }
 
-      > span {
+      > span:not(.variant-icon) {
         flex: 0 0 auto;
         margin-inline-end: 0;
       }
 
       strong {
         font-weight: normal;
+      }
+    }
+
+    .xiangqi-rank {
+      flex-direction: column;
+      gap: 0.25em;
+      white-space: normal;
+      text-align: center;
+
+      .variant-icon {
+        font-size: 1.5em;
+      }
+
+      h3 {
+        font-size: 0.75em;
       }
     }
   }

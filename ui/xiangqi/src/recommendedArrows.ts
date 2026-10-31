@@ -1,7 +1,10 @@
 import { coordinateMove, type BoardMark } from '@lixiangqi/board';
 
-const RED = '#e04b4d';
-const BLACK = '#282828';
+export const analysisPlayerColors: Readonly<Record<'red' | 'black' | 'green', string>> = Object.freeze({
+  red: '#e04b4d',
+  black: '#282828',
+  green: '#27864a',
+});
 const BADGE = '#77a718';
 /** Highest engine-line rank drawn; mirrors the engine's MultiPV range. */
 const MAX_ARROW_LINES = 5;
@@ -132,6 +135,35 @@ export function moveArrowShape(from: string, to: string, orientation: string, st
   return { from, svg: arrowSvg(routeForMove(from, to, orientation), style) };
 }
 
+/** Graph boards provide rule-derived waypoints in artwork coordinates. Style stays shared. */
+export function routedArrowShape(
+  from: string,
+  route: readonly (readonly [number, number])[],
+  unitSize: number,
+  style: ArrowStyle,
+): BoardMark {
+  const [x, y] = route[0];
+  return {
+    from,
+    svg: arrowSvg(
+      route.map(([px, py]) => ({
+        x: 50 + ((px - x) * 100) / unitSize,
+        y: 50 + ((py - y) * 100) / unitSize,
+      })),
+      style,
+    ),
+  };
+}
+
+export function recommendedArrowStyle(rank: number, count: number, ply: number, color: string): ArrowStyle {
+  return {
+    color,
+    opacity: RANK_OPACITY[Math.min(rank, RANK_OPACITY.length - 1)],
+    dashed: rank === count - 1 && count > 1,
+    badge: ply + 1,
+  };
+}
+
 /**
  * Draw one numbered pair of arrows per engine line: the side to move's move
  * and the opponent's reply. Numbers follow the ply inside the line, so the
@@ -147,20 +179,17 @@ export function recommendedArrowShapes(
     .slice(0, MAX_ARROW_LINES)
     .map(moves => moves.slice(0, MAX_LINE_PLIES).filter(move => MOVE_PATTERN.test(move)))
     .filter(moves => moves.length > 0);
-  const faintestRank = ranks.length - 1;
   return ranks
     .map((moves, rank) => {
-      const opacity = RANK_OPACITY[Math.min(rank, RANK_OPACITY.length - 1)];
-      const dashed = rank === faintestRank && faintestRank > 0;
       return moves.map((move, ply): BoardMark => {
         const [orig, dest] = coordinateMove(move);
         const moverIsRed = ply % 2 === 0 ? turn === 'red' : turn === 'black';
-        return moveArrowShape(orig, dest, orientation, {
-          color: moverIsRed ? RED : BLACK,
-          opacity,
-          dashed,
-          badge: ply + 1,
-        });
+        return moveArrowShape(
+          orig,
+          dest,
+          orientation,
+          recommendedArrowStyle(rank, ranks.length, ply, analysisPlayerColors[moverIsRed ? 'red' : 'black']),
+        );
       });
     })
     .reverse()

@@ -264,9 +264,17 @@ object Form:
     val field: Mapping[ZoneId] = of[ZoneId]
 
   object username:
-    val historicalConstraints = Seq(
-      Constraints.minLength(2),
-      Constraints.maxLength(30),
+    def lengthConstraints(max: Int) = Seq(
+      Constraint[String]("constraint.usernameMinLength", 2)(value =>
+        if lila.core.UsernameRules.length(value) >= 2 then V.Valid
+        else V.Invalid(V.ValidationError("error.minLength", 2))
+      ),
+      Constraint[String]("constraint.usernameMaxLength", max)(value =>
+        if lila.core.UsernameRules.length(value) <= max then V.Valid
+        else V.Invalid(V.ValidationError("error.maxLength", max))
+      )
+    )
+    val historicalConstraints = lengthConstraints(30) ++ Seq(
       Constraints.pattern(regex = UserName.historicalRegex, error = "usernameCharsInvalid")
     )
     val historicalField = trim(text).verifying(historicalConstraints*).into[UserStr]

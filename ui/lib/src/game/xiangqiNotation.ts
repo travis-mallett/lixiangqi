@@ -1,9 +1,12 @@
 import type { BoardMark } from '@lixiangqi/board';
 
+import type { JieqiCapture } from './jieqi';
 import { requestXiangqi } from './xiangqiApi';
 
 export interface RulesState {
   variant?: string;
+  reveal?: string | null;
+  captures?: JieqiCapture[];
   ruleset?: string;
   adjudication?: Record<string, unknown>;
   fen: string;
@@ -146,6 +149,18 @@ export interface VariationMove {
   state: RulesState;
 }
 
+export interface MoveLabels {
+  notation: string;
+  chineseNotation: string;
+}
+
+/** Root actions need no reveal outcomes or move replay to obtain their notation. */
+export const rootMoveLabels = (
+  fen: string,
+  moves: string[],
+  signal?: AbortSignal,
+): Promise<Record<string, MoveLabels>> => requestXiangqi('/api/analysis/move-labels', { fen, moves }, signal);
+
 const variationCache = new Map<string, { moves: VariationMove[] }>();
 
 export async function replayXiangqiVariation(
@@ -174,10 +189,18 @@ export async function replayXiangqiVariation(
 }
 
 export interface RulesPosition {
+  knownCaptures?: Record<string, string>;
   initialFen: string;
   moves: string[];
   ruleset: string;
+  reveals?: (string | null)[];
 }
 
 export const rulesPositionKey = (position: RulesPosition): string =>
-  JSON.stringify([position.ruleset, position.initialFen, position.moves]);
+  JSON.stringify([
+    position.ruleset,
+    position.initialFen,
+    position.moves,
+    position.reveals,
+    Object.entries(position.knownCaptures ?? {}).sort(),
+  ]);

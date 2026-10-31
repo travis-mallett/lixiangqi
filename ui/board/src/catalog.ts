@@ -17,7 +17,7 @@ export interface BoardAssetCatalog {
     key: string;
     name: string;
     category: string;
-    variants: Record<string, { back: string; faces: Record<string, Record<string, string>> }>;
+    variants: Record<string, { back: Record<string, string>; faces: Record<string, Record<string, string>> }>;
   }>;
   effects: Record<string, { path: string; duration: number }>;
   shadows: { rest: string; airborne: string };
@@ -66,9 +66,9 @@ export function validateBoardAssets(
   }
   for (const collection of assets.pieceSets)
     for (const definition of definitions) {
-      const pieces = collection.variants[definition.id];
+      const pieces = collection.variants[definition.pieceFamily ?? definition.id];
       if (!pieces) fail(`${collection.key} does not cover ${definition.id}`);
-      file(pieces.back);
+      for (const participant of definition.participants) file(pieces.back[participant]);
       for (const participant of definition.participants)
         for (const role of Object.keys(definition.roles)) file(pieces.faces[participant]?.[role]);
     }

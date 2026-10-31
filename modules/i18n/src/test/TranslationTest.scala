@@ -12,6 +12,16 @@ class TranslationTest extends munit.FunSuite:
 
   given lila.core.i18n.Translator = lila.i18n.Translator
 
+  test("packaged forum namespace resolves labels and falls back for untranslated languages"):
+    for lang <- List(defaultLang, Lang("en", "US"), Lang("fr", "FR"), Lang("zh", "CN")) do
+      given Lang = lang
+      assertEquals(I18nKey.forum.xiangqiDiscussion.txt(), "Xiangqi Discussion")
+      assertEquals(I18nKey.forum.gameAnalysis.txt(), "Game Analysis")
+      assertEquals(I18nKey.forum.feedback.txt(), "LiXiangQi Feedback")
+      assertEquals(I18nKey.forum.offTopic.txt(), "Off-Topic")
+      assertEquals(I18nKey.forum.sections.txt(), "Sections")
+      assertEquals(I18nKey.forum.noDiscussions.txt(), "No discussions yet")
+
   test("be valid"):
     val en = Registry.getAll(defaultLang).get
     var tested = 0

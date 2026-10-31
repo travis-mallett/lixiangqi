@@ -152,7 +152,7 @@ final class AccountSecurity(helpers: Helpers)(
                 trans.site.username(),
                 help = trans.site.whatSignupUsername().some
               ) { f =>
-                form3.input(f)(pattern := lila.user.nameRules.newUsernameRegex.regex)
+                form3.input(f)
               },
               div(cls := "form-group")(
                 form3.submit(trans.site.apply())

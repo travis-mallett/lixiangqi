@@ -9,9 +9,9 @@ export function completeNode(from: TreeNodeBase, parentPath = ''): TreeNode {
   const node = from as TreeNode;
   if (node.uci) {
     if (ids(node.uci).length !== 1) throw new Error('Invalid Xiangqi move identity');
-    if (node.id && node.id !== node.uci)
-      throw new Error('Tree move identity differs from its coordinate move');
-    node.id = node.uci;
+    const id = node.uci + (node.state?.reveal ? `~${node.state.reveal}` : '');
+    if (node.id && node.id !== id) throw new Error('Tree move identity differs from its coordinate move');
+    node.id = id;
   } else node.id = '';
   if (!node.state || node.state.fen !== node.fen || node.state.ply !== node.ply)
     throw new Error('Tree position is missing its native rules state');
@@ -40,7 +40,9 @@ export function completeNode(from: TreeNodeBase, parentPath = ''): TreeNode {
     throw new Error('Invalid clock annotation');
   node.path = node.id ? append(parentPath, node.id) : parentPath;
   node.children ||= [];
-  if (new Set(node.children.map(child => child.uci)).size !== node.children.length)
+  if (
+    new Set(node.children.map(child => child.uci + (child.state?.reveal ?? ''))).size !== node.children.length
+  )
     throw new Error('Duplicate tree branch');
   node.dests = () => moveDestinations(node.state.legalMoves);
   node.check = () => node.state.check;

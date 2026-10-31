@@ -2,12 +2,14 @@ import debounce from 'debounce-promise';
 
 import { json as xhrJson, form, text as xhrText } from 'lib/xhr';
 
-import type { NowPlaying, Pool, Seek } from './interfaces';
+import type { NowPlaying, KingdomsPlaying, Pool, Seek } from './interfaces';
 
 export const seeks: () => Promise<Seek[]> = debounce(() => xhrJson('/lobby/seeks'), 3000, { leading: true });
 
 type NowPlayingRes = {
   nowPlaying: NowPlaying[];
+  kingdomsPlaying: KingdomsPlaying[];
+  nbNowPlaying: number;
   nbMyTurn: number;
 };
 

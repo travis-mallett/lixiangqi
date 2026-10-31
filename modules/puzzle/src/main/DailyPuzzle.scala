@@ -1,5 +1,4 @@
 package lila.puzzle
-import scalalib.ThreadLocalRandom.odds
 
 import lila.db.dsl.{ *, given }
 import lila.memo.CacheApi.*
@@ -32,7 +31,7 @@ final private[puzzle] class DailyPuzzle(
 
   private def find: Fu[Option[DailyPuzzle.WithHtml]] =
     findCurrent
-      .orElse(findNewBiased())
+      .orElse(findNew)
       .recover { case e: Exception =>
         logger.error("find daily", e)
         none
@@ -55,19 +54,10 @@ final private[puzzle] class DailyPuzzle(
       .sort($sort.desc(F.day))
       .one[Puzzle]
 
-  private val maxTries = 10
-  private val minPlaysBase = 9000
-  private def findNewBiased(tries: Int = 0): Fu[Option[Puzzle]] =
-    def tryAgainMaybe = (tries < maxTries).so(findNewBiased(tries + 1))
-    import PuzzleTheme.*
-    val minPlays = minPlaysBase * (maxTries - tries) / maxTries
-    findNew(minPlays).flatMap:
-      case None => tryAgainMaybe
-      case Some(p) if p.hasTheme(anastasiaMate, arabianMate) && !odds(3) =>
-        tryAgainMaybe.dmap(_.orElse(p.some))
-      case p => fuccess(p)
-
-  private def findNew(minPlays: Int): Fu[Option[Puzzle]] =
+  // Published paths already certify playable puzzles. Do not require thousands
+  // of solves or a narrow rating band on a young server. Prefer unused puzzles,
+  // but allow the oldest daily puzzles to return as the pool is exhausted.
+  private def findNew: Fu[Option[Puzzle]] =
     pathApi
       .generation(PuzzleAngle.mix)
       .flatMap: generationSelector =>
@@ -75,10 +65,8 @@ final private[puzzle] class DailyPuzzle(
           .path:
             _.aggregateOne(): framework =>
               import framework.*
-              val forbiddenThemes = List(PuzzleTheme.oneMove) :::
-                odds(2).so(List(PuzzleTheme.checkFirst))
               Match(
-                pathApi.select(PuzzleAngle.mix, PuzzleTier.top, 2150 to 2300) ++ generationSelector
+                pathApi.select(PuzzleAngle.mix, PuzzleTier.all, 0 to 9999) ++ generationSelector
               ) -> List(
                 Sample(3),
                 Project($doc("ids" -> true, "_id" -> false)),
@@ -92,10 +80,7 @@ final private[puzzle] class DailyPuzzle(
                     pipe = List(
                       $doc(
                         "$match" -> (Puzzle.activeSelector ++ $doc(
-                          Puzzle.BSONFields.plays.$gt(minPlays),
-                          Puzzle.BSONFields.day.$exists(false),
-                          Puzzle.BSONFields.issue.$exists(false),
-                          Puzzle.BSONFields.themes.$nin(forbiddenThemes.map(_.key))
+                          Puzzle.BSONFields.issue.$exists(false)
                         ))
                       )
                     )
@@ -103,8 +88,7 @@ final private[puzzle] class DailyPuzzle(
                 ,
                 UnwindField("puzzle"),
                 ReplaceRootField("puzzle"),
-                AddFields($doc("dayScore" -> $doc("$multiply" -> $arr("$plays", "$vote")))),
-                Sort(Descending("dayScore")),
+                Sort(Ascending(F.day), Descending(F.vote)),
                 Limit(1)
               )
           .flatMap:

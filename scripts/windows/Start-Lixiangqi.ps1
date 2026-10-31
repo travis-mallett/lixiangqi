@@ -350,6 +350,9 @@ if (-not $SkipBuild -and -not $StopOnly) {
   Write-Step 'Building the native broadcast companion download'
   & $python (Join-Path $projectRoot 'tools\build_broadcaster.py')
   if ($LASTEXITCODE) { throw 'Native broadcast companion build failed.' }
+  Write-Step 'Building the shared Three Kingdoms browser rules and engine'
+  & $java '-Dsbt.server.autostart=false' -jar $sbt 'threeKingdomsJs/threeKingdomsBrowser'
+  if ($LASTEXITCODE) { throw 'Three Kingdoms engine build failed.' }
   Write-Step 'Building the Lichess asset manifest, browser bundles, and styles'
   & $node ui\.build\src\main.ts --no-install
   if ($LASTEXITCODE) { throw 'Lichess asset build failed.' }
@@ -478,6 +481,8 @@ if ($mongosh) {
   Write-Step 'Ensuring durable native game completion metadata is indexed'
   & $mongosh --quiet 'mongodb://127.0.0.1:27017/lixiangqi_preview' $completionMigration
   if ($LASTEXITCODE) { throw 'Game completion migration failed.' }
+  & $mongosh --quiet 'mongodb://127.0.0.1:27017/lixiangqi_preview' (Join-Path $projectRoot 'tools\data_migration\20261030_three_kingdoms_indexes.js')
+  if ($LASTEXITCODE) { throw 'Three Kingdoms index migration failed.' }
 } else {
   Write-Warning 'MongoDB Shell is unavailable; local game completion migration will run on the next deployment.'
 }
@@ -500,6 +505,10 @@ if ($previewRefreshState.snapshotId -ne $snapshotId -or
 # Each deliberate snapshot restore removes its prior migration records. Tie the
 # native archives to that restore's own immutable backup, so restoring the same
 # older snapshot again never reuses an unregistered archive or overwrites one.
+Write-Step 'Migrating preview blog topics with recoverable originals'
+& $mongosh --quiet 'mongodb://127.0.0.1:27017/lixiangqi_preview' (Join-Path $projectRoot 'tools\data_migration\20261027_xiangqi_blog_topics.js')
+if ($LASTEXITCODE) { throw 'Blog topics migration failed; originals are retained and preview writers remain stopped.' }
+
 $nativeBackupRoot = Join-Path $refreshBackup 'native-schema'
 Write-Step 'Ensuring the restored preview uses the native study and analysis schemas'
 & $python -m tools.data_migration.20260929_native_study_v1 --uri 'mongodb://127.0.0.1:27017/lixiangqi_preview' --backup (Join-Path $nativeBackupRoot 'study') --writers-stopped
@@ -523,6 +532,11 @@ $env:LIXIANGQI_GAMES_DB = Join-Path $dataDir 'xiangqi-games.sqlite3'
 Write-Step 'Ensuring the write-time games database indexes are current'
 & $python -m tools.games_database.explorer_index ensure
 if ($LASTEXITCODE) { throw 'Games database index preparation failed.' }
+
+Write-Step 'Checking canonical player catalog readiness'
+& $python -m tools.data_migration.20261026_player_catalog --mongo-uri 'mongodb://127.0.0.1:27017/lixiangqi_preview' --database $env:LIXIANGQI_GAMES_DB --backups (Join-Path $dataDir 'migration-backups') --check
+if ($LASTEXITCODE) { throw 'Player catalog migration must be completed explicitly before startup.' }
+$env:LIXIANGQI_PLAYER_TOKEN = [guid]::NewGuid().ToString('N') + [guid]::NewGuid().ToString('N')
 
 $env:LIXIANGQI_DOMAIN = $siteDomain
 $env:LIXIANGQI_SOCKET_DOMAIN = "${siteAddress}:9664"

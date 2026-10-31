@@ -3,7 +3,6 @@
 import {
   recordedPosition,
   positionToFen,
-  standardXiangqi,
   type BoardView,
   type MoveIntent,
   type BoardMark,
@@ -21,6 +20,7 @@ import { isXiangqiMate } from 'lib/game/adjudication';
 import { recordGuestAiWin } from 'lib/game/aiProgress';
 import { plyToTurn, plyColor } from 'lib/game/chess';
 import { ClockCtrl, type ClockOpts } from 'lib/game/clock/clockCtrl';
+import { mergeCaptures } from 'lib/game/jieqi';
 import type { MoveRootCtrl } from 'lib/game/moveRootCtrl';
 import {
   isRecordedClockTimeline,
@@ -38,7 +38,6 @@ import { pubsub } from 'lib/pubsub';
 import { type SocketSendOpts } from 'lib/socket';
 import { storage, once, storedBooleanProp, type LichessBooleanStorage } from 'lib/storage';
 import type { QuestionOpts } from 'lib/types';
-import { toggleZenMode } from 'lib/view/zen';
 import * as wakeLock from 'lib/wakeLock';
 
 import * as blur from './blur';
@@ -159,8 +158,6 @@ export default class RoundController implements MoveRootCtrl {
       this.syncRecordedClockForPly();
       this.redraw();
     });
-
-    pubsub.on('zen', toggleZenMode);
 
     if (!this.opts.noab && this.isPlaying()) ab.init(this);
   }
@@ -379,7 +376,7 @@ export default class RoundController implements MoveRootCtrl {
     }
     d.game.threefold = !!o.threefold;
     d.game.fiftyMoves = !!o.fiftyMoves;
-    const step = {
+    const step: Step = {
       ply: this.lastPly() + 1,
       fen: o.fen,
       san: game.selectXiangqiNotation(o.san, o.sanZh, d.pref.notationStyle),
@@ -388,6 +385,10 @@ export default class RoundController implements MoveRootCtrl {
       capture: o.capture,
       mate: isXiangqiMate(o.status?.name, o.termination),
     };
+    if (o.captures) {
+      step.captures = mergeCaptures(o.captures, this.data.game.captures ?? []);
+      this.data.game.captures = step.captures;
+    }
     d.steps.push(step);
     if (this.ply === step.ply) this.board.setInteraction(ground.interaction(this, playing));
     game.setOnGame(d, playedColor, true);
@@ -818,7 +819,8 @@ export default class RoundController implements MoveRootCtrl {
       defined(d.opponent.isGone) &&
       d.opponent.isGone !== false &&
       !game.isPlayerTurn(d) &&
-      game.resignable(d) &&
+      game.playable(d) &&
+      !game.abortable(d) &&
       d.opponent.isGone
     );
   };
@@ -904,7 +906,7 @@ export default class RoundController implements MoveRootCtrl {
     if (!submit) return undefined;
     return {
       ply: this.ply + 1,
-      fen: positionToFen(this.board.position(), standardXiangqi),
+      fen: positionToFen(this.board.position(), this.board.getDefinition()),
       san: submit.u,
       uci: submit.u,
     };

@@ -70,8 +70,9 @@ final class JsonView(
         .add("vote" -> round.vote)
         .add("themes" -> round.nonEmptyThemes.map: rt =>
           JsObject:
-            rt.map: t =>
-              t.theme.value -> JsBoolean(t.vote))
+            rt.filter(t => PuzzleTheme.findVisible(t.theme.value).isDefined)
+              .map: t =>
+                t.theme.value -> JsBoolean(t.vote))
 
     def api = base
     private def base(round: PuzzleRound, ratingDiff: IntRatingDiff) = Json.obj(
@@ -215,8 +216,8 @@ object JsonView:
     "state" -> puzzle.stateAfterInitialMove,
     "displayFen" -> puzzle.fenAfterInitialMove
   )
-  private def simplifyThemes(themes: Set[PuzzleTheme.Key]) =
-    themes.filterNot(_ == PuzzleTheme.mate.key)
+  private[puzzle] def simplifyThemes(themes: Set[PuzzleTheme.Key]) =
+    themes.filter(key => key != PuzzleTheme.mate.key && PuzzleTheme.findVisible(key.value).isDefined)
 
   private def puzzleJsonInitialPos(puzzle: Puzzle): JsObject = Json.obj(
     "state" -> puzzle.stateAfterInitialMove,

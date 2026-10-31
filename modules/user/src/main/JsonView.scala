@@ -122,6 +122,33 @@ object JsonView:
         "puzzle" -> p.puzzle.nonEmpty.option(perfWrites.writes(p.puzzle))
       )
       .noNull
+      .add(
+        "jieqi" -> p
+          .rank(lila.core.rank.RankTrackId.jieqi)
+          .filter(_.established)
+          .map: perf =>
+            Json.obj("games" -> perf.games, "rank" -> lila.rating.JieqiRank.catalog.code(perf.score).value)
+      )
+      .add(
+        "minixiangqi" -> p
+          .rank(lila.core.rank.RankTrackId.minixiangqi)
+          .filter(_.established)
+          .map: perf =>
+            Json.obj(
+              "games" -> perf.games,
+              "rank" -> lila.rating.MiniXiangqiRank.catalog.code(perf.score).value
+            )
+      )
+      .add(
+        "threeKingdoms" -> p
+          .rank(lila.core.rank.RankTrackId.threeKingdoms)
+          .filter(_.established)
+          .map: perf =>
+            Json.obj(
+              "games" -> perf.games,
+              "rank" -> lila.rating.ThreeKingdomsRank.catalog.code(perf.score).value
+            )
+      )
       .add("storm", p.storm.option)
       .add("racer", p.racer.option)
       .add("streak", p.streak.option)

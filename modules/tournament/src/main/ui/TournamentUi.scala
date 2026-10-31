@@ -53,7 +53,7 @@ final class TournamentUi(helpers: Helpers)(getTourName: GetTourName):
           span(
             t.clock.show,
             " • ",
-            if t.variant.exotic then t.variant.name else "Xiangqi",
+            lila.core.i18n.I18nKey(t.gameVariant.nameKey).txt(),
             t.position.isDefined.option(frag(" • ", trans.site.customPosition())),
             " • ",
             trans.site.casual(),
@@ -129,7 +129,7 @@ final class TournamentUi(helpers: Helpers)(getTourName: GetTourName):
           span(cls := "setup")(
             t.clock.show,
             " • ",
-            if t.variant.exotic then t.variant.name else "Xiangqi",
+            lila.core.i18n.I18nKey(t.gameVariant.nameKey).txt(),
             t.position.isDefined.option(frag(" • ", trans.site.customPosition())),
             " • ",
             trans.site.casual(),

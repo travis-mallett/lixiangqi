@@ -6,16 +6,22 @@ import lila.xiangqi.XiangqiRules
 /** Tiantian's in-app limits. Counters measure individual moves, never FEN fullmove numbers. Piece identities
   * survive moves, so two horses are two checking pieces even though their roles match.
   */
-object TiantianRules extends AdjudicationPolicy:
+object TiantianRules extends SequenceRules(jieqi = false)
+
+object JieqiRules extends SequenceRules(jieqi = true)
+
+/** The same threat classifier and sequence enforcement serve both Xiangqi disciplines. */
+class SequenceRules(private val jieqi: Boolean) extends AdjudicationPolicy:
 
   import TiantianSequences.{ forbidden, forcingLimit, mutual, mutualChase }
 
-  private val naturalPlyLimit = 120
+  private val naturalPlyLimit = if jieqi then 80 else 120
   private val playedPlyLimit = 400
   private val countedChecksPerSide = 10
   private val quietOccurrences = 5
 
-  private val attackers = Set(Role.Chariot, Role.Horse, Role.Cannon, Role.Soldier)
+  private val attackers = if jieqi then Role.values.toSet - Role.General
+  else Set(Role.Chariot, Role.Horse, Role.Cannon, Role.Soldier)
 
   def initial(state: State): State =
     val ids = Fen
@@ -35,10 +41,12 @@ object TiantianRules extends AdjudicationPolicy:
     val ids = (previous.identities - move.move.orig - move.move.dest) +
       (move.move.dest -> previous.identities(move.move.orig))
     val oldChecks = if fact.side == Side.Red then previous.redChecks else previous.blackChecks
-    val countMove = !fact.check || oldChecks < countedChecksPerSide
+    val reset = move.capture
+    val countMove = if jieqi then true
+    else !fact.check || oldChecks < countedChecksPerSide
     val next = AdjudicationState(
       identities = ids,
-      naturalPlies = if move.capture then 0 else previous.naturalPlies + (if countMove then 1 else 0),
+      naturalPlies = if reset then 0 else previous.naturalPlies + (if countMove then 1 else 0),
       redChecks = if move.capture then 0
       else previous.redChecks + (if fact.side == Side.Red && fact.check then 1 else 0),
       blackChecks = if move.capture then 0
@@ -50,15 +58,15 @@ object TiantianRules extends AdjudicationPolicy:
     val facts = recentFacts(states)
     if state.ended then state // Board mate/stalemate take precedence over both move limits.
     else if next.naturalPlies >= naturalPlyLimit then draw(state, "no-capture")
-    else if game.moves.size + 1 >= playedPlyLimit then draw(state, "move-limit")
-    else if mutual(facts, _.check) then draw(state, "mutual-check")
-    else if mutualChase(facts) then draw(state, "mutual-chase")
+    else if !jieqi && game.moves.size + 1 >= playedPlyLimit then draw(state, "move-limit")
+    else if !jieqi && mutual(facts, _.check) then draw(state, "mutual-check")
+    else if !jieqi && mutualChase(facts) then draw(state, "mutual-chase")
     else if quietRepetition(states) then draw(state, "repetition")
     else restrict(state, facts)
 
   private def finishMaterial(state: State): State =
     if state.ended then state
-    else if Fen.board(state.fen).exists(_.pieces.values.forall(p => !attackers(p.role))) then
+    else if !jieqi && Fen.board(state.fen).exists(_.pieces.values.forall(p => !attackers(p.role))) then
       // No attacking pieces on BOTH sides is an automatic draw. This does not assert that a
       // single side cannot win by stalemate, and must not activate chess timeout exceptions.
       draw(state.copy(insufficientMaterial = true), "no-attacking-material")
@@ -84,10 +92,10 @@ object TiantianRules extends AdjudicationPolicy:
     val lastKey = positionKey(states.last)
     val occurrences =
       states.indices.filter(i => positionKey(states(i)) == lastKey).takeRight(quietOccurrences)
-    occurrences.size == quietOccurrences && states
+    occurrences.size == quietOccurrences && (jieqi || states
       .drop(occurrences.head + 1)
       .forall: state =>
-        state.adjudication.flatMap(_.fact).exists(f => !f.capture && !f.forcing && !f.responding)
+        state.adjudication.flatMap(_.fact).exists(f => !f.capture && !f.forcing && !f.responding))
 
   // The variation enforcement below is shared by player move lists and server validation.
   private def restrict(state: State, facts: Vector[MoveFact]): State =
@@ -98,10 +106,14 @@ object TiantianRules extends AdjudicationPolicy:
       val previous = state.adjudication.get
       val threats = new TiantianThreats.Position(before, previous, state.turn)
       val candidates = state.legalMoves.map: uci =>
-        val move = XiangqiRules.boardMove(state.fen, uci).toOption.get
-        val reason =
+        // A first move reveals a new piece and cannot continue a forcing sequence.
+        val reason = if before.concealed.exists(_.key == uci.orig) then None
+        else
+          val move = XiangqiRules.boardMove(state.fen, uci).toOption.get
           if move.capture || move.state.ended then None
-          else forbidden(facts, threats.classify(Fen.board(move.fen).get, move))
+          else
+            val fact = threats.classify(Fen.board(move.fen).get, move)
+            if jieqi then TiantianSequences.forbiddenJieqi(facts, fact) else forbidden(facts, fact)
         uci -> reason
       val permitted = candidates.collect { case (uci, None) => uci }
       val reason = candidates.flatMap(_._2).headOption

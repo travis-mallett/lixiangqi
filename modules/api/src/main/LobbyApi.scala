@@ -11,6 +11,8 @@ final class LobbyApi(
     lightUserApi: lila.user.LightUserApi,
     gameProxyRepo: lila.round.GameProxyRepo,
     gameJson: lila.game.JsonView,
+    kingdomsRepo: lila.threeKingdoms.GameRepo,
+    kingdomsJson: lila.threeKingdoms.JsonView,
     lobbySocket: LobbySocket
 )(using Executor):
 
@@ -21,12 +23,16 @@ final class LobbyApi(
         val counters = lobbySocket.counters
         val povs = urgent.so(_.value)
         val displayedPovs = povs.take(9)
-        for _ <- lightUserApi.preloadMany(displayedPovs.flatMap(_.opponent.userId))
+        for
+          _ <- lightUserApi.preloadMany(displayedPovs.flatMap(_.opponent.userId))
+          kingdoms <- me.so(u => kingdomsRepo.activeFor(u.user.id))
         yield Json
           .obj(
             "nowPlaying" -> displayedPovs.map(nowPlaying),
-            "nbNowPlaying" -> povs.size,
-            "nbMyTurn" -> povs.count(_.isMyTurn),
+            "kingdomsPlaying" -> kingdoms.map(g => kingdomsJson.preview(g, me.get.user.id)),
+            "nbNowPlaying" -> (povs.size + kingdoms.size),
+            "nbMyTurn" -> (povs.count(_.isMyTurn) + kingdoms
+              .count(g => g.playerOf(me.get.user.id).contains(g.position.turn))),
             "counters" -> Json.obj(
               "members" -> counters.members,
               "rounds" -> counters.rounds

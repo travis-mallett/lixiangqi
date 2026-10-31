@@ -9,6 +9,14 @@ export const ANALYSIS_TABS_STORAGE_KEY = 'lixiangqi.analysis.tabs.v2';
 export const MAX_ANALYSIS_TABS = 12;
 export const MAX_ANALYSIS_TAB_TITLE_LENGTH = 120;
 
+// Pending imports belong to a tab, but are not part of its saved move tree.
+export interface AnalysisEditorState {
+  fen?: string;
+  notation?: string;
+  fenError?: string;
+  notationError?: string;
+}
+
 export interface AnalysisTab {
   id: string;
   title: string;
@@ -17,6 +25,7 @@ export interface AnalysisTab {
   initialFen: string;
   tree: XiangqiMoveTree;
   activePath: string;
+  editor?: AnalysisEditorState;
 }
 
 interface StoredAnalysisTab {

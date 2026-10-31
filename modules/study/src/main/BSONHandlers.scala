@@ -64,7 +64,7 @@ object BSONHandlers:
     x => BSONString(x.value)
   )
 
-  given BSONDocumentHandler[Xiangqi.Position] = Macros.handler
+  given BSONDocumentHandler[Xiangqi.Position] = lila.db.XiangqiBson.positionHandler
 
   given studyIdNameHandler: BSONDocumentHandler[lila.core.study.IdName] = Macros.handler
   given chapterIdNameHandler: BSONDocumentHandler[Chapter.IdName] = Macros.handler

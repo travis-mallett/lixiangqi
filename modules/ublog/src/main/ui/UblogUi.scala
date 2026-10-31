@@ -62,6 +62,7 @@ final class UblogUi(helpers: Helpers, atomUi: AtomUi, modMenu: Context ?=> Frag)
         else emptyFrag
       ),
       span(cls := "ublog-post-card__content")(
+        post.isOfficial.option(span(cls := "ublog-post-card__intro")(trans.ublog.officialPost())),
         h2(cls := "ublog-post-card__title")(post.title),
         showIntro.option(span(cls := "ublog-post-card__intro")(shorten(post.intro, 100)))
       )
@@ -204,6 +205,24 @@ final class UblogUi(helpers: Helpers, atomUi: AtomUi, modMenu: Context ?=> Frag)
             else div(cls := "ublog-index__posts--empty")(trans.ublog.noDrafts())
           )
         )
+
+  def official(posts: Paginator[UblogPost.PreviewPost])(using ctx: Context) =
+    list(
+      title = trans.ublog.officialBlog.txt(),
+      posts = posts,
+      menuItem = "official",
+      route = (p, _, _) => routes.Ublog.official(p),
+      onEmpty = trans.ublog.noPostsInThisBlogYet(),
+      header = boxTop(
+        h1(trans.ublog.officialBlog()),
+        div(cls := "box__top__actions")(
+          ctx.me.filter(_ => Granter.opt(_.PublishOfficialBlog)).map(me => newPostLink(me.value)),
+          atomUi.atomLink(routes.Ublog.officialAtom)
+        )
+      ).some
+    ).copy(atomLinkTag =
+      link(href := routes.Ublog.officialAtom, st.title := trans.ublog.officialBlog.txt()).some
+    )
 
   def friends(posts: Paginator[UblogPost.PreviewPost])(using Context) = list(
     title = "Blog posts by friends",
@@ -376,8 +395,8 @@ final class UblogUi(helpers: Helpers, atomUi: AtomUi, modMenu: Context ?=> Frag)
   def menu(active: Either[UserId, String])(using ctx: Context) =
     def isRight(s: String) = active.fold(_ => false, _ == s)
     def isActive(s: String) = isRight(s).option("active")
-    val lichess = active.left.toOption.has(UserId.lichess)
-    val community = active == Right("community") || (active.left.toOption.exists(ctx.isnt) && !lichess)
+    val official = isRight("official")
+    val community = active == Right("community") || (active.left.toOption.exists(ctx.isnt) && !official)
     val mine = active.left.toOption.exists(ctx.is)
     lila.ui.bits.pageMenuSubnav(
       cls := "force-ltr",
@@ -397,10 +416,10 @@ final class UblogUi(helpers: Helpers, atomUi: AtomUi, modMenu: Context ?=> Frag)
         )
       ),
       a(
-        cls := lichess.option("active"),
-        href := routes.Cms.lonePage(lila.core.id.CmsPageKey("lixiangqi-blog"))
+        cls := official.option("active"),
+        href := routes.Ublog.official()
       )(
-        "By Lixiangqi"
+        trans.ublog.officialBlog()
       ),
       ctx.kid.no.option(
         frag(
@@ -422,13 +441,24 @@ final class UblogUi(helpers: Helpers, atomUi: AtomUi, modMenu: Context ?=> Frag)
 
   def homeCarousel(posts: List[PreviewPost])(using Context) =
     div(cls := "lobby__blog carousel")(
+      h2(cls := "lobby__section-title")(a(href := routes.Ublog.communityAll())(trans.site.blog())),
       div(cls := "carousel__track"):
         posts.map:
           card(_, showAuthor = ShowAt.bottom, showIntro = false, strictDate = false)
       ,
       div(cls := "carousel__controls")(
-        button(cls := "carousel__prev", dataIcon := Icon.LessThan),
-        button(cls := "carousel__next", dataIcon := Icon.GreaterThan)
+        button(
+          tpe := "button",
+          cls := "carousel__prev",
+          dataIcon := Icon.LessThan,
+          aria.label := trans.site.previous.txt()
+        ),
+        button(
+          tpe := "button",
+          cls := "carousel__next",
+          dataIcon := Icon.GreaterThan,
+          aria.label := trans.site.next.txt()
+        )
       )
     )
 
@@ -513,6 +543,16 @@ final class UblogUi(helpers: Helpers, atomUi: AtomUi, modMenu: Context ?=> Frag)
     )
 
   object atom:
+    def official(posts: Seq[UblogPost.PreviewPost])(using Translate) =
+      atomUi.feed(
+        elems = posts,
+        htmlCall = routes.Ublog.official(),
+        atomCall = routes.Ublog.officialAtom,
+        title = trans.ublog.officialBlog.txt(),
+        updated = posts.headOption.flatMap(_.lived).map(_.at)
+      ): post =>
+        renderPost(post, authorOfBlog(post.blog))
+
     def user(
         user: User,
         posts: Seq[UblogPost.PreviewPost]

@@ -114,6 +114,7 @@ object Entry:
   given OWrites[Entry] = OWrites { e =>
     import atomJsonWrite.given
     Json.obj(
+      "id" -> e._id.stringify,
       "type" -> e.typ,
       "data" -> e.decode,
       "date" -> e.date

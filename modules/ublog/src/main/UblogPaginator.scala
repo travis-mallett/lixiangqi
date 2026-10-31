@@ -24,6 +24,16 @@ final class UblogPaginator(
 
   val maxPerPage = MaxPerPage(24)
 
+  def official(page: Int): Fu[Paginator[PreviewPost]] =
+    Paginator(
+      adapter = new AdapterLike[PreviewPost]:
+        def nbResults: Fu[Int] = fuccess(200 * maxPerPage.value)
+        def slice(offset: Int, length: Int) = aggregateVisiblePosts($doc("official" -> true), offset, length)
+      ,
+      currentPage = page,
+      maxPerPage = maxPerPage
+    )
+
   def byUser[U: UserIdOf](user: U, live: Boolean, page: Int): Fu[Paginator[PreviewPost]] =
     byBlog(UblogBlog.Id.User(user.id), live, page)
 

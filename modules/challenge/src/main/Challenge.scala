@@ -35,12 +35,14 @@ case class Challenge(
     name: Option[String] = None,
     declineReason: Option[Challenge.DeclineReason] = None,
     rules: Set[GameRule] = Set.empty,
-    ruleset: Option[lila.xiangqi.adjudication.Ruleset] = None
+    ruleset: Option[lila.xiangqi.adjudication.Ruleset] = None,
+    gameVariant: lila.xiangqi.GameVariant = lila.xiangqi.GameVariant.Xiangqi
 ) extends hub.Challenge:
 
   import Challenge.*
 
-  def effectiveRuleset = ruleset.getOrElse(lila.xiangqi.adjudication.Ruleset.default)
+  def effectiveRuleset = if gameVariant.selectableRulesets.isEmpty then gameVariant.defaultRuleset
+  else ruleset.getOrElse(lila.xiangqi.adjudication.Ruleset.default)
 
   def gameId = id.into(GameId)
 
@@ -195,7 +197,8 @@ object Challenge:
       openToUserIds: Option[(UserId, UserId)] = None,
       rules: Set[GameRule] = Set.empty,
       expiresAt: Option[Instant] = None,
-      ruleset: lila.xiangqi.adjudication.Ruleset = lila.xiangqi.adjudication.Ruleset.default
+      ruleset: lila.xiangqi.adjudication.Ruleset = lila.xiangqi.adjudication.Ruleset.default,
+      gameVariant: lila.xiangqi.GameVariant = lila.xiangqi.GameVariant.Xiangqi
   ): Challenge =
     val (colorChoice, finalColor) = color match
       case "white" => ColorChoice.White -> chess.White
@@ -207,6 +210,7 @@ object Challenge:
       id = id.fold(randomId)(_.into(ChallengeId)),
       status = Status.Created,
       variant = variant,
+      gameVariant = gameVariant,
       initialFen = variant.fromPosition.option(initialFen).flatten,
       timeControl = timeControl,
       rated = finalRated,

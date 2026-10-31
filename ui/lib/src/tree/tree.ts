@@ -223,7 +223,22 @@ export function makeTree(root: TreeNode): TreeWrapper {
     positionAt: (path: TreePath): RulesPosition => {
       if (!root.ruleset) throw new Error('Tree is missing its native ruleset');
       if (!pathExists(path)) throw new Error(`Unknown tree position: ${path}`);
-      return { initialFen: root.fen, moves: treePath.ids(path), ruleset: root.ruleset };
+      const nodes = getNodeList(path).slice(1);
+      return {
+        initialFen: root.fen,
+        moves: nodes.map(n => n.uci!),
+        ruleset: root.ruleset,
+        ...(root.state.variant === 'jieqi'
+          ? {
+              reveals: nodes.map(n => n.state.reveal ?? null),
+              knownCaptures: Object.fromEntries(
+                (nodes[nodes.length - 1]?.state.captures ?? root.state.captures ?? [])
+                  .filter(c => c.concealed && c.role)
+                  .map(c => [c.square, c.role!]),
+              ),
+            }
+          : {}),
+      };
     },
     lastPly: (): number => lastNode()?.ply || root.ply,
     nodeAtPath,

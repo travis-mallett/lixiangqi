@@ -22,7 +22,8 @@
   &__feature-card,
   &__time-controls__summary,
   &__quick-room,
-  &__action {
+  &__action,
+  &__variant-card[href] {
     &:hover,
     &:focus-visible {
       border-color: color-mix(in oklab, $c-primary 72%, $c-border);
@@ -32,6 +33,7 @@
 
   &__feature-card,
   &__quick-room,
+  &__variant-card[href],
   button#{&}__action {
     cursor: pointer;
 
@@ -208,7 +210,7 @@
       position: absolute;
       z-index: 1;
       top: 50%;
-      right: clamp(56px, 7vw, 82px);
+      inset-inline-end: clamp(56px, 7vw, 82px);
       width: clamp(125px, 19vw, 190px);
       height: auto;
       object-fit: contain;
@@ -540,7 +542,7 @@
     white-space: nowrap;
   }
 
-  &__coming-soon {
+  &__variant-ribbon {
     position: absolute;
     z-index: 2;
     top: 17px;
@@ -557,6 +559,11 @@
     line-height: 1;
     text-transform: uppercase;
     transform: rotate(45deg);
+
+    &--new {
+      background: $c-good;
+      color: $c-over;
+    }
   }
 
   .bar-glider::after {
@@ -626,7 +633,7 @@
       }
 
       .lobby__feature-card__image {
-        right: clamp(32px, 7vw, 40px);
+        inset-inline-end: clamp(32px, 7vw, 40px);
         width: clamp(93px, 26vw, 122px);
       }
 
@@ -737,7 +744,7 @@
       font-size: clamp(8px, 2.4vw, 11px);
     }
 
-    &__coming-soon {
+    &__variant-ribbon {
       top: 10px;
       right: -31px;
       width: 102px;
@@ -753,7 +760,7 @@
       }
 
       .lobby__feature-card__image {
-        right: 28px;
+        inset-inline-end: 28px;
         width: 90px;
       }
     }

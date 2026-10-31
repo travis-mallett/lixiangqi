@@ -45,7 +45,7 @@ final class TwoFactorUi(helpers: Helpers, ui: AccountUi)(
             ,
             div(cls := "form-group explanation")(trt.enterPassword()),
             form3.hidden(form("secret")),
-            form3.passwordModified(form("passwd"), trans.site.password())(
+            ui.passwordField(form("passwd"), trans.site.password())(
               autofocus,
               autocomplete := "current-password"
             ),
@@ -71,7 +71,7 @@ final class TwoFactorUi(helpers: Helpers, ui: AccountUi)(
         postForm(cls := "form3", action := routes.Account.disableTwoFactor)(
           p(trt.twoFactorToDisable()),
           trt.ifYouLoseAccessTwoFactor(a(href := routes.Auth.passwordReset)(trans.site.passwordReset())),
-          form3.passwordModified(form("passwd"), trans.site.password())(autocomplete := "current-password"),
+          ui.passwordField(form("passwd"), trans.site.password())(autocomplete := "current-password"),
           form3.group(form("token"), trt.authenticationCode())(form3.totpTokenInput),
           form3.action(form3.submit(trt.disableTwoFactor()))
         )

@@ -1,8 +1,7 @@
 diff --git a/build.sbt b/build.sbt
-index a2992c8..75b5991 100644
 --- a/build.sbt
 +++ b/build.sbt
-@@ -9,7 +9,11 @@ inThisBuild(
+@@ -9,7 +9,11 @@
    )
  )
  
@@ -15,21 +14,21 @@ index a2992c8..75b5991 100644
  val arch = if (sys.props.get("os.arch").exists(_.startsWith("aarch64"))) "aarch-64" else "x86-64"
  val arch_ = arch.replace("-", "_")
  
-@@ -23,6 +27,13 @@ lazy val `lila-ws` = project
+@@ -23,6 +27,13 @@
    .enablePlugins(JavaAppPackaging, DockerPlugin, BuildInfoPlugin)
    .settings(
      name := "lila-ws",
-+    Compile / unmanagedSourceDirectories += {
++    Compile / unmanagedSourceDirectories ++= {
 +      val root = file(sys.props.getOrElse("lixiangqi.source",
 +        sys.error("Set -Dlixiangqi.source to the LiXiangQi source checkout")))
-+      val sources = root / "modules" / "xiangqi" / "src" / "main"
-+      require(sources.isDirectory, s"Native Xiangqi sources not found: $sources")
++      val sources = List("xiangqi", "threeKingdomsCore").map(root / "modules" / _ / "src" / "main")
++      require(sources.forall(_.isDirectory), s"Native game sources not found: $sources")
 +      sources
 +    },
      organization := "org.lichess",
      resolvers += Resolver.sonatypeCentralSnapshots,
      resolvers += "jitpack".at("https://jitpack.io"),
-@@ -30,7 +41,6 @@ lazy val `lila-ws` = project
+@@ -30,7 +41,6 @@
      libraryDependencies ++= Seq(
        ("org.reactivemongo" %% "reactivemongo" % "1.1.0-RC20")
          .exclude("org.scala-lang.modules", "scala-java8-compat_2.13"),
@@ -37,7 +36,7 @@ index a2992c8..75b5991 100644
        "io.lettuce" % "lettuce-core" % "7.6.0.RELEASE",
        "io.netty" % "netty-handler" % nettyVersion,
        "io.netty" % "netty-codec-http" % nettyVersion,
-@@ -54,7 +64,9 @@ lazy val `lila-ws` = project
+@@ -54,7 +64,9 @@
        "com.softwaremill.macwire" %% "macros" % "2.6.7" % "provided",
        "com.roundeights" %% "hasher" % "1.3.1",
        "org.scalameta" %% "munit" % "1.3.4" % Test
@@ -48,7 +47,7 @@ index a2992c8..75b5991 100644
      scalacOptions := Seq(
        "-encoding",
        "utf-8",
-@@ -68,6 +80,9 @@ lazy val `lila-ws` = project
+@@ -68,6 +80,9 @@
        "-Wunused:all"
      ),
      javaOptions ++= Seq("-Xms32m", "-Xmx256m"),
@@ -59,10 +58,9 @@ index a2992c8..75b5991 100644
      Docker / packageName := "lichess-org/lila-ws",
      Docker / maintainer := "lichess.org",
 diff --git a/src/main/scala/LilaWs.scala b/src/main/scala/LilaWs.scala
-index 162889d..f40f5b6 100644
 --- a/src/main/scala/LilaWs.scala
 +++ b/src/main/scala/LilaWs.scala
-@@ -73,10 +73,6 @@ final class LilaWsServer(
+@@ -73,10 +73,6 @@
      scheduler.scheduleWithFixedDelay(30.seconds, 7211.millis): () =>
        Bus.publish(_.all, ipc.ClientCtrl.Broom(nowSeconds - 30))
  
@@ -73,7 +71,7 @@ index 162889d..f40f5b6 100644
      scheduler.scheduleWithFixedDelay(1.seconds, 1879.millis): () =>
        lila.emit.site(ipc.LilaIn.Ping(UptimeMillis.make))
        lila.emit.round(ipc.LilaIn.Ping(UptimeMillis.make))
-@@ -87,6 +83,7 @@ object LilaWsServer:
+@@ -87,6 +83,7 @@
  
    private val byOrigin = ConcurrentHashMap[RequestHeader.Origin, Int](16)
    private val byAuth = ConcurrentHashMap[RequestHeader.AuthName, Int](16)
@@ -82,10 +80,9 @@ index 162889d..f40f5b6 100644
    def updateConnections(req: Req, delta: Int): Unit =
      updateConnections(req.header.headers.origin, req.authName, delta)
 diff --git a/src/main/scala/Lobby.scala b/src/main/scala/Lobby.scala
-index c0500fb..91c68b8 100644
 --- a/src/main/scala/Lobby.scala
 +++ b/src/main/scala/Lobby.scala
-@@ -4,7 +4,7 @@ import com.github.blemale.scaffeine.Cache
+@@ -4,14 +4,19 @@
  import com.typesafe.scalalogging.Logger
  import scalalib.zeros.given
  
@@ -94,17 +91,19 @@ index c0500fb..91c68b8 100644
  import ipc.{ ClientIn, LilaIn }
  
  final class Lobby(lila: Lila, groupedWithin: util.GroupedWithin, tor: Tor)(using
-@@ -13,6 +13,9 @@ final class Lobby(lila: Lila, groupedWithin: util.GroupedWithin, tor: Tor)(using
+     cacheApi: util.CacheApi
+ ):
  
++  val extraRounds = new Lobby.ExtraRounds
++
    private val lilaIn = lila.emit.lobby
- 
++
 +  def lilaCounters(snapshot: Presence.Snapshot): Unit =
 +    lilaIn(LilaIn.Counters(snapshot.members, snapshot.rounds, snapshot.activities))
-+
+ 
    private val connect = groupedWithin[(Sri, Option[User.Id])](6, 479.millis): connects =>
      lilaIn(LilaIn.ConnectSris(connects))
- 
-@@ -24,12 +27,13 @@ final class Lobby(lila: Lila, groupedWithin: util.GroupedWithin, tor: Tor)(using
+@@ -24,12 +29,13 @@
  
    object pong:
  
@@ -121,29 +120,40 @@ index c0500fb..91c68b8 100644
  
    // the old app has a new SRI for each websocket connection.
    // if it disconnects while being paired,
+@@ -120,3 +126,12 @@
+             if newPending.isEmpty
+             then pendingGames.invalidate(ip)
+             else pendingGames.put(ip, newPending)
++
++object Lobby:
++  /** Authoritative matches outside round sockets. A stopped publisher cannot leave a stale count. */
++  final class ExtraRounds(now: () => Long = () => System.nanoTime()):
++    @volatile private var snapshot = (0, 0L)
++    def update(count: Int): Unit = snapshot = (count.max(0), now())
++    def get: Int =
++      val (count, at) = snapshot
++      if now() - at < 45.seconds.toNanos then count else 0
 diff --git a/src/main/scala/Monitor.scala b/src/main/scala/Monitor.scala
-index b2d31ea..c4f4125 100644
 --- a/src/main/scala/Monitor.scala
 +++ b/src/main/scala/Monitor.scala
-@@ -37,9 +37,11 @@ final class Monitor(
+@@ -37,9 +37,11 @@
    private def periodicMetrics() =
      val connectionsByOrigin = LilaWsServer.byOriginMap
      val connectionsByAuth = LilaWsServer.byAuthMap
--    val totalMembers = connectionsByOrigin.values.sum
-     val rounds = services.roundCrowd.size()
--    services.lobby.pong.update(totalMembers, rounds)
-+    val snapshot = LilaWsServer.presence.snapshot(rounds)
++    val rounds = services.roundCrowd.size()
++    val snapshot = LilaWsServer.presence.snapshot(rounds + services.lobby.extraRounds.get)
 +    services.lobby.pong.update(snapshot)
 +    services.lobby.lilaCounters(snapshot)
-+    val totalMembers = connectionsByOrigin.values.sum
+     val totalMembers = connectionsByOrigin.values.sum
+-    val rounds = services.roundCrowd.size()
+-    services.lobby.pong.update(totalMembers, rounds)
      connection.current.update(totalMembers.toDouble)
      connectionsByOrigin.foreach: (origin, count) =>
        connection.byOrigin.withTag("origin", origin).update(count)
 diff --git a/src/main/scala/actor/ClientActor.scala b/src/main/scala/actor/ClientActor.scala
-index 46480d9..8b22222 100644
 --- a/src/main/scala/actor/ClientActor.scala
 +++ b/src/main/scala/actor/ClientActor.scala
-@@ -18,12 +18,14 @@ object ClientActor:
+@@ -18,12 +18,14 @@
  
    def onStart(deps: Deps, ctx: ActorContext[ClientMsg]): Unit =
      LilaWsServer.updateConnections(deps.req, +1)
@@ -158,42 +168,38 @@ index 46480d9..8b22222 100644
      Fens.unwatch(state.watchedGames.value, ctx.self)
      (Bus.channel.mlat :: Bus.channel.tvChannels :: busChansOf(req)).foreach { Bus.unsubscribe(_, ctx.self) }
      req.user.foreach: user =>
-@@ -62,6 +64,10 @@ object ClientActor:
+@@ -61,6 +63,10 @@
+     import deps.*
  
      msg match
- 
++
 +      case ClientOut.Presence(activity, group) =>
 +        if !req.flag.contains(Flag.api) then LilaWsServer.presence.update(ctx.self, activity, group)
 +        state
-+
+ 
        case msg: ClientOut.Ping =>
          clientIn(ClientIn.Pong)
-         sitePing(state, deps, msg)
 diff --git a/src/main/scala/actor/StudyClientActor.scala b/src/main/scala/actor/StudyClientActor.scala
-index 64351a1..eccf8d4 100644
 --- a/src/main/scala/actor/StudyClientActor.scala
 +++ b/src/main/scala/actor/StudyClientActor.scala
-@@ -50,15 +50,9 @@ object StudyClientActor:
+@@ -50,13 +50,7 @@
              Behaviors.same
  
            case anaMove: ClientOut.AnaMove =>
 -            clientIn(ClientIn.NodeEmptyForAppBC)
              forward(anaMove.payload)
-             Behaviors.same
- 
+-            Behaviors.same
+-
 -          case anaDrop: ClientOut.AnaDrop =>
 -            clientIn(ClientIn.NodeEmptyForAppBC)
 -            forward(anaDrop.payload)
--            Behaviors.same
--
-           case ClientOut.VoiceChatPing =>
-             deps.req.user.map { VoiceChat.respondToPing(state.room.room, _) }.foreach(clientIn)
              Behaviors.same
+ 
+           case ClientOut.VoiceChatPing =>
 diff --git a/src/main/scala/evalCache/EvalCacheApi.scala b/src/main/scala/evalCache/EvalCacheApi.scala
-index a90a35e..8e28046 100644
 --- a/src/main/scala/evalCache/EvalCacheApi.scala
 +++ b/src/main/scala/evalCache/EvalCacheApi.scala
-@@ -2,7 +2,7 @@ package lila.ws
+@@ -2,7 +2,7 @@
  package evalCache
  
  import cats.syntax.all.*
@@ -202,7 +208,7 @@ index a90a35e..8e28046 100644
  import com.github.blemale.scaffeine.AsyncLoadingCache
  import com.softwaremill.macwire.*
  import com.typesafe.scalalogging.Logger
-@@ -24,27 +24,27 @@ final class EvalCacheApi(mongo: Mongo)(using Executor, Scheduler)(using cacheApi
+@@ -24,27 +24,27 @@
    import EvalCacheBsonHandlers.given
  
    def get(sri: Sri, e: EvalGet, emit: Emit[ClientIn]): Unit =
@@ -241,7 +247,7 @@ index a90a35e..8e28046 100644
        .map(_.flatten)
        .foreach: evals =>
          if evals.nonEmpty then
-@@ -61,8 +61,7 @@ final class EvalCacheApi(mongo: Mongo)(using Executor, Scheduler)(using cacheApi
+@@ -61,8 +61,7 @@
          .foreach:
            _.filter(_.isEnough).foreach: trust =>
              makeInput(
@@ -251,7 +257,7 @@ index a90a35e..8e28046 100644
                Eval(
                  pvs = e.pvs,
                  knodes = e.knodes,
-@@ -81,11 +80,8 @@ final class EvalCacheApi(mongo: Mongo)(using Executor, Scheduler)(using cacheApi
+@@ -81,11 +80,8 @@
      else if depth < 50 then depth.value % 2 == 0
      else depth.value % 5 == 0
  
@@ -265,7 +271,7 @@ index a90a35e..8e28046 100644
      res
  
    private val cache: AsyncLoadingCache[Id, Option[EvalCacheEntry]] = cacheApi(32_768, "evalCache"):
-@@ -107,12 +103,13 @@ final class EvalCacheApi(mongo: Mongo)(using Executor, Scheduler)(using cacheApi
+@@ -107,12 +103,13 @@
            Logger("EvalCacheApi.put").info(s"Invalid from ${user} $error ${input.fen}")
            Future.successful(())
          case _ =>
@@ -281,7 +287,7 @@ index a90a35e..8e28046 100644
                  usedAt = LocalDateTime.now,
                  updatedAt = LocalDateTime.now
                )
-@@ -120,15 +117,15 @@ final class EvalCacheApi(mongo: Mongo)(using Executor, Scheduler)(using cacheApi
+@@ -120,15 +117,15 @@
                  .one(entry)
                  .recover(mongo.ignoreDuplicateKey)
                  .map: _ =>
@@ -301,10 +307,9 @@ index a90a35e..8e28046 100644
    private def afterPut(input: Input, entry: EvalCacheEntry): Unit =
      cache.put(input.id, Future.successful(entry.some))
 diff --git a/src/main/scala/evalCache/EvalCacheBsonHandlers.scala b/src/main/scala/evalCache/EvalCacheBsonHandlers.scala
-index 06abfb0..1c4097a 100644
 --- a/src/main/scala/evalCache/EvalCacheBsonHandlers.scala
 +++ b/src/main/scala/evalCache/EvalCacheBsonHandlers.scala
-@@ -4,7 +4,7 @@ package evalCache
+@@ -4,7 +4,7 @@
  import cats.data.NonEmptyList
  import cats.syntax.all.*
  import chess.eval.*
@@ -313,7 +318,7 @@ index 06abfb0..1c4097a 100644
  import reactivemongo.api.bson.*
  import reactivemongo.api.bson.exceptions.TypeDoesNotMatchException
  
-@@ -21,9 +21,9 @@ object EvalCacheBsonHandlers:
+@@ -21,9 +21,9 @@
        if str.headOption.contains('#')
        then str.drop(1).toIntOption.map(Score.mate(_))
        else str.toIntOption.map(Score.cp(_))
@@ -325,7 +330,7 @@ index 06abfb0..1c4097a 100644
      private val scoreSeparator = ':'
      private val pvSeparator = '/'
      private val pvSeparatorStr = pvSeparator.toString
-@@ -57,14 +57,7 @@ object EvalCacheBsonHandlers:
+@@ -57,14 +57,7 @@
    private def handlerBadType[T](b: BSONValue): Try[T] =
      Failure(TypeDoesNotMatchException("BSONValue", b.getClass.getSimpleName))
  
@@ -342,10 +347,9 @@ index 06abfb0..1c4097a 100644
    given BSONDocumentHandler[Eval] = Macros.handler
    given BSONDocumentHandler[EvalCacheEntry] = Macros.handler
 diff --git a/src/main/scala/evalCache/EvalCacheEntry.scala b/src/main/scala/evalCache/EvalCacheEntry.scala
-index 02e7fe0..ecd3633 100644
 --- a/src/main/scala/evalCache/EvalCacheEntry.scala
 +++ b/src/main/scala/evalCache/EvalCacheEntry.scala
-@@ -4,26 +4,20 @@ package evalCache
+@@ -4,26 +4,20 @@
  import cats.data.NonEmptyList
  import cats.implicits.toFoldableOps
  import chess.eval.Score
@@ -381,7 +385,7 @@ index 02e7fe0..ecd3633 100644
  
  case class EvalCacheEntry(
      _id: Id,
-@@ -59,12 +53,17 @@ case class EvalCacheEntry(
+@@ -59,12 +53,17 @@
  
  object EvalCacheEntry:
  
@@ -404,7 +408,7 @@ index 02e7fe0..ecd3633 100644
  
    case class Eval(pvs: NonEmptyList[Pv], knodes: Knodes, depth: Depth, by: User.Id, trust: Trust):
  
-@@ -76,7 +75,7 @@ object EvalCacheEntry:
+@@ -76,7 +75,7 @@
  
      def looksValid = pvs.forall(_.looksValid) && uniqueFirstMoves && isSufficientlyAnalysed
  
@@ -413,7 +417,7 @@ index 02e7fe0..ecd3633 100644
  
      private def isSufficientlyAnalysed =
        pvs.forall(_.score.mateFound) || (knodes >= MIN_KNODES || depth >= MIN_DEPTH)
-@@ -94,28 +93,11 @@ object EvalCacheEntry:
+@@ -94,28 +93,11 @@
        case None => moves.value.toList.sizeIs > MIN_PV_SIZE
        case Some(mate) => mate.value != 0 // sometimes we get #0. Dunno why.
  
@@ -448,10 +452,9 @@ index 02e7fe0..ecd3633 100644
 +        .map: game =>
 +          Input(Id(game), game, eval, sri)
 diff --git a/src/main/scala/evalCache/EvalCacheJsonHandlers.scala b/src/main/scala/evalCache/EvalCacheJsonHandlers.scala
-index 995e995..74a985f 100644
 --- a/src/main/scala/evalCache/EvalCacheJsonHandlers.scala
 +++ b/src/main/scala/evalCache/EvalCacheJsonHandlers.scala
-@@ -3,68 +3,64 @@ package evalCache
+@@ -3,68 +3,64 @@
  
  import cats.syntax.all.*
  import chess.eval.*
@@ -547,10 +550,9 @@ index 995e995..74a985f 100644
 +      score <- cp.map(Score.cp).orElse(mate.map(Score.mate))
      yield Pv(score, moves)
 diff --git a/src/main/scala/evalCache/EvalCacheMulti.scala b/src/main/scala/evalCache/EvalCacheMulti.scala
-index 4569b86..39b5c76 100644
 --- a/src/main/scala/evalCache/EvalCacheMulti.scala
 +++ b/src/main/scala/evalCache/EvalCacheMulti.scala
-@@ -3,8 +3,7 @@ package evalCache
+@@ -3,8 +3,7 @@
  
  import cats.syntax.option.*
  import chess.eval.WinPercent
@@ -560,7 +562,7 @@ index 4569b86..39b5c76 100644
  import org.apache.pekko.actor.typed.Scheduler
  import scalalib.zeros.given
  
-@@ -28,7 +27,7 @@ final private class EvalCacheMulti private (makeExpirableSris: (Sri => Unit) =>
+@@ -28,7 +27,7 @@
        .compute(sri.value): prev =>
          prev.foreach:
            _.setups.foreach(unregisterEval(_, sri))
@@ -569,7 +571,7 @@ index 4569b86..39b5c76 100644
        .so(_.setups)
        .foreach: id =>
          evals.compute(id)(_.getOrElse(EvalState.initial).addSri(sri).some)
-@@ -38,7 +37,7 @@ final private class EvalCacheMulti private (makeExpirableSris: (Sri => Unit) =>
+@@ -38,7 +37,7 @@
      val sris = onEvalSrisToUpgrade(input)
      if sris.nonEmpty then
        val hit = EvalHitMulti:
@@ -578,7 +580,7 @@ index 4569b86..39b5c76 100644
        sris.foreach: sri =>
          Bus.publish(_.sri(sri), hit)
        upgradeMon.count.increment(sris.size)
-@@ -65,8 +64,8 @@ final private class EvalCacheMulti private (makeExpirableSris: (Sri => Unit) =>
+@@ -65,8 +64,8 @@
  
  private object EvalCacheMulti:
  
@@ -590,10 +592,9 @@ index 4569b86..39b5c76 100644
    private val upgradeMon = Monitor.evalCache.multi.upgrade
  
 diff --git a/src/main/scala/evalCache/EvalCacheUpgrade.scala b/src/main/scala/evalCache/EvalCacheUpgrade.scala
-index bbfd358..dde06b4 100644
 --- a/src/main/scala/evalCache/EvalCacheUpgrade.scala
 +++ b/src/main/scala/evalCache/EvalCacheUpgrade.scala
-@@ -3,7 +3,7 @@ package evalCache
+@@ -3,7 +3,7 @@
  
  import cats.syntax.option.*
  import chess.eval.{ Score, WinPercent }
@@ -602,7 +603,7 @@ index bbfd358..dde06b4 100644
  import play.api.libs.json.JsString
  import scalalib.DebouncerFunction
  
-@@ -28,7 +28,7 @@ final private class EvalCacheUpgrade(using ec: Executor, scheduler: Scheduler):
+@@ -28,7 +28,7 @@
  
    def register(sri: Sri, e: EvalGet): Unit =
      Id
@@ -611,7 +612,7 @@ index bbfd358..dde06b4 100644
        .foreach: entryId =>
          members.compute(sri.value): prev =>
            prev.foreach: member =>
-@@ -52,7 +52,7 @@ final private class EvalCacheUpgrade(using ec: Executor, scheduler: Scheduler):
+@@ -52,7 +52,7 @@
        .foreach: eval =>
          val wms = eval.sris.withFilter(_ != input.sri).flatMap(sri => members.get(sri.value))
          if wms.nonEmpty then
@@ -621,10 +622,9 @@ index bbfd358..dde06b4 100644
              .groupBy(_.path)
              .map: (path, groupedMembers) =>
 diff --git a/src/main/scala/evalCache/package.scala b/src/main/scala/evalCache/package.scala
-index cc45fb3..ba8803c 100644
 --- a/src/main/scala/evalCache/package.scala
 +++ b/src/main/scala/evalCache/package.scala
-@@ -2,7 +2,7 @@ package lila.ws
+@@ -2,7 +2,7 @@
  package evalCache
  
  import cats.data.NonEmptyList
@@ -634,13 +634,15 @@ index cc45fb3..ba8803c 100644
  val MIN_KNODES = Knodes(3000)
  val MIN_DEPTH = Depth(20)
 diff --git a/src/main/scala/ipc/ClientIn.scala b/src/main/scala/ipc/ClientIn.scala
-index 7722ec0..0ae9c43 100644
 --- a/src/main/scala/ipc/ClientIn.scala
 +++ b/src/main/scala/ipc/ClientIn.scala
-@@ -36,6 +36,18 @@ object ClientIn:
-       )
-     )
- 
+@@ -33,6 +33,18 @@
+         "t" -> "n",
+         "d" -> members,
+         "r" -> rounds
++      )
++    )
++
 +  case class HomepageCounters(members: Int, rounds: Int, poolCounts: Map[String, Int]) extends ClientIn:
 +    val write = Json.stringify(
 +      Json.obj(
@@ -650,27 +652,23 @@ index 7722ec0..0ae9c43 100644
 +          "rounds" -> rounds,
 +          "poolCounts" -> poolCounts
 +        )
-+      )
-+    )
-+
-   case class Announce(json: JsonString) extends ClientIn:
-     lazy val write = cliMsg("announce", json)
+       )
+     )
  
-@@ -145,9 +157,6 @@ object ClientIn:
+@@ -144,9 +156,6 @@
+   def roundTourStanding(data: JsonString) = payload("tourStanding", data)
  
    def roundFull(data: JsonString) = payload("full", data)
- 
+-
 -  case object NodeEmptyForAppBC extends ClientIn:
 -    def write = cliMsg("node")
--
+ 
    case class VoiceChat(userIds: Iterable[User.Id]) extends ClientIn:
      def write = cliMsg("voiceChat", userIds)
- 
 diff --git a/src/main/scala/ipc/ClientOut.scala b/src/main/scala/ipc/ClientOut.scala
-index 5ed6e3f..ce87476 100644
 --- a/src/main/scala/ipc/ClientOut.scala
 +++ b/src/main/scala/ipc/ClientOut.scala
-@@ -2,9 +2,11 @@ package lila.ws
+@@ -2,9 +2,11 @@
  package ipc
  
  import cats.data.NonEmptyList
@@ -685,7 +683,7 @@ index 5ed6e3f..ce87476 100644
  import play.api.libs.json.*
  
  import scala.util.{ Success, Try }
-@@ -20,6 +22,7 @@ sealed trait ClientOutRacer extends ClientOut
+@@ -20,6 +22,7 @@
  object ClientOut:
  
    case class Ping(lag: Option[Int]) extends ClientOutSite
@@ -693,7 +691,7 @@ index 5ed6e3f..ce87476 100644
  
    case class Watch(ids: Set[Game.Id]) extends ClientOutSite
    case object StartWatchingTvChannels extends ClientOutSite
-@@ -33,41 +36,26 @@ object ClientOut:
+@@ -33,41 +36,26 @@
    case class AnaMove(
        orig: Square,
        dest: Square,
@@ -738,7 +736,7 @@ index 5ed6e3f..ce87476 100644
  
    case class MsgType(dest: User.Id) extends ClientOutSite
  
-@@ -134,6 +122,8 @@ object ClientOut:
+@@ -134,6 +122,8 @@
            o.str("t")
              .flatMap:
                case "p" => Some(Ping(o.int("l")))
@@ -747,7 +745,7 @@ index 5ed6e3f..ce87476 100644
                case "startWatching" =>
                  o.str("d")
                    .map { d =>
-@@ -150,21 +140,8 @@ object ClientOut:
+@@ -150,21 +140,8 @@
                    orig <- d.str("orig").flatMap { Square.fromKey(_) }
                    dest <- d.str("dest").flatMap { Square.fromKey(_) }
                    path <- d.get[UciPath]("path")
@@ -770,7 +768,7 @@ index 5ed6e3f..ce87476 100644
                case "evalGet" => o.obj("d").flatMap(evalCache.EvalCacheJsonHandlers.readGet)
                case "evalPut" => o.obj("d").flatMap(evalCache.EvalCacheJsonHandlers.readPut)
                case "evalGetMulti" => o.obj("d").flatMap(evalCache.EvalCacheJsonHandlers.readGetMulti)
-@@ -186,19 +163,10 @@ object ClientOut:
+@@ -186,19 +163,10 @@
                case "move" =>
                  for
                    d <- o.obj("d")
@@ -791,7 +789,7 @@ index 5ed6e3f..ce87476 100644
                case "hold" =>
                  for
                    d <- o.obj("d")
-@@ -244,16 +212,6 @@ object ClientOut:
+@@ -244,16 +212,6 @@
  
    private val emptyPing: Try[ClientOut] = Success(Ping(None))
  
@@ -809,10 +807,9 @@ index 5ed6e3f..ce87476 100644
      ClientMoveMetrics(
        d.int("l").map { Centis.ofMillis(_) },
 diff --git a/src/main/scala/ipc/LilaIn.scala b/src/main/scala/ipc/LilaIn.scala
-index 894d01e..089aebb 100644
 --- a/src/main/scala/ipc/LilaIn.scala
 +++ b/src/main/scala/ipc/LilaIn.scala
-@@ -2,8 +2,8 @@ package lila.ws
+@@ -2,8 +2,8 @@
  
  package ipc
  
@@ -822,7 +819,7 @@ index 894d01e..089aebb 100644
  import play.api.libs.json.*
  
  sealed trait LilaIn extends Matchable:
-@@ -69,8 +69,9 @@ object LilaIn:
+@@ -69,8 +69,9 @@
    case class DisconnectSris(sris: Iterable[Sri]) extends Lobby:
      def write = s"disconnect/sris ${commas(sris)}"
  
@@ -834,7 +831,7 @@ index 894d01e..089aebb 100644
  
    case class KeepAlives(roomIds: Iterable[RoomId]) extends AnyRoom:
      def write = s"room/alives ${commas(roomIds)}"
-@@ -99,7 +100,7 @@ object LilaIn:
+@@ -99,7 +100,7 @@
    case class RoundMove(fullId: Game.FullId, uci: Uci, blur: Boolean, lag: MoveMetrics) extends Round:
      private def centis(c: Option[Centis]) = optional(c.map(_.centis.toString))
      def write =
@@ -844,10 +841,9 @@ index 894d01e..089aebb 100644
  
    case class RoundBerserk(gameId: Game.Id, userId: User.Id) extends Round:
 diff --git a/src/main/scala/netty/NettyServer.scala b/src/main/scala/netty/NettyServer.scala
-index dbca620..76823ed 100644
 --- a/src/main/scala/netty/NettyServer.scala
 +++ b/src/main/scala/netty/NettyServer.scala
-@@ -6,6 +6,8 @@ import com.typesafe.scalalogging.Logger
+@@ -6,6 +6,8 @@
  import io.netty.bootstrap.ServerBootstrap
  import io.netty.channel.epoll.{ EpollEventLoopGroup, EpollServerSocketChannel }
  import io.netty.channel.kqueue.{ KQueueEventLoopGroup, KQueueServerSocketChannel }
@@ -856,7 +852,7 @@ index dbca620..76823ed 100644
  import io.netty.channel.{ Channel, ChannelInitializer }
  import io.netty.handler.codec.http.*
  
-@@ -18,9 +20,12 @@ final class NettyServer(
+@@ -18,9 +20,12 @@
    private val logger = Logger(getClass)
    private val threads = config.getInt("netty.threads")
    private val (parent, workers, channelClass) =
@@ -872,10 +868,9 @@ index dbca620..76823ed 100644
  
    def start(): Unit =
 diff --git a/src/test/scala/EvalCacheMultiTest.scala b/src/test/scala/EvalCacheMultiTest.scala
-index f749dbe..d203df9 100644
 --- a/src/test/scala/EvalCacheMultiTest.scala
 +++ b/src/test/scala/EvalCacheMultiTest.scala
-@@ -3,19 +3,19 @@ package evalCache
+@@ -3,19 +3,19 @@
  
  import cats.data.NonEmptyList
  import chess.eval.*
@@ -899,7 +894,7 @@ index f749dbe..d203df9 100644
      val eval = Eval(
        pvs = NonEmptyList.one(Pv(score, moves)),
        knodes = MIN_KNODES,
-@@ -23,12 +23,12 @@ class EvalCacheMultiTest extends munit.FunSuite:
+@@ -23,12 +23,12 @@
        by = User.Id("user"),
        trust = Trust(1)
      )
@@ -915,7 +910,7 @@ index f749dbe..d203df9 100644
      assertEquals(inst.onEvalSrisToUpgrade(makeInput(MIN_DEPTH, Score.cp(-200))), Set(sri))
      assertEquals(inst.onEvalSrisToUpgrade(makeInput(MIN_DEPTH, Score.cp(200))), Set())
      assertEquals(inst.onEvalSrisToUpgrade(makeInput(MIN_DEPTH, Score.cp(-200))), Set())
-@@ -37,7 +37,7 @@ class EvalCacheMultiTest extends munit.FunSuite:
+@@ -37,7 +37,7 @@
  
    test("onEval, only send when winning chances have changed"):
      val inst = EvalCacheMulti.mock()
@@ -925,10 +920,9 @@ index f749dbe..d203df9 100644
      assertEquals(inst.onEvalSrisToUpgrade(makeInput(MIN_DEPTH + 1, Score.cp(200))), Set())
      assertEquals(inst.onEvalSrisToUpgrade(makeInput(MIN_DEPTH + 2, Score.cp(-200))), Set(sri))
 diff --git a/src/test/scala/EvalCacheTest.scala b/src/test/scala/EvalCacheTest.scala
-index 528844e..7b939b8 100644
 --- a/src/test/scala/EvalCacheTest.scala
 +++ b/src/test/scala/EvalCacheTest.scala
-@@ -3,78 +3,49 @@ package evalCache
+@@ -3,78 +3,49 @@
  
  import cats.data.NonEmptyList
  import chess.eval.Score
@@ -939,7 +933,18 @@ index 528844e..7b939b8 100644
  import EvalCacheEntry.*
  
  class EvalCacheTest extends munit.FunSuite:
--
++  private def makeEval(score: Score, moves: String) = Eval(
++    pvs = NonEmptyList.one(
++      Pv(score, Moves(NonEmptyList.fromListUnsafe(moves.split(" ").toList.map(Uci.unsafe))))
++    ),
++    knodes = MIN_KNODES,
++    depth = Depth(25),
++    by = User.Id("user"),
++    trust = Trust(1)
++  )
++  private def input(eval: Eval, fen: String = Xiangqi.startFen) =
++    makeInput(Position(initialFen = fen), eval, Sri("sri")).get
+ 
 -  private def makeEval(score: Score, moves: String) =
 -    Eval(
 -      pvs = NonEmptyList.one:
@@ -959,7 +964,10 @@ index 528844e..7b939b8 100644
 -      by = User.Id("user"),
 -      trust = Trust(1)
 -    )
--
++  test("multiple repeated lines are rejected"):
++    val pv = makeEval(Score.cp(50), "b1c3")
++    assert(!pv.copy(pvs = pv.pvs.append(pv.pvs.head.copy(score = Score.cp(40)))).looksValid)
+ 
 -  private def makeInput(
 -      eval: Eval,
 -      fen: String = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
@@ -971,12 +979,16 @@ index 528844e..7b939b8 100644
 -      eval = eval,
 -      sri = Sri("sri")
 -    )
--
++  test("a legal move is not a mate certificate"):
++    assert(input(makeEval(Score.mate(1), "b1c3")).validate.isLeft)
+ 
 -  test("Multiple repeated lines should be invalid"):
 -    val pv1 = makeEval(Score.cp(50), "e2e4")
 -    val eval = pv1.copy(pvs = pv1.pvs.append(pv1.pvs.head.copy(score = Score.cp(40))))
 -    assertEquals(eval.looksValid, false)
--
++  test("a variation cannot exceed its claimed mate"):
++    assert(input(makeEval(Score.mate(1), "b1c3 b10c8 c3e2")).validate.isLeft)
+ 
 -  test("Mate eval should be invalid if we reach the last position and it's not mate"):
 -    val moves = "e2e4"
 -    val eval = makeEval(Score.mate(1), moves)
@@ -985,7 +997,11 @@ index 528844e..7b939b8 100644
 -      input.map(_.validate),
 -      Some(Left(chess.ErrorStr("Invalid mate Pv(Mate(1),NonEmptyList(Move(e2e4)))")))
 -    )
--
++  test("native checkmate validates rank ten without an encoded board"):
++    val fen = "4k4/9/9/9/9/9/3R5/R8/9/5K3 w - - 0 1"
++    assertEquals(input(makeEval(Score.mate(1), "a3e3"), fen).validate, Right(()))
++    assert(input(makeEval(Score.mate(-1), "a3e3"), fen).validate.isLeft)
+ 
 -  test("PV cannot be longer than mate eval"):
 -    val line = "e2e4 e7e5 d2d4"
 -    val eval = makeEval(Score.mate(1), line)
@@ -996,55 +1012,26 @@ index 528844e..7b939b8 100644
 -        Left(chess.ErrorStr("Invalid mate Pv(Mate(1),NonEmptyList(Move(e2e4), Move(e7e5), Move(d2d4)))"))
 -      )
 -    )
--
++  test("Xiangqi stalemate is a win"):
++    val fen = "4k4/9/3R1R3/9/9/4P4/9/9/R8/3K5 w - - 0 1"
++    assertEquals(input(makeEval(Score.mate(1), "a2a9"), fen).validate, Right(()))
+ 
 -  test("Really long mate evals with pvs truncated should be valid"):
 -    val antichess_forced = "b7b5 f1b5 d7d5 b5e8 d5e4 e8f7 d8d2 c1d2 h7h5 f7h5"
 -    val eval = makeEval(Score.mate(-16), antichess_forced)
 -    val input =
 -      makeInput(eval, "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b - - 0 1", chess.variant.Antichess)
 -    assertEquals(input.map(_.validate), Some(Right(())))
--
++  test("rank-ten moves are validated by the canonical rules"):
++    val line = "b1c3 b10c8 h1g3 h10g8 a1a2 a10a9 i1i2"
++    assertEquals(input(makeEval(Score.cp(10), line)).validate, Right(()))
++    assert(input(makeEval(Score.cp(10), line + " i10i1")).validate.isLeft)
+ 
 -  test("Valid mate in 2"):
 -    val moves = "c4f7 e8e7 c3d5"
 -    val eval = makeEval(Score.mate(2), moves)
 -    val input = makeInput(eval, "r2qkbnr/ppp2ppp/2np4/4N3/2B1P3/2N5/PPPP1PPP/R1BbK2R w KQkq - 0 6")
 -    assertEquals(input.map(_.validate), Some(Right(())))
-+  private def makeEval(score: Score, moves: String) = Eval(
-+    pvs = NonEmptyList.one(
-+      Pv(score, Moves(NonEmptyList.fromListUnsafe(moves.split(" ").toList.map(Uci.unsafe))))
-+    ),
-+    knodes = MIN_KNODES,
-+    depth = Depth(25),
-+    by = User.Id("user"),
-+    trust = Trust(1)
-+  )
-+  private def input(eval: Eval, fen: String = Xiangqi.startFen) =
-+    makeInput(Position(initialFen = fen), eval, Sri("sri")).get
-+
-+  test("multiple repeated lines are rejected"):
-+    val pv = makeEval(Score.cp(50), "b1c3")
-+    assert(!pv.copy(pvs = pv.pvs.append(pv.pvs.head.copy(score = Score.cp(40)))).looksValid)
-+
-+  test("a legal move is not a mate certificate"):
-+    assert(input(makeEval(Score.mate(1), "b1c3")).validate.isLeft)
-+
-+  test("a variation cannot exceed its claimed mate"):
-+    assert(input(makeEval(Score.mate(1), "b1c3 b10c8 c3e2")).validate.isLeft)
-+
-+  test("native checkmate validates rank ten without an encoded board"):
-+    val fen = "4k4/9/9/9/9/9/3R5/R8/9/5K3 w - - 0 1"
-+    assertEquals(input(makeEval(Score.mate(1), "a3e3"), fen).validate, Right(()))
-+    assert(input(makeEval(Score.mate(-1), "a3e3"), fen).validate.isLeft)
-+
-+  test("Xiangqi stalemate is a win"):
-+    val fen = "4k4/9/3R1R3/9/9/4P4/9/9/R8/3K5 w - - 0 1"
-+    assertEquals(input(makeEval(Score.mate(1), "a2a9"), fen).validate, Right(()))
-+
-+  test("rank-ten moves are validated by the canonical rules"):
-+    val line = "b1c3 b10c8 h1g3 h10g8 a1a2 a10a9 i1i2"
-+    assertEquals(input(makeEval(Score.cp(10), line)).validate, Right(()))
-+    assert(input(makeEval(Score.cp(10), line + " i10i1")).validate.isLeft)
-+
 +  test("history is part of evaluation identity"):
 +    val moves = Vector("b1c3", "b10c8", "c3b1", "c8b10").map(Uci.unsafe)
 +    val game = XiangqiRules.game(Position(moves = moves)).toOption.get
@@ -1052,10 +1039,9 @@ index 528844e..7b939b8 100644
 +    assertNotEquals(Id(game), Id(snapshot))
 diff --git a/src/main/scala/Presence.scala b/src/main/scala/Presence.scala
 new file mode 100644
-index 0000000..63f2738
 --- /dev/null
 +++ b/src/main/scala/Presence.scala
-@@ -0,0 +1,102 @@
+@@ -0,0 +1,112 @@
 +package lila.ws
 +
 +import org.apache.pekko.actor.typed.ActorRef
@@ -1135,8 +1121,11 @@ index 0000000..63f2738
 +          .getOrElse(s"s:${req.sri.value}")
 +
 +  private def categories(activity: Option[String], group: Option[String]): Set[String] =
-+    activity.toSet ++ (if group.contains("other") && activity.exists(Activity.isLobbyOrPool) then Set("other")
-+                       else Set.empty)
++    val union =
++      if activity.flatMap(Activity.nativeVariant).isDefined then activity.flatMap(Activity.nativeVariant).toSet
++      else if group.contains("other") && activity.exists(Activity.isLobbyOrPool) then Set("other")
++      else Set.empty[String]
++    activity.toSet ++ union
 +
 +  case class Entry(identity: String, activities: Set[String])
 +
@@ -1153,17 +1142,231 @@ index 0000000..63f2738
 +
 +  object Activity:
 +    private val pool = "[0-9]{1,3}\\+[0-9]{1,3}-m[0-9]{1,4}-[0-9]{1,4}x[0-9]{1,3}".r
++    private val variantPool = ("(jieqi|minixiangqi)-v1-ranked-" + pool.regex).r
++    private val variantMode = "(jieqi|minixiangqi|threeKingdoms)-(ai|friend|rated)".r
++    def nativeVariant(value: String): Option[String] = value match
++      case variantPool(variant) => Some(variant)
++      case variantMode(variant, _) => Some(variant)
++      case _ => None
 +    def apply(value: String): Option[String] = value match
++      case variantMode(_, _) | variantPool(_) => Some(value)
 +      case "ai" | "friend" | "puzzle" | "lobby" => Some(value)
 +      case pool() => Some(value)
 +      case _ => None
 +    def isLobbyOrPool(value: String): Boolean = value == "lobby" || pool.pattern.matcher(value).matches
+diff --git a/src/test/scala/StudyProtocolTest.scala b/src/test/scala/StudyProtocolTest.scala
+new file mode 100644
+--- /dev/null
++++ b/src/test/scala/StudyProtocolTest.scala
+@@ -0,0 +1,31 @@
++package lila.ws
++
++import ipc.ClientOut
++import play.api.libs.json.Json
++import lila.xiangqi.Xiangqi.Square
++
++class StudyProtocolTest extends munit.FunSuite:
++  private def move(orig: String, dest: String, path: String) = ClientOut
++    .parse(
++      Json.stringify(
++        Json.obj(
++          "t" -> "anaMove",
++          "d" -> Json.obj("orig" -> orig, "dest" -> dest, "path" -> path, "ch" -> "chapter1")
++        )
++      )
++    )
++    .get
++
++  test("study protocol accepts every native intersection and variable-length paths"):
++    Square.all.foreach: square =>
++      assert(move(square.key, "i10", "i1i2/i10i9").isInstanceOf[ClientOut.AnaMove])
++
++  test("malformed coordinates and historical encodings are rejected"):
++    List("a0", "i11", "j1", "a01", "a:", "A1").foreach: square =>
++      assert(move(square, "i10", "").isInstanceOf[ClientOut.Unexpected])
++    List("i1i2/", "abcd", "/i10i9", "i1i2//i10i9").foreach: path =>
++      assert(move("i10", "i9", path).isInstanceOf[ClientOut.Unexpected])
++
++  test("round and study moves use the same canonical coordinate parser"):
++    assert(ClientOut.parse("""{"t":"move","d":{"u":"i10i9"}}""").get.isInstanceOf[ClientOut.RoundMove])
++    assert(ClientOut.parse("""{"t":"move","d":{"u":"i010i9"}}""").get.isInstanceOf[ClientOut.Unexpected])
+diff --git a/src/main/scala/Auth.scala b/src/main/scala/Auth.scala
+--- a/src/main/scala/Auth.scala
++++ b/src/main/scala/Auth.scala
+@@ -22,7 +22,7 @@
+         case Some(sid) => sessionAuth(sid)
+         case None =>
+           bearerFromHeader(req).orElse(bearerFromQuery(req)) match
+-            case Some(bearer) => bearerAuth(bearer)
++            case Some((bearer, scopes)) => bearerAuth(bearer, scopes)
+             case None => Future.successful(None)
+ 
+   def sidFromReq(req: RequestHeader): Option[String] =
+@@ -60,29 +60,39 @@
+ 
+   private val bearerSigners = config.getStringList("oauth.secrets").asScala.toList.map(Algo.hmac)
+ 
+-  private def bearerFromHeader(req: RequestHeader): Option[Auth.Bearer] =
++  private[ws] def bearerFromHeader(req: RequestHeader): Option[(Auth.Bearer, List[String])] =
+     req.headers.authorization.flatMap: authorization =>
+       val prefix = "Bearer "
+       if authorization.startsWith(prefix) then
+         authorization.stripPrefix(prefix).split(':') match
+           case Array(bearer, signed) if bearerSigners.exists(_.sha1(bearer).hash_=(signed)) =>
+-            Some(Bearer(bearer))
++            Some(Bearer(bearer) -> List(mobileScope, nativePlayScope, takex3Scope))
++          case Array(bearer) if bearer.nonEmpty && req.path == "/mobile/presence" =>
++            Some(Bearer(bearer) -> List(nativePlayScope, "puzzle:read", "puzzle:write"))
++          case Array(bearer) if bearer.nonEmpty && req.path == "/lobby/socket/v5" =>
++            Some(Bearer(bearer) -> List(nativePlayScope))
++          case Array(bearer) if bearer.nonEmpty && req.path.matches("/tournament/[A-Za-z0-9]{8}/socket/v5") =>
++            Some(Bearer(bearer) -> List("tournament:write"))
+           case _ => None
+       else None
+ 
+-  private def bearerFromQuery(req: RequestHeader): Option[Auth.Bearer] = for
++  private def bearerFromQuery(req: RequestHeader): Option[(Auth.Bearer, List[String])] = for
+     bearer <- Bearer.from(req.queryParameter("oauth_token"))
+     if req.isTakex3Web
+-  yield bearer
++  yield bearer -> List(takex3Scope)
+ 
+-  private def bearerAuth(bearer: Bearer): Future[Option[Success]] =
++  private def bearerAuth(bearer: Bearer, allowedScopes: List[String]): Future[Option[Success]] =
+     val tokenId = AccessTokenId.from(bearer)
+     mongo.oauthColl
+       .flatMap:
+         _.find(
+           BSONDocument(
+             "_id" -> tokenId,
+-            "scopes" -> BSONDocument("$in" -> List(mobileScope, takex3Scope))
++            "scopes" -> BSONDocument("$in" -> allowedScopes),
++            "$or" -> BSONArray(
++              BSONDocument("expires" -> BSONDocument("$exists" -> false)),
++              BSONDocument("expires" -> BSONDocument("$gt" -> java.time.Instant.now))
++            )
+           ),
+           tokenAuthDbProj
+         ).one[BSONDocument]
+@@ -111,6 +121,7 @@
+   private val appealPrefix = "appeal:"
+ 
+   val mobileScope = "web:mobile"
++  val nativePlayScope = "mobile:play"
+   val takex3Scope = "web:polygon"
+ 
+   enum Success(val user: User.Id):
+diff --git a/src/main/scala/Controller.scala b/src/main/scala/Controller.scala
+--- a/src/main/scala/Controller.scala
++++ b/src/main/scala/Controller.scala
+@@ -19,6 +19,13 @@
+   import Controller.*
+ 
+   private val logger = Logger(getClass)
++
++  def presence(header: RequestHeader) =
++    WebSocket(header): req =>
++      Future.successful:
++        if header.headers.authorization.isDefined && req.user.isEmpty then
++          Left(HttpResponseStatus.UNAUTHORIZED)
++        else siteEndpoint(req)
+ 
+   def site(header: RequestHeader) =
+     WebSocket(header): req =>
+@@ -73,6 +80,8 @@
+         .tourExists(id)
+         .zip(mongo.troll.is(req.user))
+         .map:
++          case (true, _) if header.headers.authorization.isDefined && req.user.isEmpty =>
++            Left(HttpResponseStatus.UNAUTHORIZED)
+           case (true, isTroll) =>
+             endpoint(
+               name = "tour",
+diff --git a/src/main/scala/Router.scala b/src/main/scala/Router.scala
+--- a/src/main/scala/Router.scala
++++ b/src/main/scala/Router.scala
+@@ -8,6 +8,7 @@
+ 
+   def apply(req: RequestHeader): Controller.Response =
+     req.path.drop(1).split('/') match
++      case Array("mobile", "presence") => controller.presence(req)
+       case Array("socket") | Array("socket", _) => controller.site(req)
+       case Array("analysis", "socket") => controller.site(req)
+       case Array("analysis", "socket", _) => controller.site(req)
+diff --git a/src/main/scala/actor/SiteClientActor.scala b/src/main/scala/actor/SiteClientActor.scala
+--- a/src/main/scala/actor/SiteClientActor.scala
++++ b/src/main/scala/actor/SiteClientActor.scala
+@@ -28,6 +28,8 @@
+               case None => Behaviors.same
+               case Some(s) => apply(s, deps)
+ 
++          case msg: ClientOutSite if !allows(deps.req.header.path, msg) => Behaviors.same
++
+           case msg: ClientOutSite =>
+             val newState = globalReceive(state, deps, ctx, msg)
+             if newState == state then Behaviors.same
+@@ -42,3 +44,8 @@
+         onStop(state, deps, ctx)
+         Behaviors.same
+       }
++
++  private[ws] def allows(path: String, msg: ClientOutSite): Boolean =
++    path != "/mobile/presence" || (msg match
++      case _: ClientOut.Ping | _: ClientOut.Presence => true
++      case _ => false)
+diff --git a/src/test/scala/MobilePlayAuthTest.scala b/src/test/scala/MobilePlayAuthTest.scala
+new file mode 100644
+--- /dev/null
++++ b/src/test/scala/MobilePlayAuthTest.scala
+@@ -0,0 +1,43 @@
++package lila.ws
++
++import com.typesafe.config.ConfigFactory
++import lila.ws.util.{ RequestHeader, RequestUri }
++
++class MobilePlayAuthTest extends munit.FunSuite:
++  private given Executor = scala.concurrent.ExecutionContext.global
++  private val auth = new Auth(null, null, ConfigFactory.load())
++
++  private def request(path: String, bearer: String) = new RequestHeader(
++    RequestUri(path),
++    IpAddress("127.0.0.1"),
++    RequestHeader.Headers("", "LiXiangQi-Mobile/0.1", None, Some(s"Bearer $bearer"))
++  )
++
++  test("raw native bearer grants only the lobby play scope"):
++    val parsed = auth.bearerFromHeader(request("/lobby/socket/v5?sri=abcdefghijklmnop", "test-token"))
++    assertEquals(parsed.map(_._2), Some(List("mobile:play")))
++
++  test("raw native bearer cannot authenticate unrelated websocket surfaces"):
++    List("/socket/v5", "/challenge/12345678/socket/v5", "/watch/12345678/white/v6").foreach: path =>
++      assertEquals(auth.bearerFromHeader(request(path, "test-token")), None)
++
++  test("native tournament tokens are restricted to tournament rooms"):
++    val parsed = auth.bearerFromHeader(request("/tournament/abcd1234/socket/v5?sri=abcdefghijklmnop", "test-token"))
++    assertEquals(parsed.map(_._2), Some(List("tournament:write")))
++    assertEquals(auth.bearerFromHeader(request("/tournament/bad/socket/v5", "test-token")), None)
++    assertEquals(auth.bearerFromHeader(request("/tournament/abcd1234/socket/v5", "test-token:bad")), None)
++
++  test("invalid signatures never fall back to native authentication"):
++    assertEquals(auth.bearerFromHeader(request("/lobby/socket/v5", "test-token:bad-signature")), None)
++
++  test("native puzzle and play scopes authenticate only the presence endpoint"):
++    val parsed = auth.bearerFromHeader(request("/mobile/presence?sri=abcdefghijklmnop", "test-token"))
++    assertEquals(parsed.map(_._2), Some(List("mobile:play", "puzzle:read", "puzzle:write")))
++
++  test("presence endpoint only accepts heartbeat and presence messages"):
++    import ipc.ClientOut
++    assert(SiteClientActor.allows("/mobile/presence", ClientOut.Ping(None)))
++    assert(SiteClientActor.allows("/mobile/presence", ClientOut.Presence(Some("puzzle"))))
++    assert(!SiteClientActor.allows("/mobile/presence", ClientOut.FollowingOnline(true)))
++    assert(!SiteClientActor.allows("/mobile/presence", ClientOut.Notified))
++    assert(SiteClientActor.allows("/socket/v5", ClientOut.FollowingOnline(true)))
 diff --git a/src/test/scala/PresenceTest.scala b/src/test/scala/PresenceTest.scala
 new file mode 100644
-index 0000000..2ca2786
 --- /dev/null
 +++ b/src/test/scala/PresenceTest.scala
-@@ -0,0 +1,79 @@
+@@ -0,0 +1,135 @@
 +package lila.ws
 +
 +import org.apache.pekko.actor.typed.{ ActorRef, ActorSystem }
@@ -1243,40 +1446,120 @@ index 0000000..2ca2786
 +    p.update(b, None, None); assertEquals(p.snapshot(0).activities("other"), 1)
 +    p.update(c, Some("puzzle"), Some("other"));
 +    assertEquals(p.snapshot(0).activities.getOrElse("other", 0), 0)
-diff --git a/src/test/scala/StudyProtocolTest.scala b/src/test/scala/StudyProtocolTest.scala
++
++  test("native and web sessions deduplicate by account, including category changes"):
++    val p = new Presence
++    val web = ref(); val mobile = ref(); val kids = ref()
++    p.connect(web, req("web12345", Some("alice"), "activity=puzzle"))
++    val native = req("mobile12", None, "activity=puzzle").copy(
++      auth = Some(Auth.Success.OAuth(User.Id("alice"), "mobile:play,puzzle:write"))
++    )
++    p.connect(mobile, native)
++    p.connect(kids, native.copy(sri = Sri("kids1234")))
++    assertEquals(p.snapshot(0), Presence.Snapshot(1, 0, Map("puzzle" -> 1)))
++    p.update(mobile, Some("15+0-m90-30x3"))
++    assertEquals(p.snapshot(0).activities, Map("puzzle" -> 1, "15+0-m90-30x3" -> 1))
++    p.disconnect(web)
++    p.disconnect(kids)
++    assertEquals(p.snapshot(0).activities, Map("15+0-m90-30x3" -> 1))
++    p.disconnect(mobile)
++    assertEquals(p.snapshot(0), Presence.Snapshot(0, 0, Map.empty))
++
++  test("Jieqi union deduplicates players across modes and removes departed sessions"):
++    val p = new Presence
++    val rated = ref(); val ai = ref(); val friend = ref()
++    p.connect(rated, req("rated123", Some("alice")))
++    p.connect(ai, req("ai123456", Some("alice")))
++    p.connect(friend, req("friend12", Some("bob")))
++    val pool = "jieqi-v1-ranked-10+0-m60-30x3"
++    p.update(rated, Some(pool), Some("other"))
++    p.update(ai, Some("jieqi-ai"))
++    p.update(friend, Some("jieqi-friend"))
++    assertEquals(p.snapshot(0).activities, Map(pool -> 1, "jieqi-ai" -> 1, "jieqi-friend" -> 1, "jieqi" -> 2))
++    p.disconnect(rated)
++    assertEquals(p.snapshot(0).activities("jieqi"), 2)
++    p.update(ai, None)
++    assertEquals(p.snapshot(0).activities, Map("jieqi-friend" -> 1, "jieqi" -> 1))
++    p.disconnect(friend)
++    assertEquals(p.snapshot(0).activities, Map.empty[String, Int])
++    assert(Presence.Activity("jieqi-v1-ranked-invalid").isEmpty)
++    assert(Presence.Activity("jieqi").isEmpty)
++
++  test("Mini Xiangqi populations remain independent of Jieqi and standard rooms"):
++    val p = new Presence
++    val mini = ref(); val jieqi = ref(); val friend = ref()
++    p.connect(mini, req("mini1234", Some("alice")))
++    p.connect(jieqi, req("jieqi123", Some("alice")))
++    p.connect(friend, req("friend12", Some("bob")))
++    val pool = "minixiangqi-v1-ranked-10+0-m60-30x3"
++    p.update(mini, Some(pool), Some("other"))
++    p.update(jieqi, Some("jieqi-ai"))
++    p.update(friend, Some("minixiangqi-friend"))
++    assertEquals(p.snapshot(0).activities, Map(pool -> 1, "minixiangqi-friend" -> 1, "minixiangqi" -> 2, "jieqi-ai" -> 1, "jieqi" -> 1))
++    p.disconnect(mini)
++    assertEquals(p.snapshot(0).activities("minixiangqi"), 1)
++    p.disconnect(friend)
++    assert(!p.snapshot(0).activities.contains("minixiangqi"))
++    assert(Presence.Activity("minixiangqi-v1-ranked-invalid").isEmpty)
++    assert(Presence.Activity("minixiangqi").isEmpty)
+diff --git a/src/main/scala/LilaHandler.scala b/src/main/scala/LilaHandler.scala
+--- a/src/main/scala/LilaHandler.scala
++++ b/src/main/scala/LilaHandler.scala
+@@ -75,6 +75,7 @@
+     case TellLobby(payload) => publish(_.lobby, ClientIn.Payload(payload))
+     case TellLobbyActive(payload) => publish(_.lobby, ClientIn.LobbyNonIdle(ClientIn.Payload(payload)))
+     case TellSris(sris, payload) => sris.foreach { sri => publish(_.sri(sri), ClientIn.Payload(payload)) }
++    case ExtraRounds(count) => services.lobby.extraRounds.update(count)
+     case LobbyPairings(pairings) =>
+       pairings.foreach: (sri, fullId) =>
+         val allSris = services.lobby.OldAppSriMemory.allNewSris(sri)
+diff --git a/src/main/scala/ipc/LilaOut.scala b/src/main/scala/ipc/LilaOut.scala
+--- a/src/main/scala/ipc/LilaOut.scala
++++ b/src/main/scala/ipc/LilaOut.scala
+@@ -37,6 +37,7 @@
+ 
+   // lobby
+ 
++  case class ExtraRounds(count: Int) extends LobbyOut
+   case class LobbyPairings(pairings: List[(Sri, Game.FullId)]) extends LobbyOut
+   case class TellLobby(json: JsonString) extends LobbyOut
+   case class TellLobbyActive(json: JsonString) extends LobbyOut
+@@ -163,6 +164,8 @@
+ 
+       case "disconnect/user" => Some(DisconnectUser(User.Id(args)))
+ 
++      case "lobby/extra-rounds" => args.toIntOption.filter(_ >= 0).map(ExtraRounds.apply)
++
+       case "lobby/pairings" =>
+         Some(LobbyPairings {
+           commas(args)
+diff --git a/src/test/scala/ExtraRoundsTest.scala b/src/test/scala/ExtraRoundsTest.scala
 new file mode 100644
-index 0000000..02aacc5
 --- /dev/null
-+++ b/src/test/scala/StudyProtocolTest.scala
-@@ -0,0 +1,31 @@
++++ b/src/test/scala/ExtraRoundsTest.scala
+@@ -0,0 +1,25 @@
 +package lila.ws
 +
-+import ipc.ClientOut
-+import play.api.libs.json.Json
-+import lila.xiangqi.Xiangqi.Square
++class ExtraRoundsTest extends munit.FunSuite:
++  test("snapshots replace counts and expire if the publisher stops"):
++    var time = 0L
++    val count = new Lobby.ExtraRounds(() => time)
++    assertEquals(count.get, 0)
++    count.update(3)
++    assertEquals(count.get, 3)
++    time += 15.seconds.toNanos
++    count.update(2)
++    assertEquals(count.get, 2)
++    time += 44.seconds.toNanos
++    assertEquals(count.get, 2)
++    time += 1.second.toNanos
++    assertEquals(count.get, 0)
++    count.update(1)
++    assertEquals(count.get, 1)
++    count.update(0)
++    assertEquals(count.get, 0)
 +
-+class StudyProtocolTest extends munit.FunSuite:
-+  private def move(orig: String, dest: String, path: String) = ClientOut
-+    .parse(
-+      Json.stringify(
-+        Json.obj(
-+          "t" -> "anaMove",
-+          "d" -> Json.obj("orig" -> orig, "dest" -> dest, "path" -> path, "ch" -> "chapter1")
-+        )
-+      )
-+    )
-+    .get
-+
-+  test("study protocol accepts every native intersection and variable-length paths"):
-+    Square.all.foreach: square =>
-+      assert(move(square.key, "i10", "i1i2/i10i9").isInstanceOf[ClientOut.AnaMove])
-+
-+  test("malformed coordinates and historical encodings are rejected"):
-+    List("a0", "i11", "j1", "a01", "a:", "A1").foreach: square =>
-+      assert(move(square, "i10", "").isInstanceOf[ClientOut.Unexpected])
-+    List("i1i2/", "abcd", "/i10i9", "i1i2//i10i9").foreach: path =>
-+      assert(move("i10", "i9", path).isInstanceOf[ClientOut.Unexpected])
-+
-+  test("round and study moves use the same canonical coordinate parser"):
-+    assert(ClientOut.parse("""{"t":"move","d":{"u":"i10i9"}}""").get.isInstanceOf[ClientOut.RoundMove])
-+    assert(ClientOut.parse("""{"t":"move","d":{"u":"i010i9"}}""").get.isInstanceOf[ClientOut.Unexpected])
++  test("round count protocol rejects invalid values"):
++    assertEquals(ipc.LilaOut.read("lobby/extra-rounds 3"), Some(ipc.LilaOut.ExtraRounds(3)))
++    assertEquals(ipc.LilaOut.read("lobby/extra-rounds -1"), None)
++    assertEquals(ipc.LilaOut.read("lobby/extra-rounds invalid"), None)

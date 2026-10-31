@@ -8,8 +8,14 @@ import lila.pool.PoolConfig
 
 def matchmaking(pool: PoolConfig)(using ctx: Context) =
   val pageTitle =
-    if pool.ranked then trans.site.playRatedXiangqi.txt() else trans.site.playCasualXiangqi.txt()
+    if pool.gameVariant == lila.xiangqi.GameVariant.ThreeKingdoms then trans.site.playRatedThreeKingdoms.txt()
+    else if pool.gameVariant == lila.xiangqi.GameVariant.MiniXiangqi then
+      trans.site.playRatedMiniXiangqi.txt()
+    else if pool.jieqi then trans.site.playRatedJieqi.txt()
+    else if pool.ranked then trans.site.playRatedXiangqi.txt()
+    else trans.site.playCasualXiangqi.txt()
   ui.RoundPage(chess.variant.Standard, pageTitle)
+    .i18n(_.threeKingdoms)
     .js:
       PageModule(
         "round.matchmaking",

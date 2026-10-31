@@ -18,6 +18,8 @@ enum NotificationContent(val key: String):
   case KaladinDone(userId: UserId) extends NotificationContent("kaladinDone")
   case InvitedToStudy(invitedBy: UserId, studyName: StudyName, studyId: StudyId)
       extends NotificationContent("invitedStudy")
+  case ThreeKingdomsChallenge(invitedBy: UserId, gameId: GameId, started: Boolean)
+      extends NotificationContent("threeKingdomsChallenge")
   case TeamJoined(id: TeamId, name: String) extends NotificationContent("teamJoined")
   case MentionedInThread(
       mentionedBy: UserId,

@@ -30,7 +30,7 @@ final class FeedUi(helpers: Helpers, atomUi: AtomUi)(
     page("Updates"):
       div(cls := "daily-feed box box-pad")(
         boxTop(
-          h1("Lichess updates"),
+          h1("Lixiangqi updates"),
           div(cls := "box__top__actions")(
             Granter
               .opt(_.Feed)
@@ -69,7 +69,7 @@ final class FeedUi(helpers: Helpers, atomUi: AtomUi)(
     )
 
   def create(form: Form[?])(using Context) =
-    page("Lichess updates: New", true):
+    page("Lixiangqi updates: New", true):
       main(cls := "daily-feed page-small box box-pad")(
         boxTop(
           h1(
@@ -83,11 +83,11 @@ final class FeedUi(helpers: Helpers, atomUi: AtomUi)(
       )
 
   def edit(form: Form[?], update: Feed.Update)(using Context) =
-    page(s"Lichess update ${update.id}", true):
+    page(s"Lixiangqi update ${update.id}", true):
       main(cls := "daily-feed page-small box box-pad")(
         boxTop(
           h1(
-            a(href := routes.Feed.index(1))("Lichess update"),
+            a(href := routes.Feed.index(1))("Lixiangqi update"),
             " • ",
             semanticDate(update.at)
           )
@@ -105,13 +105,13 @@ final class FeedUi(helpers: Helpers, atomUi: AtomUi)(
       elems = ups,
       htmlCall = routes.Feed.index(1),
       atomCall = routes.Feed.atom,
-      title = "Lichess updates feed",
+      title = "Lixiangqi updates feed",
       updated = ups.headOption.map(_.at)
     ): up =>
       val url = s"${routeUrl(routes.Feed.index(1))}#${up.id}"
       frag(
         tag("id")(url),
-        tag("author")(tag("name")("Lichess")),
+        tag("author")(tag("name")("Lixiangqi")),
         tag("published")(atomUi.atomDate(up.at)),
         tag("updated")(atomUi.atomDate(up.at)),
         link(

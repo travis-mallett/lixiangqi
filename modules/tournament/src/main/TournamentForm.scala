@@ -12,6 +12,8 @@ import lila.common.Json.given
 import lila.core.perm.Granter
 import lila.core.team.LightTeam
 import lila.gathering.GatheringClock
+import lila.xiangqi.GameVariant
+import lila.xiangqi.adjudication.Ruleset
 
 final class TournamentForm:
 
@@ -64,7 +66,8 @@ final class TournamentForm:
       description = tour.description,
       payouts = tour.payouts,
       hasChat = tour.hasChat.some,
-      ruleset = tour.ruleset.key.some
+      ruleset = tour.gameVariant.selectableRulesets.contains(tour.ruleset).option(tour.ruleset.key),
+      gameVariant = tour.gameVariant.key.some
     )
 
   private def form(leaderTeams: List[LightTeam], prev: Option[Tournament])(using Me) =
@@ -74,15 +77,29 @@ final class TournamentForm:
         m
           .verifying(
             "Can't change ruleset after players have joined or play has started",
-            d => d.ruleset.forall(_ == tour.ruleset.key) || (tour.isCreated && tour.nbPlayers == 0)
+            d => d.ruleset.forall(_ == tour.ruleset.key) || tour.canChangeGame
           )
           .verifying(
             "Can't change variant after players have joined",
-            _.realVariant == tour.variant || tour.nbPlayers == 0
+            d =>
+              tour.canChangeGame || (
+                d.variant.forall(v => guessVariant(v).contains(tour.variant)) &&
+                  d.gameVariant.forall(_ == tour.gameVariant.key)
+              )
           )
           .verifying(
             "Can't change time control after players have joined",
-            _.speed == tour.speed || tour.nbPlayers == 0
+            d => d.clockConfig == tour.clock || tour.canChangeGame
+          )
+          .verifying(
+            "Can't change position after players have joined or play has started",
+            d => d.position.forall(p => tour.position.contains(p.opening)) || tour.canChangeGame
+          )
+          .verifying(
+            "Can't change scoring rules after play has started",
+            d =>
+              tour.isCreated || (d.berserkable.forall(_ == tour.berserkable) &&
+                d.streakable.forall(_ == tour.streakable))
           )
           .verifying(
             "Can't change bot entry condition after the tournament started",
@@ -106,11 +123,16 @@ final class TournamentForm:
       "clockTime" -> numberInDouble(timeChoices),
       "clockIncrement" -> numberIn(incrementChoices).into[IncrementSeconds],
       "minutes" -> {
-        if manager then number
+        if manager then number(min = 1, max = 7 * 24 * 60)
         else numberIn(minuteChoicesKeepingCustom(prev))
       },
       "waitMinutes" -> optional(numberIn(waitMinuteChoices)),
-      "startDate" -> optional(inTheFuture(ISOInstantOrTimestamp.mapping)),
+      "startDate" -> optional(
+        ISOInstantOrTimestamp.mapping.verifying(
+          "Must be in the future",
+          date => date.isAfter(nowInstant) || prev.exists(_.startsAt == date)
+        )
+      ),
       "variant" -> optional(text.verifying(v => guessVariant(v).isDefined)),
       "position" -> optional(lila.common.Form.fen.playableStrict),
       "password" -> optional(cleanNonEmptyText),
@@ -121,12 +143,28 @@ final class TournamentForm:
       "description" -> optional(cleanNonEmptyText),
       "payouts" -> (if manager then optional(cleanNonEmptyText.into[Payouts]) else ignored(none)),
       "hasChat" -> optional(boolean),
-      "ruleset" -> optional(text.verifying(v => lila.xiangqi.adjudication.Ruleset.fromKey(v).isRight))
+      "ruleset" -> optional(
+        text.verifying(v => Ruleset.fromKey(v).exists(GameVariant.Xiangqi.selectableRulesets.contains))
+      ),
+      "gameVariant" -> optional(text.verifying(v => GameVariant.fromKey(v).isRight))
     )(TournamentSetup.apply)(unapply)
       .verifying("Invalid clock", _.validClock(prev))
       .verifying("Invalid clock for bot games", _.validClockForBots(prev))
       .verifying("Increase tournament duration, or decrease game clock", _.sufficientDuration(prev))
       .verifying("Reduce tournament duration, or increase game clock", _.excessiveDuration(prev))
+      .verifying(
+        "This variant does not support a custom position",
+        d =>
+          val variant = d.effectiveGameVariant(prev)
+          d.position.forall(fen =>
+            variant.supportsCustomPosition &&
+              lila.xiangqi.Xiangqi.Fen.board(fen.value).exists(_.variant == variant)
+          )
+      )
+      .verifying(
+        "Repetition rules do not apply to this variant",
+        d => d.ruleset.forall(key => d.effectiveGameVariant(prev).selectableRulesets.exists(_.key == key))
+      )
 
 object TournamentForm:
 
@@ -183,16 +221,34 @@ private[tournament] case class TournamentSetup(
     description: Option[String],
     payouts: Option[Payouts],
     hasChat: Option[Boolean],
-    ruleset: Option[String] = None
+    ruleset: Option[String] = None,
+    gameVariant: Option[String] = None
 ):
-  def realRuleset = ruleset.fold(lila.xiangqi.adjudication.Ruleset.default): key =>
-    lila.xiangqi.adjudication.Ruleset.fromKey(key).fold(sys.error, identity)
+  def realGameVariant =
+    gameVariant.fold(GameVariant.Xiangqi)(GameVariant.fromKey(_).fold(sys.error, identity))
+  def effectiveGameVariant(prev: Option[Tournament]) =
+    if gameVariant.isDefined then realGameVariant else prev.fold(GameVariant.Xiangqi)(_.gameVariant)
+  private def rulesetFor(variant: GameVariant) =
+    ruleset
+      .flatMap(Ruleset.fromKey(_).toOption)
+      .filter(variant.selectableRulesets.contains) | variant.defaultRuleset
+
+  def realRuleset = rulesetFor(realGameVariant)
+
+  private def updatedRuleset(old: Tournament) =
+    if !old.canChangeGame then old.ruleset
+    else if gameVariant.exists(_ != old.gameVariant.key) || ruleset.isDefined then
+      rulesetFor(if gameVariant.isDefined then realGameVariant else old.gameVariant)
+    else old.ruleset
   def validClock(prev: Option[Tournament]) =
-    sameClock(prev) ||
-      (clockTime + clockIncrement.value) > 0
+    if effectiveGameVariant(prev) == GameVariant.ThreeKingdoms then
+      Set(7d, 10d, 15d).contains(clockTime) && clockIncrement.value == 0
+    else sameClock(prev) || (clockTime + clockIncrement.value) > 0
 
   def validClockForBots(prev: Option[Tournament]) =
-    (sameClock(prev) && sameBots(prev)) ||
+    if effectiveGameVariant(prev) == GameVariant.ThreeKingdoms then !conditions.allowsBots
+    else
+      (sameClock(prev) && sameBots(prev)) ||
       !conditions.allowsBots || lila.core.game.isBotCompatible(clockConfig)
 
   private def sameClock(prev: Option[Tournament]) = prev.exists(_.clock == clockConfig)
@@ -205,16 +261,17 @@ private[tournament] case class TournamentSetup(
 
   def realVariant = variant.flatMap(TournamentForm.guessVariant) | chess.variant.Standard
 
-  def realPosition: Option[Fen.Standard] = position.ifTrue(realVariant.standard).map(_.opening)
+  def realPosition: Option[Fen.Standard] =
+    position.ifTrue(realVariant.standard && realGameVariant.supportsCustomPosition).map(_.opening)
 
   def clockConfig = Clock.Config(LimitSeconds((clockTime * 60).toInt), clockIncrement)
 
   def speed = chess.Speed(clockConfig)
 
   def sufficientDuration(prev: Option[Tournament]) =
-    sameClockAndDuration(prev) || estimateNumberOfGamesOneCanPlay >= 3
+    sameClockAndDuration(prev) || estimateNumberOfGamesOneCanPlay(prev) >= 3
   def excessiveDuration(prev: Option[Tournament]) =
-    sameClockAndDuration(prev) || estimateNumberOfGamesOneCanPlay <= 150
+    sameClockAndDuration(prev) || estimateNumberOfGamesOneCanPlay(prev) <= 150
 
   def isPrivate = password.isDefined || conditions.teamMember.isDefined
 
@@ -228,24 +285,26 @@ private[tournament] case class TournamentSetup(
   // update all fields and use default values for missing fields
   // meant for HTML form updates
   def updateAll(old: Tournament): Tournament =
-    val newVariant = if old.isCreated && variant.isDefined then realVariant else old.variant
+    val newVariant = if old.canChangeGame && variant.isDefined then realVariant else old.variant
+    val newGameVariant =
+      if old.canChangeGame && gameVariant.isDefined then realGameVariant else old.gameVariant
     old
       .copy(
         name = name | old.name,
-        ruleset =
-          if old.isCreated && old.nbPlayers == 0 && ruleset.isDefined then realRuleset else old.ruleset,
-        clock = if old.isCreated then clockConfig else old.clock,
+        ruleset = updatedRuleset(old),
+        clock = if old.canChangeGame then clockConfig else old.clock,
         minutes = minutes,
         rated = realRated,
         variant = newVariant,
+        gameVariant = newGameVariant,
         startsAt = startDate | old.startsAt,
         password = password,
-        position = newVariant.standard.so:
-          if old.isCreated || old.position.isDefined then realPosition
+        position = (newVariant.standard && newGameVariant.supportsCustomPosition).so:
+          if old.canChangeGame then realPosition
           else old.position
         ,
-        noBerserk = !isBerserkable,
-        noStreak = !(~streakable),
+        noBerserk = if old.isCreated then !isBerserkable else old.noBerserk,
+        noStreak = if old.isCreated then !(~streakable) else old.noStreak,
         teamBattle = old.teamBattle,
         description = description,
         payouts = payouts,
@@ -255,24 +314,28 @@ private[tournament] case class TournamentSetup(
   // update only fields that are specified
   // meant for API updates
   def updatePresent(old: Tournament): Tournament =
-    val newVariant = if old.isCreated then realVariant else old.variant
+    val newVariant = if old.canChangeGame && variant.isDefined then realVariant else old.variant
+    val newGameVariant =
+      if old.canChangeGame && gameVariant.isDefined then realGameVariant else old.gameVariant
     old
       .copy(
         name = name | old.name,
-        ruleset =
-          if old.isCreated && old.nbPlayers == 0 && ruleset.isDefined then realRuleset else old.ruleset,
-        clock = if old.isCreated then clockConfig else old.clock,
+        ruleset = updatedRuleset(old),
+        clock = if old.canChangeGame then clockConfig else old.clock,
         minutes = minutes,
         rated = Rated.No,
         variant = newVariant,
+        gameVariant = newGameVariant,
         startsAt = startDate | old.startsAt,
         password = password.fold(old.password)(_.nonEmptyOption),
-        position = newVariant.standard.so {
-          if position.isDefined && (old.isCreated || old.position.isDefined) then realPosition
+        position = (newVariant.standard && newGameVariant.supportsCustomPosition).so {
+          if position.isDefined && old.canChangeGame then realPosition
+          else if old.canChangeGame && newGameVariant != old.gameVariant then none
           else old.position
         },
-        noBerserk = berserkable.fold(old.noBerserk)(!_) || timeControlPreventsBerserk,
-        noStreak = streakable.fold(old.noStreak)(!_),
+        noBerserk = if old.isCreated then berserkable.fold(old.noBerserk)(!_) || timeControlPreventsBerserk
+        else old.noBerserk,
+        noStreak = if old.isCreated then streakable.fold(old.noStreak)(!_) else old.noStreak,
         teamBattle = old.teamBattle,
         description = description.fold(old.description)(_.nonEmptyOption),
         payouts = payouts.fold(old.payouts)(_.nonEmptyOption),
@@ -281,10 +344,11 @@ private[tournament] case class TournamentSetup(
 
   def automodText = List(name, description).flatten.mkString("\n")
 
-  private def estimateNumberOfGamesOneCanPlay: Double = (minutes.atMost(720) * 60) / estimatedGameSeconds
+  private def estimateNumberOfGamesOneCanPlay(prev: Option[Tournament]): Double =
+    (minutes.atMost(720) * 60) / estimatedGameSeconds(prev)
 
-  // There are 2 players, and they don't always use all their time (0.8)
+  // Players don't always use all their time (0.8).
   // add 15 seconds for pairing delay
-  private def estimatedGameSeconds: Double = {
-    (60 * clockTime + 30 * clockIncrement.value) * 2 * 0.8
+  private def estimatedGameSeconds(prev: Option[Tournament]): Double = {
+    (60 * clockTime + 30 * clockIncrement.value) * effectiveGameVariant(prev).playerCount * 0.8
   } + 15

@@ -14,7 +14,8 @@ final private class ChannelSyncActor(
     gameProxy: lila.core.game.GameProxy,
     rematchOf: GameId => Option[GameId],
     lightUserSync: LightUser.GetterSync,
-    userApi: lila.core.user.UserApi
+    userApi: lila.core.user.UserApi,
+    historyRepo: TvHistory
 )(using Executor)
     extends SyncActor:
 
@@ -23,6 +24,8 @@ final private class ChannelSyncActor(
   // games featured on this channel
   // first entry is the current game
   private var history = List.empty[GameId]
+  private var initialized = false
+  private var selecting = false
 
   private def oneId = history.headOption
 
@@ -40,25 +43,64 @@ final private class ChannelSyncActor(
     case GetGameIds(max, promise) => promise.success(manyIds.take(max))
 
     case GetReplacementGameId(oldId, exclude, promise) =>
-      promise.success { (rematchOf(oldId) ++ manyIds).find { !exclude.contains(_) } }
+      promise.success {
+        (rematchOf(oldId).filter(manyIds.contains) ++ manyIds)
+          .find(id => id != oldId && !exclude.contains(id))
+      }
 
-    case SetGame(game) =>
-      onSelect(TvSyncActor.Selected(channel, game))
-      history = game.id :: history.take(2)
-      lila.mon.tv.selector.rating(channel.name).record(averageRankScore(game))
+    case Loaded(scala.util.Success((ids, game))) =>
+      history = ids
+      initialized = true
+      selecting = false
+      game.foreach(g => onSelect(TvSyncActor.Selected(channel, g)))
+      this ! TvSyncActor.Select
+
+    case Loaded(scala.util.Failure(error)) =>
+      selecting = false
+      logger.error(s"Cannot load ${channel.key} TV history", error)
+
+    case Selection(scala.util.Success((one, many))) =>
+      selecting = false
+      manyIds = many
+      one
+        .filterNot(g => oneId.contains(g.id))
+        .foreach: game =>
+          history = TvHistory.prepend(game.id, history)
+          onSelect(TvSyncActor.Selected(channel, game))
+          lila.mon.tv.selector.rating(channel.name).record(averageRankScore(game))
+
+    case Selection(scala.util.Failure(error)) =>
+      selecting = false
+      logger.error(s"Cannot select ${channel.key} TV game", error)
 
     case TvSyncActor.Select =>
-      lila.mon.tv.selector.candidates(channel.name).record(candidateIds.count)
-      doSelectNow().foreach: (one, many) =>
-        manyIds = many
-        one.foreach: game =>
-          this ! SetGame(game)
+      if !selecting then
+        selecting = true
+        if !initialized then
+          historyRepo
+            .load(channel)
+            .flatMap { ids =>
+              ids.headOption.so(gameProxy.game).map(ids -> _)
+            }
+            .onComplete(result => this ! Loaded(result))
+        else
+          lila.mon.tv.selector.candidates(channel.name).record(candidateIds.count)
+          val current = oneId
+          val previous = history
+          doSelectNow(current)
+            .flatMap { (one, many) =>
+              val selected = one.filterNot(g => current.contains(g.id))
+              selected
+                .so(g => historyRepo.record(channel, TvHistory.prepend(g.id, previous)))
+                .map(_ => selected -> many)
+            }
+            .onComplete(result => this ! Selection(result))
 
   def addCandidate(game: Game): Unit = candidateIds.put(game.id)
 
   private val rankOrdering = Ordering.by[Game, Int](averageRankScore)
 
-  private def doSelectNow(): Fu[(Option[Game], List[GameId])] = for
+  private def doSelectNow(currentId: Option[GameId]): Fu[(Option[Game], List[GameId])] = for
     allCandidates <- candidateIds.keys.parallel(gameProxy.gameIfPresent)
     freshCandidates = allCandidates.view.collect:
       case Some(g) if channel.isFresh(g) => g
@@ -66,26 +108,8 @@ final private class ChannelSyncActor(
     cheaters <- userApi.filterEngines(sortedCandidates.flatMap(_.userIds))
     candidates = sortedCandidates.filterNot(_.userIds.toSet.intersect(cheaters).nonEmpty)
     _ = lila.mon.tv.selector.cheats(channel.name).record(sortedCandidates.size - candidates.size)
-    currentBest <- oneId.so(gameProxy.gameIfPresent)
-    newBest <- currentBest match
-      case Some(current) if channel.isFresh(current) =>
-        fuccess(wayBetter(current, candidates)).orElse(rematch(current))
-      case Some(current) => rematch(current).orElse(fuccess(bestOf(candidates)))
-      case _ => fuccess(bestOf(candidates))
+    newBest = ChannelSelection.choose(candidates, currentId, currentId.flatMap(rematchOf), score)
   yield newBest -> candidates.map(_.id)
-
-  private def wayBetter(game: Game, candidates: List[Game]) =
-    bestOf(candidates).filter { isWayBetter(game, _) }
-
-  private def resetTurns(g: Game): Game =
-    g.copy(startedAtPly = g.ply)
-
-  private def isWayBetter(g1: Game, g2: Game) = score(resetTurns(g2)) > (score(resetTurns(g1)) * 1.17)
-
-  private def rematch(game: Game): Fu[Option[Game]] = rematchOf(game.id).so(gameProxy.game)
-
-  private def bestOf(candidates: List[Game]) =
-    candidates.maximumByOption(score)
 
   private def score(game: Game): Int =
     heuristics.foldLeft(0): (score, fn) =>
@@ -122,7 +146,8 @@ object ChannelSyncActor:
   case class GetGameId(promise: Promise[Option[GameId]])
   case class GetGameIds(max: Int, promise: Promise[List[GameId]])
   case class GetReplacementGameId(oldId: GameId, exclude: List[GameId], promise: Promise[Option[GameId]])
-  private case class SetGame(game: Game)
+  private case class Loaded(result: scala.util.Try[(List[GameId], Option[Game])])
+  private case class Selection(result: scala.util.Try[(Option[Game], List[GameId])])
 
   case class GetGameIdAndHistory(promise: Promise[GameIdAndHistory])
   case class GameIdAndHistory(gameId: Option[GameId], history: List[GameId])

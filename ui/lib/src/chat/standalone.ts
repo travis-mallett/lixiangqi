@@ -5,7 +5,7 @@ import type { ChatOpts } from './interfaces';
 import { renderChat } from './renderChat';
 
 // standalone chat app, can be instanciated outside of a snabbdom context
-export default function standaloneChat(data: Partial<ChatOpts>): ChatCtrl {
+export default function standaloneChat(data: Partial<ChatOpts> & { el?: HTMLElement }): ChatCtrl {
   const opts = { el: document.querySelector('.mchat')!, ...data } as { el: HTMLElement } & ChatOpts;
   const patch = init([classModule, attributesModule]);
 

@@ -40,6 +40,9 @@ final class AccountTermination(
     rankingApi: lila.user.RankingApi,
     teamApi: lila.team.TeamApi,
     challengeApi: lila.challenge.ChallengeApi,
+    kingdomsApi: lila.threeKingdoms.GameApi,
+    kingdomsChallenges: lila.threeKingdoms.ChallengeApi,
+    kingdomsRepo: lila.threeKingdoms.GameRepo,
     tournamentApi: lila.tournament.TournamentApi,
     swissApi: lila.swiss.SwissApi,
     planApi: lila.plan.PlanApi,
@@ -71,6 +74,8 @@ final class AccountTermination(
     tos = u.marks.dirty || modClose || playbanned
     _ <- userRepo.disable(u, keepEmail = tos, forever = forever)
     _ <- roundApi.resignAllGamesOf(u.id)
+    _ <- kingdomsChallenges.removeByUser(u.id)
+    _ <- kingdomsApi.resignAll(u.id)
     followedIds <- relationApi.accountTermination(u)
     _ <- rankingApi.remove(u.id)
     teamIds <- teamApi.quitAllOnAccountClosure(u.id)
@@ -132,6 +137,12 @@ final class AccountTermination(
     singlePlayerGameIds <- gameRepo.deleteAllSinglePlayerOf(u.id)
     _ <- analysisRepo.remove(singlePlayerGameIds)
     _ <- deleteAllGameChats(u)
+    _ <- kingdomsRepo
+      .exportUser(u.id)
+      .mapConcat(g => List(ChatId(s"3k:${g.id.value}:p"), ChatId(s"3k:${g.id.value}:w")))
+      .grouped(100)
+      .mapAsync(1)(ids => chatApi.userChat.removeMessagesIn(ids, u.id))
+      .run()
     _ <- streamerApi.repo.delete(u)
     swissIds <- gameRepo.swissIdsOf(u.id)
     _ <- swissIds.nonEmpty.so(swissApi.onUserDelete(u.id, swissIds))

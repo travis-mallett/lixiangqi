@@ -20,6 +20,7 @@ import {
 import type RoundController from '../ctrl';
 import type { EventsWithoutPayload, RoundData } from '../interfaces';
 import { analysisUrl } from '../util';
+import { roundAction } from './actions';
 
 export interface ButtonState {
   enabled: boolean;
@@ -117,15 +118,12 @@ export function standard(
   // disabled if condition callback is provided and is falsy
   const enabled = () => !condition || condition(ctrl.data).enabled;
   const hintFn = () => condition?.(ctrl.data)?.overrideHint || hint;
-  return hl(
-    'button.fbt.' + socketMsg,
-    {
-      attrs: { disabled: !enabled(), ...(!ctrl.nvui ? { title: hintFn() } : {}) },
-      hook: bind('click', () => {
-        if (enabled()) onclick ? onclick() : ctrl.socket.sendLoading(socketMsg);
-      }),
+  return roundAction(
+    hintFn(),
+    () => {
+      if (enabled()) onclick ? onclick() : ctrl.socket.sendLoading(socketMsg);
     },
-    ctrl.nvui ? [hintFn()] : [hl('span', { attrs: dataIcon(icon) })],
+    { icon, disabled: !enabled(), text: !!ctrl.nvui, name: socketMsg },
   );
 }
 

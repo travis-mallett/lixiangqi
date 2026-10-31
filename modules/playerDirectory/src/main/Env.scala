@@ -12,23 +12,17 @@ import scalalib.paginator.Paginator
 @Module
 final class Env(
     db: lila.db.Db,
+    appConfig: play.api.Configuration,
     cacheApi: CacheApi,
     picfitApi: PicfitApi,
     picfitUrl: PicfitUrl,
-    ws: StandaloneWSClient,
-    httpProxy: lila.memo.HttpProxy
+    ws: StandaloneWSClient
 )(using
-    Executor,
-    org.apache.pekko.stream.Materializer
-)(using mode: play.api.Mode, scheduler: Scheduler):
+    Executor
+)(using mode: play.api.Mode):
 
-  val repo =
-    DirectoryRepo(
-      playerColl = db(CollName("directory_player")),
-      ratingColl = db(CollName("directory_player_rating")),
-      federationColl = db(CollName("directory_federation")),
-      followerColl = db(CollName("directory_player_follower"))
-    )
+  private val catalog = DirectoryCatalog(ws, appConfig)
+  val repo = DirectoryRepo(catalog, db(CollName("directory_player_follower")))
 
   lazy val json = wire[DirectoryJson]
 
@@ -62,22 +56,7 @@ final class Env(
 
   given Federation.Guess = lila.playerDirectory.Federation.find
 
-  private lazy val directorySync = wire[DirectoryPlayerSync]
-
-  scheduler.scheduleOnce(5.seconds):
-    repo.player.countAll.flatMap(count => if count == 0 then directorySync() else funit).logFailure(logger)
-
-  if mode.isProd then
-    scheduler.scheduleWithFixedDelay(1.hour, 1.hour): () =>
-      if nowDateTime.getHour == 4
-      then directorySync()
-
   lila.common.Cli.handle:
-    case "playerDirectory" :: "player" :: "sync" :: Nil =>
-      directorySync()
-      fuccess("Updating the player database in the background.")
-    case "playerDirectory" :: "player" :: "delete" :: id :: Nil =>
-      PlayerId.parse(id).so(playerApi.delete).inject("done")
     case "playerDirectory" :: "player" :: "rip" :: playerId :: year :: Nil =>
       PlayerId
         .parse(playerId)

@@ -7,19 +7,19 @@ import {
   type AnalysisTab,
 } from './analysisTabs';
 
-interface Options {
+interface Options<T extends Pick<AnalysisTab, 'id' | 'title' | 'kind'>> {
   element: HTMLElement;
-  tabs: () => AnalysisTab[];
+  tabs: () => T[];
   activeId: () => string;
   pending: () => boolean;
   select: (id: string) => void;
   close: (id: string) => void;
   add: () => void;
-  rename: (tab: AnalysisTab, title: string) => void;
+  rename: (tab: T, title: string) => void;
 }
 
-export class AnalysisTabsView {
-  constructor(private readonly options: Options) {}
+export class AnalysisTabsView<T extends Pick<AnalysisTab, 'id' | 'title' | 'kind'> = AnalysisTab> {
+  constructor(private readonly options: Options<T>) {}
 
   render(): void {
     const tabs = this.options.tabs();
@@ -90,7 +90,7 @@ export class AnalysisTabsView {
     this.options.element.replaceChildren(...elements, add);
   }
 
-  private beginRename(tab: AnalysisTab, select: HTMLButtonElement): void {
+  private beginRename(tab: T, select: HTMLButtonElement): void {
     if (this.options.pending() || !select.isConnected) return;
 
     const input = document.createElement('input');

@@ -65,6 +65,7 @@ object Permission:
       StudyAdmin
     ),
     "Content" -> List(
+      PublishOfficialBlog,
       Pages,
       ManageEvent,
       ManageVideos,

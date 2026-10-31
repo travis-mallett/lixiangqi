@@ -1,0 +1,91 @@
+.graph-board {
+  position: relative;
+  width: 100%;
+  aspect-ratio: var(--board-aspect-ratio);
+
+  &__surface,
+  &__artwork-frame,
+  &__artwork,
+  &__marks {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  &__surface {
+    isolation: isolate;
+
+    // Piece shadows and dragged pieces must not expand the page's scroll area.
+    overflow: clip;
+    touch-action: none;
+    user-select: none;
+  }
+
+  &__artwork-frame {
+    overflow: clip;
+    pointer-events: none;
+  }
+
+  &__artwork {
+    background: var(--board-image) center / 100% 100% no-repeat;
+    pointer-events: none;
+  }
+
+  &__marks {
+    pointer-events: none;
+    z-index: 3;
+  }
+
+  &__location {
+    position: absolute;
+    width: var(--graph-piece-width);
+    height: var(--graph-piece-height);
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    background: none;
+    cursor: pointer;
+    z-index: 1;
+
+    &:focus-visible {
+      outline: 3px solid var(--c-primary, #3692e7);
+      outline-offset: 2px;
+    }
+  }
+
+  &__ownership {
+    display: none;
+    position: absolute;
+    z-index: 4;
+    right: 0;
+    bottom: 0;
+    width: 24%;
+    height: 24%;
+    border-radius: 50%;
+    border: 2px solid white;
+    pointer-events: none;
+  }
+
+  .controlled &__ownership {
+    display: block;
+  }
+
+  [data-controller='red'] &__ownership {
+    background: #933e29;
+  }
+
+  [data-controller='black'] &__ownership {
+    background: #222;
+  }
+
+  [data-controller='green'] &__ownership {
+    background: #2c663e;
+  }
+
+  [data-controller='neutral'] &__ownership {
+    background: #888;
+    border-style: dashed;
+  }
+}

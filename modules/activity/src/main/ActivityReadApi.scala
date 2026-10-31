@@ -14,6 +14,8 @@ import lila.mon.extensions.*
 final class ActivityReadApi(
     coll: AsyncCollFailingSilently,
     gameRepo: lila.core.game.GameRepo,
+    kingdomsRepo: lila.threeKingdoms.GameRepo,
+    cacheApi: lila.memo.CacheApi,
     forumPostApi: lila.core.forum.ForumPostApi,
     ublogApi: lila.core.ublog.UblogApi,
     simulApi: lila.core.simul.SimulApi,
@@ -29,6 +31,10 @@ final class ActivityReadApi(
 
   private given Ordering[Double] = scala.math.Ordering.Double.TotalOrdering
 
+  private val kingdomActivity =
+    cacheApi[UserId, List[(Instant, lila.core.rating.Score)]](512, "activity.threeKingdoms"):
+      _.expireAfterWrite(1.minute).maximumSize(2048).buildAsyncFuture(kingdomsRepo.recentActivity)
+
   def recentAndPreload(u: User)(using lang: Lang): Fu[List[ActivityView]] = for
     activities <-
       coll(
@@ -38,8 +44,15 @@ final class ActivityReadApi(
           .list(Activity.recentNb)
       ).dmap(_.filterNot(_.isEmpty))
         .mon(lila.mon.user.segment("activity.raws"))
-    views <- activities.sequentially: a =>
-      one(a).mon(lila.mon.user.segment("activity.view"))
+    kingdoms <- kingdomActivity.get(u.id)
+    days = (activities.map(_.date) ++ kingdoms.map(_._1)).distinct.sorted.reverse.take(Activity.recentNb)
+    views <- days.sequentially: day =>
+      val activity = activities
+        .find(_.date == day)
+        .getOrElse(Activity(Activity.Id(u.id, lila.common.LichessDay.dayOf(day))))
+      one(activity)
+        .map(_.copy(kingdoms = kingdoms.find(_._1 == day).map(_._2)))
+        .mon(lila.mon.user.segment("activity.view"))
     _ <- preloadAll(views)
   yield addSignup(u.createdAt, views)
 

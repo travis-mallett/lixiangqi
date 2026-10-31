@@ -10,29 +10,30 @@ opaque type UblogTopic = String
 object UblogTopic extends OpaqueString[UblogTopic]:
   extension (a: UblogTopic) def url = a.replace(" ", "_")
 
-  val chess: List[UblogTopic] = List(
-    "Chess",
+  val xiangqi: List[UblogTopic] = List(
+    "Xiangqi",
     "Analysis",
     "Puzzle",
     "Opening",
     "Endgame",
     "Tactics",
     "Strategy",
-    "Chess engine",
-    "Chess bot",
-    "Chess Personalities",
+    "Xiangqi engine",
+    "Xiangqi bot",
+    "Xiangqi Personalities",
     "Over the board",
     "Tournament",
-    "Chess variant"
+    "Xiangqi variant",
+    "Jieqi"
   )
   val offTopic: UblogTopic = "Off topic"
-  val all: List[UblogTopic] = chess ::: List(
+  val all: List[UblogTopic] = xiangqi ::: List(
     "Software Development",
-    "Lichess",
+    "LiXiangQi",
     offTopic
   )
   val exists: Set[UblogTopic] = all.toSet
-  val chessExists: Set[UblogTopic] = chess.toSet
+  val xiangqiExists: Set[UblogTopic] = xiangqi.toSet
   def get(str: String): Option[UblogTopic] = exists(str).option(UblogTopic(str))
   def fromStrList(str: String): List[UblogTopic] = str.split(',').toList.flatMap(get).distinct
   def fromUrl(str: String): Option[UblogTopic] = get(str.replace("_", " "))

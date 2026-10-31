@@ -23,10 +23,11 @@ const historyResults = (stats: AiStatsCounts) =>
   ]);
 
 export const aiHistory = (ctrl: SetupController, root: LobbyController) => {
+  if (ctrl.usesVariantLevels()) return null;
   const level = ctrl.aiLevel();
   const stats = ctrl.aiStats?.levels.find(item => item.level === level)?.mine;
   return h('section.ai-history', [
-    h('h3', i18n.site.standardHistoryAgainst('Pikafish', aiLevelName(level))),
+    h('h3', i18n.site.myPerformanceAgainst(aiLevelName(level))),
     !root.me
       ? h(
           'a.ai-history__login',

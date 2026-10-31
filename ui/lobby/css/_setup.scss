@@ -1,5 +1,5 @@
 @import '../../lib/css/setup/colorChoice';
-@import '../../lib/css/component/mselect';
+@import '../../lib/css/setup/select';
 
 $c-setup: $c-secondary;
 $c-slider: $c-setup;
@@ -9,88 +9,6 @@ $c-slider: $c-setup;
   max-width: 96vw;
   padding: 0;
   overflow: visible;
-
-  .mselect {
-    .variant-icon {
-      display: inline-block;
-      flex: 0 0 auto;
-      width: 1.35em;
-      height: 1.35em;
-      vertical-align: middle;
-
-      &--standard {
-        background: currentcolor;
-        mask: url('../images/icons/xiangqi-standard.svg') center / contain no-repeat;
-      }
-    }
-
-    .fullscreen-mask {
-      display: block;
-    }
-
-    .desc {
-      font-size: 0.9rem;
-      color: $c-font-dim;
-    }
-
-    .mselect__label {
-      padding-inline-end: 1rem;
-      gap: 0.8rem;
-      font-size: 1.2rem;
-
-      .text {
-        @extend %flex-center-nowrap;
-
-        gap: 0.8rem;
-        overflow: hidden;
-        width: 100%;
-
-        .name {
-          line-height: 1.2;
-          white-space: nowrap;
-        }
-
-        .desc {
-          @extend %ellipsis;
-        }
-      }
-    }
-
-    .mselect__list {
-      opacity: 1;
-      visibility: visible;
-    }
-
-    .mselect__item {
-      opacity: 1;
-      display: table-row;
-      cursor: pointer;
-      visibility: visible;
-
-      td {
-        padding: 0.5em 0.8em;
-        text-align: start;
-      }
-
-      .icon {
-        padding-inline-end: 0;
-      }
-
-      .name {
-        font-weight: bold;
-      }
-
-      .desc {
-        padding-inline-end: 1.5em;
-        white-space: normal;
-      }
-
-      &:hover * {
-        background: $c-primary;
-        color: $c-over;
-      }
-    }
-  }
 
   h2 {
     margin: 1.5rem 0;
@@ -177,6 +95,8 @@ $c-slider: $c-setup;
 
     position: relative;
     padding: 1.5rem;
+    flex-wrap: wrap;
+    gap: 0.75rem;
   }
 
   .lobby__start__button {

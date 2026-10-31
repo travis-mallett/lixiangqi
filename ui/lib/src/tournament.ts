@@ -2,12 +2,12 @@ import { storage } from './storage';
 
 const lastRedirect = storage.make('last-redirect');
 
-export function redirectFirst(gameId: string, rightNow?: boolean): void {
+export function redirectFirst(gameId: string, rightNow?: boolean, path: string = '/' + gameId): void {
   const delay = rightNow || document.hasFocus() ? 10 : 1000 + Math.random() * 500;
   setTimeout(() => {
     if (lastRedirect.get() !== gameId) {
       lastRedirect.set(gameId);
-      site.redirect('/' + gameId, true);
+      site.redirect(path, true);
     }
   }, delay);
 }

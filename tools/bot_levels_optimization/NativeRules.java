@@ -39,7 +39,9 @@ class NativeRules {
                         || !moves.subList(0, history.size()).equals(history)) {
                     game = checked(XiangqiRules.game(new Position(fen,
                         CollectionConverters.asScala(List.<String>of()).toVector(),
-                        Ruleset.valueOf("Tiantian"))));
+                        Ruleset.valueOf("Tiantian"),
+                        CollectionConverters.asScala(List.<scala.Option<String>>of()).toVector(),
+                        scala.collection.immutable.Map$.MODULE$.<String, String>empty())));
                     history = List.of();
                     initial = fen;
                 }

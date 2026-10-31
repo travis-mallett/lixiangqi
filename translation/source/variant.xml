@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <resources>
   <string name="standard">Standard</string>
-  <string name="standardTitle">Standard rules of Xiangqi (WXF)</string>
+  <string name="standardTitle">Chinese chess</string>
   <string name="chess960">Randomized Xiangqi</string>
   <string name="chess960Title">The starting position of the home rank pieces is randomised.</string>
   <string name="kingOfTheHill">King of the Hill</string>

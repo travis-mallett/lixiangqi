@@ -21,9 +21,19 @@ final class PicfitApi(
     ws: StandaloneWSClient,
     config: PicfitConfig,
     cloudflareApi: CloudflareApi
-)(using Executor):
+)(using Executor, Scheduler):
 
   import PicfitApi.{ *, given }
+
+  // Serialize replacements of the same profile/cover image so concurrent uploads
+  // cannot detach each other's newly recorded reference.
+  private val replacements = scalalib.actor.AsyncActorSequencers[String](
+    maxSize = Max(8),
+    expiration = 5.minutes,
+    timeout = 2.minutes,
+    name = "picfit.replacement",
+    lila.mon.asyncActorMonitor.highCardinality
+  )
 
   Bus.sub[lila.core.user.UserDelete](del => deleteByUser(del.id))
 
@@ -43,11 +53,16 @@ final class PicfitApi(
   def addRef(markdown: Markdown, ref: String, context: Option[String] = none): Funit =
     addRef(imageIds(markdown), ref, context)
 
-  def pullRef(ref: String): Funit =
+  def pullRef(ref: String): Funit = pullRefExcept(ref, none)
+
+  private def pullRefExcept(ref: String, keep: Option[ImageId]): Funit =
     if !ref.has(':') then fufail(s"PicfitApi.pullRef cant pull '$ref'")
     else
       for
-        ids <- coll.primitive[ImageId]($doc("refs" -> ref), "_id")
+        ids <- coll.primitive[ImageId](
+          $doc("refs" -> ref) ++ keep.fold($empty)(id => $doc("_id" -> $ne(id))),
+          "_id"
+        )
         _ <- ids.nonEmpty.so:
           coll.update(ordered = false).one($inIds(ids), $pull("refs" -> ref), multi = true).void
         _ <- ids.nonEmpty.so:
@@ -126,11 +141,15 @@ final class PicfitApi(
             dimensions = meta.map(_.dim),
             context = meta.flatMap(_.context)
           )
-          for
-            _ <- uniqueRef.so(pullRef)
-            imageFresh <- updateColl(image)
-            _ <- imageFresh.fresh so picfitServer.store(image, file)
-          yield imageFresh
+          // A metadata row is not proof that the bytes were stored: older failed uploads
+          // could leave one behind. Store every explicit upload, including retries, before
+          // publishing metadata or replacing a previous image reference.
+          def commit = commitUpload(
+            picfitServer.store(image, file),
+            updateColl(image),
+            uniqueRef.so(ref => pullRefExcept(ref, image.id.some))
+          )
+          uniqueRef.fold(commit)(ref => replacements(ref)(commit))
 
   private def updateColl(image: PicfitImage): Fu[ImageFresh] =
     coll.insert
@@ -203,6 +222,15 @@ final class PicfitApi(
 
 object PicfitApi:
   case class ImageFresh(image: PicfitImage, fresh: Boolean)
+
+  private[memo] def commitUpload[A](store: => Funit, record: => Fu[A], releasePrevious: => Funit)(using
+      Executor
+  ): Fu[A] =
+    for
+      _ <- store
+      result <- record
+      _ <- releasePrevious
+    yield result
 
   private[memo] final class OnNewUrl(coll: Coll)(using Executor):
 

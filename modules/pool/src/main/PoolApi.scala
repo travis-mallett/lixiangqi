@@ -11,7 +11,9 @@ final class PoolApi(
     gameStarter: GameStarter,
     hasCurrentPlayban: lila.core.playban.HasCurrentPlayban,
     rageSitOf: lila.core.playban.RageSitOf,
-    system: ActorSystem
+    system: ActorSystem,
+    participation: lila.core.pool.PoolParticipation,
+    mayJoinPool: lila.core.pool.MayJoinPool
 )(using Executor)
     extends lila.core.pool.PoolApi:
   import PoolActor.*
@@ -33,22 +35,32 @@ final class PoolApi(
   val homepagePoolIds: Set[PoolConfigId] = PoolList.homepage.iterator.map(_.id).toSet
 
   def join(poolId: PoolConfigId, member: PoolMember): Unit =
-    hasCurrentPlayban(member.userId).foreach:
-      case false =>
-        actors.foreach: (id, actor) =>
-          if id == poolId then
-            rageSitOf(member.userId).foreach: rageSit =>
-              actor ! Join(member.copy(rageSitCounter = rageSit.counterView))
-          else actor ! Leave(member.userId)
-      case _ =>
+    hasCurrentPlayban(member.userId)
+      .zip(mayJoinPool.exec(member.userId))
+      .foreach:
+        case (false, true) if participation.join(member.userId, poolId.value, nowMillis) =>
+          actors.foreach: (id, actor) =>
+            if id == poolId then
+              rageSitOf(member.userId).foreach: rageSit =>
+                actor ! Join(member.copy(rageSitCounter = rageSit.counterView))
+            else actor ! Leave(member.userId)
+        case _ =>
 
-  def leave(poolId: PoolConfigId, userId: UserId) = sendTo(poolId, Leave(userId))
+  def leave(poolId: PoolConfigId, userId: UserId) =
+    participation.leave(userId, poolId.value)
+    sendTo(poolId, Leave(userId))
 
   def poolOf(
       clock: chess.Clock.Config,
-      moveTimeLimit: Option[lila.core.game.MoveTimeLimit]
+      moveTimeLimit: Option[lila.core.game.MoveTimeLimit],
+      variant: lila.xiangqi.GameVariant
   ): Option[PoolConfigId] =
-    configs.find(p => p.clock == clock && p.moveTimeLimit == moveTimeLimit).map(_.id)
+    configs
+      .find(p =>
+        p.clock == clock && p.moveTimeLimit == moveTimeLimit &&
+          p.gameVariant == variant
+      )
+      .map(_.id)
 
   def setOnlineSris(ids: Sris): Unit = actors.values.foreach(_ ! ids)
 

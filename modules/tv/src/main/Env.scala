@@ -7,19 +7,23 @@ import lila.tv.Tv.Channel
 
 @Module
 final class Env(
-    gameRepo: lila.game.GameRepo,
+    db: lila.db.Db,
     lightUserApi: lila.core.user.LightUserApi,
     lightUserSync: lila.core.LightUser.GetterSync,
     userApi: lila.core.user.UserApi,
     gameProxy: lila.core.game.GameProxy,
     system: ActorSystem,
     onTvGame: lila.game.core.OnTvGame,
-    rematches: lila.game.Rematches
+    rematches: lila.game.Rematches,
+    threeKingdomsRepo: lila.threeKingdoms.GameRepo,
+    threeKingdomsStreams: lila.threeKingdoms.GameStreams
 )(using Executor, Scheduler):
 
+  private val historyRepo = new TvHistory(db(lila.core.config.CollName("tv_channel")))
   private val tvSyncActor = wire[TvSyncActor]
 
   lazy val tv = wire[Tv]
+  val threeKingdoms = wire[ThreeKingdomsTv]
 
   val channelBroadcasts: Map[Channel, ActorRef] = Tv.Channel.list.map { c =>
     c -> system.actorOf(Props(wire[TvBroadcast]))
@@ -34,5 +38,5 @@ final class Env(
       .map: actor =>
         (actor ? TvBroadcast.Connect(bc)).mapTo(using ctag)
 
-  system.scheduler.scheduleWithFixedDelay(12.seconds, 3.seconds): () =>
+  system.scheduler.scheduleWithFixedDelay(1.second, 3.seconds): () =>
     tvSyncActor ! TvSyncActor.Select

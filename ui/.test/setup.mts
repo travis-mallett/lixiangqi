@@ -45,6 +45,7 @@ define(
 );
 define('site', {
   sri: '_test_sri_',
+  asset: { url: (path: string) => `/assets/${path}` },
 });
 
 function define(k: any, v: any) {

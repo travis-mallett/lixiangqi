@@ -81,7 +81,12 @@ object PuzzleForm:
   )
 
   object batch:
-    case class Solution(id: PuzzleId, win: PuzzleWin, rated: Rated = Rated.Yes)
+    case class Solution(
+        id: PuzzleId,
+        win: PuzzleWin,
+        rated: Rated = Rated.Yes,
+        solved: Option[Boolean] = None
+    )
     case class SolveData(solutions: List[Solution])
     given Reads[Solution] = Json.reads
     given Reads[SolveData] = Json.reads

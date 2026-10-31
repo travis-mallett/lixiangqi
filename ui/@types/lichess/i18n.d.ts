@@ -49,7 +49,7 @@ interface I18n {
     rankedInSwissTournament: I18nFormat;
     /** Ranked #%1$s (top %2$s%%) with %3$s games in %4$s */
     rankedInTournament: I18nPlural;
-    /** Signed up to lixiangqi.org */
+    /** Joined LiXiangQi */
     signedUp: string;
     /** Solved %s training puzzles */
     solvedNbPuzzles: I18nPlural;
@@ -263,10 +263,16 @@ interface I18n {
     allTeams: string;
     /** Back to live move */
     backToLiveMove: string;
+    /** Biography */
+    biography: string;
+    /** Biography source URLs (one per line) */
+    biographySources: string;
     /** Boards */
     boards: string;
     /** Boards can be loaded with a source or via the %s */
     boardsCanBeLoaded: I18nFormat;
+    /** Born */
+    born: string;
     /** Boys */
     boysTournament: string;
     /** Boys U%s */
@@ -275,6 +281,14 @@ interface I18n {
     broadcastCalendar: string;
     /** Broadcasts */
     broadcasts: string;
+    /** Games */
+    catalogGames: string;
+    /** Last played */
+    catalogLastSeen: string;
+    /** Titled players and their recorded games. Statistics reflect our catalog coverage. */
+    catalogPlayerDescription: string;
+    /** Score */
+    catalogScore: string;
     /** Community broadcast */
     communityBroadcast: string;
     /** Created and managed by %s. */
@@ -295,7 +309,7 @@ interface I18n {
     deleteTournament: string;
     /** Xiangqi player not found */
     directoryPlayerNotFound: string;
-    /** Xiangqi players */
+    /** Pro Players */
     directoryPlayers: string;
     /** Player directory profile */
     directoryProfile: string;
@@ -303,6 +317,8 @@ interface I18n {
     directoryUnavailable: string;
     /** Download all rounds */
     downloadAllRounds: string;
+    /** Edit player profile */
+    editProfile: string;
     /** Edit round study */
     editRoundStudy: string;
     /** Embed this broadcast in your website */
@@ -331,6 +347,8 @@ interface I18n {
     iframeHelp: I18nFormat;
     /** Knockouts */
     knockouts: string;
+    /** Last recorded team */
+    lastRecordedTeam: string;
     /** Live board */
     liveboard: string;
     /** Live tournament broadcasts */
@@ -353,6 +371,8 @@ interface I18n {
     newBroadcast: string;
     /** No boards yet. These will appear once games are uploaded. */
     noBoardsYet: string;
+    /** No players found. */
+    noPlayersFound: string;
     /** The broadcast has not yet started. */
     notYetStarted: string;
     /** Official standings */
@@ -389,18 +409,26 @@ interface I18n {
     ratingDiff: string;
     /** Recent tournaments */
     recentTournaments: string;
+    /** Recorded title */
+    recordedTitle: string;
+    /** Registered affiliation */
+    registeredTeam: string;
     /** Regulations */
     regulations: string;
     /** Optional: replace player names, ratings and titles */
     replacePlayerTags: string;
     /** Reset this round */
     resetRound: string;
+    /** Revoked title */
+    revokedTitle: string;
     /** Round name */
     roundName: string;
     /** Round %s */
     roundX: I18nFormat;
     /** Score */
     score: string;
+    /** Search for players */
+    searchPlayers: string;
     /** Semifinals */
     semifinals: string;
     /** Show player scores based on game results */
@@ -1079,6 +1107,10 @@ interface I18n {
     emailConfirm_subject: I18nFormat;
     /** Log in to lixiangqi.org, %s */
     logInToLichess: I18nFormat;
+    /** Enter this code in the LiXiangQi app: %s */
+    mobileVerificationBody: I18nFormat;
+    /** Your LiXiangQi verification code */
+    mobileVerificationSubject: string;
     /** If you made this request, click the link below. If not, you can ignore this email. */
     passwordReset_clickOrIgnore: string;
     /** We received a request to reset the password for your account. */
@@ -1375,6 +1407,60 @@ interface I18n {
     weBelieveEveryChessPlayerDeservesTheBest: string;
     /** Zero advertisement, no tracking */
     zeroAdsAndNoTracking: string;
+  };
+  forum: {
+    /** Community Blog Discussions */
+    blogDiscussions: string;
+    /** Discuss community blog posts. */
+    blogDiscussionsDescription: string;
+    /** Choose a section for your topic */
+    chooseSection: string;
+    /** Only you and the LiXiangQi moderators can see this forum. */
+    diagnosticPrivacy: string;
+    /** Diagnostics */
+    diagnostics: string;
+    /** Your diagnostic reports */
+    diagnosticsDescription: string;
+    /** LiXiangQi Feedback */
+    feedback: string;
+    /** Report problems and suggest improvements to LiXiangQi. */
+    feedbackDescription: string;
+    /** Start the first topic in this section. */
+    firstTopic: string;
+    /** Game Analysis */
+    gameAnalysis: string;
+    /** Share games and analyse positions with the community. */
+    gameAnalysisDescription: string;
+    /** Choose a section to browse topics or start a discussion. */
+    introduction: string;
+    /** Latest discussion */
+    latestDiscussion: string;
+    /** Moderator boards */
+    moderatorBoards: string;
+    /** Blog discussions and diagnostic reports are kept separate from the community sections. */
+    moderatorBoardsDescription: string;
+    /** New topic */
+    newTopic: string;
+    /** No discussions yet */
+    noDiscussions: string;
+    /** Off-Topic */
+    offTopic: string;
+    /** Community discussions beyond xiangqi. */
+    offTopicDescription: string;
+    /** Private discussions */
+    privateDiscussions: string;
+    /** Sections */
+    sections: string;
+    /** Your team sections */
+    teamBoards: string;
+    /** Topic */
+    topic: string;
+    /** View topics */
+    viewTopics: string;
+    /** Xiangqi Discussion */
+    xiangqiDiscussion: string;
+    /** Discuss xiangqi strategy, news, and events. */
+    xiangqiDiscussionDescription: string;
   };
   insight: {
     /** Sorry, you cannot see %s's Xiangqi insights. */
@@ -2887,14 +2973,6 @@ interface I18n {
     attraction: string;
     /** An exchange or sacrifice encouraging or forcing an opponent piece to a square that allows a follow-up tactic. */
     attractionDescription: string;
-    /** Bachelor Chariot Attack (单车耳) */
-    bachelorChariotAttack: string;
-    /** One pillar cannot hold the palace; one advisor cannot save the throne. */
-    bachelorChariotAttackDescription: string;
-    /** Here, drive the general to the back rank and coordinate both chariots to finish the attack. */
-    bachelorChariotAttackFinish: string;
-    /** A chariot threatens an advisor beside the general, tying down the palace defense. */
-    bachelorChariotAttackLesson: string;
     /** Back rank mate */
     backRankMate: string;
     /** Checkmate the king on the home rank, when it is trapped there by its own pieces. */
@@ -2995,28 +3073,12 @@ interface I18n {
     chariotHorseSoldierMatingMethods: string;
     /** Practice mating attacks using chariots, horses, and soldiers. */
     chariotHorseSoldierMatingMethodsDescription: string;
-    /** Chariot Horse Zugzwang (车马冷着) */
-    chariotHorseZugzwang: string;
-    /** A chariot and horse leave the defender to undo his own position. */
-    chariotHorseZugzwangDescription: string;
-    /** Here, pin the advisor, check with the horse, and sacrifice one chariot so the other can finish under the horse’s protection. */
-    chariotHorseZugzwangFinish: string;
-    /** Use the chariot and horse together to restrict the general and force the defenders into awkward positions. */
-    chariotHorseZugzwangLesson: string;
     /** Chariot Killing Methods */
     chariotKillingMethods: string;
     /** Chariot */
     chariotMatingMethods: string;
     /** Practice mating attacks using chariots. */
     chariotMatingMethodsDescription: string;
-    /** Chariot Pawn Zugzwang (花心采蜜) */
-    chariotPawnZugzwang: string;
-    /** Hold the flower’s heart; let the defender’s next move surrender the nectar. */
-    chariotPawnZugzwangDescription: string;
-    /** Here, Black uses a soldier check to displace the general, then arranges the chariots for the soldier’s final blow. */
-    chariotPawnZugzwangFinish: string;
-    /** Combine chariot pressure with a timely soldier move that forces the defender into a worse position. */
-    chariotPawnZugzwangLesson: string;
     /** Chariot and soldier */
     chariotSoldierMatingMethods: string;
     /** Practice mating attacks using chariots and soldiers. */
@@ -3253,14 +3315,6 @@ interface I18n {
     heavenAndEarthCannonsFinish: string;
     /** Cannons on the central file and back rank pin the palace defenders. */
     heavenAndEarthCannonsLesson: string;
-    /** Hiding Behind Leaves Attack (叶底藏花) */
-    hidingBehindLeavesAttack: string;
-    /** The chariot blooms from behind its own defenses; the harmless foliage concealed an ambush. */
-    hidingBehindLeavesAttackDescription: string;
-    /** Here, an advisor interposes against the enemy chariot and uncovers a cannon check; the ensuing attack ends in stalemate. */
-    hidingBehindLeavesAttackFinish: string;
-    /** Keep an attacker, often a cannon, behind friendly pieces until moving a blocker reveals its attack. */
-    hidingBehindLeavesAttackLesson: string;
     /** High Angler Horse (高钓马) */
     highAnglerHorse: string;
     /** A tiger waits beside the palace: the high horse and chariot hunt an exposed general from the flank. */
@@ -3593,10 +3647,6 @@ interface I18n {
     swallowstailMate: string;
     /** A checkmate pattern that visually resembles the appearance of a swallow’s tail, similar to a V shape. */
     swallowstailMateDescription: string;
-    /** Three Chariot Attack (三把手) */
-    threeChariotAttack: string;
-    /** Two chariots batter the gate; the general lends the invisible third hand. */
-    threeChariotAttackDescription: string;
     /** Three Chariots Harassing Advisor (三车闹士) */
     threeChariotsHarassingAdvisor: string;
     /** The pawns join the chariots’ work; three attackers throw the court into uproar. */
@@ -3783,6 +3833,8 @@ interface I18n {
     advancedSearch: string;
     /** A.I. level */
     aiLevel: string;
+    /** All */
+    all: string;
     /** Analysis */
     analysis: string;
     /** Ascending */
@@ -3803,6 +3855,8 @@ interface I18n {
     humanOrComputer: string;
     /** Include */
     include: string;
+    /** The start date and time must be before the end date and time. */
+    invalidDateRange: string;
     /** Loser */
     loser: string;
     /** Maximum number */
@@ -3889,6 +3943,8 @@ interface I18n {
     activePlayers: string;
     /** Add current variation */
     addCurrentVariation: string;
+    /** Add password */
+    addPassword: string;
     /** Advanced settings */
     advancedSettings: string;
     /** Advantage */
@@ -4075,6 +4131,8 @@ interface I18n {
     capture: string;
     /** Voice Sound Effects */
     captureCheckAndCheckmateVoiceSoundEffects: string;
+    /** Captured pieces */
+    capturedPieces: string;
     /** Special move rights */
     castling: string;
     /** Casual */
@@ -4085,6 +4143,8 @@ interface I18n {
     challengeAFriend: string;
     /** Challenge a Higher Level */
     challengeHigherLevel: string;
+    /** Challenge two friends */
+    challengeTwoFriends: string;
     /** Challenge %s */
     challengeX: I18nFormat;
     /** Change email */
@@ -4125,6 +4185,8 @@ interface I18n {
     chessPerformance: string;
     /** 棋力评测 */
     chessPerformanceEvaluationChinese: string;
+    /** Choose the hypothetical reveal */
+    chooseReveal: string;
     /** Claim a draw */
     claimADraw: string;
     /** Classical */
@@ -4181,16 +4243,26 @@ interface I18n {
     computersAreNotAllowedToPlay: string;
     /** Computer thinking ... */
     computerThinking: string;
+    /** Concealed piece */
+    concealedPiece: string;
     /** Conditional premoves */
     conditionalPremoves: string;
     /** Entry requirements: */
     conditionOfEntry: string;
+    /** Verify it’s you */
+    confirmIdentity: string;
+    /** Verify using a sign-in method already connected to your LiXiangQi account. */
+    confirmIdentityHelp: string;
     /** Confirm move */
     confirmMove: string;
+    /** Or confirm your identity with a linked account */
+    confirmWithLinkedAccount: string;
     /** Congratulations, you won! */
     congratsYouWon: string;
     /** Continue from here */
     continueFromHere: string;
+    /** Continue with %s */
+    continueWithProvider: I18nFormat;
     /** Contrast */
     contrast: string;
     /** Contribute */
@@ -4211,6 +4283,8 @@ interface I18n {
     cpus: string;
     /** Create */
     create: string;
+    /** Create an account with email */
+    createAccountWithEmail: string;
     /** Create a game */
     createAGame: string;
     /** Create a new topic */
@@ -4239,6 +4313,8 @@ interface I18n {
     currentPassword: string;
     /** Custom */
     custom: string;
+    /** Custom game */
+    customGame: string;
     /** Custom image URL */
     customImageUrl: string;
     /** Custom position */
@@ -4343,12 +4419,16 @@ interface I18n {
     emailConfirmNotReceived: string;
     /** Email me a link */
     emailMeALink: string;
+    /** Email me a sign-in link */
+    emailMeSignInLink: string;
     /** We have sent an email to %s. */
     emailSent: I18nFormat;
     /** Do not set an email address suggested by someone else. They can use it to steal your account. */
     emailSuggestion: string;
     /** Embed your game */
     embedGame: string;
+    /** Embed HTML */
+    embedHtml: string;
     /** Embed in your website */
     embedInYourWebsite: string;
     /** Paste a game URL or a study chapter URL to embed it. */
@@ -4365,6 +4445,12 @@ interface I18n {
     endgame: string;
     /** Endgame positions */
     endgamePositions: string;
+    /** %s analysis */
+    engineAnalysisName: I18nFormat;
+    /** %s is calculating… */
+    engineCalculating: I18nFormat;
+    /** Candidate moves */
+    engineCandidateMoves: string;
     /** Downloading engine: %1$s (%2$s / %3$s MB) */
     engineDownloadProgress: I18nFormat;
     /** Downloading engine: %s MB */
@@ -4373,6 +4459,22 @@ interface I18n {
     engineFailed: string;
     /** Could not load the engine. Retry to continue. */
     engineLoadingFailed: string;
+    /** Move notation could not be loaded. Restart analysis to retry. */
+    engineMoveLabelsFailed: string;
+    /** %1$s of %2$s nodes */
+    engineNodeProgress: I18nFormat;
+    /** %s · on your device */
+    engineOnDevice: I18nFormat;
+    /** %s evaluation from Red’s perspective */
+    engineRedEvaluation: I18nFormat;
+    /** Refreshing cached %s evaluation… */
+    engineRefreshing: I18nFormat;
+    /** Search complete */
+    engineSearchComplete: string;
+    /** %1$s · %2$s nodes */
+    engineSearchStatus: I18nFormat;
+    /** %s settings */
+    engineSettingsName: I18nFormat;
     /** Special move rights */
     enPassant: string;
     /** Enter a coordinate, WXF, or Chinese move */
@@ -4417,6 +4519,12 @@ interface I18n {
     expandVariations: string;
     /** Export games */
     exportGames: string;
+    /** Unable to complete sign-in */
+    externalLoginFailed: string;
+    /** Please start again. The request may have expired, the account may be closed, or this provider account may already belong to another LiXiangQi user. */
+    externalLoginFailedHelp: string;
+    /** Your public name on LiXiangQi. No password needed. */
+    externalSignupHelp: string;
     /** Failed to save %s preference */
     failedToSaveAppearancePreference: I18nFormat;
     /** Fast */
@@ -4433,10 +4541,14 @@ interface I18n {
     findBetterMoveForRed: string;
     /** Find a better move for Red */
     findBetterMoveForWhite: string;
+    /** Finish creating your account */
+    finishCreatingAccount: string;
     /** Finished */
     finished: string;
     /** First */
     first: string;
+    /** First position */
+    firstPosition: string;
     /** Flair */
     flair: string;
     /** Flip board */
@@ -4469,6 +4581,8 @@ interface I18n {
     gameAborted: string;
     /** Game as GIF */
     gameAsGIF: string;
+    /** Game history */
+    gameHistory: string;
     /** You have a game in progress with %s. */
     gameInProgress: I18nFormat;
     /** Game mode */
@@ -4497,6 +4611,8 @@ interface I18n {
     graph: string;
     /** Graphical Symbols */
     graphicalSymbols: string;
+    /** Green */
+    green: string;
     /** Hang on! */
     hangOn: string;
     /** Help: */
@@ -4515,6 +4631,8 @@ interface I18n {
     hue: string;
     /** Human */
     human: string;
+    /** Identity confirmed. You can continue without entering your password for five minutes. */
+    identityConfirmed: string;
     /** If none, leave empty */
     ifNoneLeaveEmpty: string;
     /** If rating is ± %s */
@@ -4581,6 +4699,60 @@ interface I18n {
     isPrivate: string;
     /** It's your turn! */
     itsYourTurn: string;
+    /** Jieqi */
+    jieqi: string;
+    /** Advisor */
+    jieqiAdvisor: string;
+    /** Jieqi Analysis Board */
+    jieqiAnalysisBoard: string;
+    /** Expected value over the remaining hidden pieces */
+    jieqiAnalysisEstimate: string;
+    /** A candidate move, not a predicted reveal. Select it to explore a possible outcome. */
+    jieqiCandidateMoveHelp: string;
+    /** Cannon */
+    jieqiCannon: string;
+    /** Captures and hidden information */
+    jieqiCapturesHeading: string;
+    /** Capture by moving onto an enemy piece’s square. If the captured piece was still concealed, only the capturing player learns its identity. Its owner and spectators do not. Keep track of revealed pieces and your captures to reason about what remains hidden. */
+    jieqiCapturesText: string;
+    /** Chariot */
+    jieqiChariot: string;
+    /** Elephant */
+    jieqiElephant: string;
+    /** Evaluations use visible pieces and the remaining hidden-piece inventory without predicting future reveals. */
+    jieqiEngineHelp: string;
+    /** Horse */
+    jieqiHorse: string;
+    /** Jieqi leaderboard */
+    jieqiLeaderboard: string;
+    /** Learn how to play */
+    jieqiLearnToPlay: string;
+    /** Revealed pieces */
+    jieqiMovementHeading: string;
+    /** Revealed advisors move one diagonal step anywhere on the board, without the palace restriction. Revealed elephants move two diagonal steps and may cross the river, but their midpoint must be empty. Other revealed pieces follow their usual Xiangqi movement rules. Generals remain in their palaces, and you may not leave your general in check or leave the two generals facing each other along an open file. */
+    jieqiMovementText: string;
+    /** Jieqi has its own ranks, from 揭1-1 to 揭9-4. The first number identifies the rating group; the second identifies progress within that group. */
+    jieqiRankExplanation: string;
+    /** Start at 0 points. Players in the same rating group gain or lose 10 points. Against an adjacent group, the lower group gains 15 for a win and loses 5 for a loss. Draws change no points. Scores cannot fall below −30. */
+    jieqiRatingExplanation: string;
+    /** Move, then reveal */
+    jieqiRevealHeading: string;
+    /** On its first move, a concealed piece moves like the Xiangqi piece that normally starts on its square. After the move, it turns face up and uses its true movement rules for the rest of the game. You cannot turn over a piece without moving it. Red moves first, and the players take turns. */
+    jieqiRevealText: string;
+    /** The starting position */
+    jieqiSetupHeading: string;
+    /** Jieqi uses the Xiangqi board and armies. The generals start face up in their usual positions. Each side’s other 15 pieces are shuffled and placed face down on the remaining starting squares. Neither player knows the identities of the pieces on the board. */
+    jieqiSetupText: string;
+    /** Soldier */
+    jieqiSoldier: string;
+    /** 10 minutes · 60 seconds per move · first 3 moves: 30 seconds */
+    jieqiTimeControl: string;
+    /** Jieqi / Reveal Chess (揭棋) */
+    jieqiTitle: string;
+    /** Winning and playing here */
+    jieqiWinningHeading: string;
+    /** Win by checkmating your opponent or leaving them with no legal move. Resignation and running out of time also lose the game. Rated Jieqi has its own ranks. Quick pairing gives each player 10 minutes, with a 60-second move limit and a 30-second limit for each of the first three moves. You can also play against the computer, challenge a friend, or create a custom game. */
+    jieqiWinningText: string;
     /** Join */
     join: string;
     /** Joined %s */
@@ -4589,6 +4761,8 @@ interface I18n {
     joinTheGame: string;
     /** Join the %1$s, to post in this forum */
     joinTheTeamXToPost: I18nFormat;
+    /** Add another sign-in method before unlinking this account. */
+    keepOneLoginMethod: string;
     /** Keyboard shortcuts */
     keyboardShortcuts: string;
     /** Cycle selected variation */
@@ -4617,6 +4791,8 @@ interface I18n {
     language: string;
     /** Last */
     last: string;
+    /** Last position */
+    lastPosition: string;
     /** Last post */
     lastPost: string;
     /** Active %s */
@@ -4643,6 +4819,10 @@ interface I18n {
     level: string;
     /** Ranked games played on Lixiangqi */
     lichessDbExplanation: string;
+    /** Lichess Swag Store */
+    lichessMerchandise: string;
+    /** Merchandise from Lichess */
+    lichessMerchandiseDescription: string;
     /** Lixiangqi is a charity and entirely free/libre open source software. We depend on user donations to support our operating costs, development, and content. Without our generous community, we would not be able to keep the site running. Thank you for joining us! */
     lichessPatronInfo: string;
     /** Lixiangqi tournaments */
@@ -4655,6 +4835,12 @@ interface I18n {
     like: string;
     /** Liked */
     liked: string;
+    /** That account is not linked to your LiXiangQi account. Try again using an account already linked here. */
+    linkedAccountRequired: string;
+    /** Link account */
+    linkProvider: string;
+    /** Link %1$s to your LiXiangQi account %2$s? Your games and ratings stay the same. */
+    linkProviderToAccount: I18nFormat;
     /** List */
     list: string;
     /** List players you have blocked */
@@ -4673,6 +4859,10 @@ interface I18n {
     location: string;
     /** Log in by email */
     logInByEmail: string;
+    /** Sign-in methods */
+    loginMethods: string;
+    /** Choose how you sign in to LiXiangQi. Linked accounts use the same username, games and ratings. */
+    loginMethodsHelp: string;
     /** Sign in to chat */
     loginToChat: string;
     /** Login to see your ranking */
@@ -4699,6 +4889,8 @@ interface I18n {
     makePrivateTournament: string;
     /** Make sure to read %1$s */
     makeSureToRead: I18nFormat;
+    /** Your account is managed. Ask your teacher before changing login methods. */
+    managedLoginMethods: string;
     /** %s is available for formatting. */
     markdownIsAvailable: I18nFormat;
     /** OTB games of %1$s+ WXF-rated players from %2$s to %3$s */
@@ -4735,6 +4927,24 @@ interface I18n {
     minimumRatedGames: string;
     /** Minimum rating */
     minimumRating: string;
+    /** Mini Xiangqi */
+    miniXiangqi: string;
+    /** Mini Xiangqi analysis board */
+    miniXiangqiAnalysisBoard: string;
+    /** Mini Xiangqi leaderboard */
+    miniXiangqiLeaderboard: string;
+    /** How to play Mini Xiangqi */
+    miniXiangqiLearnToPlay: string;
+    /** Chariots, horses, and cannons move and capture as in Xiangqi. Generals stay inside their 3 × 3 palaces and cannot face one another along an open file. Soldiers move one point forward or sideways from the start, and never move backward or promote. */
+    miniXiangqiMovementText: string;
+    /** Mini Xiangqi has its own ranks, from 迷1-1 to 迷9-4. It uses the same thresholds and rating calculations as Jieqi. Rated quick pairing gives each player 10 minutes, with a 60-second move limit and a 30-second limit for each of the first three moves. */
+    miniXiangqiRankExplanation: string;
+    /** Mini Xiangqi is played on seven files and seven ranks, with no river. Each side has a general, two chariots, two horses, two cannons, and five soldiers. There are no advisors or elephants. */
+    miniXiangqiSetupText: string;
+    /** Mini Xiangqi (迷你象棋) */
+    miniXiangqiTitle: string;
+    /** Checkmate and stalemate both win. Three repetitions draw unless exactly one side gives perpetual check, in which case that side loses. Fifty moves by each player without a capture also draw. */
+    miniXiangqiWinningText: string;
     /** Minimum rating of %s */
     minRatingX: I18nFormat;
     /** Minutes per side */
@@ -4781,6 +4991,8 @@ interface I18n {
     multipleLinesDescription: string;
     /** Must be in team %s */
     mustBeInTeam: I18nFormat;
+    /** My performance against %s */
+    myPerformanceAgainst: I18nFormat;
     /** Name */
     name: string;
     /** Navigate the move tree */
@@ -4861,6 +5073,8 @@ interface I18n {
     never: string;
     /** Never type your Lixiangqi password on another site! */
     neverTypeYourPassword: string;
+    /** New */
+    newFeature: string;
     /** New opponent */
     newOpponent: string;
     /** New password */
@@ -4875,6 +5089,8 @@ interface I18n {
     newTournament: string;
     /** Next */
     next: string;
+    /** Next move */
+    nextMove: string;
     /** No */
     no: string;
     /** No challenges. */
@@ -4981,6 +5197,8 @@ interface I18n {
     other: string;
     /** other players */
     otherPlayers: string;
+    /** Other sign-in options */
+    otherSignInOptions: string;
     /** Other Time Controls */
     otherTimeControls: string;
     /** Our tips for organising events */
@@ -4991,8 +5209,12 @@ interface I18n {
     passRate: string;
     /** Password */
     password: string;
+    /** Not set */
+    passwordNotSet: string;
     /** Password reset */
     passwordReset: string;
+    /** Password set */
+    passwordSet: string;
     /** Do not set a password suggested by someone else. They can use it to steal your account. */
     passwordSuggestion: string;
     /** Paste the FEN text here */
@@ -5001,6 +5223,8 @@ interface I18n {
     pasteThePgnStringHere: string;
     /** Pause */
     pause: string;
+    /** How do soldiers capture? */
+    pawnCaptures: string;
     /** Pawn move */
     pawnMove: string;
     /** Performance */
@@ -5041,6 +5265,12 @@ interface I18n {
     playingRightNow: string;
     /** Play a rated game to get ranked */
     playRatedGameToGetRanked: string;
+    /** Play Rated Jieqi */
+    playRatedJieqi: string;
+    /** Play Rated Mini Xiangqi */
+    playRatedMiniXiangqi: string;
+    /** Rated Three Kingdoms */
+    playRatedThreeKingdoms: string;
     /** Play Rated Xiangqi */
     playRatedXiangqi: string;
     /** play selected move */
@@ -5073,6 +5303,8 @@ interface I18n {
     previous: string;
     /** Previously on Lixiangqi TV */
     previouslyOnLichessTV: string;
+    /** Previous move */
+    previousMove: string;
     /** Ctrl or shift = red; command, alt, or meta = blue; a key from each = yellow. */
     primaryColorArrowsHowTo: string;
     /** Privacy */
@@ -5091,6 +5323,10 @@ interface I18n {
     promoteVariation: string;
     /** Propose a takeback */
     proposeATakeback: string;
+    /** Linked */
+    providerLinked: string;
+    /** Not linked */
+    providerNotLinked: string;
     /** Xiangqi tactics trainer */
     puzzleDesc: string;
     /** Puzzles */
@@ -5107,6 +5343,8 @@ interface I18n {
     randomChess960Position: string;
     /** Random side */
     randomColor: string;
+    /** Randomly choose based on probability */
+    randomReveal: string;
     /** Rank */
     rank: string;
     /** Ranked */
@@ -5157,6 +5395,8 @@ interface I18n {
     recentGames: string;
     /** Reconnecting */
     reconnecting: string;
+    /** Recovery email from Google: %s */
+    recoveryEmailFromGoogle: I18nFormat;
     /** Red */
     red: string;
     /** Red is victorious */
@@ -5169,6 +5409,8 @@ interface I18n {
     refundXpointsTimeControlY: I18nFormat;
     /** Restored: %s Xiangqi rank points. */
     refundXrankPoints: I18nFormat;
+    /** You can still sign in using: */
+    remainingLoginMethods: string;
     /** Rematch */
     rematch: string;
     /** Rematch offer accepted */
@@ -5229,6 +5471,8 @@ interface I18n {
     resVsX: I18nFormat;
     /** Retry */
     retry: string;
+    /** Return to the LiXiangQi app to finish verification. */
+    returnToMobileApp: string;
     /** Return to simul homepage */
     returnToSimulHomepage: string;
     /** Return to tournaments homepage */
@@ -5249,6 +5493,8 @@ interface I18n {
     saturation: string;
     /** Save */
     save: string;
+    /** Save password */
+    savePassword: string;
     /** Screenshot current position */
     screenshotCurrentPosition: string;
     /** Scroll over computer variations to preview them. */
@@ -5305,10 +5551,18 @@ interface I18n {
     side: string;
     /** Sign in */
     signIn: string;
+    /** Sign in or create an account */
+    signInOrCreateAccount: string;
     /** Sign in or register to track your win rate */
     signInOrRegisterToTrackWinRate: string;
+    /** Already have an account? Sign in to link it */
+    signInToLinkExisting: string;
     /** Sign-in to play rated games. */
     signInToPlayRatedXiangqi: string;
+    /** Sign in with a password */
+    signInWithPassword: string;
+    /** Sign in with %s */
+    signInWithProvider: I18nFormat;
     /** Register */
     signUp: string;
     /** We will only send you emails about your account and never share your email. */
@@ -5371,8 +5625,6 @@ interface I18n {
     stalemate: string;
     /** Standard */
     standard: string;
-    /** Standard match history against %1$s · %2$s */
-    standardHistoryAgainst: I18nFormat;
     /** Stand by %s, pairing players, get ready! */
     standByX: I18nFormat;
     /** Standings */
@@ -5461,6 +5713,16 @@ interface I18n {
     threeChecks: string;
     /** Threefold repetition */
     threefoldRepetition: string;
+    /** Game of the Three Kingdoms */
+    threeKingdoms: string;
+    /** Three Kingdoms analysis board */
+    threeKingdomsAnalysisBoard: string;
+    /** %s invited you to a Three Kingdoms game */
+    threeKingdomsInvitation: I18nFormat;
+    /** All three players accepted. Your Three Kingdoms game is ready. */
+    threeKingdomsReady: string;
+    /** 15 min · 60 sec per move */
+    threeKingdomsTimeControl: string;
     /** Time */
     time: string;
     /** Time is almost up! */
@@ -5585,6 +5847,12 @@ interface I18n {
     unlimited: string;
     /** Take all the time you need */
     unlimitedDescription: string;
+    /** Unlink %s? */
+    unlinkNamedProvider: I18nFormat;
+    /** Unlink account */
+    unlinkProvider: string;
+    /** You will no longer be able to sign in to this LiXiangQi account with %s. Your games and ratings will stay the same. */
+    unlinkProviderHelp: I18nFormat;
     /** Unsubscribe */
     unsubscribe: string;
     /** Until */
@@ -5599,15 +5867,15 @@ interface I18n {
     usernameAlreadyUsed: string;
     /** You can use this username to create a new account */
     usernameCanBeUsedForNewAccount: string;
-    /** The username must only contain letters, numbers, underscores, and hyphens. Consecutive underscores and hyphens are not allowed. */
+    /** The username must only contain English letters, Chinese characters, digits, underscores, and hyphens. Consecutive underscores and hyphens are not allowed. */
     usernameCharsInvalid: string;
     /** We couldn't find any user by this name: %s. */
     usernameNotFound: I18nFormat;
     /** Username or email */
     usernameOrEmail: string;
-    /** The username must start with a letter. */
+    /** The username must start with an English letter or Chinese character. */
     usernamePrefixInvalid: string;
-    /** The username must end with a letter or a number. */
+    /** The username must end with an English letter, Chinese character, or digit. */
     usernameSuffixInvalid: string;
     /** This username is not acceptable. */
     usernameUnacceptable: string;
@@ -5629,6 +5897,16 @@ interface I18n {
     variantWin: string;
     /** Variation arrows let you navigate without using the move list. */
     variationArrowsInfo: string;
+    /** Verify and continue */
+    verifyAndContinue: string;
+    /** For your security, we may ask you to verify your identity before making changes. */
+    verifyBeforeChanges: string;
+    /** Before linking your %s account, verify using a method already connected to LiXiangQi. */
+    verifyLink: I18nFormat;
+    /** Before setting a new password, verify using a method already connected to LiXiangQi. */
+    verifyPasswordChange: string;
+    /** Before unlinking your %s account, verify using a method already connected to LiXiangQi. */
+    verifyUnlink: I18nFormat;
     /** Verify that %s is your email address */
     verifyYourAddress: I18nFormat;
     /** Victory */
@@ -5671,6 +5949,8 @@ interface I18n {
     weHaveSentYouAnEmailClickTheLink: string;
     /** We've sent an email to %s. Click the link in the email to reset your password. */
     weHaveSentYouAnEmailTo: I18nFormat;
+    /** Welcome to LiXiangQi */
+    welcomeToLiXiangQi: string;
     /** What's the matter? */
     whatIsIheMatter: string;
     /** What username did you register with? */
@@ -5747,13 +6027,17 @@ interface I18n {
     xCreatedTeamY: I18nFormat;
     /** %1$s hosts %2$s */
     xHostsY: I18nFormat;
+    /** Xiangqi */
+    xiangqi: string;
     /** Empty Xiangqi board, ready to play */
     xiangqiBoardReady: string;
-    /** Xiangqi rules */
+    /** A soldier moves and captures one intersection forward. After crossing the river, it can also move and capture one intersection sideways. It cannot move backward. Xiangqi has no initial two-step soldier move and no en passant capture. */
+    xiangqiPawnCaptureRules: string;
+    /** Repetition rules */
     xiangqiRules: string;
     /** Lixiangqi default rules */
     xiangqiRulesTiantian: string;
-    /** Unrestricted (no repetition adjudication) */
+    /** No repetition adjudication */
     xiangqiRulesUnrestricted: string;
     /** %1$s invited you to "%2$s". */
     xInvitedYouToY: I18nFormat;
@@ -6828,6 +7112,278 @@ interface I18n {
     /** You need your password and an authentication code from your authenticator app to disable two-factor authentication. */
     twoFactorToDisable: string;
   };
+  threeKingdoms: {
+    /** Accept invitation */
+    accept: string;
+    /** Accepted */
+    accepted: string;
+    /** Analyse line */
+    analyseLine: string;
+    /** Three Kingdoms analysis board */
+    analysis: string;
+    /** Analysing selected line %1$s/%2$s… */
+    analysisProgress: I18nFormat;
+    /** Relative strength along the engine’s best line, not win probabilities. Equal positions share the bar equally. Eliminated kingdoms receive no share; a final draw splits the share between the remaining kingdoms. */
+    balanceHelp: string;
+    /** Wei — black */
+    black: string;
+    /** Board theme */
+    boardTheme: string;
+    /** Cancel */
+    cancel: string;
+    /** General captured; army appropriated */
+    capture: string;
+    /** Casual */
+    casual: string;
+    /** These players’ challenge or blocking preferences prevent this invitation. */
+    challengeNotAllowed: string;
+    /** This challenge is no longer available. */
+    challengeUnavailable: string;
+    /** Checkmate */
+    checkmate: string;
+    /** Choose two different players other than yourself. */
+    chooseTwoDifferentPlayers: string;
+    /** Your time has expired. */
+    clockExpired: string;
+    /** Play against computer */
+    computer: string;
+    /** Resign this game? */
+    confirmResign: string;
+    /** Army controlled by: %s */
+    controls: I18nFormat;
+    /** Link copied */
+    copied: string;
+    /** Decline invitation */
+    decline: string;
+    /** Depth %1$s · %2$s nodes */
+    depth: I18nFormat;
+    /** Download board image */
+    downloadImage: string;
+    /** Offer / accept draw */
+    draw: string;
+    /** Draw offered by: %s */
+    drawOffered: I18nFormat;
+    /** Edit board */
+    edit: string;
+    /** Eliminated — you can keep watching or leave at any time. */
+    eliminated: string;
+    /** Eliminated */
+    eliminatedPlayer: string;
+    /** No Three Kingdoms games yet. */
+    emptyHistory: string;
+    /** Engine analysis */
+    engine: string;
+    /** A functional Three Kingdoms engine. Its strength is experimental. */
+    engineDescription: string;
+    /** Thinking… */
+    engineThinking: string;
+    /** The engine could not load. Retry to continue. */
+    engineUnavailable: string;
+    /** The request could not be completed. Please try again. */
+    error: string;
+    /** Evaluation by kingdom */
+    evaluation: string;
+    /** Download game record */
+    export: string;
+    /** Fallen general — blocks movement; cannot move */
+    fallenGeneral: string;
+    /** Game finished */
+    finished: string;
+    /** Validate position */
+    finishEditing: string;
+    /** First position */
+    first: string;
+    /** Challenge two friends */
+    friends: string;
+    /** Game not found. */
+    gameNotFound: string;
+    /** Wu — green */
+    green: string;
+    /** Game history */
+    history: string;
+    /** Import game record */
+    import: string;
+    /** That move is not legal. */
+    invalidMove: string;
+    /** Send both invitations */
+    invite: string;
+    /** Enable JavaScript to play or analyze Three Kingdoms. */
+    javascriptRequired: string;
+    /** Last position */
+    last: string;
+    /** Leave spectating */
+    leave: string;
+    /** Computer level */
+    level: string;
+    /** Show engine lines preview */
+    linesPreview: string;
+    /** Watch live games */
+    live: string;
+    /** Load position */
+    loadPosition: string;
+    /** Play locally */
+    localComputer: string;
+    /** Sign in to play with other players and save games to your history. */
+    login: string;
+    /** Main time (minutes per player) */
+    mainTime: string;
+    /** Older games */
+    more: string;
+    /** Move deadline (seconds) */
+    moveTime: string;
+    /** You must resolve check. Choose a safe destination. */
+    mustResolveCheck: string;
+    /** Next move */
+    next: string;
+    /** No safe escape. Play continues until your general is captured. */
+    noSafeEscape: string;
+    /** You have been eliminated. */
+    notAnActivePlayer: string;
+    /** You are spectating this game. */
+    notAPlayer: string;
+    /** It is not your turn. */
+    notYourTurn: string;
+    /** Finish your current real-time game before joining another queue. */
+    ongoingGame: string;
+    /** First friend’s username */
+    opponentOne: string;
+    /** Second friend’s username */
+    opponentTwo: string;
+    /** Waiting for acceptance */
+    pending: string;
+    /** Lost by perpetual check */
+    perpetualcheck: string;
+    /** Repeated checking can lose the game. Vary your attack. */
+    perpetualWarning: string;
+    /** Piece set */
+    pieceSet: string;
+    /** Place: %s */
+    place: I18nFormat;
+    /** Matchmaking is temporarily unavailable while your play restriction is active. */
+    playbanned: string;
+    /** One or both players are unavailable. */
+    playersUnavailable: string;
+    /** Position (TK1) */
+    position: string;
+    /** Position balance */
+    positionBalance: string;
+    /** Position %s */
+    positionNumber: I18nFormat;
+    /** Previous move */
+    previous: string;
+    /** Rated Three Kingdoms */
+    rated: string;
+    /** This account cannot join rated matchmaking. */
+    ratedUnavailable: string;
+    /** Read your message from the moderators before joining a rated game. */
+    readModeratorMessage: string;
+    /** Reconnecting… */
+    reconnecting: string;
+    /** Shu — red */
+    red: string;
+    /** Invite everyone to a rematch */
+    rematch: string;
+    /** Army removed */
+    removedArmy: string;
+    /** Remove piece */
+    removePiece: string;
+    /** Initial position */
+    reset: string;
+    /** Resign */
+    resign: string;
+    /** Resigned */
+    resignation: string;
+    /** Retry */
+    retry: string;
+    /** Return to live game */
+    returnLive: string;
+    /** Rotate board */
+    rotate: string;
+    /** Rules and how to play */
+    rules: string;
+    /** The generals are Shu 蜀 (red), Wu 吳 (green), and Wei 魏 (black). Green pieces use 向 for elephant, 礮 for cannon, and 勇 for soldier. Each army has one general, two advisors, two elephants, two horses, two chariots, two cannons, and five soldiers. */
+    rulesArmies: string;
+    /** Keep your general safe. If checked, you must remove every attack whenever a safe response exists. With three active players only, if no safe response exists, you may continue with a mechanically valid move even while checked. A general capture must still leave the captor safe after takeover. The captor receives every army controlled by the defeated player, without an extra turn or time award. Pieces retain their colors and movement directions. */
+    rulesCapture: string;
+    /** These are LiXiangQi’s published rules for this release. Historical and online three-player xiangqi games use several incompatible rule sets. */
+    rulesConvention: string;
+    /** All active players must accept an agreed draw. Otherwise threefold repetition draws, except for unilateral perpetual check. A position includes the player to move, pieces, controllers, active generals, and stalemate credit. After 180 quiet moves with three players, or 120 in the duel, the game draws. Captures, soldier moves, and eliminations reset the count. The match also draws at 1,500 moves. Decisive results take precedence over move-limit draws. */
+    rulesDraw: string;
+    /** Once two players remain, moves exposing your general are illegal. Complete all ownership and removal changes, then judge the player whose turn begins. Checkmate or stalemate loses immediately; the general need not be captured. Placements are first, second, and third. Eliminated players may watch or leave freely. */
+    rulesDuel: string;
+    /** An uncaptured general left after an awarded army transfer becomes a fallen general. It stays on its square as an inactive blocker and cannon screen. It cannot move, attack, or create a facing-generals restriction. An enemy may capture it, but this does not eliminate its controller or transfer the army again. Only the controller’s original active general remains royal. */
+    rulesFallen: string;
+    /** A general may capture an unobstructed opposing general along a logical file, including across the river. It then occupies that palace; ordinary general moves must stay within a palace. */
+    rulesFlyingGeneral: string;
+    /** Three armies of 16 pieces compete on the existing 135-point board. Red Shu moves first, then green Wu, then black Wei. There are no bannermen or promotions. */
+    rulesIntro: string;
+    /** Chariots and cannons follow logical ranks and files, including their bends. Cannons need one screen to capture. Horses have blocked legs; elephants have blocked eyes and stay in their original territory. Advisors stay in their original palace. The center file can cross toward either opponent. */
+    rulesMovement: string;
+    /** On a third occurrence of the same position, a player who checked the same opponent on every one of their own turns through both repetition cycles is a perpetual checker. If exactly one player qualifies, that player loses and the continuously checked opponent receives the army. If there are multiple qualifying players, the result is a draw. If more than one opponent was continuously checked, next-turn order decides the recipient. Repeated chasing uses the ordinary threefold draw. These are the variant’s own repetition rules, not the ordinary Tiantian chase rules. */
+    rulesPerpetual: string;
+    /** Rated matchmaking uses a separate Three Kingdoms rank. Placements are compared with both opponents once; equally ranked players receive +20, 0, and −20 points before the rank floor. A tied final duel preserves third place and shares first and second. Friend and computer games are casual. */
+    rulesRating: string;
+    /** Soldiers advance toward the river. After crossing, they can move sideways or toward the entered territory’s home edge. They cannot return across a river or cross into a third territory. Appropriation does not change this direction. */
+    rulesSoldier: string;
+    /** Stalemate is a loss, not a draw: when your turn begins, if you are not checked but have no safe move, you lose. The opponent whose move removed the last safe move receives the army, unless another move restored an escape in the meantime. An unrelated intervening move does not steal credit. If no opponent caused the condition, the army is removed. There are no pass turns. A checked player with no safe response and no mechanically valid continuation also loses; allocation follows the checked-timeout rule. */
+    rulesStalemate: string;
+    /** Turns remain Shu, Wu, Wei, skipping eliminated players. Check does not interrupt turn order or grant immunity. The third player may rescue an opponent by changing the position, or may capture an exposed general before its owner gets a turn. Reassess safe responses when the player’s turn arrives. */
+    rulesTurnOrder: string;
+    /** Timeout or resignation eliminates a player immediately. If one opponent is checking that player, that opponent receives the army. If both are checking, the checking player due to move first receives it. If neither is checking, the departing army is removed. Disconnection alone does not eliminate a player: the clock continues. Expiry of either the main clock or move deadline loses. Off-turn resignation never restarts another player’s clock. */
+    rulesWithdrawal: string;
+    /** Save analysis */
+    save: string;
+    /** Analysis saved */
+    saved: string;
+    /** Search depth */
+    searchDepth: string;
+    /** Search runs on this device, up to the selected depth and a bounded work limit. The displayed depth is the last fully completed search. */
+    searchHelp: string;
+    /** Waiting for two opponents… */
+    searching: string;
+    /** Select a position in the evaluation graph */
+    selectPosition: string;
+    /** Copy position link */
+    share: string;
+    /** Shu */
+    shu: string;
+    /** Spectating */
+    spectating: string;
+    /** No legal moves */
+    stalemate: string;
+    /** The game changed. The latest position has been loaded. */
+    staleRevision: string;
+    /** Start game */
+    start: string;
+    /** Request / accept takeback */
+    takeback: string;
+    /** Takeback requested by: %s */
+    takebackOffered: I18nFormat;
+    /** A takeback is unavailable here. */
+    takebackUnavailable: string;
+    /** 15 minutes per player · 60 seconds per move · no increment */
+    timeControl: string;
+    /** Time expired */
+    timeout: string;
+    /** Game of the Three Kingdoms */
+    title: string;
+    /** Choose 7, 10, or 15 minutes, with no increment and a 60-second move limit. All tournament games are casual. Team battles require three different teams in each game. */
+    tournamentClock: string;
+    /** Three players per game. First place earns 4 points, second 2, and third 0. Tied places share their points. There are no streak or berserk bonuses. Only games finished before the tournament ends count. Games still in progress may continue afterward. */
+    tournamentRules: string;
+    /** To move: %s */
+    turn: I18nFormat;
+    /** Variation */
+    variation: string;
+    /** Players waiting: %s */
+    waitingCount: I18nFormat;
+    /** Wei */
+    wei: string;
+    /** Wu */
+    wu: string;
+    /** Your kingdom */
+    yourKingdom: string;
+  };
   timeago: {
     /** completed */
     completed: string;
@@ -7391,6 +7947,12 @@ interface I18n {
     noDrafts: string;
     /** No posts in this blog, yet. */
     noPostsInThisBlogYet: string;
+    /** LiXiangQi */
+    officialBlog: string;
+    /** Official LiXiangQi post */
+    officialPost: string;
+    /** Only the author with official posting permission can change this designation or publish an official draft. */
+    officialPostPermissionRequired: string;
     /** Post body */
     postBody: string;
     /** Post intro */
@@ -7399,6 +7961,10 @@ interface I18n {
     postTitle: string;
     /** Previous blog posts */
     previousBlogPosts: string;
+    /** Publish as an official LiXiangQi post */
+    publishAsOfficial: string;
+    /** Published posts appear in the LiXiangQi blog. You remain the author; other official publishers cannot edit your post. */
+    publishAsOfficialHelp: string;
     /** Published */
     published: string;
     /** Published %s blog posts */
@@ -7471,7 +8037,7 @@ interface I18n {
     racingKingsTitle: string;
     /** Standard */
     standard: string;
-    /** Standard rules of Xiangqi (WXF) */
+    /** Chinese chess */
     standardTitle: string;
     /** Three-Check */
     threeCheck: string;

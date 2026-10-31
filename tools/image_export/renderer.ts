@@ -35,7 +35,10 @@ const resources = new Map<string, string>();
 const allowedAssets = new Set([
   ...boardAssets.boards.flatMap(board => Object.values(board.geometries)),
   ...boardAssets.pieceSets.flatMap(set =>
-    Object.values(set.variants).flatMap(v => [v.back, ...Object.values(v.faces).flatMap(Object.values)]),
+    Object.values(set.variants).flatMap(v => [
+      ...Object.values(v.back),
+      ...Object.values(v.faces).flatMap(Object.values),
+    ]),
   ),
   boardAssets.shadows.rest,
 ]);

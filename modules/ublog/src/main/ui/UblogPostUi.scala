@@ -39,10 +39,13 @@ final class UblogPostUi(helpers: Helpers, ui: UblogUi)(connectLinks: Frag):
           st.title := trans.ublog.xBlog.txt(user.username)
         ).some
       )
-      .flag(_.noRobots, !blog.listed || !post.indexable || blog.tier < UblogBlog.Tier.HIGH)
+      .flag(
+        _.noRobots,
+        !blog.listed || !post.indexable || (!post.isOfficial && blog.tier < UblogBlog.Tier.HIGH)
+      )
       .csp(_.withTwitter.withInlineIconFont):
         main(cls := "page-menu page-small")(
-          ui.menu(Left(user.id)),
+          ui.menu(if post.isOfficial then Right("official") else Left(user.id)),
           div(cls := "page-menu__content box box-pad ublog-post")(
             post.image.map: image =>
               frag(
@@ -62,10 +65,13 @@ final class UblogPostUi(helpers: Helpers, ui: UblogUi)(connectLinks: Frag):
                 href := routes.Ublog.index(user.username),
                 dataHref := routes.User.show(user.username)
               )(userLinkContent(user)),
-              iconTag(Icon.InfoCircle)(
-                cls := "ublog-post__meta__disclaimer",
-                st.title := "Opinions expressed by Lichess contributors are their own."
-              ),
+              if post.isOfficial then a(href := routes.Ublog.official())(trans.ublog.officialPost())
+              else
+                iconTag(Icon.InfoCircle)(
+                  cls := "ublog-post__meta__disclaimer",
+                  st.title := "Opinions expressed by Lichess contributors are their own."
+                )
+              ,
               post.lived.map: live =>
                 span(cls := "ublog-post__meta__date")(semanticDate(live.at)),
               post.live.option(likeButton(post, liked, showText = false)),
@@ -81,8 +87,7 @@ final class UblogPostUi(helpers: Helpers, ui: UblogUi)(connectLinks: Frag):
                   " ",
                   editButton(post)
                 )
-              else if Granter.opt(_.ModerateBlog) || (user.is(UserId.lichess) && Granter.opt(_.Pages)) then
-                editButton(post)
+              else if post.allows.edit then editButton(post)
               else if !post.live then badTag(trans.ublog.thisIsADraft())
               else
                 a(
@@ -112,7 +117,7 @@ final class UblogPostUi(helpers: Helpers, ui: UblogUi)(connectLinks: Frag):
             ),
             strong(cls := "ublog-post__intro")(post.intro),
             div(cls := "ublog-post__markup expand-text")(markup),
-            post.isLichess.option(
+            post.isOfficial.option(
               div(cls := "ublog-post__lichess")(
                 connectLinks,
                 p(a(href := routes.Plan.index())(trans.site.lichessPatronInfo()))

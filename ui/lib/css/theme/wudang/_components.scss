@@ -92,23 +92,6 @@ html.wudang {
         color: var(--wudang-jade-light) !important;
       }
     }
-
-    .signup {
-      border: 1px solid #662822;
-      border-radius: var(--wudang-radius-stone);
-      background: linear-gradient(180deg, #a84d43, var(--wudang-cinnabar));
-      color: var(--wudang-text-on-dark);
-      box-shadow:
-        inset 0 1px rgb(255 255 255 / 0.12),
-        inset 0 -2px rgb(57 17 14 / 0.28),
-        0 2px 4px rgb(4 9 10 / 0.36);
-      text-shadow: 0 1px rgb(54 17 14 / 0.55);
-
-      &:hover {
-        background: linear-gradient(180deg, var(--wudang-cinnabar-light), #87372f);
-        color: #fff !important;
-      }
-    }
   }
 
   .site-title-nav__donate,

@@ -18,6 +18,7 @@ import * as button from './button';
 import { anyClockView } from './clock';
 import renderExpiration from './expiration';
 import { render as renderReplay, analysisButton } from './replay';
+import { tableView } from './room';
 import { userHtml } from './user';
 
 function renderPlayer(ctrl: RoundController, position: TopOrBottom) {
@@ -81,14 +82,16 @@ export const renderTablePlay = (ctrl: RoundController): LooseVNodes => {
         : [
             abortable(d)
               ? button.standard(ctrl, undefined, licon.X, i18n.site.abortGame, 'abort')
-              : button.standard(
-                  ctrl,
-                  d => ({ enabled: takebackable(d) }),
-                  licon.Back,
-                  i18n.site.proposeATakeback,
-                  'takeback-yes',
-                  ctrl.takebackYes,
-                ),
+              : d.game.variant.key === 'jieqi'
+                ? undefined
+                : button.standard(
+                    ctrl,
+                    d => ({ enabled: takebackable(d) }),
+                    licon.Back,
+                    i18n.site.proposeATakeback,
+                    'takeback-yes',
+                    ctrl.takebackYes,
+                  ),
             ctrl.drawConfirm
               ? button.drawConfirm(ctrl)
               : ctrl.data.game.threefold
@@ -140,20 +143,20 @@ export const renderTablePlay = (ctrl: RoundController): LooseVNodes => {
   ];
 };
 
-export const renderTable = (ctrl: RoundController): LooseVNodes => [
-  hl('div.round__app__table'),
-  renderExpiration(ctrl),
-  renderPlayer(ctrl, 'top'),
-  ctrl.data.player.spectator
-    ? renderTableWatch(ctrl)
-    : playable(ctrl.data)
-      ? renderTablePlay(ctrl)
-      : renderTableEnd(ctrl),
-  renderPlayer(ctrl, 'bottom'),
-  /* render clocks after players so they display on top of them in col1,
-   * since they occupy the same grid cell. This is required to avoid
-   * having two columns with min-content, which causes the horizontal moves
-   * to overflow: it couldn't be contained in the parent anymore */
-  anyClockView(ctrl, 'top'),
-  anyClockView(ctrl, 'bottom'),
-];
+export const renderTable = (ctrl: RoundController): LooseVNodes =>
+  tableView([
+    renderExpiration(ctrl),
+    renderPlayer(ctrl, 'top'),
+    ctrl.data.player.spectator
+      ? renderTableWatch(ctrl)
+      : playable(ctrl.data)
+        ? renderTablePlay(ctrl)
+        : renderTableEnd(ctrl),
+    renderPlayer(ctrl, 'bottom'),
+    /* render clocks after players so they display on top of them in col1,
+     * since they occupy the same grid cell. This is required to avoid
+     * having two columns with min-content, which causes the horizontal moves
+     * to overflow: it couldn't be contained in the parent anymore */
+    anyClockView(ctrl, 'top'),
+    anyClockView(ctrl, 'bottom'),
+  ]);

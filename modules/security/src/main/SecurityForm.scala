@@ -3,7 +3,7 @@ package lila.security
 import play.api.data.*
 import play.api.data.Forms.*
 import play.api.data.validation.Constraints
-import play.api.mvc.Request
+import play.api.mvc.{ Request, RequestHeader }
 
 import lila.common.Form.*
 import lila.common.Form as LilaForm
@@ -18,6 +18,7 @@ final class SecurityForm(
     userRepo: lila.user.UserRepo,
     authenticator: Authenticator,
     emailValidator: EmailAddressValidator,
+    externalLogin: ExternalLogin,
     lameNameCheck: LameNameCheck
 )(using ec: Executor, mode: play.api.Mode):
 
@@ -59,7 +60,7 @@ final class SecurityForm(
 
     val emailField: Mapping[EmailAddress] = fullyValidEmail(using none)
 
-    private val newUsernameConstraints = List(
+    private val newUsernameConstraints = LilaForm.username.lengthConstraints(20) ++ List(
       Constraints.pattern(
         regex = lila.user.nameRules.newUsernamePrefix,
         error = "usernamePrefixInvalid"
@@ -79,7 +80,7 @@ final class SecurityForm(
     )
 
     private val anyUsername: Mapping[UserName] = LilaForm
-      .cleanNonEmptyText(minLength = 2, maxLength = 20)
+      .trim(nonEmptyText)
       .verifying(newUsernameConstraints*)
       .into[UserName]
       .verifying("usernameUnacceptable", u => !lameNameCheck.value || !LameName.username(u))
@@ -106,11 +107,11 @@ final class SecurityForm(
       "account" -> agreementBool
     )(AgreementData.apply)(unapply)
 
-    def full(simpleSignup: Option[SimpleSignup]): SignupForm =
+    def full(simpleSignup: Option[SimpleSignup], external: Boolean = false): SignupForm =
       val base = Form:
         mapping(
           "username" -> uniqueUsername,
-          "password" -> newPasswordField,
+          "password" -> (if external then ignored("") else newPasswordField),
           "email" -> emailField,
           "agreement" -> agreement,
           "fp" -> optional(nonEmptyText)
@@ -151,29 +152,12 @@ final class SecurityForm(
       .verifying("newPasswordsDontMatch", _.samePasswords)
   )
 
-  case class Passwd(
-      oldPasswd: String,
-      newPasswd1: String,
-      newPasswd2: String
-  ):
-    def samePasswords = newPasswd1 == newPasswd2
-
-  def passwdChange(using Executor)(using me: Me) =
-    authenticator.loginCandidate.map: candidate =>
-      Form:
-        mapping(
-          "oldPasswd" -> nonEmptyText.verifying("incorrectPassword", p => candidate.check(ClearPassword(p))),
-          "newPasswd1" -> newPasswordFieldForMe,
-          "newPasswd2" -> newPasswordFieldForMe
-        )(Passwd.apply)(unapply)
-          .verifying("newPasswordsDontMatch", _.samePasswords)
-
   def magicLink = Form:
     mapping(
       "email" -> sendableEmail // allow unacceptable emails for BC
     )(MagicLink.apply)(_ => None)
 
-  def changeEmail(old: Option[EmailAddress])(using Me) =
+  def changeEmail(old: Option[EmailAddress])(using Me, RequestHeader) =
     authenticator.loginCandidate.map: candidate =>
       Form(
         mapping(
@@ -182,7 +166,7 @@ final class SecurityForm(
         )(ChangeEmail.apply)(unapply)
       ).fillOption(old.map { ChangeEmail("", _) })
 
-  def setupTwoFactor(using Me) =
+  def setupTwoFactor(using Me, RequestHeader) =
     authenticator.loginCandidate.map: candidate =>
       Form(
         mapping(
@@ -200,7 +184,7 @@ final class SecurityForm(
           token = TotpToken("")
         )
 
-  def disableTwoFactor(using Me) =
+  def disableTwoFactor(using Me, RequestHeader) =
     authenticator.loginCandidate.map: candidate =>
       Form:
         tuple(
@@ -220,11 +204,11 @@ final class SecurityForm(
     single("email" -> optional(anyEmail.verifying(emailValidator.uniqueConstraint(user.some))))
   )
 
-  private def passwordProtected(using Me) =
+  private def passwordProtected(using Me, RequestHeader) =
     authenticator.loginCandidate.map: candidate =>
       Form(single("passwd" -> passwordMapping(candidate)))
 
-  def closeAccount(using Me) =
+  def closeAccount(using Me, RequestHeader) =
     authenticator.loginCandidate.map: candidate =>
       Form:
         mapping(
@@ -234,7 +218,7 @@ final class SecurityForm(
           "forever" -> boolean
         )((_, _, _, forever) => forever)(_ => None)
 
-  def toggleKid(using Me) = passwordProtected
+  def toggleKid(using Me, RequestHeader) = passwordProtected
 
   def reopen = Form:
     mapping(
@@ -242,7 +226,7 @@ final class SecurityForm(
       "email" -> sendableEmail // allow unacceptable emails for BC
     )(Reopen.apply)(_ => None)
 
-  def deleteAccount(using me: Me) =
+  def deleteAccount(using me: Me, req: RequestHeader) =
     authenticator.loginCandidate.map: candidate =>
       Form:
         mapping(
@@ -251,8 +235,11 @@ final class SecurityForm(
           "understand" -> boolean.verifying("It's an important point.", identity[Boolean])
         )((_, _, _) => ())(_ => None)
 
-  private def passwordMapping(candidate: LoginCandidate) =
-    text.verifying("incorrectPassword", p => candidate.check(ClearPassword(p)))
+  private def passwordMapping(candidate: LoginCandidate)(using me: Me, req: RequestHeader) =
+    text.verifying(
+      "incorrectPassword",
+      p => externalLogin.confirmed(me.userId) || candidate.check(ClearPassword(p))
+    )
 
 object SecurityForm:
 

@@ -99,13 +99,11 @@ test('deviation search replaces initial, accepted, and failed feedback with live
   }
 });
 
-test('measured search work reserves space for extensions without a depth limit', () => {
+test('measured search work follows the fixed budget and reserves space for completion', () => {
   assert.equal(evaluationPercent(0), 0);
-  assert.ok(evaluationPercent(1) < 0.02);
-  assert.equal(evaluationPercent(2_000), 37.5);
-  assert.equal(evaluationPercent(4_000), 75);
-  assert.equal(evaluationPercent(6_000), 85);
-  assert.equal(evaluationPercent(15_000), 95);
+  assert.equal(evaluationPercent(-1), 0);
+  assert.equal(evaluationPercent(1_750), 47.5);
+  assert.equal(evaluationPercent(3_500), 95);
   assert.equal(evaluationPercent(60_000), 95);
 });
 

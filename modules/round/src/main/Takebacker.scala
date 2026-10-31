@@ -106,7 +106,7 @@ final private class Takebacker(
       case _ => fufail(ClientError("[takebacker] invalid no " + pov))
 
   def isAllowedIn(game: Game, prefs: Preload[ByColor[Pref]]): Fu[Boolean] =
-    game.canTakebackOrAddTime.so(isAllowedByPrefs(game, prefs))
+    (!game.isJieqi && game.canTakebackOrAddTime).so(isAllowedByPrefs(game, prefs))
 
   private def offerTakebackMessage(pov: Pov): String =
     val k = if pov.game.turnOf(pov.color) then 2 else 1
@@ -132,7 +132,8 @@ final private class Takebacker(
             p.takeback == Pref.Takeback.ALWAYS || (p.takeback == Pref.Takeback.CASUAL && !game.ranked)
 
   private def IfAllowed[A](game: Game, prefs: Preload[ByColor[Pref]])(f: => Fu[A]): Fu[A] =
-    if !game.playable then fufail(ClientError("[takebacker] game is over " + game.id))
+    if game.isJieqi then fufail(ClientError("Takebacks are disabled in Jieqi"))
+    else if !game.playable then fufail(ClientError("[takebacker] game is over " + game.id))
     else if !game.canTakebackOrAddTime then fufail(ClientError("[takebacker] game disallows it " + game.id))
     else
       isAllowedByPrefs(game, prefs).flatMap:
@@ -162,20 +163,18 @@ final private class Takebacker(
       Bus.pub(
         lila.core.round.CorresTakebackOfferEvent(game.id)
       )
-    if lila.game.Game.mightBeBoardOrBotCompatible(game) then
-      Bus.publishDyn(
-        lila.game.actorApi.BoardTakebackOffer(game),
-        lila.game.actorApi.BoardTakebackOffer.makeChan(game.id)
-      )
+    Bus.publishDyn(
+      lila.game.actorApi.BoardTakebackOffer(game),
+      lila.game.actorApi.BoardTakebackOffer.makeChan(game.id)
+    )
 
   private def publishTakeback(prevPov: Pov)(using proxy: GameProxy): Unit =
-    if lila.game.Game.mightBeBoardOrBotCompatible(prevPov.game) then
-      proxy.withPov(prevPov.color): p =>
-        fuccess:
-          Bus.publishDyn(
-            lila.game.actorApi.BoardTakeback(p.game),
-            lila.game.actorApi.BoardTakeback.makeChan(prevPov.gameId)
-          )
+    proxy.withPov(prevPov.color): p =>
+      fuccess:
+        Bus.publishDyn(
+          lila.game.actorApi.BoardTakeback(p.game),
+          lila.game.actorApi.BoardTakeback.makeChan(prevPov.gameId)
+        )
 
 private object Takebacker:
   def acceptedPlies(currentPly: Ply, proposedAt: Ply, accepter: Color, playedPlies: Ply): Int =

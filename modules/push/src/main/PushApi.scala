@@ -25,8 +25,9 @@ final private class PushApi(
     namer: lila.core.game.Namer,
     notifyAllows: lila.core.notify.GetNotifyAllows,
     postApi: lila.core.forum.ForumPostApi,
-    lightUser: lila.core.LightUser.GetterFallback
-)(using Executor, Scheduler):
+    lightUser: lila.core.LightUser.GetterFallback,
+    userApi: lila.core.user.UserApi
+)(using Executor, Scheduler)(using translator: lila.core.i18n.Translator):
 
   import PushApi.*
   import PushApi.Data.payload
@@ -34,6 +35,32 @@ final private class PushApi(
   private[push] def notifyPush(to: Iterable[NotifyAllows], content: NotificationContent): Funit =
     import NotificationContent.*
     content match
+      case ThreeKingdomsChallenge(invitedBy, id, started) =>
+        lightUser(invitedBy).flatMap: inviter =>
+          to.toList.sequentiallyVoid: recipient =>
+            val data = LazyFu: () =>
+              userApi
+                .langOf(recipient.userId)
+                .map: lang =>
+                  given lila.core.i18n.Translate = translator.to(play.api.i18n.Lang(lang.getOrElse("en")))
+                  val tr = lila.core.i18n.I18nKey.site
+                  Data(
+                    title = tr.threeKingdoms.txt(),
+                    body = if started then tr.threeKingdomsReady.txt()
+                    else tr.threeKingdomsInvitation.txt(inviter.titleName),
+                    key = if started then Key.challengeAccept else Key.challengeCreate,
+                    urgency = Urgency.Normal,
+                    mobileCompatible = None,
+                    payload = payload(recipient.userId)(
+                      "type" -> "threeKingdomsChallenge",
+                      "gameId" -> id.value,
+                      "started" -> started.toString,
+                      "url" -> s"https://lixiangqi.org/three-kingdoms/${
+                          if started then "game" else "challenge"
+                        }/${id.value}"
+                    )
+                  )
+            filterPushNotif(recipient, _.challenge.create, data)
       case PrivateMessage(sender, text) =>
         lightUser(sender).flatMap(luser => privateMessage(to.head, sender, luser.titleName, text))
       case MentionedInThread(mentioner, topic, _, _, postId) =>

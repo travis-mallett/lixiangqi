@@ -13,6 +13,9 @@ import lila.xiangqi.Xiangqi
 
 object RankedGame:
 
+  val jieqiClock = Clock.Config(Clock.LimitSeconds(10 * 60), Clock.IncrementSeconds(0))
+  val jieqiMoveTime = MoveTimeLimit(60, MoveTimeLimit.FirstPhase(moves = 3, seconds = 30).some)
+
   val xiangqiClock = Clock.Config(Clock.LimitSeconds(15 * 60), Clock.IncrementSeconds(0))
   val xiangqiMoveTime =
     MoveTimeLimit(90, MoveTimeLimit.FirstPhase(moves = 3, seconds = 30).some)
@@ -31,11 +34,12 @@ object RankedGame:
   ): Option[RankTrackId] =
     requested.filter: track =>
       val snapshots = players.all.flatMap(_.rank)
-      track == RankTrackId.xiangqi &&
+      RankTrackId.all.contains(track) &&
+      RankTrackId.variant(track).playerCount == 2 &&
       source == Source.Pool &&
       variant == Standard &&
-      clock.contains(xiangqiClock) &&
-      moveTimeLimit.contains(xiangqiMoveTime) &&
+      clock.contains(if track == RankTrackId.xiangqi then xiangqiClock else jieqiClock) &&
+      moveTimeLimit.contains(if track == RankTrackId.xiangqi then xiangqiMoveTime else jieqiMoveTime) &&
       players.all.flatMap(_.userId).distinct.size == 2 &&
       snapshots.size == 2 &&
       snapshots.forall(_.track == track) &&
@@ -43,14 +47,15 @@ object RankedGame:
       snapshots.map(_.policyVersion).distinct.size == 1
 
   def isAuthorized(game: Game): Boolean =
-    game.xiangqi.ruleset == lila.xiangqi.adjudication.Ruleset.Tiantian && authorize(
-      game.rankTrack,
-      game.metadata.source.getOrElse(Source.Lobby),
-      game.variant,
-      game.clock.map(_.config),
-      game.moveTimeLimit,
-      game.players
-    ).isDefined
+    game.xiangqi.ruleset == game.nativeVariant.defaultRuleset &&
+      game.rankTrack.contains(RankTrackId.of(game.nativeVariant)) && authorize(
+        game.rankTrack,
+        game.metadata.source.getOrElse(Source.Lobby),
+        game.variant,
+        game.clock.map(_.config),
+        game.moveTimeLimit,
+        game.players
+      ).isDefined
 
   def asCasual(game: Game): Game =
     game.copy(
@@ -149,7 +154,8 @@ private def newSloppy(
   val authorizedRankTrack =
     RankedGame
       .authorize(rankTrack, source, variant, clock.map(_.config), moveTimeLimit, players)
-      .filter(_ => xiangqi.ruleset == lila.xiangqi.adjudication.Ruleset.Tiantian)
+      .filter: track =>
+        track == RankTrackId.of(xiangqi.variant) && xiangqi.ruleset == xiangqi.variant.defaultRuleset
   new Game(
     id = IdGenerator.uncheckedGame,
     // Rank snapshots are also presentation metadata, so casual games retain them. Whether a game
