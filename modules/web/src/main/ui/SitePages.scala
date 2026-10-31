@@ -197,13 +197,13 @@ final class SitePages(helpers: Helpers):
                 ),
                 copyMeInput(iframe),
                 parameters(
-                  li(strong("fen"), ": custom initial position as a FEN with underscores instead of spaces"),
+                  li(strong("fen"), ": custom initial position as a URL-encoded FEN"),
                   li(strong("color"), ": initial orientation, either black or white")
                 ),
                 div(
                   "Example using a custom initial position:",
                   copyMeInput:
-                    s"""<iframe src="https://lixiangqi.org/embed/analysis" $args></iframe>"""
+                    s"""<iframe src="https://lixiangqi.org/embed/analysis?fen=rnbakab1r/9/1c4nc1/p1p1p1p1p/9/9/P1P1P1P1P/1C2C4/9/RNBAKABNR%20w%20-%20-%202%202" $args></iframe>"""
                 ),
                 p("The text is automatically translated to your visitor's language.")
               )
