@@ -500,7 +500,6 @@ function renderProfile(result: PlayerDatabaseResult): void {
   if (!document.querySelector('.pro-player-profile'))
     document.title = `${result.player.name} — Games Database`;
   renderSourceCounts(result);
-  renderTimeline(result.timeline);
   renderGames(result.games);
   renderSort();
   total = result.total;
@@ -527,6 +526,7 @@ function renderProfile(result: PlayerDatabaseResult): void {
   pageStatus.textContent = 'Player statistics loaded';
   pageStatus.classList.remove('error');
   pageContent.hidden = false;
+  renderTimeline(result.timeline);
 }
 
 async function loadProfile(): Promise<void> {
