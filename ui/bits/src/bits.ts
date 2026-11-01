@@ -65,6 +65,16 @@ function colorizeYesNoTable() {
 
 function contact() {
   location.hash ||= '#help-root';
+  const tree = document.querySelector<HTMLElement>('.nav-tree');
+  if (tree) {
+    const syncInactivePanels = () => {
+      tree.querySelectorAll<HTMLElement>('.node').forEach(node => {
+        node.inert = !node.matches(':target');
+      });
+    };
+    syncInactivePanels();
+    window.addEventListener('hashchange', syncInactivePanels);
+  }
   contactEmail();
 }
 
