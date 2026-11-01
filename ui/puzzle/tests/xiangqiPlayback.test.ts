@@ -4,7 +4,7 @@ import { mock, test } from 'node:test';
 import type { EngineAnalysis } from 'lib/ceval/engines/pikafishProtocol';
 
 import type { PuzzleOpts } from '../src/interfaces.ts';
-import { withPositions } from './positionFixtures.ts';
+import { fixturePositions, withPositions } from './positionFixtures.ts';
 
 mock.module(new URL('../src/keyboard.ts', import.meta.url).href, { defaultExport: () => {} });
 mock.module('lib/bigFileStorage', { namedExports: { bigFileStorage: () => ({}) } });
@@ -85,6 +85,99 @@ async function readyController(options = opts()) {
   await new Promise<void>(resolve => setImmediate(resolve));
   return result;
 }
+
+function optionsWithSourceHistory(): PuzzleOpts {
+  const options = opts();
+  options.data.game.moves = ['a1a2', 'e10d10', 'a2a1', 'd10e10'];
+  options.data.puzzle.state = {
+    ...fixturePositions(fen, options.data.game.moves).at(-1)!,
+    legalMoves: ['a1a2', 'a1a4'],
+  };
+  return options;
+}
+
+for (const mode of ['play', 'try'] as const)
+  test(`${mode}: historical input preserves source history and sends no move request`, async t => {
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const { ctrl, results } = await readyController(optionsWithSourceHistory());
+    t.mock.timers.tick(0);
+    ctrl.mode = mode;
+    const { first, next, last } = await import('../src/control.ts');
+    first(ctrl);
+    next(ctrl);
+    next(ctrl);
+    const historicalPath = ctrl.path;
+    const state = (ctrl.node as import('../src/xiangqi.ts').XiangqiPuzzleNode).state;
+    state.legalMoves = ['a2a1'];
+    assert.equal(state.turn, 'red', 'historical turn matches the puzzle player');
+    const originalTree = JSON.stringify(ctrl.tree.root);
+    const fetch = t.mock.method(globalThis, 'fetch', async () => assert.fail('history is read-only'));
+
+    assert.equal(ctrl.boardSetup().canMove, false);
+    assert.deepEqual(ctrl.boardSetup().legalMoves, []);
+    ctrl.userXiangqiMove('a2a1');
+    ctrl.playUci('a2a1');
+    await (ctrl as any).playXiangqiUciAt(historicalPath, 'a2a1');
+    assert.equal(fetch.mock.callCount(), 0);
+    assert.equal(JSON.stringify(ctrl.tree.root), originalTree);
+    assert.equal(ctrl.path, historicalPath);
+    assert.equal(ctrl.xiangqiEngineError, false);
+    assert.equal(ctrl.completed, false);
+    assert.deepEqual(results, []);
+
+    last(ctrl);
+    assert.equal(ctrl.path, ctrl.initialPath);
+    assert.equal(ctrl.boardSetup().canMove, true);
+    assert.equal(ctrl.canHint(), true);
+  });
+
+test('source history permits normal solving, automatic defense, and historical review', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const { ctrl, results } = await readyController(optionsWithSourceHistory());
+  t.mock.timers.tick(0);
+  const sourceMoves = [...ctrl.data.game.moves!];
+  const requests: { moves: string[]; move: string }[] = [];
+  t.mock.method(globalThis, 'fetch', async (_url, init) => {
+    const request = JSON.parse(init!.body as string);
+    requests.push(request);
+    return new Response(
+      JSON.stringify({
+        ...fixturePositions(request.initialFen, [...request.moves, request.move]).at(-1)!,
+        legalMoves: ['a2a3'],
+        notation: request.move,
+        chineseNotation: request.move,
+      }),
+    );
+  });
+
+  ctrl.userXiangqiMove('a1a2');
+  await new Promise<void>(resolve => setImmediate(resolve));
+  assert.equal(ctrl.node.uci, 'a1a2');
+  t.mock.timers.tick(750);
+  await new Promise<void>(resolve => setImmediate(resolve));
+  assert.equal(ctrl.node.uci, 'e10d10', 'automatic defender reply is accepted');
+  assert.equal(ctrl.boardSetup().canMove, true);
+  ctrl.playUci('a2a3');
+  await new Promise<void>(resolve => setImmediate(resolve));
+  assert.deepEqual(
+    requests.map(request => request.move),
+    ['a1a2', 'e10d10', 'a2a3'],
+  );
+  assert.deepEqual(requests[1].moves, [...sourceMoves, 'a1a2']);
+  assert.deepEqual(results, [true]);
+  assert.equal(ctrl.mode, 'view');
+
+  ctrl.userJump('a1a2/e10d10');
+  const historicalNode = ctrl.node;
+  const sourceContinuation = historicalNode.children[0];
+  assert.equal(ctrl.boardSetup().canMove, true, 'review still permits historical moves');
+  ctrl.playUci('a2a4');
+  await new Promise<void>(resolve => setImmediate(resolve));
+  assert.equal(ctrl.node.uci, 'a2a4');
+  assert.equal(historicalNode.children[0], sourceContinuation, 'review retains the source continuation');
+  assert.equal(historicalNode.children.length, 2);
+  assert.deepEqual(results, [true], 'review does not submit another result');
+});
 
 test('preparation locks every player input without searching or recording an attempt', async t => {
   let ready!: () => void;

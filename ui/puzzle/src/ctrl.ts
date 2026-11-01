@@ -321,6 +321,10 @@ export default class PuzzleCtrl {
     play();
   };
 
+  // Source-game history is navigable, but only review mode may play from it.
+  private readonly canPlayAt = (path: TreePath): boolean =>
+    this.mode === 'view' || treePath.contains(path, this.initialPath);
+
   boardSetup = (): {
     position: BoardPosition;
     presentation: BoardPresentation;
@@ -332,6 +336,7 @@ export default class PuzzleCtrl {
       this.path === this.initialPath && this.data.puzzle.state ? this.data.puzzle.state : node.state;
     const color: Color = state.turn === 'black' ? 'black' : 'white';
     const canMove =
+      this.canPlayAt(this.path) &&
       this.engineReady() &&
       !this.xiangqiBusy &&
       !this.viewingSolution &&
@@ -377,6 +382,7 @@ export default class PuzzleCtrl {
   playUciList = (uciList: string[]): void => uciList.forEach(this.playUci);
 
   userXiangqiMove = (uci: string): void => {
+    if (!this.canPlayAt(this.path)) return;
     if (!this.trafficStarted && (this.mode === 'play' || this.mode === 'try')) {
       this.trafficStarted = true;
       trackTraffic('puzzle.started', {}, {}, this.trafficAttempt);
@@ -402,6 +408,7 @@ export default class PuzzleCtrl {
     failure?: Extract<PuzzleDecision, { result: 'fail' }>,
   ): Promise<void> => {
     if (
+      !this.canPlayAt(path) ||
       !this.engineReady() ||
       this.xiangqiBusy ||
       this.viewingSolution ||
