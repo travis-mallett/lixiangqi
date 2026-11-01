@@ -11,16 +11,16 @@ import urllib.parse
 from collections import OrderedDict
 from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
+from functools import cmp_to_key
 from typing import Any
 from zoneinfo import ZoneInfo
-
-from tools.games_database.identity import resolve_catalog_game
 
 from tools.games_database.catalog_index import (
     ONLINE_SOURCE_IDS,
     SOURCE_BITS,
     source_mask,
 )
+from tools.games_database.identity import resolve_catalog_game
 
 from .ancient_manual_localization import is_chinese, localized_value
 from .ancient_manual_localization import language as manual_language
@@ -31,9 +31,10 @@ from .catalog_databases import (
     games_database_path,
     open_catalog_connection,
 )
-from .catalog_sources import SOURCE_SPECS, SOURCE_IDS, parse_sources, source_filter
+from .catalog_sources import SOURCE_IDS, SOURCE_SPECS, parse_sources, source_filter
 from .explorer import _game
 from .name_romanization import normalized_name_key
+from .round_sort import compare_rounds
 
 ONLINE_SOURCES = ONLINE_SOURCE_IDS
 ANCIENT_MANUAL_ROOT = (
@@ -76,7 +77,7 @@ SORTS = {
     "black": "COALESCE(NULLIF(g.black_name_key, ''), g.black_name) COLLATE NOCASE",
     "result": "g.result",
     "event": "g.event COLLATE NOCASE",
-    "round": "g.round COLLATE NOCASE",
+    "round": "ROUND_SORT_KEY(g.round)",
     "moves": "json_array_length(g.moves)",
 }
 
@@ -892,13 +893,6 @@ def _event_summary(
     }
 
 
-def _round_sort_key(label: str) -> tuple[Any, ...]:
-    if not label:
-        return (2, "")
-    parts = re.split(r"(\d+)", label.casefold())
-    return (0, *(int(part) if part.isdigit() else part for part in parts))
-
-
 def query_event(query: dict[str, Any]) -> dict[str, Any]:
     event = _event_name(query.get("event"))
     selected = parse_sources(query.get("sources"))
@@ -989,7 +983,9 @@ def query_event(query: dict[str, Any]) -> dict[str, Any]:
             round_data["games"].append(_catalog_game(row, sources[row["id"]]))
         rounds = sorted(
             grouped.values(),
-            key=lambda round_data: _round_sort_key(round_data["name"]),
+            key=cmp_to_key(
+                lambda left, right: compare_rounds(left["name"], right["name"])
+            ),
         )
         return {
             "available": True,

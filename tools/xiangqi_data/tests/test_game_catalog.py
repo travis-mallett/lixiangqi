@@ -7,12 +7,12 @@ import tempfile
 import unittest
 from contextlib import closing
 from datetime import datetime
+from functools import cmp_to_key
 from pathlib import Path
 from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
-from tools.xiangqi_data.dpxq_import import DpxqImporter
-from tools.xiangqi_data.gdchess_import import GdchessImporter
+from external.xiangqi_explorer.explorer import explore_games
 from external.xiangqi_explorer.game_catalog import (
     _pacific_week,
     get_game,
@@ -22,7 +22,7 @@ from external.xiangqi_explorer.game_catalog import (
     query_games,
     query_player,
 )
-from external.xiangqi_explorer.explorer import explore_games
+from external.xiangqi_explorer.round_sort import compare_rounds
 from tools.games_database.dpxq_ancient_manuals import (
     AncientManualImporter,
     Manual,
@@ -35,11 +35,15 @@ from tools.games_database.provenance import (
     upsert_source_record,
 )
 from tools.games_database.storage import initialize as initialize_catalog
+from tools.xiangqi_data.dpxq_import import DpxqImporter
+from tools.xiangqi_data.gdchess_import import GdchessImporter
 from tools.xiangqi_data.pikafish_rules import START_FEN
-from tools.xiangqi_data.xqdao_import import XqdaoImporter
 from tools.xiangqi_data.tests.test_dpxq_scrape import record_html
-from tools.xiangqi_data.tests.test_gdchess_scrape import GAME_HTML as GDCHESS_HTML, listing as gdchess_listing
-from tools.xiangqi_data.tests.test_xqdao_scrape import GAME_HTML as XQDAO_HTML, listing as xqdao_listing
+from tools.xiangqi_data.tests.test_gdchess_scrape import GAME_HTML as GDCHESS_HTML
+from tools.xiangqi_data.tests.test_gdchess_scrape import listing as gdchess_listing
+from tools.xiangqi_data.tests.test_xqdao_scrape import GAME_HTML as XQDAO_HTML
+from tools.xiangqi_data.tests.test_xqdao_scrape import listing as xqdao_listing
+from tools.xiangqi_data.xqdao_import import XqdaoImporter
 
 
 def distinct_record(game_id: int, red: str, black: str, date: str, event: str) -> bytes:
@@ -111,6 +115,108 @@ class GameCatalogTest(unittest.TestCase):
         self.assertEqual(["Network Red", "Blitz Red"], [game["red"]["name"] for game in result["games"]])
         self.assertEqual("Online Tournaments", result["games"][0]["sources"][0]["name"])
         self.assertEqual("Top Blitz Games", result["games"][1]["sources"][0]["name"])
+
+    def test_round_collation_orders_numeric_mixed_and_blank_labels(self) -> None:
+        labels = [
+            "Round 10",
+            "Round 2",
+            "Final",
+            "1st",
+            "10",
+            "2",
+            "1",
+            "01",
+            "",
+            "   ",
+        ]
+        expected = [
+            "1",
+            "1st",
+            "01",
+            "2",
+            "10",
+            "Final",
+            "Round 2",
+            "Round 10",
+            "",
+            "   ",
+        ]
+        self.assertEqual(expected, sorted(labels, key=cmp_to_key(compare_rounds)))
+
+    def test_round_sort_is_natural_before_pagination_for_games_players_and_events(
+        self,
+    ) -> None:
+        sources = ["m", "n", "k", "gd", "xqd"]
+        mixed_round = self.root / "view_m_101.html"
+        mixed_round.write_bytes(
+            distinct_record(
+                101,
+                "Mixed Red",
+                "Mixed Black",
+                "2024-05-04",
+                "Round Sort Event",
+            )
+        )
+        with DpxqImporter(self.database, commit_each=True) as importer:
+            importer.import_path(mixed_round, "101", "m")
+        with closing(sqlite3.connect(self.database)) as connection:
+            game_ids = [
+                row[0]
+                for row in connection.execute("SELECT id FROM games ORDER BY id")
+            ]
+            rounds = ["10", "2", "1", "01", "2", "Round 2"]
+            for game_id, round_label in zip(game_ids, rounds):
+                connection.execute(
+                    "UPDATE games SET round = ?, event = 'Round Sort Event', "
+                    "black_name = 'Round Sort Player' WHERE id = ?",
+                    (round_label, game_id),
+                )
+            connection.commit()
+
+        expected_rounds = ["1", "01", "2", "2", "10", "Round 2"]
+
+        def expected_game_ids(direction: str) -> list[str]:
+            def compare_games(left: tuple[str, str], right: tuple[str, str]) -> int:
+                round_order = compare_rounds(left[0], right[0])
+                if direction == "desc":
+                    round_order = -round_order
+                return round_order or ((left[1] > right[1]) - (left[1] < right[1]))
+
+            return [
+                game_id
+                for _round, game_id in sorted(
+                    zip(rounds, game_ids), key=cmp_to_key(compare_games)
+                )
+            ]
+
+        for query, identity in ((query_games, ""), (query_player, "Round Sort Player")):
+            for direction, expected in (
+                ("asc", expected_rounds),
+                ("desc", list(reversed(expected_rounds))),
+            ):
+                pages = []
+                for page in (1, 2, 3):
+                    parameters = {
+                        "sources": sources,
+                        "sort": "round",
+                        "direction": direction,
+                        "page": page,
+                        "pageSize": 2,
+                    }
+                    if identity:
+                        parameters["player"] = identity
+                    result = query(parameters)
+                    pages.extend(result["games"])
+                self.assertEqual(expected, [game["round"] for game in pages])
+                self.assertEqual(
+                    expected_game_ids(direction), [game["id"] for game in pages]
+                )
+
+        event = query_event({"event": "Round Sort Event", "sources": sources})
+        self.assertEqual(
+            ["1", "01", "2", "10", "Round 2"],
+            [round_data["name"] for round_data in event["rounds"]],
+        )
 
     def test_profile_explorers_share_source_scope_and_cache_isolation(self) -> None:
         # One canonical game has two witnesses: selecting either must count it once.
@@ -508,9 +614,9 @@ class GameCatalogTest(unittest.TestCase):
         self.assertEqual(1, masters_only["summary"]["red"]["wins"])
 
     def test_canonical_player_shares_directory_stats_games_and_openings(self) -> None:
-        from tools.games_database import players
         from external.xiangqi_explorer import player_catalog
         from external.xiangqi_explorer.explorer import explore_games
+        from tools.games_database import players
         from tools.games_database.test_players import profile
 
         with closing(players.connect(self.database)) as db, db:

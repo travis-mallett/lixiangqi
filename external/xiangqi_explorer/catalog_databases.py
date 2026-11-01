@@ -9,6 +9,8 @@ from pathlib import Path
 from tools.games_database.catalog_index import INDEX_VERSION as CATALOG_INDEX_VERSION
 from tools.games_database.storage import DATA_DIRECTORY, DEFAULT_DATABASE
 
+from .round_sort import round_sort_key
+
 GAMES_DATABASE = DEFAULT_DATABASE
 
 # Migration-only legacy locations. Writers and readers never select these.
@@ -93,6 +95,7 @@ def _open_readonly(path: Path) -> sqlite3.Connection:
         check_same_thread=False,
     )
     connection.row_factory = sqlite3.Row
+    connection.create_function("ROUND_SORT_KEY", 1, round_sort_key, deterministic=True)
     connection.execute("PRAGMA query_only = ON")
     # The position projection is several gigabytes. Memory mapping lets the OS
     # share clean database pages across request-scoped connections without a
