@@ -109,7 +109,7 @@ object PrefForm:
       fields.challenge,
       fields.message,
       "studyInvite" -> optional(checkedNumber(Pref.StudyInvite.choices)),
-      "insightShare" -> numberIn(Set(0, 1, 2)),
+      fields.insightShare.map2(optional),
       fields.ratings.map2(optional),
       fields.flairs.map2(optional)
     )(PrefData.apply)(unapply)
@@ -157,7 +157,7 @@ object PrefForm:
       challenge: Int,
       message: Int,
       studyInvite: Option[Int],
-      insightShare: Int,
+      insightShare: Option[Int],
       ratings: Option[Int],
       flairs: Option[Boolean]
   ):
@@ -183,7 +183,7 @@ object PrefForm:
         animation = display.animation,
         boardAnimations = display.boardAnimations,
         submitMove = behavior.submitMove.getOrElse(0),
-        insightShare = insightShare,
+        insightShare = insightShare | pref.insightShare,
         confirmResign = behavior.confirmResign,
         captured = display.captured == 1,
         keyboardMove = behavior.keyboardMove | pref.keyboardMove,
@@ -236,7 +236,7 @@ object PrefForm:
         challenge = pref.challenge,
         message = pref.message,
         studyInvite = pref.studyInvite.some,
-        insightShare = pref.insightShare,
+        insightShare = pref.insightShare.some,
         ratings = pref.ratings.some,
         flairs = pref.flairs.some
       )
