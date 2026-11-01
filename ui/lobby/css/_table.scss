@@ -137,7 +137,7 @@
       position: relative;
       z-index: 2;
       display: flex;
-      width: 61%;
+      width: min(61%, calc(100% - clamp(125px, 19vw, 190px) - 28px));
       min-width: 0;
       align-items: stretch;
       gap: clamp(18px, 2.4vw, 30px);
@@ -222,7 +222,7 @@
       position: absolute;
       z-index: 3;
       top: 50%;
-      right: 22px;
+      inset-inline-end: 22px;
       color: $c-font-dim;
       font-size: 1.2rem;
       opacity: 0.8;
@@ -601,7 +601,7 @@
       }
 
       .lobby__feature-card__content {
-        width: 63%;
+        width: min(63%, calc(100% - clamp(93px, 26vw, 122px) - 20px));
         gap: 15px;
       }
 
@@ -638,7 +638,7 @@
       }
 
       .lobby__feature-card__chevron {
-        right: 12px;
+        inset-inline-end: 12px;
         font-size: 0.9rem;
       }
     }
