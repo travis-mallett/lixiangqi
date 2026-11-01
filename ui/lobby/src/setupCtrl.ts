@@ -10,6 +10,7 @@ import {
   type TimeControl,
 } from 'lib/setup/timeControl';
 import { storedJsonProp } from 'lib/storage';
+import { usernamePattern } from 'lib/username';
 import { alert } from 'lib/view';
 import * as xhr from 'lib/xhr';
 
@@ -292,7 +293,7 @@ export default class SetupController {
         [15, 30, 60].includes(this.kingdomMoveTime()) &&
         (this.gameType !== 'friend' ||
           (!!this.root.me &&
-            [this.friendUser, this.friendUserTwo].every(user => /^[\w-]{2,30}$/.test(user.trim())) &&
+            [this.friendUser, this.friendUserTwo].every(user => usernamePattern.test(user.trim())) &&
             new Set(
               [this.friendUser, this.friendUserTwo, this.root.me.username].map(user =>
                 user.trim().toLowerCase(),

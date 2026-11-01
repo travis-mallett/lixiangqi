@@ -1,5 +1,6 @@
 import type { Prop } from 'lib';
-import { hl } from 'lib/view';
+import { hl, onInsert } from 'lib/view';
+import { userComplete } from 'lib/view/userComplete';
 
 import type SetupController from '@/setupCtrl';
 
@@ -54,16 +55,29 @@ export const kingdomOpponents = (ctrl: SetupController) =>
           { attrs: { for: `sf_${key}` } },
           i === 0 ? i18n.threeKingdoms.opponentOne : i18n.threeKingdoms.opponentTwo,
         ),
-        hl(`input#sf_${key}`, {
-          attrs: { type: 'text', required: true, maxlength: 30, autocomplete: 'off' },
-          props: { value: ctrl[key] },
-          on: {
-            input: (event: Event) => {
-              ctrl[key] = (event.target as HTMLInputElement).value;
-              ctrl.root.redraw();
+        hl('div.complete-parent', [
+          hl(`input#sf_${key}`, {
+            attrs: { type: 'text', required: true, maxlength: 30, autocomplete: 'off', spellcheck: 'false' },
+            props: { value: ctrl[key] },
+            hook: onInsert<HTMLInputElement>(input =>
+              userComplete({
+                input,
+                tag: 'span',
+                friend: true,
+                onSelect: user => {
+                  ctrl[key] = user.name;
+                  ctrl.root.redraw();
+                },
+              }),
+            ),
+            on: {
+              input: (event: Event) => {
+                ctrl[key] = (event.target as HTMLInputElement).value;
+                ctrl.root.redraw();
+              },
             },
-          },
-        }),
+          }),
+        ]),
       ]),
     ),
     !ctrl.root.me &&
