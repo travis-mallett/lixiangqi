@@ -159,11 +159,9 @@ export function makeTree(root: TreeNode): TreeWrapper {
     for (let i = nodes.length - 2; i >= 0; i--) {
       const node = nodes[i + 1];
       const parent = nodes[i];
-      if (ops.mainlineChild(parent)?.id !== node.id) {
+      if (toMainline || ops.mainlineChild(parent)?.id !== node.id) {
         ops.removeChild(parent, node.id);
         parent.children.unshift(node);
-        if (!toMainline) break;
-      } else if (node.forceVariation) {
         node.forceVariation = false;
         if (!toMainline) break;
       }

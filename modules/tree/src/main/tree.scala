@@ -81,12 +81,11 @@ object Branches:
       path.split.fold(Some(nodes -> false)): (head, tail) =>
         for
           node <- get(head)
-          mainlineNode <- nodes.first
           (newChildren, isDone) <- node.children.promoteUpAt(tail)
           newNode = node.copy(children = newChildren)
         yield
           if isDone then update(newNode) -> true
-          else if newNode.id == mainlineNode.id then update(newNode) -> false
+          else if nodes.first.exists(_.id == newNode.id) then update(newNode) -> false
           else (newNode.copy(forceVariation = false) :: nodes.filterNot(_.id == newNode.id)) -> true
 
     def updateAt(path: UciPath, f: Branch => Branch): Option[Branches] =

@@ -313,3 +313,84 @@ class NativeStudyTest extends munit.FunSuite:
     val root = imported("1. a4a5").root.copy(comments = Comments(comments))
     val restored = imported(PgnDump.rootToPgn(root, Tags.empty)(using PgnDump.fullFlags).value).root
     assertEquals(restored.comments, root.comments)
+
+  test("promotion ordering with forced siblings before the main line matches browser semantics"):
+    val root = imported("""1. a4a5 {Before [%clk 0:01:00]}
+(1. i4i5 {Main} a7a6 {Sibling} (1... i7i6 {Selected [%clk 0:00:59]}))
+(1. c4c5 {After}) *""").root
+      .forceVariationAt(true, path("a4a5"))
+      .get
+      .forceVariationAt(true, path("c4c5"))
+      .get
+      .forceVariationAt(true, path("i4i5/a7a6"))
+      .get
+      .forceVariationAt(true, path("i4i5/i7i6"))
+      .get
+    val before = root.children.toList.head
+    val main = root.children.toList(1)
+    val after = root.children.toList(2)
+    val expectedMain = main.copy(children =
+      Branches(
+        main.children.toList.last.copy(forceVariation = false) :: main.children.toList.init
+      )
+    )
+    val target = path("i4i5/i7i6")
+    val oneLevel = root.children.promoteUpAt(target).get
+    assert(oneLevel._2)
+    assertEquals(oneLevel._1.toList, List(before, expectedMain, after))
+    val full = root.children.promoteToMainlineAt(target).get
+    assertEquals(full.toList, List(expectedMain, before, after))
+    val handler = summon[BSONHandler[Root]]
+    for children <- List(oneLevel._1, full) do
+      val promoted = root.copy(children = children)
+      assertEquals(promoted.mainlinePath, target)
+      assertEquals(handler.readTry(handler.writeTry(promoted).get).get, promoted)
+
+  test("one-level promotion restores a forced only child and survives BSON reload"):
+    val root = imported("1. a4a5 {Keep [%clk 0:01:00.25]} *").root
+      .forceVariationAt(true, path("a4a5"))
+      .get
+    val (children, done) = root.children.promoteUpAt(path("a4a5")).getOrElse(fail("Promotion rejected"))
+    assert(done)
+    val promoted = root.copy(children = children)
+    assertEquals(promoted.mainlinePath, path("a4a5"))
+    assertEquals(children.toList, root.children.toList.map(_.copy(forceVariation = false)))
+    assertEquals(children.promoteUpAt(path("a4a5")), Some(children -> false))
+    val handler = summon[BSONHandler[Root]]
+    assertEquals(handler.readTry(handler.writeTry(promoted).get).get, promoted)
+
+  test("one-level promotion crosses a forced-only ancestor without promoting it"):
+    val root = imported("1. a4a5 a7a6 (1... c7c6) 2. c4c5 *").root
+      .forceVariationAt(true, path("a4a5"))
+      .get
+      .forceVariationAt(true, path("a4a5/a7a6"))
+      .get
+      .forceVariationAt(true, path("a4a5/c7c6"))
+      .get
+    val target = path("a4a5/a7a6/c4c5")
+    val (children, done) = root.children.promoteUpAt(target).getOrElse(fail("Nested promotion rejected"))
+    assert(done)
+    val parent = children.toList.head
+    assert(parent.forceVariation)
+    assertEquals(
+      parent.children.toList,
+      root.children.toList.head.children.toList.map: child =>
+        if child.id.value == "a7a6" then child.copy(forceVariation = false) else child
+    )
+    val next = children.promoteUpAt(target).get._1
+    assertEquals(root.copy(children = next).mainlinePath, target)
+    assertEquals(root.children.promoteToMainlineAt(target), Some(next))
+
+  test("promotion reorders only the selected branch and preserves every sibling flag and annotation"):
+    val root = imported("1. a4a5 {First} (1. c4c5 {Second}) (1. i4i5 {Third}) *").root
+    for forcedOnly <- List(false, true) do
+      val original = root.copy(children = Branches(root.children.toList.map: child =>
+        child.copy(forceVariation = forcedOnly || child.id.value == "i4i5")))
+      val selected = original.children.toList.last
+      val expected = selected.copy(forceVariation = false) :: original.children.toList.init
+      val (children, done) = original.children.promoteUpAt(path("i4i5")).getOrElse(fail("Promotion rejected"))
+      assert(done)
+      assertEquals(children.toList, expected)
+      assertEquals(original.children.promoteToMainlineAt(path("i4i5")).map(_.toList), Some(expected))
+      assertEquals(original.children.promoteUpAt(path("a4a5/a7a6")), None)
+      assertEquals(original.children.promoteUpAt(UciPath.root), Some(original.children -> false))
