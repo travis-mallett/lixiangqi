@@ -120,10 +120,11 @@ final class GameApiV2(
       config.analysed.nonEmpty || config.color.nonEmpty || config.ranked.nonEmpty
     val gameSource: Source[Game, ?] =
       // Casual is defined by rank-track absence, not by the legacy rated flag in the search index.
-      if config.ranked.contains(false) then
+      // Query the stored player position for Black, matching the persisted profile-game data.
+      if config.useMongoQuery then
         gameRepo
           .sortedCursor(
-            config.toCasualQuery(playerSelect),
+            config.toMongoQuery(playerSelect),
             config.sort.bson,
             batchSize = config.perSecond.value,
             hintName = config.finished.option(GameRepo.byUserCreatedAtIndexName)
@@ -446,6 +447,8 @@ object GameApiV2:
         case GameSort.DateAsc => SearchSort(Fields.date, "asc")
         case GameSort.DateDesc => SearchSort(Fields.date, "desc")
 
+    def useMongoQuery: Boolean = ranked.contains(false) || color.contains(chess.Black)
+
     def toGameQuery =
       SearchData(
         players = SearchPlayer(
@@ -461,13 +464,15 @@ object GameApiV2:
         rated = ranked
       )
 
-    def toCasualQuery(playerSelect: Bdoc): Bdoc =
+    def toMongoQuery(playerSelect: Bdoc): Bdoc =
+      val rankedSelect = ranked.fold($empty): value =>
+        if value then Query.ranked else Query.notRanked
       val colorSelect = color.fold($empty): c =>
         $doc(s"${GameBSONFields.playerUids}.${c.fold(0, 1)}" -> user.id)
       playerSelect ++
         Query.createdBetween(since, until) ++
         (!ongoing).so(Query.finished) ++
-        Query.notRanked ++
+        rankedSelect ++
         analysed.fold($empty)(Query.analysed) ++
         colorSelect
 
