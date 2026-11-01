@@ -2,6 +2,8 @@ import { pubsub } from 'lib/pubsub';
 import { alert, makeLinkPopups } from 'lib/view';
 import * as xhr from 'lib/xhr';
 
+import { syncProfileNavigation } from './profileNavigation';
+
 const gamesAngle = document.querySelector<HTMLElement>('.games');
 if (gamesAngle) gamesAngle.style.visibility = 'hidden'; // FOUC
 
@@ -53,6 +55,7 @@ export async function initModule(): Promise<void> {
       browseTo = (path: string) =>
         xhr.text(path).then(html => {
           $content.html(html);
+          syncProfileNavigation(document, path, location.href);
           pubsub.emit('content-loaded', $content[0]); // TODO don't do this twice
           history.replaceState({}, '', path);
           site.asset.loadEsm('bits.infiniteScroll');

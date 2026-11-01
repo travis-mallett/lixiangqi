@@ -14,8 +14,14 @@ object gamesContent:
       filters: lila.game.GameFilterMenu,
       filterName: String
   )(using ctx: Context) =
+    val pageTitle =
+      page.browserTitle(page.gamesTitle(u, nbs, filters.current, pager.currentPage))
     frag(
-      div(cls := "number-menu number-menu--tabs menu-box-pop", id := "games")(
+      div(
+        cls := "number-menu number-menu--tabs menu-box-pop",
+        id := "games",
+        attr("data-page-title") := pageTitle
+      )(
         filters.list.map: f =>
           a(
             cls := s"nm-item to-${f.name}${(filters.current == f).so(" active")}",

@@ -35,6 +35,8 @@ case class Page(
     transform: Update[Frag] = identity,
     transformHead: Update[Frag] = identity
 ):
+  def browserTitle(siteName: String): String = fullTitle | s"$title • $siteName"
+
   def js(esm: Esm): Page = copy(modules = modules :+ esm.some)
   def js(esm: EsmList): Page = copy(modules = modules ::: esm)
   def js(pm: PageModule): Page = copy(pageModule = pm.some)

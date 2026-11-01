@@ -20,6 +20,11 @@ object page:
 
   private val topnav = lila.web.ui.TopNav(helpers)
 
+  def browserTitle(p: Page)(using ctx: Context): String =
+    val prodTitle = p.browserTitle(siteName)
+    if env.mode.isProd then prodTitle
+    else s"${ctx.me.so(_.username.value + " ")} $prodTitle"
+
   private def metaThemeColor(using ctx: Context): Frag =
     raw(s"""<meta name="theme-color" content="${ctx.pref.themeColor}">""")
 
@@ -65,11 +70,7 @@ object page:
           viewport,
           metaCsp(p.csp.map(_(defaultCsp))),
           metaThemeColor,
-          st.headTitle:
-            val prodTitle = p.fullTitle | s"${p.title} • $siteName"
-            if env.mode.isProd then prodTitle
-            else s"${ctx.me.so(_.username.value + " ")} $prodTitle"
-          ,
+          st.headTitle(browserTitle(p)),
           cssTag("lib.theme.all"),
           cssTag("site"),
           ctx.data.inquiry.isDefined.option(cssTag("mod.inquiry")),

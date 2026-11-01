@@ -16,6 +16,7 @@ import lila.core.security.IsProxy
 import lila.game.GameFilter
 import lila.mod.UserWithModlog
 import lila.security.UserLogins
+import lila.ui.ScalatagsTemplate.{ attr, div, stringAttr }
 import lila.user.WithPerfsAndEmails
 import lila.mon.extensions.*
 
@@ -113,7 +114,13 @@ final class User(
           for
             withPerfs <- env.user.perfsRepo.withPerfs(u)
             as <- fetchActivity
-            snip = lila.ui.Snippet(views.activity(withPerfs, as))
+            snip = lila.ui.Snippet(
+              div(
+                attr("data-page-title") := views.user.show.page.browserTitle(
+                  views.user.show.page.activityTitle(u)
+                )
+              )(views.activity(withPerfs, as))
+            )
           yield status(snip)
 
   def download(username: UserStr) = OpenBody:

@@ -24,7 +24,7 @@ object page:
       social: UserInfo.Social
   )(using Context) =
     val u = info.user
-    Page(s"${u.username} : ${trans.activity.activity.txt()}")
+    Page(activityTitle(u))
       .graph(
         OpenGraph(
           image = staticAssetUrl("logo/lichess-tile-wide.png").some,
@@ -55,9 +55,7 @@ object page:
       social: UserInfo.Social
   )(using Context) =
     val u = info.user
-    val filterName = userGameFilterTitleNoTag(u, info.nbs, filters.current)
-    val pageName = (games.currentPage > 1).so(s" - page ${games.currentPage}")
-    Page(s"${u.username} $filterName$pageName")
+    Page(gamesTitle(u, info.nbs, filters.current, games.currentPage))
       .js(pageModule(info))
       .js(esModules(filters.current.name == "search"))
       .css("user.show")
@@ -73,6 +71,18 @@ object page:
               gamesContent(u, info.nbs, games, filters, filters.current.name)
           )
         )
+
+  def activityTitle(u: User)(using Translate): String =
+    s"${u.username} : ${trans.activity.activity.txt()}"
+
+  def gamesTitle(u: User, nbs: UserInfo.NbGames, filter: GameFilter, currentPage: Int)(using
+      Translate
+  ): String =
+    val filterName = userGameFilterTitleNoTag(u, nbs, filter)
+    val pageName = (currentPage > 1).so(s" - page $currentPage")
+    s"${u.username} $filterName$pageName"
+
+  def browserTitle(title: String)(using Context): String = views.base.page.browserTitle(Page(title))
 
   private def esModules(withSearch: Boolean = false)(using Context): EsmList =
     infiniteScrollEsmInit
