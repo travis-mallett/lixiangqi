@@ -61,12 +61,12 @@ object XiangqiNotation:
           (starts.toVector :+ text.length)
             .sliding(2)
             .collect:
-              case Vector(start, end) if text.substring(start, end).trim.nonEmpty =>
+              case Vector(start, end) if !isEmptyDocument(text.substring(start, end)) =>
                 text.substring(start, end).trim
             .toVector
 
   def importTree(command: NotationImport): Either[String, ImportedMoveTree] =
-    if command.notation.trim.isEmpty then Left("Notation must be a non-empty string")
+    if isEmptyDocument(command.notation) then Left("Notation must be a non-empty string")
     else if command.notation.length > maxCharacters then Left("Notation is too large")
     else
       for
@@ -356,13 +356,16 @@ object XiangqiNotation:
             nodes.sortInPlaceBy(_.depth)
             Right(node)
 
+  private def isEmptyDocument(text: String): Boolean = text.stripPrefix("\uFEFF").trim.isEmpty
+
   /** Scan headers and comments together so header-looking text inside a comment stays intact. */
   private def tokenize(text: String): Either[String, Vector[Token]] =
     scan(text).map(_.map(_._2))
 
   private def scan(text: String): Either[String, Vector[(Int, Token)]] =
     val tokens = mutable.ArrayBuffer.empty[(Int, Token)]
-    var index = 0
+    // Skip only the document's encoding marker, retaining original offsets for splitting.
+    var index = if text.startsWith("\uFEFF") then 1 else 0
     var tokenStart = 0
     var error: Option[String] = None
     def emit(token: Token): Unit = tokens += tokenStart -> token

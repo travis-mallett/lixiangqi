@@ -23,6 +23,40 @@ class XiangqiNotationTest extends munit.FunSuite:
   private def rejected(text: String): Unit =
     assert(XiangqiNotation.importTree(NotationImport(notation = text)).isLeft, text)
 
+  test("a BOM does not make empty notation importable"):
+    List("", " ", "\t\r\n ").foreach: whitespace =>
+      val empty = XiangqiNotation.importTree(NotationImport(notation = whitespace))
+      assertEquals(empty, Left("Notation must be a non-empty string"))
+      assertEquals(XiangqiNotation.importTree(NotationImport(notation = "\uFEFF" + whitespace)), empty)
+
+  test("a BOM does not create an empty document when splitting"):
+    List("", " ", "\t\r\n ").foreach: whitespace =>
+      assertEquals(XiangqiNotation.splitDocuments(whitespace, 2), Right(Vector.empty[String]))
+      assertEquals(XiangqiNotation.splitDocuments("\uFEFF" + whitespace, 2), Right(Vector.empty[String]))
+
+  test("a document-leading BOM does not change imported notation"):
+    List(
+      "1. P9+1 *",
+      "[Event \"BOM import\"]\n\n1. P9+1 *",
+      "\n{opening} 1. P9+1 (1. P7+1 *) *"
+    ).foreach: text =>
+      assertEquals(read("\uFEFF" + text), read(text))
+      assertEquals(XiangqiNotation.parseHeaders("\uFEFF" + text), XiangqiNotation.parseHeaders(text))
+
+  test("document splitting preserves offsets after a leading BOM"):
+    val first = "\uFEFF[Event \"First\"]\n1. P9+1 *"
+    val second = "[Event \"Second\"]\n1. P7+1 *"
+    val documents = XiangqiNotation.splitDocuments(first + "\n\n" + second, 2)
+    assertEquals(documents, Right(Vector(first, second)))
+    documents.toOption.get.foreach(read(_))
+
+  test("BOM handling is limited to the beginning of the document"):
+    rejected("1. \uFEFFP9+1 *")
+    rejected("\uFEFF\uFEFF1. P9+1 *")
+    val tree = read("[Event \"A\uFEFFB\"] {C\uFEFFD} 1. P9+1 *")
+    assertEquals(tree.headers("event"), "A\uFEFFB")
+    assertEquals(tree.annotations.comments.map(_.text), Vector("C\uFEFFD"))
+
   test("headers inside comments are preserved as text"):
     val text = """[Event "Native study"]
 {
