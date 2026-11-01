@@ -60,8 +60,11 @@ export class AnalysisTabsView<T extends Pick<AnalysisTab, 'id' | 'title' | 'kind
         const direction = event.key === 'ArrowLeft' ? -1 : event.key === 'ArrowRight' ? 1 : 0;
         if (!direction) return;
         event.preventDefault();
+        event.stopPropagation();
         const target = tabs[(index + direction + tabs.length) % tabs.length];
         this.options.select(target.id);
+        // Selection renders new buttons, so focus the replacement rather than the detached tab.
+        this.options.element.querySelector<HTMLButtonElement>('[role="tab"][aria-selected="true"]')?.focus();
       });
       wrapper.append(select);
 
