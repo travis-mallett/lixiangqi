@@ -116,6 +116,7 @@ object XiangqiNotation:
         children = mutable.ArrayBuffer.empty[Builder]
         result <- parser.parseSequence(root, children, 0, 0)
         annotations <- XiangqiAnnotations.parse(parser.comments.toVector)
+        _ <- Either.cond(annotations.nodeResult.isEmpty, (), "A node result must follow a move")
         nodes <- immutable(children)
         _ <- Either.cond(
           headerResult.isEmpty || result.isEmpty || headerResult == result,
@@ -186,7 +187,7 @@ object XiangqiNotation:
       val dots = if node.state.ply % 2 == 1 then "." else "..."
       val notation = exportMove(before, node.move, node.state, style)
       output.append(s"$number$dots $notation")
-      annotations(node.annotations, node.glyphs)
+      annotations(node.annotations.copy(nodeResult = node.result), node.glyphs)
 
     def line(children: Vector[ImportedTreeNode], before: State): Unit = children.headOption.foreach: main =>
       move(main, before)
@@ -196,12 +197,10 @@ object XiangqiNotation:
         if variation.children.nonEmpty then
           output.append(' ')
           line(variation.children, variation.state)
-        variation.result.foreach(r => output.append(' ').append(r.key))
         output.append(')')
       if main.children.nonEmpty then
         output.append(' ')
         line(main.children, main.state)
-      main.result.foreach(r => output.append(' ').append(r.key))
 
     annotations(tree.annotations, tree.glyphs)
     line(tree.children, tree.state)
@@ -227,6 +226,11 @@ object XiangqiNotation:
     def immutable: Either[String, ImportedTreeNode] =
       for
         annotations <- XiangqiAnnotations.parse(comments.toVector)
+        _ <- Either.cond(
+          declaredResult.isEmpty || annotations.nodeResult.isEmpty || declaredResult == annotations.nodeResult,
+          (),
+          "Conflicting node result and variation result"
+        )
         nodes <- XiangqiNotation.immutable(children)
       yield ImportedTreeNode(
         move,
@@ -234,9 +238,9 @@ object XiangqiNotation:
         result.chineseNotation,
         state,
         nodes,
-        annotations,
+        annotations.copy(nodeResult = None),
         glyphs.toVector.distinct,
-        declaredResult
+        annotations.nodeResult.orElse(declaredResult)
       )
 
   private def immutable(nodes: mutable.ArrayBuffer[Builder]): Either[String, Vector[ImportedTreeNode]] =

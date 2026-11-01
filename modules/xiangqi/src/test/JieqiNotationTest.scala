@@ -99,3 +99,41 @@ class JieqiNotationTest extends munit.FunSuite:
     val game = tree.mainline
     intercept[IllegalArgumentException]:
       XiangqiNotation.exportMoves(game.copy(moves = game.moves.updated(0, Uci.unsafe("a4a5"))))
+
+  test("forced historical Jieqi labels retain move identity, reveal and independent results"):
+    // This exact PGN is checked against both browser full-document exporters.
+    val browserExport = fixture("forced-browser")
+    assert(
+      XiangqiNotation
+        .importTree(
+          NotationImport(notation =
+            browserExport.replace("""{"kind":"external","name":"Author"}""", """"Author"""")
+          )
+        )
+        .isLeft
+    )
+    val tree = read(browserExport)
+    assertEquals(tree.children.map(_.move.value), Vector("c4c5", "e4e5"))
+    assertEquals(tree.children.map(_.result.map(_.key)), Vector(Some("1-0"), Some("*")))
+    assert(tree.children.forall(_.annotations.study.exists(_.forceVariation)))
+    assert(tree.children.forall(_.state.reveal.contains("cannon")))
+    val comment = XiangqiAnnotations.Comment(
+      "Preserve the recorded reveal",
+      Some("legacy"),
+      Some(XiangqiAnnotations.Author("external", name = Some("Author")))
+    )
+    tree.children.foreach(node => assertEquals(node.annotations.comments, Vector(comment)))
+    val historical = tree.copy(children = tree.children.map(_.copy(notation = "+P+1")))
+    for style <- NotationStyle.values do
+      val exported = XiangqiNotation.exportTree(historical, style)
+      assert(!exported.contains("+P+1"))
+      assert(!exported.contains("~cannon~cannon"))
+      assert(exported.contains("[%nodeResult 1-0]"))
+      val restored = read(exported)
+      assertEquals(restored.children, tree.children)
+      assertEquals(restored.headers("result"), "0-1")
+      assertEquals(restored.mainline.moves.size, 0)
+      val invalid =
+        historical.copy(children = Vector(historical.children.head.copy(move = Uci.unsafe("e4e5"))))
+      intercept[IllegalArgumentException]:
+        XiangqiNotation.exportTree(invalid, style)

@@ -394,3 +394,15 @@ class NativeStudyTest extends munit.FunSuite:
       assertEquals(original.children.promoteToMainlineAt(path("i4i5")).map(_.toList), Some(expected))
       assertEquals(original.children.promoteUpAt(path("a4a5/a7a6")), None)
       assertEquals(original.children.promoteUpAt(UciPath.root), Some(original.children -> false))
+
+  test("forced-only study export preserves branch results independently of the chapter result"):
+    val value = imported("""[Result "0-1"]
+1. a4a5 {[%study {"forceVariation":true}] [%nodeResult 1-0] Keep}
+(1. i4i5 {[%study {"forceVariation":true}] [%nodeResult *]} i7i6)
+a7a6 {[%study {"forceVariation":true}] [%nodeResult 1/2-1/2]} 0-1""")
+    val exported = PgnDump.rootToPgn(value.root, value.tags)(using PgnDump.fullFlags)
+    val restored = imported(exported.value)
+    assertEquals(restored.root, value.root)
+    assertEquals(restored.tags("Result"), value.tags("Result"))
+    assertEquals(restored.root.mainlinePath, UciPath.root)
+    assertEquals(restored.root.children.toList.map(_.id.value), List("a4a5", "i4i5"))

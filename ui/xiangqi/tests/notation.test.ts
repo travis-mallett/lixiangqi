@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import { JIEQI_START_FEN } from 'lib/game/jieqi';
@@ -7,6 +8,7 @@ import { renderTreeNotation } from 'lib/tree/notation';
 
 import type AnalyseCtrl from '../../analyse/src/ctrl';
 import { renderFullTxt, renderVariationNotation } from '../../analyse/src/notationExport';
+import { renderXiangqiMovetext, renderXiangqiNotation } from '../src/notation';
 
 test('browser copy and variation exports preserve legacy pawn coordinates and reveals', () => {
   // fPL0UJju at ply 21, replayed from the authoritative coordinate/reveal fixture.
@@ -40,7 +42,45 @@ test('browser copy and variation exports preserve legacy pawn coordinates and re
     0,
     'jieqi-v1',
   );
+  const child = tree.root.children[0];
+  child.forceVariation = true;
+  child.result = '1-0';
+  child.comments = [
+    { id: 'legacy', by: { kind: 'external', name: 'Author' }, text: 'Preserve the recorded reveal' },
+  ];
+  const alternativeFen = '3xkx1R1/c2p5/4a3a/4x3x/npb6/B3C4/2X5X/1XP1P2X1/9/X1XXKX2X b j - 6 11';
+  const alternative: typeof child = {
+    ...child,
+    uci: 'e4e5',
+    id: 'e4e5~cannon',
+    fen: alternativeFen,
+    state: { ...child.state, fen: alternativeFen },
+    result: '*',
+  };
+  tree.root.children.push(alternative);
+  tree.root.result = '0-1';
   const ctrl = { tree } as AnalyseCtrl;
+  const fixture = new URL(
+    '../../../modules/xiangqi/src/test/resources/jieqi-fPL0UJju-forced-browser.pgn',
+    import.meta.url,
+  );
+  assert.equal(renderFullTxt(ctrl), readFileSync(fixture, 'utf8').trim());
+  assert.equal(renderXiangqiNotation(tree, tree.root.fen), readFileSync(fixture, 'utf8').trim());
+  for (const text of [
+    renderFullTxt(ctrl),
+    renderXiangqiNotation(tree, tree.root.fen),
+    renderXiangqiMovetext(tree),
+  ]) {
+    assert.match(text, /11\. c4c5~cannon/);
+    assert.ok(text.includes('[%nodeResult 1-0]'));
+    assert.match(text, /\(11\. e4e5~cannon/);
+    assert.ok(text.includes('[%nodeResult *]'));
+    assert.ok(text.includes('"forceVariation":true'));
+    assert.ok(text.includes('Preserve the recorded reveal'));
+    assert.equal(text.includes('~cannon~cannon'), false);
+  }
+  assert.ok(renderFullTxt(ctrl).endsWith('0-1'));
+  assert.equal(child.forceVariation, true);
   for (const text of [renderFullTxt(ctrl), renderVariationNotation([tree.root, tree.root.children[0]])]) {
     assert.match(text, /11\. c4c5~cannon/);
     assert.ok(!text.includes('+P+1'));

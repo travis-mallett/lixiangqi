@@ -262,3 +262,69 @@ i7i6 1-0""")
     assertEquals(imported.annotations.comments, root.annotations.comments)
     assertEquals(imported.headers("result"), "*")
     assertEquals(imported.children, Vector.empty)
+
+  test("browser forced-only fixture round trips every node result, annotation and sibling in both styles"):
+    val text = scala.util.Using.resource(getClass.getResourceAsStream("/forced-variations.pgn")): stream =>
+      new String(stream.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8)
+    val tree = read(text)
+    assertEquals(tree.headers("result"), "0-1")
+    assertEquals(tree.mainline.moves.size, 0)
+    assertEquals(tree.children.map(_.move.value), Vector("a4a5", "i4i5"))
+    assert(tree.children.forall(_.annotations.study.exists(_.forceVariation)))
+    val first = tree.children.head
+    assertEquals(first.result.map(_.key), Some("1-0"))
+    assertEquals(tree.children(1).result.map(_.key), Some("1/2-0"))
+    assertEquals(first.children.map(_.move.value), Vector("a7a6", "c7c6"))
+    assert(first.children.forall(_.annotations.study.exists(_.forceVariation)))
+    assertEquals(first.children.map(_.result.map(_.key)), Vector(Some("0-1"), Some("*")))
+    assertEquals(first.children.head.children.head.result.map(_.key), Some("1/2-1/2"))
+    assertEquals(first.annotations.clock, Some(1234))
+    assertEquals(first.annotations.elapsed, Some(20))
+    assertEquals(first.annotations.comments.head.text, "Keep [%nodeResult 0-0] as text")
+    assertEquals(first.annotations.comments.head.by.map(_.name), Some(Some("Author")))
+    assertEquals(first.annotations.evaluation.map(_.depth), Some(Some(18)))
+    assertEquals(first.glyphs, Vector(1))
+    assertEquals(first.annotations.shapes.size, 1)
+    assertEquals(first.annotations.study.flatMap(_.clockTrust), Some(false))
+    assert(first.annotations.nodeResult.isEmpty)
+    for style <- NotationStyle.values do
+      val exported = XiangqiNotation.exportTree(tree, style)
+      val restored = read(exported)
+      assertEquals(restored, tree.copy(headers = restored.headers))
+      assertEquals(restored.headers("result"), "0-1")
+      assertEquals(restored.mainline.moves.size, 0)
+      assertEquals(XiangqiNotation.exportTree(restored, style), exported)
+      assertEquals(XiangqiNotation.splitDocuments(exported + "\n" + exported, 2).map(_.size), Right(2))
+    val mixed = tree.copy(children =
+      tree.children
+        .updated(1, tree.children(1).copy(annotations = tree.children(1).annotations.copy(study = None)))
+    )
+    val mixedRestored = read(XiangqiNotation.exportTree(mixed))
+    assertEquals(mixedRestored.children, mixed.children)
+    assertEquals(mixedRestored.mainline.moves.map(_.value), Vector("i4i5", "i7i6"))
+
+  test("node result metadata is strict and compatible with existing branch termination markers"):
+    val legacy = read("1. a4a5 (1. i4i5 1-0) *")
+    val explicit = read("1. a4a5 (1. i4i5 {[%nodeResult 1-0]} 1-0) *")
+    assertEquals(explicit, legacy)
+    assertEquals(read(XiangqiNotation.exportTree(legacy)).children, legacy.children)
+    List(
+      "{[%nodeResult 1-0]} *",
+      "1. a4a5 {[%nodeResult]} *",
+      "1. a4a5 {[%nodeResult invalid]} *",
+      "1. a4a5 {[%nodeResult 1-0 0-1]} *",
+      "1. a4a5 {[%nodeResult 1-0] [%nodeResult 0-1]} *",
+      "1. a4a5 (1. i4i5 {[%nodeResult 0-1]} 1-0) *"
+    ).foreach(rejected)
+    val distinct = read("[Result \"0-1\"] 1. a4a5 {[%nodeResult 1-0]} 0-1")
+    assertEquals(distinct.children.head.result.map(_.key), Some("1-0"))
+    assertEquals(distinct.headers("result"), "0-1")
+    assertEquals(read(XiangqiNotation.exportTree(distinct)).children, distinct.children)
+
+  test("forced single moves at a black custom start preserve explicit ongoing results"):
+    val fen = startFen.replace("w - - 0 1", "b - - 0 20")
+    val tree = read(s"""[FEN "$fen"]
+20... a7a6 {[%study {"forceVariation":true}] [%nodeResult *]} *""")
+    assertEquals(tree.mainline.moves.size, 0)
+    assertEquals(tree.children.head.result.map(_.key), Some("*"))
+    assertEquals(read(XiangqiNotation.exportTree(tree)).children, tree.children)

@@ -1,0 +1,18 @@
+[Variant "Jieqi"]
+[FEN "3xkx1R1/c2p5/4a3a/4x3x/npb6/B8/2X1X3X/1XP1P2X1/9/X1XXKX2X w j - 5 11"]
+[SetUp "1"]
+[Ruleset "jieqi-v1"]
+
+11. c4c5~cannon
+;[%comment {"id":"legacy","by":{"kind":"external","name":"Author"},"text":"Preserve the recorded reveal"}]
+
+;[%nodeResult 1-0]
+
+;[%study {"forceVariation":true}]
+ (11. e4e5~cannon
+;[%comment {"id":"legacy","by":{"kind":"external","name":"Author"},"text":"Preserve the recorded reveal"}]
+
+;[%nodeResult *]
+
+;[%study {"forceVariation":true}]
+) 0-1

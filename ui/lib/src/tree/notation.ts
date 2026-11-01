@@ -1,6 +1,6 @@
 import { assertRecordedMovePosition } from '../game/recordedMove';
 import { notationComments, notationMarks } from '../game/xiangqiNotation';
-import { mainlineFirst, mainlineChild } from './ops';
+import { mainlineChild } from './ops';
 import type { TreeNode } from './types';
 
 export const plyPrefix = (node: TreeNode): string =>
@@ -26,24 +26,23 @@ const revealedNotation = (node: TreeNode, parent: TreeNode): string => {
   return notation + (node.state.reveal ? '~' + node.state.reveal : '');
 };
 
-export function renderNodesTxt(
-  node: TreeNode,
-  forcePly: boolean,
-  annotations = false,
-  mainline = true,
-): string {
-  const renderBranch = (child: TreeNode, force: boolean, main: boolean): string => {
+const nodeResultAnnotation = (node: TreeNode): string => (node.result ? `[%nodeResult ${node.result}]` : '');
+
+export function renderNodesTxt(node: TreeNode, forcePly: boolean, annotations = false): string {
+  const annotate = (child: TreeNode): string =>
+    annotations ? nodeAnnotations(child) : notationComments([nodeResultAnnotation(child)].filter(Boolean));
+  const renderBranch = (child: TreeNode, force: boolean): string => {
     if (!child.notation) throw new Error('Move is missing its native notation');
-    return `${force || child.ply % 2 ? plyPrefix(child) : ''}${revealedNotation(child, node)}${annotations ? nodeAnnotations(child) : ''}${child.children.length ? ' ' + renderNodesTxt(child, false, annotations, main) : ''}${child.result ? ' ' + child.result : ''}`;
+    return `${force || child.ply % 2 ? plyPrefix(child) : ''}${revealedNotation(child, node)}${annotate(child)}${child.children.length ? ' ' + renderNodesTxt(child, false, annotations) : ''}`;
   };
-  const [first, ...variations] = mainline ? mainlineFirst(node.children) : node.children;
+  // PGN requires a first move to anchor variations. Native annotations preserve
+  // forced status and node results independently of this structural backbone.
+  const [first, ...variations] = node.children;
   if (!first) return '';
-  if (mainline && first.forceVariation)
-    return node.children.map(child => `(${renderBranch(child, true, false)})`).join(' ');
-  const prefix = `${forcePly || first.ply % 2 ? plyPrefix(first) : ''}${revealedNotation(first, node)}${annotations ? nodeAnnotations(first) : ''}`;
-  const branches = variations.map(child => `(${renderBranch(child, true, false)})`);
-  const continuation = renderNodesTxt(first, variations.length > 0, annotations, mainline);
-  return [prefix, ...branches, continuation, first.result ?? ''].filter(Boolean).join(' ');
+  const prefix = `${forcePly || first.ply % 2 ? plyPrefix(first) : ''}${revealedNotation(first, node)}${annotate(first)}`;
+  const branches = variations.map(child => `(${renderBranch(child, true)})`);
+  const continuation = renderNodesTxt(first, variations.length > 0, annotations);
+  return [prefix, ...branches, continuation].filter(Boolean).join(' ');
 }
 
 export function renderTreeNotation(root: TreeNode): string {
@@ -88,11 +87,11 @@ export function renderTreeNotation(root: TreeNode): string {
   const moves = renderNodesTxt(root, true, true);
   let last = root;
   while (mainlineChild(last)) last = mainlineChild(last)!;
-  const result = last.result ? '' : (tags.result ?? last.state.gameResult);
-  return `${headers}\n\n${nodeAnnotations(root)}${moves}${result ? ' ' + result : ''}`.trim();
+  const result = tags.result ?? root.result ?? last.state.gameResult;
+  return `${headers}\n\n${nodeAnnotations(root, false)}${moves} ${result}`.trim();
 }
 
-export function nodeAnnotations(node: TreeNode): string {
+export function nodeAnnotations(node: TreeNode, includeNodeResult = true): string {
   const glyphs = (node.glyphs ?? []).map(glyph => `$${glyph.id}`).join(' ');
   const marks = notationMarks(
     node.shapes?.map(shape => ({
@@ -111,6 +110,7 @@ export function nodeAnnotations(node: TreeNode): string {
     clockTrust: node.clockTrust,
   };
   const structured = [
+    includeNodeResult ? nodeResultAnnotation(node) : '',
     Object.values(study).some(value => value !== undefined) ? `[%study ${JSON.stringify(study)}]` : '',
     marks,
     node.clock === undefined ? '' : `[%clk ${time(node.clock)}]`,

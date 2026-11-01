@@ -63,11 +63,12 @@ object XiangqiAnnotations:
       clock: Option[Int] = None,
       elapsed: Option[Int] = None,
       evaluation: Option[Evaluation] = None,
-      study: Option[Study] = None
+      study: Option[Study] = None,
+      nodeResult: Option[Xiangqi.RecordedResult] = None
   )
 
   private val directive = """\[%([A-Za-z]+)\s+((?:"(?:\\.|[^"\\])*"|[^\]"])*)\]""".r
-  private val knownStart = "\\[%(?:csl|cal|clk|emt|eval|study|comment)\\b".r
+  private val knownStart = "\\[%(?:csl|cal|clk|emt|eval|study|comment|nodeResult)\\b".r
   private val brushes = Map('G' -> "green", 'R' -> "red", 'B' -> "blue", 'Y' -> "yellow")
   private val circle = "^([GRBY])([a-i](?:10|[1-9]))$".r
   private val arrow = "^([GRBY])([a-i](?:10|[1-9]))([a-i](?:10|[1-9]))$".r
@@ -127,6 +128,11 @@ object XiangqiAnnotations:
                 evaluation <- parseEvaluation(value)
                 _ <- compatible(parsed.evaluation, evaluation, "evaluation")
               yield parsed.copy(evaluation = Some(evaluation))
+            case "nodeResult" =>
+              for
+                result <- Xiangqi.RecordedResult.fromKey(value)
+                _ <- compatible(parsed.nodeResult, result, "node result")
+              yield parsed.copy(nodeResult = Some(result))
             case "study" =>
               for
                 json <- scala.util
@@ -185,6 +191,7 @@ object XiangqiAnnotations:
       parsed.clock.map(c => s"[%clk ${showClock(c)}]"),
       parsed.elapsed.map(c => s"[%emt ${showClock(c)}]"),
       parsed.study.map(study => s"[%study ${Json.stringify(Json.toJson(study))}]"),
+      parsed.nodeResult.map(result => s"[%nodeResult ${result.key}]"),
       parsed.evaluation.map: evaluation =>
         val score = evaluation.cp
           .map(cp => BigDecimal(cp, 2).bigDecimal.stripTrailingZeros.toPlainString)
