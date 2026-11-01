@@ -81,6 +81,10 @@
   }
 
   .board-menu {
+    max-height: min(80dvh, 32rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+
     @include mq-at-least-col2 {
       @include box-radius-top;
 
