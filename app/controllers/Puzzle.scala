@@ -12,6 +12,7 @@ import lila.puzzle.{
   Puzzle as Puz,
   PuzzleAngle,
   PuzzleDifficulty,
+  PlayerPuzzleSearch,
   PuzzleForm,
   PuzzleSettings,
   PuzzleTheme,
@@ -181,12 +182,13 @@ final class Puzzle(env: Env, apiC: => Api) extends LilaController(env):
           JsonOk(env.puzzle.complete.onComplete(data)(id, angle, mobileBc))
     )
 
-  def ofPlayer(name: Option[UserStr], page: Int) = Open:
-    val userId = name.flatMap(_.validateId)
+  def ofPlayer(name: Option[String], page: Int) = Open:
+    val search = PlayerPuzzleSearch.from(name)
+    val userId = search.userName.flatMap(_.validateId)
     for
       user <- userId.so(env.user.repo.enabledById).orElse(fuccess(ctx.me.map(_.value)))
       puzzles <- user.traverse(env.puzzle.api.puzzle.of(_, page))
-      page <- renderPage(views.puzzle.ui.ofPlayer(name.so(_.value), user, puzzles))
+      page <- renderPage(views.puzzle.ui.ofPlayer(search.query, user, puzzles))
     yield Ok(page)
 
   def streak = Open(serveStreak)

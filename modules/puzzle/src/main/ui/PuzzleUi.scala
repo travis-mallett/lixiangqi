@@ -233,7 +233,7 @@ final class PuzzleUi(helpers: Helpers, val bits: PuzzleBits):
                           )
                         )
                       },
-                      pagerNext(pager, np => s"${routes.Puzzle.ofPlayer(u.username.some, np).url}")
+                      pagerNext(pager, np => s"${routes.Puzzle.ofPlayer(u.username.value.some, np).url}")
                     )
                   )
           )
