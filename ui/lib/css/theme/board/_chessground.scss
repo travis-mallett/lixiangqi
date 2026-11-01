@@ -156,7 +156,8 @@ cg-auto-pieces {
   pointer-events: none;
 }
 
-cg-container .cg-shapes {
+cg-container .cg-shapes,
+.graph-board__marks > .cg-shapes {
   opacity: 0.6;
   overflow: hidden;
   z-index: $z-cg__svg-shapes-2;

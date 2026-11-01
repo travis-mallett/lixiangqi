@@ -12,16 +12,11 @@ import type {
   Location,
   VisiblePiece,
 } from '../types';
+import { annotationBrushes, renderAnnotation } from './annotations';
 import { graphPoint, validateGraphGeometry } from './graphGeometry';
 import { GraphPieces } from './graphPieces';
 
 const svgNamespace = 'http://www.w3.org/2000/svg';
-const brushes: Record<string, string> = {
-  green: '#15781b',
-  red: '#882020',
-  blue: '#003088',
-  yellow: '#e68f00',
-};
 
 /** Explicit-location renderer. The controller owns move legality and all game state. */
 export class GraphBoardView implements BoardView {
@@ -421,43 +416,42 @@ export class GraphBoardView implements BoardView {
 
   private drawMarks(): void {
     this.marks.replaceChildren();
-    for (const marks of this.markLayers.values())
-      for (const mark of marks) {
-        const [x, y] = graphPoint(this.geometry, mark.from, this.presentation.perspective);
-        if (mark.svg) {
-          const artwork = document.createElementNS(svgNamespace, 'g');
-          const size = this.geometry.pieceSize;
-          artwork.setAttribute(
-            'transform',
-            `translate(${x - size / 2} ${y - size / 2}) scale(${size / 100})`,
-          );
-          // BoardMark.svg is application-generated artwork, as in the rectangular renderer.
-          artwork.innerHTML = mark.svg;
-          this.marks.append(artwork);
-          continue;
-        }
-        const color = brushes[mark.brush ?? 'green'] ?? brushes.green;
-        const shape = document.createElementNS(svgNamespace, mark.to ? 'path' : 'circle');
-        if (mark.to) {
-          const [tx, ty] = graphPoint(this.geometry, mark.to, this.presentation.perspective);
-          const angle = Math.atan2(ty - y, tx - x);
-          const ax = tx - Math.cos(angle) * 25,
-            ay = ty - Math.sin(angle) * 25;
-          shape.setAttribute(
-            'd',
-            `M${x} ${y}L${tx} ${ty}M${ax - Math.sin(angle) * 16} ${ay + Math.cos(angle) * 16}L${tx} ${ty}L${ax + Math.sin(angle) * 16} ${ay - Math.cos(angle) * 16}`,
-          );
-        } else {
-          shape.setAttribute('cx', String(x));
-          shape.setAttribute('cy', String(y));
-          shape.setAttribute('r', String(this.geometry.pieceSize * 0.43));
-        }
-        shape.setAttribute('fill', 'none');
-        shape.setAttribute('stroke', color);
-        shape.setAttribute('stroke-width', String(mark.lineWidth ?? 8));
-        shape.setAttribute('opacity', '.8');
-        this.marks.append(shape);
+    const shapes = document.createElementNS(svgNamespace, 'g');
+    shapes.classList.add('cg-shapes');
+    this.marks.append(shapes);
+    const allMarks = [...this.markLayers.values()].flat();
+    const destinations = new Map<Location, number>();
+    for (const mark of allMarks) if (mark.to) destinations.set(mark.to, (destinations.get(mark.to) ?? 0) + 1);
+    for (const mark of allMarks) {
+      const [x, y] = graphPoint(this.geometry, mark.from, this.presentation.perspective);
+      if (mark.svg) {
+        const artwork = document.createElementNS(svgNamespace, 'g');
+        const size = this.geometry.pieceSize;
+        artwork.setAttribute('transform', `translate(${x - size / 2} ${y - size / 2}) scale(${size / 100})`);
+        // BoardMark.svg is application-generated artwork, as in the rectangular renderer.
+        artwork.innerHTML = mark.svg;
+        this.marks.append(artwork);
+        continue;
       }
+      const size = this.geometry.pieceSize;
+      const base = annotationBrushes[mark.brush ?? 'green'] ?? annotationBrushes.green;
+      const destination = mark.to
+        ? graphPoint(this.geometry, mark.to, this.presentation.perspective)
+        : undefined;
+      const shape = renderAnnotation(
+        base,
+        [x / size, y / size],
+        destination ? [destination[0] / size, destination[1] / size] : undefined,
+        false,
+        !!mark.to && (destinations.get(mark.to) ?? 0) > 1,
+        0.5,
+        mark.lineWidth,
+      );
+      const frame = document.createElementNS(svgNamespace, 'g');
+      frame.setAttribute('transform', `scale(${size})`);
+      frame.append(shape);
+      shapes.append(frame);
+    }
   }
 
   place(location: Location, piece?: VisiblePiece): void {

@@ -19,6 +19,7 @@ import type {
   Participant,
   VisiblePiece,
 } from '../types';
+import { annotationBrushes, renderAnnotation } from './annotations';
 import { boardLocation, rendererKey } from './coordinates';
 import { rectangularMotion } from './rectangularMotion';
 
@@ -165,7 +166,8 @@ export class RectangularBoardView {
         enabled: settings.drawing,
         visible: true,
         defaultSnapToValidMove: false,
-        brushes: { variation: { key: 'variation', color: 'white', opacity: 0.5, lineWidth: 12 } },
+        brushes: annotationBrushes,
+        renderAnnotation,
         onChange: shapes => {
           const marks = shapes.map(shape => ({
             from: boardLocation(shape.orig),
@@ -333,7 +335,7 @@ export class RectangularBoardView {
     const shapes = marks.map(mark => ({
       orig: rendererKey(mark.from, this.definition.geometry),
       dest: mark.to ? rendererKey(mark.to, this.definition.geometry) : undefined,
-      brush: mark.brush,
+      brush: mark.brush ?? 'green',
       customSvg: mark.svg,
       modifiers: mark.lineWidth === undefined ? undefined : { lineWidth: mark.lineWidth },
     }));
