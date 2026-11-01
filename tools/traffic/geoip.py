@@ -9,15 +9,54 @@ import argparse
 import datetime as dt
 import gzip
 import hashlib
+from html.parser import HTMLParser
+import io
 import json
 import os
 from pathlib import Path
 import tempfile
+import re
 import urllib.request
 
 
+DOWNLOAD_PAGE = "https://db-ip.com/db/download/ip-to-city-lite"
+USER_AGENT = "LiXiangQi-GeoIP-Updater/1.0 (+https://lixiangqi.com)"
+
+
+class ReleaseLinks(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.months = set()
+
+    def handle_starttag(self, tag, attrs):
+        if tag != "a":
+            return
+        for name, value in attrs:
+            if name == "href" and value:
+                match = re.fullmatch(
+                    r"https://download\.db-ip\.com/free/dbip-city-lite-(\d{4}-\d{2})\.mmdb\.gz", value
+                )
+                if match:
+                    dt.datetime.strptime(match[1], "%Y-%m")
+                    self.months.add(match[1])
+
+
+def published_month() -> str:
+    request = urllib.request.Request(DOWNLOAD_PAGE, headers={"User-Agent": USER_AGENT})
+    with urllib.request.urlopen(request, timeout=60) as response:
+        page = io.BytesIO()
+        copy_bounded(response, page, 2_000_000)
+    links = ReleaseLinks()
+    links.feed(page.getvalue().decode("utf-8"))
+    if not links.months:
+        raise ValueError(f"No DB-IP Lite MMDB release found on {DOWNLOAD_PAGE}")
+    return max(links.months)
+
+
 def prepare(directory: Path, month: str | None = None) -> Path:
-    month = month or dt.datetime.now(dt.timezone.utc).strftime("%Y-%m")
+    month = published_month() if month is None else month
+    if not re.fullmatch(r"\d{4}-\d{2}", month):
+        raise ValueError("GeoIP release month must use YYYY-MM format")
     dt.datetime.strptime(month, "%Y-%m")
     directory.mkdir(parents=True, exist_ok=True)
     target = directory / "dbip-city-lite.mmdb"
@@ -31,7 +70,7 @@ def prepare(directory: Path, month: str | None = None) -> Path:
     try:
         with tempfile.NamedTemporaryFile(dir=directory, suffix=".gz", delete=False) as compressed:
             temporary = Path(compressed.name)
-            request = urllib.request.Request(url, headers={"User-Agent": "LiXiangQi-GeoIP-Updater/1.0 (+https://lixiangqi.com)"})
+            request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
             with urllib.request.urlopen(request, timeout=60) as response:
                 copy_bounded(response, compressed, 150_000_000)
         unpacked = temporary.with_suffix(".mmdb")
