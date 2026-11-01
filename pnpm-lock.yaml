@@ -6,7 +6,7 @@ settings:
 
 patchedDependencies:
   '@toast-ui/editor@3.2.2': 0a324facc984b3c00201cd2ac957c0e51db9ee66ce33c37306031ca67d5aa7ba
-  chessgroundx@10.7.5: 57a03e5f24a32c3c49226045adf0302a7a115413764a0c435b5d29ad109ec734
+  chessgroundx@10.7.5: 561306042ac4ec58d4878061cb8731fa79948bb69daa9a4e1639639fa85a6e77
 
 importers:
 
@@ -244,7 +244,7 @@ importers:
     dependencies:
       chessgroundx:
         specifier: 10.7.5
-        version: 10.7.5(patch_hash=57a03e5f24a32c3c49226045adf0302a7a115413764a0c435b5d29ad109ec734)
+        version: 10.7.5(patch_hash=561306042ac4ec58d4878061cb8731fa79948bb69daa9a4e1639639fa85a6e77)
 
   ui/challenge:
     dependencies:
@@ -2960,7 +2960,7 @@ snapshots:
       undici: 7.27.2
       whatwg-mimetype: 4.0.0
 
-  chessgroundx@10.7.5(patch_hash=57a03e5f24a32c3c49226045adf0302a7a115413764a0c435b5d29ad109ec734): {}
+  chessgroundx@10.7.5(patch_hash=561306042ac4ec58d4878061cb8731fa79948bb69daa9a4e1639639fa85a6e77): {}
 
   chessops@0.15.1:
     dependencies:

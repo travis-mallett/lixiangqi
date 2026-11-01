@@ -35,6 +35,27 @@ const position: BoardPosition = {
   ]),
 };
 
+test('display boards release browser gestures and restore interaction after mode changes', () => {
+  const board = mount(position);
+  assert.equal(board.element.classList.contains('manipulable'), false);
+  const presentation = board.getPresentation();
+  board.setPresentation({ ...presentation, drawing: true });
+  assert.equal(board.element.classList.contains('manipulable'), false);
+  board.setInteraction({ mode: 'edit', onChange() {} });
+  assert.equal(board.element.classList.contains('manipulable'), true);
+  board.setInteraction({ mode: 'display' });
+  assert.equal(board.element.classList.contains('manipulable'), false);
+  board.setInteraction({
+    mode: 'play',
+    participant: 'red',
+    destinations: new Map(),
+    input: 'both',
+    showDestinations: true,
+    onMove() {},
+  });
+  assert.equal(board.element.classList.contains('manipulable'), true);
+});
+
 test('armies face into each territory from every seat, including conquered armies and exports', () => {
   const board = mount(position);
   const rotations: Record<string, number> = { red: 120, black: 0, green: 240 };

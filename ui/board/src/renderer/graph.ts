@@ -68,6 +68,7 @@ export class GraphBoardView implements BoardView {
       `${(100 * this.geometry.pieceSize) / this.geometry.height}%`,
     );
     this.surface.className = 'graph-board__surface board-surface';
+    element.classList.toggle('manipulable', this.interaction.mode !== 'display');
     element.style.setProperty(
       '--board-cell-size',
       `calc(100cqw * ${this.geometry.pieceSize / this.geometry.width})`,
@@ -172,6 +173,7 @@ export class GraphBoardView implements BoardView {
   setInteraction(interaction: BoardInteraction): void {
     if (this.destroyed) return;
     this.interaction = interaction;
+    this.element.classList.toggle('manipulable', interaction.mode !== 'display');
     if (interaction.mode !== 'play') this.cancelPremove();
     this.cancelInput();
   }
