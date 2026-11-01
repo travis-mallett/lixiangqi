@@ -554,7 +554,8 @@ export default function init(opts: { explorerEndpoint?: string; nativeWeeklyAdde
     timelineUnit = timelineUnitInput.value as CatalogTimelineUnit;
     void loadGames();
   });
-  sortButtons.forEach(button =>
+  sortButtons.forEach(button => {
+    button.addEventListener('focus', () => button.scrollIntoView({ block: 'nearest', inline: 'center' }));
     button.addEventListener('click', () => {
       const selected = button.dataset.sort as CatalogSort;
       direction =
@@ -562,8 +563,8 @@ export default function init(opts: { explorerEndpoint?: string; nativeWeeklyAdde
       sort = selected;
       page = 1;
       void loadGames();
-    }),
-  );
+    });
+  });
   previous.addEventListener('click', () => {
     if (page <= 1) return;
     page--;

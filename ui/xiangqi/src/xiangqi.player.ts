@@ -724,7 +724,8 @@ export default function init(bootstrap: PlayerPageBootstrap = {}): void {
     timelineUnit = timelineUnitInput.value as CatalogTimelineUnit;
     void loadProfile();
   });
-  sortButtons.forEach(button =>
+  sortButtons.forEach(button => {
+    button.addEventListener('focus', () => button.scrollIntoView({ block: 'nearest', inline: 'center' }));
     button.addEventListener('click', () => {
       const selected = button.dataset.playerSort as CatalogSort;
       direction =
@@ -732,8 +733,8 @@ export default function init(bootstrap: PlayerPageBootstrap = {}): void {
       sort = selected;
       page = 1;
       void loadProfile();
-    }),
-  );
+    });
+  });
   previousButton.addEventListener('click', () => {
     if (page <= 1) return;
     page -= 1;
