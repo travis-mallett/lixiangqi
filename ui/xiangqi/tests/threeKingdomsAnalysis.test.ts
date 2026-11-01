@@ -8,6 +8,7 @@ import {
   saveKingdomTabs,
   kingdomTabsKey,
   newKingdomTab,
+  findKingdomGameTab,
 } from '../src/analysisThreeKingdomsTabs';
 import { KingdomAnalysisTree, type KingdomNode } from '../src/analysisThreeKingdomsTree';
 import { AnalysisTreeView } from '../src/analysisTreeView';
@@ -166,4 +167,54 @@ test('the common analysis variant picker includes Three Kingdoms', () => {
   select.dispatchEvent(new window.Event('change'));
   assert.equal(selected, 'threeKingdoms');
   panel.remove();
+});
+
+test('reloading a game analysis selects its existing tab instead of appending another', () => {
+  const gameId = 'game-123';
+  const events = [
+    { actor: 'red', action: 'resign' },
+    { actor: 'black', action: 'resign' },
+  ] as const;
+  const gameTree = Tree.fromEvents(rules, rules.initial(), [...events]);
+  const saved = newKingdomTab(Tree.import(rules, JSON.stringify(gameTree.export())), gameId);
+  assert.equal(findKingdomGameTab([saved], gameId, gameTree), saved);
+  const legacyTree = Tree.import(rules, JSON.stringify(gameTree.export()));
+  legacyTree.current.comment = 'Saved annotation';
+  const legacy = newKingdomTab(legacyTree);
+  assert.equal(findKingdomGameTab([legacy], gameId, gameTree), legacy);
+  assert.equal(
+    findKingdomGameTab([newKingdomTab(new Tree(rules, gameTree.initial))], gameId, gameTree),
+    undefined,
+    'an empty analysis is not mistaken for an imported game',
+  );
+  const prefixTree = Tree.fromEvents(rules, gameTree.initial, [events[0]]);
+  assert.equal(
+    findKingdomGameTab([newKingdomTab(prefixTree)], gameId, gameTree),
+    undefined,
+    'a saved prefix is not mistaken for the complete game replay',
+  );
+  const unrelatedTree = Tree.fromEvents(rules, gameTree.initial, [
+    { actor: 'black', action: 'resign' },
+    { actor: 'red', action: 'resign' },
+  ]);
+  assert.equal(
+    findKingdomGameTab([newKingdomTab(unrelatedTree)], gameId, gameTree),
+    undefined,
+    'a different event sequence is not mistaken for the imported game',
+  );
+  assert.equal(
+    findKingdomGameTab(
+      [newKingdomTab(new Tree(rules, gameTree.initial))],
+      gameId,
+      new Tree(rules, gameTree.initial),
+    ),
+    undefined,
+    'a move-less game cannot safely identify a legacy analysis tab',
+  );
+  localStorage.clear();
+  saveKingdomTabs([saved], saved.id);
+  const restored = loadKingdomTabs(rules);
+  assert.equal(restored.tabs[0].gameId, gameId);
+  assert.equal(findKingdomGameTab(restored.tabs, gameId, gameTree)?.id, saved.id);
+  localStorage.clear();
 });

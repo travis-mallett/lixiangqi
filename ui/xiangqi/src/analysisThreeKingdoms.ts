@@ -44,6 +44,7 @@ import {
   saveKingdomTabs,
   newKingdomTab,
   type KingdomTab,
+  findKingdomGameTab,
 } from './analysisThreeKingdomsTabs';
 import { KingdomAnalysisTree, type KingdomNode } from './analysisThreeKingdomsTree';
 import { AnalysisTreeView } from './analysisTreeView';
@@ -57,8 +58,9 @@ export async function initThreeKingdomsAnalysis(preferences: BoardPreferences): 
     const rules = await loadRules();
     const query = new URLSearchParams(location.search);
     let tree: Tree | undefined;
+    let sourceGameId: string | undefined;
     if (query.has('game')) {
-      const id = query.get('game')!;
+      const id = (sourceGameId = query.get('game')!);
       const game = id.startsWith('local-')
         ? ([
             ...JSON.parse(localStorage.getItem('threeKingdoms.localHistory') ?? '[]'),
@@ -69,7 +71,12 @@ export async function initThreeKingdomsAnalysis(preferences: BoardPreferences): 
       tree = Tree.fromEvents(rules, game.initial, game.events);
     } else if (query.has('position')) tree = new Tree(rules, query.get('position')!);
 
-    new Analysis(tree, rules, { mode: query.has('editor') ? 'editor' : 'analysis', me: null, preferences });
+    new Analysis(
+      tree,
+      rules,
+      { mode: query.has('editor') ? 'editor' : 'analysis', me: null, preferences },
+      sourceGameId,
+    );
   } catch (error) {
     required('#xiangqi-status').textContent = errorText(error);
   }
@@ -106,16 +113,21 @@ class Analysis {
     tree: Tree | undefined,
     private readonly rules: Rules,
     private readonly bootstrap: Bootstrap,
+    sourceGameId?: string,
   ) {
     const t = i18n.threeKingdoms;
     const stored = loadKingdomTabs(rules);
     this.tabs = stored.tabs;
     this.activeId = stored.activeId;
     if (tree) {
-      if (this.tabs.length >= MAX_ANALYSIS_TABS) throw new Error('Too many analysis tabs');
-      const tab = newKingdomTab(tree);
-      this.tabs.push(tab);
-      this.activeId = tab.id;
+      const existing = sourceGameId && findKingdomGameTab(this.tabs, sourceGameId, tree);
+      if (existing) this.activeId = existing.id;
+      else {
+        if (this.tabs.length >= MAX_ANALYSIS_TABS) throw new Error('Too many analysis tabs');
+        const tab = newKingdomTab(tree, sourceGameId);
+        this.tabs.push(tab);
+        this.activeId = tab.id;
+      }
     }
     this.tree = this.tabs.find(tab => tab.id === this.activeId)!.tree;
     const page = required('.xiangqi-analysis-page');
