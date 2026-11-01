@@ -102,6 +102,12 @@ ${objs.map(dbCode).join('\n')}
 `.trimEnd() + '\n';
 
 const keyFile = path.resolve(lilaDir, 'modules/coreI18n/src/main/key.scala');
-writeFileSync(keyFile, code);
-
-console.log(`✅ Wrote ${keyFile}`);
+if (process.argv.includes('--check')) {
+  if (readFileSync(keyFile, 'utf-8').replaceAll('\r\n', '\n') !== code.replaceAll('\r\n', '\n')) {
+    console.error('Scala translation keys are out of date. Run pnpm i18n-file-gen and stage key.scala.');
+    process.exitCode = 1;
+  }
+} else {
+  writeFileSync(keyFile, code);
+  console.log(`✅ Wrote ${keyFile}`);
+}

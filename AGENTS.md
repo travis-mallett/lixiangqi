@@ -231,7 +231,17 @@ Do not modify deployment tooling when the change has no deployment implications.
 
 Any task that prepares a commit, pull request, or push must complete the local checks that correspond to the GitHub workflows before the contribution is handed off. Formatting must happen before the final build, and every formatter or linter fix must be followed by the checks again.
 
-From the repository root, install dependencies if needed, then run the frontend checks when the change touches frontend code or shared assets:
+Determine applicable checks from the current `.github/workflows/*.yml`, including their path filters, services, environment variables, and dependency installation steps. The commands below are a baseline, not an exhaustive workflow list. For a push, inspect the entire outgoing commit range, not only the latest commit or working-tree diff. Record each applicable job, command, and result in the handoff; explicitly identify checks that were not run. A successful compile, asset build, or deployment does not imply that formatting, tests, or generated-file checks passed.
+
+Run frontend lint and format checks for every contribution: `lint.yml` runs on every push, including changes to tests, tooling, and documentation. The commit hook only checks selected staged file types; it does not replace the workflow checks or run Scalafmt. Do not assume installing hooks guarantees CI parity.
+
+When translation sources or generators change, run both `pnpm i18n-file-gen` and `bash -lc './ui/build --i18n'` before formatting and building. Include generated Scala keys and TypeScript declarations in the change. Then run `pnpm i18n-file-gen --check`, the XML validation and translation lint commands in `translations.yml`, and repeat generation to confirm it produces no further changes. The staged translation check rejects stale Scala keys but does not replace the other translation jobs.
+
+For backend dependency or platform-specific changes, verify the Linux dependency branch used by `server.yml`; a Windows build can use different artifacts and miss Linux runtime dependencies. Use an available Linux/WSL environment or report Linux verification as outstanding. Match CI service versions and enable its integration-test environment variables against isolated test databases; a suite that skips those tests is not full CI parity. For Python tooling, migrations, desktop tools, or bot calibration, run the corresponding workflow suites and install their declared dependencies. Use deterministic synchronization in asynchronous tests rather than fixed sleeps that depend on runner speed.
+
+In PowerShell, check `$LASTEXITCODE` after each native command and stop on failure. `$ErrorActionPreference = 'Stop'` alone does not reliably turn native command failures into terminating errors. If Bash is not on PATH, use the installed Git Bash executable explicitly for frontend commands; Git Bash still runs Windows binaries and does not validate Linux backend dependencies.
+
+From the repository root, install dependencies if needed, then run the frontend lint and formatting checks for every contribution:
 
 ```powershell
 pnpm install

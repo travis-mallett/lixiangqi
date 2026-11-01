@@ -47,7 +47,7 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install
-      - run: pnpm i18n-file-gen
+      - run: pnpm i18n-file-gen --check
       - run: ./ui/build --i18n
       - name: i18n files up-to-date check
         run: |

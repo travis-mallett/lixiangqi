@@ -8,6 +8,8 @@
 const args = files => files.map(f => `'${f.replaceAll("'", "'\\''")}'`).join(' ');
 
 export default {
+  '{translation/source/*.xml,bin/i18n-file-gen.ts,modules/coreI18n/src/main/key.scala}': () =>
+    'pnpm i18n-file-gen --check',
   '*.{json,ts,mts,js,mjs,scss}': files => {
     const formatted = files.filter(f => !/[\\/]public[\\/]/.test(f));
     const code = formatted.filter(f => /\.(?:ts|mts|js|mjs)$/.test(f));
