@@ -47,6 +47,15 @@ export function transition(before: State, after: State, id: string): BoardTransi
   const moved = movedBetween(before, after);
   const captured = moved && before.pieces.find(p => p.location === moved.split('>')[1]);
   const movingArmy = moved && before.pieces.find(p => p.location === moved.split('>')[0])?.army;
+  // Check markers describe the position; feedback announces only newly established checks.
+  // The third player's intervening move must not announce an unchanged opponent's check again.
+  const checks = moved
+    ? after.checked.filter(
+        target =>
+          !before.checked.includes(target) ||
+          after.checkSources?.[target]?.some(source => !before.checkSources?.[target]?.includes(source)),
+      )
+    : [];
   const eliminated = after.eliminated.filter(
     e => !before.eliminated.some(previous => previous.player === e.player),
   );
@@ -55,7 +64,7 @@ export function transition(before: State, after: State, id: string): BoardTransi
     id,
     effects: [
       ...(captured ? ['capture' as const] : []),
-      ...(moved && after.checked.length ? ['check' as const] : []),
+      ...(checks.length ? ['check' as const] : []),
       ...(eliminated.some(e => ['capture', 'checkmate', 'stalemate'].includes(e.reason))
         ? ['checkmate' as const]
         : []),
@@ -65,7 +74,7 @@ export function transition(before: State, after: State, id: string): BoardTransi
     ],
     effectTargets: {
       capture: captured ? [captured.army] : [],
-      check: after.checked,
+      check: checks,
       checkmate: eliminated
         .filter(e => ['capture', 'checkmate', 'stalemate'].includes(e.reason))
         .map(e => e.player),
@@ -75,8 +84,10 @@ export function transition(before: State, after: State, id: string): BoardTransi
     },
     effectRoutes: {
       capture: captured && moved ? [[movingArmy!, captured.army]] : [],
-      check: after.checked.flatMap(target => {
-        const sources = after.checkSources?.[target] ?? [];
+      check: checks.flatMap(target => {
+        const sources = (after.checkSources?.[target] ?? []).filter(
+          source => !before.checked.includes(target) || !before.checkSources?.[target]?.includes(source),
+        );
         const source = movingArmy && sources.includes(movingArmy) ? movingArmy : sources[0];
         return source ? [[source, target] as const] : [];
       }),

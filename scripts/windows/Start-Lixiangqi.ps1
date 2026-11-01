@@ -12,8 +12,6 @@ $logsDir = Join-Path $projectRoot 'logs'
 $dataDir = Join-Path $projectRoot 'data\local'
 $toolsDir = Join-Path $projectRoot '.tools'
 
-New-Item -ItemType Directory -Force -Path $logsDir, $dataDir | Out-Null
-
 function Write-Step([string]$message) {
   Write-Host "[Lixiangqi] $message" -ForegroundColor Cyan
 }
@@ -236,50 +234,56 @@ function Remove-StaleSbtBackgroundJobs {
 }
 
 Set-Location $projectRoot
-$siteAddress = 'lixiangqi.localhost'
-if ($LanAccess) {
-  $siteAddress = Get-LanIPv4Address
-  Write-Warning @'
+$nodeDir = Join-Path $toolsDir 'node'
+$node = if (Test-Path -LiteralPath $nodeDir -PathType Container) {
+  Get-ChildItem -LiteralPath $nodeDir -Filter node.exe -Recurse |
+    Select-Object -First 1 -ExpandProperty FullName
+}
+if (-not $node) { $node = (Get-Command node.exe -ErrorAction SilentlyContinue).Source }
+$imageServer = Join-Path $projectRoot 'tools\image_export\dist\server.mjs'
+$lilaWsConf = Join-Path $PSScriptRoot 'lila-ws.conf'
+
+# Cleanup needs only process identity paths, never installed startup dependencies.
+if (-not $StopOnly) {
+  New-Item -ItemType Directory -Force -Path $logsDir, $dataDir | Out-Null
+  $siteAddress = 'lixiangqi.localhost'
+  if ($LanAccess) {
+    $siteAddress = Get-LanIPv4Address
+    Write-Warning @'
 LAN access uses plain HTTP, so browsers will not expose SharedArrayBuffer and
 browser Pikafish analysis will be unavailable. Use the default localhost mode
 for analysis, or put the LAN site behind trusted HTTPS.
 '@
-}
-$siteDomain = "${siteAddress}:9663"
+  }
+  $siteDomain = "${siteAddress}:9663"
 
-$mongo = Get-ChildItem (Join-Path $toolsDir 'mongodb') -Filter mongod.exe -Recurse -ErrorAction SilentlyContinue |
-  Select-Object -First 1 -ExpandProperty FullName
-$mongosh = Get-ChildItem (Join-Path $toolsDir 'mongodb') -Filter mongosh.exe -Recurse -ErrorAction SilentlyContinue |
-  Select-Object -First 1 -ExpandProperty FullName
-$redis = Get-ChildItem (Join-Path $toolsDir 'redis') -Filter redis-server.exe -Recurse -ErrorAction SilentlyContinue |
-  Select-Object -First 1 -ExpandProperty FullName
-$java = Get-ChildItem (Join-Path $toolsDir 'jdk-21') -Filter java.exe -Recurse -ErrorAction SilentlyContinue |
-  Where-Object { $_.FullName -match '[\\/]bin[\\/]java\.exe$' } |
-  Select-Object -First 1 -ExpandProperty FullName
-$node = Get-ChildItem (Join-Path $toolsDir 'node') -Filter node.exe -Recurse -ErrorAction SilentlyContinue |
-  Select-Object -First 1 -ExpandProperty FullName
-if (-not $node) { $node = (Get-Command node.exe -ErrorAction SilentlyContinue).Source }
-$imageServer = Join-Path $projectRoot 'tools\image_export\dist\server.mjs'
-$sbt = Join-Path $toolsDir 'sbt\sbt-launch-2.0.3.jar'
-$python = Join-Path $projectRoot '.venv\Scripts\python.exe'
-$pikafish = Join-Path $toolsDir 'pikafish\Windows\pikafish-avx2.exe'
-$lilaWsDir = Join-Path $toolsDir 'lila-ws'
-$lilaWsPatch = Join-Path $PSScriptRoot 'lila-ws-xiangqi.patch'
-$lilaWsPrepare = Join-Path $PSScriptRoot 'Prepare-LilaWs.ps1'
-$lilaWsMarker = Join-Path $dataDir 'lila-ws-applied.patch'
-$lilaWsConf = Join-Path $PSScriptRoot 'lila-ws.conf'
-$lilaWsCommit = 'cd3e2e9e5a38be76d89fa76136940f6a5c086437'
+  $mongo = Get-ChildItem (Join-Path $toolsDir 'mongodb') -Filter mongod.exe -Recurse -ErrorAction SilentlyContinue |
+    Select-Object -First 1 -ExpandProperty FullName
+  $mongosh = Get-ChildItem (Join-Path $toolsDir 'mongodb') -Filter mongosh.exe -Recurse -ErrorAction SilentlyContinue |
+    Select-Object -First 1 -ExpandProperty FullName
+  $redis = Get-ChildItem (Join-Path $toolsDir 'redis') -Filter redis-server.exe -Recurse -ErrorAction SilentlyContinue |
+    Select-Object -First 1 -ExpandProperty FullName
+  $java = Get-ChildItem (Join-Path $toolsDir 'jdk-21') -Filter java.exe -Recurse -ErrorAction SilentlyContinue |
+    Where-Object { $_.FullName -match '[\\/]bin[\\/]java\.exe$' } |
+    Select-Object -First 1 -ExpandProperty FullName
+  $sbt = Join-Path $toolsDir 'sbt\sbt-launch-2.0.3.jar'
+  $python = Join-Path $projectRoot '.venv\Scripts\python.exe'
+  $pikafish = Join-Path $toolsDir 'pikafish\Windows\pikafish-avx2.exe'
+  $lilaWsDir = Join-Path $toolsDir 'lila-ws'
+  $lilaWsPatch = Join-Path $PSScriptRoot 'lila-ws-xiangqi.patch'
+  $lilaWsPrepare = Join-Path $PSScriptRoot 'Prepare-LilaWs.ps1'
+  $lilaWsMarker = Join-Path $dataDir 'lila-ws-applied.patch'
+  $lilaWsCommit = 'cd3e2e9e5a38be76d89fa76136940f6a5c086437'
 
-if (-not $mongo) { throw 'MongoDB is missing from .tools\mongodb. Run the Windows bootstrap first.' }
-if (-not $mongosh) {
-  & (Join-Path $PSScriptRoot 'Install-Mongosh.ps1')
-  $mongosh = Get-ChildItem (Join-Path $toolsDir 'mongodb') -Filter mongosh.exe -Recurse | Select-Object -First 1 -ExpandProperty FullName
-}
-if (-not $mongosh) { throw 'MongoDB Shell installation failed.' }
-if (-not $redis) { throw 'Redis is missing from .tools\redis. Run the Windows bootstrap first.' }
-if (-not $java) { throw 'Temurin JDK 21 is missing from .tools\jdk-21.' }
-if (-not $node) { throw 'Node.js is missing. Install the version declared in .node-version.' }
-if (-not $StopOnly) {
+  if (-not $mongo) { throw 'MongoDB is missing from .tools\mongodb. Run the Windows bootstrap first.' }
+  if (-not $mongosh) {
+    & (Join-Path $PSScriptRoot 'Install-Mongosh.ps1')
+    $mongosh = Get-ChildItem (Join-Path $toolsDir 'mongodb') -Filter mongosh.exe -Recurse | Select-Object -First 1 -ExpandProperty FullName
+  }
+  if (-not $mongosh) { throw 'MongoDB Shell installation failed.' }
+  if (-not $redis) { throw 'Redis is missing from .tools\redis. Run the Windows bootstrap first.' }
+  if (-not $java) { throw 'Temurin JDK 21 is missing from .tools\jdk-21.' }
+  if (-not $node) { throw 'Node.js is missing. Install the version declared in .node-version.' }
   $requiredNodeMajor = (Get-Content (Join-Path $projectRoot '.node-version') -Raw).Trim().Split('.')[0].TrimStart('v')
   # Parse in PowerShell: Windows PowerShell strips embedded quotes in native arguments.
   $nodeVersion = & $node -p 'process.versions.node'
@@ -288,74 +292,74 @@ if (-not $StopOnly) {
   }
   $nodeMajor = $nodeVersion.Trim().Split('.')[0]
   if ($nodeMajor -ne $requiredNodeMajor) { throw "Node.js $requiredNodeMajor is required; found $nodeMajor at $node." }
-}
-if (-not (Test-Path $sbt)) { throw 'The SBT launcher is missing from .tools\sbt.' }
-if (-not (Test-Path $python)) { throw 'The Python virtual environment is missing. Run: python -m venv .venv' }
-$pythonRequirements = Join-Path $PSScriptRoot 'requirements.txt'
-& $python -c 'import pymongo, paramiko' 2>$null
-if ($LASTEXITCODE) {
-  Write-Step 'Installing the local data synchronization dependency'
-  & $python -m pip install -r $pythonRequirements
-  if ($LASTEXITCODE) { throw 'Python dependency installation failed.' }
-}
-if (-not (Test-Path $lilaWsPatch)) { throw 'The Xiangqi lila-ws patch is missing.' }
-if (-not (Test-Path $lilaWsPrepare)) { throw 'The lila-ws preparation helper is missing.' }
-if (-not (Test-Path $lilaWsConf)) { throw 'The local lila-ws configuration is missing.' }
-if (-not (Test-Path $pikafish)) {
-  Write-Step 'Installing the official Pikafish Xiangqi analysis engine'
-  & (Join-Path $PSScriptRoot 'Install-Pikafish.ps1')
-  if (-not (Test-Path $pikafish)) { throw 'Pikafish installation failed.' }
-}
-$env:LIXIANGQI_PIKAFISH = $pikafish
+  if (-not (Test-Path $sbt)) { throw 'The SBT launcher is missing from .tools\sbt.' }
+  if (-not (Test-Path $python)) { throw 'The Python virtual environment is missing. Run: python -m venv .venv' }
+  $pythonRequirements = Join-Path $PSScriptRoot 'requirements.txt'
+  & $python -c 'import pymongo, paramiko' 2>$null
+  if ($LASTEXITCODE) {
+    Write-Step 'Installing the local data synchronization dependency'
+    & $python -m pip install -r $pythonRequirements
+    if ($LASTEXITCODE) { throw 'Python dependency installation failed.' }
+  }
+  if (-not (Test-Path $lilaWsPatch)) { throw 'The Xiangqi lila-ws patch is missing.' }
+  if (-not (Test-Path $lilaWsPrepare)) { throw 'The lila-ws preparation helper is missing.' }
+  if (-not (Test-Path $lilaWsConf)) { throw 'The local lila-ws configuration is missing.' }
+  if (-not (Test-Path $pikafish)) {
+    Write-Step 'Installing the official Pikafish Xiangqi analysis engine'
+    & (Join-Path $PSScriptRoot 'Install-Pikafish.ps1')
+    if (-not (Test-Path $pikafish)) { throw 'Pikafish installation failed.' }
+  }
+  $env:LIXIANGQI_PIKAFISH = $pikafish
 
-if (-not (Test-Path (Join-Path $lilaWsDir '.git'))) {
-  Write-Step 'Installing the native Lila websocket service'
-  & git clone https://github.com/lichess-org/lila-ws.git $lilaWsDir
-  if ($LASTEXITCODE) { throw 'Could not clone lila-ws.' }
-  & git -C $lilaWsDir checkout $lilaWsCommit
-  if ($LASTEXITCODE) { throw "Could not check out lila-ws $lilaWsCommit." }
-}
-$installedLilaWsCommit = (& git -C $lilaWsDir rev-parse HEAD).Trim()
-if ($installedLilaWsCommit -ne $lilaWsCommit) {
-  throw "Unexpected lila-ws revision $installedLilaWsCommit. Expected $lilaWsCommit."
-}
-& $lilaWsPrepare -Source $lilaWsDir -Patch $lilaWsPatch -Commit $lilaWsCommit -Marker $lilaWsMarker
-if ($LASTEXITCODE) { throw 'Could not prepare the Xiangqi lila-ws source.' }
+  if (-not (Test-Path (Join-Path $lilaWsDir '.git'))) {
+    Write-Step 'Installing the native Lila websocket service'
+    & git clone https://github.com/lichess-org/lila-ws.git $lilaWsDir
+    if ($LASTEXITCODE) { throw 'Could not clone lila-ws.' }
+    & git -C $lilaWsDir checkout $lilaWsCommit
+    if ($LASTEXITCODE) { throw "Could not check out lila-ws $lilaWsCommit." }
+  }
+  $installedLilaWsCommit = (& git -C $lilaWsDir rev-parse HEAD).Trim()
+  if ($installedLilaWsCommit -ne $lilaWsCommit) {
+    throw "Unexpected lila-ws revision $installedLilaWsCommit. Expected $lilaWsCommit."
+  }
+  & $lilaWsPrepare -Source $lilaWsDir -Patch $lilaWsPatch -Commit $lilaWsCommit -Marker $lilaWsMarker
+  if ($LASTEXITCODE) { throw 'Could not prepare the Xiangqi lila-ws source.' }
 
-$applicationConf = Join-Path $projectRoot 'conf\application.conf'
-if (-not (Test-Path $applicationConf)) {
-  Copy-Item (Join-Path $projectRoot 'conf\application.conf.default') $applicationConf
-  Add-Content $applicationConf @'
+  $applicationConf = Join-Path $projectRoot 'conf\application.conf'
+  if (-not (Test-Path $applicationConf)) {
+    Copy-Item (Join-Path $projectRoot 'conf\application.conf.default') $applicationConf
+    Add-Content $applicationConf @'
 
 # Lixiangqi local overrides
 net.site.name = "lixiangqi.org"
 net.ratelimit = false
 '@
-}
-$applicationText = [IO.File]::ReadAllText($applicationConf)
-$applicationTextWithSockets = [Regex]::Replace(
-  $applicationText,
-  '(?m)^net\.socket\.domains\s*=\s*\[\]\r?\n?',
-  ''
-)
-if ($applicationTextWithSockets -ne $applicationText) {
-  [IO.File]::WriteAllText(
-    $applicationConf,
-    $applicationTextWithSockets,
-    [Text.UTF8Encoding]::new($false)
+  }
+  $applicationText = [IO.File]::ReadAllText($applicationConf)
+  $applicationTextWithSockets = [Regex]::Replace(
+    $applicationText,
+    '(?m)^net\.socket\.domains\s*=\s*\[\]\r?\n?',
+    ''
   )
-}
+  if ($applicationTextWithSockets -ne $applicationText) {
+    [IO.File]::WriteAllText(
+      $applicationConf,
+      $applicationTextWithSockets,
+      [Text.UTF8Encoding]::new($false)
+    )
+  }
 
-if (-not $SkipBuild -and -not $StopOnly) {
-  Write-Step 'Building the native broadcast companion download'
-  & $python (Join-Path $projectRoot 'tools\build_broadcaster.py')
-  if ($LASTEXITCODE) { throw 'Native broadcast companion build failed.' }
-  Write-Step 'Building the shared Three Kingdoms browser rules and engine'
-  & $java '-Dsbt.server.autostart=false' -jar $sbt 'threeKingdomsJs/threeKingdomsBrowser'
-  if ($LASTEXITCODE) { throw 'Three Kingdoms engine build failed.' }
-  Write-Step 'Building the Lichess asset manifest, browser bundles, and styles'
-  & $node ui\.build\src\main.ts --no-install
-  if ($LASTEXITCODE) { throw 'Lichess asset build failed.' }
+  if (-not $SkipBuild) {
+    Write-Step 'Building the native broadcast companion download'
+    & $python (Join-Path $projectRoot 'tools\build_broadcaster.py')
+    if ($LASTEXITCODE) { throw 'Native broadcast companion build failed.' }
+    Write-Step 'Building the shared Three Kingdoms browser rules and engine'
+    & $java '-Dsbt.server.autostart=false' -jar $sbt 'threeKingdomsJs/threeKingdomsBrowser'
+    if ($LASTEXITCODE) { throw 'Three Kingdoms engine build failed.' }
+    Write-Step 'Building the Lichess asset manifest, browser bundles, and styles'
+    & $node ui\.build\src\main.ts --no-install
+    if ($LASTEXITCODE) { throw 'Lichess asset build failed.' }
+  }
 }
 
 # The launcher is also the local restart command. Keeping an existing process
