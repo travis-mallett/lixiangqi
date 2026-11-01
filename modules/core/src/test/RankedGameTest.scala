@@ -88,6 +88,11 @@ class RankedGameTest extends munit.FunSuite:
     assertEquals(game.rated, Rated.No)
     assertEquals(game.players.flatMap(_.rank).size, 2)
 
+    val legacyRated = game.copy(rated = Rated.Yes)
+    assert(legacyRated.rated.yes)
+    assertEquals(legacyRated.rankTrack, None)
+    assert(!legacyRated.ranked)
+
   test("Jieqi uses its own account, canonical clock, and opening move limits"):
     val jPlayers = players.map(p =>
       p.copy(rank =

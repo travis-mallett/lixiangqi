@@ -12,6 +12,9 @@ object Query:
 
   val ranked: Bdoc = F.rankTrack.$in(lila.core.rank.RankTrackId.all.map(_.value))
 
+  // Includes missing and unknown track IDs, both of which decode as unranked.
+  val notRanked: Bdoc = F.rankTrack.$nin(lila.core.rank.RankTrackId.all.map(_.value))
+
   def ranked(u: UserId): Bdoc = user(u) ++ ranked
 
   def status(s: Status) = F.status.$eq(s.id)

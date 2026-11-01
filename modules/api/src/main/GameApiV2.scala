@@ -16,7 +16,8 @@ import lila.db.dsl.{ *, given }
 import lila.game.JsonView.given
 import lila.xiangqi.XiangqiJson.given
 import lila.game.PgnDump.{ WithFlags, applyDelay }
-import lila.game.{ Divider, Query }
+import lila.game.{ Divider, GameRepo, Query }
+import lila.game.Game.BSONFields as GameBSONFields
 import lila.round.GameProxyRepo
 import lila.team.GameTeams
 import lila.tournament.Tournament
@@ -118,7 +119,18 @@ final class GameApiV2(
     val requiresElasticSearch =
       config.analysed.nonEmpty || config.color.nonEmpty || config.ranked.nonEmpty
     val gameSource: Source[Game, ?] =
-      if requiresElasticSearch then
+      // Casual is defined by rank-track absence, not by the legacy rated flag in the search index.
+      if config.ranked.contains(false) then
+        gameRepo
+          .sortedCursor(
+            config.toCasualQuery(playerSelect),
+            config.sort.bson,
+            batchSize = config.perSecond.value,
+            hintName = config.finished.option(GameRepo.byUserCreatedAtIndexName)
+          )
+          .documentSource()
+          .take(config.max.fold(500_000)(_.value))
+      else if requiresElasticSearch then
         import lila.search.Size
         gameSearch
           .idStream(
@@ -448,6 +460,16 @@ object GameApiV2:
         date = DateRange(since.map(ts), until.map(ts)),
         rated = ranked
       )
+
+    def toCasualQuery(playerSelect: Bdoc): Bdoc =
+      val colorSelect = color.fold($empty): c =>
+        $doc(s"${GameBSONFields.playerUids}.${c.fold(0, 1)}" -> user.id)
+      playerSelect ++
+        Query.createdBetween(since, until) ++
+        (!ongoing).so(Query.finished) ++
+        Query.notRanked ++
+        analysed.fold($empty)(Query.analysed) ++
+        colorSelect
 
   case class ByIdsConfig(
       ids: Seq[GameId],
