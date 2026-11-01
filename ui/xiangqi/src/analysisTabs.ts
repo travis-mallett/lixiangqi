@@ -61,6 +61,33 @@ export function normalizeAnalysisTabTitle(value: string): string | undefined {
   return title && title.length <= MAX_ANALYSIS_TAB_TITLE_LENGTH ? title : undefined;
 }
 
+export function mergeAnalysisHandoff(
+  tabs: AnalysisTab[],
+  activeId: string,
+  handoff: AnalysisTab,
+  legacyDraft?: AnalysisTab,
+): { tabs: AnalysisTab[]; activeId: string; inserted: boolean } {
+  const workspace = legacyDraft ? [...tabs, legacyDraft] : tabs;
+  const existing = workspace.find(tab => tab.id === handoff.id);
+  if (existing) return { tabs: workspace, activeId: existing.id, inserted: false };
+  if (workspace.length >= MAX_ANALYSIS_TABS) return { tabs: workspace, activeId, inserted: false };
+  return { tabs: [...workspace, handoff], activeId: handoff.id, inserted: true };
+}
+
+export function restoreAnalysisWorkspace(
+  tabs: AnalysisTab[],
+  activeId: string,
+  currentFen: string,
+  explicitFen: boolean,
+  handoff?: AnalysisTab,
+): { tabs: AnalysisTab[]; activeId: string } | undefined {
+  const active = tabs.find(tab => tab.id === activeId) ?? tabs[0];
+  if (!handoff && explicitFen && active.initialFen !== currentFen) return undefined;
+  if (!handoff) return { tabs, activeId: active.id };
+  const merged = mergeAnalysisHandoff(tabs, activeId, handoff);
+  return { tabs: merged.tabs, activeId: merged.activeId };
+}
+
 export function deserializeAnalysisTabs(value: unknown): {
   tabs: AnalysisTab[];
   activeId: string;

@@ -75,7 +75,9 @@ import { AnalysisSuggestions } from './analysisSuggestions';
 import {
   ANALYSIS_TABS_STORAGE_KEY,
   deserializeAnalysisTabs,
+  mergeAnalysisHandoff,
   MAX_ANALYSIS_TABS,
+  restoreAnalysisWorkspace,
   serializeAnalysisTabs,
   type AnalysisTab,
   type AnalysisEditorState,
@@ -288,7 +290,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
   if (nativeStates) tree.root.metadata = bootstrap.headers;
   let tabs: AnalysisTab[] = [
     {
-      id: createTabId(),
+      id: handoff?.id ?? createTabId(),
       title: bootstrap.title || 'Analysis 1',
       kind: bootstrap.gameId ? 'game' : 'analysis',
       ...(bootstrap.gameId ? { gameId: bootstrap.gameId } : {}),
@@ -439,9 +441,10 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     updateProgressBar(engineProgressBarElement, progress);
   }
 
-  if (!handoff) restoreWorkspace();
+  restoreWorkspace();
 
   function restoreWorkspace(): void {
+    const incomingHandoff = handoff ? tabs[0] : undefined;
     // A native replay must never be replaced by a draft sharing its starting FEN.
     if (bootstrap.gameId) return;
     {
@@ -449,15 +452,25 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
         const storedTabs = localStorage.getItem(ANALYSIS_TABS_STORAGE_KEY);
         if (storedTabs) {
           const restored = deserializeAnalysisTabs(JSON.parse(storedTabs));
-          const savedActive = restored.tabs.find(tab => tab.id === restored.activeId)!;
-          // Explicit positions from either the query or route take priority over saved tabs.
-          if ((urlFen || bootstrap.initialFen) && savedActive.initialFen !== initialFen) return;
-          tabs = restored.tabs;
-          activeTabId = restored.activeId;
+          const workspace = restoreAnalysisWorkspace(
+            restored.tabs,
+            restored.activeId,
+            initialFen,
+            !!(urlFen || bootstrap.initialFen),
+            incomingHandoff,
+          );
+          if (!workspace) return;
+          tabs = workspace.tabs;
+          activeTabId = workspace.activeId;
           const active = tabs.find(tab => tab.id === activeTabId) ?? tabs[0];
           initialFen = active.initialFen;
           tree = active.tree;
           activePath = active.activePath;
+          if (incomingHandoff && !workspace.tabs.some(tab => tab.id === incomingHandoff.id)) {
+            saveStatusElement.textContent = 'Close an analysis tab before opening this puzzle';
+            saveStatusElement.classList.add('error');
+            return;
+          }
           saveStatusElement.textContent = `Restored ${tabs.length} analysis tab${tabs.length === 1 ? '' : 's'}`;
           return;
         }
@@ -475,11 +488,31 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
       if (stored) {
         const restored = deserializeMoveTree(JSON.parse(stored), initialFen);
         restored.tree.root.state = authoritativeRoot;
-        tree = restored.tree;
-        activePath = restored.activePath;
+        if (incomingHandoff) {
+          const legacyDraft: AnalysisTab = {
+            id: createTabId(),
+            title: 'Analysis 1',
+            kind: 'analysis',
+            initialFen,
+            tree: restored.tree,
+            activePath: restored.activePath,
+          };
+          const importedHandoff = { ...incomingHandoff, title: 'Analysis 2' };
+          const merged = mergeAnalysisHandoff([], '', importedHandoff, legacyDraft);
+          tabs = merged.tabs;
+          activeTabId = merged.activeId;
+        } else {
+          tree = restored.tree;
+          activePath = restored.activePath;
+        }
         saveStatusElement.textContent = 'Restored local draft in Analysis 1';
       }
-      Object.assign(tabs[0], { initialFen, tree, activePath });
+      if (incomingHandoff) {
+        const active = tabs.find(tab => tab.id === activeTabId)!;
+        initialFen = active.initialFen;
+        tree = active.tree;
+        activePath = active.activePath;
+      } else Object.assign(tabs[0], { initialFen, tree, activePath });
     } catch (error) {
       const key = analysisStorageKey(initialFen);
       const original = localStorage.getItem(key);
