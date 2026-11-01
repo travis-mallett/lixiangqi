@@ -8,7 +8,6 @@ import { pubsub } from 'lib/pubsub';
 import { storedProp } from 'lib/storage';
 import {
   snabDialog,
-  alert,
   bind,
   bindSubmit,
   onInsert,
@@ -24,6 +23,7 @@ import type AnalyseCtrl from '../ctrl';
 import type { StudySocketSend } from '../socket';
 import { option } from '../view/util';
 import type { ChapterData, ChapterMode, ChapterTab, Orientation, StudyTour } from './interfaces';
+import { PgnImportInput, pgnImportHelp } from './pgnImport';
 import type { StudyChapters } from './studyChapters';
 import { importPgn } from './studyXhr';
 
@@ -41,7 +41,10 @@ export class StudyChapterNewForm {
   readonly multiPgnMax = 64;
   dialog?: Dialog;
   isOpen = toggle(false, val => {
-    if (!val) this.dialog?.close();
+    if (!val) {
+      this.pgn.cancelRead();
+      this.dialog?.close();
+    }
   });
   initial = toggle(false);
   tab = storedProp<ChapterTab>('analyse.study.form.tab', 'init', str => str as ChapterTab);
@@ -49,6 +52,11 @@ export class StudyChapterNewForm {
   editorFen: Prop<FEN | null> = prop(null);
   isDefaultName = toggle(true);
   orientation: Color | 'automatic';
+  readonly pgn = new PgnImportInput();
+  importError?: string;
+  importNotice?: 'success' | 'failure';
+  importing = false;
+  originalStudyUrl = '';
 
   constructor(
     private readonly send: StudySocketSend,
@@ -83,20 +91,58 @@ export class StudyChapterNewForm {
   };
 
   submit = async (d: Omit<ChapterData, 'initial'>) => {
+    if (this.pgn.loading || this.importing) return;
+    this.importError = undefined;
+    this.importNotice = undefined;
+    const version = this.pgn.version;
+    const source = this.originalStudyUrl;
+    const file = this.pgn.originalFile;
     const study = this.root.study!;
     const showRatings = study.data.showRatings ? undefined : false; // define only if false
     const dd = { ...d, sticky: study.vm.mode.sticky, showRatings, initial: this.initial() };
     if (!dd.pgn) this.send('addChapter', dd);
-    else
+    else {
+      this.importing = true;
+      this.redraw();
       try {
         await importPgn(study.data.id, dd);
+        this.importNotice = 'success';
       } catch (e) {
-        await alert(e instanceof Error ? e.message : String(e));
+        this.importError = e instanceof Error ? e.message : String(e);
+        this.importNotice = 'failure';
         return;
+      } finally {
+        this.importing = false;
+        this.redraw();
       }
+    }
 
+    if (dd.pgn && (dd.pgn !== this.pgn.text || file !== this.pgn.originalFile)) return;
+    const unchanged = version === this.pgn.version && source === this.originalStudyUrl;
+    this.pgn.clearContent();
+    this.syncPgnText();
+    if (source === this.originalStudyUrl) this.originalStudyUrl = '';
+    this.redraw();
+    if (!unchanged) return;
     this.isOpen(false);
     this.setChaptersTab();
+  };
+
+  loadPgn = async (read: Promise<string>, file?: File) => {
+    const loading = this.pgn.load(read, file);
+    this.importError = undefined;
+    this.redraw();
+    try {
+      if (await loading) this.syncPgnText();
+    } catch (e) {
+      this.importError = e instanceof Error ? e.message : String(e);
+    }
+    this.redraw();
+  };
+
+  private readonly syncPgnText = () => {
+    const textarea = document.getElementById('chapter-pgn') as HTMLTextAreaElement | null;
+    if (textarea) textarea.value = this.pgn.text;
   };
   startTour = async () => {
     const [tour] = await Promise.all([
@@ -109,7 +155,7 @@ export class StudyChapterNewForm {
       this.redraw();
     });
   };
-  redraw = this.root.redraw;
+  redraw = () => this.root.redraw();
 }
 
 export function view(ctrl: StudyChapterNewForm): VNode {
@@ -165,7 +211,7 @@ export function view(ctrl: StudyChapterNewForm): VNode {
             ctrl.submit({
               name: fieldValue(e, 'name'),
               game: fieldValue(e, 'game'),
-              pgn: fieldValue(e, 'pgn'),
+              pgn: tab === 'pgn' ? ctrl.pgn.text : undefined,
               orientation: fieldValue(e, 'orientation') as Orientation,
               mode: fieldValue(e, 'mode') as ChapterMode,
               fen: fieldValue(e, 'fen') || (tab === 'edit' ? ctrl.editorFen() : null),
@@ -279,7 +325,16 @@ export function view(ctrl: StudyChapterNewForm): VNode {
                 attrs: {
                   placeholder: i18n.study.pasteYourPgnTextHereUpToNbGames(ctrl.multiPgnMax),
                 },
+                hook: onInsert<HTMLTextAreaElement>(el => {
+                  el.value = ctrl.pgn.text;
+                  el.addEventListener('input', () => {
+                    const wasLoading = ctrl.pgn.loading;
+                    ctrl.pgn.edit(el.value);
+                    if (wasLoading) ctrl.redraw();
+                  });
+                }),
               }),
+              ctrl.importError && hl('p.error', { attrs: { role: 'alert' } }, ctrl.importError),
               hl(
                 'button.button.button-empty.import-from__chapter',
                 {
@@ -287,9 +342,7 @@ export function view(ctrl: StudyChapterNewForm): VNode {
                   hook: bind(
                     'click',
                     () => {
-                      xhrText(`/study/${study.data.id}/${study.vm.chapterId}.pgn`).then(pgnData =>
-                        $('#chapter-pgn').val(pgnData),
-                      );
+                      void ctrl.loadPgn(xhrText(`/study/${study.data.id}/${study.vm.chapterId}.pgn`));
                       return false;
                     },
                     undefined,
@@ -304,14 +357,18 @@ export function view(ctrl: StudyChapterNewForm): VNode {
                   hook: bind('change', e => {
                     const file = (e.target as HTMLInputElement).files![0];
                     if (!file) return;
-                    const reader = new FileReader();
-                    reader.onload = function () {
-                      (document.getElementById('chapter-pgn') as HTMLTextAreaElement).value =
-                        reader.result as string;
-                    };
-                    reader.readAsText(file);
+                    void ctrl.loadPgn(file.text(), file);
                   }),
                 }),
+              pgnImportHelp(
+                ctrl.originalStudyUrl,
+                value => {
+                  ctrl.originalStudyUrl = value;
+                  ctrl.redraw();
+                },
+                !!ctrl.importError,
+                ctrl.pgn,
+              ),
             ]),
           hl('div.form-split', [
             hl('div.form-group.form-half', [
@@ -339,9 +396,21 @@ export function view(ctrl: StudyChapterNewForm): VNode {
               modeChoices().map(c => option(c[0], mode, c[1])),
             ),
           ]),
+          ctrl.importNotice &&
+            hl(
+              'p.form-help',
+              { attrs: { role: 'status' } },
+              ctrl.importNotice === 'success'
+                ? i18n.study.previousPgnImportCompleted
+                : i18n.study.previousPgnImportUnconfirmed,
+            ),
           hl(
             'div.form-actions.single',
-            hl('button.button', { attrs: { type: 'submit' } }, i18n.study.createChapter),
+            hl(
+              'button.button',
+              { attrs: { type: 'submit', disabled: ctrl.pgn.loading || ctrl.importing } },
+              i18n.study.createChapter,
+            ),
           ),
         ],
       ),

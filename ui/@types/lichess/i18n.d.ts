@@ -6519,6 +6519,8 @@ interface I18n {
     inviteOnly: string;
     /** Invite to the study */
     inviteToTheStudy: string;
+    /** Download untouched original file */
+    keepOriginalPgnFile: string;
     /** Kick */
     kick: string;
     /** Leave the study */
@@ -6611,6 +6613,14 @@ interface I18n {
     normalAnalysis: string;
     /** Novelty */
     novelty: string;
+    /** Older PGN export with a multiline description? */
+    olderPgnExport: string;
+    /** Some older exports put line breaks inside a quoted description. They cannot be imported safely: a missing closing quote can make another game's moves look like description text. Your input has been kept. */
+    olderPgnExportExplanation: string;
+    /** Keep the original file. Open the original study and download its Study PGN or Chapter PGN again, then select the new file here. You can also enter the original study or chapter URL below to download it directly. */
+    olderPgnExportInstructions: string;
+    /** If the original study is unavailable, ask its author for a new export. This form cannot automatically recover an orphaned legacy file. Keep it for manual review; do not remove line breaks to force an import. */
+    olderPgnWithoutOriginal: string;
     /** Only the study contributors can request a computer analysis. */
     onlyContributorsCanRequestAnalysis: string;
     /** Only me */
@@ -6625,6 +6635,10 @@ interface I18n {
     openingBook: string;
     /** Orientation */
     orientation: string;
+    /** Original study or chapter URL */
+    originalStudyUrl: string;
+    /** Enter a study or chapter URL from this site. */
+    originalStudyUrlHelp: string;
     /** Paste games as Xiangqi notation here. For each game, a new chapter is created. The study can have up to %s chapters. */
     pasteYourPgnTextHereUpToNbGames: I18nPlural;
     /** %s per page */
@@ -6647,6 +6661,10 @@ interface I18n {
     positionReferences: string;
     /** Previous chapter */
     prevChapter: string;
+    /** The previous import completed. Any newer input shown here has not been submitted. */
+    previousPgnImportCompleted: string;
+    /** The previous import failed or could not be confirmed. Your current input has been kept. Check the study's chapters before submitting again, especially if the connection was lost. */
+    previousPgnImportUnconfirmed: string;
     /** Private */
     private: string;
     /** Public */

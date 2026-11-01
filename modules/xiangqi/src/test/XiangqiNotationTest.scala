@@ -60,6 +60,65 @@ class XiangqiNotationTest extends munit.FunSuite:
     rejected("1. a4a5 * a7a6")
     rejected("1. a4a5 * *")
 
+  test("escaped multiline headers preserve exact content and complete trees"):
+    val base = read("{Root} 1. i4i5! {Main} (1. h1g3 {Alternative} h10g8) i7i6 *")
+    val values = List("", "Legacy single line", "象棋 lesson", "literal \\n and \\r") ++
+      List("\n", "\r\n", "\r").map: newline =>
+        List("", "First \"quoted\" line \\ path", "", "[Event \"inside the value\"]", "1. a4a5 *", "")
+          .mkString(newline)
+    for value <- values; style <- NotationStyle.values do
+      val tree = base.copy(headers = base.headers.updated("chapterdescription", value))
+      val exported = XiangqiNotation.exportTree(tree, style)
+      val restored = read(exported)
+      assertEquals(restored.headers("chapterdescription"), value)
+      assertEquals(restored.copy(headers = tree.headers), tree)
+      assertEquals(XiangqiNotation.parseHeaders(exported), Right(restored.headers))
+      assertEquals(XiangqiNotation.exportTree(restored, style), exported)
+      assert(!exported.contains('\r'))
+      assertEquals(exported.linesIterator.count(_.startsWith("[chapterdescription ")), 1)
+
+  test("header escapes decode once and follow the canonical browser export representation"):
+    val encoded = """[chapterdescription "象棋\nline\r\nnext\rlast \\n \\r \"quote\" \\"] 1. i4i5 i7i6 *"""
+    val decoded = "象棋\nline\r\nnext\rlast \\n \\r \"quote\" \\"
+    val tree = read(encoded)
+    assertEquals(tree.headers("chapterdescription"), decoded)
+    assert(XiangqiNotation.exportTree(tree).contains(encoded.takeWhile(_ != ']')))
+    List("[Event \"bad\\q\"] *", "[Event \"bad\\t\"] *", "[Event \"trailing\\").foreach(rejected)
+
+  test("raw multiline headers reject the whole input even when a later quote could close them"):
+    val first = "[Event \"First\"]\n1. a4a5 a7a6 *\n\n"
+    for
+      newline <- List("\n", "\r\n", "\r")
+      broken <- List(
+        s"[ChapterDescription \"unfinished${newline}1. i4i5 i7i6 *",
+        s"[ChapterDescription \"unfinished${newline}[Event \"\"]\n1. i4i5 i7i6 *",
+        s"[ChapterDescription \"unfinished${newline}1. i4i5 i7i6 *${newline}\"]\n[Event \"Next\"]\n1. c4c5 c7c6 *",
+        s"[ChapterDescription \"first${newline}second\"]\n1. i4i5 i7i6 *"
+      )
+      text <- List(broken, first + broken)
+    do
+      rejected(text)
+      assert(XiangqiNotation.parseHeaders(text).isLeft)
+      assert(XiangqiNotation.splitDocuments(text, 3).isLeft)
+
+  test("escaped descriptions cannot create phantom chapter boundaries"):
+    val trees = List("\n", "\r\n", "\r").map: newline =>
+      read("1. i4i5 i7i6 *").copy(headers =
+        Map(
+          "chapterdescription" -> List("First", "[Event \"inside\"]", "1. a4a5 *", "").mkString(newline)
+        )
+      )
+    val exported = trees.map(XiangqiNotation.exportTree(_))
+    val documents = XiangqiNotation.splitDocuments(exported.mkString("\n"), 3).fold(fail(_), identity)
+    assertEquals(documents, exported.map(_.trim).toVector)
+    documents
+      .zip(trees)
+      .foreach: (document, tree) =>
+        val restored = read(document)
+        assertEquals(restored.headers("chapterdescription"), tree.headers("chapterdescription"))
+        assertEquals(restored.children, tree.children)
+    assert(XiangqiNotation.splitDocuments(exported.mkString("\n"), 2).isLeft)
+
   test("root, attached, and variation glyphs are retained"):
     val tree = read("$14 {root} 1.i4i5!$1 ( {alternative} $2 1.a4a5 ?? ) i7i6 !? *")
     assertEquals(tree.glyphs, Vector(14))

@@ -142,7 +142,8 @@ object XiangqiNotation:
       "fen" -> tree.initialFen,
       "result" -> result
     )
-    def escaped(value: String): String = value.replace("\\", "\\\\").replace("\"", "\\\"")
+    def escaped(value: String): String =
+      value.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r")
     val output = new StringBuilder
     headers.toVector
       .sortBy(_._1)
@@ -397,10 +398,14 @@ object XiangqiNotation:
                   char match
                     case '"' => closed = true
                     case '\\' =>
-                      if index >= text.length || !"\\\"".contains(text(index)) then
-                        error = Some(s"Invalid escape in header $name")
+                      if index >= text.length then error = Some(s"Invalid escape in header $name")
                       else
-                        value += text(index)
+                        // Decode once: an escaped backslash followed by n or r is literal text.
+                        text(index) match
+                          case 'n' => value += '\n'
+                          case 'r' => value += '\r'
+                          case c @ ('\\' | '"') => value += c
+                          case _ => error = Some(s"Invalid escape in header $name")
                         index += 1
                     case '\n' | '\r' => error = Some(s"Unclosed value for header $name")
                     case c => value += c

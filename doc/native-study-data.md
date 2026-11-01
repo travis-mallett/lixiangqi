@@ -98,6 +98,26 @@ internal participant keys and orientation values are Red/Black. Root comments,
 nested variations, unknown headers, results including awarded tournament
 points, and arbitrary valid NAGs survive full export/import.
 
+Quoted header values use a native extension to PGN escaping: `\n` represents
+LF and `\r` represents CR. CRLF is `\r\n`. Quotation marks and backslashes
+remain `\"` and `\\`. The scanner decodes once, so `\\n` and `\\r` preserve
+literal backslash text. Both backend and browser exporters use this convention.
+Physical LF/CR within quoted values and unknown escapes are rejected, including
+when a later quote could otherwise swallow another game's moves as metadata.
+This is not standard PGN escaping. Older LiXiangQi versions and readers that
+only support standard quote/backslash escapes may reject such headers; third-party
+compatibility must not be assumed.
+
+For older exports containing literal multiline descriptions, keep the original
+file and download a new Study PGN or Chapter PGN from the original study. The
+import form retains failed input, keeps the uploaded file available unchanged,
+and offers download links from an explicitly supplied same-site study URL.
+It does not infer the source from ambiguous file contents or attempt automatic
+legacy recovery. If the source study is unavailable, the orphaned file requires
+manual review; replacing line breaks with spaces would lose authored content.
+All documents must validate before chapter creation; existing sequential database
+writes are not a transactional guarantee against storage failures.
+
 Comments use semicolon lines on export, preserving literal braces and newlines.
 Each attributed comment uses a `%comment` JSON record containing its text,
 identity, and typed author (`user`, `external`, `site`, or `unknown`). The same

@@ -53,6 +53,28 @@ class NativeStudyTest extends munit.FunSuite:
     assert(StudyPgnImport.result(PgnStr("1. a4a5 {[%cal Gi10z9]}"), Nil).isLeft)
     List("a4a5/", "/a4a5", "a4a5//a7a6", "i:i9", "a1a2garbage").foreach(p => assert(UciPath.from(p).isLeft))
 
+  test("multiline descriptions survive canonical export and batch import with both moves"):
+    val root = imported("1. i4i5 i7i6 *").root
+    val descriptions = List("\n", "\r\n", "\r").map: newline =>
+      List("象棋 lesson", "", "[Event \"quoted\"]", "Backslash \\ and literal \\n", "Last line")
+        .mkString(newline)
+    val documents = descriptions.map: description =>
+      val tags = Tags(List(chess.format.pgn.Tag("ChapterDescription", description)))
+      PgnDump.rootToPgn(root, tags)(using PgnDump.fullFlags)
+    val split = MultiPgn.split(PgnStr(documents.map(_.value).mkString("\n\n")), Max(3)).value
+    assertEquals(split.map(_.value), documents.map(_.value.trim))
+    split
+      .zip(descriptions)
+      .foreach: (document, description) =>
+        val restored = imported(document.value)
+        assertEquals(restored.metadata.description, Some(description))
+        assertEquals(restored.root, root)
+        assertEquals(restored.root.mainlinePath, path("i4i5/i7i6"))
+        assertEquals(
+          PgnDump.rootToPgn(restored.root, restored.tags)(using PgnDump.fullFlags).value.trim,
+          document.value
+        )
+
   test("malformed persisted moves and orphan nodes fail without truncation"):
     val root = imported("1. a4a5 a7a6").root
     val handler = summon[BSONHandler[Root]]

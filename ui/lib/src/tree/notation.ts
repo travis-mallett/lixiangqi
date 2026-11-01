@@ -63,7 +63,7 @@ export function renderTreeNotation(root: TreeNode): string {
     gameid: 'GameId',
   };
   const escape = (value: string): string =>
-    value.replaceAll('\\', '\\\\').replaceAll('"', '\\"').replaceAll('\n', ' ');
+    value.replaceAll('\\', '\\\\').replaceAll('"', '\\"').replaceAll('\n', '\\n').replaceAll('\r', '\\r');
   const headers = Object.entries(tags)
     .map(([key, value]) => `[${headerNames[key] ?? key} "${escape(value)}"]`)
     .join('\n');

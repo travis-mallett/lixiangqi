@@ -82,6 +82,26 @@
       margin-top: 0.2em;
     }
 
+    .pgn-import-help {
+      margin-top: 1em;
+      overflow-wrap: anywhere;
+
+      summary {
+        cursor: pointer;
+        color: $c-link;
+      }
+
+      p {
+        margin: 0.8em 0;
+      }
+
+      &__downloads {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5em;
+      }
+    }
+
     .chess960-position__inputs {
       @extend %flex-center-nowrap;
 

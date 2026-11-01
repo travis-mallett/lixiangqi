@@ -240,4 +240,13 @@
   <string name="positionReferences">Annotated source records containing this position</string>
   <string name="noPositionReference">No matching Xiangqi reference is available for this position.</string>
   <string name="referenceSource">Read the source</string>
+  <string name="olderPgnExport">Older PGN export with a multiline description?</string>
+  <string name="olderPgnExportExplanation">Some older exports put line breaks inside a quoted description. They cannot be imported safely: a missing closing quote can make another game's moves look like description text. Your input has been kept.</string>
+  <string name="olderPgnExportInstructions">Keep the original file. Open the original study and download its Study PGN or Chapter PGN again, then select the new file here. You can also enter the original study or chapter URL below to download it directly.</string>
+  <string name="originalStudyUrl">Original study or chapter URL</string>
+  <string name="originalStudyUrlHelp">Enter a study or chapter URL from this site.</string>
+  <string name="olderPgnWithoutOriginal">If the original study is unavailable, ask its author for a new export. This form cannot automatically recover an orphaned legacy file. Keep it for manual review; do not remove line breaks to force an import.</string>
+  <string name="keepOriginalPgnFile">Download untouched original file</string>
+  <string name="previousPgnImportCompleted">The previous import completed. Any newer input shown here has not been submitted.</string>
+  <string name="previousPgnImportUnconfirmed">The previous import failed or could not be confirmed. Your current input has been kept. Check the study's chapters before submitting again, especially if the connection was lost.</string>
 </resources>
