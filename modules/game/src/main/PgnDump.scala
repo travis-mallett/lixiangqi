@@ -9,6 +9,7 @@ import lila.core.config.RouteUrl
 import lila.core.game.PgnDump.WithFlags
 import lila.core.game.{ Game, Player }
 import lila.core.rank.RankTrackId.*
+import lila.xiangqi.XiangqiNotation
 
 final class PgnDump(
     routeUrl: RouteUrl,
@@ -43,11 +44,7 @@ final class PgnDump(
       val tree = flags.moves.so:
         makeTree(
           applyDelay(
-            game.sans
-              .zip(game.xiangqi.states.drop(1))
-              .map((notation, state) =>
-                chess.format.pgn.SanStr(notation.value + state.reveal.fold("")("~" + _))
-              ),
+            XiangqiNotation.exportMoves(game.xiangqi).map(SanStr(_)),
             flags.keepDelayIf(game.playable)
           ),
           flags.clocks.so(~game.bothClockStates),

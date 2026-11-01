@@ -1,0 +1,6 @@
+[Site "https://lixiangqi.com/fPL0UJju"]
+[Variant "Jieqi"]
+[Ruleset "jieqi-v1"]
+[Result "0-1"]
+
+g1e3~soldier b8b6~soldier g4g5~soldier a10a8~cannon h1g3~chariot h8g8~horse g5g6 g7g6~soldier g3g6 i10i8~advisor g6g8 a8a9 g8g10 c10e8~advisor g10h10 b10d9~soldier a4a5~elephant a7a6~horse b1c3~soldier c7c6~elephant c4c5~cannon e7e6~soldier c5g5 i7i6~chariot i1g1~horse i6i4 g5g10 e10e9 h10h9 e8f9 h3h8~elephant i4h4 g10g9 e9e8 g9d9 i8h9 b3b4~advisor h4h8 b4c5 d10e9~elephant c5b6 h8h1 g1f3 c6a4 a1a4~soldier a6b8 b6c7 b8d9 c7b8 a9a4 c1a3~advisor a4d4 d1e2~horse d4d6 f3g5 d9b8 g5e6 h1h5 c3c4 h5a5 e4e5~cannon a5e5 e2g3 e5e6 g3f5 e6e5 f5g7 e9g7 f1e2~soldier e5e3 c4c5 e3e2 e1f1 e2d2 c5c6 d2d1 f1f2 d6h6 a3b4 d1d4 b4c5 d4d2 f2f1 d2c2 c5d6 c2c6 d6e7 c6e6 e7d8 e6f6 0-1

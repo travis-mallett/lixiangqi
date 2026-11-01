@@ -117,7 +117,11 @@ object BSONHandlers:
     val result = XiangqiRules.move(game, uci).fold(error => throw IllegalArgumentException(error), identity)
     require(r.get[Ply](F.ply).value == result.ply, s"Invalid ply for ${uci.value}")
     require(r.get[Fen.Full](F.fen).value == result.fen, s"Invalid stored position for ${uci.value}")
-    require(r.str(F.notation) == result.notation, s"Invalid stored notation for ${uci.value}")
+    require(
+      XiangqiRules
+        .matchesStoredNotation(game.state.fen, uci, r.str(F.notation), Xiangqi.NotationStyle.English),
+      s"Invalid stored notation for ${uci.value}"
+    )
     require(
       r.str(F.chineseNotation) == result.chineseNotation,
       s"Invalid stored Chinese notation for ${uci.value}"

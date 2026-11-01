@@ -218,6 +218,26 @@ object XiangqiRules:
     decode(fen).flatMap: decoded =>
       Try(notation(decoded.board, uci, style)).toEither.left.map(_.getMessage)
 
+  /** Only for records whose coordinate and resulting position have already been verified. A historical label
+    * can name several moves; it must never select one on import.
+    */
+  def matchesStoredNotation(fen: String, uci: Uci, label: String, style: NotationStyle): Boolean =
+    decode(fen).exists: decoded =>
+      Try:
+        label == notation(decoded.board, uci, style) ||
+        (style == NotationStyle.English && label == wxf(decoded.board, uci, legacyPawnPairs = true))
+      .getOrElse(false)
+
+  /** Existing coordinate tokens are lossless when a display label cannot identify a move. */
+  def exportNotation(fen: String, uci: Uci, style: NotationStyle): Either[String, String] =
+    decode(fen).flatMap: decoded =>
+      val legal = legalMoves(decoded)
+      if !legal.contains(uci) then Left(s"Illegal recorded move: ${uci.value}")
+      else
+        val labels = legal.map(move => move -> Try(notation(decoded.board, move, style)).toOption)
+        val label = labels.find(_._1 == uci).flatMap(_._2)
+        Right(label.filter(value => labels.count(_._2.contains(value)) == 1).getOrElse(uci.value))
+
   /** Resolve display notation against the legal moves of this exact branch, including adjudication. */
   def resolveNotation(game: Game, token: String): Either[String, Uci] =
     notationCandidates(game, token).flatMap:
@@ -247,10 +267,15 @@ object XiangqiRules:
       case Left(_) =>
         decode(game.state.fen).flatMap: current =>
           val expected = normalized(input)
+          // Historical exports and offline analysis recovery contain these pawn aliases.
+          // Keep every legal candidate; resolveNotation still rejects ambiguity.
+          val legacyPawnSubject = expected.startsWith("+p") || expected.startsWith("-p")
           legal.filter(uci =>
-            normalized(wxf(current.board, uci)) == expected || normalized(
-              chinese(current.board, uci)
-            ) == expected
+            normalized(wxf(current.board, uci)) == expected ||
+              (legacyPawnSubject && normalized(
+                wxf(current.board, uci, legacyPawnPairs = true)
+              ) == expected) ||
+              normalized(chinese(current.board, uci)) == expected
           ) match
             case Vector() => Left(s"Unknown or illegal Xiangqi notation at ply ${game.state.ply + 1}: $token")
             case candidates => Right(candidates)
@@ -509,7 +534,7 @@ object XiangqiRules:
     val variant = if position.board.jieqi then "j" else "-"
     s"${ranks.mkString("/")} $turn $variant - ${position.halfMove} ${position.fullMove}"
 
-  private def wxf(board: Board, uci: Uci): String =
+  private def wxf(board: Board, uci: Uci, legacyPawnPairs: Boolean = false): String =
     val orig = Square.fromKey(uci.orig).getOrElse(throw Error(s"Invalid Xiangqi origin: ${uci.orig}"))
     val dest = Square.fromKey(uci.dest).getOrElse(throw Error(s"Invalid Xiangqi destination: ${uci.dest}"))
     val piece = board.pieceAt(orig).getOrElse(throw Error(s"No Xiangqi piece at ${uci.orig}"))
@@ -529,12 +554,21 @@ object XiangqiRules:
         case (square, candidate) if square.file == orig.file && candidate == piece => square
       .toVector
       .sortBy(_.rank)(using if red then Ordering.Int.reverse else Ordering.Int)
+    val multiplePawnFiles = !legacyPawnPairs && piece.role == Role.Soldier && sameFile.size == 2 &&
+      board.pieces.iterator
+        .collect:
+          case (square, candidate) if square.file != orig.file && candidate == piece => square.file
+        .toVector
+        .groupBy(identity)
+        .valuesIterator
+        .exists(_.size >= 2)
     val subject =
-      if sameFile.size == 2 then
+      // WXF uses pawn order and file for three or more pawns, or multiple tandem pawn files.
+      if piece.role == Role.Soldier && (sameFile.size >= 3 || multiplePawnFiles) then
+        s"${sameFile.indexOf(orig) + 1}${fileNumber(orig.file, red, board.variant.files)}"
+      else if sameFile.size == 2 then
         val frontOrRear = if orig == sameFile.head then "+" else "-"
         s"$frontOrRear$roleName"
-      else if sameFile.size >= 3 && piece.role == Role.Soldier then
-        s"${sameFile.indexOf(orig) + 1}${fileNumber(orig.file, red, board.variant.files)}"
       else s"$roleName${fileNumber(orig.file, red, board.variant.files)}"
     val forward = if red then dest.rank > orig.rank else dest.rank < orig.rank
     val (action, target) =

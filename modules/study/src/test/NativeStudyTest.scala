@@ -14,6 +14,37 @@ class NativeStudyTest extends munit.FunSuite:
   private def imported(text: String) =
     StudyPgnImport.result(PgnStr(text), Nil).fold(e => fail(e.value), identity)
   private def path(text: String) = UciPath(text)
+  test("historical tandem pawn BSON loads by verified coordinate and position"):
+    // Literal persisted schema and pre-canonical labels; do not generate with today's writer.
+    val first = BSONDocument(
+      "p" -> 1,
+      "u" -> "a7a8",
+      "notation" -> "+P+1",
+      "chineseNotation" -> "前兵进一",
+      "f" -> "5k3/9/P8/9/2P6/P8/2P6/9/9/4K4 b - - 1 1",
+      "o" -> BSONArray()
+    )
+    val root = BSONDocument(
+      "p" -> 0,
+      "ruleset" -> "unrestricted-v1",
+      "o" -> BSONArray("a7a8"),
+      "f" -> "5k3/9/9/P8/2P6/P8/2P6/9/9/4K4 w - - 0 1"
+    )
+    val document = BSONDocument("_" -> root, "a7a8" -> first)
+    val handler = summon[BSONHandler[Root]]
+    val restored = handler.readTry(document).get
+    assertEquals(restored.children.toList.head.move.notation, "19+1")
+    val exported = PgnDump.rootToPgn(restored, Tags.empty)(using PgnDump.fullFlags)
+    assertEquals(imported(exported.value).root, restored)
+    for change <- List(
+        BSONDocument("u" -> "c6c7"),
+        BSONDocument("p" -> 3),
+        BSONDocument("f" -> root.getAsOpt[String]("f").get),
+        BSONDocument("notation" -> "-P+1"),
+        BSONDocument("chineseNotation" -> "后兵进一")
+      )
+    do assert(handler.readTry(document ++ BSONDocument("a7a8" -> (first ++ change))).isFailure)
+
   private val notation = """[Red "Alice"]
 [Black "Bob"]
 [Event "Native study"]

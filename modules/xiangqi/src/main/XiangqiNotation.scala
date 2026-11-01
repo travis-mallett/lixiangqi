@@ -132,6 +132,27 @@ object XiangqiNotation:
         ruleset = root.ruleset
       )
 
+  /** Stored display labels can predate notation fixes; exports use the recorded move and position. */
+  def exportMoves(game: Game): Vector[String] =
+    game.moves.zipWithIndex.map: (move, index) =>
+      exportMove(game.states(index), move, game.states(index + 1), NotationStyle.English)
+
+  private def exportMove(before: State, move: Uci, after: State, style: NotationStyle): String =
+    require(before.legalMoves.contains(move), s"Illegal recorded move: ${move.value}")
+    val reveal = after.reveal.map(key =>
+      Role.byKey.getOrElse(key, throw IllegalArgumentException(s"Invalid reveal: $key"))
+    )
+    val transition = XiangqiRules
+      .revealedMove(before.fen, move, reveal)
+      .fold(error => throw IllegalArgumentException(error), identity)
+    require(
+      transition.fen == after.fen && transition.ply == after.ply,
+      s"Invalid recorded position for ${move.value}"
+    )
+    XiangqiRules
+      .exportNotation(before.fen, move, style)
+      .fold(error => throw IllegalArgumentException(error), identity) + after.reveal.fold("")("~" + _)
+
   /** Render the same native tree grammar accepted by importTree, without interpreting comment data. */
   def exportTree(tree: ImportedMoveTree, style: NotationStyle = NotationStyle.English): String =
     val result = tree.headers.getOrElse("result", tree.mainline.state.gameResult.key)
@@ -160,31 +181,30 @@ object XiangqiNotation:
           comment.split("\n", -1).foreach(line => output.append(';').append(line).append('\n'))
           output.append('\n')
 
-    def move(node: ImportedTreeNode): Unit =
+    def move(node: ImportedTreeNode, before: State): Unit =
       val number = (node.state.ply + 1) / 2
       val dots = if node.state.ply % 2 == 1 then "." else "..."
-      val notation = if style == NotationStyle.Chinese then node.chineseNotation else node.notation
+      val notation = exportMove(before, node.move, node.state, style)
       output.append(s"$number$dots $notation")
-      node.state.reveal.foreach(role => output.append(s"~$role"))
       annotations(node.annotations, node.glyphs)
 
-    def line(children: Vector[ImportedTreeNode]): Unit = children.headOption.foreach: main =>
-      move(main)
+    def line(children: Vector[ImportedTreeNode], before: State): Unit = children.headOption.foreach: main =>
+      move(main, before)
       children.tail.foreach: variation =>
         output.append(" (")
-        move(variation)
+        move(variation, before)
         if variation.children.nonEmpty then
           output.append(' ')
-          line(variation.children)
+          line(variation.children, variation.state)
         variation.result.foreach(r => output.append(' ').append(r.key))
         output.append(')')
       if main.children.nonEmpty then
         output.append(' ')
-        line(main.children)
+        line(main.children, main.state)
       main.result.foreach(r => output.append(' ').append(r.key))
 
     annotations(tree.annotations, tree.glyphs)
-    line(tree.children)
+    line(tree.children, tree.state)
     output.append(' ').append(result).append('\n').result()
 
   private def readHeaders(tokens: Vector[Token]): Either[String, Map[String, String]] =

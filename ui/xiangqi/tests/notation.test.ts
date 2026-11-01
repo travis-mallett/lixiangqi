@@ -2,8 +2,59 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { JIEQI_START_FEN } from 'lib/game/jieqi';
-import { createMoveTree } from 'lib/tree/native';
+import { createMoveTree, createMoveTreeFromStates } from 'lib/tree/native';
 import { renderTreeNotation } from 'lib/tree/notation';
+
+import type AnalyseCtrl from '../../analyse/src/ctrl';
+import { renderFullTxt, renderVariationNotation } from '../../analyse/src/notationExport';
+
+test('browser copy and variation exports preserve legacy pawn coordinates and reveals', () => {
+  // fPL0UJju at ply 21, replayed from the authoritative coordinate/reveal fixture.
+  // Only the two relevant legal candidates are needed by this export test.
+  const tree = createMoveTreeFromStates(
+    [
+      {
+        variant: 'jieqi',
+        fen: '3xkx1R1/c2p5/4a3a/4x3x/npb6/B8/2X1X3X/1XP1P2X1/9/X1XXKX2X w j - 5 11',
+        ply: 20,
+        turn: 'red',
+        legalMoves: ['c4c5', 'e4e5'],
+        check: false,
+        gameResult: '*',
+      },
+      {
+        variant: 'jieqi',
+        fen: '3xkx1R1/c2p5/4a3a/4x3x/npb6/B1C6/4X3X/1XP1P2X1/9/X1XXKX2X b j - 6 11',
+        ply: 21,
+        turn: 'black',
+        legalMoves: [],
+        check: false,
+        gameResult: '*',
+        reveal: 'cannon',
+      },
+    ],
+    ['c4c5'],
+    ['+P+1'],
+    ['前兵进一'],
+    [],
+    0,
+    'jieqi-v1',
+  );
+  const ctrl = { tree } as AnalyseCtrl;
+  for (const text of [renderFullTxt(ctrl), renderVariationNotation([tree.root, tree.root.children[0]])]) {
+    assert.match(text, /11\. c4c5~cannon/);
+    assert.ok(!text.includes('+P+1'));
+  }
+  tree.root.children[0].uci = 'e4e5';
+  assert.throws(() => renderFullTxt(ctrl), /identity/);
+  tree.root.children[0].id = 'e4e5~cannon';
+  assert.throws(() => renderFullTxt(ctrl), /recorded.*position/);
+  assert.throws(() => renderVariationNotation([tree.root, tree.root.children[0]]), /recorded.*position/);
+  tree.root.children[0].uci = 'c4c5';
+  tree.root.children[0].id = 'c4c5~chariot';
+  tree.root.children[0].state.reveal = 'chariot';
+  assert.throws(() => renderFullTxt(ctrl), /recorded.*position/);
+});
 
 test('export emits case-insensitively unique authoritative headers and the recorded result', () => {
   const tree = createMoveTree({

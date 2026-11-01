@@ -1,3 +1,4 @@
+import { assertRecordedMovePosition } from '../game/recordedMove';
 import { notationComments, notationMarks } from '../game/xiangqiNotation';
 import { mainlineFirst, mainlineChild } from './ops';
 import type { TreeNode } from './types';
@@ -5,8 +6,25 @@ import type { TreeNode } from './types';
 export const plyPrefix = (node: TreeNode): string =>
   `${Math.floor((node.ply + 1) / 2)}${node.ply % 2 === 1 ? '. ' : '... '}`;
 
-const revealedNotation = (node: TreeNode): string =>
-  node.notation + (node.state.reveal ? '~' + node.state.reveal : '');
+const revealedNotation = (node: TreeNode, parent: TreeNode): string => {
+  let notation = node.notation;
+  // Historical front/rear pawn labels can refer to more than one file. The browser
+  // has recorded coordinates, but no rules formatter: use the existing lossless token.
+  if (/^[+-]p/i.test(notation ?? '')) {
+    if (
+      !node.uci ||
+      node.id !== node.uci + (node.state.reveal ? '~' + node.state.reveal : '') ||
+      parent.fen !== parent.state.fen ||
+      parent.ply !== parent.state.ply ||
+      node.fen !== node.state.fen ||
+      node.ply !== node.state.ply
+    )
+      throw new Error('Invalid recorded move identity for notation export');
+    assertRecordedMovePosition(parent.state, node.uci, node.state);
+    notation = node.uci;
+  }
+  return notation + (node.state.reveal ? '~' + node.state.reveal : '');
+};
 
 export function renderNodesTxt(
   node: TreeNode,
@@ -16,13 +34,13 @@ export function renderNodesTxt(
 ): string {
   const renderBranch = (child: TreeNode, force: boolean, main: boolean): string => {
     if (!child.notation) throw new Error('Move is missing its native notation');
-    return `${force || child.ply % 2 ? plyPrefix(child) : ''}${revealedNotation(child)}${annotations ? nodeAnnotations(child) : ''}${child.children.length ? ' ' + renderNodesTxt(child, false, annotations, main) : ''}${child.result ? ' ' + child.result : ''}`;
+    return `${force || child.ply % 2 ? plyPrefix(child) : ''}${revealedNotation(child, node)}${annotations ? nodeAnnotations(child) : ''}${child.children.length ? ' ' + renderNodesTxt(child, false, annotations, main) : ''}${child.result ? ' ' + child.result : ''}`;
   };
   const [first, ...variations] = mainline ? mainlineFirst(node.children) : node.children;
   if (!first) return '';
   if (mainline && first.forceVariation)
     return node.children.map(child => `(${renderBranch(child, true, false)})`).join(' ');
-  const prefix = `${forcePly || first.ply % 2 ? plyPrefix(first) : ''}${revealedNotation(first)}${annotations ? nodeAnnotations(first) : ''}`;
+  const prefix = `${forcePly || first.ply % 2 ? plyPrefix(first) : ''}${revealedNotation(first, node)}${annotations ? nodeAnnotations(first) : ''}`;
   const branches = variations.map(child => `(${renderBranch(child, true, false)})`);
   const continuation = renderNodesTxt(first, variations.length > 0, annotations, mainline);
   return [prefix, ...branches, continuation, first.result ?? ''].filter(Boolean).join(' ');
