@@ -60,7 +60,7 @@ final class GameApiV2(
                   initialFen,
                   analysis,
                   config.flags
-                ).map(annotator.toPgnString)
+                ).map(annotator.toPgnString(_, lila.game.PgnDump.result(game)))
               )
         yield formatted
 
@@ -305,7 +305,8 @@ final class GameApiV2(
     lightUsers <- gameLightUsers(g)
     flags = config.flags
     pgn <- config.flags.pgnInJson.optionFu:
-      pgnDump(g, none, analysisOption, config.flags).map(annotator.toPgnString)
+      pgnDump(g, none, analysisOption, config.flags)
+        .map(annotator.toPgnString(_, lila.game.PgnDump.result(g)))
     bookmarked <- config.flags.bookmark.so(bookmarkApi.exists(g, config.by.map(_.userId)))
     arena <- g.tournamentId.traverse: tournamentId =>
       for name <- tourName.async(tournamentId)

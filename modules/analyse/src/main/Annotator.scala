@@ -32,8 +32,18 @@ final class Annotator(netDomain: lila.core.config.NetDomain) extends lila.tree.A
   // merge analysis & eval comments
   // 1. C2=5 { [%eval 0.17] } { [%clk 0:00:30] }
   // 1. C2=5 { [%eval 0.17] [%clk 0:00:30] }
-  def toPgnString(pgn: Pgn): PgnStr = PgnStr:
-    s"${pgn.render}\n\n\n".replaceIf("] } { [", "] [")
+  def toPgnString(pgn: Pgn): PgnStr = formatPgn(pgn.render.value)
+
+  // Pgn.render gets the movetext result from the Result tag, which tag-free exports omit.
+  def toPgnString(pgn: Pgn, gameResult: String): PgnStr =
+    val rendered = pgn.render.value
+    formatPgn:
+      if pgn.tags(_.Result).isDefined then rendered
+      else if rendered.isEmpty then gameResult
+      else s"$rendered $gameResult"
+
+  private def formatPgn(rendered: String): PgnStr = PgnStr:
+    s"$rendered\n\n\n".replaceIf("] } { [", "] [")
 
   private def annotateStatus(game: Game)(p: Pgn) =
     StatusText(

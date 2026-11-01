@@ -48,4 +48,7 @@ final class PgnDump(
         initialFen: Option[Fen.Full],
         analysis: Option[Analysis],
         teams: Option[GameTeams]
-    ) => apply(game, initialFen, analysis, flags, teams).map(annotator.toPgnString).dmap(_.value)
+    ) =>
+      apply(game, initialFen, analysis, flags, teams)
+        .map(annotator.toPgnString(_, lila.game.PgnDump.result(game)))
+        .dmap(_.value)
