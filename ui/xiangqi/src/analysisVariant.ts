@@ -10,6 +10,16 @@ export function analysisStartFen(variant?: string): string {
   return XIANGQI_START_FEN;
 }
 
+export function useNativeReplay(
+  states: readonly unknown[] | undefined,
+  moves: readonly unknown[] | undefined,
+  hasHandoff: boolean,
+  hasFenQuery: boolean,
+  hasGameId: boolean,
+): boolean {
+  return !hasHandoff && (!hasFenQuery || hasGameId) && states?.length === (moves?.length ?? 0) + 1;
+}
+
 export function bindAnalysisStartReset(
   button: HTMLElement,
   currentVariant: () => string | undefined,

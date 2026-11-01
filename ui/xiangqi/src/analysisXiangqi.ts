@@ -82,7 +82,7 @@ import {
 } from './analysisTabs';
 import { AnalysisTabsView } from './analysisTabsView';
 import { AnalysisTreeView } from './analysisTreeView';
-import { analysisVariantPicker, bindAnalysisStartReset } from './analysisVariant';
+import { analysisVariantPicker, bindAnalysisStartReset, useNativeReplay } from './analysisVariant';
 import { annotationSourceLabel } from './gameCatalog';
 import { XIANGQI_START_FEN } from './index';
 import { renderXiangqiNotation } from './notation';
@@ -242,10 +242,15 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
   const catalogGameId = urlParams.get('game')?.trim();
   const catalogDatabase = urlParams.get('database')?.trim();
   let initialFen = handoff?.initialFen || urlFen || bootstrap.initialFen || XIANGQI_START_FEN;
-  const nativeStates =
-    !handoff && !urlFen && bootstrap.states?.length === (bootstrap.moves?.length ?? 0) + 1
-      ? bootstrap.states
-      : undefined;
+  const nativeStates = useNativeReplay(
+    bootstrap.states,
+    bootstrap.moves,
+    !!handoff,
+    !!urlFen,
+    !!bootstrap.gameId,
+  )
+    ? bootstrap.states
+    : undefined;
   const authoritativeRoot =
     handoff?.tree.root.state ??
     nativeStates?.[0] ??
