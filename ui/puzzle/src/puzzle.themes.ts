@@ -2,48 +2,12 @@ import { boardPresentation, recordedPosition, type BoardView } from '@lixiangqi/
 
 import { createXiangqiBoard, xiangqiPosition } from 'lib/board';
 
+import { initPuzzleThemesFocus } from './puzzleThemesFocus';
 import { lessonMoveMillis, ThemeLessonPlayback } from './themeLessonPlayback';
-
-const focusRestoreKey = 'puzzle-themes-focus-href';
 
 export function initModule(): void {
   const page = document.querySelector<HTMLElement>('.puzzle-themes-page')!;
-  page.addEventListener('click', event => {
-    if (!(event instanceof MouseEvent) || !(event.target instanceof Element)) return;
-    const link = event.target.closest<HTMLAnchorElement>('a.puzzle-themes__link[href]');
-    if (
-      !link ||
-      event.defaultPrevented ||
-      event.button !== 0 ||
-      event.metaKey ||
-      event.ctrlKey ||
-      event.shiftKey ||
-      event.altKey
-    )
-      return;
-    try {
-      sessionStorage.setItem(focusRestoreKey, link.getAttribute('href')!);
-    } catch {
-      // Browser storage may be unavailable; native history focus restoration remains in effect.
-    }
-  });
-  window.addEventListener('pageshow', event => {
-    const navigation = performance.getEntriesByType('navigation')[0] as
-      | PerformanceNavigationTiming
-      | undefined;
-    if (!event.persisted && navigation?.type !== 'back_forward') return;
-    try {
-      const href = sessionStorage.getItem(focusRestoreKey);
-      if (!href) return;
-      sessionStorage.removeItem(focusRestoreKey);
-      const link = [...page.querySelectorAll<HTMLAnchorElement>('a.puzzle-themes__link[href]')].find(
-        candidate => candidate.getAttribute('href') === href,
-      );
-      link?.focus({ preventScroll: true });
-    } catch {
-      // Ignore unavailable browser storage and keep the browser's native restoration.
-    }
-  });
+  initPuzzleThemesFocus(page);
   page.querySelectorAll<HTMLDetailsElement>('.puzzle-theme-lesson').forEach(initThemeLesson);
 }
 
