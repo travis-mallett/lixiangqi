@@ -174,12 +174,10 @@ final class GameRepo(c: Coll)(using Executor) extends lila.core.game.GameRepo(c)
       selector: Bdoc,
       sort: Bdoc,
       batchSize: Int = 0,
-      hint: Option[Bdoc] = none,
-      hintName: Option[String] = none
+      hint: Option[Bdoc] = none
   ): PekkoStreamCursor[Game] =
     val query = coll.find(selector).sort(sort).batchSize(batchSize)
-    val namedHint = hintName.map(coll.hint).foldLeft(query)(_.hint(_))
-    hint.map(coll.hint).foldLeft(namedHint)(_.hint(_)).cursor[Game](ReadPref.sec)
+    hint.map(coll.hint).foldLeft(query)(_.hint(_)).cursor[Game](ReadPref.sec)
 
   def sortedCursor(user: UserId, pk: PerfKey): PekkoStreamCursor[Game] =
     sortedCursor(
@@ -584,6 +582,3 @@ final class GameRepo(c: Coll)(using Executor) extends lila.core.game.GameRepo(c)
   // expensive, enumerates all the player's games
   def swissIdsOf(id: UserId): Fu[Set[SwissId]] =
     coll.distinctEasy[SwissId, Set](F.swissId, Query.user(id) ++ F.swissId.$exists(true))
-
-object GameRepo:
-  val byUserCreatedAtIndexName = "us_1_ca_-1"

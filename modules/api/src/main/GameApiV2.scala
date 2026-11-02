@@ -16,7 +16,7 @@ import lila.db.dsl.{ *, given }
 import lila.game.JsonView.given
 import lila.xiangqi.XiangqiJson.given
 import lila.game.PgnDump.{ WithFlags, applyDelay }
-import lila.game.{ Divider, GameRepo, Query }
+import lila.game.{ Divider, Query }
 import lila.game.Game.BSONFields as GameBSONFields
 import lila.round.GameProxyRepo
 import lila.team.GameTeams
@@ -126,8 +126,7 @@ final class GameApiV2(
           .sortedCursor(
             config.toMongoQuery(playerSelect),
             config.sort.bson,
-            batchSize = config.perSecond.value,
-            hintName = config.finished.option(GameRepo.byUserCreatedAtIndexName)
+            batchSize = config.perSecond.value
           )
           .documentSource()
           .take(config.max.fold(500_000)(_.value))
