@@ -113,7 +113,20 @@ piece was concealed when captured.
 The engine searches an information set, not a position containing the real hidden
 identities. Invalid engine moves are rejected rather than replaced silently.
 
-Jieqi uses the GPL-3.0 Pikafish Jieqi fork at
+Jieqi defaults to **jqe** with its trained `it014.jqn` network. Both the engine and
+network are MIT-licensed, pinned at
+[`331a6e612a038c4a04cf980f7b9482910fd50078`](https://github.com/devinokeefe/jieqi/tree/331a6e612a038c4a04cf980f7b9482910fd50078).
+Build with `scripts/jieqi-engine/build_jqe.py --emxx <path-to-em++>`.
+The browser command bridge, portable allocation/NNUE changes, and restricted-root
+early-stop correction are included in the distributed source archive.
+The network must load successfully; initialization fails rather than using the
+engine's weaker untrained evaluator. Its assets, license, and source archive are
+under `public/jieqi-engine/jqe/`.
+The WASM build uses jqe's portable floating-point NNUE evaluator. Its AVX2-only
+quantized evaluator and native benchmark signature do not apply to this build;
+regression tests check the author's published floating-point evaluation vectors.
+
+Analysis settings allow choosing jqe or the retained GPL-3.0 Pikafish Jieqi fork at
 [`bcc83f88ee18760e60903d1a3aaa61ef6f70f2c9`](https://github.com/brianhliou/pikafish-jieqi-wasm/tree/bcc83f88ee18760e60903d1a3aaa61ef6f70f2c9),
 with the array-bound and position-state initialization corrections recorded by
 `scripts/jieqi-engine/build.py`. Reveal children preserve the preceding move and
@@ -124,7 +137,10 @@ The generated ESM/WASM files, license and complete corresponding source archive
 live under `public/jieqi-engine/` and are distributed together. The Node bridge is
 `scripts/jieqi-engine/uci.mjs`; set `LIXIANGQI_NODE` if Node is not on PATH.
 After rebuilding, run `node --test scripts/jieqi-engine/repeatability.test.mjs`
-to compare three fresh depth-20 opening searches using the shipped WASM.
+to compare fresh searches using both shipped WASM engines. The Node bridge defaults
+to jqe; an optional `pikajieqi` argument selects the older engine for comparisons.
+jqe provides one candidate line; PikaJieQi supports multiple lines. The analysis
+selector persists independently of ordinary Xiangqi settings.
 
 Live bots currently run in this worker with the same public capture information
 as human players. Analysis uses the same WASM in the browser,

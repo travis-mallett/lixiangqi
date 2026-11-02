@@ -19,6 +19,7 @@
   <string name="chooseReveal">Choose the hypothetical reveal</string>
   <string name="randomReveal">Randomly choose based on probability</string>
   <string name="jieqiAnalysisEstimate">Expected value over the remaining hidden pieces</string>
+  <string name="analysisEngine">Engine</string>
   <string name="engineOnDevice">%s · on your device</string>
   <string name="engineAnalysisName">%s analysis</string>
   <string name="engineSettingsName">%s settings</string>

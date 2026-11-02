@@ -1,4 +1,23 @@
+import { jieqiEngines, jieqiEngineId, type JieqiEngineId } from 'lib/ceval/engines/jieqiEngines';
 import { licon } from 'lib/licon';
+
+export function createJieqiEngineSelection(change: (id: JieqiEngineId) => void): HTMLLabelElement {
+  const label = document.createElement('label');
+  label.className = 'xiangqi-engine-settings__selection';
+  const caption = document.createElement('span');
+  caption.textContent = i18n.site.analysisEngine;
+  const select = document.createElement('select');
+  select.dataset.setting = 'engine';
+  for (const [id, engine] of Object.entries(jieqiEngines)) {
+    const option = document.createElement('option');
+    option.value = id;
+    option.textContent = engine.name;
+    select.append(option);
+  }
+  select.addEventListener('change', () => change(jieqiEngineId(select.value)));
+  label.append(caption, select);
+  return label;
+}
 
 import type { analysisEngineConfig } from './analysisEngineConfig';
 import type { AnalysisSuggestionElements } from './analysisSuggestions';

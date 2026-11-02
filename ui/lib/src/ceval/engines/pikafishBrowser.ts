@@ -3,6 +3,7 @@ import { bigFileStorage } from '../../bigFileStorage';
 import { jieqiEngineFen } from '../../game/jieqi';
 import { requestXiangqi } from '../../game/xiangqiApi';
 import { replayXiangqiVariation, type RulesState, type RulesPosition } from '../../game/xiangqiNotation';
+import { jieqiEngines, type JieqiEngineId } from './jieqiEngines';
 import {
   type EngineAnalysis,
   type EngineVariant,
@@ -51,6 +52,7 @@ export class PikafishBrowserEngine {
     private readonly status: (status: PikafishStatus) => void,
     options?: PikafishOptions,
     private readonly variant: EngineVariant = 'xiangqi',
+    private readonly jieqiEngine: JieqiEngineId = 'jqe',
   ) {
     this.protocol = new PikafishProtocol(
       computing => {
@@ -86,6 +88,7 @@ export class PikafishBrowserEngine {
         throw new Error('Jieqi evaluation requires the visible information set and legal moves');
       this.protocol.compute({
         ...work,
+        multiPv: Math.min(work.multiPv, jieqiEngines[this.jieqiEngine].multiPv),
         engineFen: jieqiEngineFen(work.observation),
         stopRequested: false,
         emit: (analysis, final) => {
@@ -98,7 +101,7 @@ export class PikafishBrowserEngine {
               pvMoves: line.pvMoves.slice(0, 1),
               wxfMoves: [],
             }));
-          work.emit({ ...analysis, engine: 'PikaJieQi', lines }, final);
+          work.emit({ ...analysis, lines }, final);
         },
       });
       return;
@@ -251,6 +254,7 @@ export class PikafishBrowserEngine {
   private async bootVariant(): Promise<void> {
     const jieqi = this.variant === 'jieqi';
     const root = jieqi ? 'jieqi-engine' : 'minixiangqi-engine';
+    const selected = jieqiEngines[this.jieqiEngine];
     const asset = (file: string) => site.asset.url(`${root}/${file}`, { documentOrigin: true });
     const worker = (this.worker = new Worker(asset('worker.js'), { type: jieqi ? 'module' : 'classic' }));
     await new Promise<void>((resolve, reject) => {
@@ -275,8 +279,10 @@ export class PikafishBrowserEngine {
       };
       worker.postMessage({
         type: 'init',
-        moduleUrl: asset(jieqi ? 'pikajieqi.js' : 'stockfish.js'),
-        wasmUrl: asset(jieqi ? 'pikajieqi.wasm' : 'stockfish.wasm'),
+        moduleUrl: asset(jieqi ? `${selected.file}.js` : 'stockfish.js'),
+        wasmUrl: asset(jieqi ? `${selected.file}.wasm` : 'stockfish.wasm'),
+        prefix: jieqi ? selected.prefix : undefined,
+        networkUrl: jieqi && selected.network ? asset(selected.network) : undefined,
         workerUrl: jieqi ? undefined : asset('stockfish.worker.js'),
       });
     });

@@ -2019,6 +2019,7 @@ object I18nKey:
     val `chooseReveal`: I18nKey = "chooseReveal"
     val `randomReveal`: I18nKey = "randomReveal"
     val `jieqiAnalysisEstimate`: I18nKey = "jieqiAnalysisEstimate"
+    val `analysisEngine`: I18nKey = "analysisEngine"
     val `engineOnDevice`: I18nKey = "engineOnDevice"
     val `engineAnalysisName`: I18nKey = "engineAnalysisName"
     val `engineSettingsName`: I18nKey = "engineSettingsName"

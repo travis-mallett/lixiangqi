@@ -1,0 +1,5 @@
+https://github.com/devinokeefe/jieqi.git
+Revision: 331a6e612a038c4a04cf980f7b9482910fd50078
+Code and networks: MIT (README.md).
+Browser command bridge: scripts/jieqi-engine/build_jqe.py
+Corresponding source: source.zip

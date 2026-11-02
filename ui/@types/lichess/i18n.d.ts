@@ -3971,6 +3971,8 @@ interface I18n {
     always: string;
     /** Analysis board */
     analysis: string;
+    /** Engine */
+    analysisEngine: string;
     /** Analysis options */
     analysisOptions: string;
     /** Press right-click (or shift+click) to draw circles and arrows on the board. For other colours, combine the following with right-click: */

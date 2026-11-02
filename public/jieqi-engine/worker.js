@@ -15,8 +15,13 @@ self.onmessage = async ({ data }) => {
         printErr: line => self.postMessage({ type: 'diagnostic', line }),
         onAbort: error => self.postMessage({ type: 'error', error: String(error) }),
       });
-      engine.cwrap('pikajieqi_initialize', null, [])();
-      command = engine.cwrap('pikajieqi_command', null, ['string']);
+      if (data.networkUrl) {
+        const response = await fetch(data.networkUrl);
+        if (!response.ok) throw new Error(`jqe network download failed: ${response.status}`);
+        engine.FS.writeFile('/it014.jqn', new Uint8Array(await response.arrayBuffer()));
+        if (!engine.cwrap('jqe_initialize', 'number', [])()) throw new Error('jqe network initialization failed');
+      } else engine.cwrap('pikajieqi_initialize', null, [])();
+      command = engine.cwrap(`${data.prefix}_command`, null, ['string']);
       self.postMessage({ type: 'ready' });
     } else if (data.type === 'command' && command) {
       if (data.command === 'quit') {

@@ -56,6 +56,7 @@ import {
   createAnalysisEngineView,
   createAnalysisGauge,
   createAnalysisSettings,
+  createJieqiEngineSelection,
   bindEngineSettings,
   analysisSuggestionElements,
   updateAnalysisEngineIdentity,
@@ -263,13 +264,13 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
   initialFen = authoritativeRoot.fen;
   let settingsVariant = analysisEngineConfig(authoritativeRoot.variant).variant;
   let engineSettings = loadEngineSettings(settingsVariant);
-  const engineConfig = () => analysisEngineConfig(currentState().variant);
+  const engineConfig = () => analysisEngineConfig(currentState().variant, engineSettings.jieqiEngine);
   const saveEngineSettings = () =>
     localStorage.setItem(engineSettingsKey(settingsVariant), JSON.stringify(engineSettings));
   const suggestions = new AnalysisSuggestions(
     initialFen,
     () => (ground.getPresentation().perspective === 'red' ? 'red' : 'black'),
-    () => engineSettings.multiPv,
+    () => Math.min(engineSettings.multiPv, engineConfig().maxMultiPv),
     analysisSuggestionElements(sharedEngine, evalElement),
     () => bootstrap.notationStyle ?? 'english',
   );
@@ -397,12 +398,15 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
   });
 
   let browserEngine: PikafishBrowserEngine | undefined;
+  let selectedJieqiEngine: EngineSettings['jieqiEngine'];
   let engineVariant: ReturnType<typeof analysisEngineConfig>['variant'] | undefined;
   function engineForState(): PikafishBrowserEngine {
     const variant = engineConfig().variant;
-    if (browserEngine && engineVariant === variant) return browserEngine;
+    if (browserEngine && engineVariant === variant && selectedJieqiEngine === engineSettings.jieqiEngine)
+      return browserEngine;
     browserEngine?.destroy();
     engineVariant = variant;
+    selectedJieqiEngine = engineSettings.jieqiEngine;
     browserEngine = new PikafishBrowserEngine(
       status => {
         browserEngineStatus = status;
@@ -416,6 +420,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
       },
       undefined,
       variant,
+      selectedJieqiEngine,
     );
     return browserEngine;
   }
@@ -652,13 +657,16 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     const jieqi = state.variant === 'jieqi';
     databaseExplorerButton.hidden = state.variant !== 'xiangqi';
     databaseExplorerElement.hidden = databaseExplorerButton.hidden || !databaseExplorer.enabled;
-    const config = engineConfig();
+    let config = engineConfig();
     if (settingsVariant !== config.variant) {
       settingsVariant = config.variant;
       engineSettings = loadEngineSettings(settingsVariant);
       engineSettings.threads = Math.min(engineSettings.threads, maxThreads);
       applyEngineSettingsInputs(engineSettings);
+      config = engineConfig();
     }
+    engineSelection.hidden = !jieqi;
+    engineSelection.querySelector('select')!.value = engineSettings.jieqiEngine ?? 'jqe';
     updateAnalysisEngineIdentity(sharedEngine, evalElement, config);
     suggestions.setPreviewEnabled(!jieqi && engineSettings.showLinesPreview);
     if (state.variant === 'xiangqi') databaseExplorer.setPosition(position);
@@ -1246,6 +1254,19 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     update();
   });
   bindEngineSettings(engineSettingsButton, engineSettingsElement);
+  const engineSelection = createJieqiEngineSelection(id => {
+    lineController?.abort();
+    engineSettings.jieqiEngine = id;
+    saveEngineSettings();
+    browserEngine?.destroy();
+    browserEngine = undefined;
+    toolsGeneration++;
+    toolsFen = '';
+    update();
+  });
+  engineSelection.hidden = settingsVariant !== 'jieqi';
+  engineSelection.querySelector('select')!.value = engineSettings.jieqiEngine ?? 'jqe';
+  engineSettingsElement.prepend(engineSelection);
   const engineRangeInputs = [engineDepthInput, engineMultiPvInput, engineThreadsInput, engineHashInput];
   engineRangeInputs.forEach(input => {
     input.addEventListener('input', updateEngineSettingOutputs);
@@ -1421,6 +1442,7 @@ function updateEngineSettingOutputs(): void {
 
 function engineSettingsFromInputs(previous: EngineSettings, includeMultiPv = false): EngineSettings {
   return {
+    jieqiEngine: previous.jieqiEngine,
     useCloud: engineUseCloudInput.checked,
     showLinesPreview: engineLinesPreviewInput.checked,
     depth: Number(engineDepthInput.value),
@@ -1432,7 +1454,11 @@ function engineSettingsFromInputs(previous: EngineSettings, includeMultiPv = fal
 }
 
 function rememberEvaluation(node: XiangqiPositionNode, result: EngineAnalysis): void {
-  if (!node.evaluation || result.depth >= (node.evaluation.depth ?? 0))
+  if (
+    !node.evaluation ||
+    node.evaluation.engine !== result.engine ||
+    result.depth >= (node.evaluation.depth ?? 0)
+  )
     node.evaluation = {
       engine: result.engine,
       depth: result.depth,

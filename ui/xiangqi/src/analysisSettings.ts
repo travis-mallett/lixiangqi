@@ -1,3 +1,5 @@
+import { jieqiEngineId, type JieqiEngineId } from 'lib/ceval/engines/jieqiEngines';
+
 import { gaugeDockAtPoint, isGaugeDock, type GaugeDock } from './gaugeDock';
 
 export const ENGINE_SETTINGS_KEY = 'lixiangqi.analysis.engine.v1';
@@ -6,6 +8,7 @@ export const engineSettingsKey = (variant: string): string =>
 export const INTERFACE_SETTINGS_KEY = 'lixiangqi.analysis.interface.v1';
 
 export interface EngineSettings {
+  jieqiEngine?: JieqiEngineId;
   useCloud: boolean;
   showLinesPreview: boolean;
   depth: number;
@@ -40,6 +43,7 @@ export function loadEngineSettings(variant = 'xiangqi'): EngineSettings {
   };
   const stored = readStoredSettings<Partial<EngineSettings>>(engineSettingsKey(variant), {});
   return {
+    ...(variant === 'jieqi' ? { jieqiEngine: jieqiEngineId(stored.jieqiEngine) } : {}),
     useCloud: stored.useCloud !== false,
     showLinesPreview: stored.showLinesPreview !== false,
     depth: clampNumber(stored.depth, kingdoms ? 1 : 10, kingdoms ? 6 : 30, defaults.depth),

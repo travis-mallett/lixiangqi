@@ -22,6 +22,11 @@ See the LICENSE file for a copy of the _GNU Affero General Public License_.
 
 ## Exceptions (free)
 
+`public/jieqi-engine/jqe/` contains jqe by Devin O'Keefe, including its trained
+`it014.jqn` network, under the MIT license. See the accompanying `LICENSE.txt`,
+`SOURCE.txt`, and `source.zip`. LiXiangQi's browser integration is built by
+`scripts/jieqi-engine/build_jqe.py`.
+
 <!-- prettier-ignore -->
 Files | Author(s) | License
 --- | --- | ---

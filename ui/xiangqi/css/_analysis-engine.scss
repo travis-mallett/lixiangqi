@@ -221,6 +221,13 @@
     margin: 0;
   }
 
+  &__selection select {
+    grid-column: 2 / -1;
+    width: 100%;
+    min-width: 0;
+    padding: 0.4rem;
+  }
+
   &__value {
     color: $c-font;
     text-align: right;

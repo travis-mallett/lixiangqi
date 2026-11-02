@@ -7,6 +7,7 @@ import { JIEQI_START_FEN } from 'lib/game/jieqi';
 import { analysisEngineConfig } from '../src/analysisEngineConfig';
 import {
   createAnalysisSettings,
+  createJieqiEngineSelection,
   createAnalysisEngineView,
   createAnalysisGauge,
   analysisSuggestionElements,
@@ -59,7 +60,7 @@ test('Jieqi presents candidate notation in the chosen language and requests no r
   const engine = createAnalysisEngineView();
   const gauge = createAnalysisGauge();
   updateAnalysisEngineIdentity(engine, gauge, analysisEngineConfig('jieqi'));
-  assert.match(engine.textContent, /PikaJieQi/);
+  assert.match(engine.textContent, /jqe/);
   const elements = analysisSuggestionElements(engine, gauge);
   const suggestions = new AnalysisSuggestions(
     JIEQI_START_FEN,
@@ -100,7 +101,7 @@ test('Jieqi shows the shared line and depth sliders while hiding unsupported set
     { name: 'threads', label: i18n.site.threads, type: 'range', value: 1 },
   ]);
   engine.querySelector('.xiangqi-engine-settings')!.replaceWith(panel);
-  updateAnalysisEngineIdentity(engine, createAnalysisGauge(), analysisEngineConfig('jieqi'));
+  updateAnalysisEngineIdentity(engine, createAnalysisGauge(), analysisEngineConfig('jieqi', 'pikajieqi'));
   for (const name of ['multipv', 'depth'])
     assert.equal(panel.querySelector(`[data-setting="${name}"]`)!.closest('label')!.hidden, false);
   assert.equal(panel.querySelector('[data-setting="threads"]')!.closest('label')!.hidden, true);
@@ -108,4 +109,26 @@ test('Jieqi shows the shared line and depth sliders while hiding unsupported set
     panel.querySelector('[data-setting="multipv"]')!.closest('label')!.firstElementChild!.textContent,
     String(i18n.site.multipleLines),
   );
+});
+
+test('Jieqi defaults to trained jqe and remembers an explicit PikaJieQi choice', () => {
+  localStorage.clear();
+  assert.equal(loadEngineSettings('jieqi').jieqiEngine, 'jqe');
+  localStorage.setItem(engineSettingsKey('jieqi'), JSON.stringify({ jieqiEngine: 'pikajieqi' }));
+  assert.equal(loadEngineSettings('jieqi').jieqiEngine, 'pikajieqi');
+  localStorage.setItem(engineSettingsKey('jieqi'), JSON.stringify({ jieqiEngine: 'invalid' }));
+  assert.equal(loadEngineSettings('jieqi').jieqiEngine, 'jqe');
+  const choices: string[] = [];
+  const label = createJieqiEngineSelection(id => choices.push(id));
+  const select = label.querySelector('select')!;
+  assert.deepEqual(
+    [...select.options].map(option => option.value),
+    ['jqe', 'pikajieqi'],
+  );
+  select.value = 'pikajieqi';
+  select.dispatchEvent(new window.Event('change'));
+  assert.deepEqual(choices, ['pikajieqi']);
+  assert.ok(analysisEngineConfig('jieqi').hiddenSettings.includes('multipv'));
+  assert.ok(!analysisEngineConfig('jieqi', 'pikajieqi').hiddenSettings.includes('multipv'));
+  localStorage.clear();
 });

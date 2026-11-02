@@ -1,3 +1,5 @@
+import { jieqiEngines, type JieqiEngineId } from 'lib/ceval/engines/jieqiEngines';
+
 import type { ArrowBudget } from './analysisArrowCadence';
 import type { EngineSettings } from './analysisSettings';
 
@@ -5,6 +7,7 @@ export interface AnalysisEngineConfig {
   variant: 'xiangqi' | 'jieqi' | 'minixiangqi';
   name: string;
   candidateMoves: boolean;
+  maxMultiPv: number;
   hiddenSettings: string[];
   search(settings: EngineSettings, line?: boolean): { depth: number };
   arrowBudget(settings: EngineSettings, line?: boolean): ArrowBudget;
@@ -12,14 +15,22 @@ export interface AnalysisEngineConfig {
 }
 
 /** Capabilities of the engine builds shipped with the analysis board. */
-export function analysisEngineConfig(variant?: string): AnalysisEngineConfig {
+export function analysisEngineConfig(
+  variant?: string,
+  selected: JieqiEngineId = 'jqe',
+): AnalysisEngineConfig {
   const jieqi = variant === 'jieqi';
   const mini = variant === 'minixiangqi';
   return {
     variant: jieqi ? 'jieqi' : mini ? 'minixiangqi' : 'xiangqi',
-    name: jieqi ? 'PikaJieQi' : mini ? 'Fairy-Stockfish' : 'Pikafish',
+    name: jieqi ? jieqiEngines[selected].name : mini ? 'Fairy-Stockfish' : 'Pikafish',
     candidateMoves: jieqi,
-    hiddenSettings: jieqi ? ['use-cloud', 'threads', 'lines-preview'] : mini ? ['use-cloud'] : [],
+    maxMultiPv: jieqi ? jieqiEngines[selected].multiPv : 5,
+    hiddenSettings: jieqi
+      ? ['use-cloud', 'threads', 'lines-preview', ...(selected === 'jqe' ? ['multipv'] : [])]
+      : mini
+        ? ['use-cloud']
+        : [],
     search: (settings: EngineSettings, line = false) => ({
       depth: line ? Math.min(settings.depth, 18) : settings.depth,
     }),
