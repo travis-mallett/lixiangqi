@@ -1,8 +1,11 @@
+import { websiteCaptureLabels } from 'lib/game/view/captures';
+
 import { loadViewerTree, type ViewerSource } from './model';
 import { GameViewer, type ViewerOptions, type ViewerLabels } from './viewer';
 
 export function websiteViewerLabels(): ViewerLabels {
   return {
+    captures: websiteCaptureLabels(),
     first: i18n.site.first,
     previous: i18n.site.previous,
     next: i18n.site.next,

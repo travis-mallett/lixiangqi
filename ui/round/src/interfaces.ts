@@ -169,6 +169,7 @@ export interface ApiMove {
 }
 
 export interface ApiEnd {
+  captures?: import('lib/game/jieqi').JieqiCapture[];
   winner?: Color;
   status: Status;
   termination?: string | null;

@@ -15,8 +15,8 @@ final class BotJsonView(
 
   def gameFull(game: Game): Fu[JsObject] = gameRepo.withInitialFen(game).flatMap(wf => gameFull(wf))
 
-  def gameFull(wf: WithInitialFen, viewer: Option[Color] = None): Fu[JsObject] =
-    gameState(wf, viewer).map: state =>
+  def gameFull(wf: WithInitialFen): Fu[JsObject] =
+    gameState(wf).map: state =>
       gameImmutable(wf) ++ Json.obj(
         "type" -> "gameFull",
         "state" -> state
@@ -43,18 +43,16 @@ final class BotJsonView(
       .add("tournamentId" -> game.tournamentId)
       .add("source" -> game.source.map(_.name))
 
-  def gameState(wf: WithInitialFen, viewer: Option[Color] = None): Fu[JsObject] =
+  def gameState(wf: WithInitialFen): Fu[JsObject] =
     import wf.*
     import lila.xiangqi.XiangqiJson.given
-    val side =
-      viewer.map(c => if c.white then lila.xiangqi.Xiangqi.Side.Red else lila.xiangqi.Xiangqi.Side.Black)
     fuccess(
       Json
         .obj(
           "type" -> "gameState",
           "fen" -> game.position.fen,
           "variant" -> game.nativeVariant.key,
-          "captures" -> lila.xiangqi.Jieqi.captures(game.xiangqi, side),
+          "captures" -> game.visibleCaptures,
           "reveals" -> game.xiangqi.states.drop(1).map(_.reveal),
           "turn" -> sideName(game.turnColor),
           "ply" -> game.ply.value,

@@ -4713,7 +4713,7 @@ interface I18n {
     jieqiCannon: string;
     /** Captures and hidden information */
     jieqiCapturesHeading: string;
-    /** Capture by moving onto an enemy piece’s square. If the captured piece was still concealed, only the capturing player learns its identity. Its owner and spectators do not. Keep track of revealed pieces and your captures to reason about what remains hidden. */
+    /** Capture by moving onto an enemy piece’s square. A piece captured while concealed stays hidden from both players and spectators during play. After the game, review shows its identity with a faded appearance. Keep track of revealed pieces and captures to reason about what remains hidden. */
     jieqiCapturesText: string;
     /** Chariot */
     jieqiChariot: string;

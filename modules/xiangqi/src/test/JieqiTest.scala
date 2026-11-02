@@ -24,14 +24,14 @@ class JieqiTest extends FunSuite:
     assert(!game.state.legalMoves.contains(Uci.unsafe("a4b4")))
     assertEquals(game.deal, after.deal)
 
-  test("captured hidden identities are visible only to the capturer"):
+  test("captured hidden identities stay private until completed-game presentation"):
     val game = Jieqi.initial().fold(fail(_), identity)
     val after = play(game, "b3b10")
     assertEquals(after.state.captures.size, 1)
-    assertEquals(Jieqi.captures(after, None).head.role, None)
-    assertEquals(Jieqi.captures(after, Some(Side.Black)).head.role, None)
-    assertEquals(Jieqi.captures(after, Some(Side.Red)).head.role, Some(game.deal.get.at("b10").key))
+    assertEquals(Jieqi.captures(after).head.role, None)
+    assertEquals(Jieqi.captures(after, revealConcealed = true).head.role, Some(game.deal.get.at("b10").key))
     assert(after.state.captures.head.concealed)
+    assert(Jieqi.captures(after, revealConcealed = true).head.concealed)
 
   test("revealed advisors and elephants cross the river while generals remain in the palace"):
     val fen = "4k4/9/9/9/4p4/3AB4/9/9/9/4K4 w j - 0 1"
@@ -52,9 +52,14 @@ class JieqiTest extends FunSuite:
     val replay = XiangqiRules.game(captured.position).fold(fail(_), identity)
     assertEquals(replay.deal, None)
     assertEquals(replay.state, captured.state)
-    assertEquals(Jieqi.observation(captured, None), Jieqi.observation(captured, Some(Side.Black)))
-    assertNotEquals(Jieqi.observation(captured, None), Jieqi.observation(captured, Some(Side.Red)))
-    assertEquals(Jieqi.publicStates(captured, Some(Side.Red)).head.captures, Vector.empty)
+    assertEquals(Jieqi.observation(captured), Jieqi.observation(replay))
+    assertEquals(Jieqi.publicStates(captured).head.captures, Vector.empty)
+    assertEquals(Jieqi.publicStates(captured).last.captures.head.role, None)
+    assertEquals(Jieqi.publicStates(captured, revealConcealed = true).head.captures, Vector.empty)
+    assertEquals(
+      Jieqi.publicStates(captured, revealConcealed = true).last.captures.head.role,
+      Some(initial.deal.get.at("b10").key)
+    )
 
   test("reveals cannot manufacture pieces or change an already revealed piece"):
     val game = Jieqi.initial().fold(fail(_), identity).copy(deal = None)

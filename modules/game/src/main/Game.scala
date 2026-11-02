@@ -187,11 +187,7 @@ object GameExt:
         .orElse:
           updated.playableCorrespondenceClock.map(Event.CorrespondenceClock.apply)
 
-      val events = Event.Move(move, state, clockEvent) :: (
-        if updated.isJieqi then
-          List(Event.PrivateCaptures(updated, Color.White), Event.PrivateCaptures(updated, Color.Black))
-        else Nil
-      )
+      val events = List(Event.Move(move, state, clockEvent))
 
       Progress(g, updated, events)
     end applyMove

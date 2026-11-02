@@ -81,10 +81,6 @@ export function make(send: RoundSocketSend, ctrl: RoundController): RoundSocket 
       if (fromOp) ctrl.opponentRequest('takeback', i18n.site.yourOpponentProposesATakeback);
       ctrl.redraw();
     },
-    captures(captures: import('lib/game/jieqi').JieqiCapture[]) {
-      ctrl.data.game.captures = captures;
-      ctrl.redraw();
-    },
     move: ctrl.apiMove,
     drop: ctrl.apiMove,
     reload,

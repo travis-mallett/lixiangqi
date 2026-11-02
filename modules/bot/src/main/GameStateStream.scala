@@ -99,7 +99,7 @@ final class GameStateStream(
       Bus.subscribeActorRef[lila.core.game.AbortedBy](self)
       Bus.subscribeActorRefDyn(self, classifiers)
       stateQueue = jsonView
-        .gameFull(init, Some(as))
+        .gameFull(init)
         .zip(extra(init.game))
         .map { (json, additions) =>
           // prepend the full game JSON at the start of the stream
@@ -153,7 +153,7 @@ final class GameStateStream(
     def pushState(g: Game): Funit =
       stateQueue = stateQueue.flatMap: _ =>
         jsonView
-          .gameState(WithInitialFen(g, init.fen), Some(as))
+          .gameState(WithInitialFen(g, init.fen))
           .zip(extra(g))
           .map((state, additions) => (state ++ additions).some)
           .flatMap(queue.offer)

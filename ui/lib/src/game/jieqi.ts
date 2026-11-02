@@ -17,18 +17,6 @@ export interface JieqiObservation {
   remaining: Record<string, number>;
 }
 
-export function mergeCaptures(
-  publicCaptures: readonly JieqiCapture[],
-  known: readonly JieqiCapture[],
-): JieqiCapture[] {
-  return publicCaptures.map(capture => {
-    const remembered = known.find(
-      previous => previous.ply === capture.ply && previous.square === capture.square,
-    );
-    return !capture.role && remembered?.role ? { ...capture, role: remembered.role } : capture;
-  });
-}
-
 /** Uses only visible pieces and the caller's already projected capture ledger. */
 export function jieqiObservation(state: Pick<RulesState, 'fen' | 'captures'>): JieqiObservation {
   const remaining = Object.fromEntries(

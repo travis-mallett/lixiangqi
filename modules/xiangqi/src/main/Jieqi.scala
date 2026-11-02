@@ -46,8 +46,8 @@ object Jieqi:
   /** An information set, not a determinization. Unknown captured pieces remain in the inventory. */
   final case class Observation(fen: String, remaining: Map[String, Int])
 
-  def observation(game: Game, viewer: Option[Side]): Observation =
-    observation(game.state.copy(captures = captures(game, viewer)))
+  def observation(game: Game): Observation =
+    observation(game.state.copy(captures = captures(game)))
 
   def observation(state: State): Observation =
     val board = Fen.board(state.fen).get
@@ -65,14 +65,15 @@ object Jieqi:
     val counts = (known ++ captured).groupMapReduce(identity)(_ => 1)(_ + _)
     Observation(state.fen, inventory.map((piece, count) => piece -> (count - counts.getOrElse(piece, 0))))
 
-  def captures(game: Game, viewer: Option[Side]): Vector[Capture] =
+  /** Only completed-game presentation may disclose the deal. Live viewers share one information set. */
+  def captures(game: Game, revealConcealed: Boolean = false): Vector[Capture] =
     game.state.captures.map: capture =>
-      if capture.concealed && viewer.contains(!capture.side) then
-        capture.copy(role = game.deal.map(_.at(capture.square).key))
+      if capture.concealed && game.deal.isDefined then
+        capture.copy(role = Option.when(revealConcealed)(game.deal.get.at(capture.square).key))
       else capture
 
-  def publicStates(game: Game, viewer: Option[Side]): Vector[State] =
-    val ledger = captures(game, viewer)
+  def publicStates(game: Game, revealConcealed: Boolean = false): Vector[State] =
+    val ledger = captures(game, revealConcealed)
     game.states.map(state => state.copy(captures = ledger.filter(_.ply <= state.ply)))
 
   /** Explicit analysis knowledge, never a lookup into a live game's private deal. */

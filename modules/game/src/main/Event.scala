@@ -51,17 +51,6 @@ object Event:
         })
     override def moveBy = Some(!state.turns.turn)
 
-  case class PrivateCaptures(game: Game, color: Color) extends Event:
-    def typ = "captures"
-    // `only` already excludes spectators. `owner` means BOTH players in the shared wire protocol.
-    override def only = Some(color)
-    def data =
-      import lila.xiangqi.XiangqiJson.given
-      Json.toJson(
-        lila.xiangqi.Jieqi
-          .captures(game.xiangqi, Some(if color.white then Xiangqi.Side.Red else Xiangqi.Side.Black))
-      )
-
   object PossibleMoves:
     def json(moves: Vector[Xiangqi.Uci]): JsValue =
       if moves.isEmpty then JsNull
@@ -101,6 +90,7 @@ object Event:
   case class EndData(game: Game, rankChanges: Option[chess.ByColor[RankChange]]) extends Event:
     def typ = "endData"
     def data =
+      import lila.xiangqi.XiangqiJson.given
       Json
         .obj(
           "winner" -> game.winnerColor,
@@ -108,6 +98,7 @@ object Event:
           "status" -> game.status
         )
         .add("abortedBy" -> game.abortedBy)
+        .add("captures" -> Option.when(game.isJieqi)(game.visibleCaptures))
         .add("clock" -> game.clock.map: c =>
           Json.obj(
             "wc" -> c.remainingTime(Color.White).centis,

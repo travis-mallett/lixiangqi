@@ -106,9 +106,10 @@ the Xiangqi bot progression statistics. Jieqi has no takebacks, including bot ga
 
 The worker receives the bot's observation: the public board, known captures,
 remaining unknown inventory and authoritative legal root moves. It never receives
-the server's shuffled deal. A captured face-down piece is known to its capturer;
-it remains unknown to its owner and to spectators. Unknown captured pieces stay
-in that observer's inventory. This distinction also applies to replay and analysis.
+the server's shuffled deal. A captured face-down piece remains unknown to both
+players and spectators during play and stays in their unknown inventory.
+Completed-game review reveals captured identities while preserving whether each
+piece was concealed when captured.
 The engine searches an information set, not a position containing the real hidden
 identities. Invalid engine moves are rejected rather than replaced silently.
 
@@ -125,9 +126,9 @@ live under `public/jieqi-engine/` and are distributed together. The Node bridge 
 After rebuilding, run `node --test scripts/jieqi-engine/repeatability.test.mjs`
 to compare three fresh depth-20 opening searches using the shipped WASM.
 
-Live bots run in this worker because their private capture knowledge cannot be
-sent to the human opponent's browser. Analysis uses the same WASM in the browser,
-inside a dedicated worker, with only the analyst's permitted knowledge. The
+Live bots currently run in this worker with the same public capture information
+as human players. Analysis uses the same WASM in the browser,
+inside a dedicated worker, with the supplied analysis knowledge. The
 worker keeps synchronous engine initialization off the browser UI thread.
 Scores are estimates, and the user
 chooses hypothetical reveal outcomes when exploring a branch. Ordinary full-game

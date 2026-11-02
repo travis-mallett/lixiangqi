@@ -5,7 +5,7 @@ import play.api.libs.json.*
 object StepBuilder:
 
   def apply(game: Game): JsArray =
-    apply(game.xiangqi)
+    apply(game.xiangqi.copy(states = game.visibleStates))
 
   private[round] def apply(game: lila.xiangqi.Xiangqi.Game): JsArray =
     import lila.xiangqi.XiangqiJson.given

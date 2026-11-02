@@ -59,6 +59,8 @@ case class Game(
   def position = xiangqi.state
   def nativeVariant = xiangqi.variant
   def isJieqi = xiangqi.isJieqi
+  def visibleCaptures = lila.xiangqi.Jieqi.captures(xiangqi, revealConcealed = finishedOrAborted)
+  def visibleStates = lila.xiangqi.Jieqi.publicStates(xiangqi, revealConcealed = finishedOrAborted)
   def ply = Ply(xiangqi.state.ply)
   def sans = xiangqi.wxf.map(SanStr.apply)
   def turnColor = if xiangqi.state.turn == Xiangqi.Side.Red then Color.White else Color.Black

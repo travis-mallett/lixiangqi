@@ -68,13 +68,7 @@ final class JsonView(
     val (presence, presenceGroup) = lila.core.game.GamePresence(game, poolApi)
     Json
       .obj(
-        "game" -> (gameJsonView.baseWithPosition(game, initialFen) ++ {
-          import lila.xiangqi.XiangqiJson.given
-          Json.obj(
-            "captures" -> lila.xiangqi.Jieqi
-              .captures(game.xiangqi, Some(if color.white then Side.Red else Side.Black))
-          )
-        }),
+        "game" -> gameJsonView.baseWithPosition(game, initialFen),
         "player" -> {
           commonPlayerJson(game, player, users(pov.color), flags) ++ Json
             .obj(

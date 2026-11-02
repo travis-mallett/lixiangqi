@@ -151,9 +151,7 @@ final class UserAnalysis(env: Env) extends LilaController(env) with lila.web.The
           .bootstrap(
             pov,
             analysis,
-            analysisInProgress,
-            ownedPovForReq(pov.game)
-              .map(p => if p.color.white then Xiangqi.Side.Red else Xiangqi.Side.Black)
+            analysisInProgress
           )(using env.user.lightUserApi.async, env.executor)
           .flatMap: data =>
             Ok.page(
@@ -228,8 +226,7 @@ object UserAnalysis:
   def bootstrap(
       pov: Pov,
       analysis: Option[lila.tree.Analysis] = none,
-      analysisInProgress: Boolean = false,
-      viewer: Option[Xiangqi.Side] = None
+      analysisInProgress: Boolean = false
   )(using lila.core.LightUser.Getter, Executor): Fu[JsObject] =
     pov.game.players
       .traverse(player =>
@@ -238,14 +235,13 @@ object UserAnalysis:
           .map(lila.game.Namer.recordedPlayerText(player, _))
       )
       .map: names =>
-        bootstrapData(pov, names, analysis, analysisInProgress, viewer)
+        bootstrapData(pov, names, analysis, analysisInProgress)
 
   private[controllers] def bootstrapData(
       pov: Pov,
       names: ByColor[String],
       analysis: Option[lila.tree.Analysis],
-      analysisInProgress: Boolean,
-      viewer: Option[Xiangqi.Side]
+      analysisInProgress: Boolean
   ): JsObject =
     import lila.xiangqi.XiangqiJson.given
     Json
@@ -262,7 +258,7 @@ object UserAnalysis:
         "moves" -> pov.game.xiangqi.moves,
         "notations" -> pov.game.xiangqi.wxf,
         "chineseNotations" -> pov.game.xiangqi.chineseWxf,
-        "states" -> lila.xiangqi.Jieqi.publicStates(pov.game.xiangqi, viewer),
+        "states" -> pov.game.visibleStates,
         "variant" -> pov.game.nativeVariant.key,
         "ruleset" -> pov.game.xiangqi.ruleset,
         "orientation" -> (if pov.color.white then Xiangqi.Side.Red else Xiangqi.Side.Black),

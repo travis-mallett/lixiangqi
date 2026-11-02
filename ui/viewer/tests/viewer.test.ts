@@ -8,6 +8,7 @@ import {
 import assert from 'node:assert/strict';
 import { afterEach, test, mock } from 'node:test';
 
+import { JIEQI_START_FEN } from 'lib/game/jieqi';
 import { MINI_XIANGQI_START_FEN } from 'lib/game/minixiangqi';
 import { XIANGQI_START_FEN } from 'lib/game/xiangqi';
 import type { ImportedMoveTree, RulesState } from 'lib/game/xiangqiNotation';
@@ -32,6 +33,7 @@ afterEach(() => {
 const labels = Object.fromEntries(
   ['first', 'previous', 'next', 'last', 'moves', 'start', 'analysis'].map(key => [key, key]),
 ) as unknown as ViewerLabels;
+labels.captures = { capturedPieces: 'Captures', concealedPiece: 'Hidden', roles: { horse: 'Horse' } };
 const state = (fen: string, ply: number): RulesState => ({
   fen,
   ply,
@@ -112,6 +114,24 @@ function mountTree(root: Awaited<ReturnType<typeof loadViewerTree>>) {
 function mount() {
   return mountTree(importedViewerTree(fixture()));
 }
+
+test('Jieqi replay widgets share the capture tray, concealment styling, and ply navigation', () => {
+  const tree = fixture();
+  tree.initialFen = JIEQI_START_FEN;
+  tree.state = { ...state(JIEQI_START_FEN, 0), variant: 'jieqi', captures: [] };
+  tree.children[0].state = {
+    ...tree.children[0].state,
+    variant: 'jieqi',
+    captures: [{ side: 'black', square: 'b10', role: 'horse', concealed: true, ply: 1 }],
+  };
+  const viewer = mountTree(importedViewerTree(tree));
+  assert.equal(viewer.element.querySelectorAll('.jieqi-captures').length, 2);
+  assert.equal(viewer.element.querySelector('.jieqi-captures piece'), null);
+  viewer.navigate('next');
+  assert.equal(viewer.element.querySelectorAll('.jieqi-captures__piece--concealed piece.n-piece').length, 1);
+  viewer.navigate('first');
+  assert.equal(viewer.element.querySelector('.jieqi-captures piece'), null);
+});
 
 test('viewer renders the replay panel without per-board settings', () => {
   const viewer = mount();

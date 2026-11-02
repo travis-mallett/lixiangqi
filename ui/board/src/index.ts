@@ -21,3 +21,4 @@ export type * from './types';
 export { createBoardAudio, boardSoundPath } from './audio';
 export { boardImageSvg, type BoardImageOptions } from './image';
 export { graphPoint } from './renderer/graphGeometry';
+export { boardLayout, pieceGeometry } from './layout';

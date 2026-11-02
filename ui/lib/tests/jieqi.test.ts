@@ -5,7 +5,6 @@ import {
   JIEQI_START_FEN,
   jieqiObservation,
   jieqiEngineFen,
-  mergeCaptures,
   revealChoices,
   randomReveal,
 } from '../src/game/jieqi';
@@ -27,7 +26,7 @@ test('unknown captures remain in the information set; known captures reduce only
   const hidden = { side: 'black' as const, square: 'b10', concealed: true, ply: 1 };
   const publicState = { ...initial, fen: initial.fen.replace('xxxxkxxxx', 'x1xxkxxxx'), captures: [hidden] };
   assert.deepEqual(jieqiObservation(publicState).remaining, jieqiObservation(initial).remaining);
-  const known = mergeCaptures(publicState.captures, [{ ...hidden, role: 'horse' }]);
+  const known = [{ ...hidden, role: 'horse' }];
   const observed = jieqiObservation({ ...publicState, captures: known });
   assert.equal(observed.remaining.n, 1);
   assert.equal(observed.remaining.r, 2);

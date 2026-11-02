@@ -43,7 +43,7 @@ class XiangqiRulesetBsonTest extends munit.FunSuite:
     assertEquals(restored, game)
     assertEquals(restored.state.captures.head.role, None)
     assertEquals(
-      lila.xiangqi.Jieqi.captures(restored, Some(Xiangqi.Side.Red)).head.role,
+      lila.xiangqi.Jieqi.captures(restored, revealConcealed = true).head.role,
       Some(game.deal.get.at("b10").key)
     )
 

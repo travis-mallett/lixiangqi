@@ -43,7 +43,7 @@ final class JsonView(rematches: Rematches):
         "termination" -> game.position.termination,
         "turns" -> game.ply,
         "status" -> game.status,
-        "captures" -> game.position.captures
+        "captures" -> game.visibleCaptures
       )
       .add("winner" -> game.winnerColor)
       .add("abortedBy" -> game.abortedBy)

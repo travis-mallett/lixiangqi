@@ -43,7 +43,7 @@ final class FishnetPlayer(redis: FishnetRedis)(using Executor):
             legalMoves = game.position.legalMoves,
             botProfile = game.metadata.kidsBotProfile,
             observation = Option.when(game.isJieqi)(
-              lila.xiangqi.Jieqi.observation(game.xiangqi, Some(game.position.turn))
+              lila.xiangqi.Jieqi.observation(game.xiangqi)
             )
           )
       else fufail(s"[fishnet] Too many moves (${game.ply}), won't play ${game.id}")

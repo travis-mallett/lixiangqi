@@ -20,7 +20,6 @@ import { isXiangqiMate } from 'lib/game/adjudication';
 import { recordGuestAiWin } from 'lib/game/aiProgress';
 import { plyToTurn, plyColor } from 'lib/game/chess';
 import { ClockCtrl, type ClockOpts } from 'lib/game/clock/clockCtrl';
-import { mergeCaptures } from 'lib/game/jieqi';
 import type { MoveRootCtrl } from 'lib/game/moveRootCtrl';
 import {
   isRecordedClockTimeline,
@@ -386,7 +385,7 @@ export default class RoundController implements MoveRootCtrl {
       mate: isXiangqiMate(o.status?.name, o.termination),
     };
     if (o.captures) {
-      step.captures = mergeCaptures(o.captures, this.data.game.captures ?? []);
+      step.captures = o.captures;
       this.data.game.captures = step.captures;
     }
     d.steps.push(step);
@@ -479,6 +478,7 @@ export default class RoundController implements MoveRootCtrl {
     const d = this.data;
     d.game.winner = o.winner;
     d.game.status = o.status;
+    if (o.captures) d.game.captures = o.captures;
     recordGuestAiWin(d);
     if (o.termination !== undefined) d.game.termination = o.termination;
     d.game.variation = undefined;

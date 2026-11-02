@@ -7,6 +7,7 @@ import {
 } from '@lixiangqi/board';
 import { attributesModule, classModule, init, type VNode } from 'snabbdom';
 
+import { capturedPieces, type CaptureLabels } from 'lib/game/view/captures';
 import { licon } from 'lib/licon';
 import { renderColumnTree, renderIndex, type ColumnTreeNode } from 'lib/tree/columnView';
 import { hl, renderReplayControls } from 'lib/view';
@@ -15,6 +16,7 @@ import { applyViewerAppearance } from './appearance';
 import { lastNode, type ViewerNode } from './model';
 
 export interface ViewerLabels {
+  captures: CaptureLabels;
   first: string;
   previous: string;
   next: string;
@@ -71,6 +73,7 @@ export class GameViewer {
   private readonly showControls: boolean;
   private movesVNode?: VNode;
   private controlsVNode?: VNode;
+  private captureNodes?: [HTMLElement | VNode, HTMLElement | VNode];
 
   constructor(
     readonly element: HTMLElement,
@@ -92,11 +95,19 @@ export class GameViewer {
     );
     const surface = makeElement('div');
     board.append(surface);
+    const boardColumn = makeElement('div');
+    boardColumn.className = 'xiangqi-viewer__board-column';
+    if (this.current.node.state.variant === 'jieqi') {
+      const top = makeElement('div');
+      const bottom = makeElement('div');
+      this.captureNodes = [top, bottom];
+      boardColumn.append(top, board, bottom);
+    } else boardColumn.append(board);
     const playback = makeElement('div');
     playback.className = 'xiangqi-viewer__playback';
     this.panel.className = 'xiangqi-viewer__panel';
     playback.append(this.panel);
-    layout.append(board, playback);
+    layout.append(boardColumn, playback);
     element.append(layout);
 
     /* A position without recorded moves is a diagram: it has nothing to replay. */
@@ -210,6 +221,22 @@ export class GameViewer {
       effects: direction === 'forward' ? node.effects : direction === 'backward' ? [] : undefined,
     });
     this.board.setMarks(node.marks, 'annotation');
+    if (this.captureNodes) {
+      const bottom = this.board.getPresentation().perspective === 'red' ? 'red' : 'black';
+      const captures = node.node.state.captures ?? [];
+      this.captureNodes = [
+        patch(this.captureNodes[0], capturedPieces(captures, bottom, node.ply, this.options.labels.captures)),
+        patch(
+          this.captureNodes[1],
+          capturedPieces(
+            captures,
+            bottom === 'red' ? 'black' : 'red',
+            node.ply,
+            this.options.labels.captures,
+          ),
+        ),
+      ];
+    }
     this.comments.textContent = node.comments.join('\n\n');
     if (this.showMoves) this.renderMoves();
     this.renderControls();
