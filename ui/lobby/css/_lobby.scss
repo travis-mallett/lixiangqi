@@ -122,6 +122,10 @@ body {
       color: $c-brag;
     }
 
+    .lobby__rail-title a {
+      color: $c-brag;
+    }
+
     .mini-game {
       display: block;
       margin: 12px auto 0;
@@ -306,15 +310,6 @@ body {
 
     &__rank-column {
       width: 66px;
-    }
-
-    &__place-column {
-      width: calc(7ch + 2 * var(--leaderboard-cell-padding-inline));
-    }
-
-    &__place-heading,
-    &__place {
-      text-align: end;
     }
 
     tr.is-me {

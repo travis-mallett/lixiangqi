@@ -17,14 +17,6 @@ object home:
           span("Become a patron")
         )
       )
-    val swagLink =
-      a(cls := "lobby__support-link", href := "/swag")(
-        iconTag(Icon.Tshirt),
-        span(cls := "lobby__support-link__text")(
-          strong(trans.site.lichessMerchandise()),
-          span(trans.site.lichessMerchandiseDescription())
-        )
-      )
     def dailyPuzzleCard(daily: lila.puzzle.DailyPuzzle.WithHtml, placement: String) =
       st.section(
         cls := s"lobby__daily-puzzle lobby__daily-puzzle--$placement lobby__rail-card",
@@ -120,8 +112,7 @@ object home:
               )
             ),
             puzzle.map(dailyPuzzleCard(_, "left")),
-            donateLink,
-            swagLink
+            donateLink
           ),
           div(cls := "lobby__center-rail")(
             st.section(cls := "lobby__standard", attr("aria-label") := "Standard Xiangqi")(
@@ -151,11 +142,17 @@ object home:
             bits.homepageLeaderboard(leaderboard, leaderboardFlags, personal),
             st.section(cls := "lobby__feed", attr("aria-labelledby") := "lobby-updates-title")(
               h2(id := "lobby-updates-title", cls := "lobby__feed__title")(
-                iconTag(Icon.RssFeed),
-                "Updates"
+                a(href := routes.Feed.index())(
+                  iconTag(Icon.RssFeed),
+                  "Updates"
+                )
               ),
               views.feed.lobbyUpdates(lastUpdates)
             ),
             puzzle.map(dailyPuzzleCard(_, "right"))
+          ),
+          st.footer(cls := "lobby__footer", attr("aria-label") := "LiXiangQi links")(
+            a(href := "https://github.com/travis-mallett/lixiangqi", target := "_blank")("GitHub"),
+            a(href := "https://discord.gg/Hqj43X9BC", target := "_blank")("Discord")
           )
         )

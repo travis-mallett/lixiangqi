@@ -33,6 +33,24 @@
     grid-area: right;
   }
 
+  &__footer {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    padding: 16px;
+    border-top: $border;
+
+    a {
+      color: $c-font-dim;
+
+      &:hover,
+      &:focus-visible {
+        color: $c-link;
+      }
+    }
+  }
+
   &__standard,
   &__table {
     display: grid;

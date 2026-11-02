@@ -23,6 +23,13 @@
     white-space: nowrap;
     color: $c-brag;
 
+    a {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      color: inherit;
+    }
+
     icon {
       color: $c-brag;
       font-size: 1.65rem;

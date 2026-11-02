@@ -39,8 +39,7 @@ object bits:
             )
         ),
         td(cls := "lobby__leaderboard__rating")(entry.score.value),
-        td(cls := "lobby__leaderboard__rank")(entry.rank.value),
-        td(cls := "lobby__leaderboard__place")(place.toString)
+        td(cls := "lobby__leaderboard__rank")(entry.rank.value)
       )
     st.section(cls := "lobby__leaderboard lobby__box")(
       header(cls := "lobby__leaderboard__header")(
@@ -57,8 +56,7 @@ object bits:
           colgroup(
             col(cls := "lobby__leaderboard__player-column"),
             col(cls := "lobby__leaderboard__rating-column"),
-            col(cls := "lobby__leaderboard__rank-column"),
-            col(cls := "lobby__leaderboard__place-column")
+            col(cls := "lobby__leaderboard__rank-column")
           ),
           thead(
             tr(
@@ -94,13 +92,12 @@ object bits:
                     attr("aria-describedby") := "xiangqi-rank-help"
                   )
                 )
-              ),
-              th(cls := "lobby__leaderboard__place-heading", attr("scope") := "col")(trans.site.place())
+              )
             )
           ),
           tbody(
             leaderboard.zipWithIndex.map((entry, index) => row(entry, index + 1)),
-            extra.nonEmpty.option(tr(cls := "lobby__leaderboard__ellipsis")(td(attr("colspan") := 4)("…"))),
+            extra.nonEmpty.option(tr(cls := "lobby__leaderboard__ellipsis")(td(attr("colspan") := 3)("…"))),
             extra.map((place, entry) => row(entry, place))
           )
         )
