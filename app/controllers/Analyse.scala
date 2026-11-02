@@ -40,7 +40,7 @@ final class Analyse(env: Env) extends LilaController(env):
         .flatMap: data =>
           Ok.page(
             views.xiangqi.analysis(data ++ Json.obj("explorerEndpoint" -> env.fishnet.explorerEndpoint))
-          ).dmap(_.noCache)
+          ).dmap(_.noCache.enforceCrossSiteIsolation)
 
   def embed(gameId: GameId, color: Color) = embedReplayGame(gameId, color)
 

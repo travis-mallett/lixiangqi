@@ -25,6 +25,7 @@ final class UserAnalysis(env: Env) extends LilaController(env) with lila.web.The
       case Array("threeKingdoms") =>
         Open:
           Ok.page(views.xiangqi.analysis(Json.obj("variant" -> "threeKingdoms")))
+            .dmap(_.enforceCrossSiteIsolation)
       case _ => load(arg.some)
 
   def embed = Anon:
@@ -138,7 +139,7 @@ final class UserAnalysis(env: Env) extends LilaController(env) with lila.web.The
               .add("initialFen", fen)
               .add("orientation", orientation)
               ++ Json.obj("explorerEndpoint" -> env.fishnet.explorerEndpoint)
-        )
+        ).dmap(_.enforceCrossSiteIsolation)
 
   def game(gameId: GameId, color: Color) = Open:
     Found(env.game.gameRepo.pov(gameId, color)): pov =>
@@ -156,7 +157,7 @@ final class UserAnalysis(env: Env) extends LilaController(env) with lila.web.The
           .flatMap: data =>
             Ok.page(
               views.xiangqi.analysis(data ++ Json.obj("explorerEndpoint" -> env.fishnet.explorerEndpoint))
-            ).dmap(_.noCache)
+            ).dmap(_.noCache.enforceCrossSiteIsolation)
 
   private[controllers] def makePov(game: Xiangqi.Game): Pov =
     Pov(
