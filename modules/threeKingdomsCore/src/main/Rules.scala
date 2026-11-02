@@ -169,8 +169,3 @@ object Rules:
         case "draw" => agreeDraw(p)
         case _ if actor != p.turn => Left("Not the player's turn")
         case move => Move.parse(move).toRight("Invalid move").flatMap(play(p, _)).map(_.position)
-  def notation(p: Position, move: Move): String =
-    val piece = p.piece(move.from).get
-    s"${p.turn.glyph} ${piece.role.code.toUpper}${move.from.key}${
-        if p.piece(move.to).isDefined then "x" else "-"
-      }${move.to.key}"

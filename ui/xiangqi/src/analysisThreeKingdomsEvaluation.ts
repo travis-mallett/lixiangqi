@@ -1,9 +1,10 @@
-import { colors, terminalShares, el, type State, type Tree } from 'threeKingdoms';
+import { colors, turnOrder, terminalShares, el, type State, type Tree } from 'threeKingdoms';
 
 /** The same labelled colors and percentages are used by the strip and history. */
 export function balanceLabels(shares?: number[], state?: State, compact = false): HTMLElement {
   const labels = el('div', 'kingdom-balance__labels');
-  for (const [i, color] of colors.entries()) {
+  for (const color of turnOrder) {
+    const i = colors.indexOf(color);
     const label = el('span', `kingdom-balance__label kingdom-color--${color}`);
     const value = shares ? `${Math.round(shares[i])}%` : '—';
     label.title = i18n.threeKingdoms[color];
@@ -29,7 +30,8 @@ export function renderKingdomBalance(element: HTMLElement, state: State, shares?
   const bar = el('div', 'kingdom-balance__bar');
   bar.setAttribute('aria-hidden', 'true');
   bar.classList.toggle('unknown', !shares);
-  for (const [i, color] of colors.entries()) {
+  for (const color of turnOrder) {
+    const i = colors.indexOf(color);
     const segment = el('span', `kingdom-color--${color}`);
     segment.style.flexGrow = String(shares?.[i] ?? 1);
     bar.append(segment);

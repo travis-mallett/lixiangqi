@@ -38,6 +38,7 @@
   // Piece bodies occupy 90% of the artwork canvas.
   &__count {
     position: absolute;
+    z-index: $z-cg__piece-2 + 1;
     top: -0.32em;
     right: -0.32em;
     display: flex;

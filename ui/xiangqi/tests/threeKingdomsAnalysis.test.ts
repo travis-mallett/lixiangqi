@@ -10,9 +10,14 @@ import {
   newKingdomTab,
   findKingdomGameTab,
 } from '../src/analysisThreeKingdomsTabs';
-import { KingdomAnalysisTree, type KingdomNode } from '../src/analysisThreeKingdomsTree';
+import {
+  KingdomAnalysisTree,
+  kingdomTreePresentation,
+  type KingdomNode,
+} from '../src/analysisThreeKingdomsTree';
 import { AnalysisTreeView } from '../src/analysisTreeView';
 import { analysisVariantPicker } from '../src/analysisVariant';
+import { kingdomVariationFixture, quietKingdomLine } from './threeKingdomsVariationFixture';
 
 const rules: Rules = (
   await import(new URL('../../../public/three-kingdoms-engine/main.js', import.meta.url).href)
@@ -26,8 +31,176 @@ const rules: Rules = (
     jieqi: 'Jieqi',
     miniXiangqi: 'Mini Xiangqi',
   },
-  threeKingdoms: { resign: 'Resign' },
+  threeKingdoms: {
+    resign: 'Resign',
+    red: 'Shu — red',
+    green: 'Wu — green',
+    black: 'Wei — black',
+    shu: 'Shu',
+    wu: 'Wu',
+    wei: 'Wei',
+    alternativeAt: (round: string, player: string) => `${round}. ${player} alternative`,
+    mainLine: 'Main line',
+    continueVariation: 'Continue variation',
+  },
 };
+
+test('three columns keep green variations aligned and preserve annotations on desktop and mobile', () => {
+  const source = new Tree(rules, rules.initial());
+  source.play(source.current.state.moves[0]);
+  const alternatives = source.current.state.moves.slice(0, 2);
+  source.play(alternatives[0]);
+  source.play(source.current.state.moves[0]);
+  source.play(source.current.state.moves[0]);
+  source.cursor = 1;
+  source.play(alternatives[1]);
+  source.current.comment = 'Green alternative';
+  source.play(source.current.state.moves[0]);
+  source.play(source.current.state.moves[0]);
+  const model = new KingdomAnalysisTree(source);
+  const mount = document.createElement('div');
+  const view = new AnalysisTreeView<KingdomNode>({
+    element: mount,
+    tree: () => model,
+    activePath: () => model.pathFor(source.cursor),
+    setActivePath() {},
+    navigate: path => {
+      source.cursor = model.nodeAtPath(path).index;
+    },
+    commit() {},
+    notationLayout: () => 'compact',
+    ...kingdomTreePresentation(),
+  });
+  const oldMatch = window.matchMedia;
+  try {
+    for (const mobile of [false, true]) {
+      window.matchMedia = (() => ({ matches: mobile })) as typeof window.matchMedia;
+      view.render({ scrollToActive: false });
+      assert.equal(mount.querySelectorAll('.analysis-column-tree__header > span').length, 4);
+      assert.equal(mount.querySelectorAll('.xiangqi-analysis__horizontal-moves').length, 0);
+      assert.equal(mount.querySelectorAll('.kingdom-piece').length, 7);
+      assert.ok(mount.querySelector('.analysis-column-tree__row[aria-label="Main line"]'));
+      const branch = mount.querySelector('.analysis-column-tree__branch.variation')!;
+      assert.equal(branch.getAttribute('aria-label'), '1. Wu alternative');
+      assert.doesNotMatch(branch.textContent, /1\. Wu alternative/);
+      assert.match(branch.textContent, /Green alternative/);
+      assert.equal(branch.querySelector<HTMLElement>('.green-move')!.style.gridColumn, '3');
+      assert.equal(branch.querySelector<HTMLElement>('.red-move')!.parentElement!.dataset.round, '2');
+      branch.querySelector<HTMLButtonElement>('button.green-move')!.click();
+      assert.equal(source.cursor, 5);
+    }
+  } finally {
+    window.matchMedia = oldMatch;
+  }
+});
+
+test('long and nested variations retain every move, round, comment and collapse boundary', () => {
+  const source = new Tree(rules, rules.initial());
+  const fixture = kingdomVariationFixture(source);
+  let deep = fixture.nested[0];
+  for (let depth = 0; depth < 6; depth++) deep = quietKingdomLine(source, deep, 3, depth + 24)[0];
+  const model = new KingdomAnalysisTree(source);
+  const mount = document.createElement('div');
+  const view = new AnalysisTreeView<KingdomNode>({
+    element: mount,
+    tree: () => model,
+    activePath: () => model.pathFor(source.cursor),
+    setActivePath() {},
+    navigate: path => {
+      source.cursor = model.nodeAtPath(path).index;
+    },
+    commit() {},
+    notationLayout: () => 'compact',
+    ...kingdomTreePresentation(),
+  });
+  view.render({ scrollToActive: false });
+  const moves = mount.querySelectorAll<HTMLButtonElement>('button.xiangqi-analysis__move');
+  assert.equal(moves.length, source.nodes.length - 1);
+  for (const move of moves) {
+    const node = model.nodeAtPath(move.dataset.path!);
+    const row = move.closest<HTMLElement>('.analysis-column-tree__row')!;
+    const cell = move.parentElement!.classList.contains('xiangqi-analysis__move-group')
+      ? move.parentElement!
+      : move;
+    assert.equal(cell.style.gridColumn, String(node.slot!.column + 2));
+    assert.equal(row.dataset.round, String(node.slot!.round));
+  }
+  const greenBranch = mount.querySelector('[aria-label="1. Wu alternative"]')!;
+  assert.equal(greenBranch.querySelectorAll(':scope > .analysis-column-tree__row').length, 7);
+  assert.match(greenBranch.textContent, /same player columns/);
+  assert.match(greenBranch.textContent, /nested alternative/);
+  assert.equal(
+    mount.querySelectorAll(
+      '.analysis-column-tree__origin, .analysis-column-tree__connector, .analysis-column-tree__resume',
+    ).length,
+    0,
+  );
+  const last = model.pathFor(fixture.branches[1].at(-1)!);
+  mount.querySelector<HTMLButtonElement>(`[data-path="${last}"]`)!.click();
+  assert.equal(source.cursor, fixture.branches[1].at(-1));
+  model.nodeAtPath(model.pathFor(fixture.main[0])).collapsed = true;
+  view.render({ scrollToActive: false });
+  assert.equal(mount.querySelector(`[data-path="${last}"]`), null);
+  assert.ok(mount.querySelector(`[data-path="${model.pathFor(fixture.main[1])}"]`));
+});
+
+test('indexed move paths stay correct after reordering and pruning a long variation', () => {
+  const source = new Tree(rules, rules.initial());
+  const fixture = kingdomVariationFixture(source);
+  const model = new KingdomAnalysisTree(source);
+  const promoted = model.pathFor(fixture.branches[1][0]);
+  const removed = model.pathFor(fixture.branches[0][0]);
+  model.promoteAt(promoted, true);
+  model.deleteNodeAt(removed);
+  assert.equal(model.pathExists(removed), false);
+  source.nodes.forEach((node, index) => {
+    const entry = model.nodeAtPath(model.pathFor(index));
+    assert.equal(entry.index, index);
+    assert.equal(entry.uci, node.action);
+    assert.equal(entry.actor, node.actor);
+  });
+});
+
+test('navigation reuses formatted moves while comments and changed positions stay current', () => {
+  let formatted = 0;
+  const countingRules = new Proxy(rules, {
+    get(target, key) {
+      if (key === 'notation')
+        return (position: string, move: string) => {
+          formatted++;
+          return rules.notation(position, move);
+        };
+      return Reflect.get(target, key);
+    },
+  });
+  const source = new Tree(countingRules, rules.initial());
+  const line = quietKingdomLine(source, 0, 18);
+  new KingdomAnalysisTree(source);
+  assert.equal(formatted, 18);
+  source.cursor = line.at(-1)!;
+  source.current.comment = 'Updated annotation';
+  const revisited = new KingdomAnalysisTree(source);
+  assert.equal(formatted, 18, 'selecting another position does not reformat the record');
+  assert.equal(
+    revisited.nodeAtPath(revisited.pathFor(source.cursor)).comments?.[0].text,
+    'Updated annotation',
+  );
+  source.nodes[0].state = rules.inspect(source.initial);
+  new KingdomAnalysisTree(source);
+  assert.equal(formatted, 19, 'a replaced source position invalidates its outgoing notation');
+});
+
+test('off-turn events do not consume or renumber a move slot', () => {
+  const source = new Tree(rules, rules.initial());
+  source.play(source.current.state.moves[0]);
+  source.play('resign', 'black');
+  source.play(source.current.state.moves[0]);
+  source.play(source.current.state.moves[0]);
+  const model = new KingdomAnalysisTree(source);
+  assert.deepEqual(model.nodeAtPath(model.pathFor(3)).slot, { round: 1, column: 1 });
+  assert.deepEqual(model.nodeAtPath(model.pathFor(4)).slot, { round: 2, column: 0 });
+  assert.equal(model.nodeAtPath(model.pathFor(2)).event, true);
+});
 
 test('shared move tree promotes and deletes Three Kingdoms variations without losing actors or ownership', () => {
   const source = new Tree(rules, rules.initial());

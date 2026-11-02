@@ -1,7 +1,8 @@
-import { boardPresentation, type BoardView } from '@lixiangqi/board';
 import {
   balanceShares,
-  position,
+  moveNotation,
+  notationElement,
+  notationLabel,
   el,
   button,
   type EngineResult,
@@ -10,7 +11,6 @@ import {
   type SearchOptions,
 } from 'threeKingdoms';
 
-import { createXiangqiBoard } from 'lib/board';
 import { updateProgressBar } from 'lib/view/progressBar';
 
 import { bindEngineSettings, createAnalysisEngineView, createAnalysisSettings } from './analysisEngineView';
@@ -23,11 +23,10 @@ export class KingdomEngineView {
   readonly lineButton: HTMLButtonElement = button(i18n.threeKingdoms.analyseLine, () =>
     this.actions.analyseLine(),
   );
-  readonly settings: EngineSettings = loadEngineSettings('threeKingdoms');
+  readonly settings: Pick<EngineSettings, 'depth' | 'arrowUpdates' | 'multiPv'> = kingdomSettings();
   private readonly status = this.element.querySelector<HTMLElement>('.xiangqi-analysis__substatus')!;
   private readonly lines = this.element.querySelector<HTMLElement>('.xiangqi-engine__lines')!;
   private readonly toggle = this.element.querySelector<HTMLInputElement>('input')!;
-  private preview?: BoardView;
   private last?: { state: State; result: EngineResult; final: boolean };
   previewMove?: string;
 
@@ -38,7 +37,6 @@ export class KingdomEngineView {
       analyseLine: () => void;
       play: (moves: string[]) => void;
       arrows: () => void;
-      perspective: () => string;
     },
   ) {
     const name = i18n.site.threeKingdoms;
@@ -52,17 +50,6 @@ export class KingdomEngineView {
       actions.changed(search);
     };
     const panel = createAnalysisSettings([
-      {
-        name: 'lines-preview',
-        label: i18n.threeKingdoms.linesPreview,
-        type: 'checkbox',
-        value: this.settings.showLinesPreview,
-        change: value => {
-          this.settings.showLinesPreview = !!value;
-          this.hidePreview();
-          persist(false);
-        },
-      },
       {
         name: 'depth',
         label: i18n.threeKingdoms.searchDepth,
@@ -170,26 +157,15 @@ export class KingdomEngineView {
       line.pvMoves.forEach((move, ply) => {
         const before = current;
         current = rulesState(this.rules, before, move);
-        const after = current;
-        const control = button(this.rules.notation(before.position, move), () =>
-          this.actions.play(line.pvMoves.slice(0, ply + 1)),
-        );
+        const notation = moveNotation(this.rules, before, move);
+        const control = button('', () => this.actions.play(line.pvMoves.slice(0, ply + 1)));
         control.className = `pv-move kingdom-color--${before.turn}`;
-        control.title = i18n.threeKingdoms[before.turn];
+        control.append(notationElement(notation));
+        control.title = notationLabel(notation);
+        control.setAttribute('aria-label', control.title);
         const preview = () => {
-          this.hidePreview();
           this.previewMove = line.pvMoves[0];
           this.actions.arrows();
-          if (!this.settings.showLinesPreview || window.matchMedia('(max-width: 799px)').matches) return;
-          const mount = el('div', 'pv-board');
-          const board = el('div');
-          mount.append(board);
-          this.lines.append(mount);
-          this.preview = createXiangqiBoard(
-            board,
-            position(after),
-            boardPresentation('preview', this.actions.perspective()),
-          );
         };
         control.addEventListener('mouseenter', preview);
         control.addEventListener('focus', preview);
@@ -211,9 +187,6 @@ export class KingdomEngineView {
   }
 
   hidePreview(): void {
-    this.preview?.destroy();
-    this.preview = undefined;
-    this.lines.querySelector('.pv-board')?.remove();
     if (this.previewMove) {
       this.previewMove = undefined;
       this.actions.arrows();
@@ -223,4 +196,9 @@ export class KingdomEngineView {
 
 function rulesState(rules: Rules, before: State, move: string): State {
   return rules.inspect(rules.play(before.position, move));
+}
+
+function kingdomSettings(): Pick<EngineSettings, 'depth' | 'arrowUpdates' | 'multiPv'> {
+  const { depth, arrowUpdates, multiPv } = loadEngineSettings('threeKingdoms');
+  return { depth, arrowUpdates, multiPv };
 }

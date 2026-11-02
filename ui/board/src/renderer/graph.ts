@@ -13,6 +13,7 @@ import type {
   VisiblePiece,
 } from '../types';
 import { annotationBrushes, renderAnnotation } from './annotations';
+import { renderGraphCoordinates } from './graphCoordinates';
 import { graphPoint, validateGraphGeometry } from './graphGeometry';
 import { GraphPieces } from './graphPieces';
 
@@ -27,6 +28,8 @@ export class GraphBoardView implements BoardView {
   private readonly surface = document.createElement('div');
   private readonly artwork = document.createElement('div');
   private readonly marks = document.createElementNS(svgNamespace, 'svg');
+  private readonly coordinates = document.createElementNS(svgNamespace, 'svg');
+  private coordinatePerspective?: string;
   private readonly locations = new Map<Location, HTMLButtonElement>();
   private readonly cleanups: Array<() => void> = [];
   private readonly markListeners = new Set<(marks: readonly BoardMark[]) => void>();
@@ -49,7 +52,7 @@ export class GraphBoardView implements BoardView {
     this.current = options.position;
     this.presentation = options.presentation;
     this.interaction = options.interaction;
-    this.feedback = new BoardFeedback(element, options.services);
+    this.feedback = new BoardFeedback(this.surface, options.services);
     element.classList.add('lixiangqi-board', 'graph-board');
     element.dataset.boardDefinition = options.definition.id;
     element.style.setProperty('--board-aspect-ratio', String(this.geometry.width / this.geometry.height));
@@ -76,6 +79,9 @@ export class GraphBoardView implements BoardView {
     this.marks.classList.add('graph-board__marks');
     this.marks.setAttribute('viewBox', `0 0 ${this.geometry.width} ${this.geometry.height}`);
     this.marks.setAttribute('aria-hidden', 'true');
+    this.coordinates.classList.add('graph-board__coordinates');
+    this.coordinates.setAttribute('viewBox', `0 0 ${this.geometry.width} ${this.geometry.height}`);
+    this.coordinates.setAttribute('aria-hidden', 'true');
     for (const location of Object.keys(this.geometry.locations)) {
       const node = document.createElement('button');
       node.type = 'button';
@@ -87,7 +93,7 @@ export class GraphBoardView implements BoardView {
     }
     this.surface.prepend(artworkFrame);
     this.surface.append(this.marks);
-    element.append(this.surface);
+    element.append(this.surface, this.coordinates);
     this.pieces = new GraphPieces(this.surface, options.definition as BoardDefinition<GraphGeometry>, {
       position: () => this.current,
       presentation: () => this.presentation,
@@ -181,6 +187,14 @@ export class GraphBoardView implements BoardView {
     if (this.destroyed) return;
     this.element.classList.toggle('cg-static-preview', !this.pieces.enabled);
     this.artwork.style.transform = `rotate(${this.geometry.rotations[this.presentation.perspective]}deg)`;
+    this.coordinates.style.display = this.presentation.coordinates ? '' : 'none';
+    this.element.classList.toggle('graph-board--coordinates', this.presentation.coordinates);
+    if (this.presentation.coordinates && this.coordinatePerspective !== this.presentation.perspective) {
+      this.coordinatePerspective = this.presentation.perspective;
+      this.coordinates.replaceChildren(
+        ...renderGraphCoordinates(this.geometry, this.presentation.perspective),
+      );
+    }
     const candidates = this.selected ? this.inputDestinations(this.selected) : [];
     for (const [location, node] of this.locations) {
       const [x, y] = graphPoint(this.geometry, location, this.presentation.perspective);
@@ -546,5 +560,6 @@ export class GraphBoardView implements BoardView {
     this.pieces.destroy();
     this.cleanups.splice(0).forEach(cleanup => cleanup());
     this.surface.remove();
+    this.coordinates.remove();
   }
 }

@@ -1,3 +1,5 @@
+@import '../../lib/css/component/kingdom-notation';
+
 // Seat groups allow the round table to accommodate more than one opponent.
 .round__seats {
   display: grid;
@@ -46,6 +48,28 @@
   overflow: auto;
   max-height: 14rem;
   background: $c-bg-box;
+  font-size: 1.15rem;
+  direction: ltr;
+
+  .kingdom-move-columns {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+
+  .kingdom-move-row {
+    display: grid;
+    grid-template-columns: 1.8rem repeat(3, minmax(0, 1fr));
+    min-height: 2.25rem;
+    border-bottom: $border;
+  }
+
+  .kingdom-move-number {
+    align-self: center;
+    text-align: center;
+    color: $c-font-dim;
+    font-size: 0.8em;
+  }
 
   .a1t {
     background: $c-bg-high;
@@ -53,7 +77,17 @@
 
   button {
     width: 100%;
+    min-width: 0;
+    border: 0;
+    padding: 0.2rem 0.15rem;
     text-align: start;
+    background: transparent;
+    color: $c-font;
+
+    &:hover,
+    &:focus-visible {
+      background: $c-bg-high;
+    }
   }
 }
 
@@ -67,14 +101,10 @@
     }
 
     .round__event-moves {
-      display: flex;
+      display: block;
       flex: 1 1 auto;
       min-width: 0;
-      max-height: 5rem;
-
-      li {
-        flex: 0 0 auto;
-      }
+      max-height: 14rem;
     }
   }
 }

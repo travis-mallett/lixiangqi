@@ -1,0 +1,150 @@
+.xiangqi-analysis__moves.xiangqi-analysis__moves--columns {
+  display: block;
+  min-height: 10rem;
+  padding: 0;
+  overflow: auto;
+  white-space: normal;
+  box-shadow: none;
+  font-size: 1.15rem;
+
+  @media (max-width: 799px) {
+    flex: 0 0 auto;
+    max-height: 20rem;
+  }
+
+  .xiangqi-analysis__move {
+    align-items: center;
+    min-width: 0;
+    min-height: 2.25rem;
+    margin: 0;
+    padding: 0.2rem 0.15rem;
+    font-size: inherit;
+    border-radius: 0;
+  }
+
+  .move-number {
+    display: none;
+  }
+
+  .xiangqi-analysis__move-group {
+    position: relative;
+    flex-wrap: wrap;
+  }
+
+  .xiangqi-analysis__disclosure {
+    padding: 0 0.15rem;
+    font-size: 0.8em;
+    min-width: 1.25rem;
+    min-height: 1.5rem;
+  }
+
+  .xiangqi-analysis__comments {
+    border: 0;
+    padding: 0.2rem 0;
+    font-size: 1rem;
+    overflow-wrap: anywhere;
+  }
+
+  @media (pointer: coarse) {
+    .xiangqi-analysis__move,
+    .xiangqi-analysis__disclosure {
+      min-height: 3rem;
+    }
+
+    .xiangqi-analysis__disclosure {
+      min-width: 2rem;
+    }
+  }
+}
+
+.analysis-column-tree {
+  --number-width: 1.8rem;
+
+  direction: ltr;
+
+  &__header,
+  &__row {
+    display: grid;
+    grid-template-columns: var(--number-width) repeat(var(--player-count), minmax(0, 1fr));
+    align-items: stretch;
+  }
+
+  &__header {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    padding-block: 0.35rem;
+    background: $c-bg-box;
+    border-bottom: $border;
+    font-size: 0.85em;
+    text-align: center;
+    color: $c-font-dim;
+
+    > span:not(:first-child)::before {
+      content: '';
+      display: inline-block;
+      width: 0.4em;
+      height: 0.4em;
+      margin-inline-end: 0.35em;
+      border-radius: 50%;
+      background: var(--kingdom-color);
+      vertical-align: middle;
+    }
+  }
+
+  &__row {
+    position: relative;
+    isolation: isolate;
+
+    > .xiangqi-analysis__move-group > .xiangqi-analysis__move {
+      flex: 1 0 auto;
+    }
+
+    &.event .xiangqi-analysis__move {
+      color: $c-font-dim;
+      font-size: 0.85em;
+
+      .kingdom-notation {
+        white-space: normal;
+      }
+    }
+
+    &.continuation {
+      margin-top: 0.4rem;
+    }
+  }
+
+  &__number {
+    align-self: center;
+    color: $c-font-dim;
+    font-size: 0.8em;
+    text-align: center;
+  }
+
+  &__branch.variation {
+    --variation-background: #{$c-bg-zebra};
+
+    margin-block: 0.35rem;
+
+    // An absolute size keeps deeply nested variations readable.
+    font-size: 1.05rem;
+
+    &.variation-even {
+      --variation-background: #{color-mix(in oklab, $c-primary 7%, $c-bg-box)};
+    }
+
+    > .analysis-column-tree__row::before {
+      content: '';
+      position: absolute;
+      inset-block: 0;
+      left: calc(
+        var(--number-width) + (100% - var(--number-width)) * var(--first-column) / var(--player-count)
+      );
+      right: calc(
+        (100% - var(--number-width)) * (var(--player-count) - var(--last-column)) / var(--player-count)
+      );
+      z-index: -1;
+      background: var(--variation-background);
+    }
+  }
+}

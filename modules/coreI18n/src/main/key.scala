@@ -3695,7 +3695,6 @@ object I18nKey:
     val `returnLive`: I18nKey = "threeKingdoms:returnLive"
     val `engine`: I18nKey = "threeKingdoms:engine"
     val `searchDepth`: I18nKey = "threeKingdoms:searchDepth"
-    val `linesPreview`: I18nKey = "threeKingdoms:linesPreview"
     val `searchHelp`: I18nKey = "threeKingdoms:searchHelp"
     val `analyseLine`: I18nKey = "threeKingdoms:analyseLine"
     val `analysisProgress`: I18nKey = "threeKingdoms:analysisProgress"
@@ -3756,6 +3755,13 @@ object I18nKey:
     val `perpetualcheck`: I18nKey = "threeKingdoms:perpetualcheck"
     val `perpetualWarning`: I18nKey = "threeKingdoms:perpetualWarning"
     val `fallenGeneral`: I18nKey = "threeKingdoms:fallenGeneral"
+    val `alternativeAt`: I18nKey = "threeKingdoms:alternativeAt"
+    val `mainLine`: I18nKey = "threeKingdoms:mainLine"
+    val `continueVariation`: I18nKey = "threeKingdoms:continueVariation"
+    val `notationGuide`: I18nKey = "threeKingdoms:notationGuide"
+    val `notationCoordinates`: I18nKey = "threeKingdoms:notationCoordinates"
+    val `notationLocal`: I18nKey = "threeKingdoms:notationLocal"
+    val `notationCrossing`: I18nKey = "threeKingdoms:notationCrossing"
 
   object timeago:
     val `justNow`: I18nKey = "timeago:justNow"

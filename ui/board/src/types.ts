@@ -36,6 +36,14 @@ export interface GraphGeometry {
   readonly rotations: Readonly<Record<Participant, number>>;
   readonly territoryAnchors?: Readonly<Record<Participant, readonly [number, number]>>;
   readonly riverAnchors?: Readonly<Record<string, readonly [number, number]>>;
+  readonly coordinates?: readonly GraphCoordinate[];
+}
+
+export interface GraphCoordinate {
+  readonly point: readonly [number, number];
+  readonly text: string;
+  readonly location: Location;
+  readonly axis: 'file' | 'rank';
 }
 
 export type BoardGeometry = RectangularGeometry | GraphGeometry;

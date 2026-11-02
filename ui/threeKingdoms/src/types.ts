@@ -50,6 +50,7 @@ export interface Rules {
   event(position: string, actor: string, action: string): string;
   edit(position: string, pieces: string, turn: string): string;
   notation(position: string, move: string): string;
+  coordinate(location: string): string;
   route(position: string, move: string): string[];
 }
 export interface RecordedAction {

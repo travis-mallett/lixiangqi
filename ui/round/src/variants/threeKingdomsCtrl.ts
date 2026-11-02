@@ -31,6 +31,7 @@ import { scrollSelectedEvent } from '../view/eventScroll';
 import { replayNavigation, replayMoves, bindReplayKeyboard, replayWheel } from '../view/navigation';
 import { mountRoom, roomView, tableView } from '../view/room';
 import { Chat } from './threeKingdomsChat';
+import { kingdomMoveRows } from './threeKingdomsMoves';
 
 export class Round {
   private game: Game;
@@ -373,7 +374,7 @@ export class Round {
           roomBoardMenu(() => this.render(), this.menu, this.perspective !== this.myColor(), this.rotate),
           replayMoves(
             hl(
-              'ol.round__event-moves',
+              'div.round__event-moves',
               {
                 attrs: { 'data-cursor': this.cursor },
                 hook: {
@@ -384,14 +385,9 @@ export class Round {
                   },
                 },
               },
-              this.game.events.map((event, index) => {
-                const notation = event.action.includes('>')
-                  ? this.rules.notation(this.states[index].position, event.action)
-                  : ((t as unknown as Record<string, string>)[event.action] ?? event.action);
-                return hl('li', { class: { a1t: index + 1 === this.cursor } }, [
-                  button(`${t[event.actor]}: ${notation}`, () => this.select(index + 1)),
-                ]);
-              }),
+              kingdomMoveRows(this.rules, this.game.events, this.states, this.cursor, index =>
+                this.select(index),
+              ),
             ),
             this.cursor,
             0,

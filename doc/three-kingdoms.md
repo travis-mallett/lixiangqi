@@ -6,6 +6,78 @@ duel. The release has rated matchmaking, two computer opponents, invitations to
 two friends, analysis, history, spectating, and native tournament and TV support.
 There are no coins, rewards, bannermen, or promotions.
 
+## Move notation
+
+LiXiangQi uses a **Three Kingdoms extension of WXF notation**, not an official WXF
+three-player standard. It preserves the piece/movement vocabulary in
+[WXF rules, article 7](https://www.wxf-xiangqi.org/images/wxf-rules/2018_World_XiangQi_Rules_English2018.pdf),
+with an explicit origin rank and an explicit destination for river crossings.
+`modules/threeKingdomsCore/src/main/Notation.scala` is the canonical formatter,
+compiled for both server and browser.
+
+- Each territory has files **1–9, left to right as seen from its own seat**. This
+  deliberately follows the illustrated three-player board rather than WXF's
+  ordinary player-relative file numbering.
+- Ranks run **riverbank to back rank**: Shu/red **A–E**, Wu/green **F–J**,
+  Wei/black **K–O**. A square is file then rank: `2C`. Coordinates belong to the
+  territory and never change with viewpoint, piece color, or army ownership.
+- Every move includes its full origin. This one extra letter removes front/rear
+  and stacked-pawn ambiguity, including multiple acquired armies and edited
+  positions, without searching for other legal moves.
+- Piece letters are **K A E H R C P**: general, advisor, elephant, horse, chariot,
+  cannon, soldier. The interface substitutes the actual army's circled Chinese
+  piece symbol; accessible labels retain the Latin token and player identity.
+
+Within one territory, the grammar is `piece + origin-square + operator + number`:
+
+| Example | Meaning                                   |
+| ------- | ----------------------------------------- |
+| `H2E+3` | Horse on 2E advances to file 3.           |
+| `C2C=5` | Cannon on 2C traverses to file 5.         |
+| `R1E+2` | Chariot on 1E advances two intersections. |
+| `C2C-1` | Cannon on 2C retreats one intersection.   |
+
+`=` always gives the destination file. `+` and `-` give the destination file for
+horses, elephants and advisors, and the distance for generals, chariots, cannons
+and soldiers. Advance is toward the river in the piece's original territory and
+toward the back rank in either opponent's territory; retreat is the opposite.
+An appropriated piece retains its original army's direction.
+
+**Every territory crossing** uses `piece + origin-square + > + destination-square`.
+For example, `C2C>8K` goes from Shu's cannon rank to Wei's riverbank. The two
+central-file exits are distinct: `R5A>5F` and `R5A>5K`. The same rule covers
+cross-river horses, flying generals, returning home, and travel between opposing
+territories. It never relies on counting intersections through a fork.
+
+Captures use the same token as quiet moves, as in WXF. There are no check or mate
+suffixes: `+` only means advance, and multi-player checks/eliminations remain
+position information. Origin plus destination semantics identify at most one
+mechanical move in the given position. The rules engine remains responsible for
+legality; notation does not duplicate it.
+
+Move tables use **Shu, Wu, Wei** columns in turn order. A round starts when play
+wraps to an earlier surviving player's column. Missing and eliminated seats stay
+empty; imported positions start at local round 1 in their actual player's column.
+Resignation, timeout and agreed-draw events get their own actor-labelled row and
+do not consume a move slot. Variations retain the same columns and round numbers,
+with the first highlighted row starting in its player's column and later rounds
+flowing through the same three columns. Every variation row uses slightly smaller
+type and a flat theme background; nested lines never shrink further or consume
+column width. Spacing separates sibling branches and returns to the parent line.
+There are no connector lines or visible branch-label rows. Accessible group labels
+retain the branch's round and player. Comments, collapse controls, keyboard
+navigation, and move selection remain available throughout long variations.
+
+The column identifies the **controller**; the piece symbol identifies the
+**original army**. This distinction survives appropriation. Engine score vectors
+retain their internal Wei/Wu/Shu order, but their labels display in Shu/Wu/Wei
+order, matching the move table. Hovering a line highlights its first move on the
+main board. No miniature hover board obscures the moves.
+
+Saved games and analyses store actor-tagged location keys, not display strings.
+They acquire the new notation when rendered; no user-data migration is needed.
+Deployment already rebuilds the Scala.js engine with `threeKingdomsBrowser`.
+
 ## Published rules
 
 The authoritative implementation is `modules/threeKingdomsCore`. The same source

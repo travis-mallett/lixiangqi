@@ -614,11 +614,12 @@ object XiangqiRules:
       sameFile.size match
         case 1 => s"$pieceName${chineseNumber(fileNumber(orig.file, red, board.variant.files), red)}"
         case 2 => s"${if orig == sameFile.head then "前" else "后"}$pieceName"
-        case 3 if piece.role == Role.Soldier =>
+        // In Jieqi, a covered starting slot can share a file with both revealed
+        // pieces of that role. Front/middle/rear therefore applies beyond soldiers.
+        case 3 =>
           s"${Vector("前", "中", "后")(sameFile.indexOf(orig))}$pieceName"
-        case _ if piece.role == Role.Soldier =>
+        case _ =>
           s"${chineseNumber(sameFile.indexOf(orig) + 1, red)}$pieceName"
-        case _ => throw Error(s"Cannot disambiguate Chinese notation for ${uci.value}")
     val forward = if red then dest.rank > orig.rank else dest.rank < orig.rank
     val (action, target) =
       if dest.rank == orig.rank then "平" -> fileNumber(dest.file, red, board.variant.files)

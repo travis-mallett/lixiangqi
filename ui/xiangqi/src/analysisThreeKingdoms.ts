@@ -46,7 +46,7 @@ import {
   type KingdomTab,
   findKingdomGameTab,
 } from './analysisThreeKingdomsTabs';
-import { KingdomAnalysisTree, type KingdomNode } from './analysisThreeKingdomsTree';
+import { KingdomAnalysisTree, kingdomTreePresentation, type KingdomNode } from './analysisThreeKingdomsTree';
 import { AnalysisTreeView } from './analysisTreeView';
 import { analysisVariantPicker } from './analysisVariant';
 
@@ -135,11 +135,10 @@ class Analysis {
     const element = required('#xiangqi-board');
     element.className = '';
     element.parentElement!.classList.remove('xiangqi9x10');
-    this.board = createXiangqiBoard(
-      element,
-      position(this.tree.current.state),
-      websiteBoardPresentation(bootstrap.preferences, 'replay', this.perspective),
-    );
+    this.board = createXiangqiBoard(element, position(this.tree.current.state), {
+      ...websiteBoardPresentation(bootstrap.preferences, 'replay', this.perspective),
+      coordinates: this.settings.coordinates,
+    });
     makeBoardResizable(this.board);
     this.board.onMarksChange(marks => {
       this.tree.current.marks = marks;
@@ -159,7 +158,6 @@ class Analysis {
       analyseLine: () => void this.analyseLine(),
       play: moves => this.playMoves(moves),
       arrows: () => this.renderArrows(),
-      perspective: () => this.board.getPresentation().perspective,
     });
     const engine = this.engineView.element;
     required('.xiangqi-engine').replaceWith(engine);
@@ -183,6 +181,11 @@ class Analysis {
       location.href = '/analysis/' + variant;
     });
     this.model = new KingdomAnalysisTree(this.tree);
+    const guide = el('details', 'kingdom-notation-help');
+    guide.append(el('summary', '', t.notationGuide));
+    for (const text of [t.notationCoordinates, t.notationLocal, t.notationCrossing])
+      guide.append(el('p', '', text));
+    this.moves.before(guide);
     this.treeView = new AnalysisTreeView<KingdomNode>({
       element: this.moves,
       tree: () => this.model,
@@ -198,8 +201,7 @@ class Analysis {
         this.save();
       },
       notationLayout: () => 'compact',
-      notation: node => node.notation ?? '',
-      moveMeta: node => ({ mover: node.actor, number: node.ply }),
+      ...kingdomTreePresentation(),
       emptyText: t.analysis,
     });
     this.tabsView = new AnalysisTabsView<KingdomTab>({
@@ -311,9 +313,8 @@ class Analysis {
       fixedSettings: {
         gaugeDock: 'bottom',
         notationLayout: 'compact',
-        annotations: false,
         lockPanels: true,
-        coordinates: false,
+        inline: false,
       },
       updateSettings: value => {
         this.settings = value;
@@ -642,6 +643,7 @@ class Analysis {
         theme: document.body.dataset.board,
         pieceSet: document.body.dataset.pieceSet,
         marks: this.tree.current.marks,
+        coordinates: this.board.getPresentation().coordinates,
       };
       const assets = new Set<string>();
       boardImageSvg(options, path => {

@@ -3,6 +3,7 @@ import { afterEach, test } from 'node:test';
 
 import { createBoard, boardPresentation, threeKingdoms, type BoardView, type BoardPosition } from '../src';
 import { boardImageSvg } from '../src/image';
+import { graphCoordinates } from '../src/renderer/graphCoordinates';
 import { graphPoint, rotateGraphPoint } from '../src/renderer/graphGeometry';
 
 const boards: BoardView[] = [];
@@ -34,6 +35,36 @@ const position: BoardPosition = {
     ['wei:0:0', { face: 'up', participant: 'black', role: 'chariot', controller: null }],
   ]),
 };
+
+test('coordinates occupy their own gutter, rotate with every seat, and follow the coordinate preference', () => {
+  const board = mount(position);
+  const geometry = threeKingdoms.geometry;
+  for (const perspective of ['red', 'green', 'black']) {
+    board.setPresentation(boardPresentation('replay', perspective));
+    assert.ok(board.element.classList.contains('graph-board--coordinates'));
+    const labels = [...board.element.querySelectorAll<SVGTextElement>('.graph-board__coordinates text')];
+    const expected = graphCoordinates(geometry, perspective);
+    assert.equal(labels.length, 42);
+    labels.forEach((node, i) => {
+      assert.equal(Number(node.getAttribute('x')), expected[i].point[0]);
+      assert.equal(Number(node.getAttribute('y')), expected[i].point[1]);
+      assert.equal(node.textContent, expected[i].text);
+      assert.equal(node.getAttribute('transform'), null, 'labels remain upright');
+      assert.ok(expected[i].point[0] >= -geometry.width * 0.03);
+      assert.ok(expected[i].point[0] <= geometry.width * 1.03);
+      assert.ok(expected[i].point[1] >= -geometry.height * 0.03);
+      assert.ok(expected[i].point[1] <= geometry.height * 1.03);
+    });
+    const svg = boardImageSvg(
+      { definition: threeKingdoms, position, perspective, coordinates: true },
+      path => path,
+    );
+    assert.equal((svg.match(/<text /g) ?? []).length, 42);
+    board.setPresentation({ ...board.getPresentation(), coordinates: false });
+    assert.equal(board.element.classList.contains('graph-board--coordinates'), false);
+    assert.equal(board.element.querySelector<SVGElement>('.graph-board__coordinates')!.style.display, 'none');
+  }
+});
 
 test('display boards release browser gestures and restore interaction after mode changes', () => {
   const board = mount(position);
@@ -177,6 +208,11 @@ test('hit testing and river feedback rotate with every seat without changing the
       effectRoutes: { capture: [['black', 'green']] },
     });
     const feedback = board.element.querySelector<HTMLElement>('.xiangqi-board-animation__image')!;
+    assert.equal(
+      feedback.parentElement!.parentElement,
+      surface,
+      'feedback shares the board surface and coordinate gutter',
+    );
     const point = rotateGraphPoint(geometry, geometry.riverAnchors!['black:green'], perspective);
     assert.ok(Math.abs(parseFloat(feedback.style.left) - (point[0] * 100) / geometry.width) < 0.00001);
     assert.ok(Math.abs(parseFloat(feedback.style.top) - (point[1] * 100) / geometry.height) < 0.00001);

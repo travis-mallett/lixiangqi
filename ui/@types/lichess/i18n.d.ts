@@ -7137,6 +7137,8 @@ interface I18n {
     accept: string;
     /** Accepted */
     accepted: string;
+    /** %1$s. %2$s alternative */
+    alternativeAt: I18nFormat;
     /** Analyse line */
     analyseLine: string;
     /** Three Kingdoms analysis board */
@@ -7169,6 +7171,8 @@ interface I18n {
     computer: string;
     /** Resign this game? */
     confirmResign: string;
+    /** Continue variation */
+    continueVariation: string;
     /** Army controlled by: %s */
     controls: I18nFormat;
     /** Link copied */
@@ -7235,8 +7239,6 @@ interface I18n {
     leave: string;
     /** Computer level */
     level: string;
-    /** Show engine lines preview */
-    linesPreview: string;
     /** Watch live games */
     live: string;
     /** Load position */
@@ -7245,6 +7247,8 @@ interface I18n {
     localComputer: string;
     /** Sign in to play with other players and save games to your history. */
     login: string;
+    /** Main line */
+    mainLine: string;
     /** Main time (minutes per player) */
     mainTime: string;
     /** Older games */
@@ -7261,6 +7265,14 @@ interface I18n {
     notAnActivePlayer: string;
     /** You are spectating this game. */
     notAPlayer: string;
+    /** Files run 1–9 from each territory’s left to right. Ranks run from riverbank to back rank: Shu A–E, Wu F–J, Wei K–O. Coordinates stay with the territory when the board rotates. */
+    notationCoordinates: string;
+    /** + advances toward the river in a piece’s own territory and toward the back rank in an opponent’s territory; − retreats. Army takeovers do not change these directions. A river crossing uses > and the exact destination: C2C>8K. Captures use the same notation. K, A, E, H, R, C, P mean general, advisor, elephant, horse, chariot, cannon, soldier. */
+    notationCrossing: string;
+    /** How to read the moves */
+    notationGuide: string;
+    /** The piece symbol shows its army; the column shows the player moving it. Every move starts with its file and rank: H2E+3 moves the horse on 2E forward to file 3; C2C=5 moves the cannon on 2C sideways to file 5. For straight advances or retreats, the final number counts steps. */
+    notationLocal: string;
     /** It is not your turn. */
     notYourTurn: string;
     /** Finish your current real-time game before joining another queue. */

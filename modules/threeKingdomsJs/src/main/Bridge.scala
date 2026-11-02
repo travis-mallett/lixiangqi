@@ -135,4 +135,7 @@ object Bridge:
     route.getOrElse(Vector(m.from, m.to)).map(_.key).toJSArray
 
   @JSExport def notation(value: String, move: String): String =
-    Rules.notation(parse(value), Move.parse(move).getOrElse(throw IllegalArgumentException("Invalid move")))
+    Notation(parse(value), Move.parse(move).getOrElse(throw IllegalArgumentException("Invalid move")))
+
+  @JSExport def coordinate(location: String): String =
+    Notation.square(Location.fromKey(location).getOrElse(throw IllegalArgumentException("Invalid location")))

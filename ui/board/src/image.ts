@@ -1,5 +1,6 @@
 import { boardAssets } from './catalog';
 import { boardLayout, pieceGeometry } from './layout';
+import { graphCoordinates } from './renderer/graphCoordinates';
 import { graphPoint } from './renderer/graphGeometry';
 import type { BoardDefinition, BoardMark, BoardPosition, Participant } from './types';
 
@@ -13,6 +14,7 @@ export interface BoardImageOptions {
   labels?: Readonly<Record<Participant, string>>;
   clocks?: Readonly<Record<Participant, number>>;
   glyph?: string;
+  coordinates?: boolean;
 }
 
 const escapeXml = (value: string): string =>
@@ -46,9 +48,10 @@ export function boardImageSvg(options: BoardImageOptions, assetUrl: (path: strin
     geometry.kind === 'graph'
       ? ` transform="rotate(${geometry.rotations[perspective]} ${width / 2} ${band + boardHeight / 2})"`
       : '';
+  const margin = options.coordinates && geometry.kind === 'graph' ? geometry.pieceSize * 0.65 : 0;
   const parts = [
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${imageHeight}" viewBox="0 0 ${width} ${imageHeight}">`,
-    '<rect width="100%" height="100%" fill="#f6f1e8"/>',
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width + margin * 2}" height="${imageHeight + margin * 2}" viewBox="${-margin} ${-margin} ${width + margin * 2} ${imageHeight + margin * 2}">`,
+    `<rect x="${-margin}" y="${-margin}" width="100%" height="100%" fill="#f6f1e8"/>`,
     `<image href="${escapeXml(assetUrl(board.geometries[id]))}" x="0" y="${band}" width="${width}" height="${boardHeight}"${rotation}/>`,
     `<g transform="translate(${layout.left * width} ${band + layout.top * boardHeight}) scale(${layout.width} ${layout.height})">`,
   ];
@@ -129,6 +132,13 @@ export function boardImageSvg(options: BoardImageOptions, assetUrl: (path: strin
     );
   }
   parts.push('</g>');
+  if (options.coordinates && geometry.kind === 'graph')
+    for (const label of graphCoordinates(geometry, perspective)) {
+      const [x, y] = label.point;
+      parts.push(
+        `<text x="${x}" y="${band + y}" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="40" fill="#333" stroke="#f6f1e8" stroke-width="4" paint-order="stroke">${escapeXml(label.text)}</text>`,
+      );
+    }
   if (band) {
     const bottom = perspective;
     const opponents = definition.participants.filter(side => side !== bottom);

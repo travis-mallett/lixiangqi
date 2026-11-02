@@ -6,7 +6,8 @@
   &__surface,
   &__artwork-frame,
   &__artwork,
-  &__marks {
+  &__marks,
+  &__coordinates {
     position: absolute;
     inset: 0;
     width: 100%;
@@ -38,6 +39,29 @@
   &__marks {
     pointer-events: none;
     z-index: 3;
+  }
+
+  &__coordinates {
+    pointer-events: none;
+    z-index: 4;
+    overflow: visible;
+    font: 40px sans-serif;
+    fill: var(--c-font, #333);
+    stroke: var(--c-bg-page, #eee);
+    stroke-width: 4px;
+    paint-order: stroke;
+
+    @media (max-width: 799px) {
+      font-size: 48px;
+    }
+  }
+
+  // Reserve a true outer gutter: labels must not compete with occupied back ranks.
+  &--coordinates &__surface,
+  &--coordinates &__coordinates {
+    inset: 3%;
+    width: 94%;
+    height: 94%;
   }
 
   &__location {

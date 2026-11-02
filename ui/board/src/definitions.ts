@@ -7,6 +7,7 @@ import type {
   GraphGeometry,
   Location,
   VisiblePiece,
+  GraphCoordinate,
 } from './types';
 
 export const standardXiangqi: BoardDefinition<RectangularGeometry> = Object.freeze({
@@ -72,6 +73,7 @@ export const threeKingdoms: BoardDefinition<GraphGeometry> = Object.freeze({
     ...threePlayerGeometry,
     kind: 'graph' as const,
     placement: 'intersections' as const,
+    coordinates: Object.freeze(threePlayerCoordinates()),
     territoryAnchors: Object.freeze(
       Object.fromEntries(
         [
@@ -123,6 +125,45 @@ export const threeKingdoms: BoardDefinition<GraphGeometry> = Object.freeze({
     ),
   }),
 });
+
+function threePlayerCoordinates(): GraphCoordinate[] {
+  const points: Record<string, readonly number[]> = threePlayerGeometry.locations;
+  return (
+    [
+      ['shu', 'red', 'E'],
+      ['wu', 'green', 'J'],
+      ['wei', 'black', 'O'],
+    ] as const
+  ).flatMap(([region, color, backRank]) => {
+    const angle = (-threePlayerGeometry.rotations[color] * Math.PI) / 180;
+    const label = (
+      location: string,
+      text: string,
+      axis: 'file' | 'rank',
+      dx: number,
+      dy: number,
+    ): GraphCoordinate => {
+      const [x, y] = points[location];
+      return {
+        location,
+        text,
+        axis,
+        point: [
+          x + dx * Math.cos(angle) - dy * Math.sin(angle),
+          y + dx * Math.sin(angle) + dy * Math.cos(angle),
+        ],
+      };
+    };
+    return [
+      ...Array.from({ length: 9 }, (_, file) =>
+        label(`${region}:${file}:0`, String(file + 1), 'file', 0, 82),
+      ),
+      ...Array.from({ length: 5 }, (_, rank) =>
+        label(`${region}:0:${rank}`, String.fromCharCode(backRank.charCodeAt(0) - rank), 'rank', -71, 41),
+      ),
+    ];
+  });
+}
 
 export const supportedBoards: readonly BoardDefinition[] = [standardXiangqi, miniXiangqi, threeKingdoms];
 

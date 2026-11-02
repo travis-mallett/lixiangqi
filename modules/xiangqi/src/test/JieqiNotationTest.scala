@@ -3,6 +3,35 @@ package lila.xiangqi
 import Xiangqi.*
 
 class JieqiNotationTest extends munit.FunSuite:
+  test("a covered elephant slot and two revealed elephants cannot break a legal move"):
+    // Actual tournament failure: g4 and g6 are revealed, g10 is still covered.
+    val fen = "2R3x1x/CAa1k3c/6p2/4p1a1P/6b2/1N1c5/4P1b2/2P1B3P/4P4/3XK4 b j - 12 29"
+    val game = XiangqiRules.game(Position(initialFen = fen)).fold(fail(_), identity)
+    for (move, label) <- List("g4e6" -> "前象退5", "g6e8" -> "中象退5", "g10e8" -> "后象进5") do
+      val uci = Uci.unsafe(move)
+      assert(game.state.legalMoves.contains(uci))
+      assertEquals(XiangqiRules.chinese(fen, uci), Right(label))
+      assertEquals(XiangqiRules.resolveNotation(game, label), Right(uci))
+    game.state.legalMoves.foreach: uci =>
+      assert(XiangqiRules.chinese(fen, uci).isRight, uci.value)
+    val moved = XiangqiRules.move(game, Uci.unsafe("g6e8")).fold(fail(_), identity)
+    assertEquals(moved.chineseNotation, "中象退5")
+    assert(Fen.board(moved.fen).get.pieceAt("e8").exists(_.role == Role.Elephant))
+    val tree = read(s"""[Variant "Jieqi"] [FEN "$fen"] g6e8 *""")
+    for style <- NotationStyle.values do
+      val restored = read(XiangqiNotation.exportTree(tree, style))
+      assertEquals(restored.mainline.moves, tree.mainline.moves)
+      assertEquals(restored.mainline.states, tree.mainline.states)
+
+  test("three same-file red elephants use front middle and rear in red's direction"):
+    val fen = "5k3/9/9/9/9/2B6/9/2B6/9/2X1K4 w j - 0 1"
+    val game = XiangqiRules.game(Position(initialFen = fen)).fold(fail(_), identity)
+    for (move, label) <- List("c5e7" -> "前相进五", "c3e5" -> "中相进五", "c1e3" -> "后相进五") do
+      val uci = Uci.unsafe(move)
+      assert(game.state.legalMoves.contains(uci))
+      assertEquals(XiangqiRules.chinese(fen, uci), Right(label))
+      assertEquals(XiangqiRules.resolveNotation(game, label), Right(uci))
+
   private def fixture(name: String): String =
     val source = scala.io.Source.fromResource(s"jieqi-fPL0UJju-$name.pgn")
     try source.mkString

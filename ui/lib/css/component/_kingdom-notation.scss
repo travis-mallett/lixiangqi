@@ -1,0 +1,74 @@
+// All Three Kingdoms move surfaces share army identity and compact figurines.
+.kingdom-color--red {
+  --kingdom-color: #c4514b;
+}
+
+.kingdom-color--green {
+  --kingdom-color: #27864a;
+}
+
+.kingdom-color--black {
+  --kingdom-color: #{$c-font};
+}
+
+.kingdom-notation {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2em;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+
+  &__body {
+    font-family: monospace;
+  }
+
+  &__controller {
+    position: absolute;
+    right: -0.15em;
+    bottom: -0.1em;
+    width: 0.5em;
+    height: 0.5em;
+    border: 1px solid $c-bg-box;
+    border-radius: 50%;
+    background: var(--kingdom-color);
+  }
+}
+
+.kingdom-piece {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 1.35em;
+  width: 1.35em;
+  height: 1.35em;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid currentcolor;
+  border-radius: 50%;
+  background: $c-bg-box;
+  color: var(--kingdom-color);
+  font-family: serif;
+  font-weight: normal;
+}
+
+.kingdom-move-columns {
+  display: grid;
+  grid-template-columns: 1.8rem repeat(3, minmax(0, 1fr));
+  align-items: center;
+  padding-block: 0.25rem;
+  background: $c-bg-box;
+  color: $c-font-dim;
+  font-size: 0.8rem;
+  text-align: center;
+
+  > span:not(:first-child)::before {
+    content: '';
+    display: inline-block;
+    width: 0.4em;
+    height: 0.4em;
+    margin-inline-end: 0.35em;
+    border-radius: 50%;
+    background: var(--kingdom-color);
+    vertical-align: middle;
+  }
+}

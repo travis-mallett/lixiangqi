@@ -5,6 +5,7 @@ import { mainlineFirst } from 'lib/tree/ops';
 import type { Glyph, TreeComment } from 'lib/tree/types';
 import { horizontalMoveListScrollPosition } from 'lib/view/horizontalMoveList';
 
+import { renderColumnTree, type PlayerColumn } from './analysisColumnTree';
 import { formatEvaluation } from './evaluation';
 
 /** Presentation and tree editing do not depend on two-player rules or FEN. */
@@ -44,6 +45,12 @@ export interface AnalysisTreeViewOptions<N extends AnalysisNode = XiangqiTreeNod
   commit: () => void;
   moveMeta?: (node: N) => { mover: string; number: number };
   notation?: (node: N) => string;
+  notationElement?: (node: N) => HTMLElement;
+  moveTitle?: (node: N) => string;
+  playerColumns?: readonly PlayerColumn[];
+  isEvent?: (node: N) => boolean;
+  branchLabel?: (number: number, player: string) => string;
+  continuationLabel?: (mainline: boolean) => string;
   notationStyle?: () => XiangqiNotationStyle;
   readOnly?: boolean;
   emptyText?: string;
@@ -79,6 +86,25 @@ export class AnalysisTreeView<N extends AnalysisNode = XiangqiTreeNode> {
       return;
     }
 
+    if (this.opts.playerColumns) {
+      this.opts.element.classList.add('xiangqi-analysis__moves--columns');
+      this.opts.element.replaceChildren(
+        renderColumnTree(this.opts.tree().root, {
+          columns: this.opts.playerColumns,
+          children: node => this.children(node),
+          move: node => this.moveElement(node, false),
+          comments: node => this.commentBlock(node),
+          meta: node => this.moveMeta(node),
+          event: node => this.opts.isEvent?.(node) ?? false,
+          collapsed: node => !!this.opts.tree().parentNode(node.path).collapsed,
+          branchLabel: this.opts.branchLabel ?? ((number, player) => `${number}. ${player}`),
+          continuationLabel: this.opts.continuationLabel,
+        }),
+      );
+      if (scrollToActive) this.scrollToActive();
+      return;
+    }
+
     if (isMobileAnalysisLayout()) {
       this.renderHorizontalMoves(scrollToActive);
       return;
@@ -95,13 +121,16 @@ export class AnalysisTreeView<N extends AnalysisNode = XiangqiTreeNode> {
     const element = this.opts.element;
     const active = element.querySelector<HTMLElement>('.active');
     if (!active) return;
-    if (isMobileAnalysisLayout()) {
+    if (isMobileAnalysisLayout() && !this.opts.playerColumns) {
       element.scrollLeft = horizontalMoveListScrollPosition(element, active);
     } else {
       const bounds = element.getBoundingClientRect();
       const selected = active.getBoundingClientRect();
       // Scroll only the move list; revealing a move must not move the page itself.
-      const top = bounds.top + element.clientTop;
+      const headerHeight = this.opts.playerColumns
+        ? (element.querySelector('.analysis-column-tree__header')?.getBoundingClientRect().height ?? 0)
+        : 0;
+      const top = bounds.top + element.clientTop + headerHeight;
       const bottom = bounds.bottom - (parseFloat(window.getComputedStyle(element).borderBottomWidth) || 0);
       if (selected.top < top) element.scrollTop -= Math.ceil(top - selected.top);
       else if (selected.bottom > bottom) element.scrollTop += Math.ceil(selected.bottom - bottom);
@@ -266,14 +295,17 @@ export class AnalysisTreeView<N extends AnalysisNode = XiangqiTreeNode> {
     for (const [name, enabled] of Object.entries(this.opts.moveClasses?.(node) ?? {}))
       button.classList.toggle(name, enabled);
     button.dataset.path = node.path;
-    button.title = `${this.moveNotation(node)} (${node.uci})`;
+    button.title = this.opts.moveTitle?.(node) ?? `${this.moveNotation(node)} (${node.uci})`;
+    button.setAttribute('aria-label', button.title);
+    if (this.opts.activePath() === node.path) button.setAttribute('aria-current', 'step');
 
     const prefix = document.createElement('span');
     prefix.className = 'move-number';
     prefix.textContent = this.movePrefix(node, firstInLine);
     const notation = document.createElement('span');
     notation.className = 'move-notation';
-    notation.textContent = this.moveNotation(node);
+    if (this.opts.notationElement) notation.append(this.opts.notationElement(node));
+    else notation.textContent = this.moveNotation(node);
     button.append(prefix, notation);
     for (const glyph of this.opts.glyphs?.(node) ?? node.glyphs ?? []) {
       const annotation = document.createElement('span');

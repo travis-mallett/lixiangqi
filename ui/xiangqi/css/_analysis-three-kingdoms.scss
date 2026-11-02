@@ -1,16 +1,5 @@
-// Army identity stays consistent between balance, PVs and history. The black
-// army uses a lighter ink in dark themes so its curve remains visible.
-.kingdom-color--red {
-  --kingdom-color: #b94b45;
-}
-
-.kingdom-color--green {
-  --kingdom-color: #27864a;
-}
-
-.kingdom-color--black {
-  --kingdom-color: #{$c-font-dim};
-}
+@import '../../lib/css/component/kingdom-notation';
+@import 'analysis-column-tree';
 
 .xiangqi-analysis-page.xiangqi-analysis-page--three-players {
   ---xiangqi-analysis-board-offset: 0rem;
@@ -62,11 +51,17 @@
 
   &__label {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: baseline;
     column-gap: 0.3rem;
-    border-inline-start: 3px solid var(--kingdom-color);
-    padding-inline-start: 0.35rem;
+
+    &::before {
+      content: '';
+      width: 0.4em;
+      height: 0.4em;
+      border-radius: 50%;
+      background: var(--kingdom-color);
+    }
 
     small {
       grid-column: 1 / -1;
@@ -150,6 +145,41 @@
 .kingdom-engine .pv.kingdom-engine__pv {
   display: block;
   padding: 0.25rem 0.5rem;
+  height: auto;
+  min-height: 0;
+  white-space: normal;
+  overflow: visible;
+
+  span {
+    margin-inline-start: 0;
+  }
+
+  .kingdom-notation__body {
+    font-family: monospace;
+  }
+
+  .kingdom-piece {
+    font-family: serif;
+  }
+}
+
+.kingdom-notation-help {
+  padding: 0.4rem 0.65rem;
+  max-height: 14rem;
+  overflow: auto;
+  background: $c-bg-box;
+  color: $c-font-dim;
+  font-size: 0.8rem;
+  line-height: 1.5;
+
+  summary {
+    cursor: pointer;
+    color: $c-link;
+  }
+
+  p {
+    margin-block: 0.5rem;
+  }
 }
 
 .kingdom-engine {
@@ -157,6 +187,7 @@
     display: flex;
     gap: 0.4rem;
     color: $c-font-dim;
+    line-height: 1.35;
 
     > strong {
       flex: 0 0 1rem;
@@ -166,20 +197,19 @@
       flex: 1;
       margin: 0;
       gap: 0.4rem;
-      font-size: 0.68rem;
+      font-size: 0.8rem;
       line-height: 1.3;
     }
 
     .kingdom-balance__label {
-      display: block;
+      display: flex;
+      align-items: center;
+      gap: 0.25em;
 
       strong {
         width: auto;
+        margin-inline-start: auto;
       }
-    }
-
-    .kingdom-balance__name {
-      display: block;
     }
   }
 
@@ -187,13 +217,18 @@
     display: flex;
     flex-wrap: wrap;
     gap: 0 0.55rem;
+    line-height: 1.7;
+    font-size: 1.05rem;
 
     button {
-      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      padding: 0.18rem 0;
       border: 0;
       background: transparent;
       color: $c-font;
       font: inherit;
+      line-height: 1.4;
       cursor: pointer;
 
       &:hover,

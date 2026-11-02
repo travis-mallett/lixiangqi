@@ -99,7 +99,8 @@ test('local three-seat play uses round controls, preserves replay, and releases 
     if (interaction.mode === 'play') interaction.onMove({ from, to });
     await new Promise(resolve => setTimeout(resolve, 0));
     assert.equal(JSON.parse(localStorage.getItem('threeKingdoms.localGame')!).eventCount, 1);
-    assert.equal(document.querySelectorAll('.round__event-moves li').length, 1);
+    assert.equal(document.querySelectorAll('.round__event-moves .kingdom-move-row').length, 1);
+    assert.equal(document.querySelectorAll('.round__event-moves .kingdom-piece').length, 1);
     assert.equal(displayed.active, 'green');
     const first = document.querySelector<HTMLButtonElement>('bo3 button[data-ply="0"]')!;
     assert.equal(first.disabled, false);
@@ -168,7 +169,7 @@ test('server updates preserve a replay cursor and elimination switches the playe
     keyboards.get('home')!();
     send(rules.inspect(game.position).moves[0]);
     assert.equal(displayed.active, 'red');
-    assert.equal(document.querySelectorAll('.round__event-moves li').length, 2);
+    assert.equal(document.querySelectorAll('.round__event-moves .kingdom-piece').length, 2);
     keyboards.get('end')!();
     assert.equal(displayed.active, 'black');
     send(rules.inspect(game.position).moves[0]);
