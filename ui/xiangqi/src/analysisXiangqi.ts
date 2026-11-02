@@ -266,7 +266,10 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
   let engineSettings = loadEngineSettings(settingsVariant);
   const engineConfig = () => analysisEngineConfig(currentState().variant, engineSettings.jieqiEngine);
   const saveEngineSettings = () =>
-    localStorage.setItem(engineSettingsKey(settingsVariant), JSON.stringify(engineSettings));
+    localStorage.setItem(
+      engineSettingsKey(settingsVariant),
+      JSON.stringify({ ...engineSettings, jieqiEngine: undefined }),
+    );
   const suggestions = new AnalysisSuggestions(
     initialFen,
     () => (ground.getPresentation().perspective === 'red' ? 'red' : 'black'),
@@ -666,7 +669,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
       config = engineConfig();
     }
     engineSelection.hidden = !jieqi;
-    engineSelection.querySelector('select')!.value = engineSettings.jieqiEngine ?? 'jqe';
+    engineSelection.querySelector('select')!.value = engineSettings.jieqiEngine ?? 'abjchess';
     updateAnalysisEngineIdentity(sharedEngine, evalElement, config);
     suggestions.setPreviewEnabled(!jieqi && engineSettings.showLinesPreview);
     if (state.variant === 'xiangqi') databaseExplorer.setPosition(position);
@@ -1265,7 +1268,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     update();
   });
   engineSelection.hidden = settingsVariant !== 'jieqi';
-  engineSelection.querySelector('select')!.value = engineSettings.jieqiEngine ?? 'jqe';
+  engineSelection.querySelector('select')!.value = engineSettings.jieqiEngine ?? 'abjchess';
   engineSettingsElement.prepend(engineSelection);
   const engineRangeInputs = [engineDepthInput, engineMultiPvInput, engineThreadsInput, engineHashInput];
   engineRangeInputs.forEach(input => {

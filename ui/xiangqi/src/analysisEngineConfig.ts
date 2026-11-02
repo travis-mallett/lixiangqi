@@ -17,7 +17,7 @@ export interface AnalysisEngineConfig {
 /** Capabilities of the engine builds shipped with the analysis board. */
 export function analysisEngineConfig(
   variant?: string,
-  selected: JieqiEngineId = 'jqe',
+  selected: JieqiEngineId = 'abjchess',
 ): AnalysisEngineConfig {
   const jieqi = variant === 'jieqi';
   const mini = variant === 'minixiangqi';
@@ -27,7 +27,12 @@ export function analysisEngineConfig(
     candidateMoves: jieqi,
     maxMultiPv: jieqi ? jieqiEngines[selected].multiPv : 5,
     hiddenSettings: jieqi
-      ? ['use-cloud', 'threads', 'lines-preview', ...(selected === 'jqe' ? ['multipv'] : [])]
+      ? [
+          'use-cloud',
+          'threads',
+          'lines-preview',
+          ...(jieqiEngines[selected].multiPv === 1 ? ['multipv'] : []),
+        ]
       : mini
         ? ['use-cloud']
         : [],

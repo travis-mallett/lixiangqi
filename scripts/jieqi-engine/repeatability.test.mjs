@@ -108,3 +108,36 @@ test('jqe respects restricted legal moves even at a one-node budget', async () =
   const result = await freshSearch('jqe', 1, 'nodes 1 searchmoves i3i4');
   assert.equal(result.bestMove, 'bestmove i3i4');
 });
+
+test('AB-JChess preserves the release network and native benchmark signature', async () => {
+  const { default: createEngine } = await import('../../public/jieqi-engine/abjchess/abjchess.js');
+  const network = await readFile(
+    new URL('../../public/jieqi-engine/abjchess/abjchess-20261030.nnue', import.meta.url),
+  );
+  assert.equal(
+    createHash('sha256').update(network).digest('hex'),
+    'fdb6245b868bb204cf2b64fc4f8440d7a1e22b73abdd2a13dce180b65b01619e',
+  );
+  const output = [];
+  const engine = await createEngine({
+    print: line => output.push(line),
+    printErr: line => output.push(line),
+  });
+  try {
+    engine.FS.writeFile('/abjchess-20261030.nnue', network);
+    assert.equal(engine.cwrap('abjchess_initialize', 'number', [])(), 1);
+    engine.cwrap('abjchess_command', null, ['string'])('bench');
+    assert.ok(
+      output.some(line => /Nodes searched:\s+43125/.test(line)),
+      output.join('\n'),
+    );
+  } finally {
+    engine.PThread.terminateAllThreads();
+  }
+});
+
+test('AB-JChess repeats searches and honors restricted moves at a one-node budget', async () => {
+  const baseline = await freshSearch('abjchess', 7);
+  assert.deepEqual(await freshSearch('abjchess', 7), baseline);
+  assert.equal((await freshSearch('abjchess', 1, 'nodes 1 searchmoves i3i4')).bestMove, 'bestmove i3i4');
+});

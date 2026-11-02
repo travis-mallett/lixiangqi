@@ -1,0 +1,10 @@
+AB-JChess 20261031 by Huorongrong and Laoxu (Kouza)
+https://github.com/lxsgx23/AB-JChess
+Revision: efc83867230a26bbcd4a6c4cf644b69e154b452e
+Release: https://github.com/lxsgx23/AB-JChess/releases/download/AB-JChess-20261031/AB-JChess-20261031.zip
+Release SHA256: f62831437df87b6878f07e6dcbe54c30456502248353adca7503f033a0edc974
+Project including release network: GPLv3, as stated in the release notes.
+Modified by LiXiangQi on 2026-11-01: browser command bridge; searchmoves enforced for immediate-stop fallback; trained weights unchanged.
+Corresponding source, trainer, network and build scripts: source.zip (same directory).
+Build: install Emscripten 5.0.7; python scripts/jieqi-engine/build_abjchess.py --emxx /path/to/em++
+No warranty. See LICENSE.txt and THIRD_PARTY_NOTICES.md.

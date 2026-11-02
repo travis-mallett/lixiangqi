@@ -60,7 +60,7 @@ test('Jieqi presents candidate notation in the chosen language and requests no r
   const engine = createAnalysisEngineView();
   const gauge = createAnalysisGauge();
   updateAnalysisEngineIdentity(engine, gauge, analysisEngineConfig('jieqi'));
-  assert.match(engine.textContent, /jqe/);
+  assert.match(engine.textContent, /AB-JChess/);
   const elements = analysisSuggestionElements(engine, gauge);
   const suggestions = new AnalysisSuggestions(
     JIEQI_START_FEN,
@@ -111,19 +111,19 @@ test('Jieqi shows the shared line and depth sliders while hiding unsupported set
   );
 });
 
-test('Jieqi defaults to trained jqe and remembers an explicit PikaJieQi choice', () => {
+test('Jieqi always opens with AB-JChess and offers the other engines on demand', () => {
   localStorage.clear();
-  assert.equal(loadEngineSettings('jieqi').jieqiEngine, 'jqe');
+  assert.equal(loadEngineSettings('jieqi').jieqiEngine, 'abjchess');
   localStorage.setItem(engineSettingsKey('jieqi'), JSON.stringify({ jieqiEngine: 'pikajieqi' }));
-  assert.equal(loadEngineSettings('jieqi').jieqiEngine, 'pikajieqi');
+  assert.equal(loadEngineSettings('jieqi').jieqiEngine, 'abjchess');
   localStorage.setItem(engineSettingsKey('jieqi'), JSON.stringify({ jieqiEngine: 'invalid' }));
-  assert.equal(loadEngineSettings('jieqi').jieqiEngine, 'jqe');
+  assert.equal(loadEngineSettings('jieqi').jieqiEngine, 'abjchess');
   const choices: string[] = [];
   const label = createJieqiEngineSelection(id => choices.push(id));
   const select = label.querySelector('select')!;
   assert.deepEqual(
     [...select.options].map(option => option.value),
-    ['jqe', 'pikajieqi'],
+    ['abjchess', 'jqe', 'pikajieqi'],
   );
   select.value = 'pikajieqi';
   select.dispatchEvent(new window.Event('change'));

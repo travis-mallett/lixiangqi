@@ -17,9 +17,9 @@ self.onmessage = async ({ data }) => {
       });
       if (data.networkUrl) {
         const response = await fetch(data.networkUrl);
-        if (!response.ok) throw new Error(`jqe network download failed: ${response.status}`);
-        engine.FS.writeFile('/it014.jqn', new Uint8Array(await response.arrayBuffer()));
-        if (!engine.cwrap('jqe_initialize', 'number', [])()) throw new Error('jqe network initialization failed');
+        if (!response.ok) throw new Error(`${data.prefix} network download failed: ${response.status}`);
+        engine.FS.writeFile('/' + data.networkFile, new Uint8Array(await response.arrayBuffer()));
+        if (!engine.cwrap(`${data.prefix}_initialize`, 'number', [])()) throw new Error(`${data.prefix} network initialization failed`);
       } else engine.cwrap('pikajieqi_initialize', null, [])();
       command = engine.cwrap(`${data.prefix}_command`, null, ['string']);
       self.postMessage({ type: 'ready' });

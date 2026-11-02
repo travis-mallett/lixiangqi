@@ -89,3 +89,14 @@ Lichess as deployed on https://lichess.org/ also uses these external services:
 - [Google Cloud Messaging](https://developers.google.com/cloud-messaging/) for mobile notifications
 - [PeerJS](https://peerjs.com/) for voice chat
 - [crowdin](https://crowdin.com/project/lichess) for localization
+
+## AB-JChess
+
+`public/jieqi-engine/abjchess/` distributes AB-JChess 20261031 by Huorongrong and
+Laoxu (Kouza), including `abjchess-20261030.nnue`, under the project's GNU GPLv3
+declaration in its [release notes](https://github.com/lxsgx23/AB-JChess/releases/tag/AB-JChess-20261031).
+Pinned revision: `efc83867230a26bbcd4a6c4cf644b69e154b452e`.
+The directory includes GPL, authors, jqe MIT and third-party notices. Its
+`source.zip` contains corresponding modified source, trainer, network and build
+scripts. `SOURCE.txt` records dated modifications and reproduction instructions.
+Distribute these files together with the engine and network.

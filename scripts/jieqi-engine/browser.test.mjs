@@ -11,7 +11,7 @@ const requireBuild = createRequire(resolve(root, 'ui/.build/package.json'));
 const { build } = requireBuild('esbuild');
 
 test(
-  'browser selects trained jqe and PikaJieQi, stops workers and handles missing weights',
+  'browser loads only AB-JChess by default, switches engines and rejects missing weights',
   { timeout: 120000 },
   async () => {
     const bundled = await build({
@@ -111,10 +111,16 @@ test(
       const page = await browser.newPage();
       const errors = [];
       page.on('pageerror', error => errors.push(error.message));
+      const requests = [];
+      page.on('request', request => requests.push(request.url()));
       const url = `http://127.0.0.1:${server.address().port}`;
       await page.goto(url);
       await page.waitForFunction(() => window.result?.lines.length === 1);
-      assert.match(await page.evaluate(() => window.result.engine), /jqe/);
+      assert.match(await page.evaluate(() => window.result.engine), /AB JChess/);
+      assert.equal(
+        requests.some(url => /\/jqe\/|\/pikajieqi\.(js|wasm)/.test(url)),
+        false,
+      );
       await page.locator('.xiangqi-icon-button').click();
       assert.equal(await page.locator('[data-setting="multipv"]').isVisible(), false);
       await mkdir(resolve(root, '.tools/jqe-browser'), { recursive: true });
@@ -129,13 +135,18 @@ test(
       await page.locator('select').selectOption('pikajieqi');
       await page.waitForFunction(() => window.result?.engine.includes('Pika'));
       assert.equal(await page.locator('[data-setting="multipv"]').isVisible(), true);
+      requests.length = 0;
       await page.reload();
-      await page.waitForFunction(() => window.result?.engine.includes('Pika'));
+      await page.waitForFunction(() => window.result?.engine.includes('AB JChess'));
+      assert.equal(
+        requests.some(url => /\/jqe\/|\/pikajieqi\.(js|wasm)/.test(url)),
+        false,
+      );
       await page.locator('.xiangqi-icon-button').click();
       await page.locator('select').selectOption('jqe');
       await page.waitForFunction(() => window.result?.engine.includes('jqe'));
       assert.deepEqual(errors, []);
-      await page.route('**/it014.jqn', route => route.fulfill({ status: 404, body: '' }));
+      await page.route('**/abjchess-20261030.nnue', route => route.fulfill({ status: 404, body: '' }));
       await page.reload();
       await page.waitForFunction(() => window.engineStatus?.state === 'error');
       assert.match(await page.evaluate(() => window.engineStatus.error), /network download failed/);

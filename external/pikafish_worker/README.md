@@ -113,7 +113,14 @@ piece was concealed when captured.
 The engine searches an information set, not a position containing the real hidden
 identities. Invalid engine moves are rejected rather than replaced silently.
 
-Jieqi defaults to **jqe** with its trained `it014.jqn` network. Both the engine and
+Jieqi defaults to **AB-JChess 20261031** and its `abjchess-20261030.nnue`
+release network under the project's GPLv3 release declaration. Build using
+Emscripten 5.0.7 and `scripts/jieqi-engine/build_abjchess.py --emxx <path-to-em++>`.
+The script verifies the release checksum and packages corresponding modified
+source, trainer, weights, build scripts and notices. Deploy the entire
+`public/jieqi-engine/abjchess/` directory, including `source.zip`.
+
+The selector also offers **jqe** with its trained `it014.jqn` network. Both the engine and
 network are MIT-licensed, pinned at
 [`331a6e612a038c4a04cf980f7b9482910fd50078`](https://github.com/devinokeefe/jieqi/tree/331a6e612a038c4a04cf980f7b9482910fd50078).
 Build with `scripts/jieqi-engine/build_jqe.py --emxx <path-to-em++>`.
@@ -137,10 +144,11 @@ The generated ESM/WASM files, license and complete corresponding source archive
 live under `public/jieqi-engine/` and are distributed together. The Node bridge is
 `scripts/jieqi-engine/uci.mjs`; set `LIXIANGQI_NODE` if Node is not on PATH.
 After rebuilding, run `node --test scripts/jieqi-engine/repeatability.test.mjs`
-to compare fresh searches using both shipped WASM engines. The Node bridge defaults
-to jqe; an optional `pikajieqi` argument selects the older engine for comparisons.
-jqe provides one candidate line; PikaJieQi supports multiple lines. The analysis
-selector persists independently of ordinary Xiangqi settings.
+to compare fresh searches using all shipped WASM engines. The Node bridge defaults
+to AB-JChess; optional `jqe` or `pikajieqi` arguments select another engine.
+AB-JChess and jqe provide one candidate line; PikaJieQi supports multiple lines. The analysis
+page always starts with AB-JChess. Other engines load only when selected.
+Switching disposes the previous worker. Other analysis preferences persist.
 
 Live bots currently run in this worker with the same public capture information
 as human players. Analysis uses the same WASM in the browser,

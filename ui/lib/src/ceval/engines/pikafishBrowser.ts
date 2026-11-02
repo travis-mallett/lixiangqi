@@ -52,7 +52,7 @@ export class PikafishBrowserEngine {
     private readonly status: (status: PikafishStatus) => void,
     options?: PikafishOptions,
     private readonly variant: EngineVariant = 'xiangqi',
-    private readonly jieqiEngine: JieqiEngineId = 'jqe',
+    private readonly jieqiEngine: JieqiEngineId = 'abjchess',
   ) {
     this.protocol = new PikafishProtocol(
       computing => {
@@ -285,6 +285,7 @@ export class PikafishBrowserEngine {
         wasmUrl: asset(jieqi ? `${selected.file}.wasm` : 'stockfish.wasm'),
         prefix: jieqi ? selected.prefix : undefined,
         networkUrl: jieqi && selected.network ? asset(selected.network) : undefined,
+        networkFile: jieqi ? selected.network?.split('/').pop() : undefined,
         workerUrl: jieqi ? undefined : asset('stockfish.worker.js'),
       });
     });
