@@ -316,6 +316,14 @@ As appropriate, investigate:
 
 Verify changes at the level appropriate to their impact. A shared lower-level fix should receive broader verification rather than being replaced by a safer-looking surface patch.
 
+## Blog writing
+
+For all future LiXiangQi blog posts and edits to existing posts, read and follow
+[the blog writing guide](blog/WRITING_GUIDE.md) before drafting. Apply its full
+editing checklist before saving or publishing, including captions and introductory
+copy. Use `blog/Basic Kills.odt` as the author's voice reference, preserve factual
+and technical accuracy, and verify the final rendered content.
+
 ## Review standard
 
 For significant work, review more than whether the feature works or the code compiles.

@@ -2,7 +2,6 @@ package lila.ublog
 
 import reactivemongo.api.bson.Macros.Annotations.Key
 
-import scalalib.ThreadLocalRandom.shuffle
 import scalalib.model.Language
 import lila.core.id.ImageId
 import lila.core.ublog.Quality
@@ -97,8 +96,9 @@ object UblogPost:
       pinned: List[PreviewPost],
       queue: List[PreviewPost]
   ):
-    def shuffled: List[PreviewPost] =
-      (pinned ++ shuffle(queue)).toList
+    def ordered: List[PreviewPost] =
+      val (official, community) = (pinned ++ queue).distinctBy(_.id).partition(_.isOfficial)
+      official.sortBy(p => p.lived.fold(p.created.at)(_.at))(using Ordering[Instant].reverse) ++ community
 
     def has(id: UblogPostId): Boolean =
       pinned.exists(_.id == id) || queue.exists(_.id == id)

@@ -1,18 +1,23 @@
 .lobby__blog {
   min-width: 0;
+  container-type: inline-size;
 
   .carousel__track {
     display: grid;
     grid-auto-flow: column;
-    grid-auto-columns: 80%;
+    grid-auto-columns: calc((100% - 12px) / 2);
     gap: 12px;
     overflow-x: auto;
     scroll-snap-type: x mandatory;
     direction: ltr;
     padding-block: 12px;
 
-    @media (min-width: 500px) {
-      grid-auto-columns: calc((100% - 12px) / 2);
+    @container (min-width: 480px) {
+      grid-auto-columns: calc((100% - 24px) / 2.5);
+    }
+
+    @container (min-width: 680px) {
+      grid-auto-columns: calc((100% - 24px) / 3);
     }
   }
 

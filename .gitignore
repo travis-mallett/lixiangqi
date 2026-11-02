@@ -30,7 +30,8 @@ logs/
 /public/npm/
 /public/css/
 /public/json/
-/blog
+/blog/*
+!/blog/WRITING_GUIDE.md
 target/
 /data/
 dist/

@@ -38,7 +38,7 @@ final class UblogApi(
 
   private val carouselCache = cacheApi.unit[List[UblogPost.PreviewPost]]("ublog.carousel"):
     _.refreshAfterWrite(10.seconds).buildAsyncTimeout(): _ =>
-      fetchCarouselFromDb().map(_.shuffled.take(9))
+      fetchCarouselFromDb().map(_.ordered.take(9))
 
   def myCarousel(using kid: KidMode) =
     for posts <- carouselCache.get({})

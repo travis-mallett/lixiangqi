@@ -90,3 +90,26 @@ class OfficialBlogTest extends munit.FunSuite:
   test("official live posts are indexable without automated community quality scoring"):
     assert(official.visibleByCrawlers)
     assert(!official.copy(live = false).visibleByCrawlers)
+
+  test("carousel puts official posts first by publication date and removes pinned queue duplicates"):
+    import UblogBsonHandlers.given
+    import reactivemongo.api.bson.*
+    def preview(id: String, daysAgo: Int, isOfficial: Boolean) =
+      val post = official.copy(
+        id = UblogPostId(id),
+        lived = Some(UblogPost.Recorded(author.id, nowInstant.minusSeconds(daysAgo * 86400L))),
+        official = Some(isOfficial)
+      )
+      val doc = summon[BSONDocumentWriter[UblogPost]].writeTry(post).get
+      summon[BSONDocumentReader[UblogPost.PreviewPost]].readDocument(doc).get
+
+    val older = preview("olderPost", 10, true)
+    val newer = preview("newerPost", 1, true)
+    val pinnedCommunity = preview("pinnedCo", 0, false)
+    val community = preview("queuedCo", 0, false)
+    val posts = UblogPost.CarouselPosts(
+      List(pinnedCommunity, older),
+      List(community, older, newer)
+    )
+    assertEquals(posts.ordered, List(newer, older, pinnedCommunity, community))
+    assertEquals(UblogPost.CarouselPosts(Nil, Nil).ordered, Nil)
