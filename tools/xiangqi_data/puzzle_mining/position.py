@@ -1,4 +1,4 @@
-"""Small deterministic FEN helpers; legality remains owned by Pikafish."""
+"""Small deterministic FEN helpers; legality belongs to the native Xiangqi rules."""
 
 from __future__ import annotations
 

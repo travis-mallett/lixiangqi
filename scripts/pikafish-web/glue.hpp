@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// LiXiangQi browser integration, updated 2026-11-01.
 #pragma once
 
 #include <condition_variable>

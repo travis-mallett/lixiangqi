@@ -28,6 +28,7 @@ logs/
 /public/lifat/nnue/*.gz
 /public/lifat/nnue/*.br
 /public/npm/
+/public/pikafish-web/pikafish.nnue
 /public/css/
 /public/json/
 /blog/*

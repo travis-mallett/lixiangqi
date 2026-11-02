@@ -35,7 +35,7 @@ repository's SBT `stage` command if missing or stale. On this Windows checkout:
 ```
 
 Discover the installed JDK patch directory if it differs. `--java` and
-`--class-path` override the bundled Java and staged JAR paths. `NativeRules.java`
+`--class-path` override the bundled Java and staged JAR paths. `tools/xiangqi_data/NativeRules.java`
 is run in Java source-file mode against those existing classes; no new library
 or service installation is needed. It calls `XiangqiRules` with `tiantian-v1`
 and retains immutable native game history between moves, giving the same move

@@ -224,7 +224,9 @@ export class PikafishBrowserEngine {
       }
       this.module = module;
       module.listen = data => {
-        if (!this.disposed) this.protocol.received(data);
+        if (this.disposed) return;
+        if (/^info string (CRITICAL ERROR|ERROR:)/.test(data)) this.fail(data);
+        else this.protocol.received(data);
       };
       const network = module.getRecommendedNnue() ?? 'pikafish.nnue';
       const networkUrl = site.asset.url(`${root}/${network}`);
@@ -310,6 +312,7 @@ export class PikafishBrowserEngine {
 
   private dispose(error: Error): void {
     clearTimeout(this.startupTimer);
+    this.cancelValidation();
     this.download.abort(error);
     this.readiness.reject(error);
     try {

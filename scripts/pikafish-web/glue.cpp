@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// LiXiangQi browser integration, updated 2026-11-01.
 #include "glue.hpp"
 
 #include <istream>
@@ -54,7 +56,7 @@ EMSCRIPTEN_KEEPALIVE void setNnueBuffer(char* buffer, std::size_t size) {
     inputQueue.push(Command(buffer, size));
 }
 
-EMSCRIPTEN_KEEPALIVE const char* getRecommendedNnue() { return EvalFileDefaultNameBig; }
+EMSCRIPTEN_KEEPALIVE const char* getRecommendedNnue() { return EvalFileDefaultName; }
 }
 
 EMSCRIPTEN_KEEPALIVE std::string js_getline() {
@@ -66,7 +68,7 @@ EMSCRIPTEN_KEEPALIVE std::string js_getline() {
         // Official Pikafish networks are distributed as Zstandard streams.
         // Network::load expects the decompressed NNUE bytes.
         auto input = decompressNnue(command);
-        if (!uci_global->engine.load_big_network(input))
+        if (!uci_global->engine.load_network(input))
         {
             std::cerr << "Pikafish could not initialize the NNUE network" << std::endl;
             return "quit";

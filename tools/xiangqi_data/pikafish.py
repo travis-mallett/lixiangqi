@@ -37,7 +37,7 @@ def _default_executable() -> Path:
     if configured:
         return Path(configured).expanduser().resolve()
     platform_dir = "Windows" if os.name == "nt" else "Linux"
-    executable = "pikafish-avx2.exe" if os.name == "nt" else "pikafish-avx2"
+    executable = "pikafish.exe" if os.name == "nt" else "pikafish"
     return PROJECT_ROOT / ".tools" / "pikafish" / platform_dir / executable
 
 
@@ -45,12 +45,31 @@ class EngineUnavailable(RuntimeError):
     pass
 
 
+def read_uci_line(output: queue.Queue[str | None], deadline: float) -> str:
+    """Drain buffered output first; engine errors and EOF must never wait for a search timeout."""
+    try:
+        line = output.get_nowait()
+    except queue.Empty:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError("Pikafish timed out")
+        try:
+            line = output.get(timeout=remaining)
+        except queue.Empty as error:
+            raise TimeoutError("Pikafish timed out") from error
+    if line is None:
+        raise EngineUnavailable("Pikafish stopped unexpectedly")
+    if line.startswith(("info string CRITICAL ERROR", "info string ERROR:")):
+        raise EngineUnavailable(line)
+    return line
+
+
 class Pikafish:
     def __init__(self, executable: Path | None = None) -> None:
         self.executable = executable or _default_executable()
         self.process: subprocess.Popen[str] | None = None
         self.reader: threading.Thread | None = None
-        self.output: queue.Queue[str] = queue.Queue()
+        self.output: queue.Queue[str | None] = queue.Queue()
         self.lock = threading.Lock()
         self.name = "Pikafish"
         atexit.register(self.close)
@@ -290,7 +309,8 @@ class Pikafish:
             )
         except OSError as exc:
             raise EngineUnavailable(f"Could not start Pikafish: {exc}") from exc
-        self.reader = threading.Thread(target=self._pump_output, daemon=True, name="pikafish-output")
+        self.output = queue.Queue()
+        self.reader = threading.Thread(target=self._pump_output, args=(self.process, self.output), daemon=True, name="pikafish-output")
         self.reader.start()
         self._send("uci")
         deadline = time.monotonic() + 8
@@ -305,12 +325,13 @@ class Pikafish:
         self._send("setoption name Hash value 128")
         self._send("setoption name UCI_ShowWDL value true")
 
-    def _pump_output(self) -> None:
-        process = self.process
-        if not process or not process.stdout:
-            return
-        for line in process.stdout:
-            self.output.put(line.strip())
+    @staticmethod
+    def _pump_output(process, output) -> None:
+        try:
+            for line in process.stdout:
+                output.put(line.strip())
+        finally:
+            output.put(None)
 
     def _send(self, command: str) -> None:
         if not self.process or not self.process.stdin or self.process.poll() is not None:
@@ -319,22 +340,11 @@ class Pikafish:
         self.process.stdin.flush()
 
     def _read_line(self, deadline: float) -> str:
-        # Snapshot notation may take long enough for the search to finish in
-        # the background. Always consume already-pumped output before applying
-        # the no-output timeout.
         try:
-            return self.output.get_nowait()
-        except queue.Empty:
-            pass
-        remaining = deadline - time.monotonic()
-        if remaining <= 0:
+            return read_uci_line(self.output, deadline)
+        except (EngineUnavailable, TimeoutError):
             self.close()
-            raise TimeoutError("Pikafish analysis timed out")
-        try:
-            return self.output.get(timeout=remaining)
-        except queue.Empty as exc:
-            self.close()
-            raise TimeoutError("Pikafish analysis timed out") from exc
+            raise
 
     def _read_until(self, expected: str, *, timeout: float) -> None:
         deadline = time.monotonic() + timeout

@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 
 from .calibration import Config, calibrate, manifest
-from .native_rules import NativeRules
+from tools.xiangqi_data.native_rules import NativeRules
 from .openings import export_suite, load_suite
 from .profiles import SEED_COORDINATES, validate_coordinates, validate_endpoints
 from .runtime import CalibrationEngine, local_url

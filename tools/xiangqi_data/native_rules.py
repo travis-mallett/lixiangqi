@@ -9,7 +9,13 @@ import shutil
 import subprocess
 import tempfile
 import threading
+import time
 from pathlib import Path
+from typing import Callable
+
+
+class NativeRulesError(RuntimeError):
+    """The bridge failed, as distinct from cancellation by its owning worker."""
 
 
 class NativeRules:
@@ -47,7 +53,9 @@ class NativeRules:
             return
         self.close()
         self.artifacts()
-        self.errors = tempfile.TemporaryFile(mode="w+b")  # noqa: SIM115 - process-owned, closed by close()
+        self.errors = tempfile.TemporaryFile(
+            mode="w+b"
+        )  # noqa: SIM115 - process-owned, closed by close()
         self.process = subprocess.Popen(
             [
                 self.java,
@@ -73,27 +81,54 @@ class NativeRules:
             output.put(None)
 
         self.reader = threading.Thread(
-            target=pump, daemon=True, name="calibration-native-rules"
+            target=pump, daemon=True, name="xiangqi-native-rules"
         )
         self.reader.start()
 
-    def position(self, initial_fen: str, moves: tuple[str, ...]) -> dict:
+    def position(
+        self,
+        initial_fen: str,
+        moves: tuple[str, ...],
+        *,
+        inspection: bool = False,
+        on_wait: Callable[[], None] | None = None,
+    ) -> dict:
         cold = self.process is None or self.process.poll() is not None
         self.start()
         self.process.stdin.write(
-            json.dumps({"initialFen": initial_fen, "moves": moves}) + "\n"
+            json.dumps(
+                {
+                    "initialFen": initial_fen,
+                    "moves": moves,
+                    **({"inspection": True} if inspection else {}),
+                }
+            )
+            + "\n"
         )
         self.process.stdin.flush()
+        deadline = time.monotonic() + (60 if cold else 10)
         try:
-            line = self.output.get(timeout=60 if cold else 10)
-        except queue.Empty as error:
+            while True:
+                if on_wait:
+                    on_wait()
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise TimeoutError("Native rules bridge timed out")
+                try:
+                    line = self.output.get(timeout=min(remaining, 0.25))
+                    if on_wait:
+                        on_wait()
+                    break
+                except queue.Empty:
+                    continue
+        except BaseException:
             self.close()
-            raise TimeoutError("Native rules bridge timed out") from error
+            raise
         if line is None:
             self.errors.seek(0)
             detail = self.errors.read().decode(errors="replace")[-4000:]
             self.close()
-            raise RuntimeError("Native rules bridge exited: " + detail)
+            raise NativeRulesError("Native rules bridge exited: " + detail)
         state = json.loads(line)
         if "error" in state:
             raise ValueError(state["error"])
@@ -104,6 +139,11 @@ class NativeRules:
             or not isinstance(state.get("legalMoves"), list)
         ):
             raise ValueError("Native rules returned an invalid state")
+        if inspection and (
+            not isinstance(state.get("checkers"), list)
+            or any(not isinstance(square, str) for square in state["checkers"])
+        ):
+            raise ValueError("Native rules omitted the inspected checking pieces")
         return state
 
     def close(self):

@@ -237,6 +237,27 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(path.read_text(), original)
         self.assertFalse(list(self.root.glob("*.bak")))
 
+    def test_old_default_engine_is_migrated_with_recoverable_preferences(self):
+        path = self.root / "settings.json"
+        current = Path(Settings().engine)
+        old = current.with_name("pikafish-avx2" + current.suffix)
+        self.s.engine = str(old)
+        self.s.save(path)
+        original = path.read_bytes()
+        self.assertEqual(Settings.load(path).engine, str(current))
+        backups = list(self.root.glob("settings.json.before-script-defaults-*.bak"))
+        self.assertEqual(len(backups), 1)
+        self.assertEqual(backups[0].read_bytes(), original)
+        Settings.load(path)
+        self.assertEqual(len(list(self.root.glob("*.bak"))), 1)
+
+    def test_custom_engine_path_is_preserved(self):
+        path = self.root / "settings.json"
+        self.s.engine = str(self.root / "custom/pikafish-avx2.exe")
+        self.s.save(path)
+        self.assertEqual(Settings.load(path).engine, self.s.engine)
+        self.assertFalse(list(self.root.glob("*.bak")))
+
     def test_settings_reject_database_aliasing(self):
         self.s.catalog_db = self.s.mining_db
         with self.assertRaises(ValueError):

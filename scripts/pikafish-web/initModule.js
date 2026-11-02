@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// LiXiangQi browser integration, updated 2026-11-01.
 /** Assign a listener to Module.listen before creating the module. */
 if (!Module['listen']) Module['listen'] = data => console.log(data);
 

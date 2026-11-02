@@ -268,7 +268,7 @@ for analysis, or put the LAN site behind trusted HTTPS.
     Select-Object -First 1 -ExpandProperty FullName
   $sbt = Join-Path $toolsDir 'sbt\sbt-launch-2.0.3.jar'
   $python = Join-Path $projectRoot '.venv\Scripts\python.exe'
-  $pikafish = Join-Path $toolsDir 'pikafish\Windows\pikafish-avx2.exe'
+  $pikafish = Join-Path $toolsDir 'pikafish\Windows\pikafish.exe'
   $lilaWsDir = Join-Path $toolsDir 'lila-ws'
   $lilaWsPatch = Join-Path $PSScriptRoot 'lila-ws-xiangqi.patch'
   $lilaWsPrepare = Join-Path $PSScriptRoot 'Prepare-LilaWs.ps1'
@@ -304,11 +304,9 @@ for analysis, or put the LAN site behind trusted HTTPS.
   if (-not (Test-Path $lilaWsPatch)) { throw 'The Xiangqi lila-ws patch is missing.' }
   if (-not (Test-Path $lilaWsPrepare)) { throw 'The lila-ws preparation helper is missing.' }
   if (-not (Test-Path $lilaWsConf)) { throw 'The local lila-ws configuration is missing.' }
-  if (-not (Test-Path $pikafish)) {
-    Write-Step 'Installing the official Pikafish Xiangqi analysis engine'
-    & (Join-Path $PSScriptRoot 'Install-Pikafish.ps1')
-    if (-not (Test-Path $pikafish)) { throw 'Pikafish installation failed.' }
-  }
+  Write-Step 'Verifying the pinned Pikafish Xiangqi analysis engine'
+  & (Join-Path $PSScriptRoot 'Install-Pikafish.ps1')
+  if (-not (Test-Path $pikafish)) { throw 'Pikafish installation failed.' }
   $env:LIXIANGQI_PIKAFISH = $pikafish
 
   if (-not (Test-Path (Join-Path $lilaWsDir '.git'))) {

@@ -198,6 +198,12 @@ object XiangqiRules:
   def legalMoves(fen: String): Either[String, Vector[Uci]] =
     decode(fen).map(legalMoves)
 
+  /** Attack inspection for offline motif proofs, including counterfactual boards that cannot be evaluated by
+    * NNUE. This uses the same attack rules as game move generation.
+    */
+  def checkers(fen: String): Either[String, Vector[String]] =
+    decode(fen).map(position => checkingPieces(position.board, !position.turn).sorted)
+
   def wxf(fen: String, uci: Uci): Either[String, String] =
     notation(fen, uci, NotationStyle.English)
 

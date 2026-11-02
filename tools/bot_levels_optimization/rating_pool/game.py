@@ -5,7 +5,7 @@ from external.pikafish_worker.opening import choose_opening_move
 from external.xiangqi_explorer.explorer import master_book_moves
 from tools.xiangqi_data.pikafish_rules import START_FEN
 
-from ..native_rules import NativeRules
+from tools.xiangqi_data.native_rules import NativeRules
 from ..runtime import CalibrationEngine
 
 

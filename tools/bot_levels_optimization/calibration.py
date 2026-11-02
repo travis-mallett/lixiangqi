@@ -73,7 +73,7 @@ def manifest(
 ) -> dict:
     root = Path(__file__).resolve().parents[2]
     sources = list(Path(__file__).parent.glob("*.py"))
-    sources += list(Path(__file__).parent.glob("*.java"))
+    sources += [root / "tools/xiangqi_data" / name for name in ("native_rules.py", "NativeRules.java", "pikafish.py")]
     sources += list((root / "external/pikafish_worker").glob("*.py"))
     sources += list((root / "modules/xiangqi/src/main").rglob("*.scala"))
     try:

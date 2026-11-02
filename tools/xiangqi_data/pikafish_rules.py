@@ -27,7 +27,7 @@ def default_executable() -> Path:
     if configured:
         return Path(configured).expanduser().resolve()
     platform_dir = "Windows" if os.name == "nt" else "Linux"
-    executable = "pikafish-avx2.exe" if os.name == "nt" else "pikafish-avx2"
+    executable = "pikafish.exe" if os.name == "nt" else "pikafish"
     return PROJECT_ROOT / ".tools" / "pikafish" / platform_dir / executable
 
 
@@ -63,6 +63,7 @@ class PikafishGameValidator:
     def start(self) -> None:
         if self.process and self.process.poll() is None:
             return
+        self.close()
         if not self.executable.is_file():
             raise PikafishUnavailable(
                 f"Pikafish is not installed at {self.executable}. "
@@ -177,6 +178,13 @@ class PikafishGameValidator:
         if not self.process or not self.process.stdout:
             raise PikafishUnavailable("Pikafish is not running")
         line = self.process.stdout.readline()
+        if line.startswith("info string CRITICAL ERROR"):
+            self.close()
+            # Invalid input is a rejected game, not an unavailable installation.
+            raise ValueError(line.strip())
+        if line.startswith("info string ERROR:"):
+            self.close()
+            raise PikafishUnavailable(line.strip())
         if not line and self.process.poll() is not None:
             raise PikafishUnavailable("Pikafish stopped unexpectedly")
         return line.strip()

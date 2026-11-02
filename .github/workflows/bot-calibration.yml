@@ -7,6 +7,9 @@ on:
       - '!tools/bot_levels_optimization/archive/**'
       - 'external/pikafish_worker/**'
       - 'tools/xiangqi_data/tests/test_ai*.py'
+      - 'tools/xiangqi_data/native_rules.py'
+      - 'tools/xiangqi_data/pikafish.py'
+      - 'tools/xiangqi_data/NativeRules.java'
       - '.github/workflows/bot-calibration.yml'
   pull_request:
     paths:
@@ -14,6 +17,9 @@ on:
       - '!tools/bot_levels_optimization/archive/**'
       - 'external/pikafish_worker/**'
       - 'tools/xiangqi_data/tests/test_ai*.py'
+      - 'tools/xiangqi_data/native_rules.py'
+      - 'tools/xiangqi_data/pikafish.py'
+      - 'tools/xiangqi_data/NativeRules.java'
       - '.github/workflows/bot-calibration.yml'
 
 permissions:

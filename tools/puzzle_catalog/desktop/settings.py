@@ -49,7 +49,7 @@ class Settings:
     engine: str = str(
         ROOT
         / ".tools/pikafish"
-        / ("Windows/pikafish-avx2.exe" if os.name == "nt" else "Linux/pikafish-avx2")
+        / ("Windows/pikafish.exe" if os.name == "nt" else "Linux/pikafish")
     )
     discovery_workers: int = max(1, min(4, (os.cpu_count() or 4) // 4))
     categorizer_workers: int = max(1, min(2, (os.cpu_count() or 4) // 4))
@@ -73,8 +73,14 @@ class Settings:
         update_loopback = value.preview_publication_origin == "http://127.0.0.1:9663"
         if update_loopback:
             value.preview_publication_origin = "http://localhost:9663"
+        old_engine = ROOT / ".tools/pikafish" / (
+            "Windows/pikafish-avx2.exe" if os.name == "nt" else "Linux/pikafish-avx2"
+        )
+        update_engine = isinstance(value.engine, str) and Path(value.engine) == old_engine
+        if update_engine:
+            value.engine = cls().engine
         value.validate()
-        if set(data) & RETIRED_PREFERENCES or update_loopback:
+        if set(data) & RETIRED_PREFERENCES or update_loopback or update_engine:
             backup = path.with_name(
                 f"{path.name}.before-script-defaults-{uuid4().hex}.bak"
             )

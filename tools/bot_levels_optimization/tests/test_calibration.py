@@ -23,7 +23,7 @@ from tools.bot_levels_optimization.measurement import (
     redistribute,
     summarize,
 )
-from tools.bot_levels_optimization.native_rules import NativeRules
+from tools.xiangqi_data.native_rules import NativeRules
 from tools.bot_levels_optimization.profiles import (
     SEED_COORDINATES,
     profile_at,

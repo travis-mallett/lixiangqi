@@ -51,7 +51,7 @@ public/piece/xiangqi-wudang | Lixiangqi contributors, derived from Wj654cj86's p
 public/piece/default-wood | [PyChess Variants contributors](https://github.com/gbtami/pychess-variants/tree/6e38d77426991710ec4a1d641773e17cb66f921a/static/images/pieces/xiangqi/ttxqhanzi) and Lixiangqi contributors | [AGPLv3+](https://www.gnu.org/licenses/agpl-3.0.html); adapted colors, raster grain, and lighting
 public/piece/xiangqi-paper-traditional | [PyChess Variants contributors](https://github.com/gbtami/pychess-variants/tree/6e38d77426991710ec4a1d641773e17cb66f921a/static/images/pieces/xiangqi/lishu) | [AGPLv3+](https://www.gnu.org/licenses/agpl-3.0.html); original SVGs with filenames adapted to LiXiangQi
 public/piece/xiangqi-{international,western} | [PyChess Variants authors](https://github.com/gbtami/pychess-variants/tree/10f48bc32658f856628da5fb8b3ed723e0e089d6/static/images/pieces/xiangqi) | [AGPLv3](https://www.gnu.org/licenses/agpl-3.0.html)
-public/pikafish-web/pikafish.{js,wasm}, public/pikafish-web/COPYING.txt | [Pikafish authors](https://github.com/official-pikafish/Pikafish/tree/ce0679e00ee196f7ba17f6ec18941b9a5036f8cf) and Lixiangqi contributors | [GPLv3](https://www.gnu.org/licenses/gpl-3.0.html)
+public/pikafish-web/pikafish.{js,wasm}, public/pikafish-web/pikafish-source.tar.gz, scripts/pikafish-web | [Pikafish authors](https://github.com/official-pikafish/Pikafish/tree/4c17cee11f888ae1d48a9494f2e2239f019f0a1f) and Lixiangqi contributors | [GPLv3](https://www.gnu.org/licenses/gpl-3.0.html)
 public/sound/standard/{LearnCapture,NewChatMessage}.mp3 | [Enigmahack](https://github.com/Enigmahack) | AGPLv3+
 public/sound/standard/{PuzzleStormEnd,PuzzleStormGood}.mp3 | [EdinburghCollective](http://lichess.org/@/EdinburghCollective) | [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 public/sound/wuxia3/Music.mp3 | [PeriTune, “Wuxia3”](https://peritune.com/blog/2021/05/22/wuxia3/) | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
@@ -67,7 +67,7 @@ translation/source/puzzleTheme.xml | the lila authors and contributors | [CC0 1.
 <!-- prettier-ignore -->
 Files | Author(s) | License
 --- | --- | ---
-public/pikafish-web/pikafish.nnue | [official-pikafish/Networks](https://github.com/official-pikafish/Networks#nnue-license) | Custom terms: legal use only; commercial use requires permission
+public/pikafish-web/pikafish.nnue | [official-pikafish/Networks](https://github.com/official-pikafish/Networks#nnue-license) | [Separate NNUE terms](public/pikafish-web/NNUE-License.md): legal use only; commercial use requires permission
 public/sound/standard/{LearnFailure,LearnLevelComplete,LearnLevelStart,LearnStageComplete,LearnStageStart,PracticeFailure,PracticeSuccess,Yeet}.mp3 | Inherited Lila sound assets formerly distributed under `public/sound/other` | Original Lila non-free sound exception
 - Remaining inherited Lila sounds in `public/sound` that are not attributed above
 - Remaining inherited Lila artwork in `public/images` that is not attributed above

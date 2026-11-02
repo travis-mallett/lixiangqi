@@ -94,6 +94,62 @@ function moduleHarness() {
   return { module, commands, urls };
 }
 
+test('upstream critical validation errors fail preparation and dispose the engine immediately', async () => {
+  const h = moduleHarness();
+  download = async () => new Uint8Array(1);
+  const statuses: string[] = [];
+  const engine = new PikafishBrowserEngine(s => statuses.push(s.state));
+  const failed = assert.rejects(engine.prepare(), /CRITICAL ERROR/);
+  await setImmediate();
+  h.module.listen('info string CRITICAL ERROR: invalid FEN');
+  await failed;
+  assert.equal(statuses.at(-1), 'error');
+  assert.equal(h.commands.at(-1), 'quit');
+  h.module.listen('readyok');
+  assert.equal(statuses.includes('ready'), false);
+});
+
+test('fatal engine errors cancel pending PV validation and suppress late results', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const h = moduleHarness();
+  download = async () => new Uint8Array(1);
+  const statuses: string[] = [],
+    emissions: unknown[] = [];
+  let signal: AbortSignal | undefined;
+  let respond!: (response: Response) => void;
+  t.mock.method(globalThis, 'fetch', (_url, init) => {
+    signal = init?.signal as AbortSignal;
+    return new Promise<Response>(resolve => {
+      respond = resolve;
+    });
+  });
+  const engine = new PikafishBrowserEngine(status => statuses.push(status.state));
+  await setImmediate();
+  h.module.listen('uciok');
+  h.module.listen('readyok');
+  await engine.prepare();
+  engine.start({
+    fen: 'position w - - 0 1',
+    history: { initialFen: 'position w - - 0 1', moves: [], ruleset: 'tiantian-v1' },
+    legalMoves: ['a1a2'],
+    search: { depth: 1 },
+    multiPv: 1,
+    threads: 1,
+    hashSize: 16,
+    emit: analysis => emissions.push(analysis),
+  });
+  h.module.listen('info depth 1 nodes 10 time 1 score cp 10 pv a0a1');
+  t.mock.timers.tick(700);
+  await setImmediate();
+  assert(signal);
+  h.module.listen('info string CRITICAL ERROR: invalid command');
+  assert(signal.aborted);
+  respond(new Response(JSON.stringify({ moves: [{ move: 'a1a2', state: {} }] })));
+  await setImmediate();
+  assert.deepEqual(emissions, []);
+  assert.equal(statuses.at(-1), 'error');
+});
+
 test('a disposed engine cannot evict the replacement engine cache or announce readiness', async () => {
   const h = moduleHarness();
   evicted = 0;

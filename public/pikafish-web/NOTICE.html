@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pikafish — source, attribution and licenses</title>
+  </head>
+  <body>
+    <h1>Pikafish on LiXiangQi</h1>
+    <p>LiXiangQi uses <a href="https://github.com/official-pikafish/Pikafish">Pikafish</a>,
+      a xiangqi engine derived from Stockfish, with the full official neural network.</p>
+    <p>This browser build is based on Pikafish 2026-09-06, commit
+      <a href="https://github.com/official-pikafish/Pikafish/tree/4c17cee11f888ae1d48a9494f2e2239f019f0a1f">4c17cee11f888ae1d48a9494f2e2239f019f0a1f</a>.
+      LiXiangQi contributors modified its browser loading and UCI bridge on November 1, 2026.
+      It is not an unmodified upstream binary.</p>
+    <h2>Engine source and license</h2>
+    <p>The engine and our browser modifications are distributed under the
+      <a href="COPYING.txt">GNU General Public License, version 3 or later</a>, without warranty.
+      Credit belongs to the <a href="AUTHORS">Pikafish and Stockfish authors</a> and LiXiangQi contributors.
+      The integration follows the <a href="https://github.com/lichess-org/lila-stockfish-web">Lichess web-engine architecture</a>.</p>
+    <p><a href="pikafish-source.tar.gz" download>Download the complete corresponding source</a>,
+      including the modified engine, browser bridge, patch, and build instructions
+      in <code>scripts/pikafish-web/README.md</code>.
+      See also the <a href="UPSTREAM-README.md">upstream README and acknowledgements</a>.</p>
+    <h2>Neural-network license</h2>
+    <p>The <a href="pikafish.nnue" download>neural-network weights</a> have
+      <a href="NNUE-License.md">separate terms</a>; they are not covered by the engine's GPL license.
+      They are for legal use only. Commercial use requires permission from the rights holders.
+      See the <a href="https://github.com/official-pikafish/Networks#nnue-license">official network license</a>.</p>
+    <p>Pikafish acknowledges training data from
+      <a href="https://www.kaggle.com/datasets/pikacat/px0data">Pika Xiangqi Zero (Px0)</a>,
+      available under the <a href="https://opendatacommons.org/licenses/odbl/odbl-10.txt">Open Database License</a>.</p>
+  </body>
+</html>

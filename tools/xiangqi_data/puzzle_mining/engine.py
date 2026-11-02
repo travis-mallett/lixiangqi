@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Callable, Iterable, Protocol
 
 from tools.xiangqi_data.pikafish import to_engine_move, to_ui_move
+from tools.xiangqi_data.native_rules import NativeRules, NativeRulesError
 
 from .models import EngineScore, PositionStatus, SearchContext, SearchLine, SearchResult
 
@@ -132,6 +133,7 @@ class OfflinePikafish:
         heartbeat: Callable[[], None] | None = None,
     ) -> None:
         self.executable = executable
+        self._rules = None
         self.threads = threads
         self.hash_mb = hash_mb
         self.cancel_event = cancel_event
@@ -338,62 +340,43 @@ class OfflinePikafish:
             self.close()
             raise
 
-    def checking_pieces(self, context: SearchContext) -> tuple[str, tuple[str, ...]]:
-        """Inspect attacks without generating moves, including counterfactual boards.
+    def _inspect_rules(self, context: SearchContext) -> dict:
+        def on_wait():
+            check_deadline(self)
+            if self.cancel_event is not None and self.cancel_event.is_set():
+                raise EngineCancelled("worker shutdown requested")
+            if self.heartbeat is not None:
+                self.heartbeat()
 
-        Squares use the catalog's one-based ranks. Keeping the checker identities
-        lets motif analysis disregard one attack without changing board occupancy.
-        """
-        self.start()
         try:
-            self._position(context)
-            self._send("d")
-            final_fen = ""
-            deadline = time.monotonic() + 10
-            while True:
-                line = self._read_until(deadline)
-                if line.startswith("Fen: "):
-                    final_fen = line.removeprefix("Fen: ").strip()
-                elif line.startswith("Checkers:"):
-                    squares = line.removeprefix("Checkers:").split()
-                    if not final_fen or any(
-                        not re.fullmatch(r"[a-i][0-9]", s) for s in squares
-                    ):
-                        raise EngineProtocolError(
-                            "Pikafish returned invalid checker inspection"
-                        )
-                    return final_fen, tuple(f"{s[0]}{int(s[1]) + 1}" for s in squares)
-        except (TimeoutError, EngineProtocolError, EngineCancelled, OSError):
+            on_wait()
+            if self._rules is None:
+                self._rules = NativeRules()
+            return self._rules.position(context.initial_fen, context.moves, inspection=True, on_wait=on_wait)
+        except (TimeoutError, EngineCancelled):
             self.close()
             raise
+        except (ValueError, NativeRulesError, OSError) as error:
+            self.close()
+            raise EngineProtocolError(f"Native position inspection failed: {error}") from error
+        except BaseException:
+            self.close()
+            raise
+
+    def checking_pieces(self, context: SearchContext) -> tuple[str, tuple[str, ...]]:
+        """Inspect counterfactual attacks through the canonical native rules, never NNUE."""
+        state = self._inspect_rules(context)
+        return state["fen"], tuple(state["checkers"])
 
     def inspect(self, context: SearchContext) -> PositionStatus:
-        """Return Pikafish's normalized FEN, check state, and legal moves.
-
-        The caller's complete search context is sent in one
-        ``position`` command. This preserves the engine's repetition and
-        long-check history instead of reconstructing from a bare candidate FEN.
-        """
-
-        self.start()
-        try:
-            final_fen, checkers = self.checking_pieces(context)
-            checked = bool(checkers)
-            self._send("go perft 1")
-            legal: list[str] = []
-            while True:
-                line = self._read_until(time.monotonic() + 10)
-                if line.startswith("Nodes searched:"):
-                    break
-                token, separator, _count = line.partition(":")
-                if separator and ENGINE_MOVE.fullmatch(token):
-                    legal.append(to_ui_move(token))
-            return PositionStatus(final_fen, checked, tuple(sorted(legal)))
-        except (TimeoutError, EngineProtocolError, EngineCancelled, OSError):
-            self.close()
-            raise
+        """Replay complete history and inspect legal moves with the native rules."""
+        state = self._inspect_rules(context)
+        return PositionStatus(state["fen"], bool(state["checkers"]), tuple(state["legalMoves"]))
 
     def close(self) -> None:
+        if self._rules is not None:
+            self._rules.close()
+            self._rules = None
         process, self.process = self.process, None
         reader, self._reader = self._reader, None
         if process and process.poll() is None:
@@ -468,7 +451,10 @@ class OfflinePikafish:
                 check_deadline(self)
                 raise TimeoutError("Pikafish timed out")
             try:
-                return self.output.get(timeout=min(remaining, 0.25))
+                line = self.output.get(timeout=min(remaining, 0.25))
+                if line.startswith(("info string CRITICAL ERROR", "info string ERROR:")):
+                    raise EngineProtocolError(line)
+                return line
             except queue.Empty as exc:
                 if self.process is not None and self.process.poll() is not None:
                     raise EngineProtocolError(

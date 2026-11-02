@@ -22,11 +22,12 @@ def provenance(runtime):
     files = list(Path(__file__).parent.glob("*.py"))
     files += [
         parent / name
-        for name in ("runtime.py", "native_rules.py", "NativeRules.java", "profiles.py")
+        for name in ("runtime.py", "profiles.py")
     ]
     files += list((root / "external/pikafish_worker").glob("*.py"))
     files += list((root / "external/xiangqi_explorer").glob("*.py"))
     files.append(root / "tools/xiangqi_data/pikafish_rules.py")
+    files.extend(root / "tools/xiangqi_data" / name for name in ("native_rules.py", "NativeRules.java", "pikafish.py"))
     executable = runtime.engine.executable
     return {
         "version": 1,

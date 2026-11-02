@@ -18,6 +18,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from tools.xiangqi_data.pikafish import EngineUnavailable, read_uci_line
+
 from .opening import choose_opening_move
 from .selection import Candidate, candidate_snapshot, sample_candidate
 from .kids import prefer_candidate, valid_profile
@@ -264,7 +266,8 @@ class PikafishMoveEngine:
     def __init__(self) -> None:
         self.executable = self._default_executable()
         self.process: subprocess.Popen[str] | None = None
-        self.output: queue.Queue[str] = queue.Queue()
+        self.output: queue.Queue[str | None] = queue.Queue()
+        self.reader: threading.Thread | None = None
 
     def best_move(self, work: MoveWork, profile: StrengthProfile) -> str | None:
         self._ensure_started()
@@ -437,6 +440,9 @@ class PikafishMoveEngine:
                 process.kill()
                 process.wait(timeout=5)
         if process:
+            if self.reader:
+                self.reader.join(timeout=5)
+                self.reader = None
             if process.stdin:
                 process.stdin.close()
             if process.stdout:
@@ -466,7 +472,9 @@ class PikafishMoveEngine:
             bufsize=1,
             creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
         )
-        threading.Thread(target=self._pump_output, daemon=True, name="pikafish-ai-output").start()
+        self.output = queue.Queue()
+        self.reader = threading.Thread(target=self._pump_output, args=(self.process, self.output), daemon=True, name="pikafish-ai-output")
+        self.reader.start()
         self._send("uci")
         self._read_until("uciok", timeout=self.STARTUP_TIMEOUT_SECONDS)
         self._send("setoption name Threads value 1")
@@ -474,12 +482,13 @@ class PikafishMoveEngine:
         self._send("setoption name nodestime value 0")
         self._send("setoption name MultiPV value 1")
 
-    def _pump_output(self) -> None:
-        process = self.process
-        if not process or not process.stdout:
-            return
-        for line in process.stdout:
-            self.output.put(line.strip())
+    @staticmethod
+    def _pump_output(process, output) -> None:
+        try:
+            for line in process.stdout:
+                output.put(line.strip())
+        finally:
+            output.put(None)
 
     def _send(self, command: str) -> None:
         if not self.process or not self.process.stdin or self.process.poll() is not None:
@@ -488,15 +497,11 @@ class PikafishMoveEngine:
         self.process.stdin.flush()
 
     def _read_line(self, deadline: float) -> str:
-        remaining = deadline - time.monotonic()
-        if remaining <= 0:
-            self.close()
-            raise TimeoutError("Pikafish timed out")
         try:
-            return self.output.get(timeout=remaining)
-        except queue.Empty as error:
+            return read_uci_line(self.output, deadline)
+        except (EngineUnavailable, TimeoutError):
             self.close()
-            raise TimeoutError("Pikafish timed out") from error
+            raise
 
     def _read_until(self, expected: str, *, timeout: float) -> None:
         deadline = time.monotonic() + timeout
@@ -524,7 +529,7 @@ class PikafishMoveEngine:
             return Path(configured).expanduser().resolve()
         project_root = Path(__file__).resolve().parents[2]
         platform_dir = "Windows" if os.name == "nt" else "Linux"
-        executable = "pikafish-avx2.exe" if os.name == "nt" else "pikafish-avx2"
+        executable = "pikafish.exe" if os.name == "nt" else "pikafish"
         return project_root / ".tools" / "pikafish" / platform_dir / executable
 
 

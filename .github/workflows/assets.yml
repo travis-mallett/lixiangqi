@@ -8,6 +8,8 @@ on:
     paths:
       - '.github/workflows/assets.yml'
       - 'public/**'
+      - 'scripts/pikafish/**'
+      - 'scripts/pikafish-web/**'
       - 'ui/**'
       - 'package.json'
       - 'pnpm-lock.yaml'
@@ -16,6 +18,8 @@ on:
     paths:
       - '.github/workflows/assets.yml'
       - 'public/**'
+      - 'scripts/pikafish/**'
+      - 'scripts/pikafish-web/**'
       - 'ui/**'
       - 'package.json'
       - 'pnpm-lock.yaml'
@@ -32,6 +36,14 @@ jobs:
           submodules: recursive
       - name: Install pnpm
         uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        with:
+          python-version: '3.12'
+      - name: Prepare the pinned Pikafish network
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y 7zip
+          python scripts/pikafish/install.py --browser-dir public/pikafish-web
       - name: Setup node and restore pnpm cache
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -59,10 +71,17 @@ jobs:
         run: ./ui/build --no-install -p
       - name: Tests
         run: ./ui/test
+      - name: Verify distributed Pikafish engine and network
+        run: node scripts/pikafish-web/smoke.mjs
+      - name: Test browser engine asset publication
+        run: python -m unittest discover -s scripts/pikafish-web/tests
+      - name: Test pinned engine and network preparation
+        run: python -m unittest discover -s scripts/pikafish/tests
       - name: Prepare asset dir
         run: |
           mkdir -p assets/public
           mv public/compiled public/css public/hashed public/npm assets/public/
+          cp -a public/pikafish-web assets/public/
           cp -p LICENSE COPYING.md README.md assets/
           git log -n 1 --pretty=oneline > assets/commit.txt
       - name: Tar assets

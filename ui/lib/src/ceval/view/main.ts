@@ -108,7 +108,22 @@ function engineName(ctrl: CevalCtrl): VNode[] {
               ? [false, 'Single-threaded WebAssembly']
               : [false, 'Single-threaded JavaScript'];
   return [
-    hl('span', { attrs: { title: engine.name } }, engine.short ?? engine.name),
+    hl(
+      engine.id === 'pikafish-web' ? 'a' : 'span',
+      {
+        attrs: {
+          title: engine.name,
+          ...(engine.id === 'pikafish-web'
+            ? {
+                href: site.asset.url('pikafish-web/NOTICE.html', { pathVersion: true }),
+                target: '_blank',
+                rel: 'noopener',
+              }
+            : {}),
+        },
+      },
+      engine.short ?? engine.name,
+    ),
     hl(`span.technology${good ? '.good' : ''}`, { attrs: { title } }, engine.tech),
   ];
 }

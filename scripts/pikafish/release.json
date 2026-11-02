@@ -1,0 +1,20 @@
+{
+  "tag": "Pikafish-2026-09-06",
+  "commit": "4c17cee11f888ae1d48a9494f2e2239f019f0a1f",
+  "archive": "Pikafish.2026-09-06.7z",
+  "sha256": "41952bbfe2520faceb5902c69e6ab4845cc999841d2b49a95cc1be7867a25e5b",
+  "files": {
+    "Pikafish-Windows-x86-64-universal.exe": {
+      "path": "Windows/pikafish.exe",
+      "sha256": "0d57d64c212e78f96cba9e5e4f140d8872f8faa42ea631a27ab6c5db08509da3"
+    },
+    "Pikafish-Linux-x86-64-universal": {
+      "path": "Linux/pikafish",
+      "sha256": "727828293830de8082a80b224bf47b32700c2d1a441908ea11b3c9197178c20c"
+    },
+    "pikafish.nnue": {
+      "path": "pikafish.nnue",
+      "sha256": "7d13d73569a9b571ba0eb20cf1596247bc2a42738967e61afef6482b231e900e"
+    }
+  }
+}

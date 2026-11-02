@@ -3,6 +3,15 @@
 The offline checkmate and tactic pipelines have independent stages. None changes the
 LiXiangQi playback implementation or the published puzzle database schema.
 
+Search and evaluation use the pinned official Pikafish release installed with
+`python scripts/pikafish/install.py`. Position, legal-move and counterfactual
+attack inspections use LiXiangQi's canonical native Xiangqi rules through the
+shared `tools/xiangqi_data/NativeRules.java` bridge. Build the staged server JARs
+with the repository SBT `stage` command and provide Java 21 before running workers.
+The bridge stays alive per worker and closes with it; no web server or database
+is needed for inspections. The September 2026 Pikafish release rejects synthetic
+boards that motif proofs need to inspect, so those boards never enter NNUE search.
+
 ## Three chariots harassing advisor (`threeChariotsHarassingAdvisor`, version 1.0)
 
 Puzzle Catalog's checkmate categorizer uses `three_chariots.py`. Only verified
@@ -19,7 +28,7 @@ piece, the advisor, on the chariot/general rank or file; no capture is required.
 Escape control need not be exclusive. Historical checks have no move-distance
 cutoff. A stationary pin alone does not satisfy the third piece's check/capture
 requirement. Other simultaneous final checkers (horse, cannon, general, etc.)
-reject the category. Attack inspections use Pikafish without additional searches;
+reject the category. Attack inspections use the native rules without additional searches;
 versioned evidence is bound to the complete solution ledger and reused by the
 existing category worker. Registration makes older category inventories stale
 through the existing version mechanism; no database migration is required.

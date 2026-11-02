@@ -33,6 +33,21 @@ class NativeRules {
                 var fen = request.get("initialFen").asText();
                 var moves = new ArrayList<String>();
                 for (var move : request.get("moves")) moves.add(move.asText());
+                if (request.path("inspection").asBoolean()) {
+                    var state = checked(XiangqiRules.position(new Position(fen,
+                        CollectionConverters.asScala(moves).toVector(),
+                        Ruleset.valueOf("Unrestricted"),
+                        CollectionConverters.asScala(List.<scala.Option<String>>of()).toVector(),
+                        scala.collection.immutable.Map$.MODULE$.<String, String>empty())));
+                    response.put("fen", state.fen());
+                    response.put("turn", state.turn().key());
+                    response.put("legalMoves", CollectionConverters.asJava(state.legalMoves()));
+                    response.put("gameResult", state.gameResult().key());
+                    response.put("checkers", CollectionConverters.asJava(checked(XiangqiRules.checkers(state.fen()))));
+                    System.out.println(json.writeValueAsString(response));
+                    System.out.flush();
+                    continue;
+                }
                 // Reuse immutable native history for successive plies. Rebuild
                 // only at a new root or when replaying a different game branch.
                 if (game == null || !fen.equals(initial) || moves.size() < history.size()
