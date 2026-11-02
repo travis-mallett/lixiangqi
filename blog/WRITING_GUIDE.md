@@ -10,7 +10,6 @@ Rewrite weak passages as a whole; swapping a few flagged words is insufficient. 
 
 ## Checklist
 
-
 ### Repeated vocabulary
 
 1. Check for: Stock words: delve, tapestry, testament, pivotal, vibrant, and similar defaults.
