@@ -4081,6 +4081,8 @@ interface I18n {
     blitzDesc: string;
     /** Block */
     block: string;
+    /** Block ads */
+    blockAds: string;
     /** Blocked */
     blocked: string;
     /** %s blocks */

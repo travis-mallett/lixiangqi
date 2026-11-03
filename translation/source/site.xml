@@ -1266,4 +1266,5 @@ Leave empty to start games from the normal initial position.</string>
   <string name="threeKingdomsTimeControl">15 min · 60 sec per move</string>
   <string name="challengeTwoFriends">Challenge two friends</string>
   <string name="threeKingdomsAnalysisBoard">Three Kingdoms analysis board</string>
+  <string name="blockAds">Block ads</string>
 </resources>

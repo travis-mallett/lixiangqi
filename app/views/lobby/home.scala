@@ -152,7 +152,12 @@ object home:
             puzzle.map(dailyPuzzleCard(_, "right"))
           ),
           st.footer(cls := "lobby__footer", attr("aria-label") := "LiXiangQi links")(
-            a(href := "https://github.com/travis-mallett/lixiangqi", target := "_blank")("GitHub"),
+            a(href := "/about")(trans.site.aboutX("LiXiangQi")),
+            a(href := routes.Main.faq)(trans.faq.faqAbbreviation()),
+            a(href := routes.Cms.tos)(trans.site.termsOfService()),
+            a(href := "/privacy")(trans.site.privacy()),
+            a(href := routes.Cms.source)(trans.site.sourceCode()),
+            a(href := "/ads")(trans.site.blockAds()),
             a(href := "https://discord.gg/Hqj43X9BC", target := "_blank")("Discord")
           )
         )

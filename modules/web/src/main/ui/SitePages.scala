@@ -42,7 +42,7 @@ final class SitePages(helpers: Helpers):
       a(activeCls("api"), href := "/api")("API", external),
       sep,
       a(activeCls("lag"), href := routes.Main.lag)(trans.lag.isLichessLagging()),
-      a(activeCls("ads"), href := "/ads")("Block ads")
+      a(activeCls("ads"), href := "/ads")(trans.site.blockAds())
     )
 
   def webmasters(pieceNames: List[String])(using Context) =

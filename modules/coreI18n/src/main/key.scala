@@ -3065,6 +3065,7 @@ object I18nKey:
     val `threeKingdomsTimeControl`: I18nKey = "threeKingdomsTimeControl"
     val `challengeTwoFriends`: I18nKey = "challengeTwoFriends"
     val `threeKingdomsAnalysisBoard`: I18nKey = "threeKingdomsAnalysisBoard"
+    val `blockAds`: I18nKey = "blockAds"
     val `opponentLeftCounter`: I18nKey = "opponentLeftCounter"
     val `mateInXHalfMoves`: I18nKey = "mateInXHalfMoves"
     val `nbBlunders`: I18nKey = "nbBlunders"

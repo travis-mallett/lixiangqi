@@ -36,6 +36,7 @@
   &__footer {
     grid-column: 1 / -1;
     display: flex;
+    flex-wrap: wrap;
     justify-content: center;
     gap: 24px;
     padding: 16px;
