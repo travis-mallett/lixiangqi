@@ -39,6 +39,38 @@ def prepare(settings: Settings, refresh: bool):
     from ..catalog import PuzzleCatalog
     from ..live import Publisher, reconcile
 
+    if refresh:
+        print(
+            "Downloading a fresh production snapshot (no Local Preview startup)…",
+            flush=True,
+        )
+        run(
+            [
+                settings.python,
+                "-u",
+                "-m",
+                "tools.environment_data.remote",
+                "--destination",
+                settings.snapshot_dir,
+                "--deployment-root",
+                settings.deployment_root,
+                "--origin",
+                settings.publication_origin,
+            ]
+        )
+    snapshot = (
+        current_snapshot(settings)
+        if refresh or (Path(settings.snapshot_dir) / "current.json").is_file()
+        else None
+    )
+    if snapshot is not None:
+        from tools.environment_data.snapshot import verify_snapshot
+
+        manifest = verify_snapshot(snapshot)
+        print(
+            f"Using production snapshot {manifest['snapshotId']} from {manifest['createdAt']}",
+            flush=True,
+        )
     print("Reconciling live published inventory…", flush=True)
     rows = list(Publisher(settings.publication_origin).inventory())
     with PuzzleCatalog(settings.catalog_db) as catalog:
@@ -50,11 +82,15 @@ def prepare(settings: Settings, refresh: bool):
         # Reserve published roots when importing the live inventory, before
         # discovery can enqueue another occurrence of the same position.
         import_live_positions(db, settings.catalog_db)
-        if (Path(settings.snapshot_dir) / "current.json").is_file():
+        if snapshot is not None:
             from tools.xiangqi_data.puzzle_mining.discovery import DISCOVERY_VERSION
             from tools.xiangqi_data.puzzle_mining.snapshot_import import import_snapshot
 
-            import_snapshot(db, current_snapshot(settings), DISCOVERY_VERSION)
+            count = import_snapshot(db, snapshot, DISCOVERY_VERSION)
+            print(
+                f"Imported {count:,} native source games (including already known games).",
+                flush=True,
+            )
     finally:
         db.close()
     print(

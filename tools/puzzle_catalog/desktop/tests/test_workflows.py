@@ -1,4 +1,4 @@
-"""Workflow contracts: snapshots precede workers; GUI never supplies live user data."""
+"""Workflow contracts: verified snapshots precede workers; preview stays separate."""
 
 from contextlib import closing
 import json
@@ -42,6 +42,7 @@ class WorkflowTests(unittest.TestCase):
             catalog_db=str(self.root / "catalog.sqlite3"),
             source_catalog=str(self.source),
             snapshot_dir=str(self.snapshots),
+            deployment_root=str(self.root / "transport"),
         )
         from tools.puzzle_catalog.live import wire_digest
 
@@ -94,7 +95,9 @@ class WorkflowTests(unittest.TestCase):
         self.assertNotIn("--source-db", "--catalog-db", classify)
 
     def test_prepare_reconciles_baseline_before_worker_commands(self):
-        prepare(self.s, False)
+        with patch("tools.puzzle_catalog.desktop.operations.run") as download:
+            prepare(self.s, False)
+        download.assert_not_called()
         with PuzzleCatalog(self.s.catalog_db) as c:
             self.assertEqual([p["_id"] for p in c.puzzles()], ["00001"])
         with closing(sqlite3.connect(self.s.mining_db)) as db:
@@ -135,9 +138,104 @@ class WorkflowTests(unittest.TestCase):
             side_effect=RuntimeError("network failed"),
         ):
             with self.assertRaises(RuntimeError):
+                prepare(self.s, False)
+        self.assertFalse(Path(self.s.catalog_db).exists())
+        self.assertFalse(Path(self.s.mining_db).exists())
+
+    def test_refresh_downloads_and_imports_new_native_games_idempotently(self):
+        from tools.environment_data.snapshot import build_manifest
+        from tools.xiangqi_data.pikafish_rules import START_FEN
+        from tools.xiangqi_data.puzzle_mining.discovery import DISCOVERY_VERSION
+
+        prepare(self.s, False)
+
+        def download(argv):
+            self.assertEqual(
+                argv,
+                [
+                    self.s.python,
+                    "-u",
+                    "-m",
+                    "tools.environment_data.remote",
+                    "--destination",
+                    self.s.snapshot_dir,
+                    "--deployment-root",
+                    self.s.deployment_root,
+                    "--origin",
+                    self.s.publication_origin,
+                ],
+            )
+            fresh = self.snapshots / "fresh"
+            make_snapshot(fresh, [puzzle()])
+            game = dict(
+                id="newgame1",
+                initialFen=START_FEN,
+                moves=["a4a5", "a7a6"],
+                players=[],
+                completedAt=1793664000000,
+            )
+            (fresh / "native-games.jsonl").write_text(json.dumps(game) + "\n")
+            (fresh / "manifest.json").write_text(
+                json.dumps(build_manifest(fresh, "fresh"))
+            )
+            (self.snapshots / "current.json").write_text(
+                json.dumps({"snapshotId": "fresh"})
+            )
+
+        with patch(
+            "tools.puzzle_catalog.desktop.operations.run", side_effect=download
+        ) as run:
+            prepare(self.s, True)
+        run.assert_called_once()
+        prepare(self.s, False)
+        with closing(sqlite3.connect(self.s.mining_db)) as db:
+            self.assertEqual(
+                db.execute("SELECT game_id,snapshot_id FROM native_games").fetchall(),
+                [("newgame1", "fresh")],
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT game_id,status,discovery_version FROM game_jobs"
+                ).fetchall(),
+                [("newgame1", "queued", DISCOVERY_VERSION)],
+            )
+
+    def test_failed_refresh_does_not_import_stale_snapshot(self):
+        with (
+            patch(
+                "tools.puzzle_catalog.desktop.operations.run",
+                side_effect=RuntimeError("download failed"),
+            ),
+            patch("tools.puzzle_catalog.live.Publisher") as publisher,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "download failed"):
+                prepare(self.s, True)
+        publisher.assert_not_called()
+        self.assertFalse(Path(self.s.catalog_db).exists())
+        self.assertFalse(Path(self.s.mining_db).exists())
+
+    def test_invalid_download_does_not_initialize_databases(self):
+        (self.snapshot / "native-games.jsonl").write_text("corrupt")
+        with patch("tools.puzzle_catalog.desktop.operations.run"):
+            with self.assertRaisesRegex(ValueError, "snapshot verification failed"):
                 prepare(self.s, True)
         self.assertFalse(Path(self.s.catalog_db).exists())
         self.assertFalse(Path(self.s.mining_db).exists())
+
+    def test_snapshot_transport_setting_is_preserved_and_required_only_for_refresh(
+        self,
+    ):
+        path = self.root / "settings.json"
+        self.s.save(path)
+        self.assertEqual(Settings.load(path).deployment_root, self.s.deployment_root)
+        self.assertFalse(any("credentials" in error for error in self.s.preflight()))
+        self.assertTrue(any("credentials" in error for error in self.s.preflight(True)))
+        transport = Path(self.s.deployment_root)
+        transport.mkdir()
+        (transport / "authorized_keys.txt").write_text("test credentials")
+        self.assertFalse(
+            any("credentials" in error for error in self.s.preflight(True))
+        )
 
     def test_old_preview_loopback_setting_is_backed_up_and_migrated(self):
         from dataclasses import asdict

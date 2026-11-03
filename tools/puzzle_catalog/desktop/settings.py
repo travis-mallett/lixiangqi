@@ -29,7 +29,6 @@ RETIRED_ENGINE_SETTINGS = frozenset(
 
 
 RETIRED_PREFERENCES = RETIRED_ENGINE_SETTINGS | {
-    "deployment_root",
     "release_dir",
     "include_uncategorized",
 }
@@ -44,6 +43,7 @@ class Settings:
     catalog_db: str = str(ROOT / "data/local/puzzle-catalog.sqlite3")
     source_catalog: str = str(ROOT / "data/local/xiangqi-games.sqlite3")
     snapshot_dir: str = str(ROOT / "data/local/production-snapshots")
+    deployment_root: str = str(ROOT.with_name("lixiangqi-beta-deployment"))
     publication_origin: str = "https://lixiangqi.com"
     preview_publication_origin: str = "http://localhost:9663"
     engine: str = str(
@@ -73,10 +73,18 @@ class Settings:
         update_loopback = value.preview_publication_origin == "http://127.0.0.1:9663"
         if update_loopback:
             value.preview_publication_origin = "http://localhost:9663"
-        old_engine = ROOT / ".tools/pikafish" / (
-            "Windows/pikafish-avx2.exe" if os.name == "nt" else "Linux/pikafish-avx2"
+        old_engine = (
+            ROOT
+            / ".tools/pikafish"
+            / (
+                "Windows/pikafish-avx2.exe"
+                if os.name == "nt"
+                else "Linux/pikafish-avx2"
+            )
         )
-        update_engine = isinstance(value.engine, str) and Path(value.engine) == old_engine
+        update_engine = (
+            isinstance(value.engine, str) and Path(value.engine) == old_engine
+        )
         if update_engine:
             value.engine = cls().engine
         value.validate()
@@ -132,6 +140,7 @@ class Settings:
                 "catalog_db",
                 "source_catalog",
                 "snapshot_dir",
+                "deployment_root",
                 "engine",
             )
         ):
@@ -150,6 +159,10 @@ class Settings:
             "Pikafish": self.engine,
             "Games catalog": self.source_catalog,
         }
+        if network:
+            required["Snapshot deployment credentials"] = str(
+                Path(self.deployment_root) / "authorized_keys.txt"
+            )
         return [
             f"{label} is missing: {path}"
             for label, path in required.items()

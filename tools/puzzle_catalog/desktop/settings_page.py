@@ -54,6 +54,7 @@ PATH_LABELS = {
     "catalog_db": "Authored puzzle catalog",
     "source_catalog": "Games database",
     "snapshot_dir": "Production snapshots",
+    "deployment_root": "Snapshot deployment transport",
     "engine": "Pikafish executable",
 }
 
@@ -180,7 +181,7 @@ class SettingsPage(QWidget):
 
     def browse(self, name):
         field = self.inputs[name]
-        if name == "snapshot_dir":
+        if name in ("snapshot_dir", "deployment_root"):
             path = QFileDialog.getExistingDirectory(
                 self, "Choose directory", field.text()
             )
