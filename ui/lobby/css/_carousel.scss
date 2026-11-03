@@ -1,49 +1,77 @@
+.carousel {
+  visibility: hidden;
+  overflow-x: hidden;
+  width: 100%;
+  height: auto;
+  gap: $block-gap;
+  position: relative;
+
+  .ublog-post-card {
+    box-shadow: none;
+  }
+
+  &__track {
+    display: flex;
+    flex-flow: row nowrap;
+    width: fit-content;
+    align-items: stretch;
+  }
+
+  &__controls {
+    @extend %flex-between;
+    @include transition(opacity);
+
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    height: 100%;
+    width: 100%;
+    opacity: 0;
+    pointer-events: none;
+
+    button {
+      padding: 0;
+      font-size: 3em;
+      pointer-events: auto;
+      height: 100%;
+
+      &:hover {
+        color: $c-primary;
+      }
+    }
+  }
+
+  &:hover {
+    .carousel__controls {
+      opacity: 1;
+    }
+  }
+}
+
 .lobby__blog {
   min-width: 0;
-  container-type: inline-size;
+  gap: $block-gap;
+  font-size: 0.9em;
 
-  .carousel__track {
-    display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: calc((100% - 12px) / 2);
-    gap: 12px;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    direction: ltr;
-    padding-block: 12px;
+  h2 {
+    @extend %page-text-shadow !optional;
+    @include line-clamp(3);
 
-    @container (min-width: 480px) {
-      grid-auto-columns: calc((100% - 24px) / 2.5);
-    }
-
-    @container (min-width: 680px) {
-      grid-auto-columns: calc((100% - 24px) / 3);
-    }
+    font-size: 1.3em;
   }
 
   .ublog-post-card {
-    min-width: 0;
-    scroll-snap-align: start;
-  }
+    background: $c-bg-box;
 
-  .carousel__controls {
-    display: flex;
-    justify-content: end;
-    gap: 8px;
-    direction: ltr;
+    &:hover {
+      @extend %box-shadow;
 
-    button {
-      padding: 8px 16px;
-      border: $border;
-      border-radius: $box-radius-size;
-      background: $c-bg-box;
-      color: $c-link;
+      background: $c-bg-zebra;
+    }
 
-      &:disabled {
-        color: $c-font-dim;
-        opacity: 0.5;
-        cursor: default;
-      }
+    .user-link {
+      border-radius: $box-radius-size 0 0 0;
     }
   }
 }

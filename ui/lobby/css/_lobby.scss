@@ -113,6 +113,14 @@ body {
   &__tv {
     padding-bottom: 12px;
 
+    &__variant {
+      display: block;
+      width: calc(100% - 24px);
+      aspect-ratio: 3 / 4;
+      margin: 12px auto 0;
+      border: 0;
+    }
+
     .lobby__rail-title {
       font-size: 1em;
       font-weight: bold;

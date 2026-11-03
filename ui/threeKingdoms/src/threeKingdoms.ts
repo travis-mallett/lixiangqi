@@ -1,6 +1,5 @@
-import { pubsub } from 'lib/pubsub';
-
 import { el, button, link, request, errorText } from './dom';
+import { gameLink } from './gameLink';
 import { resetTrialStorage } from './trialReset';
 import { type Bootstrap, type Challenge, type Game } from './types';
 
@@ -142,31 +141,4 @@ export async function initModule(options: Bootstrap): Promise<void> {
     showError(error);
     content.append(button(t.retry, () => location.reload()));
   }
-}
-
-function gameLink(game: Game): HTMLElement {
-  const text = game.seats
-    .map(
-      s =>
-        `${s.user?.name ?? (s.guest ? i18n.site.anonymous : `${i18n.threeKingdoms.computer} ${s.aiLevel}`)}${s.place ? ` (${s.place})` : ''}`,
-    )
-    .join(' · ');
-  const local = game.id.startsWith('local-');
-  const row = link(
-    text,
-    local ? `/analysis/threeKingdoms?game=${game.id}` : `/three-kingdoms/game/${game.id}`,
-    'three-kingdoms__game',
-  );
-  const preview = el('div', 'three-kingdoms__preview');
-  preview.dataset.threeKingdomsPosition = game.position;
-  row.prepend(preview);
-  void site.asset.loadEsm('threeKingdoms.mini').then(() => pubsub.emit('content-loaded'));
-  row.append(
-    el(
-      'small',
-      '',
-      `${new Date(game.createdAt).toLocaleString()} · ${game.rated ? i18n.threeKingdoms.rated : i18n.threeKingdoms.casual}`,
-    ),
-  );
-  return row;
 }

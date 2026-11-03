@@ -5,6 +5,7 @@ import { domDialog, type Dialog } from 'lib/view';
 import makeCtrl from './ctrl';
 import type { LobbyOpts } from './interfaces';
 import { fitLeaderboards } from './leaderboard';
+import { makeCarousel } from './view/carousel';
 import appView from './view/main';
 import { occupancy } from './view/occupancy';
 import siteCountersView from './view/siteCounters';
@@ -14,6 +15,7 @@ import variantMenu from './view/variantMenu';
 export const patch = init([classModule, attributesModule, propsModule, eventListenersModule]);
 
 export default function main(opts: LobbyOpts) {
+  makeCarousel({ selector: '.lobby__blog', itemWidth: 192, pauseFor: 10 });
   fitLeaderboards();
   const ctrl = new makeCtrl(opts, redraw);
 

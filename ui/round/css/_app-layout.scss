@@ -43,6 +43,10 @@
   grid-area: kb-move;
 }
 
+.round__status {
+  grid-area: board;
+}
+
 .round__app {
   display: grid;
 

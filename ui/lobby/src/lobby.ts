@@ -2,13 +2,11 @@ import { pubsub } from 'lib/pubsub';
 import { wsConnect } from 'lib/socket';
 import * as xhr from 'lib/xhr';
 
-import { initCarousel } from './carousel';
 import { applyCounterSnapshot } from './counterSnapshot';
 import type { LobbyOpts } from './interfaces';
 import main from './main';
 
 export function initModule(opts: LobbyOpts) {
-  initCarousel();
   opts.appElement = document.createElement('div');
   opts.appElement.className = 'lobby__app';
   opts.tableElement = document.querySelector('.lobby__table') as HTMLElement;

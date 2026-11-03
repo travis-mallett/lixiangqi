@@ -5,16 +5,29 @@ import lila.app.UiEnv.{ *, given }
 
 object threeKingdoms:
   def television(mode: String, champions: lila.tv.Tv.Champions)(using Context) =
-    (if mode == "tv" then views.round.threeKingdoms(mode) else page(mode, embedded = true))
-      .css("bits.tv.games")
-      .wrap(content =>
-        main(cls := "page-menu tv-games")(
-          scalatags.Text.tags2.aside(cls := "page-menu__menu")(
-            views.tv.ui.side.channels(lila.tv.Tv.Channel.ThreeKingdoms, champions, "/tv")
-          ),
-          div(cls := "page-menu__content")(content)
+    if mode == "tv" then
+      views.round
+        .threeKingdoms(
+          mode,
+          tvChannels = frag(
+            views.tv.ui.side.channels(lila.tv.Tv.Channel.ThreeKingdoms, champions, "/tv"),
+            a(cls := "button button-empty", href := routes.Tv.gamesChannel("threeKingdoms"))(
+              trans.site.currentGames()
+            )
+          ).some
         )
-      )
+        .css("bits.tv.single", "threeKingdoms")
+    else
+      page(mode, embedded = true)
+        .css("bits.tv.games")
+        .wrap(content =>
+          main(cls := "page-menu tv-games")(
+            scalatags.Text.tags2.aside(cls := "page-menu__menu")(
+              views.tv.ui.side.channels(lila.tv.Tv.Channel.ThreeKingdoms, champions, "/games")
+            ),
+            div(cls := "page-menu__content")(content)
+          )
+        )
 
   def embed(using EmbedContext) =
     views.base.embed.minimal(

@@ -4,17 +4,21 @@ import play.api.libs.json.{ Json, JsObject }
 import lila.app.UiEnv.{ *, given }
 
 /** Three-seat games use the round page; only the game protocol differs. */
-def threeKingdoms(mode: String, data: JsObject = Json.obj())(using Context) =
+def threeKingdoms(
+    mode: String,
+    data: JsObject = Json.obj(),
+    tvChannels: Option[Frag] = None
+)(using Context) =
   ui.RoundPage(chess.variant.Standard, trans.site.threeKingdoms.txt())
     .i18n(_.threeKingdoms)
     .js(PageModule("round", threeKingdomsOptions(mode, data)))
     .flag(_.zen)
     .flag(_.noRobots)
-    .body(threeKingdomsContent)
+    .body(threeKingdomsContent(tvChannels))
 
 def threeKingdomsBootstrap(id: GameId, data: JsObject)(using Context) =
   Json.obj(
-    "html" -> threeKingdomsContent.render,
+    "html" -> threeKingdomsContent().render,
     "url" -> s"/three-kingdoms/game/${id.value}",
     "title" -> s"${trans.site.threeKingdoms.txt()} • $siteName",
     "options" -> threeKingdomsOptions("game", data)
@@ -31,13 +35,14 @@ private def threeKingdomsOptions(mode: String, data: JsObject)(using ctx: Contex
     )
   )
 
-private def threeKingdomsContent(using Context) =
-  main(cls := "round")(
+private def threeKingdomsContent(tvChannels: Option[Frag] = None)(using Context) =
+  main(cls := tvChannels.fold("round")(_ => "round tv-single"))(
     st.aside(cls := "round__side")(
-      div(cls := "game__meta")(
-        a(href := routes.Lobby.home)(trans.site.backToHomepage()),
-        h1(trans.site.threeKingdoms())
-      )
+      tvChannels.getOrElse:
+        div(cls := "game__meta")(
+          a(href := routes.Lobby.home)(trans.site.backToHomepage()),
+          h1(trans.site.threeKingdoms())
+        )
     ),
     div(cls := "round__app variant-threeKingdoms")(
       scalatags.Text.tags2.noscript(trans.threeKingdoms.javascriptRequired())

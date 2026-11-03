@@ -13,6 +13,7 @@ import lila.mon.extensions.*
 
 final class Preload(
     tv: lila.tv.Tv,
+    threeKingdomsTv: lila.tv.ThreeKingdomsTv,
     ublogApi: lila.ublog.UblogApi,
     gameRepo: lila.game.GameRepo,
     perfsRepo: lila.user.UserPerfsRepo,
@@ -48,6 +49,7 @@ final class Preload(
       )
     )
     featured <- tv.getGame(lila.tv.Tv.Channel.Xiangqi).mon(lila.mon.lobby.segment("tvBestGame"))
+    variantTv <- randomVariantTv
     puzzle <- tryDailyPuzzle().mon(lila.mon.lobby.segment("dailyPuzzle"))
     blogPosts <- ublogApi.myCarousel
     playban <- ctx.userId.so(playbanApi.currentBan).mon(lila.mon.lobby.segment("playban"))
@@ -67,6 +69,7 @@ final class Preload(
   yield Homepage(
     dataWithStats,
     featured,
+    variantTv,
     puzzle,
     blogPosts,
     playban,
@@ -77,6 +80,17 @@ final class Preload(
     personal,
     hasUnreadLichessMessage = lichessMsg
   )
+
+  private def randomVariantTv: Fu[lila.xiangqi.GameVariant] =
+    import lila.tv.Tv.Channel
+    val channels = List(Channel.Jieqi, Channel.MiniXiangqi)
+    channels
+      .traverse(channel => tv.getGameIds(channel, 1).map(ids => Option.when(ids.nonEmpty)(channel)))
+      .map: native =>
+        val available =
+          native.flatten ::: Option.when(threeKingdomsTv.game.isDefined)(Channel.ThreeKingdoms).toList
+        val choices = if available.nonEmpty then available else channels :+ Channel.ThreeKingdoms
+        scala.util.Random.shuffle(choices.flatMap(_.variant)).head
 
   def currentGameMyTurn(using me: Me): Fu[Option[CurrentGame]] =
     gameRepo
@@ -101,6 +115,7 @@ object Preload:
   case class Homepage(
       data: JsObject,
       featured: Option[Game],
+      variantTv: lila.xiangqi.GameVariant,
       puzzle: Option[lila.puzzle.DailyPuzzle.WithHtml],
       blogPosts: List[lila.ublog.UblogPost.PreviewPost],
       playban: Option[TempBan],

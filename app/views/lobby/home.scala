@@ -9,6 +9,7 @@ object home:
 
   def apply(homepage: Homepage)(using ctx: Context) =
     import homepage.*
+    val variantTvName = lila.core.i18n.I18nKey(variantTv.nameKey).txt()
     val donateLink =
       a(cls := "lobby__support-link", href := routes.Plan.index())(
         iconTag(patronIconChar),
@@ -109,6 +110,16 @@ object home:
               div(cls := "lobby__tv__game")(
                 featured.fold[Frag](p(cls := "box__pad", role := "status")(trans.site.noGameFound())): game =>
                   views.game.mini(Pov.naturalOrientation(game), tv = true, replayFinished = true)
+              ),
+              h3(cls := "lobby__rail-title")(
+                iconTag(lila.ui.VariantIcon(variantTv)),
+                a(href := routes.Tv.onChannel(variantTv.key))(variantTvName)
+              ),
+              iframe(
+                cls := "lobby__tv__variant",
+                src := s"/tv/${variantTv.key}/frame?uiTheme=${ctx.pref.uiTheme}&boardTheme=${ctx.pref.boardTheme}&pieceSet=${ctx.pref.pieceSet}",
+                title := variantTvName,
+                attr("loading") := "lazy"
               )
             ),
             puzzle.map(dailyPuzzleCard(_, "left")),

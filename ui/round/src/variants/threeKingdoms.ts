@@ -2,7 +2,7 @@ import {
   loadRules,
   request,
   el,
-  link,
+  gameLink,
   errorText,
   type Bootstrap,
   type Color,
@@ -13,7 +13,6 @@ import { Round, localGame } from './threeKingdomsCtrl';
 
 export async function initThreeKingdoms(options: Bootstrap): Promise<{ destroy(): void }> {
   const content = document.querySelector<HTMLElement>('.round__app')!;
-  const t = i18n.threeKingdoms;
   const message = el('p', 'round__status');
   message.setAttribute('role', 'status');
   content.append(message);
@@ -100,17 +99,12 @@ export async function initThreeKingdoms(options: Bootstrap): Promise<{ destroy()
         const { game, history } = await request<{ game?: Game; history: Game[] }>('tv');
         if (!closed && !selection && game) show(game);
         else if (!game && !currentId) message.textContent = i18n.site.noGameFound;
-        if (!closed && history.length) {
-          const recent = el('section', 'three-kingdoms__history');
-          recent.append(
-            el('h2', '', i18n.site.previouslyOnLichessTV),
-            ...history.map(g =>
-              link(
-                g.seats.map(s => s.user?.name ?? (s.guest ? i18n.site.anonymous : t.computer)).join(' · '),
-                `/three-kingdoms/game/${g.id}`,
-              ),
-            ),
-          );
+        if (!closed) {
+          const recent = el('section', 'tv-history');
+          const games = el('div', 'now-playing');
+          games.append(...history.map(gameLink));
+          if (!history.length) games.append(el('p', 'box__pad', i18n.site.noGameFound));
+          recent.append(el('h2', '', i18n.site.previouslyOnLichessTV), games);
           document.querySelector('.round__underboard')!.append(recent);
         }
         return {

@@ -18,3 +18,4 @@ export type {
   State,
 } from './types';
 export { el, button, link, select, download, request, errorText } from './dom';
+export { gameLink } from './gameLink';
