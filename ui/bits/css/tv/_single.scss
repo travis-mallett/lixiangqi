@@ -5,7 +5,7 @@ main.tv-single {
 
   @include mq-at-least-col2 {
     grid-template-columns: auto 1fr;
-    grid-template-rows: auto fit-content(0) fit-content(0);
+    grid-template-rows: auto auto;
     grid-template-areas: 'app   app' 'side under';
 
     &__app {
