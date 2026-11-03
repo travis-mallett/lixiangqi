@@ -15,7 +15,7 @@ import { PikafishBrowserEngine, type EngineAnalysis, type PikafishStatus } from 
 import { engineProgress, engineLoadingText, enginePreparing } from 'lib/ceval/engineProgress';
 import { type XiangqiNotationStyle } from 'lib/game';
 import { formatMs } from 'lib/game/clock/clockWidget';
-import { jieqiObservation, revealChoices, JIEQI_START_FEN } from 'lib/game/jieqi';
+import { jieqiObservation, jieqiOutcomeSuffix, revealChoices, JIEQI_START_FEN } from 'lib/game/jieqi';
 import { MINI_XIANGQI_START_FEN } from 'lib/game/minixiangqi';
 import { playMoveNavigationSound } from 'lib/game/replay/moveNavigationSound';
 import { isRecordedClockTimeline, type RecordedClockTimeline } from 'lib/game/replay/recordedClockPlayback';
@@ -743,10 +743,17 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
         const choices = currentState().variant === 'jieqi' ? revealChoices(currentState(), move) : [];
         const reveal = choices.length ? await chooseReveal(choices, currentState().turn) : undefined;
         if (choices.length && !reveal) break;
+        const captureChoices =
+          currentState().variant === 'jieqi' ? revealChoices(currentState(), move, true) : [];
+        const captureReveal = captureChoices.length
+          ? await chooseReveal(captureChoices, currentState().turn === 'red' ? 'black' : 'red')
+          : undefined;
+        if (captureChoices.length && !captureReveal) break;
         const next = await requestXiangqi<MoveResponse>('/api/analysis/move', {
           ...tree.positionAt(activePath),
           move,
           reveal,
+          captureReveal,
         });
         playXiangqiMoveSound(ground, next);
         const added = addOrSelectChild(tree, activePath, {
@@ -1391,10 +1398,14 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     if (!bootstrap.gameId || tabs.find(tab => tab.id === activeTabId)?.gameId !== bootstrap.gameId) return;
     const nodes = getNodeList(tree, path).slice(1);
     if (nodes.length > (bootstrap.moves?.length ?? 0)) return;
-    return nodes.every(
-      (node, index) =>
-        node.uci === bootstrap.moves?.[index] && node.state.reveal === bootstrap.states?.[index + 1]?.reveal,
-    )
+    return nodes.every((node, index) => {
+      const recorded = bootstrap.states?.[index + 1];
+      return (
+        node.uci === bootstrap.moves?.[index] &&
+        !!recorded &&
+        jieqiOutcomeSuffix(node.state) === jieqiOutcomeSuffix(recorded)
+      );
+    })
       ? nodes.length
       : undefined;
   }

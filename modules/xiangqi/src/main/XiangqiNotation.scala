@@ -152,7 +152,11 @@ object XiangqiNotation:
     )
     XiangqiRules
       .exportNotation(before.fen, move, style)
-      .fold(error => throw IllegalArgumentException(error), identity) + after.reveal.fold("")("~" + _)
+      .fold(error => throw IllegalArgumentException(error), identity) + (after.captures
+      .find(c => c.ply == after.ply && c.concealed)
+      .flatMap(_.role) match
+      case Some(role) => "~" + after.reveal.getOrElse("") + "~" + role
+      case None => after.reveal.fold("")("~" + _))
 
   /** Render the same native tree grammar accepted by importTree, without interpreting comment data. */
   def exportTree(tree: ImportedMoveTree, style: NotationStyle = NotationStyle.English): String =
@@ -330,13 +334,15 @@ object XiangqiNotation:
                       val parts = raw.dropRight(suffix.length).split("~", -1)
                       val next = for
                         _ <- Either.cond(
-                          parts.length <= 2 && (current.isJieqi || parts.length == 1),
+                          parts.length <= 3 && (current.isJieqi || parts.length == 1) &&
+                            (parts.length != 2 || parts(1).nonEmpty),
                           (),
                           "Invalid reveal notation"
                         )
                         uci <- XiangqiRules.resolveNotation(current, parts.head)
                         moved <-
-                          if current.isJieqi then Jieqi.analysisMove(current, uci, parts.lift(1))
+                          if current.isJieqi then
+                            Jieqi.analysisMove(current, uci, parts.lift(1).filter(_.nonEmpty), parts.lift(2))
                           else XiangqiRules.move(current, uci)
                         game <- current.applyMove(moved)
                         node <- merge(children, moved, depth)
@@ -365,7 +371,9 @@ object XiangqiNotation:
         result: MoveResult,
         depth: Int
     ): Either[String, Builder] =
-      nodes.find(node => node.move == result.move && node.state.reveal == result.reveal) match
+      nodes.find(node =>
+        node.move == result.move && node.state.reveal == result.reveal && node.state.captures == result.captures
+      ) match
         case Some(node) if node.state == result.state =>
           node.depth = node.depth.min(depth)
           nodes.sortInPlaceBy(_.depth)

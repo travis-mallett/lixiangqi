@@ -111,3 +111,55 @@ test('random reveal weights every remaining piece equally, including interval bo
   );
   assert.equal(randomReveal([{ role: 'advisor', count: 1, probability: 1 }]), 'advisor');
 });
+
+test('concealed captures offer the captured side inventory and retain distinct branches', () => {
+  const state = {
+    ...initial,
+    captures: [{ side: 'black' as const, square: 'a10', role: 'horse', concealed: true, ply: 0 }],
+  };
+  const choices = revealChoices(state, 'b3b10', true);
+  assert.equal(choices.find(c => c.role === 'horse')?.probability, 1 / 14);
+  assert.equal(choices.find(c => c.role === 'soldier')?.probability, 5 / 14);
+  assert.deepEqual(revealChoices(initial, 'a4a5', true), []);
+  const tree = createMoveTree(initial);
+  const paths = ['horse', 'chariot'].map(
+    role =>
+      addOrSelectChild(tree, '', {
+        uci: 'b3b10',
+        notation: 'C8+7',
+        state: {
+          ...initial,
+          ply: 1,
+          reveal: 'soldier',
+          captures: [{ side: 'black', square: 'b10', role, concealed: true, ply: 1 }],
+        },
+      }).path,
+  );
+  assert.notEqual(paths[0], paths[1]);
+  const restored = deserializeMoveTree(
+    JSON.parse(JSON.stringify(serializeMoveTree(tree, initial.fen, paths[1]))),
+    initial.fen,
+  );
+  assert.equal(restored.tree.root.children.length, 2);
+  assert.deepEqual(restored.tree.positionAt(paths[1]).knownCaptures, { b10: 'chariot' });
+});
+
+test('existing saved capture branches preserve their selected position when opened', () => {
+  const tree = createMoveTree(initial);
+  const added = addOrSelectChild(tree, '', {
+    uci: 'b3b10',
+    notation: 'C8+7',
+    state: {
+      ...initial,
+      ply: 1,
+      reveal: 'soldier',
+      captures: [{ side: 'black', square: 'b10', role: 'horse', concealed: true, ply: 1 }],
+    },
+  });
+  const stored = serializeMoveTree(tree, initial.fen, added.path);
+  stored.root.children[0].id = 'b3b10~soldier';
+  stored.activePath = 'b3b10~soldier';
+  const restored = deserializeMoveTree(stored, initial.fen);
+  assert.equal(restored.activePath, added.path);
+  assert.deepEqual(restored.tree.positionAt(restored.activePath).knownCaptures, { b10: 'horse' });
+});

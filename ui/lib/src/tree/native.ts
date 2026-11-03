@@ -1,3 +1,4 @@
+import { jieqiOutcomeSuffix } from '../game/jieqi';
 import type {
   ImportedMoveTree,
   ImportedTreeNode,
@@ -50,7 +51,7 @@ export function importedTree(imported: ImportedMoveTree): TreeNode {
     annotations: NotationAnnotations,
     move?: ImportedTreeNode,
   ): TreeNodeBase => ({
-    id: move ? move.move + (state.reveal ? `~${state.reveal}` : '') : '',
+    id: move ? move.move + jieqiOutcomeSuffix(state) : '',
     uci: move?.move,
     notation: move?.notation,
     chineseNotation: move?.chineseNotation,
@@ -154,7 +155,7 @@ export function addOrSelectChild(
   path: string,
   move: { uci: string; notation: string; chineseNotation?: string; state: RulesState },
 ): { path: string; created: boolean } {
-  const target = pathOps.append(path, move.uci + (move.state.reveal ? `~${move.state.reveal}` : ''));
+  const target = pathOps.append(path, move.uci + jieqiOutcomeSuffix(move.state));
   if (tree.pathExists(target)) return { path: target, created: false };
   const added = tree.addNode(
     completeNode({ ...move, fen: move.state.fen, ply: move.state.ply, children: [] }),
@@ -228,10 +229,25 @@ export function deserializeMoveTree(
     throw new Error('Saved Xiangqi analysis has an incompatible format');
   if (countChildrenAndComments(stored.root).nodes > 2000)
     throw new Error('Saved Xiangqi analysis is too large');
+  // Existing drafts predate capture outcomes in branch IDs. Normalize their paths
+  // from the recorded state before validating, preserving the selected position.
+  let activePath = stored.activePath;
+  const normalize = (node: TreeNodeLite, oldParent = '', parent = ''): void => {
+    const oldPath = node.id ? pathOps.append(oldParent, node.id) : oldParent;
+    if (node.uci) {
+      const id = node.uci + jieqiOutcomeSuffix(node.state);
+      const previousId = node.uci + (node.state.reveal ? `~${node.state.reveal}` : '');
+      if (node.id !== id && node.id !== previousId) throw new Error('Invalid saved move identity');
+      node.id = id;
+    }
+    const path = node.id ? pathOps.append(parent, node.id) : parent;
+    if (oldPath === stored.activePath) activePath = path;
+    node.children.forEach(child => normalize(child, oldPath, path));
+  };
+  normalize(stored.root);
   const tree = makeTree(completeNode(stored.root));
-  if (!tree.pathExists(stored.activePath))
-    throw new Error('Saved Xiangqi analysis has an invalid active path');
-  return { tree, activePath: stored.activePath };
+  if (!tree.pathExists(activePath)) throw new Error('Saved Xiangqi analysis has an invalid active path');
+  return { tree, activePath };
 }
 
 export function analysisStorageKey(initialFen: string): string {

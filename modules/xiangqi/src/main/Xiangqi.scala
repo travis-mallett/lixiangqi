@@ -311,6 +311,7 @@ object Xiangqi:
       ruleset: Ruleset = Ruleset.Unrestricted,
       reveals: Vector[Option[String]] = Vector.empty,
       reveal: Option[String] = None,
+      captureReveal: Option[String] = None,
       knownCaptures: Map[String, String] = Map.empty
   )
   final case class MoveLabelsCommand(fen: String, moves: Vector[Uci])

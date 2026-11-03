@@ -100,10 +100,26 @@ object Jieqi:
         .initialGame(Some(startFen), adjudication.Ruleset.Jieqi)
         .map(_.copy(deal = Some(valid)))
 
-  def analysisMove(game: Game, uci: Uci, reveal: Option[String]): Either[String, MoveResult] =
+  def analysisMove(
+      game: Game,
+      uci: Uci,
+      reveal: Option[String],
+      captureReveal: Option[String] = None
+  ): Either[String, MoveResult] =
     val role = reveal.flatMap(Role.byKey.get)
     if reveal.isDefined && role.isEmpty then Left("Invalid Jieqi reveal")
-    else move(game, uci, role)
+    else
+      move(game, uci, role).flatMap: moved =>
+        captureReveal match
+          case None => Right(moved)
+          case Some(identity) =>
+            if !moved.captures.exists(c => c.ply == moved.ply && c.concealed) then
+              Left("Only a concealed capture can have a hypothetical identity")
+            else
+              game
+                .applyMove(moved)
+                .flatMap(withKnownCaptures(_, Map(uci.dest -> identity)))
+                .map(known => moved.copy(captures = known.state.captures))
 
   /** Explicit analysis outcome; callers cannot obtain a real game's secret through this API. */
   def move(game: Game, uci: Uci, reveal: Option[Role] = None): Either[String, MoveResult] =

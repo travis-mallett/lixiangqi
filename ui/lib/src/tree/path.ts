@@ -1,7 +1,8 @@
 // The only tree path codec: an ordered sequence of native coordinate moves.
 import type { TreeNodeBase, TreeNodeId, TreePath } from './types';
 
-const move = /^[a-i](?:10|[1-9])[a-i](?:10|[1-9])(?:~(?:chariot|horse|elephant|advisor|cannon|soldier))?$/;
+const move =
+  /^(?!.*~$)[a-i](?:10|[1-9])[a-i](?:10|[1-9])(?:~(?:chariot|horse|elephant|advisor|cannon|soldier)?(?:~(?:chariot|horse|elephant|advisor|cannon|soldier))?)?$/;
 export const root: TreePath = '';
 
 export function ids(path: TreePath): TreeNodeId[] {

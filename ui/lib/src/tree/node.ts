@@ -1,5 +1,6 @@
 import { moveDestinations } from '@lixiangqi/board';
 
+import { jieqiOutcomeSuffix } from '../game/jieqi';
 import type { RulesState } from '../game/xiangqiNotation';
 import { ids, append } from './path';
 import type { Outcome, TreeNode, TreeNodeBase } from './types';
@@ -7,14 +8,14 @@ import type { Outcome, TreeNode, TreeNodeBase } from './types';
 /** Rules state is produced by replaying root FEN and the branch history at the native rules boundary. */
 export function completeNode(from: TreeNodeBase, parentPath = ''): TreeNode {
   const node = from as TreeNode;
+  if (!node.state || node.state.fen !== node.fen || node.state.ply !== node.ply)
+    throw new Error('Tree position is missing its native rules state');
   if (node.uci) {
     if (ids(node.uci).length !== 1) throw new Error('Invalid Xiangqi move identity');
-    const id = node.uci + (node.state?.reveal ? `~${node.state.reveal}` : '');
+    const id = node.uci + jieqiOutcomeSuffix(node.state);
     if (node.id && node.id !== id) throw new Error('Tree move identity differs from its coordinate move');
     node.id = id;
   } else node.id = '';
-  if (!node.state || node.state.fen !== node.fen || node.state.ply !== node.ply)
-    throw new Error('Tree position is missing its native rules state');
   if (
     !Number.isSafeInteger(node.ply) ||
     node.ply < 0 ||
@@ -41,7 +42,8 @@ export function completeNode(from: TreeNodeBase, parentPath = ''): TreeNode {
   node.path = node.id ? append(parentPath, node.id) : parentPath;
   node.children ||= [];
   if (
-    new Set(node.children.map(child => child.uci + (child.state?.reveal ?? ''))).size !== node.children.length
+    new Set(node.children.map(child => child.uci + jieqiOutcomeSuffix(child.state))).size !==
+    node.children.length
   )
     throw new Error('Duplicate tree branch');
   node.dests = () => moveDestinations(node.state.legalMoves);

@@ -56,7 +56,8 @@ final class UserAnalysis(env: Env) extends LilaController(env) with lila.web.The
           )
         )
         .flatMap: game =>
-          if game.isJieqi then lila.xiangqi.Jieqi.analysisMove(game, command.move, command.reveal)
+          if game.isJieqi then
+            lila.xiangqi.Jieqi.analysisMove(game, command.move, command.reveal, command.captureReveal)
           else XiangqiRules.move(game, command.move)
 
   def variation = AnonBodyOf(parse.json): body =>

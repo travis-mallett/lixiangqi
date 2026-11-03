@@ -48,15 +48,15 @@ export interface RevealChoice {
   probability: number;
 }
 
-export function revealChoices(state: RulesState, move: string): RevealChoice[] {
-  const [from] = coordinateMove(move);
-  const piece = positionFromFen(state.fen, standardXiangqi).pieces.get(from);
+export function revealChoices(state: RulesState, move: string, captured = false): RevealChoice[] {
+  const [from, to] = coordinateMove(move);
+  const piece = positionFromFen(state.fen, standardXiangqi).pieces.get(captured ? to : from);
   if (piece?.face !== 'down') return [];
   const { remaining } = jieqiObservation(state);
   const choices = Object.keys(standardXiangqi.roles)
     .map(role => {
       const letter = standardXiangqi.roles[role];
-      return { role, count: remaining[state.turn === 'red' ? letter.toUpperCase() : letter] ?? 0 };
+      return { role, count: remaining[piece.participant === 'red' ? letter.toUpperCase() : letter] ?? 0 };
     })
     .filter(choice => choice.count > 0);
   const total = choices.reduce((sum, choice) => sum + choice.count, 0);
@@ -74,4 +74,10 @@ export function randomReveal(
     if (ticket < 0) return choice.role;
   }
   return undefined;
+}
+
+/** Chance outcomes distinguish branches even when the board position is identical. */
+export function jieqiOutcomeSuffix(state: RulesState): string {
+  const captured = state.captures?.find(c => c.ply === state.ply && c.concealed)?.role;
+  return (state.reveal || captured ? '~' + (state.reveal ?? '') : '') + (captured ? '~' + captured : '');
 }

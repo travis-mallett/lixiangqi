@@ -4,6 +4,44 @@ import munit.FunSuite
 import Xiangqi.*
 
 class JieqiTest extends FunSuite:
+  test("revealed movers can choose a concealed capture but cannot exceed its inventory"):
+    val fen = "1x2k4/n1n6/9/9/4p4/9/9/1R7/9/4K4 w j - 0 1"
+    val game = XiangqiRules.game(Position(initialFen = fen)).fold(fail(_), identity)
+    val move = Uci.unsafe("b3b10")
+    assert(Jieqi.analysisMove(game, move, None, Some("horse")).isLeft)
+    val result = Jieqi.analysisMove(game, move, None, Some("chariot")).fold(fail(_), identity)
+    assertEquals(result.reveal, None)
+    assertEquals(result.captures.head.role, Some("chariot"))
+    val text = s"""[Variant "Jieqi"]
+                  |[FEN "$fen"]
+                  |1. b3b10~~chariot *""".stripMargin
+    val tree = XiangqiNotation.importTree(NotationImport(notation = text)).fold(fail(_), identity)
+    assertEquals(tree.children.head.state.captures, result.captures)
+    val restored = XiangqiNotation
+      .importTree(NotationImport(notation = XiangqiNotation.exportTree(tree)))
+      .fold(fail(_), identity)
+    assertEquals(restored.children.head.state.captures, result.captures)
+
+  test("analysis capture outcomes are concealed and survive notation replay"):
+    val game = Jieqi.initial().fold(fail(_), identity).copy(deal = None)
+    val move = Uci.unsafe("b3b10")
+    val result = Jieqi.analysisMove(game, move, Some("soldier"), Some("horse")).fold(fail(_), identity)
+    assertEquals(result.captures.head.role, Some("horse"))
+    assert(result.captures.head.concealed)
+    assertEquals(Jieqi.observation(result.state).remaining("n"), 1)
+    assert(Jieqi.analysisMove(game, move, Some("soldier"), Some("general")).isLeft)
+    assert(Jieqi.analysisMove(game, move, Some("soldier"), Some("dragon")).isLeft)
+    assert(Jieqi.analysisMove(game, Uci.unsafe("a4a5"), Some("soldier"), Some("horse")).isLeft)
+    val text = s"""[Variant "Jieqi"]
+                  |[FEN "${Jieqi.startFen}"]
+                  |1. b3b10~soldier~horse (1. b3b10~soldier~chariot) *""".stripMargin
+    val tree = XiangqiNotation.importTree(NotationImport(notation = text)).fold(fail(_), identity)
+    assertEquals(tree.children.size, 2)
+    val restored = XiangqiNotation
+      .importTree(NotationImport(notation = XiangqiNotation.exportTree(tree)))
+      .fold(fail(_), identity)
+    assertEquals(restored.children.map(_.state.captures), tree.children.map(_.state.captures))
+
   private def play(game: Game, move: String): Game =
     XiangqiRules.move(game, Uci.unsafe(move)).flatMap(game.applyMove).fold(fail(_), identity)
 

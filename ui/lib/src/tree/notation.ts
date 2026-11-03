@@ -1,3 +1,4 @@
+import { jieqiOutcomeSuffix } from '../game/jieqi';
 import { assertRecordedMovePosition } from '../game/recordedMove';
 import { notationComments, notationMarks } from '../game/xiangqiNotation';
 import { mainlineChild } from './ops';
@@ -13,7 +14,7 @@ const revealedNotation = (node: TreeNode, parent: TreeNode): string => {
   if (/^[+-]p/i.test(notation ?? '')) {
     if (
       !node.uci ||
-      node.id !== node.uci + (node.state.reveal ? '~' + node.state.reveal : '') ||
+      node.id !== node.uci + jieqiOutcomeSuffix(node.state) ||
       parent.fen !== parent.state.fen ||
       parent.ply !== parent.state.ply ||
       node.fen !== node.state.fen ||
@@ -23,7 +24,7 @@ const revealedNotation = (node: TreeNode, parent: TreeNode): string => {
     assertRecordedMovePosition(parent.state, node.uci, node.state);
     notation = node.uci;
   }
-  return notation + (node.state.reveal ? '~' + node.state.reveal : '');
+  return notation + jieqiOutcomeSuffix(node.state);
 };
 
 const nodeResultAnnotation = (node: TreeNode): string => (node.result ? `[%nodeResult ${node.result}]` : '');
