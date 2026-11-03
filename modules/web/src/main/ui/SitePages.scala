@@ -49,9 +49,9 @@ final class SitePages(helpers: Helpers):
     def parameters(extra: Modifier*) = frag(
       p("Parameters:"),
       ul(
-        li(strong("theme"), ": xiangqi"),
+        li(strong("boardTheme"), ": xiangqi"),
         li(strong("pieceSet"), ": ", pieceNames.mkString(", ")),
-        li(strong("bg"), ": light, dark, system"),
+        li(strong("uiTheme"), ": light, dark, system"),
         extra
       )
     )
@@ -60,7 +60,7 @@ final class SitePages(helpers: Helpers):
       active = "webmasters",
       contentCls = "page force-ltr"
     ).css("bits.page")
-      .csp(_.copy(frameSrc = "https://lixiangqi.org" :: Nil)):
+      .csp(_.copy(frameSrc = "'self'" :: Nil)):
         frag(
           st.section(cls := "box box-pad developers")(
             h1(cls := "box__top")("HTTP API"),
@@ -73,23 +73,27 @@ final class SitePages(helpers: Helpers):
           br,
           st.section(cls := "box box-pad developers") {
             val args =
-              """style="width: 400px; aspect-ratio: 10/11;" allowtransparency="true" frameborder="0""""
+              """style="width: 400px; max-width: 100%; height: 520px; border: 0;""""
             frag(
               a(href := "#embed-tv")(
                 h1(cls := "box__top", id := "embed-tv")("Embed Lixiangqi TV in your site")
               ),
               div(cls := "body")(
-                div(cls := "center")(raw(s"""<iframe src="/tv/frame?theme=brown&bg=dark" $args></iframe>""")),
+                div(cls := "center")(
+                  raw(s"""<iframe src="/tv/frame?boardTheme=xiangqi&uiTheme=dark" $args></iframe>""")
+                ),
                 p("Add the following HTML to your site:"),
-                copyMeInput(s"""<iframe src="$netBaseUrl/tv/frame?theme=brown&bg=dark" $args></iframe>"""),
+                copyMeInput(
+                  s"""<iframe src="$netBaseUrl/tv/frame?boardTheme=xiangqi&uiTheme=dark" $args></iframe>"""
+                ),
                 parameters(),
                 p(
                   "You can also show a specific TV channel by adding its key to the URL, corresponding to the channels available at ",
-                  a(href := "/tv")("lixiangqi.org/tv"),
+                  a(href := "/tv")(s"$netBaseUrl/tv"),
                   ". If no key is included, the leading ranked Xiangqi game will be shown."
                 ),
                 copyMeInput(
-                  s"""<iframe src="$netBaseUrl/tv/bot/frame?theme=brown&bg=dark" $args></iframe>"""
+                  s"""<iframe src="$netBaseUrl/tv/computer/frame?boardTheme=xiangqi&uiTheme=dark" $args></iframe>"""
                 )
               )
             )
@@ -97,18 +101,18 @@ final class SitePages(helpers: Helpers):
           br,
           st.section(cls := "box box-pad developers") {
             val args =
-              """style="width: 400px; aspect-ratio: 10/11;" allowtransparency="true" frameborder="0""""
+              """style="width: 400px; max-width: 100%; height: 520px; border: 0;""""
             frag(
               a(href := "#embed-puzzle")(
                 h1(cls := "box__top", id := "embed-puzzle")("Embed the daily puzzle in your site")
               ),
               div(cls := "body")(
                 div(cls := "center")(
-                  raw(s"""<iframe src="/training/frame?theme=brown&bg=dark" $args></iframe>""")
+                  raw(s"""<iframe src="/training/frame?boardTheme=xiangqi&uiTheme=dark" $args></iframe>""")
                 ),
                 p("Add the following HTML to your site:"),
                 copyMeInput(
-                  s"""<iframe src="$netBaseUrl/training/frame?theme=brown&bg=dark" $args></iframe>"""
+                  s"""<iframe src="$netBaseUrl/training/frame?boardTheme=xiangqi&uiTheme=dark" $args></iframe>"""
                 ),
                 parameters(),
                 p("The text is automatically translated to your visitor's language.")
@@ -117,15 +121,11 @@ final class SitePages(helpers: Helpers):
           },
           br,
           st.section(cls := "box box-pad developers") {
-            val args = """style="width: 100%; aspect-ratio: 3/2;" frameborder="0""""
             frag(
               a(href := "#embed-study")(
                 h1(cls := "box__top", id := "embed-study")("Embed a Xiangqi analysis in your site")
               ),
               div(cls := "body")(
-                div(cls := "center"):
-                  raw(s"""<iframe src="/study/embed/XtFCFYlM/GCUTf2Jk?bg=auto&theme=auto" $args></iframe>""")
-                ,
                 p(
                   "Create ",
                   a(href := routes.Study.allDefault())("a study"),
@@ -138,15 +138,11 @@ final class SitePages(helpers: Helpers):
           },
           br,
           st.section(cls := "box box-pad developers") {
-            val args = """style="width: 100%; aspect-ratio: 3/2;" frameborder="0""""
             frag(
               a(href := "#embed-game")(
                 h1(cls := "box__top", id := "embed-game")("Embed a Xiangqi game in your site")
               ),
               div(cls := "body")(
-                div(cls := "center"):
-                  raw(s"""<iframe src="/embed/game/MPJcy1JW?bg=auto&theme=auto" $args></iframe>""")
-                ,
                 p(
                   "On a game analysis page, click the ",
                   em("FEN & PGN"),
@@ -161,16 +157,11 @@ final class SitePages(helpers: Helpers):
           },
           br,
           st.section(cls := "box box-pad developers", id := "broadcast") {
-            val args = """style="width: 100%; aspect-ratio: 4/3;" frameborder="0""""
             frag(
               a(href := "#embed-broadcast")(
                 h1(cls := "box__top", id := "embed-broadcast")("Embed a broadcast in your site")
               ),
               div(cls := "body")(
-                div(cls := "center"):
-                  raw:
-                    s"""<iframe src="https://lixiangqi.org/embed/broadcast/world-xiangqi-championship/G1YjiG7j" $args></iframe>"""
-                ,
                 p(
                   "On a broadcast page, select the embed iframe code, then optionally add query parameters to customize the appearance."
                 ),
@@ -181,29 +172,29 @@ final class SitePages(helpers: Helpers):
           },
           br,
           st.section(cls := "box box-pad developers", id := "analysis") {
-            val args = """style="width: 100%; aspect-ratio: 4/3;" frameborder="0""""
+            val args = """style="width: 400px; max-width: 100%; height: 520px; border: 0;""""
             val iframe =
-              s"""<iframe src="https://lixiangqi.org/embed/analysis" $args></iframe>"""
+              s"""<iframe src="$netBaseUrl/embed/xiangqi" $args></iframe>"""
             frag(
               a(href := "#embed-analysis")(
                 h1(cls := "box__top", id := "embed-analysis")("Embed an analysis board")
               ),
               div(cls := "body")(
-                div(cls := "center")(raw(iframe)),
+                div(cls := "center")(raw(s"""<iframe src="/embed/xiangqi" $args></iframe>""")),
                 p(
                   "Embeds the ",
                   a(href := routes.UserAnalysis.index)("Xiangqi analysis board"),
-                  " with Pikafish evaluation and the Xiangqi Cloud Explorer."
+                  " as a standalone viewer."
                 ),
                 copyMeInput(iframe),
                 parameters(
                   li(strong("fen"), ": custom initial position as a URL-encoded FEN"),
-                  li(strong("color"), ": initial orientation, either black or white")
+                  li(strong("color"), ": initial orientation, either black or red")
                 ),
                 div(
                   "Example using a custom initial position:",
                   copyMeInput:
-                    s"""<iframe src="https://lixiangqi.org/embed/analysis?fen=rnbakab1r/9/1c4nc1/p1p1p1p1p/9/9/P1P1P1P1P/1C2C4/9/RNBAKABNR%20w%20-%20-%202%202" $args></iframe>"""
+                    s"""<iframe src="$netBaseUrl/embed/xiangqi?fen=rnbakab1r/9/1c4nc1/p1p1p1p1p/9/9/P1P1P1P1P/1C2C4/9/RNBAKABNR%20w%20-%20-%202%202" $args></iframe>"""
                 ),
                 p("The text is automatically translated to your visitor's language.")
               )

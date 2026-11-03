@@ -1,3 +1,4 @@
+import { fitEmbed } from 'lib/fitEmbed';
 import { initMiniBoard } from 'lib/view';
 
 // https://lixiangqi.org/training/frame
@@ -9,13 +10,7 @@ window.onload = () => {
 
   initMiniBoard(board);
 
-  const resize = () => {
-    const windowHeight = window.innerHeight;
-    if (el.offsetHeight > windowHeight) {
-      const textHeightOffset = el.querySelector<HTMLElement>('span.text')?.offsetHeight ?? 0;
-      el.style.maxWidth = windowHeight - textHeightOffset + 'px';
-    }
-  };
+  const resize = () => fitEmbed(el);
   resize();
   window.addEventListener('resize', resize);
 };

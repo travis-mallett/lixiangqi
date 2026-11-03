@@ -1,11 +1,9 @@
+import { fitEmbed } from 'lib/fitEmbed';
 import { initMiniGame, updateMiniGame } from 'lib/view';
 
 function resize() {
   const el = document.querySelector('#featured-game') as HTMLElement;
-  const player = el.querySelector<HTMLElement>('.mini-game__player');
-  el.style.maxWidth = '';
-  if (player && el.offsetHeight > window.innerHeight)
-    el.style.maxWidth = Math.max(0, window.innerHeight - player.offsetHeight * 2) + 'px';
+  fitEmbed(el);
 }
 
 window.onload = () => {

@@ -4,7 +4,9 @@ body {
 }
 
 .embedded {
+  box-sizing: border-box;
   display: block;
+  margin: auto;
   background: $c-bg-page;
   padding: 0.3em;
   color: $c-font !important;
