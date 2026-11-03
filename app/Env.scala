@@ -81,7 +81,9 @@ final class Env(
   val forumSearch: lila.forumSearch.Env = wire[lila.forumSearch.Env]
   val lobby: lila.lobby.Env = wire[lila.lobby.Env]
   scheduler.scheduleWithFixedDelay(5.seconds, 15.seconds): () =>
-    threeKingdoms.cached.nbPlaying.foreach(lobby.socket.extraRoundCount)
+    round.roundSocket.nbPlaying
+      .zip(threeKingdoms.cached.nbPlaying)
+      .foreach((native, kingdoms) => lobby.socket.playingRoundCount(native + kingdoms))
   val simul: lila.simul.Env = wire[lila.simul.Env]
   val appeal: lila.appeal.Env = wire[lila.appeal.Env]
   val timeline: lila.timeline.Env = wire[lila.timeline.Env]

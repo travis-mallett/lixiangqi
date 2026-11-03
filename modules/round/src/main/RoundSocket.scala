@@ -78,6 +78,13 @@ final class RoundSocket(
 
   def ensureAiTurn(gameId: GameId): Unit = rounds.tell(gameId, RoundAsyncActor.ReconcileAiTurn)
 
+  /** Count loaded, unfinished games, independently of player and spectator connections. */
+  def nbPlaying: Fu[Int] =
+    val games = List.newBuilder[Fu[Option[Game]]]
+    rounds.foreachKey: id =>
+      rounds.getIfPresent(id).foreach(actor => games += actor.getGame)
+    RoundSocket.countPlaying(games.result())
+
   val rounds = AsyncActorConcMap[GameId, RoundAsyncActor](
     mkAsyncActor = id =>
       makeRoundActor(id, SocketVersion(0), roundDependencies.gameRepo.game(id).recoverDefault(none[Game])),
@@ -291,6 +298,9 @@ final class RoundSocket(
       .log(bootLog)(games => s"RoundSocket Done loading ${games.size}/${gamePromises.size} round games")
 
 object RoundSocket:
+
+  private[round] def countPlaying(games: List[Fu[Option[Game]]])(using Executor): Fu[Int] =
+    Future.sequence(games).map(_.count(_.exists(g => g.started && g.playable)))
 
   val tickSeconds = 5
   val tickInterval = tickSeconds.seconds

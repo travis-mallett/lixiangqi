@@ -31,8 +31,8 @@ final class LobbySocket(
   @volatile private var lastCounters = LobbyCounters(0, 0, Map.empty)
   def counters = lastCounters
 
-  /** Matches served outside round sockets contribute to the same public game counter. */
-  def extraRoundCount(count: Int): Unit = send.exec(s"lobby/extra-rounds ${count.max(0)}")
+  /** Authoritative game count; websocket room populations also include finished-game spectators. */
+  def playingRoundCount(count: Int): Unit = send.exec(s"lobby/playing-rounds ${count.max(0)}")
 
   def seekRemoved(id: String): Unit = actor ! RemoveSeek(id)
 

@@ -79,6 +79,8 @@ jobs:
       - uses: sbt/setup-sbt@3afe9cf056c5d139bfc46579af1192d77a2f0821 # v1.4.0
       - name: Stage canonical rules for offline position inspections
         run: ./lila.sh -Depoll=true stage
+      - name: Test local jieqi collection and cancellation recovery
+        run: python -m unittest tools.games_database.jieqi.test_collector
       - name: Install pinned Pikafish engine and network
         run: |
           sudo apt-get update

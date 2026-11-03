@@ -3,6 +3,10 @@
 The authoritative local catalog is `data/local/xiangqi-games.sqlite3`. Database
 files and downloaded source pages are intentionally excluded from Git.
 
+Jieqi discovery uses a **separate local database**, with no site integration.
+It is incomplete: no full remote jieqi game has been verified, and no sources
+run by default. See [the experimental guide](jieqi/README.md) for current limits.
+
 The public Games Database reads a transactionally maintained catalog projection
 for global totals, source facets, timeline buckets, and trigram-indexed text
 search. Verify the projection after moving or restoring a database with:
