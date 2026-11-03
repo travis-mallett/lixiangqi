@@ -1,3 +1,4 @@
+import { embedAssetUrl } from 'lib/embed';
 import { fitEmbed } from 'lib/fitEmbed';
 import { initMiniGame, updateMiniGame } from 'lib/view';
 
@@ -10,7 +11,7 @@ window.onload = () => {
   const findGame = () => document.querySelector<HTMLElement>('.mini-game');
   const setup = () => {
     const game = findGame();
-    if (game) initMiniGame(game);
+    if (game) initMiniGame(game, { assetUrl: embedAssetUrl });
     resize();
   };
   setup();

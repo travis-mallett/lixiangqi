@@ -79,6 +79,29 @@ function mini(): HTMLElement {
   return node;
 }
 
+for (const [name, fen, boardId, count] of [
+  ['Mini Xiangqi', 'rcnkncr/p1ppp1p/7/7/7/P1PPP1P/RCNKNCR w - - 0 1', 'minixiangqi', 24],
+  ['Jieqi', 'xxxxkxxxx/9/1x5x1/x1x1x1x1x/9/9/X1X1X1X1X/1X5X1/9/XXXXKXXXX w - - 0 1', 'xiangqi', 32],
+] as const)
+  test(`${name} TV embed renders without full-site globals`, () => {
+    const node = mini();
+    node.setAttribute('data-state', `${fen},white,`);
+    const globals = globalThis as any;
+    const saved = { site: globals.site, i18n: globals.i18n };
+    delete globals.site;
+    delete globals.i18n;
+    try {
+      initMiniGame(node, { assetUrl: path => `/assets/${path}` });
+      const board = getBoard(node.querySelector('.cg-wrap')!)!;
+      assert.equal(board.position().board, boardId);
+      assert.equal(node.querySelectorAll('cg-board piece').length, count);
+      updateMiniGame(node, { fen, lm: '' });
+      assert.equal(board.position().pieces.size, count);
+    } finally {
+      Object.assign(globals, saved);
+    }
+  });
+
 test('live mini-games render pieces, subscribe, and apply incoming moves', async () => {
   const node = mini();
   node.setAttribute('data-live', 'tvgame01');

@@ -1,6 +1,12 @@
 // no side effects allowed due to re-export by index.ts
 
-import { boardPresentation, coordinateMove, recordedPosition, type BoardView } from '@lixiangqi/board';
+import {
+  boardPresentation,
+  coordinateMove,
+  recordedPosition,
+  type BoardView,
+  type BoardServices,
+} from '@lixiangqi/board';
 import { COLORS } from 'chessops';
 import { h, type VNode } from 'snabbdom';
 
@@ -139,11 +145,11 @@ export const renderClock = (color: Color, time: number): VNode =>
     attrs: { 'data-time': time, 'data-managed': 1 },
   });
 
-export const initMiniGame = (node: Element): string | null => {
+export const initMiniGame = (node: Element, services?: BoardServices): string | null => {
   const [fen, color, lm] = node.getAttribute('data-state')!.split(','),
     replay = readMiniGameReplay(node),
     $el = $(node).removeClass('mini-game--init'),
-    $cg = $el.find('.cg-wrap').addClass('xiangqi9x10'),
+    $cg = $el.find('.cg-wrap'),
     turnColor = fenColor(fen);
 
   const element = $cg[0] as HTMLElement;
@@ -153,7 +159,7 @@ export const initMiniGame = (node: Element): string | null => {
     ...boardPresentation('thumbnail', color === 'black' ? 'black' : 'red'),
     motion: { duration: replay?.animationMillis ?? 200 },
   };
-  const board = createXiangqiBoard(element, position, presentation);
+  const board = createXiangqiBoard(element, position, presentation, { mode: 'display' }, services);
   domData.set(element, 'board', board);
   if (replay) startMiniGameReplay(node, board, replay);
 

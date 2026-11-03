@@ -11,6 +11,7 @@ import {
   type BoardPresentation,
   type BoardInteraction,
   type BoardPurpose,
+  type BoardServices,
 } from '@lixiangqi/board';
 
 import resizeHandle from './boardResize';
@@ -116,38 +117,40 @@ export function createXiangqiBoard(
   position: BoardPosition,
   presentation: BoardPresentation = boardPresentation('interactive', 'red'),
   interaction: BoardInteraction = { mode: 'display' },
+  services: BoardServices = websiteBoardServices(),
 ): BoardView {
   const board = createBoard(element, {
     definition: boardDefinition(position.board ?? 'xiangqi'),
     position,
     presentation,
     interaction,
-    services: {
-      assetUrl: path => site.asset.url(path),
-      inactivePieceLabel: i18n.threeKingdoms?.fallenGeneral,
-      reducedMotion: () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches,
-      sound: cue => {
-        if (cue.move)
-          site.sound.move({
-            capture: cue.effects.includes('capture'),
-            check: cue.effects.includes('check'),
-            mate: cue.effects.includes('checkmate'),
-          });
-        else {
-          const effect = (['checkmate', 'check', 'capture'] as const).find(name =>
-            cue.effects.includes(name),
-          );
-          if (effect) void site.sound.play(effect);
-        }
-      },
-    },
+    services,
   });
-  // The website's outer frame reserves space for its absolutely positioned renderer.
-  // Keep this local: a history page can contain several different board geometries.
+  // Keep dimensions local: a history page can contain several board geometries.
   const frame = element.parentElement;
   if (frame?.classList.contains('main-board'))
     frame.style.setProperty('--board-aspect-ratio', element.style.getPropertyValue('--board-aspect-ratio'));
   return board;
+}
+
+function websiteBoardServices(): BoardServices {
+  return {
+    assetUrl: path => site.asset.url(path),
+    inactivePieceLabel: i18n.threeKingdoms?.fallenGeneral,
+    reducedMotion: () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches,
+    sound: cue => {
+      if (cue.move)
+        site.sound.move({
+          capture: cue.effects.includes('capture'),
+          check: cue.effects.includes('check'),
+          mate: cue.effects.includes('checkmate'),
+        });
+      else {
+        const effect = (['checkmate', 'check', 'capture'] as const).find(name => cue.effects.includes(name));
+        if (effect) void site.sound.play(effect);
+      }
+    },
+  };
 }
 
 export function xiangqiPosition(fen: string, lastMove?: string, check = false): BoardPosition {

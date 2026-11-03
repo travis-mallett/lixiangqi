@@ -1,5 +1,7 @@
 import { createBoard, boardPresentation, threeKingdoms, type BoardView } from '@lixiangqi/board';
 
+import { embedAssetUrl as assetUrl } from 'lib/embed';
+
 import { position } from './board';
 import { loadRules } from './runtime';
 import type { Game } from './types';
@@ -7,9 +9,6 @@ import type { Game } from './types';
 /** One shared TV feed supplies both selection changes and moves to the lightweight embed. */
 async function initModule(): Promise<void> {
   const root = document.getElementById('three-kingdoms-embed') as HTMLAnchorElement;
-  // Minimal embeds load without site.ts. Resolve assets from the server's embed metadata.
-  const assetUrl = (path: string) =>
-    `${document.body.dataset.assetUrl || ''}/assets/_${document.body.dataset.assetVersion}/${path}`;
   const rules = await loadRules(assetUrl('three-kingdoms-engine/main.js'));
   const element = document.createElement('div');
   const players = document.createElement('div');
