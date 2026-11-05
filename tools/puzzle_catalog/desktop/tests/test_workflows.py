@@ -173,6 +173,7 @@ class WorkflowTests(unittest.TestCase):
                 moves=["a4a5", "a7a6"],
                 players=[],
                 completedAt=1793664000000,
+                ruleset="tiantian-v1",
             )
             (fresh / "native-games.jsonl").write_text(json.dumps(game) + "\n")
             (fresh / "manifest.json").write_text(

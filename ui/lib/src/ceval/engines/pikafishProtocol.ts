@@ -186,19 +186,21 @@ export class PikafishProtocol {
       );
     }
     const line = parsePikafishInfo(command, work.fen, this.variant);
-    if (!line || (line.score.bound && line.multipv === 1)) return;
+    if (!line) return;
 
     if (line.multipv === 1) {
       if (line.depth < this.currentDepth) return;
-      if (line.depth > this.currentDepth) {
-        this.currentDepth = line.depth;
-        this.lines.clear();
-      }
+      this.currentDepth = line.depth;
+      // Pikafish can publish another MultiPV batch at the SAME depth (including
+      // changed root ordering). Start a fresh batch; retained slots would mix old
+      // and new scores, sometimes duplicating the newly promoted best move.
+      this.lines.clear();
+      if (line.score.bound) return;
     }
-    if (line.depth !== this.currentDepth || line.multipv > work.multiPv) return;
+    if (line.depth !== this.currentDepth || line.multipv < 1 || line.multipv > work.multiPv) return;
     this.lines.set(line.multipv, line);
 
-    if (this.lines.size === work.multiPv && this.lines.has(work.multiPv)) {
+    if (this.hasCompleteLines()) {
       this.lastCompleteLines = new Map(this.lines);
       work.emit(this.snapshot(), false);
       if (
@@ -212,13 +214,21 @@ export class PikafishProtocol {
     }
   }
 
+  private hasCompleteLines(): boolean {
+    const width = this.work?.multiPv ?? 0;
+    return (
+      width > 0 &&
+      this.lines.size === width &&
+      new Set([...this.lines.values()].map(line => line.pvMoves[0])).size === width
+    );
+  }
+
   private snapshot(bestMove?: string): EngineAnalysis {
-    const source =
-      this.lines.size === this.work?.multiPv
-        ? this.lines
-        : this.lastCompleteLines.size
-          ? this.lastCompleteLines
-          : this.lines;
+    const source = this.hasCompleteLines()
+      ? this.lines
+      : this.lastCompleteLines.size
+        ? this.lastCompleteLines
+        : this.lines;
     const ordered = [...source.values()].sort((a, b) => a.multipv - b.multipv);
     const primary = ordered[0];
     return {

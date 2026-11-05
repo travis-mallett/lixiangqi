@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// LiXiangQi browser integration, updated 2026-11-01.
+// LiXiangQi browser integration, updated 2026-11-03.
 #pragma once
 
 #include <condition_variable>
@@ -28,8 +28,16 @@ struct Command : public std::streambuf {
         setg(buffer, buffer, buffer + size);
     }
 
-    using std::streambuf::seekoff;
-    using std::streambuf::seekpos;
+    pos_type seekpos(pos_type position, std::ios_base::openmode mode) override {
+        if (type != NNUE || position != 0 || !(mode & std::ios_base::in))
+            return pos_type(off_type(-1));
+        setg(eback(), eback(), egptr());
+        return 0;
+    }
+    pos_type seekoff(off_type offset, std::ios_base::seekdir direction,
+                     std::ios_base::openmode mode) override {
+        return direction == std::ios_base::beg ? seekpos(pos_type(offset), mode) : pos_type(off_type(-1));
+    }
 };
 
 struct CommandQueue {

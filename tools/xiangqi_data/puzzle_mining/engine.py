@@ -239,11 +239,24 @@ class OfflinePikafish:
             raise ValueError("search limits and multi_pv must be positive")
         self.start()
         try:
+            restricted = ""
+            permitted = None
+            if context.ruleset == "tiantian-v1":
+                state = self._inspect_rules(context)
+                if state["gameResult"] != "*":
+                    return SearchResult(self.engine_version, self.nnue, None, ())
+                permitted = state["legalMoves"]
+                restricted = " searchmoves " + " ".join(
+                    to_engine_move(move) for move in state["legalMoves"]
+                )
+            elif context.ruleset != "unrestricted-v1":
+                raise ValueError(f"Unsupported search ruleset: {context.ruleset}")
             self._send(f"setoption name MultiPV value {multi_pv}")
             self._ready()
             self._position(context)
             self._send(
-                f"go depth {depth}" if depth is not None else f"go nodes {nodes}"
+                (f"go depth {depth}" if depth is not None else f"go nodes {nodes}")
+                + restricted
             )
             # UCI emits one line per MultiPV slot and depth.  Keep immutable
             # snapshots by depth; never combine a PV from one iteration with a
@@ -318,6 +331,8 @@ class OfflinePikafish:
             selected_move = (
                 ordered[0].moves[0] if ordered and ordered[0].moves else None
             )
+            if permitted is not None and selected_move not in permitted:
+                raise EngineProtocolError("Engine ignored native legal root moves")
             return SearchResult(
                 engine_version=self.engine_version,
                 nnue=self.nnue,
@@ -352,13 +367,20 @@ class OfflinePikafish:
             on_wait()
             if self._rules is None:
                 self._rules = NativeRules()
-            return self._rules.position(context.initial_fen, context.moves, inspection=True, on_wait=on_wait)
+            return self._rules.position(
+                context.initial_fen,
+                context.moves,
+                inspection=context.ruleset == "unrestricted-v1",
+                on_wait=on_wait,
+            )
         except (TimeoutError, EngineCancelled):
             self.close()
             raise
         except (ValueError, NativeRulesError, OSError) as error:
             self.close()
-            raise EngineProtocolError(f"Native position inspection failed: {error}") from error
+            raise EngineProtocolError(
+                f"Native position inspection failed: {error}"
+            ) from error
         except BaseException:
             self.close()
             raise
@@ -371,7 +393,9 @@ class OfflinePikafish:
     def inspect(self, context: SearchContext) -> PositionStatus:
         """Replay complete history and inspect legal moves with the native rules."""
         state = self._inspect_rules(context)
-        return PositionStatus(state["fen"], bool(state["checkers"]), tuple(state["legalMoves"]))
+        return PositionStatus(
+            state["fen"], bool(state["checkers"]), tuple(state["legalMoves"])
+        )
 
     def close(self) -> None:
         if self._rules is not None:
@@ -452,7 +476,9 @@ class OfflinePikafish:
                 raise TimeoutError("Pikafish timed out")
             try:
                 line = self.output.get(timeout=min(remaining, 0.25))
-                if line.startswith(("info string CRITICAL ERROR", "info string ERROR:")):
+                if line.startswith(
+                    ("info string CRITICAL ERROR", "info string ERROR:")
+                ):
                     raise EngineProtocolError(line)
                 return line
             except queue.Empty as exc:

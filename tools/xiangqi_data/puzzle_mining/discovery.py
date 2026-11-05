@@ -35,7 +35,6 @@ from .position import (
     position_hash,
     replay_fens,
     puzzle_root_fen,
-    PUZZLE_HISTORY_POLICY,
 )
 from .discovery_dashboard import DiscoveryDashboard
 from .storage import (
@@ -62,7 +61,7 @@ from .workers import (
     wait_for_due_jobs,
 )
 from .snapshot_import import import_snapshot
-from .sources import catalog_source_paths, load_game
+from .sources import catalog_source_paths, load_game, is_native_source
 
 from .discovery_settings import DEFAULT_DEPTH, DISCOVERY_REVISION, DISCOVERY_VERSION
 
@@ -84,7 +83,7 @@ class DiscoveryConfig:
 
     def settings(self) -> dict[str, int | float | str]:
         return {
-            "history_policy": PUZZLE_HISTORY_POLICY,
+            "history_policy": "native-game-history-v1/catalog-isolated-root-v1",
             "depth": self.depth,
             "loss": self.loss,
             "tactic_advantage": self.tactic_advantage,
@@ -117,7 +116,8 @@ def seed_native_jobs(
             discovery_version,source_database,game_id,source_url,created_at,updated_at)
             SELECT ?,n.source_database,n.game_id,n.source_url,?,?
             FROM native_games n JOIN source_snapshots s ON s.snapshot_id=n.snapshot_id
-            WHERE NOT EXISTS (SELECT 1 FROM game_analysis_depths a
+            WHERE json_extract(n.payload_json,'$.ruleset') IN ('unrestricted-v1','tiantian-v1')
+            AND NOT EXISTS (SELECT 1 FROM game_analysis_depths a
                 WHERE a.source_database=n.source_database AND a.game_id=n.game_id
                 AND a.depth>=?)
             ORDER BY n.source_database,n.game_id
@@ -141,15 +141,24 @@ def discover_game(
     source_url: str,
     moves: list[str],
     initial_fen: str = START_FEN,
+    ruleset: str = "unrestricted-v1",
     config: DiscoveryConfig,
     analyse: AnalysisFunction | None = None,
+    on_analysis: Callable[[str, SearchResult], None] | None = None,
     progress: GameProgress | None = None,
 ) -> list[CandidateRecord]:
     """Return candidates from a full-budget evaluation of every game position."""
 
     engine.new_game()
     fens = replay_fens(moves, initial_fen)
-    contexts = [SearchContext(puzzle_root_fen(fen), ()) for fen in fens]
+    contexts = (
+        [
+            SearchContext(initial_fen, tuple(moves[:ply]), ruleset)
+            for ply in range(len(fens))
+        ]
+        if is_native_source(source_database)
+        else [SearchContext(puzzle_root_fen(fen), ()) for fen in fens]
+    )
     search = analyse or (
         lambda context, depth: engine.analyse(context, depth=depth, multi_pv=1)
     )
@@ -158,6 +167,15 @@ def discover_game(
         if progress is not None:
             progress("evaluating", ply + 1, len(moves) + 1)
         result = search(contexts[ply], config.depth)
+        if on_analysis is not None:
+            on_analysis(
+                (
+                    fens[ply]
+                    if is_native_source(source_database)
+                    else contexts[ply].initial_fen
+                ),
+                result,
+            )
         # A terminal position has no legal move and therefore no principal
         # variation.  Only the final recorded position may be terminal; an
         # empty result earlier in the game means the engine failed to provide
@@ -328,7 +346,12 @@ def _cached_search(
 
     def analyse(context: SearchContext, depth: int) -> SearchResult:
         context_key, settings_key = cache_key(
-            context.initial_fen, context.moves, None, 1, depth=depth
+            context.initial_fen,
+            context.moves,
+            None,
+            1,
+            depth=depth,
+            ruleset=context.ruleset,
         )
         cached = cached_analysis(
             connection,
@@ -382,10 +405,8 @@ def _process_job(
         positions: list[dict] = []
         cached_search = _cached_search(connection, engine, stop_event)
 
-        def record_analysis(context: SearchContext, depth: int) -> SearchResult:
-            result = cached_search(context, depth)
-            positions.append({"fen": context.initial_fen, "analysis": result.to_dict()})
-            return result
+        def record_analysis(fen: str, result: SearchResult) -> None:
+            positions.append({"fen": fen, "analysis": result.to_dict()})
 
         candidates = discover_game(
             engine,
@@ -394,8 +415,10 @@ def _process_job(
             source_url=job.source_url,
             moves=moves,
             initial_fen=source_game.initial_fen or START_FEN,
+            ruleset=source_game.ruleset,
             config=config,
-            analyse=record_analysis,
+            analyse=cached_search,
+            on_analysis=record_analysis,
             progress=progress,
         )
         for candidate in candidates:
@@ -492,7 +515,9 @@ def _worker_main(
                     job_id,
                     source_paths,
                     stop_event,
-                    lambda message: report_queue.put(("publication", worker_id, message)),
+                    lambda message: report_queue.put(
+                        ("publication", worker_id, message)
+                    ),
                 )
                 if result:
                     report_queue.put(("published", worker_id, result))
@@ -514,7 +539,9 @@ def _worker_main(
                     ):
                         break
                     continue
-                report_queue.put(("started", worker_id, job.game_id, job.source_database))
+                report_queue.put(
+                    ("started", worker_id, job.game_id, job.source_database)
+                )
                 last_detail_at = 0.0
                 last_lease_at = 0.0
 

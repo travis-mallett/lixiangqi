@@ -1,5 +1,6 @@
 import { debounce } from 'lib/async';
 import { prefersLightThemeQuery } from 'lib/device';
+import { updateThemeEmbeds } from 'lib/embed';
 import { licon } from 'lib/licon';
 import { pubsub } from 'lib/pubsub';
 import { trafficBoundary, trackTraffic } from 'lib/traffic';
@@ -422,6 +423,7 @@ export class AppearanceCtrl {
     this.applyBoardTheme(state.boardTheme);
     this.applyBoardSettings();
     this.applyPieceSet(state.pieceSet);
+    updateThemeEmbeds({ uiTheme: state.uiTheme, boardTheme: state.boardTheme, pieceSet: state.pieceSet });
     for (const [component, field] of Object.entries({
       board: 'board',
       pieces: 'pieceSet',

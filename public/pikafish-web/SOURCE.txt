@@ -1,7 +1,7 @@
 Pikafish source: https://github.com/official-pikafish/Pikafish.git
 Tag: Pikafish-2026-09-06
 Commit: 4c17cee11f888ae1d48a9494f2e2239f019f0a1f
-Modified by LiXiangQi contributors on 2026-11-01 for browser execution.
+Modified by LiXiangQi contributors on 2026-11-03 for browser execution and bounded network loading.
 Full corresponding source, patch and build instructions: pikafish-source.tar.gz (beside this file).
 Engine and browser modifications: GPL-3.0-or-later; see COPYING.txt and AUTHORS.
 Network: separate terms in NNUE-License.md; commercial use requires permission.

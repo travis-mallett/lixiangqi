@@ -20,6 +20,7 @@ object embed:
         cls := Option.unless(ctx.uiTheme == lila.pref.UiThemes.system.key)(ctx.uiTheme),
         head(
           page.ui.charset,
+          page.colorScheme(ctx.uiTheme),
           page.ui.viewport,
           page.ui.metaCsp(csp(embedCsp.withNonce(ctx.nonce).withInlineIconFont)),
           st.headTitle(title),
@@ -77,6 +78,7 @@ object embed:
         cls := Option.unless(ctx.uiTheme == lila.pref.UiThemes.system.key)(ctx.uiTheme),
         head(
           page.ui.charset,
+          page.colorScheme(ctx.uiTheme),
           page.ui.viewport,
           page.ui.metaCsp(csp(basicCsp.withNonce(ctx.nonce).withInlineIconFont)),
           st.headTitle(title),

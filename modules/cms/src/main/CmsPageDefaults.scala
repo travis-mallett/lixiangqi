@@ -31,12 +31,12 @@ object CmsPageDefaults:
         |
         |Lixiangqi is intended to make high-quality online Xiangqi available without paywalls, advertising, or advertising trackers. The [source code](https://github.com/travis-mallett/lixiangqi) is public, so anyone can inspect it, report problems, propose improvements, or build on it under the applicable free-software licences.
         |
-        |A service like this exists because people play, test, translate, moderate, document, design, and develop it. If you would like to help, visit the [source repository](https://github.com/travis-mallett/lixiangqi), read the [contribution guide](https://github.com/travis-mallett/lixiangqi/blob/master/CONTRIBUTING.md), or join the [Lixiangqi Discord](https://discord.gg/wCdGwFyCh).
+        |A service like this exists because people play, test, translate, moderate, document, design, and develop it. If you would like to help, visit the [source repository](https://github.com/travis-mallett/lixiangqi), read the [contribution guide](https://github.com/travis-mallett/lixiangqi/blob/master/CONTRIBUTING.md), or join the [Lixiangqi Discord](https://discord.gg/rUFqhX7SzJ).
         |
         |## Links
         |
         |* [GitHub](https://github.com/travis-mallett/lixiangqi)
-        |* [Discord](https://discord.gg/wCdGwFyCh)
+        |* [Discord](https://discord.gg/rUFqhX7SzJ)
         |* [API documentation](/api)
         |* [Contact](/contact)
         |""".stripMargin,

@@ -1,14 +1,60 @@
 import os
+from contextlib import redirect_stdout
+import io
 from pathlib import Path
 import shutil
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import MagicMock
 
-from tools.environment_data.remote import capture_command
+from tools.environment_data.remote import capture_command, run_remote
 
 
 class OnlineCaptureTests(unittest.TestCase):
+    def test_ssh_combines_stderr_before_execution_and_streams_output(self):
+        client = MagicMock()
+        channel = client.get_transport.return_value.open_session.return_value
+        channel.__enter__.return_value = channel
+        events = []
+        channel.set_combine_stderr.side_effect = lambda value: events.append("combine")
+        channel.exec_command.side_effect = lambda command: events.append("execute")
+        channel.makefile.return_value = io.StringIO("Capturing production data\nDone\n")
+        channel.recv_exit_status.return_value = 0
+        output = io.StringIO()
+        with redirect_stdout(output):
+            run_remote(client, "capture")
+        self.assertEqual(events, ["combine", "execute"])
+        self.assertEqual(output.getvalue(), "Capturing production data\nDone\n")
+        channel.__exit__.assert_called_once()
+
+    def test_ssh_failure_reports_exit_code_and_bounded_diagnostic_tail(self):
+        for diagnostic in (
+            "",
+            "early stderr failure\n",
+            "old output\n" * 50 + "restore failed\n",
+        ):
+            with self.subTest(diagnostic=diagnostic):
+                client = MagicMock()
+                channel = client.get_transport.return_value.open_session.return_value
+                channel.__enter__.return_value = channel
+                channel.makefile.return_value = io.StringIO(diagnostic)
+                channel.recv_exit_status.return_value = 1
+                with redirect_stdout(io.StringIO()):
+                    with self.assertRaisesRegex(RuntimeError, "exit 1") as caught:
+                        run_remote(client, "capture")
+                message = str(caught.exception)
+                self.assertIn(
+                    (
+                        diagnostic.splitlines()[-1]
+                        if diagnostic
+                        else "No remote diagnostic output"
+                    ),
+                    message,
+                )
+                self.assertLessEqual(message.count("old output"), 39)
+                channel.__exit__.assert_called_once()
+
     def test_command_requires_safe_unique_paths_and_shared_deployment_lock(self):
         sid = "a" * 32
         command = capture_command(
@@ -78,16 +124,24 @@ bash "$SCRIPT" "$STAGING" aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa https://example.org
                 self.assertEqual(result.returncode == 0, not failure, result.stderr)
                 commands = trace.read_text().splitlines()
                 self.assertTrue(commands[-1].startswith("rm -fv lixiangqi-snapshot-"))
+                if failure and failure != "cleanup":
+                    self.assertIn(
+                        "Production snapshot capture failed (exit", result.stderr
+                    )
                 for command in commands:
                     self.assertNotIn("compose stop", command)
                     self.assertNotIn("compose up", command)
                     self.assertNotIn("fsync", command)
+                    if "mongodump" in command or "mongorestore" in command:
+                        self.assertNotIn("--quiet", command)
                     if "mongorestore" in command:
                         self.assertTrue(
                             command.startswith("exec -i lixiangqi-snapshot-")
                         )
                         self.assertIn("--oplogReplay", command)
                 if not failure:
+                    self.assertIn("Capturing production MongoDB", result.stdout)
+                    self.assertIn("Restoring the captured data", result.stdout)
                     self.assertTrue((root / "mongo.archive.gz").exists())
                     self.assertFalse((root / "online.archive.gz").exists())
                     self.assertTrue(any("--network none" in c for c in commands))

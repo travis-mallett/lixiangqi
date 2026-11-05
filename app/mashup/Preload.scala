@@ -13,7 +13,6 @@ import lila.mon.extensions.*
 
 final class Preload(
     tv: lila.tv.Tv,
-    threeKingdomsTv: lila.tv.ThreeKingdomsTv,
     ublogApi: lila.ublog.UblogApi,
     gameRepo: lila.game.GameRepo,
     perfsRepo: lila.user.UserPerfsRepo,
@@ -82,15 +81,9 @@ final class Preload(
   )
 
   private def randomVariantTv: Fu[lila.xiangqi.GameVariant] =
-    import lila.tv.Tv.Channel
-    val channels = List(Channel.Jieqi, Channel.MiniXiangqi)
-    channels
-      .traverse(channel => tv.getGameIds(channel, 1).map(ids => Option.when(ids.nonEmpty)(channel)))
-      .map: native =>
-        val available =
-          native.flatten ::: Option.when(threeKingdomsTv.game.isDefined)(Channel.ThreeKingdoms).toList
-        val choices = if available.nonEmpty then available else channels :+ Channel.ThreeKingdoms
-        scala.util.Random.shuffle(choices.flatMap(_.variant)).head
+    import lila.xiangqi.GameVariant
+    val variants = Vector(GameVariant.Jieqi, GameVariant.MiniXiangqi, GameVariant.ThreeKingdoms)
+    fuccess(variants(scala.util.Random.nextInt(variants.size)))
 
   def currentGameMyTurn(using me: Me): Fu[Option[CurrentGame]] =
     gameRepo

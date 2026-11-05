@@ -175,9 +175,10 @@ class PositionStatus:
 class SearchContext:
     initial_fen: str
     moves: tuple[str, ...]
+    ruleset: str = "unrestricted-v1"
 
     def extend(self, move: str) -> "SearchContext":
-        return SearchContext(self.initial_fen, (*self.moves, move))
+        return SearchContext(self.initial_fen, (*self.moves, move), self.ruleset)
 
 
 @dataclass(frozen=True)

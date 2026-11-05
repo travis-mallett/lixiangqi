@@ -163,6 +163,10 @@ def main() -> None:
 
     for name in ("pikafish.js", "pikafish.wasm"):
         publish(args.build_dir / name, args.output_dir / name)
+    # Explicit ESM metadata also lets Node-based tools reuse the browser module
+    # without CommonJS inference or transpiler-dependent top-level-await failures.
+    (args.build_dir / "package.json").write_text('{ "type": "module" }\n', encoding="utf-8")
+    publish(args.build_dir / "package.json", args.output_dir / "package.json")
     publish(args.nnue, args.output_dir / "pikafish.nnue")
     publish(source / "Copying.txt", args.output_dir / "COPYING.txt")
     publish(source / "AUTHORS", args.output_dir / "AUTHORS")
@@ -181,7 +185,7 @@ def main() -> None:
     )
     (args.build_dir / "SOURCE.txt").write_text(
         f"Pikafish source: {REPOSITORY}\nTag: {TAG}\nCommit: {COMMIT}\n"
-        "Modified by LiXiangQi contributors on 2026-11-01 for browser execution.\n"
+        "Modified by LiXiangQi contributors on 2026-11-03 for browser execution and bounded network loading.\n"
         "Full corresponding source, patch and build instructions: pikafish-source.tar.gz (beside this file).\n"
         "Engine and browser modifications: GPL-3.0-or-later; see COPYING.txt and AUTHORS.\n"
         "Network: separate terms in NNUE-License.md; commercial use requires permission.\n",
@@ -245,6 +249,7 @@ def package_source(source: Path, destination: Path) -> None:
             "public/pikafish-web/NOTICE.html",
         )
     )
+    files.append((REPO_ROOT / "public/pikafish-web/package.json", "public/pikafish-web/package.json"))
     # Stable metadata keeps unchanged builds from generating new download hashes.
     with destination.open("wb") as raw, gzip.GzipFile(
         filename="", mode="wb", fileobj=raw, mtime=0

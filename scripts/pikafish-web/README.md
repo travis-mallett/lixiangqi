@@ -5,9 +5,14 @@ Pikafish release `Pikafish-2026-09-06` at commit
 `4c17cee11f888ae1d48a9494f2e2239f019f0a1f` and follows the architecture of
 [`lichess-org/lila-stockfish-web`](https://github.com/lichess-org/lila-stockfish-web):
 an Emscripten ES module, shared WebAssembly memory, pthread workers, a blocking
-UCI command queue, and an NNUE buffer supplied by JavaScript. The bridge
-decompresses Pikafish's Zstandard-distributed network before loading it into
-the evaluator.
+UCI command queue, and an NNUE buffer supplied by JavaScript. The bridge streams
+Pikafish's Zstandard-distributed network directly into the evaluator using bounded
+decompression windows. It supports the replication API's rewind operation and
+rejects incomplete frames, without retaining a full decompressed intermediate.
+This reduced the observed WASM heap from approximately 461 MiB to 320 MiB with the
+pinned full network. That measures WASM allocation, not total browser memory.
+The standalone bot uses one search thread and a 16 MiB hash table; the full
+network remains a substantial mobile cost.
 
 Install and activate Emscripten 5.0.7, place the matching `pikafish.nnue` at
 `.tools/pikafish/pikafish.nnue`, then run:
@@ -69,7 +74,7 @@ node scripts/pikafish-web/smoke.mjs
 ```
 
 Browser bridge files and modifications were updated by LiXiangQi contributors
-on 2026-11-01. No playing-strength reduction or smaller network is applied.
+on 2026-11-03. No playing-strength reduction or smaller network is applied.
 
 The loader uses the asset manifest's content hashes, so server restarts do not
 invalidate unchanged networks. Native network loading reports invalid data as an

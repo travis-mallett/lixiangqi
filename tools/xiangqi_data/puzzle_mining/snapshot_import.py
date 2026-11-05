@@ -38,8 +38,24 @@ def import_snapshot(
                 if not raw.strip():
                     continue
                 v = json.loads(raw)
+                if "ruleset" not in v:
+                    raise ValueError(
+                        "Snapshot lacks native rulesets; refresh the production snapshot before importing"
+                    )
+                # Source mining targets standard Xiangqi. The full Mongo archive
+                # still preserves other variants for preview and future tools.
+                if v["ruleset"] in {"jieqi-v1", "minixiangqi-v1", "threeKingdoms-v1"}:
+                    continue
                 if (
-                    set(v) != {"id", "initialFen", "moves", "players", "completedAt"}
+                    set(v)
+                    != {
+                        "id",
+                        "initialFen",
+                        "moves",
+                        "players",
+                        "completedAt",
+                        "ruleset",
+                    }
                     or not isinstance(v["id"], str)
                     or not re.fullmatch("[A-Za-z0-9]{8}", v["id"])
                     or v["id"] in seen
@@ -56,6 +72,7 @@ def import_snapshot(
                     or not isinstance(v["players"], list)
                     or not all(isinstance(p, str) for p in v["players"])
                     or type(v["completedAt"]) is not int
+                    or v["ruleset"] not in {"unrestricted-v1", "tiantian-v1"}
                 ):
                     raise ValueError("invalid native source data")
                 seen.add(v["id"])

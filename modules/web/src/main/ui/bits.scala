@@ -36,7 +36,7 @@ object bits:
       targetBlank,
       noFollow
     )("GitHub"),
-    a(href := "https://discord.gg/wCdGwFyCh", targetBlank, noFollow)("Discord")
+    a(href := "https://discord.gg/rUFqhX7SzJ", targetBlank, noFollow)("Discord")
   )
 
   val logo = raw:

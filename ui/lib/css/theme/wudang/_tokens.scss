@@ -1,8 +1,6 @@
 html.wudang {
   @include shared-color-defs;
 
-  color-scheme: dark;
-
   // Material palette. Keep cinnabar and gold scarce; jade and mineral blue
   // carry interaction, while ink and paper carry almost the whole interface.
   --wudang-ink-950: #0c1518;

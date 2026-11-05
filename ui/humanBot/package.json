@@ -1,0 +1,17 @@
+{
+  "name": "@lixiangqi/human-bot",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "lib": "workspace:*"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./xiangqi": "./src/xiangqi/index.ts"
+  },
+  "scripts": {
+    "test": "node ../.test/runner.mjs humanBot",
+    "build": "node ../../tools/human-bot/build.mjs",
+    "lab": "node --import tsx ../../tools/human-bot/lab.ts"
+  }
+}

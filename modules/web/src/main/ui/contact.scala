@@ -38,7 +38,7 @@ object contact:
           a(href := "https://github.com/travis-mallett/lixiangqi/issues")(reportWebsiteIssue())
         ),
         li(
-          a(href := "https://discord.gg/wCdGwFyCh")(reportBugInDiscord())
+          a(href := "https://discord.gg/rUFqhX7SzJ")(reportBugInDiscord())
         )
       ),
       p(howToReportBug())
@@ -280,7 +280,7 @@ object contact:
                   "Please contact our Broadcast Team at ",
                   contactEmailLink("broadcast@lixiangqi.org"),
                   " or on ",
-                  a(href := "https://discord.gg/Syx9CbN8Jv")("our discord"),
+                  a(href := "https://discord.gg/rUFqhX7SzJ")("our discord"),
                   "."
                 )
               )

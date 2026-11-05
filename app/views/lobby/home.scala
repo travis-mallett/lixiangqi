@@ -117,6 +117,7 @@ object home:
               ),
               iframe(
                 cls := "lobby__tv__variant",
+                attr("data-theme-embed") := "",
                 src := s"/tv/${variantTv.key}/frame?uiTheme=${ctx.pref.uiTheme}&boardTheme=${ctx.pref.boardTheme}&pieceSet=${ctx.pref.pieceSet}",
                 title := variantTvName,
                 attr("loading") := "lazy"
@@ -169,6 +170,6 @@ object home:
             a(href := "/privacy")(trans.site.privacy()),
             a(href := routes.Cms.source)(trans.site.sourceCode()),
             a(href := "/ads")(trans.site.blockAds()),
-            a(href := "https://discord.gg/Hqj43X9BC", target := "_blank")("Discord")
+            a(href := "https://discord.gg/rUFqhX7SzJ", target := "_blank")("Discord")
           )
         )

@@ -732,9 +732,16 @@ def cache_key(
     multi_pv: int,
     *,
     depth: int | None = None,
+    ruleset: str = "unrestricted-v1",
 ) -> tuple[str, str]:
     context_hash = hashlib.sha256(
-        _json({"fen": initial_fen, "moves": moves}).encode("utf-8")
+        _json(
+            {
+                "fen": initial_fen,
+                "moves": moves,
+                **({"ruleset": ruleset} if ruleset != "unrestricted-v1" else {}),
+            }
+        ).encode("utf-8")
     ).hexdigest()
     settings_hash = hashlib.sha256(
         _json(

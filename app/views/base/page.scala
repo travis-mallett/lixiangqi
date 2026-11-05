@@ -28,6 +28,14 @@ object page:
   private def metaThemeColor(using ctx: Context): Frag =
     raw(s"""<meta name="theme-color" content="${ctx.pref.themeColor}">""")
 
+  // Set the document canvas before external stylesheets load, including in TV embeds.
+  def colorScheme(uiTheme: String): Frag =
+    meta(
+      name := "color-scheme",
+      content := (if uiTheme == lila.pref.UiThemes.system.key then "light dark"
+                  else lila.pref.UiThemes(uiTheme).colorScheme.key)
+    )
+
   private def boardPreload(using ctx: Context) =
     imagePreload(assetUrl(s"images/board/${lila.pref.BoardThemes(ctx.pref.boardTheme).file}"))
 
@@ -67,6 +75,12 @@ object page:
         topComment,
         head(
           charset,
+          colorScheme(
+            if ctx.impersonatedBy.isDefined || pref.uiTheme == lila.pref.UiThemes.system.key then
+              lila.pref.UiThemes.system.key
+            else if ctx.blind then lila.pref.UiThemes.dark.key
+            else pref.uiTheme
+          ),
           viewport,
           metaCsp(p.csp.map(_(defaultCsp))),
           metaThemeColor,

@@ -29,6 +29,58 @@ from tools.xiangqi_data.tests.test_puzzle_mining_engine_discovery import (
 
 
 class DepthDiscoveryTest(unittest.TestCase):
+    def test_native_search_preserves_history_rules_and_separates_cache(self):
+        from tools.xiangqi_data.pikafish_rules import START_FEN
+        from tools.xiangqi_data.puzzle_mining.discovery import discover_game
+        from tools.xiangqi_data.puzzle_mining.models import SearchResult
+
+        contexts = []
+
+        def search(context, depth):
+            contexts.append(context)
+            from tools.xiangqi_data.puzzle_mining.engine import parse_info
+
+            line = parse_info(_line(1, depth, "a4a5"))
+            return SearchResult("fake", "fake", "a4a5", (line,))
+
+        engine = FakePikafish(["readyok"])
+        discover_game(
+            engine,
+            source_database="lixiangqi:https://example.org",
+            game_id="native01",
+            source_url="",
+            moves=["a4a5"],
+            ruleset="tiantian-v1",
+            config=DiscoveryConfig(),
+            analyse=search,
+        )
+        self.assertEqual(
+            contexts,
+            [
+                SearchContext(START_FEN, (), "tiantian-v1"),
+                SearchContext(START_FEN, ("a4a5",), "tiantian-v1"),
+            ],
+        )
+        self.assertNotEqual(
+            cache_key(START_FEN, (), None, 1, depth=20),
+            cache_key(START_FEN, (), None, 1, depth=20, ruleset="tiantian-v1"),
+        )
+
+    def test_native_search_restricts_root_moves_and_retains_full_history(self):
+        engine = FakePikafish(["readyok", _line(1, 20, "a3a4"), "bestmove a3a4"])
+        commands = []
+        engine._send = commands.append
+        with patch.object(
+            engine,
+            "_inspect_rules",
+            return_value={"gameResult": "*", "legalMoves": ["a4a5"]},
+        ):
+            engine.analyse(
+                SearchContext("fen", ("b1c3",), "tiantian-v1"), depth=20, multi_pv=1
+            )
+        self.assertIn("position fen fen moves b0c2", commands)
+        self.assertIn("go depth 20 searchmoves a3a4", commands)
+
     def test_depth_coverage_controls_both_queues_and_native_priority(self):
         with tempfile.TemporaryDirectory() as directory:
             db = open_database(Path(directory) / "mining.sqlite3")
@@ -47,7 +99,7 @@ class DepthDiscoveryTest(unittest.TestCase):
                 db.execute(
                     """INSERT INTO native_games(source_database,origin,game_id,moves_json,
                     payload_json,payload_checksum,snapshot_id,created_at)
-                    VALUES (?,'test',?,'[]','{}',?,'snap','now')""",
+                    VALUES (?,'test',?,'[]','{"ruleset":"unrestricted-v1"}',?,'snap','now')""",
                     (native, game_id, game_id),
                 )
             for src in ["catalog", native]:
@@ -143,7 +195,9 @@ class DepthDiscoveryTest(unittest.TestCase):
             )
             commands = []
             engine._send = commands.append
-            source = SimpleNamespace(moves=("a4a5",), initial_fen=None)
+            source = SimpleNamespace(
+                moves=("a4a5",), initial_fen=None, ruleset="unrestricted-v1"
+            )
             with patch(
                 "tools.xiangqi_data.puzzle_mining.discovery.load_game",
                 return_value=source,
@@ -205,7 +259,9 @@ class DepthDiscoveryTest(unittest.TestCase):
             engine = FakePikafish(["readyok", _line(1, 20, "a4a5"), "bestmove a4a5"])
             with patch(
                 "tools.xiangqi_data.puzzle_mining.discovery.load_game",
-                return_value=SimpleNamespace(moves=("a4a5",), initial_fen=None),
+                return_value=SimpleNamespace(
+                    moves=("a4a5",), initial_fen=None, ruleset="unrestricted-v1"
+                ),
             ):
                 status, _ = _process_job(
                     db,

@@ -5,6 +5,43 @@ import type { CevalCtrl } from '../src/ceval/ctrl.ts';
 import { PikafishProtocol, toLocalEval, type EngineAnalysis } from '../src/ceval/engines/pikafishProtocol.ts';
 import type { Work } from '../src/ceval/types.ts';
 
+test('same-depth MultiPV updates cannot mix a promoted move with stale slots', () => {
+  const results: EngineAnalysis[] = [];
+  const protocol = new PikafishProtocol();
+  protocol.connected(() => {});
+  protocol.received('uciok');
+  protocol.received('readyok');
+  protocol.compute({
+    fen: 'current b - - 0 1',
+    search: { nodes: 10000 },
+    multiPv: 2,
+    threads: 1,
+    hashSize: 16,
+    stopRequested: false,
+    emit: analysis => results.push(analysis),
+  });
+  protocol.received('info depth 8 multipv 1 nodes 100 time 1 score cp 40 pv h9g7');
+  protocol.received('info depth 8 multipv 2 nodes 100 time 1 score cp 20 pv b9c7');
+  assert.equal(results.length, 1);
+  protocol.received('info depth 8 multipv 1 nodes 200 time 2 score cp 45 pv b9c7');
+  assert.equal(results.length, 1, 'The old second slot must not be published beside a new first slot');
+  protocol.received('info depth 8 multipv 2 nodes 200 time 2 score cp 25 pv h9g7');
+  assert.equal(results.length, 2);
+  assert.deepEqual(
+    results[1].lines.map(line => line.pvMoves[0]),
+    ['b10c8', 'h10g8'],
+  );
+  // A bounded primary update cannot borrow its predecessor's exact score.
+  protocol.received('info depth 8 multipv 1 nodes 300 time 3 score cp 50 lowerbound pv h9g7');
+  protocol.received('info depth 8 multipv 2 nodes 300 time 3 score cp 35 pv b9c7');
+  assert.equal(results.length, 2);
+  protocol.received('bestmove h9g7');
+  assert.equal(results.length, 3);
+  assert.equal(new Set(results[2].lines.map(line => line.pvMoves[0])).size, 2);
+  assert.equal(results[2].bestMove, 'h10g8');
+  protocol.disconnected();
+});
+
 test('native rule policies restrict engine root moves at the UCI boundary', () => {
   const commands: string[] = [];
   const protocol = new PikafishProtocol();

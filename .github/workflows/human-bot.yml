@@ -1,0 +1,80 @@
+name: Standalone human bot framework
+
+on:
+  push:
+    paths:
+      - 'ui/humanBot/**'
+      - 'tools/human-bot/**'
+      - 'modules/xiangqi/src/main/**'
+      - 'modules/threeKingdomsCore/src/main/**'
+      - '.github/workflows/human-bot.yml'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.node-version'
+      - 'tools/xiangqi_data/pikafish.py'
+      - 'scripts/pikafish/**'
+      - 'scripts/pikafish-web/**'
+      - 'public/pikafish-web/**'
+      - 'ui/lib/src/ceval/engines/pikafishProtocol.ts'
+  pull_request:
+    paths:
+      - 'ui/humanBot/**'
+      - 'tools/human-bot/**'
+      - 'modules/xiangqi/src/main/**'
+      - 'modules/threeKingdomsCore/src/main/**'
+      - '.github/workflows/human-bot.yml'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.node-version'
+      - 'tools/xiangqi_data/pikafish.py'
+      - 'scripts/pikafish/**'
+      - 'scripts/pikafish-web/**'
+      - 'public/pikafish-web/**'
+      - 'ui/lib/src/ceval/engines/pikafishProtocol.ts'
+
+permissions:
+  contents: read
+
+jobs:
+  framework:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: sbt/setup-sbt@3afe9cf056c5d139bfc46579af1192d77a2f0821
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c
+        with:
+          python-version: '3.12'
+      - run: pnpm install
+      - name: Prepare pinned browser engine network and diagnostic oracle
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y 7zip
+          python scripts/pikafish/install.py --browser-dir public/pikafish-web
+      - run: node node_modules/typescript/bin/tsc -b ui/lib
+      - run: node tools/human-bot/build.mjs
+      - run: node ui/.test/runner.mjs humanBot
+      - run: node --import tsx --test tools/human-bot/integration.test.ts
+      - run: pnpm exec playwright install --with-deps chromium firefox webkit
+      - run: node tools/human-bot/browser.mjs browser-results.json
+      - run: node tools/human-bot/browser.mjs firefox-results.json
+        env:
+          BROWSER: firefox
+      - run: node tools/human-bot/browser.mjs webkit-results.json
+        env:
+          BROWSER: webkit
+      - run: node --import tsx tools/human-bot/lab.ts --oracle --sweep --games 2 --out lab-results.json
+        env:
+          PYTHON: python
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: human-bot-diagnostics
+          path: '*-results.json'

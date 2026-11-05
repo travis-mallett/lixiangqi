@@ -15,6 +15,23 @@ import uuid
 from .snapshot import capture, verify_snapshot
 
 
+def run_remote(client, command: str, *, timeout=1800):
+    """Stream combined output and retain a bounded diagnostic tail on failure."""
+    with client.get_transport().open_session(timeout=30) as channel:
+        channel.settimeout(timeout)
+        channel.set_combine_stderr(True)
+        channel.exec_command(command)
+        tail = deque(maxlen=40)
+        with channel.makefile("r") as output:
+            for line in output:
+                print(line, end="", flush=True)
+                tail.append(line)
+        code = channel.recv_exit_status()
+        if code:
+            detail = "".join(tail).strip() or "No remote diagnostic output."
+            raise RuntimeError(f"production snapshot failed (exit {code}): {detail}")
+
+
 def capture_command(remote: str, staging: str, snapshot_id: str, origin: str) -> str:
     if (
         not re.fullmatch(r"[0-9a-f]{32}", snapshot_id)
@@ -78,9 +95,7 @@ def refresh(
     staging = remote + "-snapshots/" + sid
     destination.mkdir(parents=True, exist_ok=True)
     try:
-        _, out, err = client.exec_command("umask 077; mkdir -p " + shlex.quote(staging))
-        if out.channel.recv_exit_status():
-            raise RuntimeError(err.read().decode())
+        run_remote(client, "umask 077; mkdir -p " + shlex.quote(staging))
         with client.open_sftp() as sftp:
             for name in ("export_snapshot.js", "capture_online.sh"):
                 # Bash scripts must use LF even on Windows checkouts.
@@ -88,14 +103,7 @@ def refresh(
                     target.write(
                         Path(__file__).with_name(name).read_text(encoding="utf-8")
                     )
-        _, out, err = client.exec_command(
-            capture_command(remote, staging, sid, origin), timeout=1800
-        )
-        out.channel.set_combine_stderr(True)
-        # Drain the combined stream to avoid a full stderr buffer deadlock.
-        error = "".join(deque(out, maxlen=40))
-        if out.channel.recv_exit_status():
-            raise RuntimeError("production snapshot failed: " + error)
+        run_remote(client, capture_command(remote, staging, sid, origin))
         with tempfile.TemporaryDirectory(prefix="download-", dir=destination) as tmp:
             with client.open_sftp() as sftp:
                 for name in (
@@ -104,7 +112,9 @@ def refresh(
                     "native-games.jsonl",
                     "puzzle-inventory.json",
                 ):
+                    print(f"Downloading {name}…", flush=True)
                     sftp.get(staging + "/" + name, str(Path(tmp) / name))
+            print("Verifying downloaded snapshot…", flush=True)
             verify_snapshot(Path(tmp))
             completed = destination / sid
             capture(Path(tmp), completed)

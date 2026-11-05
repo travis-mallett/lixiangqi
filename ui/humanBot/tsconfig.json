@@ -1,0 +1,6 @@
+{
+  "extends": "../tsconfig.base.json",
+  "include": ["src"],
+  "compilerOptions": { "strictFunctionTypes": true },
+  "references": [{ "path": "../lib/tsconfig.json" }]
+}

@@ -7,7 +7,7 @@ import Xiangqi.*
 /** The deal is server-only. Public states contain X/x, never concealed identities. */
 object Jieqi:
   val startFen = "xxxxkxxxx/9/1x5x1/x1x1x1x1x/9/9/X1X1X1X1X/1X5X1/9/XXXXKXXXX w j - 0 1"
-  private val random = new SecureRandom
+  private lazy val random = new SecureRandom
   lazy val startingPieces: Map[Square, Piece] = Fen.board(Xiangqi.startFen).get.pieces
 
   final case class Deal(identities: Map[String, String]):

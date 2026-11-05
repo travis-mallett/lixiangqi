@@ -54,6 +54,9 @@ const primary = output.findLast(line => line.startsWith('info depth 5 ') && line
 const centipawns = Number.parseInt(primary?.match(/ score cp (-?\d+)/)?.[1] ?? '', 10);
 if (!Number.isFinite(centipawns) || centipawns > -100)
   throw new Error(`Browser Pikafish NNUE did not evaluate the missing rook:\n${output.join('\n')}`);
+const heapMiB = engine.HEAPU8.buffer.byteLength / 1048576;
+if (heapMiB >= 384)
+  throw new Error(`Network loading exceeded the browser memory regression ceiling: ${heapMiB} MiB`);
 console.log(
   output
     .filter(line => line.startsWith('info ') || line.startsWith('bestmove '))
@@ -61,3 +64,25 @@ console.log(
     .join('\n'),
 );
 engine.uci('quit');
+console.log(`WASM heap after NNUE load and two-thread search: ${heapMiB.toFixed(2)} MiB`);
+
+// Exercise the native streaming decoder, independently of the adapter's SHA-256
+// check. A prefix that parses correctly but lacks the end of its frame must fail.
+for (const broken of [network.subarray(0, 100), network.subarray(0, network.length - 1)]) {
+  const rejected = await createPikafish.default();
+  await new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      rejected.uci('quit');
+      reject(new Error('Truncated network was not rejected'));
+    }, 10000);
+    rejected.listen = () => {};
+    rejected.onError = message => {
+      clearTimeout(timer);
+      if (message === 'Pikafish could not initialize the NNUE network') resolve();
+      else reject(new Error(message));
+    };
+    rejected.setNnueBuffer(broken);
+    rejected.uci('isready');
+  });
+}
+console.log('Native decoder rejects both early and late truncated NNUE frames');

@@ -68,7 +68,7 @@ final class AppealTreeUi(helpers: Helpers, ui: AppealUi)(
             "Please use ",
             a(href := routes.Main.contact)("the contact page"),
             " or ",
-            a(href := "https://discord.gg/lichess")("our Discord server"),
+            a(href := "https://discord.gg/rUFqhX7SzJ")("our Discord server"),
             " to contact us about other issues.",
             br,
             "You can also ",

@@ -179,7 +179,7 @@ object CmsRecoveredPageDefaults:
         |
         |Create useful studies, organise tournaments, improve documentation, test accessibility, translate interface text, and welcome new players.
         |
-        |Join the [Lixiangqi Discord](https://discord.gg/wCdGwFyCh) to coordinate with the community.
+        |Join the [Lixiangqi Discord](https://discord.gg/rUFqhX7SzJ) to coordinate with the community.
         |""".stripMargin,
       "/help/contribute"
     ),

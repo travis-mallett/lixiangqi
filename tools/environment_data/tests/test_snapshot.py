@@ -15,6 +15,53 @@ from tools.puzzle_catalog.test_catalog import puzzle, make_snapshot
 
 
 class SnapshotTests(unittest.TestCase):
+    def test_native_import_queues_only_standard_xiangqi_rulesets(self):
+        from tools.xiangqi_data.puzzle_mining.storage import open_database
+        from tools.xiangqi_data.puzzle_mining.snapshot_import import import_snapshot
+
+        rows = [
+            {
+                "id": f"game000{index}",
+                "initialFen": puzzle()["fen"],
+                "moves": ["a4a5"],
+                "players": [],
+                "completedAt": 1234,
+                "ruleset": ruleset,
+            }
+            for index, ruleset in enumerate(
+                [
+                    "unrestricted-v1",
+                    "tiantian-v1",
+                    "jieqi-v1",
+                    "minixiangqi-v1",
+                    "threeKingdoms-v1",
+                ]
+            )
+        ]
+        (self.source / "native-games.jsonl").write_text(
+            "".join(json.dumps(row) + "\n" for row in rows)
+        )
+        (self.source / "manifest.json").write_text(
+            json.dumps(build_manifest(self.source, "rulesets"))
+        )
+        db = open_database(self.root / "mining.db")
+        try:
+            self.assertEqual(import_snapshot(db, self.source), 2)
+            self.assertEqual(
+                [
+                    row[0]
+                    for row in db.execute(
+                        "SELECT game_id FROM native_games ORDER BY game_id"
+                    )
+                ],
+                ["game0000", "game0001"],
+            )
+            self.assertEqual(
+                db.execute("SELECT count(*) FROM game_jobs").fetchone()[0], 2
+            )
+        finally:
+            db.close()
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)
@@ -154,6 +201,7 @@ class SnapshotTests(unittest.TestCase):
             "moves": ["a4a5", "a7a6"],
             "players": ["", "blackuser"],
             "completedAt": 1234,
+            "ruleset": "unrestricted-v1",
         }
         (self.source / "native-games.jsonl").write_text(json.dumps(row) + "\n")
         (self.source / "manifest.json").write_text(
@@ -165,6 +213,9 @@ class SnapshotTests(unittest.TestCase):
             source = "lixiangqi:https://lixiangqi.com"
             self.assertEqual(
                 load_game(db, {}, source, row["id"]).moves, tuple(row["moves"])
+            )
+            self.assertEqual(
+                load_game(db, {}, source, row["id"]).ruleset, "unrestricted-v1"
             )
             db.execute("UPDATE native_games SET snapshot_id=NULL")
             db.commit()

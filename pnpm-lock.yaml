@@ -314,6 +314,12 @@ importers:
         specifier: workspace:*
         version: link:../lib
 
+  ui/humanBot:
+    dependencies:
+      lib:
+        specifier: workspace:*
+        version: link:../lib
+
   ui/insight:
     dependencies:
       chart:

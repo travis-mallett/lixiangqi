@@ -94,6 +94,10 @@ jobs:
         run: python -m unittest discover -s scripts/pikafish/tests
       - name: Run content and environment isolation tests
         run: python -m unittest tools.puzzle_catalog.test_catalog tools.puzzle_catalog.test_publication tools.puzzle_catalog.test_remove_phase_tags tools.puzzle_catalog.test_source_references tools.environment_data.tests.test_snapshot tools.environment_data.tests.test_preview_account tools.xiangqi_data.tests.test_game_catalog
+      - name: Test snapshot transport, streaming export and bounded memory
+        run: |
+          python -m unittest tools.environment_data.tests.test_online_capture
+          node --test tools/environment_data/tests/export_snapshot.test.cjs
       - name: Run live publication client tests
         run: python -m unittest tools.puzzle_catalog.test_live tools.puzzle_catalog.test_game_analysis tools.puzzle_catalog.test_discovery_publication
       - name: Run game completion migration tests

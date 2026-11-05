@@ -179,6 +179,13 @@ version. `--rescan` respects the same depth rule. Interrupted jobs resume throug
 leases and transient failures through bounded retries. Native snapshot sources
 and installed game catalogs follow the same rules.
 
+Native analysis retains the source game's persisted ruleset and complete move
+history. Tiantian searches use the canonical native legal root moves, including
+must-vary restrictions. Historical unrestricted games retain their original rules.
+Snapshot imports queue only standard Xiangqi rulesets; other variants remain in
+the full preview archive. Refresh snapshots that predate the ruleset field.
+Catalog discovery and puzzle verification retain their isolated-root contexts.
+
 Rediscovery retains the candidate identity, existing solution authority, and
 publication. New engine scores and discovery revisions are not new puzzle inputs.
 

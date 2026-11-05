@@ -29,9 +29,12 @@ def catalog_source_paths(paths):
         path = Path(raw).resolve()
         source = sqlite3.connect(f"{path.as_uri()}?mode=ro", uri=True)
         try:
-            unified = source.execute(
-                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='game_sources'"
-            ).fetchone() is not None
+            unified = (
+                source.execute(
+                    "SELECT 1 FROM sqlite_master WHERE type='table' AND name='game_sources'"
+                ).fetchone()
+                is not None
+            )
         finally:
             source.close()
         names = [catalog_database_id(path)]
@@ -52,11 +55,11 @@ class SourceGame:
     moves: tuple[str, ...]
     players: tuple[str, ...]
     source_url: str = ""
+    ruleset: str = "unrestricted-v1"
 
     @property
     def source_database(self) -> str:
         return native_source_database(self.origin)
-
 
 
 def native_source_database(origin: str) -> str:
@@ -71,9 +74,11 @@ def is_native_source(source_database: str) -> bool:
 
 
 def native_origin(source_database: str) -> str:
-    if not is_native_source(source_database) or len(source_database) == len(NATIVE_PREFIX):
+    if not is_native_source(source_database) or len(source_database) == len(
+        NATIVE_PREFIX
+    ):
         raise ValueError(f"not a native source database: {source_database!r}")
-    return source_database[len(NATIVE_PREFIX):]
+    return source_database[len(NATIVE_PREFIX) :]
 
 
 def _decode_moves(raw: Any) -> tuple[str, ...]:
@@ -108,17 +113,26 @@ def load_game(
     """
     if is_native_source(source_database):
         row = connection.execute(
-            "SELECT ng.game_id, ng.origin, ng.initial_fen, ng.moves_json, ng.players_json, ng.source_url "
+            "SELECT ng.game_id, ng.origin, ng.initial_fen, ng.moves_json, ng.players_json, ng.source_url, ng.payload_json "
             "FROM native_games ng JOIN source_snapshots ss ON ss.snapshot_id = ng.snapshot_id "
             "WHERE ng.source_database = ? AND ng.game_id = ?",
             (source_database, game_id),
         ).fetchone()
         if row is None:
             raise LookupError(f"source game {game_id} was not found")
+        payload = json.loads(row["payload_json"])
+        if payload.get("ruleset") not in {"unrestricted-v1", "tiantian-v1"}:
+            raise ValueError(
+                "Native source ruleset is missing; refresh the production snapshot before Discovery"
+            )
         return SourceGame(
-            game_id=row["game_id"], origin=row["origin"],
-            initial_fen=row["initial_fen"] or START_FEN, moves=_decode_moves(row["moves_json"]),
-            players=_decode_players(row["players_json"]), source_url=row["source_url"] or "",
+            game_id=row["game_id"],
+            origin=row["origin"],
+            initial_fen=row["initial_fen"] or START_FEN,
+            moves=_decode_moves(row["moves_json"]),
+            players=_decode_players(row["players_json"]),
+            source_url=row["source_url"] or "",
+            ruleset=payload["ruleset"],
         )
     path = (source_paths or {}).get(source_database)
     if path is None:
@@ -132,7 +146,11 @@ def load_game(
     if row is None:
         raise LookupError(f"source game {game_id} was not found")
     return SourceGame(
-        game_id=row["id"], origin=source_database,
-        initial_fen=(row["initial_fen"] if "initial_fen" in row.keys() else "") or START_FEN,
-        moves=_decode_moves(row["moves"]), players=(), source_url=(row["source_url"] if "source_url" in row.keys() else "") or "",
+        game_id=row["id"],
+        origin=source_database,
+        initial_fen=(row["initial_fen"] if "initial_fen" in row.keys() else "")
+        or START_FEN,
+        moves=_decode_moves(row["moves"]),
+        players=(),
+        source_url=(row["source_url"] if "source_url" in row.keys() else "") or "",
     )

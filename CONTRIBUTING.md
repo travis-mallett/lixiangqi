@@ -4,7 +4,7 @@
 
 - [Set up your development environment](https://github.com/lichess-org/lila/wiki/Lichess-Development-Onboarding).
 - [Pick a GitHub issue to work on](https://github.com/lichess-org/lila/issues). The [`good first issue`](https://github.com/lichess-org/lila/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) and [`no scala`](https://github.com/lichess-org/lila/issues?q=is%3Aissue+is%3Aopen+label%3A%22no+scala%22) tags might be useful.
-- Communicate with other devs on [Discord](https://discord.gg/lichess).
+- Communicate with other devs on [Discord](https://discord.gg/rUFqhX7SzJ).
 
 ### Rules about AI-assisted code contributions
 
@@ -24,7 +24,7 @@ Generated AI code can be accepted, under some conditions:
 - Prefer small, focused pull requests that only change one thing at a time.
 - Mark the pull request as a draft if you have not run the code.
 - Only mark the pull request as ready when you have confirmed that it works as intended - be on the lookout for edge cases.
-- If you're unsure about something, or want to ask if the change is desired before doing the work, ask us in the programming channels on https://discord.gg/lichess
+- If you're unsure about something, or want to ask if the change is desired before doing the work, ask us in the programming channels on https://discord.gg/rUFqhX7SzJ
 
 ## I want to contribute artwork or documentation
 

@@ -70,6 +70,7 @@ class NativeRules {
                 response.put("legalMoves", CollectionConverters.asJava(state.legalMoves()));
                 response.put("gameResult", state.gameResult().key());
                 response.put("termination", state.termination().isDefined() ? state.termination().get() : null);
+                response.put("checkers", CollectionConverters.asJava(checked(XiangqiRules.checkers(state.fen()))));
             } catch (Exception error) {
                 game = null;
                 response.put("error", error.toString());
