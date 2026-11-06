@@ -125,6 +125,7 @@ object concept:
     case Xiangqi.Role.Chariot => TutorIcon.chariot
     case Xiangqi.Role.Cannon => TutorIcon.cannon
     case Xiangqi.Role.Soldier => TutorIcon.soldier
+    case Xiangqi.Role.Banner => TutorIcon.banner
 
   def piece(piece: Xiangqi.Role, unit: TutorUnit = percent) = adhoc(piece.name, pieceIcon(piece), unit)
 

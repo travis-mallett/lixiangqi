@@ -8,9 +8,10 @@ object rank:
     val xiangqi: RankTrackId = "xiangqi"
     val jieqi: RankTrackId = "jieqi"
     val minixiangqi: RankTrackId = "minixiangqi"
+    val manchu: RankTrackId = "manchu"
     val threeKingdoms: RankTrackId = "threeKingdoms"
 
-    val all: List[RankTrackId] = List(xiangqi, jieqi, minixiangqi, threeKingdoms)
+    val all: List[RankTrackId] = List(xiangqi, jieqi, minixiangqi, manchu, threeKingdoms)
     def of(variant: lila.xiangqi.GameVariant): RankTrackId =
       from(variant.key).get
 

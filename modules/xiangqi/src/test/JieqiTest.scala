@@ -103,8 +103,10 @@ class JieqiTest extends FunSuite:
     val game = Jieqi.initial().fold(fail(_), identity).copy(deal = None)
     assert(Jieqi.analysisMove(game, Uci.unsafe("a4a5"), Some("general")).isLeft)
     assert(Jieqi.analysisMove(game, Uci.unsafe("a4a5"), Some("dragon")).isLeft)
+    assert(Jieqi.analysisMove(game, Uci.unsafe("a4a5"), Some("banner")).isLeft)
     assert(Jieqi.analysisMove(game, Uci.unsafe("e1e2"), Some("chariot")).isLeft)
     assert(Jieqi.withKnownCaptures(game, Map("a1" -> "general")).isLeft)
+    assert(Jieqi.withKnownCaptures(game, Map("a1" -> "banner")).isLeft)
 
   test("Jieqi notation round trips chance outcomes and retains distinct reveal branches"):
     val text = s"""[Variant "Jieqi"]

@@ -130,6 +130,13 @@ object JsonView:
             Json.obj("games" -> perf.games, "rank" -> lila.rating.JieqiRank.catalog.code(perf.score).value)
       )
       .add(
+        "manchu" -> p
+          .rank(lila.core.rank.RankTrackId.manchu)
+          .filter(_.established)
+          .map: perf =>
+            Json.obj("games" -> perf.games, "rank" -> lila.rating.ManchuRank.catalog.code(perf.score).value)
+      )
+      .add(
         "minixiangqi" -> p
           .rank(lila.core.rank.RankTrackId.minixiangqi)
           .filter(_.established)

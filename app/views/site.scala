@@ -62,6 +62,23 @@ object variant:
         )
       )
 
+  def manchu(using Context) =
+    page(title = trans.site.manchuTitle.txt(), klass = "box-pad page variant", manchuActive = true):
+      frag(
+        h1(trans.site.manchuTitle()),
+        h2(trans.site.manchuLearnToPlay()),
+        div(cls := "body")(
+          h2(trans.site.jieqiSetupHeading()),
+          p(trans.site.manchuSetupText()),
+          h2(trans.site.jieqiMovementHeading()),
+          p(trans.site.manchuMovementText()),
+          h2(trans.site.jieqiWinningHeading()),
+          p(trans.site.manchuWinningText()),
+          p(trans.site.manchuRankExplanation()),
+          a(cls := "button", href := "/?variant=manchu")(trans.site.playRatedManchu())
+        )
+      )
+
   def miniXiangqi(using Context) =
     page(title = trans.site.miniXiangqiTitle.txt(), klass = "box-pad page variant", miniActive = true):
       frag(
@@ -127,6 +144,9 @@ object variant:
           a(cls := "variant text box__pad", href := routes.Cms.threeKingdoms)(
             span(h2(trans.site.threeKingdoms()), h3(cls := "headline")(trans.threeKingdoms.title()))
           ),
+          a(cls := "variant text box__pad", href := routes.Cms.manchu)(
+            span(h2(trans.site.manchu()), h3(cls := "headline")(trans.site.manchuTitle()))
+          ),
           a(cls := "variant text box__pad", href := routes.Cms.miniXiangqi)(
             span(h2(trans.site.miniXiangqi()), h3(cls := "headline")(trans.site.miniXiangqiTitle()))
           ),
@@ -154,7 +174,8 @@ object variant:
       active: Option[PerfKey] = None,
       jieqiActive: Boolean = false,
       kingdomsActive: Boolean = false,
-      miniActive: Boolean = false
+      miniActive: Boolean = false,
+      manchuActive: Boolean = false
   )(using Context) =
     Page(title)
       .css("bits.variant")
@@ -164,6 +185,9 @@ object variant:
           lila.ui.bits.pageMenuSubnav(
             a(cls := List("text" -> true, "active" -> kingdomsActive), href := routes.Cms.threeKingdoms)(
               trans.site.threeKingdoms()
+            ),
+            a(cls := List("text" -> true, "active" -> manchuActive), href := routes.Cms.manchu)(
+              trans.site.manchu()
             ),
             a(cls := List("text" -> true, "active" -> miniActive), href := routes.Cms.miniXiangqi)(
               trans.site.miniXiangqi()

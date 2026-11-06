@@ -118,6 +118,14 @@ object Tv:
           filters = Nil,
           variant = Some(lila.xiangqi.GameVariant.MiniXiangqi)
         )
+    case Manchu
+        extends Channel(
+          name = "Manchu+",
+          icon = lila.ui.VariantIcon(lila.xiangqi.GameVariant.Manchu),
+          secondsSinceLastMove = 180,
+          filters = Nil,
+          variant = Some(lila.xiangqi.GameVariant.Manchu)
+        )
     case ThreeKingdoms
         extends Channel(
           name = "Game of the Three Kingdoms",

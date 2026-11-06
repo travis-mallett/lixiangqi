@@ -1,13 +1,16 @@
-import { embedAssetUrl } from 'lib/embed';
+import { embedAssetUrl, sizeEmbedToContent } from 'lib/embed';
 import { fitEmbed } from 'lib/fitEmbed';
 import { initMiniGame, updateMiniGame } from 'lib/view';
 
+let contentSized = false;
 function resize() {
+  if (contentSized) return;
   const el = document.querySelector('#featured-game') as HTMLElement;
   fitEmbed(el);
 }
 
 window.onload = () => {
+  contentSized = sizeEmbedToContent(document.getElementById('featured-game')!);
   const findGame = () => document.querySelector<HTMLElement>('.mini-game');
   const setup = () => {
     const game = findGame();

@@ -30,6 +30,7 @@ const rules: Rules = (
     xiangqi: 'Xiangqi',
     jieqi: 'Jieqi',
     miniXiangqi: 'Mini Xiangqi',
+    manchu: 'Manchu+',
   },
   threeKingdoms: {
     resign: 'Resign',
@@ -334,7 +335,7 @@ test('the common analysis variant picker includes Three Kingdoms', () => {
   });
   assert.deepEqual(
     [...select.options].map(option => option.value),
-    ['xiangqi', 'jieqi', 'minixiangqi', 'threeKingdoms'],
+    ['xiangqi', 'jieqi', 'minixiangqi', 'manchu', 'threeKingdoms'],
   );
   select.value = 'threeKingdoms';
   select.dispatchEvent(new window.Event('change'));

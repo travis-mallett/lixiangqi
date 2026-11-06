@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 // Unpack fairy-stockfish-nnue.wasm@1.1.12, and download its exact commit source:
 // https://codeload.github.com/fairy-stockfish/fairy-stockfish.wasm/zip/b2e693ef1e111233ce3fb40685921708b3276ed6
-// Usage: node scripts/minixiangqi-engine/import.mjs <unpacked-package-dir> <source.zip>
+// Usage: node scripts/fairy-stockfish-engine/import.mjs <unpacked-package-dir> <source.zip>
 const [packageDirectory, sourceArchive] = process.argv.slice(2);
 if (!packageDirectory || !sourceArchive)
   throw new Error('Provide the unpacked package directory and source archive');
@@ -23,9 +23,9 @@ const files = Object.keys(expected).map(name => [
 ]);
 for (const [name, file] of files) {
   const hash = createHash('sha256').update(readFileSync(file)).digest('hex');
-  if (hash !== expected[name]) throw new Error('Unexpected Mini Xiangqi engine artifact: ' + name);
+  if (hash !== expected[name]) throw new Error('Unexpected Fairy-Stockfish engine artifact: ' + name);
 }
-const destination = fileURLToPath(new URL('../../public/minixiangqi-engine/', import.meta.url));
+const destination = fileURLToPath(new URL('../../public/fairy-stockfish-engine/', import.meta.url));
 mkdirSync(destination, { recursive: true });
 for (const [name, file] of files) copyFileSync(file, resolve(destination, name));
 console.log('Imported verified Fairy-Stockfish artifacts and corresponding source.');

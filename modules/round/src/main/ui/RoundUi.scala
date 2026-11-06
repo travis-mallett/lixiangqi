@@ -77,7 +77,8 @@ final class RoundUi(helpers: Helpers, gameUi: lila.game.ui.GameUi):
 
     val mode = if game.ranked then trans.site.ranked.txt() else trans.site.casual.txt()
     val variant =
-      if game.nativeVariant == lila.xiangqi.GameVariant.MiniXiangqi then trans.site.miniXiangqi.txt()
+      if game.nativeVariant == lila.xiangqi.GameVariant.Manchu then trans.site.manchu.txt()
+      else if game.nativeVariant == lila.xiangqi.GameVariant.MiniXiangqi then trans.site.miniXiangqi.txt()
       else if game.isJieqi then trans.site.jieqi.txt()
       else if game.fromPosition then "a custom Xiangqi position"
       else "Xiangqi"

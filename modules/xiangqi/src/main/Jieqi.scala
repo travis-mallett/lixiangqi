@@ -9,6 +9,7 @@ object Jieqi:
   val startFen = "xxxxkxxxx/9/1x5x1/x1x1x1x1x/9/9/X1X1X1X1X/1X5X1/9/XXXXKXXXX w j - 0 1"
   private lazy val random = new SecureRandom
   lazy val startingPieces: Map[Square, Piece] = Fen.board(Xiangqi.startFen).get.pieces
+  private lazy val hiddenRoles = startingPieces.values.map(_.role).filter(_ != Role.General).map(_.key).toSet
 
   final case class Deal(identities: Map[String, String]):
     def at(square: String): Role = Role.byKey(identities(square))
@@ -79,7 +80,7 @@ object Jieqi:
   /** Explicit analysis knowledge, never a lookup into a live game's private deal. */
   def withKnownCaptures(game: Game, known: Map[String, String]): Either[String, Game] =
     if known.size > 30 || known.exists((square, role) =>
-        !startingPieces.keys.exists(_.key == square) || !Role.byKey.get(role).exists(_ != Role.General)
+        !startingPieces.keys.exists(_.key == square) || !hiddenRoles(role)
       )
     then Left("Invalid captured-piece knowledge")
     else

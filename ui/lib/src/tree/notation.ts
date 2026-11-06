@@ -57,9 +57,11 @@ export function renderTreeNotation(root: TreeNode): string {
     variant:
       root.state.variant === 'jieqi'
         ? 'Jieqi'
-        : root.state.variant === 'minixiangqi'
-          ? 'Mini Xiangqi'
-          : 'Xiangqi',
+        : root.state.variant === 'manchu'
+          ? 'Manchu+'
+          : root.state.variant === 'minixiangqi'
+            ? 'Mini Xiangqi'
+            : 'Xiangqi',
     fen: root.fen,
     setup: '1',
     ruleset: root.ruleset,

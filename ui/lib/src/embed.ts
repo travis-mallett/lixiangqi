@@ -2,6 +2,19 @@
 export const embedAssetUrl = (path: string): string =>
   `${document.body.dataset.assetUrl || ''}/assets/_${document.body.dataset.assetVersion}/${path}`;
 
+/** Same-origin, content-sized embeds opt in through their hosting iframe. */
+export function sizeEmbedToContent(element: HTMLElement): boolean {
+  const frame = window.frameElement as HTMLIFrameElement | null;
+  if (frame?.tagName !== 'IFRAME' || !frame.hasAttribute('data-content-sized')) return false;
+  document.documentElement.classList.add('content-sized-embed');
+  const observer = new ResizeObserver(() => {
+    frame.style.height = `${Math.ceil(element.getBoundingClientRect().height)}px`;
+  });
+  observer.observe(element);
+  window.addEventListener('pagehide', () => observer.disconnect(), { once: true });
+  return true;
+}
+
 /** Refresh opt-in embeds only when their appearance parameters actually change. */
 export function updateThemeEmbeds(theme: { uiTheme: string; boardTheme: string; pieceSet: string }): void {
   document.querySelectorAll<HTMLIFrameElement>('iframe[data-theme-embed]').forEach(frame => {

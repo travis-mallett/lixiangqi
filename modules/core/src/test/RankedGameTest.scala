@@ -141,3 +141,29 @@ class RankedGameTest extends munit.FunSuite:
     assertEquals(game.rankTrack, Some(RankTrackId.minixiangqi))
     assertEquals(game.clock.get.config.limitSeconds, Clock.LimitSeconds(600))
     assertEquals((1 to 5).map(RankedGame.jieqiMoveTime.limitForMove).toList, List(30, 30, 30, 60, 60))
+
+  test("Manchu+ uses its own account, canonical clock, and opening move limits"):
+    val jPlayers = players.map(p =>
+      p.copy(rank =
+        p.rank.map(
+          _.copy(track = RankTrackId.manchu, score = RankScore(0), code = RankCode("旗1-1"), ordinal = 0)
+        )
+      )
+    )
+    val game = newGame(
+      xiangqi = lila.xiangqi.GameVariant.Manchu
+        .initialGame(None, lila.xiangqi.adjudication.Ruleset.Manchu)
+        .toOption
+        .get,
+      players = jPlayers,
+      rated = Rated.Yes,
+      source = Source.Pool,
+      pgnImport = None,
+      clock = Some(Clock(RankedGame.jieqiClock)),
+      moveTimeLimit = Some(RankedGame.jieqiMoveTime),
+      rankTrack = Some(RankTrackId.manchu)
+    ).sloppy
+    assert(game.ranked)
+    assertEquals(game.rankTrack, Some(RankTrackId.manchu))
+    assertEquals(game.clock.get.config.limitSeconds, Clock.LimitSeconds(600))
+    assertEquals((1 to 5).map(RankedGame.jieqiMoveTime.limitForMove).toList, List(30, 30, 30, 60, 60))

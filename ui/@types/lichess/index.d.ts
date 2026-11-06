@@ -220,6 +220,7 @@ interface Navigator {
 type VariantKey =
   | 'jieqi'
   | 'minixiangqi'
+  | 'manchu'
   | 'xiangqi'
   | 'standard'
   | 'chess960'

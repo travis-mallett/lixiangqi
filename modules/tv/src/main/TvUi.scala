@@ -21,6 +21,7 @@ final class TvUi(helpers: lila.ui.Helpers)(
       channel match
         case Tv.Channel.Xiangqi => trans.site.xiangqi.txt()
         case Tv.Channel.Jieqi => trans.site.jieqi.txt()
+        case Tv.Channel.Manchu => trans.site.manchu.txt()
         case Tv.Channel.MiniXiangqi => trans.site.miniXiangqi.txt()
         case Tv.Channel.ThreeKingdoms => trans.site.threeKingdoms.txt()
         case Tv.Channel.Computer => trans.site.computer.txt()

@@ -7,12 +7,13 @@ import { occupancy } from './occupancy';
 
 export default function variantMenu(
   ctrl: LobbyController,
-  variant: 'jieqi' | 'minixiangqi' | 'threeKingdoms',
+  variant: 'jieqi' | 'minixiangqi' | 'manchu' | 'threeKingdoms',
   navigate: (action: () => void) => void,
 ) {
   const pool = ctrl.variantPool(variant);
   const kingdoms = variant === 'threeKingdoms';
   const mini = variant === 'minixiangqi';
+  const manchu = variant === 'manchu';
   const disabled =
     !!ctrl.me?.isBot ||
     ctrl.playban ||
@@ -43,16 +44,24 @@ export default function variantMenu(
     hl('header.lobby__variant-menu-heading', [
       hl(
         'h2#variant-menu-title',
-        kingdoms
-          ? `${i18n.site.threeKingdoms} (三国棋)`
-          : mini
-            ? i18n.site.miniXiangqiTitle
-            : i18n.site.jieqiTitle,
+        manchu
+          ? i18n.site.manchuTitle
+          : kingdoms
+            ? `${i18n.site.threeKingdoms} (三国棋)`
+            : mini
+              ? i18n.site.miniXiangqiTitle
+              : i18n.site.jieqiTitle,
       ),
       hl(
         'a.text',
         { attrs: { href: `/variant/${variant}`, 'data-icon': licon.Book } },
-        kingdoms ? i18n.site.learnMenu : mini ? i18n.site.miniXiangqiLearnToPlay : i18n.site.jieqiLearnToPlay,
+        manchu
+          ? i18n.site.manchuLearnToPlay
+          : kingdoms
+            ? i18n.site.learnMenu
+            : mini
+              ? i18n.site.miniXiangqiLearnToPlay
+              : i18n.site.jieqiLearnToPlay,
       ),
     ]),
     hl(
@@ -67,11 +76,13 @@ export default function variantMenu(
       },
       content(
         licon.Trophy,
-        kingdoms
-          ? i18n.site.playRatedThreeKingdoms
-          : mini
-            ? i18n.site.playRatedMiniXiangqi
-            : i18n.site.playRatedJieqi,
+        manchu
+          ? i18n.site.playRatedManchu
+          : kingdoms
+            ? i18n.site.playRatedThreeKingdoms
+            : mini
+              ? i18n.site.playRatedMiniXiangqi
+              : i18n.site.playRatedJieqi,
         kingdoms ? i18n.site.threeKingdomsTimeControl : i18n.site.minutesShort(pool.lim),
         ctrl.poolCount(pool.id),
       ),
@@ -85,11 +96,13 @@ export default function variantMenu(
     ),
     link(
       licon.Microscope,
-      kingdoms
-        ? i18n.site.threeKingdomsAnalysisBoard
-        : mini
-          ? i18n.site.miniXiangqiAnalysisBoard
-          : i18n.site.jieqiAnalysisBoard,
+      manchu
+        ? i18n.site.manchuAnalysisBoard
+        : kingdoms
+          ? i18n.site.threeKingdomsAnalysisBoard
+          : mini
+            ? i18n.site.miniXiangqiAnalysisBoard
+            : i18n.site.jieqiAnalysisBoard,
       `/analysis/${variant}`,
     ),
     link(

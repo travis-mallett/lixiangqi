@@ -21,6 +21,7 @@ trait GameHelper:
       .fold(speedName): (clock, limit) =>
         s"$speedName (${clock.show} · ${shortMoveTimeLimitName(limit)})"
     val variant = if g.isJieqi then trans.site.jieqi.txt()
+    else if g.nativeVariant == lila.xiangqi.GameVariant.Manchu then trans.site.manchu.txt()
     else if g.nativeVariant == lila.xiangqi.GameVariant.MiniXiangqi then trans.site.miniXiangqi.txt()
     else "Xiangqi"
     s"$speed $variant • ${playerText(g.whitePlayer)} vs ${playerText(g.blackPlayer)}"
@@ -171,6 +172,8 @@ trait GameHelper:
     nativeVariant match
       case lila.xiangqi.GameVariant.Jieqi =>
         a(cls := "variant-link", href := s"${routes.Lobby.home}?variant=jieqi")(trans.site.jieqi())
+      case lila.xiangqi.GameVariant.Manchu =>
+        a(cls := "variant-link", href := s"${routes.Lobby.home}?variant=manchu")(trans.site.manchu())
       case lila.xiangqi.GameVariant.MiniXiangqi =>
         a(cls := "variant-link", href := s"${routes.Lobby.home}?variant=minixiangqi")(
           trans.site.miniXiangqi()

@@ -2,7 +2,8 @@ package lila.game
 
 enum GameFilter:
   val name = toString
-  case all, jieqi, minixiangqi, threeKingdoms, me, ranked, win, loss, draw, playing, bookmark, imported,
+  case all, jieqi, minixiangqi, manchu, threeKingdoms, me, ranked, win, loss, draw, playing, bookmark,
+    imported,
     search
 
 object GameFilter:
@@ -12,6 +13,7 @@ object GameFilter:
       all,
       jieqi,
       minixiangqi,
+      manchu,
       threeKingdoms,
       me,
       ranked,

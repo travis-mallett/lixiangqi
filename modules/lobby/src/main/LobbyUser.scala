@@ -14,10 +14,12 @@ private[lobby] case class LobbyUser(
     rank: RankSnapshot,
     blocking: Blocking,
     jieqiRank: RankSnapshot = lila.rating.JieqiRank.initialSnapshot,
-    miniXiangqiRank: RankSnapshot = lila.rating.MiniXiangqiRank.initialSnapshot
+    miniXiangqiRank: RankSnapshot = lila.rating.MiniXiangqiRank.initialSnapshot,
+    manchuRank: RankSnapshot = lila.rating.ManchuRank.initialSnapshot
 ):
   def rankFor(track: Option[RankTrackId]) = if track.contains(RankTrackId.jieqi) then jieqiRank
   else if track.contains(RankTrackId.minixiangqi) then miniXiangqiRank
+  else if track.contains(RankTrackId.manchu) then manchuRank
   else rank
 
 private[lobby] object LobbyUser:
@@ -37,5 +39,8 @@ private[lobby] object LobbyUser:
       ),
       miniXiangqiRank = lila.rating.MiniXiangqiRank.snapshot(
         user.perfs.rank(RankTrackId.minixiangqi).getOrElse(lila.rating.MiniXiangqiRank.initial)
+      ),
+      manchuRank = lila.rating.ManchuRank.snapshot(
+        user.perfs.rank(RankTrackId.manchu).getOrElse(lila.rating.ManchuRank.initial)
       )
     )

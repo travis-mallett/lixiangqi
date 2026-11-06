@@ -30,9 +30,9 @@ final class UserGameApi(
       .obj(
         "id" -> g.id,
         "ranked" -> g.ranked,
-        "variant" -> g.variant,
+        "variant" -> JsonView.variant(g),
         "speed" -> g.speed.key,
-        "perf" -> "xiangqi",
+        "perf" -> g.nativeVariant.key,
         "timestamp" -> g.createdAt,
         "turns" -> g.ply,
         "status" -> g.status,

@@ -7,6 +7,7 @@ enum Ruleset(val key: String, val label: String):
   case Jieqi extends Ruleset("jieqi-v1", "Jieqi")
 
   case MiniXiangqi extends Ruleset("minixiangqi-v1", "Mini Xiangqi")
+  case Manchu extends Ruleset("manchu-v1", "Manchu+")
   case ThreeKingdoms extends Ruleset("threeKingdoms-v1", "Three Kingdoms")
 
   def policy: Option[AdjudicationPolicy] = this match
@@ -14,6 +15,7 @@ enum Ruleset(val key: String, val label: String):
     case Unrestricted => None
     case Jieqi => Some(JieqiRules)
     case MiniXiangqi => Some(lila.xiangqi.MiniXiangqiRules)
+    case Manchu => Some(lila.xiangqi.ManchuRules)
     case ThreeKingdoms => None // Adjudicated by the three-participant rules core.
 
 object Ruleset:

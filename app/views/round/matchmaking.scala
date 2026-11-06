@@ -9,6 +9,7 @@ import lila.pool.PoolConfig
 def matchmaking(pool: PoolConfig)(using ctx: Context) =
   val pageTitle =
     if pool.gameVariant == lila.xiangqi.GameVariant.ThreeKingdoms then trans.site.playRatedThreeKingdoms.txt()
+    else if pool.gameVariant == lila.xiangqi.GameVariant.Manchu then trans.site.playRatedManchu.txt()
     else if pool.gameVariant == lila.xiangqi.GameVariant.MiniXiangqi then
       trans.site.playRatedMiniXiangqi.txt()
     else if pool.jieqi then trans.site.playRatedJieqi.txt()

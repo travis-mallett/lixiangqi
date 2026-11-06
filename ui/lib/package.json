@@ -19,7 +19,7 @@
       "/public/javascripts/**",
       "/public/pikafish-web/*",
       "/public/jieqi-engine/**",
-      "/public/minixiangqi-engine/*",
+      "/public/fairy-stockfish-engine/*",
       "/public/three-kingdoms-engine/*.js",
       "/public/npm/*",
       "/public/piece/**",

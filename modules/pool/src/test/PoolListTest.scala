@@ -2,6 +2,17 @@ package lila.pool
 
 class PoolListTest extends munit.FunSuite:
 
+  test("Manchu+ has an independent rated ten-minute room"):
+    val pool = PoolList.manchu
+    assertEquals(pool.id.value, "manchu-v1-ranked-10+0-m60-30x3")
+    assertEquals(pool.gameVariant, lila.xiangqi.GameVariant.Manchu)
+    assertEquals(pool.rankTrack, Some(lila.core.rank.RankTrackId.manchu))
+    assertEquals(pool.clock.limitInMinutes, 10d)
+    assertEquals(pool.clock.incrementSeconds.value, 0)
+    assert(pool.ranked)
+    assert(PoolList.homepage.contains(pool))
+    assertEquals(PoolList.all.count(_.id == pool.id), 1)
+
   test("homepage pools have their exact bank and per-move controls"):
     val rooms = PoolList.homepage
       .filter(_.gameVariant == lila.xiangqi.GameVariant.Xiangqi)

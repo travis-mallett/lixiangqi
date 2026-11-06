@@ -4895,6 +4895,24 @@ interface I18n {
     makeSureToRead: I18nFormat;
     /** Your account is managed. Ask your teacher before changing login methods. */
     managedLoginMethods: string;
+    /** Manchu+ */
+    manchu: string;
+    /** Manchu+ analysis board */
+    manchuAnalysisBoard: string;
+    /** Manchu+ leaderboard */
+    manchuLeaderboard: string;
+    /** How to play Manchu+ */
+    manchuLearnToPlay: string;
+    /** The Banner combines a chariot, a cannon, and a horse: it slides along open ranks or files, captures over exactly one intervening piece, or makes a horse move when its leg is clear. It uses one of these moves per turn. All other pieces follow Xiangqi movement rules, including the river, palaces, and flying generals. */
+    manchuMovementText: string;
+    /** Manchu+ has its own ranks, from 旗1-1 to 旗9-4, using the same thresholds and rating calculations as Jieqi. Rated quick pairing gives each player 10 minutes, with a 60-second move limit and a 30-second limit for each of the first three moves. */
+    manchuRankExplanation: string;
+    /** Manchu+ uses the balanced setup played on PyChess. Red has the usual Xiangqi army. Black has no horses or cannons, and its chariot on a10 is replaced by a Banner (旗). Black keeps its other chariot on i10, both advisors, both elephants, five soldiers, and its general. */
+    manchuSetupText: string;
+    /** Manchu+ (满洲棋) */
+    manchuTitle: string;
+    /** Checkmate and stalemate both win. Three repetitions draw unless exactly one side gives perpetual check, in which case that side loses. Fifty moves by each player without a capture also draw. Manchu+ does not use Tiantian chasing adjudication. */
+    manchuWinningText: string;
     /** %s is available for formatting. */
     markdownIsAvailable: I18nFormat;
     /** OTB games of %1$s+ WXF-rated players from %2$s to %3$s */
@@ -5271,6 +5289,8 @@ interface I18n {
     playRatedGameToGetRanked: string;
     /** Play Rated Jieqi */
     playRatedJieqi: string;
+    /** Play Rated Manchu+ */
+    playRatedManchu: string;
     /** Play Rated Mini Xiangqi */
     playRatedMiniXiangqi: string;
     /** Rated Three Kingdoms */

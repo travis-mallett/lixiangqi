@@ -59,7 +59,6 @@ object page:
       .js(pageModule(info))
       .js(esModules(filters.current.name == "search"))
       .css("user.show")
-      .js(PageModule("threeKingdoms.mini", play.api.libs.json.Json.obj()))
       .css((filters.current.name == "search").option("user.show.search"))
       .css(isGranted(_.UserModView).option("mod.user"))
       .flag(_.noRobots, !indexable(u)):
@@ -87,6 +86,7 @@ object page:
   private def esModules(withSearch: Boolean = false)(using Context): EsmList =
     infiniteScrollEsmInit
       ++ esmInit("user")
+      ++ esmInit("threeKingdoms.mini")
       ++ Esm("bits.dropdownOverflow")
       ++ withSearch.so(Esm("bits.gameSearch"))
       ++ isGranted(_.UserModView).so(Esm("mod.user"))
@@ -117,6 +117,7 @@ object page:
     filter match
       case GameFilter.jieqi => "Jieqi (揭棋)"
       case GameFilter.minixiangqi => trans.site.miniXiangqi.txt()
+      case GameFilter.manchu => trans.site.manchu.txt()
       case GameFilter.threeKingdoms => trans.site.threeKingdoms.txt()
       case GameFilter.all => transLocalize(trans.site.nbGames, u.count.game)
       case GameFilter.me => nbs.withMe.so { transLocalize(trans.site.nbGamesWithYou, _) }

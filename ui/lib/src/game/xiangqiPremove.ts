@@ -25,20 +25,22 @@ export function xiangqiPremoveTargets(position: BoardPosition, from: string, jie
       if (!dx && !dy) continue;
       const palace = file >= center - 1 && file <= center + 1 && (red ? rank <= 3 : rank >= rows - 2);
       const possible =
-        piece.role === 'chariot' || piece.role === 'cannon'
-          ? dx === 0 || dy === 0
-          : piece.role === 'horse'
-            ? dx * dy === 2
-            : piece.role === 'elephant'
-              ? dx === 2 && dy === 2 && (unrestrictedDiagonals || (red ? rank <= 5 : rank >= 6))
-              : piece.role === 'advisor'
-                ? dx === 1 && dy === 1 && (unrestrictedDiagonals || palace)
-                : piece.role === 'general'
-                  ? dx + dy === 1 && palace
-                  : piece.role === 'soldier'
-                    ? (dx === 0 && rank === y + (red ? 1 : -1)) ||
-                      (dy === 0 && dx === 1 && (mini || (red ? y >= 6 : y <= 5)))
-                    : false;
+        piece.role === 'banner'
+          ? dx === 0 || dy === 0 || dx * dy === 2
+          : piece.role === 'chariot' || piece.role === 'cannon'
+            ? dx === 0 || dy === 0
+            : piece.role === 'horse'
+              ? dx * dy === 2
+              : piece.role === 'elephant'
+                ? dx === 2 && dy === 2 && (unrestrictedDiagonals || (red ? rank <= 5 : rank >= 6))
+                : piece.role === 'advisor'
+                  ? dx === 1 && dy === 1 && (unrestrictedDiagonals || palace)
+                  : piece.role === 'general'
+                    ? dx + dy === 1 && palace
+                    : piece.role === 'soldier'
+                      ? (dx === 0 && rank === y + (red ? 1 : -1)) ||
+                        (dy === 0 && dx === 1 && (mini || (red ? y >= 6 : y <= 5)))
+                      : false;
       if (possible) targets.push(`${String.fromCharCode(97 + file)}${rank}`);
     }
   return targets;

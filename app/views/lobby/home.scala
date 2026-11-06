@@ -40,10 +40,10 @@ object home:
         )
       )
     def variantCard(icon: String, chinese: String, english: String) =
-      (if Set("jieqi", "mini-xiangqi", "threeKingdoms").contains(icon) then
+      (if Set("jieqi", "mini-xiangqi", "manchu", "threeKingdoms").contains(icon) then
          a(href := s"/?variant=${if icon == "mini-xiangqi" then "minixiangqi" else icon}")
        else st.article(attr("aria-disabled") := "true")) (cls := "lobby__variant-card")(
-        if Set("jieqi", "mini-xiangqi", "threeKingdoms").contains(icon) then
+        if Set("jieqi", "mini-xiangqi", "manchu", "threeKingdoms").contains(icon) then
           span(cls := "lobby__variant-ribbon lobby__variant-ribbon--new")(trans.site.newFeature())
         else span(cls := "lobby__variant-ribbon")(trans.site.comingSoon()),
         img(
@@ -118,6 +118,7 @@ object home:
               iframe(
                 cls := "lobby__tv__variant",
                 attr("data-theme-embed") := "",
+                attr("data-content-sized") := "",
                 src := s"/tv/${variantTv.key}/frame?uiTheme=${ctx.pref.uiTheme}&boardTheme=${ctx.pref.boardTheme}&pieceSet=${ctx.pref.pieceSet}",
                 title := variantTvName,
                 attr("loading") := "lazy"
@@ -144,7 +145,7 @@ object home:
                 variantCard("banqi", "暗棋", "Banqi / Dark Chess"),
                 variantCard("mini-xiangqi", "迷你象棋", trans.site.miniXiangqi.txt()),
                 variantCard("threeKingdoms", "三国棋", trans.site.threeKingdoms.txt()),
-                variantCard("manchu", "满洲棋", "Manchu Chess"),
+                variantCard("manchu", "满洲棋", trans.site.manchu.txt()),
                 variantCard("other", "其他变体", "Other Variants")
               )
             ),

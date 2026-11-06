@@ -3,7 +3,7 @@ import shutil
 import unittest
 
 from .ai import MoveWork
-from .minixiangqi import MiniXiangqiMoveEngine, strength
+from .fairy_xiangqi import FairyXiangqiMoveEngine, strength
 
 START = "rcnkncr/p1ppp1p/7/7/7/P1PPP1P/RCNKNCR w - - 0 1"
 
@@ -30,7 +30,7 @@ class MiniXiangqiTest(unittest.TestCase):
 
     @unittest.skipUnless(shutil.which("node"), "Node is required for the packaged WASM engine")
     def test_packaged_engine_all_levels_and_black_history_obey_authoritative_moves(self):
-        engine = MiniXiangqiMoveEngine()
+        engine = FairyXiangqiMoveEngine("minixiangqi")
         try:
             for level in range(1, 11):
                 with self.subTest(level=level):

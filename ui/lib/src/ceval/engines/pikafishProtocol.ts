@@ -1,4 +1,6 @@
-export type EngineVariant = 'xiangqi' | 'jieqi' | 'minixiangqi';
+import { manchuEngineFen } from '../../game/manchu';
+
+export type EngineVariant = 'xiangqi' | 'jieqi' | 'minixiangqi' | 'manchu';
 
 export interface EngineScore {
   cp?: number;
@@ -114,8 +116,8 @@ export class PikafishProtocol {
   received(command: string): void {
     const parts = command.trim().split(/\s+/);
     if (parts[0] === 'uciok') {
-      if (this.variant === 'minixiangqi') {
-        this.setOption('UCI_Variant', 'minixiangqi');
+      if (this.variant === 'minixiangqi' || this.variant === 'manchu') {
+        this.setOption('UCI_Variant', this.variant);
         this.setOption('Use NNUE', 'false');
       }
       const options = this.startupOptions ?? this.nextWork;
@@ -288,8 +290,9 @@ export class PikafishProtocol {
     this.setOption('MultiPV', Math.max(1, this.work.multiPv));
     const history = this.work.engineFen ? undefined : this.work.history;
     const moves = history?.moves.map(move => uiMoveToEngine(move, this.variant));
+    const fen = this.work.engineFen ?? history?.initialFen ?? this.work.fen;
     this.send(
-      `position fen ${this.work.engineFen ?? history?.initialFen ?? this.work.fen}${moves?.length ? ` moves ${moves.join(' ')}` : ''}`,
+      `position fen ${this.variant === 'manchu' ? manchuEngineFen(fen) : fen}${moves?.length ? ` moves ${moves.join(' ')}` : ''}`,
     );
     const { search } = this.work;
     const budget =
@@ -401,12 +404,17 @@ export function parsePikafishInfo(
 
 export function engineMoveToUi(move: string, variant: EngineVariant = 'xiangqi'): string | undefined {
   if (variant === 'minixiangqi') return /^[a-g][1-7][a-g][1-7]$/.test(move) ? move : undefined;
+  if (variant === 'manchu') return /^[a-i](10|[1-9])[a-i](10|[1-9])$/.test(move) ? move : undefined;
   const match = /^([a-i])([0-9])([a-i])([0-9])$/i.exec(move);
   if (!match) return;
   return `${match[1].toLowerCase()}${Number(match[2]) + 1}${match[3].toLowerCase()}${Number(match[4]) + 1}`;
 }
 
 function uiMoveToEngine(move: string, variant: EngineVariant): string {
+  if (variant === 'manchu') {
+    if (!/^[a-i](10|[1-9])[a-i](10|[1-9])$/.test(move)) throw new Error(`Invalid Manchu+ move: ${move}`);
+    return move;
+  }
   if (variant === 'minixiangqi') {
     if (!/^[a-g][1-7][a-g][1-7]$/.test(move)) throw new Error(`Invalid Mini Xiangqi move: ${move}`);
     return move;

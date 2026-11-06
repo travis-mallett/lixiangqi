@@ -16,6 +16,7 @@ import { engineProgress, engineLoadingText, enginePreparing } from 'lib/ceval/en
 import { type XiangqiNotationStyle } from 'lib/game';
 import { formatMs } from 'lib/game/clock/clockWidget';
 import { jieqiObservation, jieqiOutcomeSuffix, revealChoices, JIEQI_START_FEN } from 'lib/game/jieqi';
+import { MANCHU_START_FEN } from 'lib/game/manchu';
 import { MINI_XIANGQI_START_FEN } from 'lib/game/minixiangqi';
 import { playMoveNavigationSound } from 'lib/game/replay/moveNavigationSound';
 import { isRecordedClockTimeline, type RecordedClockTimeline } from 'lib/game/replay/recordedClockPlayback';
@@ -99,7 +100,7 @@ interface MoveResponse extends RulesState {
 
 export interface AnalysisBootstrap extends BoardPreferences {
   gameId?: string;
-  variant?: 'xiangqi' | 'jieqi' | 'minixiangqi';
+  variant?: 'xiangqi' | 'jieqi' | 'minixiangqi' | 'manchu';
   ruleset?: string;
   title?: string;
   headers?: Record<string, string>;
@@ -884,7 +885,9 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
             ? JIEQI_START_FEN
             : variant === 'minixiangqi'
               ? MINI_XIANGQI_START_FEN
-              : XIANGQI_START_FEN,
+              : variant === 'manchu'
+                ? MANCHU_START_FEN
+                : XIANGQI_START_FEN,
         moves: [],
       });
       syncActiveTab();

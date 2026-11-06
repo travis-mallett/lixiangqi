@@ -150,7 +150,7 @@ class MoveWork:
         if value.get("version") != 2 or value.get("type") != "move":
             raise ValueError("Unsupported AI move work version")
         position = value.get("position")
-        if not isinstance(position, dict) or position.get("variant") not in {"xiangqi", "jieqi", "minixiangqi"}:
+        if not isinstance(position, dict) or position.get("variant") not in {"xiangqi", "jieqi", "minixiangqi", "manchu"}:
             raise ValueError("Unsupported AI move position")
         variant = position["variant"]
         observation = position.get("observation")
@@ -173,7 +173,7 @@ class MoveWork:
         if bot_profile is not None and (not valid_profile(bot_profile) or ruleset is None):
             raise ValueError("Invalid Kids bot profile")
         if ruleset is not None:
-            if ruleset not in {"tiantian-v1", "unrestricted-v1", "jieqi-v1", "minixiangqi-v1"}:
+            if ruleset not in {"tiantian-v1", "unrestricted-v1", "jieqi-v1", "minixiangqi-v1", "manchu-v1"}:
                 raise ValueError("Unsupported AI ruleset")
             if not isinstance(legal_moves, list) or not legal_moves or not all(
                 isinstance(move, str) and re.fullmatch(r"[a-i](?:10|[1-9])[a-i](?:10|[1-9])", move)
@@ -199,7 +199,7 @@ class MoveWork:
         ):
             raise ValueError("Invalid AI move history")
         if variant == "minixiangqi":
-            from .minixiangqi import strength
+            from .fairy_xiangqi import strength
             strength(level)
             ranks = initial_fen.split()[0].split("/")
             if ruleset != "minixiangqi-v1" or bot_profile is not None or len(ranks) != 7 or any(
@@ -209,6 +209,18 @@ class MoveWork:
                 raise ValueError("Invalid Mini Xiangqi position")
         elif ruleset == "minixiangqi-v1":
             raise ValueError("Mini Xiangqi rules require the Mini Xiangqi variant")
+        if variant == "manchu":
+            from .fairy_xiangqi import strength
+            strength(level)
+            fields = initial_fen.split()
+            ranks = fields[0].split("/")
+            if ruleset != "manchu-v1" or bot_profile is not None or len(fields) != 6 or len(ranks) != 10 or any(
+                not re.fullmatch(r"[rnbakcmpRNBAKCMP1-9]+", rank)
+                or sum(int(c) if c.isdigit() else 1 for c in rank) != 9 for rank in ranks
+            ) or fields[2] != "m":
+                raise ValueError("Invalid Manchu+ position")
+        elif ruleset == "manchu-v1":
+            raise ValueError("Manchu+ rules require the Manchu+ variant")
         work = cls(
             game_id=game_id,
             level=level,
@@ -556,8 +568,8 @@ class AiWorker:
         self.engine = PikafishMoveEngine()
         from .jieqi import JieqiMoveEngine
         self.jieqi_engine = JieqiMoveEngine()
-        from .minixiangqi import MiniXiangqiMoveEngine
-        self.minixiangqi_engine = MiniXiangqiMoveEngine()
+        from .fairy_xiangqi import FairyXiangqiMoveEngine
+        self.fairy_engines = {variant: FairyXiangqiMoveEngine(variant) for variant in ("minixiangqi", "manchu")}
 
     def run(self) -> None:
         """Stay available across Redis restarts and transient network failures.
@@ -611,7 +623,8 @@ class AiWorker:
         finally:
             self.engine.close()
             self.jieqi_engine.close()
-            self.minixiangqi_engine.close()
+            for engine in self.fairy_engines.values():
+                engine.close()
 
     def _process(self, payload: str, *, v2: bool = False) -> None:
         lock_key: str | None = None
@@ -686,9 +699,9 @@ class AiWorker:
         if work.variant == "jieqi":
             from .jieqi import strength
             return self.jieqi_engine.best_move(work, strength(work.level))
-        if work.variant == "minixiangqi":
-            from .minixiangqi import strength
-            return self.minixiangqi_engine.best_move(work, strength(work.level))
+        if work.variant in {"minixiangqi", "manchu"}:
+            from .fairy_xiangqi import strength
+            return self.fairy_engines[work.variant].best_move(work, strength(work.level))
         profile = self._profile(work.level)
         book_move = choose_opening_move(
             work,

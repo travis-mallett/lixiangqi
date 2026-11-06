@@ -71,7 +71,8 @@
               "horse": "piece/default-wood/rN.svg",
               "chariot": "piece/default-wood/rR.svg",
               "cannon": "piece/default-wood/rC.svg",
-              "soldier": "piece/default-wood/rP.svg"
+              "soldier": "piece/default-wood/rP.svg",
+              "banner": "piece/default-wood/rM.svg"
             },
             "black": {
               "general": "piece/default-wood/bK.svg",
@@ -80,7 +81,8 @@
               "horse": "piece/default-wood/bN.svg",
               "chariot": "piece/default-wood/bR.svg",
               "cannon": "piece/default-wood/bC.svg",
-              "soldier": "piece/default-wood/bP.svg"
+              "soldier": "piece/default-wood/bP.svg",
+              "banner": "piece/default-wood/bM.svg"
             }
           }
         },
@@ -140,7 +142,8 @@
               "horse": "piece/xiangqi-wudang/rN.svg",
               "chariot": "piece/xiangqi-wudang/rR.svg",
               "cannon": "piece/xiangqi-wudang/rC.svg",
-              "soldier": "piece/xiangqi-wudang/rP.svg"
+              "soldier": "piece/xiangqi-wudang/rP.svg",
+              "banner": "piece/xiangqi-wudang/rM.svg"
             },
             "black": {
               "general": "piece/xiangqi-wudang/bK.svg",
@@ -149,7 +152,8 @@
               "horse": "piece/xiangqi-wudang/bN.svg",
               "chariot": "piece/xiangqi-wudang/bR.svg",
               "cannon": "piece/xiangqi-wudang/bC.svg",
-              "soldier": "piece/xiangqi-wudang/bP.svg"
+              "soldier": "piece/xiangqi-wudang/bP.svg",
+              "banner": "piece/xiangqi-wudang/bM.svg"
             }
           }
         },
@@ -209,7 +213,8 @@
               "horse": "piece/xiangqi-paper-traditional/rN.svg",
               "chariot": "piece/xiangqi-paper-traditional/rR.svg",
               "cannon": "piece/xiangqi-paper-traditional/rC.svg",
-              "soldier": "piece/xiangqi-paper-traditional/rP.svg"
+              "soldier": "piece/xiangqi-paper-traditional/rP.svg",
+              "banner": "piece/xiangqi-paper-traditional/rM.svg"
             },
             "black": {
               "general": "piece/xiangqi-paper-traditional/bK.svg",
@@ -218,7 +223,8 @@
               "horse": "piece/xiangqi-paper-traditional/bN.svg",
               "chariot": "piece/xiangqi-paper-traditional/bR.svg",
               "cannon": "piece/xiangqi-paper-traditional/bC.svg",
-              "soldier": "piece/xiangqi-paper-traditional/bP.svg"
+              "soldier": "piece/xiangqi-paper-traditional/bP.svg",
+              "banner": "piece/xiangqi-paper-traditional/bM.svg"
             }
           }
         },
@@ -278,7 +284,8 @@
               "horse": "piece/xiangqi-international/rN.svg",
               "chariot": "piece/xiangqi-international/rR.svg",
               "cannon": "piece/xiangqi-international/rC.svg",
-              "soldier": "piece/xiangqi-international/rP.svg"
+              "soldier": "piece/xiangqi-international/rP.svg",
+              "banner": "piece/xiangqi-international/rM.svg"
             },
             "black": {
               "general": "piece/xiangqi-international/bK.svg",
@@ -287,7 +294,8 @@
               "horse": "piece/xiangqi-international/bN.svg",
               "chariot": "piece/xiangqi-international/bR.svg",
               "cannon": "piece/xiangqi-international/bC.svg",
-              "soldier": "piece/xiangqi-international/bP.svg"
+              "soldier": "piece/xiangqi-international/bP.svg",
+              "banner": "piece/xiangqi-international/bM.svg"
             }
           }
         },
@@ -347,7 +355,8 @@
               "horse": "piece/xiangqi-western/rN.svg",
               "chariot": "piece/xiangqi-western/rR.svg",
               "cannon": "piece/xiangqi-western/rC.svg",
-              "soldier": "piece/xiangqi-western/rP.svg"
+              "soldier": "piece/xiangqi-western/rP.svg",
+              "banner": "piece/xiangqi-western/rM.svg"
             },
             "black": {
               "general": "piece/xiangqi-western/bK.svg",
@@ -356,7 +365,8 @@
               "horse": "piece/xiangqi-western/bN.svg",
               "chariot": "piece/xiangqi-western/bR.svg",
               "cannon": "piece/xiangqi-western/bC.svg",
-              "soldier": "piece/xiangqi-western/bP.svg"
+              "soldier": "piece/xiangqi-western/bP.svg",
+              "banner": "piece/xiangqi-western/bM.svg"
             }
           }
         },

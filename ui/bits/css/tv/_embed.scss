@@ -21,3 +21,15 @@ body {
     margin: 0.3em 0;
   }
 }
+
+html.content-sized-embed {
+  &,
+  body,
+  .embedded {
+    background: transparent;
+  }
+
+  .embedded {
+    padding: 0;
+  }
+}

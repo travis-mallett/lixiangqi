@@ -4,6 +4,7 @@ export {
   boardDefinition,
   boardDefinitionForFen,
   miniXiangqi,
+  manchu,
   threeKingdoms,
   boardPresentation,
   standardXiangqi,

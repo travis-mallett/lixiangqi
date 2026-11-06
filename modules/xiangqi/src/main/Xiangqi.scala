@@ -7,15 +7,16 @@ object Xiangqi:
     "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1"
 
   object Fen:
-    private val pieces = "kabnrcpxKABNRCPX"
+    private val pieces = "kabnrcpxmKABNRCPXM"
 
     def isValid(value: String): Boolean =
       value.trim.split("\\s+").toList match
         case board :: turn :: variant :: "-" :: halfMove :: fullMove :: Nil =>
           val ranks = board.split("/", -1)
           val mini = ranks.length == 7
-          (variant == "-" || (variant == "j" && !mini)) &&
+          (variant == "-" || (Set("j", "m")(variant) && !mini)) &&
           (variant == "j" || !board.exists(c => c == 'x' || c == 'X')) && (ranks.length == 10 || mini) &&
+          ((variant != "j" && !mini) || !board.exists(c => c == 'm' || c == 'M')) &&
           ranks.forall(validRank(_, if mini then 7 else 9)) &&
           (!mini || !board.exists(c => "abxABX".contains(c))) && validConcealedSlots(ranks) &&
           (turn == "w" || turn == "b") &&
@@ -87,6 +88,8 @@ object Xiangqi:
           hidden.toSet,
           if value.split(' ').lift(2).contains("j") then GameVariant.Jieqi
           else if rows == 7 then GameVariant.MiniXiangqi
+          else if value.split(' ').lift(2).contains("m") || result.values.exists(_.role == Role.Banner) then
+            GameVariant.Manchu
           else GameVariant.Xiangqi
         )
 
@@ -157,6 +160,7 @@ object Xiangqi:
     case Chariot extends Role("chariot", "Chariot", 'r', 9)
     case Cannon extends Role("cannon", "Cannon", 'c', 5)
     case Soldier extends Role("soldier", "Soldier", 'p', 1)
+    case Banner extends Role("banner", "Banner", 'm', 18)
 
   object Role:
     val byForsyth = Role.values.map(role => role.forsyth -> role).toMap
@@ -192,7 +196,8 @@ object Xiangqi:
 
     def attackingPieces: Int =
       pieces.valuesIterator.count(piece =>
-        piece.role == Role.Chariot || piece.role == Role.Cannon || piece.role == Role.Horse
+        piece.role == Role.Chariot || piece.role == Role.Cannon || piece.role == Role.Horse ||
+          piece.role == Role.Banner
       )
 
     def developedAttackingPieces: Int =

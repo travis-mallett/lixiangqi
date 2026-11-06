@@ -1,6 +1,6 @@
 import { createBoard, boardPresentation, threeKingdoms, type BoardView } from '@lixiangqi/board';
 
-import { embedAssetUrl as assetUrl } from 'lib/embed';
+import { embedAssetUrl as assetUrl, sizeEmbedToContent } from 'lib/embed';
 
 import { position } from './board';
 import { loadRules } from './runtime';
@@ -9,6 +9,7 @@ import type { Game } from './types';
 /** One shared TV feed supplies both selection changes and moves to the lightweight embed. */
 async function initModule(): Promise<void> {
   const root = document.getElementById('three-kingdoms-embed') as HTMLAnchorElement;
+  sizeEmbedToContent(root);
   const rules = await loadRules(assetUrl('three-kingdoms-engine/main.js'));
   const element = document.createElement('div');
   const players = document.createElement('div');
@@ -30,9 +31,16 @@ async function initModule(): Promise<void> {
       });
       root.style.setProperty('--board-aspect-ratio', element.style.getPropertyValue('--board-aspect-ratio'));
     } else board.display(position(rules.inspect(game.position)), { kind: 'jump' });
-    players.textContent = game.seats
-      .map(s => s.user?.name ?? (s.guest ? root.dataset.guestLabel : root.dataset.computerLabel))
-      .join(' · ');
+    players.replaceChildren(
+      ...game.seats.map(seat => {
+        const name = document.createElement('span');
+        name.className = `three-kingdoms-embed__player three-kingdoms-embed__player--${seat.color}`;
+        name.textContent =
+          seat.user?.name ?? (seat.guest ? root.dataset.guestLabel : root.dataset.computerLabel)!;
+        name.title = name.textContent;
+        return name;
+      }),
+    );
   };
   window.addEventListener(
     'pagehide',

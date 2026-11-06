@@ -7,6 +7,6 @@ Integrity sha512-E0z5fvgZgIK0NoLmI6krWt5g362G4mZguANy8obTXL7EFPzyOyQn9A8OmBcjRe/
 stockfish.js, stockfish.wasm, stockfish.worker.js, Copying.txt and AUTHORS
 are unmodified files from that npm release. source.zip contains the corresponding
 source, including the build instructions and Emscripten build configuration.
-No neural network is required: Mini Xiangqi uses the classical evaluator.
-worker.js and scripts/minixiangqi-engine/uci.mjs are LiXiangQi adapters.
-See scripts/minixiangqi-engine/import.mjs to reproduce the vendor import.
+No neural network is required: Mini Xiangqi and Manchu+ use the classical evaluator.
+worker.js and scripts/fairy-stockfish-engine/uci.mjs are LiXiangQi adapters.
+See scripts/fairy-stockfish-engine/import.mjs to reproduce the vendor import.

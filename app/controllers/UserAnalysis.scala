@@ -20,6 +20,8 @@ final class UserAnalysis(env: Env) extends LilaController(env) with lila.web.The
       case Array("xiangqi", fen) => load(fen.some)
       case Array("minixiangqi") => load(Some(lila.xiangqi.MiniXiangqiRules.startFen))
       case Array("minixiangqi", fen) => load(fen.some)
+      case Array("manchu") => load(Some(lila.xiangqi.ManchuRules.startFen))
+      case Array("manchu", fen) => load(fen.some)
       case Array("jieqi") => load(Some(lila.xiangqi.Jieqi.startFen))
       case Array("jieqi", fen) => load(fen.some)
       case Array("threeKingdoms") =>

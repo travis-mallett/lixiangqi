@@ -116,14 +116,19 @@ body {
     &__variant {
       display: block;
       width: calc(100% - 24px);
-      aspect-ratio: 3 / 4;
-      margin: 12px auto 0;
+      margin: 0 auto;
       border: 0;
     }
 
     .lobby__rail-title {
       font-size: 1em;
       font-weight: bold;
+    }
+
+    h3.lobby__rail-title {
+      margin-top: 12px;
+      border-top: $border;
+      border-bottom: 0;
     }
 
     .lobby__rail-title icon {

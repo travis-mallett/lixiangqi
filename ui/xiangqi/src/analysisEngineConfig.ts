@@ -4,7 +4,7 @@ import type { ArrowBudget } from './analysisArrowCadence';
 import type { EngineSettings } from './analysisSettings';
 
 export interface AnalysisEngineConfig {
-  variant: 'xiangqi' | 'jieqi' | 'minixiangqi';
+  variant: 'xiangqi' | 'jieqi' | 'minixiangqi' | 'manchu';
   name: string;
   candidateMoves: boolean;
   maxMultiPv: number;
@@ -21,9 +21,10 @@ export function analysisEngineConfig(
 ): AnalysisEngineConfig {
   const jieqi = variant === 'jieqi';
   const mini = variant === 'minixiangqi';
+  const fairy = mini || variant === 'manchu';
   return {
-    variant: jieqi ? 'jieqi' : mini ? 'minixiangqi' : 'xiangqi',
-    name: jieqi ? jieqiEngines[selected].name : mini ? 'Fairy-Stockfish' : 'Pikafish',
+    variant: jieqi ? 'jieqi' : mini ? 'minixiangqi' : variant === 'manchu' ? 'manchu' : 'xiangqi',
+    name: jieqi ? jieqiEngines[selected].name : fairy ? 'Fairy-Stockfish' : 'Pikafish',
     candidateMoves: jieqi,
     maxMultiPv: jieqi ? jieqiEngines[selected].multiPv : 5,
     hiddenSettings: jieqi
@@ -33,7 +34,7 @@ export function analysisEngineConfig(
           'lines-preview',
           ...(jieqiEngines[selected].multiPv === 1 ? ['multipv'] : []),
         ]
-      : mini
+      : fairy
         ? ['use-cloud']
         : [],
     search: (settings: EngineSettings, line = false) => ({

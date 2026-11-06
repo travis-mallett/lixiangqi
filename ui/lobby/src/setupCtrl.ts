@@ -111,7 +111,7 @@ export default class SetupController {
 
   isThreeKingdoms = () => this.variant() === 'threeKingdoms';
 
-  usesVariantLevels = () => ['jieqi', 'minixiangqi', 'threeKingdoms'].includes(this.variant());
+  usesVariantLevels = () => ['jieqi', 'minixiangqi', 'manchu', 'threeKingdoms'].includes(this.variant());
 
   variantLevelCount = () => (this.isThreeKingdoms() ? 5 : 10);
 

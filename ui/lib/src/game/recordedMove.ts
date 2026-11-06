@@ -1,6 +1,7 @@
 import {
   coordinateMove,
   miniXiangqi,
+  manchu,
   positionFromFen,
   positionToFen,
   recordedPosition,
@@ -14,14 +15,15 @@ export function assertRecordedMovePosition(before: RulesState, move: string, aft
   const invalid = () => new Error('Invalid recorded move position for notation export');
   const variant = before.variant ?? 'xiangqi';
   if (
-    !['xiangqi', 'jieqi', 'minixiangqi'].includes(variant) ||
+    !['xiangqi', 'jieqi', 'minixiangqi', 'manchu'].includes(variant) ||
     variant !== (after.variant ?? 'xiangqi') ||
     !before.legalMoves.includes(move) ||
     after.ply !== before.ply + 1 ||
     after.turn !== (before.turn === 'red' ? 'black' : 'red')
   )
     throw invalid();
-  const definition = variant === 'minixiangqi' ? miniXiangqi : standardXiangqi;
+  const definition =
+    variant === 'minixiangqi' ? miniXiangqi : variant === 'manchu' ? manchu : standardXiangqi;
   const initial = positionFromFen(before.fen, definition);
   const actual = positionFromFen(after.fen, definition);
   if (initial.active !== before.turn || actual.active !== after.turn) throw invalid();

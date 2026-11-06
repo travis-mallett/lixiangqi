@@ -37,6 +37,7 @@ object PoolList:
   )
 
   val minixiangqi = jieqi.copy(rankTrack = RankTrackId.minixiangqi.some)
+  val manchu = jieqi.copy(rankTrack = RankTrackId.manchu.some)
 
   val threeKingdoms = PoolConfig(
     15 ++ 0,
@@ -57,6 +58,7 @@ object PoolList:
     homepagePool(minutes = 20, normalMoveSeconds = 60, wave = Wave(30.seconds, 20.players)),
     jieqi,
     minixiangqi,
+    manchu,
     threeKingdoms
   )
 

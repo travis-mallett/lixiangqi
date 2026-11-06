@@ -19,6 +19,7 @@ object bits:
   )(using ctx: Context) =
     val jieqi = track == lila.core.rank.RankTrackId.jieqi
     val mini = track == lila.core.rank.RankTrackId.minixiangqi
+    val manchu = track == lila.core.rank.RankTrackId.manchu
     val ranked = personal.collect { case lila.user.XiangqiPersonalRank.Ranked(place, entry) =>
       place -> entry
     }
@@ -46,6 +47,7 @@ object bits:
         h2(
           span(cls := "lobby__leaderboard__icon", aria.hidden := true),
           if jieqi then trans.site.jieqiLeaderboard()
+          else if manchu then trans.site.manchuLeaderboard()
           else if mini then trans.site.miniXiangqiLeaderboard()
           else trans.site.leaderboard()
         ),
@@ -108,7 +110,7 @@ object bits:
         attr("popover") := "auto",
         aria.label := "How Xiangqi ratings change"
       )(
-        p(if jieqi || mini then trans.site.jieqiRatingExplanation()
+        p(if jieqi || mini || manchu then trans.site.jieqiRatingExplanation()
         else frag("Ratings are zero-sum: points gained by one player are lost by the other.")),
         ul(
           li("Same-rank win: +10 / −10"),
@@ -127,6 +129,7 @@ object bits:
         aria.label := "About Xiangqi ranks"
       )(
         if jieqi then frag(p(trans.site.jieqiRankExplanation()))
+        else if manchu then frag(p(trans.site.manchuRankExplanation()))
         else if mini then frag(p(trans.site.miniXiangqiRankExplanation()))
         else
           frag(
@@ -156,7 +159,7 @@ object bits:
           )
         case Some(lila.user.XiangqiPersonalRank.Unplayed) =>
           p(cls := "lobby__leaderboard__footer")(
-            a(href := (if jieqi || mini then s"/?variant=${track.value}"
+            a(href := (if jieqi || mini || manchu then s"/?variant=${track.value}"
                        else routes.Round.matchmaking("15+0-m90-30x3").url))(
               trans.site.playRatedGameToGetRanked()
             )

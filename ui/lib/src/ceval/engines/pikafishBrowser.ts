@@ -255,7 +255,7 @@ export class PikafishBrowserEngine {
 
   private async bootVariant(): Promise<void> {
     const jieqi = this.variant === 'jieqi';
-    const root = jieqi ? 'jieqi-engine' : 'minixiangqi-engine';
+    const root = jieqi ? 'jieqi-engine' : 'fairy-stockfish-engine';
     const selected = jieqiEngines[this.jieqiEngine];
     const asset = (file: string) => site.asset.url(`${root}/${file}`, { documentOrigin: true });
     const worker = (this.worker = new Worker(asset('worker.js'), { type: jieqi ? 'module' : 'classic' }));

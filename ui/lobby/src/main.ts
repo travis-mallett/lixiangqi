@@ -68,7 +68,7 @@ export default function main(opts: LobbyOpts) {
   siteCountersElement.innerHTML = '';
   let siteCountersVNode = patch(siteCountersElement, siteCountersView(ctrl));
 
-  const variantMenus = (['jieqi', 'minixiangqi', 'threeKingdoms'] as const).map(variant => {
+  const variantMenus = (['jieqi', 'minixiangqi', 'manchu', 'threeKingdoms'] as const).map(variant => {
     let vnode: ReturnType<typeof variantMenu> | undefined;
     let dialog: Dialog | undefined;
     let opening = false;

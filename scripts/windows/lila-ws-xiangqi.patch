@@ -1142,8 +1142,8 @@ new file mode 100644
 +
 +  object Activity:
 +    private val pool = "[0-9]{1,3}\\+[0-9]{1,3}-m[0-9]{1,4}-[0-9]{1,4}x[0-9]{1,3}".r
-+    private val variantPool = ("(jieqi|minixiangqi)-v1-ranked-" + pool.regex).r
-+    private val variantMode = "(jieqi|minixiangqi|threeKingdoms)-(ai|friend|rated)".r
++    private val variantPool = ("(jieqi|minixiangqi|manchu)-v1-ranked-" + pool.regex).r
++    private val variantMode = "(jieqi|minixiangqi|manchu|threeKingdoms)-(ai|friend|rated)".r
 +    def nativeVariant(value: String): Option[String] = value match
 +      case variantPool(variant) => Some(variant)
 +      case variantMode(variant, _) => Some(variant)
@@ -1366,7 +1366,7 @@ diff --git a/src/test/scala/PresenceTest.scala b/src/test/scala/PresenceTest.sca
 new file mode 100644
 --- /dev/null
 +++ b/src/test/scala/PresenceTest.scala
-@@ -0,0 +1,135 @@
+@@ -0,0 +1,136 @@
 +package lila.ws
 +
 +import org.apache.pekko.actor.typed.{ ActorRef, ActorSystem }
@@ -1485,23 +1485,24 @@ new file mode 100644
 +    assert(Presence.Activity("jieqi-v1-ranked-invalid").isEmpty)
 +    assert(Presence.Activity("jieqi").isEmpty)
 +
-+  test("Mini Xiangqi populations remain independent of Jieqi and standard rooms"):
-+    val p = new Presence
-+    val mini = ref(); val jieqi = ref(); val friend = ref()
-+    p.connect(mini, req("mini1234", Some("alice")))
-+    p.connect(jieqi, req("jieqi123", Some("alice")))
-+    p.connect(friend, req("friend12", Some("bob")))
-+    val pool = "minixiangqi-v1-ranked-10+0-m60-30x3"
-+    p.update(mini, Some(pool), Some("other"))
-+    p.update(jieqi, Some("jieqi-ai"))
-+    p.update(friend, Some("minixiangqi-friend"))
-+    assertEquals(p.snapshot(0).activities, Map(pool -> 1, "minixiangqi-friend" -> 1, "minixiangqi" -> 2, "jieqi-ai" -> 1, "jieqi" -> 1))
-+    p.disconnect(mini)
-+    assertEquals(p.snapshot(0).activities("minixiangqi"), 1)
-+    p.disconnect(friend)
-+    assert(!p.snapshot(0).activities.contains("minixiangqi"))
-+    assert(Presence.Activity("minixiangqi-v1-ranked-invalid").isEmpty)
-+    assert(Presence.Activity("minixiangqi").isEmpty)
++  List("minixiangqi", "manchu").foreach: variant =>
++    test(s"$variant populations remain independent of Jieqi and standard rooms"):
++      val p = new Presence
++      val player = ref(); val jieqi = ref(); val friend = ref()
++      p.connect(player, req("variant1", Some("alice")))
++      p.connect(jieqi, req("jieqi123", Some("alice")))
++      p.connect(friend, req("friend12", Some("bob")))
++      val pool = s"$variant-v1-ranked-10+0-m60-30x3"
++      p.update(player, Some(pool), Some("other"))
++      p.update(jieqi, Some("jieqi-ai"))
++      p.update(friend, Some(s"$variant-friend"))
++      assertEquals(p.snapshot(0).activities, Map(pool -> 1, s"$variant-friend" -> 1, variant -> 2, "jieqi-ai" -> 1, "jieqi" -> 1))
++      p.disconnect(player)
++      assertEquals(p.snapshot(0).activities(variant), 1)
++      p.disconnect(friend)
++      assert(!p.snapshot(0).activities.contains(variant))
++      assert(Presence.Activity(s"$variant-v1-ranked-invalid").isEmpty)
++      assert(Presence.Activity(variant).isEmpty)
 diff --git a/src/main/scala/LilaHandler.scala b/src/main/scala/LilaHandler.scala
 --- a/src/main/scala/LilaHandler.scala
 +++ b/src/main/scala/LilaHandler.scala

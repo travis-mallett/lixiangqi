@@ -91,6 +91,18 @@ piece._-piece {
   background-image: var(--xiangqi-piece-image);
 }
 
+piece.m-piece.white {
+  --xiangqi-piece-image: var(---red-banner);
+
+  background-image: var(--xiangqi-piece-image);
+}
+
+piece.m-piece.black {
+  --xiangqi-piece-image: var(---black-banner);
+
+  background-image: var(--xiangqi-piece-image);
+}
+
 piece._-piece.black {
   --xiangqi-piece-image: var(--board-piece-back-black);
 }

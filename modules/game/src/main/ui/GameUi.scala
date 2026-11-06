@@ -343,6 +343,7 @@ final class GameUi(helpers: Helpers):
             showClock(g),
             separator,
             if g.isJieqi then trans.site.jieqi()
+            else if g.nativeVariant == lila.xiangqi.GameVariant.Manchu then trans.site.manchu()
             else if g.nativeVariant == lila.xiangqi.GameVariant.MiniXiangqi then trans.site.miniXiangqi()
             else if g.fromPosition then g.variant.name
             else "Xiangqi",

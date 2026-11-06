@@ -105,6 +105,9 @@ final class Cms(env: Env) extends LilaController(env):
   def miniXiangqi = Open:
     Ok.async(views.site.variant.miniXiangqi)
 
+  def manchu = Open:
+    Ok.async(views.site.variant.manchu)
+
   def threeKingdoms = Open:
     Ok.async(views.site.variant.threeKingdoms)
 

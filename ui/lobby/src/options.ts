@@ -13,6 +13,7 @@ export const variants: Variant[] = [
   },
   { id: 1, key: 'jieqi', name: i18n.site.jieqi },
   { id: 1, key: 'minixiangqi', name: i18n.site.miniXiangqi },
+  { id: 1, key: 'manchu', name: i18n.site.manchu },
   { id: 1, key: 'threeKingdoms', name: i18n.site.threeKingdoms },
 ];
 

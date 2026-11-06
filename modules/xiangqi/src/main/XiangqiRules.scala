@@ -71,7 +71,8 @@ object XiangqiRules:
         .foldLeft[Either[String, Game]](
           Right(
             Game(
-              initialFen = input.initialFen,
+              initialFen =
+                if initial.board.variant == GameVariant.Manchu then encode(initial) else input.initialFen,
               moves = Vector.empty,
               wxf = Vector.empty,
               states = Vector(
@@ -468,6 +469,11 @@ object XiangqiRules:
         sliding(board, orig, piece.side, cannon = false, attacksOnly)
       case Role.Cannon =>
         sliding(board, orig, piece.side, cannon = true, attacksOnly)
+      case Role.Banner =>
+        // Fairy-Stockfish's RcpRnN: chariot, cannon capture, and a leg-blocked horse.
+        (sliding(board, orig, piece.side, cannon = false, attacksOnly) ++
+          sliding(board, orig, piece.side, cannon = true, attacksOnly = true) ++
+          pseudoMoves(board, orig, piece.copy(role = Role.Horse), attacksOnly)).distinct
       case Role.Soldier =>
         val forward = piece.side.fold(1, -1)
         val crossedRiver = board.mini || piece.side.fold(orig.rank >= 6, orig.rank <= 5)
@@ -537,7 +543,9 @@ object XiangqiRules:
       if empty > 0 then encoded.append(empty)
       encoded.result()
     val turn = position.turn.fold("w", "b")
-    val variant = if position.board.jieqi then "j" else "-"
+    val variant = if position.board.jieqi then "j"
+    else if position.board.variant == GameVariant.Manchu then "m"
+    else "-"
     s"${ranks.mkString("/")} $turn $variant - ${position.halfMove} ${position.fullMove}"
 
   private def wxf(board: Board, uci: Uci, legacyPawnPairs: Boolean = false): String =
@@ -554,6 +562,7 @@ object XiangqiRules:
         case Role.Chariot => "R"
         case Role.Cannon => "C"
         case Role.Soldier => "P"
+        case Role.Banner => "M"
     val roleName = if red then roleSymbol else roleSymbol.toLowerCase
     val sameFile = board.pieces.iterator
       .collect:
@@ -579,8 +588,9 @@ object XiangqiRules:
     val forward = if red then dest.rank > orig.rank else dest.rank < orig.rank
     val (action, target) =
       if dest.rank == orig.rank then "=" -> fileNumber(dest.file, red, board.variant.files)
-      else if Set(Role.Horse, Role.Elephant, Role.Advisor)(piece.role) then
-        (if forward then "+" else "-") -> fileNumber(dest.file, red, board.variant.files)
+      else if Set(Role.Horse, Role.Elephant, Role.Advisor)(piece.role) ||
+        (piece.role == Role.Banner && dest.file != orig.file)
+      then (if forward then "+" else "-") -> fileNumber(dest.file, red, board.variant.files)
       else (if forward then "+" else "-") -> math.abs(dest.rank - orig.rank)
     s"$subject$action$target"
 
@@ -605,6 +615,7 @@ object XiangqiRules:
         case (Side.Black, Role.Chariot) => "车"
         case (Side.Black, Role.Cannon) => "砲"
         case (Side.Black, Role.Soldier) => "卒"
+        case (_, Role.Banner) => "旗"
     val sameFile = board.pieces.iterator
       .collect:
         case (square, candidate) if square.file == orig.file && candidate == piece => square
@@ -623,8 +634,9 @@ object XiangqiRules:
     val forward = if red then dest.rank > orig.rank else dest.rank < orig.rank
     val (action, target) =
       if dest.rank == orig.rank then "平" -> fileNumber(dest.file, red, board.variant.files)
-      else if Set(Role.Horse, Role.Elephant, Role.Advisor)(piece.role) then
-        (if forward then "进" else "退") -> fileNumber(dest.file, red, board.variant.files)
+      else if Set(Role.Horse, Role.Elephant, Role.Advisor)(piece.role) ||
+        (piece.role == Role.Banner && dest.file != orig.file)
+      then (if forward then "进" else "退") -> fileNumber(dest.file, red, board.variant.files)
       else (if forward then "进" else "退") -> math.abs(dest.rank - orig.rank)
     s"$subject$action${chineseNumber(target, red)}"
 

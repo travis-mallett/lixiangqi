@@ -1087,6 +1087,7 @@ GET   /page/:key                       controllers.Cms.lonePage(key: CmsPageKey)
 # Variants
 GET   /variant                         controllers.Cms.variantHome
 GET   /variant/minixiangqi             controllers.Cms.miniXiangqi
+GET   /variant/manchu                  controllers.Cms.manchu
 GET   /variant/jieqi                    controllers.Cms.jieqi
 GET   /variant/:key                    controllers.Cms.variant(key: chess.variant.Variant.LilaKey)
 

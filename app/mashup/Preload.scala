@@ -82,7 +82,8 @@ final class Preload(
 
   private def randomVariantTv: Fu[lila.xiangqi.GameVariant] =
     import lila.xiangqi.GameVariant
-    val variants = Vector(GameVariant.Jieqi, GameVariant.MiniXiangqi, GameVariant.ThreeKingdoms)
+    val variants =
+      Vector(GameVariant.Jieqi, GameVariant.MiniXiangqi, GameVariant.Manchu, GameVariant.ThreeKingdoms)
     fuccess(variants(scala.util.Random.nextInt(variants.size)))
 
   def currentGameMyTurn(using me: Me): Fu[Option[CurrentGame]] =

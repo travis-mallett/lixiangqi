@@ -11,6 +11,7 @@ object RankPolicy:
   def apply(track: RankTrackId): RankPolicy =
     if track == RankTrackId.jieqi then JieqiRank
     else if track == RankTrackId.minixiangqi then MiniXiangqiRank
+    else if track == RankTrackId.manchu then ManchuRank
     else if track == RankTrackId.threeKingdoms then ThreeKingdomsRank
     else XiangqiRank
 

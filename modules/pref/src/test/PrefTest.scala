@@ -85,7 +85,8 @@ class PrefTest extends FunSuite:
   test("piece sets expose a complete unique CSS asset map"):
     PieceSets.all.foreach: pieceSet =>
       val assets = PieceSets.assets(pieceSet.key)
-      assertEquals(assets.size, 38)
+      assertEquals(assets.size, 40)
+      assertEquals(assets.count(_._2.endsWith("-banner")), 2)
       assertEquals(assets.map(_._2).distinct, assets.map(_._2))
       assert(assets.forall((path, variable) => path.endsWith(".svg") && variable.startsWith("--")))
       for color <- List("red", "black") do assert(assets.exists(_._2 == s"--board-piece-back-$color"))

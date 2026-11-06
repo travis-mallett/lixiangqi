@@ -19,7 +19,7 @@ interface MatchmakingPool {
   lim: number;
   inc: number;
   ranked: boolean;
-  variant: 'xiangqi' | 'jieqi' | 'minixiangqi' | 'threeKingdoms';
+  variant: 'xiangqi' | 'jieqi' | 'minixiangqi' | 'manchu' | 'threeKingdoms';
   moveTime?: MoveTimeLimitConfig;
 }
 

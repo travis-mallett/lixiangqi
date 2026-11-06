@@ -7,6 +7,22 @@ import lila.xiangqi.adjudication.Ruleset
 class XiangqiRulesetBsonTest extends munit.FunSuite:
   import BSONHandlers.xiangqiGameHandler
 
+  test("Manchu history survives persistence after the Banner is captured"):
+    val initial = lila.xiangqi.GameVariant.Manchu
+      .initialGame(
+        Some("4k4/9/9/9/4p4/9/9/9/m8/R3K4 w m - 0 1"),
+        Ruleset.Manchu
+      )
+      .toOption
+      .get
+    val game =
+      initial.applyMove(XiangqiRules.move(initial, Xiangqi.Uci.unsafe("a1a2")).toOption.get).toOption.get
+    val restored = xiangqiGameHandler.readDocument(xiangqiGameHandler.writeTry(game).get).get
+    assertEquals(restored, game)
+    assertEquals(restored.variant, lila.xiangqi.GameVariant.Manchu)
+    assertEquals(restored.ruleset, Ruleset.Manchu)
+    assert(XiangqiRules.move(restored, Xiangqi.Uci.unsafe("e10d10")).isRight)
+
   test("ruleset and adjudication snapshots survive persistence"):
     val initial = Xiangqi.Game.initial
     val result = XiangqiRules.move(initial, Xiangqi.Uci.unsafe("b1c3")).toOption.get

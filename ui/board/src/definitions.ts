@@ -34,6 +34,13 @@ export const standardXiangqi: BoardDefinition<RectangularGeometry> = Object.free
   coordinateImage: 'images/board/svg/xiangqi-file-coordinates.svg',
 });
 
+export const manchu: BoardDefinition<RectangularGeometry> = Object.freeze({
+  ...standardXiangqi,
+  id: 'manchu',
+  pieceFamily: 'xiangqi',
+  roles: Object.freeze({ ...standardXiangqi.roles, banner: 'm' }),
+});
+
 export const miniXiangqi: BoardDefinition<RectangularGeometry> = Object.freeze({
   ...standardXiangqi,
   id: 'minixiangqi',
@@ -165,11 +172,18 @@ function threePlayerCoordinates(): GraphCoordinate[] {
   });
 }
 
-export const supportedBoards: readonly BoardDefinition[] = [standardXiangqi, miniXiangqi, threeKingdoms];
+export const supportedBoards: readonly BoardDefinition[] = [
+  standardXiangqi,
+  miniXiangqi,
+  manchu,
+  threeKingdoms,
+];
 
 /** Native FEN geometry determines the board; positionFromFen validates the entire placement. */
 export function boardDefinitionForFen(fen: string): BoardDefinition<RectangularGeometry> {
-  return fen.trim().split(/\s+/, 1)[0].split('/').length === 7 ? miniXiangqi : standardXiangqi;
+  const [placement, , variant] = fen.trim().split(/\s+/);
+  if (placement.split('/').length === 7) return miniXiangqi;
+  return variant === 'm' || /m/i.test(placement) ? manchu : standardXiangqi;
 }
 
 export function boardDefinition(id: string): BoardDefinition {

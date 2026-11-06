@@ -6,6 +6,38 @@ Use the existing lichess architecture as a mature foundation and source of hard-
 
 The goal is not merely to make a requested change work. Leave the affected system correct, coherent, performant, maintainable, and understandable to human developers.
 
+## Mobile reconciliation is part of website changes
+
+For every change, assess the effect on **both** sibling applications before finishing:
+`../lixiangqi-mobile` and `../lixiangqi-mobile-kids` (the latter is the Xiangqi Kids product,
+sometimes called `lixiangqi-kids`). Read their AGENTS.md and feature documentation when affected.
+Follow [the mobile reconciliation workflow](doc/MOBILE_RECONCILIATION.md) and run
+`node scripts/mobile-reconciliation.mjs` to inspect their checkpoints and outstanding reviews.
+
+Automatically implement clear corresponding fixes in existing mobile features within the
+authorized task: gameplay/rules contracts, engine and network upgrades, bot behavior,
+analysis/puzzle behavior, settings, account/profile contracts, shared artwork and icons.
+Backend-only fixes may already reach both apps; verify the consumers instead of duplicating
+server rules in Dart. Do not declare parity just because the website still compiles.
+
+Preserve each app's independent interface. Website layout, home-page carousels, CSS,
+browser focus, and navigation normally need no port. Evaluate actual mobile counterparts,
+including meaningful profile/chart or icon changes, rather than copying web screens.
+Kids has a smaller scope: its gameplay, bots, puzzles, account and shared board matter;
+analysis boards, professional catalogues and adult community features generally do not.
+
+For a substantial feature (especially a variant), ambiguous product/UX change, or unavailable
+app checkout, record a concrete item in **each affected app's reconciliation queue** and ask
+whether it should be implemented now unless this session already answers that question.
+Continue the clearly authorized work while waiting. Never silently defer an obvious small fix.
+Never treat a queue entry as implementation, and never advance a checkpoint past unreviewed
+changes. The current mobile variant project is explicitly deferred; revisit only when authorized.
+
+Record the decision, source commit/working-tree fingerprint, affected features, tests and any
+deployment dependency. The final handoff must state the impact and disposition for both apps,
+including an explicit reason for "not applicable". These requirements apply to functionality
+changes initiated in this repository even when the user did not separately mention mobile.
+
 ## Repository scope
 
 ### Independent fork

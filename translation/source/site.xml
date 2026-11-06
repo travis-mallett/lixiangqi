@@ -1250,6 +1250,16 @@ Leave empty to start games from the normal initial position.</string>
   <string name="lichessMerchandiseDescription">Merchandise from Lichess</string>
   <string name="embedHtml">Embed HTML</string>
   <string name="miniXiangqi">Mini Xiangqi</string>
+  <string name="manchu">Manchu+</string>
+  <string name="manchuTitle">Manchu+ (满洲棋)</string>
+  <string name="playRatedManchu">Play Rated Manchu+</string>
+  <string name="manchuAnalysisBoard">Manchu+ analysis board</string>
+  <string name="manchuLearnToPlay">How to play Manchu+</string>
+  <string name="manchuSetupText">Manchu+ uses the balanced setup played on PyChess. Red has the usual Xiangqi army. Black has no horses or cannons, and its chariot on a10 is replaced by a Banner (旗). Black keeps its other chariot on i10, both advisors, both elephants, five soldiers, and its general.</string>
+  <string name="manchuMovementText">The Banner combines a chariot, a cannon, and a horse: it slides along open ranks or files, captures over exactly one intervening piece, or makes a horse move when its leg is clear. It uses one of these moves per turn. All other pieces follow Xiangqi movement rules, including the river, palaces, and flying generals.</string>
+  <string name="manchuWinningText">Checkmate and stalemate both win. Three repetitions draw unless exactly one side gives perpetual check, in which case that side loses. Fifty moves by each player without a capture also draw. Manchu+ does not use Tiantian chasing adjudication.</string>
+  <string name="manchuRankExplanation">Manchu+ has its own ranks, from 旗1-1 to 旗9-4, using the same thresholds and rating calculations as Jieqi. Rated quick pairing gives each player 10 minutes, with a 60-second move limit and a 30-second limit for each of the first three moves.</string>
+  <string name="manchuLeaderboard">Manchu+ leaderboard</string>
   <string name="miniXiangqiTitle">Mini Xiangqi (迷你象棋)</string>
   <string name="playRatedMiniXiangqi">Play Rated Mini Xiangqi</string>
   <string name="miniXiangqiAnalysisBoard">Mini Xiangqi analysis board</string>
