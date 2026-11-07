@@ -1,23 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="emailConfirm_subject">%s님, 귀하의 lichess.org 계정을 확인하십시오.</string>
-  <string name="emailConfirm_intro">Lichess에 회원 가입해 주셔서 감사합니다!</string>
-  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a Lichess account.&#10;&#10;The unique reset link is presented just after this string.">이 링크를 클릭해서 Lichess 계정을 활성화 하십시오.</string>
-  <string name="emailConfirm_justIgnore">만약 Lichess에 가입하지 않으셨다면, 이 메시지를 무시하셔도 무방합니다. 인증되지 않은 해당 계정과 이 이메일 주소의 모든 흔적은 48시간 뒤 저희 시스템에서 삭제됩니다.</string>
-  <string name="passwordReset_subject">%s님, lichess.org 비밀번호를 재설정하십시오.</string>
+  <string name="emailConfirm_subject">%s님, 귀하의 lixiangqi.com 계정을 확인하십시오.</string>
+  <string name="emailConfirm_intro">LiXiangQi에 회원 가입해 주셔서 감사합니다!</string>
+  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a LiXiangQi account.&#10;&#10;The unique reset link is presented just after this string.">이 링크를 클릭해서 LiXiangQi 계정을 활성화 하십시오.</string>
+  <string name="emailConfirm_justIgnore">만약 LiXiangQi에 가입하지 않으셨다면, 이 메시지를 무시하셔도 무방합니다. 인증되지 않은 해당 계정과 이 이메일 주소의 모든 흔적은 48시간 뒤 저희 시스템에서 삭제됩니다.</string>
+  <string name="passwordReset_subject">%s님, lixiangqi.com 비밀번호를 재설정하십시오.</string>
   <string name="passwordReset_intro">귀하의 계정의 비밀번호 재설정 요청을 받았습니다.</string>
   <string name="passwordReset_clickOrIgnore">만약 요청을 하셨으면 아래 링크를 클릭하십시오. 요청하지 않으셨다면 이 이메일을 무시하셔도 됩니다.</string>
   <string name="emailChange_subject">%s님, 새 이메일 주소를 확인하십시오.</string>
   <string name="emailChange_intro">귀하의 이메일 주소를 변경하려 했습니다.</string>
   <string name="emailChange_click">확인을 위하여 아래 링크를 클릭해 주십시오.</string>
-  <string name="welcome_subject">%s님, lichess.org에 오신 것을 환영합니다.</string>
-  <string name="welcome_text">성공적으로 https://lichess.org에 계정을 만드셨습니다.
-
-프로필 페이지는 %1$s에 있으며 수정은 %2$s에서 하실 수 있습니다.
-
-언제나 상대편 왕으로 갈 길을 찾기를 응원합니다!</string>
-  <string name="logInToLichess">%s 님, lichess.org에 로그인 하십시오.</string>
+  <string name="welcome_subject">%s님, lixiangqi.com에 오신 것을 환영합니다.</string>
+  <string name="logInToLichess">%s 님, lixiangqi.com에 로그인 하십시오.</string>
   <string name="common_orPaste">(링크를 눌러도 작동하지 않으면, 위 링크를 브라우저에 붙여넣으세요.)</string>
   <string name="common_note">이 이메일은 귀하의 %s 사용에 관련된 서비스 이메일입니다.</string>
   <string name="common_contact">도움이 필요하시면, %s 에 접속해주세요.</string>
+  <string name="welcome_intro">LiXiangQi 계정이 준비되었습니다. 규칙을 처음 배우는 분도, 오랜만에 돌아온 분도 만나서 반갑습니다.</string>
+  <string name="welcome_play">샹치 두기</string>
+  <string name="welcome_playTip">홈페이지에서 대국을 시작하세요. 부담 없이 첫 대국을 즐기려면 컴퓨터와 대국해 보세요.</string>
+  <string name="welcome_puzzles">퍼즐 풀기</string>
+  <string name="welcome_puzzlesTip">위협을 알아차리고 이기는 수를 찾는 연습을 해 보세요. 서두르지 말고 장군을 부르는 수, 기물을 잡는 수, 상대의 다음 수를 살펴보세요.</string>
+  <string name="welcome_profile">자기소개하기</string>
+  <string name="welcome_profileTip">다른 플레이어들이 여러분을 알아갈 수 있도록 프로필에 짧은 자기소개를 추가하세요.</string>
+  <string name="welcome_viewProfile">프로필 보기</string>
+  <string name="welcome_editProfile">프로필 수정</string>
+  <string name="welcome_closing">다음 대국도 즐겁게 두세요. 대국에서 만나요!</string>
 </resources>

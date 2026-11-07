@@ -704,4 +704,6 @@
   <string name="timeAlmostUp">Tempus paene deest!</string>
   <string name="hangOn">Expecta!</string>
   <string name="search">Quaere</string>
+  <string name="privacyPolicy">Regulae de rebus privatis</string>
+  <string name="readAboutOur">Lege %s nostras.</string>
 </resources>

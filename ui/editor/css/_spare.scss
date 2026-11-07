@@ -1,3 +1,13 @@
+.board-editor .spares {
+  &-top {
+    grid-area: spare-top;
+  }
+
+  &-bottom {
+    grid-area: spare-bottom;
+  }
+}
+
 .board-editor .spare {
   @extend %box-radius;
 
@@ -16,11 +26,13 @@
   }
 
   .no-square {
-    flex: 0 0 calc(100% / 9);
+    flex: 1 1 0;
+    min-width: 0;
     border: 0;
     padding: 0;
     background: transparent;
     cursor: pointer;
+    touch-action: none;
 
     @include transition;
 

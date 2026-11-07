@@ -633,4 +633,6 @@
   <string name="important">vajni bi\'u</string>
   <string name="subscribe">terbejbi\'o</string>
   <string name="unsubscribe">to\'e terbejbi\'o</string>
+  <string name="privacyPolicy">lo sivni javni</string>
+  <string name="readAboutOur">ko tcidu fi lo mi %s.</string>
 </resources>

@@ -307,6 +307,9 @@ importers:
       lib:
         specifier: workspace:*
         version: link:../lib
+      threeKingdoms:
+        specifier: workspace:*
+        version: link:../threeKingdoms
 
   ui/explorer:
     dependencies:

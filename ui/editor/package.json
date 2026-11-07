@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "threeKingdoms": "workspace:*",
     "lib": "workspace:*",
     "@lixiangqi/board": "workspace:*"
   },

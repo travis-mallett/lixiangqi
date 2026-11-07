@@ -1,23 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="emailConfirm_subject">Confirm your lixiangqi.org account, %s</string>
-  <string name="emailConfirm_intro">Thanks for registering with Lixiangqi!</string>
-  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a Lichess account.&#10;&#10;The unique reset link is presented just after this string.">Click the link to enable your Lixiangqi account:</string>
-  <string name="emailConfirm_justIgnore">If you did not register with Lixiangqi, you can safely ignore this message. The unconfirmed account and all traces of your email address will be deleted from our system after 48 hours.</string>
-  <string name="passwordReset_subject">Reset your lixiangqi.org password, %s</string>
+  <string name="emailConfirm_subject">Confirm your lixiangqi.com account, %s</string>
+  <string name="emailConfirm_intro">Thanks for registering with LiXiangQi!</string>
+  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a LiXiangQi account.&#10;&#10;The unique reset link is presented just after this string.">Click the link to enable your LiXiangQi account:</string>
+  <string name="emailConfirm_justIgnore">If you did not register with LiXiangQi, you can safely ignore this message. The unconfirmed account and all traces of your email address will be deleted from our system after 48 hours.</string>
+  <string name="passwordReset_subject">Reset your lixiangqi.com password, %s</string>
   <string name="passwordReset_intro">We received a request to reset the password for your account.</string>
   <string name="passwordReset_clickOrIgnore">If you made this request, click the link below. If not, you can ignore this email.</string>
   <string name="emailChange_subject">Confirm new email address, %s</string>
   <string name="emailChange_intro">You have requested to change your email address.</string>
   <string name="emailChange_click">To confirm you have access to this email, please click the link below:</string>
-  <string name="welcome_subject">Welcome to lixiangqi.org, %s</string>
-  <string name="welcome_text">You have successfully created your account on https://lixiangqi.org.
-
-Here is your profile page: %1$s. You can personalize it on %2$s.
-
-Have fun, and may your pieces always find their way to your opponent\'s king!</string>
-  <string name="logInToLichess">Log in to lixiangqi.org, %s</string>
+  <string name="welcome_subject">Welcome to lixiangqi.com, %s</string>
+  <string name="logInToLichess">Log in to lixiangqi.com, %s</string>
   <string name="common_orPaste">(Link not working? Try pasting it into your browser!)</string>
   <string name="common_note">This is a service email related to your use of %s.</string>
   <string name="common_contact">To contact us, please use %s.</string>
+  <string name="welcome_intro">Your LiXiangQi account is ready. Whether you are learning the rules or returning to the board, we are glad you are here.</string>
+  <string name="welcome_play">Play xiangqi</string>
+  <string name="welcome_playTip">Start a game from the home page. For a relaxed first game, try playing against the computer.</string>
+  <string name="welcome_puzzles">Try a puzzle</string>
+  <string name="welcome_puzzlesTip">Practice spotting threats and finding winning moves. Take your time: look for checks, captures, and what your opponent might do next.</string>
+  <string name="welcome_profile">Make yourself at home</string>
+  <string name="welcome_profileTip">Add a short introduction to your profile so other players can get to know you.</string>
+  <string name="welcome_viewProfile">View your profile</string>
+  <string name="welcome_editProfile">Edit your profile</string>
+  <string name="welcome_closing">Enjoy your next game. See you across the board!</string>
 </resources>

@@ -19,7 +19,8 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
   import assetHelper.{ defaultCsp, netConfig, cashTag, siteName }
 
   val doctype = raw("<!DOCTYPE html>")
-  def htmlTag(using lang: Lang) = html(st.lang := lang.code, dir := isRTL(lang).option("rtl"))
+  def htmlTag(using lang: Lang) =
+    html(st.lang := lang.code, dir := lila.core.i18n.isRightToLeft(lang).option("rtl"))
   val topComment = raw("""<!-- Lixiangqi is open source! See https://lixiangqi.org/source -->""")
   val charset = raw("""<meta charset="utf-8">""")
   val viewport = raw:
@@ -339,17 +340,3 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
                 error.not.option(anonDasher)
         )
       )
-
-  private val rtlCache = scala.collection.mutable.HashMap.empty[Lang, Boolean]
-
-  private def isRTL(lang: Lang): Boolean =
-    rtlCache.getOrElseUpdate(
-      lang,
-      lang.locale
-        .getDisplayName(lang.locale)
-        .headOption
-        .map(_.getDirectionality)
-        .exists: dir =>
-          dir == Character.DIRECTIONALITY_RIGHT_TO_LEFT ||
-            dir == Character.DIRECTIONALITY_RIGHT_TO_LEFT_ARABIC
-    )

@@ -237,4 +237,6 @@
   <string name="victory">Tarennawt!</string>
   <string name="host">Asenneftaɣ</string>
   <string name="hostColorX">Ini n usenneftaɣ: %s</string>
+  <string name="privacyPolicy">Tasertit n tbaḍnit</string>
+  <string name="readAboutOur">Ɣer ɣef %s nneɣ.</string>
 </resources>

@@ -1277,4 +1277,26 @@ Leave empty to start games from the normal initial position.</string>
   <string name="challengeTwoFriends">Challenge two friends</string>
   <string name="threeKingdomsAnalysisBoard">Three Kingdoms analysis board</string>
   <string name="blockAds">Block ads</string>
+  <string name="editorHelp">Drag pieces, or choose a piece and tap the board to place it. Use the eraser to remove pieces.</string>
+  <string name="editorSideToMove">Side to move</string>
+  <string name="editorMovePieces">Move pieces</string>
+  <string name="editorRemovePieces">Remove pieces</string>
+  <string name="editorPlayable">Valid position with legal moves</string>
+  <string name="editorGameOver">Valid position; the game is over</string>
+  <string name="editorInvalid">Invalid position. Check the generals, piece placement and side to move.</string>
+  <string name="editorValidationUnavailable">Position validation is unavailable. Please try again.</string>
+  <string name="editorInvalidFen">Enter a position matching the selected variant: FEN for rectangular boards, or TK1 for Three Kingdoms.</string>
+  <string name="editorPiece_banner">Banner</string>
+  <string name="editorConcealedPiece">Concealed piece</string>
+  <string name="editorArmyControl">Army control</string>
+  <string name="editorArmyRemoved">Removed</string>
+  <string name="editorJieqiAnalysisOnly">Edited Jieqi positions can be analysed. New games require a fresh concealed deal.</string>
+  <string name="editorKingdomsAnalysisOnly">Edited Three Kingdoms positions can be analysed. Computer games and friend challenges start from the initial position.</string>
+  <string name="editorPiece_general">General</string>
+  <string name="editorPiece_advisor">Advisor</string>
+  <string name="editorPiece_elephant">Elephant</string>
+  <string name="editorPiece_horse">Horse</string>
+  <string name="editorPiece_chariot">Chariot</string>
+  <string name="editorPiece_cannon">Cannon</string>
+  <string name="editorPiece_soldier">Soldier</string>
 </resources>

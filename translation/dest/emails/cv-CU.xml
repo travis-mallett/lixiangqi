@@ -1,2 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources></resources>
+<resources>
+  <string name="welcome_intro">Сирӗн LiXiangQi аккаунчӗ хатӗр. Правилӑсене вӗренетӗр е хӑма умне каллех таврӑнатӑр пулсан та, сире кунта курма савӑнатпӑр.</string>
+  <string name="welcome_play">Сянци выляр</string>
+  <string name="welcome_playTip">Тӗп страницӑран вӑйӑ пуҫлӑр. Пӗрремӗш вӑйӑра васкамасӑр выляма компьютер хирӗҫ тӑрса пӑхӑр.</string>
+  <string name="welcome_puzzles">Лартӑм шутласа тупӑр</string>
+  <string name="welcome_puzzlesTip">Хӑрушлӑхсене асӑрхама тата ҫӗнтерӳ паракан куҫӑмсене тупма хӑнӑхӑр. Васкамӑр: шахсене, фигурӑсене илессине тата хирӗҫле тӑраканӑн хуравӗсене пӑхса тухӑр.</string>
+  <string name="welcome_profile">Хӑвӑр ҫинчен калӑр</string>
+  <string name="welcome_profileTip">Ытти вылякансем сирӗнпе паллашма пултарччӑр тесе, профиле хӑвӑр ҫинчен кӗске ҫырса хурӑр.</string>
+  <string name="welcome_viewProfile">Профиле пӑхӑр</string>
+  <string name="welcome_editProfile">Профиле тӳрлетӗр</string>
+  <string name="welcome_closing">Ҫитес вӑйӑра савӑнса выляр. Хӑма умӗнче тӗл пулӑпӑр!</string>
+  <string name="welcome_subject">lixiangqi.com сайта итемлӗн килӗр, %s</string>
+  <string name="common_note">Ку — сирӗн %s усӑ курнипе ҫыхӑннӑ электронлӑ ҫыру.</string>
+  <string name="common_contact">Пирӗнпе ҫыхӑнма %s усӑ курӑр.</string>
+</resources>

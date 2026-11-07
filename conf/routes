@@ -258,14 +258,14 @@ GET   /analysis                        controllers.UserAnalysis.index
 GET   /analysis/*something             controllers.UserAnalysis.parseArg(something)
 GET     /embed/xiangqi                    controllers.UserAnalysis.embed
 GET   /embed/analysis                  controllers.UserAnalysis.embed
-POST  /api/analysis/position           controllers.UserAnalysis.position
+POST  /api/analysis/position           controllers.UserAnalysis.position(strict: Boolean ?= false)
 POST  /api/analysis/move               controllers.UserAnalysis.move
 POST  /api/analysis/variation          controllers.UserAnalysis.variation
 POST  /api/analysis/motifs             controllers.UserAnalysis.motifs
 POST  /api/analysis/book               controllers.UserAnalysis.book
 POST  /api/analysis/notation-move      controllers.UserAnalysis.notationMove
 POST  /api/analysis/move-labels        controllers.UserAnalysis.moveLabels
-POST  /api/analysis/import             controllers.UserAnalysis.importNotation
+POST  /api/analysis/import             controllers.UserAnalysis.importNotation(strict: Boolean ?= false)
 GET   /api/analysis/catalog            controllers.UserAnalysis.catalogAnalysis(id: String)
 
 # Study
@@ -780,6 +780,7 @@ GET   /import/master/$id<\w{8}>/:color controllers.Importer.masterGame(id: GameI
 
 # Edit
 GET   /editor.json                     controllers.Editor.data
+POST  /editor/validate                 controllers.Editor.validate(variant: String)
 GET   /editor/*urlFen                  controllers.Editor.load(urlFen)
 GET   /editor                          controllers.Editor.index
 

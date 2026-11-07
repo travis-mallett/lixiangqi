@@ -1,8 +1,9 @@
 package controllers
 
 import chess.format.Fen
+import play.api.libs.json.Json
 import lila.app.*
-import lila.xiangqi.Xiangqi
+import lila.xiangqi.{ GameVariant, Xiangqi, XiangqiRules }
 
 final class Editor(env: Env) extends LilaController(env):
 
@@ -13,11 +14,30 @@ final class Editor(env: Env) extends LilaController(env):
       .decodeUriPath(urlFen)
       .map(_.replace('_', ' ').trim)
       .filter(_.nonEmpty)
+      .orElse(get("fen").map(_.replace('_', ' ').trim).filter(_.nonEmpty))
+    val variant = get("variant")
+      .flatMap(GameVariant.fromKey(_).toOption)
+      .getOrElse:
+        if fen.exists(_.startsWith("TK1;")) then GameVariant.ThreeKingdoms
+        else fen.flatMap(Xiangqi.Fen.board).fold(GameVariant.Xiangqi)(_.variant)
+    val orientation = get("color").filter(Set("red", "black", "green"))
     Ok.page:
-      views.boardEditor(fen)
+      views.boardEditor(fen, orientation, variant)
 
   def data = Open:
     JsonOk(views.boardEditor.jsData())
+
+  def validate(variant: String) = AnonBodyOf(parse.json(12000)): body =>
+    val result = for
+      selected <- GameVariant.fromKey(variant)
+      fen <- (body \ "fen").asOpt[String].toRight("Missing position")
+      _ <- XiangqiRules.validateEditorPosition(fen, selected)
+      state <- XiangqiRules.position(Xiangqi.Position(initialFen = fen))
+    yield Json.obj(
+      "fen" -> state.fen,
+      "playable" -> (state.gameResult == Xiangqi.Result.Ongoing && state.legalMoves.nonEmpty)
+    )
+    fuccess(result.fold(error => BadRequest(jsonError(error)), JsonOk(_)))
 
   def game(id: GameId) = Open:
     Found(env.game.gameRepo.game(id)): game =>

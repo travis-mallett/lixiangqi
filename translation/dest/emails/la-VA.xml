@@ -1,6 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="emailConfirm_subject">Confirma tuum lichess.org rationem, %s</string>
-  <string name="passwordReset_subject">Signum vestrum lichess.org repone, %s</string>
-  <string name="welcome_subject">Bene advenisti ad lichess.org, %s</string>
+  <string name="emailConfirm_subject">Confirma tuum lixiangqi.com rationem, %s</string>
+  <string name="passwordReset_subject">Signum vestrum lixiangqi.com repone, %s</string>
+  <string name="welcome_subject">Bene advenisti ad lixiangqi.com, %s</string>
+  <string name="welcome_intro">Ratio tua LiXiangQi parata est. Sive regulas discis sive ad tabulam redis, gaudemus te adesse.</string>
+  <string name="welcome_play">Xiangqi lude</string>
+  <string name="welcome_playTip">Ludum a pagina prima incipe. Ut primum placide ludas, contra computatrum ludere tempta.</string>
+  <string name="welcome_puzzles">Aenigma tempta</string>
+  <string name="welcome_puzzlesTip">Exerce te in periculis animadvertendis et motibus victoriam parantibus inveniendis. Noli festinare: impetus in regem, capturas et adversarii responsa possibilia considera.</string>
+  <string name="welcome_profile">Te ipsum praesenta</string>
+  <string name="welcome_profileTip">Breve de te scriptum paginae tuae adde, ut alii lusores te cognoscere possint.</string>
+  <string name="welcome_viewProfile">Paginam tuam vide</string>
+  <string name="welcome_editProfile">Paginam tuam muta</string>
+  <string name="welcome_closing">Proximo ludo fruere. Apud tabulam te videbimus!</string>
+  <string name="common_note">Haec epistula ad usum tuum situs %s pertinet.</string>
+  <string name="common_contact">Ut nobiscum communices, %s utere.</string>
 </resources>

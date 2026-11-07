@@ -1,21 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="emailConfirm_subject">Qinisekisa i-akhawunti yakho ye- lichess.org, %s</string>
-  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a Lichess account.&#10;&#10;The unique reset link is presented just after this string.">Chofoza isixhumanisi ukuze unike amandla i-akhawunti yakho Lichess:</string>
-  <string name="passwordReset_subject">Setha kabusha iphasiwedi yakho ye- lichess.org, %s</string>
+  <string name="emailConfirm_subject">Qinisekisa i-akhawunti yakho ye- lixiangqi.com, %s</string>
+  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a LiXiangQi account.&#10;&#10;The unique reset link is presented just after this string.">Chofoza isixhumanisi ukuze unike amandla i-akhawunti yakho LiXiangQi:</string>
+  <string name="passwordReset_subject">Setha kabusha iphasiwedi yakho ye- lixiangqi.com, %s</string>
   <string name="passwordReset_intro">Sithole isicelo sokusetha kabusha iphasiwedi ye-akhawunti yakho.</string>
   <string name="passwordReset_clickOrIgnore">Uma wenze lesi sicelo, chofoza kusixhumanisi esingezansi. Uma kungenjalo, ungayinaka le imeyili.</string>
   <string name="emailChange_subject">Qinisekisa ikheli le-imeyili elisha, %s</string>
   <string name="emailChange_intro">Ucele ukuguqula ikheli lakho le-imeyili.</string>
   <string name="emailChange_click">Ukuqinisekisa ukuthi uyakwazi ukufinyelela le imeyili, sicela uchofoze isixhumanisi esingezansi:</string>
-  <string name="welcome_subject">Uyemukelwa ku lichess.org, %s</string>
-  <string name="welcome_text">Uyidale ngempumelelo i-akhawunti yakho ku- https://lichess.org.
-
-Nali ikhasi lephrofayela yakho: %1$s. Ungayenza ibe ngeyakho uqubo %2$s.
-
-Kujabulele, futhi kwangathi izingcezu zakho zingathola njalo indlela eya enkosini yomphikisi!</string>
-  <string name="logInToLichess">Ngena ngemvume ku-lichess.org, %s</string>
+  <string name="welcome_subject">Uyemukelwa ku lixiangqi.com, %s</string>
+  <string name="logInToLichess">Ngena ngemvume ku-lixiangqi.com, %s</string>
   <string name="common_orPaste">(Ukuchofoza kungasebenzi? Zama ukunamathisela kusiphequluli sakho!)</string>
   <string name="common_note">Le yi-imeyili yesevisi ehlobene nokusebenzisa kwakho %s.</string>
   <string name="common_contact">Ukuxhumana nathi, sicela usebenzise %s.</string>
+  <string name="welcome_intro">I-akhawunti yakho ye-LiXiangQi isilungile. Kungakhathaliseki ukuthi ufunda imithetho noma ubuyela emdlalweni, siyajabula ukukubona lapha.</string>
+  <string name="welcome_play">Dlala i-xiangqi</string>
+  <string name="welcome_playTip">Qala umdlalo ekhasini lokuqala. Ukuze uqale ngokukhululeka, zama ukudlala nekhompyutha.</string>
+  <string name="welcome_puzzles">Zama iphazili</string>
+  <string name="welcome_puzzlesTip">Ziqeqeshe ukubona izinsongo nokuthola iminyakazo yokunqoba. Ungasheshi: bheka ukuhlaselwa kwenkosi, ukuthathwa kwezicucu nokuthi imbangi ingaphendula kanjani.</string>
+  <string name="welcome_profile">Zethule</string>
+  <string name="welcome_profileTip">Faka isingeniso esifushane kuphrofayela yakho ukuze abanye abadlali bakwazi.</string>
+  <string name="welcome_viewProfile">Buka iphrofayela yakho</string>
+  <string name="welcome_editProfile">Hlela iphrofayela yakho</string>
+  <string name="welcome_closing">Jabulela umdlalo wakho olandelayo. Sizobonana ebhodini!</string>
 </resources>

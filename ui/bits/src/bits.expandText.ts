@@ -1,3 +1,5 @@
+import { expandProfileLinks } from 'lib/view/profileLinks';
+
 import { embedYoutubeUrl, parseYoutubeUrl } from './youtubeLinkProcessor';
 
 type LinkType = 'youtube';
@@ -22,6 +24,10 @@ function toYoutubeEmbedUrl(url: string): string | undefined {
 }
 
 site.load.then(() => {
+  for (const root of document.querySelectorAll('.expand-text'))
+    void expandProfileLinks(root).catch(() => {
+      // Ordinary profile links remain usable when the public API is unavailable.
+    });
   function parseLink(a: HTMLAnchorElement): Parsed | undefined {
     if (a.href.replace(/^https?:\/\//, '') !== a.textContent?.replace(/^https?:\/\//, '')) return;
     const yt = toYoutubeEmbedUrl(a.href);

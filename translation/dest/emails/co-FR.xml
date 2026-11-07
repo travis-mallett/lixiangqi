@@ -1,17 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="emailConfirm_subject">Cunfirmate u vostru contu lichess.org, %s</string>
-  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a Lichess account.&#10;&#10;The unique reset link is presented just after this string.">Clicate nantu à a leia per validà u vostru contu Lichess:</string>
-  <string name="passwordReset_subject">Create da torna a vostra parolla d\'intesa di lichess.org, %s</string>
+  <string name="emailConfirm_subject">Cunfirmate u vostru contu lixiangqi.com, %s</string>
+  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a LiXiangQi account.&#10;&#10;The unique reset link is presented just after this string.">Clicate nantu à a leia per validà u vostru contu LiXiangQi:</string>
+  <string name="passwordReset_subject">Create da torna a vostra parolla d\'intesa di lixiangqi.com, %s</string>
   <string name="passwordReset_intro">Avemu ricivutu una dumanda par creà da torna a parolla d\' intesa di u vostru contu.</string>
   <string name="passwordReset_clickOrIgnore">S\'è vo avete fattu sta dumanda, clicate puru nantu à a leia inghjò. S\' è ùn l\' avete micca fattu, pudete ignurà stu currieru elettronicu.</string>
   <string name="emailChange_subject">Cunfirmate u vostru novu indiruzzu elettronicu, %s</string>
   <string name="emailChange_intro">Avete dumandatu di cambià u vostru indirizzu elettronicu.</string>
   <string name="emailChange_click">Per cunfirmà ch\' è vo avete un accessu à issu mail, clicate nantu à a leia inghjò:</string>
-  <string name="welcome_subject">Benvenutu nantu à lichess.org, %s</string>
-  <string name="welcome_text">Avete creatu u vostru contu nantu à https://lichess.org. Eccu a vostra pagina di prufile: %1$s. Pudete persunalizà lu clichendu quì %2$s. Campate vi! Ch\' elle trovinu sempre u so caminu versu u rè aversu e vostre pezze!</string>
-  <string name="logInToLichess">Identificate vi nantu à lichess.org, %s</string>
+  <string name="welcome_subject">Benvenutu nantu à lixiangqi.com, %s</string>
+  <string name="logInToLichess">Identificate vi nantu à lixiangqi.com, %s</string>
   <string name="common_orPaste">(Ùn funziona micca u cliccu? Appicicate a leia in u vostru navigatore!)</string>
   <string name="common_note">Hè un currieru elettronicu di u serviziu liatu à a vostra utilizazioni di %s.</string>
   <string name="common_contact">Per cuntattà ci, aduprate %s.</string>
+  <string name="welcome_intro">U vostru contu LiXiangQi hè prontu. Ch’è vo ampariate e regule o vultiate à u tavulone, simu felici di vedevi quì.</string>
+  <string name="welcome_play">Ghjucà à xiangqi</string>
+  <string name="welcome_playTip">Principiate una partita da a pagina d’accolta. Per una prima partita tranquilla, pruvate à ghjucà contr’à l’urdinatore.</string>
+  <string name="welcome_puzzles">Pruvà un prublema</string>
+  <string name="welcome_puzzlesTip">Esercitatevi à vede e minacce è à truvà e mosse vincenti. Pigliate u vostru tempu: guardate i scacchi, e catture è e risposte pussibule di l’avversariu.</string>
+  <string name="welcome_profile">Sentitevi in casa</string>
+  <string name="welcome_profileTip">Aghjunghjite una corta presentazione à u vostru prufilu per chì l’altri ghjucadori vi possinu cunnosce.</string>
+  <string name="welcome_viewProfile">Vede u vostru prufilu</string>
+  <string name="welcome_editProfile">Mudificà u vostru prufilu</string>
+  <string name="welcome_closing">Bona partita. Ci vidimu nant’à u tavulone!</string>
 </resources>

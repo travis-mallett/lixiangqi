@@ -1,21 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="emailConfirm_subject">%s さん lichess.org のアカウントご確認を</string>
-  <string name="emailConfirm_intro">Lichess に登録してくれてありがとう！</string>
-  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a Lichess account.&#10;&#10;The unique reset link is presented just after this string.">リンクをクリックして Lichess のアカウントを有効化してください。</string>
-  <string name="emailConfirm_justIgnore">Lichess に登録していない場合は、このメッセージを無視して大丈夫です。未確認のアカウントとあなたのメールアドレスは 48 時間後にシステムから削除されます。</string>
-  <string name="passwordReset_subject">%s さん、lichess.org のパスワードをリセットして</string>
-  <string name="passwordReset_intro">あなたの Lichess アカウントのパスワード変更申請を受信しました。</string>
+  <string name="emailConfirm_subject">%s さん lixiangqi.com のアカウントご確認を</string>
+  <string name="emailConfirm_intro">LiXiangQi に登録してくれてありがとう！</string>
+  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a LiXiangQi account.&#10;&#10;The unique reset link is presented just after this string.">リンクをクリックして LiXiangQi のアカウントを有効化してください。</string>
+  <string name="emailConfirm_justIgnore">LiXiangQi に登録していない場合は、このメッセージを無視して大丈夫です。未確認のアカウントとあなたのメールアドレスは 48 時間後にシステムから削除されます。</string>
+  <string name="passwordReset_subject">%s さん、lixiangqi.com のパスワードをリセットして</string>
+  <string name="passwordReset_intro">あなたの LiXiangQi アカウントのパスワード変更申請を受信しました。</string>
   <string name="passwordReset_clickOrIgnore">申請した覚えがあれば下のリンクをクリックしてください。そうでないなら無視して大丈夫です。</string>
   <string name="emailChange_subject">%s さん、新しいメールアドレスの確認を</string>
   <string name="emailChange_intro">あなたはメールアドレスの変更を申請しました。</string>
   <string name="emailChange_click">このメールアドレスが利用できると確認するため、下のリンクをクリックしてください。</string>
-  <string name="welcome_subject">%s さん Lichess.org へようこそ</string>
-  <string name="welcome_text">https://lichess.org にアカウントを作成しました。
-プロフィールページは %1$s です。%2$s でさまざまな設定ができます。
-お楽しみください、そしてあなたの駒が相手のキングに迫れますように！</string>
-  <string name="logInToLichess">%s さん lichess.org にログインをどうぞ</string>
+  <string name="welcome_subject">%s さん lixiangqi.com へようこそ</string>
+  <string name="logInToLichess">%s さん lixiangqi.com にログインをどうぞ</string>
   <string name="common_orPaste">（クリックでうまくいかない場合、URLをブラウザにペーストしてください）</string>
   <string name="common_note">これは %s のご利用に関するメールです。</string>
   <string name="common_contact">当方へのご連絡には %s をお使いください。</string>
+  <string name="welcome_intro">LiXiangQiのアカウントの準備ができました。ルールを学び始めた方も、久しぶりに盤に向かう方も、ようこそ！</string>
+  <string name="welcome_play">シャンチーを指す</string>
+  <string name="welcome_playTip">ホームページから対局を始めましょう。最初は気軽にコンピューターとの対局を試してみてください。</string>
+  <string name="welcome_puzzles">問題に挑戦する</string>
+  <string name="welcome_puzzlesTip">相手の狙いを見抜き、勝ちにつながる手を探す練習をしましょう。焦らずに、王手、駒を取る手、相手の次の手を考えてみてください。</string>
+  <string name="welcome_profile">自己紹介をする</string>
+  <string name="welcome_profileTip">プロフィールに短い自己紹介を追加して、ほかのプレイヤーにあなたのことを知ってもらいましょう。</string>
+  <string name="welcome_viewProfile">プロフィールを見る</string>
+  <string name="welcome_editProfile">プロフィールを編集する</string>
+  <string name="welcome_closing">次の対局を楽しんでください。盤上でお会いしましょう！</string>
 </resources>

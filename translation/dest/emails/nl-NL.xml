@@ -1,23 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="emailConfirm_subject">Bevestig uw lichess.org account, %s</string>
-  <string name="emailConfirm_intro">Bedankt voor het registreren bij Lichess!</string>
-  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a Lichess account.&#10;&#10;The unique reset link is presented just after this string.">Klik op de link om uw Lichess-account te bevestigen:</string>
-  <string name="emailConfirm_justIgnore">Als u zich niet bij Lichess hebt geregistreerd, kunt u dit bericht negeren. De onbevestigde account en alle sporen van uw e-mailadres worden na 48 uur uit ons systeem verwijderd.</string>
-  <string name="passwordReset_subject">Herstel uw lichess.org wachtwoord, %s</string>
+  <string name="emailConfirm_subject">Bevestig uw lixiangqi.com account, %s</string>
+  <string name="emailConfirm_intro">Bedankt voor het registreren bij LiXiangQi!</string>
+  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a LiXiangQi account.&#10;&#10;The unique reset link is presented just after this string.">Klik op de link om uw LiXiangQi-account te bevestigen:</string>
+  <string name="emailConfirm_justIgnore">Als u zich niet bij LiXiangQi hebt geregistreerd, kunt u dit bericht negeren. De onbevestigde account en alle sporen van uw e-mailadres worden na 48 uur uit ons systeem verwijderd.</string>
+  <string name="passwordReset_subject">Herstel uw lixiangqi.com wachtwoord, %s</string>
   <string name="passwordReset_intro">We hebben een aanvraag ontvangen om het wachtwoord voor uw account te herstellen.</string>
   <string name="passwordReset_clickOrIgnore">Als u deze aanvraag heeft gedaan, klikt u op onderstaande link. U kunt deze e-mail anders negeren.</string>
   <string name="emailChange_subject">Bevestig nieuw e-mailadres, %s</string>
   <string name="emailChange_intro">U heeft een aanvraag gedaan om uw e-mailadres te wijzigen.</string>
   <string name="emailChange_click">Om te bevestigen dat u toegang heeft tot deze e-mail, klikt u op onderstaande link:</string>
-  <string name="welcome_subject">Welkom op lichess.org, %s</string>
-  <string name="welcome_text">Je hebt succesvol een account aangemaakt op https://lichess.org.
-
-Hier is je profielpagina: %1$s. Je kunt het personaliseren op %2$s.
-
-Veel plezier, en mogen je stukken altijd hun weg vinden naar de koning van je tegenstander!</string>
-  <string name="logInToLichess">Login op lichess.org, %s</string>
+  <string name="welcome_subject">Welkom op lixiangqi.com, %s</string>
+  <string name="logInToLichess">Login op lixiangqi.com, %s</string>
   <string name="common_orPaste">(Werkt klikken niet? Probeer de link in uw browser te plakken!)</string>
   <string name="common_note">Dit is een service e-mail gekoppeld aan uw gebruik van %s.</string>
   <string name="common_contact">Contact opnemen kan via: %s.</string>
+  <string name="welcome_intro">Je LiXiangQi-account is klaar. Of je nu de regels leert of terugkeert naar het bord, we zijn blij dat je er bent.</string>
+  <string name="welcome_play">Xiangqi spelen</string>
+  <string name="welcome_playTip">Begin een partij vanaf de startpagina. Probeer voor een ontspannen eerste partij tegen de computer te spelen.</string>
+  <string name="welcome_puzzles">Een puzzel proberen</string>
+  <string name="welcome_puzzlesTip">Oefen met het herkennen van dreigingen en het vinden van winnende zetten. Neem de tijd: kijk naar schaakzetten, slagzetten en mogelijke antwoorden van je tegenstander.</string>
+  <string name="welcome_profile">Voel je thuis</string>
+  <string name="welcome_profileTip">Voeg een korte introductie toe aan je profiel, zodat andere spelers je kunnen leren kennen.</string>
+  <string name="welcome_viewProfile">Je profiel bekijken</string>
+  <string name="welcome_editProfile">Je profiel bewerken</string>
+  <string name="welcome_closing">Veel plezier met je volgende partij. Tot aan het bord!</string>
 </resources>

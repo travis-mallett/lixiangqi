@@ -17,6 +17,8 @@ import {
 import resizeHandle from './boardResize';
 import { MoveEvent, ShowResizeHandle } from './prefs';
 
+export { boardDefinitionForFen } from '@lixiangqi/board';
+
 export function makeBoardResizable(
   board: BoardView,
   preference: ShowResizeHandle = ShowResizeHandle.Always,

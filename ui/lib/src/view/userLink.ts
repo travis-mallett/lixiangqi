@@ -9,6 +9,7 @@ export type AnyUser = {
   attrs?: Attrs;
   title?: string;
   flair?: Flair;
+  flag?: string;
   ratingDiff?: number;
   rank?: string;
   line?: boolean; // display i.line, true by default
@@ -23,6 +24,9 @@ export const userLink = (u: AnyUser): VNode =>
   h('a', userLinkData(u), [
     userLine(u),
     ...fullName(u),
+    u.flag && /^[A-Za-z0-9_-]+$/.test(u.flag)
+      ? h('img.flag', { attrs: { src: site.asset.url('flags/' + u.flag + '.webp'), alt: '' } })
+      : undefined,
     u.rank
       ? h('span.user-rank', ` (${u.rank}) `)
       : u.rating

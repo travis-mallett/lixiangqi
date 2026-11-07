@@ -287,4 +287,6 @@
   </plurals>
   <string name="yourPerfRatingIsProvisional">Isilinganiso sakho se-%s esesikhashana</string>
   <string name="yourPerfRatingIsTooHigh">Isilinganiso sakho se-%1$s (%2$s) siphezulu kakhulu</string>
+  <string name="privacyPolicy">Inqubomgomo yobumfihlo</string>
+  <string name="readAboutOur">Funda nge-%s yethu.</string>
 </resources>

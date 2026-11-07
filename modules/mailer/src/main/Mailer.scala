@@ -130,9 +130,11 @@ object Mailer:
   object txt:
 
     private def serviceNote(using Translate): String = s"""
-${trans.common_note("https://lixiangqi.org").render}
+${trans.common_note.txt("https://lixiangqi.com")}
 
-${trans.common_contact("https://lixiangqi.org/contact").render}"""
+${trans.common_contact.txt("https://lixiangqi.com/contact")}
+
+${lila.core.i18n.I18nKey.site.privacyPolicy.txt()}: https://lixiangqi.com/privacy"""
 
     def addServiceNote(body: String)(using Translate) = s"""$body
 
@@ -150,14 +152,14 @@ $serviceNote"""
       div(itemprop := "potentialAction", itemscope, itemtype := "http://schema.org/ViewAction")
     def metaName(cont: String) = meta(itemprop := "name", content := cont)
     val publisher = div(itemprop := "publisher", itemscope, itemtype := "http://schema.org/Organization")
-    val noteContact = a(itemprop := "url", href := "https://lixiangqi.org/contact")(
-      span(itemprop := "name")("lixiangqi.org/contact")
+    val noteContact = a(itemprop := "url", href := "https://lixiangqi.com/contact")(
+      span(itemprop := "name")("lixiangqi.com/contact")
     )
 
     private val noteLink = a(
       itemprop := "url",
-      href := "https://lixiangqi.org/"
-    )(span(itemprop := "name")("lixiangqi.org"))
+      href := "https://lixiangqi.com/"
+    )(span(itemprop := "name")("lixiangqi.com"))
 
     def serviceNote(using Translate) =
       publisher(
@@ -167,7 +169,7 @@ $serviceNote"""
           trans.common_contact(noteContact),
           " ",
           lila.core.i18n.I18nKey.site.readAboutOur(
-            a(href := "https://lixiangqi.org/privacy")(
+            a(href := "https://lixiangqi.com/privacy")(
               lila.core.i18n.I18nKey.site.privacyPolicy()
             )
           )
@@ -187,7 +189,7 @@ $serviceNote"""
         clickOrPaste.option(p(trans.common_orPaste()))
       )
 
-    private[Mailer] def wrap(subject: String, htmlBody: Frag): Frag =
+    private[mailer] def wrap(subject: String, htmlBody: Frag): Frag =
       frag(
         raw("<!doctype html>"),
         htmlTag(
@@ -196,6 +198,33 @@ $serviceNote"""
             meta(name := "viewport", content := "width=device-width"),
             titleTag(subject)
           ),
-          body(htmlBody)
+          body(style := "margin:0;padding:0;background-color:#f5f2ed;color:#292622;")(
+            table(
+              attr("role") := "presentation",
+              width := "100%",
+              style := "table-layout:fixed;",
+              attr("cellpadding") := "0",
+              attr("cellspacing") := "0"
+            )(
+              tr(
+                td(attr("align") := "center", style := "padding:24px 12px;")(
+                  div(
+                    style := "max-width:600px;margin:0 auto;text-align:start;font-family:Arial,sans-serif;font-size:16px;line-height:1.65;overflow-wrap:break-word;"
+                  )(
+                    div(style := "padding:0 24px 16px;font-size:22px;font-weight:bold;")(
+                      a(href := "https://lixiangqi.com", style := "color:#71451f;text-decoration:none;")(
+                        "LiXiangQi"
+                      )
+                    ),
+                    div(
+                      style := "padding:28px 24px;background-color:#ffffff;border-top:4px solid #a66b32;border-radius:8px;"
+                    )(
+                      htmlBody
+                    )
+                  )
+                )
+              )
+            )
+          )
         )
       )

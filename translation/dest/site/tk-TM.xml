@@ -649,4 +649,6 @@ kompýuter derňewi, oýun çäti we paýlaşmaga URL alýaňyz.</string>
   </plurals>
   <string name="sorry">Bagyşlaň :(</string>
   <string name="weHadToTimeYouOutForAWhile">Biz sizi wagtlaýyn oýnamaz ýaly etmeli bolduk.</string>
+  <string name="privacyPolicy">Gizlinlik syýasaty</string>
+  <string name="readAboutOur">Biziň %s barada okaň.</string>
 </resources>

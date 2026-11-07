@@ -1,22 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="emailConfirm_subject">Erősítsd meg a lichess.org fiókod, %s</string>
-  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a Lichess account.&#10;&#10;The unique reset link is presented just after this string.">Kattints a linkre a Lichess fiókod megerősítéséhez:</string>
-  <string name="emailConfirm_justIgnore">Ha nem regisztráltál a Lichess-re, nyugodtan figyelmen kívül hagyhatod ezt az üzenetet. A meg nem erősített fiókot és email címedet 48 órán belül nyom nélkül töröljük rendszerünkből.</string>
-  <string name="passwordReset_subject">%s a lichess.org jelszavad helyreállítása</string>
+  <string name="emailConfirm_subject">Erősítsd meg a lixiangqi.com fiókod, %s</string>
+  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a LiXiangQi account.&#10;&#10;The unique reset link is presented just after this string.">Kattints a linkre a LiXiangQi fiókod megerősítéséhez:</string>
+  <string name="emailConfirm_justIgnore">Ha nem regisztráltál a LiXiangQi-re, nyugodtan figyelmen kívül hagyhatod ezt az üzenetet. A meg nem erősített fiókot és email címedet 48 órán belül nyom nélkül töröljük rendszerünkből.</string>
+  <string name="passwordReset_subject">%s a lixiangqi.com jelszavad helyreállítása</string>
   <string name="passwordReset_intro">Kérelem érkezett a fiókod jelszavának megváltoztatására.</string>
   <string name="passwordReset_clickOrIgnore">Amennyiben te kérvényezted ezt, kattints az alábbi linkre! Ha nem, hagyd figyelmen kívül ezt az emailt.</string>
   <string name="emailChange_subject">Új e-mail cím megerősítése, %s</string>
   <string name="emailChange_intro">Kérelem érkezett az e-mail címed megváltoztatására.</string>
   <string name="emailChange_click">Erősítsd meg, hogy rendelkezel hozzáféréssel ehhez az emailhez, kérjük kattints az alábbi linkre:</string>
-  <string name="welcome_subject">Üdvözöl a lichess.org, %s</string>
-  <string name="welcome_text">Sikeresen létrehoztad a https://lichess.org fiókod.
-
-A profilodat itt találod: %1$s. Itt állíthatod be tetszésed szerint: %2$s.
-
-Jó szórakozást kívánunk, és mindig találd meg az utat az ellenfél királyához!</string>
-  <string name="logInToLichess">Bejelentkezés a lichess.org-ra, %s</string>
+  <string name="welcome_subject">Üdvözöl a lixiangqi.com, %s</string>
+  <string name="logInToLichess">Bejelentkezés a lixiangqi.com-ra, %s</string>
   <string name="common_orPaste">(Nem működik a kattintás? Próbáld beilleszteni a böngésződ címsorába!)</string>
   <string name="common_note">Ez egy szolgálati e-mail, ami ezzel kapcsolatos: %s.</string>
   <string name="common_contact">Itt léphetsz kapcsolatba velünk: %s.</string>
+  <string name="welcome_intro">Elkészült a LiXiangQi-fiókod. Akár most tanulod a szabályokat, akár visszatérsz a táblához, örülünk, hogy itt vagy.</string>
+  <string name="welcome_play">Játssz hsziangcsit</string>
+  <string name="welcome_playTip">Indíts játszmát a kezdőlapról. Egy nyugodt első játékhoz próbálj a számítógép ellen játszani.</string>
+  <string name="welcome_puzzles">Oldj meg egy feladványt</string>
+  <string name="welcome_puzzlesTip">Gyakorold a fenyegetések felismerését és a nyerő lépések megtalálását. Ne siess: nézd meg a sakkokat, az ütéseket és az ellenfél lehetséges válaszait.</string>
+  <string name="welcome_profile">Érezd magad otthon</string>
+  <string name="welcome_profileTip">Írj rövid bemutatkozást a profilodba, hogy a többi játékos megismerhessen.</string>
+  <string name="welcome_viewProfile">Profilod megtekintése</string>
+  <string name="welcome_editProfile">Profilod szerkesztése</string>
+  <string name="welcome_closing">Jó játékot a következő játszmához! Találkozunk a táblánál!</string>
 </resources>

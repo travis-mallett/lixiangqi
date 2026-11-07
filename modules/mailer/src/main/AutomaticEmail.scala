@@ -4,7 +4,6 @@ import play.api.i18n.Lang
 import scalatags.Text.all.*
 
 import lila.core.config.RouteUrl
-import lila.core.i18n.I18nKey.emails as trans
 import lila.core.i18n.Translator
 import lila.core.lilaism.LilaException
 import lila.core.misc.mailer.CorrespondenceOpponent
@@ -26,17 +25,7 @@ The Lichess team"""
   def welcomeEmail(user: User, email: EmailAddress)(using Lang): Funit =
     mailer.canSend.so:
       lila.mon.email.send.welcome.increment()
-      val profileUrl = routeUrl(routes.User.show(user.username))
-      val editUrl = routeUrl(routes.Account.profile)
-      mailer.sendOrSkip:
-        Mailer.Message(
-          to = email,
-          subject = trans.welcome_subject.txt(user.username),
-          text = Mailer.txt.addServiceNote(trans.welcome_text.txt(profileUrl, editUrl)),
-          htmlBody = standardEmail(
-            trans.welcome_text.txt(profileUrl, editUrl)
-          ).some
-        )
+      mailer.sendOrSkip(WelcomeEmail.message(user.username, email, routeUrl))
 
   def welcomePM(user: User): Funit = fuccess:
     alsoSendAsPrivateMessage(user): lang =>
@@ -52,7 +41,7 @@ The Lichess team"""
   If you already have an account linked to this email, you can try to log in with it, or reset your password if you forgot it."""
         Mailer.Message(
           to = email,
-          subject = "Could not verify your new Lichess account",
+          subject = "Could not verify your new LiXiangQi account",
           text = text,
           htmlBody = standardEmail(text).some
         )
@@ -62,7 +51,7 @@ The Lichess team"""
     mailer.canSend.so:
       mailer.sendOrSkip:
         val text =
-          """Your new Lichess account has already been verified, so you can log in and start playing right away."""
+          """Your new LiXiangQi account has already been verified, so you can log in and start playing right away."""
         Mailer.Message(
           to = email,
           subject = "Your account is verified and ready to use",

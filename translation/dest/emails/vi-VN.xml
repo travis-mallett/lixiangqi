@@ -1,23 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="emailConfirm_subject">Xác nhận tài khoản lichess.org của bạn, %s</string>
-  <string name="emailConfirm_intro">Cảm ơn bạn đã tham gia Lichess!</string>
-  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a Lichess account.&#10;&#10;The unique reset link is presented just after this string.">Nhấn vào liên kết để kích hoạt tài khoản Lichess của bạn:</string>
-  <string name="emailConfirm_justIgnore">Nếu bạn không đăng ký với Lichess, bạn có thể bỏ qua tin nhắn này một cách an toàn. Tài khoản chưa được xác nhận và tất cả các dấu vết địa chỉ thư điện tử của bạn sẽ bị xóa khỏi hệ thống của chúng tôi sau 48 giờ.</string>
-  <string name="passwordReset_subject">Đặt lại mật khẩu lichess.org, %s</string>
+  <string name="emailConfirm_subject">Xác nhận tài khoản lixiangqi.com của bạn, %s</string>
+  <string name="emailConfirm_intro">Cảm ơn bạn đã tham gia LiXiangQi!</string>
+  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a LiXiangQi account.&#10;&#10;The unique reset link is presented just after this string.">Nhấn vào liên kết để kích hoạt tài khoản LiXiangQi của bạn:</string>
+  <string name="emailConfirm_justIgnore">Nếu bạn không đăng ký với LiXiangQi, bạn có thể bỏ qua tin nhắn này một cách an toàn. Tài khoản chưa được xác nhận và tất cả các dấu vết địa chỉ thư điện tử của bạn sẽ bị xóa khỏi hệ thống của chúng tôi sau 48 giờ.</string>
+  <string name="passwordReset_subject">Đặt lại mật khẩu lixiangqi.com, %s</string>
   <string name="passwordReset_intro">Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn.</string>
   <string name="passwordReset_clickOrIgnore">Nếu bạn đã tạo yêu cầu này, nhấn vào liên kết dưới đây. Nếu không, hãy bỏ qua email này.</string>
   <string name="emailChange_subject">Xác nhận địa chỉ email mới, %s</string>
   <string name="emailChange_intro">Bạn đã yêu cầu thay đổi địa chỉ email của bạn.</string>
   <string name="emailChange_click">Để xác nhận bạn có quyền truy cập email này, vui lòng nhấn vào liên kết dưới đây:</string>
-  <string name="welcome_subject">Chào mừng đến với lichess.org, %s</string>
-  <string name="welcome_text">Bạn đã hoàn tất tạo tài khoản của bạn trên https://lichess.org.
-
-Đây là trang cá nhân của bạn: %1$s. Bạn có thể cá nhân hóa nó trên %2$s.
-
-Chúc bạn chơi vui, và quân cờ của bạn luôn tìm đến quân vua đối thủ!</string>
-  <string name="logInToLichess">Đăng nhập vào lichess.org, %s</string>
+  <string name="welcome_subject">Chào mừng đến với lixiangqi.com, %s</string>
+  <string name="logInToLichess">Đăng nhập vào lixiangqi.com, %s</string>
   <string name="common_orPaste">(Không nhấn được? Hãy thử dán vào trình duyệt của bạn!)</string>
   <string name="common_note">Đây là email dịch vụ liên quan đến việc bạn dùng %s.</string>
   <string name="common_contact">Để liên hệ chúng tôi, hãy dùng %s.</string>
+  <string name="welcome_intro">Tài khoản LiXiangQi của bạn đã sẵn sàng. Dù bạn đang học luật chơi hay trở lại bàn cờ, chúng tôi rất vui khi có bạn ở đây.</string>
+  <string name="welcome_play">Chơi cờ tướng</string>
+  <string name="welcome_playTip">Bắt đầu một ván cờ từ trang chủ. Để làm quen một cách thoải mái, hãy thử chơi với máy tính.</string>
+  <string name="welcome_puzzles">Thử giải bài tập</string>
+  <string name="welcome_puzzlesTip">Luyện nhận biết các mối đe dọa và tìm nước đi giành thắng lợi. Hãy thong thả xem xét các nước chiếu, bắt quân và cách đối thủ có thể đáp lại.</string>
+  <string name="welcome_profile">Làm quen với cộng đồng</string>
+  <string name="welcome_profileTip">Thêm một đoạn giới thiệu ngắn vào hồ sơ để các kỳ thủ khác hiểu thêm về bạn.</string>
+  <string name="welcome_viewProfile">Xem hồ sơ</string>
+  <string name="welcome_editProfile">Chỉnh sửa hồ sơ</string>
+  <string name="welcome_closing">Chúc bạn có một ván cờ thú vị. Hẹn gặp bạn trên bàn cờ!</string>
 </resources>

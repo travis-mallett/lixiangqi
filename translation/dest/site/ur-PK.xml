@@ -753,4 +753,6 @@
   <string name="unsubscribe">ان سبسکرائب</string>
   <string name="congratsYouWon">مبارک ہو، آپ جیت گۓ ہیں!</string>
   <string name="timeAlmostUp">وقت تقریبا ختم ہے!</string>
+  <string name="privacyPolicy">رازداری کی پالیسی</string>
+  <string name="readAboutOur">ہماری %s پڑھیں۔</string>
 </resources>

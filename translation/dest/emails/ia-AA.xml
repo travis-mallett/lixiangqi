@@ -1,21 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="emailConfirm_subject">Confirma tu conto in lichess.org, %s</string>
-  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a Lichess account.&#10;&#10;The unique reset link is presented just after this string.">Clicca sur le ligamine pro activar tu conto in Lichess:</string>
-  <string name="passwordReset_subject">Reinitialisa tu contrasigno in lichess.org, %s</string>
+  <string name="emailConfirm_subject">Confirma tu conto in lixiangqi.com, %s</string>
+  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a LiXiangQi account.&#10;&#10;The unique reset link is presented just after this string.">Clicca sur le ligamine pro activar tu conto in LiXiangQi:</string>
+  <string name="passwordReset_subject">Reinitialisa tu contrasigno in lixiangqi.com, %s</string>
   <string name="passwordReset_intro">Nos ha recipite un requesta pro reinitialisar le contrasigno de tu conto.</string>
   <string name="passwordReset_clickOrIgnore">Si tu ha requestate isto, clicca sur le ligamine in basso. Si non, tu pote ignorar iste message.</string>
   <string name="emailChange_subject">Confirma le nove adresse de e-posta, %s</string>
   <string name="emailChange_intro">Tu ha requirite cambiar tu adresse de e-posta.</string>
   <string name="emailChange_click">Pro confirmar le accesso a iste e-posta, per favor, clicca sur ligamine in basso:</string>
-  <string name="welcome_subject">Benvenite a lichess.org, %s</string>
-  <string name="welcome_text">Tu ha create con successo tu conto in https://lichess.org.
-
-Ecce tu pagina de profilo: %1$s. Tu pote personalisar lo in %2$s.
-
-Diverte se, e que tu pecias sempre trova le camino al rege adversario!</string>
-  <string name="logInToLichess">Aperi un session in lichess.org, %s</string>
+  <string name="welcome_subject">Benvenite a lixiangqi.com, %s</string>
+  <string name="logInToLichess">Aperi un session in lixiangqi.com, %s</string>
   <string name="common_orPaste">(Cliccar non functiona? Tenta collar le ligamine a in tu navigator!)</string>
   <string name="common_note">Isto es un e-posta automatic referente al uso de %s.</string>
   <string name="common_contact">Pro contactar nos, per favor usa %s.</string>
+  <string name="welcome_intro">Tu conto LiXiangQi es preste. Que tu apprende le regulas o retorna al tabuliero, nos es felice de vider te hic.</string>
+  <string name="welcome_play">Joca xiangqi</string>
+  <string name="welcome_playTip">Comencia un partita desde le pagina initial. Pro un prime partita tranquille, prova jocar contra le computator.</string>
+  <string name="welcome_puzzles">Prova un problema</string>
+  <string name="welcome_puzzlesTip">Exerce te a deteger menacias e trovar movimentos vincente. Prende tu tempore: considera scaccos, capturas e le responsas possibile de tu adversario.</string>
+  <string name="welcome_profile">Senti te como in casa</string>
+  <string name="welcome_profileTip">Adde un breve presentation a tu profilo, a fin que le altere jocatores pote cognoscer te.</string>
+  <string name="welcome_viewProfile">Vide tu profilo</string>
+  <string name="welcome_editProfile">Modifica tu profilo</string>
+  <string name="welcome_closing">Gaude de tu proxime partita. A revider al tabuliero!</string>
 </resources>

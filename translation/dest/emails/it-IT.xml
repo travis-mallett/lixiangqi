@@ -1,23 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="emailConfirm_subject">Conferma il tuo account su lichess.org, %s</string>
-  <string name="emailConfirm_intro">Grazie per esserti registrato a Lichess!</string>
-  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a Lichess account.&#10;&#10;The unique reset link is presented just after this string.">Clicca sul link per attivare il tuo account:</string>
-  <string name="emailConfirm_justIgnore">Se non ti sei registrato con Lichess, puoi tranquillamente ignorare questo messaggio. L\'account non confermato e tutte le tracce del tuo indirizzo email saranno cancellate dal nostro sistema dopo 48 ore.</string>
-  <string name="passwordReset_subject">Reimposta la tua password di lichess.org, %s</string>
+  <string name="emailConfirm_subject">Conferma il tuo account su lixiangqi.com, %s</string>
+  <string name="emailConfirm_intro">Grazie per esserti registrato a LiXiangQi!</string>
+  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a LiXiangQi account.&#10;&#10;The unique reset link is presented just after this string.">Clicca sul link per attivare il tuo account:</string>
+  <string name="emailConfirm_justIgnore">Se non ti sei registrato con LiXiangQi, puoi tranquillamente ignorare questo messaggio. L\'account non confermato e tutte le tracce del tuo indirizzo email saranno cancellate dal nostro sistema dopo 48 ore.</string>
+  <string name="passwordReset_subject">Reimposta la tua password di lixiangqi.com, %s</string>
   <string name="passwordReset_intro">Abbiamo ricevuto una richiesta di reset della password del tuo account.</string>
   <string name="passwordReset_clickOrIgnore">Se hai fatto questa richiesta clicca sul link sottostante. Altrimenti puoi ignorare questa email.</string>
   <string name="emailChange_subject">Conferma il nuovo indirizzo email, %s</string>
   <string name="emailChange_intro">Hai richiesto di cambiare il tuo indirizzo email.</string>
   <string name="emailChange_click">Per confermare che hai accesso a questo indirizzo email, clicca sul link sottostante:</string>
-  <string name="welcome_subject">Benvenuto su lichess.org, %s</string>
-  <string name="welcome_text">Hai creato con successo un account su https://lichess.org.
-
-Qui c\'è il tuo profilo %1$s. Puoi personalizzarlo da qui %2$s.
-
-Divertiti! Possano i tuoi pezzi trovare la forza di assaltare il re avversario!</string>
-  <string name="logInToLichess">Accedi a lichess.org, %s</string>
+  <string name="welcome_subject">Benvenuto su lixiangqi.com, %s</string>
+  <string name="logInToLichess">Accedi a lixiangqi.com, %s</string>
   <string name="common_orPaste">(Il link non funziona? Prova a incollarlo nel tuo browser!)</string>
   <string name="common_note">Questa è una email di servizio relativa al tuo uso di %s.</string>
   <string name="common_contact">Contattaci: %s</string>
+  <string name="welcome_intro">Il tuo account LiXiangQi è pronto. Che tu stia imparando le regole o tornando sulla scacchiera, siamo felici di averti qui.</string>
+  <string name="welcome_play">Gioca a xiangqi</string>
+  <string name="welcome_playTip">Inizia una partita dalla pagina iniziale. Per una prima partita senza pressioni, prova a giocare contro il computer.</string>
+  <string name="welcome_puzzles">Prova un problema</string>
+  <string name="welcome_puzzlesTip">Allenati a riconoscere le minacce e a trovare mosse vincenti. Prenditi il tempo necessario: cerca scacchi, catture e possibili risposte dell’avversario.</string>
+  <string name="welcome_profile">Mettiti a tuo agio</string>
+  <string name="welcome_profileTip">Aggiungi una breve presentazione al tuo profilo, così gli altri giocatori potranno conoscerti.</string>
+  <string name="welcome_viewProfile">Visualizza il tuo profilo</string>
+  <string name="welcome_editProfile">Modifica il tuo profilo</string>
+  <string name="welcome_closing">Buon divertimento con la prossima partita. Ci vediamo sulla scacchiera!</string>
 </resources>

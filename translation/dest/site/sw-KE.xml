@@ -130,4 +130,6 @@
   <string name="eventInProgress">Inaendelea</string>
   <string name="finished">Imekamilika</string>
   <string name="rematch">cheza tena</string>
+  <string name="privacyPolicy">Sera ya faragha</string>
+  <string name="readAboutOur">Soma kuhusu %s yetu.</string>
 </resources>

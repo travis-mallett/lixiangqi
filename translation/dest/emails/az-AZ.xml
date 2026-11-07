@@ -1,21 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="emailConfirm_subject">Lichess.org hesabınızı təsdiqləyin, %s</string>
-  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a Lichess account.&#10;&#10;The unique reset link is presented just after this string.">Lichess hesabınızı aktivləşdirmək üçün bu linkə klikləyin:</string>
-  <string name="passwordReset_subject">Lichess.org şifrənizi sıfırlayın, %s</string>
+  <string name="emailConfirm_subject">lixiangqi.com hesabınızı təsdiqləyin, %s</string>
+  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a LiXiangQi account.&#10;&#10;The unique reset link is presented just after this string.">LiXiangQi hesabınızı aktivləşdirmək üçün bu linkə klikləyin:</string>
+  <string name="passwordReset_subject">lixiangqi.com şifrənizi sıfırlayın, %s</string>
   <string name="passwordReset_intro">Hesabınızın şifrəsini sıfırlamaq üçün bir sorğu aldıq.</string>
   <string name="passwordReset_clickOrIgnore">Əgər bu sorğunu siz etmisinizsə, aşağıdakı linkə klikləyin. Siz etməmisinizsə, bu e-poçta əhəmiyyət verməyin.</string>
   <string name="emailChange_subject">Yeni e-poçt ünvanınızı təsdiqləyin, %s</string>
   <string name="emailChange_intro">E-poçt ünvanınızın dəyişdirilməsi üçün sorğu göndərdiniz.</string>
   <string name="emailChange_click">Bu e-poçt ünvanına giriş edə bildiyinizi təsdiq etmək üçün, zəhmət olmasa aşağıdakı bağlantıya klikləyin:</string>
-  <string name="welcome_subject">Lichess.org-a xoş gəldiniz, %s</string>
-  <string name="welcome_text">Hesabınız https://lichess.org üzərindən uğurla yaradıldı.
-
-Profil səhifəniz: %1$s. Profilinizi %2$s üzərindən özəlləşdirə bilərsiniz.
-
-Əylənin, fiqurlarınız hər zaman rəqib şahına gedən yolu tapa bilsin!</string>
-  <string name="logInToLichess">\"Lichess.org\"-a giriş edin, %s</string>
+  <string name="welcome_subject">lixiangqi.com-a xoş gəldiniz, %s</string>
+  <string name="logInToLichess">\"lixiangqi.com\"-a giriş edin, %s</string>
   <string name="common_orPaste">(Klikləmə işləmədi? Kopyalayıb brauzerə yapışdırmağı yoxla!)</string>
   <string name="common_note">Bu, %s istifadənizlə əlaqəli bir xidmət e-poçtudur.</string>
   <string name="common_contact">Bizimlə əlaqə üçün, zəhmət olmasa bu linkdən istifadə edin: %s.</string>
+  <string name="welcome_intro">LiXiangQi hesabınız hazırdır. İstər qaydaları öyrənin, istərsə də lövhəyə qayıdın — sizi burada görməyə şadıq.</string>
+  <string name="welcome_play">Syançi oynayın</string>
+  <string name="welcome_playTip">Ana səhifədən oyuna başlayın. Rahat ilk oyun üçün kompüterə qarşı oynamağı sınayın.</string>
+  <string name="welcome_puzzles">Tapşırıq həll edin</string>
+  <string name="welcome_puzzlesTip">Təhdidləri görməyi və qazandıran gedişləri tapmağı məşq edin. Tələsməyin: şahları, fiqur götürmələri və rəqibin mümkün cavablarını nəzərdən keçirin.</string>
+  <string name="welcome_profile">Özünüzü təqdim edin</string>
+  <string name="welcome_profileTip">Digər oyunçuların sizi tanıması üçün profilinizə qısa təqdimat əlavə edin.</string>
+  <string name="welcome_viewProfile">Profilinizə baxın</string>
+  <string name="welcome_editProfile">Profilinizi redaktə edin</string>
+  <string name="welcome_closing">Növbəti oyundan zövq alın. Lövhə arxasında görüşənədək!</string>
 </resources>

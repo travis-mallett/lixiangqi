@@ -1,15 +1,17 @@
 import type { VisiblePiece } from '@lixiangqi/board';
 
-import type { XiangqiSide as Color } from 'lib/game/xiangqi';
+export type Color = 'red' | 'black' | 'green';
+export type EditorVariant = 'xiangqi' | 'jieqi' | 'minixiangqi' | 'manchu' | 'threeKingdoms';
 
 export type Redraw = () => void;
-export type Selected = 'pointer' | 'trash' | Extract<VisiblePiece, { face: 'up' }>;
+export type Selected = 'pointer' | 'trash' | VisiblePiece;
 
 export interface EditorState {
   fen: string;
   legalFen?: string;
   playable: boolean;
   validating: boolean;
+  error?: 'invalid' | 'unavailable';
 }
 
 export interface XiangqiEditor {
@@ -24,6 +26,7 @@ export interface Config {
   baseUrl: string;
   startFen: string;
   fen?: string;
+  variant?: EditorVariant;
   options?: Options;
   animation: {
     duration: number;

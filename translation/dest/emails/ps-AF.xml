@@ -1,2 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources></resources>
+<resources>
+  <string name="welcome_intro">ستاسو د LiXiangQi حساب چمتو دی. که د لوبې اصول زده کوئ یا بیا لوبې ته راګرځئ، دلته مو په لیدو خوشحاله یو.</string>
+  <string name="welcome_play">شیانګ چي ولوبوئ</string>
+  <string name="welcome_playTip">له اصلي پاڼې لوبه پیل کړئ. د لومړۍ ارامې لوبې لپاره د کمپیوټر پر وړاندې لوبه وازمویئ.</string>
+  <string name="welcome_puzzles">یوه معما حل کړئ</string>
+  <string name="welcome_puzzlesTip">د ګواښونو پېژندلو او ګټونکو حرکتونو موندلو تمرین وکړئ. بیړه مه کوئ: کش، د مهرې نیول او د سیال احتمالي ځوابونه وګورئ.</string>
+  <string name="welcome_profile">ځان معرفي کړئ</string>
+  <string name="welcome_profileTip">خپل پروفایل ته لنډه پېژندنه ورزیاته کړئ، څو نور لوبغاړي مو وپېژني.</string>
+  <string name="welcome_viewProfile">خپل پروفایل وګورئ</string>
+  <string name="welcome_editProfile">خپل پروفایل سم کړئ</string>
+  <string name="welcome_closing">له راتلونکې لوبې خوند واخلئ. د لوبې پر تخته به سره ګورو!</string>
+  <string name="welcome_subject">lixiangqi.com ته ښه راغلاست، %s</string>
+  <string name="common_note">دا ستاسو د %s کارونې اړوند د خدمت برېښنالیک دی.</string>
+  <string name="common_contact">له موږ سره د اړیکې لپاره %s وکاروئ.</string>
+</resources>

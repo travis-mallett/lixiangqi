@@ -1097,15 +1097,15 @@ interface I18n {
     emailChange_intro: string;
     /** Confirm new email address, %s */
     emailChange_subject: I18nFormat;
-    /** Click the link to enable your Lixiangqi account: */
+    /** Click the link to enable your LiXiangQi account: */
     emailConfirm_click: string;
-    /** Thanks for registering with Lixiangqi! */
+    /** Thanks for registering with LiXiangQi! */
     emailConfirm_intro: string;
-    /** If you did not register with Lixiangqi, you can safely ignore this message. The unconfirmed account and all traces of your email address will be deleted from our system after 48 hours. */
+    /** If you did not register with LiXiangQi, you can safely ignore this message. The unconfirmed account and all traces of your email address will be deleted from our system after 48 hours. */
     emailConfirm_justIgnore: string;
-    /** Confirm your lixiangqi.org account, %s */
+    /** Confirm your lixiangqi.com account, %s */
     emailConfirm_subject: I18nFormat;
-    /** Log in to lixiangqi.org, %s */
+    /** Log in to lixiangqi.com, %s */
     logInToLichess: I18nFormat;
     /** Enter this code in the LiXiangQi app: %s */
     mobileVerificationBody: I18nFormat;
@@ -1115,12 +1115,30 @@ interface I18n {
     passwordReset_clickOrIgnore: string;
     /** We received a request to reset the password for your account. */
     passwordReset_intro: string;
-    /** Reset your lixiangqi.org password, %s */
+    /** Reset your lixiangqi.com password, %s */
     passwordReset_subject: I18nFormat;
-    /** Welcome to lixiangqi.org, %s */
+    /** Enjoy your next game. See you across the board! */
+    welcome_closing: string;
+    /** Edit your profile */
+    welcome_editProfile: string;
+    /** Your LiXiangQi account is ready. Whether you are learning the rules or returning to the board, we are glad you are here. */
+    welcome_intro: string;
+    /** Play xiangqi */
+    welcome_play: string;
+    /** Start a game from the home page. For a relaxed first game, try playing against the computer. */
+    welcome_playTip: string;
+    /** Make yourself at home */
+    welcome_profile: string;
+    /** Add a short introduction to your profile so other players can get to know you. */
+    welcome_profileTip: string;
+    /** Try a puzzle */
+    welcome_puzzles: string;
+    /** Practice spotting threats and finding winning moves. Take your time: look for checks, captures, and what your opponent might do next. */
+    welcome_puzzlesTip: string;
+    /** Welcome to lixiangqi.com, %s */
     welcome_subject: I18nFormat;
-    /** You have successfully created your account on https://lixiangqi.org. */
-    welcome_text: I18nFormat;
+    /** View your profile */
+    welcome_viewProfile: string;
   };
   faq: {
     /** Accounts */
@@ -4409,6 +4427,50 @@ interface I18n {
     duration: string;
     /** Edit */
     edit: string;
+    /** Army control */
+    editorArmyControl: string;
+    /** Removed */
+    editorArmyRemoved: string;
+    /** Concealed piece */
+    editorConcealedPiece: string;
+    /** Valid position; the game is over */
+    editorGameOver: string;
+    /** Drag pieces, or choose a piece and tap the board to place it. Use the eraser to remove pieces. */
+    editorHelp: string;
+    /** Invalid position. Check the generals, piece placement and side to move. */
+    editorInvalid: string;
+    /** Enter a position matching the selected variant: FEN for rectangular boards, or TK1 for Three Kingdoms. */
+    editorInvalidFen: string;
+    /** Edited Jieqi positions can be analysed. New games require a fresh concealed deal. */
+    editorJieqiAnalysisOnly: string;
+    /** Edited Three Kingdoms positions can be analysed. Computer games and friend challenges start from the initial position. */
+    editorKingdomsAnalysisOnly: string;
+    /** Move pieces */
+    editorMovePieces: string;
+    /** Advisor */
+    editorPiece_advisor: string;
+    /** Banner */
+    editorPiece_banner: string;
+    /** Cannon */
+    editorPiece_cannon: string;
+    /** Chariot */
+    editorPiece_chariot: string;
+    /** Elephant */
+    editorPiece_elephant: string;
+    /** General */
+    editorPiece_general: string;
+    /** Horse */
+    editorPiece_horse: string;
+    /** Soldier */
+    editorPiece_soldier: string;
+    /** Valid position with legal moves */
+    editorPlayable: string;
+    /** Remove pieces */
+    editorRemovePieces: string;
+    /** Side to move */
+    editorSideToMove: string;
+    /** Position validation is unavailable. Please try again. */
+    editorValidationUnavailable: string;
     /** Edit profile */
     editProfile: string;
     /** Email */

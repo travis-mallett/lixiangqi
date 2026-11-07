@@ -1,23 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="emailConfirm_subject">Підтвердьте свій обліковий запис на lichess.org, %s</string>
-  <string name="emailConfirm_intro">Дякуємо, що зареєструвалися в Lichess!</string>
-  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a Lichess account.&#10;&#10;The unique reset link is presented just after this string.">Натисніть на посилання для активації облікового запису Lichess:</string>
-  <string name="emailConfirm_justIgnore">Якщо ви не реєструвалися в Lichess, просто проігноруйте це повідомлення. Непідтверджений обліковий запис і всі сліди вашої адреси електронної пошти будуть видалені з нашої системи через 48 годин.</string>
-  <string name="passwordReset_subject">%s, скидання вашого паролю lichess.org</string>
+  <string name="emailConfirm_subject">Підтвердьте свій обліковий запис на lixiangqi.com, %s</string>
+  <string name="emailConfirm_intro">Дякуємо, що зареєструвалися в LiXiangQi!</string>
+  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a LiXiangQi account.&#10;&#10;The unique reset link is presented just after this string.">Натисніть на посилання для активації облікового запису LiXiangQi:</string>
+  <string name="emailConfirm_justIgnore">Якщо ви не реєструвалися в LiXiangQi, просто проігноруйте це повідомлення. Непідтверджений обліковий запис і всі сліди вашої адреси електронної пошти будуть видалені з нашої системи через 48 годин.</string>
+  <string name="passwordReset_subject">%s, скидання вашого паролю lixiangqi.com</string>
   <string name="passwordReset_intro">Ми отримали запит на скидання пароля для вашого облікового запису.</string>
   <string name="passwordReset_clickOrIgnore">Якщо цей запит виконали ви, перейдіть за посиланням нижче. Якщо ні, проігноруйте цей лист.</string>
   <string name="emailChange_subject">Підтвердьте нову електронну адресу, %s</string>
   <string name="emailChange_intro">Ми отримали запит на зміну вашої електронної адреси.</string>
   <string name="emailChange_click">Щоб підтвердити ваш доступ до цієї пошти, перейдіть за посиланням нижче:</string>
-  <string name="welcome_subject">Ласкаво просимо на lichess.org, %s</string>
-  <string name="welcome_text">Ви успішно зареєструвалися на https://lichess.org.
-
-Ось посилання на ваш профіль: %1$s. Ви зможете налаштувати його за посиланням: %2$s.
-
-Отримуйте задоволення, і хай ваші фігури завжди знаходять шлях до короля суперника!</string>
-  <string name="logInToLichess">Увійдіть до lichess.org, %s</string>
+  <string name="welcome_subject">Ласкаво просимо на lixiangqi.com, %s</string>
+  <string name="logInToLichess">Увійдіть до lixiangqi.com, %s</string>
   <string name="common_orPaste">(Клік по посиланню не працює? Спробуйте вставити його в адресний рядок!)</string>
   <string name="common_note">Це службовий лист, пов\'язаний із використанням %s.</string>
   <string name="common_contact">Щоб зв\'язатися з нами, будь ласка, використовуйте %s.</string>
+  <string name="welcome_intro">Ваш обліковий запис LiXiangQi готовий. Раді бачити вас — і тих, хто лише вивчає правила, і тих, хто повертається за дошку.</string>
+  <string name="welcome_play">Грати в сянці</string>
+  <string name="welcome_playTip">Розпочніть партію з головної сторінки. Для спокійного знайомства з грою спробуйте зіграти з комп’ютером.</string>
+  <string name="welcome_puzzles">Розв’язати задачу</string>
+  <string name="welcome_puzzlesTip">Вчіться помічати загрози та знаходити виграшні ходи. Не поспішайте: розгляньте шахи, взяття й можливі відповіді суперника.</string>
+  <string name="welcome_profile">Розкажіть про себе</string>
+  <string name="welcome_profileTip">Додайте короткий опис до профілю, щоб інші гравці могли з вами познайомитися.</string>
+  <string name="welcome_viewProfile">Переглянути профіль</string>
+  <string name="welcome_editProfile">Редагувати профіль</string>
+  <string name="welcome_closing">Приємної гри! До зустрічі за дошкою!</string>
 </resources>

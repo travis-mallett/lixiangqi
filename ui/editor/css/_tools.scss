@@ -34,10 +34,6 @@
       @extend %page-link !optional;
 
       width: 100%;
-
-      &.positions option:checked {
-        font-style: italic;
-      }
     }
 
     .metadata {
@@ -50,69 +46,24 @@
       label {
         display: grid;
         gap: 0.5rem;
+        margin-bottom: 0.75rem;
         font-weight: bold;
+      }
+
+      fieldset {
+        margin-top: 1rem;
+        border: 0;
+        padding: 0;
+      }
+
+      legend {
+        margin-bottom: 0.75rem;
       }
 
       .board-editor__status {
         margin: 1rem 0 0;
         color: $c-font-dim;
         white-space: normal;
-      }
-
-      .color {
-        margin-bottom: 1em;
-      }
-
-      .castling {
-        div {
-          @extend %flex-between;
-        }
-
-        label,
-        input {
-          display: inline-block;
-          margin: 3px;
-          vertical-align: middle;
-        }
-
-        input.not-allowed {
-          visibility: hidden;
-        }
-      }
-
-      .enpassant {
-        @extend %flex-between;
-
-        margin-top: 1em;
-
-        label {
-          font-weight: bold;
-        }
-
-        select {
-          width: 9ch;
-        }
-      }
-
-      .chess960-position-row {
-        @extend %flex-center;
-
-        gap: 0.5rem;
-
-        .form-label {
-          flex: 0 0 100%;
-          margin: 0;
-        }
-
-        .button {
-          width: auto;
-        }
-      }
-
-      #chess960-position-id {
-        &:invalid {
-          border-color: $c-error;
-        }
       }
     }
 

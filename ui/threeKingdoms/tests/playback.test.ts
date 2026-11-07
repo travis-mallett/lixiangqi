@@ -5,6 +5,7 @@ import { test } from 'node:test';
 import { playbackTransition, position, transition } from '../src/board';
 import { Tree } from '../src/tree';
 import type { Rules } from '../src/types';
+import { positionFixture } from './positionFixture';
 
 const rules: Rules = (
   await import(new URL('../../../public/three-kingdoms-engine/main.js', import.meta.url).href)
@@ -82,7 +83,7 @@ test('the third player’s unrelated move preserves the check marker without rep
 });
 
 test('recorded capture playback announces once, backward playback only sounds a move, and jumps are quiet', () => {
-  const initial = rules.edit(rules.initial(), '4:0k,1d:1k,2m:2k,1m:2r,19:1n,d:0a', 'red');
+  const initial = positionFixture(rules, rules.initial(), '4:0k,1d:1k,2m:2k,1m:2r,19:1n,d:0a', 'red');
   const before = rules.inspect(initial);
   const after = rules.inspect(rules.play(initial, 'wu:4:1>wu:4:0'));
   const root = document.createElement('div');

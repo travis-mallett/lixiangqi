@@ -1,22 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="emailConfirm_subject">Potvrdite Vaš račun na lichess.org, %s</string>
-  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a Lichess account.&#10;&#10;The unique reset link is presented just after this string.">Kliknite link da aktivirate Vaš Lichess račun:</string>
-  <string name="emailConfirm_justIgnore">Ako se niste registrovali na Lichess-u, možete slobodno zanemariti ovu poruku. Nepotvrđeni račun i svi tragovi vaše adrese e-pošte bit će izbrisani iz našeg sistema nakon 48 sati.</string>
-  <string name="passwordReset_subject">Resetirajte Vašu lichess.org lozinku, %s</string>
+  <string name="emailConfirm_subject">Potvrdite Vaš račun na lixiangqi.com, %s</string>
+  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a LiXiangQi account.&#10;&#10;The unique reset link is presented just after this string.">Kliknite link da aktivirate Vaš LiXiangQi račun:</string>
+  <string name="emailConfirm_justIgnore">Ako se niste registrovali na LiXiangQi-u, možete slobodno zanemariti ovu poruku. Nepotvrđeni račun i svi tragovi vaše adrese e-pošte bit će izbrisani iz našeg sistema nakon 48 sati.</string>
+  <string name="passwordReset_subject">Resetirajte Vašu lixiangqi.com lozinku, %s</string>
   <string name="passwordReset_intro">Primili smo zahtjev za resetovanje lozinke Vašeg računa.</string>
   <string name="passwordReset_clickOrIgnore">Ako ste Vi podnijeli ovaj zahtjev, kliknite na link ispod. Ako niste, možete ignorisati ovu poruku.</string>
   <string name="emailChange_subject">Potvrdite Vašu novu e-mail adresu, %s</string>
   <string name="emailChange_intro">Zatražili ste promjenu Vaše e-mail adrese.</string>
   <string name="emailChange_click">Potvrdite da imate pristup ovom e-mail-u klikom na link ispod:</string>
-  <string name="welcome_subject">Dobrodošli na lichess.org, %s</string>
-  <string name="welcome_text">Vaš račun na https://lichess.org je uspješno kreiran.
-
-Ovo je Vaš profil: %1$s. Možete ga mijenjati na %2$s.
-
-Uživajte, i neka Vaše figure uvijek pronađu put do protivničkog kralja!</string>
-  <string name="logInToLichess">Prijavite se na lichess.org, %s</string>
+  <string name="welcome_subject">Dobrodošli na lixiangqi.com, %s</string>
+  <string name="logInToLichess">Prijavite se na lixiangqi.com, %s</string>
   <string name="common_orPaste">(Klikanje na link ne radi? Probajte zalijepiti link u Vaš pretraživač!)</string>
   <string name="common_note">Ovo je servisna poruka povezana sa Vašim korištenjem stranice %s.</string>
   <string name="common_contact">Da bi ste nas kontaktirali, molimo Vas da koristite %s.</string>
+  <string name="welcome_intro">Vaš LiXiangQi račun je spreman. Bilo da učite pravila ili se vraćate ploči, drago nam je što ste ovdje.</string>
+  <string name="welcome_play">Igrajte xiangqi</string>
+  <string name="welcome_playTip">Započnite partiju na početnoj stranici. Za opuštenu prvu partiju pokušajte igrati protiv računara.</string>
+  <string name="welcome_puzzles">Isprobajte zadatak</string>
+  <string name="welcome_puzzlesTip">Vježbajte prepoznavanje prijetnji i pronalaženje pobjedničkih poteza. Ne žurite: razmotrite šahove, uzimanja i moguće odgovore protivnika.</string>
+  <string name="welcome_profile">Osjećajte se kao kod kuće</string>
+  <string name="welcome_profileTip">Dodajte kratak opis u profil kako bi vas drugi igrači mogli upoznati.</string>
+  <string name="welcome_viewProfile">Pogledajte profil</string>
+  <string name="welcome_editProfile">Uredite profil</string>
+  <string name="welcome_closing">Uživajte u sljedećoj partiji. Vidimo se za pločom!</string>
 </resources>

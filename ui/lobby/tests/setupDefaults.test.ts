@@ -2,6 +2,9 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { init, attributesModule, propsModule, eventListenersModule, type VNode } from 'snabbdom';
 
+import { MANCHU_START_FEN } from 'lib/game/manchu';
+import { MINI_XIANGQI_START_FEN } from 'lib/game/minixiangqi';
+
 import SetupController from '../src/setupCtrl';
 import { rulesetPicker } from '../src/view/setup/components/rulesetPicker';
 import { variantPicker } from '../src/view/setup/components/variantPicker';
@@ -12,6 +15,24 @@ function controller() {
   root.setupCtrl = ctrl;
   ctrl.loadAiStats = async () => {};
   return { ctrl, root };
+}
+
+for (const [variant, fen] of [
+  ['minixiangqi', MINI_XIANGQI_START_FEN],
+  ['manchu', MANCHU_START_FEN],
+]) {
+  test(`${variant} editor handoff sends the native variant and bounds its computer level`, () => {
+    const { ctrl } = controller();
+    ctrl.store.ai({ ...ctrl.store.ai(), aiLevel: 720 });
+    ctrl.openModal('ai', { variant: 'fromPosition', fen });
+    assert.equal(ctrl.usesVariantLevels(), true);
+    assert.equal(ctrl.aiLevel(), 10);
+    const data = ctrl.propsToFormData('white');
+    assert.equal(data.get('variant'), '3');
+    assert.equal(data.get('gameVariant'), variant);
+    assert.equal(data.get('fen'), fen);
+    assert.equal(data.has('ruleset'), false);
+  });
 }
 
 for (const type of ['ai', 'hook', 'friend'] as const) {

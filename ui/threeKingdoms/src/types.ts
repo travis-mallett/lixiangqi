@@ -48,7 +48,14 @@ export interface Rules {
   play(position: string, move: string): string;
   withdraw(position: string, player: string): string;
   event(position: string, actor: string, action: string): string;
-  edit(position: string, pieces: string, turn: string): string;
+  diagram(position: string): Pick<State, 'position' | 'turn' | 'active' | 'controllers' | 'pieces'>;
+  editDiagram(
+    position: string,
+    pieces: Pick<Piece, 'location' | 'army' | 'role'>[],
+    turn: string,
+    owners: (Color | null)[],
+  ): string;
+  validateDiagram(position: string): string;
   notation(position: string, move: string): string;
   coordinate(location: string): string;
   route(position: string, move: string): string[];

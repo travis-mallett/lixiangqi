@@ -3,15 +3,20 @@
 }
 
 .board-editor {
-  $board-width: calc((100vh - 4vmin) * var(---board-scale) * 0.9 - #{$site-header-outer-height});
+  $board-width: calc((100vh - #{$site-header-outer-height} - 10rem) * var(---board-scale) * 0.75);
 
   display: grid;
-  grid-template-columns: minmax(0, $board-width);
+  grid-template-columns: minmax(0, 1fr);
   grid-template-areas: 'spare-top' 'board' 'spare-bottom' 'tools' 'copyables';
+  max-width: 600px;
+  margin: auto;
 
-  @media (min-width: at-least($x-small)) {
-    grid-template-columns: minmax(30vmin, $board-width) 2vmin minmax(200px, 300px);
-    grid-template-rows: min-content auto min-content;
-    grid-template-areas: '.            . tools' 'spare-top    . tools' 'board        . tools' 'spare-bottom . tools' '.            . tools' 'copyables    . .    ';
+  @media (min-width: at-least($small)) {
+    max-width: none;
+    justify-content: center;
+    column-gap: 2vmin;
+    grid-template-columns: minmax(280px, $board-width) minmax(200px, 300px);
+    grid-template-rows: min-content auto min-content auto;
+    grid-template-areas: 'spare-top tools' 'board tools' 'spare-bottom tools' 'copyables copyables';
   }
 }

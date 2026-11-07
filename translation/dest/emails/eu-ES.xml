@@ -1,23 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="emailConfirm_subject">Aktibatu zure lichess.org-eko kontua, %s</string>
+  <string name="emailConfirm_subject">Aktibatu zure lixiangqi.com-eko kontua, %s</string>
   <string name="emailConfirm_intro">Eskerrik asko Lichessen erregitratzeagatik!</string>
-  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a Lichess account.&#10;&#10;The unique reset link is presented just after this string.">Egin klik zure Lichess kontua aktibatzeko:</string>
+  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a LiXiangQi account.&#10;&#10;The unique reset link is presented just after this string.">Egin klik zure LiXiangQi kontua aktibatzeko:</string>
   <string name="emailConfirm_justIgnore">Ez baduzu Lichessen izena eman, email hau guztiz baztertu dezakezu. Egiaztatu gabeko kontua eta zure email helbidearen informazioa 48 orduko epean ezabatuko da gure sistematik.</string>
-  <string name="passwordReset_subject">Berrezarri lichess.org-eko zure pasahitza, %s</string>
+  <string name="passwordReset_subject">Berrezarri lixiangqi.com-eko zure pasahitza, %s</string>
   <string name="passwordReset_intro">Zure kontuaren pasahitza berrezartzeko eskaera jaso dugu.</string>
   <string name="passwordReset_clickOrIgnore">Eskaera zuk egin baduzu, egin klik lotura honetan. Ez bada horrela izan, ez egin kasu mezu honi.</string>
   <string name="emailChange_subject">Baieztatu zure eposta helbide berria, %s</string>
   <string name="emailChange_intro">Zure eposta helbidea aldatzea eskatu duzu.</string>
   <string name="emailChange_click">Helbide hau zurea dela baieztatzeko, egin klik lotura honetan:</string>
-  <string name="welcome_subject">Ongi etorri lichess.org-era, %s</string>
-  <string name="welcome_text">Https://lichess.org-en kontua ondo sortu duzu.
-
-Hemen dago zure profilaren orrialdea: %1$s. Nahi duzun bezala egokitu dezakezu hemendik %2$s.
-
-Ondo ibili eta zorte on!</string>
-  <string name="logInToLichess">Sartu lichess.org-en, %s</string>
+  <string name="welcome_subject">Ongi etorri lixiangqi.com-era, %s</string>
+  <string name="logInToLichess">Sartu lixiangqi.com-en, %s</string>
   <string name="common_orPaste">(Klik egitea ez badabil, saiatu helbidea kopiatu eta nabigatzailean itsasten)</string>
   <string name="common_note">%s-en erabileraren inguruko eposta automatiko bat da hau.</string>
   <string name="common_contact">Gurekin kontaktuan jartzeko idatzi %s helbidera.</string>
+  <string name="welcome_intro">Zure LiXiangQi kontua prest dago. Arauak ikasten ari bazara nahiz taulara itzultzen bazara, pozten gara zu hemen izateaz.</string>
+  <string name="welcome_play">Jokatu xiangqian</string>
+  <string name="welcome_playTip">Hasi partida bat hasierako orritik. Lehen partida lasaia egiteko, saiatu ordenagailuaren aurka jokatzen.</string>
+  <string name="welcome_puzzles">Saiatu ariketa batekin</string>
+  <string name="welcome_puzzlesTip">Praktikatu mehatxuak antzematen eta irabazteko mugimenduak aurkitzen. Hartu denbora: aztertu xakeak, harrapaketak eta aurkariaren erantzun posibleak.</string>
+  <string name="welcome_profile">Egin zeure burua ezagun</string>
+  <string name="welcome_profileTip">Gehitu aurkezpen labur bat zure profilean, beste jokalariek ezagutu zaitzaten.</string>
+  <string name="welcome_viewProfile">Ikusi zure profila</string>
+  <string name="welcome_editProfile">Editatu zure profila</string>
+  <string name="welcome_closing">Gozatu hurrengo partidaz. Taulan ikusiko dugu elkar!</string>
 </resources>

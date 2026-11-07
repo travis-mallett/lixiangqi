@@ -1,37 +1,36 @@
 import { boardPresentation, type BoardView, type VisiblePiece } from '@lixiangqi/board';
 
-import { makeBoardResizable, createXiangqiBoard, xiangqiPosition } from 'lib/board';
+import { makeBoardResizable, createXiangqiBoard } from 'lib/board';
 
 import type EditorCtrl from './ctrl';
 
 export function makeGround(element: HTMLElement, ctrl: EditorCtrl): BoardView {
   const board = createXiangqiBoard(
     element,
-    xiangqiPosition(ctrl.state.fen),
+    ctrl.position(),
     {
-      ...boardPresentation('editor', ctrl.orientation === 'red' ? 'red' : 'black'),
+      ...boardPresentation('editor', ctrl.orientation),
       coordinates: ctrl.cfg.options?.coordinates !== false,
       motion: { duration: ctrl.cfg.animation.duration },
     },
     { mode: 'edit', onChange: () => ctrl.changed() },
   );
 
-  makeBoardResizable(board);
-  const placeSelected = (event: MouseEvent | TouchEvent): void => {
+  if (!ctrl.cfg.embed) makeBoardResizable(board);
+  const placeSelected = (event: PointerEvent): void => {
     if (ctrl.selected === 'pointer') return;
-    event.preventDefault();
-    const pointer = 'touches' in event ? event.touches[0] : event;
-    if (!pointer) return;
-    const location = board.locationAt([pointer.clientX, pointer.clientY]);
+    if (event.button !== 0 || !event.isPrimary) return;
+    if ((event.target as Element).closest('cg-resize')) return;
+    const location = board.locationAt([event.clientX, event.clientY]);
     if (!location) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
     board.cancelInput();
     board.place(location, ctrl.selected === 'trash' ? undefined : ctrl.selected);
   };
-  element.addEventListener('mousedown', placeSelected);
-  element.addEventListener('touchstart', placeSelected, { passive: false });
+  element.addEventListener('pointerdown', placeSelected, true);
   board.onDestroy(() => {
-    element.removeEventListener('mousedown', placeSelected);
-    element.removeEventListener('touchstart', placeSelected);
+    element.removeEventListener('pointerdown', placeSelected, true);
   });
   ctrl.attachGround(board);
   return board;

@@ -1,22 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="emailConfirm_subject">Bevestig jou lichess.org rekening, %s</string>
-  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a Lichess account.&#10;&#10;The unique reset link is presented just after this string.">Klik die skakel om jou Lichess rekening te aktiveer:</string>
-  <string name="emailConfirm_justIgnore">Indien jy nie by Lichess geregistreer het nie kan jy gerus hierdie boodskap ignoreer. Die onbevestigde rekening en e-posadres sal van ons stelsel verwyder word oor 48 uur.</string>
-  <string name="passwordReset_subject">Herstel jou lichess.org wagwoord, %s</string>
+  <string name="emailConfirm_subject">Bevestig jou lixiangqi.com rekening, %s</string>
+  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a LiXiangQi account.&#10;&#10;The unique reset link is presented just after this string.">Klik die skakel om jou LiXiangQi rekening te aktiveer:</string>
+  <string name="emailConfirm_justIgnore">Indien jy nie by LiXiangQi geregistreer het nie kan jy gerus hierdie boodskap ignoreer. Die onbevestigde rekening en e-posadres sal van ons stelsel verwyder word oor 48 uur.</string>
+  <string name="passwordReset_subject">Herstel jou lixiangqi.com wagwoord, %s</string>
   <string name="passwordReset_intro">Ons het \'n versoek ontvang om die wagwoord vir jou rekening te herstel.</string>
   <string name="passwordReset_clickOrIgnore">Indien jy hierdie versoek gemaak het, klik die onderstaande skakel. Indien nie, kan jy hierdie e-pos ignoreer.</string>
   <string name="emailChange_subject">Bevestig nuwe e-pos adres, %s</string>
   <string name="emailChange_intro">Jy het versoek om jou e-pos adres te verander.</string>
   <string name="emailChange_click">Om te bevestig dat jy toegang tot hierdie e-pos het, klik asseblief die onderstaande skakel:</string>
-  <string name="welcome_subject">Welkom by lichess.org, %s</string>
-  <string name="welcome_text">Jy het suksesvol jou rekening op https://lichess.org geskep.
-
-Hier is jou profielblad: %1$s. Jy kan dit verpersoonlik op %2$s.
-
-Geniet dit, mag jou stukke altyd hulle weg na die opponent se koning vind!</string>
-  <string name="logInToLichess">Teken in op lichess.org, %s</string>
+  <string name="welcome_subject">Welkom by lixiangqi.com, %s</string>
+  <string name="logInToLichess">Teken in op lixiangqi.com, %s</string>
   <string name="common_orPaste">(Werk dit nie om te klik nie? Probeer dit na die webblaaier oorkopieer!)</string>
   <string name="common_note">Dit is \'n diens e-pos in verband met jou gebruik van %s.</string>
   <string name="common_contact">Om ons te kontak, gebruik asseblief %s.</string>
+  <string name="welcome_intro">Jou LiXiangQi-rekening is gereed. Of jy die reëls leer of na die bord terugkeer, ons is bly jy is hier.</string>
+  <string name="welcome_play">Speel xiangqi</string>
+  <string name="welcome_playTip">Begin ’n spel op die tuisblad. Probeer teen die rekenaar speel vir ’n ontspanne eerste spel.</string>
+  <string name="welcome_puzzles">Probeer ’n raaisel</string>
+  <string name="welcome_puzzlesTip">Oefen om bedreigings raak te sien en wenbewegings te vind. Neem jou tyd: kyk na skaak, vangbewegings en jou teenstander se moontlike antwoord.</string>
+  <string name="welcome_profile">Maak jouself tuis</string>
+  <string name="welcome_profileTip">Voeg ’n kort bekendstelling by jou profiel sodat ander spelers jou kan leer ken.</string>
+  <string name="welcome_viewProfile">Bekyk jou profiel</string>
+  <string name="welcome_editProfile">Wysig jou profiel</string>
+  <string name="welcome_closing">Geniet jou volgende spel. Sien jou by die bord!</string>
 </resources>

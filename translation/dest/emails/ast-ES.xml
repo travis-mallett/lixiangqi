@@ -1,22 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="emailConfirm_subject">Confirma la to cuenta de lichess.org, %s</string>
-  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a Lichess account.&#10;&#10;The unique reset link is presented just after this string.">Polsa nel enllaz pa activar la to cuenta:</string>
-  <string name="emailConfirm_justIgnore">Si nun rexistrastete en Lichess, puedes ignorar esti mensaxe. Les cuentes ensin confirmar y tolos datos rellacionaos cola to cuenta de corréu van ser borraos del nuestru sistema en 48 hores.</string>
-  <string name="passwordReset_subject">Resablez la to contraseña de lichess.org, %s</string>
+  <string name="emailConfirm_subject">Confirma la to cuenta de lixiangqi.com, %s</string>
+  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a LiXiangQi account.&#10;&#10;The unique reset link is presented just after this string.">Polsa nel enllaz pa activar la to cuenta:</string>
+  <string name="emailConfirm_justIgnore">Si nun rexistrastete en LiXiangQi, puedes ignorar esti mensaxe. Les cuentes ensin confirmar y tolos datos rellacionaos cola to cuenta de corréu van ser borraos del nuestru sistema en 48 hores.</string>
+  <string name="passwordReset_subject">Resablez la to contraseña de lixiangqi.com, %s</string>
   <string name="passwordReset_intro">Recibimos una solicitú pa restablecer la to contraseña.</string>
   <string name="passwordReset_clickOrIgnore">Si fixisti esta solicitú, fai click nel enllaz. Si non, ignora\'l mensaxe.</string>
   <string name="emailChange_subject">Confirmar nueva dirección de corréu electrónicu, %s</string>
   <string name="emailChange_intro">Solicitasti camudar la to dirección de corréu electrónicu.</string>
   <string name="emailChange_click">Para confirmar que tienes accesu a esti corréu electrónicu, fai clic nel siguiente enllaz:</string>
-  <string name="welcome_subject">Bienveníu a lichess.org, %s</string>
-  <string name="welcome_text">Creasti con ésitu la to cuenta en https://lichess.org.
-
-Esta ye la so páxina de perfil: %1$s. Puedes personalizalo en %2$s.
-
-¡Préstate y que les tos pieces siempres atopen el camín escontra\'l rei del to oponente!</string>
-  <string name="logInToLichess">Empecipia sesión en lichess.org, %s</string>
+  <string name="welcome_subject">Bienveníu a lixiangqi.com, %s</string>
+  <string name="logInToLichess">Empecipia sesión en lixiangqi.com, %s</string>
   <string name="common_orPaste">(¿Facer clic nun funciona? ¡Intenta pegalo nel to navegador!)</string>
   <string name="common_note">Este ye un corréu electrónicu de serviciu rellacionáu col to usu de %s.</string>
   <string name="common_contact">Para ponete en contactu con nós, utiliza %s.</string>
+  <string name="welcome_intro">La to cuenta de LiXiangQi ta llista. Tanto si tas aprendiendo les regles como si vuelves al tableru, préstanos tenete equí.</string>
+  <string name="welcome_play">Xugar al xiangqi</string>
+  <string name="welcome_playTip">Entama una partida dende la páxina d’aniciu. Pa una primera partida tranquila, prueba a xugar contra l’ordenador.</string>
+  <string name="welcome_puzzles">Probar un problema</string>
+  <string name="welcome_puzzlesTip">Practica cómo detectar amenaces y atopar xugaes ganadores. Tómate’l to tiempu: mira los xaques, les captures y les posibles respuestes del rival.</string>
+  <string name="welcome_profile">Siéntite como en casa</string>
+  <string name="welcome_profileTip">Amiesta una presentación curtia al to perfil pa que los otros xugadores te conozan.</string>
+  <string name="welcome_viewProfile">Ver el to perfil</string>
+  <string name="welcome_editProfile">Editar el to perfil</string>
+  <string name="welcome_closing">Esfruta de la próxima partida. Vémonos nel tableru!</string>
 </resources>

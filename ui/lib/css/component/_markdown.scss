@@ -108,12 +108,19 @@
   }
 
   @if $img {
-    img {
+    img:not(.uflair, .flag) {
       display: block;
       max-width: 100%;
       max-height: $img-max-height;
       margin: auto;
     }
+  }
+
+  .user-link {
+    display: inline-block;
+    max-width: 100%;
+    overflow: visible;
+    white-space: normal;
   }
 
   @if $table {
@@ -194,7 +201,7 @@
 }
 
 @mixin rendered-markdown-img {
-  img {
+  img:not(.uflair, .flag) {
     @extend %box-neat;
 
     max-width: 100%;

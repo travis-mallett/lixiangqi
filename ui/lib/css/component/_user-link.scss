@@ -11,6 +11,13 @@
 
   color: $c-font;
 
+  .flag {
+    height: 1em;
+    width: auto;
+    vertical-align: middle;
+    margin-inline-start: 0.5ch;
+  }
+
   &.online .line {
     opacity: 0.9;
     color: $c-good;

@@ -1,21 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="emailConfirm_subject">%s, та lichess.org дахь хэрэглэгчийн дансаа баталгаажуулна уу</string>
-  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a Lichess account.&#10;&#10;The unique reset link is presented just after this string.">Личессийн хэрэглэгчийн дансаа нээхийн тулд та дараах холбоос дээр товшно уу:</string>
-  <string name="passwordReset_subject">%s, та lichess.org-ын бүртгэлийнхээ нэвтрэх нууц үгээ солино уу</string>
+  <string name="emailConfirm_subject">%s, та lixiangqi.com дахь хэрэглэгчийн дансаа баталгаажуулна уу</string>
+  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a LiXiangQi account.&#10;&#10;The unique reset link is presented just after this string.">Личессийн хэрэглэгчийн дансаа нээхийн тулд та дараах холбоос дээр товшно уу:</string>
+  <string name="passwordReset_subject">%s, та lixiangqi.com-ын бүртгэлийнхээ нэвтрэх нууц үгээ солино уу</string>
   <string name="passwordReset_intro">Бид таны дансруу нэвтрэх үгийг шинэчлэх хүсэлт хүлээн авсан.</string>
   <string name="passwordReset_clickOrIgnore">Хэрэв та энэхүү хүсэлтийг гаргасан бол доорх холбоос дээр товшно уу. Хэрэв хүсэлт гаргаагүй бол энэхүү захиаг тоохгүй орхиж болно.</string>
   <string name="emailChange_subject">Шинэ имэйл хаяг баталгаажуулах, %s</string>
   <string name="emailChange_intro">Та электрон шуудангийн хаягаа өөрчлөх хүсэлт явуулсан байна.</string>
   <string name="emailChange_click">Та энэ имэйл хаягаа баталгаажуулахын тулд доорх холбоос дээр дарна уу:</string>
-  <string name="welcome_subject">Тавтай морилно уу, %s lichess.org-д</string>
-  <string name="welcome_text">Та https://lichess.org дээр шинэ хэрэглэгчийн данс амжилттайгаар нээлээ. 
-Таны танилцуулга хуудас: %1$s
-Та хуудсаа өөрчлөх бол: %2$s
-
-Таны хөлөг эсрэг талын ноёны руу хүрэх замаа үргэлж олох болтугай. Та сайхан тоглоорой!</string>
-  <string name="logInToLichess">%s, lichess.org нэвтэрч орох</string>
+  <string name="welcome_subject">Тавтай морилно уу, %s lixiangqi.com-д</string>
+  <string name="logInToLichess">%s, lixiangqi.com нэвтэрч орох</string>
   <string name="common_orPaste">(Товшихоор ажиллахгүй байна уу? Та холбоосыг интернет хөтөч дээр хуулж тавид уншуулж үзээрэй!)</string>
   <string name="common_note">Таны %s-ийг хэрэглэж буйтай хамааралтай зурвас болно.</string>
   <string name="common_contact">Бидэнтэй холбогдохыг хүсвэл %s-г дарна уу.</string>
+  <string name="welcome_intro">Таны LiXiangQi бүртгэл бэлэн боллоо. Дүрэм сурч байгаа ч бай, дахин тоглохоор ирсэн ч бай, таныг баяртайгаар угтаж байна.</string>
+  <string name="welcome_play">Сянци тоглох</string>
+  <string name="welcome_playTip">Нүүр хуудаснаас тоглолтоо эхлүүлээрэй. Эхний удаа тайван тоглохын тулд компьютертой тоглоод үзээрэй.</string>
+  <string name="welcome_puzzles">Бодлого бодох</string>
+  <string name="welcome_puzzlesTip">Аюулыг анзаарч, хожлын нүүдлийг олох дасгал хийгээрэй. Яаралгүйгээр шаг, идэлт болон өрсөлдөгчийн боломжит хариуг бодож үзээрэй.</string>
+  <string name="welcome_profile">Өөрийгөө танилцуулаарай</string>
+  <string name="welcome_profileTip">Бусад тоглогч тантай танилцахын тулд хувийн хуудсандаа товч танилцуулга нэмээрэй.</string>
+  <string name="welcome_viewProfile">Хувийн хуудсаа харах</string>
+  <string name="welcome_editProfile">Хувийн хуудсаа засах</string>
+  <string name="welcome_closing">Дараагийн тоглолтоо сайхан өнгөрүүлээрэй. Хөлгийн ард уулзацгаая!</string>
 </resources>

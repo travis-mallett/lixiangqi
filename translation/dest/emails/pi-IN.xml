@@ -1,2 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources></resources>
+<resources>
+  <string name="welcome_intro">Tava LiXiangQi gaṇanā sajjā. Tvaṃ niyame sikkhasi vā puna kīḷituṃ āgacchasi vā, tava āgamanena mayaṃ tuṭṭhā.</string>
+  <string name="welcome_play">Xiangqi kīḷāhi</string>
+  <string name="welcome_playTip">Mukhapaṭṭhato kīḷaṃ ārabhāhi. Paṭhamaṃ sukhena kīḷituṃ gaṇakayantaṃ paṭipakkhaṃ katvā kīḷāhi.</string>
+  <string name="welcome_puzzles">Pañhaṃ vīmaṃsāhi</string>
+  <string name="welcome_puzzlesTip">Bhayāni passituṃ jayakarāni gamanāni ca vindituṃ sikkhāhi. Mā turitaṃ karohi: rājassa bhayaṃ, gahaṇaṃ, paṭipakkhassa anāgatagamanañca cintāhi.</string>
+  <string name="welcome_profile">Attānaṃ ācikkhāhi</string>
+  <string name="welcome_profileTip">Attano paṭṭhe saṅkhittena attānaṃ vaṇṇehi, yathā aññe kīḷakā taṃ jāneyyuṃ.</string>
+  <string name="welcome_viewProfile">Attano paṭṭhaṃ passa</string>
+  <string name="welcome_editProfile">Attano paṭṭhaṃ parivattehi</string>
+  <string name="welcome_closing">Āgāmikīḷāya ramassu. Kīḷāphalake puna samāgacchāma!</string>
+  <string name="welcome_subject">Svāgataṃ lixiangqi.com, %s</string>
+  <string name="common_note">Ayaṃ tava %s paribhogaṃ paṭicca pesitā sevāpaṇṇā.</string>
+  <string name="common_contact">Amhehi saddhiṃ sallapituṃ %s paribhuñjāhi.</string>
+</resources>

@@ -1,23 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="emailConfirm_subject">Potvrďte svůj účet na lichess.org, %s</string>
-  <string name="emailConfirm_intro">Děkujeme za registraci na Lichess!</string>
-  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a Lichess account.&#10;&#10;The unique reset link is presented just after this string.">Klikněte na tento odkaz pro potvrzení vašeho Lichess účtu:</string>
-  <string name="emailConfirm_justIgnore">Pokud jste se na Lichess nezaregistrovali, můžete tento e-mail bez obav ignorovat. Nepotvrzený účet a všechny stopy Vašeho e-mailu budou po 48 hodinách z našeho systému vymazány.</string>
-  <string name="passwordReset_subject">Obnovení hesla na lichess.org, %s</string>
+  <string name="emailConfirm_subject">Potvrďte svůj účet na lixiangqi.com, %s</string>
+  <string name="emailConfirm_intro">Děkujeme za registraci na LiXiangQi!</string>
+  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a LiXiangQi account.&#10;&#10;The unique reset link is presented just after this string.">Klikněte na tento odkaz pro potvrzení vašeho LiXiangQi účtu:</string>
+  <string name="emailConfirm_justIgnore">Pokud jste se na LiXiangQi nezaregistrovali, můžete tento e-mail bez obav ignorovat. Nepotvrzený účet a všechny stopy Vašeho e-mailu budou po 48 hodinách z našeho systému vymazány.</string>
+  <string name="passwordReset_subject">Obnovení hesla na lixiangqi.com, %s</string>
   <string name="passwordReset_intro">Dostali jsme žádost k obnovení hesla k Vašemu účtu.</string>
   <string name="passwordReset_clickOrIgnore">Pokud jste provedli tento požadavek, klepněte na odkaz níže. Pokud tomu tak není, můžete tento email ignorovat.</string>
   <string name="emailChange_subject">Potvrďte svou emailovou adresu, %s</string>
   <string name="emailChange_intro">Požádali jste o změnu vaší emailové adresy.</string>
   <string name="emailChange_click">Pro ověření, zda máte přístup k tomuto e-mailu, klikněte na odkaz níže:</string>
-  <string name="welcome_subject">Vítejte na lichess.org, %s</string>
-  <string name="welcome_text">Úspěšně jste vytvořili svůj účet na https://lichess.org.
-
-Zde je stránka Vašeho profilu: %1$s. Přizpůsobit si jej můžete zde – %2$s.
-
-Hodně zábavy - nechť Vaše figurky vždy najdou cestu k soupeřovu králi!</string>
-  <string name="logInToLichess">Přihlaste se na lichess.org, %s</string>
+  <string name="welcome_subject">Vítejte na lixiangqi.com, %s</string>
+  <string name="logInToLichess">Přihlaste se na lixiangqi.com, %s</string>
   <string name="common_orPaste">(Odkaz nefunguje? Zkuste jej zkopírovat do vašeho prohlížeče!)</string>
   <string name="common_note">Tohle je automatický e-mail související s vaším používáním %s.</string>
   <string name="common_contact">Chcete-li nás kontaktovat, použijte prosím %s.</string>
+  <string name="welcome_intro">Váš účet LiXiangQi je připraven. Ať se teprve učíte pravidla, nebo se vracíte k desce, rádi vás tu vidíme.</string>
+  <string name="welcome_play">Hrát siang-čchi</string>
+  <string name="welcome_playTip">Začněte partii na úvodní stránce. Pro klidnou první partii zkuste hrát proti počítači.</string>
+  <string name="welcome_puzzles">Vyřešit úlohu</string>
+  <string name="welcome_puzzlesTip">Procvičujte rozpoznávání hrozeb a hledání vítězných tahů. Nespěchejte: zvažte šachy, braní a možné odpovědi soupeře.</string>
+  <string name="welcome_profile">Zabydlete se</string>
+  <string name="welcome_profileTip">Přidejte do profilu krátké představení, aby vás ostatní hráči mohli poznat.</string>
+  <string name="welcome_viewProfile">Zobrazit profil</string>
+  <string name="welcome_editProfile">Upravit profil</string>
+  <string name="welcome_closing">Užijte si příští partii. Uvidíme se u desky!</string>
 </resources>

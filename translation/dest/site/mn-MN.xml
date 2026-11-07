@@ -794,4 +794,5 @@
   <string name="since">Хэзээнээс хойш</string>
   <string name="until">Хүртэл</string>
   <string name="switchSides">Хар цагаанаа солих</string>
+  <string name="readAboutOur">Манай %s-ыг уншина уу.</string>
 </resources>

@@ -469,8 +469,8 @@ lazy val push = module("push",
 )
 
 lazy val mailer = module("mailer",
-  Seq(memo, ui),
-  Seq(hasher, play.mailer)
+  Seq(memo, ui, i18n % "test->compile"),
+  Seq(hasher, play.mailer) ++ tests.bundle
 )
 
 lazy val plan = module("plan",

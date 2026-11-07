@@ -669,7 +669,55 @@ object XiangqiRules:
   extension (value: Boolean)
     private def option[A](ifTrue: => A): Option[A] = if value then Some(ifTrue) else None
 
+  /** Strict initial-position validation for Standard editors; historical diagrams remain replayable. */
+  def validateStandardPosition(fen: String): Either[String, Unit] =
+    validateEditorPosition(fen, GameVariant.Xiangqi)
+
+  /** Editors validate setups without tightening the permissive historical diagram/replay contract. */
+  def validateEditorPosition(fen: String, variant: GameVariant): Either[String, Unit] =
+    for
+      initial <- decode(fen)
+      _ <- Either.cond(initial.board.variant == variant, (), "Position does not match the selected variant")
+      _ <- PositionValidation.validatePlacement(initial.board)
+      _ <- PositionValidation.rejectOtherSideInCheck(initial)
+    yield ()
+
   object Lesson:
+    def validate(input: Position): Either[String, LessonValidation] =
+      for
+        initial <- decode(input.initialFen)
+        _ <- PositionValidation.validatePlacement(initial.board)
+        _ <- PositionValidation.rejectOtherSideInCheck(initial)
+        result <- input.moves.zipWithIndex.foldLeft[
+          Either[String, (Decoded, Vector[State], Vector[String])]
+        ](Right((initial, Vector(stateOf(initial)), Vector.empty))):
+          case (acc, (uci, index)) =>
+            acc.flatMap: (current, positions, notations) =>
+              if !legalMoves(current).contains(uci) then
+                Left(s"Illegal Xiangqi lesson move at step ${index + 1}: ${uci.value}")
+              else
+                for
+                  orig <- Square.fromKey(uci.orig).toRight(s"Invalid Xiangqi origin: ${uci.orig}")
+                  dest <- Square.fromKey(uci.dest).toRight(s"Invalid Xiangqi destination: ${uci.dest}")
+                  piece <- current.board.pieceAt(orig).toRight(s"No Xiangqi piece at ${uci.orig}")
+                  notation = wxf(current.board, uci)
+                  moved = applyUnchecked(current, orig, dest, piece)
+                  _ <- PositionValidation.validatePlacement(moved.board)
+                  isLast = index == input.moves.size - 1
+                  _ <-
+                    Either.cond(
+                      isLast || !stateOf(moved).check,
+                      (),
+                      s"Lesson step ${index + 1} gives check, so the opponent's reply cannot be skipped"
+                    )
+                  next =
+                    if isLast then moved
+                    else moved.copy(turn = initial.turn)
+                  _ <- PositionValidation.rejectOtherSideInCheck(next)
+                yield (next, positions :+ stateOf(next), notations :+ notation)
+      yield LessonValidation(result._2, result._3)
+
+  private object PositionValidation:
     private val pieceLimits =
       Map(
         Role.General -> 1,
@@ -685,41 +733,7 @@ object XiangqiRules:
     private val redElephantPoints = Set("c1", "g1", "a3", "e3", "i3", "c5", "g5")
     private val blackElephantPoints = Set("c10", "g10", "a8", "e8", "i8", "c6", "g6")
 
-    def validate(input: Position): Either[String, LessonValidation] =
-      for
-        initial <- decode(input.initialFen)
-        _ <- validatePlacement(initial.board)
-        _ <- rejectOtherSideInCheck(initial)
-        result <- input.moves.zipWithIndex.foldLeft[
-          Either[String, (Decoded, Vector[State], Vector[String])]
-        ](Right((initial, Vector(stateOf(initial)), Vector.empty))):
-          case (acc, (uci, index)) =>
-            acc.flatMap: (current, positions, notations) =>
-              if !legalMoves(current).contains(uci) then
-                Left(s"Illegal Xiangqi lesson move at step ${index + 1}: ${uci.value}")
-              else
-                for
-                  orig <- Square.fromKey(uci.orig).toRight(s"Invalid Xiangqi origin: ${uci.orig}")
-                  dest <- Square.fromKey(uci.dest).toRight(s"Invalid Xiangqi destination: ${uci.dest}")
-                  piece <- current.board.pieceAt(orig).toRight(s"No Xiangqi piece at ${uci.orig}")
-                  notation = wxf(current.board, uci)
-                  moved = applyUnchecked(current, orig, dest, piece)
-                  _ <- validatePlacement(moved.board)
-                  isLast = index == input.moves.size - 1
-                  _ <-
-                    Either.cond(
-                      isLast || !stateOf(moved).check,
-                      (),
-                      s"Lesson step ${index + 1} gives check, so the opponent's reply cannot be skipped"
-                    )
-                  next =
-                    if isLast then moved
-                    else moved.copy(turn = initial.turn)
-                  _ <- rejectOtherSideInCheck(next)
-                yield (next, positions :+ stateOf(next), notations :+ notation)
-      yield LessonValidation(result._2, result._3)
-
-    private def rejectOtherSideInCheck(position: Decoded): Either[String, Unit] =
+    def rejectOtherSideInCheck(position: Decoded): Either[String, Unit] =
       val other = !position.turn
       Either.cond(
         !attacked(position.board, generalSquare(position.board, other), position.turn),
@@ -727,19 +741,27 @@ object XiangqiRules:
         "The side not to move is already in check"
       )
 
-    private def validatePlacement(board: Board): Either[String, Unit] =
-      val counts = board.pieces.values.groupMapReduce(piece => piece.side -> piece.role)(_ => 1)(_ + _)
+    def validatePlacement(board: Board): Either[String, Unit] =
+      val counts = board.pieces.toVector
+        .filterNot((square, _) => board.concealed(square))
+        .groupMapReduce((_, piece) => piece.side -> piece.role)(_ => 1)(_ + _)
       for
         _ <- Side.values.foldLeft[Either[String, Unit]](Right(())): (result, side) =>
           result.flatMap: _ =>
             val color = if side == Side.Red then "Red" else "Black"
+            val limits =
+              if board.mini then pieceLimits ++ Map(Role.Advisor -> 0, Role.Elephant -> 0)
+              else if board.variant == GameVariant.Manchu && side == Side.Black then
+                pieceLimits ++ Map(Role.Chariot -> 1, Role.Horse -> 0, Role.Cannon -> 0, Role.Banner -> 1)
+              else pieceLimits
+            val allLimits = limits + (Role.Banner -> limits.getOrElse(Role.Banner, 0))
             for
               _ <- Either.cond(
                 counts.getOrElse(side -> Role.General, 0) == 1,
                 (),
-                "A lesson position must contain exactly one General per side"
+                "A position must contain exactly one General per side"
               )
-              _ <- pieceLimits.foldLeft[Either[String, Unit]](Right(())):
+              _ <- allLimits.foldLeft[Either[String, Unit]](Right(())):
                 case (limitResult, (role, limit)) =>
                   limitResult.flatMap: _ =>
                     Either.cond(
@@ -747,6 +769,11 @@ object XiangqiRules:
                       (),
                       s"$color has too many ${role.key.toUpperCase} pieces"
                     )
+              _ <- Either.cond(
+                !board.jieqi || board.pieces.values.count(_.side == side) <= 16,
+                (),
+                s"$color has too many pieces"
+              )
             yield ()
         _ <- board.pieces.foldLeft[Either[String, Unit]](Right(())):
           case (result, (square, piece)) =>
@@ -773,6 +800,7 @@ object XiangqiRules:
             (),
             s"$color General is outside its palace at $key"
           )
+        case _ if board.jieqi => Right(()) // Revealed roles may originate at any concealed starting slot.
         case Role.Advisor =>
           val points = if piece.side == Side.Red then redAdvisorPoints else blackAdvisorPoints
           Either.cond(points(key), (), s"$color Advisor cannot reach $key")
@@ -781,7 +809,8 @@ object XiangqiRules:
           Either.cond(points(key), (), s"$color Elephant cannot reach $key")
         case Role.Soldier =>
           val reachable =
-            if piece.side == Side.Red then square.rank >= 4 && (square.rank >= 6 || square.file % 2 == 0)
+            if board.mini then piece.side.fold(square.rank >= 2, square.rank <= 6)
+            else if piece.side == Side.Red then square.rank >= 4 && (square.rank >= 6 || square.file % 2 == 0)
             else square.rank <= 7 && (square.rank <= 5 || square.file % 2 == 0)
           Either.cond(reachable, (), s"$color Soldier cannot reach $key")
         case _ => Right(())

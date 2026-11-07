@@ -11,4 +11,6 @@
   <string name="players">Caturangaṃ jūtakā</string>
   <string name="usernameOrEmail">Nāmaṃ</string>
   <string name="gamesPlayed">Kīḷā kīḷitā</string>
+  <string name="privacyPolicy">Guyhatāniyamā</string>
+  <string name="readAboutOur">Amhāka %s paṭhāhi.</string>
 </resources>

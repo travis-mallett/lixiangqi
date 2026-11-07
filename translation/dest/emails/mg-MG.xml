@@ -1,7 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="emailConfirm_subject">Amarino ny kaonty lichess.org-nao, %s</string>
-  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a Lichess account.&#10;&#10;The unique reset link is presented just after this string.">Tsindrio ity rohy ity hanamarihana ny kaonty Lichess-nao:</string>
+  <string name="emailConfirm_subject">Amarino ny kaonty lixiangqi.com-nao, %s</string>
+  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a LiXiangQi account.&#10;&#10;The unique reset link is presented just after this string.">Tsindrio ity rohy ity hanamarihana ny kaonty LiXiangQi-nao:</string>
   <string name="emailChange_subject">Amarino ny adiresy mailaka-nao vaovao, %s</string>
   <string name="emailChange_intro">Nangataka fanovana adiresy mailaka ianao.</string>
+  <string name="welcome_intro">Vonona ny kaontinao LiXiangQi. Na mianatra ny fitsipika ianao na miverina milalao, faly izahay mahita anao eto.</string>
+  <string name="welcome_play">Milalaova xiangqi</string>
+  <string name="welcome_playTip">Manomboha lalao ao amin’ny pejy fandraisana. Raha te hilalao amim-pitoniana amin’ny voalohany ianao, andramo ny milalao amin’ny solosaina.</string>
+  <string name="welcome_puzzles">Andramo ny ankamantatra</string>
+  <string name="welcome_puzzlesTip">Manaova fanazaran-tena hamantarana loza sy hahitana fihetsika handresena. Aza maika: diniho ny fandrahonana ny mpanjaka, ny fakana vato ary ny valiny mety hataon’ny mpifanandrina.</string>
+  <string name="welcome_profile">Ampahafantaro ny tenanao</string>
+  <string name="welcome_profileTip">Ampio fampahafantarana fohy ao amin’ny mombamomba anao mba hahafantaran’ny mpilalao hafa anao.</string>
+  <string name="welcome_viewProfile">Jereo ny mombamomba anao</string>
+  <string name="welcome_editProfile">Ovay ny mombamomba anao</string>
+  <string name="welcome_closing">Ankafizo ny lalao manaraka. Hihaona eo amin’ny solaitrabe isika!</string>
+  <string name="welcome_subject">Tongasoa eto amin’ny lixiangqi.com, %s</string>
+  <string name="common_note">Ity dia mailaka momba ny fampiasanao ny %s.</string>
+  <string name="common_contact">Raha te hifandray aminay ianao, ampiasao ny %s.</string>
 </resources>

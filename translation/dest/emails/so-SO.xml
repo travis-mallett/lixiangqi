@@ -1,21 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="emailConfirm_subject">Hubi akoonkaaga lichess.org, %s</string>
-  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a Lichess account.&#10;&#10;The unique reset link is presented just after this string.">Taabo dabarkan hoose si aad u furtid akoonkaaga Lichess:</string>
-  <string name="passwordReset_subject">Cusboonaysii furahaaga lichess.org, %s</string>
+  <string name="emailConfirm_subject">Hubi akoonkaaga lixiangqi.com, %s</string>
+  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a LiXiangQi account.&#10;&#10;The unique reset link is presented just after this string.">Taabo dabarkan hoose si aad u furtid akoonkaaga LiXiangQi:</string>
+  <string name="passwordReset_subject">Cusboonaysii furahaaga lixiangqi.com, %s</string>
   <string name="passwordReset_intro">Wuu na soo gaadhay codsigii cusboonaysiinta furaha akoonkaagu.</string>
   <string name="passwordReset_clickOrIgnore">Haddii uu codsigani adiga kaa yimid, riix dabarkan hoose. Haddii kale, iska dhaaf farriintan.</string>
   <string name="emailChange_subject">Hubi cinwaankaaga cusub, %s</string>
   <string name="emailChange_intro">Waxaad codsatay beddelidda cinwaankaaga.</string>
   <string name="emailChange_click">Si aad u caddaysid in aad cinwaankan leedahay, fadlan riix mareegtan hoose:</string>
-  <string name="welcome_subject">Ku soo dhawow lichess.org, %s</string>
-  <string name="welcome_text">Waxaad si guul leh akoon uga samaysatay https://lichess.org.
-
-Waakan boggaagii gaarka ahaa: %1$s. Halkan ka qurxiso %2$s.
-
-Baashaal, oo boqorka colka baallaha ka yaac!</string>
-  <string name="logInToLichess">Gal lichess.org, %s</string>
+  <string name="welcome_subject">Ku soo dhawow lixiangqi.com, %s</string>
+  <string name="logInToLichess">Gal lixiangqi.com, %s</string>
   <string name="common_orPaste">(Lama riixi karo? Ku day in ad laynka toos ugu qortid interneedka!)</string>
   <string name="common_note">Kani waa cinwaan adeeg oo la xidiidha isticmaalkaaga %s.</string>
   <string name="common_contact">Si aad noolasoo xidhiidhid, fadlan isticmaal %s.</string>
+  <string name="welcome_intro">Akoonkaaga LiXiangQi waa diyaar. Haddii aad baranayso xeerarka ama aad ku soo noqonayso ciyaarta, waan ku faraxsanahay inaad halkan joogto.</string>
+  <string name="welcome_play">Ciyaar xiangqi</string>
+  <string name="welcome_playTip">Ciyaar ka bilow bogga hore. Ciyaartaada koowaad si deggan ugu bilow adigoo la ciyaaraya kombiyuutarka.</string>
+  <string name="welcome_puzzles">Isku day halxiraale</string>
+  <string name="welcome_puzzlesTip">Ku tababar garashada khataraha iyo helidda dhaqdhaqaaqyada guusha. Ha degdegin: eeg digniinta boqorka, qabashada xabbadaha iyo jawaabta suuragalka ah ee kaa soo horjeeda.</string>
+  <string name="welcome_profile">Isbar dadka kale</string>
+  <string name="welcome_profileTip">Ku dar isbarasho kooban boggaaga shakhsiga ah si ciyaartoyda kale kuu bartaan.</string>
+  <string name="welcome_viewProfile">Eeg boggaaga shakhsiga ah</string>
+  <string name="welcome_editProfile">Wax ka beddel boggaaga shakhsiga ah</string>
+  <string name="welcome_closing">Ku raaxayso ciyaartaada xigta. Waxaan ku kulmi doonnaa looxa ciyaarta!</string>
 </resources>

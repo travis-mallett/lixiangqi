@@ -1,2 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources></resources>
+<resources>
+  <string name="welcome_intro">Tha an cunntas LiXiangQi agad deiseil. Co-dhiù a tha thu ag ionnsachadh nan riaghailtean no a’ tilleadh chun a’ bhùird, tha sinn toilichte gu bheil thu an seo.</string>
+  <string name="welcome_play">Cluich xiangqi</string>
+  <string name="welcome_playTip">Tòisich geama on duilleag-dhachaigh. Airson a’ chiad gheama socair, feuch cluich an aghaidh a’ choimpiutair.</string>
+  <string name="welcome_puzzles">Feuch tòimhseachan</string>
+  <string name="welcome_puzzlesTip">Cleachd a bhith a’ mothachadh chunnartan agus a’ lorg ghluasadan a bhuannaicheas. Gabh do thìde: coimhead air ionnsaighean air an rìgh, glacadh nam pìosan agus freagairtean a dh’fhaodadh an neach eile a thoirt.</string>
+  <string name="welcome_profile">Bi aig do shocair</string>
+  <string name="welcome_profileTip">Cuir ro-ràdh goirid ris a’ phròifil agad gus an cuir cluicheadairean eile eòlas ort.</string>
+  <string name="welcome_viewProfile">Seall a’ phròifil agad</string>
+  <string name="welcome_editProfile">Deasaich a’ phròifil agad</string>
+  <string name="welcome_closing">Gabh tlachd às an ath gheama agad. Chì sinn aig a’ bhòrd thu!</string>
+  <string name="welcome_subject">Fàilte gu lixiangqi.com, %s</string>
+  <string name="common_note">Seo post-d seirbheis mu do chleachdadh de %s.</string>
+  <string name="common_contact">Gus fios a chur thugainn, cleachd %s.</string>
+</resources>

@@ -12,6 +12,42 @@ object Bridge:
 
   @JSExport def initial(): String = PositionCodec.write(Position.initial)
 
+  @JSExport def diagram(value: String): js.Object =
+    val p = PositionEditor.read(value).fold(error => throw IllegalArgumentException(error), identity)
+    js.Dynamic.literal(
+      position = PositionCodec.write(p),
+      turn = p.turn.color,
+      active = p.active.toVector.sortBy(_.ordinal).map(_.color).toJSArray,
+      controllers = p.controllers.map(_.fold[js.Any](null)(_.color)).toJSArray,
+      pieces = p.board.zipWithIndex.collect { case (Some(piece), index) =>
+        js.Dynamic.literal(
+          location = Location.at(index).key,
+          army = piece.army.color,
+          role = piece.role.key,
+          fallen = p.fallen(piece),
+          controller = p.controller(piece).fold[js.Any](null)(_.color)
+        )
+      }.toJSArray
+    )
+
+  @JSExport def editDiagram(
+      value: String,
+      pieces: js.Array[js.Dynamic],
+      turn: String,
+      owners: js.Array[String | Null]
+  ): String =
+    val result = PositionEditor.edit(
+      value,
+      pieces.toVector.map(p =>
+        (p.location.asInstanceOf[String], p.army.asInstanceOf[String], p.role.asInstanceOf[String])
+      ),
+      turn,
+      owners.toVector.map(Option(_).map(_.asInstanceOf[String]))
+    )
+    PositionCodec.write(result.fold(error => throw IllegalArgumentException(error), identity))
+
+  @JSExport def validateDiagram(value: String): String = PositionCodec.write(Rules.adjudicate(parse(value)))
+
   @JSExport def inspect(value: String): js.Object =
     val p = parse(value)
     js.Dynamic.literal(
@@ -79,19 +115,6 @@ object Bridge:
     val player = Kingdom.fromKey(actor).getOrElse(throw IllegalArgumentException("Invalid player"))
     val result = Rules.event(p, player, action)
     PositionCodec.write(result.fold(error => throw IllegalArgumentException(error), identity))
-
-  @JSExport def edit(value: String, pieces: String, turn: String): String =
-    val fields = PositionCodec.write(parse(value)).split(";", -1)
-    fields(1) =
-      Kingdom.fromKey(turn).getOrElse(throw IllegalArgumentException("Invalid player")).ordinal.toString
-    fields(5) = "0"
-    fields(6) = "-"
-    fields(8) = "-"
-    fields(9) = pieces
-    fields(10) = ""
-    fields(11) = "---"
-    fields(12) = ""
-    PositionCodec.write(Rules.adjudicate(parse(fields.mkString(";"))))
 
   private def engineResult(result: Engine.Result): js.Object =
     js.Dynamic.literal(

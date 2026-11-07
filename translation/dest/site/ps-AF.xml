@@ -91,4 +91,6 @@
     <item quantity="one">%s  بایللي</item>
     <item quantity="other">%s  بایللي</item>
   </plurals>
+  <string name="privacyPolicy">د محرمیت تګلاره</string>
+  <string name="readAboutOur">زموږ %s ولولئ.</string>
 </resources>

@@ -1,11 +1,10 @@
-import { boardImageSvg, threeKingdoms, type BoardView, type VisiblePiece } from '@lixiangqi/board';
+import { boardImageSvg, threeKingdoms, type BoardView } from '@lixiangqi/board';
 import {
   position,
   interaction,
   playbackTransition,
   el,
   button,
-  select,
   download,
   errorText,
   request,
@@ -86,7 +85,8 @@ class Analysis {
   private tree: Tree;
   private displayed?: { tree: Tree; node: Tree['current'] };
   private readonly board: BoardView;
-  private readonly perspective: Color = 'red';
+  private readonly perspective: Color =
+    colors.find(color => color === new URLSearchParams(location.search).get('color')) ?? 'red';
   private readonly engine = new Engine();
   private readonly engineView: KingdomEngineView;
   private readonly chart: KingdomAnalysisChart;
@@ -99,8 +99,6 @@ class Analysis {
   private readonly message = required('#xiangqi-status');
   private readonly encoded = required<HTMLTextAreaElement>('#xiangqi-fen');
   private readonly comment = el('textarea');
-  private readonly editor = el('div', 'xiangqi-analysis__editor');
-  private editing = false;
   private model: KingdomAnalysisTree;
   private readonly treeView: AnalysisTreeView<KingdomNode>;
   private readonly tabsView: AnalysisTabsView<KingdomTab>;
@@ -246,7 +244,6 @@ class Analysis {
     required('#xiangqi-next').onclick = () => this.go(this.tree.children()[0] ?? this.tree.cursor);
     required('#xiangqi-last').onclick = () => this.go(this.tree.last());
     required('#xiangqi-explorer-toggle').hidden = true;
-    required('.xiangqi-analysis-surface').append(this.editor);
     this.comment.setAttribute('aria-label', i18n.study.commentThisPosition);
     this.comment.maxLength = 10000;
     this.comment.addEventListener('input', () => {
@@ -358,8 +355,6 @@ class Analysis {
   private go(index: number): void {
     if (index < 0 || index >= this.tree.nodes.length) return;
     if (this.lineRun && this.lineRun.tree !== this.tree) this.cancelLine();
-    this.editing = false;
-    this.editor.replaceChildren();
     this.tree.cursor = index;
     const node = this.tree.current;
     const previous = this.displayed;
@@ -424,7 +419,7 @@ class Analysis {
     }
     const request = ++this.engineRequest;
     this.engine.stop();
-    if (!this.engineView.enabled || this.editing || this.tree.current.state.ending) return;
+    if (!this.engineView.enabled || this.tree.current.state.ending) return;
     const node = this.tree.current;
     this.engineView.thinking();
     this.engine
@@ -476,7 +471,6 @@ class Analysis {
       this.analyze();
       return;
     }
-    if (this.editing) return;
     this.engine.stop();
     const run = (this.lineRun = { tree: this.tree, request: ++this.engineRequest });
     const nodes = this.chart.line(this.tree).map(i => this.tree.nodes[i]);
@@ -520,98 +514,27 @@ class Analysis {
   }
 
   private edit(): void {
-    this.cancelLine();
-    this.engine.stop();
-    ++this.engineRequest;
-    this.board.setMarks([], 'annotation');
-    this.editing = true;
-    this.engineView.clear();
-    this.board.setInteraction({ mode: 'edit', onChange: () => {} });
-    const t = i18n.threeKingdoms;
-    const turn = select(
-      t.turn(''),
-      colors.map(c => [c, t[c]]),
-      this.tree.current.state.turn,
-    );
-    const roles = {
-      general: '將',
-      advisor: '士',
-      elephant: '象',
-      horse: '馬',
-      chariot: '車',
-      cannon: '砲',
-      soldier: '卒',
-    };
-    this.editor.replaceChildren(turn);
-    for (const color of colors)
-      for (const [role, glyph] of Object.entries(roles)) {
-        const piece: VisiblePiece = {
-          face: 'up',
-          participant: color,
-          role,
-          controller: this.tree.current.state.controllers[colors.indexOf(color)],
-        };
-        const control = button(`${t[color]} ${glyph}`, () => {
-          const at = this.board.selectedLocation();
-          if (at) this.board.place(at, piece);
-        });
-        control.addEventListener('mousedown', event => this.board.dragPiece(piece, event));
-        control.addEventListener('touchstart', event => this.board.dragPiece(piece, event), {
-          passive: false,
-        });
-        this.editor.append(control);
-      }
-    this.editor.append(
-      button(t.removePiece, () => {
-        const at = this.board.selectedLocation();
-        if (at) this.board.place(at);
-      }),
-      button(t.finishEditing, () => {
-        try {
-          const army = { wei: 0, wu: 1, shu: 2 };
-          const codes: Record<string, string> = {
-            general: 'k',
-            advisor: 'a',
-            elephant: 'b',
-            horse: 'n',
-            chariot: 'r',
-            cannon: 'c',
-            soldier: 'p',
-          };
-          const pieces = [...this.board.position().pieces]
-            .map(([key, piece]) => {
-              const [territory, file, rank] = key.split(':');
-              if (piece.face !== 'up') throw new Error('Invalid piece');
-              return `${(army[territory as keyof typeof army] * 45 + Number(rank) * 9 + Number(file)).toString(36)}:${colors.indexOf(piece.participant as Color)}${codes[piece.role]}`;
-            })
-            .join(',');
-          const value = this.rules.edit(
-            this.tree.current.state.position,
-            pieces,
-            turn.querySelector('select')!.value,
-          );
-          this.replaceTree(new Tree(this.rules, value));
-        } catch (error) {
-          this.message.textContent = errorText(error);
-        }
-      }),
-    );
+    location.href =
+      '/editor?' +
+      new URLSearchParams({
+        variant: 'threeKingdoms',
+        fen: this.tree.current.state.position,
+        color: this.board.getPresentation().perspective,
+      });
   }
 
   private renderArrows(): void {
     this.board.setMarks(
-      this.editing
-        ? []
-        : kingdomArrows(
-            this.rules,
-            this.tree.current.state,
-            this.board.getPresentation().perspective,
-            this.settings.bestArrow && this.arrowPosition === this.tree.current.state.position
-              ? this.cadence.published
-              : undefined,
-            this.settings.variationArrows ? this.tree.children().map(i => this.tree.nodes[i].action) : [],
-            this.engineView.previewMove,
-          ),
+      kingdomArrows(
+        this.rules,
+        this.tree.current.state,
+        this.board.getPresentation().perspective,
+        this.settings.bestArrow && this.arrowPosition === this.tree.current.state.position
+          ? this.cadence.published
+          : undefined,
+        this.settings.variationArrows ? this.tree.children().map(i => this.tree.nodes[i].action) : [],
+        this.engineView.previewMove,
+      ),
       'annotation',
     );
   }

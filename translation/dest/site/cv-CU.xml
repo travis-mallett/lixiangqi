@@ -469,4 +469,6 @@
   <string name="tournChat">Турнир калаҫӑвӗ</string>
   <string name="noChat">Калаҫусӑр</string>
   <string name="resignTheGame">Вӑйӑра парӑнасси</string>
+  <string name="privacyPolicy">Хӑй тӗллӗнлӗх политики</string>
+  <string name="readAboutOur">Пирӗн %s вуласа тухӑр.</string>
 </resources>

@@ -1,23 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="emailConfirm_subject">確認您的 lichess.org 帳戶，%s</string>
-  <string name="emailConfirm_intro">感謝註冊 Lichess！</string>
-  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a Lichess account.&#10;&#10;The unique reset link is presented just after this string.">按一下連結以啟用您的 lichess 帳戶:</string>
-  <string name="emailConfirm_justIgnore">如果您並未註冊Lichess，請安心忽略此封郵件。未確認帳戶及您所有電子郵件資料將於48小時內從系統中刪除。</string>
-  <string name="passwordReset_subject">重設您的 lichess.org 密碼，%s</string>
+  <string name="emailConfirm_subject">確認您的 lixiangqi.com 帳戶，%s</string>
+  <string name="emailConfirm_intro">感謝註冊 LiXiangQi！</string>
+  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a LiXiangQi account.&#10;&#10;The unique reset link is presented just after this string.">按一下連結以啟用您的 LiXiangQi 帳戶:</string>
+  <string name="emailConfirm_justIgnore">如果您並未註冊LiXiangQi，請安心忽略此封郵件。未確認帳戶及您所有電子郵件資料將於48小時內從系統中刪除。</string>
+  <string name="passwordReset_subject">重設您的 lixiangqi.com 密碼，%s</string>
   <string name="passwordReset_intro">我們收到了重設您帳戶密碼的請求。</string>
   <string name="passwordReset_clickOrIgnore">如果您提出此請求，請按一下下面的連結。如果沒有，您可以忽略此電子郵件。</string>
   <string name="emailChange_subject">確認新的電子郵件地址，%s</string>
   <string name="emailChange_intro">您已要求更改您的電子郵件地址。</string>
   <string name="emailChange_click">要確認您是否能夠使用此電子郵件，請點擊以下連結:</string>
-  <string name="welcome_subject">歡迎來到 lichess.org，%s</string>
-  <string name="welcome_text">您已成功在 https://lichess.org 創建了帳戶。
-
-這是您的個人資料頁面: %1$s。您可以在 %2$s 上進行個人化設定。
-
-祝您玩得開心，希望您旗開得勝！</string>
-  <string name="logInToLichess">登入 lichess.org， %s</string>
+  <string name="welcome_subject">歡迎來到 lixiangqi.com，%s</string>
+  <string name="logInToLichess">登入 lixiangqi.com， %s</string>
   <string name="common_orPaste">(點擊無效？嘗試將連結貼上到您的瀏覽器！)</string>
   <string name="common_note">這是一封與您使用 %s 相關的服務電子郵件。</string>
   <string name="common_contact">如需聯繫我們，請使用 %s。</string>
+  <string name="welcome_intro">您的 LiXiangQi 帳戶已準備就緒。無論您是初學者，還是重返棋盤的老棋友，我們都很高興與您相遇。</string>
+  <string name="welcome_play">開始下象棋</string>
+  <string name="welcome_playTip">從首頁開始一局對弈。想輕鬆上手？不妨先與電腦切磋。</string>
+  <string name="welcome_puzzles">試試習題</string>
+  <string name="welcome_puzzlesTip">練習發現威脅、尋找致勝的一著。不必著急：留意將軍、吃子，以及對手下一步可能的應對。</string>
+  <string name="welcome_profile">讓棋友認識您</string>
+  <string name="welcome_profileTip">在個人資料中寫一段簡短的自我介紹，讓其他棋友更了解您。</string>
+  <string name="welcome_viewProfile">查看個人資料</string>
+  <string name="welcome_editProfile">編輯個人資料</string>
+  <string name="welcome_closing">祝您對弈愉快。我們棋盤上見！</string>
 </resources>

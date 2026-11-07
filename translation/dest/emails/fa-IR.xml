@@ -1,23 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="emailConfirm_subject">حساب خود را در lichess.org تایید کنید،%s</string>
-  <string name="emailConfirm_intro">از نام‌نویسی‌تان در Lichess سپاسگزاریم!</string>
-  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a Lichess account.&#10;&#10;The unique reset link is presented just after this string.">بر روی این پیوند کلیک کنید تا حساب کاربری لیچس شما پویا گردد:</string>
-  <string name="emailConfirm_justIgnore">اگر در Lichess نام‌نویسی نکرده‌اید، می‌توانید آسوده این پیام را نادیده گیرید. حساب تأیید نشده و تمام ردپاهای نشانیِ رایانامه‌تان پس از ۴۸ ساعت از سامانهٔ ما خواهد حذفید.</string>
-  <string name="passwordReset_subject">%s، رمز عبور خود در lichess.org را دوباره تعریف نمایید.</string>
+  <string name="emailConfirm_subject">حساب خود را در lixiangqi.com تایید کنید،%s</string>
+  <string name="emailConfirm_intro">از نام‌نویسی‌تان در LiXiangQi سپاسگزاریم!</string>
+  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a LiXiangQi account.&#10;&#10;The unique reset link is presented just after this string.">بر روی این پیوند کلیک کنید تا حساب کاربری لیچس شما پویا گردد:</string>
+  <string name="emailConfirm_justIgnore">اگر در LiXiangQi نام‌نویسی نکرده‌اید، می‌توانید آسوده این پیام را نادیده گیرید. حساب تأیید نشده و تمام ردپاهای نشانیِ رایانامه‌تان پس از ۴۸ ساعت از سامانهٔ ما خواهد حذفید.</string>
+  <string name="passwordReset_subject">%s، رمز عبور خود در lixiangqi.com را دوباره تعریف نمایید.</string>
   <string name="passwordReset_intro">ما یک درخواست برای تغییر رمز عبور حساب کاربری شما دریافت کرده ایم.</string>
   <string name="passwordReset_clickOrIgnore">اگر شما درخواست داده اید، بر روی لینک زیر کلیک کنید. اگر نه، میتوانید این ایمیل را نادیده بگیرید.</string>
   <string name="emailChange_subject">آدرس ایمیل جدید خود را تایید کنید، %s</string>
   <string name="emailChange_intro">شما درخواست داده اید که آدرس ایمیل خود را تغییر دهید.</string>
   <string name="emailChange_click">برای تایید اینکه شما به این رایانامه دسترسی دارید، لطفا روی پیوندِ زیر بِتِلیکید:</string>
-  <string name="welcome_subject">%s، به lichess.org خوش آمدید.</string>
-  <string name="welcome_text">شما با موفقیت حساب خود را در https://lichess.org ایجاد کردید.
-
-برگ کاربری شما اینجا است: %1$s. شما می‌توانید در %2$s آن را شخصی‌سازی کنید.
-
-خوش بگذرانید، و به امید آن که مهره‌های شما همیشه راه خود را به سوی شاه حریف پیدا کنند!</string>
-  <string name="logInToLichess">%s، وارد lichess.org شوید.</string>
+  <string name="welcome_subject">%s، به lixiangqi.com خوش آمدید.</string>
+  <string name="logInToLichess">%s، وارد lixiangqi.com شوید.</string>
   <string name="common_orPaste">(با کلیک کردن عمل نمیکند؟ سعی کنید در مرورگر خود وارد کنید!)</string>
   <string name="common_note">این یک رایانامهٔ خدماتی، مربوط به استفاده‌تان از %s است.</string>
   <string name="common_contact">خواهشمندیم برای تماس با ما از %s بَهرید.</string>
+  <string name="welcome_intro">حساب LiXiangQi شما آماده است. چه در حال یادگیری قوانین باشید و چه دوباره به صفحهٔ بازی برگردید، از حضورتان خوشحالیم.</string>
+  <string name="welcome_play">بازی شیانگ‌چی</string>
+  <string name="welcome_playTip">از صفحهٔ اصلی یک بازی را شروع کنید. برای نخستین بازیِ بدون فشار، بازی با رایانه را امتحان کنید.</string>
+  <string name="welcome_puzzles">حل معما</string>
+  <string name="welcome_puzzlesTip">تشخیص تهدیدها و یافتن حرکت‌های برنده را تمرین کنید. عجله نکنید: کیش‌ها، گرفتن مهره‌ها و پاسخ احتمالی حریف را بررسی کنید.</string>
+  <string name="welcome_profile">خودتان را معرفی کنید</string>
+  <string name="welcome_profileTip">معرفی کوتاهی به نمایهٔ خود اضافه کنید تا بازیکنان دیگر با شما آشنا شوند.</string>
+  <string name="welcome_viewProfile">مشاهدهٔ نمایه</string>
+  <string name="welcome_editProfile">ویرایش نمایه</string>
+  <string name="welcome_closing">از بازی بعدی لذت ببرید. پای صفحهٔ بازی می‌بینیمتان!</string>
 </resources>

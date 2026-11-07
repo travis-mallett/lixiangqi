@@ -93,6 +93,7 @@ final class TopNav(helpers: Helpers):
         linkTitle(routes.UserAnalysis.index.url, trans.site.tools()),
         div(role := "group")(
           a(href := routes.UserAnalysis.index)(trans.site.analysis()),
+          a(href := routes.Editor.index)(trans.site.boardEditor()),
           a(href := routes.GameCatalog.index)("Games Database"),
           a(href := routes.Importer.importGame)(trans.site.importGame()),
           a(href := routes.Search.index())(trans.search.advancedSearch())

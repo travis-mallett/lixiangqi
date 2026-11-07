@@ -1,21 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="emailConfirm_subject">Konfirmu vian konton ĉe lichess.org, %s</string>
-  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a Lichess account.&#10;&#10;The unique reset link is presented just after this string.">Alklaku la ligilon por ebligi vian konton ĉe Lichess:</string>
-  <string name="passwordReset_subject">Restarigu vian pasvorton de lichess.org, %s</string>
+  <string name="emailConfirm_subject">Konfirmu vian konton ĉe lixiangqi.com, %s</string>
+  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a LiXiangQi account.&#10;&#10;The unique reset link is presented just after this string.">Alklaku la ligilon por ebligi vian konton ĉe LiXiangQi:</string>
+  <string name="passwordReset_subject">Restarigu vian pasvorton de lixiangqi.com, %s</string>
   <string name="passwordReset_intro">Ni ricevis peton por restarigi la pasvorton por via konto.</string>
   <string name="passwordReset_clickOrIgnore">Se vi faris ĉi tiun peton, alklaku la suban ligilon. Se ne, vi povas ignori ĉi tiun retmesaĝon.</string>
   <string name="emailChange_subject">Konfirmu vian novan retpoŝtadreson, %s</string>
   <string name="emailChange_intro">Vi petas ŝanĝi vian retpoŝtadreso.</string>
   <string name="emailChange_click">Por konfirmi ke vi havas aliron al ĉi tiu retpoŝtadreso, bonvolu alklaku la suban ligilon:</string>
-  <string name="welcome_subject">Bonvenon al lichess.org, %s</string>
-  <string name="welcome_text">Vi sukcese kreis vian konton ĉe https://lichess.org.
-
-Jen via profilo: %1$s. Vi povas redakti ĝin ĉe %2$s.
-
-Amuziĝu, kaj viaj pecoj ĉiam trovu siajn vojojn al la kontraŭa reĝo!</string>
-  <string name="logInToLichess">Ensalutu al lichess.org, %s</string>
+  <string name="welcome_subject">Bonvenon al lixiangqi.com, %s</string>
+  <string name="logInToLichess">Ensalutu al lixiangqi.com, %s</string>
   <string name="common_orPaste">(Ĉu alklaki ne funkcias? Provu elpoŝigi ĝin en vian retumilon!)</string>
   <string name="common_note">Ĉi tiu estas serva retpoŝto rilate al via uzo de %s.</string>
   <string name="common_contact">Por kontakti nin, bonvolu uzi %s.</string>
+  <string name="welcome_intro">Via LiXiangQi-konto estas preta. Ĉu vi lernas la regulojn aŭ revenas al la tabulo, ni ĝojas, ke vi estas ĉi tie.</string>
+  <string name="welcome_play">Ludu ŝjangĉion</string>
+  <string name="welcome_playTip">Komencu ludon de la ĉefpaĝo. Por trankvila unua ludo, provu ludi kontraŭ la komputilo.</string>
+  <string name="welcome_puzzles">Provu problemon</string>
+  <string name="welcome_puzzlesTip">Ekzercu vin rimarki minacojn kaj trovi venkajn movojn. Ne rapidu: pripensu ŝakojn, kaptojn kaj eblajn respondojn de via kontraŭulo.</string>
+  <string name="welcome_profile">Sentu vin hejme</string>
+  <string name="welcome_profileTip">Aldonu mallongan prezenton al via profilo, por ke aliaj ludantoj povu konatiĝi kun vi.</string>
+  <string name="welcome_viewProfile">Vidu vian profilon</string>
+  <string name="welcome_editProfile">Redaktu vian profilon</string>
+  <string name="welcome_closing">Ĝuu vian sekvan ludon. Ĝis revido ĉe la tabulo!</string>
 </resources>

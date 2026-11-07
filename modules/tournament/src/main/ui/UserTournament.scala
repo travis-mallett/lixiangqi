@@ -133,7 +133,7 @@ final class UserTournament(helpers: Helpers, ui: TournamentUi):
           tbody(cls := "infinite-scroll")(
             pager.currentPageResults.map { e =>
               tr(cls := List("paginated" -> true, "scheduled" -> e.tour.isScheduled))(
-                td(cls := "icon")(iconTag(ui.tournamentIcon(e.tour))),
+                td(cls := "icon")(resultIcon(e.entry.rank)),
                 td(cls := "header")(
                   a(href := addQueryParam(routes.Tournament.show(e.tour.id).url, "player", u.username.value))(
                     span(cls := "name")(e.tour.name()),
@@ -155,6 +155,14 @@ final class UserTournament(helpers: Helpers, ui: TournamentUi):
           )
         )
       )
+
+  private def resultIcon(rank: lila.core.chess.Rank): Frag =
+    val artwork = rank.value match
+      case 1 => "gold"
+      case 2 => "silver"
+      case 3 => "bronze"
+      case _ => "palace"
+    img(cls := "result-icon", src := assetUrl(s"images/trophy/ivory-cloud-$artwork.webp"), alt := "")
 
   private def page(u: User, title: String, path: String)(using ctx: Context) =
     Page(title)

@@ -1,22 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="emailConfirm_subject">%s, bekräfta ditt lichess.org-konto</string>
-  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a Lichess account.&#10;&#10;The unique reset link is presented just after this string.">Klicka på länken för att aktivera ditt Lichesskonto:</string>
-  <string name="emailConfirm_justIgnore">Om du inte har registrerat dig hos Lichess kan du ignorera detta meddelande. Det obekräftade kontot och alla spår av din e-postadress kommer att raderas från vårt system efter 48 timmar.</string>
-  <string name="passwordReset_subject">%s - återställ ditt lichess.org-lösenord</string>
+  <string name="emailConfirm_subject">%s, bekräfta ditt lixiangqi.com-konto</string>
+  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a LiXiangQi account.&#10;&#10;The unique reset link is presented just after this string.">Klicka på länken för att aktivera ditt Lichesskonto:</string>
+  <string name="emailConfirm_justIgnore">Om du inte har registrerat dig hos LiXiangQi kan du ignorera detta meddelande. Det obekräftade kontot och alla spår av din e-postadress kommer att raderas från vårt system efter 48 timmar.</string>
+  <string name="passwordReset_subject">%s - återställ ditt lixiangqi.com-lösenord</string>
   <string name="passwordReset_intro">Vi har fått en begäran om att återställa lösenordet för ditt konto.</string>
   <string name="passwordReset_clickOrIgnore">Om du begärt detta, klicka på länken nedan. Om så inte är fallet, kan du bortse från detta mail.</string>
   <string name="emailChange_subject">%s, bekräfta din nya e-postadress</string>
   <string name="emailChange_intro">Du har begärt att ändra din e-postadress.</string>
   <string name="emailChange_click">För att bekräfta att du har tillgång till denna e-postadress, vänligen klicka på länken nedan:</string>
-  <string name="welcome_subject">Välkommen till lichess.org, %s</string>
-  <string name="welcome_text">Du har skapat ditt konto på https://lichess.org. 
-
-Här är din profilsida: %1$s. Du kan anpassa den på %2$s. 
-
-Ha kul, och må dina pjäser alltid leta sig fram till motståndarens kung!</string>
-  <string name="logInToLichess">Logga in på lichess.org, %s</string>
+  <string name="welcome_subject">Välkommen till lixiangqi.com, %s</string>
+  <string name="logInToLichess">Logga in på lixiangqi.com, %s</string>
   <string name="common_orPaste">(Fungerar det inte att klicka? Prova att klistra in länken i din webbläsare!)</string>
   <string name="common_note">Detta är ett servicemejl relaterat till din användning av %s.</string>
   <string name="common_contact">För att kontakta oss, vänligen använd %s.</string>
+  <string name="welcome_intro">Ditt LiXiangQi-konto är klart. Oavsett om du lär dig reglerna eller återvänder till brädet är vi glada att du är här.</string>
+  <string name="welcome_play">Spela xiangqi</string>
+  <string name="welcome_playTip">Starta ett parti från startsidan. För ett avslappnat första parti kan du prova att spela mot datorn.</string>
+  <string name="welcome_puzzles">Prova en uppgift</string>
+  <string name="welcome_puzzlesTip">Öva på att upptäcka hot och hitta vinnande drag. Ta god tid på dig: titta efter schackar, slag och motståndarens möjliga svar.</string>
+  <string name="welcome_profile">Känn dig som hemma</string>
+  <string name="welcome_profileTip">Lägg till en kort presentation i din profil så att andra spelare kan lära känna dig.</string>
+  <string name="welcome_viewProfile">Visa din profil</string>
+  <string name="welcome_editProfile">Redigera din profil</string>
+  <string name="welcome_closing">Ha så roligt med nästa parti. Vi ses vid brädet!</string>
 </resources>

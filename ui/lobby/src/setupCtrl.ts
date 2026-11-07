@@ -1,5 +1,6 @@
 import { type Prop, propWithEffect } from 'lib';
 import { debounce } from 'lib/async';
+import { boardDefinitionForFen } from 'lib/board';
 import { aiCustomLevel, aiCustomLevelIndex } from 'lib/game';
 import { guestAiProgress, highestBeatenAiLevel, nextAiLevel } from 'lib/game/aiProgress';
 import type { ColorChoice, ColorProp } from 'lib/setup/color';
@@ -81,7 +82,7 @@ export default class SetupController {
     const storeProps = this.store[this.gameType!]();
     // Variant is an explicit entry-point choice, never a remembered preference.
     this.variant = propWithEffect(forceOptions?.variant || 'standard', this.onVariantChange);
-    this.fen = this.propWithApply(forceOptions?.fen || storeProps.fen);
+    this.fen = propWithEffect(forceOptions?.fen || storeProps.fen, this.onDropdownChange);
     const canChangeTimeMode = !!this.root.me || this.gameType !== 'hook';
     const requestedTimeMode =
       forceOptions?.timeMode ||
@@ -111,7 +112,14 @@ export default class SetupController {
 
   isThreeKingdoms = () => this.variant() === 'threeKingdoms';
 
-  usesVariantLevels = () => ['jieqi', 'minixiangqi', 'manchu', 'threeKingdoms'].includes(this.variant());
+  gameVariant = () =>
+    this.variant() === 'fromPosition'
+      ? boardDefinitionForFen(this.fen()).id
+      : this.variant() === 'standard'
+        ? 'xiangqi'
+        : this.variant();
+
+  usesVariantLevels = () => ['jieqi', 'minixiangqi', 'manchu', 'threeKingdoms'].includes(this.gameVariant());
 
   variantLevelCount = () => (this.isThreeKingdoms() ? 5 : 10);
 
@@ -124,7 +132,8 @@ export default class SetupController {
       this.aiLevel = this.propWithApply(aiCustomLevel(aiCustomLevelIndex(this.aiLevel())));
 
     // replace underscores with spaces in FEN
-    if (this.variant() === 'fromPosition') this.fen = this.propWithApply(this.fen().replace(/_/g, ' '));
+    if (this.variant() === 'fromPosition')
+      this.fen = propWithEffect(this.fen().replace(/_/g, ' '), this.onDropdownChange);
   };
 
   private readonly savePropsToStore = (override: Partial<SetupStore> = {}) =>
@@ -261,7 +270,7 @@ export default class SetupController {
   propsToFormData = (color: ColorChoice) =>
     xhr.form({
       variant: keyToId(this.variant(), variants).toString(),
-      gameVariant: this.usesVariantLevels() ? this.variant() : 'xiangqi',
+      gameVariant: this.gameVariant(),
       fen: this.variant() === 'fromPosition' ? this.fen() : undefined,
       timeMode: keyToId(this.timeControl.mode(), timeModes).toString(),
       time: this.timeControl.time().toString(),

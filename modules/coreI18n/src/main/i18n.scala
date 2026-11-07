@@ -16,6 +16,20 @@ val defaultLang: Lang = enLang
 def toLanguage(lang: Lang): Language = Language(lang.language)
 def toCountry(lang: Lang): Country = Country(lang.country)
 
+private val directionCache = scala.collection.concurrent.TrieMap.empty[Lang, Boolean]
+
+def isRightToLeft(lang: Lang): Boolean =
+  directionCache.getOrElseUpdate(
+    lang,
+    lang.locale
+      .getDisplayName(lang.locale)
+      .headOption
+      .map(_.getDirectionality)
+      .exists: dir =>
+        dir == Character.DIRECTIONALITY_RIGHT_TO_LEFT ||
+          dir == Character.DIRECTIONALITY_RIGHT_TO_LEFT_ARABIC
+  )
+
 // ffs
 def fixJavaLanguage(lang: Lang): Language =
   toLanguage(lang).map(l => if l == "in" then "id" else l)

@@ -1,2 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources></resources>
+<resources>
+  <string name="welcome_intro">Dyn LiXiangQi-akkount is klear. Oftst no de regels learst of weromkomst nei it boerd, wy binne bliid datst der bist.</string>
+  <string name="welcome_play">Xiangqi spylje</string>
+  <string name="welcome_playTip">Begjin in partij fan de thússide ôf. Besykje foar in ûntspannen earste partij tsjin de kompjûter te spyljen.</string>
+  <string name="welcome_puzzles">Besykje in puzel</string>
+  <string name="welcome_puzzlesTip">Oefenje it werkennen fan bedrigingen en it finen fan winnende setten. Nim de tiid: sjoch nei skaaksetten, slachsetten en mooglike antwurden fan dyn tsjinstanner.</string>
+  <string name="welcome_profile">Fiel dy thús</string>
+  <string name="welcome_profileTip">Foegje in koarte ynlieding ta oan dyn profyl, sadat oare spilers dy kennen leare kinne.</string>
+  <string name="welcome_viewProfile">Dyn profyl besjen</string>
+  <string name="welcome_editProfile">Dyn profyl bewurkje</string>
+  <string name="welcome_closing">In soad wille mei dyn folgjende partij. Oant by it boerd!</string>
+  <string name="welcome_subject">Wolkom by lixiangqi.com, %s</string>
+  <string name="common_note">Dit is in tsjinstberjocht oer dyn gebrûk fan %s.</string>
+  <string name="common_contact">Brûk %s om kontakt mei ús op te nimmen.</string>
+</resources>

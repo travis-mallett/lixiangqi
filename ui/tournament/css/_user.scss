@@ -17,6 +17,14 @@
       color: $c-brag;
     }
 
+    .result-icon {
+      display: inline-block;
+      width: 1.15em;
+      height: 1em;
+      vertical-align: middle;
+      object-fit: contain;
+    }
+
     .header {
       letter-spacing: 2px;
       cursor: pointer;

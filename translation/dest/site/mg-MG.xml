@@ -391,4 +391,6 @@
   <string name="webmasters">Webmasters</string>
   <string name="create">Hamorona</string>
   <string name="returnToTournamentsHomepage">Miverina any amin\'ny pejin\'ny fifaninanana</string>
+  <string name="privacyPolicy">Politika momba ny fiainana manokana</string>
+  <string name="readAboutOur">Vakio ny %s.</string>
 </resources>

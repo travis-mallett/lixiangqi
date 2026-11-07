@@ -1,21 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="emailConfirm_subject">Подтвердіт свуй lichess.org акаунт, %s</string>
-  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a Lichess account.&#10;&#10;The unique reset link is presented just after this string.">Клопкніт на одкликованя, обы заробив вам акаунт Lichess:</string>
-  <string name="passwordReset_subject">Звержіт свою паролу на lichess.org, %s</string>
+  <string name="emailConfirm_subject">Подтвердіт свуй lixiangqi.com акаунт, %s</string>
+  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a LiXiangQi account.&#10;&#10;The unique reset link is presented just after this string.">Клопкніт на одкликованя, обы заробив вам акаунт LiXiangQi:</string>
+  <string name="passwordReset_subject">Звержіт свою паролу на lixiangqi.com, %s</string>
   <string name="passwordReset_intro">Мы достали запрос на зверженя вашої паролы на вашому акаунтови.</string>
   <string name="passwordReset_clickOrIgnore">Кідь вы чинили сись запрос, клопкніт долув. Кідь ньит, просто проіґноруйте.</string>
   <string name="emailChange_subject">Потвердіт нову електрону почту, %s</string>
   <string name="emailChange_intro">Мы достали ваш запрос на переміну почты.</string>
   <string name="emailChange_click">Обы потвердити ож маєте приступ од почті, клопкніт долув:</string>
-  <string name="welcome_subject">Вітаєме на lichess.org, %s</string>
-  <string name="welcome_text">Вы успішно учинили акаунт на https://lichess.org.
-
-Туй є ваша профілна сторунка: %1$s. Можете є перемінити на %2$s.
-
-Бавте из дяков, и най вам фіґуры усе найдут путь од чужому корольови!</string>
-  <string name="logInToLichess">Зайдіт на lichess.org, %s</string>
+  <string name="welcome_subject">Вітаєме на lixiangqi.com, %s</string>
+  <string name="logInToLichess">Зайдіт на lixiangqi.com, %s</string>
   <string name="common_orPaste">(Клопканя не помагат? Копіруйте ай перенесіт у браузер!)</string>
   <string name="common_note">Исе служебна уповістка, зязана из хоснованьом %s.</string>
   <string name="common_contact">Хоснуйте %s, обы контактовати из нами.</string>
+  <string name="welcome_intro">Ваш акаунт LiXiangQi готовый. Кідь учите правила або вертаєте ся до дошкы, раді єсме вас туй видіти.</string>
+  <string name="welcome_play">Бавити сянці</string>
+  <string name="welcome_playTip">Зачніт партію з головної сторункы. Для спокійної першої игры спробуйте бавити проти компютера.</string>
+  <string name="welcome_puzzles">Спробовати задачу</string>
+  <string name="welcome_puzzlesTip">Учіть ся видіти угрозы и находити выиграшні ходы. Не спішіть: позерайте на шахы, взятя и можливі одповіді супротивника.</string>
+  <string name="welcome_profile">Роскажіт о собі</string>
+  <string name="welcome_profileTip">Придайте короткый опис до профілу, обы вас другі играчі могли познати.</string>
+  <string name="welcome_viewProfile">Позерати свуй профіл</string>
+  <string name="welcome_editProfile">Перемінити свуй профіл</string>
+  <string name="welcome_closing">Бавте из дяков. Увидиме ся за дошков!</string>
 </resources>

@@ -619,6 +619,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
         : `Game over: ${state.gameResult}`;
     statusElement.classList.remove('error');
     fenInput.value = editor.fen ?? state.fen;
+    requiredElement('#xiangqi-edit-position span').textContent = i18n.site.boardEditor;
     renderEditorErrors();
     boardElement.dataset.turn = state.turn;
     boardElement.dataset.legalMoves = String(state.legalMoves.length);
@@ -1241,6 +1242,14 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
       interfaceSettings = settings;
     },
     currentFen: () => currentState().fen,
+    edit: () => {
+      const state = currentState();
+      location.href = `/editor?${new URLSearchParams({
+        fen: state.fen,
+        variant: state.variant ?? 'xiangqi',
+        color: ground.getPresentation().perspective,
+      })}`;
+    },
     loadFen: fen => void loadFen(fen),
     renderBoardOverlays: () => {
       renderSuggestionArrows();

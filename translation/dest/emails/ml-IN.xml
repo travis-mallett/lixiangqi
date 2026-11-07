@@ -1,22 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="emailConfirm_subject">നിങ്ങളുടെ lichess.org അക്കൗണ്ട് confirm ചെയ്യൂ, %s</string>
-  <string name="emailConfirm_intro">Lichess-ൽ അംഗത്തമെടുക്കുന്നതിനു നന്ദി</string>
-  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a Lichess account.&#10;&#10;The unique reset link is presented just after this string.">ലിങ്ക് അമർത്തി അക്കൗണ്ട് സജ്ജമാക്കൂ:</string>
-  <string name="passwordReset_subject">നിങ്ങളുടെ lichess.org പാസ്സ്‌വേഡ് മാറ്റുക, %s</string>
+  <string name="emailConfirm_subject">നിങ്ങളുടെ lixiangqi.com അക്കൗണ്ട് confirm ചെയ്യൂ, %s</string>
+  <string name="emailConfirm_intro">LiXiangQi-ൽ അംഗത്തമെടുക്കുന്നതിനു നന്ദി</string>
+  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a LiXiangQi account.&#10;&#10;The unique reset link is presented just after this string.">ലിങ്ക് അമർത്തി അക്കൗണ്ട് സജ്ജമാക്കൂ:</string>
+  <string name="passwordReset_subject">നിങ്ങളുടെ lixiangqi.com പാസ്സ്‌വേഡ് മാറ്റുക, %s</string>
   <string name="passwordReset_intro">നിങ്ങളുടെ പാസ്സ്‌വേർഡ് മാറ്റാനുള്ള അപേക്ഷ ഞങ്ങൾക്കു ലഭിച്ചിരിക്കുന്നു!</string>
   <string name="passwordReset_clickOrIgnore">നിങ്ങൾ ഈ അപേക്ഷ സമർപ്പിച്ചിട്ടുണ്ടെങ്കിൽ, താഴെ കാണുന്ന ലിങ്ക് അമർത്തൂ. അല്ലെങ്കിൽ, ഈ മെസ്സേജ് നിങ്ങൾക്ക് അവഗണിക്കാം.</string>
   <string name="emailChange_subject">പുതിയ email address സ്ഥിരീകരിക്കുക, %s</string>
   <string name="emailChange_intro">നിങ്ങളുടെ email address മാറ്റാനുള്ള അപേക്ഷ ലഭിച്ചിരിക്കുന്നു.</string>
   <string name="emailChange_click">ഈ email നിങ്ങളുടേതാണെന്ന് ഉറപ്പു വരുത്തുന്നതിനു വേണ്ടി, താഴെ കാണുന്ന ലിങ്ക് അമർത്തുക:</string>
-  <string name="welcome_subject">Lichess.org -ലേക്ക് നിങ്ങൾക്കു സ്വാഗതം, %s</string>
-  <string name="welcome_text">നിങ്ങൾ വിജയകരമായി https://www.lichess.org -ൽ അക്കൗണ്ട് ഉണ്ടാക്കിയിരിക്കുന്നു.
-
-ഇത് നിങ്ങളുടെ profile page: %1$s. അതിൽ മാറ്റങ്ങൾ വരുത്താൻ %2$s അമർത്തുക.
-
-ആസ്വദിക്കൂ, നിങ്ങളുടെ കരുക്കൾ എപ്പൊഴും എതിർരാജാവിന്റെ ദിശയിലേക്കുള്ള വഴി കണ്ടെത്തട്ടേ!</string>
-  <string name="logInToLichess">Lichess.org -ലേക്ക് ലോഗിൻ ചെയ്യുക, %s</string>
+  <string name="welcome_subject">lixiangqi.com -ലേക്ക് നിങ്ങൾക്കു സ്വാഗതം, %s</string>
+  <string name="logInToLichess">lixiangqi.com -ലേക്ക് ലോഗിൻ ചെയ്യുക, %s</string>
   <string name="common_orPaste">(മൗസ് അമർത്തിയിട്ട് ഒന്നും സംഭവിക്കുന്നില്ല? നിങ്ങളുടെ ബ്രൗസറിൽ paste ചെയ്യാൻ ശ്രമിച്ചു നോക്കൂ!)</string>
   <string name="common_note">നിങ്ങളുടെ %s -ന്റെ ഉപയോഗവുമായി ബന്ധപ്പെട്ട സർവീസ് email ആണിത്.</string>
   <string name="common_contact">ഞങ്ങളുമായി ബന്ധപ്പെടാൻ ദയവായി %s ഉപയോഗിക്കുക.</string>
+  <string name="welcome_intro">നിങ്ങളുടെ LiXiangQi അക്കൗണ്ട് തയ്യാറാണ്. നിയമങ്ങൾ പഠിക്കുകയാണെങ്കിലും വീണ്ടും കളിക്കാൻ വരികയാണെങ്കിലും നിങ്ങളെ ഇവിടെ കാണുന്നതിൽ സന്തോഷം.</string>
+  <string name="welcome_play">ഷ്യാങ്ചി കളിക്കൂ</string>
+  <string name="welcome_playTip">ഹോം പേജിൽ നിന്ന് ഒരു കളി തുടങ്ങൂ. ആദ്യ കളി ശാന്തമായി കളിക്കാൻ കമ്പ്യൂട്ടറിനെതിരെ ശ്രമിക്കൂ.</string>
+  <string name="welcome_puzzles">ഒരു പ്രശ്നം പരിഹരിക്കൂ</string>
+  <string name="welcome_puzzlesTip">ഭീഷണികൾ തിരിച്ചറിയാനും വിജയത്തിലേക്കുള്ള നീക്കങ്ങൾ കണ്ടെത്താനും പരിശീലിക്കൂ. തിരക്കുകൂട്ടാതെ ചെക്ക്, കരു വെട്ടൽ, എതിരാളിയുടെ സാധ്യതയുള്ള മറുപടികൾ എന്നിവ പരിശോധിക്കൂ.</string>
+  <string name="welcome_profile">സ്വയം പരിചയപ്പെടുത്തൂ</string>
+  <string name="welcome_profileTip">മറ്റു കളിക്കാർക്ക് നിങ്ങളെ അറിയാൻ പ്രൊഫൈലിൽ ഒരു ചെറിയ പരിചയപ്പെടുത്തൽ ചേർക്കൂ.</string>
+  <string name="welcome_viewProfile">നിങ്ങളുടെ പ്രൊഫൈൽ കാണൂ</string>
+  <string name="welcome_editProfile">നിങ്ങളുടെ പ്രൊഫൈൽ തിരുത്തൂ</string>
+  <string name="welcome_closing">അടുത്ത കളി ആസ്വദിക്കൂ. കളിപ്പലകയിൽ കാണാം!</string>
 </resources>

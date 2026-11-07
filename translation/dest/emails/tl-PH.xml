@@ -1,20 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="emailConfirm_subject">Kumpirmahin ang iyong Lichess account, %s</string>
-  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a Lichess account.&#10;&#10;The unique reset link is presented just after this string.">Pindutin ang link upang paganahin ang iyong Lichess account:</string>
-  <string name="emailConfirm_justIgnore">Kung hindi ka nagparehistro sa Lichess, maaari mong ligtas na balewalain ang mensaheng ito. Ang hindi nakumpirmang account at lahat ng bakas ng iyong email address ay tatanggalin mula sa aming sistema pagkatapos ng 48 oras.</string>
-  <string name="passwordReset_subject">I-reset ang iyong Lichess password, %s</string>
+  <string name="emailConfirm_subject">Kumpirmahin ang iyong LiXiangQi account, %s</string>
+  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a LiXiangQi account.&#10;&#10;The unique reset link is presented just after this string.">Pindutin ang link upang paganahin ang iyong LiXiangQi account:</string>
+  <string name="emailConfirm_justIgnore">Kung hindi ka nagparehistro sa LiXiangQi, maaari mong ligtas na balewalain ang mensaheng ito. Ang hindi nakumpirmang account at lahat ng bakas ng iyong email address ay tatanggalin mula sa aming sistema pagkatapos ng 48 oras.</string>
+  <string name="passwordReset_subject">I-reset ang iyong LiXiangQi password, %s</string>
   <string name="passwordReset_intro">Kami ay nakatanggap ng iyong request upang i-reset ang password para sa iyong account.</string>
   <string name="passwordReset_clickOrIgnore">Kung ginawa mo ang request na ito, pindutin ang link sa ibaba. Kung hindi, maaari mo nang i-ignore ang email na ito.</string>
   <string name="emailChange_subject">Kumpirmahin ang bagong email address, %s</string>
   <string name="emailChange_intro">Nai-request mo nang baguhin ang iyong email address.</string>
   <string name="emailChange_click">Upang kumpirmahin na mayroon kang access sa email na ito, pindutin ang link sa ibaba:</string>
-  <string name="welcome_subject">Maligayang pagdating sa lichess.org, %s</string>
-  <string name="welcome_text">Ito ang iyong profile page: %1$s. Maaari mo itong i-personalize sa %2$s.
-
-Maging masaya, at nawa’y mahanap ng iyong mga piyesa ang daan tungo sa kalabang hari!</string>
-  <string name="logInToLichess">Mag-login sa Lichess org, %s</string>
+  <string name="welcome_subject">Maligayang pagdating sa lixiangqi.com, %s</string>
+  <string name="logInToLichess">Mag-login sa LiXiangQi org, %s</string>
   <string name="common_orPaste">(Hindi gumagana ang pagpindot? Subukang i-paste sa iyong browser!)</string>
   <string name="common_note">Ito ay isang service email na may kaugnayan sa iyong paggamit ng %s.</string>
   <string name="common_contact">Upang kami ay ma-contact, gamitin %s.</string>
+  <string name="welcome_intro">Handa na ang iyong LiXiangQi account. Nag-aaral ka man ng mga tuntunin o bumabalik sa laro, masaya kaming narito ka.</string>
+  <string name="welcome_play">Maglaro ng xiangqi</string>
+  <string name="welcome_playTip">Magsimula ng laro mula sa pangunahing pahina. Para sa isang relaks na unang laro, subukang lumaban sa computer.</string>
+  <string name="welcome_puzzles">Sumubok ng palaisipan</string>
+  <string name="welcome_puzzlesTip">Magsanay sa pagkilala ng mga banta at paghahanap ng mga panalong tira. Huwag magmadali: suriin ang mga check, pagkuha ng piyesa, at posibleng tugon ng kalaban.</string>
+  <string name="welcome_profile">Ipakilala ang sarili</string>
+  <string name="welcome_profileTip">Magdagdag ng maikling pagpapakilala sa iyong profile upang makilala ka ng ibang manlalaro.</string>
+  <string name="welcome_viewProfile">Tingnan ang iyong profile</string>
+  <string name="welcome_editProfile">I-edit ang iyong profile</string>
+  <string name="welcome_closing">Masiyahan sa susunod mong laro. Kita tayo sa pisara!</string>
 </resources>

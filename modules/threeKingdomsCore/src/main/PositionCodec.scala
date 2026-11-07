@@ -33,6 +33,10 @@ object PositionCodec:
     ))).mkString(";")
 
   def read(value: String): Either[String, Position] =
+    readDiagram(value).flatMap(validate)
+
+  /** Editing permits incomplete armies, but uses the same position grammar and bounded metadata. */
+  private[threeKingdoms] def readDiagram(value: String): Either[String, Position] =
     if value.length > 10000 then Left("Three Kingdoms position is too long")
     else
       scala.util
@@ -94,7 +98,11 @@ object PositionCodec:
                   require(entry.matches("[012]:0?1?2?"), "Invalid check history")
                   player(entry.head.toString) -> entry.drop(2).map(c => player(c.toString)).toSet
           )
-          validate(position).fold(error => throw IllegalArgumentException(error), identity)
+          require(position.ply >= 0 && position.ply <= 100000, "Invalid ply")
+          require(position.quietPlies >= 0 && position.quietPlies <= 180, "Invalid quiet plies")
+          require(position.repetitions.size <= 181, "Invalid repetition history")
+          require(validControllers(position), "Invalid controllers or turn")
+          position
         .toEither
         .left
         .map(_ => "Invalid Three Kingdoms position")
@@ -110,10 +118,9 @@ object PositionCodec:
       Role.Soldier -> 5
     )
     val counts = p.board.flatten.groupMapReduce(piece => piece.army -> piece.role)(_ => 1)(_ + _)
-    val valid = p.board.size == 135 && p.controllers.size == 3 && p.active.nonEmpty &&
-      p.active.contains(p.turn) && p.controllers.flatten.forall(p.active.contains) &&
+    val valid = p.board.size == 135 && validControllers(p) &&
       p.board.flatten.forall(piece => p.controller(piece).isDefined) &&
-      p.active.forall(k => p.controllers(k.ordinal).contains(k) && p.general(k).isDefined) &&
+      p.active.forall(k => p.general(k).isDefined) &&
       counts.forall { case ((_, role), count) => count <= maxima(role) } &&
       p.eliminated.map(_.player).toSet == Kingdom.values.toSet -- p.active &&
       p.eliminated.map(_.player).distinct.size == p.eliminated.size &&
@@ -146,6 +153,11 @@ object PositionCodec:
             case _ => true
         case _ => true
     Either.cond(valid, p, "Invalid Three Kingdoms position invariants")
+
+  private def validControllers(p: Position): Boolean =
+    p.controllers.size == 3 && p.active.nonEmpty && p.active.contains(p.turn) &&
+      p.controllers.flatten.forall(p.active.contains) &&
+      p.active.forall(k => p.controllers(k.ordinal).contains(k))
 
   /** A stable 64-bit position identity; clocks and move counters do not affect repetition. */
   def repetitionKey(p: Position): String =

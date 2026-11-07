@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { position, Tree, type Rules, type EngineResult } from 'threeKingdoms';
 
+import { positionFixture } from '../../threeKingdoms/tests/positionFixture';
 import { createArrowCadence } from '../src/analysisArrowCadence';
 import { loadEngineSettings, engineSettingsKey } from '../src/analysisSettings';
 import { kingdomArrows } from '../src/analysisThreeKingdomsArrows';
@@ -103,7 +104,7 @@ test('graph arrows use the shared style, horse legs and all three actual movers,
 });
 
 test('a conquered army arrow belongs to the controlling player and no eliminated turn is invented', () => {
-  const initial = rules.edit(rules.initial(), '4:0k,1d:1k,2m:2k,1m:2r,19:1n,d:0a', 'red');
+  const initial = positionFixture(rules, rules.initial(), '4:0k,1d:1k,2m:2k,1m:2r,19:1n,d:0a', 'red');
   const state = rules.inspect(initial);
   const move = 'wu:4:1>wu:4:0';
   const duel = rules.inspect(rules.play(initial, move));
@@ -126,7 +127,7 @@ test('cross-river routes follow the logical file and the horse leg across the fr
   const move = 'shu:1:2>wei:7:4';
   assert.ok(rules.inspect(initial).moves.includes(move));
   assert.deepEqual(rules.route(initial, move), ['shu:1:2', 'shu:1:3', 'shu:1:4', 'wei:7:4']);
-  const horse = rules.edit(initial, '4:0k,1d:1k,2m:2k,3l:2n', 'red');
+  const horse = positionFixture(rules, initial, '4:0k,1d:1k,2m:2k,3l:2n', 'red');
   assert.deepEqual(rules.route(horse, 'shu:3:4>wei:4:3'), ['shu:3:4', 'wei:5:4', 'wei:4:3']);
 });
 

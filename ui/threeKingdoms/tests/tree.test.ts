@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import { interaction, position, transition } from '../src/board';
 import { Tree } from '../src/tree';
 import type { Rules } from '../src/types';
+import { positionFixture } from './positionFixture';
 
 // Exercise the production rules compiled from Scala, not a second move generator.
 const moduleUrl = new URL('../../../public/three-kingdoms-engine/main.js', import.meta.url).href;
@@ -68,7 +69,7 @@ test('imports reject wrong actors, cycles, duplicate branches, and unbounded rec
 
 test('captured armies retain their piece appearance and become movable by the new controller', () => {
   // Three generals, a Shu chariot capturing Wu, a Wu horse and a Wei palace screen.
-  const encoded = rules.edit(rules.initial(), '4:0k,1d:1k,2m:2k,1m:2r,19:1n,d:0a', 'red');
+  const encoded = positionFixture(rules, rules.initial(), '4:0k,1d:1k,2m:2k,1m:2r,19:1n,d:0a', 'red');
   const before = rules.inspect(encoded);
   const after = rules.inspect(rules.play(encoded, 'wu:4:1>wu:4:0'));
   assert.deepEqual(after.controllers, ['black', 'red', 'red']);

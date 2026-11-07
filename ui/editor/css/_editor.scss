@@ -16,16 +16,35 @@
 
   .copyables {
     grid-area: copyables;
-    margin: 2rem 0 0 1rem;
+    margin: 1rem 0;
+    min-width: 0;
 
     p {
       @extend %flex-center-nowrap;
 
       gap: 1em;
 
-      > *:not(strong) {
+      input {
         flex: 1 1 auto;
+        min-width: 0;
+      }
+
+      label {
+        flex: 0 0 3ch;
+        font-weight: bold;
+      }
+
+      button {
+        flex: 0 0 auto;
+        font-size: 0.85em;
+        padding: 0.5em;
       }
     }
+  }
+
+  &__help {
+    margin: 0 0 1rem;
+    color: $c-font-dim;
+    text-align: center;
   }
 }

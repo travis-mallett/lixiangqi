@@ -42,8 +42,11 @@ final class UserAnalysis(env: Env) extends LilaController(env) with lila.web.The
         .map: analysis =>
           Ok(Json.obj("analysis" -> analysis.map(lila.analyse.XiangqiAnalysis.json))).noCache
 
-  def position = AnonBodyOf(parse.json): body =>
-    nativeJson[Xiangqi.Position, Xiangqi.State](body)(XiangqiRules.position)
+  def position(strict: Boolean) = AnonBodyOf(parse.json): body =>
+    nativeJson[Xiangqi.Position, Xiangqi.State](body): input =>
+      if strict then
+        XiangqiRules.validateStandardPosition(input.initialFen).flatMap(_ => XiangqiRules.position(input))
+      else XiangqiRules.position(input)
 
   def move = AnonBodyOf(parse.json): body =>
     nativeJson[Xiangqi.MoveCommand, Xiangqi.MoveResult](body): command =>
@@ -111,10 +114,14 @@ final class UserAnalysis(env: Env) extends LilaController(env) with lila.web.The
     .notLoadingSync[Xiangqi.NotationImport, Either[String, Xiangqi.ImportedMoveTree]](64, "xiangqi.notation"):
       _.maximumSize(64).expireAfterWrite(10.minutes).build()
 
-  def importNotation = AnonBodyOf(parse.json): body =>
+  def importNotation(strict: Boolean) = AnonBodyOf(parse.json): body =>
     nativeJson[Xiangqi.NotationImport, Xiangqi.ImportedMoveTree](body): command =>
-      if command.notation.length <= 4000 then notationCache.get(command, XiangqiNotation.importTree)
-      else XiangqiNotation.importTree(command)
+      def run =
+        if command.notation.length <= 4000 then notationCache.get(command, XiangqiNotation.importTree)
+        else XiangqiNotation.importTree(command)
+      if strict then
+        run.flatMap(result => XiangqiRules.validateStandardPosition(result.initialFen).map(_ => result))
+      else run
 
   private def nativeJson[A: Reads, B: Writes](body: JsValue)(run: A => Either[String, B]) =
     body

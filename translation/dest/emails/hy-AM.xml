@@ -1,21 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="emailConfirm_subject">Հաստատեք Ձեր lichess.org-ի հաշիվը, %s</string>
-  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a Lichess account.&#10;&#10;The unique reset link is presented just after this string.">Lichess-ի հաշիվը ակտիվացնելու համար սեղմեք հղման վրա:</string>
-  <string name="passwordReset_subject">Զրոյացրեք lichess.org-ի Ձեր գաղտնաբառը, %s</string>
+  <string name="emailConfirm_subject">Հաստատեք Ձեր lixiangqi.com-ի հաշիվը, %s</string>
+  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a LiXiangQi account.&#10;&#10;The unique reset link is presented just after this string.">LiXiangQi-ի հաշիվը ակտիվացնելու համար սեղմեք հղման վրա:</string>
+  <string name="passwordReset_subject">Զրոյացրեք lixiangqi.com-ի Ձեր գաղտնաբառը, %s</string>
   <string name="passwordReset_intro">Մենք ստացել ենք Ձեր հաշվի գաղտնաբառը վերականգնելու հարցում:</string>
   <string name="passwordReset_clickOrIgnore">Եթե կատարել եք հարցում, սեղմեք ստորև բերված հղման վրա: Եթե ոչ՝ ուղղակի անտեսեք այն:</string>
   <string name="emailChange_subject">Հաստատեք Ձեր նոր էլեկտրոնային հասցեն, %s</string>
   <string name="emailChange_intro">Դուք ցանկացել եք փոխել Ձեր էլեկտրոնային հասցեն:</string>
   <string name="emailChange_click">Որպեսզի հաստատեք այս էլ. փոստը, անցեք ստորև բերված հղումով:</string>
-  <string name="welcome_subject">Բարի գալուստ lichess.org, %s</string>
-  <string name="welcome_text">Դուք հաջողությամբ ստեղծեցիք հաշիվ https://lichess.org կայքում։
-
-Այստեղ ձեր անձական հաշիվն Է՝  %1$s․ Դուք կարող եք անհատականացնել այն այսեղ՝  %2$s․
-
-Լավ ժամանց, և թող Ձեր խաղաքարերը միշտ գտնեն հակառակորդի թագավորին։</string>
-  <string name="logInToLichess">Մուտք գործել lichess.org, %s</string>
+  <string name="welcome_subject">Բարի գալուստ lixiangqi.com, %s</string>
+  <string name="logInToLichess">Մուտք գործել lixiangqi.com, %s</string>
   <string name="common_orPaste">Քլիքը չի աշխատում? Փորձում ենք նորից դնել այն քո բրաուզերում:</string>
   <string name="common_note">Սա ծառայողական նամակ է, որը վերաբերում է ձեր կողմից %sի օգտագործմանը։</string>
   <string name="common_contact">Կոնտակտային հղում՝ %s</string>
+  <string name="welcome_intro">Ձեր LiXiangQi հաշիվը պատրաստ է։ Անկախ նրանից՝ սովորում եք կանոնները, թե վերադառնում եք խաղատախտակին, ուրախ ենք ձեզ տեսնել։</string>
+  <string name="welcome_play">Խաղալ սյանծի</string>
+  <string name="welcome_playTip">Սկսեք պարտիան գլխավոր էջից։ Առաջին հանգիստ խաղի համար փորձեք խաղալ համակարգչի դեմ։</string>
+  <string name="welcome_puzzles">Փորձել խնդիր</string>
+  <string name="welcome_puzzlesTip">Մարզվեք սպառնալիքները նկատելու և հաղթող քայլերը գտնելու մեջ։ Մի՛ շտապեք․ դիտարկեք շախերը, խաղաքար վերցնելը և մրցակցի հնարավոր պատասխանները։</string>
+  <string name="welcome_profile">Ներկայացրեք ձեզ</string>
+  <string name="welcome_profileTip">Ձեր պրոֆիլում ավելացրեք կարճ ներկայացում, որպեսզի մյուս խաղացողները ձեզ ճանաչեն։</string>
+  <string name="welcome_viewProfile">Դիտել պրոֆիլը</string>
+  <string name="welcome_editProfile">Խմբագրել պրոֆիլը</string>
+  <string name="welcome_closing">Վայելեք հաջորդ պարտիան։ Կհանդիպենք խաղատախտակի մոտ։</string>
 </resources>

@@ -412,4 +412,6 @@
   <string name="until">Ka hor</string>
   <string name="lichessDbExplanation">Ciyaaraha qiimaysan ee ka dhacay Lichess</string>
   <string name="switchSides">Beddel kooxda</string>
+  <string name="privacyPolicy">Siyaasadda asturnaanta</string>
+  <string name="readAboutOur">Akhri %s.</string>
 </resources>

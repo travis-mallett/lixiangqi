@@ -1,23 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="emailConfirm_subject">Vahvista lichess.org -tunnuksesi %s</string>
+  <string name="emailConfirm_subject">Vahvista lixiangqi.com -tunnuksesi %s</string>
   <string name="emailConfirm_intro">Kiitos rekisteröitymisestäsi Lichessiin!</string>
-  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a Lichess account.&#10;&#10;The unique reset link is presented just after this string.">Vahvista Lichess-tunnuksesi klikkaamalla linkkiä:</string>
+  <string name="emailConfirm_click" comment="emailConfirm_click&#10;&#10;Part of the confirmation email upon registering for a LiXiangQi account.&#10;&#10;The unique reset link is presented just after this string.">Vahvista LiXiangQi-tunnuksesi klikkaamalla linkkiä:</string>
   <string name="emailConfirm_justIgnore">Jos et rekisteröinyt Lichessiin, voit huoletta jättää tämän viestin huomiotta. Vahvistamaton käyttäjätunnus ja kaikki viittaukset sähköpostiosoitteeseesi poistetaan järjestelmistämme 48 tunnin kuluttua.</string>
-  <string name="passwordReset_subject">Nollaa lichess.org-salasanasi %s</string>
+  <string name="passwordReset_subject">Nollaa lixiangqi.com-salasanasi %s</string>
   <string name="passwordReset_intro">Olemme saaneet pyynnön nollata tunnuksesi salasana.</string>
   <string name="passwordReset_clickOrIgnore">Jos pyyntö tuli sinulta, klikkaa alla olevaa linkkiä. Jos ei, voit jättää tämän viestin huomiotta.</string>
   <string name="emailChange_subject">Vahvista uusi sähköpostiosoite, %s</string>
   <string name="emailChange_intro">Olet pyytänyt sähköpostiosoitteen vaihtoa.</string>
   <string name="emailChange_click">Klikkaa tätä linkkiä vahvistaaksesi, että sinulla on pääsy tähän sähköpostiosoitteeseen:</string>
-  <string name="welcome_subject">Tervetuloa lichess.orgiin, %s</string>
-  <string name="welcome_text">Olet luonut itsellesi käyttäjätilin sivustolle https://lichess.org.
-
-Tässä on profiilisivusi: %1$s. Voit muokata sitä täällä: %2$s.
-
-Pidä hauskaa. Löytäköön nappulasi aina tien vastustajan kuninkaan luo!</string>
-  <string name="logInToLichess">Kirjaudu lichess.orgiin, %s</string>
+  <string name="welcome_subject">Tervetuloa lixiangqi.comiin, %s</string>
+  <string name="logInToLichess">Kirjaudu lixiangqi.comiin, %s</string>
   <string name="common_orPaste">(Eikö klikkaaminen onnistunut? Kokeile liittää osoite selaimeesi!)</string>
   <string name="common_note">Tämä sähköposti liittyy sivuston %s käyttöön.</string>
   <string name="common_contact">Meihin saa yhteyden täältä: %s.</string>
+  <string name="welcome_intro">LiXiangQi-tilisi on valmis. Opetteletpa vasta sääntöjä tai palaat pelilaudan ääreen, olet tervetullut.</string>
+  <string name="welcome_play">Pelaa xiangqia</string>
+  <string name="welcome_playTip">Aloita peli etusivulta. Jos haluat rauhallisen ensimmäisen pelin, kokeile pelata tietokonetta vastaan.</string>
+  <string name="welcome_puzzles">Kokeile tehtävää</string>
+  <string name="welcome_puzzlesTip">Harjoittele uhkien tunnistamista ja voittavien siirtojen löytämistä. Mieti rauhassa shak-uhkauksia, lyöntejä ja vastustajan mahdollisia vastauksia.</string>
+  <string name="welcome_profile">Tee olosi kotoisaksi</string>
+  <string name="welcome_profileTip">Lisää profiiliisi lyhyt esittely, jotta muut pelaajat voivat tutustua sinuun.</string>
+  <string name="welcome_viewProfile">Näytä profiilisi</string>
+  <string name="welcome_editProfile">Muokkaa profiiliasi</string>
+  <string name="welcome_closing">Nauti seuraavasta pelistäsi. Nähdään pelilaudalla!</string>
 </resources>

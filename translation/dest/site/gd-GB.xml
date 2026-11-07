@@ -279,4 +279,6 @@
   <string name="byRegisteringYouAgreeToBeBoundByOur">Nuair a chlàraicheas tu, aontaichidh tu gum bi thu fo bhuaidh %s.</string>
   <string name="kidMode">Modh cloinne</string>
   <string name="playChessEverywhere">Cluich tàileasg àite sam bith</string>
+  <string name="privacyPolicy">Poileasaidh prìobhaideachd</string>
+  <string name="readAboutOur">Leugh mun %s againn.</string>
 </resources>

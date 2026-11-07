@@ -1,8 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
   <string name="emailConfirm_subject">doi la\'o cmene. %s .cmene ko tolna\'e tu\'a lo jaspu be do</string>
-  <string name="passwordReset_subject">doi la\'o ky. %s .ky ninga\'igau lo japyvla be do bei la litces.</string>
+  <string name="passwordReset_subject">doi la\'o ky. %s .ky ninga\'igau lo japyvla be do bei la'o zoi. LiXiangQi .zoi</string>
   <string name="emailChange_subject">doi la\'o cmene. %s .cmene ko tolna\'e tu\'a lo cnino ke samymri judri</string>
-  <string name="welcome_subject">fi\'i la\'o ky. %s .ky do zanvi\'e zo\'i la litces.</string>
-  <string name="logInToLichess">doi la\'o ky. %s .ky gasnu loza\'i cmisau la litces.</string>
+  <string name="welcome_subject">fi\'i la\'o ky. %s .ky do zanvi\'e zo\'i la'o zoi. LiXiangQi .zoi</string>
+  <string name="logInToLichess">doi la\'o ky. %s .ky gasnu loza\'i cmisau la'o zoi. LiXiangQi .zoi</string>
+  <string name="welcome_intro">lo jaspu be do bei la'o zoi. LiXiangQi .zoi cu bredi .i do cilre fi lo javni gi'a xruti fi lo kelci jubme .i mi gleki lo nu do zvati</string>
+  <string name="welcome_play">ko kelci la'o zoi. xiangqi .zoi</string>
+  <string name="welcome_playTip">ko cfari lo nu kelci kei lo ralju papri .i lo nu do kelci lo skami cu se stidi lo nu do surla</string>
+  <string name="welcome_puzzles">ko troci lo nandu ciksi</string>
+  <string name="welcome_puzzlesTip">ko cilre lo nu zgana lo ckape gi'e facki lo jinga pluta .i ko na sutra .i ko pensi lo balvi nu lo drata cu muvdu</string>
+  <string name="welcome_profile">ko skicu do</string>
+  <string name="welcome_profileTip">ko jmina lo tordu se skicu be do lo jaspu papri be do .i lo drata kelci cu kakne lo nu djuno fi do</string>
+  <string name="welcome_viewProfile">ko catlu lo jaspu papri be do</string>
+  <string name="welcome_editProfile">ko galfi lo jaspu papri be do</string>
+  <string name="welcome_closing">ko gleki lo bavlamji nu kelci .i mi'o ba penmi lo kelci jubme</string>
+  <string name="common_note">ti notci fi lo nu do pilno la'o zoi. %s .zoi</string>
+  <string name="common_contact">ko pilno la'o zoi. %s .zoi lo nu tavla mi</string>
 </resources>
