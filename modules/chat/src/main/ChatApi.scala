@@ -323,13 +323,8 @@ final class ChatApi(
     def preprocessUserInput(in: String, username: Option[UserName]): Option[String] =
       val out1 = multiline:
         spam.replace(noShouting(noPrivateUrl(fullCleanUp(in))))
-      val out2 = username.fold(out1) { removeSelfMention(out1, _) }
+      val out2 = username.fold(out1) { UserName.removeSelfMentions(out1, _) }
       out2.take(Line.textMaxSize).nonEmptyOption
-
-    private def removeSelfMention(in: String, username: UserName) =
-      if in.contains('@') then
-        ("""(?i)@(?<![\w@#/]@)""" + username + """(?![@\w-]|\.\w)""").r.replaceAllIn(in, username.value)
-      else in
 
     private val gameUrlRegex = (Pattern.quote(netDomain.value) + """\b/(\w{8})\w{4}\b""").r
     private val gameUrlReplace = Matcher.quoteReplacement(netDomain.value) + "/$1"

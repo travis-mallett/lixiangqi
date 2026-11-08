@@ -17,4 +17,6 @@ object UsernameRules:
   val separators = s"^([${letters}0-9][_-]?)+$$".r
   val search = s"[$characters]{2,30}".r
   def length(value: String): Int = value.codePointCount(0, value.length)
+  def take(value: String, max: Int): String =
+    value.take(value.offsetByCodePoints(0, math.max(0, math.min(max, length(value)))))
   def id(value: String): String = value.toLowerCase(java.util.Locale.ROOT)

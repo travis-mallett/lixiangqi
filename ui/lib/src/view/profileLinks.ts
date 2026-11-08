@@ -1,6 +1,6 @@
 import { attributesModule, classModule, init, toVNode } from 'snabbdom';
 
-import { usernamePattern } from '../username';
+import { userProfileName } from '../username';
 import { json } from '../xhr';
 import { userLink } from './userLink';
 
@@ -16,18 +16,8 @@ interface Profile {
 
 // Only plain account-name links opt in. Preserve links such as "read her profile".
 export function profileLinkName(href: string, label: string, origin: string): string | undefined {
-  try {
-    const url = new URL(href, origin);
-    if (url.origin !== origin || url.search || url.hash) return;
-    const match = /^\/@\/([^/]+)$/.exec(url.pathname);
-    if (!match) return;
-    const name = decodeURIComponent(match[1]);
-    if (usernamePattern.test(name) && label.trim().replace(/^@/, '').toLowerCase() === name.toLowerCase())
-      return name;
-  } catch {
-    // Invalid URLs and malformed escapes are not profile links.
-  }
-  return undefined;
+  const name = userProfileName(href, origin);
+  return name && label.trim().replace(/^@/, '').toLowerCase() === name.toLowerCase() ? name : undefined;
 }
 
 export async function expandProfileLinks(root: ParentNode): Promise<void> {

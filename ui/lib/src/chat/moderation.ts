@@ -6,6 +6,7 @@ import { bind, confirm, dataIcon, onInsert } from '@/view';
 import { userLink } from '@/view/userLink';
 
 import { licon } from '../licon';
+import { userProfileName } from '../username';
 import type {
   ModerationCtrl,
   ModerationOpts,
@@ -20,9 +21,10 @@ export function moderationCtrl(opts: ModerationOpts): ModerationCtrl {
   let loading = false;
 
   const open = (line: HTMLElement) => {
-    const userA = line.querySelector('a.user-link') as HTMLLinkElement;
+    const userA = line.querySelector<HTMLAnchorElement>('a.user-link');
     const text = (line.querySelector('t') as HTMLElement).innerText;
-    const username = userA.href.split('/')[4];
+    const username = userProfileName(userA?.href);
+    if (!username) return;
     if (opts.permissions.timeout) {
       loading = true;
       userModInfo(username).then(d => {
@@ -65,8 +67,8 @@ export function moderationCtrl(opts: ModerationOpts): ModerationCtrl {
 export function flagReport(ctrl: ChatCtrl, flag: HTMLElement): void {
   const line = flag.parentNode as HTMLElement;
   const text = flag.dataset['text'] as string;
-  const userA = line.querySelector<HTMLLinkElement>('a.user-link');
-  if (text && userA) reportUserText(ctrl.data.resourceId, userA.href.split('/')[4], text);
+  const username = userProfileName(line.querySelector<HTMLAnchorElement>('a.user-link')?.href);
+  if (text && username) reportUserText(ctrl.data.resourceId, username, text);
 }
 async function reportUserText(resourceId: string, username: string, text: string) {
   if (await confirm(`Report "${text}" to moderators?`)) flag(resourceId, username, text);

@@ -117,6 +117,8 @@ object home:
               ),
               iframe(
                 cls := "lobby__tv__variant",
+                // Keep browser-restored frame history scoped to the randomly selected channel.
+                name := s"lobby-tv-${variantTv.key}",
                 attr("data-theme-embed") := "",
                 attr("data-content-sized") := "",
                 src := s"/tv/${variantTv.key}/frame?uiTheme=${ctx.pref.uiTheme}&boardTheme=${ctx.pref.boardTheme}&pieceSet=${ctx.pref.pieceSet}",

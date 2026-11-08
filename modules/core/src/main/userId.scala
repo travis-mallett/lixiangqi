@@ -70,6 +70,14 @@ object userId:
     val atRegex =
       raw"""@(?<![\w@#/\[]@)([${UsernameRules.characters}]{2,30}+)(?![@${UsernameRules.characters}]|\.\w)""".r
 
+    def removeSelfMentions(text: String, username: UserName): String =
+      if text.contains('@') then
+        atRegex.replaceAllIn(
+          text,
+          m => if UserStr(m.group(1)).is(username) then username.value else m.matched
+        )
+      else text
+
   // maybe an Id, maybe a Name... something that's probably cased wrong
   opaque type UserStr = String
   object UserStr extends OpaqueString[UserStr]:

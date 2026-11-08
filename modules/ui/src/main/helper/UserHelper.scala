@@ -175,7 +175,7 @@ trait UserHelper:
     )(
       withOnline.so(if modIcon then moderatorIcon else lineIcon(patron)),
       titleTag(title),
-      truncate.fold(username.value)(username.value.take),
+      truncate.fold(username.value)(lila.core.UsernameRules.take(username.value, _)),
       flair.map(userFlair)
     )
 

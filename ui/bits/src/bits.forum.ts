@@ -3,6 +3,7 @@ import { TextareaEditor } from '@textcomplete/textarea';
 
 import { debounce } from 'lib/async';
 import { tempStorage } from 'lib/storage';
+import { usernameCompletionPattern, userProfileName } from 'lib/username';
 import { domDialog } from 'lib/view';
 import * as xhr from 'lib/xhr';
 
@@ -114,7 +115,7 @@ site.load.then(() => {
     'click',
     debounce(function (this: HTMLButtonElement) {
       const post = this.closest<HTMLElement>('.forum-post')!,
-        authorUsername = $(post).find('.author').attr('href')?.substring(3),
+        authorUsername = userProfileName($(post).find('.author').attr('href')),
         author = authorUsername ? '@' + authorUsername : $(post).find('.author').text(),
         reply = document.querySelector<HTMLTextAreaElement>('.reply .post-text-area')!;
 
@@ -159,7 +160,7 @@ site.load.then(() => {
     new Textcomplete(new TextareaEditor(textarea), [
       {
         index: 2,
-        match: /(^|\s)@([a-zA-Z_-][\w-]{0,19})$/,
+        match: usernameCompletionPattern,
         search(term: string, searchCallback: (names: string[]) => void) {
           // Initially we only autocomplete by participants in the thread. As the user types more,
           // we can autocomplete against all users on the site.
@@ -169,8 +170,8 @@ site.load.then(() => {
             if (forumParticipantCandidates.length !== 0) {
               // We always prefer a match on the forum thread participants' usernames
               searchCallback(forumParticipantCandidates);
-            } else if (term.length >= 3) {
-              // We fall back to every site user after 3 letters of the username have been entered
+            } else if ([...term].length >= 2) {
+              // Search all users once the prefix reaches the minimum account-name length
               // and there are no matches in the forum thread participants
               xhr
                 .json(xhr.url('/api/player/autocomplete', { term }), { cache: 'default' })

@@ -8,7 +8,7 @@ import { userLink } from '@/view/userLink';
 
 import { licon } from '../licon';
 import * as enhance from '../richText';
-import { mentionsUser, usernamePattern } from '../username';
+import { mentionsUser, userProfileName } from '../username';
 import type { ChatCtrl } from './chatCtrl';
 import type { Line } from './interfaces';
 import { lineAction as modLineAction, flagReport } from './moderation';
@@ -42,10 +42,9 @@ export default function (ctrl: ChatCtrl): Array<VNode | undefined> {
             });
             $el.on('click', '.reply', (e: Event) => {
               const el = e.target as HTMLElement;
-              const username = el.parentElement
-                ?.querySelector<HTMLLinkElement>('.user-link')
-                ?.getAttribute('href')
-                ?.slice(3);
+              const username = userProfileName(
+                el.parentElement?.querySelector<HTMLAnchorElement>('.user-link')?.href,
+              );
               const input = el.closest('.mchat')?.querySelector<HTMLInputElement>('input.mchat__say');
               if (username && input) prependChatInput(input, `@${username} `);
             });
@@ -237,21 +236,8 @@ const updateText = (opts?: enhance.EnhanceOpts) => (oldVnode: VNode, vnode: VNod
 
 const processProfileLink = (text: string) =>
   text.replace(/https?:\/\/[^\s<>]+/gu, link => {
-    try {
-      const url = new URL(link);
-      const parts = url.pathname.split('/');
-      const name = decodeURIComponent(parts[2] ?? '');
-      return url.origin === location.origin &&
-        parts.length === 3 &&
-        parts[1] === '@' &&
-        usernamePattern.test(name) &&
-        !url.search &&
-        !url.hash
-        ? '@' + name
-        : link;
-    } catch {
-      return link;
-    }
+    const name = userProfileName(link);
+    return name ? '@' + name : link;
   });
 
 function renderText(t: string, opts?: enhance.EnhanceOpts) {
