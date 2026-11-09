@@ -86,7 +86,7 @@ const prompt = (await db.collection('flag').findOne({ _id: 'ublogAutomodPrompt' 
 const temperature = 0; //(await db.collection('flag').findOne({ _id: 'ublogAutomodTemperature' }))?.setting ?? 0.3;
 const posts = await db
   .collection('ublog_post')
-  .find(getQuery(), { projection: { _id: 1, title: 1, intro: 1, markdown: 1, automod: 1 } })
+  .find(getQuery(), { projection: { _id: 1, title: 1, intro: 1, markdown: 1, automod: 1, translations: 1 } })
   .toArray();
 const progress = { total: posts.length, processed: 0, errors: 0 };
 const previous = previousAutomods();
@@ -131,7 +131,13 @@ async function worker() {
 // ===========================================================================================================
 
 async function assess(post) {
-  const content = `${post.title} ${post.intro} ${post.markdown}`.slice(0, 40_000); // UblogAutomod.scala
+  const editions = [
+    `${post.title} ${post.intro} ${post.markdown}`,
+    ...(post.translations || [])
+      .filter(t => t.published)
+      .map(t => `${t.published.title} ${t.published.intro} ${t.published.markdown}`),
+  ];
+  const content = editions.map(text => text.slice(0, Math.floor(40_000 / editions.length))).join('\n'); // UblogAutomod.scala
   const hash = crypto.createHash('sha256').update(content).digest('hex').slice(0, 12);
   const id = post._id;
   const existing = previous[id] ?? post.automod;

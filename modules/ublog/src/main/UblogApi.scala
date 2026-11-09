@@ -2,7 +2,7 @@ package lila.ublog
 
 import reactivemongo.pekkostream.{ PekkoStreamCursor, cursorProducer }
 import reactivemongo.api.*
-import reactivemongo.api.bson.BSONDocument
+import reactivemongo.api.bson.{ BSONDocument, BSONValue, BSONNull, BSONString }
 
 import lila.core.shutup.ShutupApi
 import lila.core.timeline as tl
@@ -23,7 +23,6 @@ final class UblogApi(
     shutupApi: ShutupApi,
     irc: lila.core.irc.IrcApi,
     ublogAutomod: UblogAutomod,
-    config: UblogConfig,
     settingStore: lila.memo.SettingStore.Builder,
     cacheApi: lila.memo.CacheApi
 )(using Executor, Scheduler)
@@ -35,6 +34,13 @@ final class UblogApi(
 
   val carouselSizeSetting =
     settingStore[Int]("carouselSize", default = 9, text = "Homepage blog carousel size".some)
+
+  private val sitemapCache = cacheApi.unit[List[UblogPost.PreviewPost]]("ublog.sitemap"):
+    _.expireAfterWrite(30.seconds).buildAsyncTimeout(): _ =>
+      aggregateVisiblePosts($doc("official" -> true), 0, UblogSitemap.maxPosts + 1)
+
+  def sitemap(origin: String): Fu[String] =
+    sitemapCache.get({}).map(UblogSitemap.render(_, origin))
 
   private val carouselCache = cacheApi.unit[List[UblogPost.PreviewPost]]("ublog.carousel"):
     _.refreshAfterWrite(10.seconds).buildAsyncTimeout(): _ =>
@@ -61,7 +67,8 @@ final class UblogApi(
     blog <- getUserBlog(author, insertMissing = true)
     post = data.update(me.value, prev)
     isFirstPublish = prev.lived.isEmpty && post.live
-    _ <- colls.post.update.one($id(prev.id), $set(bsonWriteObjTry[UblogPost](post).get))
+    // Translation editing must not be lost when a source editor saves their form.
+    _ <- colls.post.update.one($id(prev.id), $set(bsonWriteObjTry[UblogPost](post).get -- "translations"))
     _ <- picfitApi.addRef(post.markdown, s"ublog:${post.id}", routes.Ublog.redirect(post.id).url.some)
     _ = if isFirstPublish then onFirstPublish(author.light, blog, post)
   yield
@@ -69,6 +76,89 @@ final class UblogApi(
       if isFirstPublish && blog.visible
       then sendPostToZulip(author.light, post, blog, res)
     post
+
+  def saveTranslation(prev: UblogPost, language: String, data: UblogTranslationForm.Data)(using
+      me: Me
+  ): Fu[Boolean] =
+    require(prev.allows.edit, "Only an authorized editor can translate a post")
+    require(UblogTranslation.languages.exists(_._1 == language))
+    require(language != UblogTranslation.normalize(prev.language.value))
+    require(data.sourceRevision == UblogTranslation.sourceRevision(prev))
+    require(data.version == UblogTranslationForm.version(prev, language))
+    require(data.action != "publish" || (data.reviewed && (!prev.isOfficial || prev.canSetOfficial)))
+    val existing = prev.translations
+      .find(_.language == language)
+      .getOrElse(UblogTranslation(language, None, None))
+    val recorded = UblogPost.Recorded(me.userId, nowInstant)
+    val revision = UblogTranslation.Revision(
+      data.title,
+      data.intro,
+      data.markdown,
+      data.imageAlt,
+      data.imageCredit,
+      data.sourceRevision,
+      data.translator,
+      recorded,
+      Option.when(data.action == "publish")(me.username.value),
+      Option.when(data.action == "publish")(recorded),
+      Option.when(data.action == "publish")(existing.published.flatMap(_.publishedAt).getOrElse(recorded.at))
+    )
+    val translation = data.action match
+      case "publish" => existing.copy(draft = None, published = Some(revision))
+      case "unpublish" => existing.copy(draft = Some(revision), published = None)
+      case _ => existing.copy(draft = Some(revision))
+    val translations = prev.translations.filterNot(_.language == language) :+ translation
+    for
+      result <- colls.post.update.one(
+        $id(prev.id) ++ translationSnapshot(prev) ++ $doc(
+          "title" -> prev.title,
+          "intro" -> prev.intro,
+          "markdown" -> prev.markdown,
+          "language" -> prev.language,
+          "image.id" -> prev.image.map(_.id.value).fold[BSONValue](BSONNull)(BSONString(_)),
+          "image.alt" -> prev.image.flatMap(_.alt).fold[BSONValue](BSONNull)(BSONString(_)),
+          "image.credit" -> prev.image.flatMap(_.credit).fold[BSONValue](BSONNull)(BSONString(_))
+        ),
+        $set("translations" -> translations)
+      )
+      _ <- (result.n == 1).so:
+        for
+          _ <- picfitApi.addRef(data.markdown, s"ublog:${prev.id}", routes.Ublog.redirect(prev.id).url.some)
+          _ <- (data.action == "publish").so:
+            shutupApi.publicText(
+              prev.created.by,
+              s"${data.title} ${data.intro} ${data.markdown}",
+              lila.core.chat.PublicSource.Ublog(prev.id)
+            )
+          _ = if data.action == "publish" then triggerAutomod(prev.copy(translations = translations))
+        yield ()
+    yield result.n == 1
+
+  // Compare fields, not embedded-document byte order: migration tools and BSON
+  // macros can serialize the same revision with different field ordering.
+  private def translationSnapshot(post: UblogPost): Bdoc =
+    def revision(prefix: String, value: Option[UblogTranslation.Revision]): Bdoc = value.fold(
+      $doc(prefix -> BSONNull)
+    ): r =>
+      $doc(
+        bsonWriteObjTry(r).get.elements
+          .filterNot(_.name == "searchCjk")
+          .flatMap: e =>
+            e.value match
+              case doc: BSONDocument => doc.elements.map(f => s"$prefix.${e.name}.${f.name}" -> f.value)
+              case value => List(s"$prefix.${e.name}" -> value)
+      )
+    val entries = post.translations.map: t =>
+      $doc(
+        "$elemMatch" -> ($doc("language" -> t.language) ++ revision("draft", t.draft) ++ revision(
+          "published",
+          t.published
+        ))
+      )
+    $doc(
+      "translations" -> ($doc("$size" -> entries.size) ++
+        (if entries.isEmpty then $doc() else $doc("$all" -> entries)))
+    )
 
   private def onFirstPublish(author: LightUser, blog: UblogBlog, post: UblogPost) =
     lila.common.Bus.pub(UblogPost.Create(post))
@@ -145,14 +235,6 @@ final class UblogApi(
   def postPreview(id: UblogPostId) =
     colls.post.byId[UblogPost.PreviewPost](id, previewPostProjection)
 
-  def postPreviews(ids: Seq[UblogPostId]): Future[Seq[UblogPost.PreviewPost]] = ids.nonEmpty.so:
-    colls.post
-      .find($inIds(ids) ++ $doc("live" -> true), previewPostProjection.some)
-      .cursor[UblogPost.PreviewPost](ReadPref.sec)
-      .list(config.searchPageSize.value)
-      .map: results =>
-        ids.flatMap(results.mapBy(_.id).get) // lila-search order
-
   def recommend(blog: UblogBlog.Id, post: UblogPost)(using
       kid: KidMode,
       me: Option[MyId]
@@ -218,7 +300,18 @@ final class UblogApi(
         .flatMapz: llm =>
           val result = post.automod.foldLeft(llm): (llm, prev) =>
             prev.updateByLLM(llm)
-          for _ <- colls.post.updateField($id(post.id), "automod", result)
+          // An assessment must not overwrite a moderator's decision or assess an
+          // edition that another editor has replaced while the request was running.
+          for _ <- colls.post.updateField(
+              $id(post.id) ++ translationSnapshot(post) ++ $doc(
+                "title" -> post.title,
+                "intro" -> post.intro,
+                "markdown" -> post.markdown,
+                "automod" -> post.automod.fold[BSONValue](BSONNull)(a => bsonWriteObjTry(a).get)
+              ),
+              "automod",
+              result
+            )
           yield result.some
         .recoverWith: e =>
           if n < retries then delay((30 * math.pow(2, n).toInt).seconds)(attempt(n + 1))
@@ -359,11 +452,22 @@ final class UblogApi(
     }
   }
 
+  private[ublog] def countVisiblePosts(select: Bdoc): Fu[Int] =
+    colls.post
+      .aggregateOne(): framework =>
+        import framework.*
+        Match(select ++ $doc("live" -> true)) -> (
+          removeUnlistedOrClosedAndProjectForPreview(colls.post, framework) :+
+            PipelineOperator($doc("$count" -> "nb"))
+        )
+      .map(_.flatMap(_.getAsOpt[Int]("nb")).getOrElse(0))
+
   private[ublog] def aggregateVisiblePosts(
       select: Bdoc,
       offset: Int,
       length: Int,
-      sort: BlogsBy = BlogsBy.newest
+      sort: BlogsBy = BlogsBy.newest,
+      textSearch: Boolean = false
   ) =
     colls.post
       .aggregateList(length, _.sec): framework =>
@@ -373,7 +477,12 @@ final class UblogApi(
           case BlogsBy.likes => Descending("likes")
           case _ => Descending("lived.at")
         Match(select ++ $doc("live" -> true)) -> {
-          Sort(aggSort) ::
+          (if textSearch && sort == BlogsBy.score then
+             List(
+               PipelineOperator($doc("$set" -> $doc("score" -> $doc("$meta" -> "textScore")))),
+               PipelineOperator($doc("$sort" -> $doc("score" -> -1, "_id" -> 1)))
+             )
+           else List(Sort(aggSort))) :::
             removeUnlistedOrClosedAndProjectForPreview(colls.post, framework) :::
             List(Skip(offset), Limit(length))
         }

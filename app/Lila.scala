@@ -141,7 +141,6 @@ final class LilaComponents(
   lazy val insight: Insight = wire[Insight]
   lazy val irwin: Irwin = wire[Irwin]
   lazy val learn: Learn = wire[Learn]
-  lazy val wiki: Wiki = wire[Wiki]
   lazy val lobby: Lobby = wire[Lobby]
   lazy val main: Main = wire[Main]
   lazy val msg: Msg = wire[Msg]

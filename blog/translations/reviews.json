@@ -1,0 +1,394 @@
+{
+  "m1L9BrtK/zh-Hans": {
+    "fingerprint": "713b8dbf6f4801d03404a46e1b9284fd77955e2a4da12c22cc40cc0f7be8c202",
+    "reviewer": "Codex (AI editorial review)",
+    "reviewedAt": "2026-11-08T23:48:38.385Z",
+    "editorial": {
+      "separatePass": true,
+      "sourceComparison": true,
+      "independentFluencyRead": true,
+      "notes": "Compared standings, seven games, 5+5 time control, names and move-12 exchange. Localized captions and image descriptions explain the unchanged results diagram.",
+      "humanOrNativeSpeakerReview": false
+    },
+    "rendered": {
+      "desktopWidth": 1440,
+      "representativeWidths": [900, 390],
+      "allEditionDesktopChecked": true,
+      "representativeArticles": ["4wtrgg9Y", "B0sJgBNB", "ks4dsSLm"],
+      "checks": [
+        "Initial HTML and Markdown",
+        "Canonical and reciprocal hreflang",
+        "Complete inline image count and loaded images",
+        "Chinese typography and Vietnamese diacritics",
+        "Headings, captions, diagrams and tables",
+        "No page horizontal overflow"
+      ],
+      "evidence": ".tools/blog-editions/screenshots/results.json",
+      "native": "Android emulator: actual BlogPage with isolated-preview transport; all three languages and exact edition URL opening verified."
+    }
+  },
+  "m1L9BrtK/vi": {
+    "fingerprint": "8bbecfc501894065438902fa1d462797e0d83cbcb045eb62effbada7973663f3",
+    "reviewer": "Codex (AI editorial review)",
+    "reviewedAt": "2026-11-08T23:48:38.386Z",
+    "editorial": {
+      "separatePass": true,
+      "sourceComparison": true,
+      "independentFluencyRead": true,
+      "notes": "Compared standings, seven games, 5+5 time control, names and move-12 exchange. Localized captions and image descriptions explain the unchanged results diagram.",
+      "humanOrNativeSpeakerReview": false
+    },
+    "rendered": {
+      "desktopWidth": 1440,
+      "representativeWidths": [900, 390],
+      "allEditionDesktopChecked": true,
+      "representativeArticles": ["4wtrgg9Y", "B0sJgBNB", "ks4dsSLm"],
+      "checks": [
+        "Initial HTML and Markdown",
+        "Canonical and reciprocal hreflang",
+        "Complete inline image count and loaded images",
+        "Chinese typography and Vietnamese diacritics",
+        "Headings, captions, diagrams and tables",
+        "No page horizontal overflow"
+      ],
+      "evidence": ".tools/blog-editions/screenshots/results.json",
+      "native": "Android emulator: actual BlogPage with isolated-preview transport; all three languages and exact edition URL opening verified."
+    }
+  },
+  "4wtrgg9Y/zh-Hans": {
+    "fingerprint": "49f68c9ae3456776224c621a5b3c50879287a6d73bacf273f4116dff45ef879b",
+    "reviewer": "Codex (AI editorial review)",
+    "reviewedAt": "2026-11-08T23:48:38.387Z",
+    "editorial": {
+      "separatePass": true,
+      "sourceComparison": true,
+      "independentFluencyRead": true,
+      "notes": "Reviewed Banner mechanics, blockers and horse legs, 11/12/16-piece distinctions, historical uncertainty, Manchu+ versus other rules, and diagram captions. Historical English quotation is translated in the body.",
+      "humanOrNativeSpeakerReview": false
+    },
+    "rendered": {
+      "desktopWidth": 1440,
+      "representativeWidths": [900, 390],
+      "allEditionDesktopChecked": true,
+      "representativeArticles": ["4wtrgg9Y", "B0sJgBNB", "ks4dsSLm"],
+      "checks": [
+        "Initial HTML and Markdown",
+        "Canonical and reciprocal hreflang",
+        "Complete inline image count and loaded images",
+        "Chinese typography and Vietnamese diacritics",
+        "Headings, captions, diagrams and tables",
+        "No page horizontal overflow"
+      ],
+      "evidence": ".tools/blog-editions/screenshots/results.json",
+      "native": "Android emulator: actual BlogPage with isolated-preview transport; all three languages and exact edition URL opening verified."
+    }
+  },
+  "4wtrgg9Y/vi": {
+    "fingerprint": "ff7aa5da44dac16274f21b68ffa7bcb295acb23ce4b9a6ceaf368594d93ce1a5",
+    "reviewer": "Codex (AI editorial review)",
+    "reviewedAt": "2026-11-08T23:48:38.387Z",
+    "editorial": {
+      "separatePass": true,
+      "sourceComparison": true,
+      "independentFluencyRead": true,
+      "notes": "Reviewed Banner mechanics, blockers and horse legs, 11/12/16-piece distinctions, historical uncertainty, Manchu+ versus other rules, and diagram captions. Historical English quotation is translated in the body.",
+      "humanOrNativeSpeakerReview": false
+    },
+    "rendered": {
+      "desktopWidth": 1440,
+      "representativeWidths": [900, 390],
+      "allEditionDesktopChecked": true,
+      "representativeArticles": ["4wtrgg9Y", "B0sJgBNB", "ks4dsSLm"],
+      "checks": [
+        "Initial HTML and Markdown",
+        "Canonical and reciprocal hreflang",
+        "Complete inline image count and loaded images",
+        "Chinese typography and Vietnamese diacritics",
+        "Headings, captions, diagrams and tables",
+        "No page horizontal overflow"
+      ],
+      "evidence": ".tools/blog-editions/screenshots/results.json",
+      "native": "Android emulator: actual BlogPage with isolated-preview transport; all three languages and exact edition URL opening verified."
+    }
+  },
+  "RzIGHoys/zh-Hans": {
+    "fingerprint": "ffba0bf9806afd222c981ccb5a886e0897dbfb36c56f80e83323b5b534da7087",
+    "reviewer": "Codex (AI editorial review)",
+    "reviewedAt": "2026-11-08T23:48:38.387Z",
+    "editorial": {
+      "separatePass": true,
+      "sourceComparison": true,
+      "independentFluencyRead": true,
+      "notes": "Preserved engine versions, dates, historical sources, benchmark qualifications, and distinction between tested release and deployed engine. Reviewed natural technical terminology.",
+      "humanOrNativeSpeakerReview": false
+    },
+    "rendered": {
+      "desktopWidth": 1440,
+      "representativeWidths": [900, 390],
+      "allEditionDesktopChecked": true,
+      "representativeArticles": ["4wtrgg9Y", "B0sJgBNB", "ks4dsSLm"],
+      "checks": [
+        "Initial HTML and Markdown",
+        "Canonical and reciprocal hreflang",
+        "Complete inline image count and loaded images",
+        "Chinese typography and Vietnamese diacritics",
+        "Headings, captions, diagrams and tables",
+        "No page horizontal overflow"
+      ],
+      "evidence": ".tools/blog-editions/screenshots/results.json",
+      "native": "Android emulator: actual BlogPage with isolated-preview transport; all three languages and exact edition URL opening verified."
+    }
+  },
+  "RzIGHoys/vi": {
+    "fingerprint": "c0322557d8b8e6284e43162c10edaad7fd50633d37ef81b3ff9f0aea2fbbf8d9",
+    "reviewer": "Codex (AI editorial review)",
+    "reviewedAt": "2026-11-08T23:48:38.388Z",
+    "editorial": {
+      "separatePass": true,
+      "sourceComparison": true,
+      "independentFluencyRead": true,
+      "notes": "Preserved engine versions, dates, historical sources, benchmark qualifications, and distinction between tested release and deployed engine. Reviewed natural technical terminology.",
+      "humanOrNativeSpeakerReview": false
+    },
+    "rendered": {
+      "desktopWidth": 1440,
+      "representativeWidths": [900, 390],
+      "allEditionDesktopChecked": true,
+      "representativeArticles": ["4wtrgg9Y", "B0sJgBNB", "ks4dsSLm"],
+      "checks": [
+        "Initial HTML and Markdown",
+        "Canonical and reciprocal hreflang",
+        "Complete inline image count and loaded images",
+        "Chinese typography and Vietnamese diacritics",
+        "Headings, captions, diagrams and tables",
+        "No page horizontal overflow"
+      ],
+      "evidence": ".tools/blog-editions/screenshots/results.json",
+      "native": "Android emulator: actual BlogPage with isolated-preview transport; all three languages and exact edition URL opening verified."
+    }
+  },
+  "Izs07M5E/zh-Hans": {
+    "fingerprint": "e67206d411c3d5d796ae65272ed1a08adb500a55cadfcd3117b6450d33a02de3",
+    "reviewer": "Codex (AI editorial review)",
+    "reviewedAt": "2026-11-08T23:48:38.388Z",
+    "editorial": {
+      "separatePass": true,
+      "sourceComparison": true,
+      "independentFluencyRead": true,
+      "notes": "Reviewed 7x7 layout, 12 pieces, soldier sideways moves, horse legs, historical claims and optional rules. Source diagrams and screenshot retained with localized descriptions.",
+      "humanOrNativeSpeakerReview": false
+    },
+    "rendered": {
+      "desktopWidth": 1440,
+      "representativeWidths": [900, 390],
+      "allEditionDesktopChecked": true,
+      "representativeArticles": ["4wtrgg9Y", "B0sJgBNB", "ks4dsSLm"],
+      "checks": [
+        "Initial HTML and Markdown",
+        "Canonical and reciprocal hreflang",
+        "Complete inline image count and loaded images",
+        "Chinese typography and Vietnamese diacritics",
+        "Headings, captions, diagrams and tables",
+        "No page horizontal overflow"
+      ],
+      "evidence": ".tools/blog-editions/screenshots/results.json",
+      "native": "Android emulator: actual BlogPage with isolated-preview transport; all three languages and exact edition URL opening verified."
+    }
+  },
+  "Izs07M5E/vi": {
+    "fingerprint": "6f46beeb1fce3be3953dfd83955b9ab4207c03bb198fc8ba2ff472b06adb665c",
+    "reviewer": "Codex (AI editorial review)",
+    "reviewedAt": "2026-11-08T23:48:38.389Z",
+    "editorial": {
+      "separatePass": true,
+      "sourceComparison": true,
+      "independentFluencyRead": true,
+      "notes": "Reviewed 7x7 layout, 12 pieces, soldier sideways moves, horse legs, historical claims and optional rules. Source diagrams and screenshot retained with localized descriptions.",
+      "humanOrNativeSpeakerReview": false
+    },
+    "rendered": {
+      "desktopWidth": 1440,
+      "representativeWidths": [900, 390],
+      "allEditionDesktopChecked": true,
+      "representativeArticles": ["4wtrgg9Y", "B0sJgBNB", "ks4dsSLm"],
+      "checks": [
+        "Initial HTML and Markdown",
+        "Canonical and reciprocal hreflang",
+        "Complete inline image count and loaded images",
+        "Chinese typography and Vietnamese diacritics",
+        "Headings, captions, diagrams and tables",
+        "No page horizontal overflow"
+      ],
+      "evidence": ".tools/blog-editions/screenshots/results.json",
+      "native": "Android emulator: actual BlogPage with isolated-preview transport; all three languages and exact edition URL opening verified."
+    }
+  },
+  "XApFEJf7/zh-Hans": {
+    "fingerprint": "8ffbfa794497c303f233a520da4d41f74e35acd7548f3ab1a377b52374f74be7",
+    "reviewer": "Codex (AI editorial review)",
+    "reviewedAt": "2026-11-08T23:48:38.389Z",
+    "editorial": {
+      "separatePass": true,
+      "sourceComparison": true,
+      "independentFluencyRead": true,
+      "notes": "Reviewed cờ úp / 揭棋 terminology, hidden capture information, reveal probabilities, Banqi distinction, engine uncertainty and exact rule limits.",
+      "humanOrNativeSpeakerReview": false
+    },
+    "rendered": {
+      "desktopWidth": 1440,
+      "representativeWidths": [900, 390],
+      "allEditionDesktopChecked": true,
+      "representativeArticles": ["4wtrgg9Y", "B0sJgBNB", "ks4dsSLm"],
+      "checks": [
+        "Initial HTML and Markdown",
+        "Canonical and reciprocal hreflang",
+        "Complete inline image count and loaded images",
+        "Chinese typography and Vietnamese diacritics",
+        "Headings, captions, diagrams and tables",
+        "No page horizontal overflow"
+      ],
+      "evidence": ".tools/blog-editions/screenshots/results.json",
+      "native": "Android emulator: actual BlogPage with isolated-preview transport; all three languages and exact edition URL opening verified."
+    }
+  },
+  "XApFEJf7/vi": {
+    "fingerprint": "129067c8b685e0de9bafb8151e83740eb9b3e84dd6a7c2a2403a1813e2c3e3ba",
+    "reviewer": "Codex (AI editorial review)",
+    "reviewedAt": "2026-11-08T23:48:38.389Z",
+    "editorial": {
+      "separatePass": true,
+      "sourceComparison": true,
+      "independentFluencyRead": true,
+      "notes": "Reviewed cờ úp / 揭棋 terminology, hidden capture information, reveal probabilities, Banqi distinction, engine uncertainty and exact rule limits.",
+      "humanOrNativeSpeakerReview": false
+    },
+    "rendered": {
+      "desktopWidth": 1440,
+      "representativeWidths": [900, 390],
+      "allEditionDesktopChecked": true,
+      "representativeArticles": ["4wtrgg9Y", "B0sJgBNB", "ks4dsSLm"],
+      "checks": [
+        "Initial HTML and Markdown",
+        "Canonical and reciprocal hreflang",
+        "Complete inline image count and loaded images",
+        "Chinese typography and Vietnamese diacritics",
+        "Headings, captions, diagrams and tables",
+        "No page horizontal overflow"
+      ],
+      "evidence": ".tools/blog-editions/screenshots/results.json",
+      "native": "Android emulator: actual BlogPage with isolated-preview transport; all three languages and exact edition URL opening verified."
+    }
+  },
+  "B0sJgBNB/zh-Hans": {
+    "fingerprint": "9c08bc620a1a653220e9b5b35d742f8bfb03417ee5e2090c97ada8813cc138be",
+    "reviewer": "Codex (AI editorial review)",
+    "reviewedAt": "2026-11-08T23:48:38.389Z",
+    "editorial": {
+      "separatePass": true,
+      "sourceComparison": true,
+      "independentFluencyRead": true,
+      "notes": "Reviewed two-friend wording, Three Kingdoms versus Three Friends, 16/18-piece distinctions, captured armies, turn order, historical uncertainty and image credits.",
+      "humanOrNativeSpeakerReview": false
+    },
+    "rendered": {
+      "desktopWidth": 1440,
+      "representativeWidths": [900, 390],
+      "allEditionDesktopChecked": true,
+      "representativeArticles": ["4wtrgg9Y", "B0sJgBNB", "ks4dsSLm"],
+      "checks": [
+        "Initial HTML and Markdown",
+        "Canonical and reciprocal hreflang",
+        "Complete inline image count and loaded images",
+        "Chinese typography and Vietnamese diacritics",
+        "Headings, captions, diagrams and tables",
+        "No page horizontal overflow"
+      ],
+      "evidence": ".tools/blog-editions/screenshots/results.json",
+      "native": "Android emulator: actual BlogPage with isolated-preview transport; all three languages and exact edition URL opening verified."
+    }
+  },
+  "B0sJgBNB/vi": {
+    "fingerprint": "da125b3b0c66635648e1f4bb7885f72505529e6cd9155aa352f9566cbd6ce0cd",
+    "reviewer": "Codex (AI editorial review)",
+    "reviewedAt": "2026-11-08T23:48:38.390Z",
+    "editorial": {
+      "separatePass": true,
+      "sourceComparison": true,
+      "independentFluencyRead": true,
+      "notes": "Reviewed two-friend wording, Three Kingdoms versus Three Friends, 16/18-piece distinctions, captured armies, turn order, historical uncertainty and image credits.",
+      "humanOrNativeSpeakerReview": false
+    },
+    "rendered": {
+      "desktopWidth": 1440,
+      "representativeWidths": [900, 390],
+      "allEditionDesktopChecked": true,
+      "representativeArticles": ["4wtrgg9Y", "B0sJgBNB", "ks4dsSLm"],
+      "checks": [
+        "Initial HTML and Markdown",
+        "Canonical and reciprocal hreflang",
+        "Complete inline image count and loaded images",
+        "Chinese typography and Vietnamese diacritics",
+        "Headings, captions, diagrams and tables",
+        "No page horizontal overflow"
+      ],
+      "evidence": ".tools/blog-editions/screenshots/results.json",
+      "native": "Android emulator: actual BlogPage with isolated-preview transport; all three languages and exact edition URL opening verified."
+    }
+  },
+  "ks4dsSLm/zh-Hans": {
+    "fingerprint": "f0da5b554378d258ddfb8aae73ef3bf0cbb30a76c3c8cc0f9d48447522319bb2",
+    "reviewer": "Codex (AI editorial review)",
+    "reviewedAt": "2026-11-08T23:48:38.390Z",
+    "editorial": {
+      "separatePass": true,
+      "sourceComparison": true,
+      "independentFluencyRead": true,
+      "notes": "Reviewed classification glossary, all percentages and tables, solver versus opponent turns, stored branches versus legal continuations, engine limits and qualifications. Localized captions explain the retained historical UI and icon sheets.",
+      "humanOrNativeSpeakerReview": false
+    },
+    "rendered": {
+      "desktopWidth": 1440,
+      "representativeWidths": [900, 390],
+      "allEditionDesktopChecked": true,
+      "representativeArticles": ["4wtrgg9Y", "B0sJgBNB", "ks4dsSLm"],
+      "checks": [
+        "Initial HTML and Markdown",
+        "Canonical and reciprocal hreflang",
+        "Complete inline image count and loaded images",
+        "Chinese typography and Vietnamese diacritics",
+        "Headings, captions, diagrams and tables",
+        "No page horizontal overflow"
+      ],
+      "evidence": ".tools/blog-editions/screenshots/results.json",
+      "native": "Android emulator: actual BlogPage with isolated-preview transport; all three languages and exact edition URL opening verified."
+    }
+  },
+  "ks4dsSLm/vi": {
+    "fingerprint": "b6a0abfde2bb7b7f93806836031464b78de3fa2af95844f4ab52254dea3a33fe",
+    "reviewer": "Codex (AI editorial review)",
+    "reviewedAt": "2026-11-08T23:48:38.391Z",
+    "editorial": {
+      "separatePass": true,
+      "sourceComparison": true,
+      "independentFluencyRead": true,
+      "notes": "Reviewed classification glossary, all percentages and tables, solver versus opponent turns, stored branches versus legal continuations, engine limits and qualifications. Localized captions explain the retained historical UI and icon sheets.",
+      "humanOrNativeSpeakerReview": false
+    },
+    "rendered": {
+      "desktopWidth": 1440,
+      "representativeWidths": [900, 390],
+      "allEditionDesktopChecked": true,
+      "representativeArticles": ["4wtrgg9Y", "B0sJgBNB", "ks4dsSLm"],
+      "checks": [
+        "Initial HTML and Markdown",
+        "Canonical and reciprocal hreflang",
+        "Complete inline image count and loaded images",
+        "Chinese typography and Vietnamese diacritics",
+        "Headings, captions, diagrams and tables",
+        "No page horizontal overflow"
+      ],
+      "evidence": ".tools/blog-editions/screenshots/results.json",
+      "native": "Android emulator: actual BlogPage with isolated-preview transport; all three languages and exact edition URL opening verified."
+    }
+  }
+}

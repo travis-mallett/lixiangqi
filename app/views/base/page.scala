@@ -66,7 +66,7 @@ object page:
     val playing = p.flags(PageFlags.playing)
     val pageFrag = frag(
       doctype,
-      htmlTag(
+      htmlTagFor(p.contentLanguage.getOrElse(ctx.lang.code))(
         cls := List(
           ctx.pref.uiTheme ->
             (ctx.impersonatedBy.isEmpty && !ctx.blind && ctx.pref.uiTheme != lila.pref.UiThemes.system.key),
@@ -99,6 +99,19 @@ object page:
           favicons,
           (p.flags(PageFlags.noRobots) || !netConfig.crawlable).option(noRobots),
           noTranslate,
+          (!p.flags(PageFlags.noRobots)).option(
+            link(
+              rel := "canonical",
+              href := p.canonicalUrl
+                .orElse(
+                  p.withHrefLangs.map(path =>
+                    Url(netBaseUrl.value + lila.web.PageLinks.localizedCanonical(path.value, ctx.req.path))
+                  )
+                )
+                .orElse(p.openGraph.map(_.url))
+                .getOrElse(Url(netBaseUrl.value + ctx.req.uri))
+            )
+          ),
           p.openGraph.map(lila.web.ui.openGraph),
           p.atomLinkTag | dailyNewsAtom,
           pref.backgroundImage.map { loc =>
@@ -121,6 +134,7 @@ object page:
             .so(systemThemeScript(ctx.nonce))
         ).pipe(p.transformHead),
         st.body(
+          st.lang := ctx.lang.code,
           cls := {
             val baseClass = s"coords-${pref.coordsClass}"
             List(

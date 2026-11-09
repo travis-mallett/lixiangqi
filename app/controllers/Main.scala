@@ -61,8 +61,13 @@ final class Main(env: Env, assetsC: ExternalAssets) extends LilaController(env):
   val robots = Anon:
     Ok:
       if env.net.crawlable && req.domain == env.net.domain.value && env.mode.isProd
-      then StaticContent.robotsTxt
+      then StaticContent.robotsTxt + s"\nSitemap: ${env.net.baseUrl.value}/sitemap.xml\n"
       else "User-agent: *\nDisallow: /"
+
+  val sitemap = Anon:
+    if env.net.crawlable && req.domain == env.net.domain.value && env.mode.isProd
+    then env.ublog.api.sitemap(env.net.baseUrl.value).map(Ok(_).as("application/xml"))
+    else fuccess(NotFound)
 
   def manifest = Anon:
     JsonOk:

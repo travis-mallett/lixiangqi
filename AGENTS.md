@@ -356,6 +356,13 @@ editing checklist before saving or publishing, including captions and introducto
 copy. Use `blog/Basic Kills.odt` as the author's voice reference, preserve factual
 and technical accuracy, and verify the final rendered content.
 
+For official LiXiangQi posts, also read and follow
+[the blog publishing workflow](blog/AGENTS.md) before starting. It owns the required
+language editions, translation review, sitemap verification, and Google Search
+Console submissions. This applies even when editing or publishing through the
+website or API without changing files under `blog/`. The writing guide owns
+editorial style; the publishing workflow supplements it rather than replacing it.
+
 ## Review standard
 
 For significant work, review more than whether the feature works or the code compiles.

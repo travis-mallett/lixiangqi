@@ -1,4 +1,24 @@
 .ublog-post {
+  &__languages {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: baseline;
+    gap: 1em;
+    margin-bottom: 2rem;
+
+    a[aria-current='page'] {
+      font-weight: bold;
+      text-decoration: underline;
+    }
+  }
+
+  &__language-fallback {
+    flex-basis: 100%;
+    text-align: center;
+    color: $c-font-dim;
+  }
+
   &__title {
     @extend %break-word;
 

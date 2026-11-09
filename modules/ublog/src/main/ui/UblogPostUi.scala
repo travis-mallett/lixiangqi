@@ -11,7 +11,7 @@ final class UblogPostUi(helpers: Helpers, ui: UblogUi)(connectLinks: Frag):
   def page(
       user: User,
       blog: UblogBlog,
-      post: UblogPost,
+      edition: UblogTranslation.Edition,
       markup: Html,
       others: List[UblogPost.PreviewPost],
       liked: Boolean,
@@ -19,19 +19,36 @@ final class UblogPostUi(helpers: Helpers, ui: UblogUi)(connectLinks: Frag):
       followed: Boolean,
       isInCarousel: Boolean
   )(using ctx: Context) =
+    val post = edition.post
     val imageUrl = post.image.isDefined.option(ui.thumbnailUrl(post, _.Size.Large))
-    Page(s"${trans.ublog.xBlog.txt(user.username)} • ${post.title}")
+    Page(s"${trans.ublog.xBlog.txt(user.username)} • ${edition.title}")
       .css("bits.ublog")
-      .js(Esm("bits.expandText") ++ ctx.isAuth.so(Esm("bits.ublog")))
+      .js(Esm("bits.expandText") ++ List(Esm("bits.ublog").some))
+      .copy(contentLanguage = Some(edition.language))
+      .canonical(routeUrl(edition.url))
       .graph:
         OpenGraph(
           `type` = "article",
           image = imageUrl,
-          title = post.title,
-          url = routeUrl(routes.Ublog.post(user.username, post.slug, post.id)),
-          description = post.intro
+          title = edition.title,
+          url = routeUrl(edition.url),
+          description = edition.intro
         )
-      .headAppend(lila.ui.bits.markdownAlternate(ctx.req.uri))
+      .headAppend(
+        frag(
+          lila.ui.bits.markdownAlternate(edition.url.url),
+          edition.isPublished.option(
+            UblogTranslation
+              .available(post)
+              .map: language =>
+                link(
+                  rel := "alternate",
+                  attr("hreflang") := language,
+                  href := routeUrl(UblogTranslation.urlOf(post, language))
+                )
+          )
+        )
+      )
       .preloadImage(imageUrl)(helpers)
       .copy(atomLinkTag =
         link(
@@ -41,25 +58,32 @@ final class UblogPostUi(helpers: Helpers, ui: UblogUi)(connectLinks: Frag):
       )
       .flag(
         _.noRobots,
-        !blog.listed || !post.indexable || (!post.isOfficial && blog.tier < UblogBlog.Tier.HIGH)
+        !blog.listed || !post.visibleByCrawlers || !edition.isPublished || (!post.isOfficial && blog.tier < UblogBlog.Tier.HIGH)
       )
       .csp(_.withTwitter.withInlineIconFont):
         main(cls := "page-menu page-small")(
           ui.menu(if post.isOfficial then Right("official") else Left(user.id)),
-          div(cls := "page-menu__content box box-pad ublog-post")(
-            post.image.map: image =>
+          div(
+            cls := "page-menu__content box box-pad ublog-post",
+            st.lang := edition.language,
+            data("post-id") := post.id,
+            data("language") := edition.language,
+            data("source-language") := UblogTranslation.normalize(post.language.value)
+          )(
+            edition.image.map: image =>
               frag(
-                ui.thumbnail(post, _.Size.Large)(cls := "ublog-post__image"),
+                ui.thumbnail(post.copy(image = Some(image)), _.Size.Large)(cls := "ublog-post__image"),
                 image.credit.map { p(cls := "ublog-post__image-credit")(_) }
               ),
             (ctx.is(user) || Granter.opt(_.ModerateBlog)).option(standardFlash),
-            h1(cls := "ublog-post__title")(post.title),
+            h1(cls := "ublog-post__title")(edition.title),
+            languages(edition),
             Granter
               .opt(_.ModerateBlog)
               .option:
                 div(id := "mod-tools-container")(modTools(post, isInCarousel))
             ,
-            div(cls := "ublog-post__meta")(
+            div(cls := "ublog-post__meta", st.lang := ctx.lang.code)(
               a(
                 cls := userClass(user.id, none, withOnline = true),
                 href := routes.Ublog.index(user.username),
@@ -104,7 +128,7 @@ final class UblogPostUi(helpers: Helpers, ui: UblogUi)(connectLinks: Frag):
                   dataIcon := Icon.CautionTriangle
                 )
               ,
-              langList.nameByLanguage(post.language)
+              UblogTranslation.name(edition.language)
             ),
             div(cls := "ublog-post__topics")(
               post.topics.map: topic =>
@@ -115,7 +139,7 @@ final class UblogPostUi(helpers: Helpers, ui: UblogUi)(connectLinks: Frag):
                 "Contains sponsored content, affiliate links or commercial advertisement"
               )
             ),
-            strong(cls := "ublog-post__intro")(post.intro),
+            strong(cls := "ublog-post__intro")(edition.intro),
             div(cls := "ublog-post__markup expand-text")(markup),
             post.isOfficial.option(
               div(cls := "ublog-post__lichess")(
@@ -123,7 +147,7 @@ final class UblogPostUi(helpers: Helpers, ui: UblogUi)(connectLinks: Frag):
                 p(a(href := routes.Plan.index())(trans.site.lichessPatronInfo()))
               )
             ),
-            div(cls := "ublog-post__footer")(
+            div(cls := "ublog-post__footer", st.lang := ctx.lang.code)(
               (post.live && ~post.discuss && ctx.kid.no).option(
                 a(
                   href := routes.Ublog.discuss(post.id),
@@ -150,15 +174,61 @@ final class UblogPostUi(helpers: Helpers, ui: UblogUi)(connectLinks: Frag):
           )
         )
 
-  def markdownForAgents(post: UblogPost): String =
+  def markdownForAgents(edition: UblogTranslation.Edition): String =
     s"""---
-title: ${post.title}
-description: ${post.intro}
-image: ${ui.thumbnailUrl(post, _.Size.Large)}
+title: ${edition.title}
+description: ${edition.intro}
+language: ${edition.language}
+image: ${ui.thumbnailUrl(edition.post, _.Size.Large)}
 ---
 
-${post.markdown}
+${edition.markdown}
 """
+
+  private def languages(edition: UblogTranslation.Edition)(using ctx: Context): Frag =
+    val post = edition.post
+    val preferred = ui.preferredLanguage
+    div(cls := "ublog-post__languages", st.lang := ctx.lang.code)(
+      span(trans.ublog.articleLanguage()),
+      (!edition.isPublished).option(badTag(trans.ublog.thisIsADraft())),
+      UblogTranslation
+        .available(post)
+        .map: language =>
+          a(
+            href := s"${UblogTranslation.urlOf(post, language).url}?selectLanguage=true",
+            attr("hreflang") := language,
+            st.lang := language,
+            attr("aria-current") := Option.when(language == edition.language)("page")
+          )(
+            UblogTranslation.name(language)
+          ),
+      (!UblogTranslation.available(post).contains(preferred)).option(
+        p(cls := "ublog-post__language-fallback")(trans.ublog.translationUnavailable())
+      )
+    )
+
+  def missingEdition(post: UblogPost)(using Context) =
+    Page(trans.ublog.translationUnavailable.txt())
+      .css("bits.ublog")
+      .flag(_.noRobots)(
+        main(
+          cls := "box box-pad ublog-missing-edition",
+          data("post-id") := post.id,
+          data("source-language") := UblogTranslation.normalize(post.language.value)
+        )(
+          h1(trans.ublog.translationUnavailable()),
+          UblogTranslation
+            .available(post)
+            .map: language =>
+              p(
+                a(
+                  href := UblogTranslation.urlOf(post, language),
+                  attr("hreflang") := language,
+                  st.lang := language
+                )(UblogTranslation.name(language))
+              )
+        )
+      )
 
   private def editButton(post: UblogPost)(using Context) = a(
     href := ui.editUrlOfPost(post),

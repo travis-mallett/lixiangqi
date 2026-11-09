@@ -1,8 +1,8 @@
 // for many users, using the islamic calendar is not practical on the internet
 // due to international context, so we make sure it's displayed using the gregorian calendar
-export const displayLocale: string = document.documentElement.lang.startsWith('ar-')
-  ? 'ar-ly'
-  : document.documentElement.lang;
+// A document can contain an article in a different language from its interface.
+const interfaceLocale = document.body?.lang || document.documentElement.lang;
+export const displayLocale: string = interfaceLocale.startsWith('ar-') ? 'ar-ly' : interfaceLocale;
 
 const commonDateFormatter = new Intl.DateTimeFormat(displayLocale, {
   year: 'numeric',

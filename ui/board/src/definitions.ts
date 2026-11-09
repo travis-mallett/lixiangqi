@@ -202,6 +202,6 @@ export function boardPresentation(purpose: BoardPurpose, perspective: Participan
     highlight: purpose !== 'editor',
     motion: { duration: purpose === 'preview' ? 0 : 200 },
     feedback: { effects: quiet ? [] : ['capture', 'check', 'checkmate'], audio: !quiet },
-    drawing: purpose === 'interactive' || purpose === 'replay',
+    drawing: purpose === 'interactive' || purpose === 'replay' || purpose === 'editor',
   };
 }

@@ -71,18 +71,15 @@ object LangPicker extends lila.core.i18n.LangPicker:
     if LangList.all.keySet contains to then Some(to)
     else defaultByLanguage.get(to.language).orElse(lichessCodes.get(to.language))
 
-  def byHref(language: Language, req: RequestHeader): ByHref =
-    val accepted = acceptLanguages(req)
+  // An explicit language URL must not depend on the visitor's Accept-Language.
+  def byHref(language: Language): ByHref =
     Lang.get(language.value).flatMap(findCloser) match
       case Some(lang) if fixJavaLanguage(lang) == language =>
-        if accepted.isEmpty || accepted.exists(_.language == lang.language)
-        then ByHref.Found(lang)
-        else ByHref.Refused(lang)
+        ByHref.Found(lang)
       case Some(lang) => ByHref.Redir(fixJavaLanguage(lang))
       case None => ByHref.NotFound
 
   enum ByHref:
     case Found(lang: Lang)
-    case Refused(lang: Lang)
     case Redir(language: Language)
     case NotFound

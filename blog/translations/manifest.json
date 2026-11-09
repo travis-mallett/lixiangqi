@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "posts": [
+    {
+      "id": "m1L9BrtK",
+      "sourceRevision": "69f6fc92b1fe78c2e49cea36949580f811775c1b37e905269f210d171f0cd01a",
+      "sourceLanguage": "en",
+      "languages": ["zh-Hans", "vi"]
+    },
+    {
+      "id": "4wtrgg9Y",
+      "sourceRevision": "3db5a350a35145646f2b3a810c2aba8ef231533312bce0487e7326706f19bcbb",
+      "sourceLanguage": "en",
+      "languages": ["zh-Hans", "vi"]
+    },
+    {
+      "id": "RzIGHoys",
+      "sourceRevision": "ac4046597eae3297bff83e958bcecc9d1b7459e3ef87fc8ad02f3b8fc844aa1f",
+      "sourceLanguage": "en",
+      "languages": ["zh-Hans", "vi"]
+    },
+    {
+      "id": "Izs07M5E",
+      "sourceRevision": "684616a316d70365d72c78d3bd8edcc19370fbe482c5e64f6123e01d40de31f0",
+      "sourceLanguage": "en",
+      "languages": ["zh-Hans", "vi"]
+    },
+    {
+      "id": "XApFEJf7",
+      "sourceRevision": "ae830c93d97d880d13f9e4aa0154ada20645c1f27553fb773f5bd0a55999a299",
+      "sourceLanguage": "en",
+      "languages": ["zh-Hans", "vi"]
+    },
+    {
+      "id": "B0sJgBNB",
+      "sourceRevision": "c45745e558b67decbb371a9ff769cf5fe3fb3c7bf2a015b44e0a1a51d6fa283e",
+      "sourceLanguage": "en",
+      "languages": ["zh-Hans", "vi"]
+    },
+    {
+      "id": "ks4dsSLm",
+      "sourceRevision": "74202133fe0d7288b22daa93b00dbd77a1f89591ae54afe0a83765cf6fd2d2fa",
+      "sourceLanguage": "en",
+      "languages": ["zh-Hans", "vi"]
+    }
+  ]
+}

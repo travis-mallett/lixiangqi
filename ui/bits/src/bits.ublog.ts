@@ -4,6 +4,44 @@ import { alert, prompt, domDialog, spinnerHtml } from 'lib/view';
 import * as xhr from 'lib/xhr';
 
 site.load.then(() => {
+  // Normal links remain usable without JS. Carry relative progress only across
+  // editions of this article; browser history keeps its own scroll restoration.
+  const article = document.querySelector<HTMLElement>('.ublog-post[data-post-id]');
+  if (article) {
+    const key = `ublog-reading:${article.dataset.postId}`;
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(key) || 'null');
+      if (
+        saved?.url === location.pathname &&
+        performance
+          .getEntriesByType('navigation')
+          .every(entry => (entry as PerformanceNavigationTiming).type !== 'back_forward')
+      ) {
+        sessionStorage.removeItem(key);
+        requestAnimationFrame(() => {
+          window.scrollTo(
+            0,
+            saved.progress * Math.max(0, document.documentElement.scrollHeight - window.innerHeight),
+          );
+        });
+      }
+      article.querySelectorAll<HTMLAnchorElement>('.ublog-post__languages a').forEach(link => {
+        link.addEventListener('click', event => {
+          if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0) return;
+          sessionStorage.setItem(
+            key,
+            JSON.stringify({
+              url: new URL(link.href).pathname,
+              progress:
+                window.scrollY / Math.max(1, document.documentElement.scrollHeight - window.innerHeight),
+            }),
+          );
+        });
+      });
+    } catch {
+      /* Storage is optional; edition links still navigate normally. */
+    }
+  }
   $('.flash').addClass('fade');
   $('.ublog-post__like').on(
     'click',

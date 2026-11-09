@@ -31,6 +31,8 @@ case class Page(
     csp: Option[Update[ContentSecurityPolicy]] = None,
     atomLinkTag: Option[Tag] = None,
     withHrefLangs: Option[LangPath] = None,
+    contentLanguage: Option[String] = None,
+    canonicalUrl: Option[Url] = None,
     flags: Set[PageFlags] = Set.empty,
     transform: Update[Frag] = identity,
     transformHead: Update[Frag] = identity
@@ -46,6 +48,7 @@ case class Page(
   def i18nOpt(cond: Boolean, mods: => I18nModule.Selector*): Page =
     if cond then copy(i18nModules = i18nModules.appendedAll(mods)) else this
   def graph(og: OpenGraph): Page = copy(openGraph = og.some)
+  def canonical(url: Url): Page = copy(canonicalUrl = Some(url))
   def graph(title: String, description: String, url: Url): Page = graph(OpenGraph(title, description, url))
   def flag(f: PageFlags.type => PageFlags, v: Boolean = true): Page =
     copy(flags = if v then flags + f(PageFlags) else flags - f(PageFlags))

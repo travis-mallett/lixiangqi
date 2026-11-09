@@ -32,15 +32,25 @@ final class UblogUi(helpers: Helpers, atomUi: AtomUi, modMenu: Context ?=> Frag)
   enum ShowAt:
     case top, bottom, none
 
+  def preferredLanguage(using ctx: Context): String = UblogTranslation.normalize(
+    ctx.req.headers
+      .get("X-Blog-Language")
+      .orElse(ctx.req.cookies.get("blogLanguage").map(_.value))
+      .getOrElse(ctx.lang.code)
+  )
+
   def card(
-      post: UblogPost.BasePost,
+      sourcePost: UblogPost.BasePost,
       makeUrl: UblogPost.BasePost => Call = urlOfPost,
       showAuthor: ShowAt = ShowAt.none,
       showIntro: Boolean = true,
       strictDate: Boolean = true
   )(using Context) =
+    val post = sourcePost.forLanguage(preferredLanguage)
     a(
       cls := s"ublog-post-card ublog-post-card--link ublog-post-card--by-${post.created.by}",
+      st.lang := post.editionLanguage,
+      data("post-id") := post.id,
       href := makeUrl(post)
     )(
       span(
@@ -76,7 +86,9 @@ final class UblogUi(helpers: Helpers, atomUi: AtomUi, modMenu: Context ?=> Frag)
 
   def urlOfPost(post: UblogPost.BasePost) = post.blog match
     case UblogBlog.Id.User(userId) =>
-      routes.Ublog.post(usernameOrId(userId), post.slug, post.id)
+      if post.editionLanguage == UblogTranslation.normalize(post.language.value) then
+        routes.Ublog.post(usernameOrId(userId), post.slug, post.id)
+      else routes.Ublog.edition(usernameOrId(userId), post.slug, post.id, post.editionLanguage)
 
   def editUrlOfPost(post: UblogPost.BasePost) = routes.Ublog.edit(post.id)
 
@@ -542,7 +554,7 @@ final class UblogUi(helpers: Helpers, atomUi: AtomUi, modMenu: Context ?=> Frag)
     )
 
   object atom:
-    def official(posts: Seq[UblogPost.PreviewPost])(using Translate) =
+    def official(posts: Seq[UblogPost.PreviewPost])(using Context) =
       atomUi.feed(
         elems = posts,
         htmlCall = routes.Ublog.official(),
@@ -555,7 +567,7 @@ final class UblogUi(helpers: Helpers, atomUi: AtomUi, modMenu: Context ?=> Frag)
     def user(
         user: User,
         posts: Seq[UblogPost.PreviewPost]
-    )(using Translate) =
+    )(using Context) =
       atomUi.feed(
         elems = posts,
         htmlCall = routes.Ublog.index(user.username),
@@ -565,7 +577,7 @@ final class UblogUi(helpers: Helpers, atomUi: AtomUi, modMenu: Context ?=> Frag)
       ): post =>
         renderPost(post, authorOfBlog(post.blog))
 
-    def community(language: Language, posts: Seq[UblogPost.PreviewPost]) =
+    def community(language: Language, posts: Seq[UblogPost.PreviewPost])(using Context) =
       atomUi.feed(
         elems = posts,
         htmlCall = routes.Ublog.communityLang(language),
@@ -576,9 +588,10 @@ final class UblogUi(helpers: Helpers, atomUi: AtomUi, modMenu: Context ?=> Frag)
         renderPost(post, authorOfBlog(post.blog))
       }
 
-    private def renderPost(post: UblogPost.PreviewPost, authorName: String) =
+    private def renderPost(source: UblogPost.PreviewPost, authorName: String)(using Context) =
+      val post = source.forLanguage(preferredLanguage)
       frag(
-        tag("id")(routeUrl(urlOfPost(post))),
+        tag("id")(routeUrl(urlOfPost(source))),
         tag("published")(post.lived.map(_.at).map(atomUi.atomDate)),
         tag("updated")(post.updated.orElse(post.lived).map(_.at).map(atomUi.atomDate)),
         link(
@@ -586,8 +599,8 @@ final class UblogUi(helpers: Helpers, atomUi: AtomUi, modMenu: Context ?=> Frag)
           tpe := "text/html",
           href := routeUrl(urlOfPost(post))
         ),
-        tag("title")(post.title),
-        post.topics.map { topic =>
+        tag("title")(attr("xml:lang") := post.editionLanguage)(post.title),
+        source.topics.map { topic =>
           atomUi.category(
             term = topic.url,
             label = topic.value,

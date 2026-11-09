@@ -129,7 +129,8 @@ object LangList extends lila.core.i18n.LangList:
 
   private lazy val allLanguages: List[Language] = popularNoRegion.map(fixJavaLanguage)
   lazy val popularLanguages: List[Language] = allLanguages.take(20)
-  lazy val popularAlternateLanguages: List[Language] = allLanguages.drop(1).take(20)
+  lazy val popularAlternateLanguages: List[Language] =
+    (List(Language("zh"), Language("vi")) ++ allLanguages.drop(1).take(20)).distinct
 
   def name(lang: Lang): String = all.getOrElse(lang, lang.code)
   def name(tag: LangTag): String = tag.toLang.fold(tag.value)(name)

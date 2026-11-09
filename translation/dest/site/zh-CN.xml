@@ -394,7 +394,7 @@
   <string name="mustBeInTeam">必须在团队 %s 中</string>
   <string name="youAreNotInTeam">您不在团队 %s 中</string>
   <string name="backToGame">返回对局</string>
-  <string name="siteDescription">免费在线国际象棋平台。在简洁的界面中对弈。免注册，无广告，无插件。与电脑、好友或随机对手对弈吧。</string>
+  <string name="siteDescription">免费在线象棋平台，界面简洁，免注册、无广告，无需安装插件。随时与电脑、好友或其他棋友对弈。</string>
   <string name="xJoinedTeamY">%1$s 加入了团队 %2$s</string>
   <string name="xCreatedTeamY">%1$s 创建了团队 %2$s</string>
   <string name="startedStreaming">开始直播</string>

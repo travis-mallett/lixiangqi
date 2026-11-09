@@ -19,8 +19,9 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
   import assetHelper.{ defaultCsp, netConfig, cashTag, siteName }
 
   val doctype = raw("<!DOCTYPE html>")
-  def htmlTag(using lang: Lang) =
-    html(st.lang := lang.code, dir := lila.core.i18n.isRightToLeft(lang).option("rtl"))
+  def htmlTag(using lang: Lang) = htmlTagFor(lang.code)
+  def htmlTagFor(language: String) =
+    html(st.lang := language, dir := lila.core.i18n.isRightToLeft(Lang(language)).option("rtl"))
   val topComment = raw("""<!-- Lixiangqi is open source! See https://lixiangqi.org/source -->""")
   val charset = raw("""<meta charset="utf-8">""")
   val viewport = raw:
@@ -168,9 +169,9 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
 
   def hrefLangs(path: LangPath) = raw:
     val pathEnd = if path.value == "/" then "" else path.value
-    hrefLang("x-default", path.value) + hrefLang("en", path.value) +
+    hrefLang("x-default", path.value) + hrefLang("en", s"/en$pathEnd") +
       popularAlternateLanguages.map { l =>
-        hrefLang(l.value, s"/$l$pathEnd")
+        hrefLang(if l.value == "zh" then "zh-Hans" else l.value, s"/$l$pathEnd")
       }.mkString
 
   def pageZoom(using ctx: Context): Int = {

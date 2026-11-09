@@ -65,4 +65,19 @@
   <string name="publishAsOfficial">Publish as an official LiXiangQi post</string>
   <string name="publishAsOfficialHelp">Published posts appear in the LiXiangQi blog. You remain the author; other official publishers cannot edit your post.</string>
   <string name="officialPostPermissionRequired">Only the author with official posting permission can change this designation or publish an official draft.</string>
+  <string name="articleLanguage">Article language</string>
+  <string name="translations">Translations</string>
+  <string name="originalArticle">Original article</string>
+  <string name="translationUnavailable">This article is not available in your preferred language. Choose an available edition below.</string>
+  <string name="translationNeedsReview">The original has changed. This translation is awaiting review.</string>
+  <string name="translatedBy">Translation: %s</string>
+  <string name="reviewedBy">Review: %s</string>
+  <string name="translator">Translator</string>
+  <string name="translationPublished">Translation first published</string>
+  <string name="translationUpdated">Translation updated</string>
+  <string name="translationReviewed">I have reviewed this edition against the current original for language, technical accuracy, and rendered content.</string>
+  <string name="publishTranslation">Publish translation</string>
+  <string name="unpublishTranslation">Unpublish translation</string>
+  <string name="translationConflict">The article or translation changed. Reload the editor before saving.</string>
+  <string name="translationReviewRequired">Review this edition before publishing it.</string>
 </resources>

@@ -19,7 +19,7 @@ export function makeGround(element: HTMLElement, ctrl: EditorCtrl): BoardView {
   if (!ctrl.cfg.embed) makeBoardResizable(board);
   const placeSelected = (event: PointerEvent): void => {
     if (ctrl.selected === 'pointer') return;
-    if (event.button !== 0 || !event.isPrimary) return;
+    if (event.button !== 0 || event.shiftKey || !event.isPrimary) return;
     if ((event.target as Element).closest('cg-resize')) return;
     const location = board.locationAt([event.clientX, event.clientY]);
     if (!location) return;

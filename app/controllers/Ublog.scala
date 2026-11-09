@@ -9,8 +9,8 @@ import lila.app.{ *, given }
 import scalalib.model.Language
 import lila.i18n.{ LangList, LangPicker }
 import lila.report.Suspect
-import lila.ublog.{ UblogBlog, UblogPost, UblogByMonth }
-import lila.core.ublog.{ BlogsBy, Quality, QualityFilter }
+import lila.ublog.{ UblogBlog, UblogPost, UblogByMonth, UblogTranslation }
+import lila.core.ublog.{ BlogsBy, QualityFilter }
 import lila.core.i18n.toLanguage
 import lila.ublog.UblogForm.ModPostData
 import lila.common.HTTPRequest
@@ -29,7 +29,7 @@ final class Ublog(env: Env) extends LilaController(env):
         yield views.ublog.ui.blogPage(user, blog, posts)
 
   def apiCarousel = AnonOrScoped():
-    import env.ublog.jsonView.given
+    given OWrites[UblogPost.PreviewPost] = env.ublog.jsonView.writer(views.ublog.ui.preferredLanguage)
     JsonOk(env.ublog.api.myCarousel)
 
   def drafts(username: UserStr, page: Int) = Auth { ctx ?=> me ?=>
@@ -43,19 +43,44 @@ final class Ublog(env: Env) extends LilaController(env):
 
   def post(username: UserStr, slug: String, id: UblogPostId) = Open: ctx ?=>
     Found(env.ublog.api.getPost(id)): post =>
-      if !post.visibleByCrawlers && ctx.req.client.isCrawler
-      then notFound
-      else if slug == post.slug && post.isUserBlog(username) then handlePost(post)
+      if slug == post.slug && post.isUserBlog(username) then handlePost(UblogTranslation.source(post))
       else if urlOfPost(post).url != ctx.req.path then Redirect(urlOfPost(post))
-      else handlePost(post)
+      else handlePost(UblogTranslation.source(post))
 
-  private def handlePost(post: UblogPost)(using Context) =
+  def edition(username: UserStr, slug: String, id: UblogPostId, language: String) = Open: ctx ?=>
+    Found(env.ublog.api.getPost(id)): post =>
+      val normalized = UblogTranslation.normalize(language)
+      val preview = getBool("draft") && post.allows.draft
+      UblogTranslation.select(post, normalized, preview) match
+        case Some(edition) =>
+          if language != normalized || slug != post.slug || !post.isUserBlog(username) || edition.isSource
+          then Redirect(edition.url)
+          else handlePost(edition)
+        case None =>
+          NotForKidsUnlessOfficial(post.isOfficial):
+            WithBlogOf(post.created.by): (user, blog) =>
+              (canViewBlogOf(user, blog) && post.canView).so:
+                NotFound.page(views.ublog.post.missingEdition(post)).map(_.hasPersonalData)
+
+  private def handlePost(edition: UblogTranslation.Edition)(using Context) =
+    val post = edition.post
     val createdBy = post.created.by
     NotForKidsUnlessOfficial(post.isOfficial):
       WithBlogOf(createdBy): (user, blog) =>
         (canViewBlogOf(user, blog) && post.canView).so:
-          if HTTPRequest.acceptsMarkdown
-          then Ok(views.ublog.post.markdownForAgents(post)).withHeaders(asMarkdown)
+          def editionResponse(result: Result) =
+            val response = result.withHeaders("Content-Language" -> edition.language)
+            val privateResponse = if !edition.isPublished then response.hasPersonalData else response
+            if !blog.listed || !post.visibleByCrawlers || !edition.isPublished || (!post.isOfficial && blog.tier < UblogBlog.Tier.HIGH)
+            then privateResponse.withHeaders("X-Robots-Tag" -> "noindex, nofollow")
+            else privateResponse
+          if getBool("selectLanguage") && edition.isPublished then
+            fuccess(
+              Redirect(edition.url)
+                .withCookies(env.security.lilaCookie.cookie("blogLanguage", edition.language))
+            )
+          else if HTTPRequest.acceptsMarkdown
+          then editionResponse(Ok(views.ublog.post.markdownForAgents(edition)).withHeaders(asMarkdown))
           else
             for
               otherPosts <- env.ublog.api.recommend(UblogBlog.Id.User(user.id), post)
@@ -66,13 +91,17 @@ final class Ublog(env: Env) extends LilaController(env):
               isInCarousel <- isGrantedOpt(_.ModerateBlog)
                 .so(env.ublog.api.fetchCarouselFromDb().map(_.has(post.id)))
               followable = prefFollowable && !blocked
-              html <- env.memo.markdown.toHtml(s"blog:${post.id}", post.markdown, lila.ublog.markdownOptions)
+              html <- env.memo.markdown.toHtml(
+                s"blog:${post.id}:${edition.language}",
+                edition.markdown,
+                lila.ublog.markdownOptions
+              )
               viewedPost = env.ublog.viewCounter(post)
               page <- renderPage:
                 views.ublog.post.page(
                   user,
                   blog,
-                  viewedPost,
+                  edition.copy(post = viewedPost),
                   html,
                   otherPosts,
                   liked,
@@ -80,7 +109,52 @@ final class Ublog(env: Env) extends LilaController(env):
                   followed,
                   isInCarousel
                 )
-            yield Ok(page)
+            yield editionResponse(Ok(page))
+
+  def editTranslation(id: UblogPostId, language: String) = AuthBody { ctx ?=> me ?=>
+    NotForKids:
+      Found(env.ublog.api.findEditableByMe(id)): post =>
+        if !UblogTranslation.languages.exists(_._1 == language) || language == UblogTranslation.normalize(
+            post.language.value
+          )
+        then notFound
+        else
+          Ok.page(
+            views.ublog.form.translation(post, language, lila.ublog.UblogTranslationForm.edit(post, language))
+          ).map(_.hasPersonalData)
+  }
+
+  def updateTranslation(id: UblogPostId, language: String) = AuthBody { ctx ?=> me ?=>
+    NotForKids:
+      Found(env.ublog.api.findEditableByMe(id)): post =>
+        if !UblogTranslation.languages.exists(_._1 == language) || language == UblogTranslation.normalize(
+            post.language.value
+          )
+        then notFound
+        else
+          bindForm(lila.ublog.UblogTranslationForm.edit(post, language))(
+            err => BadRequest.page(views.ublog.form.translation(post, language, err)),
+            data =>
+              env.ublog.api
+                .saveTranslation(post, language, data)
+                .flatMap: saved =>
+                  if saved then
+                    logModAction(post, s"translation $language ${data.action}").inject(
+                      Redirect(routes.Ublog.editTranslation(post.id, language)).flashSuccess
+                    )
+                  else
+                    Conflict.page(
+                      views.ublog.form.translation(
+                        post,
+                        language,
+                        lila.ublog.UblogTranslationForm
+                          .edit(post, language)
+                          .fill(data)
+                          .withGlobalError("ublog:translationConflict")
+                      )
+                    )
+          )
+  }
 
   def discuss(id: UblogPostId) = Open:
     NotForKids:
@@ -304,10 +378,9 @@ final class Ublog(env: Env) extends LilaController(env):
 
   def communityLang(language: Language, filterOpt: Option[QualityFilter], page: Int = 1) = Open:
     import LangPicker.ByHref
-    LangPicker.byHref(language, ctx.req) match
+    LangPicker.byHref(language) match
       case ByHref.NotFound => Redirect(routes.Ublog.communityAll(filterOpt, page))
       case ByHref.Redir(language) => Redirect(routes.Ublog.communityLang(language, filterOpt, page))
-      case ByHref.Refused(lang) => communityIndex(lang.some, filterOpt, page)
       case ByHref.Found(lang) =>
         if ctx.isAuth then communityIndex(lang.some, filterOpt, page)
         else communityIndex(lang.some, filterOpt, page)(using ctx.withLang(lang))
@@ -397,8 +470,7 @@ final class Ublog(env: Env) extends LilaController(env):
     val queryText = text.take(100).trim
     NotForKids:
       for
-        ids <- env.ublog.search.fetchResults(queryText, by, Quality.weak.some, page)
-        posts <- ids.mapFutureList(env.ublog.api.postPreviews)
+        posts <- env.ublog.search.fetchResults(queryText, by, page)
         page <- renderPage(views.ublog.ui.search(queryText, by, posts.some))
       yield Ok(page)
 

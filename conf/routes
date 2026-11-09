@@ -162,6 +162,9 @@ GET   /blog/community.atom             controllers.Ublog.communityAtom(lang: Lan
 GET   /blog/community/$lang<[\w-]{2,6}>.atom controllers.Ublog.communityAtom(lang: Language)
 GET   /blog/:id/:slug                  controllers.Ublog.historicalBlogPost(id, slug)
 GET   /@/:username/blog/:slug/:id      controllers.Ublog.post(username: UserStr, slug, id: UblogPostId)
+GET   /@/:username/blog/:slug/:id/:language controllers.Ublog.edition(username: UserStr, slug, id: UblogPostId, language)
+GET   /ublog/$id<\w{8}>/translation/:language controllers.Ublog.editTranslation(id: UblogPostId, language)
+POST  /ublog/$id<\w{8}>/translation/:language controllers.Ublog.updateTranslation(id: UblogPostId, language)
 GET   /@/:username/blog/drafts         controllers.Ublog.drafts(username: UserStr, page: Int ?= 1)
 GET   /@/:username/blog/new            controllers.Ublog.form(username: UserStr)
 POST  /@/:username/blog/new            controllers.Ublog.create(username: UserStr)
@@ -366,7 +369,6 @@ GET   /$lang<\w\w\w?>/broadcast               controllers.RelayTour.indexLang(la
 # Learn
 GET   /learn                           controllers.Learn.index
 GET   /learn/special-rules             controllers.Learn.specialRules
-GET   /wiki/elbow-horse                controllers.Wiki.elbowHorse
 GET   /learn/special-rules/example/:id/:ply controllers.Learn.specialRulesExample(id: String, ply: Int)
 GET   /learn/ancient-manuals           controllers.Learn.ancientManuals
 GET   /learn/xiangqi-rankings           controllers.Learn.xiangqiRankings
@@ -1109,6 +1111,7 @@ GET   /assets/*file                    controllers.ExternalAssets.at(path="publi
 
 GET   /manifest.json                   controllers.Main.manifest
 GET   /robots.txt                      controllers.Main.robots
+GET   /sitemap.xml                     controllers.Main.sitemap
 
 GET   /mobile                          controllers.Main.mobile
 GET   /$lang<\w\w\w?>/mobile           controllers.Main.mobileLang(lang: Language)

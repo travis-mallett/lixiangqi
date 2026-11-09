@@ -63,3 +63,22 @@ The narrow review is against website HEAD `f3d8e9cca137c47844b3bc16cb1f329a2ea55
 | ui/editor/tests/editor.test.ts                    | 2126cf156579d7efa96ca8904eefd230e33e2dd259c33b8f431de8b0adfb17fd |
 | ui/xiangqi/src/analysisXiangqi.ts                 | 38713bfb3f425ec36b5d15cfa8a95d72beff5b4732d7ae2f4abb2233bd5e77a8 |
 | tests/board-editor.spec.ts                        | 9fa7d969bb2060ff27b49cd28f0afd485e93858f733f4847e1fafc00809d1cf9 |
+
+## Editor annotations — November 8, 2026
+
+The shared editor presentation enables the same annotation rendering and input as analysis. The website palette lets Shift-drag and right-button gestures reach the shared board instead of placing a piece. Annotations are temporary diagram marks, not FEN data. No alternate renderer, brushes, assets, API or persistence format was introduced.
+
+LiXiangQi Mobile: ported by explicit user request. Both AnalysisEditor and PositionEditor use the existing XiangqiBoard marks/onMark contract, with localized Draw and Clear marks controls. Drawing disables placement, movement and erasure; turning it off restores the selected editing tool. Long press draws a circle; long press and drag draws an arrow, exactly as in native analysis. Marks remain local to the editor and do not alter the applied position.
+
+Xiangqi Kids: not applicable. It has no analysis/custom-position editor. Gameplay, puzzles, shared artwork and board geometry are unchanged. Neither app's broad checkpoint or unrelated queue was advanced.
+
+Deploy the usual website assets and release the main mobile app independently. No backend dependency, migration or deployment-tool change.
+
+Source: website HEAD `32e85bcc932229ffe30ab9bc9b1181a145bd9bee` plus these reviewed SHA-256 fingerprints:
+
+- `ui/board/src/definitions.ts`: `eb9ccb2b60e4cd70e596c5d5a1319b476283ddef6fb7746097fa228f8ad87e25`
+- `ui/editor/src/board.ts`: `48959d1c6a2a492cfb0231173e86d821cde6df47e15a856423c4c6d90e09c75d`
+
+Verification: website formatting, type-aware lint, SCSS lint, format check and production asset build passed; all 721 frontend tests passed. Native formatting and fatal-info analysis passed; all 485 tests passed with two existing skips, including four new editor annotation checks at phone/tablet widths. These verify marks do not change FEN or trigger placement and that leaving drawing restores editing. iOS, physical devices and live browser interaction were not tested. No commit, push or deployment was requested.
+
+Android verification: the pinned Flutter Android debug APK build passed, including the native Pikafish hook. Website service cleanup completed.

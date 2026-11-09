@@ -32,7 +32,9 @@ logs/
 /public/css/
 /public/json/
 /blog/*
+!/blog/AGENTS.md
 !/blog/WRITING_GUIDE.md
+!/blog/translations/
 target/
 /data/
 dist/

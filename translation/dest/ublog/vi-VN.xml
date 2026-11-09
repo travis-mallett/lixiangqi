@@ -56,4 +56,19 @@
   <string name="blogTips">Vài mẹo đơn giản để giúp viết ra một bài blog tuyệt vời</string>
   <string name="discussThisBlogPostInTheForum">Thảo luận về bài blog này trong diễn đàn</string>
   <string name="youBlockedByBlogAuthor">Bạn đã bị chặn bởi tác giả blog.</string>
+  <string name="articleLanguage">Ngôn ngữ bài viết</string>
+  <string name="translations">Bản dịch</string>
+  <string name="originalArticle">Bài gốc</string>
+  <string name="translationUnavailable">Bài viết chưa có bản dịch sang ngôn ngữ bạn chọn. Bạn có thể đọc một trong các phiên bản dưới đây.</string>
+  <string name="translationNeedsReview">Bài gốc đã thay đổi. Bản dịch này đang chờ được kiểm tra lại.</string>
+  <string name="translatedBy">Người dịch: %s</string>
+  <string name="reviewedBy">Người rà soát: %s</string>
+  <string name="translator">Người dịch</string>
+  <string name="translationPublished">Bản dịch được đăng lần đầu</string>
+  <string name="translationUpdated">Bản dịch được cập nhật</string>
+  <string name="translationReviewed">Tôi đã đối chiếu bản dịch với bài gốc hiện tại và kiểm tra cách diễn đạt, độ chính xác chuyên môn và nội dung hiển thị.</string>
+  <string name="publishTranslation">Đăng bản dịch</string>
+  <string name="unpublishTranslation">Gỡ bản dịch</string>
+  <string name="translationConflict">Bài gốc hoặc bản dịch đã thay đổi. Hãy tải lại trình soạn thảo trước khi lưu.</string>
+  <string name="translationReviewRequired">Hãy rà soát bản dịch trước khi đăng.</string>
 </resources>

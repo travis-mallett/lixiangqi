@@ -8011,6 +8011,8 @@ interface I18n {
     year: string;
   };
   ublog: {
+    /** Article language */
+    articleLanguage: string;
     /** %s blog posts */
     blogPosts: I18nPlural;
     /** Our simple tips to write great blog posts */
@@ -8069,6 +8071,8 @@ interface I18n {
     officialPost: string;
     /** Only the author with official posting permission can change this designation or publish an official draft. */
     officialPostPermissionRequired: string;
+    /** Original article */
+    originalArticle: string;
     /** Post body */
     postBody: string;
     /** Post intro */
@@ -8089,6 +8093,10 @@ interface I18n {
     publishHelp: string;
     /** Publish on your blog */
     publishOnYourBlog: string;
+    /** Publish translation */
+    publishTranslation: string;
+    /** Review: %s */
+    reviewedBy: I18nFormat;
     /** Please only post safe and respectful content. Do not copy someone else's content. */
     safeAndRespectfulContent: string;
     /** It is safe to use images from the following websites: */
@@ -8105,6 +8113,28 @@ interface I18n {
     thisIsADraft: string;
     /** This post is published */
     thisPostIsPublished: string;
+    /** Translation: %s */
+    translatedBy: I18nFormat;
+    /** The article or translation changed. Reload the editor before saving. */
+    translationConflict: string;
+    /** The original has changed. This translation is awaiting review. */
+    translationNeedsReview: string;
+    /** Translation first published */
+    translationPublished: string;
+    /** I have reviewed this edition against the current original for language, technical accuracy, and rendered content. */
+    translationReviewed: string;
+    /** Review this edition before publishing it. */
+    translationReviewRequired: string;
+    /** Translations */
+    translations: string;
+    /** This article is not available in your preferred language. Choose an available edition below. */
+    translationUnavailable: string;
+    /** Translation updated */
+    translationUpdated: string;
+    /** Translator */
+    translator: string;
+    /** Unpublish translation */
+    unpublishTranslation: string;
     /** Upload an image for your post */
     uploadAnImageForYourPost: string;
     /** You can also use images that you made yourself, pictures you took, screenshots of Lixiangqi... anything that is not copyrighted by someone else. */

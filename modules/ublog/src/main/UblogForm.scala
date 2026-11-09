@@ -37,10 +37,18 @@ final class UblogForm(val captcher: CaptchaApi, langList: LangList):
     base.verifying(lila.core.captcha.failMessage, captcher.validateSync)
 
   def edit(post: UblogPost)(using Me) = Form(
-    base.verifying(
-      "ublog:officialPostPermissionRequired",
-      data => data.canUpdateOfficial(post)
-    )
+    base
+      .verifying(
+        "ublog:officialPostPermissionRequired",
+        data => data.canUpdateOfficial(post)
+      )
+      .verifying(
+        "ublog:translationConflict",
+        data =>
+          !post.translations.exists(t =>
+            data.language.exists(l => UblogTranslation.normalize(l.value) == t.language)
+          )
+      )
   ).fill:
     UblogPostData(
       title = post.title,

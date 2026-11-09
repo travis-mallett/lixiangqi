@@ -27,7 +27,8 @@ case class UblogPost(
     views: UblogPost.Views,
     similar: Option[List[UblogSimilar]],
     automod: Option[UblogAutomod.Assessment],
-    official: Option[Boolean] = None
+    official: Option[Boolean] = None,
+    translations: List[UblogTranslation] = Nil
 ) extends UblogPost.BasePost
     with lila.core.ublog.UblogPost:
 
@@ -38,11 +39,20 @@ case class UblogPost(
     topics.exists(UblogTopic.xiangqiExists) || featured.isDefined || isOfficial
   )
   def visibleByCrawlers = indexable && (isOfficial || automod.exists(_.quality != Quality.spam))
-  def allText = s"$title $intro $markdown"
+  private def editionTexts = s"$title $intro $markdown" :: translations
+    .flatMap(_.published)
+    .map(r => s"${r.title} ${r.intro} ${r.markdown}")
+  def allText = editionTexts.mkString("\n")
+  // Keep the existing request budget while giving every published language a share.
+  def moderationText =
+    val texts = editionTexts
+    texts.map(_.take(40_000 / texts.size)).mkString("\n")
 
   def allows = UblogBlog.Allows(created.by, isOfficial)
   def canSetOfficial(using me: Me) = isBy(me) && lila.core.perm.Granter(_.PublishOfficialBlog)
   def canView(using Option[Me]) = live || allows.draft
+
+  def translationPreviews = translations.map(_.preview)
 
 case class UblogImage(id: ImageId, alt: Option[String] = None, credit: Option[String] = None)
 
@@ -65,6 +75,8 @@ object UblogPost:
     val blog: UblogBlog.Id
     val title: String
     val intro: String
+    val language: Language
+    def translationPreviews: List[UblogTranslation.Preview]
     val image: Option[UblogImage]
     val created: Recorded
     val updated: Option[Recorded]
@@ -74,6 +86,24 @@ object UblogPost:
     def slug = UblogPost.slug(title)
     val official: Option[Boolean]
     def isOfficial = official.contains(true)
+    def editionLanguage = UblogTranslation.normalize(language.value)
+    def forLanguage(preferred: String): BasePost =
+      translationPreviews
+        .find(_.language == UblogTranslation.normalize(preferred))
+        .flatMap(t => t.published.map(c => LocalizedPost(this, t.language, c)))
+        .getOrElse(this)
+
+  private case class LocalizedPost(
+      source: BasePost,
+      override val editionLanguage: String,
+      content: UblogTranslation.PreviewContent
+  ) extends BasePost:
+    export source.{ id, blog, language, created, lived, featured, sticky, official, translationPreviews }
+    val title = content.title
+    val intro = content.intro
+    val updated = Some(content.updated)
+    val image = source.image.map(_.copy(alt = content.imageAlt, credit = content.imageCredit))
+    override def slug = source.slug
 
   case class PreviewPost(
       @Key("_id") id: UblogPostId,
@@ -87,8 +117,11 @@ object UblogPost:
       featured: Option[Featured],
       sticky: Option[Boolean],
       topics: List[UblogTopic],
-      official: Option[Boolean] = None
-  ) extends BasePost
+      official: Option[Boolean] = None,
+      language: Language = Language("en"),
+      translations: List[UblogTranslation.Preview] = Nil
+  ) extends BasePost:
+    def translationPreviews = translations
 
   case class Featured(by: UserId, at: Option[Instant], until: Option[Instant] = none)
 

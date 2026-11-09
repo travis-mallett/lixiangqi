@@ -320,7 +320,7 @@
   <string name="subject">Tiêu đề</string>
   <string name="send">Gửi</string>
   <string name="incrementInSeconds">Gia tăng theo giây</string>
-  <string name="freeOnlineChess">Chơi Cờ Vua Trực Tuyến Miễn Phí</string>
+  <string name="freeOnlineChess">Chơi cờ tướng trực tuyến miễn phí</string>
   <plurals name="nbRated">
     <item quantity="other">%s ván xếp hạng</item>
   </plurals>
@@ -394,7 +394,7 @@
   <string name="mustBeInTeam">Phải ở trong đội %s</string>
   <string name="youAreNotInTeam">Bạn không ở trong đội %s</string>
   <string name="backToGame">Quay lại ván đấu</string>
-  <string name="siteDescription">Chơi cờ vua trực tuyến miễn phí. Chơi cờ vua với giao diện đẹp. Không cần đăng ký, không có quảng cáo, không yêu cầu plugin. Chơi cờ vua với máy tính, bạn bè hoặc đối thủ ngẫu nhiên.</string>
+  <string name="siteDescription">Chơi cờ tướng trực tuyến miễn phí với giao diện đơn giản, dễ sử dụng. Không cần đăng ký, không quảng cáo, không cần cài thêm tiện ích. Đấu với máy, chơi cùng bạn bè hoặc tìm đối thủ mới.</string>
   <string name="xJoinedTeamY">%1$s đã gia nhập đội %2$s</string>
   <string name="xCreatedTeamY">%1$s đã tạo đội %2$s</string>
   <string name="startedStreaming">đã bắt đầu phát trực tiếp</string>

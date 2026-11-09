@@ -44,6 +44,13 @@ final class UblogFormUi(helpers: Helpers, ui: UblogUi)(
             )
           ),
           inner(f, Right(post), none),
+          div(cls := "box-pad")(
+            h2(trans.ublog.translations()),
+            UblogTranslation.languages
+              .filterNot(_._1 == UblogTranslation.normalize(post.language.value))
+              .map: (language, name) =>
+                p(a(href := routes.Ublog.editTranslation(post.id, language))(name))
+          ),
           postForm(
             cls := "ublog-post-form__delete",
             action := routes.Ublog.delete(post.id),
@@ -56,6 +63,61 @@ final class UblogFormUi(helpers: Helpers, ui: UblogUi)(
               )(trans.site.delete())
         )
       )
+
+  def translation(post: UblogPost, language: String, f: Form[UblogTranslationForm.Data])(using ctx: Context) =
+    FormPage(s"${post.title} • ${UblogTranslation.name(language)}").flag(_.noRobots)(
+      main(cls := "box box-pad ublog-post-form")(
+        h1(trans.ublog.translations(), " · ", UblogTranslation.name(language)),
+        standardFlash,
+        p(a(href := ui.urlOfPost(post), targetBlank)(trans.ublog.originalArticle())),
+        post.translations
+          .find(_.language == language)
+          .flatMap(t => t.draft.orElse(t.published))
+          .map: r =>
+            div(cls := "ublog-translation-editor-meta")(
+              p(trans.ublog.translatedBy(r.translator)),
+              r.reviewer.map(reviewer => p(trans.ublog.reviewedBy(reviewer))),
+              r.publishedAt.map(at => p(trans.ublog.translationPublished(), " ", semanticDate(at))),
+              p(trans.ublog.translationUpdated(), " ", semanticDate(r.updated.at)),
+              r.needsReview(post).option(p(trans.ublog.translationNeedsReview()))
+            ),
+        p(
+          a(href := s"${UblogTranslation.urlOf(post, language).url}?draft=true")(
+            trans.ublog.continueReadingPost()
+          )
+        ),
+        postForm(cls := "form3", action := routes.Ublog.updateTranslation(post.id, language))(
+          form3.globalError(f),
+          form3.hidden(f("sourceRevision")),
+          form3.hidden(f("version")),
+          form3.group(f("title"), trans.ublog.postTitle())(form3.input(_)),
+          form3.group(f("intro"), trans.ublog.postIntro())(form3.input(_)),
+          form3.group(f("markdown"), trans.ublog.postBody()): field =>
+            frag(
+              form3.textarea(field)(rows := 24),
+              div(
+                cls := "markdown-toastui",
+                data("image-upload-url") := routes.Main.uploadImage("ublogBody"),
+                data("image-download-origin") := summon[ImageGetOrigin],
+                data("image-count-max") := 10
+              )
+            ),
+          form3.group(f("imageAlt"), trans.ublog.imageAlt())(form3.input(_)),
+          form3.group(f("imageCredit"), trans.ublog.imageCredit())(form3.input(_)),
+          form3.group(f("translator"), trans.ublog.translator())(form3.input(_)),
+          form3.checkboxGroup(f("reviewed"), trans.ublog.translationReviewed()),
+          form3.actions(
+            submitButton(name := "action", value := "draft", cls := "button")(trans.ublog.saveDraft()),
+            submitButton(name := "action", value := "publish", cls := "button button-green")(
+              trans.ublog.publishTranslation()
+            ),
+            submitButton(name := "action", value := "unpublish", cls := "button button-red")(
+              trans.ublog.unpublishTranslation()
+            )
+          )
+        )
+      )
+    )
 
   private def inner(
       form: Form[UblogForm.UblogPostData],

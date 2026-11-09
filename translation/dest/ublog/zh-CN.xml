@@ -56,4 +56,19 @@
   <string name="blogTips">我们撰写优秀博客文章的简单技巧</string>
   <string name="discussThisBlogPostInTheForum">在论坛中讨论此博客文章</string>
   <string name="youBlockedByBlogAuthor">您已被博客作者屏蔽</string>
+  <string name="articleLanguage">文章语言</string>
+  <string name="translations">译文</string>
+  <string name="originalArticle">原文</string>
+  <string name="translationUnavailable">本文暂无您所选语言的译文，请选择下方已有的语言版本。</string>
+  <string name="translationNeedsReview">原文已更新，本译文有待复核。</string>
+  <string name="translatedBy">翻译：%s</string>
+  <string name="reviewedBy">复核：%s</string>
+  <string name="translator">译者</string>
+  <string name="translationPublished">译文首次发布于</string>
+  <string name="translationUpdated">译文更新于</string>
+  <string name="translationReviewed">我已对照当前原文，检查本译文的语言、技术内容及页面呈现。</string>
+  <string name="publishTranslation">发布译文</string>
+  <string name="unpublishTranslation">撤回译文</string>
+  <string name="translationConflict">原文或译文已更改，请重新加载编辑器后再保存。</string>
+  <string name="translationReviewRequired">请先复核本译文，再发布。</string>
 </resources>

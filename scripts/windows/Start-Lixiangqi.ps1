@@ -510,6 +510,8 @@ if ($previewRefreshState.snapshotId -ne $snapshotId -or
 Write-Step 'Migrating preview blog topics with recoverable originals'
 & $mongosh --quiet 'mongodb://127.0.0.1:27017/lixiangqi_preview' (Join-Path $projectRoot 'tools\data_migration\20261027_xiangqi_blog_topics.js')
 if ($LASTEXITCODE) { throw 'Blog topics migration failed; originals are retained and preview writers remain stopped.' }
+& $mongosh --quiet 'mongodb://127.0.0.1:27017/lixiangqi_preview' (Join-Path $projectRoot 'tools\data_migration\20261108_blog_editions_v1.js')
+if ($LASTEXITCODE) { throw 'Blog edition schema migration failed; originals are retained and preview writers remain stopped.' }
 
 $nativeBackupRoot = Join-Path $refreshBackup 'native-schema'
 Write-Step 'Ensuring the restored preview uses the native study and analysis schemas'

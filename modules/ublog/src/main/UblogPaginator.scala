@@ -59,7 +59,19 @@ final class UblogPaginator(
       adapter = new AdapterLike[PreviewPost]:
         val select =
           $doc("live" -> true, selectQuality(filter), "topics".$ne(UblogTopic.offTopic)) ++
-            language.so(l => $doc("language" -> l))
+            language.so(l =>
+              $or(
+                $doc("language" -> l),
+                $doc(
+                  "translations" -> $doc(
+                    "$elemMatch" -> $doc(
+                      "language" -> UblogTranslation.normalize(l.value),
+                      "published" -> $doc("$exists" -> true)
+                    )
+                  )
+                )
+              )
+            )
         def nbResults: Fu[Int] = fuccess(50 * maxPerPage.value)
         def slice(offset: Int, length: Int) = aggregateVisiblePosts(select, offset, length)
       ,

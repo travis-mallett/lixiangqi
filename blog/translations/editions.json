@@ -1,0 +1,100 @@
+[
+  {
+    "id": "m1L9BrtK",
+    "language": "zh-Hans",
+    "title": "Lunps28 赢得 LiXiangQi 首场比赛",
+    "intro": "三战全胜的 Lunps28 以两分优势领先赛事组织者 franzbutykoff，夺得 amistad Arena 冠军。",
+    "imageAlt": "amistad Arena 最终排名：Lunps28 以六分夺金，franzbutykoff 以四分获银，DanielCallabieto 以两分获铜。"
+  },
+  {
+    "id": "m1L9BrtK",
+    "language": "vi",
+    "title": "Lunps28 vô địch giải đấu đầu tiên của LiXiangQi",
+    "intro": "Ba trận toàn thắng giúp Lunps28 giành ngôi đầu amistad Arena, hơn người tổ chức franzbutykoff hai điểm.",
+    "imageAlt": "Bảng xếp hạng chung cuộc amistad Arena: Lunps28 giành vàng với sáu điểm, franzbutykoff giành bạc với bốn điểm, DanielCallabieto giành đồng với hai điểm."
+  },
+  {
+    "id": "4wtrgg9Y",
+    "language": "zh-Hans",
+    "title": "Manchu+：一旗对一军",
+    "intro": "车、炮、马的走法，合在一枚棋子身上。认识 Manchu+ 背后的清代棋戏，以及那枚改变双方较量的额外车。",
+    "imageAlt": "象牙色纸面上，水墨骏马在飘扬的朱红旗帜下奔腾，旁边放着旗子和车子。Manchu+。"
+  },
+  {
+    "id": "4wtrgg9Y",
+    "language": "vi",
+    "title": "Manchu+: một quân Kỳ đối đầu cả đạo quân",
+    "intro": "Xe, pháo và mã hợp trong một quân cờ. Tìm hiểu trò chơi thời Thanh đứng sau Manchu+ và quân xe được thêm vào làm thay đổi cuộc đấu.",
+    "imageAlt": "Ngựa vẽ mực đen lao dưới dải cờ đỏ son, bên cạnh quân Kỳ và quân xe trên nền giấy ngà. Manchu+."
+  },
+  {
+    "id": "RzIGHoys",
+    "language": "zh-Hans",
+    "title": "Pikafish 2026-09-06 已上线 LiXiangQi",
+    "intro": "从早期个人电脑程序，到挑战冠军的象棋引擎：回顾电脑象棋的一段发展历程，看看 Pikafish 今天的位置，以及如何在 LiXiangQi 上用它学棋。",
+    "imageAlt": "象牙色纸面上，朱红笔圈中画着一条水墨鱼，旁边是一枚红马棋子。Pikafish 2026-09-06。"
+  },
+  {
+    "id": "RzIGHoys",
+    "language": "vi",
+    "title": "Pikafish 2026-09-06 đã có trên LiXiangQi",
+    "intro": "Từ những chương trình PC đầu tiên đến các engine thách đấu nhà vô địch: một chặng lịch sử cờ tướng máy tính, vị trí của Pikafish hôm nay và cách học cùng nó trên LiXiangQi.",
+    "imageAlt": "Cá vẽ mực đen trong vòng cọ đỏ son, cạnh quân mã đỏ trên nền giấy ngà. Pikafish 2026-09-06."
+  },
+  {
+    "id": "Izs07M5E",
+    "language": "zh-Hans",
+    "title": "LiXiangQi 推出迷你象棋",
+    "intro": "7×7 棋盘，每方十二子，兵卒从开局就能横走。现在可以在 LiXiangQi 上下迷你象棋了。",
+    "imageAlt": "红色、藏蓝和象牙白配色的迷你象棋海报，展示七乘七棋盘及两座九宫的交叉线。"
+  },
+  {
+    "id": "Izs07M5E",
+    "language": "vi",
+    "title": "Giới thiệu cờ tướng mini trên LiXiangQi",
+    "intro": "Mỗi bên mười hai quân trên bàn 7×7, tốt được đi ngang ngay từ đầu. Bạn đã có thể chơi cờ tướng mini trên LiXiangQi.",
+    "imageAlt": "Áp phích cờ tướng mini màu đỏ, xanh hải quân và trắng ngà, với bàn cờ bảy nhân bảy cùng các đường chéo trong hai cung."
+  },
+  {
+    "id": "XApFEJf7",
+    "language": "zh-Hans",
+    "title": "LiXiangQi 推出揭棋",
+    "intro": "开局时，大部分棋子都盖着。了解翻子与暗子被吃的规则，再和朋友或 PikaJieQi 下上一局。",
+    "imageAlt": "水墨风格的揭棋插画：象牙色纸面上摆着暗子和一枚已经翻开的红车。"
+  },
+  {
+    "id": "XApFEJf7",
+    "language": "vi",
+    "title": "Giới thiệu cờ úp trên LiXiangQi",
+    "intro": "Phần lớn quân của bạn bắt đầu trong trạng thái úp. Tìm hiểu cách lật quân và bắt quân chưa lật, rồi thử chơi với bạn bè hoặc PikaJieQi.",
+    "imageAlt": "Minh họa cờ úp theo lối tranh mực: các quân úp và một quân xe đỏ đã lật trên nền giấy ngà."
+  },
+  {
+    "id": "B0sJgBNB",
+    "language": "zh-Hans",
+    "title": "LiXiangQi 推出三国象棋",
+    "intro": "可以独自对战两个机器人，也可以和一位朋友加一个机器人，或与两位朋友一起下三人象棋。吃掉敌方将帅，就能接管整支军队。",
+    "imageAlt": "剪纸风格的蜀、吴、魏三方围绕分岔河流的插画；图中的疆域是象征性表现，并非地理地图或可对弈棋盘。"
+  },
+  {
+    "id": "B0sJgBNB",
+    "language": "vi",
+    "title": "Giới thiệu cờ Tam Quốc trên LiXiangQi",
+    "intro": "Chơi cờ tướng ba người với hai bot, với một người bạn và một bot, hoặc với hai người bạn. Bắt được tướng là tiếp quản cả đạo quân của đối phương.",
+    "imageAlt": "Tranh cắt giấy về Thục, Ngô và Ngụy quanh một dòng sông phân nhánh; các vùng đất mang tính tượng trưng, không phải bản đồ địa lý hay bàn cờ để chơi."
+  },
+  {
+    "id": "ks4dsSLm",
+    "language": "zh-Hans",
+    "title": "LiXiangQi 推出基本杀法题库",
+    "intro": "LiXiangQi 首批题库收录了 28,604 道基本杀法题，按杀法名称分类。这里介绍分类方式，以及一题多解是怎样处理的。",
+    "imageAlt": "黑色与朱红色木刻风格的骏马插画，配有一枚“馬”棋子和英文标题 Basic Kills（基本杀法）。"
+  },
+  {
+    "id": "ks4dsSLm",
+    "language": "vi",
+    "title": "Giới thiệu bài tập sát pháp cơ bản trên LiXiangQi",
+    "intro": "Đợt bài tập đầu tiên của LiXiangQi có 28,604 bài sát pháp cơ bản, chia theo các thế sát có tên. Bài viết giải thích cách phân loại và xử lý nhiều lời giải.",
+    "imageAlt": "Tranh ngựa kiểu khắc gỗ màu đen và đỏ son, với quân 馬 và dòng chữ Basic Kills, nghĩa là Sát pháp cơ bản."
+  }
+]
