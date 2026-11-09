@@ -38,14 +38,6 @@ partitioning rather than silently dropping entries.
   hashes, and retained rollback copies at
   `/opt/lixiangqi-beta-sitemap-20261109T015513Z`. Public homepage, training, video,
   explorer, stylesheet, crawler policy and private-page authentication checks passed.
-- Google Search Console accepted and processed the sitemap successfully and reported
-  **21 discovered pages**. Discovery is not confirmation that Google has indexed them.
-- Individual indexing requests were accepted for all three editions of Basic Kill
-  and Jieqi: six URLs. Google then displayed **Quota Exceeded** for all three Mini
-  Xiangqi editions. Fifteen individual requests remain outstanding: Mini Xiangqi,
-  Three Kingdoms, the first tournament, Manchu and Pikafish, each in three languages.
-  Resume those URLs after Google's quota resets; do not resubmit the six accepted
-  URLs. All 21 are already included in Google's successfully processed sitemap.
 - Full backend/integration tests and a Linux rebuild were not rerun for this narrow
   sitemap change; the two blog suites, compilation and live checks are the validation
   performed here. No commit or push was made.
@@ -60,5 +52,5 @@ none of its gameplay, puzzle, account or board contracts. No app release is need
 
 The reconciliation scanner was run for both siblings. This review covers only the
 sitemap files below, not other concurrent changes; no broad checkpoint was advanced.
-The source fingerprints and Google request outcomes are recorded in
-`BLOG_INDEXING_STATUS.json`.
+Account-specific Search Console outcomes and submission records are kept privately
+under the Git-ignored `blog/private-operations/` directory. They must not be committed.

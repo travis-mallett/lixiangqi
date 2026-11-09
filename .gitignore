@@ -32,6 +32,8 @@ logs/
 /public/css/
 /public/json/
 /blog/*
+# Search Console operational records are private, including the former location.
+/doc/BLOG_INDEXING_STATUS.json
 !/blog/AGENTS.md
 !/blog/WRITING_GUIDE.md
 !/blog/translations/

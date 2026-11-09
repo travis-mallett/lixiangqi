@@ -5,7 +5,34 @@ import { boardPresentation, threeKingdoms } from '../src/definitions';
 import { BoardFeedback } from '../src/feedback';
 import type { BoardTransition } from '../src/types';
 
-test('shared feedback waits for arrival, synchronizes paired effects and cancels stale pending events', async () => {
+test('preloads enabled artwork once across boards and respects reduced motion', () => {
+  const root = document.createElement('div');
+  const presentation = boardPresentation('replay', 'red');
+  const prefix = '/feedback-preload-test/';
+  const feedback = new BoardFeedback(root, { assetUrl: path => prefix + path });
+  const reduced = new BoardFeedback(root, {
+    assetUrl: path => '/reduced-preload-test/' + path,
+    reducedMotion: () => true,
+  });
+  try {
+    feedback.prepare({ ...presentation, feedback: { audio: false, effects: [] } });
+    assert.equal(document.head.querySelectorAll(`link[href^="${prefix}"]`).length, 0);
+    feedback.prepare(presentation);
+    new BoardFeedback(root, { assetUrl: path => prefix + path }).prepare(presentation);
+    assert.equal(
+      document.head.querySelectorAll(`link[rel="preload"][as="image"][href^="${prefix}"]`).length,
+      3,
+    );
+    reduced.prepare(presentation);
+    assert.equal(document.head.querySelectorAll('link[href^="/reduced-preload-test/"]').length, 0);
+  } finally {
+    feedback.destroy();
+    reduced.destroy();
+    document.head.querySelectorAll(`link[href^="${prefix}"]`).forEach(link => link.remove());
+  }
+});
+
+test('shared feedback starts during travel, synchronizes paired effects and clears on navigation', async () => {
   const root = document.createElement('div');
   document.body.append(root);
   let sounds = 0;
@@ -23,8 +50,8 @@ test('shared feedback waits for arrival, synchronizes paired effects and cancels
     motion.className = 'xiangqi-motion-piece';
     root.append(motion);
     feedback.present(transition, presentation, threeKingdoms.geometry);
-    assert.equal(root.querySelectorAll('.xiangqi-board-animation__image').length, 0);
-    assert.equal(sounds, 0);
+    assert.equal(root.querySelectorAll('.xiangqi-board-animation__image').length, 2);
+    assert.equal(sounds, 1);
     motion.remove();
     await frame();
     assert.equal(root.querySelectorAll('.xiangqi-board-animation__image').length, 2);
@@ -33,11 +60,11 @@ test('shared feedback waits for arrival, synchronizes paired effects and cancels
     assert.equal(sounds, 1);
     root.append(motion);
     feedback.present({ ...transition, id: 'move2' }, presentation, threeKingdoms.geometry);
-    assert.equal(root.querySelectorAll('.xiangqi-board-animation__image').length, 0);
+    assert.equal(root.querySelectorAll('.xiangqi-board-animation__image').length, 2);
     feedback.present({ kind: 'jump' }, presentation, threeKingdoms.geometry);
     motion.remove();
     await frame();
-    assert.equal(sounds, 1);
+    assert.equal(sounds, 2);
     assert.equal(root.querySelectorAll('.xiangqi-board-animation__image').length, 0);
   } finally {
     feedback.destroy();

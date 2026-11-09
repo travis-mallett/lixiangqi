@@ -68,6 +68,7 @@ export class RectangularBoardView {
     this.presentation = options.presentation;
     this.interaction = options.interaction;
     this.feedback = new BoardFeedback(element, options.services);
+    this.feedback.prepare(options.presentation);
     element.classList.add('cg-wrap', 'lixiangqi-board');
     element.classList.toggle('xiangqi9x10', this.definition.id === 'xiangqi');
     element.dataset.boardDefinition = this.definition.id;
@@ -238,6 +239,7 @@ export class RectangularBoardView {
     if (JSON.stringify(presentation) === JSON.stringify(this.presentation)) return;
     const coordinatesChanged = presentation.coordinates !== this.presentation.coordinates;
     this.presentation = presentation;
+    this.feedback.prepare(presentation);
     this.enableRendererCapabilities();
     this.feedback.clear();
     this.renderer.set(this.presentationConfig());

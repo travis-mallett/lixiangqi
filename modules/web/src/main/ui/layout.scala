@@ -292,7 +292,7 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
         )
 
     private val siteNameFrag: Frag =
-      if siteName == "lixiangqi.org" then frag("lixiangqi")
+      if siteName == "lixiangqi.org" || siteName == "Lixiangqi" then frag("lixiangqi")
       else frag(siteName)
 
     def apply(

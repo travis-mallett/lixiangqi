@@ -175,7 +175,8 @@ final class Signup(
                                     data.email,
                                     blind = blind,
                                     mustConfirmEmail = mustConfirm.value,
-                                    externalIdentity = externalIdentity.map(_.key)
+                                    externalIdentity = externalIdentity.map(_.key),
+                                    flag = data.country.profileFlag
                                   ))
                                   .orFail(s"No user could be created for ${data.username}")
                                   .addEffect: user =>

@@ -31,12 +31,6 @@ body:not(.piece-images-ready) .lixiangqi-board :is(cg-board, .board-surface) .xi
 }
 
 .lixiangqi-board.cg-static-preview {
-  // Static diagrams retain their contact shadows without reserving a layer per piece/shadow.
-  .xiangqi-piece-shadow,
-  .xiangqi-motion-shadow-contact {
-    will-change: auto;
-  }
-
   // A still diagram shows the resting marker, never a moment of its sweep.
   .xiangqi-last-move-highlight {
     animation: none;
@@ -51,6 +45,19 @@ body:not(.piece-images-ready) .lixiangqi-board :is(cg-board, .board-surface) .xi
   container-type: inline-size;
 
   --board-cell-size: calc(100cqw * var(--board-layout-width, 1) / var(--board-columns, 9));
+
+  // Scroll a resting board as one composited surface. Reserving separate layers
+  // for every face and shadow makes multi-board pages costly to raster and lets
+  // their tiles become visible independently during fast scrolling. WAAPI still
+  // promotes the few pieces that are actually moving.
+  cg-board,
+  .board-surface {
+    will-change: transform;
+  }
+
+  :is(cg-board, .board-surface) > piece {
+    will-change: auto;
+  }
 
   // Theme artwork and the renderer share the same inset cell rectangle.
   cg-container {
@@ -103,7 +110,7 @@ body:not(.piece-images-ready) .lixiangqi-board :is(cg-board, .board-surface) .xi
   .xiangqi-move-dest::after,
   .board-marker.last-move-destination.xiangqi-motion-underlay::before,
   .board-marker.last-move-destination.xiangqi-motion-underlay::after,
-  square.check::after {
+  piece > .xiangqi-check-halo {
     scale: var(--board-piece-scale, 1);
   }
 
@@ -152,7 +159,6 @@ body:not(.piece-images-ready) .lixiangqi-board :is(cg-board, .board-surface) .xi
     height: calc(100% * var(--board-layout-height, 1) / var(--board-rows, 10));
     z-index: 0;
     pointer-events: none;
-    will-change: transform;
 
     &.fading {
       opacity: 0.5;
@@ -256,7 +262,6 @@ body:not(.piece-images-ready) .lixiangqi-board :is(cg-board, .board-surface) .xi
     background-repeat: no-repeat;
     background-size: 100% 100%;
     pointer-events: none;
-    will-change: opacity;
   }
 
   .xiangqi-motion-shadow-contact {
@@ -395,27 +400,29 @@ body:not(.piece-images-ready) .lixiangqi-board :is(cg-board, .board-surface) .xi
         animation: xiangqi-last-move-breathe $xiangqi-last-move-cycle ease-in-out infinite;
       }
     }
+  }
 
-    &.check {
-      z-index: $z-cg-below-pieces-1;
-      background: none;
+  // The backend may still mark checked squares for its input reconciliation.
+  // Only the piece-owned halo paints check feedback.
+  square.check {
+    background: none;
+  }
 
-      &::after {
-        content: '';
-        position: absolute;
-        inset: -2%;
-        border-radius: 50%;
-        background: radial-gradient(
-          circle,
-          rgb(255 0 0 / 0.96) 0 58%,
-          rgb(255 0 0 / 0.86) 61%,
-          rgb(255 0 0 / 0.6) 65%,
-          rgb(255 0 0 / 0.32) 68%,
-          rgb(255 0 0 / 0.12) 71%,
-          transparent 74%
-        );
-      }
-    }
+  .xiangqi-check-halo {
+    position: absolute;
+    z-index: 0;
+    inset: -2%;
+    border-radius: 50%;
+    pointer-events: none;
+    background: radial-gradient(
+      circle,
+      rgb(255 0 0 / 0.96) 0 58%,
+      rgb(255 0 0 / 0.86) 61%,
+      rgb(255 0 0 / 0.6) 65%,
+      rgb(255 0 0 / 0.32) 68%,
+      rgb(255 0 0 / 0.12) 71%,
+      transparent 74%
+    );
   }
 
   // Selection feedback belongs to the piece-lift system. Xiangqi therefore

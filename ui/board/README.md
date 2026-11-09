@@ -27,6 +27,18 @@ Live game / study / puzzle / lessons / editor / preview / shared viewer
 
 The asset build rejects missing faces, backs, supported geometry, or effect files. It also rejects direct application imports of the private backend. Add a supported definition only when every accepted theme covers it. Theme changes automatically reach all consumers and public embeds through the normal asset build and deployment.
 
+Resting faces and contact shadows share the board's compositor surface. Do not reserve
+GPU layers per idle piece or shadow; multi-board pages otherwise accumulate hundreds
+of independently rasterized layers. Active WAAPI effects retain compositor acceleration
+and share an explicit document-timeline start time with their shadow companions.
+Contact shadows stay below all faces to preserve overlap and board-edge clipping.
+Check halos belong to the piece's face stack, including lift, travel and drag; they
+never paint at a fixed square beneath a moving general. Cleanup moves the halo back
+to the resting piece and reconciliation removes it from captured or reused nodes.
+`tests/board-compositing.spec.ts` verifies rapid playback/scrolling in real browsers
+and bounds idle Chromium layer growth. `BOARD_RENDER_CSS` can select a saved build
+for a like-for-like CSS layer-count comparison.
+
 `lib/board` is the website adapter: it resolves account preferences, supplies site assets/audio, and owns page resize integration. `@lixiangqi/viewer` owns replay controls, variations, comments, and the embeddable replay presentation. `@lixiangqi/explorer` owns the shared opening database controller and view. These responsibilities stay outside the renderer.
 
 ## Board and piece artwork requirements

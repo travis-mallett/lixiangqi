@@ -42,7 +42,6 @@ export function mountRoom(
   };
   window.addEventListener('resize', resize);
   pubsub.on('zen', toggleZenMode);
-  site.sound.preloadBoardSounds();
   menuHover();
   return {
     redraw,

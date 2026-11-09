@@ -3,6 +3,26 @@ import type { MotionHost } from './types';
 
 const namespace = 'http://www.w3.org/2000/svg';
 
+/** Check belongs to the visible piece, including its lifted face, never a board square. */
+export function syncCheckPresentation(host: MotionHost): void {
+  for (const element of host.surface.children) {
+    if (element.tagName !== 'PIECE') continue;
+    const root = element as HTMLElement;
+    let halo = root.querySelector<HTMLElement>('.xiangqi-check-halo');
+    const key = host.key(root);
+    if (!host.checked?.includes(key) || host.findPiece(key) !== root) {
+      halo?.remove();
+      continue;
+    }
+    if (!halo) {
+      halo = span('xiangqi-check-halo');
+      halo.setAttribute('aria-hidden', 'true');
+    }
+    const face = root.querySelector('.xiangqi-motion-stack') ?? root;
+    if (halo.parentElement !== face) face.prepend(halo);
+  }
+}
+
 /** One origin, destination and connector implementation for every board topology. */
 export function syncIndicators(host: MotionHost): void {
   const surface = host.surface;
@@ -27,7 +47,7 @@ export function syncIndicators(host: MotionHost): void {
     }
     marker.dataset.location = location;
     const point = host.point(location);
-    marker.style.transform = `translate3d(${point[0]}px,${point[1]}px,0)`;
+    marker.style.transform = `translate(${point[0]}px,${point[1]}px)`;
     marker.style.width = `${size[0]}px`;
     marker.style.height = `${size[1]}px`;
     if (!host.animating) marker.classList.remove('xiangqi-motion-underlay');

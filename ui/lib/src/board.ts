@@ -121,6 +121,7 @@ export function createXiangqiBoard(
   interaction: BoardInteraction = { mode: 'display' },
   services: BoardServices = websiteBoardServices(),
 ): BoardView {
+  if (presentation.feedback.audio) site.sound?.preloadBoardSounds?.();
   const board = createBoard(element, {
     definition: boardDefinition(position.board ?? 'xiangqi'),
     position,

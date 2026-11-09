@@ -5651,6 +5651,10 @@ interface I18n {
     signInWithProvider: I18nFormat;
     /** Register */
     signUp: string;
+    /** Opt out */
+    signupCountryOptOut: string;
+    /** Add your country and flag to your profile, or choose “Opt out”. */
+    signupCountryRequired: string;
     /** We will only send you emails about your account and never share your email. */
     signupEmailPromise: string;
     /** Register to join or host a simul */

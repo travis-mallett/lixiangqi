@@ -53,6 +53,7 @@ export class GraphBoardView implements BoardView {
     this.presentation = options.presentation;
     this.interaction = options.interaction;
     this.feedback = new BoardFeedback(this.surface, options.services);
+    this.feedback.prepare(options.presentation);
     element.classList.add('lixiangqi-board', 'graph-board');
     element.dataset.boardDefinition = options.definition.id;
     element.style.setProperty('--board-aspect-ratio', String(this.geometry.width / this.geometry.height));
@@ -165,6 +166,7 @@ export class GraphBoardView implements BoardView {
     graphPoint(this.geometry, this.locations.keys().next().value!, presentation.perspective);
     this.pieces.reset();
     this.presentation = presentation;
+    this.feedback.prepare(presentation);
     this.element.classList.toggle('cg-static-preview', presentation.motion.duration === 0);
     this.cancelInput();
     this.feedback.clear();

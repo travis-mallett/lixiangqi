@@ -13,6 +13,7 @@ import {
   destinationMarker,
   syncLastMovePresentation,
   clearLastMovePresentation,
+  syncCheckPresentation,
 } from './indicators';
 // Extracted from LiXiangQi's maintained ChessgroundX motion patch.
 // Geometry, input and DOM reconciliation belong to the renderer adapters.
@@ -245,6 +246,7 @@ export function syncXiangqiMotion(state: MotionHost): void {
   prewarmDepthColors(state);
   syncIndicators(state);
   syncLastMovePresentation(state);
+  syncCheckPresentation(state);
   syncXiangqiShadows(state);
 
   const runtime = runtimeFor(state);
@@ -563,6 +565,8 @@ function activatePiece(state: MotionHost, root: HTMLElement, key: string): Activ
   stack.append(rim, face);
   camera.append(stack);
   root.append(airborneShadow, camera);
+  const halo = root.querySelector('.xiangqi-check-halo');
+  if (halo) stack.prepend(halo);
   root.style.setProperty('--xiangqi-piece-perspective', `${cameraDistance}px`);
   root.classList.add('xiangqi-motion-piece');
 
@@ -594,6 +598,8 @@ function cleanupActive(runtime: MotionRuntime, active: ActivePiece): void {
   active.root.style.removeProperty('--xiangqi-piece-perspective');
   active.root.style.removeProperty('--xiangqi-piece-depth-color');
   active.layers.airborneShadow.remove();
+  const halo = active.layers.stack.querySelector('.xiangqi-check-halo');
+  if (halo) active.root.prepend(halo);
   active.layers.stack.parentElement?.remove();
 }
 
@@ -631,6 +637,9 @@ function animate(
   duration: number,
   easing = 'linear',
 ): Promise<void> {
+  // Companion effects must use the same timeline origin, even when the browser
+  // resolves compositor-ready promises on different frames.
+  const startTime = active?.phaseStart ?? element.ownerDocument.timeline?.currentTime;
   const shadow = element.tagName === 'PIECE' ? contactShadow(element as HTMLElement) : undefined;
   if (shadow) {
     // Mirror board-space travel/fading, while contact opacity remains an
@@ -638,7 +647,7 @@ function animate(
     void animate(runtime, active, shadow, keyframes, duration, easing);
   }
   const animation = element.animate(keyframes, { duration, easing, fill: 'forwards' });
-  if (active?.phaseStart !== undefined) animation.startTime = active.phaseStart;
+  if (typeof startTime === 'number') animation.startTime = startTime;
   runtime.animations.add(animation);
   active?.animations.add(animation);
   return animation.finished.then(() => undefined).catch(() => undefined);

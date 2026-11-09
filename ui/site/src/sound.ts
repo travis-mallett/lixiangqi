@@ -21,6 +21,7 @@ class SoundService implements SoundI {
   ctxPromise: Promise<AudioContext>;
   listeners = new Set<SoundListener>();
   sounds = new Map<Path, Sound>(); // All loaded sounds and their instances
+  private readonly loading = new Map<Path, Promise<Sound>>();
   paths = new Map<Name, Path>(); // sound names to paths
   soundThrottles = new Map<Name, (volume: number) => void>();
   soundSet = document.body.dataset.soundSet!;
@@ -71,7 +72,18 @@ class SoundService implements SoundI {
     else path = this.paths.get(name) ?? this.resolvePath(name);
     if (!path) return;
     if (this.sounds.has(path)) return this.sounds.get(path);
+    const pending = this.loading.get(path);
+    if (pending) return pending;
+    const loading = this.loadPath(ctx, path);
+    this.loading.set(path, loading);
+    try {
+      return await loading;
+    } finally {
+      this.loading.delete(path);
+    }
+  }
 
+  private async loadPath(ctx: AudioContext, path: Path): Promise<Sound> {
     const result = await fetch(path);
     if (!result.ok) throw new Error(`${path} failed ${result.status}`);
 
@@ -115,18 +127,10 @@ class SoundService implements SoundI {
     if (!(await this.resumeWithTest())) return;
 
     const outputVolume = this.getVolume() * volume;
-    await new Promise<void>(resolve => {
-      const start = () => {
-        const playback = [
-          spoken?.play(outputVolume),
-          effect?.play(outputVolume * CHECKMATE_EFFECT_VOLUME),
-        ].filter((promise): promise is Promise<void> => promise !== undefined);
-        Promise.allSettled(playback).then(() => resolve());
-      };
-
-      if (document.visibilityState === 'visible') window.requestAnimationFrame(start);
-      else start();
-    });
+    await Promise.allSettled([
+      spoken?.play(outputVolume),
+      effect?.play(outputVolume * CHECKMATE_EFFECT_VOLUME),
+    ]);
   }
 
   throttled = (name: Name, volume: number): void => {
@@ -294,11 +298,13 @@ class SoundService implements SoundI {
   };
 
   preloadBoardSounds() {
-    for (const name of ['move', 'genericNotify']) this.load(name);
+    if (!this.effectsEnabled()) return;
+    const preload = (name: string, path?: string) => void this.load(name, path).catch(() => {});
+    for (const name of ['move', 'genericNotify']) preload(name);
     if (this.isVoiceSoundEnabled()) {
-      for (const name of ['capture', 'check', 'checkmate']) this.load(name);
+      for (const name of ['capture', 'check', 'checkmate']) preload(name);
     }
-    this.load(CHECKMATE_EFFECT_NAME, site.asset.url(CHECKMATE_EFFECT_PATH));
+    preload(CHECKMATE_EFFECT_NAME, site.asset.url(CHECKMATE_EFFECT_PATH));
   }
 
   async resumeWithTest(): Promise<boolean> {

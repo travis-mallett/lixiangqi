@@ -1299,4 +1299,6 @@ Leave empty to start games from the normal initial position.</string>
   <string name="editorPiece_chariot">Chariot</string>
   <string name="editorPiece_cannon">Cannon</string>
   <string name="editorPiece_soldier">Soldier</string>
+    <string name="signupCountryRequired">Add your country and flag to your profile, or choose “Opt out”.</string>
+    <string name="signupCountryOptOut">Opt out</string>
 </resources>

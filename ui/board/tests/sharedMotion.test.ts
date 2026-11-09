@@ -116,6 +116,52 @@ function mount(definition: BoardDefinition, reducedMotion = false) {
 }
 
 for (const definition of [standardXiangqi, miniXiangqi, threeKingdoms]) {
+  test(`${definition.id}: check stays inside the face through interrupted travel and selection`, async () => {
+    const { board, before, after, from, to } = mount(definition);
+    const general = { face: 'up', participant: 'red', role: 'general' } as const;
+    const checkedBefore = { ...before, pieces: new Map([[from, general]]), checked: [from] };
+    const checkedAfter = { ...after, pieces: new Map([[to, general]]), checked: [to] };
+    board.display(checkedBefore, { kind: 'jump' });
+    await tick();
+    const verify = (lifted: boolean) => {
+      const halos = board.element.querySelectorAll('.xiangqi-check-halo');
+      assert.equal(halos.length, 1);
+      assert.equal(halos[0].parentElement?.classList.contains('xiangqi-motion-stack'), lifted);
+      assert.ok(halos[0].closest('piece:not(.fading)'));
+    };
+    verify(false);
+    for (let i = 0; i < 12; i++) {
+      board.display(i % 2 ? checkedBefore : checkedAfter, { kind: i % 2 ? 'backward' : 'forward' });
+      verify(i % 2 === 0);
+    }
+    await settle();
+    verify(false);
+    board.setInteraction({ mode: 'play', participant: 'red', destinations: new Map([[from, [to]]]) });
+    board.select(from);
+    await tick();
+    verify(true);
+    board.display({ ...checkedAfter, checked: [] }, { kind: 'forward' });
+    assert.equal(board.element.querySelectorAll('.xiangqi-check-halo').length, 0);
+    board.display(checkedBefore, { kind: 'jump' });
+    await tick();
+    board.setPresentation({ ...board.getPresentation(), highlight: false });
+    await tick();
+    assert.equal(board.element.querySelectorAll('.xiangqi-check-halo').length, 0);
+  });
+
+  test(`${definition.id}: captured and missing pieces cannot retain check halos`, async () => {
+    const { board, before, after, from, to } = mount(definition);
+    board.display({ ...before, checked: [to] }, { kind: 'jump' });
+    await tick();
+    assert.equal(board.element.querySelectorAll('.xiangqi-check-halo').length, 1);
+    board.display({ ...after, checked: [to] }, { kind: 'forward' });
+    assert.equal(board.element.querySelectorAll('.fading .xiangqi-check-halo').length, 0);
+    assert.equal(board.element.querySelectorAll('piece:not(.fading) .xiangqi-check-halo').length, 1);
+    board.display({ ...after, pieces: new Map(), checked: [from, to] }, { kind: 'jump' });
+    await tick();
+    assert.equal(board.element.querySelectorAll('.xiangqi-check-halo').length, 0);
+  });
+
   test(`${definition.id}: capture uses shared lift, travel, land and paper connector timeline`, async () => {
     const { board, after, cues } = mount(definition);
     board.display(after, { kind: 'forward', id: 'move', effects: ['capture'] });

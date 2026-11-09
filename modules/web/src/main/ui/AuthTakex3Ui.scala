@@ -9,7 +9,7 @@ import lila.core.security.TurnstilePublicConfig
 import lila.ui.*
 import lila.ui.ScalatagsTemplate.{ *, given }
 
-final class AuthTakex3Ui(helpers: Helpers):
+final class AuthTakex3Ui(helpers: Helpers, flags: lila.core.user.FlagApi):
   import helpers.{ *, given }
 
   private val openAppLichessLoginUrl =
@@ -183,6 +183,7 @@ final class AuthTakex3Ui(helpers: Helpers):
                 clearFieldButton
               ),
             input(id := "signup-fp-input", name := "fp", tpe := "hidden"),
+            SignupCountryUi(helpers, flags)(form),
             hiddenAcceptedAgreements,
             simple.not.option(turnstile.widget(hidden = true)),
             turnstile.submit("Create account"),

@@ -340,3 +340,24 @@ $auth-input-bg: rgb(26 22 16 / 1);
   text-align: center;
   margin: 1.5rem 0 0;
 }
+
+.signup-country {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 1rem;
+
+  > .form-group {
+    flex: 1 1 12rem;
+    min-width: 0;
+  }
+
+  &__opt-out {
+    flex: 0 1 auto;
+  }
+
+  > .error {
+    flex-basis: 100%;
+    margin-bottom: 1rem;
+  }
+}

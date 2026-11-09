@@ -26,10 +26,10 @@ val dgt = lila.web.ui.DgtUi(helpers)
 val relation = lila.relation.ui.RelationUi(helpers)
 
 val auth: lila.web.ui.AuthUi =
-  lila.web.ui.AuthUi(helpers)(() => env.security.externalLogin.providers.map(p => p.id -> p.name))
+  lila.web.ui.AuthUi(helpers, flagApi)(() => env.security.externalLogin.providers.map(p => p.id -> p.name))
 lazy val externalAuth: lila.security.ui.ExternalAuthUi =
   lila.security.ui.ExternalAuthUi(helpers)(account.ui.AccountPage)
-val authTakex3 = lila.web.ui.AuthTakex3Ui(helpers)
+val authTakex3 = lila.web.ui.AuthTakex3Ui(helpers, flagApi)
 
 object oAuth:
   val token = lila.oauth.ui.TokenUi(helpers)(account.ui.AccountPage, env.mode)

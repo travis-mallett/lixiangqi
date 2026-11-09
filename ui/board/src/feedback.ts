@@ -2,6 +2,7 @@ import { boardAssets } from './catalog';
 import { feedbackLayout } from './feedbackLayout';
 import type { BoardEffect, BoardPresentation, BoardServices, BoardTransition, GraphGeometry } from './types';
 const images: Partial<Record<BoardEffect, { path: string; duration: number }>> = boardAssets.effects;
+const preloadedImages = new WeakMap<Document, Set<string>>();
 
 /** Feedback is scoped to a board; displaying a position never implicitly announces it. */
 export class BoardFeedback {
@@ -12,26 +13,38 @@ export class BoardFeedback {
   private readonly announcedEffects = new Set<BoardEffect>();
   private sequence = 0;
   private destroyed = false;
-  private pendingFrame?: number;
 
   constructor(
     private readonly root: HTMLElement,
     private readonly services: BoardServices,
   ) {}
 
+  prepare(presentation: BoardPresentation): void {
+    if (this.destroyed || this.services.reducedMotion?.()) return;
+    const document = this.root.ownerDocument;
+    let loaded = preloadedImages.get(document);
+    if (!loaded) preloadedImages.set(document, (loaded = new Set()));
+    for (const effect of presentation.feedback.effects) {
+      const image = images[effect];
+      if (!image) continue;
+      const url = this.services.assetUrl(image.path);
+      if (loaded.has(url)) continue;
+      loaded.add(url);
+      // Warm the HTTP cache without starting an animated image offscreen.
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.setAttribute('as', 'image');
+      link.href = url;
+      link.onerror = () => {
+        loaded.delete(url);
+        link.remove();
+      };
+      document.head.append(link);
+    }
+  }
+
   present(transition: BoardTransition, presentation: BoardPresentation, geometry?: GraphGeometry): void {
     if (this.destroyed) return;
-    if (this.pendingFrame !== undefined) cancelAnimationFrame(this.pendingFrame);
-    this.pendingFrame = undefined;
-    if (
-      geometry?.riverAnchors &&
-      transition.kind === 'forward' &&
-      this.root.querySelector('.xiangqi-motion-piece:not(.xiangqi-motion-held)')
-    ) {
-      this.clear();
-      this.pendingFrame = requestAnimationFrame(() => this.present(transition, presentation, geometry));
-      return;
-    }
     if (!['forward', 'backward', 'confirmation'].includes(transition.kind)) {
       this.clear();
       this.lastTransition = undefined;
@@ -118,8 +131,6 @@ export class BoardFeedback {
   }
 
   clear(): void {
-    if (this.pendingFrame !== undefined) cancelAnimationFrame(this.pendingFrame);
-    this.pendingFrame = undefined;
     if (this.timeout !== undefined) clearTimeout(this.timeout);
     this.timeout = undefined;
     this.overlay?.remove();

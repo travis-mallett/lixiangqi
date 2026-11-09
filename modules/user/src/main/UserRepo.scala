@@ -260,12 +260,14 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
       mustConfirmEmail: Boolean,
       lang: Option[LangTag] = None,
       kid: KidMode = KidMode.No,
-      externalIdentity: Option[String] = None
+      externalIdentity: Option[String] = None,
+      flag: Option[lila.core.user.FlagCode] = None
   ): Fu[Option[User]] =
     exists(name).not.flatMapz:
       val doc = newUser(name, passwordHash, email, blind, mustConfirmEmail, lang, kid) ++
         ("len" -> BSONInteger(lila.core.UsernameRules.length(name.value))) ++
-        externalIdentity.fold($empty)(key => $doc("externalLogins" -> List(key)))
+        externalIdentity.fold($empty)(key => $doc("externalLogins" -> List(key))) ++
+        flag.fold($empty)(code => $doc(F.profile -> $doc("flag" -> code)))
       (coll.insert.one(doc) >> byId(name.id)).addEffect: created =>
         created.foreach: user =>
           lila.common.Bus.pub(

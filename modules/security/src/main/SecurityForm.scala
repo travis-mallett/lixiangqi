@@ -114,7 +114,8 @@ final class SecurityForm(
           "password" -> (if external then ignored("") else newPasswordField),
           "email" -> emailField,
           "agreement" -> agreement,
-          "fp" -> optional(nonEmptyText)
+          "fp" -> optional(nonEmptyText),
+          "country" -> signupCountryMapping
         )(SignupData.apply)(unapply)
           .verifying(PasswordCheck.errorSame, x => x.password != x.username.value)
 
@@ -256,10 +257,20 @@ object SecurityForm:
       password: String,
       email: EmailAddress,
       agreement: AgreementData,
-      fp: Option[String]
+      fp: Option[String],
+      country: SignupCountry = SignupCountry(None, false)
   ):
     def fingerPrint = FingerPrint.from(fp.filter(_.nonEmpty))
     def clearPassword = ClearPassword(password)
+
+  case class SignupCountry(flag: Option[lila.core.user.FlagCode], optOut: Boolean):
+    def profileFlag = if optOut then None else flag
+
+  val signupCountryMapping: Mapping[SignupCountry] = mapping(
+    "flag" -> optional(text.into[lila.core.user.FlagCode].verifying(lila.user.Flags.codeSet.contains)),
+    "optOut" -> boolean
+  )(SignupCountry.apply)(unapply)
+    .verifying("signupCountryRequired", c => c.flag.isDefined || c.optOut)
 
   case class PasswordReset(email: EmailAddress)
 

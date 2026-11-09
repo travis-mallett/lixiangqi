@@ -16,6 +16,7 @@ export interface MotionHost {
   readonly dragging: boolean;
   readonly highlight: boolean;
   readonly lastMove: readonly string[] | undefined;
+  readonly checked: readonly string[] | undefined;
   readonly animating: boolean;
   size(): Point;
   point(location: string): Point;

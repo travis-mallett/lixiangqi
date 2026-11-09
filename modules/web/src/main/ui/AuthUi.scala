@@ -9,7 +9,7 @@ import lila.core.misc.AuthCustomUi
 import lila.ui.*
 import lila.ui.ScalatagsTemplate.{ *, given }
 
-final class AuthUi(helpers: Helpers)(providers: () => List[(String, String)]):
+final class AuthUi(helpers: Helpers, flags: lila.core.user.FlagApi)(providers: () => List[(String, String)]):
   import helpers.{ *, given }
 
   private def addReferrer(url: String)(using referrer: Option[ValidReferrer]): String =
@@ -233,6 +233,7 @@ final class AuthUi(helpers: Helpers)(providers: () => List[(String, String)]):
                 )
               )
             ,
+            SignupCountryUi(helpers, flags)(form),
             agreement(form("agreement"), form.errors.exists(_.key.startsWith("agreement."))),
             simple.not.option(turnstile.widget(hidden = true)),
             turnstile.submit(trans.site.signUp()),

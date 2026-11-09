@@ -247,8 +247,6 @@ export default class AnalyseCtrl implements CevalHandler {
     this.explorer = new ExplorerCtrl(this, this.opts.explorer, this.explorer);
     this.gamePath = this.synthetic || this.ongoing ? undefined : treePath.fromNodeList(mainline);
     this.fork = new ForkCtrl(this);
-
-    site.sound.preloadBoardSounds();
   }
 
   get variantKey(): VariantKey {

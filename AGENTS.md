@@ -363,6 +363,13 @@ Console submissions. This applies even when editing or publishing through the
 website or API without changing files under `blog/`. The writing guide owns
 editorial style; the publishing workflow supplements it rather than replacing it.
 
+Writing an official post includes publishing all three language editions, solving
+the site's publishing CAPTCHA, adding the article to the homepage carousel,
+verifying the sitemap, and requesting Google indexing. Continue through these steps
+unless the user explicitly requests a draft or a publication hold. Keep Google
+Search Console account information and private operational records out of Git, as
+specified in the publishing workflow.
+
 ## Review standard
 
 For significant work, review more than whether the feature works or the code compiles.

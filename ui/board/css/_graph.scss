@@ -3,6 +3,10 @@
   width: 100%;
   aspect-ratio: var(--board-aspect-ratio);
 
+  // Rotated artwork and locations must share an undistorted coordinate system.
+  // Flex/grid rows may be taller than the board (for example, game history).
+  align-self: start;
+
   &__surface,
   &__artwork-frame,
   &__artwork,

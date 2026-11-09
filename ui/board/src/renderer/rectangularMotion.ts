@@ -46,6 +46,9 @@ function host(state: State): MotionHost {
     get lastMove() {
       return state.lastMove?.filter((key): key is Key => typeof key === 'string' && key !== 'a0');
     },
+    get checked() {
+      return state.highlight.check ? state.check : undefined;
+    },
     get animating() {
       return !!state.animation.current;
     },

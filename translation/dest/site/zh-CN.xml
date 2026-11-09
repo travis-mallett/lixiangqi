@@ -1011,4 +1011,6 @@
   <string name="miniXiangqiWinningText">将死或困毙对方均获胜。同一局面出现三次判和，但若只有一方连续将军，该方判负。双方各走五十步没有吃子也判和。</string>
   <string name="miniXiangqiRankExplanation">迷你象棋拥有独立等级，从迷1-1至迷9-4，分数门槛和计算方式与揭棋相同。等级分快速匹配每方十分钟，每步限时六十秒，每方前三步限时三十秒。</string>
   <string name="miniXiangqiLeaderboard">迷你象棋排行榜</string>
+    <string name="signupCountryRequired">请为个人资料添加国家或地区及旗帜，或选择“不提供”。</string>
+    <string name="signupCountryOptOut">不提供</string>
 </resources>

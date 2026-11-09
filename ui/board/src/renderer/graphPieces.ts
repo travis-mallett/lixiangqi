@@ -56,6 +56,9 @@ export class GraphPieces implements MotionHost {
   get lastMove(): readonly string[] | undefined {
     return this.state.position().lastMove;
   }
+  get checked(): readonly string[] | undefined {
+    return this.highlight ? this.state.position().checked : undefined;
+  }
   get animating(): boolean {
     return !!this.plan;
   }
@@ -167,7 +170,7 @@ export class GraphPieces implements MotionHost {
       }
       this.face(root, location);
       const point = this.point(this.plan?.moves.get(location) ?? location);
-      root.style.transform = `translate3d(${point[0]}px,${point[1]}px,0)`;
+      root.style.transform = `translate(${point[0]}px,${point[1]}px)`;
     }
     syncXiangqiMotion(this);
   }

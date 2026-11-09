@@ -39,12 +39,25 @@ authorship, comments, likes, and existing URLs.
    Vietnamese diacritics, Chinese text, long titles, captions, links, and boards.
    Verify article rendering, edition links, and sharing in existing mobile blog
    consumers as required by the repository's mobile reconciliation workflow.
+   Repeat the saved-content check after the final publish action: an editor's
+   appearance before submission is not proof that paragraph boundaries, emphasis,
+   captions, and links survived serialization.
 
 ## Publication and discovery checklist
 
-Honor the user's requested publication state. A drafting request does not authorize
-publication. When publishing is authorized, complete the following for all three
-editions. Report any incomplete edition; do not silently omit it or mark it reviewed.
+Writing an official blog post includes completing publication and discovery for all
+three editions by default. Proceed through review, solving the site's publishing
+CAPTCHA, publishing, adding one homepage carousel card, verifying sitemap inclusion,
+and requesting Google indexing without asking for renewed permission at each step.
+An explicit request for a draft, preview, review-only work, or a publication hold
+overrides this default. Report any incomplete edition or external blocker accurately.
+
+Keep Google Search Console account information and operational records out of Git.
+Do not commit account identities, property/account identifiers, credentials, tokens,
+verification secrets, authenticated screenshots, browser/session data, quota details,
+or submission receipts. Store necessary private records under the ignored
+`blog/private-operations/` directory and verify they are ignored before saving.
+Tracked documentation may describe the generic workflow and public sitemap/URLs.
 
 1. **Publish stable edition URLs.** Each published URL must directly return the
    correct language anonymously, without a language cookie or selector interaction.
@@ -77,7 +90,7 @@ editions. Report any incomplete edition; do not silently omit it or mark it revi
    create separate carousel cards solely for translations.
 7. **Request Google indexing.** Once each published edition passes the checks,
    use Google Search Console's URL Inspection tool to request indexing for its
-   canonical URL. Submit each new edition once. Record the URL, date, and whether
+   canonical URL. Submit each new edition once. Privately record the URL, date, and whether
    the request was accepted. If access is unavailable or quota is exhausted,
    report the outstanding URLs without delaying otherwise authorized publication.
    Never bypass access restrictions or repeatedly resubmit unchanged pages. An

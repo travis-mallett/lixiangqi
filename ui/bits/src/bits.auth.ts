@@ -3,6 +3,8 @@ import { addPasswordVisibilityToggleListener, spinnerHtml, alert } from 'lib/vie
 import turnstile from 'lib/view/turnstile';
 import * as xhr from 'lib/xhr';
 
+import { initSignupCountry } from './signupCountry';
+
 export function initModule(mode: 'login' | 'signup' | 'reset'): void {
   mode === 'login' ? loginStart() : mode === 'signup' ? signupStart() : resetStart();
 
@@ -85,6 +87,7 @@ function signupStart() {
   }, 300);
 
   initTextClear($form[0] as HTMLFormElement);
+  initSignupCountry($form[0] as HTMLFormElement);
 
   turnstile($form);
 

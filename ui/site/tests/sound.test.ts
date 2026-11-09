@@ -12,6 +12,47 @@ const { default: sound } = await import('../src/sound');
 
 const throttled = sound.throttled;
 
+test('preloading and first playback share one fetch and decode; failed loads can retry', async () => {
+  const fetch = globalThis.fetch;
+  const ctxPromise = sound.ctxPromise;
+  let requests = 0;
+  let decodes = 0;
+  let release!: () => void;
+  const gate = new Promise<void>(resolve => (release = resolve));
+  sound.ctxPromise = Promise.resolve({
+    decodeAudioData: async (_data: ArrayBuffer) => {
+      decodes++;
+      return {};
+    },
+    createGain: () => ({ connect() {} }),
+  } as unknown as AudioContext);
+  globalThis.fetch = async () => {
+    requests++;
+    await gate;
+    return new Response(new ArrayBuffer(1));
+  };
+  try {
+    const first = sound.load('test-cue', '/test-shared-sound');
+    const second = sound.load('test-cue', '/test-shared-sound');
+    release();
+    const loaded = await Promise.all([first, second]);
+    assert.equal(loaded[0], loaded[1]);
+    assert.equal(requests, 1);
+    assert.equal(decodes, 1);
+    globalThis.fetch = async () => new Response('', { status: 503 });
+    await assert.rejects(sound.load('test-retry', '/test-retry-sound'));
+    globalThis.fetch = async () => new Response(new ArrayBuffer(1));
+    assert.ok(await sound.load('test-retry', '/test-retry-sound'));
+  } finally {
+    globalThis.fetch = fetch;
+    sound.ctxPromise = ctxPromise;
+    sound.sounds.delete('/test-shared-sound');
+    sound.sounds.delete('/test-retry-sound');
+    sound.paths.delete('test-cue');
+    sound.paths.delete('test-retry');
+  }
+});
+
 afterEach(() => {
   sound.throttled = throttled;
 });
@@ -166,7 +207,7 @@ test('voice setting only suppresses capture, check, and spoken checkmate effects
   }
 });
 
-test('starts spoken checkmate and its dedicated audio effect together', async () => {
+test('starts both checkmate sounds without waiting for a rendering frame', async () => {
   const soundWasEnabled = sound.isSoundEnabled();
   const soundSet = sound.soundSet;
   const load = sound.load;
@@ -218,8 +259,8 @@ test('starts spoken checkmate and its dedicated audio effect together', async ()
     assert.deepEqual(
       started.map(({ name, synchronized }) => ({ name, synchronized })),
       [
-        { name: 'checkmate', synchronized: true },
-        { name: 'checkmateAnimationEffect', synchronized: true },
+        { name: 'checkmate', synchronized: false },
+        { name: 'checkmateAnimationEffect', synchronized: false },
       ],
     );
     assert.equal(started[1].volume, started[0].volume * 0.8);
