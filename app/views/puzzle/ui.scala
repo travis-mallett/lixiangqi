@@ -15,6 +15,5 @@ def embed(daily: DailyPuzzle.WithHtml)(using config: EmbedContext) =
       targetBlank,
       id := "daily-puzzle",
       cls := "embedded"
-    ),
-    chessgroundTag
+    )
   )

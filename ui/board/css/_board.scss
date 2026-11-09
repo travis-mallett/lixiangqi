@@ -50,7 +50,9 @@ body:not(.piece-images-ready) .lixiangqi-board :is(cg-board, .board-surface) .xi
   // for every face and shadow makes multi-board pages costly to raster and lets
   // their tiles become visible independently during fast scrolling. WAAPI still
   // promotes the few pieces that are actually moving.
-  cg-board,
+  // Coordinates and drawing layers are siblings of cg-board. Composite their
+  // container so pieces can still stack above coordinates and below drawings.
+  cg-container,
   .board-surface {
     will-change: transform;
   }

@@ -1,39 +1,16 @@
 // these statements are wrapped in an iife and injected into the html body
 // after the DOM as an inline <script>. no imports allowed here.
 
-if (!window.site) window.site = {} as Site;
-if (!window.site.load)
-  window.site.load = new Promise<void>(function (resolve) {
-    document.addEventListener('DOMContentLoaded', function () {
-      resolve();
-    });
-  });
-
 // Shared by full pages and minimal embeds, before any board module starts.
 // Keep the old set visible while loading a replacement; commit all its CSS
 // variables together only after every face and both shadow textures decode.
 if (!window.site.pieceImages) {
   const body = document.body;
-  const style = window.getComputedStyle(body);
-  const initial = Object.fromEntries(
-    ['red', 'black'].flatMap(color =>
-      ['soldier', 'elephant', 'horse', 'chariot', 'advisor', 'cannon', 'general'].map(role => {
-        const variable = `---${color}-${role}`;
-        return [variable, style.getPropertyValue(variable).trim()];
-      }),
-    ),
-  );
-  for (const color of ['red', 'black']) {
-    const variable = `--board-piece-back-${color}`;
-    initial[variable] = style.getPropertyValue(variable).trim();
-  }
-  const shadows = ['--xiangqi-rest-shadow-image', '--xiangqi-airborne-shadow-image'].map(variable =>
-    style.getPropertyValue(variable).trim(),
-  );
   const decoded = new Map<string, Promise<HTMLImageElement>>();
   let requested = '';
   let version = 0;
   let pending: Promise<void>;
+  let initialReady: Promise<void> | undefined;
 
   function decode(value: string): Promise<HTMLImageElement> {
     const source = /^url\((['"]?)(.*?)\1\)$/.exec(value)?.[2];
@@ -60,6 +37,10 @@ if (!window.site.pieceImages) {
     if (signature === requested) return pending;
     requested = signature;
     const current = ++version;
+    const style = window.getComputedStyle(body);
+    const shadows = ['--xiangqi-rest-shadow-image', '--xiangqi-airborne-shadow-image'].map(variable =>
+      style.getPropertyValue(variable).trim(),
+    );
     pending = Promise.all([...entries.map(([, value]) => value), ...shadows].filter(Boolean).map(decode))
       .then(() => {
         if (current !== version) return;
@@ -74,7 +55,25 @@ if (!window.site.pieceImages) {
     return pending;
   }
 
-  const ready = set(initial, body.dataset.pieceSet || '');
-  window.site.pieceImages = { ready, set };
-  void ready.catch(console.error);
+  window.site.pieceImages = {
+    get ready() {
+      if (initialReady) return initialReady;
+      if (pending) return (initialReady = pending);
+      const style = window.getComputedStyle(body);
+      const variables = ['red', 'black'].flatMap(color => [
+        ...['soldier', 'elephant', 'horse', 'chariot', 'advisor', 'cannon', 'general'].map(
+          role => `---${color}-${role}`,
+        ),
+        `--board-piece-back-${color}`,
+      ]);
+      return (initialReady = set(
+        Object.fromEntries(variables.map(key => [key, style.getPropertyValue(key).trim()])),
+        body.dataset.pieceSet || '',
+      ));
+    },
+    set,
+  };
+  // Static mini-boards can paint before their modules run. Other pages load no pieces
+  // until a board (including a dynamically opened profile preview) actually needs them.
+  if (document.querySelector('.cg-wrap')) void window.site.pieceImages.ready.catch(console.error);
 }

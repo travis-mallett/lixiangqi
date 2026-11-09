@@ -131,7 +131,7 @@ object home:
           ),
           div(cls := "lobby__center-rail")(
             st.section(cls := "lobby__standard", attr("aria-label") := "Standard Xiangqi")(
-              div(cls := "lobby__table"),
+              views.lobby.preload.table,
               currentGame
                 .map(bits.currentGameInfo)
                 .orElse(hasUnreadLichessMessage.option(bits.showUnreadLichessMessage))

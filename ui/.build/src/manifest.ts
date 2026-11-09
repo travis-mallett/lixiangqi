@@ -21,6 +21,23 @@ type SplitAsset = { hash?: string; path?: string; imports?: string[]; inline?: s
 export type Manifest = Record<string, SplitAsset>;
 export type ManifestUpdate = Partial<Omit<typeof manifest, 'dirty'>>;
 
+// CSS must use the same URLs as HTML preloads. The manifest owns this mapping;
+// filesystem links are only a storage optimization and may be copies on Windows.
+export async function assetHashes(): Promise<Record<string, string>> {
+  let previous: Record<string, string | SplitAsset> = {};
+  try {
+    previous = JSON.parse(await fs.promises.readFile(join(env.jsOutDir, 'manifest.json'), 'utf8')).hashed;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+  }
+  return Object.fromEntries(
+    Object.entries({ ...previous, ...manifest.hashed }).flatMap(([path, entry]) => {
+      const hash = typeof entry === 'string' ? entry : entry.hash;
+      return hash ? [[path, hash]] : [];
+    }),
+  );
+}
+
 export function stopManifest(clear = false): void {
   clearTimeout(writeTimer);
   if (clear) {
@@ -81,10 +98,9 @@ async function writeManifest() {
     .join(',');
   clientJs.push(`s.manifest={\ncss:{${cssLines}},\njs:{${jsLines}},\nhashed:{${hashedLines}}\n};`);
 
-  const hashable = clientJs.join('\n');
-  const hash = crypto.createHash('sha256').update(hashable).digest('hex').slice(0, 8);
-
-  const clientManifest = hashable + `\ns.info.date='${new Date().toISOString().split('.')[0] + '+00:00'}';\n`;
+  const clientManifest =
+    clientJs.join('\n') + `\ns.info.date='${new Date().toISOString().split('.')[0] + '+00:00'}';\n`;
+  const hash = crypto.createHash('sha256').update(clientManifest).digest('hex').slice(0, 8);
   const serverManifest = JSON.stringify(
     {
       js: compactManifest({ manifest: { hash }, ...manifest.js, ...manifest.i18n }),

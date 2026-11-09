@@ -1,4 +1,4 @@
-import { init, classModule, attributesModule, eventListenersModule, propsModule } from 'snabbdom';
+import { init, toVNode, classModule, attributesModule, eventListenersModule, propsModule } from 'snabbdom';
 
 import { domDialog, type Dialog } from 'lib/view';
 
@@ -59,8 +59,7 @@ export default function main(opts: LobbyOpts) {
     lobbyOverlayDialog?.close('setup');
   };
 
-  opts.tableElement.innerHTML = '';
-  let tableVNode = patch(opts.tableElement, tableView(ctrl));
+  let tableVNode = patch(toVNode(opts.tableElement), tableView(ctrl));
   const centerRailElement = opts.tableElement.closest('.lobby__center-rail');
   syncHomepageRoomLayout();
 

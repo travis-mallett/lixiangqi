@@ -100,6 +100,29 @@ async function mount(page: Page) {
 }
 
 for (const width of [1440, 900, 390]) {
+  test(`coordinates paint below pieces at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 950 });
+    await mount(page);
+    await page.evaluate(() => window.populate());
+    // Hit testing reports actual paint order, including ancestor stacking contexts.
+    await page.addStyleTag({ content: 'coords, piece { pointer-events: auto !important; }' });
+    const orders = await page.evaluate(() => {
+      const board = window.boards[3].element;
+      board.scrollIntoView();
+      return ['top', 'bottom'].map(edge => {
+        const coords = board.querySelector(`coords.${edge}`)!;
+        const bounds = coords.getBoundingClientRect();
+        const stack = document.elementsFromPoint(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+        const pieceIndex = stack.findIndex(element => element.tagName === 'PIECE');
+        return { pieceIndex, coordsIndex: stack.indexOf(coords) };
+      });
+    });
+    for (const { pieceIndex, coordsIndex } of orders) {
+      expect(pieceIndex).toBeGreaterThanOrEqual(0);
+      expect(coordsIndex).toBeGreaterThan(pieceIndex);
+    }
+  });
+
   test(`pieces, check halos and shadows stay together at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 950 });
     await mount(page);

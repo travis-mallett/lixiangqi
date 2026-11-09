@@ -43,7 +43,6 @@ trait AssetFullHelper:
 
   def roundNvuiTag(using ctx: Context) = ctx.blind.option(Esm("round.nvui"))
   def cashTag: Frag = iifeModule("javascripts/vendor/cash.min.js")
-  def chessgroundTag: Frag = script(tpe := "module", src := assetUrl("npm/chessground.min.js"))
 
   def basicCsp(using ctx: Context): ContentSecurityPolicy =
     val sockets = socketDomains.map { x => s"wss://$x${(!ctx.req.secure).so(s" ws://$x")}" }

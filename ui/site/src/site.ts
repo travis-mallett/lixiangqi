@@ -13,7 +13,7 @@ import { unload, redirect, reload } from './reload';
 import sound from './sound';
 
 const site = window.site;
-// site.load is initialized in site.inline.ts (body script)
+// site.load is initialized by documentSetup in the head, after the stylesheets.
 // site.manifest is fetched
 // site.info, site.debug are populated by ui/build
 // site.quietMode is set elsewhere
@@ -23,7 +23,12 @@ site.displayLocale = displayLocale;
 site.blindMode = document.body.classList.contains('blind-mode');
 site.mousetrap = new Mousetrap(document);
 site.powertip = powertip;
-site.asset = assets;
+site.asset = {
+  ...assets,
+  get loadPieces() {
+    return site.pieceImages.ready;
+  },
+};
 site.unload = unload;
 site.redirect = redirect;
 site.reload = reload;

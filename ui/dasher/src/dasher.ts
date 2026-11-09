@@ -8,7 +8,7 @@ import { DasherCtrl } from './ctrl';
 const patch = initSnabbdom([classModule, attributesModule]);
 
 export function load(): Promise<DasherCtrl> {
-  return site.asset.loadEsm<DasherCtrl>('dasher');
+  return site.asset.loadEsm<DasherCtrl>('dasher', { css: 'dasher' });
 }
 
 export default async function initModule(): Promise<DasherCtrl> {

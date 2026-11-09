@@ -31,7 +31,5 @@ def embed(pov: Option[Pov], channelKey: Option[String])(using EmbedContext) =
       pov.fold[Frag](p(role := "status")(trans.site.noGameFound())) { p =>
         views.game.mini.noCtx(p, tv = true, channelKey)(targetBlank)
       }
-    ),
-    cashTag,
-    chessgroundTag
+    )
   )

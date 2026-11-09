@@ -1,6 +1,8 @@
 import { memoize } from 'lib';
 import { script as xhrScript } from 'lib/xhr';
 
+import { loadStylesheet } from './stylesheet';
+
 export const baseUrl = memoize(() => document.body.getAttribute('data-asset-url') || '');
 
 const assetVersion = memoize(() => document.body.getAttribute('data-asset-version'));
@@ -29,19 +31,8 @@ export const flairSrc = (flair: Flair) => url(`flair/img/${flair}.webp`, { pathV
 export const playerFederationSrc = (playerFederation: PlayerFederation) =>
   url(`images/federations/${playerFederation}.webp`, { pathVersion: '_____2' });
 
-export const loadCss = (href: string, key?: string): Promise<void> => {
-  return new Promise(resolve => {
-    href = href.startsWith('https:') ? href : url(href);
-    if (document.head.querySelector(`link[href="${href}"]`)) return resolve();
-
-    const el = document.createElement('link');
-    if (key) el.setAttribute('data-css-key', key);
-    el.rel = 'stylesheet';
-    el.href = href;
-    el.onload = () => resolve();
-    document.head.append(el);
-  });
-};
+export const loadCss = (href: string, key?: string): Promise<void> =>
+  loadStylesheet(/^https?:/.test(href) ? href : url(href), key);
 
 export const loadCssPath = async (key: string): Promise<void> => {
   const hash = site.manifest.css[key];
@@ -63,7 +54,10 @@ export const loadIife = (u: string, opts: AssetUrlOpts = {}): Promise<void> => {
 };
 
 export async function loadEsm<T>(name: string, opts: EsmModuleOpts = {}): Promise<T> {
-  const module = await import(url(opts.npm ? jsModule(name, 'npm/') : jsModule(name), opts));
+  const [module] = await Promise.all([
+    import(url(opts.npm ? jsModule(name, 'npm/') : jsModule(name), opts)),
+    opts.css ? loadCssPath(opts.css) : undefined,
+  ]);
   const initializer = module.initModule ?? module.default;
   return opts.npm && !opts.init ? initializer : initializer(opts.init);
 }
@@ -81,5 +75,3 @@ export const loadI18n = async (catalog: string) => {
   await import(document.body.dataset.i18nCatalog!);
   await import(url(`compiled/i18n/${catalog}.${window.site.manifest.i18n![catalog]}.js`));
 };
-
-export const loadPieces = window.site.pieceImages.ready;

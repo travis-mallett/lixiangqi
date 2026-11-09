@@ -17,7 +17,7 @@ const assets = (key: string): Record<string, string> =>
     ),
   );
 
-function fixture() {
+function fixture(hasBoard = true) {
   const root = new Map([
     ...Object.entries(assets('initial')),
     ['--xiangqi-rest-shadow-image', 'url("/rest.png")'],
@@ -41,7 +41,7 @@ function fixture() {
     }
   }
   const documentElement = { style: { getPropertyValue: (key: string) => root.get(key) ?? '' } };
-  const document = { body, documentElement, addEventListener() {} };
+  const document = { body, documentElement, addEventListener() {}, querySelector: () => hasBoard };
   const getComputedStyle = (element: unknown) => ({
     getPropertyValue: (key: string) =>
       (element === body ? values.get(key) : undefined) ?? root.get(key) ?? '',
@@ -57,6 +57,17 @@ function fixture() {
   };
   return { api: window.site.pieceImages, body, values, pending, resolve };
 }
+
+test('text-only pages load no board images until a board requests them', async () => {
+  const f = fixture(false);
+  assert.equal(f.pending.size, 0);
+  const ready = f.api.ready;
+  assert.equal(f.pending.size, 16);
+  assert.equal(f.api.ready, ready);
+  f.resolve();
+  await ready;
+  assert.equal(f.body.classList.has('piece-images-ready'), true);
+});
 
 test('initial pieces remain hidden until all faces and both shadows decode', async () => {
   const f = fixture();

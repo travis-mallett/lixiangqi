@@ -5,7 +5,7 @@ import { pubsub } from 'lib/pubsub';
 import { wsSend } from 'lib/socket';
 import { spinnerHtml } from 'lib/view';
 
-import { loadCssPath, loadEsm } from './asset';
+import { loadEsm } from './asset';
 
 export default function () {
   const top = document.getElementById('top')!;
@@ -73,8 +73,8 @@ export default function () {
     const load = function (data?: any) {
       if (instance) return;
       const $el = $('#challenge-app').html(initiatingHtml);
-      loadCssPath('challenge');
       instance = loadEsm('challenge', {
+        css: 'challenge',
         init: {
           el: $el[0],
           data,
@@ -109,8 +109,8 @@ export default function () {
     const load = (data?: any) => {
       if (instance) return;
       const $el = $('#notify-app').html(initiatingHtml);
-      loadCssPath('notify');
       instance = loadEsm('notify', {
+        css: 'notify',
         init: {
           el: $el.empty()[0],
           data,
@@ -157,10 +157,9 @@ export default function () {
 
   {
     // dasher
-    const load = memoize(() => loadEsm('dasher'));
+    const load = memoize(() => loadEsm('dasher', { css: 'dasher' }));
     $('#top .dasher .toggle').one('mouseover click', function (this: HTMLElement) {
       $(this).removeAttr('href');
-      loadCssPath('dasher');
       load();
     });
   }

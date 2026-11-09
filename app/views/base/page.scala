@@ -36,9 +36,6 @@ object page:
                   else lila.pref.UiThemes(uiTheme).colorScheme.key)
     )
 
-  private def boardPreload(using ctx: Context) =
-    imagePreload(assetUrl(s"images/board/${lila.pref.BoardThemes(ctx.pref.boardTheme).file}"))
-
   def boardStyle(zoomable: Boolean)(using ctx: Context) =
     val board = lila.pref.BoardThemes(ctx.pref.boardTheme)
     board.geometries.toList
@@ -91,6 +88,7 @@ object page:
           ctx.impersonatedBy.isDefined.option(cssTag("mod.impersonate")),
           ctx.blind.option(cssTag("bits.blind")),
           p.cssKeys.map(cssTag),
+          documentSetup(ctx.nonce),
           meta(
             content := p.openGraph.fold(trans.site.siteDescription.txt())(o => o.description),
             name := "description"
@@ -124,7 +122,6 @@ object page:
             )
           },
           fontsPreload,
-          boardPreload,
           manifests,
           p.withHrefLangs.map(hrefLangs),
           sitePreload(p.i18nModules, ctx.data.inquiry.isDefined.option(Esm("mod.inquiry")) :: allModules),
@@ -182,7 +179,6 @@ object page:
           style := boardStyle(p.flags(PageFlags.zoom))
         )(
           blindModeForm,
-          assetsMissingTroubleshooting,
           for in <- ctx.data.inquiry; me <- ctx.me yield views.mod.inquiryUi(in)(using ctx, me),
           ctx.me.ifTrue(ctx.impersonatedBy.isDefined).map { views.mod.ui.impersonate(_) },
           anonOnboarding.map: u =>

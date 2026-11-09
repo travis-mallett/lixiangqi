@@ -28,6 +28,7 @@ object embed:
           page.pieceSetImages.load(ctx.pieceSet, lila.pref.PieceSets.assets(ctx.pieceSet)),
           cssTag("lib.theme.embed"),
           cssKeys.map(cssTag),
+          page.ui.documentSetup(ctx.nonce.some),
           page.ui.lichessFontFaceCss,
           page.ui.scriptsPreload(modules.flatMap(_.map(_.key)))
         ),
@@ -86,11 +87,13 @@ object embed:
           page.pieceSetImages.load(ctx.pieceSet, lila.pref.PieceSets.assets(ctx.pieceSet)),
           cssTag("lib.theme.embed"),
           cssKeys.map(cssTag),
+          page.ui.documentSetup(ctx.nonce.some),
           page.ui.sitePreload(List[I18nModule.Selector](_.site, _.timeago) ++ i18nModules, allModules),
           page.ui.lichessFontFaceCss
         ),
         st.body(bodyModifiers)(
           body,
+          page.ui.inlineJs(ctx.nonce),
           page.ui.modulesInit(allModules, ctx.nonce.some),
           pageModule.map { mod => frag(jsonScript(mod.data)) }
         )

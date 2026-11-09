@@ -18,7 +18,7 @@ final class HttpFilter(
   private def logger = lila.log("http")
 
   def apply(handle: RequestHeader => Fu[Result])(req: RequestHeader): Fu[Result] =
-    if HTTPRequest.isAssets(req) then serveAssets(handle(req))
+    if HTTPRequest.isAssets(req) then serveAssets(req, handle(req))
     else
       val startTime = nowMillis
       redirectWrongDomain(req)
@@ -62,9 +62,11 @@ final class HttpFilter(
       lila.mon.http.mobileCount(actionName, m.version, m.userId.isDefined, m.osName).increment()
     result
 
-  private def serveAssets(res: Fu[Result]) =
-    res.dmap:
-      _.withHeaders(assetsHeaders*)
+  private def serveAssets(req: RequestHeader, res: Fu[Result]) =
+    res.dmap: result =>
+      result.withHeaders(
+        (assetsHeaders :+ (CACHE_CONTROL -> AssetCacheControl(req.path, result.header.status)))*
+      )
 
   private def redirectWrongDomain(req: RequestHeader): Option[Result] = {
     req.host != net.domain.value &&

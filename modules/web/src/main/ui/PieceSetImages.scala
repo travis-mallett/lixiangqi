@@ -16,9 +16,7 @@ final class PieceSetImages(assets: AssetFullHelper, shadows: List[(String, Strin
         val images = vars ++ shadows
         val css = s"<style>:root{"
           + images.map { (path, name) => s"$name:url(${assets.assetUrl(path)});" }.mkString
-          + "}</style>" + images.map { (path, _) =>
-            s"""<link rel="preload" as="image" href="${assets.assetUrl(path)}" />"""
-          }.mkString
+          + "}</style>"
         if images.exists { (path, _) => assets.manifest.hashed(path).isEmpty }
         then lila.log.system.error(s"$pieceSet manifest incomplete")
         css

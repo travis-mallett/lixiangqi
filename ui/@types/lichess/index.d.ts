@@ -58,6 +58,7 @@ type Manifest = Record<string, string>;
 interface EsmModuleOpts extends AssetUrlOpts {
   init?: any;
   npm?: boolean;
+  css?: string;
 }
 
 type PairOf<T> = [T, T];

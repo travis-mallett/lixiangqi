@@ -35,15 +35,21 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
       "if (window.matchMedia('(prefers-color-scheme: light)')?.matches) " +
         "document.documentElement.classList.add('light');"
     )(nonce)
+
+  // A synchronous head script after the stylesheets also holds Gecko's parser here
+  // until CSS is ready. In particular, extension layout reads must not expose the body
+  // before its styles load (Mozilla bug 1459305).
+  def documentSetup(nonce: Optionce) = embedJsUnsafe(
+    "window.site={load:new Promise(function(resolve){document.addEventListener('DOMContentLoaded',resolve)})};"
+  )(nonce)
   val noTranslate = raw("""<meta name="google" content="notranslate">""")
 
   private def fontPreload(path: String) = preload(assetUrl(s"font/$path"), "font", true, "font/woff2".some)
 
-  def fontsPreload(using ctx: Context) = frag(
+  def fontsPreload = frag(
     fontPreload("lichess.woff2"),
     fontPreload("noto-sans-latin.woff2"),
-    fontPreload("roboto-latin.woff2"),
-    ctx.pref.pieceNotationIsLetter.not.option(fontPreload("lichess-chess.woff2"))
+    fontPreload("roboto-latin.woff2")
   )
 
   def allNotifications(challenges: Int, notifs: Int)(using Translate) =
@@ -108,9 +114,6 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
     s"""<form id="blind-mode" action="${routes.Main.toggleBlindMode}" method="POST"><input type="hidden" name="enable" value="${
         if ctx.blind then 0 else 1
       }"><input type="hidden" name="redirect" value="${ctx.req.path}"><button id="nvui-button" type="submit">$btnText</button>$tutorialLink</form>"""
-
-  val assetsMissingTroubleshooting = raw:
-    """<h2 id="assets-missing"><a href="/page/network-administrators">Your network blocks the Lixiangqi assets!</a></h2>"""
 
   def zenZone(using Translate) = spaceless:
     s"""

@@ -121,6 +121,8 @@ export function createXiangqiBoard(
   interaction: BoardInteraction = { mode: 'display' },
   services: BoardServices = websiteBoardServices(),
 ): BoardView {
+  // Also covers boards added after a text-only page has loaded, and minimal embeds.
+  void window.site?.pieceImages?.ready.catch(console.error);
   if (presentation.feedback.audio) site.sound?.preloadBoardSounds?.();
   const board = createBoard(element, {
     definition: boardDefinition(position.board ?? 'xiangqi'),

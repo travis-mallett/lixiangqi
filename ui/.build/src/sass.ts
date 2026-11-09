@@ -5,8 +5,8 @@ import { basename, dirname, join, relative, resolve } from 'node:path';
 import ps from 'node:process';
 
 import { c, env, errorMark, trimLines } from './env.ts';
-import { hashedBasename, symlinkTargetHashes } from './hash.ts';
-import { updateManifest } from './manifest.ts';
+import { hashedBasename } from './hash.ts';
+import { assetHashes, updateManifest } from './manifest.ts';
 import { glob, readable } from './parse.ts';
 import { makeTask, runTask } from './task.ts';
 
@@ -69,7 +69,7 @@ export async function sass(): Promise<string | undefined> {
       if (themesTouched) {
         await buildColorWrap();
         for (const src of await glob('lib.theme.*.scss', { cwd: 'ui/lib/css/build' }))
-          remaining.add(relative(env.rootDir, src));
+          remaining.add(relative(env.rootDir, src).replaceAll('\\', '/'));
       }
       const buildSources = [...remaining];
       remaining = new Set(await compile(buildSources, remaining.size < concreteAll.size));
@@ -154,7 +154,7 @@ async function parseScss(src: string, processed: Set<string>) {
     if (/node_modules.*\.css/.test(absDep)) continue;
     else if (!absDep.startsWith(env.rootDir)) throw `Bad import '${cssImport}`;
 
-    const dep = relative(env.rootDir, absDep);
+    const dep = relative(env.rootDir, absDep).replaceAll('\\', '/');
     if (!importMap.get(dep)?.add(src)) importMap.set(dep, new Set<string>([src]));
     await parseScss(dep, processed);
   }
@@ -209,12 +209,15 @@ async function hashCss(src: string, replacements: Record<string, string> | undef
 
 async function sourcesWithUrls(urls: string[]) {
   const importers = new Set<string>();
-  for (const [target, hash] of Object.entries(await symlinkTargetHashes(urls))) {
-    const url = relative(env.hashOutDir, join(env.outDir, target));
+  const touched = new Set(urls);
+  for (const [target, hash] of Object.entries(await assetHashes())) {
+    const hashed = `public/hashed/${hashedBasename(target, hash)}`;
+    if (!touched.has(hashed)) continue;
+    const url = `../${target}`;
     const depSet = importMap.get(url) ?? new Set<string>();
     depSet.delete([...depSet].find(f => f.startsWith('public/hashed/')) ?? '');
     depSet.forEach(i => importers.add(i));
-    depSet.add(join('public/hashed', hashedBasename(url, hash)));
+    depSet.add(hashed);
     importMap.set(url, depSet);
   }
   return [...importers];
@@ -228,7 +231,7 @@ function urlReplacements() {
     if (!hashed) continue;
     for (const src of [...dependsOn(url)].filter(isConcrete)) {
       replacements[src] ??= {};
-      replacements[src][url] = relative(env.cssOutDir, hashed);
+      replacements[src][url] = relative(env.cssOutDir, hashed).replaceAll('\\', '/');
     }
   }
   return replacements;

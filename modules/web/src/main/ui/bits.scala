@@ -40,4 +40,4 @@ object bits:
   )
 
   val logo = raw:
-    """<svg class="lichess-logo-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50"><g fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="25" cy="25" r="22"/><circle cx="25" cy="25" r="16"/><path d="M17 16h16M17 34h16M18 18l14 14M32 18 18 32M25 13v24"/></g></svg>"""
+    """<svg class="lichess-logo-svg" xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 50 50"><g fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="25" cy="25" r="22"/><circle cx="25" cy="25" r="16"/><path d="M17 16h16M17 34h16M18 18l14 14M32 18 18 32M25 13v24"/></g></svg>"""
