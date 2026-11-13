@@ -295,7 +295,7 @@ body:not(.piece-images-ready) .lixiangqi-board :is(cg-board, .board-surface) .xi
     transform: translate3d(0, 0%, 0) rotateX(0deg);
     transform-box: border-box;
     transform-origin: 50% 50% 0;
-    transform-style: preserve-3d;
+    transform-style: flat;
     will-change: transform;
   }
 
@@ -312,6 +312,7 @@ body:not(.piece-images-ready) .lixiangqi-board :is(cg-board, .board-surface) .xi
 
   .jieqi-reveal-stack {
     backface-visibility: visible;
+    transform-style: preserve-3d;
 
     .xiangqi-motion-face {
       backface-visibility: hidden;
@@ -324,30 +325,16 @@ body:not(.piece-images-ready) .lixiangqi-board :is(cg-board, .board-surface) .xi
 
   .xiangqi-motion-rim {
     position: absolute;
-    inset: calc(50% * (1 - var(--board-piece-diameter, 0.9)));
-    box-sizing: border-box;
-    border: 1px solid rgb(30 16 10 / 0.28);
-    border-radius: 50%;
-    background:
-      linear-gradient(
-        100deg,
-        rgb(0 0 0 / 0.2) 0%,
-        rgb(255 255 255 / 0.2) 28%,
-        transparent 52%,
-        rgb(0 0 0 / 0.26) 100%
-      ),
-      linear-gradient(to bottom, rgb(255 255 255 / 0.1), transparent 42%, rgb(0 0 0 / 0.3)),
-      var(--xiangqi-piece-depth-color, #8f5b3d);
-    box-shadow:
-      inset 0.06em 0.035em 0.07em rgb(255 255 255 / 0.18),
-      inset -0.07em -0.08em 0.11em rgb(0 0 0 / 0.3),
-      0 0.025em 0.025em rgb(0 0 0 / 0.2);
-    opacity: 0;
-    transform: translateY(8.5%);
-    will-change: opacity;
+    inset: 0;
+    background: var(--xiangqi-piece-depth-image) center / 100% 100% no-repeat;
+    filter: var(--cg-piece-brightness, none);
+    transform: translateY(0);
+    will-change: transform;
   }
 
   .jieqi-reveal-body {
+    inset: calc(50% * (1 - var(--board-piece-diameter, 0.9)));
+    border-radius: 50%;
     transform: none;
     background:
       repeating-linear-gradient(88deg, transparent 0 7%, rgb(110 65 20 / 0.08) 7.5%, transparent 8%),

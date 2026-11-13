@@ -1,12 +1,13 @@
 import {
   contactShadowFor,
   contactShadow,
-  prewarmDepthColors,
-  depthColor,
+  prewarmMaterials,
+  pieceMaterial,
   computedBackgroundImage,
   span,
   syncXiangqiShadows,
 } from './appearance';
+import { sidewallTransform } from './material';
 export { syncXiangqiShadows, syncXiangqiShadowPosition } from './appearance';
 import {
   syncIndicators,
@@ -243,7 +244,7 @@ async function revealPiece(state: MotionHost, runtime: MotionRuntime, active: Ac
 }
 
 export function syncXiangqiMotion(state: MotionHost): void {
-  prewarmDepthColors(state);
+  prewarmMaterials(state);
   syncIndicators(state);
   syncLastMovePresentation(state);
   syncCheckPresentation(state);
@@ -381,11 +382,11 @@ async function runMove(
         rim,
         fromRest
           ? [
-              { opacity: 0, offset: 0 },
-              { opacity: 0.96, offset: 0.2 },
-              { opacity: 0.96, offset: 1 },
+              { transform: sidewallTransform(0), offset: 0 },
+              { transform: sidewallTransform(27), offset: 0.2 },
+              { transform: sidewallTransform(27), offset: 1 },
             ]
-          : [{ opacity: 0.96 }, { opacity: 0.96 }],
+          : [{ transform: sidewallTransform(27) }, { transform: sidewallTransform(27) }],
         duration,
       ),
     );
@@ -450,7 +451,13 @@ function lift(state: MotionHost, active: ActivePiece): void {
     ),
     animate(runtimeFor(state), active, contactShadow, [{ opacity: 1 }, { opacity: 0 }], duration),
     animate(runtimeFor(state), active, airborneShadow, [{ opacity: 0 }, { opacity: 1 }], duration),
-    animate(runtimeFor(state), active, rim, [{ opacity: 0 }, { opacity: 0.96 }], duration),
+    animate(
+      runtimeFor(state),
+      active,
+      rim,
+      [{ transform: sidewallTransform(0) }, { transform: sidewallTransform(27) }],
+      duration,
+    ),
   ]).then(() => {
     if (active.generation === generation) active.root.classList.add('xiangqi-motion-held');
   });
@@ -512,12 +519,12 @@ function land(
       active,
       rim,
       [
-        { opacity: 0.96, offset: 0 },
-        { opacity: 0.82, offset: 0.2 },
-        { opacity: 0.58, offset: 0.4 },
-        { opacity: 0.32, offset: 0.6 },
-        { opacity: 0.1, offset: 0.8 },
-        { opacity: 0, offset: 1 },
+        { transform: sidewallTransform(27), offset: 0 },
+        { transform: sidewallTransform(23), offset: 0.2 },
+        { transform: sidewallTransform(17), offset: 0.4 },
+        { transform: sidewallTransform(10), offset: 0.6 },
+        { transform: sidewallTransform(3), offset: 0.8 },
+        { transform: sidewallTransform(0), offset: 1 },
       ],
       duration,
     ),
@@ -581,9 +588,10 @@ function activatePiece(state: MotionHost, root: HTMLElement, key: string): Activ
   };
   runtime.active.add(active);
 
-  void depthColor(backgroundImage, root).then(color => {
+  void pieceMaterial(backgroundImage, root).then(({ color, image }) => {
     if (root.isConnected && runtime.active.has(active)) {
       root.style.setProperty('--xiangqi-piece-depth-color', color);
+      root.style.setProperty('--xiangqi-piece-depth-image', image);
     }
   });
   return active;
@@ -597,6 +605,7 @@ function cleanupActive(runtime: MotionRuntime, active: ActivePiece): void {
   active.root.classList.remove('xiangqi-motion-piece', 'xiangqi-motion-held');
   active.root.style.removeProperty('--xiangqi-piece-perspective');
   active.root.style.removeProperty('--xiangqi-piece-depth-color');
+  active.root.style.removeProperty('--xiangqi-piece-depth-image');
   active.layers.airborneShadow.remove();
   const halo = active.layers.stack.querySelector('.xiangqi-check-halo');
   if (halo) active.root.prepend(halo);

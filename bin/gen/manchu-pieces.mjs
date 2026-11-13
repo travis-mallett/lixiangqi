@@ -8,13 +8,20 @@ const parse = source => new JSDOM(source, { contentType: 'image/svg+xml' }).wind
 const glyphs = parse(readFileSync(new URL('./manchu/glyphs.svg', import.meta.url), 'utf8'));
 const catalogFile = new URL('../../ui/board/src/catalog.json', import.meta.url);
 const catalog = JSON.parse(readFileSync(catalogFile, 'utf8'));
-const traditional = new Set(['default-wood', 'xiangqi-wudang', 'xiangqi-paper-traditional']);
+const traditional = new Set(['default-wood', 'xiangqi-wudang', 'xiangqi-paper-traditional', 'xiangqi-white']);
+// Raster-authored collections own their complete variant artwork separately.
+const vectorSets = new Set([
+  ...traditional,
+  'xiangqi-western',
+  'xiangqi-international',
+  'xiangqi-white-international',
+]);
 // A single banner silhouette for pictorial sets, fitted inside each existing piece face.
 const flag =
   '<path d="M28 78V18M29 20C43 10 55 32 75 20V53C55 65 43 43 29 53M18 80H43" ' +
   'fill="none" stroke="currentColor" stroke-width="7" stroke-linejoin="round" stroke-linecap="round"/>';
 
-for (const set of catalog.pieceSets)
+for (const set of catalog.pieceSets.filter(set => vectorSets.has(set.key)))
   for (const [color, prefix] of [
     ['red', 'r'],
     ['black', 'b'],
@@ -31,6 +38,10 @@ for (const set of catalog.pieceSets)
         const symbol = doc.getElementById('symbol');
         symbol.setAttribute('viewBox', '0 0 100 100');
         symbol.innerHTML = `<g filter="url(#carved-edge)">${flag}</g>`;
+      } else if (set.key === 'xiangqi-white-international') {
+        const symbol = doc.getElementById('symbol');
+        symbol.setAttribute('color', color === 'red' ? '#c83737' : '#4d4d4d');
+        symbol.innerHTML = `<g transform="translate(14 14) scale(.64)">${flag}</g>`;
       } else if (set.key === 'xiangqi-international') {
         const body = doc.querySelector('[data-piece-body]');
         const group = body.parentElement;

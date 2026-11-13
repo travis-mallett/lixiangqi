@@ -49,7 +49,10 @@ case class UblogPost(
     texts.map(_.take(40_000 / texts.size)).mkString("\n")
 
   def allows = UblogBlog.Allows(created.by, isOfficial)
-  def canSetOfficial(using me: Me) = isBy(me) && lila.core.perm.Granter(_.PublishOfficialBlog)
+  // Moderators may promote community posts; official content keeps its author-only edit policy.
+  def canSetOfficial(using me: Me) =
+    (isBy(me) && lila.core.perm.Granter(_.PublishOfficialBlog)) ||
+      (!isOfficial && lila.core.perm.Granter(_.ModerateBlog))
   def canView(using Option[Me]) = live || allows.draft
 
   def translationPreviews = translations.map(_.preview)

@@ -15,12 +15,20 @@ case class UblogTranslation(
   def preview = UblogTranslation.Preview(language, published.map(_.preview))
 
 object UblogTranslation:
-  val languages = List("en" -> "English", "zh-Hans" -> "简体中文", "vi" -> "Tiếng Việt")
+  val languages = List(
+    "en" -> "English",
+    "zh-Hans" -> "简体中文",
+    "vi" -> "Tiếng Việt",
+    "es" -> "Español",
+    "pt" -> "Português"
+  )
 
   def normalize(language: String): String = language.toLowerCase match
     case "zh" | "zh-cn" | "zh-sg" | "zh-hans" => "zh-Hans"
     case l if l.startsWith("vi-") => "vi"
     case l if l.startsWith("en-") => "en"
+    case l if l == "es" || l.startsWith("es-") => "es"
+    case l if l == "pt" || l.startsWith("pt-") => "pt"
     case _ => language
 
   def name(language: String): String = languages.toMap.getOrElse(language, language)

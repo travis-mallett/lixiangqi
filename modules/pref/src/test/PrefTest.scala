@@ -101,7 +101,10 @@ class PrefTest extends FunSuite:
         PieceSets.wudang.key -> Traditional,
         PieceSets.paperTraditional.key -> Traditional,
         PieceSets.international.key -> GraphicalSymbols,
-        PieceSets.western.key -> Other
+        PieceSets.western.key -> Other,
+        "xiangqi-white" -> Traditional,
+        "xiangqi-white-international" -> GraphicalSymbols,
+        "celestial-lacquer" -> Traditional
       )
     )
 
@@ -113,6 +116,16 @@ class PrefTest extends FunSuite:
     assertEquals(changed.background, Appearance.default.background)
     assertEquals(changed.boardTheme, BoardThemes.tournament.key)
     assertEquals(changed.pieceSet, Appearance.default.pieceSet)
+
+  test("Cracked Stone selects Celestial Lacquer unless matching pieces are disabled"):
+    val select = PrefSingleChange.changes("boardTheme").asInstanceOf[PrefSingleChange.Change[String]]
+    val changed = select.update("xiangqi-cracked-stone")(Pref.default).appearance
+    assertEquals(changed.boardTheme, "xiangqi-cracked-stone")
+    assertEquals(changed.pieceSet, "celestial-lacquer")
+    val manual = Appearance.default.copy(selectMatchingPieces = false)
+    assertEquals(manual.selectBoard("xiangqi-cracked-stone").pieceSet, manual.pieceSet)
+    assertEquals(Appearance.default.boardTheme, "lixiangqi-default")
+    assertEquals(Appearance.default.pieceSet, "default-wood")
 
   test("sessions persist every appearance component independently"):
     val appearance = Appearance.default.copy(

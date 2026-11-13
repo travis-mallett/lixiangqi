@@ -56,15 +56,40 @@ test('Lichess carousel advances every ten seconds with a 600ms eased slide and l
   assert.deepEqual(c.order(), ['0', '1', '2', '3', '4']);
 });
 
-test('manual navigation wraps in both directions and stops autoplay until resize', t => {
+test('manual navigation wraps in both directions and restarts autoplay', t => {
   const c = carousel(t);
   c.click('prev');
   assert.deepEqual(c.order(), ['4', '0', '1', '2', '3']);
   c.click('next');
   assert.deepEqual(c.order(), ['0', '1', '2', '3', '4']);
-  t.mock.timers.tick(30_000);
-  assert.equal(c.order()[0], '0');
+  t.mock.timers.tick(10_000);
+  t.mock.timers.tick(600);
+  assert.equal(c.order()[0], '1');
   c.resize(402);
+  t.mock.timers.tick(10_000);
+  t.mock.timers.tick(600);
+  assert.equal(c.order()[0], '2');
+});
+
+test('touch swipes navigate, suppress link activation, and retain autoplay', t => {
+  const c = carousel(t);
+  const pointer = (type: string, x: number, y: number) => {
+    const event = new window.Event(type, { bubbles: true });
+    Object.assign(event, { pointerId: 1, isPrimary: true, pointerType: 'touch', clientX: x, clientY: y });
+    c.track.firstElementChild!.dispatchEvent(event);
+  };
+  pointer('pointerdown', 150, 20);
+  pointer('pointerup', 40, 25);
+  assert.equal(c.order()[0], '1');
+  const click = new window.MouseEvent('click', { bubbles: true, cancelable: true });
+  c.track.firstElementChild!.dispatchEvent(click);
+  assert.equal(click.defaultPrevented, true);
+  pointer('pointerdown', 40, 20);
+  pointer('pointerup', 150, 25);
+  assert.equal(c.order()[0], '0');
+  pointer('pointerdown', 150, 20);
+  pointer('pointerup', 100, 120);
+  assert.equal(c.order()[0], '0');
   t.mock.timers.tick(10_000);
   t.mock.timers.tick(600);
   assert.equal(c.order()[0], '1');

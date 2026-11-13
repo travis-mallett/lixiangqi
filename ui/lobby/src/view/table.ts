@@ -51,7 +51,7 @@ export default function table(ctrl: LobbyController) {
             attrs: { type: 'button' },
             hook: bind('click', () => {
               ctrl.lobbyVariant = undefined;
-              ctrl.openSetupFromLobby('hook');
+              ctrl.openLobbyOverlay();
               ctrl.redraw();
             }),
           },
@@ -177,15 +177,13 @@ export default function table(ctrl: LobbyController) {
           disabled: hasOngoingRealTimeGame,
           'aria-disabled': hasOngoingRealTimeGame ? 'true' : 'false',
         },
-        hook: hasOngoingRealTimeGame
-          ? {}
-          : bind(
-              'click',
-              () => {
-                ctrl.openBotMap();
-              },
-              ctrl.redraw,
-            ),
+        on: {
+          click: () => {
+            if (ctrl.hasOngoingRealTimeGame(true)) return;
+            ctrl.openBotMap();
+            ctrl.redraw();
+          },
+        },
       },
       [
         hl('span.lobby__svg-icon.lobby__svg-icon--computer', { attrs: { 'aria-hidden': 'true' } }),

@@ -6,6 +6,27 @@ Follow the repository instructions, [writing guide](WRITING_GUIDE.md), and
 editing checklist to every edition, adapting its English-specific conventions to
 natural Chinese and Vietnamese. Use its author-voice reference before drafting.
 
+## Browser access
+
+Use the Codex in-app browser (`iab`) for blog editing, publication, rendered
+verification, and Google Search Console indexing requests. Reuse its signed-in
+sessions. Do not default to Firefox or another external browser; use one only
+when the user explicitly requests it. If sign-in is needed, hand the in-app
+browser to the user and continue there after sign-in.
+
+## Promoting community articles
+
+When the user requests official status for a community article, blog moderators
+can use the existing article editor's official-post checkbox. Preserve the original
+author, publication date, article ID, URLs and translations. Promotion does not
+grant moderators permission to edit another author's already-official content.
+The separate permission to publish one's own official posts remains unchanged.
+
+Publication, official status and homepage carousel inclusion are separate settings.
+Verify indexing eligibility and sitemap inclusion after promotion. If the necessary
+code has not been deployed, record promotion and indexing as pending; do not claim
+that a local permission fix changed the live article.
+
 ## Required editions and review
 
 Unless the user explicitly requests otherwise, prepare English (`en`), Simplified

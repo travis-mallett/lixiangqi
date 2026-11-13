@@ -16,6 +16,34 @@ export function makeCarousel({ selector, itemWidth, pauseFor, slideFor = 0.6 }: 
     const el = document.querySelector<HTMLElement>(selector)!;
     if (!el) return;
     const track = el.querySelector<HTMLElement>('.carousel__track')!;
+    let navigate: (forward: boolean) => void;
+    let gesture: { id: number; x: number; y: number } | undefined;
+    let suppressClick = false;
+    el.addEventListener('pointerdown', event => {
+      suppressClick = false;
+      if (event.isPrimary && event.pointerType !== 'mouse')
+        gesture = { id: event.pointerId, x: event.clientX, y: event.clientY };
+    });
+    el.addEventListener('pointerup', event => {
+      if (!gesture || gesture.id !== event.pointerId) return;
+      const dx = event.clientX - gesture.x;
+      const dy = event.clientY - gesture.y;
+      gesture = undefined;
+      if (Math.abs(dx) < 40 || Math.abs(dx) <= Math.abs(dy)) return;
+      suppressClick = true;
+      navigate(dx < 0);
+    });
+    el.addEventListener('pointercancel', () => (gesture = undefined));
+    el.addEventListener(
+      'click',
+      event => {
+        if (!suppressClick) return;
+        suppressClick = false;
+        event.preventDefault();
+        event.stopPropagation();
+      },
+      true,
+    );
 
     onResize();
     el.style.visibility = 'visible';
@@ -38,15 +66,20 @@ export function makeCarousel({ selector, itemWidth, pauseFor, slideFor = 0.6 }: 
           fix(false);
         }, slideFor * 1000);
       };
+      navigate = forward => {
+        if (kids.length <= visible) return;
+        if (forward) track.append(track.firstChild!);
+        else track.prepend(track.lastChild!);
+        fix();
+        timer = setInterval(rotateForwards, pauseFor * 1000);
+      };
       $(el)
         .off('click.carousel')
         .on('click.carousel', '.carousel__prev', () => {
-          track.prepend(track.lastChild!);
-          fix();
+          navigate(false);
         })
         .on('click.carousel', '.carousel__next', () => {
-          track.append(track.firstChild!);
-          fix();
+          navigate(true);
         });
       const fix = (killTimer = true) => {
         clearTimeout(slide);

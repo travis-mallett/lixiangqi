@@ -1,0 +1,108 @@
+{
+  "version": 1,
+  "websiteCommit": "78ea77b4e186c966533dd3d306dcbd3574889125",
+  "date": "2026-11-12",
+  "decision": "User approved the static plain cracked-stone design, requested matching variant boards and theme integration, and chose Celestial Lacquer as the matching pieces. Gold filling and animation remain canceled.",
+  "reviewedWorkingTree": {
+    "bin/gen/cracked-stone/generate.mjs": "d1270b98e3512ce2f1c8f1e32844e837e6839e595e7991aae20966acfa84834b",
+    "bin/gen/cracked-stone/material.mjs": "44243c7b99366ca74d1fda70c0274ff9dbaf2d2c492b7896d3f06c508bd354db",
+    "bin/gen/cracked-stone/rectangular.mjs": "4ef9138bd996d7df6256569a13f4a3b62a6e39b47d42ad474128fc17aaa27c23",
+    "bin/gen/cracked-stone/river.svg": "c12c5e7e0f4759e0be66404447163f00e4f34930b968174822246f615ed7aaea",
+    "bin/gen/cracked-stone/source.json": "33860de3c49f379465497d9cca7818ff8b724e6de933a2c4d254d7b2136547d7",
+    "bin/gen/cracked-stone/stone.jpg": "0f45bca55b3f298e981680c59c98268e3321bc2e2516c03bb71f48195afce883",
+    "bin/gen/cracked-stone/three-player.mjs": "f8afd22832da22408d495fb93a6aff532eb45a628d31f24bde9486b436dfe203",
+    "public/images/board/svg/xiangqi-cracked-stone-banqi.svg": "bcb5a441d30cbd7800a2d1ca2a7376efc5d9e6f533cb8f844966decfb5ba5dd8",
+    "public/images/board/svg/xiangqi-cracked-stone-minixiangqi.svg": "e6167d60f2beddfdf2a7e78ee57fdcb86884b3d9f4cc7bd9166167fa6bdbf160",
+    "public/images/board/svg/xiangqi-cracked-stone-three-player.svg": "93155fe00ac89ddefbdee1756a666b0a077ad2fdf6eb953338f383d389f17f0e",
+    "public/images/board/svg/xiangqi-cracked-stone.svg": "36235fd685f8daa99a7ac769b89be85acb17d6ca4e4a72acaab3f77614b02a1d",
+    "ui/board/src/catalog.json": "42e3dfb04c9e9b7741879305ce343172a0945a7395476faaa0ada63c3cf39f75",
+    "ui/board/tests/crackedStone.test.ts": "dd64db0386e78a965738b831a42a7a9efecc0350e9d609ebfdf0b707987af827",
+    "tests/cracked-stone.spec.ts": "43095f80c6aca1ff2c1f16dd25eee774eb9f62215091cc36358c19785a2396fd",
+    "modules/pref/src/test/PrefTest.scala": "f1d611c0e96ef79337e9c6b6eaaf1f44e6a4bbe0c6a0f9817da92a90563b9797",
+    "tools/image_export/renderer.ts": "80ffc2dde35124faf89091a63fc5128bd88a15c764279519366b83ea7d53ae3c",
+    "tools/image_export/test.mjs": "e758f77d748b52594f1fea57c77a84f9cdeae009d11679e7f38c945b748b50be",
+    "COPYING.md": "c68bdce20c1e6f57b6f347784dae8414ea37088fd2a8677fe3230646ddef39a8",
+    "doc/design/cracked-stone/README.md": "d57c88ee0f7ffeca2eacaf2e463557f4e2b0a85a473dc2b4e139f76df59542f8",
+    "doc/design/cracked-stone/preview.png": "5a3a052255e7c5ccb475499a95c860714e6bb3e16881310559f3f7acf9fd4963",
+    "doc/design/cracked-stone/xiangqi-cracked-stone.svg": null
+  },
+  "verification": {
+    "toolchain": {
+      "node": "24.15.0",
+      "pnpm": "11.15.0",
+      "python": "3.12.10",
+      "java": "21.0.11",
+      "flutter": "3.47.6"
+    },
+    "checks": [
+      {
+        "command": "pnpm format; pnpm run lint; pnpm run check-format",
+        "result": "Passed"
+      },
+      {
+        "command": "node bin/gen/cracked-stone/generate.mjs --check",
+        "result": "Passed; four reproducible SVGs and approved standard PNG"
+      },
+      {
+        "command": "./ui/build --no-install -p",
+        "result": "Passed via Git Bash"
+      },
+      {
+        "command": "node ui/.test/runner.mjs",
+        "result": "750 passed; exact target of the Windows ui/test symlink placeholder"
+      },
+      {
+        "command": "playwright test tests/cracked-stone.spec.ts --workers=2",
+        "result": "6 passed; Chromium and Firefox, 320/768/1440 px, red/black orientations"
+      },
+      {
+        "command": "scalafmtAll; scalafmtCheckAll; pref/testOnly lila.pref.PrefTest",
+        "result": "Passed; 13 preference tests"
+      },
+      {
+        "command": "node tools/image_export/build.mjs; node --test tools/image_export/test.mjs",
+        "result": "Passed; 6 image export tests"
+      },
+      {
+        "command": "node scripts/pikafish-web/smoke.mjs",
+        "result": "Passed; distributed engine, network and truncated network rejection"
+      },
+      {
+        "command": "python -m unittest discover -s scripts/pikafish-web/tests",
+        "result": "2 passed"
+      },
+      {
+        "command": "python -m unittest discover -s scripts/pikafish/tests",
+        "result": "9 passed"
+      },
+      {
+        "command": "mobile scripts/check.ps1",
+        "result": "Passed formatting/fatal-info analysis; 499 tests, 2 existing skips"
+      },
+      {
+        "command": "kids scripts/check.ps1",
+        "result": "Passed formatting/fatal-info analysis; 234 tests, 1 existing skip; 320/768 px, English/Chinese, enlarged text"
+      },
+      {
+        "command": "snapshot-board-assets.cjs --check (both apps)",
+        "result": "Passed; 147 standard source assets per app"
+      },
+      {
+        "command": "flutter build apk --debug --target-platform android-arm64,android-x64 (both apps)",
+        "result": "Passed"
+      }
+    ],
+    "approvedStandardPngSha256": "5a3a052255e7c5ccb475499a95c860714e6bb3e16881310559f3f7acf9fd4963",
+    "notRun": [
+      "Full Linux backend test/stage and service integration jobs",
+      "Safari",
+      "iOS/macOS build",
+      "Emulator and physical-device manual inspection"
+    ]
+  },
+  "mobile": {
+    "main": "Ported standard artwork, catalog pairing, Themes gallery/appearance controls and preview behavior. Later manual piece choices remain independent. Native variants remain deferred.",
+    "kids": "Ported standard artwork and catalog pairing through the garden appearance chooser, with localized Boards/Pieces tabs. Native variants remain deferred."
+  },
+  "deployment": "Normal combined server/catalog, website asset and image-export build/restart, plus separate native bundle releases. Existing push-local-live handles these. No migration, deployment-tool change, commit, push or deployment performed."
+}

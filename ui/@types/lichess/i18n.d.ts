@@ -8073,7 +8073,7 @@ interface I18n {
     officialBlog: string;
     /** Official LiXiangQi post */
     officialPost: string;
-    /** Only the author with official posting permission can change this designation or publish an official draft. */
+    /** Blog moderators can promote community posts. Changing an existing official designation or publishing an official draft requires the author's official posting permission. */
     officialPostPermissionRequired: string;
     /** Original article */
     originalArticle: string;
@@ -8087,7 +8087,7 @@ interface I18n {
     previousBlogPosts: string;
     /** Publish as an official LiXiangQi post */
     publishAsOfficial: string;
-    /** Published posts appear in the LiXiangQi blog. You remain the author; other official publishers cannot edit your post. */
+    /** Published posts appear in the LiXiangQi blog. The original author is preserved; other official publishers cannot edit the post. */
     publishAsOfficialHelp: string;
     /** Published */
     published: string;

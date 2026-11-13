@@ -1,0 +1,39 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "references": {
+    "mobile": {
+      "path": "../lixiangqi-mobile",
+      "description": "Primary mobile app; check gameplay, rules, bots, analysis, puzzles, settings, account, profile, and shared board contracts when a website change may apply",
+    },
+    "kids": {
+      "path": "../lixiangqi-mobile-kids",
+      "description": "Xiangqi Kids mobile app; smaller scope: gameplay, bots, puzzles, account, and shared board",
+    },
+    "pedia": {
+      "path": "../xiangqipedia",
+      "description": "Xiangqipedia content and related contracts",
+    },
+  },
+  "instructions": [
+    "../lixiangqi-mobile/AGENTS.md",
+    "../lixiangqi-mobile-kids/AGENTS.md",
+    "../xiangqipedia/AGENTS.md",
+  ],
+  "permissions": [
+    { "action": "external_directory", "resource": "Z:/Work/Scripts/lixiangqi-mobile/*", "effect": "allow" },
+    { "action": "read", "resource": "Z:/Work/Scripts/lixiangqi-mobile/*", "effect": "allow" },
+    { "action": "edit", "resource": "Z:/Work/Scripts/lixiangqi-mobile/*", "effect": "ask" },
+
+    {
+      "action": "external_directory",
+      "resource": "Z:/Work/Scripts/lixiangqi-mobile-kids/*",
+      "effect": "allow",
+    },
+    { "action": "read", "resource": "Z:/Work/Scripts/lixiangqi-mobile-kids/*", "effect": "allow" },
+    { "action": "edit", "resource": "Z:/Work/Scripts/lixiangqi-mobile-kids/*", "effect": "ask" },
+
+    { "action": "external_directory", "resource": "Z:/Work/Scripts/xiangqipedia/*", "effect": "allow" },
+    { "action": "read", "resource": "Z:/Work/Scripts/xiangqipedia/*", "effect": "allow" },
+    { "action": "edit", "resource": "Z:/Work/Scripts/xiangqipedia/*", "effect": "ask" },
+  ],
+}

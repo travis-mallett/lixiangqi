@@ -160,7 +160,8 @@ object home:
                 a(href := routes.Feed.index())(
                   iconTag(Icon.RssFeed),
                   "Updates"
-                )
+                ),
+                a(cls := "more", href := routes.Feed.index())(trans.site.more(), " ›")
               ),
               views.feed.lobbyUpdates(lastUpdates)
             ),

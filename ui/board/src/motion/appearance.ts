@@ -1,6 +1,7 @@
+import { sidewallColors, sidewallMaterial } from './material';
 import type { MotionHost } from './types';
 
-const depthColorCache = new Map<string, Promise<string>>();
+const materialCache = new Map<string, Promise<ReturnType<typeof sidewallMaterial>>>();
 const contactShadows = new WeakMap<HTMLElement, HTMLElement>();
 const shadowPieces = new WeakMap<Element, HTMLElement>();
 const shadowLayers = new WeakMap<HTMLElement, HTMLElement>();
@@ -58,68 +59,55 @@ export function syncXiangqiShadows(state: MotionHost): void {
       if (shadowPieces.get(child)?.parentElement !== board) child.remove();
 }
 
-export function prewarmDepthColors(state: MotionHost): void {
+export function prewarmMaterials(state: MotionHost): void {
   for (const element of Array.from(state.surface.children)) {
     if (element.tagName !== 'PIECE' || element.classList.contains('xiangqi-motion-piece')) continue;
     const piece = element as HTMLElement;
     const backgroundImage = computedBackgroundImage(piece);
-    if (backgroundUrl(backgroundImage)) void depthColor(backgroundImage, piece);
+    if (backgroundUrl(backgroundImage)) void pieceMaterial(backgroundImage, piece);
   }
 }
 
-export function depthColor(backgroundImage: string, piece: HTMLElement): Promise<string> {
+export function pieceMaterial(
+  backgroundImage: string,
+  piece: HTMLElement,
+): Promise<ReturnType<typeof sidewallMaterial>> {
   const url = backgroundUrl(backgroundImage);
-  if (!url) return Promise.resolve(fallbackDepthColor(piece));
-  const cached = depthColorCache.get(url);
+  const fallback = () => sidewallMaterial([fallbackDepthColor(piece)]);
+  if (!url) return Promise.resolve(fallback());
+  const rotation =
+    parseFloat(
+      piece.ownerDocument.defaultView?.getComputedStyle(piece).getPropertyValue('--board-face-rotation') ||
+        '0',
+    ) || 0;
+  const key = `${url}/${rotation}`;
+  const cached = materialCache.get(key);
   if (cached) return cached;
-
   const ImageConstructor = piece.ownerDocument.defaultView?.Image;
-  if (!ImageConstructor) return Promise.resolve(fallbackDepthColor(piece));
-
-  const result = new Promise<string>(resolve => {
+  if (!ImageConstructor) return Promise.resolve(fallback());
+  const result = new Promise<ReturnType<typeof sidewallMaterial>>(resolve => {
     const image = new ImageConstructor();
     image.decoding = 'async';
     image.crossOrigin = 'anonymous';
     image.onload = () => {
       try {
-        const naturalWidth = image.naturalWidth || 128;
-        const naturalHeight = image.naturalHeight || 128;
-        const scale = Math.min(1, 128 / Math.max(naturalWidth, naturalHeight));
-        const width = Math.max(1, Math.round(naturalWidth * scale));
-        const height = Math.max(1, Math.round(naturalHeight * scale));
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
+        const size = 256;
+        const canvas = piece.ownerDocument.createElement('canvas');
+        canvas.width = canvas.height = size;
         const context = canvas.getContext('2d', { willReadFrequently: true });
         if (!context) throw new Error('Canvas rendering context unavailable');
-        context.drawImage(image, 0, 0, width, height);
-        const pixels = context.getImageData(0, 0, width, height).data;
-        let red = 0;
-        let green = 0;
-        let blue = 0;
-        let weight = 0;
-
-        for (let index = 0; index < pixels.length; index += 4) {
-          const alpha = pixels[index + 3] / 255;
-          if (alpha === 0) continue;
-          red += pixels[index] * alpha;
-          green += pixels[index + 1] * alpha;
-          blue += pixels[index + 2] * alpha;
-          weight += alpha;
-        }
-
-        if (weight === 0) throw new Error('Piece asset contains no visible pixels');
-        const average = [red, green, blue].map(channel => Math.round(channel / weight));
-        resolve(`#${average.map(channel => channel.toString(16).padStart(2, '0')).join('')}`);
+        context.translate(size / 2, size / 2);
+        context.rotate((rotation * Math.PI) / 180);
+        context.drawImage(image, -size / 2, -size / 2, size, size);
+        resolve(sidewallMaterial(sidewallColors(context.getImageData(0, 0, size, size).data, size)));
       } catch (_) {
-        resolve(fallbackDepthColor(piece));
+        resolve(fallback());
       }
     };
-    image.onerror = () => resolve(fallbackDepthColor(piece));
+    image.onerror = () => resolve(fallback());
     image.src = url;
   });
-
-  depthColorCache.set(url, result);
+  materialCache.set(key, result);
   return result;
 }
 

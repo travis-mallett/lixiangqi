@@ -1,0 +1,28 @@
+{
+  "stage": "Approved static theme, with canonical standard, Mini Xiangqi, Three Kingdoms and prepared Banqi artwork.",
+  "imagegen": {
+    "tool": "built-in image_gen",
+    "prompt": "Use case: precise-object-edit. Asset type: unmarked cracked-stone surface for a xiangqi SVG board. Edit the supplied board reference. Preserve its grey-green weathered slate and its existing NATURAL CRACKS as closely as possible: the dark chipped split in the upper left with its small branch toward the left edge, the finer broken seam descending toward the river, the narrow irregular split descending from the upper-right corner, and the deeper branching split just below the center of the board continuing diagonally toward the lower left. Preserve the reference's changes in crack width, tiny chips, pale mineral edges, shallow hairline branches and naturally fading ends. The cracks should be embedded fractures in actual stone, not uniform drawn black lines, lightning bolts, or decorative veins. REMOVE every straight grid line, palace diagonal and starting-position marker; remove all four river characters, both remaining chess pieces and their shadows, the rectangular frame, the outer gold ornamentation, and every interface element. Inpaint those regions with the same naturally weathered stone so the result is one uninterrupted unmarked stone surface with its original natural cracks. Preserve the overall spatial arrangement, density, material colors and gentle lighting of the reference, but make the whole image edge-to-edge stone. NO gold filling, metallic glints, luminous cracks, text, symbols, grid, border, frame, pieces, river stripe, perspective or outside scenery. Do not add additional large cracks. Output flat orthographic portrait texture, 9:10 aspect ratio, high detail. Slight cool grey-green mottling and a muted warmer grey mineral area upper left, with the cracks subtle enough for black xiangqi grid lines to remain readable when added later.",
+    "referenceSha256": "9283c16b0edaa5f4254551b7c7659ed41ec00f69abdc7acc18a943962ca36228"
+  },
+  "river": {
+    "source": "User-supplied unobstructed board reference, November 12, 2026",
+    "characters": "楚河汉界",
+    "method": "Directly traced filled SVG contours; no substituted font or runtime text.",
+    "sourceFile": "bin/gen/cracked-stone/river.svg",
+    "referenceSha256": "9283c16b0edaa5f4254551b7c7659ed41ec00f69abdc7acc18a943962ca36228",
+    "sha256": "c12c5e7e0f4759e0be66404447163f00e4f34930b968174822246f615ed7aaea"
+  },
+  "texture": {
+    "sourceFile": "bin/gen/cracked-stone/stone.jpg",
+    "encoding": "JPEG quality 0.93, embedded in the SVG.",
+    "method": "Stone and natural chipped fissures preserved together in an imagegen edit of the clearer reference; grid, lettering, pieces and border removed.",
+    "size": 467052,
+    "sha256": "0f45bca55b3f298e981680c59c98268e3321bc2e2516c03bb71f48195afce883"
+  },
+  "threePlayerLettering": {
+    "source": "bin/gen/three-player-xiangqi/wudang-glyphs.svg",
+    "provenance": "public/images/board/svg/three-player-themes.design.md",
+    "method": "Existing outlined Wudang-style kingdom and river labels; shared three-player layout."
+  }
+}

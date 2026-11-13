@@ -24,6 +24,7 @@ const letteringStyles = {
     weight: 0,
   },
   'xiangqi-wudang': { family: 'kai', center: [50, 50], box: [64, 64], radius: 39.8, aspect: 1, weight: 24 },
+  'xiangqi-white': { family: 'kai', center: [46, 46], box: [50, 50], radius: 28.5, aspect: 1, weight: 0 },
 };
 
 function inkRadius(artwork, bounds) {
@@ -82,9 +83,9 @@ export function lettering(source, set, name, glyphs, symbolId) {
       `scale(1 ${style.aspect})`,
   );
   let ink;
-  if (set === 'default-wood') {
+  if (set === 'default-wood' || set === 'xiangqi-white') {
     const symbol = doc.getElementById('symbol');
-    ink = symbol.querySelector('path').getAttribute('fill');
+    ink = symbol.getAttribute('fill') ?? symbol.querySelector('path').getAttribute('fill');
     symbol.removeAttribute('transform');
     symbol.replaceChildren(wrapper);
   } else if (set === 'xiangqi-wudang') {

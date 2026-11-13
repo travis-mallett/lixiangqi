@@ -1,3 +1,4 @@
+import { Resvg } from '@resvg/resvg-js';
 import assert from 'node:assert/strict';
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import test from 'node:test';
@@ -56,6 +57,33 @@ test('every piece set rasterizes distinct red and black concealed backs', () => 
     );
     for (const image of images) assert.deepEqual(pngSize(image), [180, 200]);
     assert.notDeepEqual(images[0], images[1], piece.key);
+  }
+});
+
+test('Cracked Stone exports retain the embedded texture beneath the vector grid', () => {
+  const image = renderImage(
+    { ...request, theme: 'xiangqi-cracked-stone', size: 450, frames: [{ fen: '9/9/9/9/9/9/9/9/9/9 w' }] },
+    root,
+  );
+  const actual = new Resvg(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="450" height="500"><image width="450" height="500" href="data:image/png;base64,${Buffer.from(image).toString('base64')}"/></svg>`,
+  ).render().pixels;
+  const expected = new Resvg(
+    readFileSync(new URL('../../public/images/board/svg/xiangqi-cracked-stone.svg', import.meta.url)),
+    { fitTo: { mode: 'width', value: 450 } },
+  ).render().pixels;
+  for (const [x, y] of [
+    [160, 220],
+    [320, 330],
+    [360, 400],
+  ]) {
+    const offset = (y * 450 + x) * 4;
+    assert.equal(actual[offset + 3], 255, 'stone material is opaque');
+    for (let channel = 0; channel < 3; channel++)
+      assert.ok(
+        Math.abs(actual[offset + channel] - expected[offset + channel]) <= 6,
+        'export retains the approved stone color and texture',
+      );
   }
 });
 

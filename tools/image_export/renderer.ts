@@ -48,12 +48,16 @@ function asset(path: string, publicRoot: string): string {
   const key = `${publicRoot}/${path}`;
   let data = resources.get(key);
   if (!data) {
-    const mime = path.endsWith('.svg')
-      ? 'image/svg+xml'
-      : path.endsWith('.webp')
-        ? 'image/webp'
-        : 'image/png';
-    data = `data:${mime};base64,${readFileSync(resolve(publicRoot, path)).toString('base64')}`;
+    const source = readFileSync(resolve(publicRoot, path));
+    // Render each SVG once at its canonical dimensions before composing frames.
+    // Resvg drops embedded raster images in an SVG nested inside another SVG's
+    // <image>. Cached PNGs also avoid reparsing each asset for every GIF frame.
+    // Canonical artwork exceeds its displayed size at the 720px export limit.
+    const bytes = path.endsWith('.svg')
+      ? new Resvg(source, { font: { loadSystemFonts: false } }).render().asPng()
+      : source;
+    const mime = path.endsWith('.webp') ? 'image/webp' : 'image/png';
+    data = `data:${mime};base64,${bytes.toString('base64')}`;
     resources.set(key, data);
   }
   return data;

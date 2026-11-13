@@ -51,6 +51,7 @@ public/piece/xiangqi-wudang | Lixiangqi contributors, derived from Wj654cj86's p
 public/piece/default-wood | [PyChess Variants contributors](https://github.com/gbtami/pychess-variants/tree/6e38d77426991710ec4a1d641773e17cb66f921a/static/images/pieces/xiangqi/ttxqhanzi) and Lixiangqi contributors | [AGPLv3+](https://www.gnu.org/licenses/agpl-3.0.html); adapted colors, raster grain, and lighting
 public/piece/xiangqi-paper-traditional | [PyChess Variants contributors](https://github.com/gbtami/pychess-variants/tree/6e38d77426991710ec4a1d641773e17cb66f921a/static/images/pieces/xiangqi/lishu) | [AGPLv3+](https://www.gnu.org/licenses/agpl-3.0.html); original SVGs with filenames adapted to LiXiangQi
 public/piece/xiangqi-{international,western} | [PyChess Variants authors](https://github.com/gbtami/pychess-variants/tree/10f48bc32658f856628da5fb8b3ed723e0e089d6/static/images/pieces/xiangqi) | [AGPLv3](https://www.gnu.org/licenses/agpl-3.0.html)
+public/piece/xiangqi-white*, public/images/board/svg/xiangqi-light-wood*, bin/gen/pychess-white/source | [PyChess Variants contributors](https://github.com/pychess/pychess-variants/tree/4e1e3b4794d7e7da5d276c6325fe1efc4ebbe554/static) and LiXiangQi contributors | [AGPLv3+](https://www.gnu.org/licenses/agpl-3.0.html); original hnz/ct2 outlines, adapted white body and light-wood board. Additional variant lettering follows doc/design/three-kingdoms-pieces.md.
 public/pikafish-web/pikafish.{js,wasm}, public/pikafish-web/pikafish-source.tar.gz, scripts/pikafish-web | [Pikafish authors](https://github.com/official-pikafish/Pikafish/tree/4c17cee11f888ae1d48a9494f2e2239f019f0a1f) and Lixiangqi contributors | [GPLv3](https://www.gnu.org/licenses/gpl-3.0.html)
 public/sound/standard/{LearnCapture,NewChatMessage}.mp3 | [Enigmahack](https://github.com/Enigmahack) | AGPLv3+
 public/sound/standard/{PuzzleStormEnd,PuzzleStormGood}.mp3 | [EdinburghCollective](http://lichess.org/@/EdinburghCollective) | [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)
@@ -71,6 +72,13 @@ public/pikafish-web/pikafish.nnue | [official-pikafish/Networks](https://github.
 public/sound/standard/{LearnFailure,LearnLevelComplete,LearnLevelStart,LearnStageComplete,LearnStageStart,PracticeFailure,PracticeSuccess,Yeet}.mp3 | Inherited Lila sound assets formerly distributed under `public/sound/other` | Original Lila non-free sound exception
 - Remaining inherited Lila sounds in `public/sound` that are not attributed above
 - Remaining inherited Lila artwork in `public/images` that is not attributed above
+
+`public/piece/celestial-lacquer/` and `bin/gen/celestial-lacquer/source/` contain
+original AI-generated LiXiangQi artwork, plus a rendered Wudang glyph used only
+as a lettering reference (see the Wudang attribution above). All painted faces, variant inscriptions
+and backs were created with the built-in ImageGen tool; prompts and provenance
+are recorded in `bin/gen/celestial-lacquer/prompts.json`. The SVG files embed
+the raster artwork without external images or runtime fonts.
 
 ## External services
 
@@ -100,3 +108,15 @@ The directory includes GPL, authors, jqe MIT and third-party notices. Its
 `source.zip` contains corresponding modified source, trainer, network and build
 scripts. `SOURCE.txt` records dated modifications and reproduction instructions.
 Distribute these files together with the engine and network.
+
+## Cracked Stone board
+
+`public/images/board/svg/xiangqi-cracked-stone*.svg` combines an AI-edited
+stone texture based on the user-supplied board reference with original LiXiangQi
+grid and frame geometry. Its standard river lettering is directly traced from
+that reference. Three Kingdoms reuses the outlined labels credited in
+[the three-player theme provenance](public/images/board/svg/three-player-themes.design.md).
+The prompt, source hashes and tracing method are recorded in
+[the source manifest](bin/gen/cracked-stone/source.json). No original author or
+license was supplied for the reference lettering; this record does not assign it
+a new license.

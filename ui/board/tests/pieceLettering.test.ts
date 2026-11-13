@@ -11,6 +11,7 @@ const faces = {
   'default-wood': { center: [49.53, 46.015], innerRadius: 35.18, clearance: 2 },
   'xiangqi-paper-traditional': { center: [50, 50], innerRadius: 41.8, clearance: 3 },
   'xiangqi-wudang': { center: [50, 50], innerRadius: 38.69, clearance: 1.8 },
+  'xiangqi-white': { center: [50, 50], innerRadius: 34.2, clearance: 2.5 },
 };
 
 for (const [set, face] of Object.entries(faces))
@@ -44,7 +45,8 @@ for (const [set, face] of Object.entries(faces))
         );
         assert.ok(Math.abs(bounds.y + bounds.height / 2 - face.center[1]) < 0.02, `${file}: vertical center`);
         const longest = Math.max(bounds.width, bounds.height);
-        assert.ok(longest >= 48 && longest <= 61, `${file}: unexpected ink size ${longest}`);
+        const minimum = set === 'xiangqi-white' ? 46 : 48;
+        assert.ok(longest >= minimum && longest <= 61, `${file}: unexpected ink size ${longest}`);
 
         // Check actual painted contours, including weight and the dark Wudang
         // edge. A wide glyph can fit a rectangle yet still cross a circular ring.

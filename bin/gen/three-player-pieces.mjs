@@ -9,11 +9,43 @@ const parse = source => new JSDOM(source, { contentType: 'image/svg+xml' }).wind
 const glyphs = parse(
   readFileSync(new URL('./three-player-xiangqi/piece-glyphs.svg', import.meta.url), 'utf8'),
 );
-const chineseSets = new Set(['default-wood', 'xiangqi-wudang', 'xiangqi-paper-traditional']);
+const chineseSets = new Set(['default-wood', 'xiangqi-wudang', 'xiangqi-paper-traditional', 'xiangqi-white']);
 
 const lettering = (source, set, name) => fitLettering(source, set, name, glyphs, 'three-kingdoms-symbol');
 
 const palettes = {
+  'xiangqi-white': { '#d40000': '#18783b' },
+  'xiangqi-white-international': Object.fromEntries(
+    [
+      'c83737',
+      'c83939',
+      'c93a3a',
+      'ca3d3d',
+      'cb4242',
+      'cb7a7a',
+      'cc4646',
+      'cd4848',
+      'cd7d7d',
+      'ce4c4c',
+      'ce4d4d',
+      'cf5050',
+      'cf8080',
+      'cf8181',
+      'd08181',
+      'd25b5b',
+      'd35f5f',
+      'd38787',
+      'd68d8d',
+      'de8787',
+      'e9afaf',
+      'a02c2c',
+      'd40000',
+    ].map(hex => {
+      // Preserve each original shaded tone's lightness while rotating red to green.
+      const [r, g, b] = hex.match(/../g);
+      return [`#${hex}`, `#${g}${r}${b}`];
+    }),
+  ),
   'default-wood': { '#933e29': '#2c663e' },
   'xiangqi-wudang': {
     '#59211d': '#163e2c',
@@ -58,6 +90,8 @@ for (const [set, palette] of Object.entries(palettes)) {
 const catalogFile = new URL('../../ui/board/src/catalog.json', import.meta.url);
 const catalog = JSON.parse(readFileSync(catalogFile, 'utf8'));
 for (const set of catalog.pieceSets) {
+  // Only rebuild variants for the vector collections this generator owns.
+  if (!Object.hasOwn(palettes, set.key)) continue;
   const pieces = structuredClone(set.variants.xiangqi);
   // The Manchu Banner belongs only to the two-player piece family.
   for (const faces of Object.values(pieces.faces)) delete faces.banner;

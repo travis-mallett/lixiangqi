@@ -83,6 +83,25 @@ class UblogTranslationTest extends munit.FunSuite:
     assertEquals(UblogTranslation.preferred(post, "vi-VN"), "en")
     assertEquals(UblogTranslation.preferred(post, "zh-CN"), "zh-Hans")
 
+  test("Spanish and Portuguese editions use stable language tags across regional preferences"):
+    assertEquals(UblogTranslation.languages.takeRight(2), List("es" -> "Español", "pt" -> "Português"))
+    assertEquals(UblogTranslation.normalize("es-ES"), "es")
+    assertEquals(UblogTranslation.normalize("es-MX"), "es")
+    assertEquals(UblogTranslation.normalize("pt-BR"), "pt")
+    assertEquals(UblogTranslation.normalize("pt-PT"), "pt")
+    val spanish = chinese.copy(title = "Artículo en español")
+    val portuguese = chinese.copy(title = "Artigo em português")
+    val multilingual = post.copy(translations =
+      post.translations ++ List(
+        UblogTranslation("es", None, Some(spanish)),
+        UblogTranslation("pt", None, Some(portuguese))
+      )
+    )
+    assertEquals(UblogTranslation.preferred(multilingual, "es-ES"), "es")
+    assertEquals(UblogTranslation.preferred(multilingual, "pt-BR"), "pt")
+    assertEquals(UblogTranslation.select(multilingual, "es").get.title, "Artículo en español")
+    assertEquals(UblogTranslation.select(multilingual, "pt").get.title, "Artigo em português")
+
   test("source revision includes editorial and image changes but excludes shared engagement"):
     assert(!chinese.needsReview(post))
     assert(chinese.needsReview(post.copy(markdown = Markdown("Changed"))))

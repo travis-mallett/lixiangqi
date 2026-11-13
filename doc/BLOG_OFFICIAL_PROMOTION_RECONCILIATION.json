@@ -1,0 +1,20 @@
+{
+  "websiteCommit": "78ea77b4e186c966533dd3d306dcbd3574889125",
+  "reviewedWorkingTree": {
+    "blog/AGENTS.md": "e54091a3e9850e47b0645b4f0a61d5d07378c4857994db6c2b17dbeebea4e382",
+    "modules/ublog/src/main/UblogPost.scala": "bde64b8aa216de70e759e64ead5267f2bd70a799beea0c786b772189a4e0af0c",
+    "modules/ublog/src/test/OfficialBlogTest.scala": "8582a8463996a09adcdb4cdc847c9fce268e16b61a877967eae66e3c4694f443",
+    "translation/source/ublog.xml": "e4d806fedbc5624abf1dbb9400d0824eb8942a763a27f2f29b64676f7ea1a14a",
+    "ui/@types/lichess/i18n.d.ts": "e9ac1d73897f3de1c99489c448db4722490e78c90a05114070ce039329cb960c"
+  },
+  "report": "doc/BLOG_OFFICIAL_PROMOTION.md",
+  "mobile": {
+    "decision": "server-inherited",
+    "reason": "Existing BlogRepository and BlogPage consume editions and official lists; no native promotion editor or release required."
+  },
+  "kids": {
+    "decision": "not-applicable",
+    "reason": "No blog consumer; no gameplay, puzzle, account or board contract change."
+  },
+  "deployment": "Deferred by user; no migration. Promote the live article and verify indexing after manual deployment."
+}

@@ -54,7 +54,7 @@ class OfficialBlogTest extends munit.FunSuite:
     assert(editAs(official, author))
     assert(editAs(draft, author.copy(id = UserId("mod"), roles = List(Permission.ModerateBlog.dbKey))))
 
-  test("official designation requires both ownership and the specific permission"):
+  test("authors need the publishing permission to designate their own posts as official"):
     assert(!data.copy(official = true).canUpdateOfficial(draft)(using Me(author)))
     assert(data.copy(official = true).canUpdateOfficial(draft)(using Me(publisher)))
     assert(
@@ -63,6 +63,66 @@ class OfficialBlogTest extends munit.FunSuite:
     assert(
       !data.copy(official = true).canUpdateOfficial(draft)(using Me(publisher.copy(enabled = UserEnabled.No)))
     )
+
+  test("blog moderators can promote community posts without owning them or holding the publisher role"):
+    for role <- List(Permission.ModerateBlog, Permission.Admin, Permission.SuperAdmin) do
+      val moderator = author.copy(id = UserId("moderator"), roles = List(role.dbKey))
+      for live <- List(false, true) do
+        val community = draft.copy(live = live)
+        assert(editAs(community, moderator), role.toString)
+        assert(community.canSetOfficial(using Me(moderator)), role.toString)
+        assert(data.copy(official = true, live = live).canUpdateOfficial(community)(using Me(moderator)))
+        assert(!community.canSetOfficial(using Me(moderator.copy(enabled = UserEnabled.No))))
+
+  test("promotion preserves the author, publication history, identity and translations"):
+    val moderator = author.copy(id = UserId("moderator"), roles = List(Permission.ModerateBlog.dbKey))
+    val publishedAt = UblogPost.Recorded(author.id, nowInstant.minusSeconds(86400))
+    val translation = UblogTranslation.Revision(
+      "Bài viết",
+      "Giới thiệu",
+      Markdown("Nội dung"),
+      None,
+      None,
+      UblogTranslation.sourceRevision(draft),
+      "Translator",
+      publishedAt,
+      Some("Reviewer"),
+      Some(publishedAt),
+      Some(publishedAt.at)
+    )
+    val community = draft.copy(
+      live = true,
+      lived = Some(publishedAt),
+      translations = List(UblogTranslation("vi", None, Some(translation)))
+    )
+    val promoted = data.copy(official = true, live = true).update(moderator, community)
+    assert(promoted.isOfficial)
+    assert(promoted.visibleByCrawlers)
+    assertEquals(promoted.created, community.created)
+    assertEquals(promoted.blog, community.blog)
+    assertEquals(promoted.id, community.id)
+    assertEquals(promoted.slug, community.slug)
+    assertEquals(promoted.lived, community.lived)
+    assertEquals(promoted.translations, community.translations)
+    assertEquals(UblogTranslation.select(promoted, "vi").map(_.title), Some("Bài viết"))
+    assert(!translation.needsReview(promoted))
+    assertEquals(promoted.updated.map(_.by), Some(moderator.id))
+
+  test("promotion does not let moderators edit, demote or republish another author's official post"):
+    val moderator = author.copy(id = UserId("moderator"), roles = List(Permission.ModerateBlog.dbKey))
+    assert(!editAs(official, moderator))
+    assert(!official.canSetOfficial(using Me(moderator)))
+    assert(!data.canUpdateOfficial(official)(using Me(moderator)))
+    assert(
+      !data
+        .copy(official = true, live = true)
+        .canUpdateOfficial(official.copy(live = false))(using Me(moderator))
+    )
+
+  test("unrelated moderation roles do not grant community-post promotion"):
+    for role <- List(Permission.ModerateForum, Permission.Pages, Permission.PublishOfficialBlog) do
+      val other = author.copy(id = UserId("other"), roles = List(role.dbKey))
+      assert(!draft.canSetOfficial(using Me(other)), role.toString)
 
   test("revocation preserves author edits but prevents publishing official drafts or changing designation"):
     assert(editAs(official, author))

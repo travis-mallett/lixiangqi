@@ -63,8 +63,8 @@
   <string name="officialBlog">LiXiangQi</string>
   <string name="officialPost">Official LiXiangQi post</string>
   <string name="publishAsOfficial">Publish as an official LiXiangQi post</string>
-  <string name="publishAsOfficialHelp">Published posts appear in the LiXiangQi blog. You remain the author; other official publishers cannot edit your post.</string>
-  <string name="officialPostPermissionRequired">Only the author with official posting permission can change this designation or publish an official draft.</string>
+  <string name="publishAsOfficialHelp">Published posts appear in the LiXiangQi blog. The original author is preserved; other official publishers cannot edit the post.</string>
+  <string name="officialPostPermissionRequired">Blog moderators can promote community posts. Changing an existing official designation or publishing an official draft requires the author's official posting permission.</string>
   <string name="articleLanguage">Article language</string>
   <string name="translations">Translations</string>
   <string name="originalArticle">Original article</string>

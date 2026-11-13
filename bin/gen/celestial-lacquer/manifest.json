@@ -1,0 +1,214 @@
+{
+  "source": {
+    "bin/gen/celestial-lacquer/source/red.png": "7a8d9258d96019c77b849c86c5853ccafdc2febb77ae40919c87a5ba7c5cc9c8",
+    "bin/gen/celestial-lacquer/source/black.png": "8e1fbca1b7106596dbc2cbdba9b48545928c721ae046fc84ef6bd331d49d592c",
+    "bin/gen/celestial-lacquer/source/green.png": "0151fd8d98f38c9e50b56d0c892a0ba3653245a6799fa2935105c83566e03ba4",
+    "bin/gen/celestial-lacquer/source/backs.png": "b32624c2cc6647b46c4beccd8716109186d52f64cd1dee989cf188e9d257f5de"
+  },
+  "pieces": {
+    "rK": {
+      "glyph": "帥",
+      "sheet": "red",
+      "cell": 0,
+      "crop": [33, 26, 354, 362],
+      "sha256": "ad2b116f76b0f73f110d281919734cd13d7851dc1ee1224d078d91e387a419dd"
+    },
+    "rA": {
+      "glyph": "仕",
+      "sheet": "red",
+      "cell": 1,
+      "crop": [447, 26, 359, 362],
+      "sha256": "39211d6ee8b5fdba2e569afbe0c502252e400be66953400dedf10b54af2983fe"
+    },
+    "rB": {
+      "glyph": "相",
+      "sheet": "red",
+      "cell": 2,
+      "crop": [859, 27, 362, 360],
+      "sha256": "3cf50f79822ea4d3f82985ac3dd58f3433b9f06be86ac4ae7ab903dfc759f85c"
+    },
+    "rN": {
+      "glyph": "馬",
+      "sheet": "red",
+      "cell": 3,
+      "crop": [33, 440, 359, 366],
+      "sha256": "82d470c62279c210fc46212e52138ed6294d73dbc36ad5290186d4ef6193950f"
+    },
+    "rR": {
+      "glyph": "車",
+      "sheet": "red",
+      "cell": 4,
+      "crop": [447, 442, 359, 363],
+      "sha256": "8bd773da72d68489224d99048f9740080bfb2d61a57f476137199cd0f79cf7f0"
+    },
+    "rC": {
+      "glyph": "炮",
+      "sheet": "red",
+      "cell": 5,
+      "crop": [859, 442, 363, 363],
+      "sha256": "46b6d1ece823ee1f87de84d6fecc3200f240d1f4060b4c081e3df4465dfd4fc1"
+    },
+    "rP": {
+      "glyph": "兵",
+      "sheet": "red",
+      "cell": 6,
+      "crop": [32, 856, 361, 368],
+      "sha256": "af07923a8e90049f6ddf93d741fd2bbeab5d231aa2a137ac63d26ecc3c9ea91b"
+    },
+    "rM": {
+      "glyph": "旗",
+      "sheet": "red",
+      "cell": 7,
+      "crop": [448, 856, 358, 368],
+      "sha256": "902956be3ce9d9360688b052951a93567f265565ce44badad63b24ec2a71d0b3"
+    },
+    "rK3": {
+      "glyph": "蜀",
+      "sheet": "red",
+      "cell": 8,
+      "crop": [859, 856, 363, 367],
+      "sha256": "d00c79ae609dd83d48a3b76bb3291bf1ecfad8bd5e42a86faa95878d0fc476c7"
+    },
+    "bK": {
+      "glyph": "將",
+      "sheet": "black",
+      "cell": 0,
+      "crop": [29, 25, 359, 372],
+      "sha256": "261afebc4aba0748935aee98be4851b532616b66f66f61d18325093926f8c77e"
+    },
+    "bA": {
+      "glyph": "士",
+      "sheet": "black",
+      "cell": 1,
+      "crop": [441, 22, 365, 375],
+      "sha256": "3a231aa6afee39bae61330d41cbe8c924d5232e8de38fffd06d96cc638d38b24"
+    },
+    "bB": {
+      "glyph": "象",
+      "sheet": "black",
+      "cell": 2,
+      "crop": [857, 24, 364, 372],
+      "sha256": "67612f1f4954ae97a1500e8949a73be692d39a1fc991647df2d9c8a8cb2b1d7c"
+    },
+    "bN": {
+      "glyph": "馬",
+      "sheet": "black",
+      "cell": 3,
+      "crop": [30, 440, 363, 367],
+      "sha256": "4de47bb6e8293a1ea86a8bdb6209b58811489ba45709bab200464a86960c9936"
+    },
+    "bR": {
+      "glyph": "車",
+      "sheet": "black",
+      "cell": 4,
+      "crop": [441, 440, 365, 366],
+      "sha256": "84dc0bace805be5139057a8c06d82da3c8d399562576d79b2888f4f622b695f6"
+    },
+    "bC": {
+      "glyph": "砲",
+      "sheet": "black",
+      "cell": 5,
+      "crop": [857, 440, 366, 369],
+      "sha256": "e199fc541d6ba7e135326a8b896495c3cef5435c8ce431f4aa8cb49be7129e9b"
+    },
+    "bP": {
+      "glyph": "卒",
+      "sheet": "black",
+      "cell": 6,
+      "crop": [29, 853, 363, 373],
+      "sha256": "927ef8546a66d20c8ffad6785a8dece862dea37a9086d8ecf16a2b4dab9c6910"
+    },
+    "bM": {
+      "glyph": "旗",
+      "sheet": "black",
+      "cell": 7,
+      "crop": [441, 853, 365, 375],
+      "sha256": "9f5cc0758a0922a7549e691e097d442b07f1eb4ea306ca8d0bbf92f490ac7b0f"
+    },
+    "bK3": {
+      "glyph": "魏",
+      "sheet": "black",
+      "cell": 8,
+      "crop": [855, 853, 369, 372],
+      "sha256": "9bc2faec64a56ef33e900761c1a0bc16152eee706d0227877464fde6c104f807"
+    },
+    "gK": {
+      "glyph": "吳",
+      "sheet": "green",
+      "cell": 0,
+      "crop": [30, 26, 364, 362],
+      "sha256": "bd7a98c1660bd82ddce5fa76624395149341ce86371fb60e609e89bc8c8e7283"
+    },
+    "gA": {
+      "glyph": "仕",
+      "sheet": "green",
+      "cell": 1,
+      "crop": [441, 23, 367, 367],
+      "sha256": "2382218a06d3b8d22e50a46117d1f9dddf5fd8f5d46e02865f24e27d7cbc02df"
+    },
+    "gB": {
+      "glyph": "向",
+      "sheet": "green",
+      "cell": 2,
+      "crop": [856, 25, 365, 361],
+      "sha256": "54aa32e9b38f2aa0e0b5b5a89618c5c2ebc2cd9e6ada6d5ba94ea398d980ec92"
+    },
+    "gN": {
+      "glyph": "馬",
+      "sheet": "green",
+      "cell": 3,
+      "crop": [31, 438, 364, 368],
+      "sha256": "5235efb926e5393a3cfd45fa9e3cc1d1082247918b64d903272cb310ee2e75ae"
+    },
+    "gR": {
+      "glyph": "車",
+      "sheet": "green",
+      "cell": 4,
+      "crop": [441, 436, 363, 370],
+      "sha256": "5d0ac5e724a743dd7e4f972e59f2ca37826b4e430a8259435afcbc22b9eeecf8"
+    },
+    "gC": {
+      "glyph": "礮",
+      "sheet": "green",
+      "cell": 5,
+      "crop": [855, 436, 366, 370],
+      "sha256": "08f3fb30d62f04bea8bd4211d37f90ce1ddcd35b00f5dca354469bdbe08f78bb"
+    },
+    "gP": {
+      "glyph": "勇",
+      "sheet": "green",
+      "cell": 6,
+      "crop": [29, 853, 366, 370],
+      "sha256": "6ab8bc43bfee1a70bde841ef40b6a4175399c4fa0c92e000bf75b246f4641c09"
+    },
+    "Back": {
+      "glyph": null,
+      "sheet": "green",
+      "cell": 7,
+      "crop": [441, 854, 365, 370],
+      "sha256": "ddb87206ea7e68a039afca8343673089514acb22a46283c4a6d62c9d367ea597"
+    },
+    "rBack": {
+      "glyph": null,
+      "sheet": "backs",
+      "cell": 0,
+      "crop": [48, 37, 629, 649],
+      "sha256": "360ff1b307eeb023d2a8074cdb917351e9972b6ab1a48ea05f35e86bbd1705c7"
+    },
+    "bBack": {
+      "glyph": null,
+      "sheet": "backs",
+      "cell": 1,
+      "crop": [773, 39, 627, 646],
+      "sha256": "a0cb4671a5365cb9d0c88cea50bef73ac68c0900c2918fc244a7384a78b382ff"
+    },
+    "gBack": {
+      "glyph": null,
+      "sheet": "backs",
+      "cell": 2,
+      "crop": [1495, 39, 632, 647],
+      "sha256": "ee34e433a76248f1dbce29b11adddfa6b7c8f9fb80ef5c67d1bda4042f4481d0"
+    }
+  },
+  "method": "ImageGen raster extraction; no recoloring or replacement lettering."
+}

@@ -1,0 +1,18 @@
+{
+  "websiteCommit": "78ea77b4e186c966533dd3d306dcbd3574889125",
+  "reviewedWorkingTree": {
+    "app/views/lobby/home.scala": "d5fb932df8e4fe3039b08e96653244531f11765f67775ae1c603a25d2de4073f",
+    "ui/lib/css/header/_buttons.scss": "1e53146cee3a586c2c0531d0ff298c611692e7be9902def9dfa19c5fd2452d8f",
+    "ui/lobby/css/_carousel.scss": "9c59369006538d962e2d78962332a79b6cb1e0fa2df31259b72ad7aeb3dac04d",
+    "ui/lobby/css/_feed.scss": "cbe166cc43b10501c9228adc00d7d82d7705e6339dc5125f191e8d608017b46d",
+    "ui/lobby/css/_lobby.scss": "5a0400195b51d8075e0728daef930ab08c83bc92a9b3ea1c059a9fd61d46703f",
+    "ui/lobby/src/view/carousel.ts": "e07a431b9895d4813efd6bb56355a762ace2d24e6ebd22169c5c6a31fff1c919",
+    "ui/lobby/src/view/table.ts": "09c28bad0b9de0aaf7828dcc6121cc5254693266422bfb742b326dcddd3cdbe2",
+    "ui/lobby/tests/carousel.test.ts": "c12a811e221b44f6226031ee383f35c079c0f4e8614d6453b24c6a6577de1734",
+    "ui/lobby/tests/table.test.ts": "2d7100fc7deb1c33a5488bd880ce53f79f7754e5b315b6fc70310d066190b2a0",
+    "ui/threeKingdoms/src/threeKingdoms.embed.ts": "dbbad9385b4ef38fd60a0be6953158fbfcf85de5a2b2744f08e0362b977121ea",
+    "tests/homepage-layout.spec.ts": "d3d4cf21deeea24bef0577abf2d8b64f5419a24cf69a0a9343e3e30f5b1e98d9"
+  },
+  "mobile": "not applicable: independent Flutter UI; no web embed or API change",
+  "kids": "not applicable: independent Flutter UI; variants deferred"
+}

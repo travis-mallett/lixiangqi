@@ -16,6 +16,12 @@ body {
   overflow-y: scroll;
 }
 
+// Match rectangular TV previews without clipping the pieces or their shadows.
+.lobby .lixiangqi-board:not(.graph-board) cg-board,
+.lobby .lixiangqi-board:not(.graph-board) cg-board::before {
+  border-radius: $box-radius-size;
+}
+
 #main-wrap {
   ---main-max-width: 1520px;
 }
@@ -576,27 +582,6 @@ body {
 
       &__progress {
         width: 44px;
-      }
-    }
-  }
-
-  @media (min-width: 390px) and (max-width: 499.3px) {
-    @at-root body:has(#{&}) .site-title {
-      display: flex;
-      gap: 0.55rem;
-      padding-inline: 0.5rem;
-
-      .site-icon,
-      .site-name {
-        display: block;
-      }
-
-      .site-icon {
-        font-size: 30px;
-      }
-
-      .site-name {
-        font-size: 22px;
       }
     }
   }

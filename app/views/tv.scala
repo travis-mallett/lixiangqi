@@ -29,7 +29,7 @@ def embed(pov: Option[Pov], channelKey: Option[String])(using EmbedContext) =
     attr("data-stream-url") := dataStreamUrl,
     div(id := "featured-game", cls := "embedded", title := "lixiangqi.org TV")(
       pov.fold[Frag](p(role := "status")(trans.site.noGameFound())) { p =>
-        views.game.mini.noCtx(p, tv = true, channelKey)(targetBlank)
+        views.game.mini.noCtx(p, tv = true, channelKey = channelKey, openInNewTab = true)
       }
     )
   )

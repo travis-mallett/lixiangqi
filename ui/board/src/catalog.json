@@ -50,6 +50,30 @@
         "minixiangqi-7x7": "images/board/svg/xiangqi-wudang-minixiangqi.svg",
         "three-player-xiangqi-135": "images/board/svg/xiangqi-wudang-three-player.svg"
       }
+    },
+    {
+      "key": "xiangqi-light-wood",
+      "name": "PyChess Light Wood",
+      "coordinateLight": "#fff4dc",
+      "coordinateDark": "#2f160c",
+      "matchingPieceSet": "xiangqi-white",
+      "geometries": {
+        "xiangqi-9x10": "images/board/svg/xiangqi-light-wood.svg",
+        "minixiangqi-7x7": "images/board/svg/xiangqi-light-wood-minixiangqi.svg",
+        "three-player-xiangqi-135": "images/board/svg/xiangqi-light-wood-three-player.svg"
+      }
+    },
+    {
+      "key": "xiangqi-cracked-stone",
+      "name": "Cracked Stone",
+      "coordinateLight": "#e9ede3",
+      "coordinateDark": "#2b3029",
+      "matchingPieceSet": "celestial-lacquer",
+      "geometries": {
+        "xiangqi-9x10": "images/board/svg/xiangqi-cracked-stone.svg",
+        "minixiangqi-7x7": "images/board/svg/xiangqi-cracked-stone-minixiangqi.svg",
+        "three-player-xiangqi-135": "images/board/svg/xiangqi-cracked-stone-three-player.svg"
+      }
     }
   ],
   "pieceSets": [
@@ -403,6 +427,219 @@
               "chariot": "piece/xiangqi-western/gR.svg",
               "cannon": "piece/xiangqi-western/gC.svg",
               "soldier": "piece/xiangqi-western/gP.svg"
+            }
+          }
+        }
+      }
+    },
+    {
+      "key": "xiangqi-white",
+      "name": "PyChess White",
+      "category": "traditional",
+      "variants": {
+        "xiangqi": {
+          "back": {
+            "red": "piece/xiangqi-white/rBack.svg",
+            "black": "piece/xiangqi-white/bBack.svg"
+          },
+          "faces": {
+            "red": {
+              "general": "piece/xiangqi-white/rK.svg",
+              "advisor": "piece/xiangqi-white/rA.svg",
+              "elephant": "piece/xiangqi-white/rB.svg",
+              "horse": "piece/xiangqi-white/rN.svg",
+              "chariot": "piece/xiangqi-white/rR.svg",
+              "cannon": "piece/xiangqi-white/rC.svg",
+              "soldier": "piece/xiangqi-white/rP.svg",
+              "banner": "piece/xiangqi-white/rM.svg"
+            },
+            "black": {
+              "general": "piece/xiangqi-white/bK.svg",
+              "advisor": "piece/xiangqi-white/bA.svg",
+              "elephant": "piece/xiangqi-white/bB.svg",
+              "horse": "piece/xiangqi-white/bN.svg",
+              "chariot": "piece/xiangqi-white/bR.svg",
+              "cannon": "piece/xiangqi-white/bC.svg",
+              "soldier": "piece/xiangqi-white/bP.svg",
+              "banner": "piece/xiangqi-white/bM.svg"
+            }
+          }
+        },
+        "threeKingdoms": {
+          "back": {
+            "red": "piece/xiangqi-white/rBack.svg",
+            "black": "piece/xiangqi-white/bBack.svg",
+            "green": "piece/xiangqi-white/gBack.svg"
+          },
+          "faces": {
+            "red": {
+              "general": "piece/xiangqi-white/rK3.svg",
+              "advisor": "piece/xiangqi-white/rA.svg",
+              "elephant": "piece/xiangqi-white/rB.svg",
+              "horse": "piece/xiangqi-white/rN.svg",
+              "chariot": "piece/xiangqi-white/rR.svg",
+              "cannon": "piece/xiangqi-white/rC.svg",
+              "soldier": "piece/xiangqi-white/rP.svg"
+            },
+            "black": {
+              "general": "piece/xiangqi-white/bK3.svg",
+              "advisor": "piece/xiangqi-white/bA.svg",
+              "elephant": "piece/xiangqi-white/bB.svg",
+              "horse": "piece/xiangqi-white/bN.svg",
+              "chariot": "piece/xiangqi-white/bR.svg",
+              "cannon": "piece/xiangqi-white/bC.svg",
+              "soldier": "piece/xiangqi-white/bP.svg"
+            },
+            "green": {
+              "general": "piece/xiangqi-white/gK.svg",
+              "advisor": "piece/xiangqi-white/gA.svg",
+              "elephant": "piece/xiangqi-white/gB.svg",
+              "horse": "piece/xiangqi-white/gN.svg",
+              "chariot": "piece/xiangqi-white/gR.svg",
+              "cannon": "piece/xiangqi-white/gC.svg",
+              "soldier": "piece/xiangqi-white/gP.svg"
+            }
+          }
+        }
+      }
+    },
+    {
+      "key": "xiangqi-white-international",
+      "name": "PyChess White Symbols",
+      "category": "graphicalSymbols",
+      "variants": {
+        "xiangqi": {
+          "back": {
+            "red": "piece/xiangqi-white-international/rBack.svg",
+            "black": "piece/xiangqi-white-international/bBack.svg"
+          },
+          "faces": {
+            "red": {
+              "general": "piece/xiangqi-white-international/rK.svg",
+              "advisor": "piece/xiangqi-white-international/rA.svg",
+              "elephant": "piece/xiangqi-white-international/rB.svg",
+              "horse": "piece/xiangqi-white-international/rN.svg",
+              "chariot": "piece/xiangqi-white-international/rR.svg",
+              "cannon": "piece/xiangqi-white-international/rC.svg",
+              "soldier": "piece/xiangqi-white-international/rP.svg",
+              "banner": "piece/xiangqi-white-international/rM.svg"
+            },
+            "black": {
+              "general": "piece/xiangqi-white-international/bK.svg",
+              "advisor": "piece/xiangqi-white-international/bA.svg",
+              "elephant": "piece/xiangqi-white-international/bB.svg",
+              "horse": "piece/xiangqi-white-international/bN.svg",
+              "chariot": "piece/xiangqi-white-international/bR.svg",
+              "cannon": "piece/xiangqi-white-international/bC.svg",
+              "soldier": "piece/xiangqi-white-international/bP.svg",
+              "banner": "piece/xiangqi-white-international/bM.svg"
+            }
+          }
+        },
+        "threeKingdoms": {
+          "back": {
+            "red": "piece/xiangqi-white-international/rBack.svg",
+            "black": "piece/xiangqi-white-international/bBack.svg",
+            "green": "piece/xiangqi-white-international/gBack.svg"
+          },
+          "faces": {
+            "red": {
+              "general": "piece/xiangqi-white-international/rK.svg",
+              "advisor": "piece/xiangqi-white-international/rA.svg",
+              "elephant": "piece/xiangqi-white-international/rB.svg",
+              "horse": "piece/xiangqi-white-international/rN.svg",
+              "chariot": "piece/xiangqi-white-international/rR.svg",
+              "cannon": "piece/xiangqi-white-international/rC.svg",
+              "soldier": "piece/xiangqi-white-international/rP.svg"
+            },
+            "black": {
+              "general": "piece/xiangqi-white-international/bK.svg",
+              "advisor": "piece/xiangqi-white-international/bA.svg",
+              "elephant": "piece/xiangqi-white-international/bB.svg",
+              "horse": "piece/xiangqi-white-international/bN.svg",
+              "chariot": "piece/xiangqi-white-international/bR.svg",
+              "cannon": "piece/xiangqi-white-international/bC.svg",
+              "soldier": "piece/xiangqi-white-international/bP.svg"
+            },
+            "green": {
+              "general": "piece/xiangqi-white-international/gK.svg",
+              "advisor": "piece/xiangqi-white-international/gA.svg",
+              "elephant": "piece/xiangqi-white-international/gB.svg",
+              "horse": "piece/xiangqi-white-international/gN.svg",
+              "chariot": "piece/xiangqi-white-international/gR.svg",
+              "cannon": "piece/xiangqi-white-international/gC.svg",
+              "soldier": "piece/xiangqi-white-international/gP.svg"
+            }
+          }
+        }
+      }
+    },
+    {
+      "key": "celestial-lacquer",
+      "name": "Celestial Lacquer",
+      "category": "traditional",
+      "variants": {
+        "xiangqi": {
+          "back": {
+            "red": "piece/celestial-lacquer/rBack.svg",
+            "black": "piece/celestial-lacquer/bBack.svg"
+          },
+          "faces": {
+            "red": {
+              "general": "piece/celestial-lacquer/rK.svg",
+              "advisor": "piece/celestial-lacquer/rA.svg",
+              "elephant": "piece/celestial-lacquer/rB.svg",
+              "horse": "piece/celestial-lacquer/rN.svg",
+              "chariot": "piece/celestial-lacquer/rR.svg",
+              "cannon": "piece/celestial-lacquer/rC.svg",
+              "soldier": "piece/celestial-lacquer/rP.svg",
+              "banner": "piece/celestial-lacquer/rM.svg"
+            },
+            "black": {
+              "general": "piece/celestial-lacquer/bK.svg",
+              "advisor": "piece/celestial-lacquer/bA.svg",
+              "elephant": "piece/celestial-lacquer/bB.svg",
+              "horse": "piece/celestial-lacquer/bN.svg",
+              "chariot": "piece/celestial-lacquer/bR.svg",
+              "cannon": "piece/celestial-lacquer/bC.svg",
+              "soldier": "piece/celestial-lacquer/bP.svg",
+              "banner": "piece/celestial-lacquer/bM.svg"
+            }
+          }
+        },
+        "threeKingdoms": {
+          "back": {
+            "red": "piece/celestial-lacquer/rBack.svg",
+            "black": "piece/celestial-lacquer/bBack.svg",
+            "green": "piece/celestial-lacquer/gBack.svg"
+          },
+          "faces": {
+            "red": {
+              "general": "piece/celestial-lacquer/rK3.svg",
+              "advisor": "piece/celestial-lacquer/rA.svg",
+              "elephant": "piece/celestial-lacquer/rB.svg",
+              "horse": "piece/celestial-lacquer/rN.svg",
+              "chariot": "piece/celestial-lacquer/rR.svg",
+              "cannon": "piece/celestial-lacquer/rC.svg",
+              "soldier": "piece/celestial-lacquer/rP.svg"
+            },
+            "black": {
+              "general": "piece/celestial-lacquer/bK3.svg",
+              "advisor": "piece/celestial-lacquer/bA.svg",
+              "elephant": "piece/celestial-lacquer/bB.svg",
+              "horse": "piece/celestial-lacquer/bN.svg",
+              "chariot": "piece/celestial-lacquer/bR.svg",
+              "cannon": "piece/celestial-lacquer/bC.svg",
+              "soldier": "piece/celestial-lacquer/bP.svg"
+            },
+            "green": {
+              "general": "piece/celestial-lacquer/gK.svg",
+              "advisor": "piece/celestial-lacquer/gA.svg",
+              "elephant": "piece/celestial-lacquer/gB.svg",
+              "horse": "piece/celestial-lacquer/gN.svg",
+              "chariot": "piece/celestial-lacquer/gR.svg",
+              "cannon": "piece/celestial-lacquer/gC.svg",
+              "soldier": "piece/celestial-lacquer/gP.svg"
             }
           }
         }

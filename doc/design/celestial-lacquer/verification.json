@@ -1,0 +1,29 @@
+{
+  "date": "2026-11-12",
+  "sourceCommit": "78ea77b4e186c966533dd3d306dcbd3574889125",
+  "scope": "29 ImageGen assets, website catalog, standard snapshots in both mobile apps, Kids garden piece picker. No commit, push or deployment.",
+  "artwork": {
+    "inventory": 29,
+    "sourceAndOutputHashes": "bin/gen/celestial-lacquer/manifest.json",
+    "prompts": "bin/gen/celestial-lacquer/prompts.json",
+    "visualReview": "All source sheets and corrections, packaged contact sheet at 150/48/32 px, starting position on cracked stone, Chromium phone and Firefox desktop variant screenshots.",
+    "regeneration": "node bin/gen/celestial-lacquer/generate.mjs --check passed"
+  },
+  "website": {
+    "toolchain": "Node 24.15.0, pnpm 11.15.0 via existing .tools/pnpm-shim",
+    "lint": "pnpm format; pnpm run lint; pnpm run check-format passed",
+    "assets": "Git Bash ./ui/build --no-install -p passed",
+    "tests": "node ui/.test/runner.mjs: 745 passed. Windows stores ui/test as the symlink target text, so the identical Node runner was invoked directly.",
+    "browser": "6 Chromium/Firefox artwork cases at 320/768/1440 px; 4 Chromium/Firefox sidewall coverage cases at 42/98 px passed",
+    "scala": "Bundled Java 21 / SBT 2.0.3 scalafmtAll, scalafmtCheckAll, pref/test passed (12 tests)",
+    "notRun": "Full Linux server test;stage and database integration jobs, CodeQL, unchanged engine smoke/Python suites, WebKit, live deployment"
+  },
+  "mobile": {
+    "main": "Standard collection ported and selectable in existing Themes/appearance controls; pinned SDK formatting, fatal-info analysis, 498 tests passed with 2 existing skips; arm64/x64 Android debug APK built.",
+    "kids": "Standard collection ported and selectable from garden settings; pinned SDK formatting, fatal-info analysis, 231 tests passed with 1 existing skip; arm64/x64 Android debug APK built. Picker tested at 320/768 px and on save failure.",
+    "snapshot": "Canonical snapshot and --check for each app: 146 source assets and catalog",
+    "variantDisposition": "Not applicable to either current native runtime: both apps remain Standard Xiangqi only and their variant projects are explicitly deferred.",
+    "notRun": "iOS builds (Windows host), emulator/manual native inspection and physical devices"
+  },
+  "deployment": "Normal website rebuild/restart for the embedded catalog and rebuilt native bundles. No migration or deployment-tool change. Cracked Stone board integration remains separately on hold."
+}

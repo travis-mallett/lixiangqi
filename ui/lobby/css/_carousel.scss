@@ -1,4 +1,5 @@
 .carousel {
+  touch-action: pan-y pinch-zoom;
   visibility: hidden;
   overflow-x: hidden;
   width: 100%;

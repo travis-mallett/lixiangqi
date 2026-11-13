@@ -1,5 +1,6 @@
-import { createBoard, boardPresentation, threeKingdoms, type BoardView } from '@lixiangqi/board';
+import { boardPresentation, type BoardView } from '@lixiangqi/board';
 
+import { createXiangqiBoard } from 'lib/board';
 import { embedAssetUrl as assetUrl, sizeEmbedToContent } from 'lib/embed';
 
 import { position } from './board';
@@ -22,13 +23,13 @@ async function initModule(): Promise<void> {
     root.href = `/three-kingdoms/game/${game.id}`;
     if (!board) {
       root.replaceChildren(element, players);
-      board = createBoard(element, {
-        definition: threeKingdoms,
-        position: position(rules.inspect(game.position)),
-        presentation: boardPresentation('preview', 'red'),
-        interaction: { mode: 'display' },
-        services: { assetUrl },
-      });
+      board = createXiangqiBoard(
+        element,
+        position(rules.inspect(game.position)),
+        boardPresentation('preview', 'red'),
+        { mode: 'display' },
+        { assetUrl },
+      );
       root.style.setProperty('--board-aspect-ratio', element.style.getPropertyValue('--board-aspect-ratio'));
     } else board.display(position(rules.inspect(game.position)), { kind: 'jump' });
     players.replaceChildren(

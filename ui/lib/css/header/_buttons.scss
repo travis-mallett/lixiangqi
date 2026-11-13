@@ -8,6 +8,7 @@
   @extend %flex-center-nowrap;
 
   position: relative;
+  min-width: 0;
 
   .link {
     @include transition(color);
@@ -146,4 +147,26 @@
 
 #notify-app .initiating {
   width: 25rem;
+}
+
+@include mq-topnav-hidden {
+  .site-buttons {
+    max-width: calc(100vw - #{$site-header-height});
+
+    .dasher {
+      min-width: 0;
+    }
+
+    .dropdown {
+      max-width: 100vw;
+      max-height: calc(100dvh - #{$site-header-height});
+      overflow-y: auto;
+      overscroll-behavior: contain;
+    }
+  }
+
+  #user_tag {
+    min-width: 0;
+    flex-shrink: 1;
+  }
 }

@@ -47,10 +47,20 @@ final class GameUi(helpers: Helpers):
       games.map: g =>
         renderMini(g.pov(color), gameLink(g, color))
 
-    def noCtx(pov: Pov, tv: Boolean = false, channelKey: Option[String] = None): Tag =
+    def noCtx(
+        pov: Pov,
+        tv: Boolean = false,
+        channelKey: Option[String] = None,
+        openInNewTab: Boolean = false
+    ): Tag =
       val link = if tv then channelKey.fold(routes.Tv.index)(routes.Tv.onChannel)
       else routes.Round.watcher(pov.gameId, pov.color)
-      renderMini(pov, link.url, replayFinished = tv)(using transDefault, None)
+      renderMini(
+        pov,
+        link.url,
+        replayFinished = tv,
+        openInNewTab = openInNewTab
+      )(using transDefault, None)
 
     def renderState(pov: Pov)(using me: Option[Me]) =
       val fen =
@@ -66,7 +76,8 @@ final class GameUi(helpers: Helpers):
         link: String,
         showRatings: Boolean = true,
         replayFinished: Boolean = false,
-        animationMillis: Option[Int] = None
+        animationMillis: Option[Int] = None,
+        openInNewTab: Boolean = false
     )(using Translate, Option[Me]): Tag =
       import pov.game
       val recordedClock =
@@ -79,6 +90,7 @@ final class GameUi(helpers: Helpers):
           case (state, index) if state.check => index
       a(
         href := link,
+        openInNewTab.option(targetBlank),
         cls := s"mini-game mini-game-${game.id} mini-game--init ${game.variant.key} is2d",
         dataLive := game.isBeingPlayed.option(game.id),
         dataTimeControl := game.clock.map(_.config).fold("correspondence")(showTimeControl),
