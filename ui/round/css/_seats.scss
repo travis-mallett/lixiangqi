@@ -30,6 +30,10 @@
   min-width: 0;
   overflow-wrap: anywhere;
 
+  > small + strong {
+    margin-inline-start: 0.4em;
+  }
+
   &.eliminated {
     opacity: 0.65;
   }
