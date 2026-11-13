@@ -174,7 +174,6 @@ required. The native oracle is only needed for diagnostic comparisons.
 ```text
 pnpm install
 python scripts/pikafish/install.py --browser-dir public/pikafish-web
-node node_modules/typescript/bin/tsc -b ui/lib
 node tools/human-bot/build.mjs
 node ui/.test/runner.mjs humanBot
 node --import tsx --test tools/human-bot/integration.test.ts

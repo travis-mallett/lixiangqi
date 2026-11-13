@@ -33,6 +33,9 @@ function run(command, args, cwd = root) {
   if (result.error) throw result.error;
   if (result.status !== 0) throw new Error(`${command} exited ${result.status}`);
 }
+// Use the workspace dependency graph to generate declarations before checking
+// the standalone package, including transitive dependencies such as the board.
+run(process.execPath, ['--no-warnings', 'ui/.build/src/main.ts', '--no-install', '--tsc', 'humanBot']);
 if (!process.argv.includes('--skip-rules')) {
   const windowsJava = join(root, '.tools/jdk-21');
   const java = process.env.JAVA_HOME
@@ -116,5 +119,4 @@ await build({
   minify: true,
   sourcemap: true,
 });
-run(process.execPath, ['node_modules/typescript/bin/tsc', '-p', 'ui/humanBot/tsconfig.json', '--noEmit']);
 console.log(`Standalone browser package: ${output}`);

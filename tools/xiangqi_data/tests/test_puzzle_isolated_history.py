@@ -45,7 +45,10 @@ class IsolatedHistoryTest(unittest.TestCase):
         self.assertEqual(
             found[0].candidate_key, candidate_key(fens[1], ("a4a5",), initial)
         )
-        self.assertEqual(found[0].search_settings["history_policy"], "isolated-root-v1")
+        self.assertEqual(
+            found[0].search_settings["history_policy"],
+            "native-game-history-v1/catalog-isolated-root-v1",
+        )
 
     def test_single_line_retains_only_its_moves_from_the_puzzle_root(self):
         engine = TreeEngine(

@@ -1,0 +1,38 @@
+{
+  "websiteCommit": "ebb59b5de55ce4acfefb041d1f1757abef6e4bf8",
+  "reviewedWorkingTree": {
+    ".gitattributes": "91b531382cad026cd82d5b1faf3eee248bebfec4c897d8c9479164bd4b8d21a0",
+    "bin/gen/pychess-white/source/xiangqiWikimedia.svg": "ec5d540c6afc0dbbb2ff41ee07577262d54e979495d2a7e8e573a4939d8ef596",
+    "tools/xiangqi_data/tests/test_puzzle_isolated_history.py": "47bad6244c3ad39576a94c75c30311e329222eee527b448c18bd373f94341e88",
+    "tools/xiangqi_data/tests/test_puzzle_mining.py": "d9d3eadb60f8b8bbe832b130f403ca005cc993533b48ef25d548cb69a22ef504",
+    ".github/workflows/human-bot.yml": "26a2604b57462003f779f929ef43e6ee7cc4630cb8b89869d1f160a162b8cf1b",
+    "tools/human-bot/build.mjs": "087346ec69bd5bab94a0a4de0173b65efd83571017e91fd3daf15a4166127b07",
+    "ui/humanBot/README.md": "7f5895f36a094ce3841a176486dd1574f829a83c6639afbfb7a14596acb36575"
+  },
+  "affectedFeatures": [
+    "Pinned PyChess source artwork provenance",
+    "Offline puzzle discovery regression tests",
+    "Standalone browser bot build dependency resolution and CI triggers"
+  ],
+  "mobile": "not applicable: only upstream source line endings and Python test fixtures change; the app snapshots generated public artwork, which is unchanged, and consumes unchanged puzzle APIs; standalone browser build tooling has no Flutter counterpart",
+  "kids": "not applicable: shared generated board artwork and puzzle APIs are unchanged; no client or engine behavior changes; standalone browser build tooling has no Flutter counterpart",
+  "deployment": "No migration or deployment dependency; no runtime changes",
+  "checkpoints": "Existing mobile and kids review queues remain unchanged; this scoped review does not advance either baseline",
+  "verification": {
+    "frontend": "pnpm format; pnpm run lint; pnpm run check-format: passed",
+    "assets": "./ui/build --no-install -p: passed; node ui/.test/runner.mjs: 752 passed (Windows checkout materializes ui/test symlink as text)",
+    "mining": "python -m unittest discover -s tools/xiangqi_data/tests -p test_puzzle*.py: 538 passed",
+    "relatedPython": "202 tests passed: supported kinds, catalogue/publication, snapshot/environment, live clients and jieqi collector",
+    "engine": "Pikafish browser smoke, 9 installer tests and 2 browser packaging tests passed",
+    "node": "Snapshot export and game-completion/supported-objective migration tests passed",
+    "notRun": "Linux rerun of modified tree; MongoDB deployment integration suite; local Scala rebuild (no Scala changes; current GitHub server jobs passed)",
+    "mobile": "Reconciliation scanner run before and after; no app code or public generated assets changed",
+    "desktop": "101 offscreen desktop tests passed",
+    "humanBot": "Full Scala.js build and formatting passed; clean declaration build passed; 28 unit tests and 27 integration tests passed; Chromium, Firefox and WebKit runtime checks passed; oracle sweep passed (778 samples, 45 interventions, 2 games)"
+  },
+  "githubFailures": [
+    "https://github.com/travis-mallett/lixiangqi/actions/runs/43469710490",
+    "https://github.com/travis-mallett/lixiangqi/actions/runs/42561776002",
+    "https://github.com/travis-mallett/lixiangqi/actions/runs/42383802213"
+  ]
+}

@@ -15,7 +15,10 @@ on:
       - 'scripts/pikafish/**'
       - 'scripts/pikafish-web/**'
       - 'public/pikafish-web/**'
-      - 'ui/lib/src/ceval/engines/pikafishProtocol.ts'
+      - 'ui/lib/**'
+      - 'ui/board/**'
+      - 'ui/.build/**'
+      - 'ui/tsconfig.base.json'
   pull_request:
     paths:
       - 'ui/humanBot/**'
@@ -30,7 +33,10 @@ on:
       - 'scripts/pikafish/**'
       - 'scripts/pikafish-web/**'
       - 'public/pikafish-web/**'
-      - 'ui/lib/src/ceval/engines/pikafishProtocol.ts'
+      - 'ui/lib/**'
+      - 'ui/board/**'
+      - 'ui/.build/**'
+      - 'ui/tsconfig.base.json'
 
 permissions:
   contents: read
@@ -59,7 +65,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y 7zip
           python scripts/pikafish/install.py --browser-dir public/pikafish-web
-      - run: node node_modules/typescript/bin/tsc -b ui/lib
       - run: node tools/human-bot/build.mjs
       - run: node ui/.test/runner.mjs humanBot
       - run: node --import tsx --test tools/human-bot/integration.test.ts

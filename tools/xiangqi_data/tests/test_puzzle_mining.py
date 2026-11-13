@@ -479,12 +479,13 @@ class PersistenceTest(unittest.TestCase):
         self.connection.execute(
             """INSERT INTO native_games(source_database,origin,game_id,moves_json,
                payload_json,payload_checksum,snapshot_id,created_at)
-               VALUES (?,?,'live','[]','{}','checksum','snapshot','now')""",
+               VALUES (?,?,'live','[]','{"ruleset":"tiantian-v1"}','checksum','snapshot','now')""",
             (source, origin),
         )
         self.connection.commit()
         seed_native_jobs(self.connection, "1")
         live = claim_game_job(self.connection)
+        self.assertIsNotNone(live)
         finish_game_job(self.connection, live, 2)
         self.connection.execute(
             "INSERT INTO game_analysis_depths VALUES (?, ?, 30)", (source, "live")

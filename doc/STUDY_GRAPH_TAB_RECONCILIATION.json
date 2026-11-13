@@ -1,0 +1,18 @@
+{
+  "date": "2026-11-13",
+  "websiteCommit": "ebb59b5de55ce4acfefb041d1f1757abef6e4bf8",
+  "reviewedWorkingTree": {
+    "ui/analyse/src/study/studyView.ts": "3fef239a2d23b5a18fe7d3f4e677be993583bc4661f741b2ba1338e7ad5462dc"
+  },
+  "change": "Render the Study analysis graph and request controls only in the selected Computer Analysis tab, below the tool buttons.",
+  "mobile": {
+    "disposition": "not applicable",
+    "reason": "The native analysis workspace uses its own bounded panels and sheets (doc/ANALYSIS.md), not the website Study underboard renderer. No API, engine or stored evaluation changes."
+  },
+  "kids": {
+    "disposition": "not applicable",
+    "reason": "The product has no Study analysis workspace; gameplay, puzzles, bots and their review contracts are unchanged."
+  },
+  "verification": "Inspected both app instructions, feature documentation and main-app Study references. Ran reconciliation scanner before and after; existing unrelated review queues and checkpoints remain unchanged. Website validation results are reported in the task handoff.",
+  "deployment": "Publish the rebuilt website assets through the normal deployment. No migration, backend change or mobile release required."
+}

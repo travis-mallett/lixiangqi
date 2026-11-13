@@ -1,5 +1,8 @@
 * text=auto eol=lf
 
+# Preserve exact upstream artwork bytes verified by the provenance manifest.
+/bin/gen/pychess-white/source/** -text
+
 # Keep native command scripts friendly to Windows Command Prompt.
 *.bat text eol=crlf
 *.cmd text eol=crlf

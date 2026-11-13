@@ -166,10 +166,6 @@ export function underboard(ctrl: AnalyseCtrl): LooseVNodes {
   if (study.gamebookPlay)
     return [gbPlayButtons(ctrl), descView(study, true), descView(study, false), metadata(study)];
   const showAnalysis = canShowAnalysis(ctrl);
-  const availableChart =
-    showAnalysis && ctrl.settings.showStaticAnalysis && study.localAnalysis.available()
-      ? analysisPanel(ctrl)
-      : undefined;
   let panel;
   switch (toolTab) {
     case 'tags':
@@ -193,7 +189,7 @@ export function underboard(ctrl: AnalyseCtrl): LooseVNodes {
         : glyphForm.viewDisabled('Select a move to annotate');
       break;
     case 'serverEval':
-      if (showAnalysis && !availableChart) panel = analysisPanel(ctrl);
+      if (showAnalysis) panel = analysisPanel(ctrl);
       break;
     case 'share':
       panel = studyShareView(study.share);
@@ -202,14 +198,7 @@ export function underboard(ctrl: AnalyseCtrl): LooseVNodes {
       panel = multiBoardView(study.multiBoard, study);
       break;
   }
-  return [
-    notifView(study.notif),
-    availableChart,
-    descView(study, true),
-    descView(study, false),
-    buttons(ctrl),
-    panel,
-  ];
+  return [notifView(study.notif), descView(study, true), descView(study, false), buttons(ctrl), panel];
 }
 
 function canShowAnalysis(ctrl: AnalyseCtrl): boolean {
