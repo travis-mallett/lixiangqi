@@ -189,6 +189,11 @@
     }
   }
 
+  .board-settings summary {
+    padding: 0.6rem 1rem;
+    cursor: pointer;
+  }
+
   .board-settings {
     padding: 0.4rem 0;
     border-bottom: $border;

@@ -3109,6 +3109,7 @@ object I18nKey:
     val `editorPiece_soldier`: I18nKey = "editorPiece_soldier"
     val `signupCountryRequired`: I18nKey = "signupCountryRequired"
     val `signupCountryOptOut`: I18nKey = "signupCountryOptOut"
+    val `customColors`: I18nKey = "customColors"
     val `opponentLeftCounter`: I18nKey = "opponentLeftCounter"
     val `mateInXHalfMoves`: I18nKey = "mateInXHalfMoves"
     val `nbBlunders`: I18nKey = "nbBlunders"

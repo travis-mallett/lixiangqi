@@ -99,6 +99,25 @@ Three Kingdoms live and analysis playback use adjacent forward/backward transiti
 - An editor uses `place`/`dragPiece`; spare-piece trays remain feature UI. A preview uses the same board with display interaction. A live game supplies premove destinations from the Xiangqi rules adapter.
 - Mount once, update through the public API, then call `destroy`. Bind feature timers, observers, and subscriptions through `onDestroy`. Snabbdom callers store the actual owned instance on each vnode.
 
+### Feedback image lifecycle
+
+`feedback.ts` owns announcements and placement; `feedbackImage.ts` owns animated-image
+loading and disposal for both rectangular and graph boards. Share compressed WebP bytes
+per document, but create a new blob URL for every presentation. URL fragments do not
+reliably restart cached animated-image decoders: a completed transparent frame can be
+reused even while the correct sound plays. Each playback releases its image source,
+handlers, timer and blob URL on completion, interruption or destruction. Loading does
+not consume its visible duration. Failed loads are retryable and stalled loads are bounded.
+
+The browser regression uses a real cacheable HTTP server, because Playwright request
+routing disables the HTTP cache and concealed this defect. It checks painted pixels
+through repeated capture/check/mate sequences on two boards, as well as independent
+playback URLs and a single asset fetch. Run `pnpm exec playwright test tests/board-feedback.spec.ts`
+after building assets. Unit tests cover cancellation, slow loading, errors and resource cleanup.
+Existing CSP permits blob images and asset-origin fetches. Standalone consumers serving
+assets from another origin must allow CORS for those assets. The normal asset build and
+deployment include this module; no migration or deployment-tool change is required.
+
 ## Migrated surfaces
 
 Native analysis, study (including study multiboards), live play/spectating/TV, puzzles and playback, board editor, Learn boards, notation trainer, ancient manuals, special-rules examples, engine-line previews, mini boards, CAPTCHA, and the existing elbow-horse proof page use this API. Replay embeds, stored forum/study PGN embeds, and tutor examples use the shared viewer.

@@ -1,0 +1,18 @@
+{
+  "websiteCommit": "0d41e6dfe9fd6325e6ecb3d3dde6eac987dec72e",
+  "reviewedWorkingTree": {
+    "ui/board/css/_board.scss": "2618add758cd5394a0bedd35232d0ef8fdfd8f25dad32c0f3ae9d67633cec141",
+    "tests/board-marker-layering.spec.ts": "0f1bf67d9a77e13372869391988d9f5b538398916e572fc799c02b9fac46da71"
+  },
+  "decision": {
+    "kids": "Ported: same foreground-overlay fix in the shared Standard Xiangqi board for gameplay, bots and puzzles. Native variants remain deferred.",
+    "mobile": "Ported: BoardOverlay already paints origin before destinations. Moved destinations to the foreground overlay so capture pieces and last-move halos cannot cover them. Shared Standard Xiangqi board covers gameplay, puzzles and analysis. Native variants remain deferred."
+  },
+  "verification": {
+    "kids": "scripts/check.ps1 passed: formatting, fatal-info analysis and 234 tests (1 existing skip). Android arm64/x64 debug APK build passed.",
+    "website": "Production asset build, Oxlint, Stylelint, Oxfmt, 770 UI tests and 30 Chromium/Firefox layering checks at 390/800/1440px passed. Used installed tool binaries because pnpm sandbox store registration failed.",
+    "mobile": "Flutter fatal-info analysis and 499 tests passed (2 existing skips). Android arm64/x64 debug APK build passed."
+  },
+  "deployment": "Normal website assets and updated mobile app bundles. No backend changes, migration or deployment-tool changes. No deployment performed.",
+  "limitations": "iOS and physical devices not tested. Unrelated reconciliation queues and checkpoints unchanged. No commit, push or deployment requested; backend, engine publication, CodeQL and release packaging checks not run for this styling change."
+}

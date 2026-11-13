@@ -974,4 +974,5 @@
   <string name="miniXiangqiLeaderboard">迷你象棋排行榜</string>
     <string name="signupCountryRequired">請為個人檔案新增國家或地區及旗幟，或選擇「不提供」。</string>
     <string name="signupCountryOptOut">不提供</string>
+  <string name="customColors">自訂色彩</string>
 </resources>

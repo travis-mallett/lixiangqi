@@ -1,8 +1,8 @@
 import { boardAssets } from './catalog';
+import { feedbackImageAsset, playFeedbackImage } from './feedbackImage';
 import { feedbackLayout } from './feedbackLayout';
 import type { BoardEffect, BoardPresentation, BoardServices, BoardTransition, GraphGeometry } from './types';
 const images: Partial<Record<BoardEffect, { path: string; duration: number }>> = boardAssets.effects;
-const preloadedImages = new WeakMap<Document, Set<string>>();
 
 /** Feedback is scoped to a board; displaying a position never implicitly announces it. */
 export class BoardFeedback {
@@ -11,7 +11,7 @@ export class BoardFeedback {
   private lastTransition?: string;
   private announcedMove = false;
   private readonly announcedEffects = new Set<BoardEffect>();
-  private sequence = 0;
+  private readonly imageCleanups: (() => void)[] = [];
   private destroyed = false;
 
   constructor(
@@ -21,30 +21,16 @@ export class BoardFeedback {
 
   prepare(presentation: BoardPresentation): void {
     if (this.destroyed || this.services.reducedMotion?.()) return;
-    const document = this.root.ownerDocument;
-    let loaded = preloadedImages.get(document);
-    if (!loaded) preloadedImages.set(document, (loaded = new Set()));
     for (const effect of presentation.feedback.effects) {
       const image = images[effect];
-      if (!image) continue;
-      const url = this.services.assetUrl(image.path);
-      if (loaded.has(url)) continue;
-      loaded.add(url);
-      // Warm the HTTP cache without starting an animated image offscreen.
-      const link = document.createElement('link');
-      link.rel = 'preload';
-      link.setAttribute('as', 'image');
-      link.href = url;
-      link.onerror = () => {
-        loaded.delete(url);
-        link.remove();
-      };
-      document.head.append(link);
+      if (image)
+        void feedbackImageAsset(this.root.ownerDocument, this.services.assetUrl(image.path)).catch(() => {});
     }
   }
 
   present(transition: BoardTransition, presentation: BoardPresentation, geometry?: GraphGeometry): void {
     if (this.destroyed) return;
+    const document = this.root.ownerDocument;
     if (!['forward', 'backward', 'confirmation'].includes(transition.kind)) {
       this.clear();
       this.lastTransition = undefined;
@@ -92,7 +78,7 @@ export class BoardFeedback {
         element.className = `xiangqi-board-animation__image xiangqi-board-animation--${placement.effect}`;
         if (element.tagName === 'IMG' && image) {
           const img = element as HTMLImageElement;
-          img.src = `${this.services.assetUrl(image.path)}#${++this.sequence}`;
+          this.imageCleanups.push(playFeedbackImage(img, this.services.assetUrl(image.path), image.duration));
           img.alt = '';
           img.draggable = false;
         } else {
@@ -107,7 +93,16 @@ export class BoardFeedback {
         this.overlay.append(element);
       }
       this.root.append(this.overlay);
-      this.timeout = setTimeout(() => this.clear(), reduced ? 900 : 1500);
+      // Static labels expire independently of images still loading.
+      const labels = [...this.overlay.querySelectorAll('span')];
+      if (labels.length)
+        this.timeout = setTimeout(
+          () => {
+            labels.forEach(label => label.remove());
+            if (this.overlay && !this.overlay.childElementCount) this.clear();
+          },
+          reduced ? 900 : 1500,
+        );
       return;
     }
     if (this.services.reducedMotion?.()) return;
@@ -124,15 +119,15 @@ export class BoardFeedback {
     element.className = 'xiangqi-board-animation__image';
     element.alt = '';
     element.draggable = false;
-    element.src = `${this.services.assetUrl(image.path)}#${++this.sequence}`;
+    this.imageCleanups.push(playFeedbackImage(element, this.services.assetUrl(image.path), image.duration));
     this.overlay.append(element);
     this.root.append(this.overlay);
-    this.timeout = setTimeout(() => this.clear(), image.duration);
   }
 
   clear(): void {
     if (this.timeout !== undefined) clearTimeout(this.timeout);
     this.timeout = undefined;
+    this.imageCleanups.splice(0).forEach(dispose => dispose());
     this.overlay?.remove();
     this.overlay = undefined;
   }

@@ -1,6 +1,6 @@
 import { debounce } from 'lib/async';
 import { prefersLightThemeQuery } from 'lib/device';
-import { updateThemeEmbeds } from 'lib/embed';
+import { updateBoardColorEmbeds, updateThemeEmbeds } from 'lib/embed';
 import { licon } from 'lib/licon';
 import { pubsub } from 'lib/pubsub';
 import { trafficBoundary, trackTraffic } from 'lib/traffic';
@@ -80,7 +80,8 @@ export class AppearanceCtrl {
   ];
 
   renderBoardStyle = (): VNode[] => [
-    hl('div.board-settings', [
+    hl('details.board-settings', [
+      hl('summary', i18n.site.customColors),
       this.sizeSlider(),
       this.boardSlider('opacity', i18n.site.opacity, { min: 0, max: 100, step: 1 }),
       this.boardSlider('brightness', i18n.site.brightness, { min: 20, max: 140, step: 1 }),
@@ -454,6 +455,7 @@ export class AppearanceCtrl {
         settings.opacity === 100 &&
         settings.hue === 0,
     );
+    updateBoardColorEmbeds();
   };
 
   private readonly applyBoardTheme = (key: string): void => {

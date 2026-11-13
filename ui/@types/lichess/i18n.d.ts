@@ -4335,6 +4335,8 @@ interface I18n {
     currentPassword: string;
     /** Custom */
     custom: string;
+    /** Custom Colors */
+    customColors: string;
     /** Custom game */
     customGame: string;
     /** Custom image URL */

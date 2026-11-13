@@ -1,0 +1,45 @@
+{
+  "websiteCommit": "0d41e6dfe9fd6325e6ecb3d3dde6eac987dec72e",
+  "reviewedWorkingTree": {
+    "ui/board/src/feedback.ts": "de2fdc4d6e2930b8869c073e0ad33f29bd3e213c68a976ba840fc52214925c5f",
+    "ui/board/src/feedbackImage.ts": "5c781daf1182a5632db334391f13ca572e5b279163d46a4bd35d545693156d78",
+    "ui/board/tests/feedbackTiming.test.ts": "03d4bb0f5f4621c14f2bb5b01be9fd2ee4f5d285c7fa4fcee4cc3219e079e51e",
+    "ui/board/tests/feedbackImage.test.ts": "5213b73a76408aee6506e80201c25dc87d86b00cbe741661e555c59cd183f53f",
+    "tests/board-feedback.spec.ts": "ef172404f588b2609b8e6754c313516d82f12c3278d9ae093ff86d5b3399ea3b",
+    "ui/board/README.md": "eb843b50c7532e97c9468cb6dbc8213e2f9b715d07b723bbcabf72a677c6e5db"
+  },
+  "finding": "Animated WebP playback was restarted by changing URL fragments, leaving playback state dependent on browser image caching. A real cacheable-HTTP Chromium test of the previous implementation failed the visible-pixel assertion. The same test passes with independently owned playback URLs. The previous removal timer also counted image loading against playback duration.",
+  "implementation": "Cache compressed bytes per document, allocate and revoke a distinct blob URL per presentation, begin duration on image load, cancel obsolete playback on navigation/destruction, and bound/retry failed loads. Shared by rectangular and graph boards; audio and announcement contracts unchanged.",
+  "decision": {
+    "mobile": {
+      "status": "already covered",
+      "consumer": "../lixiangqi-mobile/lib/design/board/board_effect.dart",
+      "reason": "Native Flutter _PlaybackAsset/_PlaybackKey already allocate an independent codec identity for every presentation, start timing after the first frame, and evict on disposal. Browser URL-fragment/cache changes are not applicable. No shared artwork, rules or API changes; no native edits required."
+    },
+    "kids": {
+      "status": "already covered",
+      "consumer": "../lixiangqi-mobile-kids/lib/design/board/board_effect.dart",
+      "reason": "The shared native board used by games, bots and puzzles has the same independent codec, first-frame timing and disposal as the main mobile app. Browser DOM/blob-URL code is not applicable; no native edits required."
+    }
+  },
+  "checkpoints": "Read both AGENTS.md files, product READMEs, reconciliation queues and native effect implementations; ran mobile-reconciliation.mjs before and after work. Existing unrelated pending reviews and both checkpoints remain unchanged.",
+  "deployment": "Normal website asset build/deployment. Reviewed push-local-live source fingerprint and frontend build/packaging steps. Existing CSP permits blob images and asset fetches. No migration, deployment-tool edit or mobile release required. Not deployed.",
+  "verification": {
+    "passed": [
+      "Production ./ui/build --no-install -p through Git Bash with Node 24 and pnpm 11.15.0",
+      "Full UI suite via node ui/.test/runner.mjs (same runner as ui/test)",
+      "Chromium and Firefox repeated visible-pixel checks at 390/900/1440px on two boards using normal HTTP caching",
+      "Lifecycle tests: separate decoder URLs, one byte fetch, delayed loading, cancellation, cleanup, failed-load retry, stalled decoder",
+      "Repository Oxfmt check, type-aware Oxlint and Stylelint"
+    ],
+    "notes": [
+      "ui/test is a symlink represented as a text file on this Windows checkout; invoked its Node runner directly after the shell wrapper failed.",
+      "Default pnpm wrapper attempted an unavailable sandbox symlink; used installed repository tools directly and pinned pnpm shim for asset build.",
+      "Browser loopback traffic and Firefox launch required execution outside the sandbox."
+    ],
+    "notRun": [
+      "Physical Android/iOS devices and installed Brave/DuckDuckGo browsers",
+      "Backend, engine publication, CodeQL and native Flutter build/test suites: no affected code or commit/push in this task"
+    ]
+  }
+}

@@ -23,3 +23,29 @@ test('theme embeds retain their channel and update all appearance preferences on
     frame.remove();
   }
 });
+
+test('board color changes reach opted-in embeds without navigation', async () => {
+  const { updateBoardColorEmbeds } = await import('../src/embed');
+  const frame = document.createElement('iframe');
+  frame.dataset.themeEmbed = '';
+  document.body.append(frame);
+  frame.src = window.location.href;
+  frame.contentDocument!.open();
+  frame.contentDocument!.write('<body></body>');
+  frame.contentDocument!.close();
+  const src = frame.src;
+  try {
+    document.body.style.setProperty('---board-brightness', '42');
+    document.body.classList.remove('simple-board');
+    updateBoardColorEmbeds();
+    assert.equal(frame.contentDocument!.body.style.getPropertyValue('---board-brightness'), '42');
+    assert.equal(frame.src, src);
+    document.body.classList.add('simple-board');
+    updateBoardColorEmbeds();
+    assert.ok(frame.contentDocument!.body.classList.contains('simple-board'));
+  } finally {
+    document.body.style.removeProperty('---board-brightness');
+    document.body.classList.remove('simple-board');
+    frame.remove();
+  }
+});

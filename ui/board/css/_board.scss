@@ -1,3 +1,12 @@
+// Filter artwork consistently across rectangular and graph renderers.
+body:not(.simple-board) cg-board::before,
+body:not(.simple-board) .graph-board__artwork {
+  filter: brightness(calc(var(---board-brightness, 100) / 100))
+    contrast(calc(var(---board-contrast, 100) / 100)) saturate(calc(var(---board-saturation, 100) / 100))
+    hue-rotate(calc(var(---board-hue, 0) * 3.6deg));
+  opacity: calc(var(---board-opacity, 100) / 100);
+}
+
 // Shared board presentation. Renderer adapters supply geometry and piece orientation.
 
 @import 'pieces';
@@ -433,7 +442,9 @@ body:not(.piece-images-ready) .lixiangqi-board :is(cg-board, .board-surface) .xi
   }
 
   .xiangqi-move-dest {
-    z-index: $z-cg-below-pieces-1;
+    // Legal destinations take priority over history markers and capture faces,
+    // independently of renderer insertion order or square occupancy.
+    z-index: $z-cg__piece-2 + 1;
     background: none;
     pointer-events: auto;
 
@@ -447,11 +458,6 @@ body:not(.piece-images-ready) .lixiangqi-board :is(cg-board, .board-surface) .xi
       border-radius: 50%;
       background: rgb(40 105 46 / 0.62);
       box-shadow: 0 0 0 1px rgb(243 255 226 / 0.35);
-    }
-
-    // Keep the same center-dot marker visible on occupied capture squares.
-    &.oc {
-      z-index: $z-cg__piece-2 + 1;
     }
   }
 }

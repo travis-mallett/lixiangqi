@@ -1013,4 +1013,5 @@
   <string name="miniXiangqiLeaderboard">迷你象棋排行榜</string>
     <string name="signupCountryRequired">请为个人资料添加国家或地区及旗帜，或选择“不提供”。</string>
     <string name="signupCountryOptOut">不提供</string>
+  <string name="customColors">自定义颜色</string>
 </resources>

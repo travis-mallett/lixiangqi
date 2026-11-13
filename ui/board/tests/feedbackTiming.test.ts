@@ -5,7 +5,8 @@ import { boardPresentation, threeKingdoms } from '../src/definitions';
 import { BoardFeedback } from '../src/feedback';
 import type { BoardTransition } from '../src/types';
 
-test('preloads enabled artwork once across boards and respects reduced motion', () => {
+test('preloads enabled artwork once across boards and respects reduced motion', t => {
+  const fetcher = t.mock.method(globalThis, 'fetch', async () => new Response('image bytes'));
   const root = document.createElement('div');
   const presentation = boardPresentation('replay', 'red');
   const prefix = '/feedback-preload-test/';
@@ -16,19 +17,15 @@ test('preloads enabled artwork once across boards and respects reduced motion', 
   });
   try {
     feedback.prepare({ ...presentation, feedback: { audio: false, effects: [] } });
-    assert.equal(document.head.querySelectorAll(`link[href^="${prefix}"]`).length, 0);
+    assert.equal(fetcher.mock.callCount(), 0);
     feedback.prepare(presentation);
     new BoardFeedback(root, { assetUrl: path => prefix + path }).prepare(presentation);
-    assert.equal(
-      document.head.querySelectorAll(`link[rel="preload"][as="image"][href^="${prefix}"]`).length,
-      3,
-    );
+    assert.equal(fetcher.mock.callCount(), 3);
     reduced.prepare(presentation);
-    assert.equal(document.head.querySelectorAll('link[href^="/reduced-preload-test/"]').length, 0);
+    assert.equal(fetcher.mock.callCount(), 3);
   } finally {
     feedback.destroy();
     reduced.destroy();
-    document.head.querySelectorAll(`link[href^="${prefix}"]`).forEach(link => link.remove());
   }
 });
 

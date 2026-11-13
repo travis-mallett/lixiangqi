@@ -6,6 +6,7 @@ export const embedAssetUrl = (path: string): string =>
 export function sizeEmbedToContent(element: HTMLElement): boolean {
   const frame = window.frameElement as HTMLIFrameElement | null;
   if (frame?.tagName !== 'IFRAME' || !frame.hasAttribute('data-content-sized')) return false;
+  if (frame.hasAttribute('data-theme-embed')) copyBoardColors(frame.ownerDocument, document);
   document.documentElement.classList.add('content-sized-embed');
   const observer = new ResizeObserver(() => {
     frame.style.height = `${Math.ceil(element.getBoundingClientRect().height)}px`;
@@ -27,5 +28,20 @@ export function updateThemeEmbeds(theme: { uiTheme: string; boardTheme: string; 
       changed = true;
     }
     if (changed) frame.src = url.href;
+  });
+}
+
+/** Same-origin TV embeds inherit live color sliders without restarting their streams. */
+function copyBoardColors(source: Document, target: Document): void {
+  const style = source.defaultView!.getComputedStyle(source.body);
+  for (const key of ['brightness', 'contrast', 'saturation', 'opacity', 'hue'])
+    target.body.style.setProperty(`---board-${key}`, style.getPropertyValue(`---board-${key}`));
+  target.body.classList.toggle('simple-board', source.body.classList.contains('simple-board'));
+}
+
+export function updateBoardColorEmbeds(): void {
+  document.querySelectorAll<HTMLIFrameElement>('iframe[data-theme-embed]').forEach(frame => {
+    if (new URL(frame.src).origin !== window.location.origin) return;
+    if (frame.contentDocument?.body) copyBoardColors(document, frame.contentDocument);
   });
 }

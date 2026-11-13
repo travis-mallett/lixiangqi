@@ -1,0 +1,36 @@
+{
+  "websiteCommit": "0d41e6dfe9fd6325e6ecb3d3dde6eac987dec72e",
+  "reviewedWorkingTree": {
+    "modules/coreI18n/src/main/key.scala": "2ba8d309289f0e4e6a324fa0e802610c01a01365f93d4536d5f0d489c2b00f3d",
+    "translation/dest/site/zh-CN.xml": "68698954a896df766369fa94c39df51f0a3aea692384003927bb103c90303eca",
+    "translation/dest/site/zh-TW.xml": "11caf301b42eaa5ac0ef5fbd4ff24c1ba1f0e82bae5bbb8ac5e09897b5a2dc2a",
+    "translation/source/site.xml": "9a8e5be3aff77fca8d2a4f820f87350be92442355c8ec6416b46dd326a4b6970",
+    "ui/@types/lichess/i18n.d.ts": "ca71b8adf091b7bb18de2108ad8e24fadbb5d9cc8621796f66db71cae6f8cd71",
+    "ui/board/css/_board.scss": "31b841ebf1e4ac22574dcb62f5b960bbe4c71905c2f735ae49fcde2c723a20bf",
+    "ui/dasher/css/_appearance.scss": "19b5f9e8bc0f95b95a14ed73de4766d2f13fa3f1660d539075bfde48a6998292",
+    "ui/dasher/src/appearance.ts": "74be4883b870ff3e5bb387f4a33d6be7beb2003362ee6883ac7269739ff71fa8",
+    "ui/lib/css/theme/board/_chessground.scss": "2e6be23e569ade3a3e334ec30df816a4a20c03eca7c325549e86df89fe194125",
+    "ui/lib/src/embed.ts": "e72710e42c162978138bd358bdbbb9abd826f4686b7cbb8b7e5e83f751083bef",
+    "ui/lib/tests/embed.test.ts": "056538572ea0eb421b79d742717d0861e183a3c4dddf76a9034a6744be7a09dd",
+    "tests/board-colors.spec.ts": "43d6d83ba98dbdd941f0d373b87b6414ed548570d7bdaafb8b014cf6706f6d5b"
+  },
+  "decision": {
+    "mobile": "Not applicable: native board renderer does not consume website color sliders; settings catalogue edits the unchanged website preference API. README explicitly documents website-only preferences. No shared artwork changed; variants remain deferred.",
+    "kids": "Not applicable: native board renderer has no website CSS, TV iframes or board-color sliders. No gameplay, assets or API changed."
+  },
+  "deployment": "Normal website asset deployment; no migration or mobile release required.",
+  "verification": {
+    "passed": [
+      "Production asset build via node ui/.build/src/main.ts --no-install -p",
+      "Full UI suite: 765 tests",
+      "Chromium and Firefox artwork controls at 390, 800 and 1440px, with and without background images",
+      "Oxfmt, type-aware Oxlint, Stylelint, i18n generation and key check",
+      "Mobile scanner rerun; existing unrelated review queues remain unchanged",
+      "Scoped project service cleanup"
+    ],
+    "notRun": [
+      "Python translation lint and xmllint DTD validation: executables unavailable in this session",
+      "Scala build: only generated translation key changed; no backend behavior changed"
+    ]
+  }
+}
