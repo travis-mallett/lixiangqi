@@ -184,9 +184,8 @@ final class Puzzle(env: Env, apiC: => Api) extends LilaController(env):
 
   def ofPlayer(name: Option[String], page: Int) = Open:
     val search = PlayerPuzzleSearch.from(name)
-    val userId = search.userName.flatMap(_.validateId)
     for
-      user <- userId.so(env.user.repo.enabledById).orElse(fuccess(ctx.me.map(_.value)))
+      user <- search.resolve(ctx.me.map(_.value))(env.user.repo.enabledById)
       puzzles <- user.traverse(env.puzzle.api.puzzle.of(_, page))
       page <- renderPage(views.puzzle.ui.ofPlayer(search.query, user, puzzles))
     yield Ok(page)
