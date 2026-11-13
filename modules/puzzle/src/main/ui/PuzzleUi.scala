@@ -181,7 +181,7 @@ final class PuzzleUi(helpers: Helpers, val bits: PuzzleBits):
       .css("puzzle.page")
       .js(infiniteScrollEsmInit):
         main(cls := "page-menu")(
-          bits.pageMenu("player", user),
+          bits.pageMenu("player", ctx.user),
           div(cls := "page-menu__content puzzle-of-player box box-pad")(
             form(
               action := routes.Puzzle.ofPlayer(),
