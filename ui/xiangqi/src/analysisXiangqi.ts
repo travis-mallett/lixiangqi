@@ -66,6 +66,7 @@ import { readAnalysisUrl, replayPath } from './analysisHandoff';
 import { bindAnalysisInterfaceControls } from './analysisInterfaceControls';
 import { bindAnalysisKeyboard } from './analysisKeyboard';
 import { syncAnalysisLayout } from './analysisLayout';
+import { analysisWorkspaceKey, restoreReplayWorkspace } from './analysisReplayWorkspace';
 import {
   applyInterfaceSettingsClasses,
   engineSettingsKey,
@@ -75,7 +76,6 @@ import {
 } from './analysisSettings';
 import { AnalysisSuggestions } from './analysisSuggestions';
 import {
-  ANALYSIS_TABS_STORAGE_KEY,
   deserializeAnalysisTabs,
   mergeAnalysisHandoff,
   MAX_ANALYSIS_TABS,
@@ -304,6 +304,9 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
       activePath,
     },
   ];
+  const replayTab = bootstrap.gameId && nativeStates ? tabs[0] : undefined;
+  const workspaceKey = analysisWorkspaceKey(bootstrap.gameId ? tabs[0] : undefined);
+  let replayRestoreFailed = false;
   let activeTabId = tabs[0].id;
   let editor: AnalysisEditorState = {};
   fenInput.addEventListener('input', () => {
@@ -454,20 +457,21 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
 
   function restoreWorkspace(): void {
     const incomingHandoff = handoff ? tabs[0] : undefined;
-    // A native replay must never be replaced by a draft sharing its starting FEN.
-    if (bootstrap.gameId) return;
+
     {
       try {
-        const storedTabs = localStorage.getItem(ANALYSIS_TABS_STORAGE_KEY);
+        const storedTabs = localStorage.getItem(workspaceKey);
         if (storedTabs) {
           const restored = deserializeAnalysisTabs(JSON.parse(storedTabs));
-          const workspace = restoreAnalysisWorkspace(
-            restored.tabs,
-            restored.activeId,
-            initialFen,
-            !!(urlFen || bootstrap.initialFen),
-            incomingHandoff,
-          );
+          const workspace = replayTab
+            ? restoreReplayWorkspace(restored.tabs, replayTab, /^#\d+$/.test(location.hash))
+            : restoreAnalysisWorkspace(
+                restored.tabs,
+                restored.activeId,
+                initialFen,
+                !!(urlFen || bootstrap.initialFen),
+                incomingHandoff,
+              );
           if (!workspace) return;
           tabs = workspace.tabs;
           activeTabId = workspace.activeId;
@@ -484,14 +488,16 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
           return;
         }
       } catch (error) {
-        const original = localStorage.getItem(ANALYSIS_TABS_STORAGE_KEY);
-        if (original) localStorage.setItem(ANALYSIS_TABS_STORAGE_KEY + '.recovery.' + Date.now(), original);
+        replayRestoreFailed = !!replayTab;
+        const original = localStorage.getItem(workspaceKey);
+        if (original) localStorage.setItem(workspaceKey + '.recovery.' + Date.now(), original);
         saveStatusElement.textContent =
           error instanceof Error ? error.message : 'Saved analysis tabs were invalid';
         saveStatusElement.classList.add('error');
       }
     }
 
+    if (bootstrap.gameId) return;
     try {
       const stored = localStorage.getItem(analysisStorageKey(initialFen));
       if (stored) {
@@ -548,12 +554,10 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
   }
 
   function saveDraft(announce = false): void {
+    if (replayRestoreFailed) return;
     try {
       syncActiveTab();
-      localStorage.setItem(
-        ANALYSIS_TABS_STORAGE_KEY,
-        JSON.stringify(serializeAnalysisTabs(tabs, activeTabId)),
-      );
+      localStorage.setItem(workspaceKey, JSON.stringify(serializeAnalysisTabs(tabs, activeTabId)));
       saveStatusElement.classList.remove('error');
       if (announce) saveStatusElement.textContent = 'Draft saved locally';
     } catch (error) {
