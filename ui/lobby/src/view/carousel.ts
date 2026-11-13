@@ -1,5 +1,7 @@
 import { frag, requestIdleCallbackSafe } from 'lib';
 
+import { carouselHistoryFocus } from './carouselHistoryFocus';
+
 type CarouselOpts = {
   selector: string;
   itemWidth: number;
@@ -9,6 +11,8 @@ type CarouselOpts = {
 
 // Adapted from https://github.com/lichess-org/lila/blob/master/ui/lobby/src/view/carousel.ts.
 export function makeCarousel({ selector, itemWidth, pauseFor, slideFor = 0.6 }: CarouselOpts): void {
+  const restoreHistoryFocus = carouselHistoryFocus(selector);
+  let restoredLink: HTMLAnchorElement | undefined;
   let timer: ReturnType<typeof setInterval> | undefined;
   let slide: ReturnType<typeof setTimeout> | undefined;
 
@@ -47,6 +51,11 @@ export function makeCarousel({ selector, itemWidth, pauseFor, slideFor = 0.6 }: 
 
     onResize();
     el.style.visibility = 'visible';
+    restoreHistoryFocus(el, link => {
+      while (track.firstElementChild !== link) track.append(track.firstElementChild!);
+      onResize();
+      restoredLink = link;
+    });
     window.addEventListener('resize', onResize);
 
     function onResize() {
@@ -59,6 +68,8 @@ export function makeCarousel({ selector, itemWidth, pauseFor, slideFor = 0.6 }: 
       kids.forEach(k => (k.style.width = `${itemW}px`));
       kids.forEach(k => (k.style.marginRight = `${gap}px`));
       const rotateForwards = () => {
+        // Keep the restored card available until keyboard focus leaves it.
+        if (restoredLink === document.activeElement) return;
         kids.forEach(k => (k.style.transition = `transform ${slideFor}s ease`));
         kids.forEach(k => (k.style.transform = `translateX(-${itemW + gap}px)`));
         slide = setTimeout(() => {

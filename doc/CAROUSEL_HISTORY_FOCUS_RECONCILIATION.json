@@ -1,0 +1,23 @@
+{
+  "websiteCommit": "c895b184760132236a80ec0a4bb4b1c3051eb0d0",
+  "reviewedWorkingTree": {
+    "ui/lobby/src/view/carousel.ts": "67567db356c21ab8974fb889bb816ca532ebcc8a80ba2ef3fc36f48e933b68e1",
+    "ui/lobby/src/view/carouselHistoryFocus.ts": "ca494c43a98e44358cb9f84f2c098bd277aa8e7e736b642009cab48e88f6dc54",
+    "ui/lobby/tests/carousel.test.ts": "6cea6e6716a68f0d16834c8849cdcf9ba73773b52ad6136fcf767ab898220377"
+  },
+  "affectedFeatures": ["Homepage carousel keyboard focus on browser history return"],
+  "mobile": "Not applicable: native Flutter navigation has no website homepage carousel or browser document history focus; no API, puzzle, artwork, settings or gameplay change.",
+  "kids": "Not applicable: native Kids navigation has no website homepage carousel or browser document history focus; no API, puzzle, artwork, settings or gameplay change.",
+  "checkpoints": "Neither app checkpoint or pending queue advanced. Scanner reports main app baseline e7638e024687eb71dff5298ceec9ff6e4eefb229 with outstanding reviews; Kids requires baseline review.",
+  "deployment": "Normal frontend asset build only; no migration, backend change or deployment tooling change.",
+  "verification": {
+    "nativeBrowser": "Codex IAB, actual bundled carousel in a local component shell: baseline Enter/Back loses focus, next Tab goes to outside control; candidate Back restores originating card, Tab advances to next card. Rotated Article 3, pointer return and fresh/reload controls passed. Final formatted source reverified Article 1 -> Back -> Article 1 -> Tab -> Article 2; reload does not focus a card.",
+    "limits": "Component verification, not full app. Native returns reported pageshow persisted=false; BFCache is simulated only in unit tests. Puzzle Themes candidate remains separate and unmerged.",
+    "unit": "18 carousel tests pass; full UI suite 764/764 passes with the separately verified provenance repair. Baseline without repair failed only the unrelated pinned artwork hash.",
+    "frontend": "pnpm format, pnpm run lint, pnpm run check-format passed",
+    "assets": "Production asset build, Pikafish WASM smoke, 2 browser asset Python tests and 9 installer tests passed",
+    "notRun": "GitHub CodeQL and Linux asset packaging; backend/translation/human-bot workflows do not match this scoped change",
+    "integration": "Separate local carousel commit on top of standalone provenance repair; primary remains untouched because its uncommitted repair overlaps.",
+    "provenanceDependency": "Standalone c895b184760132236a80ec0a4bb4b1c3051eb0d0 preserves original artwork bytes and fixes the baseline hash failure without changing the manifest."
+  }
+}
