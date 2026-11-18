@@ -22,8 +22,6 @@ final class I18n(env: Env) extends LilaController(env):
             else redir
           ,
           Ok(Json.obj("lang" -> lang.code))
-        ).map(
-          _.withCookies(env.security.lilaCookie.cookie("blogLanguage", UblogTranslation.normalize(lang.code)))
         )
     )
 

@@ -13,7 +13,8 @@ private case class Contact(
     marks: Option[UserMarks],
     roles: Option[List[RoleDbKey]],
     createdAt: Instant,
-    seenAt: Option[Instant]
+    seenAt: Option[Instant],
+    enabled: Option[Boolean] = None
 ):
   def isKid = ~kid
   def isTroll = marks.exists(_.troll)
@@ -29,6 +30,7 @@ private case class Contact(
 
 private case class Contacts(orig: Contact, dest: Contact):
   def hasKid = orig.isKid || dest.isKid
+  def activeAdults = !hasKid && !any(c => !c.enabled.contains(true))
   def userIds = List(orig.id, dest.id)
   def any(f: Contact => Boolean) = f(orig) || f(dest)
 
@@ -36,12 +38,28 @@ private final class ContactApi(userColl: Coll)(using Executor):
 
   private given BSONDocumentHandler[Contact] = Macros.handler[Contact]
 
+  /** Taking a write lock makes a concurrent Kid/account status transition conflict with this media commit. */
+  def guardMedia(tx: reactivemongo.api.DB, users: List[UserId]): Funit =
+    val ids = users.distinct
+    val records: Coll = tx.collection(userColl.name)
+    records.update
+      .one($inIds(ids) ++ $doc("enabled" -> true, "kid".$ne(true)), $inc("mediaRevision" -> 1), multi = true)
+      .flatMap: res =>
+        if res.n == ids.size then funit else fufail(lila.core.security.SubmissionRejected("privateTextOnly"))
+
   def contacts(orig: UserId, dest: UserId): Fu[Option[Contacts]] =
     import lila.core.user.BSONFields as F
     userColl
       .byOrderedIds[Contact, UserId](
         List(orig, dest),
-        $doc(F.kid -> true, F.marks -> true, F.roles -> true, F.createdAt -> true, F.seenAt -> true).some
+        $doc(
+          F.kid -> true,
+          F.enabled -> true,
+          F.marks -> true,
+          F.roles -> true,
+          F.createdAt -> true,
+          F.seenAt -> true
+        ).some
       )(_.id)
       .map:
         case List(o, d) => Contacts(o, d).some

@@ -5,7 +5,7 @@ import play.api.libs.json.Json
 
 import lila.ui.*
 
-import ScalatagsTemplate.*
+import ScalatagsTemplate.{ *, given }
 
 final class NotationUi(helpers: Helpers):
   import helpers.{ *, given }
@@ -17,13 +17,20 @@ final class NotationUi(helpers: Helpers):
       .js(pageModule(scoreOption))
       .csp(_.withPeer.withWebAssembly)
       .graph(
-        title = "Xiangqi Notation trainer",
+        title = trans.notation.xiangqiNotationTraining.txt(),
         url = routeUrl(routes.Notation.home),
-        description = "Practice reading and writing valid Xiangqi moves in English or Chinese WXF notation."
+        description = trans.site.xiangqiNotationDescription.txt()
       )
       .hrefLangs(LangPath(routes.Notation.home))
       .flag(_.zoom)
       .flag(_.zen)
+      .append(
+        ToolIntro(trans.notation.xiangqiNotationTraining.txt(), trans.site.xiangqiNotationDescription.txt())(
+          a(href := routes.UserAnalysis.index)(trans.site.analysis()),
+          a(href := langHref(routes.Puzzle.themes))(trans.puzzle.puzzleThemes()),
+          a(href := routes.Learn.specialRules)(trans.site.xiangqiSpecialRules())
+        )
+      )
       .body(preload)
 
   private val preload = main(id := "trainer")(

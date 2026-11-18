@@ -9,7 +9,7 @@ import lila.xiangqi.SpecialRulesExamples
 import ScalatagsTemplate.{ *, given }
 
 final class LearnUi(helpers: Helpers):
-  import helpers.*
+  import helpers.{ *, given }
   private val ancientManuals = List(
     ("zichudonglaiwudishou", "自出洞来无敌手", "The Invincible Xiangqi Manual", 35, 7),
     ("yicheng", "奕乘", "Yicheng", 134, 13),
@@ -376,6 +376,11 @@ final class LearnUi(helpers: Helpers):
             p(
               cls := "ancient-manuals__status",
               if chinese then "13 部古谱 · 419 局" else "13 manuals · 419 games"
+            ),
+            p(
+              trans.site.xiangqiEncyclopedia(),
+              ": ",
+              a(href := "https://wiki.lixiangqi.com/index.php/Secrets_Inside_the_Orange")("桔中秘")
             )
           ),
           st.section(

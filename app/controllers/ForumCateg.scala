@@ -4,7 +4,7 @@ import lila.app.{ *, given }
 import lila.core.id.ForumCategId
 import lila.forum.ForumCateg.{ diagnosticId, ublogId }
 
-final class ForumCateg(env: Env) extends LilaController(env) with ForumController:
+final class ForumCateg(env: Env) extends LilaController(env) with ForumController with MobileDisplay:
 
   def index = OpenOrScoped(_.Mobile.Forum):
     NotForKids:
@@ -15,8 +15,14 @@ final class ForumCateg(env: Env) extends LilaController(env) with ForumControlle
         categs <- postApi.categsForUser(teamIds, ctx.me)
         _ <- env.user.lightUserApi.preloadMany(categs.flatMap(_.lastPostUserId))
         canWrite <- access.isGrantedWrite(lila.forum.ForumCateg.publicBoards.head.id)
-        page <- renderPage(views.forum.categ.index(categs, canWrite))
-      yield Ok(page)
+        public = categs.forall(_.categ.publicDisplay)
+        page <- displayPage(
+          if mobileDisplay && public then views.forum.categ.publicDirectory(categs)
+          else views.forum.categ.index(categs, canWrite),
+          60,
+          public
+        )
+      yield page
 
   def show(id: ForumCategId, page: Int) = OpenOrScoped(_.Mobile.Forum):
     if id == ublogId && !isGrantedOpt(_.ModerateForum) then Redirect(routes.Ublog.communityAll())
@@ -31,7 +37,12 @@ final class ForumCateg(env: Env) extends LilaController(env) with ForumControlle
               stickyPosts <- (page == 1).so(env.forum.topicApi.getSticky(categ))
               _ <- env.user.lightUserApi.preloadMany(topics.currentPageResults.flatMap(_.lastPostUserId))
               res <-
-                if canRead then Ok.page(views.forum.categ.show(categ, topics, canWrite, stickyPosts))
+                if canRead then
+                  displayPage(
+                    views.forum.categ.show(categ, topics, canWrite, stickyPosts),
+                    60,
+                    categ.publicDisplay
+                  )
                 else notFound
             yield res
 

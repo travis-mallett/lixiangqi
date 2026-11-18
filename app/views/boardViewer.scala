@@ -11,6 +11,7 @@ object boardViewer:
       "next" -> trans.site.next.txt(),
       "last" -> trans.site.last.txt(),
       "moves" -> trans.site.moves.txt(),
+      "moveAnnotations" -> trans.site.moveAnnotations.txt(),
       "start" -> trans.site.start.txt(),
       "analysis" -> trans.site.analysis.txt(),
       "captures" -> Json.obj(

@@ -1,96 +1,78 @@
 import { h, type VNode } from 'snabbdom';
 
-import { blurIfEscape } from 'lib';
-import { throttle } from 'lib/async';
-import { licon } from 'lib/licon';
-import { bindSubmit, alert, testId, onInsert } from 'lib/view';
-
 import type MsgCtrl from '../ctrl';
 import type { User } from '../interfaces';
+import { glyph, iconButton } from './messageActions';
 
-export default function renderInteract(ctrl: MsgCtrl, user: User): VNode {
-  const connected = ctrl.connected();
-  return h(
-    'form.msg-app__convo__post',
-    {
-      hook: bindSubmit(e => {
-        const area = (e.target as HTMLElement).querySelector('textarea');
-        if (area) {
-          area.dispatchEvent(new Event('send'));
-          area.focus();
-        }
-      }),
-    },
-    [
-      renderTextarea(ctrl, user),
-      h('button.msg-app__convo__post__submit.button', {
-        class: { connected },
-        attrs: {
-          type: 'submit',
-          'data-icon': licon.PlayTriangle,
-          disabled: !connected,
-          ...testId('msg-send-button'),
+export default function renderInteract(ctrl: MsgCtrl, _user: User): VNode {
+  const context = ctrl.editing ?? ctrl.replyTo;
+  return h('div.msg-composer', [
+    ctrl.submissionError ? h('p.msg-error', { attrs: { role: 'alert' } }, ctrl.submissionError) : undefined,
+    context &&
+      h('div.msg-compose-context', [
+        glyph(ctrl.editing ? 'edit' : 'reply'),
+        h('div', [h('strong', ctrl.editing ? i18n.inbox.editing : context.user), h('p', context.text)]),
+        iconButton('close', i18n.inbox.cancel, () => {
+          ctrl.cancelCompose();
+          ctrl.redraw();
+        }),
+      ]),
+    h(
+      'form.msg-app__convo__post',
+      {
+        on: {
+          submit: e => {
+            e.preventDefault();
+            void ctrl.post(ctrl.draft);
+          },
         },
-      }),
-    ],
-  );
-}
-
-function renderTextarea(ctrl: MsgCtrl, user: User): VNode {
-  return h('textarea.msg-app__convo__post__text', {
-    attrs: { rows: 1, enterkeyhint: 'send', ...testId('msg-textarea') },
-    hook: onInsert<HTMLTextAreaElement>(el => setupTextarea(el, user.id, ctrl)),
-  });
-}
-
-function setupTextarea(area: HTMLTextAreaElement, contact: string, ctrl: MsgCtrl) {
-  const storage = ctrl.textStore!;
-
-  let prev = 0;
-
-  function send() {
-    const now = Date.now();
-    if (prev > now - 1000 || !ctrl.connected()) return;
-    prev = now;
-    const txt = area.value;
-    if (txt.length > 8000) {
-      alert('The message is too long.');
-      return;
-    }
-    if (txt) ctrl.post(txt);
-    area.value = '';
-    area.dispatchEvent(new Event('input')); // resize the textarea
-    storage.remove();
-  }
-
-  // hack to automatically resize the textarea based on content
-  area.value = '';
-  const baseScrollHeight = area.scrollHeight;
-  area.addEventListener(
-    'input',
-    throttle(500, () => {
-      const text = area.value;
-      area.rows = 1;
-      // the resize magic
-      if (text) area.rows = Math.min(10, 1 + Math.ceil((area.scrollHeight - baseScrollHeight) / 19));
-      // and save content
-      storage.set(text);
-      ctrl.sendTyping(contact);
-    }),
-  );
-
-  // restore previously saved content
-  area.value = storage.get() || '';
-  if (area.value) area.dispatchEvent(new Event('input'));
-
-  // send the content on Enter
-  area.addEventListener('keydown', (e: KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      setTimeout(send);
-    } else blurIfEscape(e);
-  });
-  area.addEventListener('send', send);
-
-  if (!('ontouchstart' in window)) area.focus();
+      },
+      [
+        ctrl.attachments ? ctrl.attachments.view('textarea', ctrl.redraw) : undefined,
+        h('textarea.msg-app__convo__post__text', {
+          attrs: {
+            rows: 1,
+            maxlength: 8000,
+            enterkeyhint: 'send',
+            placeholder: i18n.inbox.message,
+            'aria-label': i18n.inbox.message,
+            'data-testid': 'msg-textarea',
+          },
+          props: { value: ctrl.draft },
+          on: {
+            input: e => {
+              const el = e.target as HTMLTextAreaElement;
+              ctrl.updateDraft(el.value);
+              el.style.height = 'auto';
+              el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+            },
+            keydown: (e: KeyboardEvent) => {
+              if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+                e.preventDefault();
+                void ctrl.post(ctrl.draft);
+              }
+              if (e.key === 'Escape') {
+                ctrl.cancelCompose();
+                ctrl.redraw();
+              }
+            },
+            blur: ctrl.stopTyping,
+          },
+        }),
+        h(
+          'button.msg-app__convo__post__submit',
+          {
+            attrs: {
+              type: 'submit',
+              disabled:
+                (!ctrl.draft.trim() && !ctrl.attachments?.active) || ctrl.attachments?.ready === false,
+              'aria-label': ctrl.editing ? i18n.inbox.save : i18n.inbox.send,
+              'data-testid': 'msg-send-button',
+            },
+          },
+          [glyph(ctrl.editing ? 'check' : 'send')],
+        ),
+      ],
+    ),
+  ]);
 }

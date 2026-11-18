@@ -59,15 +59,7 @@ test.describe('published blog editions', () => {
         expect(
           await alternatives.evaluateAll(links => links.map(l => l.getAttribute('hreflang')).sort()),
         ).toEqual(['en', 'vi', 'zh-Hans']);
-        for (const lang of ['en', 'zh-Hans', 'vi']) {
-          const expected = sourcePath(original.id) + (lang === 'en' ? '' : `/${lang}`);
-          const link = page.locator(`.ublog-post__languages a[hreflang="${lang}"]`);
-          // The current edition can be a non-link label; all others must navigate.
-          if (lang !== language)
-            expect(new URL((await link.getAttribute('href'))!, baseURL).pathname.toLowerCase()).toBe(
-              expected.toLowerCase(),
-            );
-        }
+        await expect(page.locator('.ublog-post__languages')).toHaveCount(0);
         const body = await page.locator('.ublog-post__markup').innerText();
         expect(body.length).toBeGreaterThan(250);
         expect(await response!.text()).toContain(edition.title);
@@ -129,24 +121,4 @@ test.describe('published blog editions', () => {
       }
     }
   });
-});
-
-test('edition links update the URL and preference while browser history remains usable', async ({
-  page,
-  context,
-}) => {
-  test.skip(!enabled, 'Requires published multilingual editions');
-  const source = sourcePath('4wtrgg9Y');
-  await page.goto(source);
-  await page.locator('.ublog-post__languages a[hreflang="zh-Hans"]').click();
-  await expect(page).toHaveURL(new RegExp('/4wtrgg9Y/zh-Hans$'));
-  await expect(page.locator('html')).toHaveAttribute('lang', 'zh-Hans');
-  expect((await context.cookies()).find(cookie => cookie.name === 'blogLanguage')?.value).toBe('zh-Hans');
-  await page.locator('.ublog-post__languages a[hreflang="vi"]').click();
-  await expect(page).toHaveURL(new RegExp('/4wtrgg9Y/vi$'));
-  await expect(page.locator('html')).toHaveAttribute('lang', 'vi');
-  await page.goBack();
-  await expect(page.locator('html')).toHaveAttribute('lang', 'zh-Hans');
-  await page.goForward();
-  await expect(page.locator('html')).toHaveAttribute('lang', 'vi');
 });

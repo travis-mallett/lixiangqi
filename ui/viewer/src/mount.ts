@@ -11,6 +11,7 @@ export function websiteViewerLabels(): ViewerLabels {
     next: i18n.site.next,
     last: i18n.site.last,
     moves: i18n.site.moves,
+    moveAnnotations: i18n.site.moveAnnotations,
     start: i18n.site.start,
     analysis: i18n.site.analysis,
   };

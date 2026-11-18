@@ -7,6 +7,7 @@ on:
       - 'app/**'
       - 'conf/**'
       - 'modules/**'
+      - 'tools/attachment_scanner/tests/publication_http.py'
       - 'project/**'
       - 'translation/**'
       - 'build.sbt'
@@ -21,6 +22,7 @@ on:
       - 'app/**'
       - 'conf/**'
       - 'modules/**'
+      - 'tools/attachment_scanner/tests/publication_http.py'
       - 'project/**'
       - 'translation/source/**'
       - 'build.sbt'
@@ -32,14 +34,12 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    services:
-      publication-mongo:
-        image: mongo:8.2
-        ports:
-          - 27291:27017
     env:
       LIXIANGQI_PUBLICATION_TEST_URI: mongodb://127.0.0.1:27291
       LIXIANGQI_ANALYSIS_TEST_URI: mongodb://127.0.0.1:27291
+      LIXIANGQI_EXTERNAL_LOGIN_TEST_URI: mongodb://127.0.0.1:27291
+      LIXIANGQI_MSG_TEST_URI: mongodb://127.0.0.1:27291
+      LIXIANGQI_MEDIA_REPLICA_URI: mongodb://127.0.0.1:27291
     strategy:
       matrix:
         java-version: [21]
@@ -53,7 +53,20 @@ jobs:
       - name: Setup sbt
         uses: sbt/setup-sbt@3afe9cf056c5d139bfc46579af1192d77a2f0821 # v1.4.0
       - run: TZ=UTC git log -1 --date=iso-strict-local --pretty='format:app.version.commit = "%H"%napp.version.date = "%ad"%napp.version.message = """%s"""%n' | tee conf/version.conf
+      - name: Start the test MongoDB replica set
+        run: |
+          docker run -d --name test-mongo -p 127.0.0.1:27291:27291 mongo:8.2 --port 27291 --replSet ci --bind_ip_all
+          timeout 60 bash -c 'until docker exec test-mongo mongosh --port 27291 --quiet --eval "db.adminCommand({ping:1})" >/dev/null 2>&1; do sleep 1; done'
+          docker exec test-mongo mongosh --port 27291 --quiet --eval 'rs.initiate({_id:"ci",members:[{_id:0,host:"127.0.0.1:27291"}]}); assert.soon(() => db.hello().isWritablePrimary, "replica primary", 30000)'
       - run: ./lila.sh -Depoll=true "test;stage"
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6
+        with:
+          python-version: '3.13'
+      - name: Verify authenticated forum and inbox publication
+        run: |
+          docker run -d --name media-test-redis -p 127.0.0.1:26402:6379 redis:8-alpine
+          python -m pip install -r tools/attachment_scanner/requirements.txt
+          python tools/attachment_scanner/tests/publication_http.py --mongo-port 27291 --redis-port 26402
       - run: cp LICENSE COPYING.md README.md target/universal/stage && git log -n 1 --pretty=oneline > target/universal/stage/commit.txt
       - run: cd target/universal/stage && tar --zstd -cvpf ../../../lila-3.0.tar.zst . && cd -
         env:

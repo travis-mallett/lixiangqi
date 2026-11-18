@@ -2,6 +2,7 @@ $msg-top-height: 4em;
 
 @import 'side';
 @import 'convo';
+@import 'messageActions';
 
 body {
   ---app-height: 100vh;

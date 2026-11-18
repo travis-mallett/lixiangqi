@@ -39,33 +39,35 @@ final class ForumPost(env: Env) extends LilaController(env) with ForumController
                 else
                   categ.team.so(env.team.api.isLeader).flatMap { inOwnTeam =>
                     bindForm(forms.post(inOwnTeam))(
-                      err =>
-                        CategGrantWrite(categId, tryingToPostAsMod = true):
-                          for
-                            unsub <- env.timeline.status(s"forum:${topic.id}")
-                            canModCateg <- access.isGrantedMod(categ.id)
-                            page <- renderPage:
-                              views.forum.topic
-                                .show(
-                                  categ,
-                                  topic,
-                                  posts,
-                                  Some(err -> anyCaptcha),
-                                  unsub,
-                                  canModCateg = canModCateg
-                                )
-                          yield BadRequest(page)
-                      ,
+                      {
+                        case err if unsafeForm(err) => fuccess(UnprocessableEntity(jsonError("unsafeLink")))
+                        case err =>
+                          CategGrantWrite(categId, tryingToPostAsMod = true):
+                            for
+                              unsub <- env.timeline.status(s"forum:${topic.id}")
+                              canModCateg <- access.isGrantedMod(categ.id)
+                              page <- renderPage:
+                                views.forum.topic
+                                  .show(
+                                    categ,
+                                    topic,
+                                    posts,
+                                    Some(err -> anyCaptcha),
+                                    unsub,
+                                    canModCateg = canModCateg
+                                  )
+                            yield BadRequest(page)
+                      },
+
                       data =>
                         CategGrantWrite(categId, tryingToPostAsMod = ~data.modIcon):
                           limit.forumPost(ctx.ip, rateLimited):
-                            for
-                              post <- postApi.makePost(categ, topic, data)
-                              url = routes.ForumPost.redirect(post.id).url
-                              _ <- env.memo.picfitApi
-                                .addRef(Markdown(post.text), lila.forum.picRef(post.id), url.some)
-                              _ = discard { maybeAutomod(post) }
-                            yield Redirect(url)
+                            submission {
+                              for
+                                post <- postApi.makePost(categ, topic, data)
+                                url = routes.ForumPost.redirect(post.id).url
+                              yield Redirect(url)
+                            }
                     )
                   }
             yield res
@@ -77,15 +79,22 @@ final class ForumPost(env: Env) extends LilaController(env) with ForumController
         teamId <- env.forum.postApi.teamIdOfPost(post)
         inOwnTeam <- teamId.so(env.team.api.isLeader)
         res <- bindForm(forms.postEdit(inOwnTeam, post.text))(
-          _ => Redirect(routes.ForumPost.redirect(postId)).toFuccess,
+          err => fuccess(UnprocessableEntity(jsonError(if unsafeForm(err) then "unsafeLink" else "invalid"))),
           data =>
             limit.forumPost(ctx.ip, rateLimited):
-              for
-                post <- postApi.editPost(postId, data.changes)
-                url = routes.ForumPost.redirect(post.id).url
-                _ <- env.memo.picfitApi.addRef(Markdown(post.text), lila.forum.picRef(post.id), url.some)
-                _ = discard { maybeAutomod(post) }
-              yield Redirect(url)
+              submission {
+                for
+                  post <- postApi.editPost(
+                    postId,
+                    data.changes,
+                    data.revision,
+                    data.attachments
+                      .orElse(data.replaceAttachments.contains(true).option(""))
+                      .map(_.split(',').filter(_.nonEmpty).toList)
+                  )
+                  url = routes.ForumPost.redirect(post.id).url
+                yield Redirect(url)
+              }
         )
       yield res
   }
@@ -143,11 +152,3 @@ final class ForumPost(env: Env) extends LilaController(env) with ForumController
       case lila.forum.PostUrlData(categ, topic, page, postId) =>
         val call = routes.ForumTopic.show(categ, topic, page)
         Redirect(s"$call#$postId").withCanonical(call)
-
-  private def maybeAutomod(post: lila.forum.ForumPost)(using me: Me) = for
-    teamId <- env.forum.postApi.teamIdOfPost(post)
-    onlyIfFlaggedImages <- teamId.fold(fuccess(false)): teamId =>
-      env.team.api.forumAccessOf(teamId).map(_ != lila.core.team.Access.Everyone)
-    url = routes.ForumPost.redirect(post.id).url
-    _ <- env.report.api.automodComms(post.text, url, onlyIfFlaggedImages)
-  yield ()

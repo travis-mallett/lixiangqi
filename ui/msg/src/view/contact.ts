@@ -2,10 +2,8 @@ import { h, type VNode } from 'snabbdom';
 
 import { hookMobileMousedown } from 'lib/device';
 import { timeago } from 'lib/i18n';
-import { licon } from 'lib/licon';
-import { icon } from 'lib/view';
 import type { MaybeVNodes } from 'lib/view/snabbdom';
-import { fullName, userLine } from 'lib/view/userLink';
+import { fullName } from 'lib/view/userLink';
 
 import type MsgCtrl from '../ctrl';
 import type { Contact, LastMsg, User } from '../interfaces';
@@ -19,6 +17,15 @@ export default function renderContact(ctrl: MsgCtrl, contact: Contact, active?: 
     {
       key: user.id,
       class: { active: active === user.id },
+      attrs: { role: 'button', tabindex: 0, 'aria-label': user.name },
+      on: {
+        keydown: (e: KeyboardEvent) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            void ctrl.openConvo(user.id);
+          }
+        },
+      },
       hook: hookMobileMousedown(() => ctrl.openConvo(user.id)),
     },
     [
@@ -32,9 +39,9 @@ export default function renderContact(ctrl: MsgCtrl, contact: Contact, active?: 
           h(
             'div.msg-app__side__contact__msg',
             { class: { 'msg-app__side__contact__msg--new': isNew } },
-            msg.text,
+            msg.deleted ? i18n.inbox.deleted : msg.text,
           ),
-          isNew ? icon(licon.BellOutline)('.msg-app__side__contact__new') : null,
+          isNew ? h('span.msg-unread-dot', { attrs: { 'aria-label': i18n.inbox.message } }) : null,
         ]),
       ]),
     ],
@@ -45,7 +52,11 @@ const contactName = (user: User, ctrl: MsgCtrl): MaybeVNodes =>
   ctrl.data.names[user.id] ? [ctrl.data.names[user.id]] : fullName(user);
 
 export const userIcon = (user: User, cls: string): VNode =>
-  h('div.user-link.' + cls, { class: { online: user.online } }, userLine(user));
+  h(
+    'div.msg-avatar.' + cls,
+    { class: { online: user.online }, attrs: { 'aria-hidden': 'true' } },
+    [...user.name][0]?.toLocaleUpperCase() ?? '',
+  );
 
 const renderDate = (msg: LastMsg): VNode =>
   h(

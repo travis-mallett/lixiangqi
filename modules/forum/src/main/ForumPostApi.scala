@@ -1,5 +1,6 @@
 package lila.forum
 
+import lila.core.security.SubmissionRejected
 import lila.common.Bus
 import lila.core.forum.{ ForumCateg as _, ForumPost as _, * }
 import lila.core.perm.Granter as MasterGranter
@@ -18,7 +19,8 @@ final class ForumPostApi(
     spam: lila.core.security.SpamApi,
     promotion: lila.core.security.PromotionApi,
     shutupApi: lila.core.shutup.ShutupApi,
-    detectLanguage: DetectLanguage,
+    media: ForumMedia,
+    access: ForumAccess,
     picfitApi: lila.memo.PicfitApi,
     relationApi: lila.core.relation.RelationApi
 )(using Executor)(using scheduler: Scheduler)
@@ -31,27 +33,46 @@ final class ForumPostApi(
       topic: ForumTopic,
       data: ForumForm.PostData
   )(using me: Me): Fu[ForumPost] = for
-    lang <- detectLanguage(data.text)
+    _ <- Future(lila.core.security.SubmissionPolicy.check(data.text))
+    ids = data.ids
     publicMod = MasterGranter(_.PublicMod)
     modIcon = ~data.modIcon && (publicMod || MasterGranter(_.SeeReport))
     anonMod = modIcon && !publicMod
-    post = ForumPost.make(
+    raw = ForumPost.make(
       topicId = topic.id,
       userId = (!anonMod).option(me),
       text = spam.replace(data.text),
-      lang = lang.map(_.language),
+      lang = me.lang.map(_.value.takeWhile(_ != '-')),
       troll = me.marks.troll,
       categId = categ.id,
       modIcon = modIcon.option(true)
     )
-    dup <- postRepo.findDuplicate(post)
+    post = raw.copy(
+      id = media.postId(categ.id, Some(topic.id), data.nonce, raw.id),
+      attachments = ids.nonEmptyOption,
+      submissionDigest = data.digest()
+    )
+    dup <- if data.nonce.isDefined then getPost(post.id) else postRepo.findDuplicate(post)
     post <- dup match
-      case Some(dup) if !post.modIcon.getOrElse(false) => fuccess(dup)
+      case Some(dup) if data.nonce.isDefined && dup.submissionDigest != post.submissionDigest =>
+        fufail(SubmissionRejected("conflict"))
+      case Some(dup) if data.nonce.isDefined || !post.modIcon.getOrElse(false) => fuccess(dup)
       case _ =>
-        for
-          _ <- postRepo.coll.insert.one(post)
-          _ <- topicRepo.coll.update.one($id(topic.id), topic.withPost(post))
-          _ <- categRepo.coll.update.one($id(categ.id), categ.withPost(topic, post))
+        val saved = for _ <- media.commit(categ.id, Some(topic.id), post.id, 0, ids) { tx =>
+            val topics = media.records(topicRepo.coll, tx)
+            val boards = media.records(categRepo.coll, tx)
+            for
+              currentTopic <- tx.fold(fuccess(topic))(_ =>
+                topics.byId[ForumTopic](topic.id).orFail("missing forum topic")
+              )
+              currentCateg <- tx.fold(fuccess(categ))(_ =>
+                boards.byId[ForumCateg](categ.id).orFail("missing forum category")
+              )
+              _ <- media.records(postRepo.coll, tx).insert.one(post)
+              _ <- topics.update.one($id(topic.id), currentTopic.withPost(post))
+              _ <- boards.update.one($id(categ.id), currentCateg.withPost(currentTopic, post))
+            yield ()
+          }
         yield
           promotion.save(me, post.text)
           if post.isTeam
@@ -81,23 +102,86 @@ final class ForumPostApi(
           mentionNotifier.notifyMentionedUsers(post, topic)
           Bus.pub(BusForum.CreatePost(post.mini))
           post
+        saved.recoverWith(
+          lila.db.recoverDuplicateKey(_ =>
+            getPost(post.id).flatMap {
+              case Some(found) if data.nonce.isDefined && found.submissionDigest == post.submissionDigest =>
+                fuccess(found)
+              case _ => fufail(SubmissionRejected("conflict"))
+            }
+          )
+        )
   yield post
 
-  def editPost(postId: ForumPostId, newText: String)(using me: Me): Fu[ForumPost] =
+  def editPost(
+      postId: ForumPostId,
+      newText: String,
+      expected: Option[Long] = None,
+      attachmentIds: Option[List[String]] = None
+  )(using me: Me): Fu[ForumPost] =
+    if lila.core.security.SubmissionPolicy.blocked(newText) then
+      return fufail(lila.core.security.SubmissionRejected("unsafeLink"))
     get(postId).flatMap: post =>
       post.fold[Fu[ForumPost]](fufail("Post no longer exists.")):
         case (_, post) if !post.canBeEditedByMe =>
           fufail("You are not authorized to modify this post.")
         case (_, post) if !post.canStillBeEdited =>
           fufail("Post can no longer be edited")
-        case (_, post) =>
-          val newPost = post.editPost(nowInstant, spam.replace(newText))
-          val save = (newPost.text != post.text).so:
-            for
-              _ <- postRepo.coll.update.one($id(post.id), newPost)
-              _ <- newPost.isAnonModPost.so(logAnonPost(newPost, edit = true))
-            yield promotion.save(me, newPost.text)
-          save.inject(newPost)
+        case (topic, post) =>
+          val revision = post.contentRevision.getOrElse(0L)
+          val ids = attachmentIds.getOrElse(~post.attachments)
+          val next = post.editPost(nowInstant, spam.replace(newText)).copy(attachments = ids.nonEmptyOption)
+          val changed = next.text != post.text || next.attachments != post.attachments
+          for
+            allowed <- access.isGrantedWrite(topic.categId, tryingToPostAsMod = post.isAnonModPost)(using
+              Some(me)
+            )
+            mod <- access.isGrantedMod(topic.categId)(using Some(me))
+            blocked <- access.isReplyBlockedOnUBlog(topic, mod)
+            _ <-
+              if !allowed || blocked || topic.closed || topic.isOld || post.erased then
+                fufail(SubmissionRejected("rejected"))
+              else if expected.exists(_ != revision) then fufail(SubmissionRejected("conflict"))
+              else if newText.trim.length < 3 && ids.isEmpty then fufail(SubmissionRejected("invalid"))
+              else funit
+            _ <- changed.so {
+              media
+                .commit(
+                  topic.categId,
+                  Some(topic.id),
+                  post.id,
+                  revision + 1,
+                  ids,
+                  (~post.attachments).toSet
+                ) { tx =>
+                  val guard = $id(post.id) ++ $doc("erasedAt".$exists(false)) ++ post.contentRevision.fold(
+                    $doc("contentRevision".$exists(false))
+                  )(v => $doc("contentRevision" -> v))
+                  media
+                    .records(postRepo.coll, tx)
+                    .update
+                    .one(
+                      guard,
+                      $set(
+                        "text" -> next.text,
+                        "updatedAt" -> next.updatedAt,
+                        "editHistory" -> next.editHistory,
+                        "contentRevision" -> next.contentRevision,
+                        "attachments" -> ids,
+                        "reactions" -> next.reactions
+                      )
+                    )
+                    .flatMap: res =>
+                      if res.nModified != 1 then fufail(SubmissionRejected("conflict"))
+                      else funit
+                }
+                .flatMap(_ =>
+                  next.isAnonModPost
+                    .so(logAnonPost(next, edit = true))
+                    .map(_ => promotion.save(me, next.text))
+                )
+            }
+          yield if changed then next else post
 
   def urlData(postId: ForumPostId, forUser: Option[User]): Fu[Option[PostUrlData]] =
     get(postId).flatMap:

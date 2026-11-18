@@ -1,34 +1,17 @@
 import assert from 'node:assert/strict';
-import test, { describe } from 'node:test';
+import test from 'node:test';
 
-import { each } from '../../.test/helpers.mts';
-import { enhance, imgurRegex } from '../src/view/enhance';
+import { enhance } from '../src/view/enhance';
 
-describe('imgur matching', () => {
-  each<[string, string]>([
-    ['https://i.imgur.com/HFn4lkh.jpeg', 'https://i.imgur.com/HFn4lkh.jpg'],
-    ['http://imgur.com/HFn4lkh.png', 'https://i.imgur.com/HFn4lkh.jpg'],
-  ])('embed individual images', (input, link) => {
-    assert.strictEqual(imgurRegex.test(input), true);
-    assert.strictEqual(
-      enhance(input),
-      `<a target="_blank" rel="nofollow noreferrer" href="${link}"><img src="${link}" alt="${link}"/></a>`,
-    );
-  });
-
-  each<[string, string]>([
-    ['https://imgur.com/a/this-inUquB9', 'imgur.com/a/this-inUquB9'],
-    [
-      'https://imgur.com/gallery/lichess-is-down-404-image-HFn4lkh',
-      'imgur.com/gallery/lichess-is-down-404-image-HFn4lkh',
-    ],
-  ])('albums and galleries should not be embedded', (input, link) => {
-    assert.strictEqual(imgurRegex.test(input), false);
-    assert.strictEqual(
-      enhance(input),
-      `<a target="_blank" rel="nofollow noreferrer" href="${input}">${link}</a>`,
-    );
-  });
+test('remote photos and animated image services stay links in a private conversation', () => {
+  for (const url of [
+    'https://i.imgur.com/HFn4lkh.jpeg',
+    'https://media.giphy.com/media/abc/giphy.gif',
+    'https://example.org/photo.png',
+  ]) {
+    assert.ok(enhance(url).includes('href="' + url + '"'));
+    assert.ok(!enhance(url).includes('<img'));
+  }
 });
 
 test('bulk message ids should have a text class', () => {

@@ -46,7 +46,11 @@ final private[report] class ReportForm(lightUserAsync: LightUser.Getter)(using d
     mapping(
       "username" -> lila.common.Form.username.historicalField,
       "resource" -> nonEmptyText,
-      "text" -> text(minLength = 1, maxLength = 140)
+      "text" -> text(maxLength = 3000),
+      "item" -> optional(text(maxLength = 128)),
+      "revision" -> optional(longNumber(min = 0)),
+      "attachment" -> optional(text(maxLength = 32)),
+      "block" -> optional(boolean)
     )(ReportFlag.apply)(unapply)
 
   private def blockingFetchUser(username: UserStr) =
@@ -61,7 +65,11 @@ object ReportForm:
 private[report] case class ReportFlag(
     username: UserStr,
     resource: String,
-    text: String
+    text: String,
+    item: Option[String],
+    revision: Option[Long],
+    attachment: Option[String],
+    block: Option[Boolean]
 )
 
 case class ReportSetup(

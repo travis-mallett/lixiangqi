@@ -10,6 +10,7 @@ import type { Convo, User } from '@/interfaces';
 
 import renderActions from './actions';
 import renderInteract from './interact';
+import { glyph, showDetails, selectionBar } from './messageActions';
 import renderMsgs from './msgs';
 
 export default function renderConvo(ctrl: MsgCtrl, convo: Convo): VNode {
@@ -27,6 +28,17 @@ export default function renderConvo(ctrl: MsgCtrl, convo: Convo): VNode {
       ]),
       h('div.msg-app__convo__head__actions', renderActions(ctrl, convo)),
     ]),
+    selectionBar(ctrl),
+    convo.pinned.length
+      ? h(
+          'div.msg-pins',
+          convo.pinned.map(msg =>
+            h('button', { on: { click: () => showDetails(ctrl, msg) } }, [glyph('pin'), h('span', msg.text)]),
+          ),
+        )
+      : null,
+    ctrl.error ? h('div.msg-error', { attrs: { role: 'alert' } }, i18n.inbox.error) : null,
+    !ctrl.connected() ? h('div.msg-offline', { attrs: { role: 'status' } }, i18n.inbox.offline) : null,
     renderMsgs(ctrl, convo),
     h('div.msg-app__convo__reply', [
       convo.relations.out === false || convo.relations.in === false

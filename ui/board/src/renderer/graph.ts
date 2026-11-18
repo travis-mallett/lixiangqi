@@ -150,7 +150,7 @@ export class GraphBoardView implements BoardView {
       return;
     }
     const previous = this.current;
-    if (['forward', 'backward'].includes(transition.kind)) this.pieces.prepare();
+    if (['forward', 'optimistic', 'backward'].includes(transition.kind)) this.pieces.prepare();
     else this.pieces.reset();
     this.current = { ...position, pieces: new Map(position.pieces) };
     this.displayedPosition = key;

@@ -299,7 +299,10 @@ final class ModInquiryUi(helpers: Helpers)(
         .take(6)
         .toNel
 
-  private def renderAtomText(atom: Report.Atom, highlight: Boolean)(using Translate, ClientName) =
+  private def renderAtomText(atom: Report.Atom, highlight: Boolean)(using Translate, ClientName): Frag =
+    val evidence = """\[FLAG\] evidence/([a-f0-9]{64}) ([^\n]*)""".r.findAllMatchIn(atom.text).toList
+    if evidence.nonEmpty then
+      return frag(evidence.map(m => p(a(href := s"/report/evidence/${m.group(1)}")(m.group(2)))))
     val (link, text) = atom.parseFlag.match
       case Some(flag) => sourceOf(flag.source).some -> flag.quotes.mkString("\n")
       case None => None -> atom.text

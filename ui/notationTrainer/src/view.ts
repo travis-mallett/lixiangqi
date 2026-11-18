@@ -8,7 +8,7 @@ import side from './side';
 
 const explanation = (ctrl: NotationTrainerCtrl): VNode =>
   hl('div.explanation.box', [
-    hl('h1', i18n.notation.xiangqiNotation),
+    hl('h2', i18n.notation.xiangqiNotation),
     hl('p', i18n.notation.notationIntroduction),
     hl('ul', [
       hl('li', i18n.notation.notationStructure),

@@ -38,12 +38,16 @@ final class Report(env: Env, userC: => User, modC: => Mod) extends LilaControlle
     (scores, PendingCounts(streamers, appeals, titles, images))
 
   private def renderList(room: String)(using Context, Me) =
-    api.openAndRecentWithFilter(12, Room(room)).zip(getScores).flatMap { case (reports, (scores, pending)) =>
-      env.user.lightUserApi.preloadMany(reports.flatMap(_.report.userIds)) >>
-        Ok.page:
-          val filteredReports = reports.filter(r => lila.report.Room.isGranted(r.report.room))
-          views.report.list(filteredReports, room, scores, pending)
-    }
+    api
+      .openAndRecentWithFilter(12, Room(room))
+      .zip(getScores)
+      .zip(env.memo.attachments.scannerStatus)
+      .flatMap { case ((reports, (scores, pending)), scanner) =>
+        env.user.lightUserApi.preloadMany(reports.flatMap(_.report.userIds)) >>
+          Ok.page:
+            val filteredReports = reports.filter(r => lila.report.Room.isGranted(r.report.room))
+            views.report.list(filteredReports, room, scores, pending, scanner)
+      }
 
   def inquiry(reportOrAppealId: String) = Secure(_.SeeReport) { _ ?=> me ?=>
     for
@@ -198,14 +202,165 @@ final class Report(env: Env, userC: => User, modC: => Mod) extends LilaControlle
       )
   }
 
-  def flag = AuthOrScopedBody(_.Web.Mobile, _.Mobile.Inbox, _.Mobile.Forum) { _ ?=> me ?=>
+  def flag = AuthOrScopedBody(_.Web.Mobile, _.Mobile.Inbox, _.Mobile.Forum) { ctx ?=> me ?=>
+    import lila.report.EvidenceItem
     bindForm(env.report.forms.flag)(
       _ => BadRequest,
       data =>
         Found(env.user.repo.byId(data.username)): user =>
           if user == me then BadRequest
-          else api.commFlag(Reporter(me), Suspect(user), data.resource, data.text).inject(jsonOkResult)
+          else if data.resource != "msg" && !data.resource.startsWith("forum/") && !data.resource.contains(
+              "/forum/redirect/post/"
+            )
+          then
+            if data.resource.startsWith("evidence/") || data.resource.exists(_.isWhitespace) then
+              fuccess(BadRequest)
+            else api.commFlag(Reporter(me), Suspect(user), data.resource, data.text).inject(jsonOkResult)
+          else
+            reportRateLimit(rateLimited):
+              val item: Fu[Option[EvidenceItem]] =
+                if data.resource == "msg" then
+                  if ctx.isOAuth && !ctx.scopes.has(_.Mobile.Inbox) && !ctx.scopes.has(_.Web.Mobile) then
+                    fuccess(None)
+                  else
+                    data.item.so(id => env.msg.actions.visibleMessage(user.id, id)).flatMapz { m =>
+                      if m.user != user.id || !data.revision.contains(m.revision.toLong) then fuccess(None)
+                      else
+                        val maySeeMedia =
+                          if m.attachments.isEmpty then fuFalse else env.msg.api.mediaAllowed(user.id, me)
+                        maySeeMedia.map { allowed =>
+                          Some(
+                            EvidenceItem(
+                              user.id,
+                              "msg",
+                              m.id,
+                              m.revision,
+                              m.text,
+                              if allowed then m.attachments else Nil,
+                              true,
+                              "delivered"
+                            )
+                          )
+                        }
+                    }
+                else if data.resource.startsWith("forum/") || data.resource.contains("/forum/redirect/post/")
+                then
+                  val id = data.resource.split('/').last
+                  if ctx.kid.yes || (ctx.isOAuth && !ctx.scopes.has(_.Mobile.Forum)) then fuccess(None)
+                  else
+                    env.forum.postApi.get(ForumPostId(id)).flatMapz { (topic, post) =>
+                      env.forum.access
+                        .isGrantedRead(topic.categId)
+                        .map: canRead =>
+                          val revision = post.contentRevision.getOrElse(0L)
+                          Option.when(
+                            canRead && !post.erased && post.visibleBy(ctx.me) && post.userId
+                              .contains(user.id) &&
+                              (topic.categId != lila.forum.ForumCateg.diagnosticId || topic
+                                .isAuthor(me) || isGranted(_.Diagnostics) || isGranted(_.ModerateForum)) &&
+                              data.revision.contains(revision)
+                          )(
+                            EvidenceItem(
+                              user.id,
+                              "forum",
+                              id,
+                              revision,
+                              post.text,
+                              ~post.attachments,
+                              topic.categId == lila.forum.ForumCateg.diagnosticId || post.isTeam,
+                              "published"
+                            )
+                          )
+                    }
+                else fuccess(None)
+              item.flatMap:
+                case Some(i) if data.attachment.forall(i.attachments.contains) =>
+                  val relevant = data.attachment.fold(i)(id => i.copy(attachments = List(id)))
+                  for
+                    _ <- (i.resource == "msg" && data.block.contains(true))
+                      .so(env.relation.api.block(me, user.id))
+                    e <- env.report.evidence.record(relevant)
+                    _ <- api.commFlag(
+                      Reporter(me),
+                      Suspect(user),
+                      s"evidence/${e.id}",
+                      s"${i.resource} · ${i.status} ${data.text.take(100)}"
+                    )
+                  yield Ok(play.api.libs.json.Json.obj("ok" -> true))
+                case _ => fuccess(NotFound)
     )
+  }
+
+  private def checkEvidence(
+      id: String
+  )(f: lila.report.Evidence => Fu[Result])(using Me, Context): Fu[Result] =
+    env.report.evidence
+      .get(id)
+      .flatMap:
+        case Some(e) if !e.item.privateItem || isGranted(_.ViewPrivateComms) =>
+          api.inquiries
+            .ofModId(summon[Me].userId)
+            .flatMap:
+              case Some(r) if r.user == e.item.suspect => f(e)
+              case _ => fuccess(Forbidden)
+        case _ => fuccess(NotFound)
+
+  def evidence(id: String) = Secure(_.SeeReport) { ctx ?=> me ?=>
+    checkEvidence(id): e =>
+      get("media") match
+        case Some(handle)
+            if e.item.attachments.contains(
+              handle
+            ) || (e.item.status == "review requested" && e.item.parent == handle) =>
+          env.memo.attachments
+            .get(handle)
+            .flatMap:
+              case Some(i) =>
+                val permitted = if i.audience.startsWith("msg/") then
+                  env.msg.api.adultParticipants(i.owner, UserId(i.audience.drop(4)))
+                else fuTrue
+                permitted.flatMap:
+                  case true =>
+                    env.memo.attachments
+                      .evidenceBytes(i, e.item.status == "review requested")
+                      .map:
+                        case Some(bytes) =>
+                          Ok(bytes)
+                            .as(if i.mime.contains("image/webp") then "image/webp"
+                            else "application/octet-stream")
+                            .withHeaders(
+                              "Cache-Control" -> "private,no-store",
+                              "Content-Disposition" -> (if i.mime.contains("image/webp") then "inline"
+                                                        else "attachment"),
+                              "X-Content-Type-Options" -> "nosniff",
+                              "Content-Security-Policy" -> "sandbox"
+                            )
+                        case None => NotFound
+                  case false => fuccess(NotFound)
+              case _ => fuccess(NotFound)
+        case _ =>
+          val handles =
+            if e.item.status == "review requested" then List(e.item.parent) else e.item.attachments
+          handles
+            .traverse(env.memo.attachments.get)
+            .flatMap: items =>
+              val images = items.flatten.filter(_.mime.contains("image/webp")).map(_.id).toSet
+              Ok.page(views.report.evidence(e, images))
+                .map(_.withHeaders("Cache-Control" -> "private,no-store"))
+  }
+
+  def resolveEvidence(id: String) = SecureBody(_.ViewPrivateComms) { ctx ?=> me ?=>
+    checkEvidence(id): e =>
+      if e.item.status != "review requested" then fuccess(BadRequest)
+      else
+        env.memo.attachments
+          .resolveReview(e.item.parent, e.item.text, me, getBool("approve"))
+          .flatMap:
+            case true =>
+              env.mod.logApi
+                .attachmentReview(e.item.suspect, e.id, getBool("approve"))
+                .inject(Redirect(routes.Report.evidence(id)))
+            case false => fuccess(Conflict)
   }
 
   def thanks = Auth { ctx ?=> me ?=>

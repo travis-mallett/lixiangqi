@@ -8,6 +8,7 @@ import lila.core.config.*
 @Module
 final class Env(
     db: lila.db.Db,
+    attachments: lila.memo.Attachments,
     isOnline: lila.core.socket.IsOnline,
     userApi: lila.core.user.UserApi,
     lightUserAsync: lila.core.LightUser.Getter,
@@ -25,6 +26,7 @@ final class Env(
 
   private def lazyPlaybansOf = () => playbansOf
 
+  lazy val evidence = wire[CommunicationEvidence]
   private lazy val reportColl = db(CollName("report2"))
 
   lazy val scoreThresholdsSetting = ReportThresholds.makeScoreSetting(settingStore)
@@ -47,6 +49,19 @@ final class Env(
   lazy val api = wire[ReportApi]
 
   lazy val modFilters = new ModReportFilter
+
+  if attachments.enabled("forum") || attachments.enabled("msg") then
+    var reportedScannerState = ""
+    scheduler.scheduleWithFixedDelay(2.minutes, 2.minutes): () =>
+      attachments.scannerStatus.foreach: (status, queued) =>
+        if status != reportedScannerState then
+          reportedScannerState = status
+          if status != "running" then
+            ircApi.monitorMod(
+              "warning",
+              s"Attachment screening is $status ($queued pending).",
+              lila.core.irc.ModDomain.Comm
+            )(using MyId(UserId.lichess.value))
 
   scheduler.scheduleWithFixedDelay(1.minute, 1.minute): () =>
     api.inquiries.expire

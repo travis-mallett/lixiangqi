@@ -17,6 +17,7 @@ $site-header-outer-height: calc($site-header-height + $site-header-margin + var(
 $main-margin: var(---main-margin);
 $main-max-width: 1300px;
 $topnav-visible: 1020px; // where topnav menu & WWWWWWWWWWWWWWWWWWWW both fit at 100%
+$topnav-wiki-visible: 1200px; // room for the full navigation, Wiki and account controls
 
 $xxx-small: 400px;
 $xx-small: 500px;

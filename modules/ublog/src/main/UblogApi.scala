@@ -39,8 +39,8 @@ final class UblogApi(
     _.expireAfterWrite(30.seconds).buildAsyncTimeout(): _ =>
       aggregateVisiblePosts($doc("official" -> true), 0, UblogSitemap.maxPosts + 1)
 
-  def sitemap(origin: String): Fu[String] =
-    sitemapCache.get({}).map(UblogSitemap.render(_, origin))
+  def sitemapEntries: Fu[List[lila.common.Sitemap.Entry]] =
+    sitemapCache.get({}).map(UblogSitemap.entries)
 
   private val carouselCache = cacheApi.unit[List[UblogPost.PreviewPost]]("ublog.carousel"):
     _.refreshAfterWrite(10.seconds).buildAsyncTimeout(): _ =>

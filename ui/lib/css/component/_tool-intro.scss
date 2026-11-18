@@ -1,0 +1,25 @@
+.tool-intro {
+  grid-column: 3;
+  grid-row: 2;
+  width: 100%;
+  max-width: 900px;
+  min-width: 0;
+  justify-self: center;
+  margin-top: $block-gap;
+
+  h1 {
+    font-size: 1.5em;
+    margin-bottom: 0.6em;
+  }
+
+  p {
+    line-height: 1.6;
+    margin-bottom: 1em;
+  }
+
+  nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6em 1.5em;
+  }
+}

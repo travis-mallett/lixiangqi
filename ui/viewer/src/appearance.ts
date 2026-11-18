@@ -1,13 +1,12 @@
 import { boardAssets } from '@lixiangqi/board';
 
 /** A viewer's appearance is scoped to its own container, independent of account preferences. */
-export async function applyViewerAppearance(
+export function applyViewerAppearance(
   root: HTMLElement,
   assetUrl: (path: string) => string,
   boardKey: string = boardAssets.defaultBoard,
   pieceKey: string = boardAssets.defaultPieces,
-  signal?: AbortSignal,
-): Promise<void> {
+): void {
   const board = boardAssets.boards.find(theme => theme.key === boardKey);
   const families = boardAssets.pieceSets.find(theme => theme.key === pieceKey)?.variants;
   const pieces = families?.xiangqi;
@@ -26,19 +25,9 @@ export async function applyViewerAppearance(
     if (family !== 'xiangqi')
       for (const [side, roles] of Object.entries(set.faces))
         for (const [role, path] of Object.entries(roles)) assets[`---${family}-${side}-${role}`] = path;
-  const request = `${boardKey}/${pieceKey}`;
-  root.dataset.requestedAppearance = request;
-  const urls = Object.fromEntries(Object.entries(assets).map(([key, path]) => [key, assetUrl(path)]));
-  await Promise.all(
-    Object.values(urls).map(async url => {
-      const image = new Image();
-      image.src = url;
-      await image.decode();
-    }),
-  );
-  if (signal?.aborted || root.dataset.requestedAppearance !== request) return;
-  for (const [key, url] of Object.entries(urls))
-    root.style.setProperty(key, `url("${url.replaceAll('"', '%22')}")`);
+  // CSS fetches the board and faces actually used by this position.
+  for (const [key, path] of Object.entries(assets))
+    root.style.setProperty(key, `url("${assetUrl(path).replaceAll('"', '%22')}")`);
   root.style.setProperty('---cg-ccw', board.coordinateLight);
   root.style.setProperty('---cg-ccb', board.coordinateDark);
   for (const name of ['opacity', 'brightness', 'contrast', 'saturation'])

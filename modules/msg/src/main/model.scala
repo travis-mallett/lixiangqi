@@ -9,7 +9,8 @@ case class MsgConvo(
     msgs: List[Msg],
     relations: Relations,
     postable: Boolean,
-    contactDetailsForMods: Option[ContactDetailsForMods]
+    contactDetailsForMods: Option[ContactDetailsForMods],
+    pinned: List[Msg] = Nil
 )
 
 case class ModMsgConvo(

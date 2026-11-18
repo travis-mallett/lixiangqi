@@ -8,7 +8,7 @@ import lila.core.id.{ ForumCategId, ForumTopicId, ForumTopicSlug }
 import lila.forum.ForumCateg.diagnosticId
 import lila.forum.ForumTopic.problemReportSlug
 
-final class ForumTopic(env: Env) extends LilaController(env) with ForumController:
+final class ForumTopic(env: Env) extends LilaController(env) with ForumController with MobileDisplay:
 
   def form(categId: ForumCategId) = AuthOrScoped(_.Mobile.Forum) { _ ?=> me ?=>
     NoBot:
@@ -25,23 +25,24 @@ final class ForumTopic(env: Env) extends LilaController(env) with ForumControlle
         Found(env.forum.categRepo.byId(categId)): categ =>
           categ.team.so(env.team.api.isLeader).flatMap { inOwnTeam =>
             bindForm(forms.topic(inOwnTeam))(
-              err => BadRequest.page(views.forum.topic.form(categ, err, anyCaptcha)),
+              err =>
+                if unsafeForm(err) then fuccess(UnprocessableEntity(jsonError("unsafeLink")))
+                else BadRequest.page(views.forum.topic.form(categ, err, anyCaptcha)),
               data =>
                 limit.forumTopic(ctx.ip, rateLimited):
-                  for
-                    topic <- topicApi.makeTopic(categ, data)
-                    url = routes.ForumTopic.show(categ.id, topic.slug, 1).url
-                    ref = lila.forum.picRef(topic.lastPostId)
-                    _ <- env.memo.picfitApi.addRef(Markdown(data.post.text), ref, url.some)
-                    _ = discard { env.report.api.automodComms(data.automodText, url) }
-                  yield Redirect(url)
+                  submission {
+                    for
+                      topic <- topicApi.makeTopic(categ, data)
+                      url = routes.ForumTopic.show(categ.id, topic.slug, 1).url
+                    yield Redirect(url)
+                  }
             )
           }
   }
 
   def show(categId: ForumCategId, slug: ForumTopicSlug, page: Int) = OpenOrScoped(_.Mobile.Forum):
     NotForKids:
-      Found(topicApi.show(categId, slug, page)): (categ, topic, posts) =>
+      Found(topicApi.show(categId, slug, page, countView = !quietForumDisplay)): (categ, topic, posts) =>
         if categId == diagnosticId &&
           !ctx.userId.exists(me => slug.value.startsWith(me.value)) &&
           !isGrantedOpt(_.ModerateForum) &&
@@ -62,9 +63,16 @@ final class ForumTopic(env: Env) extends LilaController(env) with ForumControlle
             _ <- env.user.lightUserApi.preloadMany(posts.currentPageResults.flatMap(_.post.userId))
             res <-
               if canRead then
-                Ok.page(
-                  views.forum.topic.show(categ, topic, posts, form, unsub, canModCateg, None, replyBlocked)
-                ).map(_.withCanonical(routes.ForumTopic.show(categ.id, topic.slug, page)))
+                displayPage(
+                  if mobileDisplay && categ.publicDisplay then
+                    views.forum.topic.publicDiscussion(categ, topic, posts)
+                  else
+                    views.forum.topic.show(categ, topic, posts, form, unsub, canModCateg, None, replyBlocked)
+                  ,
+                  30,
+                  categ.publicDisplay
+                )
+                  .map(_.withCanonical(routes.ForumTopic.show(categ.id, topic.slug, page)))
               else notFound
           yield res
 

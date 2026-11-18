@@ -19,8 +19,10 @@ test.beforeAll(async () => {
         import { BoardFeedback } from './ui/board/src/feedback';
         import { boardPresentation } from './ui/board/src';
         const presentation = boardPresentation('replay', 'red');
+        window.cues = [];
         const boards = [...document.querySelectorAll('.fixture')].map(root =>
-          new BoardFeedback(root, { assetUrl: path => '/assets/' + path }));
+          new BoardFeedback(root, { assetUrl: path => '/assets/' + path, sound: cue => window.cues.push(cue) }));
+        window.present = transition => boards.forEach(board => board.present(transition, presentation));
         window.play = effect => boards.forEach(board => board.present({kind:'forward', effects:[effect]}, presentation));
         window.reset = () => boards.forEach(board => board.present({kind:'jump'}, presentation));
       `,
@@ -60,6 +62,48 @@ test.afterAll(async () => {
 });
 
 for (const width of [390, 900, 1440]) {
+  test(`live confirmations select exactly one effect at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 950 });
+    await page.goto(origin);
+    await page.addScriptTag({ content: script });
+    const blank = await page.locator('.fixture').first().screenshot();
+    for (const effects of [['capture'], ['capture', 'check'], ['capture', 'check', 'checkmate']]) {
+      await page.evaluate(() => {
+        (window as any).reset();
+        (window as any).cues = [];
+        (window as any).present({ kind: 'optimistic', id: 'move', effects: ['capture'] });
+      });
+      await expect(page.locator('.xiangqi-board-animation')).toHaveCount(0);
+      expect(await page.evaluate(() => (window as any).cues)).toEqual([
+        { move: true, effects: [] },
+        { move: true, effects: [] },
+      ]);
+      await page.evaluate(
+        effects => (window as any).present({ kind: 'confirmation', id: 'move', effects }),
+        effects,
+      );
+      const primary = effects.at(-1)!;
+      await expect(page.locator(`.xiangqi-board-animation--${primary}`)).toHaveCount(2);
+      expect(await page.evaluate(() => (window as any).cues)).toEqual([
+        { move: true, effects: [] },
+        { move: true, effects: [] },
+        { move: false, effects: [primary] },
+        { move: false, effects: [primary] },
+      ]);
+      await expect
+        .poll(async () => !(await page.locator('.fixture').first().screenshot()).equals(blank), {
+          intervals: [30],
+        })
+        .toBe(true);
+      await page.evaluate(
+        effects => (window as any).present({ kind: 'confirmation', id: 'move', effects }),
+        effects,
+      );
+      expect(await page.evaluate(() => (window as any).cues.length)).toBe(4);
+      await expect(page.locator('.xiangqi-board-animation')).toHaveCount(0);
+    }
+  });
+
   test(`capture, check and mate visibly restart across boards and replay at ${width}px`, async ({ page }) => {
     test.setTimeout(60_000);
     await page.setViewportSize({ width, height: 950 });

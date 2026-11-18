@@ -267,7 +267,7 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
       val doc = newUser(name, passwordHash, email, blind, mustConfirmEmail, lang, kid) ++
         ("len" -> BSONInteger(lila.core.UsernameRules.length(name.value))) ++
         externalIdentity.fold($empty)(key => $doc("externalLogins" -> List(key))) ++
-        flag.fold($empty)(code => $doc(F.profile -> $doc("flag" -> code)))
+        flag.fold($empty)(code => $doc(F.profile -> Profile(flag = Some(code))))
       (coll.insert.one(doc) >> byId(name.id)).addEffect: created =>
         created.foreach: user =>
           lila.common.Bus.pub(

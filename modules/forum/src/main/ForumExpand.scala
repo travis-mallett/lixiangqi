@@ -9,6 +9,7 @@ final class ForumTextExpand(markdown: lila.memo.MarkdownCache)(using Executor, S
 
   val markdownOptions = lila.memo.MarkdownOptions(
     autoLink = true,
+    inlineImages = false,
     list = true,
     table = true,
     header = false,
@@ -30,7 +31,7 @@ final class ForumTextExpand(markdown: lila.memo.MarkdownCache)(using Executor, S
         .map: linkRender =>
           raw:
             RawHtml.nl2br {
-              RawHtml.addLinks(post.text, expandImg = true, linkRender = linkRender.some).value
+              RawHtml.addLinks(post.text, expandImg = false, linkRender = linkRender.some).value
             }.value
 
   def manyPosts(posts: Seq[ForumPost])(using NetDomain): Fu[Seq[ForumPost.WithFrag]] =

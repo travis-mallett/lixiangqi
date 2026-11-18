@@ -1,11 +1,30 @@
-import { marked } from 'marked';
+import { marked, Marked } from 'marked';
 
 import { frag } from 'lib';
+import { escapeHtml } from 'lib/common';
 import { alert, info, spinnerHtml } from 'lib/view';
 import { wireMarkdownImgResizers, naturalSize, markdownPicfitRegex } from 'lib/view/markdownImgResizer';
 import { json as xhrJson, ValidationError } from 'lib/xhr';
 
-// also see markdownTextarea.ts
+function previewLink({ href, text }: { href: string; text: string }): string {
+  try {
+    const url = new URL(href, location.origin);
+    if (url.protocol === 'http:' || url.protocol === 'https:')
+      return `<a href="${escapeHtml(url.href)}" rel="noreferrer">${escapeHtml(text || href)}</a>`;
+  } catch {
+    /* Render an invalid URL as text. */
+  }
+  return escapeHtml(text);
+}
+const forumPreview = new Marked({
+  gfm: true,
+  breaks: true,
+  renderer: {
+    image: previewLink,
+    link: previewLink,
+    html: ({ text }) => escapeHtml(text),
+  },
+});
 
 site.load.then(() => {
   marked.setOptions({ gfm: true, breaks: true });
@@ -24,11 +43,13 @@ function wireMarkdownTextarea(markdown: HTMLElement) {
   const preview = markdown.querySelector<HTMLElement>('.comment-preview')!;
 
   previewTab.addEventListener('click', async () => {
-    preview.innerHTML = await marked.parse(textarea.value ?? '');
+    const moderated = !!markdown.closest('form[data-attachment-dest]');
+    preview.innerHTML = await (moderated ? forumPreview : marked).parse(textarea.value ?? '');
     preview.classList.remove('none');
     uploadBtn?.classList.add('none');
     writeTab.classList.remove('active');
     previewTab.classList.add('active');
+    if (moderated) return;
     if (markdownPicfitRegex().test(textarea.value) && !localStorage.getItem('markdown.rtfm')) {
       await info('Drag a side or bottom edge to resize an image.');
       localStorage.setItem('markdown.rtfm', '1');

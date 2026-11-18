@@ -1,0 +1,37 @@
+{
+  "websiteCommit": "cffca4bbfe5df809b8b303a7c08dbbafe7d68818",
+  "reviewedWorkingTree": {
+    "modules/tournament/src/main/Env.scala": "2879ac2ff8004629ace5453ed3fd3127df644834fc45209d20cbbebefc3af794",
+    "modules/tournament/src/main/TournamentRepo.scala": "71b4a3a47ec5b7d7ddc9165fd637d973b9064d4f21d79b54b0b4f9dbc7e3d6b2",
+    "modules/tournament/src/main/TournamentScheduler.scala": null,
+    "modules/tournament/src/test/SchedulerTest.scala": null,
+    "modules/tournament/src/test/ScheduleTestHelpers.scala": null,
+    "tools/data_migration/20261114_retire_recurring_tournaments.js": "bcc13fe84b4962b335956d7e73f32957827a59b7c9798312b945d3d869087258",
+    "tools/data_migration/tests/test_retire_recurring_tournaments.py": "7ec3262b6219cd5e9d4b4e0303984e83b51a86d07bb766291675e19ca7e01c86"
+  },
+  "decision": "Remove automatic recurring scheduling, delete upcoming recurring events and immediately close underway events using the existing finish lifecycle. Preserve finished history and manually created events.",
+  "mainMobile": {
+    "reason": "Native tournament index and details consume server state; there is no client recurring scheduler.",
+    "disposition": "server inherited",
+    "consumer": "lib/data/tournaments/tournament_repository.dart"
+  },
+  "kids": {
+    "disposition": "not applicable",
+    "reason": "No tournament feature or tournament feed consumer in lib; board theme named xiangqi-tournament is unrelated."
+  },
+  "deployment": {
+    "recovery": "Retain __retired_recurring_v1_* collections. With writers stopped, restore original documents by _id after investigating the defect. Do not blindly restore after play resumes; retain new games and reconcile current player results. Rolling back to an old server re-enables its scheduler.",
+    "status": "prepared, not executed",
+    "behavior": "With writers stopped, back up originals, remove upcoming events and set scoreCutoff on underway events. On restart StartedOrganizer invokes TournamentApi.finish (first pass after approximately 26 seconds). Recurring scheduler removed.",
+    "scripts": [
+      "../lixiangqi-beta-deployment/push-local-live.ps1",
+      "../lixiangqi-beta-deployment/push_transport.py"
+    ]
+  },
+  "verification": [
+    "Isolated MongoDB 8.2 integration tests passed: cleanup, backups, retries, completed/manual preservation, unexpected-history rejection.",
+    "Frontend lint and check-format passed.",
+    "Scala formatting passed; tournament/test passed all 30 tests. Full server test;stage and Linux CI were not run; this task does not prepare a commit or push. Deployment PowerShell and Python syntax and migration wiring verified."
+  ],
+  "checkpoints": "Neither mobile checkpoint advanced; concurrent website changes remain outside this review."
+}

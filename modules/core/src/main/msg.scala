@@ -5,7 +5,14 @@ import lila.core.userId.UserId
 import lila.core.data.Url
 
 enum PostResult:
-  case Success, Invalid, Limited, Bounced
+  case Success, Invalid, Limited, Bounced, UnsafeLink
+
+  def rejection: Option[String] = this match
+    case Success => None
+    case UnsafeLink => Some(security.SubmissionPolicy.unsafeLink)
+    case Limited => Some("limited")
+    case Invalid => Some("invalid")
+    case Bounced => Some("rejected")
 
 case class MsgPreset(name: String, text: String)
 

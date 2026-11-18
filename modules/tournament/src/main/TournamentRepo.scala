@@ -274,13 +274,6 @@ final class TournamentRepo(val coll: Coll, playerCollName: CollName)(using Execu
       .cursor[Tournament]()
       .list(max)
 
-  def scheduledUnfinished: Fu[List[Tournament]] =
-    coll
-      .find(scheduledSelect ++ unfinishedSelect)
-      .sort($doc("startsAt" -> 1))
-      .cursor[Tournament]()
-      .listAll()
-
   def allScheduledDedup: Fu[List[Tournament]] =
     coll
       .find(createdSelect ++ scheduledSelect ++ publicVariantSelect)

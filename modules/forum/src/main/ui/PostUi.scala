@@ -19,16 +19,24 @@ final class PostUi(helpers: Helpers, bits: ForumBits):
       canReply: Boolean,
       canModCateg: Boolean,
       canReact: Boolean,
-      isTopicFirst: Boolean
+      isTopicFirst: Boolean,
+      displayOnly: Boolean = false
   )(using ctx: Context) = postWithFrag match
     case ForumPost.WithFrag(post, body, hide) =>
       val postFrag = div(cls := "forum-post__message expand-text")(
         if post.erased then "<Comment deleted by user>"
-        else body
+        else
+          frag(
+            body,
+            (~post.attachments).map(id =>
+              span(cls := "published-attachment", attrData("attachment-id") := id)
+            )
+          )
       )
       st.article(
         cls := List("forum-post" -> true, "erased" -> post.erased),
         id := post.id,
+        attrData("revision") := post.contentRevision.getOrElse(0L),
         postId := post.id
       )(
         div(cls := "forum-post__metas")(
@@ -127,12 +135,20 @@ final class PostUi(helpers: Helpers, bits: ForumBits):
           )
         else postFrag,
         (!post.erased).option:
-          frag(div(cls := "forum-post__message-source")(post.text), reactions(post, canReact))
+          frag(
+            (!displayOnly).option(div(cls := "forum-post__message-source")(post.text)),
+            reactions(post, canReact)
+          )
         ,
         ctx.me.soUse[Option[Tag]]:
           post.shouldShowEditForm.option:
-            postForm(cls := "edit-post-form none", action := routes.ForumPost.edit(post.id))(
-              lila.ui.bits.markdownTextarea("forumPostBody".some):
+            postForm(
+              cls := "edit-post-form none",
+              attrData("attachment-dest") := s"${topic.categId}~${topic.id}",
+              action := routes.ForumPost.edit(post.id)
+            )(
+              form3.hidden("revision", post.contentRevision.getOrElse(0L).toString),
+              lila.ui.bits.markdownTextarea(None):
                 textarea(
                   bits.dataTopic := topic.id,
                   name := "changes",

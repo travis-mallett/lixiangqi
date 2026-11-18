@@ -18,8 +18,11 @@ final private[forum] class ForumForm(
       "text" -> userTextMapping(inOwnTeam),
       "gameId" -> of[GameId],
       "move" -> text,
-      "modIcon" -> optional(boolean)
+      "modIcon" -> optional(boolean),
+      "attachments" -> optional(text(maxLength = 264)),
+      "nonce" -> optional(text(minLength = 16, maxLength = 64))
     )(PostData.apply)(unapply)
+      .verifying("error.minLength", d => d.text.length >= 3 || (d.ids.nonEmpty && d.nonce.isDefined))
       .verifying(lila.core.captcha.failMessage, captcha.validateSync)
 
   def post(inOwnTeam: Boolean)(using Me) = Form(postMapping(inOwnTeam))
@@ -27,15 +30,19 @@ final private[forum] class ForumForm(
   def postEdit(inOwnTeam: Boolean, previousText: String)(using Me) =
     Form:
       mapping(
-        "changes" -> userTextMapping(inOwnTeam, previousText.some)
-      )(PostEdit.apply)(_.changes.some)
+        "changes" -> userTextMapping(inOwnTeam, previousText.some),
+        "revision" -> optional(longNumber(min = 0L)),
+        "attachments" -> optional(text(maxLength = 264)),
+        "replaceAttachments" -> optional(boolean)
+      )(PostEdit.apply)(unapply)
 
   def postWithCaptcha(inOwnTeam: Boolean)(using Me) = post(inOwnTeam) -> captcha.any
 
   def topic(inOwnTeam: Boolean)(using Me) =
     Form:
       mapping(
-        "name" -> cleanText(minLength = 3, maxLength = 100),
+        "name" -> cleanText(minLength = 3, maxLength = 100)
+          .verifying("unsafeLink", !lila.core.security.SubmissionPolicy.blocked(_)),
         "post" -> postMapping(inOwnTeam)
       )(TopicData.apply)(unapply)
 
@@ -46,7 +53,9 @@ final private[forum] class ForumForm(
     single("categ" -> nonEmptyText.into[ForumCategId])
 
   private def userTextMapping(inOwnTeam: Boolean, previousText: Option[String] = None)(using me: Me) =
-    cleanText(minLength = 3, 50_000)
+    text(maxLength = 50_000)
+      .transform[String](lila.common.String.softCleanUp, identity)
+      .verifying("unsafeLink", !lila.core.security.SubmissionPolicy.blocked(_))
       .verifying(
         "You have reached the daily maximum for links in forum posts.",
         t => inOwnTeam || promotion.test(me, t, previousText)
@@ -66,8 +75,17 @@ object ForumForm:
       text: String,
       gameId: GameId,
       move: String,
-      modIcon: Option[Boolean]
-  ) extends lila.core.captcha.WithCaptcha
+      modIcon: Option[Boolean],
+      attachments: Option[String] = None,
+      nonce: Option[String] = None
+  ) extends lila.core.captcha.WithCaptcha:
+    def digest(subject: String = ""): Option[String] = nonce.map { _ =>
+      val value = play.api.libs.json.Json.arr(subject, text, modIcon, ids)
+      lila.memo.Attachment.sha(
+        play.api.libs.json.Json.stringify(value).getBytes(java.nio.charset.StandardCharsets.UTF_8)
+      )
+    }
+    def ids: List[String] = attachments.toList.flatMap(_.split(',')).filter(_.nonEmpty)
 
   case class TopicData(
       name: String,
@@ -75,5 +93,10 @@ object ForumForm:
   ):
     def automodText = s"$name\n${post.text}"
 
-  case class PostEdit(changes: String)
+  case class PostEdit(
+      changes: String,
+      revision: Option[Long],
+      attachments: Option[String],
+      replaceAttachments: Option[Boolean]
+  )
   case class DiagnosticData(text: String, plaintext: Option[Boolean])

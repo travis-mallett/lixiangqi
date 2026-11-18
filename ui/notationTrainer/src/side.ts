@@ -139,18 +139,18 @@ const scoreCharts = (ctrl: NotationTrainerCtrl): VNode =>
   );
 
 const scoreBox = (ctrl: NotationTrainerCtrl): VNode =>
-  h('div.box.current-status', [h('h1', i18n.storm.score), h('div.score', ctrl.score)]);
+  h('div.box.current-status', [h('h2', i18n.storm.score), h('div.score', ctrl.score)]);
 
 const timeBox = (ctrl: NotationTrainerCtrl): VNode =>
   h('div.box.current-status', [
-    h('h1', i18n.site.time),
+    h('h2', i18n.site.time),
     h('div.timer', { class: { hurry: ctrl.timeLeft <= 10_000 } }, (ctrl.timeLeft / 1000).toFixed(1)),
   ]);
 
 const sideToMove = (ctrl: NotationTrainerCtrl): VNode | null =>
   ctrl.exercise
     ? h('div.box.current-status.side-to-move', [
-        h('h1', i18n.notation.sideToMove),
+        h('h2', i18n.notation.sideToMove),
         h('strong', ctrl.exercise.turn === 'red' ? i18n.notation.red : i18n.notation.black),
       ])
     : null;

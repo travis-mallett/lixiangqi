@@ -23,7 +23,10 @@ case class ForumPost(
     erasedAt: Option[Instant] = None,
     modIcon: Option[Boolean],
     reactions: Option[ForumPost.Reactions] = None,
-    version: Option[Int] = 1.some
+    version: Option[Int] = 1.some,
+    attachments: Option[List[String]] = None,
+    contentRevision: Option[Long] = None,
+    submissionDigest: Option[String] = None
 ) extends lila.core.forum.ForumPost:
 
   private def showAuthor: String =
@@ -58,6 +61,7 @@ case class ForumPost(
 
     copy(
       editHistory = history.some,
+      contentRevision = Some(contentRevision.getOrElse(0L) + 1),
       text = newText,
       updatedAt = updated.some,
       reactions = reactions.map(_.view.filterKeys(k => !ForumPost.Reaction.positive(k)).toMap)

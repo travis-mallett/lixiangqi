@@ -2,7 +2,6 @@ package lila.forum
 
 import com.softwaremill.macwire.*
 import play.api.Configuration
-import play.api.libs.ws.StandaloneWSClient
 
 import lila.common.autoconfig.{ *, given }
 import lila.core.config.*
@@ -32,7 +31,7 @@ final class Env(
     cacheApi: lila.memo.CacheApi,
     markdown: lila.memo.MarkdownCache,
     picfitApi: lila.memo.PicfitApi,
-    ws: StandaloneWSClient
+    attachments: lila.memo.Attachments
 )(using Executor, Scheduler, org.apache.pekko.stream.Materializer):
 
   private val config = appConfig.get[ForumConfig]("forum")(using AutoConfig.loader)
@@ -40,9 +39,6 @@ final class Env(
   lazy val categRepo = new ForumCategRepo(db(CollName("f_categ")), cacheApi)
   lazy val topicRepo = new ForumTopicRepo(db(CollName("f_topic")))
   lazy val postRepo = new ForumPostRepo(db(CollName("f_post")))
-
-  private lazy val detectLanguage =
-    DetectLanguage(ws, appConfig.get[DetectLanguage.Config]("detectlanguage.api"))
 
   private lazy val textExpand = wire[ForumTextExpand]
 
@@ -57,6 +53,7 @@ final class Env(
   lazy val delete: ForumDelete = wire[ForumDelete]
 
   lazy val mentionNotifier: MentionNotifier = wire[MentionNotifier]
+  lazy val media = wire[ForumMedia]
   lazy val forms = wire[ForumForm]
 
   lazy val recentTeamPosts = RecentTeamPosts: id =>

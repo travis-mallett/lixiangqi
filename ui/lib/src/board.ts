@@ -6,6 +6,7 @@ import {
   boardDefinition,
   boardDefinitionForFen,
   moveDestinations,
+  primaryBoardEffect,
   type BoardView,
   type BoardPosition,
   type BoardPresentation,
@@ -151,7 +152,7 @@ function websiteBoardServices(): BoardServices {
           mate: cue.effects.includes('checkmate'),
         });
       else {
-        const effect = (['checkmate', 'check', 'capture'] as const).find(name => cue.effects.includes(name));
+        const effect = primaryBoardEffect(cue.effects);
         if (effect) void site.sound.play(effect);
       }
     },

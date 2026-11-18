@@ -16,8 +16,9 @@ The website server renders the choice after an invalid submission even without J
 - `country.optOut`: boolean, requiring an explicit true value when the flag is empty.
 
 Unknown codes and malformed booleans are rejected. Opt-out takes precedence if both
-values are submitted. `UserRepo.create` writes the selected `profile.flag` in the account
-insert itself; there is no follow-up write or separate country storage. Opt-out is a
+values are submitted. `UserRepo.create` serializes the canonical `Profile` in the account
+insert itself. Its Scala/JSON `flag` property is stored as BSON `profile.country`;
+there is no follow-up write or separate country storage. Opt-out is a
 registration decision, not a persistent profile preference. Users can edit or remove
 their flag afterward using existing profile editing.
 
@@ -78,3 +79,46 @@ remain outside this local verification.
 Full `test;stage`, Linux backend integration tests, CodeQL, iOS builds, physical devices
 and live registration were not run. Android debug build outcomes are recorded in the
 two mobile reconciliation reports. No commit, push or production deployment was made.
+
+## Signup persistence repair (November 15, 2026)
+
+The original signup insert wrote `profile.flag` directly, bypassing the existing
+`Profile` BSON serializer's `@Key("country")`. Selections were stored but invisible
+to account loading, profile display and API consumers. Signup now uses the same
+serializer as profile editing. No API field or mobile request payload changes.
+
+`SignupCountryPersistenceTest` exercises real account insertion and loading for email,
+Google, Lichess and Lishogi identities, country/region selections and opt-out. Run with
+`LIXIANGQI_EXTERNAL_LOGIN_TEST_URI` pointing to an isolated MongoDB.
+
+The all-account repair is
+[`20261115_signup_country_v1.py`](../tools/data_migration/20261115_signup_country_v1.py).
+See its [operations guide](../tools/data_migration/20261115_signup_country_v1.md)
+for backups, deployment, verification and recovery. Both native apps inherit this
+server correction; their country-selection and email/Google payloads remain unchanged.
+
+Production repair on November 15 checked all 137 accounts: nine misplaced selections
+were promoted, existing canonical countries were preserved, and zero misplaced fields
+remain. All nine public profiles and user APIs were checked after restart, including
+the China flag reported by the user. The verified account archive, original binary,
+source fingerprints and operation receipt are retained under
+`/opt/lixiangqi-beta-signup-country-20261115`; immutable full-account recovery copies
+also remain in MongoDB's `__signup_country_v1_user4` collection.
+
+This was a narrow release of the tested `UserRepo` class and its Scala metadata inside
+the original production user-module jar, plus the migration. Public method signatures
+were unchanged and bytecode review confirmed only signup serialization changed.
+Unrelated checkout changes were not included. Normal future releases now package,
+checksum and run the migration while account writers are stopped. No mobile binary
+release is necessary for this backend correction.
+
+Verification: user-module tests (including real email/provider account creation and
+read-back), five server country-validation cases, six migration tests, 95 deployment
+safety tests, and 26 targeted signup tests in each mobile app passed. The wider migration
+suite ran 72 tests with 14 environment-dependent skips. The patched jar also passed the
+persistence regression against the production Linux dependencies using a temporary,
+uniquely named test database, which the test removed. Country snapshot checks passed.
+User-module Scalafmt and repository lint passed. The global Oxfmt check was blocked by
+an unrelated temporary SEO script; changed documentation was formatted. Full backend
+`test;stage`, the remaining mining/desktop workflow suites, CodeQL, native builds and
+physical-device/iOS checks were not run for this narrow backend repair.

@@ -5,6 +5,7 @@
     @extend %flex-column;
 
     flex: 1 1 100%;
+    min-width: 0;
 
     @media (max-width: at-most($small)) {
       flex: 1 0 100%;
@@ -92,7 +93,7 @@
       flex: 0 0 auto;
       background: $c-bg-zebra2;
       border-top: $border;
-      padding: 1em 2em;
+      padding: 14px 20px;
 
       &__block {
         flex: 1 1 auto;
@@ -106,6 +107,37 @@
 
       flex: 1 1 100%;
 
+      &:has(.attachment-plus) {
+        position: relative;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+
+        .attachment-draft {
+          display: contents;
+        }
+
+        .attachment-plus {
+          grid-column: 1;
+          grid-row: 1;
+        }
+
+        textarea {
+          grid-column: 2;
+          grid-row: 1;
+        }
+
+        .msg-app__convo__post__submit {
+          grid-column: 3;
+          grid-row: 1;
+        }
+
+        .attachment-items,
+        .attachment-disclosure {
+          grid-column: 1 / -1;
+        }
+      }
+
       &__text {
         @extend %msg-input-focus;
 
@@ -113,17 +145,24 @@
         border-radius: 1.5em;
         background: $c-bg-box;
         resize: none;
+        min-width: 0;
+        padding: 13px 18px;
+        line-height: 1.5;
       }
 
       &__submit {
         outline: 0;
         margin-inline-start: 1em;
         border-radius: 99px;
-        background: $c-font-dimmer;
+        background: $c-primary;
+        color: $c-over;
+        border: 0;
+        width: 46px;
+        height: 46px;
+        flex: 0 0 46px;
 
-        &.connected,
-        &.connected:hover {
-          background: $c-secondary;
+        &:disabled {
+          opacity: 0.4;
         }
       }
     }

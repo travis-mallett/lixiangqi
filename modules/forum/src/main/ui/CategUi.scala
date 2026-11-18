@@ -10,6 +10,9 @@ import ScalatagsTemplate.{ *, given }
 final class CategUi(helpers: Helpers, bits: ForumBits):
   import helpers.{ *, given }
 
+  def publicDirectory(categs: List[CategView])(using Context) =
+    Page(trans.site.forum.txt())(div(cls := "forum-directory")(showCategs(categs)))
+
   def index(categs: List[CategView], canWrite: Boolean)(using Context) =
     Page(trans.site.forum.txt())
       .css("bits.forum")

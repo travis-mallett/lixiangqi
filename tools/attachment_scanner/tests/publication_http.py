@@ -1,0 +1,262 @@
+"""Exercise the staged server against a dedicated loopback Mongo replica set and Redis."""
+import argparse
+import hashlib
+import json
+import os
+import secrets
+import socket
+import statistics
+import subprocess
+import sys
+import tempfile
+import time
+import uuid
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from unittest.mock import patch
+from urllib import error, parse, request
+
+from pymongo import MongoClient
+
+ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / "tools" / "attachment_scanner"))
+import screen
+import worker
+
+
+class KeepRedirect(request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+class Site:
+    def __init__(self, db, port):
+        self.db = db
+        self.origin = f"http://127.0.0.1:{port}"
+        self.http = request.build_opener(request.ProxyHandler({}), KeepRedirect())
+        self.tokens = {}
+
+    def user(self, username):
+        now = datetime.now(timezone.utc)
+        token = "lip_" + secrets.token_hex(24)
+        self.tokens[username] = token
+        self.db.user4.insert_one({
+            "_id": username, "username": username, "enabled": True, "lang": "en",
+            "count": {"game": 8, "win": 4, "loss": 4, "rated": 0, "draw": 0},
+            "createdAt": now - timedelta(days=100), "seenAt": now,
+        })
+        self.db.oauth2_access_token.insert_one({
+            "_id": hashlib.sha256(token.encode()).hexdigest(), "userId": username,
+            "scopes": ["mobile:inbox", "mobile:forum", "msg:write"],
+        })
+        return username
+
+    def call(self, path, user=None, form=None, *, data=None, name=None, status=200):
+        headers = {"Accept": "application/json", "User-Agent": "LiXiangQi integration test"}
+        if user:
+            headers["Authorization"] = "Bearer " + self.tokens[user]
+        if form is not None:
+            data = parse.urlencode(form).encode()
+        if name:
+            headers.update({"Content-Type": "application/octet-stream", "X-Attachment-Name": parse.quote(name)})
+        try:
+            response = self.http.open(request.Request(self.origin + path, data=data, headers=headers), timeout=15)
+        except error.HTTPError as exc:
+            response = exc
+        with response:
+            body = response.read()
+            expected = status if isinstance(status, tuple) else (status,)
+            assert response.status in expected, (path, response.status, expected, body[:240])
+            return body, response.headers
+
+    def json(self, *args, **kwargs):
+        return json.loads(self.call(*args, **kwargs)[0])
+
+    def screen_document(self):
+        # Only the antivirus transport is replaced. The real worker checks type, policy and lease.
+        with patch.object(screen, "malware", return_value="test-signatures"), patch.dict(
+            os.environ, {"UGC_CLAMD_SOCKET": "fixture"}
+        ):
+            row = worker.claim(self.db.ugc_attachment)
+            assert row is not None and worker.finish(self.db.ugc_attachment, row) == "ready"
+
+
+@contextmanager
+def staged_site(java, mongo_port, redis_port):
+    uri = f"mongodb://127.0.0.1:{mongo_port}"
+    with MongoClient(uri, serverSelectionTimeoutMS=8000) as connection, tempfile.TemporaryDirectory() as tmp:
+        assert connection.admin.command("hello").get("setName"), "start a dedicated replica set"
+        name = "ugc_http_test_" + uuid.uuid4().hex
+        db = connection[name]
+        directory = Path(tmp)
+        with socket.socket() as sock:
+            sock.bind(("127.0.0.1", 0))
+            port = sock.getsockname()[1]
+        config = directory / "fixture.conf"
+        config.write_text("\n".join([
+            f'include file("{(ROOT / "conf/base.conf").as_posix()}")',
+            'user.password.bpass.secret="dGVzdHBhc3N3b3Jkc2FsdA=="',
+            f'net.domain="127.0.0.1:{port}"', f'mongodb.uri="{uri}/{name}"',
+            f'traffic.mongodb_uri="{uri}/{name}"', 'traffic.enabled=false',
+            f'redis.uri="redis://127.0.0.1:{redis_port}"',
+            'api.influx_event.endpoint="http://127.0.0.1:1"',
+            'attachments.msg=true', 'attachments.forum=true',
+        ]), encoding="utf8")
+        with (directory / "server.log").open("w+", encoding="utf8") as log:
+            proc = subprocess.Popen([
+                java, "-XX:ActiveProcessorCount=4", "-Xmx1600m", f"-Dconfig.file={config}",
+                f"-Dplay.server.http.port={port}", "-Dplay.server.http.address=127.0.0.1",
+                f"-Djdk.net.unixdomain.tmpdir={directory / 'no-domain-sockets'}",
+                "-cp", str(ROOT / "target/universal/stage/lib/*"), "lila.app.Lila", str(ROOT),
+            ], cwd=ROOT, stdout=log, stderr=subprocess.STDOUT,
+               creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+            try:
+                deadline = time.monotonic() + 90
+                while time.monotonic() < deadline:
+                    if proc.poll() is not None:
+                        log.seek(0)
+                        raise RuntimeError("Staged server failed to start.\n" + log.read()[-3000:])
+                    try:
+                        with socket.create_connection(("127.0.0.1", port), .5):
+                            break
+                    except OSError:
+                        time.sleep(.25)
+                else:
+                    raise RuntimeError("Timed out starting staged server")
+                yield Site(db, port)
+            finally:
+                if proc.poll() is None:
+                    proc.terminate()
+                    try:
+                        proc.wait(timeout=10)
+                    except subprocess.TimeoutExpired:
+                        proc.kill()
+                        proc.wait()
+                connection.drop_database(name)
+
+
+def verify(site):
+    db = site.db
+    alice, bob, other = [site.user(name) for name in ("alicefixture", "bobfixture", "otherfixture")]
+    def nonce():
+        return uuid.uuid4().hex
+
+    def send(key, text, extra=None, status=200):
+        return site.json("/inbox/" + bob, alice, {"nonce": key, "text": text, **(extra or {})}, status=status)
+
+    assert send(nonce(), "Good game")["ok"]
+    samples = []
+    for _ in range(12):
+        start = time.perf_counter_ns()
+        assert send(nonce(), "Good game")["ok"]
+        samples.append((time.perf_counter_ns() - start) / 1e6)
+    print(f"12 authenticated loopback sends. Median {statistics.median(samples):.1f} ms, max {max(samples):.1f} ms.")
+
+    # A rejected first message cannot create an inbox, a notification, or an unread thread.
+    site.json("/inbox/" + other, bob, {"nonce": nonce(), "text": "Try https://chess-bot.com"}, status=422)
+    assert db.msg_thread.find_one({"_id": "/".join(sorted([bob, other]))}) is None
+    assert db.msg_msg.find_one({"tid": "/".join(sorted([bob, other]))}) is None
+    assert db.notify.find_one({"notifies": other}) is None
+    before = db.msg_msg.count_documents({})
+    key = nonce()
+    with ThreadPoolExecutor(2) as pool:
+        copies = list(pool.map(lambda _: send(key, "duplicate retry"), range(2)))
+    assert copies[0]["msg"]["id"] == copies[1]["msg"]["id"]
+    assert send(key, "different", status=409)["error"] == "conflict"
+    assert send(nonce(), "Xem https://chess-bot.com", status=422)["error"] == "unsafeLink"
+
+    inbox = f"/attachment/msg/{bob}"
+    assert site.json(inbox + "/policy", alice)["enabled"]
+    content = b"local game notes"
+    def upload(base, status=201):
+        return site.json(base + "/upload", alice, data=content, name="notes.txt", status=status)
+
+    assert upload(inbox, 422)["error"] == "scannerUnavailable"
+    db.ugc_scanner.insert_one({"_id": "worker", "policy": screen.POLICY, "healthy": True, "at": worker.now()})
+    handle = upload(inbox)["id"]
+    url = "/attachment/msg/item/" + handle
+    for user in (alice, bob, other, None):
+        site.call(url, user, status=404)
+    assert send(nonce(), "", {"attachments": handle}, status=422)["error"] == "attachmentsUnavailable"
+    site.screen_document()
+    assert db.msg_msg.count_documents({}) == before + 1
+    site.call(url, bob, status=404)
+    source = send(nonce(), "", {"attachments": handle})["msg"]
+    assert source["attachments"] == [handle]
+    for user in (alice, bob):
+        body, headers = site.call(url, user)
+        assert body == content and "no-store" in headers["Cache-Control"]
+        assert headers["Content-Disposition"].startswith("attachment")
+    for user in (other, None):
+        site.call(url, user, status=404)
+    for kid in (alice, bob):
+        db.user4.update_one({"_id": kid}, {"$set": {"kid": True}})
+        for user in (alice, bob):
+            site.call(url, user, status=404)
+            site.call(url + "?meta=1", user, status=404)
+        assert not site.json(inbox + "/policy", alice)["enabled"]
+        upload(inbox, 403)
+        db.user4.update_one({"_id": kid}, {"$set": {"kid": False}})
+
+    edit = f"/inbox/{bob}/messages/{source['id']}"
+    site.call(edit, alice, {"action": "edit", "value": "看 https://chess-bot.com", "revision": 0}, status=422)
+    assert db.msg_msg.find_one({"_id": source["id"]})["text"] == ""
+    def change(value):
+        site.call(edit, alice, {"action": "edit", "value": value, "revision": 0}, status=(200, 409))
+    with ThreadPoolExecutor(2) as pool:
+        list(pool.map(change, ("first revision", "other revision")))
+    record = db.msg_msg.find_one({"_id": source["id"]})
+    assert record["revision"] == 1 and record["text"] in ("first revision", "other revision")
+    db.user4.update_one({"_id": bob}, {"$set": {"kid": True}})
+    pinned = site.json(edit, alice, {"action": "pin", "value": "true", "revision": 1})["msg"]
+    assert pinned["attachments"] == [] and pinned["revision"] == 2
+    db.user4.update_one({"_id": bob}, {"$set": {"kid": False}})
+    forward = site.json("/inbox/" + other, bob, {
+        "nonce": nonce(), "text": "", "forwardUser": alice, "forwardId": source["id"],
+    })["msg"]["attachments"][0]
+    assert forward != handle and site.call("/attachment/msg/item/" + forward, other)[0] == content
+
+    assert not site.json("/attachment/forum/diagnostic~new/policy", alice)["enabled"]
+    forum = "/attachment/forum/game-analysis~new"
+    assert site.json(forum + "/policy", alice)["enabled"]
+    public_handle = upload(forum)["id"]
+    site.screen_document()
+    topic = {
+        "name": "Game notes", "post.text": "", "post.nonce": nonce(), "post.attachments": public_handle,
+        "post.gameId": "00000000", "post.move": "a3 e3",  # The repository's seeded test position.
+    }
+    public_url = "/attachment/forum/item/" + public_handle
+    site.call(public_url, status=404)
+    for _ in range(2):
+        site.call("/forum/game-analysis/new", alice, topic, status=(302, 303))
+    assert db.f_post.count_documents({"attachments": public_handle}) == 1
+    post = db.f_post.find_one({"attachments": public_handle})
+    assert site.call(public_url)[0] == content
+    site.call("/forum/post/" + post["_id"], alice, {"changes": "https://chess-bot.com", "revision": 0}, status=422)
+    assert db.f_post.find_one({"_id": post["_id"]})["text"] == ""
+    site.json("/report/flag", bob, {
+        "username": alice, "resource": "forum/" + post["_id"], "text": "review", "revision": 0, "attachment": public_handle,
+    })
+    report = {
+        "username": alice, "resource": "msg", "text": "review",
+        "item": source["id"], "revision": pinned["revision"], "attachment": handle,
+    }
+    site.call("/report/flag", other, report, status=404)
+    site.call("/report/flag", bob, {**report, "revision": 0}, status=404)
+    site.json("/report/flag", bob, {**report, "block": "true"})
+    assert db.ugc_evidence.count_documents({"item.parent": source["id"], "item.revision": pinned["revision"]}) == 1
+    assert db.ugc_attachment.find_one({"_id": handle}).get("evidenceUntil")
+    site.call(url, bob, status=404)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--java", default="java")
+    parser.add_argument("--mongo-port", type=int, required=True)
+    parser.add_argument("--redis-port", type=int, required=True)
+    args = parser.parse_args()
+    with staged_site(args.java, args.mongo_port, args.redis_port) as app:
+        verify(app)
+    print("Forum, inbox, reports and revocation HTTP checks passed.")

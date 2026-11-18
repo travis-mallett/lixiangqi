@@ -62,7 +62,20 @@ def communication(
                           tr(cls := List("post" -> true, "author" -> author))(
                             td(pastMomentServer(msg.date)),
                             td(strong(if author then u.username else modConvo.contact.username)),
-                            td(cls := "message")(Analyser.highlightBad(msg.text))
+                            td(cls := "message")(
+                              msg.deletedAt.map(date =>
+                                p(cls := "bad")(trans.inbox.deleted.txt(), " · ", pastMomentServer(date))
+                              ),
+                              Analyser.highlightBad(msg.text),
+                              msg.history.nonEmpty.option(
+                                details(
+                                  summary(trans.inbox.editHistory.txt()),
+                                  msg.history.map(v =>
+                                    p(pastMomentServer(v.date), " · ", Analyser.highlightBad(v.text))
+                                  )
+                                )
+                              )
+                            )
                           )
                       )
                     )

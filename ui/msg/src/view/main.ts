@@ -11,6 +11,7 @@ export default function (ctrl: MsgCtrl): VNode {
   const activeId = ctrl.data.convo?.user.id;
   return h('main.box.msg-app', { class: { [`pane-${ctrl.pane}`]: true } }, [
     h('div.msg-app__side', [
+      h('h1.msg-inbox-title', i18n.inbox.title),
       search.renderInput(ctrl),
       ctrl.search.result
         ? search.renderResults(ctrl, ctrl.search.result)
@@ -35,6 +36,6 @@ export default function (ctrl: MsgCtrl): VNode {
       ? renderConvo(ctrl, ctrl.data.convo)
       : ctrl.loading
         ? h('div.msg-app__convo', { key: ':' }, [h('div.msg-app__convo__head'), spinner()])
-        : '',
+        : h('div.msg-empty', ctrl.error ? i18n.inbox.error : i18n.inbox.empty),
   ]);
 }

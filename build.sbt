@@ -497,7 +497,7 @@ lazy val pref = module("pref",
 
 lazy val msg = module("msg",
   Seq(coreI18n, memo),
-  Seq()
+  tests.bundle
 )
 
 lazy val forum = module("forum",

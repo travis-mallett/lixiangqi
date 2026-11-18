@@ -8,6 +8,8 @@ import ScalatagsTemplate.{ *, given }
 final class TopNav(helpers: Helpers):
   import helpers.{ *, given }
 
+  private val xiangqipediaUrl = "https://wiki.lixiangqi.com/index.php/Main_Page"
+
   private def linkTitle(url: String, name: Frag)(using ctx: Context) =
     if ctx.blind then h3(name) else a(href := url)(name)
 
@@ -60,7 +62,8 @@ final class TopNav(helpers: Helpers):
               else "Special Rules")
             )
           ,
-          a(href := langHref(routes.Cms.variantHome))(trans.site.variants()),
+          a(href := routes.Cms.variantHome)(trans.site.variants()),
+          a(href := xiangqipediaUrl)(trans.site.xiangqiEncyclopedia()),
           a(href := langHref(routes.Study.allDefault()))(trans.site.studyMenu()),
           ctx.kid.no.option(a(href := langHref(routes.Coach.all(1)))(trans.site.coaches()))
         )
@@ -98,5 +101,9 @@ final class TopNav(helpers: Helpers):
           a(href := routes.Importer.importGame)(trans.site.importGame()),
           a(href := routes.Search.index())(trans.search.advancedSearch())
         )
+      ),
+      a(cls := "xiangqipedia", href := xiangqipediaUrl, aria.label := "Xiangqipedia")(
+        span(dataIcon := Icon.Book, aria.hidden := "true"),
+        "Wiki"
       )
     )

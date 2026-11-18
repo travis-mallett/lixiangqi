@@ -55,6 +55,7 @@ final class Env(
   val picfitUrl = wire[PicfitUrl]
 
   val picfitApi = wire[PicfitApi]
+  val attachments = wire[Attachments]
 
   val markdown = wire[MarkdownCache]
 

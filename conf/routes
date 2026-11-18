@@ -152,6 +152,8 @@ GET   /blog/monthly                    controllers.Ublog.thisMonth(filter: Optio
 GET   /blog/monthly/:year/:month       controllers.Ublog.byMonth(year: Int, month: Int, filter: Option[BlogQualityFilter] ?= None, by: BlogsBy ?= BlogsBy.newest, page: Int ?= 1)
 GET   /blog.atom                       controllers.Main.movedPermanently(to = "/blog/official.atom")
 GET   /blog/official.atom              controllers.Ublog.officialAtom
+GET   /api/mobile/blog/:id/display     controllers.Ublog.mobileArticle(id: UblogPostId, language: Option[String])
+POST  /api/mobile/blog/:id/view        controllers.Ublog.mobileView(id: UblogPostId)
 GET   /api/blog/carousel               controllers.Ublog.apiCarousel
 GET   /blog/friends                    controllers.Ublog.friends(page: Int ?= 1)
 GET   /blog/liked                      controllers.Ublog.liked(page: Int ?= 1)
@@ -757,6 +759,12 @@ POST  /diagnostic                      controllers.ForumTopic.diagnostic
 POST  /diagnostic/clear/:slug          controllers.ForumTopic.clearDiagnostic(slug: ForumTopicSlug)
 
 # Msg
+GET   /attachment/$surface<forum|msg>/item/:id            controllers.Attachment.read(surface: String, id: String)
+GET   /attachment/$surface<forum|msg>/:dest/policy        controllers.Attachment.policy(surface: String, dest: String)
+POST  /attachment/$surface<forum|msg>/:dest/upload        controllers.Attachment.upload(surface: String, dest: String)
+GET   /attachment/$surface<forum|msg>/:dest/draft/:id     controllers.Attachment.status(surface: String, dest: String, id: String)
+POST  /attachment/$surface<forum|msg>/:dest/draft/:id     controllers.Attachment.action(surface: String, dest: String, id: String)
+
 GET   /inbox                           controllers.Msg.home(before: Option[Long] ?= None)
 GET   /inbox/search                    controllers.Msg.search(q)
 GET   /inbox/unread-count              controllers.Msg.unreadCount
@@ -764,6 +772,9 @@ GET   /inbox/:username                 controllers.Msg.convo(username: UserStr, 
 DELETE /inbox/:username                controllers.Msg.convoDelete(username: UserStr)
 # Msg API/compat
 POST  /inbox/:username                 controllers.Msg.apiPost(username: UserStr)
+POST  /inbox/:username/messages/:id    controllers.Msg.messageAction(username: UserStr, id: String)
+POST  /inbox/:username/receipt         controllers.Msg.receipt(username: UserStr)
+POST  /inbox/:username/typing          controllers.Msg.typing(username: UserStr)
 POST /inbox/:username/delete           controllers.Msg.convoDelete(username: UserStr)
 
 # Coach
@@ -1080,7 +1091,9 @@ POST  /push/subscribe                  controllers.Push.webSubscribe
 # Pages
 GET   /api                             controllers.Cms.apiPage
 GET   /terms-of-service                controllers.Cms.tos
-GET   /$key<privacy|thanks|about|ads|changelog> controllers.Cms.menuPage(key: CmsPageKey)
+# Explicit because the optimized router groups /privacy/traffic under the static privacy prefix.
+GET   /privacy                         controllers.Cms.privacy
+GET   /$key<thanks|about|ads|changelog> controllers.Cms.menuPage(key: CmsPageKey)
 GET   /contact                         controllers.Main.contact
 GET   /faq                             controllers.Main.faq
 GET   /source                          controllers.Cms.source

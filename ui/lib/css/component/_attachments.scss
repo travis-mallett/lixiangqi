@@ -1,0 +1,100 @@
+.attachment-draft {
+  position: relative;
+  min-width: 0;
+
+  &:empty {
+    display: none;
+  }
+
+  .attachment-plus {
+    font-size: 1.5em;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+  }
+
+  .attachment-menu {
+    position: absolute;
+    inset-inline-start: 0;
+    bottom: 100%;
+    z-index: 5;
+    background: $c-bg-popup;
+    border: 1px solid $c-border;
+    padding: 0.35rem;
+
+    button {
+      display: block;
+      width: 100%;
+      white-space: nowrap;
+    }
+  }
+
+  .attachment-disclosure {
+    display: block;
+    max-width: 32rem;
+    color: $c-font-dim;
+    font-size: 0.8em;
+  }
+}
+
+.attachment-field:has(.attachment-plus) {
+  display: grid;
+  position: relative;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+
+  .attachment-draft {
+    display: contents;
+  }
+
+  .attachment-plus {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  textarea {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .attachment-items {
+    grid-column: 1 / -1;
+  }
+}
+
+.attachment-item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  align-items: center;
+
+  span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  small {
+    display: block;
+    color: $c-font-dim;
+  }
+
+  img {
+    width: 3rem;
+    height: 3rem;
+    object-fit: contain;
+  }
+}
+
+.published-attachment {
+  display: block;
+  overflow-wrap: anywhere;
+
+  img {
+    max-width: 100%;
+    max-height: 12rem;
+    object-fit: contain;
+  }
+
+  &.expanded img {
+    max-height: 72vh;
+  }
+}

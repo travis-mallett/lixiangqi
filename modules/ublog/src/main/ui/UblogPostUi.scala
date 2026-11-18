@@ -77,7 +77,10 @@ final class UblogPostUi(helpers: Helpers, ui: UblogUi)(connectLinks: Frag):
               ),
             (ctx.is(user) || Granter.opt(_.ModerateBlog)).option(standardFlash),
             h1(cls := "ublog-post__title")(edition.title),
-            languages(edition),
+            (!edition.isPublished).option(badTag(trans.ublog.thisIsADraft())),
+            (!UblogTranslation.available(post).contains(ui.preferredLanguage)).option(
+              p(cls := "ublog-post__language-fallback")(trans.ublog.translationUnavailable())
+            ),
             Granter
               .opt(_.ModerateBlog)
               .option:
@@ -184,28 +187,6 @@ image: ${ui.thumbnailUrl(edition.post, _.Size.Large)}
 
 ${edition.markdown}
 """
-
-  private def languages(edition: UblogTranslation.Edition)(using ctx: Context): Frag =
-    val post = edition.post
-    val preferred = ui.preferredLanguage
-    div(cls := "ublog-post__languages", st.lang := ctx.lang.code)(
-      span(trans.ublog.articleLanguage()),
-      (!edition.isPublished).option(badTag(trans.ublog.thisIsADraft())),
-      UblogTranslation
-        .available(post)
-        .map: language =>
-          a(
-            href := s"${UblogTranslation.urlOf(post, language).url}?selectLanguage=true",
-            attr("hreflang") := language,
-            st.lang := language,
-            attr("aria-current") := Option.when(language == edition.language)("page")
-          )(
-            UblogTranslation.name(language)
-          ),
-      (!UblogTranslation.available(post).contains(preferred)).option(
-        p(cls := "ublog-post__language-fallback")(trans.ublog.translationUnavailable())
-      )
-    )
 
   def missingEdition(post: UblogPost)(using Context) =
     Page(trans.ublog.translationUnavailable.txt())

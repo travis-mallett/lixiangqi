@@ -35,7 +35,6 @@ final class UblogUi(helpers: Helpers, atomUi: AtomUi, modMenu: Context ?=> Frag)
   def preferredLanguage(using ctx: Context): String = UblogTranslation.normalize(
     ctx.req.headers
       .get("X-Blog-Language")
-      .orElse(ctx.req.cookies.get("blogLanguage").map(_.value))
       .getOrElse(ctx.lang.code)
   )
 
@@ -148,10 +147,10 @@ final class UblogUi(helpers: Helpers, atomUi: AtomUi, modMenu: Context ?=> Frag)
       .copy(
         atomLinkTag = link(
           href := routes.Ublog.communityAtom(languageOrAll),
-          st.title := "Lichess community blogs"
+          st.title := "LiXiangQi community blogs"
         ).some
       )
-      .hrefLangs(lila.ui.LangPath(langHref(routes.Ublog.communityAll(filter.some)))):
+      .hrefLangs(lila.ui.LangPath(routes.Ublog.communityAll(filter.some, posts.currentPage))):
         main(cls := "page-menu")(
           menu(Right("community")),
           div(cls := "page-menu__content box box-pad ublog-index")(

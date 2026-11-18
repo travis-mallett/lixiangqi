@@ -1,0 +1,158 @@
+{
+  "version": 1,
+  "reviewedOn": "2026-11-17",
+  "sourceCommit": "cffca4bbfe5df809b8b303a7c08dbbafe7d68818",
+  "decision": "User explicitly requested concurrent website and main-mobile implementation, Signal references, and recoverable deletion after reading. Implemented in the working trees; not deployed.",
+  "features": [
+    "delivery/read receipts",
+    "typing bubbles",
+    "modern web inbox",
+    "encrypted native cache and foreground prefetch",
+    "reactions and searchable emoji",
+    "quote replies",
+    "forward/copy/select/details",
+    "shared pins",
+    "author editing and shared history",
+    "delete for me",
+    "24-hour delete for everyone with moderator retention"
+  ],
+  "sourceFingerprints": {
+    "app/controllers/MobileAuth.scala": "31f63ef005e01ac7e460297c3eb7966b254a64af92246d4391043f6c17852165",
+    "app/controllers/Msg.scala": "6c494f2c647219543a9e9fe104dc14109aa2b715c86638798ec8328ba144a65f",
+    "app/views/mod/communication.scala": "be9ab3c73aeeee501ca59e856a15d9068b53f3a3bf1eeb50cb3b9b62d7cbfea2",
+    "app/views/msg.scala": "63b35be11052e58e4d20345dd86f368cd85f0f54838d1c667a279f4b8958127a",
+    "bin/mongodb/indexes.js": "695f6e68bcfc381cca3609eb540ef7377c77ea40092568ceacde19f6ddbfbea1",
+    "build.sbt": "81b8176314856c9fa49b12cf00101455cb631b1d93b4e1f360c30b603d287b8f",
+    "doc/MESSAGING.md": "3cd35127d797763df83be0cc84ac97a76d6523cd7806b9db4f81cc0942db8cf0",
+    "modules/coreI18n/src/main/modules.scala": "f80daf05a5e9916a1bb39e1c3802743d61f0ca61afafb32d069ccf46e780316f",
+    "modules/msg/src/main/BsonHandlers.scala": "bf8a145d4cc50f7343de613adbed8674fb06744373ebcee026df737b995e1413",
+    "modules/msg/src/main/Env.scala": "67ff8499ad432e153fa047b6daefaa1e76e94f507527668fad37ba7b3a8b351e",
+    "modules/msg/src/main/Msg.scala": "ce57b9bfde4131c252beee2846d1eacdd710d79c1cfb931c6e963d7b37e064d7",
+    "modules/msg/src/main/MsgActions.scala": "d05eb30ad88ee4291725ad373891ebfc9e42e005a637b68bff57827dc7ed74bb",
+    "modules/msg/src/main/MsgApi.scala": "204bb5989489a7ca9e05b5ea955e51d59468e8785bbfcbcfce9848fa563936be",
+    "modules/msg/src/main/MsgCompat.scala": null,
+    "modules/msg/src/main/MsgJson.scala": "9564e1a40918bf37e33405ad0ac5901afd026bb690f9f43c9059f7c8cb3293c0",
+    "modules/msg/src/main/MsgNotify.scala": "203d2f548d5b23b8c3e6cf9024eb18b65e28d21d42d521ea21f6f9eb6663b1d4",
+    "modules/msg/src/main/MsgStore.scala": "831a0c78d585803ef7eeb84eb78d61cefad2c3d6ee04d8c9cc3e9e8feaf6bf1a",
+    "modules/msg/src/main/MsgThread.scala": "410cf901f04369365702f311d034315749d8e2353c26a57f70d627911067b1d5",
+    "modules/msg/src/main/model.scala": "841d3cba45b72d144f6a17a5f6d5acd15e06d04cab103bf6ccd81c77d9e510cb",
+    "modules/msg/src/test/MsgStoreTest.scala": "1be2cc13c7028134daa792337dd3fbbc2188f12c5bb3b06d52fbb7d59be1f438",
+    "modules/msg/src/test/MsgTest.scala": "615ad52a5d47c0d31fe920cb2375602613dea7c87087013e2a5ec3ddf33ef8d5",
+    "public/javascripts/inbox/UNICODE-LICENSE.txt": "e7a93b009565cfce55919a381437ac4db883e9da2126fa28b91d12732bc53d96",
+    "public/javascripts/inbox/emoji.json": "11af34f2bd2aef3a95f6789b10d6dd082ac033208ec158081d0410fd22ae5633",
+    "scripts/inbox/emoji-source.json": "c8c8ae4352c676fe4e703df1220caf42d28a3fd532aef75b50c948e4ee9b154e",
+    "scripts/inbox/generate-emoji.mjs": "e27689e9619cb7b44dc2acfb74ff22e1c12287708b5e7bbf8f0af748c34e464c",
+    "scripts/windows/lila-ws-xiangqi.patch": "a644eb60c352d17ac880e18db34fb3442ae551511066281dfc0ec45db017e1d0",
+    "tests/inbox.spec.ts": "7f4d42bce6ef1340e77f1acc8beb6ad0141766704457799e55b7fa0af95169b3",
+    "translation/dest/inbox/en-US.xml": "1f45d21175cc784176377b87a829a6074b1ed4778370a4f7fd391fde958cd320",
+    "translation/dest/inbox/vi-VN.xml": "6d351ddb57120e9e80edd52dc670c0eef7be7a19761da9b3cde68fa9e4ee579d",
+    "translation/dest/inbox/zh-CN.xml": "48db807bb845550662356d74b8f6c1bedc1634c79a38781a6a622a13bcaefbdd",
+    "translation/source/inbox.xml": "1f45d21175cc784176377b87a829a6074b1ed4778370a4f7fd391fde958cd320",
+    "ui/lib/src/pubsub.ts": "18eae3d8b942aed12daa266a76c529e0c6afbe9686124157953ee4b10cbf148b",
+    "ui/msg/css/_convo.scss": "a8cbc1eeb86df2e491717c2f1392d8677fc295d32062be9e003a89b3370547cc",
+    "ui/msg/css/_convoMsgs.scss": "bb7e444981312f3d55614fe5d4a932c5a6bbbb2e9d0a05a86fe59e642d64c489",
+    "ui/msg/css/_messageActions.scss": "a9ac8748463f0b4b88d268742bf3cced44eab641e3e469799b34b5e6880dd207",
+    "ui/msg/css/_msg.scss": "ac6b3ca3bea608d265de81edee712d02d55051317dae1bcafc7a1f606b3005a0",
+    "ui/msg/css/_side.scss": "602fa33e672a75cdb7217f550db35b1181b5576318f0296c247ffba11c9e5d3e",
+    "ui/msg/src/ctrl.ts": "b159736c85ed811ee7624c23a0ff8c0db5642fa6fcb51083e9583bc8bdb800aa",
+    "ui/msg/src/interfaces.ts": "c8db48eda839251b76bb64b9a2d2496ddb9d133922a969124324ad57ae05530a",
+    "ui/msg/src/msg.ts": "17b26581afffffa0ab4608a94b840ec679fcd4ba0370ef633a8acf570f115026",
+    "ui/msg/src/network.ts": "29f9223e2bbbbb0732fb84e19478a1a2472f4e28ba5216dd963b52746f40ee3b",
+    "ui/msg/src/view/contact.ts": "ae69055f36a4e33786f4106187a86b421fbe441b4a26d2db154cd2e2731e69b3",
+    "ui/msg/src/view/convo.ts": "270148fae4031bb48390e025874fff0f97e3ec3b608d7ba569f1d7f153397e0a",
+    "ui/msg/src/view/interact.ts": "f02dbe614fc29f99fee45bd3ce81e248663c3f0914adf24f1b0bc3466c7e8f62",
+    "ui/msg/src/view/main.ts": "93f2666ec76399f838feefe161e2f74e73c1de3a57dd651b2e3a83766659363b",
+    "ui/msg/src/view/messageActions.ts": "a5fcfcf965c94988f95e19c13e35bfea0f2b9d6c044576290d588d639960e8a2",
+    "ui/msg/src/view/msgs.ts": "eb0091daf0d7bc1760ccf7004e5edabc581737ea5ecfde51bb3e311ca658d029",
+    "ui/msg/src/view/scroller.ts": "92e1beaf54e91f8ab5cd8054847a07c2a977bd1478f59dbc49c5c47c4c577f27"
+  },
+  "sharedFiles": {
+    "conf/routes": {
+      "observedSha256": "1f91807ca9bc30167af91a882bbc67474c9a820f233626a2700f14fd459a5e03",
+      "scope": "Only inbox routes, the messaging test URI, or generated inbox keys were reviewed here. Other concurrent edits remain outside this task; whole-file receipt is intentionally not advanced."
+    },
+    ".github/workflows/server.yml": {
+      "observedSha256": "5ea66dd32092931d86dd67b0983b46412911887790bb34488a822fb140c54ceb",
+      "scope": "Only inbox routes, the messaging test URI, or generated inbox keys were reviewed here. Other concurrent edits remain outside this task; whole-file receipt is intentionally not advanced."
+    },
+    "modules/coreI18n/src/main/key.scala": {
+      "observedSha256": "6704d35a0257d855052f22af963518d916ccbd4af596580616b6bcb1de80a8ec",
+      "scope": "Only inbox routes, the messaging test URI, or generated inbox keys were reviewed here. Other concurrent edits remain outside this task; whole-file receipt is intentionally not advanced."
+    },
+    "ui/@types/lichess/i18n.d.ts": {
+      "observedSha256": "f2dc3ac54033eadf254b44ba11342886491d8d3867a278a99444a2e32978aed6",
+      "scope": "Only inbox routes, the messaging test URI, or generated inbox keys were reviewed here. Other concurrent edits remain outside this task; whole-file receipt is intentionally not advanced."
+    }
+  },
+  "nativeSourceFingerprints": {
+    "README.md": "5ecf25cedceb4fdc1ceba88a91706bb02ef7e01181d0b24fdefeb5b0b331ff65",
+    "assets/inbox/UNICODE-LICENSE.txt": "e7a93b009565cfce55919a381437ac4db883e9da2126fa28b91d12732bc53d96",
+    "assets/inbox/emoji.json": "11af34f2bd2aef3a95f6789b10d6dd082ac033208ec158081d0410fd22ae5633",
+    "doc/INBOX.md": "f6d170ddaab27fe2360e68eb423ec0059071d4d1f867e426ce07a76188177094",
+    "integration_test/README.md": "2533cd3eddbd464386a2a0a3f69eda9597a521a2fb8664b3ee0b4e869219e58b",
+    "integration_test/inbox_test.dart": "bf068de168b226933755fb5f5a05ab187456e7a02f6ba104312989ce3ddf7194",
+    "lib/app/app.dart": "d7cff28d66e86c94ff77e97de648e65c9cd57e12b459b44b6a25c4655d8c99e0",
+    "lib/data/inbox/inbox_cache.dart": "01c3aca1a4d53f0150d7feee67e4adc82a0957d58c0630912c1df1d34ace5a92",
+    "lib/data/inbox/inbox_repository.dart": "b05bcaa0fd1008430b5ad4703d25a1bc39dc1e851602f4d936db20832f76b7aa",
+    "lib/data/inbox/inbox_socket.dart": "b60e923c5517b4f340846cefebad93f7d526d7625aaa8abba59747fd35b82b79",
+    "lib/design/components/message_text.dart": "b28076b245c75cecadb8c59458016a9e04d4bccbe3e7baf1cf852a5d43374981",
+    "lib/domain/inbox.dart": "5cf9fd4437d7ba865e1cff4c20ad5d02dd91523a7be9a46f0797bb9bc8ef79eb",
+    "lib/features/inbox/inbox_controller.dart": "f0a74dded6830f1c8c33fcab4a6004be46c124b3ddda43f703bef7e2d4d4cd59",
+    "lib/features/inbox/inbox_page.dart": "d04daa272976b1203a28933927dc5ee17f5fa0c920ca66dcbd7d4b0bf99ed32d",
+    "lib/features/inbox/inbox_scope.dart": "1b0b330c15a2e1d1e8d4a64f85d25bdb683335cc7ae39de774c040789b413ec7",
+    "lib/features/inbox/message_actions.dart": "e4ea7b7b8c063cdbfdf7257456328a5ba8e49d46a36edb4f5ab1157f8a1d069d",
+    "lib/features/inbox/message_bubble.dart": "3cda793794eb2bc5dbdad23c083ac9785544948672095d9650cbbb9d6b634e07",
+    "lib/l10n/app_en.arb": "ef3641bfd3628fb48892f393abdb8552218be562ff0a06b1dce2046efb71b288",
+    "lib/l10n/app_localizations.dart": "0ad6e520d61f3bef3bc3cf61fbd7711723f8590b73179a3629d0bf6a15b083a5",
+    "lib/l10n/app_localizations_en.dart": "36cff1dc9efb3007fe8c12544b2e92fe41615800fb0a9d9b9300654d92e1f023",
+    "pubspec.yaml": "515ccbeca4da64dbc0a36bc550ebe86598f1a50fb7f92b9533d8541d4bd29a14",
+    "test/inbox/inbox_test.dart": "ba713e77f5c058136d28d24601ece2856b8bc273e97c1150cb63f3783ebf4378",
+    "test/inbox/modern_inbox_test.dart": "b6f3391a77c3f2b13c3e072a497ae16f97a3f95ddd70e76601bbf9b061ea6ae8",
+    "test_driver/inbox.dart": "235e150dce9b44c8cfe58b3e5b3d44d13d2bf1c29ce24bd3323d2497a037c492"
+  },
+  "products": {
+    "main": {
+      "disposition": "ported / server inherited",
+      "consumers": [
+        "InboxEnvironment and session controller",
+        "InboxRepository and scoped inbox socket",
+        "native InboxPage/message actions",
+        "existing notification center"
+      ],
+      "checkpointAdvanced": false,
+      "retainedPendingReviews": "All existing concurrent-change and deferred-variant queue items remain unchanged.",
+      "limitations": [
+        "OS-suspended APNs/FCM downloads are separate infrastructure; foreground background-work and resume synchronization are implemented.",
+        "iOS/macOS and physical-device verification were unavailable."
+      ]
+    },
+    "kids": {
+      "disposition": "not applicable",
+      "reason": "No private inbox, messaging UI or mobile:inbox token in this child-focused product. Existing kids token exclusion is retained. Gameplay, bots, puzzles, account data and shared board behavior are unchanged.",
+      "sourceChanges": false,
+      "checkpointAdvanced": false,
+      "verification": "AGENTS, feature coverage, auth scope issuance and existing MobileInboxScopeTest reviewed. No Dart/native code changed; Kids check.ps1 and device builds were not rerun for receipt-only documentation."
+    }
+  },
+  "validation": {
+    "record": "doc/MESSAGING.md#november-17-2026-verification-record",
+    "web": "format, lint, generated translations and production assets passed; 780 UI tests and eight Chromium inbox scenarios passed at 320/768/1440px",
+    "backend": "Java 21 / SBT scalafmtCheckAll and test;stage passed; six messaging tests include isolated MongoDB 8.2 authorization, receipt race and retention checks",
+    "gateway": "33 tests passed (eight narrow-scope tests); canonical patch reverse-check passed",
+    "native": "Flutter 3.47.6 formatting and fatal-info analysis passed; 513 host tests passed with two existing skips; real Android emulator reaction/search/reply scenario passed; regular Android debug APK built",
+    "notRun": [
+      "Linux server dependency branch (WSL unavailable)",
+      "iOS/macOS and physical devices",
+      "live-account two-device session",
+      "GitHub CodeQL and container/publish jobs",
+      "staged checks (no staging/commit requested)"
+    ]
+  },
+  "deployment": {
+    "required": "Deploy website backend/assets and lila-ws gateway before distributing the updated main app.",
+    "tooling": "Existing push-local-live fingerprints the owning backend modules and canonical gateway patch, prepares lila-ws and packages hashed assets. No deployment-tool change required.",
+    "data": "Additive optional message metadata and automatically ensured partial pin index. No destructive migration.",
+    "performed": false
+  },
+  "licensing": "Signal AGPL-3.0 code/layout reviewed as reference; no source/artwork copied. Original web SVG geometry, existing Flutter Material icons, Unicode Emoji 17.0 data with Unicode License V3."
+}

@@ -59,6 +59,15 @@ export interface PubsubEvents {
   'socket.in.mlat': (millis: number) => void;
   'socket.in.msgNew': (data: { text: string; user: UserId; date: number }) => void;
   'socket.in.msgType': (userId: UserId) => void;
+  'socket.in.msgMediaRevoked': (event: { user: string }) => void;
+  'socket.in.msgTyping': (event: { user: UserId; active: boolean }) => void;
+  'socket.in.msgChanged': (event: { user: UserId; msg: any; kind: string }) => void;
+  'socket.in.msgRemoved': (event: { user: UserId; id: string }) => void;
+  'socket.in.msgThreadRemoved': (event: { user: UserId }) => void;
+  'socket.in.msgReceipt': (event: {
+    user: UserId;
+    receipts: { id: string; deliveredAt?: number; readAt?: number }[];
+  }) => void;
   'socket.in.notifications': (data: { notifications: Paginator<any>; unread: number }) => void;
   'socket.in.voiceChat': (uids: UserId[]) => void;
   'socket.in.redirect': (d: RedirectTo) => void;

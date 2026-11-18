@@ -38,7 +38,8 @@ final class MobileAuth(env: Env, auth: => Auth) extends LilaController(env):
     Ok(
       Json.obj(
         "googleClientId" -> env.security.externalLogin.googleClientId,
-        "presenceSocketUrl" -> s"$scheme://$socketDomain/mobile/presence"
+        "presenceSocketUrl" -> s"$scheme://$socketDomain/mobile/presence",
+        "inboxSocketUrl" -> s"$scheme://$socketDomain/mobile/inbox"
       )
     ).withHeaders(CACHE_CONTROL -> "no-store").toFuccess
 

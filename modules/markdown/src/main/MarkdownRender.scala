@@ -63,7 +63,8 @@ final class MarkdownRender(
     sourceMap: Boolean = false,
     removeHtmlEntities: Boolean = false,
     pgnExpand: Option[MarkdownRender.PgnSourceExpand] = None,
-    assetDomain: Option[AssetDomain] = None
+    assetDomain: Option[AssetDomain] = None,
+    inlineImages: Boolean = true
 ):
 
   private val extensions = java.util.ArrayList[Extension]()
@@ -74,7 +75,7 @@ final class MarkdownRender(
   if strikeThrough then extensions.add(StrikethroughExtension.create())
   if autoLink then
     extensions.add(AutolinkExtension.create())
-    extensions.add(MarkdownRender.WhitelistedImage.create(assetDomain))
+    extensions.add(MarkdownRender.WhitelistedImage.create(assetDomain, inlineImages))
   extensions.add(
     pgnExpand.fold[Extension](MarkdownRender.LilaLinkExtension)(MarkdownRender.PgnEmbedExtension(_))
   )
@@ -115,7 +116,7 @@ final class MarkdownRender(
     catch
       case _: StackOverflowError =>
         println(s"markdown StackOverflowError $key")
-        text.value
+        scalalib.StringUtils.escapeHtmlRaw(text.value)
 
 object MarkdownRender:
 
@@ -184,42 +185,67 @@ object MarkdownRender:
       )
     yield url.toString
 
-    def create(assetDomain: Option[AssetDomain]) = new HtmlRenderer.HtmlRendererExtension:
-      override def rendererOptions(options: MutableDataHolder) = ()
-      override def extend(htmlRendererBuilder: HtmlRenderer.Builder, rendererType: String) =
-        htmlRendererBuilder.nodeRendererFactory:
-          new:
-            override def apply(options: DataHolder) = new NodeRenderer:
-              override def getNodeRenderingHandlers() =
-                Set(NodeRenderingHandler(classOf[Image], render(_, _, _))).asJava
+    def create(assetDomain: Option[AssetDomain], inlineImages: Boolean) =
+      new HtmlRenderer.HtmlRendererExtension:
+        override def rendererOptions(options: MutableDataHolder) = ()
+        override def extend(htmlRendererBuilder: HtmlRenderer.Builder, rendererType: String) =
+          htmlRendererBuilder.nodeRendererFactory:
+            new:
+              override def apply(options: DataHolder) = new NodeRenderer:
+                override def getNodeRenderingHandlers() =
+                  val handlers = new java.util.HashSet[NodeRenderingHandler[?]]()
+                  handlers.add(NodeRenderingHandler(classOf[Image], render(_, _, _)))
+                  if !inlineImages then
+                    handlers.add(
+                      NodeRenderingHandler(
+                        classOf[ImageRef],
+                        (node, ctx, html) =>
+                          Option(node.getReferenceNode(ctx.getDocument))
+                            .map(_.getUrl.unescape())
+                            .filter(u =>
+                              parseUrl(u).toOption.exists(url => Set("http", "https")(url.scheme))
+                            ) match
+                            case Some(url) =>
+                              html
+                                .attr("href", url)
+                                .attr("rel", rel)
+                                .withAttr()
+                                .tag("a")
+                                .text(node.getText.toString)
+                                .tag("/a")
+                            case None => html.text(node.getText.toString)
+                          ()
+                      )
+                    )
+                  handlers
 
-      private def render(node: Image, context: NodeRendererContext, html: HtmlWriter): Unit =
-        // Based on implementation in CoreNodeRenderer.
-        if context.isDoNotRenderLinks || CoreNodeRenderer.isSuppressedLinkPrefix(node.getUrl(), context) then
-          context.renderChildren(node)
-        else
-          val resolvedLink = context.resolveLink(LinkType.IMAGE, node.getUrl().unescape(), null, null)
-          val url = resolvedLink.getUrl()
-          val altText = new TextCollectingVisitor().collectAndGetText(node)
-          whitelistedSrc(url, assetDomain) match
-            case Some(src) =>
-              html
-                .srcPos(node.getChars())
-                .attr("src", src)
-                .attr("alt", altText)
-                .attr(resolvedLink.getNonNullAttributes())
-                .withAttr(resolvedLink)
-                .tagVoid("img")
-            case None =>
-              html
-                .srcPos(node.getChars())
-                .attr("href", url)
-                .attr("target", "_blank")
-                .attr("rel", rel)
-                .withAttr(resolvedLink)
-                .tag("a")
-                .text(if altText.isEmpty then url else altText)
-                .tag("/a")
+        private def render(node: Image, context: NodeRendererContext, html: HtmlWriter): Unit =
+          // Based on implementation in CoreNodeRenderer.
+          if context.isDoNotRenderLinks || CoreNodeRenderer.isSuppressedLinkPrefix(node.getUrl(), context)
+          then context.renderChildren(node)
+          else
+            val resolvedLink = context.resolveLink(LinkType.IMAGE, node.getUrl().unescape(), null, null)
+            val url = resolvedLink.getUrl()
+            val altText = new TextCollectingVisitor().collectAndGetText(node)
+            Option.when(inlineImages)(url).flatMap(whitelistedSrc(_, assetDomain)) match
+              case Some(src) =>
+                html
+                  .srcPos(node.getChars())
+                  .attr("src", src)
+                  .attr("alt", altText)
+                  .attr(resolvedLink.getNonNullAttributes())
+                  .withAttr(resolvedLink)
+                  .tagVoid("img")
+              case None =>
+                html
+                  .srcPos(node.getChars())
+                  .attr("href", url)
+                  .attr("target", "_blank")
+                  .attr("rel", rel)
+                  .withAttr(resolvedLink)
+                  .tag("a")
+                  .text(if altText.isEmpty then url else altText)
+                  .tag("/a")
 
   private class PgnEmbedExtension(expander: PgnSourceExpand) extends HtmlRenderer.HtmlRendererExtension:
     override def rendererOptions(options: MutableDataHolder) = ()

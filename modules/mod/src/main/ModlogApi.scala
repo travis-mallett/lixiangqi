@@ -245,6 +245,13 @@ final class ModlogApi(repo: ModlogRepo, userRepo: UserRepo, ircApi: IrcApi, pres
   def reportban(sus: Suspect, v: Boolean)(using MyId) = add:
     Modlog.make(sus, if v then Modlog.reportban else Modlog.unreportban)
 
+  def attachmentReview(user: UserId, evidence: String, approved: Boolean)(using MyId) = add:
+    Modlog(
+      user.some,
+      Modlog.attachmentReview,
+      Some(s"$evidence · ${if approved then "approved" else "blocked"}")
+    )
+
   def modMessage(user: UserId, subject: String)(using MyId) = add:
     Modlog(user.some, Modlog.modMessage, details = subject.some)
 

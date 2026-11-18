@@ -27,6 +27,7 @@ final class Env(
     shutupApi: lila.core.shutup.ShutupApi,
     spam: lila.core.security.SpamApi,
     textAnalyser: lila.core.shutup.TextAnalyser,
+    attachments: lila.memo.Attachments,
     mongoCache: lila.memo.MongoCache.Api
 )(using
     Executor,
@@ -48,11 +49,11 @@ final class Env(
 
   val api: MsgApi = wire[MsgApi]
 
+  val actions = wire[MsgActions]
+
   val search = wire[MsgSearch]
 
   val unreadCount = wire[MsgUnreadCount]
-
-  val compat = wire[MsgCompat]
 
   val systemMsg = wire[MsgByLichess]
 
@@ -74,6 +75,21 @@ final class Env(
     p.userIds.foreach: userId =>
       api.postPreset(userId, MsgPreset.payoutEligible(payoutsUrl, p))
 
+  Bus.sub[lila.core.user.SetKidMode]: change =>
+    if change.user.kid.yes then
+      attachments
+        .privateContacts(change.user.id)
+        .foreach: peers =>
+          peers.foreach(p =>
+            Bus.pub(
+              lila.core.socket.SendTo(
+                p,
+                lila.core.socket
+                  .makeMessage("msgMediaRevoked", play.api.libs.json.Json.obj("user" -> change.user.id))
+              )
+            )
+          )
+
   Bus.sub[TellUserIn]:
     case TellUserIn.Read(userId, msg) =>
       msg.get[UserId]("d").foreach { api.setRead(userId, _) }
@@ -82,14 +98,39 @@ final class Env(
         obj <- msg.obj("d")
         dest <- obj.get[UserId]("dest")
         text <- obj.str("text")
-      yield api.post(userId, dest, text)
+      yield
+        val result = if obj.keys.contains("attachments") then fuccess(Some("attachmentsUnavailable"))
+        else api.post(userId, dest, text).map(_.rejection)
+        result
+          .recover { case lila.core.security.SubmissionRejected(code) => Some(code) }
+          .foreach:
+            _.foreach: code =>
+              Bus.pub(
+                lila.core.socket.SendTo(
+                  userId,
+                  lila.core.socket.makeMessage(
+                    "msgSendFailed",
+                    play.api.libs.json.Json.obj("user" -> dest, "error" -> code)
+                  )
+                )
+              )
 
   Bus.sub[lila.core.mod.ChatTimeout]: to =>
     systemMsg.chatTimeout(to.user)
 
-  import play.api.data.Forms.*
-  val textForm = play.api.data.Form(single("text" -> nonEmptyText))
-
-private class MsgColls(db: lila.db.Db):
+private class MsgColls(db: lila.db.Db)(using Executor):
   val thread = db(CollName("msg_thread"))
   val msg = db(CollName("msg_msg"))
+  // Additive index, installed once before pin queries. No message data is rewritten.
+  lazy val pinnedIndex: Funit =
+    import reactivemongo.api.indexes.{ Index, IndexType }
+    import lila.db.dsl.{ *, given }
+    msg.indexesManager
+      .ensure(
+        Index(
+          Seq("tid" -> IndexType.Ascending, "pinnedAt" -> IndexType.Descending),
+          name = Some("msg_pinned"),
+          partialFilter = Some($doc("pinnedAt".$exists(true)))
+        )
+      )
+      .void

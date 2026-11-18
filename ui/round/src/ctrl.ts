@@ -176,9 +176,9 @@ export default class RoundController implements MoveRootCtrl {
       );
     this.optimisticMoveId = `${this.ply + 1}:${move.from}${move.to}`;
     this.board.presentTransition({
-      kind: 'forward',
+      kind: 'optimistic',
       id: this.optimisticMoveId,
-      effects: xiangqiPosition(this.stepAt(this.ply).fen).pieces.has(move.to) ? ['capture'] : [],
+      effects: [],
     });
     this.sendMove(move.from, move.to, { premove: move.premove, holdTime: move.holdTime });
   };
@@ -292,9 +292,9 @@ export default class RoundController implements MoveRootCtrl {
     const position = this.board.position();
     this.optimisticMoveId = `${this.ply + 1}:${orig}${dest}`;
     this.board.display(recordedPosition(position, orig + dest, position.active === 'red' ? 'black' : 'red'), {
-      kind: 'forward',
+      kind: 'optimistic',
       id: this.optimisticMoveId,
-      effects: position.pieces.has(dest) ? ['capture'] : [],
+      effects: [],
     });
     this.sendMove(orig, dest, { premove: false, preConfirmed });
   };

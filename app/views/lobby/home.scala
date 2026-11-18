@@ -168,6 +168,11 @@ object home:
             puzzle.map(dailyPuzzleCard(_, "right"))
           ),
           st.footer(cls := "lobby__footer", attr("aria-label") := "LiXiangQi links")(
+            a(href := langHref(routes.Puzzle.themes))(trans.puzzle.puzzleThemes()),
+            a(href := langHref(routes.Notation.home))(trans.notation.xiangqiNotation()),
+            a(href := routes.Learn.ancientManuals)(trans.site.ancientXiangqiManuals()),
+            a(href := routes.Learn.specialRules)(trans.site.xiangqiSpecialRules()),
+            a(href := "https://wiki.lixiangqi.com/index.php/Main_Page")(trans.site.xiangqiEncyclopedia()),
             a(href := "/about")(trans.site.aboutX("LiXiangQi")),
             a(href := routes.Main.faq)(trans.faq.faqAbbreviation()),
             a(href := routes.Cms.tos)(trans.site.termsOfService()),

@@ -1,0 +1,58 @@
+# Moderated forum and inbox attachments
+
+LiXiangQi accepts staged uploads for inbox conversations and the four public discussion boards. The boards are Xiangqi Discussion, Game Analysis, LiXiangQi Feedback and Off-Topic. Existing age, account standing, posting rights, topic state, inbox preferences and blocking rules still apply. Team forums, blog discussions and diagnostic forums have no upload destination.
+
+The chat gateway has no attachment write route. This includes tournament, player-to-player, spectator, study, team, simul, Swiss, broadcast, challenge, Three Kingdoms and other shared chat rooms. Xiangqi Kids uses curated avatar components and its existing account integration.
+
+## Submission and storage
+
+Selecting a file starts a private upload. An author can remove any staged item, including a failed one, and submit the rest. Retrying a check or approving a review enables a fresh Send or Post. The worker has no message or forum publishing operation. Authors see the third-party screening disclosure before selecting private media. The sender and the recipient can read a published private item through an authenticated application request. A Kid mark on either account prevents media in both directions. Each read resolves the actual visible parent and the current account state. Private URLs contain no bearer access grant. The app clears loaded previews when the account changes or the app backgrounds.
+
+The server assigns a private random ID per upload, binds it to the author and the destination, hashes the original, and stores bounded bytes in `ugc_attachment`. The image encoder produces the only image representation readers can receive. Documents leave the server as explicit downloads with MIME sniffing disabled. Uploads carry the encoded filename in a request header to keep it out of access-log URLs. User-authored remote images render as links. The existing Picfit namespace also serves publicly addressable signed URLs and cannot enforce a changing inbox audience. The attachment service uses independent private storage. This release makes no destructive migration or visibility change to legacy Picfit objects. Changing access to those objects requires an inventory of published URLs, cache lifetimes, a recoverable backup and a separate migration.
+
+Surface switches in `conf/base.conf` default to false. Set `UGC_FORUM=true` for the first pilot. Set `UGC_MSG=true` independently after testing authenticated reads, both Kid directions and revocation on the target mobile releases. Pausing new uploads preserves ordinary text and authorized access to previously accepted content. Keep the worker running during a pause for alerting, review and cleanup.
+
+The defaults allow 4 files per submission, 4 MiB per upload and 20 initiations per author per hour. Configure `attachments.maxCount`, `attachments.maxBytes` and `attachments.hourlyUploads` on the server. The worker caps original input at 4 MiB, image decode at 12 megapixels and emitted images at 2048 pixels on the longest side. It accepts single-frame JPEG, PNG and WebP, UTF-8 text and tagged text PGN. It normalizes images to WebP with EXIF, GPS and other metadata removed. PDF, animated images, active document formats, executables and archives have no allowlist entry.
+
+Inbox sends use the existing nonce and store a digest of the request, including reply, forward and ordered attachment IDs. Forum forms use an author/destination-bound nonce for creation and a content revision for editing. Media transactions verify the approved-byte digest and bind the parent revision together with the publication update. Inbox transactions also take a write lock on each participating account, including the source participant of a media forward. A concurrent Kid change conflicts with that write. An attachment ID alone cannot authorize a read. A forward receives its own ownership and destination record.
+
+## Screening operations
+
+The Compose release packages a single bounded Python worker. The deployment gate stops it alongside other writers and restarts it when a nonempty `data/attachment-scanner/worker.env` exists. Configure the web flags separately. Provision a MongoDB replica set, a maintained ClamAV daemon with current signatures, and a Unix socket at `data/clamd/clamd.sock` accessible to the worker's unprivileged UID. Restrict database and backup access, encrypt volumes and transport, and exclude uploaded bytes, credentials, names and captions from request logs.
+
+The scanner environment needs these settings.
+
+| Setting                            | Purpose                                                                                                                                                                        |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `UGC_MONGO`                        | Application database. Compose supplies the internal database address.                                                                                                          |
+| `UGC_CLAMD_SOCKET`                 | Private clamd socket. Compose supplies its container path.                                                                                                                     |
+| `UGC_CHILD_URL`, `UGC_CHILD_TOKEN` | Restricted HTTPS child-safety service with current known-hash and visual screening.                                                                                            |
+| `UGC_OPENAI_KEY`                   | Dedicated credential for the general image moderation request.                                                                                                                 |
+| `UGC_RESTRICTED_MONGO`             | Separate private evidence database. Give the scanner only the privileges required to deposit evidence. Limit review and disposition of that database to designated responders. |
+| `UGC_ALERT_URL`, `UGC_ALERT_TOKEN` | Restricted staff alert receiver. It accepts an opaque case ID and kind and returns a JSON object with `accepted` set to true.                                                  |
+
+ClamAV scans the original. For images, the restricted service first receives the normalized pixels, source SHA-256 and normalized SHA-256. Its response must echo both submitted digests (fields `sourceSha256` and `sha256`) and provide a clear decision with hash-list and classifier versions. Suspected material enters a restricted hold with a durable alert and is removed from ordinary byte storage after its restricted copy succeeds. Designated responders own its retention and disposition. General moderators cannot fetch held material. Arrange responder coverage, appropriate handling and reporting procedures and validate the restricted service before activation. [OpenAI child-safety guidance](https://developers.openai.com/api/docs/guides/csam-guidance)
+
+Only after restricted clearance does the worker send the normalized image to `omni-moderation-latest`. That request contains the image and model selector. LiXiangQi policy `ugc-1` blocks flagged images and records the returned model and categories along with the other detector versions. Timeouts, malformed decisions and identity mismatches cannot make an item ready. Keep the service credentials, provider permissions, data handling terms and staff alert delivery current. [OpenAI moderation guide](https://developers.openai.com/api/docs/guides/moderation)
+
+MongoDB leases survive restarts. A worker completion compares the lease, original digest, state and policy. A synthetic image checks the detector chain on startup, hourly when healthy and more frequently after failure. The report console distinguishes disabled, offline, error, stalled and running states and shows the pending count. The worker groups backlog alerts by hour and retries delivery. The application monitors the heartbeat independently. Keep the worker and MongoDB health under deployment monitoring.
+
+The worker reconciles abandoned drafts after a day and eventually removes bytes when the parent was erased, both parties deleted the message, or an edit removed the attachment. Relevant evidence from an actual report is retained for 30 days. Report evidence is available only in the assigned inquiry, with private communications permission for private material. Evidence is concealed until opened. The owner can request review of a general image-policy block. Approved review leaves the draft under the owner's control. Existing moderator restrictions, warnings and appeals apply.
+
+## Verification
+
+The server workflow starts a single-node MongoDB replica set and a dedicated Redis instance. After staging the website, it runs the authenticated HTTP regression with disposable users and its own temporary database. To reproduce it locally, install the scanner test dependencies and point the script at dedicated loopback services. The Java executable is configurable with `--java`.
+
+```sh
+python tools/attachment_scanner/tests/publication_http.py --mongo-port 27291 --redis-port 26402
+```
+
+The regression records ordinary send latency and exercises authorization, retries, concurrent edits, forwards, both Kid directions, forum publication and exact reports. Its document fixture uses a test antivirus result. Production validation also needs the maintained malware service, restricted detector, OpenAI project, designated staff alert receiver, and target web and native releases.
+
+## Text decisions and references
+
+Ordinary text uses the shared local rule plus existing permissions and rate limits. Examples that pass include “Good game”, “好棋” and “Ván cờ hay”. A link to the confirmed blocked chess-bot.com destination is rejected in each language. The actionable prompt is “Remove the blocked link and try sending again”, “请移除被拦截的链接后重新发送” or “Hãy bỏ liên kết bị chặn rồi gửi lại.” Edits retain the last accepted content on rejection.
+
+The desktop reference uses the picker callback to stage files, renders previews or generic file rows, and binds removal and clearing separately from submission. LiXiangQi uses its own theme and composer. [Signal composer at 848443a](https://github.com/signalapp/Signal-Desktop/blob/848443afc3fcc74a0e127ba4f4d8554b95da856e/ts/components/CompositionArea.dom.tsx) and [attachment list](https://github.com/signalapp/Signal-Desktop/blob/848443afc3fcc74a0e127ba4f4d8554b95da856e/ts/components/conversation/AttachmentList.dom.tsx)
+
+Android's attachment keyboard returns the selected media or selector button to its parent. The flow view model owns selection, removal, back navigation and send events. On iOS, choosing a recent photo presents the approval controller. Its rail removes individual items and its delegate receives cancellation and approval separately. [Android picker at 169668a](https://github.com/signalapp/Signal-Android/blob/169668ad1972e9861c2346627f28512580ab54c5/app/src/main/java/org/thoughtcrime/securesms/conversation/v2/keyboard/AttachmentKeyboardFragment.kt), [Android review](https://github.com/signalapp/Signal-Android/blob/169668ad1972e9861c2346627f28512580ab54c5/feature/media-send/src/main/java/org/signal/mediasend/MediaSendFlowViewModel.kt), [iOS picker at a690a26](https://github.com/signalapp/Signal-iOS/blob/a690a26d2cfe1bc15f99d73d2ef2054d41ba5e45/Signal/ConversationView/ConversationViewController%2BConversationInputToolbarDelegate.swift) and [iOS approval](https://github.com/signalapp/Signal-iOS/blob/a690a26d2cfe1bc15f99d73d2ef2054d41ba5e45/SignalUI/AttachmentApproval/AttachmentApprovalViewController.swift)

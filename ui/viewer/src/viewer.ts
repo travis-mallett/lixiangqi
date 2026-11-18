@@ -22,6 +22,7 @@ export interface ViewerLabels {
   next: string;
   last: string;
   moves: string;
+  moveAnnotations: string;
   start: string;
   analysis: string;
 }
@@ -79,10 +80,13 @@ export class GameViewer {
     readonly element: HTMLElement,
     private readonly options: ViewerOptions,
   ) {
-    this.current = options.root;
+    this.current =
+      options.initialPly === 'last'
+        ? lastNode(options.root)
+        : this.nodeAtPly(options.initialPly ?? options.root.ply);
+    applyViewerAppearance(element, options.services.assetUrl, options.boardTheme, options.pieceSet);
     element.replaceChildren();
     element.classList.add('xiangqi-viewer');
-    element.tabIndex = 0;
 
     const layout = makeElement('div');
     layout.className = 'xiangqi-viewer__layout';
@@ -114,11 +118,12 @@ export class GameViewer {
     const navigable = !!options.root.children.length;
     this.showMoves = navigable && options.showMoves !== false;
     this.showControls = navigable && options.showControls !== false;
-    if (!this.showMoves && !this.showControls && !hasComments(options.root))
-      element.classList.add('xiangqi-viewer--solo');
-    /* An annotated example keeps one stable place for its notes while navigating. */
-    if (hasComments(options.root)) element.classList.add('xiangqi-viewer--annotated');
+    const annotated = hasComments(options.root);
+    element.classList.toggle('xiangqi-viewer--solo', !this.showMoves && !this.showControls && !annotated);
+    element.classList.toggle('xiangqi-viewer--annotated', annotated);
+    if (this.showMoves || this.showControls) element.tabIndex = 0;
     this.moves.className = 'xiangqi-viewer__moves';
+    this.moves.setAttribute('role', 'group');
     this.moves.setAttribute('aria-label', options.labels.moves);
     if (this.showMoves) {
       this.panel.append(this.moves);
@@ -160,7 +165,15 @@ export class GameViewer {
     element.addEventListener(
       'keydown',
       event => {
-        if ((event.target as HTMLElement).matches('select,input,textarea,button')) return;
+        if (
+          (!this.showMoves && !this.showControls) ||
+          event.altKey ||
+          event.ctrlKey ||
+          event.metaKey ||
+          event.shiftKey ||
+          (event.target as HTMLElement).closest('select,input,textarea,button,a,[contenteditable]')
+        )
+          return;
         const action = (
           {
             ArrowLeft: 'previous',
@@ -176,14 +189,7 @@ export class GameViewer {
       },
       { signal: this.abort.signal },
     );
-    const target =
-      options.initialPly === 'last'
-        ? lastNode(options.root)
-        : this.nodeAtPly(options.initialPly ?? options.root.ply);
-    this.go(target);
-    void this.appearance().catch(error => {
-      if (!this.abort.signal.aborted) this.comments.textContent = String(error);
-    });
+    this.renderPosition(this.current);
   }
 
   private nodeAtPly(ply: number): ViewerNode {
@@ -211,7 +217,7 @@ export class GameViewer {
   }
 
   go(node: ViewerNode): void {
-    if (this.abort.signal.aborted) return;
+    if (this.abort.signal.aborted || node === this.current) return;
     const previous = this.current;
     const direction = node.parent === previous ? 'forward' : previous.parent === node ? 'backward' : 'jump';
     this.current = node;
@@ -220,6 +226,10 @@ export class GameViewer {
       id: node.id,
       effects: direction === 'forward' ? node.effects : direction === 'backward' ? [] : undefined,
     });
+    this.renderPosition(node);
+  }
+
+  private renderPosition(node: ViewerNode): void {
     this.board.setMarks(node.marks, 'annotation');
     if (this.captureNodes) {
       const bottom = this.board.getPresentation().perspective === 'red' ? 'red' : 'black';
@@ -237,7 +247,8 @@ export class GameViewer {
         ),
       ];
     }
-    this.comments.textContent = node.comments.join('\n\n');
+    const comments = node.comments.join('\n\n');
+    if (this.comments.textContent !== comments) this.comments.textContent = comments;
     if (this.showMoves) this.renderMoves();
     this.renderControls();
     this.options.onPosition?.(node);
@@ -268,6 +279,8 @@ export class GameViewer {
         root: build(this.options.root),
         renderMove: (move, context) => {
           const node = move.viewer;
+          const label = node.label || node.move || '';
+          const annotation = this.options.labels.moveAnnotations;
           return hl(
             'move',
             {
@@ -275,12 +288,19 @@ export class GameViewer {
                 role: 'button',
                 tabindex: '0',
                 'data-node': node.id,
-                'aria-label': node.label || node.move || '',
+                'aria-label': node.hasAnnotation ? `${label}, ${annotation}` : label,
                 ...(node.id === current.id ? { 'aria-current': 'step' } : {}),
               },
               class: { active: node.id === current.id },
             },
-            [context.withIndex && renderIndex(node.ply, true), node.label || node.move || ''],
+            [
+              context.withIndex && renderIndex(node.ply, true),
+              hl('span.xiangqi-viewer__move-label', label),
+              node.hasAnnotation &&
+                hl('span.xiangqi-viewer__note', {
+                  attrs: { 'data-icon': licon.BubbleSpeech, 'aria-hidden': 'true', title: annotation },
+                }),
+            ],
           );
         },
       }),
@@ -323,16 +343,6 @@ export class GameViewer {
         nextIcon: licon.JumpNext,
         onClick: action => this.navigate(action === 'prev' ? 'previous' : (action as ViewerAction)),
       }),
-    );
-  }
-
-  private appearance(): Promise<void> {
-    return applyViewerAppearance(
-      this.element,
-      this.options.services.assetUrl,
-      this.options.boardTheme,
-      this.options.pieceSet,
-      this.abort.signal,
     );
   }
 

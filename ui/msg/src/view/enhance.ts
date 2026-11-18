@@ -5,35 +5,13 @@ import { linkRegex, linkReplace, newLineRegex, expandMentions } from 'lib/richTe
 import { scroller } from './scroller';
 export { isMoreThanText } from 'lib/richText';
 
-export const imgurRegex = /https?:\/\/(?:i\.)?imgur\.com\/(?!gallery\b)(\w{7})(?:\.jpe?g|\.png|\.gif)?/;
-const giphyRegex =
-  /https:\/\/(?:media\.giphy\.com\/media\/|giphy\.com\/gifs\/(?:\w+-)*)(\w+)(?:\/giphy\.gif)?/;
 const teamMessageRegex =
   /You received this because you are subscribed to messages of the team <a(?:[^>]+)>(?:[^\/]+)(.+)<\/a>\.$/;
 
-const img = (src: string) => `<img src="${src}" alt="${src}"/>`;
-
-const aImg = (src: string) => linkReplace(src, img(src));
-
-const expandImgur = (url: string) =>
-  imgurRegex.test(url)
-    ? url.replace(imgurRegex, (_, id) => aImg(`https://i.imgur.com/${id}.jpg`))
-    : undefined;
-
-const expandGiphy = (url: string) =>
-  giphyRegex.test(url)
-    ? url.replace(giphyRegex, (_, id) => aImg(`https://media.giphy.com/media/${id}/giphy.gif`))
-    : undefined;
-
-const expandImage = (url: string) => (/\.(jpg|jpeg|png|gif)$/.test(url) ? aImg(url) : undefined);
-
 const expandLink = (url: string) => linkReplace(url, url.replace(/^https?:\/\//, ''));
 
-const expandUrl = (url: string) =>
-  expandImgur(url) || expandGiphy(url) || expandImage(url) || expandLink(url);
-
 const expandUrls = (html: string) =>
-  html.replace(linkRegex, (_, space: string, url: string) => `${space}${expandUrl(url)}`);
+  html.replace(linkRegex, (_, space: string, url: string) => `${space}${expandLink(url)}`);
 
 const expandGameIds = (html: string) =>
   html.replace(

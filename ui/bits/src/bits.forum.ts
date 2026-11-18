@@ -2,6 +2,7 @@ import { Textcomplete } from '@textcomplete/core';
 import { TextareaEditor } from '@textcomplete/textarea';
 
 import { debounce } from 'lib/async';
+import { AttachmentDraft, showMedia, submissionError } from 'lib/attachments';
 import { tempStorage } from 'lib/storage';
 import { usernameCompletionPattern, userProfileName } from 'lib/username';
 import { domDialog } from 'lib/view';
@@ -10,6 +11,123 @@ import * as xhr from 'lib/xhr';
 import { setMode } from './markdownTextarea';
 
 site.load.then(() => {
+  document
+    .querySelectorAll<HTMLElement>('[data-attachment-id]')
+    .forEach(el => showMedia(el, 'forum', el.dataset.attachmentId!));
+  for (const form of document.querySelectorAll<HTMLFormElement>('form[data-attachment-dest]')) {
+    const field = form.querySelector('textarea');
+    if (!field) continue;
+    const el = document.createElement('div');
+    el.className = 'attachment-draft';
+    const wrap = document.createElement('div');
+    wrap.className = 'attachment-field';
+    field.before(wrap);
+    wrap.append(el, field);
+    const editing = field.name === 'changes';
+    const prefix = field.name.startsWith('post.') ? 'post.' : '';
+    const existing = Array.from(
+      form.closest('article')?.querySelectorAll<HTMLElement>('[data-attachment-id]') ?? [],
+      el => el.dataset.attachmentId!,
+    );
+    const draft = new AttachmentDraft('forum', form.dataset.attachmentDest!, editing ? existing : []);
+    const hidden = (name: string, value: string) => {
+      let input = form.elements.namedItem(name) as HTMLInputElement | null;
+      if (!input) {
+        input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = name;
+        form.append(input);
+      }
+      input.value = value;
+    };
+    const required = field.required;
+    const mount = () =>
+      draft.mount(el, field, () => {
+        for (const button of form.querySelectorAll<HTMLButtonElement>('button[type=submit]')) {
+          if (!draft.ready && !button.disabled) {
+            button.disabled = true;
+            button.dataset.attachmentBlocked = 'true';
+          } else if (draft.ready && button.dataset.attachmentBlocked) {
+            delete button.dataset.attachmentBlocked;
+            button.disabled = false;
+          }
+        }
+        field.required = required && !draft.active;
+      });
+    if (editing) {
+      const observer = new IntersectionObserver(entries => {
+        if (entries.some(entry => entry.isIntersecting)) {
+          observer.disconnect();
+          void mount();
+        }
+      });
+      observer.observe(form);
+    } else void mount();
+    let sending = false;
+    const feedback = document.createElement('p');
+    feedback.setAttribute('role', 'alert');
+    form.append(feedback);
+    form.addEventListener(
+      'submit',
+      async event => {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        if (!draft.ready || sending) return;
+        if (draft.active || editing) hidden(prefix + 'attachments', draft.ids.join(','));
+        if (editing) hidden('replaceAttachments', 'true');
+        if (!editing) hidden(prefix + 'nonce', draft.nonce);
+        sending = true;
+        feedback.textContent = '';
+        try {
+          const res = await fetch(form.action, {
+            method: 'POST',
+            body: new FormData(form),
+            credentials: 'same-origin',
+          });
+          if (res.ok && res.redirected) {
+            submittingReply = true;
+            replyStorage.remove();
+            location.assign(res.url);
+            return;
+          }
+          if (res.headers.get('content-type')?.includes('json')) {
+            const decision = await res.json();
+            throw new Error(decision.error);
+          }
+          const html = new DOMParser().parseFromString(await res.text(), 'text/html');
+          feedback.textContent = html.querySelector('.error')?.textContent || i18n.site.mediaUnsent;
+        } catch (e) {
+          feedback.textContent = submissionError(e);
+        } finally {
+          sending = false;
+        }
+      },
+      true,
+    );
+  }
+  document.querySelectorAll<HTMLAnchorElement>('article .report').forEach(link =>
+    link.addEventListener('click', async event => {
+      const row = link.closest<HTMLElement>('article[data-post-id]');
+      if (!row) return;
+      event.preventDefault();
+      if (!window.confirm(link.title + '?')) return;
+      const username = new URL(link.href).searchParams.get('username');
+      try {
+        await xhr.json('/report/flag', {
+          method: 'POST',
+          body: xhr.form({
+            username,
+            resource: 'forum/' + row.dataset.postId,
+            revision: row.dataset.revision ?? '0',
+            text: '',
+          }),
+        });
+        link.replaceWith(document.createTextNode(i18n.site.thankYou));
+      } catch {
+        window.location.assign(link.href);
+      }
+    }),
+  );
   $('.forum')
     .on('click', 'a.delete', function (this: HTMLAnchorElement) {
       const link = this;

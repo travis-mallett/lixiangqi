@@ -23,6 +23,11 @@
     width: 100%;
     aspect-ratio: var(--board-aspect-ratio, 0.9);
 
+    // Replay pieces are decorative. Start scrolling on the board column itself.
+    .lixiangqi-board {
+      pointer-events: none;
+    }
+
     .cg-wrap {
       position: absolute;
       inset: 0;
@@ -53,6 +58,23 @@
     max-height: 9em;
   }
 
+  &__move-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__note {
+    flex: none;
+    margin-inline-start: 0.35em;
+    font-size: 0.75em;
+  }
+
+  &__moves move:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: -2px;
+  }
+
   &__feedback {
     @extend %replay-feedback;
 
@@ -64,10 +86,6 @@
 
   &__comments {
     white-space: pre-line;
-  }
-
-  &__comments:empty {
-    display: none;
   }
 
   &--solo &__playback {

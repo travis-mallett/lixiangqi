@@ -495,6 +495,9 @@ object forum:
   object topic:
     val view = counter("forum.topic.view").withoutTags()
   def reaction(r: String) = counter("forum.reaction").withTag("reaction", r)
+object submission:
+  def blocked(surface: String) = counter("ugc.text.blocked").withTag("surface", surface)
+
 object msg:
   def post(verdict: String, isNew: Boolean, multi: Boolean) = counter("msg.post").withTags(
     tags("verdict" -> verdict, "isNew" -> isNew, "multi" -> multi)

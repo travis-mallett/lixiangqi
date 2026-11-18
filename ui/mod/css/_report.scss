@@ -1,5 +1,15 @@
 @import 'user-marks';
 
+.reported-attachment {
+  img {
+    display: block;
+    max-width: min(20rem, 90%);
+    max-height: 12rem;
+    margin-block: 1rem;
+    filter: blur(1rem);
+  }
+}
+
 $c-report-bg: $c-bg-high;
 $c-report-high: $c-brag;
 $c-report-high-over: white;

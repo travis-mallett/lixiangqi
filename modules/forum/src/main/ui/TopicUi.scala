@@ -53,7 +53,11 @@ final class TopicUi(helpers: Helpers, bits: ForumBits, postUi: PostUi)(
                   )
                 )
           ),
-          postForm(cls := "form3", action := routes.ForumTopic.create(categ.id))(
+          postForm(
+            cls := "form3",
+            attrData("attachment-dest") := s"${categ.id}~new",
+            action := routes.ForumTopic.create(categ.id)
+          )(
             form3.group(form("name"), trans.site.subject())(form3.input(_)(autofocus)),
             form3.group(
               form("post")("text"),
@@ -83,6 +87,28 @@ final class TopicUi(helpers: Helpers, bits: ForumBits, postUi: PostUi)(
             )
           )
         )
+
+  def publicDiscussion(categ: ForumCateg, topic: ForumTopic, posts: Paginator[ForumPost.WithFrag])(using
+      Context
+  ) =
+    val route = routes.ForumTopic.show(categ.id, topic.slug, posts.currentPage)
+    Page(topic.name)(
+      main(cls := "forum-topic")(
+        h1(topic.name),
+        div(cls := "forum-topic__posts")(posts.currentPageResults.map: p =>
+          postUi.show(
+            topic,
+            p,
+            s"${route.url}#${p.post.id}",
+            canReply = false,
+            canModCateg = false,
+            canReact = false,
+            isTopicFirst = posts.currentPage == 1 && posts.currentPageResults.headOption.contains(p),
+            displayOnly = true
+          )),
+        paginationByQuery(route, posts, showPost = true)
+      )
+    )
 
   def show(
       categ: lila.forum.ForumCateg,
@@ -190,6 +216,7 @@ final class TopicUi(helpers: Helpers, bits: ForumBits, postUi: PostUi)(
             (form, captcha) <- formWithCaptcha
           yield postForm(
             cls := "form3 reply",
+            attrData("attachment-dest") := s"${categ.id}~${topic.id}",
             action := s"${routes.ForumPost.create(categ.id, topic.slug, posts.currentPage)}#reply",
             novalidate
           )(

@@ -58,7 +58,12 @@ final class UblogPaginator(
     Paginator(
       adapter = new AdapterLike[PreviewPost]:
         val select =
-          $doc("live" -> true, selectQuality(filter), "topics".$ne(UblogTopic.offTopic)) ++
+          $doc(
+            "live" -> true,
+            "official".$ne(true),
+            selectQuality(filter),
+            "topics".$ne(UblogTopic.offTopic)
+          ) ++
             language.so(l =>
               $or(
                 $doc("language" -> l),

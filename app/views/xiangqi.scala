@@ -135,7 +135,7 @@ object xiangqi:
   def gamesDatabase(explorerEndpoint: String, nativeWeeklyAdded: Int)(using
       @annotation.unused ctx: Context
   ) =
-    Page("Xiangqi Games Database")
+    Page(trans.site.xiangqiDatabaseTitle.txt())
       .css("xiangqi")
       .i18n(_.study)
       .js(
@@ -148,15 +148,15 @@ object xiangqi:
         )
       )
       .graph(
-        title = "Xiangqi Games Database",
+        title = trans.site.xiangqiDatabaseTitle.txt(),
         url = routeUrl(routes.GameCatalog.index),
-        description = "Search and browse master and online Xiangqi game records."
+        description = trans.site.xiangqiDatabaseDescription.txt()
       )
       .body(
         main(cls := "games-database box")(
           header(cls := "games-database__header")(
             div(cls := "games-database__intro")(
-              h1("Games Database"),
+              h1(trans.site.xiangqiDatabaseTitle()),
               p(
                 cls := "games-database__total",
                 attr("aria-live") := "polite",
@@ -166,7 +166,12 @@ object xiangqi:
                 span("total unique games")
               ),
               p(cls := "games-database__description")(
-                "Search master games, ancient manuals, DPXQ online games, GDChess/01xq, XQDao, and Elephantchess.io collections, then open any record in a new Analysis tab."
+                trans.site.xiangqiDatabaseDescription()
+              ),
+              p(
+                a(href := routes.Learn.ancientManuals)(trans.site.ancientXiangqiManuals()),
+                " · ",
+                a(href := routes.UserAnalysis.index)(trans.site.analysis())
               )
             ),
             div(
@@ -783,7 +788,7 @@ object xiangqi:
       )
 
   def analysis(bootstrap: play.api.libs.json.JsObject = Json.obj())(using ctx: Context) =
-    Page(trans.site.analysis.txt())
+    Page(trans.site.xiangqiAnalysisTitle.txt())
       .css("xiangqi")
       .i18n(_.study)
       .i18n(_.threeKingdoms)
@@ -802,9 +807,17 @@ object xiangqi:
       .flag(_.zoom)
       .flag(_.crossSiteIsolation)
       .graph(
-        title = "Xiangqi Analysis Board",
+        title = trans.site.xiangqiAnalysisTitle.txt(),
         url = routeUrl(routes.UserAnalysis.index),
-        description = "Analyse standard Xiangqi positions with legal moves and WXF notation."
+        description = trans.site.xiangqiAnalysisDescription.txt()
+      )
+      .append(
+        lila.ui.ToolIntro(trans.site.xiangqiAnalysisTitle.txt(), trans.site.xiangqiAnalysisDescription.txt())(
+          a(href := routes.Editor.index)(trans.site.boardEditor()),
+          a(href := routes.GameCatalog.index)(trans.site.xiangqiDatabaseTitle()),
+          a(href := langHref(routes.Notation.home))(trans.notation.xiangqiNotation()),
+          a(href := routes.Learn.specialRules)(trans.site.xiangqiSpecialRules())
+        )
       )
       .body(
         main(cls := "xiangqi-page xiangqi-analysis-page")(

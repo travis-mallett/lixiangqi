@@ -101,6 +101,19 @@ Three Kingdoms live and analysis playback use adjacent forward/backward transiti
 
 ### Feedback image lifecycle
 
+Two-player boards use one semantic priority for both visual and audio feedback:
+**checkmate > check > capture**. Select the result before applying animation settings;
+disabling its animation does not substitute a lower-priority effect. Ordinary piece
+movement audio is independent. `optimistic` transitions animate placement and announce
+movement only. They must use the same ID as their authoritative `confirmation`, which
+announces the final semantic effect once. Never guess capture feedback before knowing
+whether that move checks or mates. Duplicate/partial acknowledgments cannot downgrade
+the selected effect; backward navigation clears the announcement identity for replay.
+
+Three Kingdoms alone retains simultaneous localized river/territory visuals, as defined
+in `doc/three-kingdoms.md`. Its semantic audio still uses the single priority above.
+`feedbackPolicy.ts` is the canonical priority selector for the board and sound services.
+
 `feedback.ts` owns announcements and placement; `feedbackImage.ts` owns animated-image
 loading and disposal for both rectangular and graph boards. Share compressed WebP bytes
 per document, but create a new blob URL for every presentation. URL fragments do not

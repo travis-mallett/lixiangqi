@@ -14,6 +14,9 @@ final class MsgJson(
   private given lastMsgWrites: OWrites[Msg.Last] = Json.writes
   private given relationsWrites: OWrites[Relations] = Json.writes
   private given modDetailsWrites: OWrites[ContactDetailsForMods] = Json.writes
+  private given OWrites[Msg.Quote] = Json.writes
+  private given OWrites[Msg.Version] = Json.writes
+  private given OWrites[Msg.Reaction] = Json.writes
 
   def threadsJson(threads: List[MsgThread])(using me: Me): Fu[JsArray] =
     withContacts(threads).map: threads =>
@@ -28,6 +31,7 @@ final class MsgJson(
       .obj(
         "user" -> renderContact(c.contact),
         "msgs" -> c.msgs.map(renderMsg),
+        "pinned" -> c.pinned.map(renderMsg),
         "relations" -> c.relations,
         "postable" -> c.postable
       )
@@ -35,10 +39,30 @@ final class MsgJson(
 
   def renderMsg(msg: Msg): JsObject =
     Json.obj(
-      "text" -> msg.text,
+      "id" -> msg.id,
+      "text" -> (if msg.deletedAt.isDefined then "" else msg.text),
       "user" -> msg.user,
-      "date" -> msg.date
+      "date" -> msg.date,
+      "revision" -> msg.revision,
+      "deliveredAt" -> msg.deliveredAt,
+      "readAt" -> msg.readAt,
+      "deleted" -> msg.deletedAt.isDefined,
+      "deletedAt" -> msg.deletedAt,
+      "attachments" -> msg.attachments.filter(_ => msg.deletedAt.isEmpty),
+      "reply" -> msg.reply.filter(_ => msg.deletedAt.isEmpty),
+      "forwarded" -> msg.forwarded,
+      "editedAt" -> msg.editedAt,
+      "history" -> msg.history.filter(_ => msg.deletedAt.isEmpty),
+      "reactions" -> msg.reactions.filter(_ => msg.deletedAt.isEmpty),
+      "pinnedAt" -> msg.pinnedAt.filter(_ => msg.deletedAt.isEmpty),
+      "canEditUntil" -> msg.canEdit(msg.user, nowInstant).option(msg.date.plusSeconds(24 * 3600)),
+      "canDeleteUntil" -> msg
+        .canDeleteForEveryone(msg.user, nowInstant)
+        .option(msg.date.plusSeconds(24 * 3600))
     )
+
+  def receipt(msg: Msg): JsObject =
+    Json.obj("id" -> msg.id, "deliveredAt" -> msg.deliveredAt, "readAt" -> msg.readAt)
 
   def searchResult(res: MsgSearch.Result)(using me: Me): Fu[JsObject] =
     withContacts(res.threads).map: threads =>
@@ -61,8 +85,11 @@ final class MsgJson(
     Json.obj(
       "user" -> renderContact(t.contact),
       "lastMsg" -> me.fold(t.thread.lastMsg): me =>
-        if t.thread.maskFor.contains(me) then t.thread.maskWith.getOrElse(t.thread.lastMsg)
-        else t.thread.lastMsg
+        t.thread.preview.getOrElse(
+          me.userId.value,
+          if t.thread.maskFor.contains(me) then t.thread.maskWith.getOrElse(t.thread.lastMsg)
+          else t.thread.lastMsg
+        )
     )
 
   private def renderContact(user: LightUser): JsObject =

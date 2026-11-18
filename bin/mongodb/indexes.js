@@ -162,6 +162,10 @@ db.f_categ.createIndex({ team: 1 });
 db.relay_group.createIndex({ tours: 1 });
 db.seek.createIndex({ createdAt: -1 }, { expireAfterSeconds: 86400 });
 db.msg_msg.createIndex({ tid: 1, date: -1 });
+db.msg_msg.createIndex(
+  { tid: 1, pinnedAt: -1 },
+  { name: 'msg_pinned', partialFilterExpression: { pinnedAt: { $exists: true } } },
+);
 db.team.createIndex({ enabled: 1, nbMembers: -1 });
 db.team.createIndex({ createdAt: -1 });
 db.team.createIndex({ createdBy: 1 });

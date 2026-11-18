@@ -1,8 +1,5 @@
-import { createBoardAudio } from '@lixiangqi/board';
-
 import type { ImportedTreeNode, RulesState } from 'lib/game/xiangqiNotation';
 
-import { attachExplorer } from './explorer';
 import { type ViewerSource } from './model';
 import { mountViewer } from './mount';
 import { type ViewerLabels, type GameViewer } from './viewer';
@@ -22,41 +19,42 @@ interface EmbedOptions extends ViewerSource {
 
 /* A hosting page sizes the iframe, so the embed reports the height of its rendered content
    whenever the layout changes. Hosts that ignore the message keep their own fixed size. */
-function reportEmbedHeight(element: HTMLElement, signal: AbortSignal): void {
-  if (window.parent === window) return;
+function reportEmbedHeight(signal: AbortSignal): () => void {
   const post = () => {
+    if (window.parent === window || signal.aborted) return;
     const height = Math.ceil(document.body.getBoundingClientRect().height);
     if (height > 0) window.parent.postMessage({ type: 'xiangqi-embed:height', height }, '*');
   };
-  post();
-  if (typeof ResizeObserver === 'undefined') {
-    window.addEventListener('resize', post, { signal });
-    return;
-  }
-  const observer = new ResizeObserver(post);
-  observer.observe(element);
+  if (window.parent === window) return post;
+  window.addEventListener('pageshow', post, { signal });
+  window.addEventListener('resize', post, { signal });
+  if (!window.ResizeObserver) return post;
+  const observer = new window.ResizeObserver(post);
+  observer.observe(document.body);
   signal.addEventListener('abort', () => observer.disconnect(), { once: true });
+  return post;
 }
 
 export async function initModule(options: EmbedOptions): Promise<void> {
-  const root = document.querySelector<HTMLElement>('#xiangqi-embed')!;
+  const root = document.querySelector<HTMLElement>('#xiangqi-embed');
+  if (!root) return;
   let viewer: GameViewer | undefined;
   const abort = new AbortController();
-  let audio: ReturnType<typeof createBoardAudio> | undefined;
-  reportEmbedHeight(root, abort.signal);
+  const postHeight = reportEmbedHeight(abort.signal);
   window.addEventListener(
     'pagehide',
-    () => {
+    event => {
+      if (event.persisted) return;
       abort.abort();
       viewer?.destroy();
-      audio?.destroy();
     },
-    { once: true },
+    { signal: abort.signal },
   );
   try {
     let source: ViewerSource = options;
     const hash = location.hash.slice(1);
-    if (hash.startsWith('%7B') || hash.startsWith('{')) {
+    const hasExample = /^(?:%7b|\{)/i.test(hash);
+    if (hasExample) {
       if (hash.length > 1500000) throw new Error('Example is too large');
       const decoded = JSON.parse(decodeURIComponent(hash));
       // Only content is accepted from a hosting website. Services, URLs, and executable options remain local.
@@ -70,7 +68,7 @@ export async function initModule(options: EmbedOptions): Promise<void> {
         caption: decoded.caption,
       };
     } else if (hash) source = { ...source, initialPly: hash === 'last' ? 'last' : Number(hash) || 0 };
-    if (options.states?.length && options.moves) {
+    if (!hasExample && options.states?.length && options.moves) {
       if (options.states.length !== options.moves.length + 1) throw new Error('Inconsistent recorded game');
       let children: ImportedTreeNode[] = [];
       for (let i = options.moves.length - 1; i >= 0; i--)
@@ -97,7 +95,6 @@ export async function initModule(options: EmbedOptions): Promise<void> {
     }
     const assetUrl = (path: string) =>
       `${document.body.dataset.assetUrl || ''}/assets/_${document.body.dataset.assetVersion}/${path}`;
-    audio = createBoardAudio(assetUrl);
     let updateExplorer: ((node: import('./model').ViewerNode) => void) | undefined;
     viewer = await mountViewer(
       root,
@@ -110,14 +107,19 @@ export async function initModule(options: EmbedOptions): Promise<void> {
         showControls: !options.gamebook,
         services: {
           assetUrl,
-          sound: audio.sound,
           reducedMotion: () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches,
         },
         onPosition: node => updateExplorer?.(node),
       },
       abort.signal,
     );
+    if (abort.signal.aborted) {
+      viewer.destroy();
+      return;
+    }
     if (options.explorerEndpoint && new URLSearchParams(location.search).get('explorer') === '1') {
+      const { attachExplorer } = await import('./explorer');
+      if (abort.signal.aborted) return;
       updateExplorer = attachExplorer(viewer, options.explorerEndpoint, options.labels.analysis);
       updateExplorer(viewer.position());
     }
@@ -131,5 +133,8 @@ export async function initModule(options: EmbedOptions): Promise<void> {
     }
   } catch (error) {
     if (!abort.signal.aborted) root.textContent = String(error);
+  } finally {
+    // A lazy iframe can mount before the browser starts delivering resize observations.
+    postHeight();
   }
 }

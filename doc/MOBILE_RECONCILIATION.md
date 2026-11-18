@@ -87,3 +87,24 @@ explicitly deferred variant project. Kids has a review queue rather than a claim
 ## Unavailable-checkout queue
 
 None. Both checkouts were located when establishing this workflow.
+
+## Community blog listings
+
+Reviewed website HEAD `cffca4bbfe5df809b8b303a7c08dbbafe7d68818` with
+`modules/ublog/src/main/UblogPaginator.scala` at SHA-256
+`14c0a9b4067a1331abc48068514fa34340461aa4a45be363783391f81a055490`.
+
+- **LiXiangQi Mobile (server inherited).** The native blog screen loads
+  `/blog/community` through `BlogRepository` and renders the returned post cards.
+  The corrected list takes effect with the website backend deployment.
+- **Xiangqi Kids (not applicable).** The app has no blog listing or feed consumer.
+
+Verified the Community page and Atom feed call the same server paginator and
+checked both app source trees for consumers. No native release or data migration
+is required. This review does not advance either app's checkpoint.
+
+## Public mobile reading, November 17, 2026
+
+The main mobile app consumes the opt-in theme, feed, Blog and Forum display responses, conditional validators and separate visible article view endpoint. Token-bearing Forum requests use current website permissions. The main app's [public reading guide](../../lixiangqi-mobile/doc/PUBLIC_READING.md) records the deployment contract, integration pattern and verification. The app's focused receipt fingerprints the reviewed checkout at `cffca4bbfe5df809b8b303a7c08dbbafe7d68818`. Concurrent reviews retain their existing checkpoints.
+
+The Kids app has no adult feeds, Forum or article reader. Its Lotus puzzle flow has no theme-catalog consumer and retains its existing server contracts.

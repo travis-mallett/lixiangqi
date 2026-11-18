@@ -1,0 +1,25 @@
+name: Attachment scanner
+
+on:
+  push:
+    paths: ['tools/attachment_scanner/**', '.github/workflows/attachment-scanner.yml']
+  pull_request:
+    paths: ['tools/attachment_scanner/**', '.github/workflows/attachment-scanner.yml']
+
+jobs:
+  screening:
+    runs-on: ubuntu-latest
+    services:
+      mongo:
+        image: mongo:8.2
+        ports: ['27017:27017']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r tools/attachment_scanner/requirements.txt
+      - run: python -m unittest discover -s tools/attachment_scanner/tests -v
+        env:
+          PYTHONPATH: tools/attachment_scanner
+          LIXIANGQI_MSG_TEST_URI: mongodb://127.0.0.1:27017

@@ -21,6 +21,7 @@ export interface ViewerNode {
   move?: string;
   label: string;
   comments: string[];
+  hasAnnotation: boolean;
   effects: BoardEffect[];
   marks: BoardMark[];
   parent?: ViewerNode;
@@ -57,6 +58,7 @@ export function viewerNode(
       : native.notation) ?? '';
   const position = positionFromFen(state.fen, boardDefinitionForFen(state.fen));
   const annotations = notationAnnotations([source.annotations?.[String(state.ply - rootPly)] ?? '']);
+  const comments = [...(native.comments?.map(comment => comment.text) ?? []), ...annotations.comments];
   const node: ViewerNode = {
     node: native,
     id: native.path,
@@ -76,7 +78,8 @@ export function viewerNode(
             .map(([key]) => key)
         : [],
     },
-    comments: [...(native.comments?.map(comment => comment.text) ?? []), ...annotations.comments],
+    comments,
+    hasAnnotation: !!(comments.length || native.shapes?.length || annotations.marks.length),
     effects: [
       ...(state.capture ? ['capture' as const] : []),
       ...(state.check ? ['check' as const] : []),
@@ -101,9 +104,12 @@ export function viewerNode(
 export async function loadViewerTree(source: ViewerSource, signal?: AbortSignal): Promise<ViewerNode> {
   if (source.tree) return importedViewerTree(source.tree, source);
   if (
-    source.moves &&
-    (source.moves.length > 2000 ||
-      source.moves.some(move => !/^[a-i](?:10|[1-9])[a-i](?:10|[1-9])$/.test(move)))
+    source.moves !== undefined &&
+    (!Array.isArray(source.moves) ||
+      source.moves.length > 2000 ||
+      source.moves.some(
+        move => typeof move !== 'string' || !/^[a-i](?:10|[1-9])[a-i](?:10|[1-9])$/.test(move),
+      ))
   )
     throw new Error('Invalid recorded Xiangqi moves');
   // A diagram is a visible placement, not a claim that this is a legal game position.

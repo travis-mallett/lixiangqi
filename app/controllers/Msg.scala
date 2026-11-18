@@ -1,6 +1,8 @@
 package controllers
 
 import play.api.libs.json.*
+import play.api.data.Form
+import play.api.data.Forms.*
 
 import lila.app.{ *, given }
 import lila.common.Json.given
@@ -57,24 +59,93 @@ final class Msg(env: Env) extends LilaController(env):
   }
 
   def apiPost(username: UserStr) = AuthOrScopedBody(_.Msg.Write, _.Mobile.Inbox) { ctx ?=> me ?=>
-    val userId = username.id
-    if ctx.isWebAuth then // compat: reply
-      env.msg.compat
-        .reply(userId)
-        .fold(doubleJsonFormError, _.inject(Ok(Json.obj("ok" -> true, "id" -> userId))))
-    else // new API: create/reply
-      (ctx.kid.no && me.isnt(userId)).so:
-        bindForm(env.msg.textForm)(
-          doubleJsonFormError,
-          text =>
-            env.msg.api
-              .post(me, userId, text)
-              .flatMap:
-                case lila.core.msg.PostResult.Success => jsonOkResult
-                case lila.core.msg.PostResult.Limited => rateLimited
-                case _ => BadRequest(jsonError("The message was rejected"))
-        )
+    if ctx.kid.yes && !ctx.isWebAuth then Forbidden(jsonError("rejected")).toFuccess
+    else
+      bindForm(sendForm)(
+        doubleJsonFormError,
+        data =>
+          actionResult(
+            env.msg.actions.send(
+              username.id,
+              data._1,
+              data._2.getOrElse(scalalib.ThreadLocalRandom.nextString(24)),
+              data._3,
+              data._4,
+              data._5.map(UserId(_)),
+              data._6.toList.flatMap(_.split(',')).filter(_.nonEmpty)
+            )
+          )
+      )
   }
+
+  def messageAction(username: UserStr, id: String) = AuthOrScopedBody(_.Web.Mobile, _.Mobile.Inbox) {
+    _ ?=> me ?=>
+      bindForm(actionForm)(
+        doubleJsonFormError,
+        data =>
+          actionResult(
+            env.msg.actions.update(
+              username.id,
+              id,
+              data._1,
+              data._2,
+              data._3,
+              data._4.orElse(data._5.contains(true).option("")).map(_.split(',').filter(_.nonEmpty).toList)
+            )
+          )
+      )
+  }
+
+  def receipt(username: UserStr) = AuthOrScopedBody(_.Web.Mobile, _.Mobile.Inbox) { _ ?=> me ?=>
+    bindForm(receiptForm)(
+      doubleJsonFormError,
+      data =>
+        env.msg.actions
+          .acknowledge(username.id, data._1.split(',').filter(_.nonEmpty).toList, data._2)
+          .map(messages => Ok(Json.obj("receipts" -> messages.map(env.msg.json.receipt))))
+          .recover { case _: lila.msg.MsgActionError => TooManyRequests(jsonError("limited")) }
+    )
+  }
+
+  def typing(username: UserStr) = AuthOrScopedBody(_.Web.Mobile, _.Mobile.Inbox) { _ ?=> me ?=>
+    bindForm(Form(single("active" -> play.api.data.Forms.boolean)))(
+      doubleJsonFormError,
+      active => env.msg.actions.typing(username.id, active) >> jsonOkResult
+    )
+  }
+
+  private val sendForm = Form(
+    tuple(
+      "text" -> text(maxLength = 8000),
+      "nonce" -> optional(text(maxLength = 64)),
+      "replyTo" -> optional(text(maxLength = 100)),
+      "forwardId" -> optional(text(maxLength = 100)),
+      "forwardUser" -> optional(text(maxLength = 100)),
+      "attachments" -> optional(text(maxLength = 264))
+    )
+  )
+  private val actionForm = Form(
+    tuple(
+      "action" -> nonEmptyText(maxLength = 20),
+      "value" -> text(maxLength = 8000),
+      "revision" -> number(min = 0),
+      "attachments" -> optional(text(maxLength = 264)),
+      "replaceAttachments" -> optional(play.api.data.Forms.boolean)
+    )
+  )
+  private val receiptForm = Form(
+    tuple("ids" -> text(maxLength = 10000), "read" -> play.api.data.Forms.boolean)
+  )
+
+  private def actionResult(result: Fu[lila.msg.Msg]) =
+    result.map(msg => Ok(Json.obj("ok" -> true, "msg" -> env.msg.json.renderMsg(msg)))).recover {
+      case lila.msg.MsgActionError("notFound") => NotFound(jsonError("notFound"))
+      case lila.msg.MsgActionError("unsafeLink") => UnprocessableEntity(jsonError("unsafeLink"))
+      case lila.core.security.SubmissionRejected(code) => UnprocessableEntity(jsonError(code))
+      case lila.msg.MsgActionError("conflict") => Conflict(jsonError("conflict"))
+      case lila.msg.MsgActionError("limited") => TooManyRequests(jsonError("limited"))
+      case lila.msg.MsgActionError(code) => BadRequest(jsonError(code))
+    }
 
   private def inboxJson(withConvo: Option[UserId])(using me: Me) =
     import lila.common.Json.lightUserWrites

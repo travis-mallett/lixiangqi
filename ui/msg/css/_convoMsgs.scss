@@ -1,156 +1,270 @@
 .msg-app__convo__msgs {
-  @extend %flex-column;
-
+  display: flex;
+  flex-direction: column;
   flex: 1 1 auto;
-  overflow-y: auto;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
 
   &__init {
     flex: 1 1 auto;
   }
 
   &__more {
-    margin: 2em auto;
-  }
-
-  &__getting-more {
-    flex: 1 1 auto;
-  }
-
-  &__typing {
-    color: $c-font-dim;
-    line-height: 0.9em;
-    min-height: 0.9em;
-    font-size: 0.9em;
+    align-self: center;
+    margin: 1em auto;
   }
 
   &__content {
-    @extend %flex-column;
-
-    overflow-wrap: anywhere;
+    display: flex;
+    flex-direction: column;
     flex: 0 0 auto;
-    padding: 3em 3vw 1em 3vw;
+    padding: 20px clamp(12px, 3vw, 36px);
+    overflow-wrap: anywhere;
   }
 
   group {
-    @extend %flex-column;
-
-    margin: 0.5em 0;
-  }
-
-  mine,
-  their,
-  day {
-    @extend %zalgoverflow;
-
-    border-radius: 6px;
-    box-shadow: 0 1px 0.5px rgb(0 0 0 / 0.13);
-
-    @include if-not-light {
-      box-shadow: 0 1px 0.5px rgb(0 0 0);
-    }
-
-    margin: 0.2em 0;
-    padding: 0.5em 1em;
-    color: $c-font-clear;
-    max-width: 70%;
-    white-space-collapse: preserve;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin: 5px 0;
   }
 
   day {
-    @extend %roboto;
-
-    background: color-mix(in oklab, $c-primary 15%, $c-bg);
     align-self: center;
-    font-size: 0.9em;
-    color: $c-font;
-    margin: 0.5em 0;
-    user-select: none;
-  }
-
-  mine {
-    align-self: flex-end;
-    background: color-mix(in oklab, $c-secondary 15%, $c-bg);
-
-    &:first-child {
-      border-top-right-radius: 0;
-    }
-  }
-
-  their {
-    align-self: flex-start;
-    background: color-mix(in oklab, $c-brag 15%, $c-bg);
-
-    &:first-child {
-      border-top-left-radius: 0;
-    }
-  }
-
-  em {
-    @extend %roboto;
-
     color: $c-font-dim;
     font-size: 0.8em;
-    float: right;
-    margin: 0.4em 0 0 2em;
-    user-select: none;
+    margin: 18px 0 12px;
+    padding: 5px 14px;
+    border-radius: 20px;
+    background: $c-bg-zebra;
   }
 
   img {
-    @extend %box-neat;
-
     max-width: 100%;
     max-height: 40vh;
+    border-radius: 10px;
   }
 
   .has-embed {
-    max-width: 90%;
-    width: 90%;
+    width: 100%;
   }
 
   .embed {
     @extend %video;
+  }
 
-    &--game {
-      @extend %box-neat-force;
+  .embed--game {
+    padding-bottom: 75%;
+  }
 
-      padding-bottom: 75%;
-    }
-
-    &.not-found {
-      height: 100px;
-      padding: 0;
-    }
+  .embed.not-found {
+    height: 100px;
+    padding: 0;
   }
 
   form.unsub {
     display: inline;
+  }
+}
 
-    .button {
-      text-transform: none;
-    }
+.msg-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+  min-width: 0;
+  border-radius: 12px;
+  outline-offset: 3px;
+
+  &.mine {
+    flex-direction: row-reverse;
   }
 
-  @supports not (color: color-mix(red, blue)) {
-    --c-mine: #2f3425;
-    --c-their: #3b3125;
-    --c-day: #2c343c;
+  &.selected {
+    background: color-mix(in oklab, $c-primary 14%, transparent);
+  }
+}
 
-    @include if-light {
-      --c-mine: #e6efdf;
-      --c-their: #faefe1;
-      --c-day: #dfebf9;
-    }
+.msg-bubble-wrap {
+  max-width: min(78%, 660px);
+  min-width: 0;
+}
 
-    mine {
-      background-color: var(--c-mine);
-    }
+.msg-bubble {
+  border-radius: 18px;
+  padding: 10px 14px 7px;
+  background: $c-bg-zebra2;
+  color: $c-font-clear;
+  min-width: 76px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 
-    their {
-      background-color: var(--c-their);
-    }
+  .mine > .msg-bubble-wrap > & {
+    background: color-mix(in oklab, $c-primary 28%, $c-bg-box);
+  }
 
-    day {
-      background-color: var(--c-day);
-    }
+  &.deleted {
+    color: $c-font-dim;
+    font-style: italic;
+  }
+
+  t {
+    display: block;
+    line-height: 1.5;
+  }
+}
+
+.msg-meta {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72em;
+  color: $c-font-dim;
+  margin-top: 4px;
+  white-space: nowrap;
+
+  .msg-glyph {
+    width: 15px;
+    height: 15px;
+  }
+}
+
+.msg-receipt {
+  display: inline-flex;
+  opacity: 0.6;
+
+  &.delivered,
+  &.read {
+    opacity: 1;
+  }
+
+  &.read {
+    color: $c-primary;
+  }
+}
+
+.msg-edited {
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  background: none;
+  border: 0;
+  text-decoration: underline;
+}
+
+.msg-quote {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: start;
+  width: 100%;
+  border: 0;
+  border-inline-start: 3px solid $c-primary;
+  border-radius: 7px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  color: $c-font;
+  background: color-mix(in oklab, $c-bg-box 60%, transparent);
+  font-size: 0.86em;
+
+  span {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+.msg-forwarded {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: $c-font-dim;
+  margin-bottom: 5px;
+
+  .msg-glyph {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.msg-reactions {
+  display: flex;
+  gap: 4px;
+  margin: 3px 6px;
+
+  button {
+    border: $border;
+    border-radius: 16px;
+    background: $c-bg-box;
+    padding: 3px 8px;
+    color: $c-font;
+  }
+
+  button.mine {
+    border-color: $c-primary;
+    background: color-mix(in oklab, $c-primary 12%, $c-bg-box);
+  }
+}
+
+.msg-send-failed {
+  color: $c-bad;
+  background: none;
+  border: 0;
+  padding: 7px;
+  font-size: 0.8em;
+}
+
+.msg-typing {
+  display: flex;
+  align-self: flex-start;
+  gap: 5px;
+  padding: 15px 17px;
+  margin-top: 8px;
+  border-radius: 18px;
+  background: $c-bg-zebra2;
+
+  i {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: $c-font-dim;
+    animation: msg-typing 1.2s ease-in-out infinite;
+  }
+
+  i:nth-child(2) {
+    animation-delay: 0.15s;
+  }
+
+  i:nth-child(3) {
+    animation-delay: 0.3s;
+  }
+}
+
+@keyframes msg-typing {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.45;
+  }
+
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .msg-typing i {
+    animation: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .msg-bubble-wrap {
+    max-width: 86%;
   }
 }

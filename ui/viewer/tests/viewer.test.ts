@@ -17,6 +17,7 @@ import { applyViewerAppearance } from '../src/appearance';
 import { importedViewerTree, loadViewerTree } from '../src/model';
 import { embedCode, embedUrl } from '../src/sharing';
 import { GameViewer, type ViewerLabels } from '../src/viewer';
+import { initModule } from '../src/viewer.embed';
 
 globalThis.Image = window.Image;
 Object.defineProperty(Image.prototype, 'decode', { configurable: true, value: async () => {} });
@@ -31,7 +32,10 @@ afterEach(() => {
   mock.restoreAll();
 });
 const labels = Object.fromEntries(
-  ['first', 'previous', 'next', 'last', 'moves', 'start', 'analysis'].map(key => [key, key]),
+  ['first', 'previous', 'next', 'last', 'moves', 'moveAnnotations', 'start', 'analysis'].map(key => [
+    key,
+    key,
+  ]),
 ) as unknown as ViewerLabels;
 labels.captures = { capturedPieces: 'Captures', concealedPiece: 'Hidden', roles: { horse: 'Horse' } };
 const state = (fen: string, ply: number): RulesState => ({
@@ -191,6 +195,19 @@ test('viewer navigates variations, shows safe comments, and treats sibling moves
   const viewer = mount();
   assert.equal(viewer.element.querySelector('.xiangqi-viewer__comments img'), null);
   assert.match(viewer.element.textContent, /<img src=x/);
+  const notes = [...viewer.element.querySelectorAll('move .xiangqi-viewer__note')];
+  assert.equal(notes.length, 2);
+  assert.ok(notes.every(note => note.getAttribute('aria-hidden') === 'true'));
+  notes
+    .find(note => note.closest('move')?.getAttribute('aria-label') === 'P7+1!, moveAnnotations')!
+    .dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+  assert.equal(viewer.position().move, 'c4c5');
+  assert.equal(viewer.element.querySelector('.xiangqi-viewer__comments')?.textContent, 'Alternative');
+  viewer.navigate('first');
+  assert.deepEqual(
+    notes.map(note => note.closest('move')?.getAttribute('aria-label')).sort(),
+    ['P7+1!, moveAnnotations', 'p1+1, moveAnnotations'].sort(),
+  );
   const transitions = mock.method(viewer.board, 'display');
   const root = viewer.position(),
     first = root.children[0],
@@ -231,19 +248,97 @@ test('an annotated example keeps its note box in place between moves', () => {
   assert.equal(viewer.element.querySelector('.xiangqi-viewer__moves')?.isConnected, true);
 });
 
-test('theme changes stay within a widget and disposal cancels an outstanding appearance update', async () => {
-  mock.method(Image.prototype, 'decode', async () => {});
-  const first = document.createElement('div'),
-    second = document.createElement('div');
+test('appearance sets scoped CSS URLs without explicitly loading every piece set and geometry', () => {
+  const image = mock.method(Image.prototype, 'decode', async () => {});
+  const element = document.createElement('div');
   const bodyTheme = document.body.dataset.board;
-  await applyViewerAppearance(first, path => `/assets/${path}`);
-  const original = first.style.cssText;
-  const abort = new AbortController();
-  abort.abort();
-  await applyViewerAppearance(second, path => `/assets/${path}`, undefined, undefined, abort.signal);
-  assert.equal(first.style.cssText, original);
-  assert.equal(second.style.cssText, '');
+  applyViewerAppearance(element, path => `/assets/${path}`);
+  assert.match(element.style.getPropertyValue('---board-image-xiangqi-9x10'), /^url\("\/assets\//);
+  assert.equal(image.mock.callCount(), 0);
   assert.equal(document.body.dataset.board, bodyTheme);
+});
+
+test('initial ply mounts directly and renders its notes and replay state', () => {
+  const root = importedViewerTree(fixture());
+  const element = document.createElement('div');
+  const onPosition = mock.fn();
+  const viewer = new GameViewer(element, {
+    root,
+    labels,
+    initialPly: 1,
+    services: { assetUrl: path => `/assets/${path}` },
+    onPosition,
+  });
+  viewers.push(viewer);
+  assert.equal(viewer.position(), root.children[0]);
+  assert.equal(viewer.board.position().pieces.has('a5'), true);
+  assert.equal(element.querySelector('move[aria-current="step"]')?.textContent, 'P9+1');
+  assert.equal(onPosition.mock.callCount(), 1);
+  viewer.go(viewer.position());
+  assert.equal(onPosition.mock.callCount(), 1);
+});
+
+test('an embedded viewer reannounces its height and preserves replay on a persisted page restore', async () => {
+  const element = document.createElement('div');
+  element.id = 'xiangqi-embed';
+  document.body.append(element);
+  const postMessage = mock.fn();
+  const previousParent = Object.getOwnPropertyDescriptor(window, 'parent')!;
+  const previousLocation = Object.getOwnPropertyDescriptor(globalThis, 'location');
+  Object.defineProperty(window, 'parent', { configurable: true, value: { postMessage } });
+  Object.defineProperty(globalThis, 'location', { configurable: true, value: window.location });
+  mock.method(document.body, 'getBoundingClientRect', () => ({ height: 413.2 }));
+  const resizeObserver = Object.getOwnPropertyDescriptor(window, 'ResizeObserver');
+  const globalResizeObserver = Object.getOwnPropertyDescriptor(globalThis, 'ResizeObserver');
+  const disconnect = mock.fn();
+  // Offscreen frames can render before ResizeObserver delivers a callback.
+  class DeferredObserver {
+    private target?: Element;
+    observe(target: Element) {
+      this.target = target;
+    }
+    disconnect() {
+      if (this.target === document.body) disconnect();
+    }
+  }
+  for (const scope of [window, globalThis])
+    Object.defineProperty(scope, 'ResizeObserver', { configurable: true, value: DeferredObserver });
+  try {
+    const tree = fixture();
+    await initModule({
+      labels,
+      ruleset: tree.ruleset,
+      moves: ['a4a5'],
+      states: [tree.state, tree.children[0].state],
+    });
+    assert.deepEqual(
+      postMessage.mock.calls.map(call => call.arguments),
+      [[{ type: 'xiangqi-embed:height', height: 414 }, '*']],
+    );
+    element.querySelector<HTMLButtonElement>('button[data-act="next"]')!.click();
+    const active = element.querySelector('move[aria-current="step"]');
+    assert.ok(active);
+    postMessage.mock.resetCalls();
+    window.dispatchEvent(new window.PageTransitionEvent('pagehide', { persisted: true }));
+    window.dispatchEvent(new window.PageTransitionEvent('pageshow', { persisted: true }));
+    assert.equal(element.querySelector('move[aria-current="step"]'), active);
+    assert.deepEqual(
+      postMessage.mock.calls.map(call => call.arguments),
+      [[{ type: 'xiangqi-embed:height', height: 414 }, '*']],
+    );
+  } finally {
+    window.dispatchEvent(new window.PageTransitionEvent('pagehide'));
+    assert.equal(element.children.length, 0);
+    assert.equal(disconnect.mock.callCount(), 1);
+    element.remove();
+    if (resizeObserver) Object.defineProperty(window, 'ResizeObserver', resizeObserver);
+    else Reflect.deleteProperty(window, 'ResizeObserver');
+    if (globalResizeObserver) Object.defineProperty(globalThis, 'ResizeObserver', globalResizeObserver);
+    else Reflect.deleteProperty(globalThis, 'ResizeObserver');
+    Object.defineProperty(window, 'parent', previousParent);
+    if (previousLocation) Object.defineProperty(globalThis, 'location', previousLocation);
+    else Reflect.deleteProperty(globalThis, 'location');
+  }
 });
 
 test('embedded content stays in a URL fragment, HTML is escaped, and invalid move collections fail before requesting rules', async () => {
@@ -253,6 +348,7 @@ test('embedded content stays in a URL fragment, HTML is escaped, and invalid mov
   assert.deepEqual(JSON.parse(decodeURIComponent(url.hash.slice(1))), source);
   assert.doesNotMatch(embedCode(source, 'https://lixiangqi.com'), /<script>/);
   await assert.rejects(loadViewerTree({ moves: ['a0a9'] }), /Invalid recorded/);
+  await assert.rejects(loadViewerTree({ moves: 'a4a5' as unknown as string[] }), /Invalid recorded/);
   await assert.rejects(loadViewerTree({ pgn: 'x'.repeat(500001) }), /too large/);
 });
 

@@ -24,7 +24,7 @@ import scalalib.model.Days
 import lila.common.HTTPRequest
 import lila.common.Json.given
 
-final class Puzzle(env: Env, apiC: => Api) extends LilaController(env):
+final class Puzzle(env: Env, apiC: => Api) extends LilaController(env) with MobileDisplay:
 
   import env.puzzle.{ jsonView, selector }
 
@@ -294,7 +294,10 @@ final class Puzzle(env: Env, apiC: => Api) extends LilaController(env):
     env.puzzle.api.angles.flatMap: angles =>
       negotiate(
         html = Ok.page(views.puzzle.ui.themes(angles)),
-        json = Ok(lila.puzzle.JsonView.angles(angles))
+        json =
+          val catalog = lila.puzzle.JsonView.angles(angles)
+          if mobileDisplay then displayBody(catalog.toString, JSON, 86400)
+          else Ok(catalog).withHeaders("Vary" -> "Accept, Accept-Language, X-Mobile-Display")
       )
 
   def show(angleOrId: String) = Open(serveShow(angleOrId))

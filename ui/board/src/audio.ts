@@ -1,4 +1,5 @@
 import { boardAssets } from './catalog';
+import { primaryBoardEffect } from './feedbackPolicy';
 import type { BoardServices } from './types';
 
 export function boardSoundPath(
@@ -31,7 +32,7 @@ export function createBoardAudio(assetUrl: BoardServices['assetUrl']): {
   return {
     sound: cue => {
       if (cue.move) play(boardSoundPath('move')!);
-      const effect = (['checkmate', 'check', 'capture'] as const).find(name => cue.effects.includes(name));
+      const effect = primaryBoardEffect(cue.effects);
       if (effect) play(boardSoundPath(effect)!);
       if (effect === 'checkmate')
         play(boardAssets.sounds.checkmateEffect.path, boardAssets.sounds.checkmateEffect.volume);

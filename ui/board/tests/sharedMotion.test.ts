@@ -162,38 +162,39 @@ for (const definition of [standardXiangqi, miniXiangqi, threeKingdoms]) {
     assert.equal(board.element.querySelectorAll('.xiangqi-check-halo').length, 0);
   });
 
-  test(`${definition.id}: capture uses shared lift, travel, land and paper connector timeline`, async () => {
-    const { board, after, cues } = mount(definition);
-    board.display(after, { kind: 'forward', id: 'move', effects: ['capture'] });
-    const stack = effects.find(effect => effect.element.classList.contains('xiangqi-motion-stack'))!;
-    assert.ok(stack);
-    assert.equal(stack.duration, 150);
-    assert.match(String(stack.frames[1].transform), /rotateX\(27deg\)/);
-    assert.equal(stack.frames[1].offset, 0.2);
-    const travel = effects.find(effect => effect.element.tagName === 'PIECE')!;
-    const connector = effects.find(effect =>
-      effect.element.classList.contains('xiangqi-last-move-connector'),
-    )!;
-    assert.equal(connector.duration, travel.duration);
-    assert.deepEqual(
-      connector.frames.map(frame => frame.offset),
-      travel.frames.map(frame => frame.offset),
-    );
-    assert.ok(effects.some(effect => effect.element.classList.contains('fading')));
-    assert.ok(effects.every(effect => effect.element.tagName !== 'BUTTON'));
-    assert.equal(board.element.querySelectorAll('.board-marker.last-move-origin').length, 1);
-    board.display(after, { kind: 'confirmation', id: 'move', effects: ['capture'] });
-    assert.equal(cues.length, 1);
-    assert.equal(stack.cancelled, false);
-    await phase();
-    const landing = effects.find(effect => effect.pending && effect.element === stack.element)!;
-    assert.equal(landing.duration, 150);
-    assert.match(String(landing.frames.at(-1)!.transform), /rotateX\(0deg\)/);
-    await settle();
-    assert.equal(board.element.querySelectorAll('.xiangqi-motion-piece, .fading').length, 0);
-    assert.equal(board.element.querySelectorAll('.xiangqi-last-move-highlight').length, 1);
-    assert.ok(effects.every(effect => effect.cancelled));
-  });
+  for (const kind of ['forward', 'optimistic'] as const)
+    test(`${definition.id}: ${kind} capture uses shared lift, travel, land and paper connector timeline`, async () => {
+      const { board, after, cues } = mount(definition);
+      board.display(after, { kind, id: 'move', effects: ['capture'] });
+      const stack = effects.find(effect => effect.element.classList.contains('xiangqi-motion-stack'))!;
+      assert.ok(stack);
+      assert.equal(stack.duration, 150);
+      assert.match(String(stack.frames[1].transform), /rotateX\(27deg\)/);
+      assert.equal(stack.frames[1].offset, 0.2);
+      const travel = effects.find(effect => effect.element.tagName === 'PIECE')!;
+      const connector = effects.find(effect =>
+        effect.element.classList.contains('xiangqi-last-move-connector'),
+      )!;
+      assert.equal(connector.duration, travel.duration);
+      assert.deepEqual(
+        connector.frames.map(frame => frame.offset),
+        travel.frames.map(frame => frame.offset),
+      );
+      assert.ok(effects.some(effect => effect.element.classList.contains('fading')));
+      assert.ok(effects.every(effect => effect.element.tagName !== 'BUTTON'));
+      assert.equal(board.element.querySelectorAll('.board-marker.last-move-origin').length, 1);
+      board.display(after, { kind: 'confirmation', id: 'move', effects: ['capture'] });
+      assert.equal(cues.length, kind === 'optimistic' ? 2 : 1);
+      assert.equal(stack.cancelled, false);
+      await phase();
+      const landing = effects.find(effect => effect.pending && effect.element === stack.element)!;
+      assert.equal(landing.duration, 150);
+      assert.match(String(landing.frames.at(-1)!.transform), /rotateX\(0deg\)/);
+      await settle();
+      assert.equal(board.element.querySelectorAll('.xiangqi-motion-piece, .fading').length, 0);
+      assert.equal(board.element.querySelectorAll('.xiangqi-last-move-highlight').length, 1);
+      assert.ok(effects.every(effect => effect.cancelled));
+    });
 
   test(`${definition.id}: backward capture restores the captured piece and slides to the initial position`, async () => {
     const { board, before, after, cues } = mount(definition);

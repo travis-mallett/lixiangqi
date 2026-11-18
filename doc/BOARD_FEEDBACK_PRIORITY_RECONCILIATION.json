@@ -1,0 +1,105 @@
+{
+  "websiteCommit": "cffca4bbfe5df809b8b303a7c08dbbafe7d68818",
+  "reviewedWorkingTree": {
+    "doc/three-kingdoms.md": "1e066d07aacba9edee46a3304d432eef89a8ba0da0f449fe50f057e5849a36cc",
+    "tests/board-feedback.spec.ts": "a86a81b3881e1b1528144102cf4b5dc2ca114722053f41618041aaa28279170f",
+    "ui/board/README.md": "8caac95828053c031cd548997be153be7a48c76b65fec242ede12af1228f27b8",
+    "ui/board/src/audio.ts": "4c752d6eb3d0f30f91650c668ec80a80e1853a86b511a5eead0c73e8b56d73c0",
+    "ui/board/src/feedback.ts": "9383134812574fa258602d0d9d5cae6f80aa6f72c7ae477bc98eeaa1ca77cda9",
+    "ui/board/src/index.ts": "8789b2b3602fd61b377b5aae43c587217ae971b22697e71ff8e4c46304fa0374",
+    "ui/board/src/renderer/graph.ts": "48c464144b3d2ba4af339a37b3a1a0830b18d04d4bb19e5c4b5bdf1ceb61c79c",
+    "ui/board/src/renderer/graphPieces.ts": "95436a2814ece9590b6121325a3633d325974075fcfc70e993d6a1eb6880d6e4",
+    "ui/board/src/renderer/rectangular.ts": "dc0f9aa9db19af65bd329d6077bb15b874f53df5fdd29b67846f124ef97f4d4c",
+    "ui/board/src/types.ts": "ec031444355c5622a2f1b6c7fd87e1862c956e80974b39f00ddd1d06f1910094",
+    "ui/board/tests/board.test.ts": "357511313c328bbec7527ae33f2914b701e0d2ca8f0a33e2424175ad325575ac",
+    "ui/board/tests/sharedMotion.test.ts": "722569ccbc45ddb7f71f350df0754521d7add530662ce03fa85f0ea918a272c0",
+    "ui/lib/src/board.ts": "8a31a3cd95e43bd13752eb93ebfa771808f863ec6c8276f9ea26c873a2b6f89f",
+    "ui/round/src/ctrl.ts": "1e999495772174075c3dd1c427a66dfa27363913797947a5a678d7730014ed9a",
+    "ui/site/src/sound.ts": "7248e21b7c5e9817441d926a72c67f91fb6c9c647e861a75a72310b6612d56a7",
+    "ui/board/src/feedbackPolicy.ts": "96c26139d6cc6c817ad4a9cebe9dc951979d66963c42cff48867a57335908e85",
+    "ui/board/tests/feedbackPriority.test.ts": "8eb69374a4df0cc77a6182c467eeb39968aaa9f8d5d22b45425c553b166dd0db"
+  },
+  "contract": "Two-player semantic effects: checkmate > check > capture, for visuals and audio. Ordinary movement audio is independent. Highest-priority effect is selected before visibility preferences. Three Kingdoms keeps simultaneous localized visuals, with one highest-priority semantic audio cue.",
+  "findings": [
+    "Live RoundController.onBoardMove and pluginMove announced provisional capture before the authoritative apiMove supplied check/mate. This is shared by Standard Xiangqi, Jieqi, Mini Xiangqi and Manchu, including premoves and alternative input. Both native GameController and LiveBoardSession had the same split announcement.",
+    "The shared board previously selected visual priority after filtering by enabled effects, allowing lower effects to substitute for disabled higher effects.",
+    "Deduplication operated on individual effect names, allowing a later partial acknowledgment to announce a lower-priority effect. Backward navigation did not always reset an existing move identity."
+  ],
+  "audit": [
+    {
+      "surface": "Live two-player games, local bots, plugins, premoves",
+      "sources": ["ui/round/src/ctrl.ts", "ui/round/src/board.ts", "modules/game/src/main/Event.scala"],
+      "result": "Explicit optimistic phase preserves responsive motion and the ordinary move cue; authoritative confirmation supplies the single semantic effect. Server move events already carry capture, check, termination and status together; no backend computation or protocol changes."
+    },
+    {
+      "surface": "Analysis, studies, puzzle transitions, manuals and instructional boards",
+      "sources": ["ui/xiangqi/src/sound.ts", "ui/xiangqi/src/analysisXiangqi.ts", "ui/puzzle/src/ctrl.ts"],
+      "result": "Complete rules/transition facts feed the shared board; canonical priority now applies centrally."
+    },
+    {
+      "surface": "Live spectators, TV, replay and embeds",
+      "sources": ["ui/round/src/ctrl.ts", "ui/viewer/src/viewer.ts", "ui/viewer/src/mount.ts"],
+      "result": "Complete incoming/replayed facts use the same gate. Backward traversal has only movement audio; jumps/corrections are silent. Duplicate confirmations cannot replay or downgrade effects."
+    },
+    {
+      "surface": "Three Kingdoms live/replay/analysis",
+      "sources": ["doc/three-kingdoms.md", "ui/threeKingdoms/src/board.ts", "ui/board/src/feedbackLayout.ts"],
+      "result": "Retained same-river capture/check pairs, distinct rivers, elimination and victory territory overlays. Audio still chooses one primary semantic effect. Optimistic transitions cannot fabricate victory indicators."
+    },
+    {
+      "surface": "Website and standalone audio",
+      "sources": ["ui/site/src/sound.ts", "ui/lib/src/board.ts", "ui/board/src/audio.ts"],
+      "result": "One canonical priority selector. Mate retains its existing spoken/stylized audio components, with no capture/check audio layered on top. Sound and reduced-motion preferences preserved."
+    }
+  ],
+  "decision": {
+    "mobile": {
+      "status": "ported",
+      "features": "Standard live gameplay, optimistic captures, shared native board/session feedback, backward replay and duplicate acknowledgment suppression",
+      "files": {
+        "lib/domain/xiangqi/transition.dart": "719be7ee4ab7290093964b94c4c546ee467aa49d8947091bdd1a1c6c374bd9af",
+        "lib/features/play/game_controller.dart": "aa92bd6121a9f3d1cc86ede934d7b02c49720f06f9d44ece6a945334538749a7",
+        "lib/features/board/board_session.dart": "45bf01e7b880b31e939cee1e1bf2577e9948cd1f4327a46fdea06b4c1239a974",
+        "test/play/feedback_priority_test.dart": "eafedbb9f1b0b73d4f9e80ed219d4b4a6d051120a4ee3b2db71ab917b2a95299",
+        "test/domain/xiangqi_test.dart": "e523d6f975b83e93dfc3d563776f72d5094272f76f2d2ec5be3cf3fe70840019"
+      },
+      "notApplicable": "Website variant implementations remain out of native scope; the separate native variant project remains deferred. No Three Kingdoms interface was added."
+    },
+    "kids": {
+      "status": "ported",
+      "features": "Standard live gameplay, optimistic captures, shared native board/session feedback, backward replay and duplicate acknowledgment suppression",
+      "files": {
+        "lib/domain/xiangqi/transition.dart": "719be7ee4ab7290093964b94c4c546ee467aa49d8947091bdd1a1c6c374bd9af",
+        "lib/features/play/game_controller.dart": "c23e24ca7c02279c5249b2fb50fed44ff4947564a601660de887626dcc551fb6",
+        "lib/features/board/board_session.dart": "65e3ef2755715fd182692283fe35fc4cbcb2df0d7a1d2dd8b4e0b020713c69ea",
+        "test/play/feedback_priority_test.dart": "a88e81210c5ef8fd8621fff108af75b087a1ccb00a560d174cc254de6ece4399"
+      },
+      "notApplicable": "Website variant implementations remain out of native scope; the separate native variant project remains deferred. No Three Kingdoms interface was added."
+    }
+  },
+  "verification": {
+    "website": [
+      "Production ./ui/build --no-install -p via Git Bash",
+      "Full UI runner: 780 passed",
+      "Chromium and Firefox: 12 browser tests at 390/900/1440px, normal HTTP cache, two-board repeat playback and optimistic/confirmation audio/visual assertions",
+      "All 8 semantic combinations x all 8 animation preference combinations across every two-player board definition; three-player simultaneous visuals; forward/optimistic motion timelines",
+      "Oxfmt, type-aware Oxlint, Stylelint, git diff --check"
+    ],
+    "mobile": [
+      "Pinned Flutter 3.47.6: changed-file formatting, analyze --no-pub --fatal-infos, full tests: 503 passed with 2 existing skips",
+      "Android debug APK: arm64 and x64"
+    ],
+    "kids": [
+      "scripts/check.ps1: full formatting, fatal-info analysis, full tests: 238 passed with 1 existing skip",
+      "Android debug APK: arm64 and x64"
+    ],
+    "limitations": [
+      "No physical-device or iOS verification (Windows host).",
+      "No production rated-game transaction was performed; live confirmation regressions use controlled authoritative events.",
+      "pnpm wrapper attempted a blocked sandbox symlink; ran the same installed Oxfmt/Oxlint/Stylelint commands directly. ui/test is a text symlink on Windows, so invoked node ui/.test/runner.mjs.",
+      "No backend, engine publication, CodeQL or staged-commit checks: no affected backend/engine code or commit/push requested."
+    ]
+  },
+  "deployment": "Normal website asset deployment and new native app builds. No migration, shared artwork change, server API change, added dependency or deployment-tool modification. push-local-live already fingerprints and packages these frontend modules. Not deployed.",
+  "checkpoints": "Both app receipts record only these reviewed website bytes. Existing commit anchors and unrelated pending reviews are retained."
+}

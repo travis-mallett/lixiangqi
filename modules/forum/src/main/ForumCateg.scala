@@ -22,6 +22,7 @@ case class ForumCateg(
     if forUser.exists(_.marks.troll) then lastPostIdTroll else lastPostId
 
   def isTeam = team.nonEmpty
+  def publicDisplay = !hidden && !isTeam && ForumCateg.publicBoards.exists(_.id == id)
   def isDiagnostic = id == ForumCateg.diagnosticId
 
   def withPost(topic: ForumTopic, post: ForumPost): ForumCateg =

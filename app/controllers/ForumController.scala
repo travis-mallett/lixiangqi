@@ -11,6 +11,16 @@ private[controllers] trait ForumController:
 
   export env.forum.{ categApi, topicApi, topicRepo, postApi, forms, access }
 
+  protected def submission[A <: Result](result: Fu[A]): Fu[Result] =
+    result.recover { case lila.core.security.SubmissionRejected(code) =>
+      UnprocessableEntity(jsonError(code))
+    }
+
+  protected def unsafeForm(form: play.api.data.Form[?]): Boolean =
+    val blocked = form.errors.exists(_.messages.contains("unsafeLink"))
+    if blocked then lila.mon.submission.blocked("forum").increment()
+    blocked
+
   protected def CategGrantWrite[A <: Result](
       categId: ForumCategId,
       tryingToPostAsMod: Boolean = false

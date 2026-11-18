@@ -20,6 +20,7 @@ case class MarkdownOptions(
     maxPgns: Max = Max(0),
     toastUi: Boolean = false,
     sourceMap: Boolean = false,
+    inlineImages: Boolean = true,
     removeHtmlEntities: Boolean = false
 )
 
@@ -82,6 +83,7 @@ final class MarkdownCache(
     renderMap.getOrElseUpdate(
       opts,
       MarkdownRender(
+        inlineImages = opts.inlineImages,
         autoLink = opts.autoLink,
         list = opts.list,
         strikeThrough = opts.strikeThrough,

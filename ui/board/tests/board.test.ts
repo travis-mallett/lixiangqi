@@ -239,11 +239,11 @@ test('server confirmation can announce check without replaying the optimistic mo
     services: { assetUrl: path => path, sound: cue => cues.push(cue) },
   });
   boards.push(board);
-  board.presentTransition({ kind: 'forward', id: 'ply-1', effects: ['capture'] });
+  board.presentTransition({ kind: 'optimistic', id: 'ply-1', effects: [] });
   board.presentTransition({ kind: 'confirmation', id: 'ply-1', effects: ['capture', 'check'] });
   board.presentTransition({ kind: 'confirmation', id: 'ply-1', effects: ['capture', 'check'] });
   assert.deepEqual(cues, [
-    { move: true, effects: ['capture'] },
+    { move: true, effects: [] },
     { move: false, effects: ['check'] },
   ]);
   assert.equal(element.querySelectorAll('.xiangqi-board-animation').length, 1);

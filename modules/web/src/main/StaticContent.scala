@@ -21,34 +21,19 @@ Allow: /game/export/gif/thumbnail/
 
   def manifest(net: NetConfig) =
     Json.obj(
-      "name" -> net.domain,
-      "short_name" -> "Lichess",
+      "name" -> "LiXiangQi",
+      "short_name" -> "LiXiangQi",
       "start_url" -> "/",
       "display" -> "standalone",
       "background_color" -> "#161512",
       "theme_color" -> "#161512",
-      "description" -> "The (really) free, no-ads, open source chess server.",
+      "description" -> "Free, open-source Xiangqi: play Chinese chess, solve puzzles and analyse games.",
       "icons" -> List(32, 64, 128, 192, 256, 512, 1024).map: size =>
         Json.obj(
           "src" -> s"//${net.assetDomain}/assets/logo/lichess-favicon-$size.png",
           "sizes" -> s"${size}x$size",
           "type" -> "image/png"
-        ),
-      "related_applications" -> Json.arr(
-        Json.obj(
-          "platform" -> "play",
-          "url" -> mobileAndroidUrl,
-          "id" -> mobileAndroidId
-        ),
-        Json.obj(
-          "platform" -> "itunes",
-          "url" -> mobileIosUrl
-        ),
-        Json.obj(
-          "platform" -> "ios",
-          "url" -> mobileIosUrl
         )
-      )
     )
 
   val mobileAndroidId = "org.lichess.mobileV2"

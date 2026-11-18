@@ -168,14 +168,17 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
     embedJsUnsafe(code)(nonce.some)
 
   private def hrefLang(langStr: String, path: String) =
-    s"""<link rel="alternate" hreflang="$langStr" href="$netBaseUrl$path"/>"""
+    link(rel := "alternate", attr("hreflang") := langStr, href := s"$netBaseUrl$path")
 
-  def hrefLangs(path: LangPath) = raw:
+  def hrefLangs(path: LangPath): Frag =
     val pathEnd = if path.value == "/" then "" else path.value
-    hrefLang("x-default", path.value) + hrefLang("en", s"/en$pathEnd") +
+    frag(
+      hrefLang("x-default", path.value),
+      hrefLang("en", s"/en$pathEnd"),
       popularAlternateLanguages.map { l =>
         hrefLang(if l.value == "zh" then "zh-Hans" else l.value, s"/$l$pathEnd")
-      }.mkString
+      }
+    )
 
   def pageZoom(using ctx: Context): Int = {
     def oldZoom = ctx.req.session.get("zoom2").flatMap(_.toIntOption).map(_ - 100)

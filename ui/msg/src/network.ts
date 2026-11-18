@@ -25,7 +25,7 @@ export async function loadMoreContacts(before: Date): Promise<Contact[]> {
 }
 
 export async function search(q: string): Promise<SearchResult> {
-  const res = await json(`/inbox/search?q=${q}`);
+  const res = await json(`/inbox/search?q=${encodeURIComponent(q)}`);
   return {
     ...res,
     contacts: res.contacts.map(upgradeContact),
@@ -45,36 +45,86 @@ export async function del(u: string): Promise<MsgData> {
   return upgradeData(d);
 }
 
-export function report(name: string, text: string): Promise<any> {
+export function report(name: string, msg: Msg): Promise<any> {
   return json('/report/flag', {
     method: 'post',
     body: form({
       username: name,
-      text,
+      item: msg.id,
+      revision: msg.revision,
+      text: '',
+      block: true,
       resource: 'msg',
     }),
   });
 }
 
-export function post(dest: string, text: string) {
-  pubsub.emit('socket.send', 'msgSend', { dest, text });
+export async function post(
+  dest: string,
+  text: string,
+  nonce: string,
+  replyTo?: string,
+  forwardId?: string,
+  forwardUser?: string,
+  attachments?: string[],
+): Promise<Msg> {
+  const data = await json(`/inbox/${encodeURIComponent(dest)}`, {
+    method: 'post',
+    body: form({ text, nonce, replyTo, forwardId, forwardUser, attachments: attachments?.join(',') }),
+  });
+  return upgradeMsg(data.msg);
 }
 
-export function setRead(dest: string) {
-  pubsub.emit('socket.send', 'msgRead', dest);
+export function acknowledge(dest: string, ids: string[], read: boolean) {
+  return json(`/inbox/${encodeURIComponent(dest)}/receipt`, {
+    method: 'post',
+    body: form({ ids: ids.join(','), read }),
+  });
 }
 
-export function typing(dest: string) {
-  pubsub.emit('socket.send', 'msgType', dest);
+export function typing(dest: string, active = true) {
+  return json(`/inbox/${encodeURIComponent(dest)}/typing`, { method: 'post', body: form({ active }) });
+}
+
+export async function messageAction(
+  dest: string,
+  msg: Msg,
+  action: string,
+  value = '',
+  attachments?: string[],
+): Promise<Msg> {
+  const data = await json(`/inbox/${encodeURIComponent(dest)}/messages/${encodeURIComponent(msg.id)}`, {
+    method: 'post',
+    body: form({
+      action,
+      value,
+      revision: msg.revision,
+      attachments: attachments?.join(','),
+      replaceAttachments: attachments !== undefined,
+    }),
+  });
+  return upgradeMsg(data.msg);
 }
 
 export function websocketHandler(ctrl: MsgCtrl) {
-  pubsub.on('socket.in.msgNew', msg => {
-    ctrl.receive({
-      ...upgradeMsg(msg),
-      read: false,
-    });
+  pubsub.on('socket.in.msgChanged', event =>
+    ctrl.receiveChange(event.user, upgradeMsg(event.msg), event.kind),
+  );
+  pubsub.on('socket.in.msgMediaRevoked', ({ user }) => {
+    for (const [peer, convo] of ctrl.conversations)
+      if (user === ctrl.data.me.id || user === peer) {
+        for (const m of [...convo.msgs, ...convo.pinned]) m.attachments = [];
+      }
+    ctrl.revokeMedia(user);
+    if (user === ctrl.data.me.id || user === ctrl.data.convo?.user.id) {
+      ctrl.redraw();
+      if (ctrl.data.convo) void ctrl.openConvo(ctrl.data.convo.user.id);
+    }
   });
+  pubsub.on('socket.in.msgReceipt', ctrl.receiveReceipt);
+  pubsub.on('socket.in.msgRemoved', event => ctrl.removeMessage(event.user, event.id));
+  pubsub.on('socket.in.msgThreadRemoved', event => ctrl.removeThread(event.user));
+  pubsub.on('socket.in.msgTyping', event => ctrl.receiveTyping(event.user, !event.active));
   pubsub.on('socket.in.msgType', ctrl.receiveTyping);
   pubsub.on('socket.in.blockedBy', ctrl.changeBlockBy);
   pubsub.on('socket.in.unblockedBy', ctrl.changeBlockBy);
@@ -102,10 +152,18 @@ export function upgradeData(d: any): MsgData {
     contacts: d.contacts.map(upgradeContact),
   };
 }
-function upgradeMsg(m: any): Msg {
+export function upgradeMsg(m: any): Msg {
   return {
     ...m,
     date: new Date(m.date),
+    revision: m.revision ?? 0,
+    history: (m.history ?? []).map((v: any) => ({ ...v, date: new Date(v.date) })),
+    reactions: m.reactions ?? [],
+    ...Object.fromEntries(
+      ['editedAt', 'deliveredAt', 'readAt', 'deletedAt', 'pinnedAt', 'canEditUntil', 'canDeleteUntil'].map(
+        k => [k, m[k] ? new Date(m[k]) : undefined],
+      ),
+    ),
   };
 }
 function upgradeUser(u: any): User {
@@ -121,10 +179,11 @@ function upgradeContact(c: any): Contact {
     lastMsg: upgradeMsg(c.lastMsg),
   };
 }
-function upgradeConvo(c: any): Convo {
+export function upgradeConvo(c: any): Convo {
   return {
     ...c,
     user: upgradeUser(c.user),
     msgs: c.msgs.map(upgradeMsg),
+    pinned: (c.pinned ?? []).map(upgradeMsg),
   };
 }

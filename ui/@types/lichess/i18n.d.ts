@@ -1480,6 +1480,108 @@ interface I18n {
     /** Discuss xiangqi strategy, news, and events. */
     xiangqiDiscussionDescription: string;
   };
+  inbox: {
+    /** Cancel */
+    cancel: string;
+    /** Close */
+    close: string;
+    /** Copy */
+    copy: string;
+    /** Copied */
+    copySuccess: string;
+    /** Delete message */
+    delete: string;
+    /** Delete the selected messages? */
+    deleteConfirm: string;
+    /** This message was deleted */
+    deleted: string;
+    /** Delete for everyone */
+    deleteEveryone: string;
+    /** Your messages can be deleted for everyone within 24 hours, including after they have been read. */
+    deleteEveryoneHelp: string;
+    /** Delete for me */
+    deleteMe: string;
+    /** Delivered */
+    delivered: string;
+    /** Delivered */
+    deliveredAt: string;
+    /** Edit */
+    edit: string;
+    /** Edited */
+    edited: string;
+    /** Edit history */
+    editHistory: string;
+    /** Editing message */
+    editing: string;
+    /** Choose a conversation or find a player to start messaging. */
+    empty: string;
+    /** Could not complete this action. Please try again. */
+    error: string;
+    /** Not sent. Tap to retry. */
+    failed: string;
+    /** Forward */
+    forward: string;
+    /** Forwarded */
+    forwarded: string;
+    /** From */
+    from: string;
+    /** Message details */
+    info: string;
+    /** Message */
+    message: string;
+    /** Message options */
+    moreActions: string;
+    /** More emoji */
+    moreReactions: string;
+    /** Connecting… Your saved messages are available. */
+    offline: string;
+    /** Load older messages */
+    older: string;
+    /** Pin */
+    pin: string;
+    /** Pinned messages */
+    pinned: string;
+    /** React */
+    react: string;
+    /** Reactions */
+    reactions: string;
+    /** Read */
+    read: string;
+    /** Read */
+    readAt: string;
+    /** Reply */
+    reply: string;
+    /** Retry */
+    retry: string;
+    /** Save */
+    save: string;
+    /** Search emoji */
+    searchEmoji: string;
+    /** Find a player or conversation */
+    searchPeople: string;
+    /** Select */
+    select: string;
+    /** %s selected */
+    selected: I18nFormat;
+    /** Send */
+    send: string;
+    /** Sending */
+    sending: string;
+    /** Sent */
+    sent: string;
+    /** Sent */
+    sentAt: string;
+    /** Inbox */
+    title: string;
+    /** To */
+    to: string;
+    /** %s is typing */
+    typing: I18nFormat;
+    /** Not yet confirmed */
+    unknown: string;
+    /** Unpin */
+    unpin: string;
+  };
   insight: {
     /** Sorry, you cannot see %s's Xiangqi insights. */
     cantSeeInsights: I18nFormat;
@@ -3995,6 +4097,8 @@ interface I18n {
     analysisOptions: string;
     /** Press right-click (or shift+click) to draw circles and arrows on the board. For other colours, combine the following with right-click: */
     analysisShapesHowTo: string;
+    /** Classical Xiangqi Manuals */
+    ancientXiangqiManuals: string;
     /** and save %s premove lines */
     andSaveNbPremoveLines: I18nPlural;
     /** Anonymous */
@@ -4013,6 +4117,8 @@ interface I18n {
     askYourChessTeacherAboutLiftingKidMode: string;
     /** as Red */
     asWhite: string;
+    /** Add an attachment */
+    attachMedia: string;
     /** Automatically proceed to next game after moving */
     automaticallyProceedToNextGameAfterMoving: string;
     /** Auto switch */
@@ -4995,6 +5101,44 @@ interface I18n {
     maxRatingX: I18nFormat;
     /** Maybe include more games from the preferences menu? */
     maybeIncludeMoreGamesFromThePreferencesMenu: string;
+    /** Blocked. Remove this file to continue. */
+    mediaBlocked: string;
+    /** Take photo */
+    mediaCamera: string;
+    /** Checking… */
+    mediaChecking: string;
+    /** Before you upload, LiXiangQi checks files for safety. Photos are checked by a child-safety service and OpenAI. Only approved attachments can be sent. */
+    mediaDisclosure: string;
+    /** Download file */
+    mediaDownload: string;
+    /** Files */
+    mediaFiles: string;
+    /** Attachment limit reached */
+    mediaLimit: string;
+    /** View attachment */
+    mediaOpen: string;
+    /** Photos */
+    mediaPhotos: string;
+    /** Ready to send */
+    mediaReady: string;
+    /** Remove attachment */
+    mediaRemove: string;
+    /** Report and block */
+    mediaReportBlock: string;
+    /** Check unavailable. Try again. */
+    mediaRetry: string;
+    /** Try again */
+    mediaRetryAction: string;
+    /** Request review */
+    mediaReview: string;
+    /** This conversation allows text only. */
+    mediaTextOnly: string;
+    /** Remove the blocked link and try sending again. */
+    mediaUnsafeLink: string;
+    /** Your submission wasn’t sent. Check the draft and try again. */
+    mediaUnsent: string;
+    /** Uploading… */
+    mediaUploading: string;
     /** Member since */
     memberSince: string;
     /** Memory */
@@ -6121,16 +6265,40 @@ interface I18n {
     xHostsY: I18nFormat;
     /** Xiangqi */
     xiangqi: string;
+    /** Analyse Chinese chess games with Pikafish, explore opening moves, and build variations. Import a game or FEN position, replay moves in WXF or Chinese notation, and save your analysis. */
+    xiangqiAnalysisDescription: string;
+    /** Xiangqi Analysis Board */
+    xiangqiAnalysisTitle: string;
     /** Empty Xiangqi board, ready to play */
     xiangqiBoardReady: string;
+    /** Search Chinese chess master games, classical manuals and online game collections. Browse records by player or event, replay the moves, and open a game on the analysis board to study its opening and tactics. */
+    xiangqiDatabaseDescription: string;
+    /** Xiangqi Games Database */
+    xiangqiDatabaseTitle: string;
+    /** Set up a Chinese chess position by placing and moving pieces, choose the side to move, and copy its FEN. Open your position on the analysis board to explore continuations. Xiangqi variants have their own boards and rules. */
+    xiangqiEditorDescription: string;
+    /** Xiangqi Board Editor */
+    xiangqiEditorTitle: string;
+    /** Xiangqi Encyclopedia */
+    xiangqiEncyclopedia: string;
+    /** Learn to read and write Chinese chess moves in WXF or Chinese notation. Practise finding a move from its notation or naming a move shown on the board, from either player's perspective, with timed or untimed exercises. */
+    xiangqiNotationDescription: string;
     /** A soldier moves and captures one intersection forward. After crossing the river, it can also move and capture one intersection sideways. It cannot move backward. Xiangqi has no initial two-step soldier move and no en passant capture. */
     xiangqiPawnCaptureRules: string;
+    /** Practise Chinese chess tactics by finding the best moves. Solve checkmates and material-winning combinations, review the solution, and choose a theme to train a particular pattern. */
+    xiangqiPuzzlesDescription: string;
+    /** Xiangqi Puzzles */
+    xiangqiPuzzlesTitle: string;
+    /** Explore Chinese chess mating patterns and tactical themes. Read the available lessons, replay their examples, and practise themes with published puzzles. */
+    xiangqiPuzzleThemesDescription: string;
     /** Repetition rules */
     xiangqiRules: string;
     /** Lixiangqi default rules */
     xiangqiRulesTiantian: string;
     /** No repetition adjudication */
     xiangqiRulesUnrestricted: string;
+    /** Xiangqi Special Rules */
+    xiangqiSpecialRules: string;
     /** %1$s invited you to "%2$s". */
     xInvitedYouToY: I18nFormat;
     /** %1$s is a free (%2$s), libre, no-ads, open source Xiangqi server. */

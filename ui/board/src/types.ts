@@ -97,6 +97,7 @@ export type BoardEffect = 'capture' | 'check' | 'checkmate' | 'defeat';
 export type TransitionKind =
   | 'initial'
   | 'forward'
+  | 'optimistic'
   | 'backward'
   | 'jump'
   | 'confirmation'
@@ -107,7 +108,9 @@ export interface BoardTransition {
   readonly kind: TransitionKind;
   /** Stable within the feature's session, used to suppress duplicate acknowledgments. */
   readonly id?: string;
-  /** Supplying effects opts into feedback; [] announces an ordinary move. Omit for silent position sync. */
+  /** Supplying effects opts into feedback; [] announces an ordinary move. Omit for silent position sync.
+   * Optimistic transitions announce movement only; semantic effects await authoritative confirmation.
+   */
   readonly effects?: readonly BoardEffect[];
   /** Original armies affected by each effect; explicit-location boards resolve their anchors. */
   readonly effectTargets?: Partial<Record<BoardEffect, readonly Participant[]>>;

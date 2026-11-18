@@ -7,13 +7,13 @@ import lila.common.Json.given
 import lila.ui.*
 import lila.xiangqi.GameVariant
 
-import ScalatagsTemplate.*
+import ScalatagsTemplate.{ *, given }
 
 final class BoardEditorUi(helpers: Helpers):
   import helpers.{ *, given }
 
   def apply(fen: Option[String], orientation: Option[String], variant: GameVariant)(using Context) =
-    Page(trans.site.boardEditor.txt())
+    Page(trans.site.xiangqiEditorTitle.txt())
       .js(
         PageModule(
           "editor",
@@ -24,9 +24,15 @@ final class BoardEditorUi(helpers: Helpers):
       .i18nOpt(variant == GameVariant.ThreeKingdoms, _.threeKingdoms)
       .flag(_.zoom)
       .graph(
-        title = "Xiangqi board editor",
+        title = trans.site.xiangqiEditorTitle.txt(),
         url = routeUrl(routes.Editor.index),
-        description = "Create and validate positions for Xiangqi and its variants."
+        description = trans.site.xiangqiEditorDescription.txt()
+      )
+      .append(
+        ToolIntro(trans.site.xiangqiEditorTitle.txt(), trans.site.xiangqiEditorDescription.txt())(
+          a(href := routes.UserAnalysis.index)(trans.site.analysis()),
+          a(href := routes.Cms.variantHome)(trans.site.variants())
+        )
       ):
         main(id := "board-editor")(
           div(cls := "board-editor")(

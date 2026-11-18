@@ -19,17 +19,29 @@ final private class MsgNotify(
 
   def onPost(threadId: MsgThread.Id): Unit = schedule(threadId)
 
-  def onRead(threadId: MsgThread.Id, userId: UserId, contactId: UserId): Funit =
-    (!cancel(threadId)).so:
-      notifyApi
-        .markRead(
-          userId,
-          $doc(
-            "content.type" -> "privateMessage",
-            "content.user" -> contactId
-          )
+  def onRead(userId: UserId, contactId: UserId): Funit =
+    // Keep the pending check: it may now represent a newer unread message.
+    notifyApi
+      .markRead(
+        userId,
+        $doc(
+          "content.type" -> "privateMessage",
+          "content.user" -> contactId
         )
-        .void
+      )
+      .void
+
+  def onContentChange(recipient: UserId, old: Msg): Funit =
+    // Notifications contain only an excerpt, so use that exact excerpt to remove
+    // stale copies without cancelling a newer message's pending notification.
+    notifyApi.remove(
+      recipient,
+      $doc(
+        "content.type" -> "privateMessage",
+        "content.user" -> old.user,
+        "content.text" -> shorten(old.text, 40)
+      )
+    )
 
   def deleteAllBy(threads: List[MsgThread], user: User): Funit =
     threads.sequentiallyVoid { thread =>
@@ -51,7 +63,7 @@ final private class MsgNotify(
   private def doNotify(threadId: MsgThread.Id): Funit =
     colls.thread.byId[MsgThread](threadId.value).flatMapz { thread =>
       val msg = thread.lastMsg
-      (!thread.delBy(thread.other(msg.user))).so:
+      (!msg.read && !msg.deleted && !thread.delBy(thread.other(msg.user))).so:
         val notification = NotificationContent.PrivateMessage(msg.user, text = shorten(msg.text, 40))
         notifyApi.notifyOne(thread.other(msg.user), notification).void
     }

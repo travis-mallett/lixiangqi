@@ -18,7 +18,7 @@ async function selectInMenu(page: Page, code: string) {
   await page.locator(`form[action="/translation/select"] button[value="${code}"]`).click();
 }
 
-test('site language selector keeps the article and replaces a stale blog preference', async ({
+test('site language selector keeps the article and ignores a stale blog preference', async ({
   page,
   context,
   baseURL,
@@ -66,9 +66,7 @@ test('no-JavaScript selection preserves query strings and ordinary article reads
   await context.addCookies([{ name: 'blogLanguage', value: 'zh-Hans', url: baseURL! }]);
   await page.goto(path + '/vi');
   expect((await context.cookies()).find(c => c.name === 'blogLanguage')?.value).toBe('zh-Hans');
-  await page.locator('.ublog-post__languages a[hreflang="en"]').click();
-  await expect(page).toHaveURL(new RegExp('/4wtrgg9Y$'));
-  expect((await context.cookies()).find(c => c.name === 'blogLanguage')?.value).toBe('en');
+  await expect(page.locator('.ublog-post__languages')).toHaveCount(0);
   const response = await page.request.post('/translation/select', {
     headers: { Origin: baseURL!, Referer: baseURL + '/blog/search?text=LiXiangQi&sort=likes' },
     form: { lang: 'vi-VN' },
@@ -76,7 +74,7 @@ test('no-JavaScript selection preserves query strings and ordinary article reads
   });
   expect(response.status()).toBe(303);
   expect(response.headers().location).toBe('/blog/search?text=LiXiangQi&sort=likes');
-  expect((await context.cookies()).find(c => c.name === 'blogLanguage')?.value).toBe('vi');
+  expect((await context.cookies()).find(c => c.name === 'blogLanguage')?.value).toBe('zh-Hans');
   for (const referer of [baseURL + '//other.example/path', 'https://other.example/path']) {
     const safeReturn = await page.request.post('/translation/select', {
       headers: { Origin: baseURL!, Referer: referer },
@@ -106,7 +104,7 @@ test('signed-in site selection updates the article and list preference', async (
     await selectInMenu(page, code);
     const language = code.slice(0, 2);
     await expect(page.locator('html')).toHaveAttribute('lang', language);
-    expect((await context.cookies()).find(c => c.name === 'blogLanguage')?.value).toBe(language);
+    expect((await context.cookies()).find(c => c.name === 'blogLanguage')?.value).toBe('zh-Hans');
     const settings = await page.request.get('/dasher', { headers: { Accept: 'application/json' } });
     expect((await settings.json()).lang.current).toBe(code);
   }

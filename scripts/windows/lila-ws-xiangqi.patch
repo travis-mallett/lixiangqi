@@ -1191,9 +1191,10 @@ new file mode 100644
 +    assert(ClientOut.parse("""{"t":"move","d":{"u":"i10i9"}}""").get.isInstanceOf[ClientOut.RoundMove])
 +    assert(ClientOut.parse("""{"t":"move","d":{"u":"i010i9"}}""").get.isInstanceOf[ClientOut.Unexpected])
 diff --git a/src/main/scala/Auth.scala b/src/main/scala/Auth.scala
+index 80d2623..8406511 100644
 --- a/src/main/scala/Auth.scala
 +++ b/src/main/scala/Auth.scala
-@@ -22,7 +22,7 @@
+@@ -22,7 +22,7 @@ final class Auth(mongo: Mongo, seenAt: SeenAtUpdate, config: Config)(using Execu
          case Some(sid) => sessionAuth(sid)
          case None =>
            bearerFromHeader(req).orElse(bearerFromQuery(req)) match
@@ -1202,7 +1203,7 @@ diff --git a/src/main/scala/Auth.scala b/src/main/scala/Auth.scala
              case None => Future.successful(None)
  
    def sidFromReq(req: RequestHeader): Option[String] =
-@@ -60,29 +60,39 @@
+@@ -60,29 +60,41 @@ final class Auth(mongo: Mongo, seenAt: SeenAtUpdate, config: Config)(using Execu
  
    private val bearerSigners = config.getStringList("oauth.secrets").asScala.toList.map(Algo.hmac)
  
@@ -1217,6 +1218,8 @@ diff --git a/src/main/scala/Auth.scala b/src/main/scala/Auth.scala
 +            Some(Bearer(bearer) -> List(mobileScope, nativePlayScope, takex3Scope))
 +          case Array(bearer) if bearer.nonEmpty && req.path == "/mobile/presence" =>
 +            Some(Bearer(bearer) -> List(nativePlayScope, "puzzle:read", "puzzle:write"))
++          case Array(bearer) if bearer.nonEmpty && req.path == "/mobile/inbox" =>
++            Some(Bearer(bearer) -> List("mobile:inbox"))
 +          case Array(bearer) if bearer.nonEmpty && req.path == "/lobby/socket/v5" =>
 +            Some(Bearer(bearer) -> List(nativePlayScope))
 +          case Array(bearer) if bearer.nonEmpty && req.path.matches("/tournament/[A-Za-z0-9]{8}/socket/v5") =>
@@ -1248,7 +1251,7 @@ diff --git a/src/main/scala/Auth.scala b/src/main/scala/Auth.scala
            ),
            tokenAuthDbProj
          ).one[BSONDocument]
-@@ -111,6 +121,7 @@
+@@ -111,6 +123,7 @@ object Auth:
    private val appealPrefix = "appeal:"
  
    val mobileScope = "web:mobile"
@@ -1257,23 +1260,34 @@ diff --git a/src/main/scala/Auth.scala b/src/main/scala/Auth.scala
  
    enum Success(val user: User.Id):
 diff --git a/src/main/scala/Controller.scala b/src/main/scala/Controller.scala
+index 6ca7370..847f798 100644
 --- a/src/main/scala/Controller.scala
 +++ b/src/main/scala/Controller.scala
-@@ -19,6 +19,13 @@
-   import Controller.*
+@@ -20,10 +20,23 @@ final class Controller(
  
    private val logger = Logger(getClass)
-+
+ 
 +  def presence(header: RequestHeader) =
 +    WebSocket(header): req =>
 +      Future.successful:
 +        if header.headers.authorization.isDefined && req.user.isEmpty then
 +          Left(HttpResponseStatus.UNAUTHORIZED)
 +        else siteEndpoint(req)
- 
++
    def site(header: RequestHeader) =
      WebSocket(header): req =>
-@@ -73,6 +80,8 @@
+       Future.successful(siteEndpoint(req))
+ 
++  def inbox(header: RequestHeader) =
++    WebSocket(header): req =>
++      Future.successful:
++        if req.user.isEmpty then Left(HttpResponseStatus.UNAUTHORIZED)
++        else siteEndpoint(req)
++
+   private def siteEndpoint(req: Req) =
+     endpoint(
+       name = "site",
+@@ -73,6 +86,8 @@ final class Controller(
          .tourExists(id)
          .zip(mongo.troll.is(req.user))
          .map:
@@ -1283,20 +1297,38 @@ diff --git a/src/main/scala/Controller.scala b/src/main/scala/Controller.scala
              endpoint(
                name = "tour",
 diff --git a/src/main/scala/Router.scala b/src/main/scala/Router.scala
+index 933b4b8..87105cc 100644
 --- a/src/main/scala/Router.scala
 +++ b/src/main/scala/Router.scala
-@@ -8,6 +8,7 @@
+@@ -8,6 +8,8 @@ final class Router(controller: Controller):
  
    def apply(req: RequestHeader): Controller.Response =
      req.path.drop(1).split('/') match
 +      case Array("mobile", "presence") => controller.presence(req)
++      case Array("mobile", "inbox") => controller.inbox(req)
        case Array("socket") | Array("socket", _) => controller.site(req)
        case Array("analysis", "socket") => controller.site(req)
        case Array("analysis", "socket", _) => controller.site(req)
 diff --git a/src/main/scala/actor/SiteClientActor.scala b/src/main/scala/actor/SiteClientActor.scala
+index 04f2584..25324ed 100644
 --- a/src/main/scala/actor/SiteClientActor.scala
 +++ b/src/main/scala/actor/SiteClientActor.scala
-@@ -28,6 +28,8 @@
+@@ -2,6 +2,7 @@ package lila.ws
+ 
+ import org.apache.pekko.actor.typed.scaladsl.Behaviors
+ import org.apache.pekko.actor.typed.{ Behavior, PostStop }
++import play.api.libs.json.Json
+ 
+ import ipc.*
+ 
+@@ -23,11 +24,15 @@ object SiteClientActor:
+ 
+           case ctrl: ClientCtrl => socketControl(state, deps, ctrl)
+ 
++          case in: ClientIn if !allowsIncoming(deps.req.header.path, in) => Behaviors.same
++
+           case in: ClientIn =>
+             clientInReceive(state, deps, in) match
                case None => Behaviors.same
                case Some(s) => apply(s, deps)
  
@@ -1305,20 +1337,41 @@ diff --git a/src/main/scala/actor/SiteClientActor.scala b/src/main/scala/actor/S
            case msg: ClientOutSite =>
              val newState = globalReceive(state, deps, ctx, msg)
              if newState == state then Behaviors.same
-@@ -42,3 +44,8 @@
+@@ -42,3 +47,29 @@ object SiteClientActor:
          onStop(state, deps, ctx)
          Behaviors.same
        }
 +
 +  private[ws] def allows(path: String, msg: ClientOutSite): Boolean =
-+    path != "/mobile/presence" || (msg match
-+      case _: ClientOut.Ping | _: ClientOut.Presence => true
++    if path == "/mobile/inbox" then msg.isInstanceOf[ClientOut.Ping]
++    else
++      path != "/mobile/presence" || (msg match
++        case _: ClientOut.Ping | _: ClientOut.Presence => true
++        case _ => false)
++
++  // A scoped inbox token must not receive unrelated user broadcasts (challenges,
++  // notifications, game state) just because it shares the user registry.
++  private[ws] def allowsIncoming(path: String, msg: ClientIn): Boolean =
++    path != "/mobile/inbox" || (msg match
++      case ClientIn.Pong | ClientIn.Resync | ClientIn.ServerRestart | _: ClientIn.Disconnect => true
++      case ClientIn.Payload(json) =>
++        scala.util.Try((Json.parse(json.value) \ "t").as[String]).toOption.exists(inboxEvents.contains)
 +      case _ => false)
++
++  private val inboxEvents = Set(
++    "msgChanged",
++    "msgReceipt",
++    "msgRemoved",
++    "msgThreadRemoved",
++    "msgMediaRevoked", "msgSendFailed", "msgTyping",
++    "blockedBy",
++    "unblockedBy"
++  )
 diff --git a/src/test/scala/MobilePlayAuthTest.scala b/src/test/scala/MobilePlayAuthTest.scala
 new file mode 100644
 --- /dev/null
 +++ b/src/test/scala/MobilePlayAuthTest.scala
-@@ -0,0 +1,43 @@
+@@ -0,0 +1,66 @@
 +package lila.ws
 +
 +import com.typesafe.config.ConfigFactory
@@ -1343,7 +1396,8 @@ new file mode 100644
 +      assertEquals(auth.bearerFromHeader(request(path, "test-token")), None)
 +
 +  test("native tournament tokens are restricted to tournament rooms"):
-+    val parsed = auth.bearerFromHeader(request("/tournament/abcd1234/socket/v5?sri=abcdefghijklmnop", "test-token"))
++    val parsed =
++      auth.bearerFromHeader(request("/tournament/abcd1234/socket/v5?sri=abcdefghijklmnop", "test-token"))
 +    assertEquals(parsed.map(_._2), Some(List("tournament:write")))
 +    assertEquals(auth.bearerFromHeader(request("/tournament/bad/socket/v5", "test-token")), None)
 +    assertEquals(auth.bearerFromHeader(request("/tournament/abcd1234/socket/v5", "test-token:bad")), None)
@@ -1351,9 +1405,31 @@ new file mode 100644
 +  test("invalid signatures never fall back to native authentication"):
 +    assertEquals(auth.bearerFromHeader(request("/lobby/socket/v5", "test-token:bad-signature")), None)
 +
++  test("native inbox tokens authenticate only the inbox stream and cannot send unscoped actions"):
++    import ipc.ClientOut
++    val parsed = auth.bearerFromHeader(request("/mobile/inbox?sri=abcdefghijklmnop", "test-token"))
++    assertEquals(parsed.map(_._2), Some(List("mobile:inbox")))
++    assert(SiteClientActor.allows("/mobile/inbox", ClientOut.Ping(None)))
++    assert(!SiteClientActor.allows("/mobile/inbox", ClientOut.Notified))
++    assert(!SiteClientActor.allows("/mobile/inbox", ClientOut.FollowingOnline(true)))
++    assert(!SiteClientActor.allows("/mobile/inbox", ClientOut.Presence(Some("puzzle"))))
++
 +  test("native puzzle and play scopes authenticate only the presence endpoint"):
 +    val parsed = auth.bearerFromHeader(request("/mobile/presence?sri=abcdefghijklmnop", "test-token"))
 +    assertEquals(parsed.map(_._2), Some(List("mobile:play", "puzzle:read", "puzzle:write")))
++
++  test("inbox streams only disclose inbox events and connection control"):
++    import ipc.ClientIn
++    val inbox = "/mobile/inbox"
++    assert(SiteClientActor.allowsIncoming(inbox, ClientIn.Pong))
++    assert(SiteClientActor.allowsIncoming(inbox, ClientIn.ServerRestart))
++    List("msgChanged", "msgReceipt", "msgRemoved", "msgThreadRemoved", "msgMediaRevoked", "msgSendFailed", "msgTyping").foreach: kind =>
++      assert(SiteClientActor.allowsIncoming(inbox, ClientIn.payload(kind, JsonString("{}"))))
++    List("challenge", "notifications", "move", "msgNew").foreach: kind =>
++      val event = ClientIn.payload(kind, JsonString("{}"))
++      assert(!SiteClientActor.allowsIncoming(inbox, event))
++      assert(SiteClientActor.allowsIncoming("/socket/v5", event))
++    assert(!SiteClientActor.allowsIncoming(inbox, ClientIn.Payload(JsonString("invalid"))))
 +
 +  test("presence endpoint only accepts heartbeat and presence messages"):
 +    import ipc.ClientOut

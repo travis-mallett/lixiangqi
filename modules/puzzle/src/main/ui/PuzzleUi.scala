@@ -46,7 +46,17 @@ final class PuzzleUi(helpers: Helpers, val bits: PuzzleBits):
       langPath: Option[lila.ui.LangPath]
   )(using ctx: Context) =
     val isStreak = data.value.contains("streak")
-    Page(if isStreak then "Puzzle Streak" else trans.site.puzzles.txt())
+    val theme = langPath.flatMap(path => PuzzleTheme.findVisible(path.value.stripPrefix("/training/")))
+    val landing = theme.isDefined || langPath.exists(_.value == routes.Puzzle.home.url)
+    val title =
+      if isStreak then "Puzzle Streak"
+      else
+        theme.fold(trans.site.xiangqiPuzzlesTitle.txt() + (if landing then "" else s" #$id"))(t =>
+          s"${t.name.txt()} — ${trans.site.xiangqiPuzzlesTitle.txt()}"
+        )
+    val description = theme.fold(trans.site.xiangqiPuzzlesDescription.txt()): t =>
+      s"${t.description.txt()} ${trans.site.xiangqiPuzzlesDescription.txt()}"
+    Page(title)
       .css("puzzle")
       .csp(_.withWebAssembly)
       .i18n(_.puzzle, _.puzzleTheme)
@@ -66,12 +76,11 @@ final class PuzzleUi(helpers: Helpers, val bits: PuzzleBits):
       .graph(
         OpenGraph(
           image = image,
-          title =
-            if isStreak then "Puzzle Streak"
-            else s"Xiangqi tactic #$id - ${pov.capitalize} to play",
-          url = routeUrl(routes.Puzzle.show(id)),
+          title = title,
+          url = lila.core.data.Url(netBaseUrl.value + langPath.fold(routes.Puzzle.show(id).url)(_.value)),
           description =
             if isStreak then trans.puzzle.streakDescription.txt()
+            else if landing then description
             else
               val findMove =
                 if pov == "white" then trans.puzzle.findTheBestMoveForWhite.txt()
@@ -82,11 +91,25 @@ final class PuzzleUi(helpers: Helpers, val bits: PuzzleBits):
       .hrefLangs(langPath)
       .flag(_.zoom)
       .flag(_.zen)
+      .append(if isStreak then emptyFrag
+      else
+        ToolIntro(title, description)(
+          a(href := (langHref(routes.Puzzle.themes) + theme.fold("")(t => s"#${t.key.value}")))(
+            trans.puzzle.puzzleThemes()
+          ),
+          a(href := langHref(routes.Notation.home))(trans.notation.xiangqiNotation()),
+          a(href := routes.Learn.specialRules)(trans.site.xiangqiSpecialRules())
+        ))
       .flag(_.crossSiteIsolation):
         bits.show.preload
 
   def themes(all: PuzzleAngle.All)(using ctx: Context) =
     Page(trans.puzzle.puzzleThemes.txt())
+      .graph(
+        trans.puzzle.puzzleThemes.txt(),
+        trans.site.xiangqiPuzzleThemesDescription.txt(),
+        routeUrl(routes.Puzzle.themes)
+      )
       .css("puzzle.page")
       .js(esmInit("puzzle.themes"))
       .hrefLangs(lila.ui.LangPath(routes.Puzzle.themes)):
@@ -94,6 +117,7 @@ final class PuzzleUi(helpers: Helpers, val bits: PuzzleBits):
           bits.pageMenu("themes", ctx.me),
           div(cls := "page-menu__content box")(
             h1(cls := "box__top")(trans.puzzle.puzzleThemes()),
+            p(cls := "box__pad")(trans.site.xiangqiPuzzleThemesDescription()),
             standardFlash.map(div(cls := "box__pad")(_)),
             div(cls := "puzzle-themes")(
               all.themes.map(section =>
@@ -128,7 +152,7 @@ final class PuzzleUi(helpers: Helpers, val bits: PuzzleBits):
             if pt.theme == PuzzleTheme.mix then routes.Puzzle.home
             else routes.Puzzle.show(pt.theme.key.value)
           val practiceUrl = (pt.count > 0).option(langHref(url))
-          div(cls := "puzzle-themes__card")(
+          div(cls := "puzzle-themes__card", id := pt.theme.key.value)(
             a(
               cls := "puzzle-themes__link",
               href := practiceUrl

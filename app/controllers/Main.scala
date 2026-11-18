@@ -60,14 +60,34 @@ final class Main(env: Env, assetsC: ExternalAssets) extends LilaController(env):
 
   val robots = Anon:
     Ok:
-      if env.net.crawlable && req.domain == env.net.domain.value && env.mode.isProd
+      if publicCrawlingAllowed
       then StaticContent.robotsTxt + s"\nSitemap: ${env.net.baseUrl.value}/sitemap.xml\n"
       else "User-agent: *\nDisallow: /"
 
   val sitemap = Anon:
-    if env.net.crawlable && req.domain == env.net.domain.value && env.mode.isProd
-    then env.ublog.api.sitemap(env.net.baseUrl.value).map(Ok(_).as("application/xml"))
+    if publicCrawlingAllowed
+    then
+      for
+        posts <- env.ublog.api.sitemapEntries
+        angles <- env.puzzle.api.angles
+      yield
+        val themes = angles.themes
+          .flatMap(_.categories.flatMap(_.themes))
+          .filter(_.count > 0)
+          .map(_.theme)
+          .distinct
+          .flatMap: theme =>
+            lila.web.PublicSitemap.localized(
+              if theme == lila.puzzle.PuzzleTheme.mix then routes.Puzzle.home.url
+              else routes.Puzzle.show(theme.key.value).url
+            )
+        Ok(lila.common.Sitemap.render(lila.web.PublicSitemap.core ++ themes ++ posts, env.net.baseUrl.value))
+          .as("application/xml")
     else fuccess(NotFound)
+
+  // Use the same authority (including a configured port) as HttpFilter's canonical-host check.
+  private def publicCrawlingAllowed(using req: RequestHeader): Boolean =
+    env.net.crawlable && req.host == env.net.domain.value && env.mode.isProd
 
   def manifest = Anon:
     JsonOk:
@@ -129,8 +149,7 @@ final class Main(env: Env, assetsC: ExternalAssets) extends LilaController(env):
   def devAsset(@annotation.nowarn v: String, path: String, file: String) = assetsC.at(path, file)
 
   def uploadImage(rel: String) = AuthBody(lila.web.HashedMultiPart(parse)) { ctx ?=> me ?=>
-    lila.core.security
-      .canUploadImages(rel)
+    (rel != "forumPostBody" && lila.core.security.canUploadImages(rel))
       .so:
         limit.imageUpload(rateLimited):
           ctx.body.body.file("image") match

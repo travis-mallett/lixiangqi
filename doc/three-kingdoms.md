@@ -333,7 +333,11 @@ capture and elimination remain simultaneously visible in their separate regions.
 All points rotate with the board, while glyphs remain upright. Normal check is
 omitted for an already defeated general; withdrawals never fabricate captures.
 
-The shared component waits for piece arrival, displays the event as one group,
+This simultaneous visual choreography is a Three Kingdoms exception to the two-player
+checkmate > check > capture hierarchy. Audio still selects only the highest-priority
+semantic sound, alongside the ordinary piece-movement sound.
+
+The shared component starts feedback with the authoritative move event,
 scales/clamps peak bounds to avoid overlap, and clears stale events on navigation.
 Reduced motion displays brief static indicators at the same anchors. Effects do
 not intercept input. Video references for these placements: BV1CWD9Y9EFk 11:47

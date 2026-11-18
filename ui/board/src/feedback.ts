@@ -1,6 +1,7 @@
 import { boardAssets } from './catalog';
 import { feedbackImageAsset, playFeedbackImage } from './feedbackImage';
 import { feedbackLayout } from './feedbackLayout';
+import { primaryBoardEffect } from './feedbackPolicy';
 import type { BoardEffect, BoardPresentation, BoardServices, BoardTransition, GraphGeometry } from './types';
 const images: Partial<Record<BoardEffect, { path: string; duration: number }>> = boardAssets.effects;
 
@@ -31,14 +32,15 @@ export class BoardFeedback {
   present(transition: BoardTransition, presentation: BoardPresentation, geometry?: GraphGeometry): void {
     if (this.destroyed) return;
     const document = this.root.ownerDocument;
-    if (!['forward', 'backward', 'confirmation'].includes(transition.kind)) {
+    if (!['forward', 'optimistic', 'confirmation'].includes(transition.kind)) {
       this.clear();
       this.lastTransition = undefined;
       this.announcedEffects.clear();
       this.announcedMove = false;
+      if (transition.kind === 'backward' && transition.effects !== undefined && presentation.feedback.audio)
+        this.services.sound?.({ move: true, effects: [] });
       return;
     }
-    if (transition.kind === 'backward') this.clear();
     if (transition.effects === undefined) return;
     if (transition.id === undefined || transition.id !== this.lastTransition) {
       this.clear();
@@ -47,12 +49,20 @@ export class BoardFeedback {
       this.announcedEffects.clear();
     }
     const move = transition.kind !== 'confirmation' && !this.announcedMove;
-    const effects = transition.effects.filter(effect => !this.announcedEffects.has(effect));
+    const supplied = transition.kind === 'optimistic' ? [] : transition.effects;
+    const previous = primaryBoardEffect([...this.announcedEffects]);
+    const primary = primaryBoardEffect([...this.announcedEffects, ...supplied]);
+    const audioEffects = primary && primary !== previous ? [primary] : [];
+    // Three Kingdoms keeps its documented simultaneous river/territory visuals.
+    // Every other board selects priority before applying visibility preferences.
+    const effects = geometry?.riverAnchors
+      ? supplied.filter(effect => !this.announcedEffects.has(effect))
+      : audioEffects;
     if (!move && !effects.length) return;
     this.announcedMove ||= move;
-    effects.forEach(effect => this.announcedEffects.add(effect));
-    if (presentation.feedback.audio) this.services.sound?.({ move, effects });
-    if (transition.kind === 'backward') return;
+    supplied.forEach(effect => this.announcedEffects.add(effect));
+    if (presentation.feedback.audio && (move || audioEffects.length))
+      this.services.sound?.({ move, effects: audioEffects });
     if (geometry?.riverAnchors) {
       const placements = feedbackLayout(
         {
@@ -60,7 +70,10 @@ export class BoardFeedback {
           effects: effects.filter(e =>
             presentation.feedback.effects.includes(e === 'defeat' ? 'checkmate' : e),
           ),
-          winners: presentation.feedback.effects.includes('checkmate') ? transition.winners : [],
+          winners:
+            transition.kind !== 'optimistic' && presentation.feedback.effects.includes('checkmate')
+              ? transition.winners
+              : [],
         },
         geometry,
         presentation.perspective,
@@ -106,9 +119,11 @@ export class BoardFeedback {
       return;
     }
     if (this.services.reducedMotion?.()) return;
-    const effect = (['checkmate', 'check', 'capture'] as const).find(
-      name => effects.includes(name) && presentation.feedback.effects.includes(name) && images[name],
-    );
+    const effect = primaryBoardEffect(effects);
+    if (effect && !presentation.feedback.effects.includes(effect)) {
+      this.clear();
+      return;
+    }
     const image = effect && images[effect];
     if (!image) return;
     this.clear();

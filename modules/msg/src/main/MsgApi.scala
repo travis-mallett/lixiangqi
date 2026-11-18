@@ -4,6 +4,7 @@ import org.apache.pekko.stream.scaladsl.*
 import reactivemongo.pekkostream.cursorProducer
 
 import lila.common.{ Bus, LilaStream }
+import lila.common.Json.given
 import lila.core.msg.{ PostResult, IdText }
 import lila.core.relation.Relations
 import lila.db.dsl.{ *, given }
@@ -21,7 +22,7 @@ final class MsgApi(
     notifier: MsgNotify,
     security: MsgSecurity,
     shutupApi: lila.core.shutup.ShutupApi,
-    spam: lila.core.security.SpamApi,
+    attachments: lila.memo.Attachments,
     ircApi: lila.core.irc.IrcApi
 )(using Executor, org.apache.pekko.stream.Materializer)
     extends lila.core.msg.MsgApi:
@@ -93,12 +94,32 @@ final class MsgApi(
       .so:
         lightUserApi.async(userId).flatMapz { contact =>
           for
-            _ <- setReadBy(threadId, me, userId)
             msgs <- threadMsgsFor(threadId, me, before)
+            pinned <- colls.pinnedIndex >> colls.msg
+              .find(
+                $doc(
+                  "tid" -> threadId,
+                  "del".$ne(me.userId),
+                  "deletedAt".$exists(false),
+                  "pinnedAt".$exists(true)
+                )
+              )
+              .sort($sort.desc("pinnedAt"))
+              .cursor[Msg]()
+              .list(3)
             relations <- relationApi.fetchRelations(me, userId)
             postable <- security.may.post(me, userId, isNew = msgs.headOption.isEmpty)
             details <- Granter(_.PublicMod).optionFu(fetchContactDetailsForMods(userId))
-          yield MsgConvo(contact, msgs, relations, postable, details).some
+            media <- (msgs ++ pinned)
+              .filter(_.attachments.nonEmpty)
+              .distinctBy(_.user)
+              .traverse: m =>
+                mediaAllowed(m.user, m.recipient(me, userId)).map(ok => Option.when(ok)(m.user))
+          yield
+            val allowed = media.flatten.toSet
+            def redact(items: List[Msg]) = items
+              .map(m => if m.attachments.nonEmpty && !allowed(m.user) then m.copy(attachments = Nil) else m)
+            MsgConvo(contact, redact(msgs), relations, postable, details, redact(pinned)).some
         }
 
   private def fetchContactDetailsForMods(userId: UserId): Fu[ContactDetailsForMods] = for
@@ -112,7 +133,16 @@ final class MsgApi(
       .one($doc("tid" -> threadId), $addToSet("del" -> me.userId), multi = true) >>
       colls.thread.update
         .one($id(threadId), $addToSet("del" -> me.userId))
-        .void
+        .void >> notifier
+        .onRead(me, username.id)
+        .map: _ =>
+          Bus.pub(
+            lila.core.socket.SendTo(
+              me,
+              lila.core.socket
+                .makeMessage("msgThreadRemoved", play.api.libs.json.Json.obj("user" -> username.id))
+            )
+          )
 
   def post(
       orig: UserId,
@@ -121,70 +151,194 @@ final class MsgApi(
       multi: Boolean = false,
       date: Instant = nowInstant,
       ignoreSecurity: Boolean = false
+  ): Fu[PostResult] = postWithMeta(orig, dest, text, multi, date, ignoreSecurity)
+
+  private[msg] def postWithMeta(
+      orig: UserId,
+      dest: UserId,
+      text: String,
+      multi: Boolean = false,
+      date: Instant = nowInstant,
+      ignoreSecurity: Boolean = false,
+      messageId: Option[String] = None,
+      reply: Option[Msg.Quote] = None,
+      forwarded: Boolean = false,
+      attachmentIds: List[String] = Nil,
+      requestDigest: Option[String] = None,
+      forwardSource: Option[(UserId, Msg)] = None
   ): Fu[PostResult] =
-    orig.isnt(dest).so(Msg.make(text, orig, date)).fold(fuccess(PostResult.Invalid)) { msgPre =>
-      val threadId = MsgThread.id(orig, dest)
-      for
-        contacts <- contactApi.contacts(orig, dest).orFail(s"Missing convo contact user $orig->$dest")
-        isNew <- colls.thread.exists($id(threadId)).not
-        verdict <-
-          if ignoreSecurity then fuccess(MsgSecurity.Ok)
-          else security.can.post(contacts, msgPre.text, isNew, unlimited = multi)
-        _ = lila.mon.msg.post(verdict.toString, isNew = isNew, multi = multi).increment()
-        maskFor = multi.option(orig)
-        maskWith <-
-          if multi && !isNew then lastDirectMsg(threadId, orig) else fuccess(None)
-        res <- verdict match
-          case MsgSecurity.Limit => fuccess(PostResult.Limited)
-          case _: MsgSecurity.Reject => fuccess(PostResult.Bounced)
-          case send: MsgSecurity.Send =>
-            val msg =
-              if verdict == MsgSecurity.Spam
-              then
-                logger.warn(s"spam $orig -> $dest $msgPre.text")
-                msgPre.copy(text = spam.replace(msgPre.text))
-              else msgPre
-            val msgWrite = colls.msg.insert.one(writeMsg(msg, threadId))
-            def threadWrite =
-              if isNew then
-                colls.thread.insert.one:
-                  writeThread(
-                    MsgThread.make(orig, dest, msg, maskFor, maskWith),
-                    List(multi.option(orig), send.mute.option(dest)).flatten
-                  )
-              else
-                colls.thread.update
+    if lila.core.security.SubmissionPolicy.blocked(text) then
+      lila.mon.submission.blocked("msg").increment()
+      return fuccess(PostResult.UnsafeLink)
+    orig.isnt(dest).so(Msg.make(text, orig, date, attachmentIds)).fold(fuccess(PostResult.Invalid)) {
+      msgPre =>
+        val threadId = MsgThread.id(orig, dest)
+        for
+          contacts <- contactApi.contacts(orig, dest).orFail(s"Missing convo contact user $orig->$dest")
+          isNew <- colls.thread.exists($id(threadId)).not
+          verdict <-
+            if ignoreSecurity then fuccess(MsgSecurity.Ok)
+            else
+              security.can.post(
+                contacts,
+                msgPre.text,
+                isNew,
+                unlimited = multi,
+                hasAttachments = attachmentIds.nonEmpty
+              )
+          _ = lila.mon.msg.post(verdict.toString, isNew = isNew, multi = multi).increment()
+          maskFor = multi.option(orig)
+          maskWith <-
+            if multi && !isNew then lastDirectMsg(threadId, orig) else fuccess(None)
+          res <- verdict match
+            case MsgSecurity.Limit => fuccess(PostResult.Limited)
+            case MsgSecurity.Spam | MsgSecurity.Dirt =>
+              fufail(lila.core.security.SubmissionRejected("contentBlocked"))
+            case _: MsgSecurity.Reject => fuccess(PostResult.Bounced)
+            case _: MsgSecurity.Send if attachmentIds.nonEmpty && contacts.hasKid =>
+              fufail(lila.core.security.SubmissionRejected("privateTextOnly"))
+            case send: MsgSecurity.Send =>
+              val msg =
+                msgPre.copy(
+                  id = messageId.getOrElse(msgPre.id),
+                  reply = reply,
+                  forwarded = forwarded,
+                  requestDigest = requestDigest
+                )
+              def msgWrite(messages: Coll) = messages.insert.one(
+                writeMsg(msg, threadId) ++
+                  send.mute.so($doc("del" -> List(dest)))
+              )
+              def updateThread(threads: Coll) =
+                threads.update
                   .one(
-                    $id(threadId),
-                    if multi
+                    $id(threadId) ++ $doc("lastMsg.date".$lte(msg.date)),
+                    if send.mute then $set(s"preview.$orig" -> msg.asLast) ++ $pull("del" -> orig)
+                    else if multi
                     then
                       $set("lastMsg" -> msg.asLast, "maskFor" -> maskFor, "maskWith" -> maskWith)
-                        ++ $pull("del" -> List(orig))
+                        ++ $unset("preview")
+                        ++ $pull("del" -> orig)
                     else
                       $set("lastMsg" -> msg.asLast, "maskWith.date" -> msg.date)
-                        ++ $unset("maskFor", "maskWith.text", "maskWith.user", "maskWith.read")
-                        ++ $pull("del".$in(orig :: (!send.mute).option(dest).toList))
-                    // keep maskWith.date always valid (though sometimes redundant)
-                    // unset "deleted by receiver" unless the message is muted
+                        ++ $unset("maskFor", "maskWith.text", "maskWith.user", "maskWith.read", "preview")
+                        ++ $pull("del".$in(List(orig, dest)))
                   )
-            for
-              _ <- msgWrite
-              _ <- threadWrite
-            yield
-              import MsgSecurity.*
-              import lila.core.socket.SendTo
-              import lila.core.socket.makeMessage
-              if send == Ok || send == TrollFriend then
-                notifier.onPost(threadId)
-                Bus.pub(SendTo(dest, makeMessage("msgNew", json.renderMsg(msg))))
-              if send == Ok && !multi then
-                shutupApi.privateMessage(orig, dest, text)
-                if List(orig, dest).has(UserId.broadcaster) then
-                  val topicUser = if orig == UserId.broadcaster then dest else orig
-                  ircApi.broadcasterDm(topicUser, orig, msg.text)
-              PostResult.Success
-      yield res
+                  .void
+              def threadWrite(threads: Coll): Funit =
+                if isNew then
+                  threads.insert
+                    .one(
+                      writeThread(
+                        MsgThread.make(orig, dest, msg, maskFor, maskWith),
+                        List(multi.option(orig), send.mute.option(dest)).flatten
+                      )
+                    )
+                    .void
+                    .recoverWith(lila.db.recoverDuplicateKey(_ => updateThread(threads)))
+                else updateThread(threads)
+              val publish =
+                if attachmentIds.isEmpty then msgWrite(colls.msg) >> threadWrite(colls.thread)
+                else
+                  attachments.transaction { tx =>
+                    val messages: Coll = tx.collection(colls.msg.name)
+                    for
+                      _ <- contactApi.guardMedia(tx, List(orig, dest) ++ forwardSource.map(_._1))
+                      _ <- requireMedia(orig, dest)
+                      _ <- forwardSource.so: (peer, source) =>
+                        requireMedia(source.user, source.recipient(orig, peer)) >> messages.update
+                          .one(
+                            $id(source.id) ++ $doc(
+                              "tid" -> MsgThread.id(orig, peer),
+                              "revision" -> source.revision,
+                              "attachments" -> source.attachments,
+                              "del".$ne(orig),
+                              "deletedAt".$exists(false)
+                            ),
+                            $inc("mediaForwardRevision" -> 1)
+                          )
+                          .flatMap(r =>
+                            if r.n == 1 then funit
+                            else fufail(lila.core.security.SubmissionRejected("conflict"))
+                          )
+                      _ <- attachments.prepare(
+                        orig,
+                        s"msg/$dest",
+                        msg.id,
+                        0,
+                        attachmentIds,
+                        transaction = Some(tx)
+                      )
+                      _ <- msgWrite(messages)
+                      _ <- threadWrite(tx.collection(colls.thread.name))
+                    yield ()
+                  }
+              for
+                _ <- publish
+                visible <- withVisibleMedia(msg, orig, dest)
+              yield
+                import MsgSecurity.*
+                import lila.core.socket.SendTo
+                import lila.core.socket.makeMessage
+                if send == Ok || send == TrollFriend then
+                  notifier.onPost(threadId)
+                  Bus.pub(SendTo(dest, makeMessage("msgNew", json.renderMsg(visible))))
+                  Bus.pub(
+                    SendTo(
+                      dest,
+                      makeMessage(
+                        "msgChanged",
+                        play.api.libs.json.Json
+                          .obj("user" -> orig, "msg" -> json.renderMsg(visible), "kind" -> "new")
+                      )
+                    )
+                  )
+                Bus.pub(
+                  SendTo(
+                    orig,
+                    makeMessage(
+                      "msgChanged",
+                      play.api.libs.json.Json
+                        .obj("user" -> dest, "msg" -> json.renderMsg(visible), "kind" -> "new")
+                    )
+                  )
+                )
+                if send == Ok && !multi then
+                  shutupApi.privateMessage(orig, dest, text)
+                  if List(orig, dest).has(UserId.broadcaster) then
+                    val topicUser = if orig == UserId.broadcaster then dest else orig
+                    ircApi.broadcasterDm(topicUser, orig, msg.text)
+                PostResult.Success
+        yield res
     }
+
+  private[msg] def withVisibleMedia(msg: Msg, first: UserId, second: UserId): Fu[Msg] =
+    if msg.attachments.isEmpty then fuccess(msg)
+    else
+      mediaAllowed(msg.user, msg.recipient(first, second)).map(ok =>
+        if ok then msg else msg.copy(attachments = Nil)
+      )
+
+  def adultParticipants(orig: UserId, dest: UserId): Fu[Boolean] =
+    contactApi
+      .contacts(orig, dest)
+      .map(_.exists(pair => pair.activeAdults))
+
+  def mediaAllowed(orig: UserId, dest: UserId): Fu[Boolean] =
+    contactApi
+      .contacts(orig, dest)
+      .flatMap:
+        case Some(pair)
+            if pair.activeAdults && !pair
+              .any(_.isTroll) && !pair.any(_.isAlt) =>
+          colls.thread
+            .exists($id(MsgThread.id(orig, dest)))
+            .flatMap(exists => security.may.post(pair, isNew = !exists))
+        case _ => fuFalse
+
+  def requireMedia(orig: UserId, dest: UserId): Funit =
+    mediaAllowed(orig, dest).flatMap:
+      if _ then funit else fufail(lila.core.security.SubmissionRejected("privateTextOnly"))
 
   def lastDirectMsg(threadId: MsgThread.Id, maskFor: UserId): Fu[Option[Msg.Last]] =
     colls.thread
@@ -202,7 +356,7 @@ final class MsgApi(
         true
       )
       .flatMap: res =>
-        (res.nModified > 0).so(notifier.onRead(threadId, userId, contactId))
+        (res.nModified > 0).so(notifier.onRead(userId, contactId))
 
   def postPreset(destId: UserId, preset: lila.core.msg.MsgPreset): Fu[PostResult] =
     systemPost(destId, preset.text)
@@ -273,12 +427,12 @@ final class MsgApi(
     _ <- notifier.deleteAllBy(threads, user)
   yield ()
 
-  private val msgProjection = $doc("_id" -> false, "tid" -> false)
+  private val msgProjection = $doc("tid" -> false)
 
   private def threadMsgsFor(threadId: MsgThread.Id, me: User, before: Option[Instant]): Fu[List[Msg]] =
     colls.msg
       .find(
-        $doc("tid" -> threadId) ++ before.so: b =>
+        $doc("tid" -> threadId, "del".$ne(me.id)) ++ before.so: b =>
           $doc("date".$lt(b)),
         msgProjection.some
       )
@@ -288,19 +442,6 @@ final class MsgApi(
       .map:
         _.flatMap: doc =>
           doc.getAsOpt[List[UserId]]("del").forall(!_.has(me.id)).so(doc.asOpt[Msg])
-
-  private def setReadBy(threadId: MsgThread.Id, me: User, contactId: UserId): Funit =
-    colls.thread
-      .updateField(
-        $id(threadId) ++ $doc(
-          "lastMsg.user".$ne(me.id),
-          "lastMsg.read" -> false
-        ),
-        "lastMsg.read",
-        true
-      )
-      .flatMap: res =>
-        (res.nModified > 0).so(notifier.onRead(threadId, me.id, contactId))
 
   def allMessagesOf(userId: UserId): Source[(String, Instant), ?] =
     colls.thread

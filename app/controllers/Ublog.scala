@@ -15,7 +15,7 @@ import lila.core.i18n.toLanguage
 import lila.ublog.UblogForm.ModPostData
 import lila.common.HTTPRequest
 
-final class Ublog(env: Env) extends LilaController(env):
+final class Ublog(env: Env) extends LilaController(env) with MobileDisplay:
 
   import views.ublog.ui.{ editUrlOfPost, urlOfPost, urlOfBlog }
   import scalalib.paginator.Paginator.given
@@ -31,6 +31,48 @@ final class Ublog(env: Env) extends LilaController(env):
   def apiCarousel = AnonOrScoped():
     given OWrites[UblogPost.PreviewPost] = env.ublog.jsonView.writer(views.ublog.ui.preferredLanguage)
     JsonOk(env.ublog.api.myCarousel)
+
+  // A distinct route also makes probing an older deployment side-effect-free.
+  def mobileArticle(id: UblogPostId, language: Option[String]) = Open:
+    publicArticle(id): (user, blog, post) =>
+      language.fold(Option(UblogTranslation.source(post)))(l =>
+        UblogTranslation.select(post, UblogTranslation.normalize(l))
+      ) match
+        case Some(edition) if edition.isPublished =>
+          env.memo.markdown
+            .toHtml(s"blog:${post.id}:${edition.language}", edition.markdown, lila.ublog.markdownOptions)
+            .flatMap: html =>
+              val page = views.ublog.post.page(user, blog, edition, html, Nil, false, false, false, false)
+              displayPage(page, 86400).map(
+                _.withHeaders("Content-Location" -> edition.url.url, "Content-Language" -> edition.language)
+              )
+        case _ =>
+          val page = views.ublog.post.missingEdition(post)
+          fuccess(
+            NotFound(page.body.fold("")(_.render))
+              .as(HTML)
+              .withHeaders("X-Mobile-Display" -> "1", "Cache-Control" -> "no-store")
+          )
+
+  def mobileView(id: UblogPostId) = Open:
+    publicArticle(id): (_, _, post) =>
+      val _ = env.ublog.viewCounter(post)
+      fuccess(NoContent.withHeaders("Cache-Control" -> "no-store"))
+
+  private def publicArticle(id: UblogPostId)(use: (UserModel, UblogBlog, UblogPost) => Fu[Result])(using
+      Context
+  ): Fu[Result] =
+    val absent = NotFound.withHeaders("X-Mobile-Display" -> "1", "Cache-Control" -> "no-store")
+    if !mobileDisplay then fuccess(absent)
+    else
+      env.ublog.api
+        .getPost(id)
+        .flatMap:
+          case Some(post) if post.live =>
+            NotForKidsUnlessOfficial(post.isOfficial):
+              WithBlogOf(post.created.by): (user, blog) =>
+                if isBlogVisible(user, blog) then use(user, blog, post) else fuccess(absent)
+          case _ => fuccess(absent)
 
   def drafts(username: UserStr, page: Int) = Auth { ctx ?=> me ?=>
     NotForKids:
@@ -74,12 +116,7 @@ final class Ublog(env: Env) extends LilaController(env):
             if !blog.listed || !post.visibleByCrawlers || !edition.isPublished || (!post.isOfficial && blog.tier < UblogBlog.Tier.HIGH)
             then privateResponse.withHeaders("X-Robots-Tag" -> "noindex, nofollow")
             else privateResponse
-          if getBool("selectLanguage") && edition.isPublished then
-            fuccess(
-              Redirect(edition.url)
-                .withCookies(env.security.lilaCookie.cookie("blogLanguage", edition.language))
-            )
-          else if HTTPRequest.acceptsMarkdown
+          if HTTPRequest.acceptsMarkdown
           then editionResponse(Ok(views.ublog.post.markdownForAgents(edition)).withHeaders(asMarkdown))
           else
             for
@@ -387,8 +424,10 @@ final class Ublog(env: Env) extends LilaController(env):
 
   def official(page: Int) = Open:
     Reasonable(page, Max(200)):
-      pageHit
-      Ok.async(env.ublog.paginator.official(page).map(views.ublog.ui.official))
+      if !mobileDisplay then pageHit
+      env.ublog.paginator
+        .official(page)
+        .flatMap(posts => displayPage(views.ublog.ui.official(posts), if page == 1 then 300 else 86400))
 
   def officialAtom = Anon:
     env.ublog.paginator
@@ -402,14 +441,13 @@ final class Ublog(env: Env) extends LilaController(env):
   private def communityIndex(l: Option[Lang], filterOpt: Option[QualityFilter], page: Int)(using Context) =
     NotForKids:
       Reasonable(page, Max(200)):
-        pageHit
-        Ok.async:
-          val language = l.map(toLanguage)
-          val filter = updateFilter(filterOpt)
-          env.ublog.paginator
-            .liveByCommunity(language, filter, page)
-            .map:
-              views.ublog.community(language, filter, _)
+        if !mobileDisplay then pageHit
+        val language = l.map(toLanguage)
+        val filter = updateFilter(filterOpt)
+        env.ublog.paginator
+          .liveByCommunity(language, filter, page)
+          .flatMap: posts =>
+            displayPage(views.ublog.community(language, filter, posts), if page == 1 then 300 else 86400)
 
   def communityAtom(language: Language) = Anon:
     val found: Option[Lang] = LangList.popularNoRegion.find(l => toLanguage(l) == language)

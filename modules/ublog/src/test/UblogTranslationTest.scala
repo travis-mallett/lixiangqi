@@ -67,7 +67,7 @@ class UblogTranslationTest extends munit.FunSuite:
   test("sitemap includes published editions and reciprocal links but excludes translation drafts"):
     val doc = summon[BSONDocumentWriter[UblogPost]].writeTry(post).get
     val preview = summon[BSONDocumentReader[UblogPost.PreviewPost]].readDocument(doc).get
-    val xml = UblogSitemap.render(List(preview), "https://example.org")
+    val xml = lila.common.Sitemap.render(UblogSitemap.entries(List(preview)), "https://example.org")
     assertEquals("<loc>".r.findAllIn(xml).length, 2)
     assertEquals("hreflang=\"en\"".r.findAllIn(xml).length, 2)
     assertEquals("hreflang=\"zh-Hans\"".r.findAllIn(xml).length, 2)

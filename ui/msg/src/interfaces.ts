@@ -19,9 +19,31 @@ export interface Me extends User {
   bot: boolean;
 }
 export interface Msg {
+  id: string;
   user: string;
   text: string;
   date: Date;
+  revision: number;
+  reply?: { id: string; user: string; text: string };
+  attachments?: string[];
+  forwarded?: boolean;
+  editedAt?: Date;
+  deliveredAt?: Date;
+  readAt?: Date;
+  deleted?: boolean;
+  deletedAt?: Date;
+  pinnedAt?: Date;
+  history: { text: string; date: Date }[];
+  reactions: { user: string; emoji: string }[];
+  canEditUntil?: Date;
+  canDeleteUntil?: Date;
+  pending?: 'sending' | 'failed';
+  nonce?: string;
+}
+export interface Receipt {
+  id: string;
+  deliveredAt?: number;
+  readAt?: number;
 }
 export interface LastMsg extends Msg {
   read: boolean;
@@ -31,6 +53,7 @@ export interface Convo {
   msgs: Msg[];
   relations: Relations;
   postable: boolean;
+  pinned: Msg[];
   modDetails?: ModDetails;
 }
 

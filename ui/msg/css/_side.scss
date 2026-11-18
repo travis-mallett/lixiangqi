@@ -3,10 +3,10 @@
     @extend %flex-column;
     @include prevent-select;
 
-    flex: 0 0 50ch;
+    flex: 0 0 clamp(280px, 30%, 380px);
 
     @media (max-width: at-most($medium)) {
-      flex: 0 0 40ch;
+      flex: 0 0 280px;
     }
 
     @media (max-width: at-most($small)) {
@@ -62,11 +62,6 @@
       &:active,
       &.active {
         background: color-mix(in oklab, $c-secondary 30%, $c-bg);
-      }
-
-      .user-link {
-        flex: 0 0 auto;
-        font-size: 2.3em;
       }
 
       &__user {
@@ -126,5 +121,31 @@
     display: flex;
     justify-content: center;
     padding: 1em;
+  }
+}
+
+.msg-avatar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 44px;
+  height: 44px;
+  margin: 12px;
+  border-radius: 50%;
+  background: $c-bg-zebra2;
+  color: $c-font-clear;
+  font-size: 1.3em;
+
+  &.online::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    inset-inline-end: 0;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid $c-bg-box;
+    background: $c-good;
   }
 }

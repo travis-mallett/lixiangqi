@@ -55,10 +55,11 @@ final private class MsgSecurity(
         contacts: Contacts,
         rawText: String,
         isNew: Boolean,
-        unlimited: Boolean = false
+        unlimited: Boolean = false,
+        hasAttachments: Boolean = false
     ): Fu[Verdict] =
       val text = rawText.trim
-      if text.isEmpty then fuccess(Invalid)
+      if text.isEmpty && !hasAttachments then fuccess(Invalid)
       else if contacts.orig.isLichess && !contacts.dest.isLichess then fuccess(Ok)
       else
         may
@@ -84,17 +85,17 @@ final private class MsgSecurity(
             case verdict => fuccess(verdict)
           .addEffect:
             case Dirt =>
-              if dirtSpamDedup(text) then
+              if textAnalyser.isCritical(text) && dirtSpamDedup(text) then
                 val resource = s"msg/${contacts.orig.id}/${contacts.dest.id}"
                 reportApi.autoCommFlag(
                   SuspectId(contacts.orig.id),
                   resource,
                   text,
-                  textAnalyser.isCritical(text)
+                  true
                 )
             case Spam =>
               if dirtSpamDedup(text) && !contacts.orig.isTroll
-              then logger.warn(s"PM spam from ${contacts.orig.id} to ${contacts.dest.id}: $text")
+              then lila.mon.submission.blocked("msgSpam").increment()
             case _ =>
 
     private def isLimited(

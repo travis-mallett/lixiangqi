@@ -25,7 +25,7 @@ final private class ForumTopicApi(
     spam: lila.core.security.SpamApi,
     promotion: lila.core.security.PromotionApi,
     shutupApi: lila.core.shutup.ShutupApi,
-    detectLanguage: DetectLanguage,
+    media: ForumMedia,
     cacheApi: CacheApi,
     relationApi: lila.core.relation.RelationApi
 )(using Executor):
@@ -38,7 +38,7 @@ final private class ForumTopicApi(
       .flatMapz: topic =>
         show(categId, slug, topic.lastPage(config.postMaxPerPage))
 
-  def show(categId: ForumCategId, slug: ForumTopicSlug, page: Int)(using
+  def show(categId: ForumCategId, slug: ForumTopicSlug, page: Int, countView: Boolean = true)(using
       NetDomain
   )(using me: Option[Me]): Fu[Option[(ForumCateg, ForumTopic, Paginator[ForumPost.WithFrag])]] =
     for
@@ -50,7 +50,7 @@ final private class ForumTopicApi(
             _.map(categ -> _)
       }
       res <- data.so: (categ, topic) =>
-        lila.mon.forum.topic.view.increment()
+        if countView then lila.mon.forum.topic.view.increment()
         paginator
           .topicPosts(topic, page)
           .flatMap: paginated =>
@@ -82,30 +82,57 @@ final private class ForumTopicApi(
       categ: ForumCateg,
       data: ForumForm.TopicData
   )(using me: Me): Fu[ForumTopic] =
-    topicRepo.nextSlug(categ, data.name).zip(detectLanguage(data.post.text)).flatMap { (slug, lang) =>
-      val topic = ForumTopic.make(
+    if lila.core.security.SubmissionPolicy.blocked(data.automodText) then
+      return fufail(lila.core.security.SubmissionRejected("unsafeLink"))
+    topicRepo.nextSlug(categ, data.name).flatMap { slug =>
+      val initial = ForumTopic.make(
         categId = categ.id,
         slug = slug,
         name = noShouting(data.name),
         userId = me,
         troll = me.marks.troll
       )
-      val post = ForumPost.make(
+      val topic = data.post.nonce.fold(initial)(n =>
+        initial
+          .copy(id = ForumTopicId(lila.memo.Attachment.publicationId(me, media.audience(categ.id, None), n)))
+      )
+      val draft = ForumPost.make(
         topicId = topic.id,
         userId = me.some,
         troll = me.marks.troll,
         text = spam.replace(data.post.text),
-        lang = lang.map(_.language),
+        lang = me.lang.map(_.value.takeWhile(_ != '-')),
         categId = categ.id,
         modIcon = (~data.post.modIcon && MasterGranter(_.PublicMod)).option(true)
       )
-      findDuplicate(topic).flatMap:
-        case Some(dup) => fuccess(dup)
+      val post = draft.copy(
+        id = media.postId(categ.id, None, data.post.nonce, draft.id),
+        attachments = data.post.ids.nonEmptyOption,
+        submissionDigest = data.post.digest(data.name)
+      )
+      val duplicate = if data.post.nonce.isDefined then topicRepo.byId(topic.id) else findDuplicate(topic)
+      def replay(dup: ForumTopic): Fu[ForumTopic] =
+        if data.post.nonce.isEmpty then fuccess(dup)
+        else
+          postRepo.coll
+            .exists($id(post.id) ++ $doc("submissionDigest" -> post.submissionDigest))
+            .flatMap(ok =>
+              if ok then fuccess(dup) else fufail(lila.core.security.SubmissionRejected("conflict"))
+            )
+      duplicate.flatMap:
+        case Some(dup) => replay(dup)
         case None =>
-          for
-            _ <- topicRepo.coll.insert.one(topic.withPost(post))
-            _ <- categRepo.coll.update.one($id(categ.id), categ.withPost(topic, post))
-            _ <- postRepo.coll.insert.one(post)
+          val saved = for _ <- media.commit(categ.id, None, post.id, 0, data.post.ids) { tx =>
+              val boards = media.records(categRepo.coll, tx)
+              for
+                current <- tx.fold(fuccess(categ))(_ =>
+                  boards.byId[ForumCateg](categ.id).orFail("missing forum category")
+                )
+                _ <- media.records(topicRepo.coll, tx).insert.one(topic.withPost(post))
+                _ <- boards.update.one($id(categ.id), current.withPost(topic, post))
+                _ <- media.records(postRepo.coll, tx).insert.one(post)
+              yield ()
+            }
           yield
             promotion.save(me, post.text)
             val text = s"${topic.name} ${post.text}"
@@ -120,6 +147,14 @@ final private class ForumTopicApi(
             mentionNotifier.notifyMentionedUsers(post, topic)
             Bus.pub(CreatePost(post.mini))
             topic.withPost(post)
+          saved.recoverWith(
+            lila.db.recoverDuplicateKey(_ =>
+              topicRepo.byId(topic.id).flatMap {
+                case Some(dup) => replay(dup)
+                case None => fufail(lila.core.security.SubmissionRejected("conflict"))
+              }
+            )
+          )
     }
 
   def makeUblogDiscuss(

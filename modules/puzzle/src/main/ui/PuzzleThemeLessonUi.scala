@@ -49,7 +49,18 @@ final class PuzzleThemeLessonUi(helpers: Helpers):
                 ul(
                   li(lesson.pattern()),
                   li(lesson.finish())
-                )
+                ),
+                Map(
+                  "elbowHorse" -> "Elbow_horse",
+                  "childWorshipsBuddha" -> "Child_Worships_Buddha",
+                  "repatriationOfBuddha" -> "Repatriation_of_the_Buddha"
+                ).get(lesson.theme.key.value)
+                  .map: article =>
+                    p(
+                      a(href := s"https://wiki.lixiangqi.com/index.php/$article")(
+                        trans.site.xiangqiEncyclopedia()
+                      )
+                    )
               )
             ),
             div(cls := "puzzle-theme-lesson__board main-board")(

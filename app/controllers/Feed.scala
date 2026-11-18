@@ -4,7 +4,7 @@ import play.api.mvc.*
 
 import lila.app.{ *, given }
 
-final class Feed(env: Env) extends LilaController(env):
+final class Feed(env: Env) extends LilaController(env) with MobileDisplay:
 
   def api = env.feed.api
 
@@ -12,8 +12,8 @@ final class Feed(env: Env) extends LilaController(env):
     Reasonable(page):
       for
         updates <- env.feed.paginator.recent(isGrantedOpt(_.Feed), page)
-        renderedPage <- renderPage(views.feed.index(updates))
-      yield Ok(renderedPage)
+        result <- displayPage(views.feed.index(updates), if page == 1 then 300 else 86400)
+      yield result
 
   def createForm = Secure(_.Feed) { _ ?=> _ ?=>
     Ok.async(views.feed.create(api.form(none)))

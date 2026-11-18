@@ -55,7 +55,7 @@ final class ForumBits(helpers: Helpers):
   val dataUnsub = attr("data-unsub")
 
   def postTextarea(field: play.api.data.Field)(modifiers: Modifier*)(using Translate, Me) =
-    bits.markdownTextarea("forumPostBody".some):
+    bits.markdownTextarea(None):
       form3.textarea(field, "post-text-area")(
         rows := 10,
         autocomplete := "off",

@@ -1,4 +1,4 @@
-import { init, classModule, attributesModule } from 'snabbdom';
+import { init, classModule, attributesModule, eventListenersModule, propsModule } from 'snabbdom';
 
 import MsgCtrl from './ctrl';
 import type { MsgOpts } from './interfaces';
@@ -7,7 +7,7 @@ import view from './view/main';
 
 export function initModule(opts: MsgOpts) {
   const element = document.querySelector('.msg-app') as HTMLElement,
-    patch = init([classModule, attributesModule]),
+    patch = init([classModule, attributesModule, eventListenersModule, propsModule]),
     appHeight = () => document.body.style.setProperty('---app-height', `${window.innerHeight}px`);
   window.addEventListener('resize', appHeight);
   appHeight();

@@ -15,7 +15,18 @@ final class DirectoryPlayerUi(
   def index(players: Paginator[DirectoryPlayer.WithFollow], query: String, order: DirectoryPlayerOrder)(using
       Context
   ) =
-    directoryUi.page(trb.directoryPlayers.txt(), "players")(
+    directoryUi.page(
+      trb.directoryPlayers.txt(),
+      "players",
+      page =>
+        page.canonical(
+          lila.core.data.Url(
+            routeUrl(routes.PlayerDirectory.index(players.currentPage, query.nonEmptyOption)).value +
+              (if order == DirectoryPlayerOrder.default then ""
+               else (if query.nonEmpty || players.currentPage > 1 then "&" else "?") + s"order=${order.key}")
+          )
+        )
+    )(
       cls := "directory-players",
       boxTop(
         h1(trb.directoryPlayers()),

@@ -194,6 +194,7 @@ export class RectangularBoardView {
     const animated =
       silentRefresh ||
       transition.kind === 'forward' ||
+      transition.kind === 'optimistic' ||
       transition.kind === 'backward' ||
       transition.kind === 'confirmation';
     const duration =

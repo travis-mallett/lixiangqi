@@ -94,6 +94,8 @@ final class ForumPostRepo(val coll: Coll, filter: Filter = Safe)(using Executor)
       $doc(
         "createdAt".$gt(nowInstant.minusHours(1)),
         "userId" -> post.userId,
+        "topicId" -> post.topicId,
+        "attachments".$exists(false),
         "text" -> post.text
       )
 

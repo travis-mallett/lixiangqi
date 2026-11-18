@@ -56,7 +56,7 @@ object CmsPageDefaults:
         |
         |## Agreement
         |
-        |These Terms of Service ("Terms") govern your access to and use of lixiangqi.org and the services it provides ("Lixiangqi", the "site", or the "services"). By accessing or using the services, you agree to these Terms and the [Privacy Policy](/privacy). If you do not agree, do not use the services.
+        |These Terms of Service ("Terms") govern your access to and use of lixiangqi.com and the services it provides ("Lixiangqi", the "site", or the "services"). By accessing or using the services, you agree to these Terms and the [Privacy Policy](/privacy). If you do not agree, do not use the services.
         |
         |We may revise these Terms when the service or applicable requirements change. The date above will be updated when that happens. Continued use after a revision means that you accept the revised Terms.
         |
@@ -143,7 +143,7 @@ object CmsPageDefaults:
       "Privacy Policy",
       """Last updated: July 29, 2026
         |
-        |Lixiangqi is an online Xiangqi service. This policy explains what personal data the operators of lixiangqi.org collect, why it is used, when it is shared, and the choices available to you.
+        |Lixiangqi is an online Xiangqi service. This policy explains what personal data the operators of lixiangqi.com collect, why it is used, when it is shared, and the choices available to you.
         |
         |## Our principles
         |

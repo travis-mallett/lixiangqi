@@ -9,7 +9,8 @@ case class MsgThread(
     lastMsg: Msg.Last,
     del: Option[List[UserId]] = None,
     maskFor: Option[UserId] = None,
-    maskWith: Option[Msg.Last] = None
+    maskWith: Option[Msg.Last] = None,
+    preview: Map[String, Msg.Last] = Map.empty
 ):
 
   def users = List(user1, user2)

@@ -123,7 +123,7 @@ export class GraphPieces implements MotionHost {
       to = move?.[backward ? 0 : 1];
     if (
       this.enabled &&
-      ['forward', 'backward'].includes(transition.kind) &&
+      ['forward', 'optimistic', 'backward'].includes(transition.kind) &&
       from &&
       to &&
       previous.pieces.has(from) &&

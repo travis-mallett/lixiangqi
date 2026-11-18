@@ -143,6 +143,7 @@ final class LilaComponents(
   lazy val learn: Learn = wire[Learn]
   lazy val lobby: Lobby = wire[Lobby]
   lazy val main: Main = wire[Main]
+  lazy val attachment: Attachment = wire[Attachment]
   lazy val msg: Msg = wire[Msg]
   lazy val mod: Mod = wire[Mod]
   lazy val gameMod: GameMod = wire[GameMod]

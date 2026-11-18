@@ -20,6 +20,7 @@ export {
 } from './position';
 export type * from './types';
 export { createBoardAudio, boardSoundPath } from './audio';
+export { primaryBoardEffect } from './feedbackPolicy';
 export { boardImageSvg, type BoardImageOptions } from './image';
 export { graphPoint } from './renderer/graphGeometry';
 export { boardLayout, pieceGeometry } from './layout';

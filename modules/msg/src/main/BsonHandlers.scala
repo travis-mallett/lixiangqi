@@ -1,7 +1,6 @@
 package lila.msg
 
 import reactivemongo.api.bson.*
-import scalalib.ThreadLocalRandom
 
 import lila.db.BSON
 import lila.db.dsl.{ *, given }
@@ -9,7 +8,27 @@ import lila.db.dsl.{ *, given }
 private object BsonHandlers:
 
   import Msg.Last
-  given BSONDocumentHandler[Last] = Macros.handler
+  given BSON[Last] with
+    def reads(r: BSON.Reader) = Last(
+      r.str("text"),
+      r.get[UserId]("user"),
+      r.date("date"),
+      r.boolD("read"),
+      r.strO("id"),
+      r.boolD("deleted")
+    )
+    def writes(w: BSON.Writer, m: Last) = $doc(
+      "text" -> m.text,
+      "user" -> m.user,
+      "date" -> m.date,
+      "read" -> m.read,
+      "id" -> m.id,
+      "deleted" -> m.deleted
+    )
+
+  given BSONDocumentHandler[Msg.Quote] = Macros.handler
+  given BSONDocumentHandler[Msg.Version] = Macros.handler
+  given BSONDocumentHandler[Msg.Reaction] = Macros.handler
 
   given threadHandler: BSON[MsgThread] with
     def reads(r: BSON.Reader) =
@@ -20,8 +39,10 @@ private object BsonHandlers:
             user1 = UserId(u1),
             user2 = UserId(u2),
             lastMsg = r.get[Last]("lastMsg"),
+            del = r.getO[List[UserId]]("del"),
             maskFor = r.getO[UserId]("maskFor"),
-            maskWith = r.getO[Last]("maskWith")
+            maskWith = r.getO[Last]("maskWith"),
+            preview = r.getD[Map[String, Last]]("preview", Map.empty)
           )
         case x => sys.error(s"Invalid MsgThread users: $x")
     def writes(w: BSON.Writer, t: MsgThread) =
@@ -33,11 +54,46 @@ private object BsonHandlers:
         "maskWith" -> t.maskWith
       )
 
-  given msgHandler: BSONDocumentHandler[Msg] = Macros.handler
+  given msgHandler: BSON[Msg] with
+    def reads(r: BSON.Reader) = Msg(
+      text = r.str("text"),
+      user = r.get[UserId]("user"),
+      date = r.date("date"),
+      id = r.str("_id"),
+      reply = r.getO[Msg.Quote]("reply"),
+      forwarded = r.boolD("forwarded"),
+      history = r.getsD[Msg.Version]("history"),
+      editedAt = r.dateO("editedAt"),
+      deliveredAt = r.dateO("deliveredAt"),
+      readAt = r.dateO("readAt"),
+      deletedAt = r.dateO("deletedAt"),
+      reactions = r.getsD[Msg.Reaction]("reactions"),
+      pinnedAt = r.dateO("pinnedAt"),
+      revision = r.intD("revision"),
+      attachments = r.strsD("attachments"),
+      requestDigest = r.strO("requestDigest")
+    )
+    def writes(w: BSON.Writer, m: Msg) = $doc(
+      "_id" -> m.id,
+      "text" -> m.text,
+      "user" -> m.user,
+      "date" -> m.date,
+      "reply" -> m.reply,
+      "forwarded" -> m.forwarded,
+      "history" -> m.history,
+      "editedAt" -> m.editedAt,
+      "deliveredAt" -> m.deliveredAt,
+      "readAt" -> m.readAt,
+      "deletedAt" -> m.deletedAt,
+      "reactions" -> m.reactions,
+      "pinnedAt" -> m.pinnedAt,
+      "attachments" -> m.attachments.nonEmptyOption,
+      "requestDigest" -> m.requestDigest,
+      "revision" -> m.revision
+    )
 
   def writeMsg(msg: Msg, threadId: MsgThread.Id): Bdoc =
     msgHandler.writeTry(msg).get ++ $doc(
-      "_id" -> ThreadLocalRandom.nextString(10),
       "tid" -> threadId
     )
 

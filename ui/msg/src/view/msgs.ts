@@ -1,35 +1,54 @@
 import { h, type VNode } from 'snabbdom';
 
+import { mediaView } from 'lib/attachments';
 import { alert, confirm, makeLinkPopups, bind } from 'lib/view';
 import { json as xhrJson, form as xhrForm } from 'lib/xhr';
 
 import type MsgCtrl from '../ctrl';
 import type { Convo, Msg, Daily } from '../interfaces';
 import { enhance, isMoreThanText, expandLpvs } from './enhance';
+import { glyph, toolbar, showMenu, showDetails } from './messageActions';
 import { scroller } from './scroller';
 
+const presses = new WeakMap<EventTarget, { timer: Timeout; x: number; y: number }>();
+function cancelPress(e: Event) {
+  const target = e.currentTarget!;
+  clearTimeout(presses.get(target)?.timer);
+  presses.delete(target);
+}
+
 export default function renderMsgs(ctrl: MsgCtrl, convo: Convo): VNode {
-  return h('div.msg-app__convo__msgs', { hook: { insert: setupMsgs(true), postpatch: setupMsgs(false) } }, [
-    h('div.msg-app__convo__msgs__init'),
-    h('div.msg-app__convo__msgs__content', [
-      ctrl.canGetMoreSince
-        ? h(
-            'button.msg-app__convo__msgs__more.button.button-empty',
-            {
-              key: 'more',
-              attrs: { type: 'button' },
-              hook: bind('click', _ => {
-                scroller.setMarker();
-                ctrl.getMore();
-              }),
-            },
-            'Load more',
-          )
-        : null,
-      ...contentMsgs(ctrl, convo.msgs),
-      h('div.msg-app__convo__msgs__typing', ctrl.typing ? `${convo.user.name} is typing...` : null),
-    ]),
-  ]);
+  return h(
+    'div.msg-app__convo__msgs',
+    { on: { scroll: ctrl.setRead }, hook: { insert: setupMsgs(true), postpatch: setupMsgs(false) } },
+    [
+      h('div.msg-app__convo__msgs__init'),
+      h('div.msg-app__convo__msgs__content', [
+        ctrl.canGetMoreSince
+          ? h(
+              'button.msg-app__convo__msgs__more.button.button-empty',
+              {
+                key: 'more',
+                attrs: { type: 'button' },
+                hook: bind('click', _ => {
+                  scroller.setMarker();
+                  ctrl.getMore();
+                }),
+              },
+              i18n.inbox.older,
+            )
+          : null,
+        ...contentMsgs(ctrl, convo.msgs),
+        ctrl.typing
+          ? h(
+              'div.msg-typing',
+              { attrs: { role: 'status', 'aria-label': i18n.inbox.typing(convo.user.name) } },
+              [h('i'), h('i'), h('i')],
+            )
+          : null,
+      ]),
+    ],
+  );
 }
 
 function contentMsgs(ctrl: MsgCtrl, msgs: Msg[]): VNode[] {
@@ -52,8 +71,149 @@ function renderDaily(ctrl: MsgCtrl, daily: Daily): VNode[] {
 }
 
 function renderMsg(ctrl: MsgCtrl, msg: Msg) {
-  const tag = msg.user === ctrl.data.me.id ? 'mine' : 'their';
-  return h(tag, [renderText(msg), h('em', `${pad2(msg.date.getHours())}:${pad2(msg.date.getMinutes())}`)]);
+  const mine = msg.user === ctrl.data.me.id;
+  const status =
+    msg.pending === 'failed'
+      ? i18n.inbox.failed
+      : msg.pending
+        ? i18n.inbox.sending
+        : msg.readAt
+          ? i18n.inbox.read
+          : msg.deliveredAt
+            ? i18n.inbox.delivered
+            : i18n.inbox.sent;
+  return h(
+    'article.msg-row',
+    {
+      key: msg.id,
+      class: { mine, their: !mine, selected: ctrl.selected.has(msg.id) },
+      attrs: { 'data-message-id': msg.id, tabindex: 0 },
+      on: {
+        contextmenu: e => {
+          e.preventDefault();
+          void showMenu(ctrl, msg);
+        },
+        pointerdown: (e: PointerEvent) => {
+          cancelPress(e);
+          if (e.pointerType === 'touch')
+            presses.set(e.currentTarget!, {
+              timer: setTimeout(() => showMenu(ctrl, msg), 450),
+              x: e.clientX,
+              y: e.clientY,
+            });
+        },
+        pointerup: cancelPress,
+        pointercancel: cancelPress,
+        pointermove: (e: PointerEvent) => {
+          const press = presses.get(e.currentTarget!);
+          if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > 8) cancelPress(e);
+        },
+        click: () => {
+          if (ctrl.selected.size) ctrl.toggleSelect(msg.id);
+        },
+        keydown: (e: KeyboardEvent) => {
+          if (e.key === 'F10' && e.shiftKey) {
+            e.preventDefault();
+            void showMenu(ctrl, msg);
+          }
+        },
+      },
+    },
+    [
+      ctrl.selected.size
+        ? h('input.msg-select', {
+            attrs: { type: 'checkbox', checked: ctrl.selected.has(msg.id), 'aria-label': i18n.inbox.select },
+            on: { click: e => e.stopPropagation(), change: () => ctrl.toggleSelect(msg.id) },
+          })
+        : null,
+      h('div.msg-bubble-wrap', [
+        h('div.msg-bubble', { class: { deleted: !!msg.deleted } }, [
+          msg.forwarded && !msg.deleted
+            ? h('small.msg-forwarded', [glyph('forward'), i18n.inbox.forwarded])
+            : null,
+          msg.reply && !msg.deleted
+            ? h(
+                'button.msg-quote',
+                {
+                  on: {
+                    click: () =>
+                      document
+                        .querySelector<HTMLElement>(`[data-message-id="${CSS.escape(msg.reply!.id)}"]`)
+                        ?.scrollIntoView({ block: 'center', behavior: 'smooth' }),
+                  },
+                },
+                [h('strong', msg.reply.user), h('span', msg.reply.text)],
+              )
+            : null,
+          msg.deleted ? h('t', i18n.inbox.deleted) : renderText(msg),
+          ...(!msg.deleted && !msg.pending ? (msg.attachments ?? []) : []).map(id => mediaView('msg', id)),
+          h('div.msg-meta', [
+            msg.pinnedAt ? glyph('pin') : null,
+            msg.editedAt && !msg.deleted
+              ? h(
+                  'button.msg-edited',
+                  {
+                    on: {
+                      click: e => {
+                        e.stopPropagation();
+                        void showDetails(ctrl, msg, true);
+                      },
+                    },
+                  },
+                  i18n.inbox.edited,
+                )
+              : null,
+            h(
+              'time',
+              { attrs: { title: msg.date.toLocaleString(), datetime: msg.date.toISOString() } },
+              `${pad2(msg.date.getHours())}:${pad2(msg.date.getMinutes())}`,
+            ),
+            mine && !msg.deleted
+              ? h(
+                  'span.msg-receipt',
+                  {
+                    class: { read: !!msg.readAt, delivered: !!msg.deliveredAt },
+                    attrs: { title: status, 'aria-label': status },
+                  },
+                  [glyph(msg.pending ? 'clock' : msg.readAt ? 'read' : 'check')],
+                )
+              : null,
+          ]),
+        ]),
+        msg.pending === 'failed'
+          ? h('button.msg-send-failed', { on: { click: () => ctrl.retry(msg) } }, i18n.inbox.failed)
+          : null,
+        msg.reactions.length && !msg.deleted
+          ? h(
+              'div.msg-reactions',
+              [...new Set(msg.reactions.map(r => r.emoji))].map(emoji =>
+                h(
+                  'button',
+                  {
+                    class: { mine: msg.reactions.some(r => r.emoji === emoji && r.user === ctrl.data.me.id) },
+                    attrs: {
+                      title: msg.reactions
+                        .filter(r => r.emoji === emoji)
+                        .map(r => r.user)
+                        .join(', '),
+                      'aria-label': `${i18n.inbox.reactions} ${emoji}`,
+                    },
+                    on: {
+                      click: e => {
+                        e.stopPropagation();
+                        void showMenu(ctrl, msg, true);
+                      },
+                    },
+                  },
+                  `${emoji} ${msg.reactions.filter(r => r.emoji === emoji).length}`,
+                ),
+              ),
+            )
+          : null,
+      ]),
+      !msg.pending && !ctrl.selected.size ? toolbar(ctrl, msg) : null,
+    ],
+  );
 }
 const pad2 = (num: number): string => (num < 10 ? '0' : '') + num;
 
@@ -63,7 +223,8 @@ function groupMsgs(msgs: Msg[]): Daily[] {
   const dailies: Daily[] = [{ date: prev.date, msgs: [[prev]] }];
   msgs.slice(1).forEach(msg => {
     if (sameDay(msg.date, prev.date)) {
-      if (msg.user === prev.user) dailies[0].msgs[0].unshift(msg);
+      if (msg.user === prev.user && prev.date.getTime() - msg.date.getTime() < 300000)
+        dailies[0].msgs[0].unshift(msg);
       else dailies[0].msgs.unshift([msg]);
     } else dailies.unshift({ date: msg.date, msgs: [[msg]] });
     prev = msg;
@@ -97,6 +258,7 @@ const sameDay = (d: Date, e: Date) =>
 const renderText = (msg: Msg) =>
   isMoreThanText(msg.text)
     ? h('t', {
+        key: msg.text,
         hook: {
           create(_, vnode: VNode) {
             const el = vnode.elm as HTMLElement;

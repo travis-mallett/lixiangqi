@@ -1,4 +1,4 @@
-import { boardAssets, boardSoundPath } from '@lixiangqi/board';
+import { boardAssets, boardSoundPath, primaryBoardEffect, type BoardEffect } from '@lixiangqi/board';
 
 import { requestIdleCallbackSafe } from 'lib';
 import { throttle } from 'lib/async';
@@ -150,9 +150,12 @@ class SoundService implements SoundI {
     const mate = o?.mate ?? o?.san?.includes('#');
     const check = o?.check ?? o?.san?.includes('+');
     const capture = o?.capture ?? o?.san?.includes('x');
-    if (mate) this.throttled('checkmate', volume);
-    else if (check) this.throttled('check', volume);
-    else if (capture) this.throttled('capture', volume);
+    const effects: BoardEffect[] = [];
+    if (mate) effects.push('checkmate');
+    if (check) effects.push('check');
+    if (capture) effects.push('capture');
+    const effect = primaryBoardEffect(effects);
+    if (effect) this.throttled(effect, volume);
   }
 
   async playAndDelayMateResultIfNecessary(_name: Name): Promise<void> {
