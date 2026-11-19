@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="solutionBranchesUnavailable">Bạn đã có thể xem lời giải chính. Một số biến chưa tải được. Chọn Thử lại để tải các biến đó.</string>
   <string name="puzzles">Câu đố</string>
   <string name="puzzleThemes">Chủ đề câu đố</string>
   <string name="recommended">Được đề xuất</string>

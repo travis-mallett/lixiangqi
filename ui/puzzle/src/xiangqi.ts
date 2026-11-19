@@ -1,6 +1,5 @@
-import { type XiangqiNotationStyle } from 'lib/game';
 import { replayXiangqiVariation, type RulesState } from 'lib/game/xiangqiNotation';
-import { addOrSelectChild, createMoveTree, createMoveTreeFromStates } from 'lib/tree/native';
+import { createMoveTreeFromStates } from 'lib/tree/native';
 import { completeNode } from 'lib/tree/node';
 import { path as pathOps } from 'lib/tree/tree';
 import type { TreeNode } from 'lib/tree/types';
@@ -13,39 +12,40 @@ export type XiangqiPuzzleNode = TreeNode & {
   chineseNotation?: string;
 };
 
-export async function buildSolutionTree(
-  data: PuzzleData,
-  notationStyle: XiangqiNotationStyle,
-  current: () => boolean,
-  signal?: AbortSignal,
-): Promise<XiangqiPuzzleNode | undefined> {
-  let initial = buildXiangqiTree(data, notationStyle);
-  while (initial.children[0]) initial = initial.children[0];
-  const tree = createMoveTree(initial.state, data.game.ruleset);
-  for (const line of data.puzzle.playback.solutions) {
-    const replay = await replayXiangqiVariation(
-      data.game.states[0].fen,
-      data.game.moves ?? [],
-      data.game.ruleset,
-      line,
-      signal ? AbortSignal.any([signal, AbortSignal.timeout(15_000)]) : AbortSignal.timeout(15_000),
-    );
-    if (!current()) return;
-    let path = '';
-    for (let index = 0; index < line.length; index++) {
-      const move = replay.moves[index];
-      path = addOrSelectChild(tree, path, {
-        uci: line[index],
-        state: move.state,
-        notation: move.notation,
-        chineseNotation: move.chineseNotation,
-      }).path;
-    }
-  }
-  return tree.root;
+export function buildSolutionTree({ puzzle }: PuzzleData) {
+  const line = puzzle.playback.solutions[0];
+  const labels = puzzle.solutionLabels;
+  return createMoveTreeFromStates(
+    puzzle.solutionStates,
+    line,
+    line.map((move, i) => labels?.[i]?.notation ?? move),
+    labels?.map(m => m.chineseNotation),
+    [],
+    0,
+    puzzle.ruleset,
+  );
 }
 
-export function buildXiangqiTree(data: PuzzleData, _notationStyle: XiangqiNotationStyle): XiangqiPuzzleNode {
+export async function replaySolutionBranch(data: PuzzleData, line: string[], signal: AbortSignal) {
+  const { moves } = await replayXiangqiVariation(
+    data.game.states[0].fen,
+    data.game.moves ?? [],
+    data.game.ruleset,
+    line,
+    signal,
+  );
+  return createMoveTreeFromStates(
+    [data.puzzle.solutionStates[0], ...moves.map(m => m.state)],
+    line,
+    moves.map(m => m.notation),
+    moves.map(m => m.chineseNotation),
+    [],
+    0,
+    data.game.ruleset,
+  ).root;
+}
+
+export function buildXiangqiTree(data: PuzzleData): XiangqiPuzzleNode {
   return createMoveTreeFromStates(
     data.game.states,
     data.game.moves ?? [],

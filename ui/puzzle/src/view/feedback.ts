@@ -35,6 +35,12 @@ const fail = (ctrl: PuzzleCtrl): VNode =>
   ]);
 
 export default function (ctrl: PuzzleCtrl): MaybeVNode {
+  if (ctrl.viewingSolution)
+    return ctrl.solutionBranchesUnavailable
+      ? h('div.puzzle__feedback', { attrs: { role: 'status' } }, [
+          h('div.instruction', i18n.puzzle.solutionBranchesUnavailable),
+        ])
+      : afterView(ctrl);
   if (enginePreparing(ctrl.engineStatus) || ctrl.engineStatus.state === 'error')
     return h('div.puzzle__feedback.engine-loading', [
       enginePreparing(ctrl.engineStatus) ? progressBar(engineProgress(true, ctrl.engineStatus)) : undefined,

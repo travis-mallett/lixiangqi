@@ -1,27 +1,36 @@
-import { throttle } from 'lib/async';
-
 class Scroller {
   enabled = false;
   element?: HTMLElement;
   marker?: HTMLElement;
 
-  init = (e: HTMLElement) => {
+  private resize?: ResizeObserver;
+
+  init = (el: HTMLElement) => {
+    this.element = el;
     this.enabled = true;
-    this.element = e;
-    this.element.addEventListener(
-      'scroll',
-      throttle(500, _ => {
-        const el = this.element;
-        this.enable(!!el && el.offsetHeight + el.scrollTop > el.scrollHeight - 20);
-      }),
-      { passive: true },
-    );
+    this.marker = undefined;
+    el.addEventListener('scroll', this.onScroll, { passive: true });
+    this.resize = new ResizeObserver(this.auto);
+    this.resize.observe(el);
+    this.resize.observe(el.querySelector('.msg-app__convo__msgs__content')!);
+  };
+  destroy = () => {
+    this.element?.removeEventListener('scroll', this.onScroll);
+    this.resize?.disconnect();
+    this.element = undefined;
+    this.marker = undefined;
+  };
+  private onScroll = () => {
+    const el = this.element;
+    if (el) this.enabled = el.clientHeight + el.scrollTop >= el.scrollHeight - 20;
   };
   auto = () => {
-    if (this.element && this.enabled) requestAnimationFrame(() => (this.element!.scrollTop = 9999999));
+    const el = this.element;
+    if (el && this.enabled) el.scrollTop = el.scrollHeight;
   };
-  enable = (v: boolean) => {
-    this.enabled = v;
+  followNewest = () => {
+    this.marker = undefined;
+    this.enabled = true;
   };
   setMarker = () => {
     this.marker = this.element?.querySelector('.msg-row') as HTMLElement;

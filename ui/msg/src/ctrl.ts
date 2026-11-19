@@ -72,6 +72,7 @@ export default class MsgCtrl {
   openConvo = async (userId: string, refresh = false) => {
     if (refresh && this.data.convo?.user.id !== userId) return;
     if (!refresh) {
+      scroller.followNewest();
       this.preview.reset();
       this.mailbox.openPanel();
       this.mailbox.selecting = false;
@@ -323,7 +324,7 @@ export default class MsgCtrl {
     convo.msgs.unshift(msg);
     // Keep the editable draft until the server accepts this nonce.
     this.stopTyping();
-    scroller.enable(true);
+    scroller.followNewest();
     this.redraw();
     return this.sendPending(convo, msg);
   };
@@ -678,7 +679,7 @@ export default class MsgCtrl {
     }
   }
   changeBlockBy = (user: string) => {
-    if (user === this.data.convo?.user.id) void this.openConvo(user);
+    if (user === this.data.convo?.user.id) void this.openConvo(user, true);
   };
 
   sendTyping = throttle(3000, () => {
@@ -704,7 +705,7 @@ export default class MsgCtrl {
     this.redraw();
   };
   onReconnect = () => {
-    if (this.data.convo) void this.openConvo(this.data.convo.user.id);
+    if (this.data.convo) void this.openConvo(this.data.convo.user.id, true);
     else void this.refreshContacts();
   };
 }

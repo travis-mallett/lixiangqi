@@ -794,7 +794,10 @@ test('saved root alternatives use no engine and reveal every nested variation', 
   await internal.playXiangqiUciAt(ctrl.path, 'a1a5');
   assert.equal(ctrl.xiangqiBestMove, true);
   assert.equal(ctrl.lastFeedback, 'good');
-  await internal.viewXiangqiSolution();
+  t.mock.timers.tick(750);
+  await new Promise<void>(resolve => setImmediate(resolve));
+  ctrl.applyProgress('fail');
+  await ctrl.viewSolution();
   const root = ctrl.initialNode;
   assert.equal(root.children.length, 2);
   const a = root.children.find(node => node.uci === 'a1a2')!;
@@ -871,7 +874,8 @@ test('Solution replaces source history and attempts with only published branches
       }),
     );
   });
-  await (ctrl as any).viewXiangqiSolution();
+  ctrl.applyProgress('fail');
+  await ctrl.viewSolution();
   assert.equal(ctrl.tree.root.fen, position.fen);
   assert.equal(ctrl.tree.root.uci, undefined);
   assert.equal(ctrl.initialPath, '');
@@ -907,10 +911,10 @@ test('Solution replaces source history and attempts with only published branches
   assert.equal(ctrl.viewingSolution, false);
 });
 
-test('Solution batches a long line and remains cancellable through Restart', async t => {
+test('Solution is navigable while an alternative loads and Restart cancels the request', async t => {
   const options = opts();
   options.data.puzzle.id = 'batch-cancel';
-  options.data.puzzle.playback.solutions = [['a1a3', 'e10d10', 'a3a4']];
+  options.data.puzzle.playback.solutions.push(['a1a3', 'e10d10', 'a3a4']);
   const { ctrl } = await readyController(options);
   ctrl.completed = true;
   let signal: AbortSignal | undefined;
@@ -918,16 +922,18 @@ test('Solution batches a long line and remains cancellable through Restart', asy
   t.mock.method(globalThis, 'fetch', async (url, init) => {
     requests++;
     assert.equal(url, '/api/analysis/variation');
-    assert.deepEqual(JSON.parse(init!.body as string).variation, options.data.puzzle.playback.solutions[0]);
+    assert.deepEqual(JSON.parse(init!.body as string).variation, options.data.puzzle.playback.solutions[1]);
     signal = init!.signal as AbortSignal;
     return new Promise<Response>((_resolve, reject) =>
       signal!.addEventListener('abort', () => reject(signal!.reason)),
     );
   });
-  const work = (ctrl as any).viewXiangqiSolution();
+  const work = ctrl.viewSolution();
   assert.equal(ctrl.canUseActions(), true);
   assert.equal(ctrl.canViewSolution(), false);
-  assert.equal(ctrl.viewingSolution, false);
+  assert.equal(ctrl.viewingSolution, true);
+  ctrl.userJump('a1a2');
+  assert.equal(ctrl.path, 'a1a2');
   ctrl.retryPuzzle();
   await work;
   assert.equal(requests, 1);
@@ -937,19 +943,83 @@ test('Solution batches a long line and remains cancellable through Restart', asy
   assert.equal((ctrl as any).xiangqiBusy, false);
 });
 
-test('Solution request failure releases controls and permits a retry', async t => {
+test('Solution opens after a loss without fetch, a ready engine or modern AbortSignal helpers', async t => {
   const options = opts();
   options.data.puzzle.playback.solutions = [['a1a7']];
+  options.data.puzzle.solutionLabels = [{ notation: 'R9+6', chineseNotation: '車九進六' }];
+  const { ctrl, results } = await readyController(options);
+  ctrl.applyProgress('fail');
+  ctrl.resultSent = true;
+  ctrl.engineStatus = { state: 'error', error: 'unavailable' };
+  const fetch = t.mock.method(globalThis, 'fetch', () => Promise.reject(new Error('offline')));
+  t.mock.method(AbortSignal, 'any', () => assert.fail('abort composition unavailable'));
+  t.mock.method(AbortSignal, 'timeout', () => assert.fail('abort timeout unavailable'));
+  await ctrl.viewSolution();
+  ctrl.userJump('a1a7');
+  assert.equal(ctrl.node.fen, ctrl.data.puzzle.solutionStates[1].fen);
+  assert.equal(ctrl.node.notation, 'R9+6');
+  assert.equal(ctrl.node.chineseNotation, '車九進六');
+  assert.equal(fetch.mock.callCount(), 0);
+  assert.deepEqual(results, [false]);
+  assert.equal(ctrl.xiangqiEngineError, false);
+  assert.equal(ctrl.viewingSolution, true);
+});
+
+test('an unavailable branch can be retried without losing the main line, siblings or cursor', async t => {
+  const options = opts();
+  options.data.puzzle.playback.solutions = [['a1a2'], ['a1a8'], ['a1a9']];
   const { ctrl } = await readyController(options);
   ctrl.completed = true;
-  t.mock.method(console, 'error', () => {});
-  t.mock.method(globalThis, 'fetch', async () => {
-    throw new Error('offline');
+  t.mock.method(console, 'warn', () => {});
+  const requested: string[] = [];
+  const fetch = t.mock.method(globalThis, 'fetch', async (_url, init) => {
+    const { variation } = JSON.parse(init!.body as string);
+    const [move] = variation;
+    requested.push(move);
+    if (requested.length === 1) throw new Error('offline');
+    return Response.json({
+      moves: [{ move, notation: move, chineseNotation: move, state: fixturePositions(fen, variation)[1] }],
+    });
   });
-  await (ctrl as any).viewXiangqiSolution();
+  await ctrl.viewSolution();
+  assert.deepEqual(requested, ['a1a8', 'a1a9']);
   assert.equal(ctrl.canUseActions(), true);
-  assert.equal(ctrl.canViewSolution(), true);
   assert.equal(ctrl.canRetry(), true);
-  assert.equal(ctrl.xiangqiEngineError, true);
-  assert.equal(ctrl.viewingSolution, false);
+  assert.equal(ctrl.xiangqiEngineError, false);
+  assert.equal(ctrl.solutionBranchesUnavailable, true);
+  ctrl.userJump('a1a9');
+  ctrl.retryFailedMove();
+  await new Promise<void>(resolve => setImmediate(resolve));
+  assert.equal(ctrl.path, 'a1a9');
+  assert.equal(ctrl.tree.pathExists('a1a8'), true);
+  assert.equal(ctrl.tree.root.children[0].uci, 'a1a2');
+  assert.equal(ctrl.solutionBranchesUnavailable, false);
+  assert.equal(ctrl.canRetry(), false);
+  assert.equal(fetch.mock.callCount(), 3);
+});
+
+test('an alternative timing out leaves the selected solution move and the recorded result intact', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const options = opts();
+  options.data.puzzle.playback.solutions.push(['a1a6']);
+  const { ctrl, results } = await readyController(options);
+  ctrl.applyProgress('fail');
+  ctrl.resultSent = true;
+  t.mock.method(console, 'warn', () => {});
+  t.mock.method(
+    globalThis,
+    'fetch',
+    (_url, init) =>
+      new Promise<Response>((_resolve, reject) =>
+        init!.signal!.addEventListener('abort', () => reject(new Error('timeout'))),
+      ),
+  );
+  const loading = ctrl.viewSolution();
+  ctrl.userJump('a1a2/e10d10/a2a3');
+  t.mock.timers.tick(15_000);
+  await loading;
+  assert.equal(ctrl.node.fen, ctrl.data.puzzle.solutionStates.at(-1)!.fen);
+  assert.equal(ctrl.canRetry(), true);
+  assert.equal(ctrl.xiangqiEngineError, false);
+  assert.deepEqual(results, [false]);
 });

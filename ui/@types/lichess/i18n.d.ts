@@ -3167,6 +3167,8 @@ interface I18n {
     restartPuzzle: string;
     /** Search puzzles */
     searchPuzzles: string;
+    /** The main solution is ready. Some alternative lines could not load. Select Retry to load them. */
+    solutionBranchesUnavailable: string;
     /** solved */
     solved: string;
     /** Puzzle solved in %s moves. */

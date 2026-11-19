@@ -34,6 +34,7 @@ import {
   buildSolutionTree,
   makeXiangqiNode,
   nextXiangqiMove,
+  replaySolutionBranch,
   splitXiangqiUci,
   type XiangqiPuzzleNode,
 } from './xiangqi';
@@ -94,6 +95,7 @@ export default class PuzzleCtrl {
   private xiangqiBusy = false;
   viewingSolution = false;
   private solutionAbort?: AbortController;
+  solutionBranchesUnavailable = false;
   private readonly alternatives = new Map<string, AlternativeResult & { bestMove: boolean }>();
   xiangqiEvaluating = false;
   moveEvaluationDepth?: number;
@@ -272,7 +274,7 @@ export default class PuzzleCtrl {
     this.xiangqiHints.clear();
     this.xiangqiFailedPath = undefined;
     this.xiangqiFailureDetail = undefined;
-    this.tree = makeTree(buildXiangqiTree(this.data, this.pref.notationStyle));
+    this.tree = makeTree(buildXiangqiTree(this.data));
     const initialPath = treePath.fromNodeList(treeOps.mainlineNodeList(this.tree.root));
     this.mode = 'play';
     this.next = defer();
@@ -393,6 +395,7 @@ export default class PuzzleCtrl {
   private readonly cancelXiangqiWork = (): void => {
     this.solutionAbort?.abort();
     this.solutionAbort = undefined;
+    this.solutionBranchesUnavailable = false;
     this.xiangqiGeneration++;
     this.xiangqiEngine?.stop();
     this.xiangqiBusy = false;
@@ -656,11 +659,7 @@ export default class PuzzleCtrl {
     this.redraw();
   };
 
-  canUseActions = (): boolean =>
-    this.engineReady() &&
-    this.completed &&
-    (!this.xiangqiBusy || !!this.solutionAbort) &&
-    !this.xiangqiReplyPending;
+  canUseActions = (): boolean => this.completed && !this.xiangqiBusy && !this.xiangqiReplyPending;
 
   canHint = (): boolean =>
     this.engineReady() &&
@@ -671,15 +670,22 @@ export default class PuzzleCtrl {
     treePath.contains(this.path, this.initialPath) &&
     (this.node as XiangqiPuzzleNode).state.turn === (this.pov === 'white' ? 'red' : 'black');
 
-  canRetry = (): boolean =>
-    !this.xiangqiBusy &&
-    !this.xiangqiReplyPending &&
-    (this.engineStatus.state === 'error' ||
+  canRetry = (): boolean => {
+    if (this.xiangqiBusy || this.xiangqiReplyPending) return false;
+    if (this.viewingSolution) return this.solutionBranchesUnavailable && !this.solutionAbort;
+    return (
+      this.engineStatus.state === 'error' ||
       (this.engineReady() &&
-        (!!this.xiangqiRetry || (this.completed && this.xiangqiFailedPath !== undefined))));
+        (!!this.xiangqiRetry || (this.completed && this.xiangqiFailedPath !== undefined)))
+    );
+  };
 
   retryFailedMove = (): void => {
     if (!this.canRetry()) return;
+    if (this.viewingSolution) {
+      void this.loadSolutionBranches();
+      return;
+    }
     if (this.engineStatus.state === 'error') {
       void this.prepareXiangqiEngine().then(() => {
         if (this.engineReady()) {
@@ -806,7 +812,7 @@ export default class PuzzleCtrl {
     trackTraffic('puzzle.retry', {}, {}, this.trafficAttempt);
     this.cancelXiangqiWork();
     this.viewingSolution = false;
-    this.tree = makeTree(buildXiangqiTree(this.data, this.pref.notationStyle));
+    this.tree = makeTree(buildXiangqiTree(this.data));
     this.initialPath = treePath.fromNodeList(treeOps.mainlineNodeList(this.tree.root));
     this.initialNode = this.tree.nodeAtPath(this.initialPath);
     this.solutions = new PuzzleSolutions(this.data.puzzle.playback.solutions);
@@ -836,8 +842,8 @@ export default class PuzzleCtrl {
       if (this.lastFeedback === 'fail') site.redirect(this.routerWithLang('/streak'));
       return;
     }
+    this.cancelXiangqiWork();
     if (this.mode !== 'view') {
-      this.cancelXiangqiWork();
       this.sendResult(false);
       this.mode = 'view';
     }
@@ -952,52 +958,52 @@ export default class PuzzleCtrl {
     this.redraw();
   };
 
-  canViewSolution = (): boolean => this.canUseActions() && !this.xiangqiBusy;
+  canViewSolution = (): boolean => this.canUseActions() && !this.solutionAbort;
 
-  viewSolution = (): void => {
+  viewSolution = async (): Promise<void> => {
+    if (!this.canViewSolution()) return;
     trackTraffic('puzzle.revealed', {}, {}, this.trafficAttempt);
     trafficActivity('puzzle.review', this.trafficAttempt, { theme: this.data.angle.key });
-    if (this.canViewSolution()) void this.viewXiangqiSolution();
-  };
-
-  private readonly viewXiangqiSolution = async (): Promise<void> => {
     this.cancelXiangqiWork();
     this.xiangqiEngineError = false;
     this.xiangqiFailure = undefined;
     this.xiangqiFailureDetail = undefined;
     this.xiangqiFailedPath = undefined;
-    this.sendResult(false);
-    this.solutionAbort = new AbortController();
-    this.xiangqiBusy = true;
-    const generation = this.xiangqiGeneration;
-    const current = () => generation === this.xiangqiGeneration;
-    this.redraw();
-    try {
-      const root = await buildSolutionTree(
-        this.data,
-        this.pref.notationStyle,
-        current,
-        this.solutionAbort.signal,
-      );
-      if (!root || !current()) return;
+    if (!this.viewingSolution) {
+      if (!this.resultSent) void this.sendResult(false);
+      this.tree = buildSolutionTree(this.data);
+      this.initialPath = treePath.root;
+      this.initialNode = this.tree.root;
       this.mode = 'view';
       this.viewingSolution = true;
-      this.tree = makeTree(root);
-      this.initialPath = treePath.root;
-      this.initialNode = root;
-      this.jump(treePath.root);
-    } catch (error) {
-      if (!current()) return;
-      console.error(error);
-      this.xiangqiEngineError = true;
-      this.xiangqiRetry = this.viewSolution;
-    } finally {
-      if (current()) {
-        this.solutionAbort = undefined;
-        this.xiangqiBusy = false;
-        this.withGround(this.showGround);
-        this.redraw();
+    }
+    this.jump(treePath.root);
+    this.redraw();
+    await this.loadSolutionBranches();
+  };
+
+  private readonly loadSolutionBranches = async (): Promise<void> => {
+    const generation = this.xiangqiGeneration;
+    this.solutionBranchesUnavailable = false;
+    for (const line of this.data.puzzle.playback.solutions.slice(1)) {
+      if (this.tree.pathExists(treePath.join(line))) continue;
+      const abort = (this.solutionAbort = new AbortController());
+      const timer = setTimeout(() => abort.abort(), 15_000);
+      this.redraw();
+      try {
+        const branch = await replaySolutionBranch(this.data, line, abort.signal);
+        if (generation !== this.xiangqiGeneration) return;
+        this.tree.merge(branch);
+        this.mainline = treeOps.mainlineNodeList(this.tree.root);
+      } catch (error) {
+        if (generation !== this.xiangqiGeneration) return;
+        console.warn('Puzzle solution branch unavailable', this.data.puzzle.id, line, error);
+        this.solutionBranchesUnavailable = true;
+      } finally {
+        clearTimeout(timer);
+        if (this.solutionAbort === abort) this.solutionAbort = undefined;
       }
+      this.redraw();
     }
   };
 

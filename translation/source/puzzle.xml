@@ -26,6 +26,7 @@
   <string name="forcedMateLost">Forced mate lost</string>
   <string name="moveAllowanceExceeded">Move allowance reached</string>
   <string name="alternativeEvaluationUnavailable">Could not verify this move. Retry or choose another move. No result recorded.</string>
+  <string name="solutionBranchesUnavailable">The main solution is ready. Some alternative lines could not load. Select Retry to load them.</string>
   <string name="puzzles">Puzzles</string>
   <string name="puzzleThemes">Puzzle Themes</string>
   <string name="recommended">Recommended</string>

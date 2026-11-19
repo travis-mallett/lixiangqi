@@ -9,6 +9,7 @@ import play.api.libs.json.*
 import lila.common.Json.given
 import lila.core.i18n.Translate
 import lila.core.net.ApiVersion
+import lila.xiangqi.Xiangqi
 import lila.xiangqi.XiangqiJson.given
 
 final class JsonView(
@@ -205,7 +206,10 @@ object JsonView:
     "rating" -> puzzle.glicko.intRating,
     "plays" -> puzzle.plays,
     "solution" -> puzzle.playback.solutions.head,
-    "solutionStates" -> puzzle.solutionStates,
+    "solutionStates" -> (puzzle.initialGame.state +: puzzle.solutionVariation.moves.map(_.state)),
+    "solutionLabels" -> puzzle.solutionVariation.moves.map(m =>
+      Xiangqi.MoveLabels(m.notation, m.chineseNotation)
+    ),
     "ruleset" -> puzzle.initialGame.ruleset,
     "playback" -> Json.obj(
       "objective" -> puzzle.playback.objective,

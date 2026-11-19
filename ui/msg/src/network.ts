@@ -138,7 +138,7 @@ export function websocketHandler(ctrl: MsgCtrl) {
     ctrl.revokeMedia(user);
     if (user === ctrl.data.me.id || user === ctrl.data.convo?.user.id) {
       ctrl.redraw();
-      if (ctrl.data.convo) void ctrl.openConvo(ctrl.data.convo.user.id);
+      if (ctrl.data.convo) void ctrl.openConvo(ctrl.data.convo.user.id, true);
     }
   });
   pubsub.on('socket.in.msgReceipt', ctrl.receiveReceipt);

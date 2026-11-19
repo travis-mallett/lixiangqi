@@ -2,6 +2,7 @@ import type { RulesState } from 'xiangqi';
 
 import type { XiangqiNotationStyle } from 'lib/game';
 import perfIcons from 'lib/game/perfIcons';
+import type { MoveLabels } from 'lib/game/xiangqiNotation';
 import type { Coords, MoveEvent } from 'lib/prefs';
 import type { TreePath } from 'lib/tree/types';
 
@@ -106,6 +107,7 @@ export interface PuzzleUser {
 
 export interface Puzzle {
   solutionStates: RulesState[];
+  solutionLabels?: MoveLabels[];
   ruleset: string;
   id: PuzzleId;
   playback: PuzzlePlayback;

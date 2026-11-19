@@ -19,6 +19,16 @@ Xiangqi analysis; active attempts include source-game history, keep one attempte
 and discard abandoned retries. Hints follow the current branch; on an
 unsaved line they use the engine's recommendation for that position.
 
+Solution opens the main line immediately from the puzzle response. The native
+rules replay that supplies `solutionStates` also supplies the WXF and Chinese
+`solutionLabels` for each move. A previously saved puzzle without labels uses
+coordinate notation. Reviewing the main line needs neither a rules request nor
+a ready engine. The browser loads other published branches on demand when
+Solution opens, using their full source-game history. If a branch fails or times
+out, the main line and the other loaded branches remain navigable. Retry loads
+the missing branches and preserves the selected move. Restart and Next
+cancel outstanding requests.
+
 Pikafish evaluates deviations in the user's browser with one `go infinite` search
 and a four-second budget, with half the
 device's reported logical CPUs (rounded down, minimum one). Native server rules

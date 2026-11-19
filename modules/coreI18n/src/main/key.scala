@@ -1566,6 +1566,7 @@ object I18nKey:
     val `forcedMateLost`: I18nKey = "puzzle:forcedMateLost"
     val `moveAllowanceExceeded`: I18nKey = "puzzle:moveAllowanceExceeded"
     val `alternativeEvaluationUnavailable`: I18nKey = "puzzle:alternativeEvaluationUnavailable"
+    val `solutionBranchesUnavailable`: I18nKey = "puzzle:solutionBranchesUnavailable"
     val `puzzles`: I18nKey = "puzzle:puzzles"
     val `puzzleThemes`: I18nKey = "puzzle:puzzleThemes"
     val `recommended`: I18nKey = "puzzle:recommended"

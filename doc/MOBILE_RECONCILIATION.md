@@ -185,3 +185,30 @@ The production asset build and six Chromium and Firefox layout tests passed at 3
 ## Signal link previews and composer
 
 The main Flutter app adopts Signal Android’s inline emoji and attachment controls, compact thumbnail and landscape banner layouts. The website uses Signal Desktop’s square-image cutoff and three-line composer. Eligible links generate previews automatically on both clients, and composers can dismiss an individual snapshot. Xiangqi Kids has no private inbox. Both checkpoints retain their previous positions. The website and native app ship independently using the existing backend contract. [Pinned sources and working-tree fingerprints](MESSAGING_RECONCILIATION.json#signalPreviewComposerLayout)
+
+## Puzzle solution review, November 18, 2026
+
+The website now opens the primary answer from the puzzle's verified positions.
+Each additional published line loads independently of the main answer. The
+response includes move labels from the same rules replay as `solutionStates`.
+Ship the server and browser assets through the normal website deployment.
+
+- **LiXiangQi Mobile (already covered).** Its puzzle controller builds the replay
+  from `solutionStates` and the first published line. Its puzzle screen uses
+  board replay controls. All 15 native puzzle controller tests passed, including
+  the check that Solution and Restart preserve the first result.
+- **Xiangqi Kids (already covered).** Its puzzle controller also builds the answer
+  from the loaded states. Its 15 controller tests passed, including the check
+  that revealing earns no reward and practice preserves the original loss.
+
+Both checks exercised the existing Flutter implementations. Neither app requires
+a release or data migration. The broad reconciliation checkpoints remain at their
+previous positions. Reviewed website base `65026cc5a8c2846458e874f8b480ff6b5f11c09e`
+with the following working-tree SHA-256 fingerprints.
+
+| Source                                   | SHA-256                                                            |
+| ---------------------------------------- | ------------------------------------------------------------------ |
+| `modules/puzzle/src/main/Puzzle.scala`   | `9a52b9c0728ec53ee030344b251cb22659ba52530ddcb976ba2b8d2ee6ca87a0` |
+| `modules/puzzle/src/main/JsonView.scala` | `ec87cb5c2aeaf7fdf44ae0fd6ddd0d1ac0924bd22fb651c0c4453e30b67be323` |
+| `ui/puzzle/src/xiangqi.ts`               | `52061e185101cf6178c2f6ce2335964426dd0bcea2331eb96977358864d32373` |
+| `ui/puzzle/src/ctrl.ts`                  | `6839be14e3fcf1920f751b8cc40455e672b3ffdf938fd8de3289c9bd330f7a00` |

@@ -24,7 +24,10 @@ export default function renderMsgs(ctrl: MsgCtrl, convo: Convo): VNode {
     ctrl.mailbox.mode === 'media' || (ctrl.mailbox.mode === 'search' && !!ctrl.mailbox.filter.trim());
   return h(
     'div.msg-app__convo__msgs',
-    { on: { scroll: ctrl.setRead }, hook: { insert: setupMsgs(true), postpatch: setupMsgs(false) } },
+    {
+      on: { scroll: ctrl.setRead },
+      hook: { insert: setupMsgs(true), postpatch: setupMsgs(false), destroy: scroller.destroy },
+    },
     [
       h('div.msg-app__convo__msgs__init'),
       h('div.msg-app__convo__msgs__content', [

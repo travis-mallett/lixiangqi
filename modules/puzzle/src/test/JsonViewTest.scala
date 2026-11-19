@@ -46,6 +46,16 @@ class JsonViewTest extends munit.FunSuite:
     assertEquals((json \ "state" \ "turn").as[String], "black")
     assertEquals((json \ "state" \ "ply").as[Int], 1)
     assertEquals((json \ "displayFen").as[String], puzzle.fenAfterInitialMove)
+    val labels = (json \ "solutionLabels").as[Vector[JsObject]]
+    val states = (json \ "solutionStates").as[Vector[JsObject]]
+    assertEquals(labels.size, 2)
+    assertEquals(states.map(s => (s \ "ply").as[Int]), Vector(1, 2, 3))
+    assertEquals((states.head \ "fen").as[String], puzzle.fenAfterInitialMove)
+    assertEquals((labels.head \ "notation").as[String], puzzle.solutionVariation.moves.head.notation)
+    assertEquals(
+      (labels.last \ "chineseNotation").as[String],
+      puzzle.solutionVariation.moves.last.chineseNotation
+    )
     assertEquals(puzzle.color, chess.Black)
 
   test("keeps the native Lila game and puzzle envelope"):

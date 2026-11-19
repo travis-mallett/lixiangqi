@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="solutionBranchesUnavailable">主解已可查看。部分变化未能加载，点击“重试”可重新加载。</string>
   <string name="puzzles">谜题</string>
   <string name="puzzleThemes">训练主题</string>
   <string name="recommended">我们推荐：</string>
