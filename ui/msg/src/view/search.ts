@@ -1,35 +1,12 @@
 import { h, type VNode } from 'snabbdom';
 
-import { blurOnEscape } from 'lib';
-import { throttle } from 'lib/async';
 import { hookMobileMousedown } from 'lib/device';
-import { onInsert } from 'lib/view';
 import { fullName } from 'lib/view/userLink';
 
 import type MsgCtrl from '@/ctrl';
 import type { SearchResult, User } from '@/interfaces';
 
 import renderContacts, { userIcon } from './contact';
-
-export const renderInput = (ctrl: MsgCtrl): VNode =>
-  h('div.msg-app__side__search', [
-    h('input', {
-      attrs: { value: '', placeholder: i18n.site.searchOrStartNewDiscussion },
-      hook: onInsert<HTMLInputElement>(input => {
-        input.addEventListener(
-          'input',
-          throttle(500, () => ctrl.searchInput(input.value.trim())),
-        );
-        blurOnEscape(input);
-        input.addEventListener('blur', () =>
-          setTimeout(() => {
-            input.value = '';
-            ctrl.searchInput('');
-          }, 500),
-        );
-      }),
-    }),
-  ]);
 
 export function renderResults(ctrl: MsgCtrl, res: SearchResult): VNode {
   return h('div.msg-app__search.msg-app__side__content', [

@@ -405,26 +405,31 @@ export class AppearanceCtrl {
       uiTheme.key === 'system' ? (prefersLightThemeQuery().matches ? 'light' : 'dark') : uiTheme.colorScheme;
     const themeClass = uiTheme.key === 'system' ? colorScheme : uiTheme.key;
 
-    for (const theme of this.data.uiThemes)
-      if (theme.key !== 'system') document.documentElement.classList.remove(theme.key);
-    document.documentElement.classList.remove('light', 'dark');
-    document.documentElement.classList.add(themeClass);
-    document.body.dataset.uiTheme = uiTheme.key;
-    document.body.dataset.colorScheme = colorScheme;
+    const applyTheme = (doc: Document) => {
+      for (const theme of this.data.uiThemes)
+        if (theme.key !== 'system') doc.documentElement.classList.remove(theme.key);
+      doc.documentElement.classList.remove('light', 'dark');
+      doc.documentElement.classList.add(themeClass);
+      doc.body.dataset.uiTheme = uiTheme.key;
+      doc.body.dataset.colorScheme = colorScheme;
+      doc.body.dataset.board = state.boardTheme;
+      this.applyBoardTheme(state.boardTheme, doc);
+      this.applyPieceSet(state.pieceSet, doc);
+    };
+    applyTheme(document);
+    updateThemeEmbeds(applyTheme);
 
     const backgroundUrl = this.backgroundUrl();
     document.documentElement.classList.toggle('has-background', !!backgroundUrl);
     document.body.classList.toggle('has-background', !!backgroundUrl);
     this.applyBackground(backgroundUrl);
 
-    document.body.dataset.board = state.boardTheme;
     document.body.dataset.soundSet = state.soundSet;
     document.body.dataset.musicSet = state.musicSet;
     document.body.dataset.background = state.background;
-    this.applyBoardTheme(state.boardTheme);
+
     this.applyBoardSettings();
-    this.applyPieceSet(state.pieceSet);
-    updateThemeEmbeds({ uiTheme: state.uiTheme, boardTheme: state.boardTheme, pieceSet: state.pieceSet });
+
     for (const [component, field] of Object.entries({
       board: 'board',
       pieces: 'pieceSet',
@@ -458,28 +463,28 @@ export class AppearanceCtrl {
     updateBoardColorEmbeds();
   };
 
-  private readonly applyBoardTheme = (key: string): void => {
+  private readonly applyBoardTheme = (key: string, doc: Document): void => {
     const board = this.data.boards.find(candidate => candidate.key === key)!;
-    document.body.style.setProperty(
+    doc.body.style.setProperty(
       '---board-image',
       `url(${site.asset.url(`images/board/${board.file}`, { pathOnly: true })})`,
     );
     for (const [geometry, path] of Object.entries(board.geometries))
-      document.body.style.setProperty(
+      doc.body.style.setProperty(
         `---board-image-${geometry}`,
         `url(${site.asset.url(path, { pathOnly: true })})`,
       );
-    document.body.style.setProperty('---cg-ccw', board.coordinateLight);
-    document.body.style.setProperty('---cg-ccb', board.coordinateDark);
-    document.body.style.setProperty('---cg-cs', 'none');
+    doc.body.style.setProperty('---cg-ccw', board.coordinateLight);
+    doc.body.style.setProperty('---cg-ccb', board.coordinateDark);
+    doc.body.style.setProperty('---cg-cs', 'none');
   };
 
-  private readonly applyPieceSet = (key: string): void => {
+  private readonly applyPieceSet = (key: string, doc: Document): void => {
     const pieceSet = this.data.pieceSets.find(candidate => candidate.key === key)!;
     const assets = Object.fromEntries(
       Object.entries(pieceSet.assets).map(([variable, path]) => [variable, `url(${site.asset.url(path)})`]),
     );
-    void site.pieceImages.set(assets, key).catch(console.error);
+    void doc.defaultView?.site?.pieceImages.set(assets, key).catch(console.error);
   };
 
   private readonly backgroundUrl = (): string | undefined => {

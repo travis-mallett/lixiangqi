@@ -9,8 +9,20 @@ import lila.common.HTTPRequest
 final class MsgUnreadCount(colls: MsgColls, cacheApi: lila.memo.CacheApi)(using Executor):
 
   def mobile(me: Me)(using req: RequestHeader): Fu[JsValue] =
+    val groupCount = (!me.kid.yes).so(
+      colls.group.countSel(
+        $doc(
+          "users" -> me.userId,
+          "hidden".$ne(me.userId),
+          s"previews.${me.userId}.read" -> false,
+          s"previews.${me.userId}.user".$ne(me.userId)
+        )
+      )
+    )
     cache
       .get(me.userId)
+      .zip(groupCount)
+      .map(_ + _)
       .flatMap: unread =>
         if HTTPRequest.isLichessMobile(req)
         then

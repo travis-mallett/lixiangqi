@@ -22,6 +22,12 @@ See the LICENSE file for a copy of the _GNU Affero General Public License_.
 
 ## Exceptions (free)
 
+The inbox uses Signal Symbols, copyright Signal Messenger, LLC, under AGPL-3.0-only. See the [font notice](public/font/signal-symbols/NOTICE.txt) and [license](public/font/signal-symbols/LICENSE.txt).
+
+The inbox lightbox, attachment menu and message link recognition adapt Signal Desktop
+code, copyright Signal Messenger, LLC, under AGPL-3.0-only. The bundled Inter Regular
+font uses the SIL Open Font License. See the [Signal source revision](https://github.com/signalapp/Signal-Desktop/tree/848443afc3fcc74a0e127ba4f4d8554b95da856e) and [Inter license](public/font/inbox-inter-LICENSE.txt).
+
 `public/jieqi-engine/jqe/` contains jqe by Devin O'Keefe, including its trained
 `it014.jqn` network, under the MIT license. See the accompanying `LICENSE.txt`,
 `SOURCE.txt`, and `source.zip`. LiXiangQi's browser integration is built by

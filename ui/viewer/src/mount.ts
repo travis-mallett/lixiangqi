@@ -1,5 +1,8 @@
+import { boardDefinitionForFen } from '@lixiangqi/board';
+
 import { websiteCaptureLabels } from 'lib/game/view/captures';
 
+import { prepareViewerAppearance } from './appearance';
 import { loadViewerTree, type ViewerSource } from './model';
 import { GameViewer, type ViewerOptions, type ViewerLabels } from './viewer';
 
@@ -24,15 +27,24 @@ export async function mountViewer(
     Partial<Pick<ViewerOptions, 'labels' | 'services'>> = {},
   signal?: AbortSignal,
 ): Promise<GameViewer> {
-  const root = await loadViewerTree(source, signal);
+  const tree = loadViewerTree(source, signal);
+  const assetUrl = options.services?.assetUrl ?? (path => site.asset.url(path));
+  const prepare = (fen: string) =>
+    prepareViewerAppearance(boardDefinitionForFen(fen), assetUrl, options.boardTheme, options.pieceSet);
+  const fen = source.tree?.state.fen ?? source.initialFen;
+  const [root, applyAppearance] = await Promise.all([
+    tree,
+    fen ? prepare(fen) : tree.then(root => prepare(root.fen)),
+  ]);
   if (signal?.aborted) throw signal.reason;
+  applyAppearance(element);
   return new GameViewer(element, {
     ...options,
     root,
     initialPly: options.initialPly ?? source.initialPly,
     labels: options.labels ?? websiteViewerLabels(),
     services: options.services ?? {
-      assetUrl: path => site.asset.url(path),
+      assetUrl,
       reducedMotion: () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches,
       sound: cue =>
         site.sound.move({

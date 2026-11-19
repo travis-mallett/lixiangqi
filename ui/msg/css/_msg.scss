@@ -1,4 +1,5 @@
-$msg-top-height: 4em;
+$msg-top-height: 56px;
+$msg-single-pane: 680px;
 
 @import 'side';
 @import 'convo';
@@ -10,22 +11,37 @@ body {
   overflow: hidden;
 }
 
-%msg-input-focus {
-  outline: 0;
-  border-color: $c-bg-zebra2;
-
-  &:focus {
-    border-color: color-mix(in oklab, $c-secondary 50%, $c-bg);
-  }
-}
-
 .msg-app {
+  // Signal Desktop's Axo surface, fill and label tokens are scoped to the inbox.
+  color-scheme: dark;
+
+  @include if-light {
+    color-scheme: light;
+  }
+
+  --c-bg-box: light-dark(#fafafa, #191919);
+  --c-bg-zebra: light-dark(#f5f5f5, #1e1e1e);
+  --c-bg-zebra2: light-dark(#f0f0f0, #282828);
+  --c-bg-popup: light-dark(#fff, #282828);
+  --c-font: light-dark(rgb(0 0 0 / 0.9), rgb(255 255 255 / 0.9));
+  --c-font-clear: var(--c-font);
+  --c-font-dim: light-dark(rgb(0 0 0 / 0.6), rgb(255 255 255 / 0.6));
+  --c-primary: #2267f5;
+  --msg-hover: light-dark(rgb(125 125 125 / 0.08), rgb(150 150 150 / 0.12));
+  --msg-selected: light-dark(rgb(125 125 125 / 0.12), rgb(150 150 150 / 0.16));
+  --msg-incoming: light-dark(#ebebeb, #323232);
+
+  background: $c-bg-box;
+  color: $c-font;
+  font:
+    15px/1.35 system-ui,
+    sans-serif;
   display: flex;
   flex-flow: row nowrap;
   overflow: hidden;
   height: calc(var(---app-height) - $site-header-height);
 
-  @media (min-width: at-least($small)) {
+  @media (min-width: at-least($msg-single-pane)) {
     height: calc(var(---app-height) * 0.98 - $site-header-height);
   }
 

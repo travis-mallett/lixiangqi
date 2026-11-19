@@ -14,7 +14,9 @@ const translations = Object.fromEntries(
       Object.fromEntries(
         [...xml.matchAll(/<(string|plurals) name="([^"]+)"[^>]*>([\s\S]*?)<\/\1>/g)].map(m => [
           m[2],
-          m[1] === 'plurals' ? (/<item quantity="other">([\s\S]*?)<\/item>/.exec(m[3])?.[1] ?? m[2]) : m[3],
+          m[1] === 'plurals'
+            ? (/<item quantity="other">([\s\S]*?)<\/item>/.exec(m[3])?.[1] ?? m[2])
+            : m[3].replaceAll('&amp;', '&'),
         ]),
       ),
     ];
@@ -53,6 +55,7 @@ test.beforeAll(async () => {
         : undefined;
     if (asset && !asset.includes('..')) {
       try {
+        if (asset.endsWith('.svg')) response.setHeader('Content-Type', 'image/svg+xml');
         response.end(readFileSync(resolve('public', asset)));
         return;
       } catch {
@@ -76,7 +79,7 @@ test.afterAll(async () => {
   await server?.[Symbol.asyncDispose]();
 });
 
-async function inbox(page: Page, width: number, legacyPreview = false) {
+async function inbox(page: Page, width: number, legacyPreview = false, attachments?: string[]) {
   await page.setViewportSize({ width, height: 850 });
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.stack ?? error.message));
@@ -84,7 +87,8 @@ async function inbox(page: Page, width: number, legacyPreview = false) {
   let messages: any[] = [
     {
       id: 'mine',
-      text: 'That cannon move was excellent.',
+      text: attachments ? '' : 'That cannon move was excellent.',
+      attachments,
       user: legacyPreview ? 'alice' : 'me',
       date: now - 1000,
       revision: 0,
@@ -105,10 +109,27 @@ async function inbox(page: Page, width: number, legacyPreview = false) {
       reactions: [],
     },
   ];
+  const groupId = '~' + 'a'.repeat(32);
+  let group: { id: string; name: string; group: boolean } | undefined;
+  const admins = new Set(['me']);
+  let description = '';
+  const org: {
+    states: Record<string, Record<string, unknown>>;
+    folders: { id: string; name: string; chats: string[] }[];
+  } = { states: {}, folders: [] };
   const data = () => ({
     me: { id: 'me', name: 'Me', bot: false },
     names: {},
+    organization: org,
     contacts: [
+      ...(group
+        ? [
+            {
+              user: group,
+              lastMsg: { id: 'group-first', text: 'Hello', user: 'alice', date: now + 1, read: false },
+            },
+          ]
+        : []),
       {
         user: { name: 'Alice', online: true },
         lastMsg: { ...messages[0], id: legacyPreview ? undefined : messages[0]?.id, read: !legacyPreview },
@@ -140,7 +161,38 @@ async function inbox(page: Page, width: number, legacyPreview = false) {
       );
       requests.push({ path, fields });
       let result: any = data();
-      if (path.endsWith('/receipt')) {
+      if (path === '/inbox/contacts/friends') result = { friends: [{ name: 'Alice' }, { name: 'Bob' }] };
+      else if (path === '/inbox/groups/create') {
+        group = { id: groupId, name: fields.name, group: true };
+        result = { id: groupId };
+      } else if (path === '/inbox/group/' + groupId + '/manage') {
+        if (fields.action === 'promote') admins.add(fields.value);
+        if (fields.action === 'demote') admins.delete(fields.value);
+        if (fields.action === 'describe') description = fields.value;
+        result = {};
+      } else if (path === '/inbox/group/' + groupId && request.method() === 'GET') {
+        result.convo = {
+          user: group,
+          admins: [...admins],
+          description,
+          members: [{ name: 'Me' }, { name: 'Alice' }, { name: 'Bob' }],
+          postable: true,
+          relations: {},
+          msgs: [],
+          pinned: [],
+        };
+      } else if (path === '/inbox/settings/organize') {
+        if (fields.action === 'folder')
+          org.folders.push({ id: 'testfolder1234567', name: fields.value, chats: fields.members.split(',') });
+        else {
+          const state = (org.states[fields.chat] ??= {});
+          state[fields.action] = fields.action === 'archive' ? Date.now() + 1000 : fields.value === 'true';
+        }
+        result = org;
+      } else if (path === '/inbox/settings/chats') result = { contacts: data().contacts, before: null };
+      else if (path.startsWith('/inbox/history/'))
+        result = { msgs: [{ ...messages[0], id: 'older-match', text: 'A result from last season' }] };
+      else if (path.endsWith('/receipt')) {
         const ids = fields.ids.split(',');
         const at = Date.now();
         messages = messages.map(m =>
@@ -192,6 +244,8 @@ async function inbox(page: Page, width: number, legacyPreview = false) {
           user: 'me',
           date: Date.now(),
           text: fields.text,
+          card: fields.card && JSON.parse(fields.card),
+          attachments: fields.attachments?.split(','),
           revision: 0,
           history: [],
           reactions: [],
@@ -245,6 +299,7 @@ async function inbox(page: Page, width: number, legacyPreview = false) {
     { translations, data: data() },
   );
   await page.addScriptTag({ content: script });
+  expect(errors, 'inbox initialization').toEqual([]);
   await expect(page.locator('.msg-row')).toHaveCount(2);
   return { errors, requests };
 }
@@ -252,7 +307,32 @@ async function inbox(page: Page, width: number, legacyPreview = false) {
 for (const width of [320, 768, 1440]) {
   test(`responsive conversation, typing, reply and message menu at ${width}px`, async ({ page }, info) => {
     const { errors, requests } = await inbox(page, width);
+    const chats = page.locator('.msg-app__side');
+    if (width >= 680) await expect(chats).toBeVisible();
+    else await expect(chats).toBeHidden();
+    if (width >= 680) {
+      const search = chats.getByRole('searchbox');
+      await search.click();
+      await expect(search).toBeFocused();
+      await expect(search).toHaveCSS('padding-inline-start', '8px');
+    }
+    await page.getByRole('button', { name: 'Search in chat' }).click();
+    const chatSearch = page.getByRole('searchbox', { name: 'Search in chat' });
+    await expect(chatSearch).toBeFocused();
+    expect(
+      await chatSearch.evaluate(input => {
+        const panel = input.parentElement!;
+        return input.getBoundingClientRect().bottom <= panel.getBoundingClientRect().top + panel.clientHeight;
+      }),
+    ).toBe(true);
+    await chatSearch.locator('..').getByRole('button', { name: 'Close' }).click();
     await expect(page.locator('.msg-receipt')).toHaveAttribute('aria-label', 'Read');
+    await expect(page.locator('.msg-receipt .msg-glyph')).toHaveText('\uE047');
+    const loaded = await page.evaluate(async () => {
+      const faces = await document.fonts.load('400 17px "Signal Inbox"', '\uE047');
+      return faces.some(face => face.status === 'loaded');
+    });
+    expect(loaded).toBe(true);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await page.evaluate(() => (window as any).inboxEvent('msgTyping', { user: 'alice', active: true }));
     await expect(page.locator('.msg-typing i')).toHaveCount(3);
@@ -260,12 +340,30 @@ for (const width of [320, 768, 1440]) {
     await incoming.hover();
     await expect(incoming.locator('.msg-toolbar')).toHaveCSS('opacity', '1');
     await page.screenshot({ path: info.outputPath(`inbox-initial-${width}.png`) });
-    await incoming.getByRole('button', { name: 'Reply', exact: true }).click();
+    if (width < 600) {
+      await incoming.getByRole('button', { name: 'Message options' }).click();
+      await page.getByRole('dialog').getByRole('button', { name: 'Reply', exact: true }).click();
+    } else await incoming.getByRole('button', { name: 'Reply', exact: true }).click();
     await expect(page.locator('.msg-compose-context')).toContainText('Shall we play');
     await page.getByTestId('msg-textarea').fill('Yes, let’s play!');
     await page.getByTestId('msg-send-button').click();
     await expect(page.locator('.msg-row')).toHaveCount(3);
-    expect(requests.some(r => r.fields.replyTo === 'theirs')).toBe(true);
+    await expect.poll(() => requests.some(r => r.fields.replyTo === 'theirs')).toBe(true);
+    const sent = page.locator('.msg-row').filter({ hasText: 'Yes, let’s play!' });
+    const receipt = sent.locator('.msg-receipt');
+    await expect(receipt).toHaveAttribute('aria-label', 'Sent');
+    await expect(receipt.locator('.msg-glyph')).toHaveText('\uE022');
+    const id = await sent.getAttribute('data-message-id');
+    await page.evaluate(
+      id =>
+        (window as any).inboxEvent('msgReceipt', {
+          user: 'alice',
+          receipts: [{ id, deliveredAt: Date.now() }],
+        }),
+      id,
+    );
+    await expect(receipt).toHaveAttribute('aria-label', 'Delivered');
+    await expect(receipt.locator('.msg-glyph')).toHaveText('\uE046');
     await page.locator('[data-message-id="mine"]').click({ button: 'right' });
     await expect(page.getByRole('dialog')).toBeVisible();
     await expect(page.getByRole('dialog').getByRole('button', { name: 'Edit', exact: true })).toBeVisible();
@@ -276,6 +374,37 @@ for (const width of [320, 768, 1440]) {
     expect(errors).toEqual([]);
   });
 }
+
+test.describe('touch Inbox', () => {
+  test.use({ hasTouch: true });
+
+  test('message buttons stay beside bubbles and blank space dismisses the menu', async ({ page }) => {
+    await inbox(page, 390);
+    for (const row of await page.locator('.msg-row').all()) {
+      const [button, bubble] = await row.evaluate(el =>
+        ['.msg-toolbar button:last-child', '.msg-bubble'].map(selector =>
+          el.querySelector(selector)!.getBoundingClientRect().toJSON(),
+        ),
+      );
+      expect(button.x >= bubble.x + bubble.width || button.x + button.width <= bubble.x).toBe(true);
+      expect(button.y + button.height / 2).toBeCloseTo(bubble.y + bubble.height / 2, 0);
+    }
+
+    const more = page.locator('[data-message-id="mine"]').getByRole('button', { name: 'Message options' });
+    const dialog = page.getByRole('dialog');
+    await more.tap();
+    const menu = dialog.locator('.msg-context-menu');
+    await expect(menu).toBeVisible();
+    const context = (await dialog.locator('.msg-context').boundingBox())!;
+    const panel = (await menu.boundingBox())!;
+    expect(panel.x).toBeGreaterThan(context.x);
+    await page.touchscreen.tap((context.x + panel.x) / 2, panel.y + panel.height / 2);
+    await expect(dialog).toBeHidden();
+    await more.tap();
+    await dialog.getByRole('button', { name: 'Reply', exact: true }).tap();
+    await expect(page.locator('.msg-compose-context')).toContainText('That cannon move');
+  });
+});
 
 test('edits expose history; reactions and deletion after read update both bubble and menu', async ({
   page,
@@ -295,7 +424,12 @@ test('edits expose history; reactions and deletion after read update both bubble
   await mine.hover();
   await mine.getByRole('button', { name: 'React', exact: true }).click();
   await page.getByRole('button', { name: 'React ❤️', exact: true }).click();
-  await expect(mine.locator('.msg-reactions')).toContainText('❤️');
+  await expect(mine.locator('.msg-reactions button')).toHaveText('❤️');
+  const bubble = (await mine.locator('.msg-bubble').boundingBox())!;
+  const badge = (await mine.locator('.msg-reactions button').boundingBox())!;
+  expect(badge.y).toBeLessThan(bubble.y + bubble.height);
+  expect(badge.y + badge.height).toBeGreaterThan(bubble.y + bubble.height);
+  expect(badge.x).toBeLessThan(bubble.x + bubble.width / 2);
   expect(errors, 'after reaction').toEqual([]);
   await mine.click({ button: 'right' });
   await page.getByRole('dialog').getByRole('button', { name: 'Delete message', exact: true }).click();
@@ -396,4 +530,494 @@ test('receipts clear legacy thread previews without message ids', async ({ page 
   );
   await expect(page.locator('.msg-unread-dot')).toHaveCount(0);
   expect(errors).toEqual([]);
+});
+
+const pixel = Buffer.from('UklGRiIAAABXRUJQVlA4IBYAAAAwAQCdASoBAAEADsD+JaQAA3AAAAAA', 'base64');
+const attachmentId = (n: number) => n.toString(16).padStart(32, '0');
+
+for (const [count, width] of [
+  [1, 320],
+  [2, 768],
+  [3, 1440],
+  [4, 320],
+  [5, 768],
+  [7, 1440],
+]) {
+  test('album of ' + count + ' at ' + width + 'px', async ({ page }, info) => {
+    const ids = Array.from({ length: count }, (_, i) => attachmentId(i + 1));
+    const samples = await page.evaluate(
+      n =>
+        Array.from({ length: n }, (_, i) => {
+          const canvas = document.createElement('canvas');
+          canvas.width = 180;
+          canvas.height = 120;
+          const ctx = canvas.getContext('2d')!;
+          ctx.fillStyle = ['#557d98', '#b76656', '#63876b', '#b99058', '#567575', '#635e8c', '#966b80'][i];
+          ctx.fillRect(0, 0, 180, 120);
+          ctx.fillStyle = 'rgba(255,255,255,.65)';
+          ctx.beginPath();
+          ctx.arc(45 + 10 * i, 46, 22, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.fillStyle = 'rgba(0,0,0,.25)';
+          ctx.fillRect(0, 80, 180, 40);
+          return canvas.toDataURL('image/webp').split(',')[1];
+        }),
+      count,
+    );
+    await page.route('**/attachment/msg/item/**', route => {
+      const url = new URL(route.request().url());
+      const index = ids.indexOf(url.pathname.split('/').pop()!) + 1;
+      return url.searchParams.has('meta')
+        ? route.fulfill({
+            json: {
+              name: 'Photo ' + index + '.jpg',
+              size: Buffer.from(samples[index - 1], 'base64').length,
+              mime: 'image/webp',
+            },
+          })
+        : route.fulfill({ body: Buffer.from(samples[index - 1], 'base64'), contentType: 'image/webp' });
+    });
+    await page.route('**/attachment/msg/*/policy', route =>
+      route.fulfill({ json: { enabled: true, maxCount: 8, maxBytes: 4194304 } }),
+    );
+    const { errors } = await inbox(page, width, false, ids);
+    await expect(page.locator('.attachment-plus')).toBeVisible();
+    await expect(page.locator('.msg-app__side__contact__msg').first()).toHaveText(
+      translations.site.mediaFiles,
+    );
+    const tiles = page.locator('.msg-album button');
+    await expect(tiles).toHaveCount(Math.min(count, 5));
+    const rects = await tiles.evaluateAll(els => els.map(el => el.getBoundingClientRect().toJSON()));
+    expect(rects[0].width).toBeGreaterThan(65);
+    if (count === 3) {
+      expect(rects[0].width / rects[1].width).toBeCloseTo(2, 1);
+      expect(rects[1].left).toEqual(rects[2].left);
+    }
+    if (count >= 4) {
+      expect(rects[0].top).toEqual(rects[1].top);
+      expect(rects[2].top).toBeGreaterThan(rects[0].top);
+      expect(rects[2].width / rects[0].width).toBeCloseTo(count === 4 ? 1 : 2 / 3, 1);
+    }
+    await page.screenshot({ path: info.outputPath('album.png') });
+    await tiles.first().click();
+    const dialog = page.getByRole('dialog');
+    const mainImage = dialog.locator('.msg-lightbox-stage img');
+    await expect(mainImage).toBeVisible();
+    const imageBox = await mainImage.boundingBox();
+    const stageBox = await dialog.locator('.msg-lightbox-stage').boundingBox();
+    expect(Math.abs(imageBox!.x + imageBox!.width / 2 - width / 2)).toBeLessThan(2);
+    expect(Math.abs(imageBox!.y + imageBox!.height / 2 - stageBox!.y - stageBox!.height / 2)).toBeLessThan(2);
+    await expect(dialog.getByRole('button', { name: translations.inbox.forward })).toBeVisible();
+    await expect(dialog.locator('header time')).toBeVisible();
+    if (count > 1) {
+      await page.keyboard.press('ArrowRight');
+      await expect(mainImage).toHaveAttribute('alt', 'Photo 2.jpg');
+      await expect(dialog.locator('[download]')).toHaveAttribute('download', 'Photo 2.webp');
+    }
+    await page.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+    expect(errors).toEqual([]);
+  });
+}
+
+test('a delivered clip opens the authenticated MP4 in the lightbox', async ({ page }) => {
+  const clip = readFileSync('tests/fixtures/inbox-clip.mp4');
+  await page.route('**/attachment/msg/item/**', route =>
+    new URL(route.request().url()).searchParams.has('meta')
+      ? route.fulfill({ json: { name: 'game.mov', size: clip.length, mime: 'video/mp4' } })
+      : route.fulfill({ body: clip, contentType: 'video/mp4' }),
+  );
+  const { errors } = await inbox(page, 768, false, [attachmentId(1)]);
+  await page.locator('.msg-video-tile').click();
+  const dialog = page.getByRole('dialog');
+  const player = dialog.locator('video');
+  await expect(player).toBeVisible();
+  await expect(player).toHaveJSProperty('controls', true);
+  await expect.poll(() => player.evaluate(el => el.readyState)).toBeGreaterThanOrEqual(2);
+  await expect(dialog.locator('[download]')).toHaveAttribute('download', 'game.mp4');
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
+test('Send uploads the final edited photo and file together', async ({ page }) => {
+  const fileNames: string[] = [];
+  await page.route('**/attachment/msg/**', route => {
+    const url = new URL(route.request().url());
+    if (url.pathname.endsWith('/policy'))
+      return route.fulfill({ json: { enabled: true, maxCount: 8, maxBytes: 4194304 } });
+    if (url.pathname.endsWith('/upload')) {
+      fileNames.push(decodeURIComponent(route.request().headers()['x-attachment-name']));
+      return route.fulfill({ json: { id: attachmentId(fileNames.length), state: 'ready' } });
+    }
+    const photo = url.pathname.endsWith(attachmentId(1));
+    return url.searchParams.has('meta')
+      ? route.fulfill({
+          json: {
+            name: photo ? 'board.webp' : 'analysis.zip',
+            size: 2048,
+            mime: photo ? 'image/webp' : 'application/octet-stream',
+          },
+        })
+      : route.fulfill({ body: pixel, contentType: 'application/octet-stream' });
+  });
+  const { errors, requests } = await inbox(page, 768);
+  const send = page.getByTestId('msg-send-button');
+  await expect(send).toBeHidden();
+  await expect(page.locator('.attachment-plus')).toBeVisible();
+  await expect(page.locator('input[capture]')).toHaveCount(0);
+  const png = await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 96;
+    return canvas.toDataURL('image/png').split(',')[1];
+  });
+  const inputs = page.locator('.attachment-menu input');
+  await inputs
+    .first()
+    .setInputFiles({ name: 'board.png', mimeType: 'image/png', buffer: Buffer.from(png, 'base64') });
+  const editor = page.locator('.msg-photo-editor');
+  await expect(page.locator('.photo-tile')).toHaveCount(1);
+  await expect(editor).toHaveCount(0);
+  await page.locator('[data-action=edit0]').click();
+  const canvas = editor.locator('.photo-surface > canvas');
+  const done = editor.getByRole('button', { name: 'Done', exact: true });
+  await editor.locator('[data-mode=marker]').click();
+  await expect(editor.getByRole('slider')).toHaveAttribute('aria-label', translations.inbox.photoColor);
+  await editor.locator('summary[aria-label=Pen]').click();
+  await editor.getByRole('button', { name: 'Highlighter' }).click();
+  await editor.locator('summary[aria-label=Regular]').click();
+  await editor.getByRole('button', { name: 'Heavy' }).click();
+  await canvas.click();
+  await done.click();
+  await editor.locator('[data-mode=text]').click();
+  await editor.getByRole('textbox').fill('River');
+  await done.click();
+  await editor.locator('[data-mode=sticker]').click();
+  await editor.getByRole('button', { name: /Arabic/ }).click();
+  await editor.locator('[data-mode=crop]').click();
+  await editor.getByRole('button', { name: '9:16' }).click();
+  await expect(editor.locator('[data-corner]')).toHaveCount(4);
+  const before = await canvas.getAttribute('width');
+  await editor.getByRole('button', { name: /rotate/i }).click();
+  await expect(canvas).toHaveAttribute('height', before!);
+  await done.click();
+  await done.click();
+  await expect(editor).toHaveCount(0);
+  expect(fileNames).toEqual([]);
+  await inputs.last().setInputFiles({
+    name: 'analysis.zip',
+    mimeType: 'application/zip',
+    buffer: Buffer.from([80, 75, 3, 4]),
+  });
+  await expect(page.locator('.attachment-item')).toHaveCount(2);
+  expect(fileNames).toEqual([]);
+  await expect(send).toBeEnabled();
+  await send.click();
+  await expect(page.locator('.msg-file')).toContainText('analysis.zip');
+  expect(fileNames).toEqual(['board.webp', 'analysis.zip']);
+  expect(requests.some(req => req.fields.attachments === [attachmentId(1), attachmentId(2)].join(','))).toBe(
+    true,
+  );
+  await expect(page.locator('.msg-file')).toHaveAttribute('download', 'analysis.zip');
+  const sent = page.locator('.msg-row').filter({ has: page.locator('.msg-file') });
+  await sent.hover();
+  await sent
+    .locator('.msg-toolbar')
+    .getByRole('button', { name: /download/i })
+    .click();
+  await expect(page.getByRole('dialog').locator('[download]')).toHaveCount(2);
+  expect(errors).toEqual([]);
+});
+
+test('download requested while metadata loads opens the complete attachment chooser', async ({ page }) => {
+  const ids = [attachmentId(1), attachmentId(2)];
+  let release!: () => void;
+  const gate = new Promise<void>(resolve => {
+    release = resolve;
+  });
+  await page.route('**/attachment/msg/item/**', async route => {
+    await gate;
+    const id = new URL(route.request().url()).pathname.split('/').pop()!;
+    await route.fulfill({ json: { name: id + '.zip', size: 42, mime: 'application/octet-stream' } });
+  });
+  const { errors } = await inbox(page, 1440, false, ids);
+  const message = page.locator('[data-message-id="mine"]');
+  await message.hover();
+  await message.getByRole('button', { name: /download/i }).click();
+  release();
+  await expect(page.getByRole('dialog').locator('[download]')).toHaveCount(2);
+  expect(errors).toEqual([]);
+});
+
+test('two local photos stay editable until Send', async ({ page }) => {
+  const uploaded: string[] = [];
+  await page.route('**/attachment/msg/**', route => {
+    if (route.request().url().endsWith('/policy'))
+      return route.fulfill({ json: { enabled: true, maxCount: 8, maxBytes: 4194304 } });
+    if (route.request().method() === 'GET') return route.fulfill({ contentType: 'image/webp', body: pixel });
+    uploaded.push(decodeURIComponent(route.request().headers()['x-attachment-name']));
+    return route.fulfill({ json: { id: attachmentId(uploaded.length), state: 'ready' } });
+  });
+  const { errors } = await inbox(page, 320);
+  const input = page.locator('.attachment-menu input').first();
+  await input.setInputFiles(
+    ['first', 'second'].map(name => ({ name: name + '.webp', mimeType: 'image/webp', buffer: pixel })),
+  );
+  await expect(page.locator('.attachment-item')).toHaveCount(2);
+  expect(uploaded).toEqual([]);
+  await expect(page.locator('.photo-tile')).toHaveCount(2);
+  const send = page.getByTestId('msg-send-button');
+  await expect(send).toBeEnabled();
+  await send.click();
+  await expect.poll(() => uploaded.slice().sort()).toEqual(['first.webp', 'second.webp']);
+  expect(errors).toEqual([]);
+});
+
+test('new group, mentions, chat folders, archive and full-history search', async ({ page }) => {
+  const { requests, errors } = await inbox(page, 1440);
+  const side = page.locator('.msg-app__side');
+  await side.getByRole('button', { name: 'New chat', exact: true }).click();
+  await expect(side.getByText('Friends', { exact: true })).toBeVisible();
+  await side.getByRole('button', { name: 'New group' }).click();
+  await side.getByRole('textbox', { name: 'Group name' }).fill('Club analysis');
+  await side.getByRole('button', { name: /Alice/ }).click();
+  await side.getByRole('button', { name: /Bob/ }).click();
+  await side.getByRole('button', { name: 'Done' }).click();
+  const convo = page.locator('.msg-app__convo');
+  await expect(convo.locator('.msg-group-title')).toContainText('Club analysis');
+  expect(requests.find(r => r.path === '/inbox/groups/create')?.fields.members).toBe('alice,bob');
+  await convo.locator('.msg-group-title').click();
+  const settings = convo.locator('.msg-group-settings');
+  await settings.getByRole('textbox', { name: 'Group description' }).fill('Review our games');
+  await settings.locator('form').last().getByRole('button', { name: 'Done' }).click();
+  await expect
+    .poll(() => requests.some(r => r.fields.action === 'describe' && r.fields.value === 'Review our games'))
+    .toBe(true);
+  const alice = settings.locator('.msg-member').filter({ hasText: 'Alice' });
+  await alice.getByRole('button', { name: 'Make admin' }).click();
+  await expect
+    .poll(() => requests.some(r => r.fields.action === 'promote' && r.fields.value === 'alice'))
+    .toBe(true);
+  await expect(alice.getByRole('button', { name: 'Remove admin' })).toBeVisible();
+  await convo.getByRole('button', { name: 'Close', exact: true }).click();
+  await convo.locator('textarea').fill('@Al');
+  await convo.getByRole('button', { name: '@Alice' }).click();
+  await expect(convo.locator('textarea')).toHaveValue('@Alice ');
+  await convo.getByRole('button', { name: 'Search in chat' }).click();
+  await convo.getByRole('searchbox').fill('last season');
+  await expect(convo.locator('.msg-body')).toContainText('A result from last season');
+  await convo.getByRole('button', { name: 'Close', exact: true }).click();
+  const more = convo.locator('summary');
+  await more.click();
+  await convo.getByRole('button', { name: 'Archive', exact: true }).click();
+  await side.locator('summary').click();
+  await side.locator('.msg-dropdown-list').getByRole('button', { name: 'View archive' }).click();
+  await expect(side.locator('.msg-app__side__contact')).toContainText('Club analysis');
+  await side.locator('.msg-list-head button').first().click();
+  await side.locator('summary').click();
+  await side.getByRole('button', { name: 'Add chat folder' }).click();
+  await side.getByRole('textbox', { name: 'Folder name' }).fill('League');
+  await side.getByRole('button', { name: /Bob/ }).click();
+  await side.getByRole('button', { name: 'Done' }).click();
+  await side.getByRole('button', { name: 'League' }).click();
+  await expect(side.locator('.msg-app__side__contact')).toHaveCount(1);
+  await expect(side.locator('.msg-app__side__contact')).toContainText('Bob');
+  expect(errors).toEqual([]);
+});
+
+test('attachment menu sends a poll and a contact while retaining the text draft', async ({ page }) => {
+  await page.route('**/attachment/msg/*/policy', route =>
+    route.fulfill({ json: { enabled: true, maxCount: 8, maxBytes: 4194304 } }),
+  );
+  const { requests, errors } = await inbox(page, 768);
+  const draft = page.getByTestId('msg-textarea');
+  await draft.fill('saved draft');
+  await page.locator('.attachment-plus').click();
+  await expect(page.getByRole('menuitem').first()).toHaveCSS('font-size', '13px');
+  await expect(page.locator('.attachment-menu')).toHaveCSS('min-width', 'min(200px, 100%)');
+  for (const [index, name] of ['Photos & videos', 'File', 'Poll', 'Contact'].entries())
+    await expect(page.getByRole('menuitem').nth(index)).toHaveAccessibleName(name);
+  await page.getByRole('menuitem', { name: 'Poll', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByRole('textbox', { name: 'Question' }).fill('Which move?');
+  await dialog.getByRole('textbox', { name: 'Option 1', exact: true }).fill('Cannon');
+  await dialog.getByRole('textbox', { name: 'Option 2', exact: true }).fill('Horse');
+  await dialog.getByRole('button', { name: 'Send', exact: true }).click();
+  await expect(page.locator('.msg-poll')).toContainText('Which move?');
+  await expect(draft).toHaveValue('saved draft');
+  await page.locator('.attachment-plus').click();
+  await page.getByRole('menuitem', { name: 'Contact', exact: true }).click();
+  await dialog.getByRole('radio', { name: 'Bob' }).check();
+  await dialog.getByRole('button', { name: 'Send', exact: true }).click();
+  await expect(page.locator('.msg-shared-contact')).toContainText('Bob');
+  expect(requests.some(r => r.fields.text === '@Bob' && JSON.parse(r.fields.card).contact === 'Bob')).toBe(
+    true,
+  );
+  expect(errors).toEqual([]);
+});
+
+test('composer previews can be dismissed or sent as snapshots', async ({ page }) => {
+  const url = 'https://signal.org/blog/';
+  await page.route('**/attachment/msg/*/link-preview', route =>
+    route.fulfill({
+      json: {
+        url,
+        title: 'Signal blog',
+        description: 'News from Signal',
+        image: { mime: 'image/webp', data: pixel.toString('base64') },
+      },
+    }),
+  );
+  const id = attachmentId(1);
+  await page.route('**/attachment/msg/*/policy', route =>
+    route.fulfill({ json: { enabled: true, maxCount: 8, maxBytes: 4194304 } }),
+  );
+  await page.route('**/attachment/msg/*/upload', route => route.fulfill({ json: { id, state: 'ready' } }));
+  await page.route('**/attachment/msg/item/**', route =>
+    new URL(route.request().url()).searchParams.has('meta')
+      ? route.fulfill({ json: { name: 'preview.webp', size: pixel.length, mime: 'image/webp' } })
+      : route.fulfill({ body: pixel, contentType: 'image/webp' }),
+  );
+  const { requests, errors } = await inbox(page, 1440);
+  await page.locator('.msg-app__convo__head summary').click();
+  await expect(page.getByText('Generate link previews')).toHaveCount(0);
+  await page.locator('.msg-app__convo__head summary').click();
+  const draft = page.getByTestId('msg-textarea');
+  await draft.fill(url);
+  await expect(page.locator('.msg-staged-preview')).toContainText('News from Signal');
+  await page.getByRole('button', { name: 'Remove link preview' }).click();
+  await expect(page.locator('.msg-staged-preview')).toHaveCount(0);
+  await draft.fill('');
+  await draft.fill(url);
+  await expect(page.locator('.msg-staged-preview')).toBeVisible();
+  await page.getByTestId('msg-send-button').click();
+  await expect(page.locator('.msg-link-card')).toHaveAttribute('href', url);
+  const card = page.locator('.msg-link-card');
+  const image = card.locator('img');
+  await expect(image).toHaveCSS('width', '72px');
+  await expect(image).toHaveCSS('height', '72px');
+  await expect(card).toHaveCSS('text-decoration-line', 'none');
+  const metadata = card.locator('.msg-link-card__text');
+  const thumbBounds = (await image.boundingBox())!;
+  const metadataBounds = (await metadata.boundingBox())!;
+  expect(metadataBounds.x).toBeGreaterThanOrEqual(thumbBounds.x + thumbBounds.width + 7);
+  await expect(page.locator('.msg-body t').last()).toContainText(url);
+  expect(
+    requests.some(
+      r =>
+        r.fields.attachments === id &&
+        r.fields.card &&
+        JSON.parse(r.fields.card).preview.title === 'Signal blog',
+    ),
+  ).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+test('composer grows only to three lines and inserts emoji at the selection', async ({ page }) => {
+  const { errors } = await inbox(page, 768);
+  const draft = page.getByTestId('msg-textarea');
+  const shell = page.locator('.msg-app__convo__post__input');
+  const emoji = page.getByRole('button', { name: 'Add emoji' });
+  await expect(shell).toHaveCSS('height', '34px');
+  await draft.fill('one');
+  await expect(shell).toHaveCSS('height', '34px');
+  await expect(draft).toHaveCSS('overflow-y', 'hidden');
+  await draft.press('Shift+Enter');
+  await draft.press('o');
+  await expect(shell).toHaveCSS('height', '54px');
+  await expect(draft).toHaveCSS('overflow-y', 'hidden');
+  await draft.press('Shift+Enter');
+  await draft.press('o');
+  await expect(shell).toHaveCSS('height', '72px');
+  await expect(draft).toHaveCSS('overflow-y', 'auto');
+  await draft.press('Shift+Enter');
+  await draft.press('o');
+  await expect(shell).toHaveCSS('height', '72px');
+
+  await draft.fill('A replace B');
+  await draft.evaluate(el => el.setSelectionRange(2, 9));
+  await emoji.click();
+  await page.getByRole('searchbox', { name: 'Search emoji' }).fill('😀');
+  await page.getByRole('button', { name: 'grinning face', exact: true }).click();
+  await expect(draft).toHaveValue('A 😀 B');
+  await expect(draft).toBeFocused();
+  await expect(shell).toHaveCSS('height', '34px');
+  expect(errors).toEqual([]);
+});
+
+test('a qualifying landscape link image uses the Signal banner layout', async ({ page }) => {
+  const landscape = await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 400;
+    canvas.height = 240;
+    const context = canvas.getContext('2d')!;
+    context.fillStyle = '#2267f5';
+    context.fillRect(0, 0, 400, 240);
+    return canvas.toDataURL('image/webp').split(',')[1];
+  });
+  const url = 'https://signal.org/blog/';
+  const id = attachmentId(1);
+  await page.route('**/attachment/msg/*/link-preview', route =>
+    route.fulfill({
+      json: { url, title: 'Signal', description: '', image: { mime: 'image/webp', data: landscape } },
+    }),
+  );
+  await page.route('**/attachment/msg/*/policy', route =>
+    route.fulfill({ json: { enabled: true, maxCount: 8, maxBytes: 4194304 } }),
+  );
+  await page.route('**/attachment/msg/*/upload', route => route.fulfill({ json: { id, state: 'ready' } }));
+  const image = Buffer.from(landscape, 'base64');
+  await page.route('**/attachment/msg/item/**', route =>
+    new URL(route.request().url()).searchParams.has('meta')
+      ? route.fulfill({ json: { name: 'preview.webp', size: image.length, mime: 'image/webp' } })
+      : route.fulfill({ body: image, contentType: 'image/webp' }),
+  );
+  await inbox(page, 1440);
+  await page.getByTestId('msg-textarea').fill(url);
+  await expect(page.locator('.msg-staged-preview')).toBeVisible();
+  await page.getByTestId('msg-send-button').click();
+  const banner = page.locator('.msg-link-card__banner');
+  await expect(banner).toBeVisible();
+  const bounds = (await banner.boundingBox())!;
+  const metadata = (await page.locator('.msg-link-card__text').boundingBox())!;
+  expect(bounds.width).toBe(300);
+  expect(bounds.width).toBeCloseTo(metadata.width);
+  expect(bounds.y + bounds.height).toBeCloseTo(metadata.y);
+});
+
+test('failed poll offers a single retry and can be discarded locally', async ({ page }) => {
+  await inbox(page, 768);
+  const nonces: string[] = [];
+  await page.route('**/inbox/alice', async route => {
+    const payload = route.request().postDataBuffer();
+    if (!payload) return route.fallback();
+    const form = await new Response(new Uint8Array(payload), {
+      headers: { 'content-type': route.request().headers()['content-type'] },
+    }).formData();
+    nonces.push(String(form.get('nonce')));
+    await route.fulfill({ status: 503, body: '' });
+  });
+  await page.locator('.attachment-plus').click();
+  await page.getByRole('menuitem', { name: 'Poll', exact: true }).click();
+  const editor = page.getByRole('dialog');
+  await editor.getByRole('textbox', { name: 'Question' }).fill('Which move?');
+  await editor.getByRole('textbox', { name: 'Option 1', exact: true }).fill('Cannon');
+  await editor.getByRole('textbox', { name: 'Option 2', exact: true }).fill('Horse');
+  await editor.getByRole('button', { name: 'Add emoji · Option 2' }).click();
+  await page.getByRole('searchbox', { name: 'Search emoji' }).fill('😀');
+  await page.getByRole('button', { name: 'grinning face', exact: true }).click();
+  await expect(editor.getByRole('textbox', { name: 'Option 2', exact: true })).toHaveValue('Horse😀');
+  await editor.getByRole('button', { name: 'Send', exact: true }).click();
+  await expect(editor).toBeHidden();
+  const retry = page.getByRole('button', { name: 'Not sent. Tap to retry.' });
+  await retry.click();
+  await expect(retry).toBeVisible();
+  expect(nonces).toHaveLength(2);
+  expect(nonces[0]).toBe(nonces[1]);
+  await expect(page.locator('.msg-error')).toHaveCount(0);
+  await page.locator('.msg-poll').click({ button: 'right' });
+  await page.getByRole('button', { name: 'Delete for me' }).click();
+  await expect(page.locator('.msg-poll')).toHaveCount(0);
+  expect(nonces).toHaveLength(2);
 });

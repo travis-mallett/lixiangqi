@@ -9,7 +9,7 @@
       flex: 0 0 280px;
     }
 
-    @media (max-width: at-most($small)) {
+    @media (max-width: at-most($msg-single-pane)) {
       flex: 1 0 100%;
       display: none;
 
@@ -30,19 +30,32 @@
     &__search {
       @extend %flex-center;
 
-      flex: 0 0 $msg-top-height;
+      flex: none;
+      flex-wrap: nowrap;
+      gap: 8px;
+      margin: 2px 12px 8px;
+      padding-inline: 12px 4px;
+      border-radius: 20px;
       background: $c-bg-zebra2;
-      border-bottom: $border;
-      overflow-y: auto;
 
       input {
-        @extend %msg-input-focus;
+        border: 0;
+        background: transparent;
+        min-width: 0;
+        flex: 1;
+        padding: 8px;
+      }
 
-        width: 100%;
-        margin: auto 2em;
-        border-radius: 99px;
-        background: $c-bg-box;
-        padding: 0.6em 1.2em;
+      button {
+        border: 0;
+        background: transparent;
+        width: 32px;
+        height: 32px;
+        color: $c-font;
+      }
+
+      [aria-pressed='true'] {
+        color: $c-primary;
       }
     }
 
@@ -54,20 +67,24 @@
       @extend %flex-center-nowrap;
 
       cursor: pointer;
+      margin: 2px 11px;
+      padding: 8px 14px;
+      min-height: 72px;
+      border-radius: 10px;
 
       &:hover {
-        background: color-mix(in oklab, $c-secondary 15%, $c-bg);
+        background: var(--msg-hover);
       }
 
       &:active,
       &.active {
-        background: color-mix(in oklab, $c-secondary 30%, $c-bg);
+        background: var(--msg-selected);
       }
 
       &__user {
         @extend %nowrap-ellipsis;
-        @include padding-direction(0.8em, 1.5em, 0.8em, 0);
 
+        min-width: 0;
         flex: 1 1 auto;
       }
 
@@ -90,13 +107,20 @@
 
         flex: 1 1 auto;
         color: $c-font-clear;
-        font-size: 1.2em;
+        font-size: 1rem;
+        font-weight: 600;
       }
 
       &__body {
         @extend %flex-between-nowrap;
 
         height: 1.4em;
+
+        .msg-glyph {
+          font-size: 13px;
+          margin-inline-start: 6px;
+          color: $c-font-dim;
+        }
       }
 
       &__msg {
@@ -129,9 +153,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: 0 0 44px;
-  height: 44px;
-  margin: 12px;
+  flex: 0 0 48px;
+  height: 48px;
+  margin-inline-end: 12px;
   border-radius: 50%;
   background: $c-bg-zebra2;
   color: $c-font-clear;
@@ -147,5 +171,204 @@
     border-radius: 50%;
     border: 2px solid $c-bg-box;
     background: $c-good;
+  }
+}
+
+.msg-list-head,
+.msg-folders,
+.msg-picker-footer,
+.msg-panel,
+.msg-group-title,
+.msg-member {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.msg-list-head {
+  padding: 12px 16px 6px;
+
+  h1 {
+    flex: 1;
+    font-size: 22px;
+    font-weight: 650;
+  }
+}
+
+.msg-list-head button,
+.msg-dropdown summary,
+.msg-app__convo__head__actions > button {
+  color: $c-font-clear;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+}
+
+.msg-dropdown {
+  position: relative;
+
+  summary {
+    list-style: none;
+  }
+
+  summary::-webkit-details-marker {
+    display: none;
+  }
+}
+
+.msg-dropdown-list {
+  position: absolute;
+  z-index: 8;
+  inset-inline-end: 0;
+  top: 100%;
+  border-radius: 12px;
+  background: $c-bg-popup;
+  color: $c-font-clear;
+  box-shadow: 0 4px 24px #0003;
+  padding: 4px;
+  min-width: 192px;
+  max-height: min(60dvh, 480px);
+  overflow: auto;
+}
+
+.msg-menu-row,
+.msg-person {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 12px;
+  padding: 10px 14px;
+  background: transparent;
+  color: $c-font-clear;
+  border: 0;
+  text-align: start;
+  border-radius: 8px;
+}
+
+.msg-menu-row:hover,
+.msg-person:hover {
+  background: $c-bg-zebra2;
+}
+
+.msg-dropdown .msg-menu-row {
+  width: 100%;
+  border-radius: 8px;
+  display: flex;
+}
+
+.msg-person > span:first-of-type {
+  flex: 1;
+}
+
+.msg-name-input,
+.msg-picker-footer,
+.msg-panel {
+  padding: 8px 12px;
+
+  input:not([type='checkbox']) {
+    min-width: 0;
+    width: 100%;
+  }
+}
+
+.msg-app__side__content {
+  flex: 1;
+
+  h2,
+  .msg-list-empty {
+    padding: 12px 16px;
+    font-size: 1em;
+  }
+}
+
+.msg-folders {
+  overflow-x: auto;
+  flex-shrink: 0;
+  padding: 4px 12px;
+
+  button {
+    white-space: nowrap;
+    padding: 5px 10px;
+    border: 0;
+    border-radius: 14px;
+    background: transparent;
+    color: inherit;
+  }
+
+  [aria-pressed='true'] {
+    background: $c-bg-zebra2;
+  }
+}
+
+.msg-group-title,
+.msg-member {
+  background: transparent;
+  color: $c-font-clear;
+  border: 0;
+}
+
+.msg-panel {
+  overflow: auto;
+  max-height: 45dvh;
+  align-items: start;
+
+  &:has(> input[type='search']) {
+    flex: none;
+    align-items: center;
+  }
+
+  .msg-member {
+    gap: 8px;
+
+    > span {
+      flex: 1;
+    }
+
+    small {
+      display: block;
+      color: $c-font-dim;
+    }
+  }
+}
+
+.msg-group-settings {
+  flex: 1;
+  min-width: 0;
+}
+
+.msg-group-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+
+  textarea,
+  input {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.msg-author {
+  display: block;
+  font-size: 0.85em;
+}
+
+.msg-mentions {
+  max-height: 120px;
+  overflow-y: auto;
+
+  button {
+    display: block;
+    width: 100%;
+    background: $c-bg-popup;
+    color: $c-font-clear;
+    border: 0;
+    padding: 5px;
   }
 }

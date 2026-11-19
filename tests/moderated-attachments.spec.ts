@@ -12,6 +12,64 @@ const source = buildSync({
   write: false,
 }).outputFiles[0].text;
 
+{
+  const surface = 'forum';
+  test(`published photos load inline and files wait for a download in ${surface}`, async ({ page }) => {
+    const photo = 'a'.repeat(32);
+    const file = 'b'.repeat(32);
+    let fileReads = 0;
+    await page.route('https://fixture.test/**', route => {
+      const url = new URL(route.request().url());
+      if (url.pathname === '/')
+        return route.fulfill({
+          contentType: 'text/html',
+          body: '<main><div id="photo"></div><div id="file"></div></main>',
+        });
+      const image = url.pathname === `/attachment/${surface}/item/${photo}`;
+      if (!image && url.pathname !== `/attachment/${surface}/item/${file}`) return route.abort();
+      if (url.searchParams.has('meta'))
+        return route.fulfill({
+          json: {
+            name: image ? 'board.webp' : 'moves.txt',
+            mime: image ? 'image/webp' : 'text/plain',
+            size: 42,
+          },
+        });
+      if (image)
+        return route.fulfill({
+          contentType: 'image/webp',
+          body: Buffer.from('UklGRiIAAABXRUJQVlA4IBYAAAAwAQCdASoBAAEADsD+JaQAA3AAAAAA', 'base64'),
+        });
+      fileReads++;
+      return route.fulfill({ contentType: 'text/plain', body: 'moves' });
+    });
+    await page.goto('https://fixture.test/');
+    await page.addScriptTag({ content: source });
+    await page.evaluate(
+      ({ photo, file }) => {
+        const w = window as any;
+        w.i18n = { site: { mediaOpen: 'Expand photo', mediaDownload: 'Download' } };
+        w.ugc.showForumMedia(document.querySelector('#photo'), photo);
+        w.ugc.showForumMedia(document.querySelector('#file'), file);
+      },
+      { photo, file },
+    );
+    const img = page.getByRole('img', { name: 'board.webp' });
+    await expect(img).toBeVisible();
+    await expect.poll(() => img.evaluate(el => (el as HTMLImageElement).naturalWidth)).toBe(1);
+    await img.click();
+    await expect(page.locator('#photo button')).toHaveAttribute('aria-expanded', 'true');
+    const download = page.getByRole('link', { name: /moves.txt/ });
+    await expect(download).toHaveAttribute('download', 'moves.txt');
+    expect(fileReads).toBe(0);
+    const event = page.waitForEvent('download');
+    await download.click();
+    const requested = await event;
+    expect(requested.suggestedFilename()).toBe('moves.txt');
+    expect(new URL(requested.url()).pathname).toBe(`/attachment/${surface}/item/${file}`);
+  });
+}
+
 for (const narrow of [false, true]) {
   test(`staged items preserve caption, focus and per-file decisions on ${narrow ? 'mobile' : 'desktop'}`, async ({
     page,

@@ -23,17 +23,21 @@ private[msg] final class MsgStore(msgs: Coll, threads: Coll)(using Executor):
       )
 
   def save(me: UserId, contact: UserId, old: Msg, next: Msg, hide: Boolean): Fu[Boolean] =
+    saveVisible(visible(me, contact), me, old, next, hide)
+
+  def saveVisible(selector: Bdoc, me: UserId, old: Msg, next: Msg, hide: Boolean): Fu[Boolean] =
     msgs.update
       .one(
-        visible(me, contact) ++ $id(old.id) ++ (if old.revision == 0 then
-                                                  $or($doc("revision" -> 0), $doc("revision".$exists(false)))
-                                                else $doc("revision" -> old.revision)),
+        selector ++ $id(old.id) ++ (if old.revision == 0 then
+                                      $or($doc("revision" -> 0), $doc("revision".$exists(false)))
+                                    else $doc("revision" -> old.revision)),
         if hide then $addToSet("del" -> me)
         else
           $set(
             $doc(
               "text" -> next.text,
               "history" -> next.history,
+              "card" -> next.card,
               "attachments" -> next.attachments,
               "reactions" -> next.reactions,
               "revision" -> next.revision,
@@ -41,7 +45,13 @@ private[msg] final class MsgStore(msgs: Coll, threads: Coll)(using Executor):
               "deletedAt" -> next.deletedAt,
               "pinnedAt" -> next.pinnedAt
             )
-          ) ++ (if next.pinnedAt.isEmpty then $unset("pinnedAt") else $empty)
+          ) ++ {
+            val unset = $doc(
+              "pinnedAt" -> next.pinnedAt.isEmpty.option(1),
+              "card" -> (old.card.nonEmpty && next.card.isEmpty).option(1)
+            )
+            if unset.isEmpty then $empty else $doc("$unset" -> unset)
+          }
       )
       .map(_.nModified > 0)
 
@@ -58,6 +68,18 @@ private[msg] final class MsgStore(msgs: Coll, threads: Coll)(using Executor):
           msgs.update.one(selector ++ $doc("readAt".$exists(false)), $set("readAt" -> at), multi = true).void
         else funit
       saved <- msgs.find(selector).cursor[Msg]().list(100)
+      _ <- saved
+        .maxByOption(_.date)
+        .so: last =>
+          threads.update
+            .one(
+              $id(MsgThread.id(me, contact)) ++ $doc("lastMsg.id" -> last.id),
+              $set(
+                $doc("lastMsg.deliveredAt" -> last.deliveredAt) ++ last.readAt
+                  .so(at => $doc("lastMsg.readAt" -> at))
+              )
+            )
+            .void
     yield saved
 
   def markThreadRead(me: UserId, contact: UserId, messages: List[Msg]): Fu[Boolean] =

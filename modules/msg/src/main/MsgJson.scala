@@ -48,6 +48,7 @@ final class MsgJson(
       "readAt" -> msg.readAt,
       "deleted" -> msg.deletedAt.isDefined,
       "deletedAt" -> msg.deletedAt,
+      "card" -> msg.card.filter(_ => msg.deletedAt.isEmpty),
       "attachments" -> msg.attachments.filter(_ => msg.deletedAt.isEmpty),
       "reply" -> msg.reply.filter(_ => msg.deletedAt.isEmpty),
       "forwarded" -> msg.forwarded,

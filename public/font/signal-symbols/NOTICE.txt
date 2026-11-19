@@ -1,0 +1,9 @@
+Signal Symbols
+Copyright Signal Messenger, LLC
+SPDX-License-Identifier: AGPL-3.0-only
+
+Source: https://github.com/signalapp/Signal-Desktop/tree/848443afc3fcc74a0e127ba4f4d8554b95da856e/fonts/signal-symbols
+Glyph map: https://github.com/signalapp/Signal-Desktop/blob/848443afc3fcc74a0e127ba4f4d8554b95da856e/ts/axo/_internal/AxoSymbolDefs.generated.std.ts
+License: https://github.com/signalapp/Signal-Desktop/blob/848443afc3fcc74a0e127ba4f4d8554b95da856e/LICENSE
+
+The website bundles the upstream WOFF2 file unchanged as public/font/signal-symbols.woff2.

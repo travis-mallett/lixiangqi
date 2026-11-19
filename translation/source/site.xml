@@ -1319,7 +1319,7 @@ Leave empty to start games from the normal initial position.</string>
   <string name="mediaPhotos">Photos</string>
   <string name="mediaFiles">Files</string>
   <string name="mediaCamera">Take photo</string>
-  <string name="mediaDisclosure">Before you upload, LiXiangQi checks files for safety. Photos are checked by a child-safety service and OpenAI. Only approved attachments can be sent.</string>
+  <string name="mediaDisclosure">Before you upload, LiXiangQi checks files for safety. Photos are sent to OpenAI for moderation. Only approved attachments can be sent.</string>
   <string name="mediaUploading">Uploading…</string>
   <string name="mediaChecking">Checking…</string>
   <string name="mediaReady">Ready to send</string>

@@ -2,12 +2,20 @@
 
 For file selection, screening, publication, media reads and reporting, see [Moderated forum and inbox attachments](MODERATED_ATTACHMENTS.md).
 
-The website and LiXiangQi Mobile share `modules/msg` and `controllers.Msg` as the
+The website and LiXiangQi Mobile share `modules/msg` and `controllers.inbox.Msg` as the
 authority for message permissions, state and timestamps. The browser keeps the
 two-pane layout; Flutter keeps its native navigation. Both use rounded bubbles,
 reply previews, an animated three-dot typing bubble, message actions, reactions,
 pins and explicit delivery/read acknowledgements. Xiangqi Kids has no inbox or
 private-chat scope and is not a consumer of these features.
+
+## Media, polls, contacts and links
+
+The browser lightbox centers the active photo or clip. Its header shows the sender and time alongside Forward, Download and Close. The arrow keys move through the album and adjacent loaded albums. Select a photo to zoom. The attachment menu uses Signal Desktop’s Inter text, Signal Symbols and menu geometry. [Lightbox](https://github.com/signalapp/Signal-Desktop/blob/848443afc3fcc74a0e127ba4f4d8554b95da856e/ts/components/Lightbox.dom.tsx) · [Attachment menu](https://github.com/signalapp/Signal-Desktop/blob/848443afc3fcc74a0e127ba4f4d8554b95da856e/ts/components/CompositionArea.dom.tsx)
+
+Both clients offer Photos & videos, File, Poll and Contact. A poll has two to ten choices and supports single or multiple selections. Participants can revise or withdraw their votes until the author ends the poll. A contact card shares a LiXiangQi account. Sending a poll or contact preserves the existing text draft. Older clients receive readable question and option text or the contact name.
+
+Eligible HTTPS links can generate a preview while composing. A sender can remove a preview before sending. The server fetches the publisher’s metadata and optional thumbnail. The message carries the resulting snapshot. Recipients fetch any approved thumbnail from the private attachment endpoint, so opening an inbox does not request an image from the publisher. [Signal preview fetcher](https://github.com/signalapp/Signal-Desktop/blob/848443afc3fcc74a0e127ba4f4d8554b95da856e/ts/linkPreviews/linkPreviewFetch.preload.ts)
 
 ## Interaction and policy
 
@@ -85,9 +93,7 @@ demand, with quiet refreshes preserving cached content.
 Cached inboxes and threads render immediately. An empty initial load may show a
 centered spinner; background refresh does not show a top progress bar. New content
 is downloaded while the application is foregrounded, including outside the inbox.
-On resume/reconnect the server snapshot reconciles missed events. This feature does
-not add APNs/FCM delivery or promise downloads while the operating system suspends
-the app; that requires the separate push-notification infrastructure.
+On resume or reconnect the server snapshot reconciles missed events. Registered Android and iOS installations receive private-message alerts through the configured Firebase project. The app checks the signed-in account when opening a notification. New alerts honor chat mutes, mention preferences and the account’s device-notification preference.
 
 ## API and deployment
 
@@ -102,18 +108,35 @@ Deploy the backend/assets **and** socket gateway before distributing the updated
 mobile app. `/api/mobile/auth/config` advertises `inboxSocketUrl`; existing scoped
 native tokens remain valid. `push-local-live` already fingerprints app/modules and
 `scripts/windows/lila-ws-xiangqi.patch`, rebuilds the gateway through
-`Prepare-LilaWs`, and packs the hashed emoji catalogue with assets. No new secrets,
-services, dependency installation or manual migration are required. Deployment was
-not performed as part of this implementation.
+`Prepare-LilaWs`, and packs the hashed emoji catalogue with assets. Existing direct conversations require no migration.
+
+For native background alerts, set the server environment variable `LIXIANGQI_INBOX_FCM_URL` to the LiXiangQi Firebase project’s FCM v1 messages endpoint and `LIXIANGQI_INBOX_FCM_CREDENTIALS` to the protected service-account file. The protected server environment supplies these values across releases. Mobile build options and iOS signing requirements are documented in the [native inbox guide](../../lixiangqi-mobile/doc/INBOX.md). Delivery uses the [FCM installation-ID target](https://firebase.google.com/docs/reference/fcm/rest/v1/projects.messages).
+
+## Chats, groups and organization
+
+New chat offers friends, username lookup and group creation. A group has a stable identifier beginning with `~`, a name, an optional description and up to 32 members. Administrators can rename the group, edit its description, invite or remove members and manage administrator roles. When the last administrator leaves, a remaining member takes that role. Blocking a group leaves it and prevents reinvitation. Deleting a group chat removes that member's local history from view. Existing direct threads keep their identifiers and data.
+
+Each group message records its original audience. New members see messages sent after they join. Account eligibility, message visibility, membership, and media authorization apply to history, attachments and forwarding. Group media commits fence membership and account changes inside MongoDB transactions. A group sender sees a read receipt when every original recipient has read the message. Muted groups can still notify a member who is mentioned. The member can turn that option off in group settings.
+
+Archive dates, manual unread marks, pinned chats, mute choices and folders belong to the individual account. A newer message brings an archived chat back into Chats. Message search and All media use server-side history with paginated results. Browser and Flutter clients share the group and organization endpoints in `conf/inbox.routes`.
+
+Deploy the website and its matching WebSocket gateway together before distributing the updated mobile app. Group history uses the same replica-set transaction support as inbox attachments. The service creates additive indexes for memberships and organization settings on first use.
+
+## Private photos and files
+
+The plus button opens Photos and Files. The native app also offers camera capture. Selected photos appear as thumbnails with an add tile. Tap a thumbnail to edit locally with a pen or highlighter, four stroke widths, three text treatments, crop presets, or clock and xiangqi stickers. Send uploads the final versions for screening and publishes the accepted attachments with their caption. An unsuccessful upload stays in the draft for retry or removal. Enter sends on the website and Shift+Enter inserts a line break.
+
+One photo keeps its proportions. Two share a row. Three use a large first photo with two smaller photos beside it. Four use two equal rows. Larger albums show two photos above three, with the hidden count on the fifth tile. Open any tile to browse the entire album and save an individual image. A file card shows the extension, filename and size. Download on the message opens a file chooser for mixed messages and albums. The timestamp and receipt overlay a captionless photo. Reactions overlap the lower edge of the bubble.
+
+The sent glyph is one outlined circle with a check. A recipient delivery acknowledgement adds an overlapping outlined circle. A read acknowledgement fills both circles. These states use the existing receipt events. The website and mobile app expose a send action for a nonempty draft.
 
 ## References and asset licensing
 
 Signal was inspected for behavior and layout, including its desktop Message,
 MessageContextMenu and ReactionPicker components and Android ReactionMenu and
-ReactionOverlayPlacement. Signal's [Desktop license](https://github.com/signalapp/Signal-Desktop/blob/main/LICENSE)
-and [Android license](https://github.com/signalapp/Signal-Android/blob/main/LICENSE)
-are AGPL-3.0. No Signal implementation or icon assets were copied. Website outline
-icons are original geometry; native icons use the existing Flutter Material set.
+ReactionOverlayPlacement. The inbox uses Signal Messenger’s Signal Symbols for receipts, actions, attachments and editing tools. Both clients use the regular weight. The [upstream font](https://github.com/signalapp/Signal-Desktop/tree/848443afc3fcc74a0e127ba4f4d8554b95da856e/fonts/signal-symbols) and [source notice](../public/font/signal-symbols/NOTICE.txt) identify the exact revision and AGPL-3.0-only terms.
+
+Signal’s album sizing, draft controls and image editor informed the attachment flow. [Desktop image grid](https://github.com/signalapp/Signal-Desktop/blob/main/ts/components/conversation/ImageGrid.dom.tsx) · [Desktop composer](https://github.com/signalapp/Signal-Desktop/blob/main/ts/components/CompositionArea.dom.tsx) · [Desktop media editor](https://github.com/signalapp/Signal-Desktop/blob/main/ts/components/MediaEditor.dom.tsx)
 
 Official references: [reactions](https://support.signal.org/hc/en-us/articles/360039929972-Message-Reactions),
 [typing indicators](https://support.signal.org/hc/en-us/articles/360020798451-Typing-Indicators),
@@ -139,6 +162,8 @@ isolated MongoDB suite checks participant isolation, competing edits, immutable
 receipts, legacy previews and recoverable deletion. The server workflow supplies
 MongoDB 8.2 and enables this suite. Gateway `MobilePlayAuthTest` checks scope and
 both incoming and outgoing event restrictions.
+
+The staged HTTP regression creates a group from mutual friends, promotes an administrator, delivers a mention in a muted group, and follows the receipt and archive state across accounts. It also registers a Firebase installation and verifies removal on token revocation. The feature-specific verification for the November 18 website and mobile working trees is recorded in [the reconciliation receipt](MESSAGING_RECONCILIATION.json).
 
 `tests/inbox.spec.ts` runs the real browser controller/views against an isolated
 HTTP fixture: 320/768/1440px layout, typing, replies, edits/history, reactions and

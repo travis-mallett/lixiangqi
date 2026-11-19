@@ -1363,7 +1363,7 @@ index 04f2584..25324ed 100644
 +    "msgReceipt",
 +    "msgRemoved",
 +    "msgThreadRemoved",
-+    "msgMediaRevoked", "msgSendFailed", "msgTyping",
++    "msgMediaRevoked", "msgSendFailed", "msgTyping", "msgInbox",
 +    "blockedBy",
 +    "unblockedBy"
 +  )
@@ -1423,7 +1423,7 @@ new file mode 100644
 +    val inbox = "/mobile/inbox"
 +    assert(SiteClientActor.allowsIncoming(inbox, ClientIn.Pong))
 +    assert(SiteClientActor.allowsIncoming(inbox, ClientIn.ServerRestart))
-+    List("msgChanged", "msgReceipt", "msgRemoved", "msgThreadRemoved", "msgMediaRevoked", "msgSendFailed", "msgTyping").foreach: kind =>
++    List("msgChanged", "msgReceipt", "msgRemoved", "msgThreadRemoved", "msgMediaRevoked", "msgSendFailed", "msgTyping", "msgInbox").foreach: kind =>
 +      assert(SiteClientActor.allowsIncoming(inbox, ClientIn.payload(kind, JsonString("{}"))))
 +    List("challenge", "notifications", "move", "msgNew").foreach: kind =>
 +      val event = ClientIn.payload(kind, JsonString("{}"))

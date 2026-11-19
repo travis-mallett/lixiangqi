@@ -16,7 +16,8 @@ case class Msg(
     pinnedAt: Option[Instant] = None,
     revision: Int = 0,
     attachments: List[String] = Nil,
-    requestDigest: Option[String] = None
+    requestDigest: Option[String] = None,
+    card: Option[MsgCard] = None
 ):
 
   def recipient(first: UserId, second: UserId): UserId = if user == first then second else first
@@ -25,7 +26,9 @@ case class Msg(
     actor == user && deletedAt.isEmpty && !date.isBefore(now.minusSeconds(24 * 3600))
 
   def canEdit(actor: UserId, now: Instant): Boolean =
-    canDeleteForEveryone(actor, now) && history.size < 10
+    card.forall(_.preview.nonEmpty) && canDeleteForEveryone(actor, now) && history.size < 10
+
+  def canForward = deletedAt.isEmpty && card.forall(_.poll.isEmpty)
 
   def asLast =
     Msg.Last(
@@ -34,7 +37,9 @@ case class Msg(
       date = date,
       read = readAt.isDefined,
       id = Some(id),
-      deleted = deletedAt.isDefined
+      deleted = deletedAt.isDefined,
+      deliveredAt = deliveredAt,
+      readAt = readAt
     )
 
 object Msg:
@@ -49,7 +54,9 @@ object Msg:
       date: Instant,
       read: Boolean,
       id: Option[String] = None,
-      deleted: Boolean = false
+      deleted: Boolean = false,
+      deliveredAt: Option[Instant] = None,
+      readAt: Option[Instant] = None
   ):
     def unreadBy(userId: UserId) = !read && user != userId
 

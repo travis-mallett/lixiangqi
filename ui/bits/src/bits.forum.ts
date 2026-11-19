@@ -2,7 +2,7 @@ import { Textcomplete } from '@textcomplete/core';
 import { TextareaEditor } from '@textcomplete/textarea';
 
 import { debounce } from 'lib/async';
-import { AttachmentDraft, showMedia, submissionError } from 'lib/attachments';
+import { AttachmentDraft, showForumMedia, submissionError } from 'lib/attachments';
 import { tempStorage } from 'lib/storage';
 import { usernameCompletionPattern, userProfileName } from 'lib/username';
 import { domDialog } from 'lib/view';
@@ -13,7 +13,7 @@ import { setMode } from './markdownTextarea';
 site.load.then(() => {
   document
     .querySelectorAll<HTMLElement>('[data-attachment-id]')
-    .forEach(el => showMedia(el, 'forum', el.dataset.attachmentId!));
+    .forEach(el => showForumMedia(el, el.dataset.attachmentId!));
   for (const form of document.querySelectorAll<HTMLFormElement>('form[data-attachment-dest]')) {
     const field = form.querySelector('textarea');
     if (!field) continue;

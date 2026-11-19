@@ -25,20 +25,27 @@ test('bulk message ids should have a text class', () => {
 test('regular game links should not have a text class', () => {
   assert.strictEqual(
     enhance('I played a game: https://lixiangqi.org/GameIdXX'),
-    'I played a game: <a target="_blank" rel="nofollow noreferrer" href="https://lixiangqi.org/GameIdXX">lixiangqi.org/GameIdXX</a>',
+    'I played a game: <a target="_blank" rel="nofollow noreferrer" href="https://lixiangqi.org/GameIdXX">https://lixiangqi.org/GameIdXX</a>',
   );
 });
 
 test('external urls are turned into links', () => {
   assert.strictEqual(
     enhance('check out that https://zombo.com website'),
-    'check out that <a target="_blank" rel="nofollow noreferrer" href="https://zombo.com">zombo.com</a> website',
+    'check out that <a target="_blank" rel="nofollow noreferrer" href="https://zombo.com">https://zombo.com</a> website',
   );
 });
 
 test('urls in parentheses should be enhanced', () => {
   assert.strictEqual(
     enhance('(https://zombo.com)'),
-    '(<a target="_blank" rel="nofollow noreferrer" href="https://zombo.com">zombo.com</a>)',
+    '(<a target="_blank" rel="nofollow noreferrer" href="https://zombo.com">https://zombo.com</a>)',
   );
+});
+
+test('a team notice uses the local team subscription route', () => {
+  const prefix = 'You received this because you are subscribed to messages of the team ';
+  const local = 'https://' + window.location.host + '/team/club';
+  assert.ok(enhance(prefix + local + '.').includes('action="/team/club/subscribe"'));
+  assert.ok(!enhance(prefix + 'https://signal.org/team/club.').includes('<form'));
 });

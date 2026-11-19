@@ -761,21 +761,13 @@ POST  /diagnostic/clear/:slug          controllers.ForumTopic.clearDiagnostic(sl
 # Msg
 GET   /attachment/$surface<forum|msg>/item/:id            controllers.Attachment.read(surface: String, id: String)
 GET   /attachment/$surface<forum|msg>/:dest/policy        controllers.Attachment.policy(surface: String, dest: String)
+POST  /attachment/msg/:dest/link-preview   controllers.Attachment.linkPreview(dest)
 POST  /attachment/$surface<forum|msg>/:dest/upload        controllers.Attachment.upload(surface: String, dest: String)
 GET   /attachment/$surface<forum|msg>/:dest/draft/:id     controllers.Attachment.status(surface: String, dest: String, id: String)
 POST  /attachment/$surface<forum|msg>/:dest/draft/:id     controllers.Attachment.action(surface: String, dest: String, id: String)
 
-GET   /inbox                           controllers.Msg.home(before: Option[Long] ?= None)
-GET   /inbox/search                    controllers.Msg.search(q)
-GET   /inbox/unread-count              controllers.Msg.unreadCount
-GET   /inbox/:username                 controllers.Msg.convo(username: UserStr, before: Option[Long] ?= None)
-DELETE /inbox/:username                controllers.Msg.convoDelete(username: UserStr)
-# Msg API/compat
-POST  /inbox/:username                 controllers.Msg.apiPost(username: UserStr)
-POST  /inbox/:username/messages/:id    controllers.Msg.messageAction(username: UserStr, id: String)
-POST  /inbox/:username/receipt         controllers.Msg.receipt(username: UserStr)
-POST  /inbox/:username/typing          controllers.Msg.typing(username: UserStr)
-POST /inbox/:username/delete           controllers.Msg.convoDelete(username: UserStr)
+# Private messaging
+->    /inbox                           inbox.Routes
 
 # Coach
 GET   /coach                           controllers.Coach.all(page: Int ?= 1)

@@ -5,7 +5,7 @@ import lila.core.perf.UserWithPerfs
 import lila.core.rank.RankCode.*
 import lila.core.rank.RankTrackId
 import lila.core.rank.RankScore.*
-import lila.core.user.LightRank
+import lila.core.user.{ FlagCode, LightRank }
 import lila.rating.UserPerfsExt.*
 import lila.ui.*
 
@@ -16,7 +16,8 @@ final class UserList(helpers: Helpers, bits: UserBits):
 
   def page(
       online: List[UserWithPerfs],
-      leaderboards: List[(RankTrackId, List[LightRank], Option[XiangqiPersonalRank])]
+      leaderboards: List[(RankTrackId, List[LightRank], Option[XiangqiPersonalRank])],
+      flags: Map[UserId, FlagCode]
   )(using ctx: Context) =
     Page(trans.site.leaderboard.txt())
       .css("user.list")
@@ -41,7 +42,7 @@ final class UserList(helpers: Helpers, bits: UserBits):
             div(cls := "community__leaders")(
               h2(trans.site.leaderboard()),
               div(cls := "leaderboards")(
-                leaderboards.map((track, entries, personal) => leaderboard(track, entries, personal))
+                leaderboards.map((track, entries, personal) => leaderboard(track, entries, personal, flags))
               )
             )
           )
@@ -50,13 +51,19 @@ final class UserList(helpers: Helpers, bits: UserBits):
   private def leaderboard(
       track: RankTrackId,
       entries: List[LightRank],
-      personal: Option[XiangqiPersonalRank]
+      personal: Option[XiangqiPersonalRank],
+      flags: Map[UserId, FlagCode]
   )(using ctx: Context) =
     val ranked = personal.collect { case XiangqiPersonalRank.Ranked(place, entry) => place -> entry }
     val extra = ranked.filterNot((_, entry) => entries.exists(_.user.id == entry.user.id))
     def row(entry: LightRank, place: Int) =
       li(st.value := place, cls := ranked.exists(_._2.user.id == entry.user.id).option("is-me"))(
-        lightUserLink(entry.user),
+        lightUserLink(entry.user)(
+          flags
+            .get(entry.user.id)
+            .map: code =>
+              img(cls := "flag", src := assetUrl(s"flags/${code.value}.webp"), alt := "", aria.hidden := true)
+        ),
         span(cls := "rank")(entry.rank.value),
         span(cls := "rating")(entry.score.value)
       )

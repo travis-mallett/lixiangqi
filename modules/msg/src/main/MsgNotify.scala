@@ -8,6 +8,8 @@ import lila.db.dsl.{ *, given }
 
 final private class MsgNotify(
     colls: MsgColls,
+    organization: MsgOrganization,
+    contactApi: ContactApi,
     notifyApi: NotifyApi
 )(using ec: Executor, scheduler: Scheduler):
 
@@ -19,6 +21,56 @@ final private class MsgNotify(
 
   def onPost(threadId: MsgThread.Id): Unit = schedule(threadId)
 
+  private val pendingGroups = scalalib.ConcurrentMap[(String, UserId), Cancellable](256)
+
+  def onGroupPost(id: String, message: Msg, recipients: List[UserId]): Unit =
+    recipients.foreach: recipient =>
+      val key = id -> recipient
+      pendingGroups.compute(key): pending =>
+        pending.foreach(_.cancel())
+        scheduler
+          .scheduleOnce(delay) {
+            pendingGroups.remove(key)
+            val path = s"previews.$recipient"
+            colls.group
+              .one[Bdoc](
+                $id(id) ++ $doc(
+                  "users" -> recipient,
+                  "hidden".$ne(recipient),
+                  s"$path.id" -> message.id,
+                  s"$path.read" -> false,
+                  s"$path.deleted".$ne(true)
+                )
+              )
+              .flatMapz: room =>
+                colls.msg
+                  .one[Msg](
+                    $id(message.id) ++ $doc(
+                      "tid" -> id,
+                      "audience" -> recipient,
+                      "del".$ne(recipient),
+                      "deletedAt".$exists(false)
+                    )
+                  )
+                  .flatMapz: current =>
+                    for
+                      muted <- organization.muted(recipient, id, MsgGroups.mentions(current.text)(recipient))
+                      adults <- (!muted).so(contactApi.adultIds(List(current.user, recipient)))
+                      _ <- (adults.contains(current.user) && adults.contains(recipient)).so(
+                        notifyApi.notifyOne(
+                          recipient,
+                          NotificationContent.PrivateMessage(
+                            current.user,
+                            shorten(current.text, 40),
+                            Some(id),
+                            room.string("name")
+                          )
+                        )
+                      )
+                    yield ()
+          }
+          .some
+
   def onRead(userId: UserId, contactId: UserId): Funit =
     // Keep the pending check: it may now represent a newer unread message.
     notifyApi
@@ -26,7 +78,8 @@ final private class MsgNotify(
         userId,
         $doc(
           "content.type" -> "privateMessage",
-          "content.user" -> contactId
+          "content.user" -> contactId,
+          "content.thread".$exists(false)
         )
       )
       .void
@@ -39,6 +92,7 @@ final private class MsgNotify(
       $doc(
         "content.type" -> "privateMessage",
         "content.user" -> old.user,
+        "content.thread".$exists(false),
         "content.text" -> shorten(old.text, 40)
       )
     )
@@ -65,5 +119,8 @@ final private class MsgNotify(
       val msg = thread.lastMsg
       (!msg.read && !msg.deleted && !thread.delBy(thread.other(msg.user))).so:
         val notification = NotificationContent.PrivateMessage(msg.user, text = shorten(msg.text, 40))
-        notifyApi.notifyOne(thread.other(msg.user), notification).void
+        val recipient = thread.other(msg.user)
+        organization
+          .muted(recipient, msg.user.value)
+          .flatMap(muted => (!muted).so(notifyApi.notifyOne(recipient, notification)))
     }

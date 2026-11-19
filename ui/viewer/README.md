@@ -12,6 +12,6 @@ The host owns the iframe size. The viewer posts `{ type: 'xiangqi-embed:height',
 
 Embeds use the deployed LiXiangQi asset catalog and code. Updating themes or board motion requires one normal LiXiangQi deployment. Embeds start muted and never read or write account or browser appearance preferences: a hosting site chooses the appearance for all of its boards at once with the `uiTheme`, `boardTheme`, and `pieceSet` query parameters. Standalone widgets do not load the full site bundle or open a game WebSocket. Short repeated notation imports have a small expiring server cache, while longer imports remain bounded by native parser limits.
 
-Xiangqipedia renders the caption in MediaWiki and mounts the first iframe eagerly. Later frames use native lazy loading. The wiki's `XiangqiBoardsEmbedUrl` setting selects the viewer URL.
+Xiangqipedia renders the caption in MediaWiki and starts all article iframes eagerly. Viewers on the same article use the same versioned artwork URLs for a given theme. Each viewer waits for the shared image loader to decode its board, pieces and shadows before mounting. The wiki's `XiangqiBoardsEmbedUrl` setting selects the viewer URL.
 
 The iframe is a public rendering service, so a hosting website depends on LiXiangQi availability. Already loaded examples play locally. No public package publication, standalone distribution, additional account system, or new variant rules are included.

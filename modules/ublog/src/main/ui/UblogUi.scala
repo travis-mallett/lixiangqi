@@ -411,8 +411,15 @@ final class UblogUi(helpers: Helpers, atomUi: AtomUi, modMenu: Context ?=> Frag)
     val mine = active.left.toOption.exists(ctx.is)
     lila.ui.bits.pageMenuSubnav(
       cls := "force-ltr",
+      a(
+        cls := official.option("active"),
+        href := routes.Ublog.official()
+      )(
+        trans.ublog.officialBlog()
+      ),
       ctx.kid.no.option(
         frag(
+          div(cls := "sep"),
           a(
             cls := community.option("active"),
             href := langHref(routes.Ublog.communityAll())
@@ -425,12 +432,6 @@ final class UblogUi(helpers: Helpers, atomUi: AtomUi, modMenu: Context ?=> Frag)
             trans.ublog.byTopic()
           )
         )
-      ),
-      a(
-        cls := official.option("active"),
-        href := routes.Ublog.official()
-      )(
-        trans.ublog.officialBlog()
       ),
       ctx.kid.no.option(
         frag(

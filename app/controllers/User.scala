@@ -17,7 +17,7 @@ import lila.game.GameFilter
 import lila.mod.UserWithModlog
 import lila.security.UserLogins
 import lila.ui.ScalatagsTemplate.{ attr, div, stringAttr }
-import lila.user.WithPerfsAndEmails
+import lila.user.{ WithPerfsAndEmails, XiangqiPersonalRank }
 import lila.mon.extensions.*
 
 final class User(
@@ -268,9 +268,15 @@ final class User(
             entries <- env.user.xiangqiRankingApi.top(100, discipline)
             personal <- ctx.user.traverse(env.user.xiangqiRankingApi.personal(_, entries, discipline))
           yield (discipline, entries, personal)
+        rankedIds = leaderboards.flatMap: (_, entries, personal) =>
+          entries.map(_.user.id) ::: personal.collect { case XiangqiPersonalRank.Ranked(_, entry) =>
+            entry.user.id
+          }.toList
+        rankedUsers <- env.user.repo.byIds(rankedIds.distinct)
+        flags = rankedUsers.flatMap(u => u.profile.flatMap(_.flag).map(u.id -> _)).toMap
         topOnline <- env.user.cached.getTop50Online
         page <- renderPage:
-          views.user.list(topOnline, leaderboards)
+          views.user.list(topOnline, leaderboards, flags)
       yield Ok(page),
       json = env.user.xiangqiRankingApi
         .top(100, track)

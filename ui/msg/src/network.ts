@@ -1,3 +1,4 @@
+import { chatPath } from 'lib/inboxUrl';
 import { pubsub } from 'lib/pubsub';
 import { json, form } from 'lib/xhr';
 
@@ -5,12 +6,12 @@ import type MsgCtrl from './ctrl';
 import type { MsgData, Contact, User, Msg, Convo, SearchResult } from './interfaces';
 
 export async function loadConvo(userId: string): Promise<MsgData> {
-  const d = await json(`/inbox/${userId}`);
+  const d = await json(chatPath(userId));
   return upgradeData(d);
 }
 
 export async function getMore(userId: string, before: Date): Promise<MsgData> {
-  const d = await json(`/inbox/${userId}?before=${before.getTime()}`);
+  const d = await json(`${chatPath(userId)}?before=${before.getTime()}`);
   return upgradeData(d);
 }
 
@@ -28,6 +29,8 @@ export async function search(q: string): Promise<SearchResult> {
   const res = await json(`/inbox/search?q=${encodeURIComponent(q)}`);
   return {
     ...res,
+    friends: res.friends.map(upgradeUser),
+    users: res.users.map(upgradeUser),
     contacts: res.contacts.map(upgradeContact),
   } as SearchResult;
 }
@@ -41,7 +44,7 @@ export function unblock(u: string) {
 }
 
 export async function del(u: string): Promise<MsgData> {
-  const d = await json(`/inbox/${u}`, { method: 'delete' });
+  const d = await json(chatPath(u), { method: 'delete' });
   return upgradeData(d);
 }
 
@@ -67,23 +70,32 @@ export async function post(
   forwardId?: string,
   forwardUser?: string,
   attachments?: string[],
+  card?: Msg['card'],
 ): Promise<Msg> {
-  const data = await json(`/inbox/${encodeURIComponent(dest)}`, {
+  const data = await json(chatPath(dest), {
     method: 'post',
-    body: form({ text, nonce, replyTo, forwardId, forwardUser, attachments: attachments?.join(',') }),
+    body: form({
+      text,
+      nonce,
+      replyTo,
+      forwardId,
+      forwardUser,
+      attachments: attachments?.join(','),
+      card: card && JSON.stringify(card),
+    }),
   });
   return upgradeMsg(data.msg);
 }
 
 export function acknowledge(dest: string, ids: string[], read: boolean) {
-  return json(`/inbox/${encodeURIComponent(dest)}/receipt`, {
+  return json(`${chatPath(dest)}/receipt`, {
     method: 'post',
     body: form({ ids: ids.join(','), read }),
   });
 }
 
 export function typing(dest: string, active = true) {
-  return json(`/inbox/${encodeURIComponent(dest)}/typing`, { method: 'post', body: form({ active }) });
+  return json(`${chatPath(dest)}/typing`, { method: 'post', body: form({ active }) });
 }
 
 export async function messageAction(
@@ -93,7 +105,7 @@ export async function messageAction(
   value = '',
   attachments?: string[],
 ): Promise<Msg> {
-  const data = await json(`/inbox/${encodeURIComponent(dest)}/messages/${encodeURIComponent(msg.id)}`, {
+  const data = await json(`${chatPath(dest)}/messages/${encodeURIComponent(msg.id)}`, {
     method: 'post',
     body: form({
       action,
@@ -107,6 +119,14 @@ export async function messageAction(
 }
 
 export function websocketHandler(ctrl: MsgCtrl) {
+  pubsub.on('socket.in.msgInbox', e => {
+    if (e.organization) {
+      ctrl.data.organization = e.organization as import('./interfaces').Organization;
+      void ctrl.mailbox.loadCollection(false, true);
+      ctrl.redraw();
+    } else if (e.user === ctrl.data.convo?.user.id) void ctrl.openConvo(e.user, true);
+    else void ctrl.refreshContacts();
+  });
   pubsub.on('socket.in.msgChanged', event =>
     ctrl.receiveChange(event.user, upgradeMsg(event.msg), event.kind),
   );
@@ -124,7 +144,7 @@ export function websocketHandler(ctrl: MsgCtrl) {
   pubsub.on('socket.in.msgReceipt', ctrl.receiveReceipt);
   pubsub.on('socket.in.msgRemoved', event => ctrl.removeMessage(event.user, event.id));
   pubsub.on('socket.in.msgThreadRemoved', event => ctrl.removeThread(event.user));
-  pubsub.on('socket.in.msgTyping', event => ctrl.receiveTyping(event.user, !event.active));
+  pubsub.on('socket.in.msgTyping', event => ctrl.receiveTyping(event.user, !event.active, event.sender));
   pubsub.on('socket.in.msgType', ctrl.receiveTyping);
   pubsub.on('socket.in.blockedBy', ctrl.changeBlockBy);
   pubsub.on('socket.in.unblockedBy', ctrl.changeBlockBy);
@@ -166,13 +186,13 @@ export function upgradeMsg(m: any): Msg {
     ),
   };
 }
-function upgradeUser(u: any): User {
+export function upgradeUser(u: any): User {
   return {
     ...u,
-    id: u.name.toLowerCase(),
+    id: u.id || u.name.toLowerCase(),
   };
 }
-function upgradeContact(c: any): Contact {
+export function upgradeContact(c: any): Contact {
   return {
     ...c,
     user: upgradeUser(c.user),
@@ -183,6 +203,7 @@ export function upgradeConvo(c: any): Convo {
   return {
     ...c,
     user: upgradeUser(c.user),
+    members: c.members?.map(upgradeUser),
     msgs: c.msgs.map(upgradeMsg),
     pinned: (c.pinned ?? []).map(upgradeMsg),
   };

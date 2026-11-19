@@ -3,7 +3,9 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "lib": "workspace:*"
+    "@types/linkify-it": "5.0.0",
+    "lib": "workspace:*",
+    "linkify-it": "5.0.0"
   },
   "build": {
     "bundle": "src/msg.ts"

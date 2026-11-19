@@ -1,37 +1,14 @@
 import { h, type VNode } from 'snabbdom';
 
-import { spinnerVdom as spinner, onInsert } from 'lib/view';
+import { spinnerVdom as spinner } from 'lib/view';
 
 import type MsgCtrl from '../ctrl';
-import renderContact from './contact';
 import renderConvo from './convo';
-import * as search from './search';
+import { sidebar } from './sidebar';
 
 export default function (ctrl: MsgCtrl): VNode {
-  const activeId = ctrl.data.convo?.user.id;
   return h('main.box.msg-app', { class: { [`pane-${ctrl.pane}`]: true } }, [
-    h('div.msg-app__side', [
-      h('h1.msg-inbox-title', i18n.inbox.title),
-      search.renderInput(ctrl),
-      ctrl.search.result
-        ? search.renderResults(ctrl, ctrl.search.result)
-        : h(
-            'div.msg-app__contacts.msg-app__side__content',
-            {
-              hook: onInsert((el: HTMLElement) => {
-                el.addEventListener('scroll', () => {
-                  if (el.scrollTop + el.clientHeight >= el.scrollHeight - 100) {
-                    ctrl.loadMoreContacts();
-                  }
-                });
-              }),
-            },
-            [
-              ...ctrl.data.contacts.map(t => renderContact(ctrl, t, activeId)),
-              ctrl.loadingContacts ? h('div.msg-app__contacts__loading', spinner()) : null,
-            ],
-          ),
-    ]),
+    h('div.msg-app__side', [...sidebar(ctrl)]),
     ctrl.data.convo
       ? renderConvo(ctrl, ctrl.data.convo)
       : ctrl.loading

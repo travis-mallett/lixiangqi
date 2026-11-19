@@ -48,7 +48,10 @@ final class Attachments(db: lila.db.Db, config: play.api.Configuration)(using Ex
   private val health = db(lila.core.config.CollName("ugc_scanner"))
   private val metadata = $doc("bytes" -> false)
   val maxBytes = config.get[Int]("attachments.maxBytes").max(1).min(Attachment.hardMaxBytes)
-  val maxCount = config.get[Int]("attachments.maxCount").max(1).min(8)
+  private val defaultMaxCount = config.get[Int]("attachments.maxCount").max(1).min(8)
+  private val inboxMaxCount =
+    config.getOptional[Int]("attachments.inboxMaxCount").getOrElse(defaultMaxCount).max(1).min(8)
+  def maxCount(surface: String): Int = if surface == "msg" then inboxMaxCount else defaultMaxCount
   val hourlyUploads = config.get[Int]("attachments.hourlyUploads").max(1)
   def enabled(surface: String): Boolean =
     Set("forum", "msg")(surface) && config.get[Boolean](s"attachments.$surface")
@@ -72,12 +75,26 @@ final class Attachments(db: lila.db.Db, config: play.api.Configuration)(using Ex
           val fresh = beat.filter(_.getAsOpt[Instant]("at").exists(_.isAfter(nowInstant.minusSeconds(90))))
           fresh.flatMap(_.getAsOpt[String]("status")).getOrElse("offline") -> pending
 
+  def reportRestricted(notify: (UserId, String) => Funit): Funit =
+    coll
+      .find($doc("urgent" -> true, "state" -> "restricted"), $doc("_id" -> true, "owner" -> true).some)
+      .cursor[Bdoc]()
+      .list(10)
+      .flatMap:
+        _.sequentiallyVoid: doc =>
+          (doc.getAsOpt[String]("_id"), doc.getAsOpt[UserId]("owner")) match
+            case (Some(id), Some(owner)) =>
+              notify(owner, id) >> coll.update.one($id(id), $unset("urgent")).void
+            case _ => funit
+
   def stage(owner: UserId, audience: String, filename: String, bytes: Array[Byte]): Fu[Attachment] =
     val name = Attachment.safeName(filename)
-    if bytes.isEmpty || bytes.length > maxBytes || !name
+    val allowedName = name.nonEmpty && name != "." && name != ".." &&
+      (audience.startsWith("msg/") || name
         .toLowerCase(java.util.Locale.ROOT)
-        .matches(".+\\.(jpg|jpeg|png|webp|txt|pgn)")
-    then return fufail(SubmissionRejected("unsupportedFile"))
+        .matches(".+\\.(jpg|jpeg|png|webp|txt|pgn)"))
+    if bytes.isEmpty || bytes.length > maxBytes || !allowedName then
+      return fufail(SubmissionRejected("unsupportedFile"))
     val id = UUID.randomUUID().toString.replace("-", "")
     val item = Attachment(
       id,
@@ -185,8 +202,9 @@ final class Attachments(db: lila.db.Db, config: play.api.Configuration)(using Ex
       retained: Set[String] = Set.empty,
       transaction: Option[reactivemongo.api.DB] = None
   ): Funit =
+    val surface = audience.takeWhile(_ != '/')
     if ids.isEmpty then funit
-    else if !enabled(audience.takeWhile(_ != '/')) || ids.size > maxCount || ids.distinct != ids || !ids
+    else if !enabled(surface) || ids.size > maxCount(surface) || ids.distinct != ids || !ids
         .forall(Attachment.validId)
     then fufail(SubmissionRejected("attachmentsUnavailable"))
     else
@@ -200,7 +218,7 @@ final class Attachments(db: lila.db.Db, config: play.api.Configuration)(using Ex
       records
         .find(sel, metadata.some)
         .cursor[Attachment]()
-        .list(maxCount)
+        .list(ids.size)
         .flatMap: items =>
           val permitted = items.size == ids.size && items.forall { item =>
             (item.audience == audience || (retained(item.id) && item.parent.contains(parent))) && item.parent

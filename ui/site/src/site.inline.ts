@@ -31,6 +31,10 @@ if (!window.site.pieceImages) {
     return result;
   }
 
+  async function preload(images: string[]): Promise<void> {
+    await Promise.all(images.filter(Boolean).map(decode));
+  }
+
   function set(assets: Record<string, string>, key: string): Promise<void> {
     const entries = Object.entries(assets).sort(([a], [b]) => a.localeCompare(b));
     const signature = JSON.stringify([key, entries]);
@@ -41,7 +45,7 @@ if (!window.site.pieceImages) {
     const shadows = ['--xiangqi-rest-shadow-image', '--xiangqi-airborne-shadow-image'].map(variable =>
       style.getPropertyValue(variable).trim(),
     );
-    pending = Promise.all([...entries.map(([, value]) => value), ...shadows].filter(Boolean).map(decode))
+    pending = preload([...entries.map(([, value]) => value), ...shadows])
       .then(() => {
         if (current !== version) return;
         for (const [variable, value] of entries) body.style.setProperty(variable, value);
@@ -72,6 +76,7 @@ if (!window.site.pieceImages) {
       ));
     },
     set,
+    preload,
   };
   // Static mini-boards can paint before their modules run. Other pages load no pieces
   // until a board (including a dynamically opened profile preview) actually needs them.

@@ -15,7 +15,9 @@ private object BsonHandlers:
       r.date("date"),
       r.boolD("read"),
       r.strO("id"),
-      r.boolD("deleted")
+      r.boolD("deleted"),
+      r.dateO("deliveredAt"),
+      r.dateO("readAt")
     )
     def writes(w: BSON.Writer, m: Last) = $doc(
       "text" -> m.text,
@@ -23,12 +25,19 @@ private object BsonHandlers:
       "date" -> m.date,
       "read" -> m.read,
       "id" -> m.id,
-      "deleted" -> m.deleted
+      "deleted" -> m.deleted,
+      "deliveredAt" -> m.deliveredAt,
+      "readAt" -> m.readAt
     )
 
   given BSONDocumentHandler[Msg.Quote] = Macros.handler
   given BSONDocumentHandler[Msg.Version] = Macros.handler
   given BSONDocumentHandler[Msg.Reaction] = Macros.handler
+
+  given BSONDocumentHandler[PollBallot] = Macros.handler
+  given BSONDocumentHandler[MsgPoll] = Macros.handler
+  given BSONDocumentHandler[MsgPreview] = Macros.handler
+  given BSONDocumentHandler[MsgCard] = Macros.handler
 
   given threadHandler: BSON[MsgThread] with
     def reads(r: BSON.Reader) =
@@ -71,7 +80,8 @@ private object BsonHandlers:
       pinnedAt = r.dateO("pinnedAt"),
       revision = r.intD("revision"),
       attachments = r.strsD("attachments"),
-      requestDigest = r.strO("requestDigest")
+      requestDigest = r.strO("requestDigest"),
+      card = r.getO[MsgCard]("card")
     )
     def writes(w: BSON.Writer, m: Msg) = $doc(
       "_id" -> m.id,
@@ -89,6 +99,7 @@ private object BsonHandlers:
       "pinnedAt" -> m.pinnedAt,
       "attachments" -> m.attachments.nonEmptyOption,
       "requestDigest" -> m.requestDigest,
+      "card" -> m.card,
       "revision" -> m.revision
     )
 

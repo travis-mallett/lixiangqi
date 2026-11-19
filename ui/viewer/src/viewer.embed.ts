@@ -1,3 +1,4 @@
+import { url as assetUrl } from 'lib/assetUrl';
 import type { ImportedTreeNode, RulesState } from 'lib/game/xiangqiNotation';
 
 import { type ViewerSource } from './model';
@@ -93,8 +94,6 @@ export async function initModule(options: EmbedOptions): Promise<void> {
         },
       };
     }
-    const assetUrl = (path: string) =>
-      `${document.body.dataset.assetUrl || ''}/assets/_${document.body.dataset.assetVersion}/${path}`;
     let updateExplorer: ((node: import('./model').ViewerNode) => void) | undefined;
     viewer = await mountViewer(
       root,

@@ -61,8 +61,15 @@ final private class PushApi(
                     )
                   )
             filterPushNotif(recipient, _.challenge.create, data)
-      case PrivateMessage(sender, text) =>
-        lightUser(sender).flatMap(luser => privateMessage(to.head, sender, luser.titleName, text))
+      case PrivateMessage(sender, text, thread, groupName) =>
+        lightUser(sender).flatMap(luser =>
+          privateMessage(
+            to.head,
+            thread.getOrElse(sender.value),
+            groupName.fold(luser.titleName)(n => s"$n · ${luser.titleName}"),
+            text
+          )
+        )
       case MentionedInThread(mentioner, topic, _, _, postId) =>
         lightUser(mentioner).flatMap(luser => forumMention(to.head, luser.titleName, topic, postId))
       case StreamStart(streamerId, streamerName) =>
@@ -226,7 +233,7 @@ final private class PushApi(
           "round" -> Json.stringify(round)
         )
 
-  def privateMessage(to: NotifyAllows, senderId: UserId, senderName: String, text: String): Funit =
+  def privateMessage(to: NotifyAllows, threadId: String, senderName: String, text: String): Funit =
     filterPushNotif(
       to,
       _.message,
@@ -240,7 +247,7 @@ final private class PushApi(
           lichobileCompatible = true,
           payload = payload(to.userId)(
             "type" -> "newMessage",
-            "threadId" -> senderId.value
+            "threadId" -> threadId
           )
         )
     )

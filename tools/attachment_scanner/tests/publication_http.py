@@ -24,6 +24,7 @@ ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "tools" / "attachment_scanner"))
 import screen
 import worker
+from test_scanner import general, png
 
 
 class KeepRedirect(request.HTTPRedirectHandler):
@@ -53,16 +54,20 @@ class Site:
         })
         return username
 
-    def call(self, path, user=None, form=None, *, data=None, name=None, status=200):
+    def call(self, path, user=None, form=None, *, data=None, name=None, method=None, json_body=None, status=200):
         headers = {"Accept": "application/json", "User-Agent": "LiXiangQi integration test"}
         if user:
             headers["Authorization"] = "Bearer " + self.tokens[user]
         if form is not None:
+            headers["Content-Type"] = "application/x-www-form-urlencoded"
             data = parse.urlencode(form).encode()
+        if json_body is not None:
+            headers['Content-Type'] = 'application/json'
+            data = json.dumps(json_body).encode()
         if name:
             headers.update({"Content-Type": "application/octet-stream", "X-Attachment-Name": parse.quote(name)})
         try:
-            response = self.http.open(request.Request(self.origin + path, data=data, headers=headers), timeout=15)
+            response = self.http.open(request.Request(self.origin + path, data=data, headers=headers, method=method), timeout=15)
         except error.HTTPError as exc:
             response = exc
         with response:
@@ -168,7 +173,8 @@ def verify(site):
     assert send(nonce(), "Xem https://chess-bot.com", status=422)["error"] == "unsafeLink"
 
     inbox = f"/attachment/msg/{bob}"
-    assert site.json(inbox + "/policy", alice)["enabled"]
+    policy = site.json(inbox + "/policy", alice)
+    assert policy["enabled"] and policy["maxCount"] == 8
     content = b"local game notes"
     def upload(base, status=201):
         return site.json(base + "/upload", alice, data=content, name="notes.txt", status=status)
@@ -185,6 +191,27 @@ def verify(site):
     site.call(url, bob, status=404)
     source = send(nonce(), "", {"attachments": handle})["msg"]
     assert source["attachments"] == [handle]
+
+    # Publish a full album and arbitrary document, preserving order and download filenames.
+    album = []
+    for n in range(7):
+        photo = site.json(inbox + "/upload", alice, data=png(), name=f"board-{n}.png", status=201)
+        with patch.object(screen, "post_json", return_value=general()), patch.dict(os.environ, {"UGC_OPENAI_KEY":"fixture"}):
+            site.screen_document()
+        album.append(photo["id"])
+    archive = b"PK\x03\x04 fixture"
+    album.append(site.json(inbox + "/upload", alice, data=archive, name="game.zip", status=201)["id"])
+    site.screen_document()
+    assert send(nonce(), "Album", {"attachments": ",".join(album)})["msg"]["attachments"] == album
+    first = "/attachment/msg/item/" + album[0]
+    assert site.call(first, bob)[1]["Content-Disposition"].startswith("inline")
+    saved, headers = site.call(first + "?download=1", bob)
+    assert saved[:4] == b"RIFF" and headers["Content-Disposition"].startswith("attachment")
+    assert "board-0.webp" in headers["Content-Disposition"]
+    zip_bytes, headers = site.call("/attachment/msg/item/" + album[-1], bob)
+    assert zip_bytes == archive and headers["Content-Type"].startswith("application/octet-stream")
+    assert "game.zip" in headers["Content-Disposition"]
+    site.call(first + "?download=1", other, status=404)
     for user in (alice, bob):
         body, headers = site.call(url, user)
         assert body == content and "no-store" in headers["Cache-Control"]
@@ -251,6 +278,67 @@ def verify(site):
     site.call(url, bob, status=404)
 
 
+def verify_group_inbox(site):
+    alice, bob, chen, observer = [site.user(name) for name in ("clubalice", "clubbob", "clubchen", "clubguest")]
+    for friend in (bob, chen):
+        for first, second in ((alice, friend), (friend, alice)):
+            site.db.relation.insert_one({"_id": f"{first}/{second}", "u1": first, "u2": second, "r": True})
+
+    assert {user["name"] for user in site.json("/inbox/contacts/friends", alice)["friends"]} == {bob, chen}
+    group = site.json("/inbox/groups/create", alice, {"name": "League", "members": f"{bob},{chen}"}, status=201)["id"]
+    path = f"/inbox/group/{group}"
+    empty = site.json(path, chen)["convo"]
+    assert empty["admins"] == [alice] and not empty["msgs"]
+    site.call(path, observer, status=404)
+    site.call(f"{path}/manage", bob, {"action": "promote", "value": bob}, status=422)
+    site.call(f"{path}/manage", alice, {"action": "promote", "value": bob})
+    site.call(f"{path}/manage", bob, {"action": "describe", "value": "Practice at lunch"})
+    info = site.json(path, chen)["convo"]
+    assert set(info["admins"]) == {alice, bob} and info["description"] == "Practice at lunch"
+
+    for member in (alice, chen):
+        site.json("/inbox/settings/organize", member, {"chat": group, "action": "mute", "value": "true"})
+    message = site.json(path, bob, {"text": f"@{chen} cannon practice", "nonce": uuid.uuid4().hex})["msg"]
+    note = {"content.type": "privateMessage", "content.thread": group}
+    deadline = time.monotonic() + 15
+    while not site.db.notify.find_one({**note, "notifies": chen, "read": False}):
+        assert time.monotonic() < deadline, "Mention in a muted group must notify the named member"
+        time.sleep(.1)
+    assert not site.db.notify.find_one({**note, "notifies": alice})
+    for member in (alice, chen):
+        site.json(f"{path}/receipt", member, {"ids": message["id"], "read": "true"})
+    assert site.db.notify.find_one({**note, "notifies": chen, "read": True})
+    latest = site.json(path, bob)["convo"]["msgs"][0]
+    assert latest["id"] == message["id"] and latest["readAt"]
+    assert site.json(f"/inbox/history/{group}?q=cannon", chen)["msgs"][0]["id"] == message["id"]
+    site.json("/inbox/settings/organize", chen, {"chat": group, "action": "archive", "value": "true"})
+    assert any(c["user"]["id"] == group for c in site.json("/inbox/settings/chats?scope=archive", chen)["contacts"])
+    assert not site.json("/inbox/settings/chats?scope=archive", bob)["contacts"]
+    site.call(f"{path}/manage", chen, {"action": "leave"})
+    site.call(path, chen, status=404)
+
+    endpoint = "/inbox/device/registration"
+    fid = "a" * 22
+    kid = site.user("clubchild")
+    site.db.user4.update_one({"_id": kid}, {"$set": {"kid": True}})
+    site.call(endpoint, kid, method="PUT", json_body={"fid": "b" * 22}, status=400)
+    site.call(endpoint, alice, method="PUT", json_body={"fid": fid}, status=204)
+    session = hashlib.sha256(site.tokens[alice].encode()).hexdigest()
+    assert site.db.push_device.find_one({"_id": fid})["session"] == session
+    replacement = "c" * 22
+    site.call(endpoint, alice, method="PUT", json_body={"fid": replacement}, status=204)
+    assert site.db.push_device.find_one({"_id": fid}) is None
+    assert site.db.push_device.find_one({"_id": replacement})["session"] == session
+    site.call(endpoint, alice, method="DELETE", status=204)
+    assert site.db.push_device.find_one({"_id": replacement}) is None
+    site.call(endpoint, alice, method="PUT", json_body={"fid": fid}, status=204)
+    site.call("/api/token", alice, method="DELETE", status=204)
+    deadline = time.monotonic() + 5
+    while site.db.push_device.find_one({"_id": fid}):
+        assert time.monotonic() < deadline, "Revoking the account token must unregister the installation"
+        time.sleep(.05)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--java", default="java")
@@ -259,4 +347,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
     with staged_site(args.java, args.mongo_port, args.redis_port) as app:
         verify(app)
+        verify_group_inbox(app)
     print("Forum, inbox, reports and revocation HTTP checks passed.")

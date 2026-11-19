@@ -28,11 +28,16 @@ final class Attachment(env: Env) extends LilaController(env):
   private def audience(surface: String, dest: String) =
     s"$surface/${if surface == "forum" then dest.replace('~', '/') else dest}"
 
+  private def messageAudience(dest: String)(using Me): Fu[Boolean] =
+    if dest.length > 150 then fuFalse
+    else if lila.msg.MsgGroups.validId(dest) then env.msg.groups.mediaAllowed(dest)
+    else env.msg.api.mediaAllowed(summon[Me], UserId(dest))
+
   private def eligible(surface: String, dest: String)(using Context, Me): Fu[Boolean] =
     if !store.enabled(surface) || dest.length > 150 then fuFalse
     else
       surface match
-        case "msg" => env.msg.api.mediaAllowed(summon[Me], UserId(dest))
+        case "msg" => messageAudience(dest)
         case "forum" => forumTarget(dest).so((c, t) => env.forum.media.canStage(c, t))
         case _ => fuFalse
 
@@ -47,8 +52,26 @@ final class Attachment(env: Env) extends LilaController(env):
 
   def policy(surface: String, dest: String) = AuthOrScoped(scopes(surface)*) { ctx ?=> me ?=>
     eligible(surface, dest).map(allowed =>
-      Ok(Json.obj("enabled" -> allowed, "maxBytes" -> store.maxBytes, "maxCount" -> store.maxCount))
+      Ok(Json.obj("enabled" -> allowed, "maxBytes" -> store.maxBytes, "maxCount" -> store.maxCount(surface)))
         .withHeaders(protectedHeaders*)
+    )
+  }
+
+  private val previews = lila.memo.RateLimit[UserId](40, 5.minutes, "msg.preview")(using env.net.rateLimit)
+
+  def linkPreview(dest: String) = AuthOrScopedBody(scopes("msg")*) { ctx ?=> me ?=>
+    bindForm(
+      play.api.data.Form(play.api.data.Forms.single("url" -> play.api.data.Forms.text(maxLength = 2048)))
+    )(
+      doubleJsonFormError,
+      url =>
+        previews(me.userId, rateLimited):
+          messageAudience(dest).flatMap:
+            case false => fuccess(Forbidden)
+            case true =>
+              lila.msg
+                .LinkPreview(url, includeImage = store.enabled("msg"))
+                .map(data => Ok(data).withHeaders(protectedHeaders*))
     )
   }
 
@@ -140,7 +163,9 @@ final class Attachment(env: Env) extends LilaController(env):
     i.audience.split("/") match
       case Array("msg", dest) =>
         ctx.me.soUse: me ?=>
-          env.msg.actions.canReadAttachment(i.owner, UserId(dest), parent, i.id)
+          if lila.msg.MsgGroups.validId(dest) then
+            env.msg.groups.canReadAttachment(dest, parent, i.owner, i.id)
+          else env.msg.actions.canReadAttachment(i.owner, UserId(dest), parent, i.id)
       case Array("forum", board, _) if ctx.kid.no =>
         env.forum.postApi
           .get(ForumPostId(parent))
@@ -151,6 +176,26 @@ final class Attachment(env: Env) extends LilaController(env):
               env.forum.access.isGrantedRead(topic.categId)
             case _ => fuFalse
       case _ => fuFalse
+
+  private val byteRange = """bytes=(\d*)-(\d*)""".r
+
+  private def videoBytes(bytes: Array[Byte], range: Option[String]): Result =
+    val length = bytes.length.toLong
+    val result = range match
+      case Some(byteRange(start, end)) =>
+        val bounds = if start.isEmpty then
+          end.toLongOption.filter(_ > 0).map(n => (length - n).max(0L) -> (length - 1))
+        else
+          for
+            first <- start.toLongOption
+            last <- if end.isEmpty then Some(length - 1) else end.toLongOption
+            if first < length && first <= last
+          yield first -> last.min(length - 1)
+        bounds.fold(Status(416)("").withHeaders("Content-Range" -> s"bytes */$length")): (first, last) =>
+          PartialContent(java.util.Arrays.copyOfRange(bytes, first.toInt, last.toInt + 1))
+            .withHeaders("Content-Range" -> s"bytes $first-$last/$length")
+      case _ => Ok(bytes)
+    result.withHeaders("Accept-Ranges" -> "bytes")
 
   def read(surface: String, id: String) = OpenOrScoped(scopes(surface, writing = false)*) {
     store
@@ -171,12 +216,20 @@ final class Attachment(env: Env) extends LilaController(env):
                     case None => NotFound
                     case Some(bytes) =>
                       val image = i.mime.contains("image/webp")
-                      val disposition = if image then "inline" else "attachment"
+                      val video = i.mime.contains("video/mp4")
+                      val disposition =
+                        if (image || video) && !getBool("download") then "inline" else "attachment"
+                      val filename = if video then i.name.replaceFirst("\\.[^.]+$", "") + ".mp4"
+                      else if image && getBool("download") then i.name.replaceFirst("\\.[^.]+$", "") + ".webp"
+                      else i.name
                       val encoded = java.net.URLEncoder
-                        .encode(i.name, java.nio.charset.StandardCharsets.UTF_8)
+                        .encode(filename, java.nio.charset.StandardCharsets.UTF_8)
                         .replace("+", "%20")
-                      Ok(bytes)
-                        .as(if image then "image/webp" else "application/octet-stream")
+                      (if video then videoBytes(bytes, summon[Context].req.headers.get("Range"))
+                       else Ok(bytes))
+                        .as(if image then "image/webp"
+                        else if video then "video/mp4"
+                        else "application/octet-stream")
                         .withHeaders("Content-Disposition" -> s"$disposition; filename*=UTF-8''$encoded")
         case _ => fuccess(NotFound)
       .map(_.withHeaders(protectedHeaders*))

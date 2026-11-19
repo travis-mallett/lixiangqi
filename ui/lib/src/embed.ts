@@ -16,21 +16,18 @@ export function sizeEmbedToContent(element: HTMLElement): boolean {
   return true;
 }
 
-/** Refresh opt-in embeds only when their appearance parameters actually change. */
-export function updateThemeEmbeds(theme: { uiTheme: string; boardTheme: string; pieceSet: string }): void {
+/** Apply appearance in place, including to lazy frames that are still loading. */
+export function updateThemeEmbeds(apply: (doc: Document) => void): void {
   document.querySelectorAll<HTMLIFrameElement>('iframe[data-theme-embed]').forEach(frame => {
-    const url = new URL(frame.src);
-    if (url.origin !== window.location.origin) return;
-    let changed = false;
-    for (const [key, value] of Object.entries(theme)) {
-      if (url.searchParams.get(key) === value) continue;
-      url.searchParams.set(key, value);
-      changed = true;
-    }
-    if (changed) frame.src = url.href;
+    if (new URL(frame.src).origin !== window.location.origin) return;
+    const update = () => {
+      const doc = frame.contentDocument;
+      if (doc?.body && doc.URL !== 'about:blank') apply(doc);
+    };
+    frame.onload = update;
+    update();
   });
 }
-
 /** Same-origin TV embeds inherit live color sliders without restarting their streams. */
 function copyBoardColors(source: Document, target: Document): void {
   const style = source.defaultView!.getComputedStyle(source.body);

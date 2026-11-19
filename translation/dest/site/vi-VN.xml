@@ -1015,7 +1015,7 @@ Mọi chi phí vận hành, phát triển, và nội dung được tài trợ b�
   <string name="mediaPhotos">Ảnh</string>
   <string name="mediaFiles">Tệp</string>
   <string name="mediaCamera">Chụp ảnh</string>
-  <string name="mediaDisclosure">Trước khi tải lên, xin lưu ý LiXiangQi kiểm tra độ an toàn của tệp. Ảnh được dịch vụ bảo vệ trẻ em và OpenAI kiểm tra. Chỉ có thể gửi tệp đã được duyệt.</string>
+  <string name="mediaDisclosure">Trước khi tải lên, xin lưu ý LiXiangQi kiểm tra độ an toàn của tệp. Ảnh được gửi đến OpenAI để kiểm duyệt. Chỉ có thể gửi tệp đã được duyệt.</string>
   <string name="mediaUploading">Đang tải lên…</string>
   <string name="mediaChecking">Đang kiểm tra…</string>
   <string name="mediaReady">Sẵn sàng gửi</string>

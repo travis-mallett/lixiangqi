@@ -31,12 +31,6 @@
     margin: 1rem 1.2rem 0;
     min-height: 44px;
   }
-
-  @include mq-topnav-visible {
-    @media (max-width: at-most($topnav-wiki-visible)) {
-      display: none;
-    }
-  }
 }
 
 #top {

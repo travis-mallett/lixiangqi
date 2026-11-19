@@ -26,6 +26,7 @@ class AttachmentCommitTest extends munit.FunSuite:
         "attachments.msg" -> true,
         "attachments.forum" -> false,
         "attachments.maxCount" -> 4,
+        "attachments.inboxMaxCount" -> 8,
         "attachments.maxBytes" -> 4194304,
         "attachments.hourlyUploads" -> 20
       )
@@ -65,6 +66,14 @@ class AttachmentCommitTest extends munit.FunSuite:
         )
       )
       assert(!records.enabled("chat"))
+      assertEquals(records.maxCount("msg"), 8)
+      assertEquals(records.maxCount("forum"), 4)
+      val album = (1 to 8).map(i => f"$i%032x").toList
+      val ready = await(col.byIdProj[Bdoc](id, $doc("_id" -> false))).get
+      album.foreach(photo => await(col.insert.one(ready ++ $id(photo))))
+      intercept[SubmissionRejected](await(records.prepare(alice, "msg/bob", "album", 0, album :+ id)))
+      await(records.prepare(alice, "msg/bob", "album", 0, album))
+      assertEquals(await(col.countSel($doc("parent" -> "album"))), 8)
       intercept[SubmissionRejected](await(records.prepare(bob, "msg/alice", "other", 0, List(id))))
       intercept[SubmissionRejected](await(records.prepare(alice, "msg/bob", "parent", 0, List(id, id))))
       for kid <- List(alice, bob) do

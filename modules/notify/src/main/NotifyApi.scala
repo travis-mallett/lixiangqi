@@ -224,6 +224,6 @@ final class NotifyApi(
     case _ => userApi.isKid(note.to).dmap(_.yes)
 
   private def shouldSkipBell(note: Notification): Fu[Boolean] = note.content match
-    case PrivateMessage(sender, _) =>
-      repo.hasRecentPrivateMessageFrom(note.to, sender)
+    case PrivateMessage(sender, _, thread, _) =>
+      repo.hasRecentPrivateMessageFrom(note.to, sender, thread)
     case _ => fuFalse

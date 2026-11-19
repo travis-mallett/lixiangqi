@@ -39,6 +39,7 @@ interface Site {
   load: Promise<void>; // DOMContentLoaded promise
   pieceImages: {
     ready: Promise<void>;
+    preload(images: string[]): Promise<void>;
     set(assets: Record<string, string>, key: string): Promise<void>;
   };
   quantity(n: number): 'zero' | 'one' | 'two' | 'few' | 'many' | 'other';

@@ -1,0 +1,3 @@
+Clock faces and compact brush icons from Signal Desktop, copyright Signal Messenger, LLC.
+https://github.com/signalapp/Signal-Desktop/tree/848443afc3fcc74a0e127ba4f4d8554b95da856e
+Distributed under the GNU Affero General Public License version 3.

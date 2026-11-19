@@ -1,4 +1,5 @@
 package controllers
+package inbox
 
 import play.api.libs.json.*
 import play.api.data.Form
@@ -8,6 +9,21 @@ import lila.app.{ *, given }
 import lila.common.Json.given
 
 final class Msg(env: Env) extends LilaController(env):
+
+  def registerDevice = ScopedBody(parse.json(maxLength = 8192))(Seq(_.Mobile.Inbox)) { ctx ?=> me ?=>
+    val device = (ctx.body.body \ "fid").asOpt[String].filter(_.matches("[a-zA-Z0-9_-]{22}"))
+    val session = lila.common.HTTPRequest.bearer(ctx.req).map(lila.oauth.AccessToken.idFrom)
+    (device, session) match
+      case (Some(id), Some(key)) if !me.kid.yes =>
+        env.push.registerInboxDevice(me, id, key.value).inject(NoContent)
+      case _ => fuccess(BadRequest)
+  }
+
+  def unregisterDevice = Scoped(_.Mobile.Inbox) { ctx ?=> me ?=>
+    lila.common.HTTPRequest
+      .bearer(ctx.req)
+      .so(b => env.push.unregisterInboxDevice(me, lila.oauth.AccessToken.idFrom(b).value).inject(NoContent))
+  }
 
   def home(before: Option[Long] = None) = AuthOrScoped(_.Web.Mobile, _.Mobile.Inbox) { _ ?=> me ?=>
     before match
@@ -20,8 +36,8 @@ final class Msg(env: Env) extends LilaController(env):
         JsonOk:
           for
             threads <- env.msg.api.moreContacts(millisToInstant(before))
-            contacts <- env.msg.json.contacts(threads)
-          yield contacts
+            contacts <- contactPage(threads, Some(millisToInstant(before)), env.msg.api.contactsPerPage)
+          yield Json.obj("contacts" -> contacts)
   }
 
   def convo(username: UserStr, before: Option[Long] = None) = AuthOrScoped(_.Web.Mobile, _.Mobile.Inbox) {
@@ -72,7 +88,8 @@ final class Msg(env: Env) extends LilaController(env):
               data._3,
               data._4,
               data._5.map(UserId(_)),
-              data._6.toList.flatMap(_.split(',')).filter(_.nonEmpty)
+              data._6.toList.flatMap(_.split(',')).filter(_.nonEmpty),
+              data._7
             )
           )
       )
@@ -116,12 +133,13 @@ final class Msg(env: Env) extends LilaController(env):
 
   private val sendForm = Form(
     tuple(
-      "text" -> text(maxLength = 8000),
+      "text" -> text(maxLength = 8000).transform[String](_.replace("\r\n", "\n"), identity),
       "nonce" -> optional(text(maxLength = 64)),
       "replyTo" -> optional(text(maxLength = 100)),
       "forwardId" -> optional(text(maxLength = 100)),
       "forwardUser" -> optional(text(maxLength = 100)),
-      "attachments" -> optional(text(maxLength = 264))
+      "attachments" -> optional(text(maxLength = 264)),
+      "card" -> optional(text(maxLength = 6000))
     )
   )
   private val actionForm = Form(
@@ -141,8 +159,9 @@ final class Msg(env: Env) extends LilaController(env):
     result.map(msg => Ok(Json.obj("ok" -> true, "msg" -> env.msg.json.renderMsg(msg)))).recover {
       case lila.msg.MsgActionError("notFound") => NotFound(jsonError("notFound"))
       case lila.msg.MsgActionError("unsafeLink") => UnprocessableEntity(jsonError("unsafeLink"))
+      case lila.msg.MsgActionError("conflict") | lila.core.security.SubmissionRejected("conflict") =>
+        Conflict(jsonError("conflict"))
       case lila.core.security.SubmissionRejected(code) => UnprocessableEntity(jsonError(code))
-      case lila.msg.MsgActionError("conflict") => Conflict(jsonError("conflict"))
       case lila.msg.MsgActionError("limited") => TooManyRequests(jsonError("limited"))
       case lila.msg.MsgActionError(code) => BadRequest(jsonError(code))
     }
@@ -153,9 +172,170 @@ final class Msg(env: Env) extends LilaController(env):
       threads <- env.msg.api.myThreads
       contactIds = withConvo.toList ::: threads.map(_.other)
       studentNames <- env.clas.api.clas.myPotentialStudentNames(contactIds)
-      contacts <- env.msg.json.threadsJson(threads)
+      contacts <- contactPage(threads, None, env.msg.api.inboxSize)
+      organization <- env.msg.organization.snapshot
     yield Json.obj(
       "me" -> Json.toJsObject(me.light).add("bot" -> me.isBot),
       "contacts" -> contacts,
+      "organization" -> organization,
       "names" -> studentNames
     )
+
+  private def contactPage(threads: List[lila.msg.MsgThread], before: Option[Instant], max: Int)(using
+      Me
+  ): Fu[JsArray] = for
+    directs <- env.msg.json.threadsJson(threads)
+    groups <- env.msg.groups.contacts(before, max)
+  yield
+    if groups.isEmpty then directs
+    else
+      JsArray(
+        (directs.value.toList.map(j => (j \ "lastMsg" \ "date").as[Long] -> j) ++ groups.map((at, j) =>
+          at.toEpochMilli -> j
+        )).sortBy(-_._1).take(max).map(_._2)
+      )
+
+  private val actionName = nonEmptyText(maxLength = 20)
+  private val actionValue = default(text(maxLength = 480), "")
+  private val actionMembers = default(text(maxLength = 16000), "")
+  private val groupActionForm = Form(
+    tuple("action" -> actionName, "value" -> actionValue, "members" -> actionMembers)
+  )
+  private val createGroupForm = Form(
+    tuple("name" -> nonEmptyText(maxLength = 64), "members" -> nonEmptyText(maxLength = 16000))
+  )
+  private val organizationForm = Form(
+    tuple(
+      "chat" -> default(text(maxLength = 120), ""),
+      "action" -> actionName,
+      "value" -> actionValue,
+      "members" -> actionMembers
+    )
+  )
+  private def ids(raw: String) = raw.split(',').filter(_.nonEmpty).toList.distinct
+  private def groupResult(result: Fu[play.api.mvc.Result]) = result.recover {
+    case lila.msg.MsgActionError("notFound") => NotFound(jsonError("notFound"))
+    case lila.msg.MsgActionError("limited") => TooManyRequests(jsonError("limited"))
+    case lila.msg.MsgActionError("conflict") => Conflict(jsonError("conflict"))
+    case lila.msg.MsgActionError(code) => UnprocessableEntity(jsonError(code))
+    case lila.core.security.SubmissionRejected(code) => UnprocessableEntity(jsonError(code))
+  }
+
+  def collection(scope: String, before: Option[Long]) = AuthOrScoped(_.Web.Mobile, _.Mobile.Inbox) {
+    _ ?=> me ?=>
+      import lila.db.dsl.{ *, given }
+      val at = before.map(millisToInstant)
+      JsonOk:
+        for
+          ids <- env.msg.organization.selected(scope)
+          (rooms, users) = ids.partition(lila.msg.MsgGroups.validId)
+          threads <- env.msg.api.collectionThreads(users.map(UserId(_)), scope == "unread", at)
+          directs <- env.msg.json.threadsJson(threads)
+          selected = $inIds(rooms)
+          groups <- env.msg.groups.contacts(
+            at,
+            50,
+            if scope == "unread" then
+              $or(
+                selected,
+                $doc(s"previews.${me.userId}.read" -> false, s"previews.${me.userId}.user".$ne(me.userId))
+              )
+            else selected
+          )
+          contacts = (directs.value.toList.map(j => (j \ "lastMsg" \ "date").as[Long] -> j) ++ groups.map(
+            (at, j) => at.toEpochMilli -> j
+          )).sortBy(-_._1).take(50)
+        yield Json.obj(
+          "contacts" -> contacts.map(_._2),
+          "before" -> Option.when(contacts.size == 50)(contacts.last._1)
+        )
+  }
+
+  def history(chat: String, q: String, files: Boolean, before: Option[Long], cursor: String) =
+    AuthOrScoped(_.Web.Mobile, _.Mobile.Inbox) { _ ?=> me ?=>
+      groupResult(JsonOk(env.msg.actions.history(chat, q, files, before, cursor)))
+    }
+
+  def friends = AuthOrScoped(_.Web.Mobile, _.Mobile.Inbox) { _ ?=> me ?=>
+    import lila.common.Json.lightUserWrites
+    JsonOk(env.msg.groups.friends.map(users => Json.obj("friends" -> users)))
+  }
+
+  def organize = AuthOrScopedBody(_.Web.Mobile, _.Mobile.Inbox) { _ ?=> me ?=>
+    bindForm(organizationForm)(
+      doubleJsonFormError,
+      (chat, action, value, members) =>
+        groupResult(env.msg.organization.update(chat, action, value, ids(members)).map { data =>
+          lila.common.Bus.pub(
+            lila.core.socket.SendTo(
+              me.userId,
+              lila.core.socket.makeMessage("msgInbox", Json.obj("user" -> "", "organization" -> data))
+            )
+          )
+          Ok(data)
+        })
+    )
+  }
+
+  def createGroup = AuthOrScopedBody(_.Web.Mobile, _.Mobile.Inbox) { _ ?=> me ?=>
+    bindForm(createGroupForm)(
+      doubleJsonFormError,
+      (name, members) =>
+        groupResult(
+          env.msg.groups.create(name, ids(members).map(UserId(_))).map(id => Created(Json.obj("id" -> id)))
+        )
+    )
+  }
+
+  def group(id: String, before: Option[Long]) = AuthOrScoped(_.Web.Mobile, _.Mobile.Inbox) { _ ?=> me ?=>
+    groupResult(env.msg.groups.conversation(id, before).flatMap { convo =>
+      def data = inboxJson(None).map(_ + ("convo" -> convo))
+      negotiateApi(html = Ok.async(data.map(views.msg.home)), api = _ => JsonOk(data)).map(_.hasPersonalData)
+    })
+  }
+
+  def groupManage(id: String) = AuthOrScopedBody(_.Web.Mobile, _.Mobile.Inbox) { _ ?=> me ?=>
+    bindForm(groupActionForm)(
+      doubleJsonFormError,
+      (action, value, members) =>
+        groupResult(
+          env.msg.groups.manage(id, action, value, ids(members).map(UserId(_))) >> jsonOkResult
+        )
+    )
+  }
+
+  def groupPost(id: String) = AuthOrScopedBody(_.Web.Mobile, _.Mobile.Inbox) { _ ?=> me ?=>
+    bindForm(sendForm)(
+      doubleJsonFormError,
+      d =>
+        actionResult(
+          env.msg.groups
+            .send(id, d._1, d._2.getOrElse(""), d._3, d._6.toList.flatMap(ids), d._5.zip(d._4), d._7)
+        )
+    )
+  }
+
+  def groupMessage(id: String, mid: String) = AuthOrScopedBody(_.Web.Mobile, _.Mobile.Inbox) { _ ?=> me ?=>
+    bindForm(actionForm)(
+      doubleJsonFormError,
+      d =>
+        actionResult(
+          env.msg.groups
+            .update(id, mid, d._1, d._2, d._3, d._4.orElse(d._5.contains(true).option("")).map(ids))
+        )
+    )
+  }
+
+  def groupReceipt(id: String) = AuthOrScopedBody(_.Web.Mobile, _.Mobile.Inbox) { _ ?=> me ?=>
+    bindForm(receiptForm)(
+      doubleJsonFormError,
+      (raw, read) => groupResult(JsonOk(env.msg.groups.acknowledge(id, ids(raw), read)))
+    )
+  }
+
+  def groupTyping(id: String) = AuthOrScopedBody(_.Web.Mobile, _.Mobile.Inbox) { _ ?=> me ?=>
+    bindForm(Form(single("active" -> play.api.data.Forms.boolean)))(
+      doubleJsonFormError,
+      active => groupResult(env.msg.groups.typing(id, active) >> jsonOkResult)
+    )
+  }

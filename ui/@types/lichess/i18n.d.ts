@@ -1481,16 +1481,44 @@ interface I18n {
     xiangqiDiscussionDescription: string;
   };
   inbox: {
+    /** Add emoji */
+    addEmoji: string;
+    /** Add chat folder */
+    addFolder: string;
+    /** Add members */
+    addMembers: string;
+    /** All chats */
+    allChats: string;
+    /** All media */
+    allMedia: string;
+    /** Allow multiple votes */
+    allowMultiple: string;
+    /** Archive */
+    archive: string;
     /** Cancel */
     cancel: string;
+    /** Chats */
+    chats: string;
+    /** Xiangqi pieces */
+    chessStickers: string;
+    /** Choose chats */
+    chooseChats: string;
+    /** Clear filter */
+    clearFilter: string;
     /** Close */
     close: string;
+    /** Contact */
+    contact: string;
     /** Copy */
     copy: string;
     /** Copied */
     copySuccess: string;
+    /** Create a poll */
+    createPoll: string;
     /** Delete message */
     delete: string;
+    /** Delete chat */
+    deleteChat: string;
     /** Delete the selected messages? */
     deleteConfirm: string;
     /** This message was deleted */
@@ -1505,42 +1533,132 @@ interface I18n {
     delivered: string;
     /** Delivered */
     deliveredAt: string;
+    /** Done */
+    done: string;
     /** Edit */
     edit: string;
     /** Edited */
     edited: string;
+    /** Edit folder */
+    editFolder: string;
     /** Edit history */
     editHistory: string;
     /** Editing message */
     editing: string;
     /** Choose a conversation or find a player to start messaging. */
     empty: string;
+    /** End poll */
+    endPoll: string;
     /** Could not complete this action. Please try again. */
     error: string;
     /** Not sent. Tap to retry. */
     failed: string;
+    /** File */
+    file: string;
+    /** Filter by unread */
+    filterUnread: string;
+    /** Find by username */
+    findUsername: string;
+    /** Folder name */
+    folderName: string;
     /** Forward */
     forward: string;
     /** Forwarded */
     forwarded: string;
+    /** Freeform */
+    freeform: string;
     /** From */
     from: string;
+    /** Admin */
+    groupAdmin: string;
+    /** Group description */
+    groupDescription: string;
+    /** Group name */
+    groupName: string;
+    /** Group settings */
+    groupSettings: string;
+    /** Heavy */
+    heavy: string;
+    /** Highlight */
+    highlight: string;
+    /** Highlighter */
+    highlighter: string;
     /** Message details */
     info: string;
+    /** Leave group */
+    leaveGroup: string;
+    /** Make admin */
+    makeAdmin: string;
+    /** Mark as unread */
+    markUnread: string;
+    /** Medium */
+    medium: string;
+    /** Members */
+    members: string;
     /** Message */
     message: string;
     /** Message options */
     moreActions: string;
     /** More emoji */
     moreReactions: string;
+    /** Mute notifications */
+    mute: string;
+    /** New chat */
+    newChat: string;
+    /** New group */
+    newGroup: string;
+    /** No chats */
+    noChats: string;
+    /** No results */
+    noResults: string;
+    /** Notification settings */
+    notifications: string;
+    /** Notify for mentions when muted */
+    notifyMentions: string;
     /** Connecting… Your saved messages are available. */
     offline: string;
     /** Load older messages */
     older: string;
+    /** Outline */
+    outline: string;
+    /** Pen */
+    pen: string;
+    /** Color */
+    photoColor: string;
+    /** Crop */
+    photoCrop: string;
+    /** Edit photo */
+    photoEdit: string;
+    /** Marker */
+    photoMarker: string;
+    /** Redo */
+    photoRedo: string;
+    /** Rotate */
+    photoRotate: string;
+    /** Photos & videos */
+    photosAndVideos: string;
+    /** Sticker */
+    photoSticker: string;
+    /** Text */
+    photoText: string;
+    /** Undo */
+    photoUndo: string;
+    /** Size */
+    photoWidth: string;
     /** Pin */
     pin: string;
+    /** Pin chat */
+    pinChat: string;
     /** Pinned messages */
     pinned: string;
+    /** Poll */
+    poll: string;
+    /** Poll ended */
+    pollEnded: string;
+    /** Option */
+    pollOption: string;
+    /** Question */
+    pollQuestion: string;
     /** React */
     react: string;
     /** Reactions */
@@ -1549,12 +1667,22 @@ interface I18n {
     read: string;
     /** Read */
     readAt: string;
+    /** Regular */
+    regular: string;
+    /** Remove admin */
+    removeAdmin: string;
+    /** Remove member */
+    removeMember: string;
+    /** Remove link preview */
+    removePreview: string;
     /** Reply */
     reply: string;
     /** Retry */
     retry: string;
     /** Save */
     save: string;
+    /** Search in chat */
+    searchChat: string;
     /** Search emoji */
     searchEmoji: string;
     /** Find a player or conversation */
@@ -1563,6 +1691,8 @@ interface I18n {
     select: string;
     /** %s selected */
     selected: I18nFormat;
+    /** Select messages */
+    selectMessages: string;
     /** Send */
     send: string;
     /** Sending */
@@ -1571,16 +1701,36 @@ interface I18n {
     sent: string;
     /** Sent */
     sentAt: string;
+    /** Share contact */
+    shareContact: string;
+    /** Square */
+    square: string;
+    /** Stickers */
+    stickers: string;
+    /** Thin */
+    thin: string;
+    /** Time sticker */
+    timeSticker: string;
     /** Inbox */
     title: string;
     /** To */
     to: string;
     /** %s is typing */
     typing: I18nFormat;
+    /** Unarchive */
+    unarchive: string;
     /** Not yet confirmed */
     unknown: string;
+    /** Unmute notifications */
+    unmute: string;
     /** Unpin */
     unpin: string;
+    /** Unpin chat */
+    unpinChat: string;
+    /** View archive */
+    viewArchive: string;
+    /** View votes */
+    viewVotes: string;
   };
   insight: {
     /** Sorry, you cannot see %s's Xiangqi insights. */
@@ -5107,7 +5257,7 @@ interface I18n {
     mediaCamera: string;
     /** Checking… */
     mediaChecking: string;
-    /** Before you upload, LiXiangQi checks files for safety. Photos are checked by a child-safety service and OpenAI. Only approved attachments can be sent. */
+    /** Before you upload, LiXiangQi checks files for safety. Photos are sent to OpenAI for moderation. Only approved attachments can be sent. */
     mediaDisclosure: string;
     /** Download file */
     mediaDownload: string;

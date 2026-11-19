@@ -1,0 +1,24 @@
+PUT    /inbox/device/registration      controllers.inbox.Msg.registerDevice
+DELETE /inbox/device/registration      controllers.inbox.Msg.unregisterDevice
+GET   /inbox                           controllers.inbox.Msg.home(before: Option[Long] ?= None)
+GET   /inbox/settings/chats            controllers.inbox.Msg.collection(scope: String, before: Option[Long] ?= None)
+GET   /inbox/history/:chat              controllers.inbox.Msg.history(chat, q: String ?= "", files: Boolean ?= false, before: Option[Long] ?= None, cursor: String ?= "")
+GET   /inbox/contacts/friends          controllers.inbox.Msg.friends
+POST  /inbox/settings/organize         controllers.inbox.Msg.organize
+POST  /inbox/groups/create             controllers.inbox.Msg.createGroup
+GET   /inbox/group/:id                 controllers.inbox.Msg.group(id, before: Option[Long] ?= None)
+POST  /inbox/group/:id                 controllers.inbox.Msg.groupPost(id)
+POST  /inbox/group/:id/manage          controllers.inbox.Msg.groupManage(id)
+POST  /inbox/group/:id/messages/:mid   controllers.inbox.Msg.groupMessage(id, mid)
+POST  /inbox/group/:id/receipt         controllers.inbox.Msg.groupReceipt(id)
+POST  /inbox/group/:id/typing          controllers.inbox.Msg.groupTyping(id)
+GET   /inbox/search                    controllers.inbox.Msg.search(q)
+GET   /inbox/unread-count              controllers.inbox.Msg.unreadCount
+GET   /inbox/:username                 controllers.inbox.Msg.convo(username: UserStr, before: Option[Long] ?= None)
+DELETE /inbox/:username                controllers.inbox.Msg.convoDelete(username: UserStr)
+# Msg API/compat
+POST  /inbox/:username                 controllers.inbox.Msg.apiPost(username: UserStr)
+POST  /inbox/:username/messages/:id    controllers.inbox.Msg.messageAction(username: UserStr, id: String)
+POST  /inbox/:username/receipt         controllers.inbox.Msg.receipt(username: UserStr)
+POST  /inbox/:username/typing          controllers.inbox.Msg.typing(username: UserStr)
+POST /inbox/:username/delete           controllers.inbox.Msg.convoDelete(username: UserStr)

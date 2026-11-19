@@ -1031,7 +1031,7 @@
   <string name="mediaPhotos">照片</string>
   <string name="mediaFiles">文件</string>
   <string name="mediaCamera">拍照</string>
-  <string name="mediaDisclosure">上传前请注意：立象棋会检查文件安全。照片将由儿童安全服务和 OpenAI 筛查。只有通过检查的附件才能发送。</string>
+  <string name="mediaDisclosure">上传前请注意：立象棋会检查文件安全。照片会发送给 OpenAI 审核。只有通过检查的附件才能发送。</string>
   <string name="mediaUploading">正在上传…</string>
   <string name="mediaChecking">正在检查…</string>
   <string name="mediaReady">可以发送</string>

@@ -1,6 +1,7 @@
 package lila.msg
 
 import play.api.libs.json.*
+import reactivemongo.api.bson.BSONRegex
 
 import lila.common.Bus
 import lila.common.Json.given
@@ -13,6 +14,8 @@ import lila.db.dsl.{ *, given }
 final class MsgActions(
     colls: MsgColls,
     api: MsgApi,
+    groups: MsgGroups,
+    media: MsgMedia,
     json: MsgJson,
     security: MsgSecurity,
     contactApi: ContactApi,
@@ -41,6 +44,43 @@ final class MsgActions(
   def visibleMessage(contact: UserId, id: String)(using me: Me): Fu[Option[Msg]] =
     colls.msg.one[Msg](visible(contact) ++ $id(id) ++ $doc("deletedAt".$exists(false)))
 
+  def history(chat: String, query: String, files: Boolean, before: Option[Long], cursor: String)(using
+      me: Me
+  ): Fu[JsObject] =
+    val term = query.trim
+    if term.length > 200 || (!files && term.isEmpty) then fuccess(Json.obj("msgs" -> Json.arr()))
+    else
+      limit(me.userId, fail[JsObject]("limited")):
+        val search = if files then $doc("attachments.0".$exists(true))
+        else $doc("text" -> BSONRegex(java.util.regex.Pattern.quote(term), "i"))
+        val filter = search ++ $doc("deletedAt".$exists(false)) ++ before.so: stamp =>
+          val at = millisToInstant(stamp)
+          $or($doc("date".$lt(at)), $doc("date" -> at, "_id".$lt(cursor)))
+        val result = if MsgGroups.validId(chat) then groups.matching(chat, filter)
+        else
+          val peer = UserId(chat)
+          for
+            docs <- colls.msg
+              .find(visible(peer) ++ filter)
+              .sort($doc("date" -> -1, "_id" -> -1))
+              .cursor[Msg]()
+              .list(51)
+            page = docs.take(50)
+            allowed <- page
+              .filter(_.attachments.nonEmpty)
+              .map(_.user)
+              .distinct
+              .filterA(author => media.direct(author, if author.is(me) then peer else me.userId))
+            rows = page.map(m =>
+              if m.attachments.isEmpty || allowed.contains(m.user) then m else m.copy(attachments = Nil)
+            )
+          yield rows -> Option.when(docs.size > 50)(page.last.date.toEpochMilli -> page.last.id)
+        result.map: (rows, next) =>
+          Json.obj(
+            "msgs" -> rows.filter(m => !files || m.attachments.nonEmpty).map(json.renderMsg),
+            "next" -> next.map((t, id) => Json.obj("before" -> t, "id" -> id))
+          )
+
   def canReadAttachment(author: UserId, recipient: UserId, parent: String, handle: String)(using me: Me) =
     store.canReadAttachment(me, author, recipient, parent, handle)(api.mediaAllowed(author, recipient))
 
@@ -53,14 +93,20 @@ final class MsgActions(
       replyId: Option[String],
       forwardId: Option[String],
       forwardUser: Option[UserId],
-      attachmentIds: List[String] = Nil
+      attachmentIds: List[String] = Nil,
+      cardJson: Option[String] = None
   )(using me: Me): Fu[Msg] =
     if !nonce.matches("[a-zA-Z0-9-]{16,64}") || text.length > 8000 || contact.is(me) then fail("invalid")
     else
       val id = s"${me.userId}_$nonce"
       val fingerprint = lila.memo.Attachment.sha(
         Json
-          .stringify(Json.arr(text, replyId, forwardId, forwardUser.map(_.value), attachmentIds))
+          .stringify(
+            JsArray(
+              Json.arr(text, replyId, forwardId, forwardUser.map(_.value), attachmentIds).value ++ cardJson
+                .map(JsString.apply)
+            )
+          )
           .getBytes(java.nio.charset.StandardCharsets.UTF_8)
       )
       def existing = colls.msg.one[Msg]($id(id) ++ $doc("tid" -> MsgThread.id(me, contact))).flatMap {
@@ -70,6 +116,8 @@ final class MsgActions(
         case m => fuccess(m)
       }
       def create = for
+        card <- MsgCard.decode(cardJson, text, attachmentIds)
+        _ <- if forwardId.nonEmpty && card.nonEmpty then fail[Unit]("invalid") else funit
         quote <- replyId
           .traverse(message(contact, _))
           .map(
@@ -81,23 +129,13 @@ final class MsgActions(
             fail[Unit]("unsafeLink")
           else funit
         forwarded <- forwardId.traverse: fid =>
-          forwardUser.fold(fail[Msg]("invalid"))(message(_, fid))
-        _ <- if forwarded.exists(_.deletedAt.isDefined) then fail[Unit]("invalid") else funit
+          forwardUser.fold(fail[Msg]("invalid"))(u =>
+            if MsgGroups.validId(u.value) then groups.source(u.value, fid) else message(u, fid)
+          )
+        _ <- if !forwarded.forall(_.canForward) then fail[Unit]("invalid") else funit
         ids <- forwarded.filter(_.attachments.nonEmpty) match
           case Some(src) if attachmentIds.isEmpty && attachments.enabled("msg") =>
-            val source = forwardUser.get
-            val recipient = src.recipient(me, source)
-            api.requireMedia(src.user, recipient) >> api.requireMedia(me, contact) >>
-              src.attachments.traverse: handle =>
-                attachments
-                  .get(handle)
-                  .flatMap:
-                    case Some(item)
-                        if item.parent.contains(
-                          src.id
-                        ) && item.owner == src.user && item.audience == s"msg/$recipient" =>
-                      attachments.forward(item, me, s"msg/$contact", id)
-                    case _ => fail[String]("attachmentsUnavailable")
+            api.requireMedia(me, contact) >> media.copy(me, forwardUser.get.value, src, contact.value, id)
           case _
               if forwarded.isDefined && (attachmentIds.nonEmpty || forwarded.exists(
                 _.attachments.nonEmpty
@@ -113,7 +151,8 @@ final class MsgActions(
           forwarded = forwarded.isDefined,
           attachmentIds = ids,
           requestDigest = Some(fingerprint),
-          forwardSource = forwardUser.zip(forwarded)
+          forwardSource = forwardUser.zip(forwarded),
+          card = forwarded.flatMap(_.card).orElse(card)
         )
         _ <- result.rejection.fold(funit)(fail[Unit])
         saved <- existing.flatMap(_.fold(fail[Msg]("notFound"))(fuccess))
@@ -214,12 +253,17 @@ final class MsgActions(
                         fuccess(
                           next.copy(
                             text = cleaned.text,
+                            card = None,
                             editedAt = Some(now),
                             history = old.history :+ Msg.Version(old.text, old.editedAt.getOrElse(old.date))
                           )
                         )
                       case MsgSecurity.Limit => fail("limited")
                       case _ => fail("rejected")
+      case "vote" | "endPoll" =>
+        security.may
+          .post(me, contact, isNew = false)
+          .flatMap(ok => if ok then MsgCard.pollAction(next, me, action, value) else fail("rejected"))
       case "react" if old.deletedAt.isEmpty && MsgActions.validReaction(value) =>
         security.may
           .post(me, contact, isNew = false)

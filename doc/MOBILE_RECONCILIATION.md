@@ -88,6 +88,21 @@ explicitly deferred variant project. Kids has a review queue rather than a claim
 
 None. Both checkouts were located when establishing this workflow.
 
+## Mobile browser Inbox message options, November 18, 2026
+
+Reviewed the responsive button placement and blank-space dismissal changes in
+`ui/msg/css/_convoMsgs.scss`, `ui/msg/css/_messageActions.scss`, and
+`ui/msg/src/view/messageActions.ts` on website HEAD
+`731862cfe76613fccfb2b1f14117f4907fdb3112`.
+
+- **LiXiangQi Mobile (not applicable).** The Flutter Inbox owns its message
+  layout and uses a dismissible modal barrier in `message_actions.dart`.
+- **Xiangqi Kids (not applicable).** The app has no private-message Inbox.
+
+The website production asset build and the Inbox touch regression passed. The
+fix ships with the website assets and requires no API change, data migration,
+or native release. This review leaves both app checkpoints at their current baselines.
+
 ## Community blog listings
 
 Reviewed website HEAD `cffca4bbfe5df809b8b303a7c08dbbafe7d68818` with
@@ -108,3 +123,65 @@ is required. This review does not advance either app's checkpoint.
 The main mobile app consumes the opt-in theme, feed, Blog and Forum display responses, conditional validators and separate visible article view endpoint. Token-bearing Forum requests use current website permissions. The main app's [public reading guide](../../lixiangqi-mobile/doc/PUBLIC_READING.md) records the deployment contract, integration pattern and verification. The app's focused receipt fingerprints the reviewed checkout at `cffca4bbfe5df809b8b303a7c08dbbafe7d68818`. Concurrent reviews retain their existing checkpoints.
 
 The Kids app has no adult feeds, Forum or article reader. Its Lotus puzzle flow has no theme-catalog consumer and retains its existing server contracts.
+
+## Player leaderboard flags
+
+Reviewed website HEAD `731862cfe76613fccfb2b1f14117f4907fdb3112` with this
+working-tree change in `app/controllers/User.scala`, `app/views/user/list.scala`,
+and `modules/user/src/main/ui/UserList.scala`. The HTML leaderboard now loads
+profile flags for ranked players, including the viewer's row outside the top 100.
+
+- **LiXiangQi Mobile (server inherited).** `PlayerRepository.parseLeaderboard`
+  already reads `img.flag` from each Xiangqi leaderboard row, and
+  `LeaderboardPage` passes it to `PlayerName`. The existing
+  `test/players/players_test.dart` fixture passed its parsed flag URL check.
+  The website backend deployment supplies this markup to existing app builds.
+- **Xiangqi Kids (not applicable).** The app has no player leaderboard or
+  `/player` consumer.
+
+Working-tree SHA-256 fingerprints:
+
+- `app/controllers/User.scala`: `61b6eec32b84d01416190e06603ad21712d8c6603cfacf25f09695aa26639e4b`
+- `app/views/user/list.scala`: `8dfad2091ebbb7b706fe66b976ef18739ec4b1f7041e043a01df24fe42e8315a`
+- `modules/user/src/main/ui/UserList.scala`: `1ee62fe8283a474f25ca3762afc48bd861b91b3ea83f9a85ea0c7e78b19fded6`
+
+This focused review leaves both app checkpoints at their previous positions.
+
+## Official blog website entry point
+
+Reviewed website HEAD `731862cfe76613fccfb2b1f14117f4907fdb3112` with working-tree
+navigation changes in `modules/web/src/main/ui/TopNav.scala` and
+`modules/ublog/src/main/ui/UblogUi.scala`. The Community > Blog top-menu link opens
+the official blog, and the official section now leads the blog sidebar.
+
+- **LiXiangQi Mobile (already covered).** The native `BlogPage` defaults to
+  `/blog/official` and exposes Official and Community as its own feed choices. This
+  change affects website navigation and sidebar ordering only; mobile navigation
+  remains app-owned.
+- **Xiangqi Kids (not applicable).** The app has no blog reader, listing or feed
+  consumer.
+
+Working-tree SHA-256 fingerprints:
+
+- `modules/web/src/main/ui/TopNav.scala`: `03577ade64e0b2bc3c1afea8d84c8fb3331d142ca22a6faca0e24782d423d18f`
+- `modules/ublog/src/main/ui/UblogUi.scala`: `aeef3d9eb3c5fbdcdb4edb9cb977979e0b1e3b0dc759a70d93f7b5fce612f8b2`
+
+No mobile changes, migration or mobile release are required. Website deployment is
+required for the navigation update. No tests were run for this presentation-only
+change. This focused review leaves both app checkpoints at their previous positions.
+
+## Signal inbox media, composer and links, November 18, 2026
+
+The main app now creates and reads polls, shared LiXiangQi contacts and link previews, and plays approved private clips through the authenticated endpoint. The web viewer and four-item menu follow the pinned Signal Desktop source. Xiangqi Kids has no private inbox or inbox OAuth grant. Both broad review checkpoints retain their previous positions.
+
+The website and its FFmpeg-enabled scanner must ship before the native client. Existing messages need no migration. The focused review records source hashes for both working trees against website base 731862cfe76613fccfb2b1f14117f4907fdb3112. [Source fingerprints](MESSAGING_RECONCILIATION.json#signalMediaMenuLinks)
+
+## Inbox search focus spacing
+
+Reviewed against website base `731862cfe76613fccfb2b1f14117f4907fdb3112` with `ui/msg/css/_side.scss` SHA-256 `da88911326dc51409d4231ccaedbb316bd0b316a2bed8ab6b196615c94982c0c`. The main app uses native Flutter search fields and shares no affected CSS. Xiangqi Kids has no private inbox. Both checkpoints retain their prior positions.
+
+The production asset build and six Chromium and Firefox layout tests passed at 320, 768 and 1440 CSS pixels. This fix ships with the website assets.
+
+## Signal link previews and composer
+
+The main Flutter app adopts Signal Android’s inline emoji and attachment controls, compact thumbnail and landscape banner layouts. The website uses Signal Desktop’s square-image cutoff and three-line composer. Eligible links generate previews automatically on both clients, and composers can dismiss an individual snapshot. Xiangqi Kids has no private inbox. Both checkpoints retain their previous positions. The website and native app ship independently using the existing backend contract. [Pinned sources and working-tree fingerprints](MESSAGING_RECONCILIATION.json#signalPreviewComposerLayout)

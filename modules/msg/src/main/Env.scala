@@ -43,11 +43,17 @@ final class Env(
 
   val json = wire[MsgJson]
 
+  val organization = wire[MsgOrganization]
+
   private val notifier = wire[MsgNotify]
 
   private val security = wire[MsgSecurity]
 
+  private val media = wire[MsgMedia]
+
   val api: MsgApi = wire[MsgApi]
+
+  val groups = wire[MsgGroups]
 
   val actions = wire[MsgActions]
 
@@ -77,18 +83,21 @@ final class Env(
 
   Bus.sub[lila.core.user.SetKidMode]: change =>
     if change.user.kid.yes then
+      groups.revokeMedia(change.user.id)
       attachments
         .privateContacts(change.user.id)
         .foreach: peers =>
-          peers.foreach(p =>
-            Bus.pub(
-              lila.core.socket.SendTo(
-                p,
-                lila.core.socket
-                  .makeMessage("msgMediaRevoked", play.api.libs.json.Json.obj("user" -> change.user.id))
+          peers
+            .filterNot(p => MsgGroups.validId(p.value))
+            .foreach(p =>
+              Bus.pub(
+                lila.core.socket.SendTo(
+                  p,
+                  lila.core.socket
+                    .makeMessage("msgMediaRevoked", play.api.libs.json.Json.obj("user" -> change.user.id))
+                )
               )
             )
-          )
 
   Bus.sub[TellUserIn]:
     case TellUserIn.Read(userId, msg) =>
@@ -119,8 +128,17 @@ final class Env(
     systemMsg.chatTimeout(to.user)
 
 private class MsgColls(db: lila.db.Db)(using Executor):
+  val group = db(CollName("msg_group"))
+  val organization = db(CollName("msg_organization"))
   val thread = db(CollName("msg_thread"))
   val msg = db(CollName("msg_msg"))
+  lazy val mailboxIndexes: Funit =
+    import reactivemongo.api.indexes.{ Index, IndexType }
+    group.indexesManager
+      .ensure(Index(Seq("users" -> IndexType.Ascending, "updatedAt" -> IndexType.Descending)))
+      .void >>
+      organization.indexesManager.ensure(Index(Seq("owner" -> IndexType.Ascending))).void
+
   // Additive index, installed once before pin queries. No message data is rewritten.
   lazy val pinnedIndex: Funit =
     import reactivemongo.api.indexes.{ Index, IndexType }

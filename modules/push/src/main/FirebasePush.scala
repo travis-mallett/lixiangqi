@@ -33,16 +33,17 @@ final private class FirebasePush(
   def apply(userId: UserId, data: LazyFu[PushApi.Data]): Funit =
     unifiedPush(userId, data)
     deviceApi
-      .findLastManyByUserId("firebase", 3)(userId)
+      .firebaseDevices(userId)
       .flatMap:
         _.sequentiallyVoid: device =>
           val configOpt =
-            if device.isMobile then configs.mobile.some
+            if device.isInbox then Option.when(configs.inbox.url.nonEmpty)(configs.inbox)
+            else if device.isMobile then configs.mobile.some
             else if device.isLichobile then configs.lichobile.some
             else None
           configOpt match
             case None =>
-              logger.info(s"Unsupported firebase device $device")
+              logger.info("Unsupported Firebase device")
               // deviceApi.delete(device) // cleanup unsupported device?
               funit
             case Some(config) =>
@@ -50,8 +51,11 @@ final private class FirebasePush(
                 for
                   data <- data.value
                   compatible =
-                    data.mobileCompatible.exists(device.isMobileVersionCompatible) ||
-                      data.lichobileCompatible && device.isLichobile
+                    if device.isInbox then data.key == Key.privateMessage
+                    else
+                      data.mobileCompatible.exists(
+                        device.isMobileVersionCompatible
+                      ) || data.lichobileCompatible && device.isLichobile
                   _ <- compatible.so:
                     for
                       // access token has 1h lifetime and is requested only if expired
@@ -85,9 +89,9 @@ final private class FirebasePush(
         Json.obj(
           "message" ->
             FirebasePush
-              .makeMobilePayload(data)
+              .makeMobilePayload(data, inbox = device.isInbox)
               .add:
-                "token" -> device._id.some
+                (if device.isInbox then "fid" else "token") -> device._id.some
               .add:
                 "android" -> Json.obj("priority" -> "high").some
               .add:
@@ -99,14 +103,15 @@ final private class FirebasePush(
                   )
         )
       .flatMap: res =>
-        val project = if device.isMobile then "mobileV2" else "lichobile"
+        val project =
+          if device.isInbox then "lixiangqiInbox" else if device.isMobile then "mobileV2" else "lichobile"
         val dataType = data.firebaseMod.fold("both"):
           case PushApi.Data.FirebaseMod.DataOnly => "data"
           case PushApi.Data.FirebaseMod.NotifOnly(_) => "notif"
         lila.mon.push.firebaseStatus(project, dataType, res.status).increment()
         if res.status == 200 then funit
         else if res.status == 404 then
-          logger.info(s"Delete missing firebase device $device")
+          logger.info("Deleting an unregistered Firebase device")
           deviceApi.delete(device)
         else
           if errorCounter(res.status) then logger.warn(s"[push] firebase: ${res.status}")
@@ -130,20 +135,23 @@ private object FirebasePush:
         case e: Exception =>
           logger.warn("Failed to create google credentials", e)
           none
-  final class BothConfigs(val lichobile: Config, val mobile: Config)
+  final class BothConfigs(val lichobile: Config, val mobile: Config, val inbox: Config)
   import lila.common.autoconfig.*
   import lila.common.config.given
   given ConfigLoader[Config] = AutoConfig.loader[Config]
   given ConfigLoader[BothConfigs] = AutoConfig.loader[BothConfigs]
 
-  def makeMobilePayload(data: PushApi.Data): JsObject =
+  def makeMobilePayload(data: PushApi.Data, inbox: Boolean = false): JsObject =
     Json
       .obj(
         "data" -> toDataKeyValue:
           data.firebaseMod.match
             case Some(PushApi.Data.FirebaseMod.NotifOnly(mod)) => mod(data.payload.userData)
             case _ =>
-              data.payload.userData ++ (data.iosBadge.map: number =>
+              data.payload.userData ++ Option
+                .when(inbox)(data.payload.userId)
+                .flatten
+                .map(u => "account" -> u.value) ++ (data.iosBadge.map: number =>
                 "iosBadge" -> number.toString)
       )
       .add:

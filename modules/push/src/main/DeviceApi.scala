@@ -9,28 +9,61 @@ final private class DeviceApi(coll: Coll)(using Executor):
 
   private given BSONDocumentHandler[Device] = Macros.handler
 
+  private lazy val inboxSessionIndex: Funit =
+    import reactivemongo.api.indexes.{ Index, IndexType }
+    coll.indexesManager.ensure(Index(Seq("session" -> IndexType.Ascending), sparse = true)).void
+
   lila.common.Bus.sub[lila.core.user.UserDelete]: del =>
     coll.delete.one($doc("userId" -> del.id)).void
+
+  lila.common.Bus.sub[lila.core.misc.oauth.TokenRevoke]: event =>
+    inboxSessionIndex >> coll.delete
+      .one($doc("platform" -> Device.inboxPlatform, "session" -> event.id.value))
+      .void
+
+  lila.common.Bus.sub[lila.core.user.SetKidMode]: event =>
+    if event.user.kid.yes then
+      coll.delete.one($doc("platform" -> Device.inboxPlatform, "userId" -> event.user.id)).void
 
   private[push] def findByDeviceId(deviceId: String): Fu[Option[Device]] =
     coll.find($id(deviceId)).one[Device]
 
-  private[push] def findLastManyByUserId(platform: String, max: Int)(userId: UserId): Fu[List[Device]] =
+  def firebaseDevices(userId: UserId): Fu[List[Device]] =
     coll
       .find(
         $doc(
-          "platform" -> platform,
-          "userId" -> userId
+          "userId" -> userId,
+          "$or" -> List(
+            $doc("platform" -> "firebase"),
+            $doc("platform" -> Device.inboxPlatform, "seenAt".$gt(nowInstant.minusDays(30)))
+          )
         )
       )
       .sort($doc("seenAt" -> -1))
       .cursor[Device]()
-      .list(max)
+      .list(6)
 
-  private[push] def findLastOneByUserId(platform: String)(userId: UserId): Fu[Option[Device]] =
-    findLastManyByUserId(platform, 1)(userId).dmap(_.headOption)
+  def registerInboxDevice(user: User, deviceId: String, session: String)(using UserAgent): Funit =
+    val started = nowInstant
+    inboxSessionIndex >> register(user, Device.inboxPlatform, deviceId, Some(session)) >>
+      coll.delete
+        .one(
+          $doc(
+            "platform" -> Device.inboxPlatform,
+            "userId" -> user.id,
+            "session" -> session,
+            "_id".$ne(deviceId),
+            "seenAt".$lt(started)
+          )
+        )
+        .void
 
-  def register(user: User, platform: String, deviceId: String)(using ua: UserAgent) =
+  def unregisterInboxDevice(user: User, session: String): Funit =
+    coll.delete.one($doc("platform" -> Device.inboxPlatform, "userId" -> user.id, "session" -> session)).void
+
+  def register(user: User, platform: String, deviceId: String, session: Option[String] = None)(using
+      ua: UserAgent
+  ) =
     lila.mon.push.register.in(platform).increment()
     coll.update
       .one(
@@ -40,7 +73,8 @@ final private class DeviceApi(coll: Coll)(using Executor):
           platform = platform,
           userId = user.id,
           seenAt = nowInstant,
-          ua = ua
+          ua = ua,
+          session = session
         ),
         upsert = true
       )

@@ -144,7 +144,7 @@ final class LilaComponents(
   lazy val lobby: Lobby = wire[Lobby]
   lazy val main: Main = wire[Main]
   lazy val attachment: Attachment = wire[Attachment]
-  lazy val msg: Msg = wire[Msg]
+  lazy val msg: inbox.Msg = wire[inbox.Msg]
   lazy val mod: Mod = wire[Mod]
   lazy val gameMod: GameMod = wire[GameMod]
   lazy val notifyC: Notify = wire[Notify]
@@ -190,6 +190,7 @@ final class LilaComponents(
 
   // eagerly wire up all controllers
   private val appealRouter: _root_.router.appeal.Routes = wire[_root_.router.appeal.Routes]
+  private val inboxRouter: _root_.router.inbox.Routes = wire[_root_.router.inbox.Routes]
   private val reportRouter: _root_.router.report.Routes = wire[_root_.router.report.Routes]
   private val clasRouter: _root_.router.clas.Routes = wire[_root_.router.clas.Routes]
   private val teamRouter: _root_.router.team.Routes = wire[_root_.router.team.Routes]

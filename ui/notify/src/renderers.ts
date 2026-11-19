@@ -1,6 +1,7 @@
 import { h, type VNode } from 'snabbdom';
 
 import { timeago } from 'lib/i18n';
+import { chatPath } from 'lib/inboxUrl';
 import { licon, type LiconValue } from 'lib/licon';
 import { icon } from 'lib/view';
 
@@ -66,11 +67,11 @@ export default function makeRenderers(): Renderers {
     },
     privateMessage: {
       html: n =>
-        generic(n, '/inbox/' + n.content.user!.name, licon.BubbleSpeech, [
-          h('span', [h('strong', userFullName(n.content.user)), drawTime(n)]),
+        generic(n, chatPath(n.content.thread ?? n.content.user!.name), licon.BubbleSpeech, [
+          h('span', [h('strong', n.content.groupName || userFullName(n.content.user)), drawTime(n)]),
           h('span', n.content.text),
         ]),
-      text: n => userFullName(n.content.sender) + ': ' + n.content.text,
+      text: n => (n.content.groupName || userFullName(n.content.user)) + ': ' + n.content.text,
     },
     teamJoined: {
       html: n =>

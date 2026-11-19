@@ -20,6 +20,7 @@ final class MsgApi(
     relationApi: lila.core.relation.RelationApi,
     json: MsgJson,
     notifier: MsgNotify,
+    media: MsgMedia,
     security: MsgSecurity,
     shutupApi: lila.core.shutup.ShutupApi,
     attachments: lila.memo.Attachments,
@@ -57,6 +58,24 @@ final class MsgApi(
         .list(inboxSize)
         // last we filter receivedMultis and reinsert them according to their lastMsg.date
         .map(sorted => merge(sorted.filterNot(receivedMultis.contains), receivedMultis))
+
+  def collectionThreads(ids: List[UserId], unread: Boolean, before: Option[Instant])(using
+      me: Me
+  ): Fu[List[MsgThread]] =
+    val selected = $inIds(ids.map(MsgThread.id(me, _)))
+    val scope = if unread then
+      $or(
+        selected,
+        $doc("lastMsg.read" -> false, "lastMsg.user".$ne(me.userId)),
+        $doc(s"preview.${me.userId}.read" -> false),
+        $doc("maskFor" -> me.userId, "maskWith.read" -> false)
+      )
+    else selected
+    colls.thread
+      .find(selectMyThreads ++ scope ++ before.so(t => $doc("lastMsg.date".$lt(t))))
+      .sort($sort.desc("lastMsg.date"))
+      .cursor[MsgThread]()
+      .list(50)
 
   private def selectMyThreads(using me: Me) = $doc("users" -> me.userId) ++ selectNotDeleted
 
@@ -165,7 +184,8 @@ final class MsgApi(
       forwarded: Boolean = false,
       attachmentIds: List[String] = Nil,
       requestDigest: Option[String] = None,
-      forwardSource: Option[(UserId, Msg)] = None
+      forwardSource: Option[(UserId, Msg)] = None,
+      card: Option[MsgCard] = None
   ): Fu[PostResult] =
     if lila.core.security.SubmissionPolicy.blocked(text) then
       lila.mon.submission.blocked("msg").increment()
@@ -203,6 +223,7 @@ final class MsgApi(
                   id = messageId.getOrElse(msgPre.id),
                   reply = reply,
                   forwarded = forwarded,
+                  card = card,
                   requestDigest = requestDigest
                 )
               def msgWrite(messages: Coll) = messages.insert.one(
@@ -243,24 +264,10 @@ final class MsgApi(
                   attachments.transaction { tx =>
                     val messages: Coll = tx.collection(colls.msg.name)
                     for
-                      _ <- contactApi.guardMedia(tx, List(orig, dest) ++ forwardSource.map(_._1))
+                      _ <- contactApi.guardMedia(tx, List(orig, dest))
                       _ <- requireMedia(orig, dest)
-                      _ <- forwardSource.so: (peer, source) =>
-                        requireMedia(source.user, source.recipient(orig, peer)) >> messages.update
-                          .one(
-                            $id(source.id) ++ $doc(
-                              "tid" -> MsgThread.id(orig, peer),
-                              "revision" -> source.revision,
-                              "attachments" -> source.attachments,
-                              "del".$ne(orig),
-                              "deletedAt".$exists(false)
-                            ),
-                            $inc("mediaForwardRevision" -> 1)
-                          )
-                          .flatMap(r =>
-                            if r.n == 1 then funit
-                            else fufail(lila.core.security.SubmissionRejected("conflict"))
-                          )
+                      _ <- forwardSource
+                        .so((peer, source) => media.guardForward(tx, orig, peer.value, source))
                       _ <- attachments.prepare(
                         orig,
                         s"msg/$dest",
@@ -324,21 +331,8 @@ final class MsgApi(
       .contacts(orig, dest)
       .map(_.exists(pair => pair.activeAdults))
 
-  def mediaAllowed(orig: UserId, dest: UserId): Fu[Boolean] =
-    contactApi
-      .contacts(orig, dest)
-      .flatMap:
-        case Some(pair)
-            if pair.activeAdults && !pair
-              .any(_.isTroll) && !pair.any(_.isAlt) =>
-          colls.thread
-            .exists($id(MsgThread.id(orig, dest)))
-            .flatMap(exists => security.may.post(pair, isNew = !exists))
-        case _ => fuFalse
-
-  def requireMedia(orig: UserId, dest: UserId): Funit =
-    mediaAllowed(orig, dest).flatMap:
-      if _ then funit else fufail(lila.core.security.SubmissionRejected("privateTextOnly"))
+  def mediaAllowed(orig: UserId, dest: UserId): Fu[Boolean] = media.direct(orig, dest)
+  def requireMedia(orig: UserId, dest: UserId): Funit = media.requireDirect(orig, dest)
 
   def lastDirectMsg(threadId: MsgThread.Id, maskFor: UserId): Fu[Option[Msg.Last]] =
     colls.thread

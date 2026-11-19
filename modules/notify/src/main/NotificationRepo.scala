@@ -37,8 +37,13 @@ final private class NotificationRepo(colls: NotifyColls)(using Executor):
   def hasRecent(note: Notification, criteria: ElementProducer, unreadSince: Duration): Fu[Boolean] =
     hasFresh(note.notifies, note.content.key, criteria, matchRecentOrUnreadSince(unreadSince))
 
-  def hasRecentPrivateMessageFrom(to: UserId, from: UserId): Fu[Boolean] =
-    hasFresh(to, tpe = "privateMessage", criteria = "content.user" -> from.value, matchUnreadSince(3.days))
+  def hasRecentPrivateMessageFrom(to: UserId, from: UserId, thread: Option[String]): Fu[Boolean] =
+    hasFresh(
+      to,
+      "privateMessage",
+      thread.fold[ElementProducer]("content.user" -> from.value)(id => "content.thread" -> id),
+      matchUnreadSince(3.days) ++ (if thread.isEmpty then $doc("content.thread".$exists(false)) else $empty)
+    )
 
   private def matchSince(since: Duration) =
     $doc("createdAt".$gt(nowInstant.minus(since)))

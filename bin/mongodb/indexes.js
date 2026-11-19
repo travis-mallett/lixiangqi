@@ -259,6 +259,7 @@ db.tournament_player.createIndex(
 );
 db.tournament_player.createIndex({ tid: 1, uid: 1 }, { unique: true });
 db.push_device.createIndex({ userId: 1, seenAt: -1 });
+db.push_device.createIndex({ session: 1 }, { sparse: true });
 db.push_device.createIndex({ seenAt: 1 }, { expireAfterSeconds: 2592000 });
 db.plan_charge.createIndex({ userId: 1, date: -1 });
 db.plan_charge.createIndex({ date: -1 });
@@ -381,3 +382,6 @@ db.puzzle2_path.createIndex({ min: 1, max: -1 });
 
 // you may want to run these on the yolo database
 db.relay_delay.createIndex({ at: 1 }, { expireAfterSeconds: 7200 });
+
+db.msg_group.createIndex({ users: 1, updatedAt: -1 });
+db.msg_organization.createIndex({ owner: 1 });

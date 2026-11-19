@@ -1,14 +1,22 @@
 import { throttle } from 'lib/async';
 import { AttachmentDraft, submissionError } from 'lib/attachments';
+import { chatPath } from 'lib/inboxUrl';
 import { pubsub } from 'lib/pubsub';
 import { storage, type LichessStorage } from 'lib/storage';
 import { ValidationError } from 'lib/xhr';
 
-import type { MsgData, Convo, Msg, Receipt, Search, Typing, Pane, Redraw } from './interfaces';
+import type { MsgData, Convo, Msg, Receipt, Search, Pane, Redraw } from './interfaces';
+import { Mailbox } from './mailbox';
 import * as network from './network';
+import { PreviewDraft } from './previewDraft';
+import { composeCard } from './view/cards';
+import { glyphElement } from './view/icons';
+import { editPhoto } from './view/photoEditor';
 import { scroller } from './view/scroller';
 
 export default class MsgCtrl {
+  readonly mailbox = new Mailbox(this);
+  readonly preview = new PreviewDraft(this);
   search: Search = { input: '' };
   pane: Pane;
   loading = false;
@@ -17,7 +25,16 @@ export default class MsgCtrl {
   readonly msgsPerPage = 100;
   canGetMoreSince?: Date;
   canGetMoreContacts = true;
-  typing?: Typing;
+  private readonly typists = new Map<string, Timeout>();
+  get typing() {
+    return this.typists.size > 0;
+  }
+  get typingNames() {
+    const convo = this.data.convo;
+    return [...this.typists.keys()]
+      .map(id => convo?.members?.find(m => m.id === id)?.name ?? convo?.user.name ?? id)
+      .join(', ');
+  }
   textStore?: LichessStorage;
   replyTo?: Msg;
   editing?: Msg;
@@ -47,34 +64,53 @@ export default class MsgCtrl {
       this.conversations.set(data.convo.user.id, data.convo);
       this.onLoadConvo(data.convo);
     }
+    void this.mailbox.loadCollection();
     window.addEventListener('focus', this.setRead);
     document.addEventListener('visibilitychange', this.setRead);
   }
 
-  openConvo = async (userId: string) => {
-    this.removedThreads.delete(userId);
+  openConvo = async (userId: string, refresh = false) => {
+    if (refresh && this.data.convo?.user.id !== userId) return;
+    if (!refresh) {
+      this.preview.reset();
+      this.mailbox.openPanel();
+      this.mailbox.selecting = false;
+      this.mailbox.page = this.mailbox.page === 'archive' ? 'archive' : 'chats';
+      if (this.mailbox.state(userId).unread) void this.mailbox.change(userId, 'unread', 'false');
+      this.removedThreads.delete(userId);
+      this.cancelCompose();
+      this.selected.clear();
+      this.data.convo = this.conversations.get(userId);
+      this.pane = 'convo';
+      this.loading = !this.data.convo;
+      if (this.data.convo) this.onLoadConvo(this.data.convo);
+    }
     const generation = ++this.generation;
     const events = this.eventGeneration;
-    this.cancelCompose();
-    this.selected.clear();
-    this.data.convo = this.conversations.get(userId);
-    this.pane = 'convo';
-    this.loading = !this.data.convo;
     this.error = false;
-    if (this.data.convo) this.onLoadConvo(this.data.convo);
     this.redraw();
     const changes = new Map<string, { msg?: Msg; isNew?: boolean }>();
     this.duringFetch.set(userId, changes);
     try {
       const data = await network.loadConvo(userId);
       if (generation !== this.generation || this.removedThreads.has(userId)) return;
-      if (events === this.eventGeneration) this.data.contacts = data.contacts;
+      if (events === this.eventGeneration) {
+        this.data.contacts = data.contacts;
+        this.data.organization = data.organization ?? this.data.organization;
+        void this.mailbox.loadCollection(false, true);
+      }
+      if (data.organization) this.data.organization = data.organization;
       this.data.names = data.names;
       if (data.convo) {
         const old = this.conversations.get(userId);
         const msgs = new Map(data.convo.msgs.map(m => [m.id, m]));
         const pins = new Map(data.convo.pinned.map(m => [m.id, m]));
-        for (const m of old?.msgs ?? []) if (m.pending && !msgs.has(m.id)) msgs.set(m.id, m);
+        const oldest = data.convo.msgs[data.convo.msgs.length - 1]?.date;
+        for (const m of old?.msgs ?? []) {
+          const olderPage =
+            refresh && oldest && data.convo.msgs.length === this.msgsPerPage && m.date < oldest;
+          if ((m.pending || olderPage) && !msgs.has(m.id)) msgs.set(m.id, m);
+        }
         for (const [id, { msg, isNew }] of changes) {
           if (!msg) {
             msgs.delete(id);
@@ -94,8 +130,15 @@ export default class MsgCtrl {
       this.search.result = undefined;
       if (data.convo) {
         this.conversations.set(userId, data.convo);
-        history.replaceState({ contact: userId }, '', `/inbox/${data.convo.user.name}`);
-        this.onLoadConvo(data.convo);
+        history.replaceState(
+          { contact: userId },
+          '',
+          chatPath(data.convo.user.group ? userId : data.convo.user.name),
+        );
+        if (refresh) {
+          this.acknowledge(data.convo, false);
+          requestAnimationFrame(this.setRead);
+        } else this.onLoadConvo(data.convo);
       } else this.showSide();
     } catch {
       if (generation === this.generation) this.error = true;
@@ -136,6 +179,10 @@ export default class MsgCtrl {
   };
 
   revokeMedia(user: string): void {
+    if (user === this.data.me.id || user === this.data.convo?.user.id) {
+      this.preview.reset();
+      this.mailbox.openPanel();
+    }
     if (this.editing && (user === this.data.me.id || user === this.data.convo?.user.id))
       this.attachments?.revoke();
     for (const [peer, draft] of this.attachmentDrafts)
@@ -148,22 +195,31 @@ export default class MsgCtrl {
   private onLoadConvo(convo: Convo) {
     let attachments = this.attachmentDrafts.get(convo.user.id);
     if (!attachments) {
-      attachments = new AttachmentDraft('msg', convo.user.id);
+      attachments = new AttachmentDraft(
+        'msg',
+        convo.user.id,
+        [],
+        editPhoto,
+        glyphElement,
+        type => void composeCard(this, type),
+      );
       this.attachmentDrafts.set(convo.user.id, attachments);
     }
     this.attachments = attachments;
     this.submissionError = '';
     this.textStore = storage.make(`msg:area:${this.data.me.id}:${convo.user.id}`);
     this.draft = this.textStore.get() || '';
+    this.preview.update(this.draft);
     this.canGetMoreSince = convo.msgs[this.msgsPerPage - 1]?.date;
-    if (this.typing) clearTimeout(this.typing.timeout);
-    this.typing = undefined;
+    for (const timeout of this.typists.values()) clearTimeout(timeout);
+    this.typists.clear();
     this.acknowledge(convo, false);
     requestAnimationFrame(this.setRead);
   }
 
   updateDraft = (text: string) => {
     this.draft = text;
+    this.preview.update(text);
     if (!this.editing) this.textStore?.set(text);
     if (text.trim()) this.sendTyping();
     else this.stopTyping();
@@ -171,9 +227,16 @@ export default class MsgCtrl {
   };
 
   compose = (msg: Msg, edit = false) => {
+    this.preview.reset();
     if (this.editing) this.cancelCompose();
     if (edit && this.data.convo)
-      this.attachments = new AttachmentDraft('msg', this.data.convo.user.id, msg.attachments);
+      this.attachments = new AttachmentDraft(
+        'msg',
+        this.data.convo.user.id,
+        msg.attachments,
+        editPhoto,
+        glyphElement,
+      );
     this.replyTo = edit ? undefined : msg;
     this.editing = edit ? msg : undefined;
     this.draft = edit ? msg.text : this.textStore?.get() || '';
@@ -201,6 +264,26 @@ export default class MsgCtrl {
       this.sending
     )
       return false;
+    const draft = this.attachments;
+    const preview = this.preview.forSend(text);
+    if (preview?.file && draft) draft.stagePreview(preview.file);
+    if (draft?.active) {
+      this.sending = true;
+      let ready = false;
+      try {
+        ready = await draft.prepare();
+      } finally {
+        this.sending = false;
+      }
+      if (
+        !ready ||
+        this.data.convo !== convo ||
+        this.attachments !== draft ||
+        text !== this.draft ||
+        (preview && this.preview.value !== preview)
+      )
+        return false;
+    }
     if (this.editing) {
       const result = await this.act(this.editing, 'edit', text, this.attachments?.ids);
       if (!result) return false;
@@ -213,6 +296,7 @@ export default class MsgCtrl {
       m =>
         m.pending === 'failed' &&
         m.text === text.trim() &&
+        JSON.stringify(m.card ?? null) === JSON.stringify(preview ? { preview: preview.meta } : null) &&
         m.reply?.id === this.replyTo?.id &&
         (m.attachments ?? []).join(',') === (this.attachments?.ids ?? []).join(','),
     );
@@ -221,6 +305,7 @@ export default class MsgCtrl {
     const msg: Msg = {
       id: `${this.data.me.id}_${nonce}`,
       text: text.trim(),
+      card: preview && { preview: preview.meta },
       attachments: this.attachments?.ids,
       user: this.data.me.id,
       date: new Date(),
@@ -243,10 +328,45 @@ export default class MsgCtrl {
     return this.sendPending(convo, msg);
   };
 
+  async sendCard(card: NonNullable<Msg['card']>, onQueued?: () => void): Promise<boolean> {
+    const convo = this.data.convo;
+    if (!convo?.postable || this.sending) return false;
+    onQueued?.();
+    const text = card.poll ? [card.poll.question, ...card.poll.options].join('\n') : '@' + card.contact;
+    const failed = convo.msgs.find(
+      m => m.pending === 'failed' && m.text === text && JSON.stringify(m.card) === JSON.stringify(card),
+    );
+    if (failed) return this.sendPending(convo, failed);
+    const nonce = window.crypto.randomUUID();
+    const msg: Msg = {
+      id: this.data.me.id + '_' + nonce,
+      nonce,
+      text,
+      card,
+      user: this.data.me.id,
+      date: new Date(),
+      revision: 0,
+      history: [],
+      reactions: [],
+      pending: 'sending',
+    };
+    convo.msgs.unshift(msg);
+    return this.sendPending(convo, msg);
+  }
+
+  discardFailed(msg: Msg) {
+    const convo = this.data.convo;
+    if (!convo || msg.pending !== 'failed') return;
+    convo.msgs = convo.msgs.filter(m => m !== msg);
+    this.selected.delete(msg.id);
+    this.redraw();
+  }
+
   retry = (msg: Msg) => this.data.convo && this.sendPending(this.data.convo, msg);
 
   private async sendPending(convo: Convo, msg: Msg): Promise<boolean> {
     if (this.sending) return false;
+    this.submissionError = '';
     msg.pending = 'sending';
     this.sending = true;
     this.redraw();
@@ -259,20 +379,25 @@ export default class MsgCtrl {
         undefined,
         undefined,
         msg.attachments,
+        msg.card,
       );
       this.attachmentDrafts.get(convo.user.id)?.accepted(msg.attachments ?? []);
       if (this.data.convo?.user.id === convo.user.id) {
-        if (this.draft.trim() === msg.text) {
+        if (!msg.card?.contact && !msg.card?.poll && this.draft.trim() === msg.text) {
+          this.preview.reset();
           this.draft = '';
           this.textStore?.remove();
         }
-        this.replyTo = undefined;
+        if (!msg.card?.contact && !msg.card?.poll) this.replyTo = undefined;
       }
       this.receiveChange(convo.user.id, sent, 'new');
       return true;
     } catch (error) {
       this.submissionError = submissionError(error);
-      if (error instanceof ValidationError) convo.msgs = convo.msgs.filter(m => m.id !== msg.id);
+      if (msg.card?.poll) {
+        msg.pending = 'failed';
+        this.submissionError = '';
+      } else if (error instanceof ValidationError) convo.msgs = convo.msgs.filter(m => m.id !== msg.id);
       else msg.pending = 'failed';
       return false;
     } finally {
@@ -282,6 +407,10 @@ export default class MsgCtrl {
   }
 
   receiveChange = (user: string, msg: Msg, kind: string) => {
+    if (user === this.data.convo?.user.id && this.mailbox.history)
+      this.mailbox.history = this.mailbox.history.flatMap(m =>
+        m.id !== msg.id || m.revision > msg.revision ? [m] : msg.deleted ? [] : [msg],
+      );
     const convo = this.conversations.get(user);
     const old = convo?.msgs.find(m => m.id === msg.id) ?? convo?.pinned.find(m => m.id === msg.id);
     if (old && old.revision > msg.revision) return;
@@ -305,11 +434,11 @@ export default class MsgCtrl {
     }
     const contact = this.data.contacts.find(c => c.user.id === user);
     if (contact && ((kind === 'new' && msg.date >= contact.lastMsg.date) || contact.lastMsg.id === msg.id)) {
-      contact.lastMsg = { ...msg, read: !!msg.readAt || !!msg.deleted || msg.user === this.data.me.id };
+      contact.lastMsg = { ...msg, read: !!msg.readAt || !!msg.deleted };
       if (kind === 'new') this.data.contacts = [contact, ...this.data.contacts.filter(c => c !== contact)];
     } else if (!contact && kind === 'new') void this.refreshContacts();
     if (user === this.data.convo?.user.id) {
-      this.receiveTyping(user, true);
+      this.receiveTyping(user, true, msg.user);
       requestAnimationFrame(this.setRead);
     }
     this.redraw();
@@ -333,7 +462,10 @@ export default class MsgCtrl {
       convo?.msgs.find(
         m => m.user === contact?.lastMsg.user && Number(m.date) === Number(contact?.lastMsg.date),
       )?.id;
-    if (contact && lastId && receipts.get(lastId)?.readAt) {
+    const lastReceipt = lastId ? receipts.get(lastId) : undefined;
+    if (contact && lastReceipt?.deliveredAt) contact.lastMsg.deliveredAt = new Date(lastReceipt.deliveredAt);
+    if (contact && lastReceipt?.readAt) {
+      contact.lastMsg.readAt = new Date(lastReceipt.readAt);
       contact.lastMsg.read = true;
       if (contact.lastMsg.user !== this.data.me.id) pubsub.emit('notify-app.set-read', event.user);
     }
@@ -341,6 +473,8 @@ export default class MsgCtrl {
   };
 
   removeMessage = (user: string, id: string) => {
+    if (user === this.data.convo?.user.id)
+      this.mailbox.history = this.mailbox.history?.filter(m => m.id !== id);
     this.eventGeneration++;
     this.duringFetch.get(user)?.set(id, {});
     const convo = this.conversations.get(user);
@@ -471,7 +605,11 @@ export default class MsgCtrl {
     const events = this.eventGeneration;
     try {
       const data = await network.loadContacts();
-      if (events === this.eventGeneration) this.data.contacts = data.contacts;
+      if (events === this.eventGeneration) {
+        this.data.contacts = data.contacts;
+        this.data.organization = data.organization ?? this.data.organization;
+        void this.mailbox.loadCollection(false, true);
+      }
       this.redraw();
     } catch {
       /* The next reconnect retries this read. */
@@ -510,9 +648,12 @@ export default class MsgCtrl {
 
   block = () => this.relation(true);
   removeThread = (user: string) => {
+    this.mailbox.removeContact(user);
     this.eventGeneration++;
     this.removedThreads.add(user);
     this.conversations.delete(user);
+    this.attachmentDrafts.get(user)?.abandon();
+    this.attachmentDrafts.delete(user);
     storage.make(`msg:area:${this.data.me.id}:${user}`).remove();
     this.data.contacts = this.data.contacts.filter(c => c.user.id !== user);
     if (this.data.convo?.user.id === user) {
@@ -548,18 +689,18 @@ export default class MsgCtrl {
     const user = this.data.convo?.user.id;
     if (user) void network.typing(user, false).catch(() => {});
   };
-  receiveTyping = (user: string, cancel?: boolean) => {
+  receiveTyping = (user: string, cancel = false, sender = user) => {
     if (user !== this.data.convo?.user.id) return;
-    if (this.typing) clearTimeout(this.typing.timeout);
-    this.typing = cancel
-      ? undefined
-      : {
-          user,
-          timeout: setTimeout(() => {
-            this.typing = undefined;
-            this.redraw();
-          }, 5000),
-        };
+    clearTimeout(this.typists.get(sender));
+    this.typists.delete(sender);
+    if (!cancel)
+      this.typists.set(
+        sender,
+        setTimeout(() => {
+          this.typists.delete(sender);
+          this.redraw();
+        }, 5000),
+      );
     this.redraw();
   };
   onReconnect = () => {

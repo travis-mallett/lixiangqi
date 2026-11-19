@@ -47,6 +47,16 @@ private final class ContactApi(userColl: Coll)(using Executor):
       .flatMap: res =>
         if res.n == ids.size then funit else fufail(lila.core.security.SubmissionRejected("privateTextOnly"))
 
+  def adultIds(ids: List[UserId]): Fu[Set[UserId]] =
+    userColl.distinctEasy[UserId, Set]("_id", $inIds(ids) ++ $doc("enabled" -> true, "kid".$ne(true)))
+
+  def mediaUsers(ids: List[UserId]): Fu[Set[UserId]] =
+    userColl
+      .find($inIds(ids) ++ $doc("enabled" -> true, "kid".$ne(true)))
+      .cursor[Contact]()
+      .list(ids.size)
+      .map(_.collect { case c if !c.isTroll && !c.isAlt => c.id }.toSet)
+
   def contacts(orig: UserId, dest: UserId): Fu[Option[Contacts]] =
     import lila.core.user.BSONFields as F
     userColl

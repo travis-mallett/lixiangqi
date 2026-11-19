@@ -28,7 +28,12 @@ enum NotificationContent(val key: String):
       category: ForumCategId,
       postId: ForumPostId
   ) extends NotificationContent("mention")
-  case PrivateMessage(user: UserId, text: String) extends NotificationContent("privateMessage")
+  case PrivateMessage(
+      user: UserId,
+      text: String,
+      thread: Option[String] = None,
+      groupName: Option[String] = None
+  ) extends NotificationContent("privateMessage")
   case GenericLink(
       url: String,
       title: Option[String],

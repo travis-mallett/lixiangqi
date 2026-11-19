@@ -53,6 +53,8 @@ final class Env(
   if attachments.enabled("forum") || attachments.enabled("msg") then
     var reportedScannerState = ""
     scheduler.scheduleWithFixedDelay(2.minutes, 2.minutes): () =>
+      attachments.reportRestricted: (owner, id) =>
+        api.autoCommReport(owner, s"Restricted attachment held for designated responders. Case $id", true)
       attachments.scannerStatus.foreach: (status, queued) =>
         if status != reportedScannerState then
           reportedScannerState = status

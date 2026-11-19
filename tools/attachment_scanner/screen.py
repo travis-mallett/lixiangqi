@@ -8,12 +8,14 @@ import os
 import re
 import socket
 import struct
+import subprocess
+import video
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 
-from PIL import Image, ImageOps, UnidentifiedImageError
+from PIL import Image, ImageOps, ImageSequence, UnidentifiedImageError
 
 POLICY = "ugc-1"
 MODEL = "omni-moderation-latest"
@@ -97,10 +99,30 @@ def malware(data, socket_path):
         return "/".join(v.decode("ascii") for v in version.groups())
 
 
-def normalize(data, ext):
+def normalize(data, ext, private=False):
     if not data or len(data) > LIMIT:
         raise Rejected("unsupportedFile")
-    if ext in {".txt", ".pgn"}:
+    if private:
+        # Detect raster photos by content even when the file has no extension.
+        try:
+            with Image.open(io.BytesIO(data), formats=["JPEG", "PNG", "WEBP", "GIF", "BMP", "TIFF", "AVIF"]) as probe:
+                photo_format = probe.format
+        except UnidentifiedImageError:
+            if fmt := video.container(data):
+                try:
+                    return video.normalize(data, fmt, LIMIT)
+                except video.DownloadOnly:
+                    return data, "application/octet-stream", []
+                except (subprocess.CalledProcessError, subprocess.TimeoutExpired, ValueError, KeyError) as exc:
+                    raise Rejected("unsupportedFile") from exc
+            if ext not in IMAGE_TYPES and ext not in {".txt", ".pgn"}:
+                return data, "application/octet-stream", []
+            photo_format = None
+        except (OSError, ValueError, Image.DecompressionBombError) as exc:
+            raise Rejected("unsupportedFile") from exc
+    else:
+        photo_format = IMAGE_TYPES.get(ext)
+    if not photo_format and ext in {".txt", ".pgn"}:
         try:
             text = data.decode("utf-8-sig")
         except UnicodeError:
@@ -111,24 +133,40 @@ def normalize(data, ext):
             raise Rejected("unsupportedFile")
         if ext == ".pgn" and not re.search(r'(?m)^\[(?:Event|Game|FEN|Site|Variant) "[^"\r\n]*"\]', text):
             raise Rejected("unsupportedFile")
-        return data, "text/plain"
-    if ext not in IMAGE_TYPES:
+        return data, "text/plain", []
+    if not photo_format:
         raise Rejected("unsupportedFile")
     try:
-        with Image.open(io.BytesIO(data), formats=[IMAGE_TYPES[ext]]) as image:
-            if image.width * image.height > MAX_PIXELS or getattr(image, "n_frames", 1) != 1:
+        with Image.open(io.BytesIO(data), formats=[photo_format]) as image:
+            count = getattr(image, "n_frames", 1)
+            if count > (32 if private else 1) or count * image.width * image.height > MAX_PIXELS:
                 raise Rejected("unsupportedFile")
-            image.load()
-            oriented = ImageOps.exif_transpose(image)
-            oriented.thumbnail((2048, 2048))
-            clean = oriented.convert("RGBA" if "A" in oriented.getbands() or "transparency" in oriented.info else "RGB")
-            clean.info.clear()
-            out = io.BytesIO()
-            clean.save(out, format="WEBP", quality=84, method=3)
-            result = out.getvalue()
-            if len(result) > LIMIT:
+            frames, durations, moderation = [], [], []
+            pixels = 0
+            for frame in ImageSequence.Iterator(image):
+                pixels += frame.width * frame.height
+                if pixels > MAX_PIXELS:
+                    raise Rejected("unsupportedFile")
+                oriented = ImageOps.exif_transpose(frame)
+                oriented.thumbnail((2048, 2048))
+                clean = oriented.convert("RGBA" if "A" in oriented.getbands() or "transparency" in oriented.info else "RGB")
+                clean.info.clear()
+                if frames and frames[0].size != clean.size:
+                    raise Rejected("unsupportedFile")
+                frames.append(clean)
+                durations.append(max(10, min(60000, int(frame.info.get("duration", 100)))))
+                out = io.BytesIO()
+                clean.save(out, format="WEBP", quality=84, method=3)
+                moderation.append(out.getvalue())
+            result = moderation[0]
+            if len(frames) > 1:
+                out = io.BytesIO()
+                frames[0].save(out, format="WEBP", save_all=True, append_images=frames[1:],
+                               duration=durations, loop=image.info.get("loop", 0), quality=84, method=3)
+                result = out.getvalue()
+            if len(result) > LIMIT or sum(map(len, moderation)) > LIMIT:
                 raise Rejected("unsupportedFile")
-            return result, "image/webp"
+            return result, "image/webp", moderation
     except (OSError, ValueError, Image.DecompressionBombError, UnidentifiedImageError) as exc:
         raise Rejected("unsupportedFile") from exc
 
@@ -155,27 +193,21 @@ def general_verdict(result):
 
 
 def screen(row, env=os.environ):
+    if row.get("hold") or row.get("state") == "restricted":
+        raise Restricted()
     data = bytes(row["bytes"])
     if row["sourceDigest"] != hashlib.sha256(data).hexdigest():
         raise Unavailable("identity mismatch")
     av = malware(data, env["UGC_CLAMD_SOCKET"])
-    clean, mime = normalize(data, Path(row["name"]).suffix.lower())
+    clean, mime, photos = normalize(data, Path(row["name"]).suffix.lower(), row.get("audience", "").startswith("msg/"))
     detectors = {"clamav": av}
-    if mime == "text/plain":
+    if not photos:
         return Checked(clean, mime, detectors)
-    digest = hashlib.sha256(clean).hexdigest()
-    encoded = base64.b64encode(clean).decode("ascii")
-    child = post_json(env["UGC_CHILD_URL"], env["UGC_CHILD_TOKEN"], {"sha256": digest, "sourceSha256": row["sourceDigest"], "image": encoded})
-    if not isinstance(child, dict) or child.get("sha256") != digest or child.get("sourceSha256") != row["sourceDigest"]:
-        raise Unavailable("child-safety identity")
-    if child.get("decision") == "suspected":
-        raise Restricted()
-    if child.get("decision") != "clear" or not all(isinstance(child.get(k), str) and child[k].strip() for k in ("hashListVersion", "classifierVersion")):
-        raise Unavailable("child-safety decision")
-    detectors.update({k: child[k] for k in ("hashListVersion", "classifierVersion")})
+    inputs = [{"type": "image_url", "image_url": {"url": "data:image/webp;base64," + base64.b64encode(frame).decode("ascii")}}
+              for frame in photos]
     result = post_json("https://api.openai.com/v1/moderations", env["UGC_OPENAI_KEY"], {
-        "model": MODEL, "input": [{"type": "image_url", "image_url": {"url": "data:image/webp;base64," + encoded}}],
+        "model": MODEL, "input": inputs,
     })
     version, flags = general_verdict(result)
-    detectors.update({"model": version, "categories": flags})
+    detectors.update({"pipeline": "video-openai-1" if mime == "video/mp4" else "photo-openai-1", "model": version, "categories": flags})
     return Checked(clean, mime, detectors, "imagePolicy" if flags else None)

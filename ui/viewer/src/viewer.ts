@@ -12,7 +12,6 @@ import { licon } from 'lib/licon';
 import { renderColumnTree, renderIndex, type ColumnTreeNode } from 'lib/tree/columnView';
 import { hl, renderReplayControls } from 'lib/view';
 
-import { applyViewerAppearance } from './appearance';
 import { lastNode, type ViewerNode } from './model';
 
 export interface ViewerLabels {
@@ -84,7 +83,6 @@ export class GameViewer {
       options.initialPly === 'last'
         ? lastNode(options.root)
         : this.nodeAtPly(options.initialPly ?? options.root.ply);
-    applyViewerAppearance(element, options.services.assetUrl, options.boardTheme, options.pieceSet);
     element.replaceChildren();
     element.classList.add('xiangqi-viewer');
 

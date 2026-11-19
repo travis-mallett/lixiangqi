@@ -13,13 +13,15 @@ import { MINI_XIANGQI_START_FEN } from 'lib/game/minixiangqi';
 import { XIANGQI_START_FEN } from 'lib/game/xiangqi';
 import type { ImportedMoveTree, RulesState } from 'lib/game/xiangqiNotation';
 
-import { applyViewerAppearance } from '../src/appearance';
 import { importedViewerTree, loadViewerTree } from '../src/model';
+import { mountViewer } from '../src/mount';
 import { embedCode, embedUrl } from '../src/sharing';
 import { GameViewer, type ViewerLabels } from '../src/viewer';
 import { initModule } from '../src/viewer.embed';
 
 globalThis.Image = window.Image;
+site.manifest = { css: {}, js: {}, hashed: { 'piece/default-wood/bK.svg': 'testhash' } };
+site.pieceImages = { preload: async () => {}, ready: Promise.resolve(), set: async () => {} };
 Object.defineProperty(Image.prototype, 'decode', { configurable: true, value: async () => {} });
 globalThis.AbortController = window.AbortController;
 window.matchMedia = globalThis.matchMedia;
@@ -248,13 +250,35 @@ test('an annotated example keeps its note box in place between moves', () => {
   assert.equal(viewer.element.querySelector('.xiangqi-viewer__moves')?.isConnected, true);
 });
 
-test('appearance sets scoped CSS URLs without explicitly loading every piece set and geometry', () => {
-  const image = mock.method(Image.prototype, 'decode', async () => {});
+test('a viewer mounts only after its selected board, faces and shadows are ready', async () => {
+  const gate = Promise.withResolvers<void>();
+  const requested = Promise.withResolvers<string[]>();
+  mock.method(site.pieceImages, 'preload', (urls: string[]) => {
+    requested.resolve(urls);
+    return gate.promise;
+  });
   const element = document.createElement('div');
   const bodyTheme = document.body.dataset.board;
-  applyViewerAppearance(element, path => `/assets/${path}`);
+  const mounting = mountViewer(
+    element,
+    { tree: fixture() },
+    { labels, services: { assetUrl: path => `/assets/${path}` } },
+  );
+  const urls = await requested.promise;
+  assert.equal(element.children.length, 0);
+  assert.equal(element.classList.contains('board-assets-ready'), false);
+  gate.resolve();
+  viewers.push(await mounting);
   assert.match(element.style.getPropertyValue('---board-image-xiangqi-9x10'), /^url\("\/assets\//);
-  assert.equal(image.mock.callCount(), 0);
+  for (const variable of [
+    '---board-image',
+    '---black-general',
+    '---red-soldier',
+    '--xiangqi-rest-shadow-image',
+    '--xiangqi-airborne-shadow-image',
+  ])
+    assert.ok(urls.includes(element.style.getPropertyValue(variable)));
+  assert.equal(element.style.getPropertyValue('---board-image-minixiangqi-7x7'), '');
   assert.equal(document.body.dataset.board, bodyTheme);
 });
 
@@ -315,6 +339,7 @@ test('an embedded viewer reannounces its height and preserves replay on a persis
       postMessage.mock.calls.map(call => call.arguments),
       [[{ type: 'xiangqi-embed:height', height: 414 }, '*']],
     );
+    assert.equal(element.style.getPropertyValue('---black-general'), 'url("/assets/hashed/bK.testhash.svg")');
     element.querySelector<HTMLButtonElement>('button[data-act="next"]')!.click();
     const active = element.querySelector('move[aria-current="step"]');
     assert.ok(active);

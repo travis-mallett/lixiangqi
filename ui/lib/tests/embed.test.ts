@@ -3,27 +3,31 @@ import { test } from 'node:test';
 
 import { updateThemeEmbeds } from '../src/embed';
 
-test('theme embeds retain their channel and update all appearance preferences only when changed', () => {
+test('appearance updates preserve the variant frame and apply the latest choice after load', () => {
   const frame = document.createElement('iframe');
   frame.dataset.themeEmbed = '';
-  frame.src = '/tv/threeKingdoms/frame?boardTheme=wood&pieceSet=wood&uiTheme=dark';
+  frame.src = '/tv/threeKingdoms/frame';
   document.body.append(frame);
   try {
-    const theme = { boardTheme: 'paper', pieceSet: 'symbols', uiTheme: 'light' };
-    updateThemeEmbeds(theme);
-    const url = new URL(frame.src);
-    assert.equal(url.pathname, '/tv/threeKingdoms/frame');
-    for (const [key, value] of Object.entries(theme)) assert.equal(url.searchParams.get(key), value);
-    const observer = new window.MutationObserver(() => {});
-    observer.observe(frame, { attributes: true });
-    updateThemeEmbeds(theme);
-    assert.equal(observer.takeRecords().length, 0);
-    observer.disconnect();
+    const doc = frame.contentDocument!;
+    doc.open();
+    doc.write('<body><div id="game"></div></body>');
+    doc.close();
+    const game = doc.getElementById('game');
+    const changes = new window.MutationObserver(() => {});
+    changes.observe(frame, { attributes: true });
+    for (const board of ['wood', 'paper']) updateThemeEmbeds(target => (target.body.dataset.board = board));
+    assert.equal(doc.body.dataset.board, 'paper');
+    delete doc.body.dataset.board;
+    frame.dispatchEvent(new window.Event('load'));
+    assert.equal(doc.body.dataset.board, 'paper');
+    assert.equal(doc.getElementById('game'), game);
+    assert.equal(changes.takeRecords().length, 0);
+    changes.disconnect();
   } finally {
     frame.remove();
   }
 });
-
 test('board color changes reach opted-in embeds without navigation', async () => {
   const { updateBoardColorEmbeds } = await import('../src/embed');
   const frame = document.createElement('iframe');

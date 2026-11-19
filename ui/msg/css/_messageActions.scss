@@ -1,6 +1,18 @@
+@font-face {
+  font-family: 'Signal Inbox';
+  src: url('../font/signal-symbols.woff2') format('woff2');
+  font-weight: 200 600;
+  font-display: block;
+}
+
 .msg-glyph {
-  width: 22px;
-  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: 400 22px/1 'Signal Inbox';
+  letter-spacing: normal;
+  text-transform: none;
+  pointer-events: none;
   flex: 0 0 auto;
   vertical-align: middle;
 }
@@ -273,8 +285,7 @@ dialog.msg-anchored-menu {
   }
 
   .msg-glyph {
-    width: 18px;
-    height: 18px;
+    font-size: 18px;
   }
 }
 
@@ -343,10 +354,11 @@ dialog.msg-anchored-menu {
   padding: 36px;
 }
 
-@media (hover: none) {
+@media (hover: none), (max-width: 599.98px) {
   .msg-toolbar {
     opacity: 1;
     box-shadow: none;
+    flex-shrink: 0;
 
     .msg-icon-button {
       display: none;
@@ -354,19 +366,13 @@ dialog.msg-anchored-menu {
 
     .msg-icon-button:last-child {
       display: flex;
-      width: 26px;
+      width: 44px;
+      height: 44px;
     }
   }
 }
 
-@media (max-width: 600px) {
-  .msg-toolbar {
-    position: absolute;
-    top: -24px;
-    inset-inline-end: 5px;
-    z-index: 2;
-  }
-
+@media (max-width: 599.98px) {
   .msg-app__convo__reply {
     padding: 12px;
   }

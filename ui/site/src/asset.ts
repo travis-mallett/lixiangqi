@@ -1,28 +1,9 @@
-import { memoize } from 'lib';
+import { url } from 'lib/assetUrl';
 import { script as xhrScript } from 'lib/xhr';
 
 import { loadStylesheet } from './stylesheet';
 
-export const baseUrl = memoize(() => document.body.getAttribute('data-asset-url') || '');
-
-const assetVersion = memoize(() => document.body.getAttribute('data-asset-version'));
-
-export const url = (path: string, opts: AssetUrlOpts = {}) => {
-  const base = opts.documentOrigin ? window.location.origin : opts.pathOnly ? '' : baseUrl();
-  const pathVersion = !opts.pathVersion
-    ? ''
-    : opts.pathVersion === true
-      ? `_${assetVersion()}/`
-      : `_${opts.pathVersion}/`;
-  const hash = !pathVersion && site.manifest.hashed[path];
-  return `${base}/assets/${hash ? asHashed(path, hash) : `${pathVersion}${path}`}`;
-};
-
-function asHashed(path: string, hash: string) {
-  const name = path.slice(path.lastIndexOf('/') + 1);
-  const extPos = name.lastIndexOf('.');
-  return `hashed/${extPos < 0 ? `${name}.${hash}` : `${name.slice(0, extPos)}.${hash}${name.slice(extPos)}`}`;
-}
+export { baseUrl, url } from 'lib/assetUrl';
 
 // bump flairs version if a flair is changed only (not added or removed)
 export const flairSrc = (flair: Flair) => url(`flair/img/${flair}.webp`, { pathVersion: '_____4' });

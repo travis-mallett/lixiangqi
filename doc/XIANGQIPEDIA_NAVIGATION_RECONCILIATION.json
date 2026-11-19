@@ -1,11 +1,11 @@
 {
   "date": "2026-11-17",
   "sourceCommit": "cffca4bbfe5df809b8b303a7c08dbbafe7d68818",
-  "scope": "Filled compact Wiki button after Tools with the shared book icon; accessible name Xiangqipedia. Full navigation resumes at 1020px while Wiki stays hidden until 1200px; mobile drawer behavior stays unchanged. Existing translated Learn link retained.",
+  "scope": "Filled compact Wiki button after Tools with the shared book icon; accessible name Xiangqipedia. Wiki appears at every width where the top navigation is visible and remains in the mobile drawer. Existing translated Learn link retained.",
   "reviewedWorkingTree": {
     "modules/web/src/main/ui/TopNav.scala": "8f88329519eda12155f39a2c2272b2c8395c9f186af5327e98511878793fbe15",
-    "ui/lib/css/header/_header.scss": "4f6e9f96210715c8959b192afa42b210cf407998dd3a6df72b0c9d5b8e4bde79",
-    "ui/lib/css/abstract/_variables.scss": "e5914e104e6ad85127fa20628b8859fbe01e65b9658d91abc072514bf801fc94",
+    "ui/lib/css/header/_header.scss": "2f4cd20df10c2664e8c642a7515a6ee0ff0636c11afdefe091a73530a35adc75",
+    "ui/lib/css/abstract/_variables.scss": "833f7e12ceb0e7c9869bce6b58b36ee5ff700ee65cd52456e521f789028c9ae3",
     "ui/site/src/topBar.ts": "4837b04c3a187eeabfc57efb1bbf597c2d0f39c710de07b54ef0c351f6a004ef"
   },
   "mobile": {
@@ -17,11 +17,11 @@
     "reason": "Independent Play/Bots/Me/Puzzles/Learn navigation; website top navigation is not consumed. No gameplay, account, puzzle or shared board changes."
   },
   "checks": [
-    "Current revision: production asset builder passed (Sass, TypeScript, esbuild).",
-    "Current revision: pnpm run lint passed.",
-    "Current revision: changed-file formatting and git diff --check passed.",
+    "Prior breakpoint revision: production asset builder passed (Sass, TypeScript, esbuild).",
+    "Prior breakpoint revision: pnpm run lint passed.",
+    "Prior breakpoint revision: changed-file formatting and git diff --check passed.",
     "Previous design revision: 780 frontend tests passed; no tests rerun for this presentation-only breakpoint update.",
-    "Compiled CSS inspection confirms Wiki is hidden from 1020px to below 1200px and remains styled for the mobile drawer.",
+    "Current revision: source inspection confirms the Wiki-specific breakpoint was removed.",
     "Repository-wide check-format previously reported an unrelated existing issue in .codex-tmp/finalize-seo-review.cjs."
   ],
   "deployment": "Normal web application and asset deployment together; no migration or deployment tooling changes",

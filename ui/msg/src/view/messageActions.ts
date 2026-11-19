@@ -6,42 +6,8 @@ import type MsgCtrl from '../ctrl';
 import type { Msg } from '../interfaces';
 import { report } from '../network';
 import * as network from '../network';
-
-// Original, shared 24px outline geometry. No Signal artwork is embedded.
-const paths = {
-  react: ['M12 20 4 12C-2 5 7 0 12 6 17 0 26 5 20 11', 'M18 14v8m-4-4h8'],
-  reply: ['m10 5-7 7 7 7v-5h3c4 0 6 2 8 5 0-9-4-11-11-11Z'],
-  forward: ['m14 5 7 7-7 7v-5h-3c-4 0-6 2-8 5 0-9 4-11 11-11Z'],
-  more: ['M5 12h.01M12 12h.01M19 12h.01'],
-  copy: ['M8 8h13v13H8ZM16 8V3H3v13h5'],
-  select: ['M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0', 'm7 12 3 3 7-7'],
-  info: ['M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0', 'M12 11v6m0-10h.01'],
-  pin: ['m16 3 5 5-4 1-3 4 1 4-2 2-8-8 2-2 4 1 4-3ZM8 16l-5 5'],
-  delete: ['M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7'],
-  edit: ['m15 4 5 5M4 16 16 4a3 3 0 0 1 4 4L8 20l-5 1Z'],
-  close: ['m6 6 12 12M6 18 18 6'],
-  check: ['m5 12 4 4L19 6'],
-  read: ['m2 12 4 4L16 6m-5 10 3 3L24 9'],
-  send: ['m3 3 19 9-19 9 4-9ZM7 12h15'],
-  clock: ['M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0', 'M12 7v5l3 2'],
-} as const;
-type Glyph = keyof typeof paths;
-export const glyph = (name: Glyph): VNode =>
-  h(
-    'svg.msg-glyph',
-    {
-      attrs: {
-        viewBox: '0 0 24 24',
-        fill: 'none',
-        stroke: 'currentColor',
-        'stroke-width': name === 'more' ? 3.5 : 1.7,
-        'stroke-linecap': 'round',
-        'stroke-linejoin': 'round',
-        'aria-hidden': 'true',
-      },
-    },
-    paths[name].map(d => h('path', { attrs: { d } })),
-  );
+import { downloadAttachments } from './attachments';
+import { glyph, glyphElement, type Glyph } from './icons';
 
 export const iconButton = (name: Glyph, label: string, action: () => unknown): VNode =>
   h(
@@ -71,28 +37,12 @@ function element<K extends keyof HTMLElementTagNameMap>(
 function button(label: string, action: () => unknown, icon?: Glyph) {
   const el = element('button', undefined, 'msg-menu-item');
   el.type = 'button';
-  if (icon) {
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('viewBox', '0 0 24 24');
-    svg.setAttribute('class', 'msg-glyph');
-    svg.setAttribute('fill', 'none');
-    svg.setAttribute('stroke', 'currentColor');
-    svg.setAttribute('stroke-width', '1.7');
-    svg.setAttribute('stroke-linecap', 'round');
-    svg.setAttribute('stroke-linejoin', 'round');
-    svg.setAttribute('aria-hidden', 'true');
-    for (const d of paths[icon]) {
-      const p = document.createElementNS(svg.namespaceURI, 'path');
-      p.setAttribute('d', d);
-      svg.append(p);
-    }
-    el.append(svg);
-  }
+  if (icon) el.append(glyphElement(icon));
   el.append(element('span', label));
   el.addEventListener('click', action);
   return el;
 }
-async function dialog(
+export async function dialog(
   content: HTMLElement,
   cls: string,
   title: string,
@@ -107,7 +57,15 @@ async function dialog(
     easyClose: 'clickOutside',
     attrs: { dialog: { 'aria-label': title } },
     onShow: d => {
-      if (!anchor) return;
+      if (!anchor) {
+        if (cls === 'msg-action-dialog')
+          d.dialog.addEventListener('pointerdown', e => {
+            if ([...content.children].some(panel => panel.contains(e.target as Node))) return;
+            e.stopPropagation();
+            d.close('cancel');
+          });
+        return;
+      }
       d.dialog.classList.add('msg-anchored-menu');
       const rect = d.dialog.getBoundingClientRect();
       const left = mine ? anchor.left - rect.width - 8 : anchor.right + 8;
@@ -125,15 +83,20 @@ async function dialog(
 }
 
 export function toolbar(ctrl: MsgCtrl, msg: Msg): VNode {
+  if (msg.pending === 'failed')
+    return h('div.msg-toolbar', [iconButton('more', i18n.inbox.moreActions, () => showMenu(ctrl, msg))]);
   return h('div.msg-toolbar', [
-    msg.deleted ? undefined : iconButton('react', i18n.inbox.react, () => showMenu(ctrl, msg, true)),
     msg.deleted ? undefined : iconButton('reply', i18n.inbox.reply, () => ctrl.compose(msg)),
+    !msg.deleted && msg.attachments?.length
+      ? iconButton('download', i18n.site.mediaDownload, () => downloadAttachments(msg.id))
+      : undefined,
+    msg.deleted ? undefined : iconButton('react', i18n.inbox.react, () => showMenu(ctrl, msg, true)),
     iconButton('more', i18n.inbox.moreActions, () => showMenu(ctrl, msg)),
   ]);
 }
 
 export async function showMenu(ctrl: MsgCtrl, msg: Msg, reactionsOnly = false) {
-  if (msg.pending) return;
+  if (msg.pending === 'sending') return;
   const desktop = window.matchMedia('(hover: hover) and (min-width: 600px)').matches;
   const anchor = desktop
     ? document.querySelector(`[data-message-id="${CSS.escape(msg.id)}"] .msg-bubble`)?.getBoundingClientRect()
@@ -143,7 +106,22 @@ export async function showMenu(ctrl: MsgCtrl, msg: Msg, reactionsOnly = false) {
     dlg.close();
     run();
   };
-  if (!msg.deleted && (!desktop || reactionsOnly)) {
+  if (msg.pending === 'failed') {
+    const menu = element('div', undefined, 'msg-context-menu');
+    menu.append(
+      button(
+        i18n.inbox.retry,
+        perform(() => ctrl.retry(msg)),
+      ),
+      button(
+        i18n.inbox.deleteMe,
+        perform(() => ctrl.discardFailed(msg)),
+        'delete',
+      ),
+    );
+    content.append(menu);
+  }
+  if (!msg.pending && !msg.deleted && (!desktop || reactionsOnly)) {
     const strip = element('div', undefined, 'msg-reaction-strip');
     for (const emoji of ['❤️', '👍', '👎', '😂', '😮', '😢']) {
       const b = button(
@@ -155,20 +133,23 @@ export async function showMenu(ctrl: MsgCtrl, msg: Msg, reactionsOnly = false) {
       strip.append(b);
     }
     const more = button(
-      '…',
-      perform(() => showEmoji(ctrl, msg)),
+      '',
+      perform(() => showEmoji(i18n.inbox.reactions, emoji => react(ctrl, msg, emoji))),
+      'more',
     );
     more.className = 'msg-reaction-option';
     more.setAttribute('aria-label', i18n.inbox.moreReactions);
     strip.append(more);
     content.append(strip);
   }
-  if (!reactionsOnly) {
+  if (!msg.pending && !reactionsOnly) {
     if (!desktop)
       content.append(
         element(
           'div',
-          msg.deleted ? i18n.inbox.deleted : msg.text,
+          msg.deleted
+            ? i18n.inbox.deleted
+            : msg.text || i18n.site.mediaFiles + ' · ' + (msg.attachments?.length ?? 0),
           `msg-context-preview ${msg.user === ctrl.data.me.id ? 'mine' : 'their'}`,
         ),
       );
@@ -187,6 +168,7 @@ export async function showMenu(ctrl: MsgCtrl, msg: Msg, reactionsOnly = false) {
               ctrl.redraw();
             }
           }),
+          'report',
         ),
       );
     if (!msg.deleted) {
@@ -197,6 +179,14 @@ export async function showMenu(ctrl: MsgCtrl, msg: Msg, reactionsOnly = false) {
           'reply',
         ),
       );
+      if (msg.attachments?.length)
+        menu.append(
+          button(
+            i18n.site.mediaDownload,
+            perform(() => downloadAttachments(msg.id)),
+            'download',
+          ),
+        );
       if (msg.user === ctrl.data.me.id && msg.canEditUntil && msg.canEditUntil > new Date())
         menu.append(
           button(
@@ -205,20 +195,22 @@ export async function showMenu(ctrl: MsgCtrl, msg: Msg, reactionsOnly = false) {
             'edit',
           ),
         );
-      menu.append(
-        button(
-          i18n.inbox.forward,
-          perform(() => showForward(ctrl, [msg])),
-          'forward',
-        ),
-      );
-      menu.append(
-        button(
-          i18n.inbox.copy,
-          perform(() => copyMessages(ctrl, [msg])),
-          'copy',
-        ),
-      );
+      if (!msg.card?.poll)
+        menu.append(
+          button(
+            i18n.inbox.forward,
+            perform(() => showForward(ctrl, [msg])),
+            'forward',
+          ),
+        );
+      if (msg.text)
+        menu.append(
+          button(
+            i18n.inbox.copy,
+            perform(() => copyMessages(ctrl, [msg])),
+            'copy',
+          ),
+        );
     }
     menu.append(
       button(
@@ -239,7 +231,7 @@ export async function showMenu(ctrl: MsgCtrl, msg: Msg, reactionsOnly = false) {
         button(
           msg.pinnedAt ? i18n.inbox.unpin : i18n.inbox.pin,
           perform(() => ctrl.act(msg, 'pin', String(!msg.pinnedAt))),
-          'pin',
+          msg.pinnedAt ? 'unpin' : 'pin',
         ),
       );
     menu.append(
@@ -269,16 +261,16 @@ function react(ctrl: MsgCtrl, msg: Msg, emoji: string) {
 }
 
 let emojiData: Promise<[string, string][]> | undefined;
-async function showEmoji(ctrl: MsgCtrl, msg: Msg) {
+export async function showEmoji(title: string, choose: (emoji: string) => void) {
   const content = element('div');
-  content.append(element('h2', i18n.inbox.reactions));
+  content.append(element('h2', title));
   const input = element('input');
   input.type = 'search';
   input.placeholder = i18n.inbox.searchEmoji;
   input.setAttribute('aria-label', i18n.inbox.searchEmoji);
   const grid = element('div', undefined, 'msg-emoji-grid');
   content.append(input, grid);
-  const dlg = await dialog(content, 'msg-emoji-dialog', i18n.inbox.reactions);
+  const dlg = await dialog(content, 'msg-emoji-dialog', title);
   try {
     emojiData ??= fetch(site.asset.url('javascripts/inbox/emoji.json')).then(r => {
       if (!r.ok) throw new Error('Emoji catalogue unavailable');
@@ -292,7 +284,7 @@ async function showEmoji(ctrl: MsgCtrl, msg: Msg) {
         ...filtered.slice(shown, shown + 120).map(([emoji, name]) => {
           const b = button(emoji, () => {
             dlg.close();
-            void react(ctrl, msg, emoji);
+            choose(emoji);
           });
           b.title = name;
           b.setAttribute('aria-label', name);
@@ -326,7 +318,9 @@ async function showEmoji(ctrl: MsgCtrl, msg: Msg) {
 export async function showDetails(ctrl: MsgCtrl, msg: Msg, history = false) {
   const content = element('div');
   content.append(element('h2', history ? i18n.inbox.editHistory : i18n.inbox.info));
-  content.append(element('div', msg.deleted ? i18n.inbox.deleted : msg.text, 'msg-detail-bubble'));
+  content.append(
+    element('div', msg.deleted ? i18n.inbox.deleted : msg.text || i18n.site.mediaFiles, 'msg-detail-bubble'),
+  );
   const list = element('dl');
   for (const [label, value] of [
     [i18n.inbox.from, msg.user],
@@ -426,10 +420,11 @@ export async function copyMessages(ctrl: MsgCtrl, messages: Msg[]) {
 }
 
 export function selectionBar(ctrl: MsgCtrl): VNode | undefined {
-  if (!ctrl.selected.size) return;
+  if (!ctrl.mailbox.selecting && !ctrl.selected.size) return;
   const messages = (ctrl.data.convo?.msgs ?? []).filter(m => ctrl.selected.has(m.id)).reverse();
   return h('div.msg-selection-bar', [
     iconButton('close', i18n.inbox.cancel, () => {
+      ctrl.mailbox.selecting = false;
       ctrl.selected.clear();
       ctrl.redraw();
     }),
@@ -440,7 +435,7 @@ export function selectionBar(ctrl: MsgCtrl): VNode | undefined {
         messages.filter(m => !m.deleted),
       ),
     ),
-    messages.every(m => !m.deleted)
+    messages.every(m => !m.deleted && !m.card?.poll)
       ? iconButton('forward', i18n.inbox.forward, () => showForward(ctrl, messages))
       : undefined,
     iconButton('delete', i18n.inbox.delete, () => showDelete(ctrl, messages)),

@@ -1,13 +1,15 @@
 import { h, type VNode } from 'snabbdom';
 
-import { mediaView } from 'lib/attachments';
-import { alert, confirm, makeLinkPopups, bind } from 'lib/view';
+import { alert, confirm, bind } from 'lib/view';
 import { json as xhrJson, form as xhrForm } from 'lib/xhr';
 
 import type MsgCtrl from '../ctrl';
 import type { Convo, Msg, Daily } from '../interfaces';
+import { messageAttachments, messageLinkPreview } from './attachments';
+import { renderCard } from './cards';
 import { enhance, isMoreThanText, expandLpvs } from './enhance';
-import { glyph, toolbar, showMenu, showDetails } from './messageActions';
+import { glyph } from './icons';
+import { toolbar, showMenu, showDetails, showForward } from './messageActions';
 import { scroller } from './scroller';
 
 const presses = new WeakMap<EventTarget, { timer: Timeout; x: number; y: number }>();
@@ -18,13 +20,15 @@ function cancelPress(e: Event) {
 }
 
 export default function renderMsgs(ctrl: MsgCtrl, convo: Convo): VNode {
+  const results =
+    ctrl.mailbox.mode === 'media' || (ctrl.mailbox.mode === 'search' && !!ctrl.mailbox.filter.trim());
   return h(
     'div.msg-app__convo__msgs',
     { on: { scroll: ctrl.setRead }, hook: { insert: setupMsgs(true), postpatch: setupMsgs(false) } },
     [
       h('div.msg-app__convo__msgs__init'),
       h('div.msg-app__convo__msgs__content', [
-        ctrl.canGetMoreSince
+        (results ? ctrl.mailbox.next : ctrl.canGetMoreSince)
           ? h(
               'button.msg-app__convo__msgs__more.button.button-empty',
               {
@@ -32,17 +36,18 @@ export default function renderMsgs(ctrl: MsgCtrl, convo: Convo): VNode {
                 attrs: { type: 'button' },
                 hook: bind('click', _ => {
                   scroller.setMarker();
-                  ctrl.getMore();
+                  if (results) ctrl.mailbox.findMessages(ctrl.mailbox.filter, true);
+                  else ctrl.getMore();
                 }),
               },
               i18n.inbox.older,
             )
           : null,
-        ...contentMsgs(ctrl, convo.msgs),
+        ...contentMsgs(ctrl, results ? (ctrl.mailbox.history ?? []) : convo.msgs),
         ctrl.typing
           ? h(
               'div.msg-typing',
-              { attrs: { role: 'status', 'aria-label': i18n.inbox.typing(convo.user.name) } },
+              { attrs: { role: 'status', 'aria-label': i18n.inbox.typing(ctrl.typingNames) } },
               [h('i'), h('i'), h('i')],
             )
           : null,
@@ -72,6 +77,10 @@ function renderDaily(ctrl: MsgCtrl, daily: Daily): VNode[] {
 
 function renderMsg(ctrl: MsgCtrl, msg: Msg) {
   const mine = msg.user === ctrl.data.me.id;
+  const author = mine
+    ? ctrl.data.me
+    : (ctrl.data.convo?.members?.find(u => u.id === msg.user) ?? ctrl.data.convo?.user);
+  const sender = ctrl.data.names[msg.user] ?? (author?.id === msg.user ? author.name : msg.user);
   const status =
     msg.pending === 'failed'
       ? i18n.inbox.failed
@@ -82,6 +91,14 @@ function renderMsg(ctrl: MsgCtrl, msg: Msg) {
           : msg.deliveredAt
             ? i18n.inbox.delivered
             : i18n.inbox.sent;
+  function renderMedia() {
+    const context = { msg, sender, forward: () => void showForward(ctrl, [msg]) };
+    const selecting = ctrl.mailbox.selecting || ctrl.selected.size > 0;
+    return msg.card?.preview
+      ? messageLinkPreview(context, selecting)
+      : messageAttachments(context, selecting);
+  }
+
   return h(
     'article.msg-row',
     {
@@ -109,7 +126,7 @@ function renderMsg(ctrl: MsgCtrl, msg: Msg) {
           if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > 8) cancelPress(e);
         },
         click: () => {
-          if (ctrl.selected.size) ctrl.toggleSelect(msg.id);
+          if (ctrl.mailbox.selecting || ctrl.selected.size) ctrl.toggleSelect(msg.id);
         },
         keydown: (e: KeyboardEvent) => {
           if (e.key === 'F10' && e.shiftKey) {
@@ -120,7 +137,7 @@ function renderMsg(ctrl: MsgCtrl, msg: Msg) {
       },
     },
     [
-      ctrl.selected.size
+      ctrl.mailbox.selecting || ctrl.selected.size
         ? h('input.msg-select', {
             attrs: { type: 'checkbox', checked: ctrl.selected.has(msg.id), 'aria-label': i18n.inbox.select },
             on: { click: e => e.stopPropagation(), change: () => ctrl.toggleSelect(msg.id) },
@@ -142,42 +159,56 @@ function renderMsg(ctrl: MsgCtrl, msg: Msg) {
                         ?.scrollIntoView({ block: 'center', behavior: 'smooth' }),
                   },
                 },
-                [h('strong', msg.reply.user), h('span', msg.reply.text)],
+                [h('strong', msg.reply.user), h('span', msg.reply.text || i18n.site.mediaFiles)],
               )
             : null,
-          msg.deleted ? h('t', i18n.inbox.deleted) : renderText(msg),
-          ...(!msg.deleted && !msg.pending ? (msg.attachments ?? []) : []).map(id => mediaView('msg', id)),
-          h('div.msg-meta', [
-            msg.pinnedAt ? glyph('pin') : null,
-            msg.editedAt && !msg.deleted
-              ? h(
-                  'button.msg-edited',
-                  {
-                    on: {
-                      click: e => {
-                        e.stopPropagation();
-                        void showDetails(ctrl, msg, true);
+          !msg.deleted && (msg.card?.preview || (!msg.pending && msg.attachments?.length))
+            ? renderMedia()
+            : null,
+          h('div.msg-body', [
+            !mine && ctrl.data.convo?.user.group ? h('strong.msg-author', sender) : undefined,
+            renderCard(ctrl, msg),
+            msg.deleted
+              ? h('t', i18n.inbox.deleted)
+              : msg.text && !msg.card?.poll && !msg.card?.contact
+                ? renderText(msg)
+                : null,
+            h('div.msg-meta', [
+              msg.pinnedAt ? glyph('pin') : null,
+              msg.editedAt && !msg.deleted
+                ? h(
+                    'button.msg-edited',
+                    {
+                      on: {
+                        click: e => {
+                          e.stopPropagation();
+                          void showDetails(ctrl, msg, true);
+                        },
                       },
                     },
-                  },
-                  i18n.inbox.edited,
-                )
-              : null,
-            h(
-              'time',
-              { attrs: { title: msg.date.toLocaleString(), datetime: msg.date.toISOString() } },
-              `${pad2(msg.date.getHours())}:${pad2(msg.date.getMinutes())}`,
-            ),
-            mine && !msg.deleted
-              ? h(
-                  'span.msg-receipt',
-                  {
-                    class: { read: !!msg.readAt, delivered: !!msg.deliveredAt },
-                    attrs: { title: status, 'aria-label': status },
-                  },
-                  [glyph(msg.pending ? 'clock' : msg.readAt ? 'read' : 'check')],
-                )
-              : null,
+                    i18n.inbox.edited,
+                  )
+                : null,
+              h(
+                'time',
+                { attrs: { title: msg.date.toLocaleString(), datetime: msg.date.toISOString() } },
+                msg.date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+              ),
+              mine && !msg.deleted
+                ? h(
+                    'span.msg-receipt',
+                    {
+                      class: { read: !!msg.readAt, delivered: !!msg.deliveredAt },
+                      attrs: { title: status, 'aria-label': status },
+                    },
+                    [
+                      msg.pending
+                        ? glyph(msg.pending === 'failed' ? 'failed' : 'clock')
+                        : glyph(msg.readAt ? 'read' : msg.deliveredAt ? 'delivered' : 'sent'),
+                    ],
+                  )
+                : null,
+            ]),
           ]),
         ]),
         msg.pending === 'failed'
@@ -186,16 +217,14 @@ function renderMsg(ctrl: MsgCtrl, msg: Msg) {
         msg.reactions.length && !msg.deleted
           ? h(
               'div.msg-reactions',
-              [...new Set(msg.reactions.map(r => r.emoji))].map(emoji =>
-                h(
+              [...new Set(msg.reactions.map(r => r.emoji))].map(emoji => {
+                const users = msg.reactions.filter(r => r.emoji === emoji).map(r => r.user);
+                return h(
                   'button',
                   {
-                    class: { mine: msg.reactions.some(r => r.emoji === emoji && r.user === ctrl.data.me.id) },
+                    class: { mine: users.includes(ctrl.data.me.id) },
                     attrs: {
-                      title: msg.reactions
-                        .filter(r => r.emoji === emoji)
-                        .map(r => r.user)
-                        .join(', '),
+                      title: users.join(', '),
                       'aria-label': `${i18n.inbox.reactions} ${emoji}`,
                     },
                     on: {
@@ -205,17 +234,16 @@ function renderMsg(ctrl: MsgCtrl, msg: Msg) {
                       },
                     },
                   },
-                  `${emoji} ${msg.reactions.filter(r => r.emoji === emoji).length}`,
-                ),
-              ),
+                  users.length > 1 ? emoji + ' ' + users.length : emoji,
+                );
+              }),
             )
           : null,
       ]),
-      !msg.pending && !ctrl.selected.size ? toolbar(ctrl, msg) : null,
+      msg.pending !== 'sending' && !ctrl.mailbox.selecting && !ctrl.selected.size ? toolbar(ctrl, msg) : null,
     ],
   );
 }
-const pad2 = (num: number): string => (num < 10 ? '0' : '') + num;
 
 function groupMsgs(msgs: Msg[]): Daily[] {
   let prev: Msg = msgs[0];
@@ -256,7 +284,7 @@ const sameDay = (d: Date, e: Date) =>
   d.getDate() === e.getDate() && d.getMonth() === e.getMonth() && d.getFullYear() === e.getFullYear();
 
 const renderText = (msg: Msg) =>
-  isMoreThanText(msg.text)
+  isMoreThanText(msg.text) || msg.text.includes('.')
     ? h('t', {
         key: msg.text,
         hook: {
@@ -279,7 +307,6 @@ const setupMsgs = (insert: boolean) => (vnode: VNode) => {
   const el = vnode.elm as HTMLElement;
   if (insert) scroller.init(el);
   expandLpvs(el);
-  makeLinkPopups(el, 'their a[href^="http"]');
   scroller.toMarker() || scroller.auto();
 };
 

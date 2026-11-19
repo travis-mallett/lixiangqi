@@ -1,3 +1,4 @@
+import { chatPath } from '../../lib/src/inboxUrl';
 const sw = self as unknown as ServiceWorkerGlobalScope;
 const searchParams = new URL(sw.location.href).searchParams;
 const assetBase = new URL(searchParams.get('asset-url')!, sw.location.href).href;
@@ -39,7 +40,7 @@ async function handleNotificationClick(e: NotificationEvent) {
   const data = e.notification.data.userData;
   let url = data.path || '/';
   if (data.fullId) url = '/' + data.fullId;
-  else if (data.threadId) url = '/inbox/' + data.threadId;
+  else if (data.threadId) url = chatPath(data.threadId);
   else if (data.challengeId) url = '/' + data.challengeId;
   else if (data.streamerId) url = `/streamer/${data.streamerId}?redirect=1`;
   else if (data.mentionedBy) url = `/forum/redirect/post/${data.postId}`;

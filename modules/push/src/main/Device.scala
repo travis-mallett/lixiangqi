@@ -12,8 +12,10 @@ final private case class Device(
     platform: String, // cordova platform (android, ios, firebase)
     userId: UserId,
     seenAt: Instant,
-    ua: UserAgent
+    ua: UserAgent,
+    session: Option[String] = None
 ):
+  def isInbox = platform == Device.inboxPlatform && session.isDefined
   def isMobile = HTTPRequest.isLichessMobile(ua)
   def isLichobile = HTTPRequest.isLichobile(ua)
 
@@ -23,3 +25,6 @@ final private case class Device(
   def deviceId = platform match
     case "ios" => _id.grouped(8).mkString("<", " ", ">")
     case _ => _id
+
+private object Device:
+  val inboxPlatform = "lixiangqi-inbox"

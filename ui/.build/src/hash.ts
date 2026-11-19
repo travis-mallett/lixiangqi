@@ -24,7 +24,7 @@ export async function hash(): Promise<void> {
   if (withClient.globs.length) hashRuns.push({ globs: withClient.globs, omit: false });
   if (serverOnly.globs.length) hashRuns.push({ globs: serverOnly.globs, omit: true });
 
-  await fs.promises.mkdir(env.hashOutDir).catch(() => {});
+  await fs.promises.mkdir(env.hashOutDir, { recursive: true });
   const symlinkHashes = await symlinkTargetHashes();
   await Promise.all(
     hashRuns.map(({ globs, catalog, omit, pkg }) =>
@@ -118,21 +118,25 @@ async function hashAndLink(name: string) {
     .digest('hex')
     .slice(0, 8);
   const link = join(env.hashOutDir, hashedBasename(name, hash));
-  const [{ mtime }] = await Promise.all([
-    fs.promises.stat(join(env.outDir, name)),
-    fs.promises.symlink(relative(env.hashOutDir, src), link).catch(async error => {
-      // Identical content and basename share a target. Concurrent producers must
-      // never overwrite an existing immutable hash file (or its symlink source).
-      if (error.code === 'EEXIST') return;
-      await fs.promises.link(src, link).catch(async error => {
-        if (error.code === 'EEXIST') return;
-        await fs.promises.copyFile(src, link, fs.constants.COPYFILE_EXCL).catch(error => {
-          if (error.code !== 'EEXIST') throw error;
-        });
-      });
-    }),
-  ]);
-  await fs.promises.lutimes(link, mtime, mtime);
+  if (process.platform !== 'win32') {
+    const { mtime } = await fs.promises.stat(src);
+    const created = await fs.promises.symlink(relative(env.hashOutDir, src), link).then(
+      () => true,
+      (error: NodeJS.ErrnoException) => {
+        if (error.code === 'EEXIST') return false;
+        if (error.code === 'EPERM' || error.code === 'EACCES' || error.code === 'ENOTSUP') return undefined;
+        throw error;
+      },
+    );
+    if (created !== undefined) {
+      if (created) await fs.promises.lutimes(link, mtime, mtime);
+      return hash;
+    }
+  }
+  // Identical assets may share this output. A regular copy needs no symlink timestamp.
+  await fs.promises.copyFile(src, link, fs.constants.COPYFILE_EXCL).catch(error => {
+    if (error.code !== 'EEXIST') throw error;
+  });
   return hash;
 }
 

@@ -3,7 +3,7 @@ import { h, type VNode } from 'snabbdom';
 import { json, ValidationError } from './xhr';
 
 type Surface = 'msg' | 'forum';
-type State = 'uploading' | 'checking' | 'ready' | 'blocked' | 'retry';
+type State = 'local' | 'uploading' | 'checking' | 'ready' | 'blocked' | 'retry';
 type Item = {
   file: File;
   state: State;
@@ -33,12 +33,18 @@ export class AttachmentDraft {
   private redraw?: () => void;
   private abort?: AbortController;
   private next?: ReturnType<typeof setTimeout>;
+  private editing?: Item;
+  private settle?: () => void;
+  private pickPhotos?: () => void;
   private warning = '';
   private readonly viewKey = window.crypto.randomUUID();
   constructor(
     readonly surface: Surface,
     readonly dest: string,
     published: string[] = [],
+    private readonly editPhoto?: (file: File, signal: AbortSignal) => Promise<File | undefined>,
+    private readonly pickerIcon?: (name: 'plus' | 'photo' | 'file' | 'contact' | 'poll') => HTMLElement,
+    private readonly compose?: (type: 'poll' | 'contact') => void,
   ) {
     for (const id of published)
       this.items.push({
@@ -51,7 +57,33 @@ export class AttachmentDraft {
     this.base = '/attachment/' + surface + '/' + encodeURIComponent(dest);
   }
   get ready(): boolean {
-    return this.items.every(i => i.state === 'ready');
+    return !this.editing && this.items.every(i => i.state === 'ready' || i.state === 'local');
+  }
+  async prepare(): Promise<boolean> {
+    const selected = this.items.slice();
+    const local = selected.filter(i => i.state === 'local');
+    if (!local.length) return this.ready;
+    await Promise.all(local.map(i => this.upload(i)));
+    if (this.root && selected.some(i => i.state === 'checking')) {
+      await new Promise<void>(resolve => {
+        this.settle = () => {
+          if (
+            this.root &&
+            selected.every(i => this.items.includes(i)) &&
+            selected.some(i => i.state === 'checking')
+          )
+            return;
+          this.settle = undefined;
+          resolve();
+        };
+        this.settle();
+      });
+    }
+    return (
+      !!this.root &&
+      this.items.length === selected.length &&
+      selected.every(i => this.items.includes(i) && i.state === 'ready')
+    );
   }
   get ids(): string[] {
     return this.items.flatMap(i => (i.id ? [i.id] : []));
@@ -85,18 +117,21 @@ export class AttachmentDraft {
     try {
       this.policy = await json<Policy>(this.base + '/policy', { signal });
     } catch {
-      return;
+      if (signal.aborted || !this.compose) return;
+      this.policy = { enabled: false, maxCount: 0, maxBytes: 0 };
     }
-    if (!this.policy.enabled || signal.aborted) return;
+    if ((!this.policy.enabled && !this.compose) || signal.aborted) return;
     const plus = document.createElement('button');
     plus.type = 'button';
     plus.className = 'attachment-plus button button-empty';
-    plus.textContent = '+';
+    plus.append(this.pickerIcon?.('plus') ?? '+');
     plus.setAttribute('aria-label', i18n.site.attachMedia);
     plus.setAttribute('aria-expanded', 'false');
     const menu = document.createElement('div');
     menu.className = 'attachment-menu';
     menu.hidden = true;
+    plus.setAttribute('aria-haspopup', 'menu');
+    menu.setAttribute('role', 'menu');
     const close = () => {
       menu.hidden = true;
       plus.setAttribute('aria-expanded', 'false');
@@ -105,10 +140,35 @@ export class AttachmentDraft {
     plus.onclick = () => {
       menu.hidden = !menu.hidden;
       plus.setAttribute('aria-expanded', String(!menu.hidden));
-      if (!menu.hidden) menu.querySelector('button')?.focus();
+      if (!menu.hidden) menu.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus();
     };
     menu.onkeydown = e => {
-      if (e.key === 'Escape') close();
+      const buttons = Array.from(menu.querySelectorAll<HTMLButtonElement>('button:not(:disabled)'));
+      const pos = buttons.indexOf(document.activeElement as HTMLButtonElement);
+      switch (e.key) {
+        case 'Escape':
+          close();
+          break;
+        case 'ArrowDown':
+          buttons[(pos + 1) % buttons.length]?.focus();
+          break;
+        case 'ArrowUp':
+          buttons[(pos + buttons.length - 1) % buttons.length]?.focus();
+          break;
+        case 'Home':
+          buttons[0]?.focus();
+          break;
+        case 'End':
+          buttons[buttons.length - 1]?.focus();
+          break;
+        case 'Tab':
+          close();
+          return;
+        default:
+          return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
     };
     const pick = (label: string, accept: string, camera = false) => {
       const input = document.createElement('input');
@@ -119,8 +179,12 @@ export class AttachmentDraft {
       if (camera) input.setAttribute('capture', 'environment');
       const button = document.createElement('button');
       button.type = 'button';
-      button.className = 'button button-empty';
-      button.textContent = label;
+      button.className = this.surface === 'msg' ? 'msg-picker-row' : 'button button-empty';
+      if (this.surface === 'msg') button.setAttribute('role', 'menuitem');
+      button.disabled = !this.policy?.enabled;
+      if (this.pickerIcon)
+        button.append(this.pickerIcon(accept.startsWith('image/') ? 'photo' : 'file'), ' ');
+      button.append(label);
       button.onclick = () => {
         input.click();
         close();
@@ -129,19 +193,44 @@ export class AttachmentDraft {
         this.add(Array.from(input.files ?? []));
         input.value = '';
       };
+      if (accept.startsWith('image/')) this.pickPhotos = () => input.click();
       menu.append(button, input);
     };
-    pick(i18n.site.mediaPhotos, 'image/png,image/jpeg,image/webp');
-    pick(i18n.site.mediaFiles, accepted);
-    if (window.matchMedia('(pointer: coarse)').matches) pick(i18n.site.mediaCamera, 'image/*', true);
-    const disclosure = document.createElement('small');
-    disclosure.textContent = i18n.site.mediaDisclosure;
-    disclosure.className = 'attachment-disclosure';
+    pick(
+      this.surface === 'msg' ? i18n.inbox.photosAndVideos : i18n.site.mediaPhotos,
+      this.surface === 'msg' ? 'image/*,video/*' : 'image/png,image/jpeg,image/webp',
+    );
+    pick(
+      this.surface === 'msg' ? i18n.inbox.file : i18n.site.mediaFiles,
+      this.surface === 'msg' ? '' : accepted,
+    );
+    if (this.compose)
+      for (const type of ['poll', 'contact'] as const) {
+        const entry = document.createElement('button');
+        entry.type = 'button';
+        entry.className = 'msg-picker-row';
+        entry.setAttribute('role', 'menuitem');
+        if (this.pickerIcon) entry.append(this.pickerIcon(type));
+        entry.append(i18n.inbox[type]);
+        entry.onclick = () => {
+          close();
+          this.compose?.(type);
+        };
+        menu.append(entry);
+      }
+    if (this.surface === 'forum' && window.matchMedia('(pointer: coarse)').matches)
+      pick(i18n.site.mediaCamera, 'image/*', true);
     const list = document.createElement('div');
     list.className = 'attachment-items';
     list.setAttribute('aria-live', 'polite');
     root.replaceChildren(plus, menu, list);
-    if (this.surface === 'msg') root.append(disclosure);
+    document.addEventListener(
+      'pointerdown',
+      e => {
+        if (!menu.hidden && !menu.contains(e.target as Node) && !plus.contains(e.target as Node)) close();
+      },
+      { signal },
+    );
     field?.addEventListener(
       'paste',
       e => {
@@ -188,6 +277,18 @@ export class AttachmentDraft {
     }
   }
 
+  stagePreview(file: File): void {
+    if (!this.active) this.add([file]);
+  }
+  discardPreview(file: File): void {
+    const item = this.items.find(i => i.file === file);
+    if (!item) return;
+    ++item.generation;
+    if (item.id) void this.action(item.id, 'remove');
+    if (item.preview) URL.revokeObjectURL(item.preview);
+    this.items.splice(this.items.indexOf(item), 1);
+    this.render();
+  }
   private add(files: File[]) {
     if (!this.policy?.enabled) return;
     for (const file of files) {
@@ -198,11 +299,17 @@ export class AttachmentDraft {
       const valid =
         file.size > 0 &&
         file.size <= this.policy.maxBytes &&
-        /\.(?:jpe?g|png|webp|txt|pgn)$/i.test(file.name);
+        (this.surface === 'msg' || /\.(?:jpe?g|png|webp|txt|pgn)$/i.test(file.name));
       const item: Item = { file, generation: 0, state: valid ? 'uploading' : 'blocked' };
-      if (valid && /^image\/(jpeg|png|webp)$/.test(file.type)) item.preview = URL.createObjectURL(file);
+      if (
+        valid &&
+        (/^image\/(jpeg|png|webp|avif|bmp)$/.test(file.type) ||
+          /\.(jpe?g|webp|png|avif|bmp)$/i.test(file.name))
+      )
+        item.preview = URL.createObjectURL(file);
       this.items.push(item);
-      if (valid) void this.upload(item);
+      if (valid && this.surface === 'msg' && this.editPhoto) item.state = 'local';
+      else if (valid) void this.upload(item);
     }
     this.render();
   }
@@ -270,6 +377,7 @@ export class AttachmentDraft {
   }
 
   private render() {
+    this.settle?.();
     const list = this.root?.querySelector('.attachment-items');
     if (!list) return;
     const focus = list.contains(document.activeElement)
@@ -279,9 +387,11 @@ export class AttachmentDraft {
     this.items.forEach((i, index) => {
       const row = document.createElement('div');
       row.className = 'attachment-item';
+      const tile = !!i.preview && this.surface === 'msg';
+      if (tile) row.classList.add('photo-tile');
       if (i.preview) {
         const img = document.createElement('img');
-        img.alt = '';
+        img.alt = tile ? i.file.name : '';
         img.src = i.preview;
         row.append(img);
       }
@@ -289,23 +399,37 @@ export class AttachmentDraft {
       title.textContent = i.file.name + ' · ' + Math.ceil((i.size ?? i.file.size) / 1024) + ' KiB';
       const state = document.createElement('small');
       state.textContent = {
+        local: '',
         uploading: i18n.site.mediaUploading,
         checking: i18n.site.mediaChecking,
         ready: i18n.site.mediaReady,
         blocked: i18n.site.mediaBlocked,
         retry: i18n.site.mediaRetry,
       }[i.state];
-      title.append(state);
-      row.append(title);
+      if (tile) {
+        if (i.state === 'blocked' || i.state === 'retry') row.append(state);
+        if (i.state === 'checking' || i.state === 'uploading') row.setAttribute('aria-busy', 'true');
+      } else {
+        title.append(state);
+        row.append(title);
+      }
       const button = (name: string, action: string, run: () => void) => {
         const el = document.createElement('button');
         el.type = 'button';
         el.className = 'button button-empty';
-        el.textContent = name;
+        el.setAttribute('aria-label', name);
+        el.title = name;
+        if (tile && action === 'edit') el.className = 'tile-edit';
+        else if (tile && action === 'remove') {
+          el.className = 'tile-remove';
+          el.textContent = '×';
+        } else el.textContent = name;
         el.dataset.action = action + index;
         el.onclick = run;
         row.append(el);
       };
+      if (this.editPhoto && i.preview && !i.retained)
+        button(i18n.inbox.photoEdit, 'edit', () => void this.edit(i));
       if (i.state === 'retry')
         button(i18n.site.mediaRetryAction, 'retry', async () => {
           if (i.id) {
@@ -331,9 +455,41 @@ export class AttachmentDraft {
       });
       list.append(row);
     });
+    if (this.surface === 'msg' && this.items.length && this.items.length < (this.policy?.maxCount ?? 0)) {
+      const more = document.createElement('button');
+      more.type = 'button';
+      more.className = 'tile-add';
+      more.setAttribute('aria-label', i18n.site.mediaPhotos);
+      more.append(this.pickerIcon?.('plus') ?? '+');
+      more.onclick = () => this.pickPhotos?.();
+      list.append(more);
+    }
     if (this.warning) list.append(document.createTextNode(this.warning));
     if (focus) list.querySelector<HTMLElement>('[data-action="' + focus + '"]')?.focus();
     this.redraw?.();
+  }
+  private async edit(item: Item) {
+    const signal = this.abort?.signal;
+    if (!signal || signal.aborted || this.editing) return;
+    this.editing = item;
+    this.render();
+    try {
+      const file = await this.editPhoto?.(item.file, signal);
+      const index = this.items.indexOf(item);
+      if (!file || index < 0 || signal.aborted) return;
+      if (file === item.file) return;
+      ++item.generation;
+      if (item.id) void this.action(item.id, 'remove');
+      if (item.preview) URL.revokeObjectURL(item.preview);
+      const replacement: Item = { file, generation: 0, preview: URL.createObjectURL(file), state: 'blocked' };
+      this.items[index] = replacement;
+      if (this.policy && file.size <= this.policy.maxBytes) replacement.state = 'local';
+    } catch {
+      if (!signal.aborted) this.warning = i18n.site.mediaRetry;
+    } finally {
+      this.editing = undefined;
+      this.render();
+    }
   }
   private pollStatus(i: Item) {
     i.state = 'checking';
@@ -374,37 +530,17 @@ export class AttachmentDraft {
     clearTimeout(this.next);
     this.next = undefined;
     this.root = undefined;
+    this.settle?.();
     this.redraw = undefined;
   }
 }
 
-let watchPrivateMedia = false;
-const loads = new WeakMap<HTMLElement, number>();
-
-export function showMedia(root: HTMLElement, surface: Surface, id: string): void {
+export function showForumMedia(root: HTMLElement, id: string): void {
   if (!/^[a-f0-9]{32}$/.test(id)) return;
-  const generation = (loads.get(root) ?? 0) + 1;
-  loads.set(root, generation);
-  if (surface === 'msg') {
-    root.dataset.privateAttachment = id;
-    if (!watchPrivateMedia) {
-      watchPrivateMedia = true;
-      const refresh = () =>
-        document.querySelectorAll<HTMLElement>('[data-private-attachment]').forEach(el => {
-          if (document.hidden) {
-            loads.set(el, (loads.get(el) ?? 0) + 1);
-            el.replaceChildren();
-          } else showMedia(el, 'msg', el.dataset.privateAttachment!);
-        });
-      document.addEventListener('visibilitychange', refresh);
-      window.addEventListener('pageshow', refresh);
-    }
-    if (document.hidden) return;
-  }
-  const url = '/attachment/' + surface + '/item/' + id;
+  const url = '/attachment/forum/item/' + id;
   void json<{ name: string; mime: string; size: number }>(url + '?meta=1')
     .then(meta => {
-      if (!root.isConnected || loads.get(root) !== generation) return;
+      if (!root.isConnected) return;
       const link = document.createElement('a');
       link.href = url;
       link.rel = 'noreferrer';
@@ -434,10 +570,4 @@ export function showMedia(root: HTMLElement, surface: Surface, id: string): void
       root.replaceChildren(link);
     })
     .catch(() => root.replaceChildren());
-}
-export function mediaView(surface: Surface, id: string): VNode {
-  return h('span.published-attachment', {
-    key: id,
-    hook: { insert: v => showMedia(v.elm as HTMLElement, surface, id) },
-  });
 }

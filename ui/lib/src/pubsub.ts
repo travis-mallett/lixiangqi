@@ -60,7 +60,8 @@ export interface PubsubEvents {
   'socket.in.msgNew': (data: { text: string; user: UserId; date: number }) => void;
   'socket.in.msgType': (userId: UserId) => void;
   'socket.in.msgMediaRevoked': (event: { user: string }) => void;
-  'socket.in.msgTyping': (event: { user: UserId; active: boolean }) => void;
+  'socket.in.msgTyping': (event: { user: UserId; active: boolean; sender?: string }) => void;
+  'socket.in.msgInbox': (event: { user: string; organization?: unknown }) => void;
   'socket.in.msgChanged': (event: { user: UserId; msg: any; kind: string }) => void;
   'socket.in.msgRemoved': (event: { user: UserId; id: string }) => void;
   'socket.in.msgThreadRemoved': (event: { user: UserId }) => void;

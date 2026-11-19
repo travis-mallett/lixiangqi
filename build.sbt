@@ -497,7 +497,7 @@ lazy val pref = module("pref",
 
 lazy val msg = module("msg",
   Seq(coreI18n, memo),
-  tests.bundle
+  tests.bundle ++ Seq(jsoup, "org.apache.httpcomponents" % "httpclient" % "4.5.14")
 )
 
 lazy val forum = module("forum",

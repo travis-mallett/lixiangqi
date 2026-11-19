@@ -56,3 +56,8 @@ package router.report:
   export lila.core.userId.UserStr
   export lila.core.id.ReportId
   export lila.ui.LilaRouter.given
+
+package router.inbox:
+
+  export lila.core.userId.UserStr
+  export lila.ui.LilaRouter.given
