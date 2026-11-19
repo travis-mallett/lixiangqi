@@ -1,6 +1,9 @@
 PUT    /inbox/device/registration      controllers.inbox.Msg.registerDevice
 DELETE /inbox/device/registration      controllers.inbox.Msg.unregisterDevice
 GET   /inbox                           controllers.inbox.Msg.home(before: Option[Long] ?= None)
+GET   /inbox/public/global             controllers.inbox.Msg.globalPreview
+POST  /inbox/public/watch              controllers.inbox.Msg.globalWatch
+GET   /inbox/delivery/pending          controllers.inbox.Msg.pendingDelivery
 GET   /inbox/settings/chats            controllers.inbox.Msg.collection(scope: String, before: Option[Long] ?= None)
 GET   /inbox/history/:chat              controllers.inbox.Msg.history(chat, q: String ?= "", files: Boolean ?= false, before: Option[Long] ?= None, cursor: String ?= "")
 GET   /inbox/contacts/friends          controllers.inbox.Msg.friends

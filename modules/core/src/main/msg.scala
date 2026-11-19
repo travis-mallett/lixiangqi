@@ -4,6 +4,12 @@ package msg
 import lila.core.userId.UserId
 import lila.core.data.Url
 
+object GlobalRoom:
+  // Private groups use random version-4 UUIDs. The nil UUID identifies the public room.
+  val id = "~00000000000000000000000000000000"
+  val resource = s"inbox/group/$id"
+  val path = s"/$resource"
+
 enum PostResult:
   case Success, Invalid, Limited, Bounced, UnsafeLink
 

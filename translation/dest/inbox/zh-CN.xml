@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="moderateGlobalChat">管理全站聊天室</string>
+  <string name="globalChat">公共聊天室</string>
+  <string name="openInInbox">在收件箱中打开</string>
+  <string name="noMessagesYet">暂无消息</string>
   <string name="title">收件箱</string>
   <string name="message">消息</string>
   <string name="send">发送</string>

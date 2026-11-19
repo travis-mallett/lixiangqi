@@ -14,6 +14,21 @@ final class MsgOrganization(colls: MsgColls)(using Executor, lila.core.config.Ra
         (if mentioned then $doc("mentions" -> false) else $empty)
     )
 
+  def globalRecipients(mentions: Set[UserId]): Fu[Set[UserId]] =
+    val chat = GlobalChat.id
+    for
+      subscribers <- colls.mailboxIndexes >> coll.distinctEasy[UserId, Set](
+        "owner",
+        $doc("chat" -> chat, "mute" -> false)
+      )
+      suppressed <- mentions.nonEmpty.so(
+        coll.distinctEasy[UserId, Set](
+          "owner",
+          $inIds(mentions.toList.map(key(_, chat))) ++ $doc("mentions" -> false)
+        )
+      )
+    yield subscribers ++ (mentions -- suppressed)
+
   def snapshot(using me: Me): Fu[JsObject] =
     colls.mailboxIndexes >> coll
       .list[Bdoc]($doc("owner" -> me.userId))
@@ -23,9 +38,9 @@ final class MsgOrganization(colls: MsgColls)(using Executor, lila.core.config.Ra
             .map: chat =>
               chat -> Json.obj(
                 "archive" -> d.getAsOpt[Long]("archive"),
-                "mute" -> d.getAsOpt[Boolean]("mute").contains(true),
+                "mute" -> d.getAsOpt[Boolean]("mute").getOrElse(chat == GlobalChat.id),
                 "unread" -> d.getAsOpt[Boolean]("unread").contains(true),
-                "pin" -> d.getAsOpt[Boolean]("pin").contains(true),
+                "pin" -> (chat == GlobalChat.id || d.getAsOpt[Boolean]("pin").contains(true)),
                 "mentions" -> !d.getAsOpt[Boolean]("mentions").contains(false)
               )
         val folders = docs.flatMap: d =>
@@ -37,7 +52,9 @@ final class MsgOrganization(colls: MsgColls)(using Executor, lila.core.config.Ra
                 "chats" -> d.getAsOpt[List[String]]("chats").getOrElse(Nil)
               )
             )
-        Json.obj("states" -> JsObject(states), "folders" -> folders)
+        val defaults = if me.kid.yes then Json.obj()
+        else Json.obj(GlobalChat.id -> Json.obj("mute" -> true, "pin" -> true, "mentions" -> true))
+        Json.obj("states" -> (defaults ++ JsObject(states)), "folders" -> folders)
 
   def selected(scope: String)(using me: Me): Fu[List[String]] =
     if scope.startsWith("folder/") then
@@ -66,15 +83,16 @@ final class MsgOrganization(colls: MsgColls)(using Executor, lila.core.config.Ra
           coll.delete.one($id(s"${me.userId}/folder/$chat")).void
         case "archive" | "mute" | "pin" | "unread" | "mentions"
             if validChat(chat) && Set("true", "false")(value) =>
-          val exists = if chat.startsWith("~") then
-            colls.group.exists($id(chat) ++ $doc("users" -> me.userId))
+          val exists = if chat == GlobalChat.id then fuccess(me.kid.no && Set("mute", "mentions")(action))
+          else if chat.startsWith("~") then colls.group.exists($id(chat) ++ $doc("users" -> me.userId))
           else colls.thread.exists($id(MsgThread.id(me, UserId(chat))))
           exists.flatMap:
             case false => fail
             case true =>
               val update = if action == "archive" && value == "true" then
                 $set("archive" -> nowInstant.toEpochMilli)
-              else if action == "mentions" || value == "true" then $set(action -> (value == "true"))
+              else if action == "mentions" || (chat == GlobalChat.id && action == "mute") || value == "true"
+              then $set(action -> (value == "true"))
               else $unset(action)
               coll.update
                 .one($id(key(me, chat)) ++ $doc("owner" -> me.userId, "chat" -> chat), update, upsert = true)

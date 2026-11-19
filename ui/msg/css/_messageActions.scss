@@ -95,7 +95,8 @@
   background: $c-bg-zebra2;
 
   &.mine {
-    background: color-mix(in oklab, $c-primary 28%, $c-bg-box);
+    background: $msg-outgoing;
+    color: white;
   }
 }
 

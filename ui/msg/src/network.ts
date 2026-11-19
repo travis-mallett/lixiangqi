@@ -1,9 +1,14 @@
-import { chatPath } from 'lib/inboxUrl';
+import { chatPath, globalChatId } from 'lib/inboxUrl';
 import { pubsub } from 'lib/pubsub';
 import { json, form } from 'lib/xhr';
 
 import type MsgCtrl from './ctrl';
 import type { MsgData, Contact, User, Msg, Convo, SearchResult } from './interfaces';
+
+export const watchGlobal = () =>
+  fetch('/inbox/public/watch', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } }).catch(
+    () => {},
+  );
 
 export async function loadConvo(userId: string): Promise<MsgData> {
   const d = await json(chatPath(userId));
@@ -190,6 +195,7 @@ export function upgradeUser(u: any): User {
   return {
     ...u,
     id: u.id || u.name.toLowerCase(),
+    name: u.id === globalChatId ? i18n.inbox.globalChat : u.name,
   };
 }
 export function upgradeContact(c: any): Contact {

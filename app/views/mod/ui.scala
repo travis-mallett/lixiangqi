@@ -17,6 +17,8 @@ lazy val inquiryUi = ModInquiryUi(helpers)(publicLineSource, env.mod.presets.get
 val timeline = lila.api.ui.ModTimelineUi(helpers)(publicLineSource = publicLineSource)
 
 private def publicLineSource(source: PublicSource)(using Translate, ClientName): Tag = source match
+  case PublicSource.GlobalChat =>
+    a(href := lila.core.msg.GlobalRoom.path)(trans.inbox.globalChat())
   case PublicSource.Tournament(id) => views.tournament.ui.tournamentLink(id)
   case PublicSource.Simul(id) => views.simul.ui.link(id)
   case PublicSource.Team(id) => teamLink(id)

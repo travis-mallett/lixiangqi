@@ -121,7 +121,7 @@ export default function () {
             if (this.isVisible()) nb = 0;
             const newTitle = $countSpan.attr('title')!.replace(/\d+/, nb.toString());
             $countSpan.data('count', nb).attr('title', newTitle).attr('aria-label', newTitle);
-            return nb && nb !== existing;
+            return nb > existing;
           },
           show() {
             if (!isVisible(selector)) $toggle.trigger('click');
@@ -148,10 +148,6 @@ export default function () {
     pubsub.on('socket.in.notifications', async data => {
       if (!instance) load(data);
       else (await instance).update(data);
-    });
-    pubsub.on('notify-app.set-read', async user => {
-      if (!instance) load();
-      else (await instance).setMsgRead(user);
     });
   }
 

@@ -23,7 +23,6 @@ export function initModule(opts: NotifyOpts) {
   return {
     update,
     onShow: ctrl.onShow,
-    setMsgRead: ctrl.setMsgRead,
     setAllRead: ctrl.setAllRead,
     redraw,
   };

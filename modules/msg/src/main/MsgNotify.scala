@@ -21,25 +21,23 @@ final private class MsgNotify(
 
   def onPost(threadId: MsgThread.Id): Unit = schedule(threadId)
 
-  private val pendingGroups = scalalib.ConcurrentMap[(String, UserId), Cancellable](256)
+  private val pendingGroups = scalalib.ConcurrentMap[(String, UserId, Boolean), Cancellable](256)
 
   def onGroupPost(id: String, message: Msg, recipients: List[UserId]): Unit =
+    val mentions = MsgGroups.mentions(message.text)
     recipients.foreach: recipient =>
-      val key = id -> recipient
+      val mentioned = mentions(recipient)
+      val key = (id, recipient, mentioned)
       pendingGroups.compute(key): pending =>
         pending.foreach(_.cancel())
         scheduler
           .scheduleOnce(delay) {
             pendingGroups.remove(key)
-            val path = s"previews.$recipient"
             colls.group
               .one[Bdoc](
                 $id(id) ++ $doc(
                   "users" -> recipient,
-                  "hidden".$ne(recipient),
-                  s"$path.id" -> message.id,
-                  s"$path.read" -> false,
-                  s"$path.deleted".$ne(true)
+                  "hidden".$ne(recipient)
                 )
               )
               .flatMapz: room =>
@@ -49,13 +47,23 @@ final private class MsgNotify(
                       "tid" -> id,
                       "audience" -> recipient,
                       "del".$ne(recipient),
+                      s"reads.$recipient".$exists(false),
                       "deletedAt".$exists(false)
                     )
                   )
                   .flatMapz: current =>
                     for
                       muted <- organization.muted(recipient, id, MsgGroups.mentions(current.text)(recipient))
-                      adults <- (!muted).so(contactApi.adultIds(List(current.user, recipient)))
+                      latest = room
+                        .child("previews")
+                        .flatMap(_.child(recipient.value))
+                        .flatMap(_.string("id"))
+                        .contains(current.id)
+                      mentionOverride <- (!muted && !latest && MsgGroups.mentions(current.text)(recipient))
+                        .so(organization.muted(recipient, id))
+                      adults <- (!muted && (latest || mentionOverride)).so(
+                        contactApi.adultIds(List(current.user, recipient))
+                      )
                       _ <- (adults.contains(current.user) && adults.contains(recipient)).so(
                         notifyApi.notifyOne(
                           recipient,
@@ -63,7 +71,8 @@ final private class MsgNotify(
                             current.user,
                             shorten(current.text, 40),
                             Some(id),
-                            room.string("name")
+                            room.string("name"),
+                            Some(message.id)
                           )
                         )
                       )

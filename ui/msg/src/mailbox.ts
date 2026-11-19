@@ -1,4 +1,4 @@
-import { chatPath } from 'lib/inboxUrl';
+import { chatPath, globalChatId } from 'lib/inboxUrl';
 import { form, json } from 'lib/xhr';
 
 import type MsgCtrl from './ctrl';
@@ -92,7 +92,8 @@ export class Mailbox {
       this.collectionCursor = undefined;
     }
     this.collectionScope = scope;
-    if (scope === 'pin' && !Object.values(this.org.states).some(s => s.pin)) return;
+    if (scope === 'pin' && !Object.entries(this.org.states).some(([id, s]) => id !== globalChatId && s.pin))
+      return;
     this.collecting = true;
     try {
       const params = new URLSearchParams({ scope });
@@ -122,6 +123,7 @@ export class Mailbox {
     return this.org.states[id] ?? {};
   }
   isUnread(c: Contact) {
+    if (c.user.id === globalChatId) return false;
     return this.state(c.user.id).unread || (!c.lastMsg.read && c.lastMsg.user !== this.ctrl.data.me.id);
   }
   visible(c: Contact) {

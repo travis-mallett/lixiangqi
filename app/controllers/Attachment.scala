@@ -208,7 +208,10 @@ final class Attachment(env: Env) extends LilaController(env):
             .flatMap:
               case false => fuccess(NotFound)
               case true if getBool("meta") =>
-                fuccess(Ok(Json.obj("name" -> i.name, "mime" -> i.mime, "size" -> i.size)))
+                val meta = Json.obj("name" -> i.name, "mime" -> i.mime, "size" -> i.size)
+                fuccess(
+                  Ok(meta ++ photoCacheTag(surface, i).fold(Json.obj())(tag => Json.obj("photoTag" -> tag)))
+                )
               case true =>
                 store
                   .approvedBytes(i)
@@ -225,12 +228,23 @@ final class Attachment(env: Env) extends LilaController(env):
                       val encoded = java.net.URLEncoder
                         .encode(filename, java.nio.charset.StandardCharsets.UTF_8)
                         .replace("+", "%20")
-                      (if video then videoBytes(bytes, summon[Context].req.headers.get("Range"))
-                       else Ok(bytes))
+                      val result = (if video then videoBytes(bytes, summon[Context].req.headers.get("Range"))
+                                    else Ok(bytes))
                         .as(if image then "image/webp"
                         else if video then "video/mp4"
                         else "application/octet-stream")
                         .withHeaders("Content-Disposition" -> s"$disposition; filename*=UTF-8''$encoded")
+                      photoCacheTag(surface, i).fold(result)(tag => result.withHeaders(ETAG -> tag))
         case _ => fuccess(NotFound)
-      .map(_.withHeaders(protectedHeaders*))
+      .map: result =>
+        val protectedResult = result.withHeaders(protectedHeaders*)
+        if result.header.headers.contains(ETAG) then
+          protectedResult.withHeaders(CACHE_CONTROL -> "private, no-cache, must-revalidate")
+        else protectedResult
   }
+
+  // A fresh authorized metadata read validates the normalized bytes of this exact item.
+  private def photoCacheTag(surface: String, item: Item)(using Context): Option[String] =
+    item.digest
+      .filter(_ => surface == "msg" && getBool("photoCache") && item.mime.contains("image/webp"))
+      .map(d => "\"" + d + "\"")

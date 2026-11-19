@@ -1,5 +1,6 @@
 import { h, type VNode } from 'snabbdom';
 
+import { globalChatId } from 'lib/inboxUrl';
 import { onInsert } from 'lib/view';
 
 import type MsgCtrl from '../ctrl';
@@ -112,7 +113,11 @@ export function sidebar(ctrl: MsgCtrl): VNode[] {
   const picker = page === 'group' || page === 'folder' || page === 'members';
   const items = box.contacts
     .filter(c => box.visible(c))
-    .sort((a, b) => Number(!!box.state(b.user.id).pin) - Number(!!box.state(a.user.id).pin));
+    .sort(
+      (a, b) =>
+        Number(b.user.id === globalChatId) - Number(a.user.id === globalChatId) ||
+        Number(!!box.state(b.user.id).pin) - Number(!!box.state(a.user.id).pin),
+    );
   return [
     h('header.msg-list-head', [
       page !== 'chats'

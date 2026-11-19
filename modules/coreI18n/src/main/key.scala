@@ -771,6 +771,10 @@ object I18nKey:
     val `diagnosticPrivacy`: I18nKey = "forum:diagnosticPrivacy"
 
   object inbox:
+    val `moderateGlobalChat`: I18nKey = "inbox:moderateGlobalChat"
+    val `globalChat`: I18nKey = "inbox:globalChat"
+    val `openInInbox`: I18nKey = "inbox:openInInbox"
+    val `noMessagesYet`: I18nKey = "inbox:noMessagesYet"
     val `title`: I18nKey = "inbox:title"
     val `message`: I18nKey = "inbox:message"
     val `send`: I18nKey = "inbox:send"

@@ -16,6 +16,7 @@ import { display as announceDisplay } from './announce';
 import { upgradeNag } from './browserSupport';
 import { addDomHandlers } from './domHandlers';
 import OnlineFriends from './friends';
+import { initInboxDelivery } from './inboxDelivery';
 import powertip from './powertip';
 import { updateTimeAgo, renderTimeAgo, renderLocalizedTimestamps } from './renderTimeAgo';
 import serviceWorker from './serviceWorker';
@@ -23,6 +24,8 @@ import { addExceptionListeners } from './unhandledError';
 
 export function boot() {
   initTraffic();
+  const me = document.body.dataset.user;
+  if (me) initInboxDelivery(me);
   addExceptionListeners();
   const setBlind = location.hash === '#blind';
   const showDebug = location.hash.startsWith('#debug');

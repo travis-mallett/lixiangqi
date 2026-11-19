@@ -20,6 +20,8 @@ from urllib import error, parse, request
 
 from pymongo import MongoClient
 
+from global_chat import verify_global_chat
+
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "tools" / "attachment_scanner"))
 import screen
@@ -54,8 +56,8 @@ class Site:
         })
         return username
 
-    def call(self, path, user=None, form=None, *, data=None, name=None, method=None, json_body=None, status=200):
-        headers = {"Accept": "application/json", "User-Agent": "LiXiangQi integration test"}
+    def call(self, path, user=None, form=None, *, data=None, name=None, method=None, json_body=None, status=200, extra_headers=None):
+        headers = {"Accept": "application/json", "User-Agent": "LiXiangQi integration test", **(extra_headers or {})}
         if user:
             headers["Authorization"] = "Bearer " + self.tokens[user]
         if form is not None:
@@ -208,6 +210,15 @@ def verify(site):
     saved, headers = site.call(first + "?download=1", bob)
     assert saved[:4] == b"RIFF" and headers["Content-Disposition"].startswith("attachment")
     assert "board-0.webp" in headers["Content-Disposition"]
+    assert "no-store" in headers["Cache-Control"]
+    photo_meta = first + "?meta=1&photoCache=1"
+    tag = site.json(photo_meta, bob)["photoTag"]
+    cached, headers = site.call(first + "?photoCache=1", bob)
+    assert cached == saved and headers["ETag"] == tag == '"' + hashlib.sha256(saved).hexdigest() + '"'
+    assert headers["Cache-Control"] == "private, no-cache, must-revalidate"
+    assert "photoTag" not in site.json(first + "?meta=1", bob)
+    assert "photoTag" not in site.json(url + "?meta=1&photoCache=1", bob)
+    site.call(photo_meta, other, status=404)
     zip_bytes, headers = site.call("/attachment/msg/item/" + album[-1], bob)
     assert zip_bytes == archive and headers["Content-Type"].startswith("application/octet-stream")
     assert "game.zip" in headers["Content-Disposition"]
@@ -223,6 +234,7 @@ def verify(site):
         for user in (alice, bob):
             site.call(url, user, status=404)
             site.call(url + "?meta=1", user, status=404)
+            site.call(photo_meta, user, status=404)
         assert not site.json(inbox + "/policy", alice)["enabled"]
         upload(inbox, 403)
         db.user4.update_one({"_id": kid}, {"$set": {"kid": False}})
@@ -299,6 +311,7 @@ def verify_group_inbox(site):
     for member in (alice, chen):
         site.json("/inbox/settings/organize", member, {"chat": group, "action": "mute", "value": "true"})
     message = site.json(path, bob, {"text": f"@{chen} cannon practice", "nonce": uuid.uuid4().hex})["msg"]
+    site.json(path, bob, {"text": "One more idea", "nonce": uuid.uuid4().hex})
     note = {"content.type": "privateMessage", "content.thread": group}
     deadline = time.monotonic() + 15
     while not site.db.notify.find_one({**note, "notifies": chen, "read": False}):
@@ -308,7 +321,7 @@ def verify_group_inbox(site):
     for member in (alice, chen):
         site.json(f"{path}/receipt", member, {"ids": message["id"], "read": "true"})
     assert site.db.notify.find_one({**note, "notifies": chen, "read": True})
-    latest = site.json(path, bob)["convo"]["msgs"][0]
+    latest = next(m for m in site.json(path, bob)["convo"]["msgs"] if m["id"] == message["id"])
     assert latest["id"] == message["id"] and latest["readAt"]
     assert site.json(f"/inbox/history/{group}?q=cannon", chen)["msgs"][0]["id"] == message["id"]
     site.json("/inbox/settings/organize", chen, {"chat": group, "action": "archive", "value": "true"})
@@ -348,4 +361,5 @@ if __name__ == "__main__":
     with staged_site(args.java, args.mongo_port, args.redis_port) as app:
         verify(app)
         verify_group_inbox(app)
+        verify_global_chat(app)
     print("Forum, inbox, reports and revocation HTTP checks passed.")

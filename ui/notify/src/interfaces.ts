@@ -47,7 +47,6 @@ export type Ctrl = {
   previousPage(): void;
   loadPage(page: number): void;
   onShow(): void;
-  setMsgRead(user: string): void;
   setAllRead(): void;
   clear(): void;
 };

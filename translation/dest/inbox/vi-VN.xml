@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="moderateGlobalChat">Kiểm duyệt trò chuyện toàn cầu</string>
+  <string name="globalChat">Trò chuyện chung</string>
+  <string name="openInInbox">Mở trong hộp thư</string>
+  <string name="noMessagesYet">Chưa có tin nhắn</string>
   <string name="title">Hộp thư</string>
   <string name="message">Tin nhắn</string>
   <string name="send">Gửi</string>

@@ -1569,6 +1569,8 @@ interface I18n {
     freeform: string;
     /** From */
     from: string;
+    /** Global Chat */
+    globalChat: string;
     /** Admin */
     groupAdmin: string;
     /** Group description */
@@ -1597,6 +1599,8 @@ interface I18n {
     members: string;
     /** Message */
     message: string;
+    /** Moderate Global Chat */
+    moderateGlobalChat: string;
     /** Message options */
     moreActions: string;
     /** More emoji */
@@ -1609,6 +1613,8 @@ interface I18n {
     newGroup: string;
     /** No chats */
     noChats: string;
+    /** No messages yet */
+    noMessagesYet: string;
     /** No results */
     noResults: string;
     /** Notification settings */
@@ -1619,6 +1625,8 @@ interface I18n {
     offline: string;
     /** Load older messages */
     older: string;
+    /** Open in Inbox */
+    openInInbox: string;
     /** Outline */
     outline: string;
     /** Pen */

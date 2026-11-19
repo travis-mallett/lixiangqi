@@ -23,7 +23,6 @@ export interface PubsubEvents {
   flip: (flip: boolean) => void;
   jump: (ply: string) => void;
   'botdev.import.book': (key: string, oldKey?: string) => void;
-  'notify-app.set-read': (user: string) => void;
   'voiceChat.toggle': (enabled: boolean) => void;
   ply: (ply: number, isMainline?: boolean) => void;
   'ply.trigger': () => void;

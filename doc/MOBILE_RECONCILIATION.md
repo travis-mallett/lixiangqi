@@ -88,6 +88,20 @@ explicitly deferred variant project. Kids has a review queue rather than a claim
 
 None. Both checkouts were located when establishing this workflow.
 
+## Inbox receipts and Global Chat, November 19, 2026
+
+LiXiangQi Mobile implements the public room, its pinned position, text posting,
+moderation and notification preferences. The main app and website use the same
+receipt timestamps and the original mobile red for outgoing bubbles. The homepage
+card is specific to the website. Xiangqi Kids has no community inbox or public-chat
+surface. Its authentication scopes exclude the room.
+
+Deploy the website backend and assets before the mobile release. The change uses
+the existing inbox gateway. Server and client behavior, verification, and the
+reviewed file hashes are recorded in [Messaging](MESSAGING.md#global-chat-and-message-alerts)
+and the [messaging receipt](MESSAGING_RECONCILIATION.json#globalChat).
+Both broader reconciliation checkpoints retain their previous positions.
+
 ## Mobile browser Inbox message options, November 18, 2026
 
 Reviewed the responsive button placement and blank-space dismissal changes in

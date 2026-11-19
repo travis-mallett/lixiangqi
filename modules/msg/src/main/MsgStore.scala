@@ -48,6 +48,7 @@ private[msg] final class MsgStore(msgs: Coll, threads: Coll)(using Executor):
           ) ++ {
             val unset = $doc(
               "pinnedAt" -> next.pinnedAt.isEmpty.option(1),
+              "deliveryTo" -> next.deletedAt.nonEmpty.option(1),
               "card" -> (old.card.nonEmpty && next.card.isEmpty).option(1)
             )
             if unset.isEmpty then $empty else $doc("$unset" -> unset)
@@ -60,7 +61,7 @@ private[msg] final class MsgStore(msgs: Coll, threads: Coll)(using Executor):
     for
       _ <- msgs.update.one(
         selector ++ $doc("deliveredAt".$exists(false)),
-        $set("deliveredAt" -> at),
+        $set("deliveredAt" -> at) ++ $unset("deliveryTo"),
         multi = true
       )
       _ <-

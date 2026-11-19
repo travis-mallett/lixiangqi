@@ -34,6 +34,18 @@ final class MsgApi(
 
   import BsonHandlers.{ *, given }
 
+  // This bounded handoff lets a signed-in browser download missed direct texts without loading the inbox.
+  def pendingDelivery(using me: Me) = colls.deliveryIndex >> colls.msg
+    .find($doc("deliveryTo" -> me.userId, "del".$ne(me.userId), "deletedAt".$exists(false)))
+    .sort($sort.asc("date"))
+    .cursor[Msg]()
+    .list(100)
+    .map(rows =>
+      play.api.libs.json.Json.obj(
+        "msgs" -> rows.map(m => play.api.libs.json.Json.obj("user" -> m.user, "id" -> m.id, "text" -> m.text))
+      )
+    )
+
   def myThreads(using me: Me): Fu[List[MsgThread]] =
     colls.thread
       .find(selectMyThreads)
@@ -228,7 +240,7 @@ final class MsgApi(
                 )
               def msgWrite(messages: Coll) = messages.insert.one(
                 writeMsg(msg, threadId) ++
-                  send.mute.so($doc("del" -> List(dest)))
+                  (if send.mute then $doc("del" -> List(dest)) else $doc("deliveryTo" -> dest))
               )
               def updateThread(threads: Coll) =
                 threads.update

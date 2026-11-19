@@ -1,7 +1,6 @@
 import { throttle } from 'lib/async';
 import { AttachmentDraft, submissionError } from 'lib/attachments';
-import { chatPath } from 'lib/inboxUrl';
-import { pubsub } from 'lib/pubsub';
+import { chatPath, globalChatId } from 'lib/inboxUrl';
 import { storage, type LichessStorage } from 'lib/storage';
 import { ValidationError } from 'lib/xhr';
 
@@ -65,8 +64,18 @@ export default class MsgCtrl {
       this.onLoadConvo(data.convo);
     }
     void this.mailbox.loadCollection();
+    setInterval(() => {
+      if (this.global && this.pane === 'convo' && !document.hidden) void network.watchGlobal();
+    }, 45000);
     window.addEventListener('focus', this.setRead);
-    document.addEventListener('visibilitychange', this.setRead);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && this.global && this.pane === 'convo') void this.openConvo(globalChatId, true);
+      else this.setRead();
+    });
+  }
+
+  get global() {
+    return this.data.convo?.user.id === globalChatId;
   }
 
   openConvo = async (userId: string, refresh = false) => {
@@ -195,7 +204,7 @@ export default class MsgCtrl {
 
   private onLoadConvo(convo: Convo) {
     let attachments = this.attachmentDrafts.get(convo.user.id);
-    if (!attachments) {
+    if (!attachments && convo.user.id !== globalChatId) {
       attachments = new AttachmentDraft(
         'msg',
         convo.user.id,
@@ -210,7 +219,7 @@ export default class MsgCtrl {
     this.submissionError = '';
     this.textStore = storage.make(`msg:area:${this.data.me.id}:${convo.user.id}`);
     this.draft = this.textStore.get() || '';
-    this.preview.update(this.draft);
+    if (!this.global) this.preview.update(this.draft);
     this.canGetMoreSince = convo.msgs[this.msgsPerPage - 1]?.date;
     for (const timeout of this.typists.values()) clearTimeout(timeout);
     this.typists.clear();
@@ -220,9 +229,9 @@ export default class MsgCtrl {
 
   updateDraft = (text: string) => {
     this.draft = text;
-    this.preview.update(text);
+    if (!this.global) this.preview.update(text);
     if (!this.editing) this.textStore?.set(text);
-    if (text.trim()) this.sendTyping();
+    if (text.trim() && !this.global) this.sendTyping();
     else this.stopTyping();
     this.redraw();
   };
@@ -230,7 +239,7 @@ export default class MsgCtrl {
   compose = (msg: Msg, edit = false) => {
     this.preview.reset();
     if (this.editing) this.cancelCompose();
-    if (edit && this.data.convo)
+    if (edit && this.data.convo && !this.global)
       this.attachments = new AttachmentDraft(
         'msg',
         this.data.convo.user.id,
@@ -468,7 +477,6 @@ export default class MsgCtrl {
     if (contact && lastReceipt?.readAt) {
       contact.lastMsg.readAt = new Date(lastReceipt.readAt);
       contact.lastMsg.read = true;
-      if (contact.lastMsg.user !== this.data.me.id) pubsub.emit('notify-app.set-read', event.user);
     }
     this.redraw();
   };
@@ -539,6 +547,7 @@ export default class MsgCtrl {
   };
 
   private acknowledge(convo: Convo, read: boolean, visibleIds?: Set<string>) {
+    if (convo.user.id === globalChatId && !read) return;
     const msgs = convo.msgs.filter(
       m =>
         m.user !== this.data.me.id &&
@@ -688,7 +697,7 @@ export default class MsgCtrl {
   });
   stopTyping = () => {
     const user = this.data.convo?.user.id;
-    if (user) void network.typing(user, false).catch(() => {});
+    if (user && !this.global) void network.typing(user, false).catch(() => {});
   };
   receiveTyping = (user: string, cancel = false, sender = user) => {
     if (user !== this.data.convo?.user.id) return;

@@ -1,0 +1,47 @@
+.lobby__global-chat {
+  .lobby__rail-title a {
+    margin-inline-start: auto;
+  }
+
+  &__messages {
+    height: 13rem;
+    overflow-y: auto;
+    padding: 10px 14px;
+    color: $c-font-dim;
+    overflow-wrap: anywhere;
+
+    p {
+      margin: 0 0 6px;
+      color: $c-font;
+      white-space: pre-wrap;
+    }
+
+    a {
+      font-weight: 600;
+    }
+  }
+
+  form {
+    display: flex;
+    gap: 8px;
+    padding: 10px;
+    border-top: $border;
+  }
+
+  input {
+    min-width: 0;
+    flex: 1;
+  }
+
+  &__signin {
+    display: block;
+    padding: 10px 14px;
+    border-top: $border;
+  }
+
+  &__status {
+    margin: 0;
+    color: $c-bad;
+    padding-inline: 10px;
+  }
+}

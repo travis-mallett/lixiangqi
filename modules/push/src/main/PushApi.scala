@@ -61,15 +61,12 @@ final private class PushApi(
                     )
                   )
             filterPushNotif(recipient, _.challenge.create, data)
-      case PrivateMessage(sender, text, thread, groupName) =>
-        lightUser(sender).flatMap(luser =>
-          privateMessage(
-            to.head,
-            thread.getOrElse(sender.value),
-            groupName.fold(luser.titleName)(n => s"$n · ${luser.titleName}"),
-            text
+      case PrivateMessage(sender, text, thread, groupName, _) =>
+        lightUser(sender).flatMap: user =>
+          val name = groupName.fold(user.titleName)(n => s"$n · ${user.titleName}")
+          to.toList.sequentiallyVoid(recipient =>
+            privateMessage(recipient, thread.getOrElse(sender.value), name, text)
           )
-        )
       case MentionedInThread(mentioner, topic, _, _, postId) =>
         lightUser(mentioner).flatMap(luser => forumMention(to.head, luser.titleName, topic, postId))
       case StreamStart(streamerId, streamerName) =>

@@ -84,6 +84,8 @@ object OAuthScope:
     case object Account extends OAuthScope("mobile:account", I18nKey.site.security)
     case object Play extends OAuthScope("mobile:play", I18nKey.site.play)
     case object Inbox extends OAuthScope("mobile:inbox", I18nKey.site.inbox)
+    case object ModerateGlobalChat
+        extends OAuthScope("mobile:moderateGlobalChat", I18nKey.inbox.moderateGlobalChat)
     case object Forum extends OAuthScope("mobile:forum", I18nKey.site.forum)
     case object Notifications
         extends OAuthScope("mobile:notifications", I18nKey("Read and acknowledge notifications"))
@@ -132,6 +134,7 @@ object OAuthScope:
     Board.Play,
     Mobile.Play,
     Mobile.Inbox,
+    Mobile.ModerateGlobalChat,
     Mobile.Forum,
     Mobile.Notifications,
     Mobile.Account,
@@ -157,6 +160,7 @@ object OAuthScope:
       Follow.Write,
       Msg.Write,
       Mobile.Inbox,
+      Mobile.ModerateGlobalChat,
       Mobile.Forum,
       Mobile.Notifications
     ),
@@ -170,6 +174,7 @@ object OAuthScope:
 
   val dangerList: OAuthScopes = OAuthScope.select(
     _.Mobile.Account,
+    _.Mobile.ModerateGlobalChat,
     _.Team.Lead,
     _.Web.Mod,
     _.Web.Mobile,
@@ -181,6 +186,7 @@ object OAuthScope:
 
   val relevantToMods: OAuthScopes = OAuthScope.select(
     _.Mobile.Account,
+    _.Mobile.ModerateGlobalChat,
     _.Team.Lead,
     _.Web.Mobile,
     _.Web.Takex3,

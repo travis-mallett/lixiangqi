@@ -227,7 +227,7 @@ final class MobileAuth(env: Env, auth: => Auth) extends LilaController(env):
       session <- env.security.api.saveAuthentication(user.id, None, pwned)
       _ <- env.security.store.delete(session)
       token <- env.oAuth.tokenApi.createMobile(
-        user.id,
+        user,
         kids = HTTPRequest.queryStringGet("client").contains("xiangqi-kids")
       )
     yield Ok(Json.obj("access_token" -> token.plain, "token_type" -> "Bearer"))

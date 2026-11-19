@@ -34,11 +34,12 @@ final class JSONHandlers(getLightUser: LightUser.GetterSync):
             "studyName" -> studyName,
             "studyId" -> studyId
           )
-        case PrivateMessage(senderId, text, thread, groupName) =>
+        case PrivateMessage(senderId, text, thread, groupName, messageId) =>
           Json.obj(
             "user" -> getLightUser(senderId),
             "thread" -> thread,
             "groupName" -> groupName,
+            "messageId" -> messageId,
             "text" -> text
           )
         case TeamJoined(id, name) =>

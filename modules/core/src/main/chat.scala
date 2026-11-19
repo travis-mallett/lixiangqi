@@ -37,6 +37,7 @@ object BusChan:
 val etiquetteUrl = Url("lixiangqi.org/page/chat-etiquette")
 
 enum PublicSource(val typeName: String, val someId: Any):
+  case GlobalChat extends PublicSource("inbox", "global")
   case Tournament(id: TourId) extends PublicSource("tournament", id)
   case Simul(id: SimulId) extends PublicSource("simul", id)
   case Study(id: StudyId) extends PublicSource("study", id)
@@ -51,6 +52,7 @@ enum PublicSource(val typeName: String, val someId: Any):
 
   def resourceId: ResourceId = ResourceId:
     this match
+      case PublicSource.GlobalChat => lila.core.msg.GlobalRoom.resource
       case PublicSource.Watcher(gameId) => s"game/$gameId"
       case PublicSource.Player(gameId) => gameId.value
       case PublicSource.ThreeKingdoms(gameId) => s"three-kingdoms/game/$gameId"
@@ -59,6 +61,7 @@ enum PublicSource(val typeName: String, val someId: Any):
 object PublicSource:
   object longNotation:
     def read(str: String): Option[PublicSource] = str.split('/') match
+      case Array("inbox", "group", lila.core.msg.GlobalRoom.id) => Some(PublicSource.GlobalChat)
       case Array("tournament", id) => Some(PublicSource.Tournament(TourId(id)))
       case Array("simul", id) => Some(PublicSource.Simul(SimulId(id)))
       case Array("game", id) => Some(PublicSource.Watcher(GameId(id)))

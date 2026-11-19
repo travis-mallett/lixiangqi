@@ -75,13 +75,13 @@ final class AccessTokenApi(
       )
 
   /** Called only after the first-party native credential/2FA checks. */
-  def createMobile(userId: UserId, kids: Boolean = false)(using ua: UserAgent): Fu[AccessToken] =
+  def createMobile(user: User, kids: Boolean = false)(using ua: UserAgent): Fu[AccessToken] =
     val plain = Bearer.random()
     createAndRotate:
       AccessToken(
         id = AccessToken.idFrom(plain),
         plain = plain,
-        userId = userId,
+        userId = user.id,
         description = (if kids then "Xiangqi Kids" else "LiXiangQi mobile").some,
         created = nowInstant.some,
         scopes = TokenScopes(
@@ -99,6 +99,8 @@ final class AccessTokenApi(
                  OAuthScope.Follow.Write,
                  OAuthScope.Preference.Read,
                  OAuthScope.Preference.Write
+               ) ++ Option.when(user.totpSecret.nonEmpty && lila.core.perm.Granter.of(_.ChatTimeout)(user))(
+                 OAuthScope.Mobile.ModerateGlobalChat
                ))
         ),
         clientOrigin = Origin(if kids then "org.lixiangqi.kids://" else "org.lixiangqi.mobile://").some,

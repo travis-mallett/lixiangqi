@@ -3,10 +3,12 @@ import { wsConnect } from 'lib/socket';
 import * as xhr from 'lib/xhr';
 
 import { applyCounterSnapshot } from './counterSnapshot';
+import { initGlobalChat } from './globalChat';
 import type { LobbyOpts } from './interfaces';
 import main from './main';
 
 export function initModule(opts: LobbyOpts) {
+  initGlobalChat();
   opts.appElement = document.createElement('div');
   opts.appElement.className = 'lobby__app';
   opts.tableElement = document.querySelector('.lobby__table') as HTMLElement;

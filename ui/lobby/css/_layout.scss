@@ -115,3 +115,54 @@
     grid-template-areas: 'left center right';
   }
 }
+
+@media (min-width: 801px) and (max-width: 1099px) {
+  .lobby:has(.lobby__global-chat) {
+    grid-template-columns: minmax(195px, 23%) repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      'left standard standard'
+      'left variants variants'
+      'updates blog blog'
+      'updates ranking chat';
+
+    &:not(:has(.lobby__blog)) {
+      grid-template-areas:
+        'left standard standard'
+        'left variants variants'
+        'updates ranking chat';
+    }
+
+    .lobby__center-rail,
+    .lobby__right-rail {
+      display: contents;
+    }
+
+    .lobby__standard {
+      grid-area: standard;
+    }
+
+    .lobby__variants {
+      grid-area: variants;
+    }
+
+    .lobby__blog {
+      grid-area: blog;
+    }
+
+    .lobby__global-chat {
+      grid-area: chat;
+    }
+
+    .lobby__leaderboard {
+      grid-area: ranking;
+    }
+
+    .lobby__feed {
+      grid-area: updates;
+
+      .daily-feed__update:nth-child(n + 3) {
+        display: none;
+      }
+    }
+  }
+}

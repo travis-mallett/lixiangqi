@@ -70,6 +70,7 @@ export interface LastMsg extends Msg {
   read: boolean;
 }
 export interface Convo {
+  canModerate?: boolean;
   members?: User[];
   admins?: string[];
   description?: string;

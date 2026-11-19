@@ -7,6 +7,42 @@ import lila.app.mashup.Preload.Homepage
 
 object home:
 
+  private def globalChatCard(using ctx: Context) =
+    val path = lila.core.msg.GlobalRoom.path
+    st.section(
+      cls := "lobby__global-chat lobby__rail-card",
+      aria.label := trans.inbox.globalChat.txt(),
+      attr("data-empty") := trans.inbox.noMessagesYet.txt(),
+      attr("data-error") := trans.inbox.error.txt()
+    )(
+      h2(cls := "lobby__rail-title")(
+        iconTag(Icon.BubbleSpeech),
+        span("LiXiangQi ", trans.inbox.globalChat()),
+        a(href := path, aria.label := trans.inbox.openInInbox.txt(), title := trans.inbox.openInInbox.txt())(
+          iconTag(Icon.ExternalArrow)
+        )
+      ),
+      div(cls := "lobby__global-chat__messages", tabindex := 0, aria.label := trans.inbox.globalChat.txt()),
+      p(cls := "lobby__global-chat__status", role := "status"),
+      ctx.me
+        .filter(m => lila.msg.GlobalChat.canPost(using m))
+        .map: _ =>
+          form(action := path, method := "post")(
+            input(
+              name := "text",
+              maxlength := 8000,
+              required,
+              autocomplete := "off",
+              placeholder := trans.inbox.message.txt(),
+              aria.label := trans.inbox.message.txt()
+            ),
+            button(tpe := "submit", cls := "button")(trans.inbox.send())
+          ),
+      ctx.isAnon.option(
+        a(cls := "lobby__global-chat__signin", href := routes.Auth.login)(trans.site.signIn())
+      )
+    )
+
   def apply(homepage: Homepage)(using ctx: Context) =
     import homepage.*
     val variantTvName = lila.core.i18n.I18nKey(variantTv.nameKey).txt()
@@ -151,7 +187,8 @@ object home:
                 variantCard("other", "其他变体", "Other Variants")
               )
             ),
-            blogPosts.nonEmpty.option(views.ublog.ui.homeCarousel(blogPosts))
+            blogPosts.nonEmpty.option(views.ublog.ui.homeCarousel(blogPosts)),
+            ctx.kid.no.option(globalChatCard)
           ),
           st.aside(cls := "lobby__right-rail", attr("aria-label") := "Community highlights")(
             bits.homepageLeaderboard(leaderboard, leaderboardFlags, personal),

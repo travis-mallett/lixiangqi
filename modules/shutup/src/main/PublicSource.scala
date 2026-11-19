@@ -15,6 +15,7 @@ object PublicSource:
 
   object shortNotation:
     def read(str: String): Try[Source] = str.split(':') match
+      case Array("global") => Success(Source.GlobalChat)
       case Array("t", id) => Success(Source.Tournament(TourId(id)))
       case Array("s", id) => Success(Source.Simul(SimulId(id)))
       case Array("w", id) => Success(Source.Watcher(GameId(id)))
@@ -27,6 +28,7 @@ object PublicSource:
       case Array("r", id) => Success(Source.Relay(RelayRoundId(id)))
       case _ => Failure(IllegalArgumentException(s"Invalid PublicLine shortNotation $str"))
     def write(s: Source): String = s match
+      case Source.GlobalChat => "global"
       case Source.Tournament(id) => s"t:$id"
       case Source.Simul(id) => s"s:$id"
       case Source.Study(id) => s"u:$id"

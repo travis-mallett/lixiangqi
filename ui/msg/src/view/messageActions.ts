@@ -1,5 +1,6 @@
 import { h, type VNode } from 'snabbdom';
 
+import { globalChatId } from 'lib/inboxUrl';
 import { domDialog, type Dialog } from 'lib/view/dialog';
 
 import type MsgCtrl from '../ctrl';
@@ -86,11 +87,13 @@ export function toolbar(ctrl: MsgCtrl, msg: Msg): VNode {
   if (msg.pending === 'failed')
     return h('div.msg-toolbar', [iconButton('more', i18n.inbox.moreActions, () => showMenu(ctrl, msg))]);
   return h('div.msg-toolbar', [
-    msg.deleted ? undefined : iconButton('reply', i18n.inbox.reply, () => ctrl.compose(msg)),
+    msg.deleted || ctrl.global ? undefined : iconButton('reply', i18n.inbox.reply, () => ctrl.compose(msg)),
     !msg.deleted && msg.attachments?.length
       ? iconButton('download', i18n.site.mediaDownload, () => downloadAttachments(msg.id))
       : undefined,
-    msg.deleted ? undefined : iconButton('react', i18n.inbox.react, () => showMenu(ctrl, msg, true)),
+    msg.deleted || ctrl.global
+      ? undefined
+      : iconButton('react', i18n.inbox.react, () => showMenu(ctrl, msg, true)),
     iconButton('more', i18n.inbox.moreActions, () => showMenu(ctrl, msg)),
   ]);
 }
@@ -121,7 +124,7 @@ export async function showMenu(ctrl: MsgCtrl, msg: Msg, reactionsOnly = false) {
     );
     content.append(menu);
   }
-  if (!msg.pending && !msg.deleted && (!desktop || reactionsOnly)) {
+  if (!msg.pending && !msg.deleted && !ctrl.global && (!desktop || reactionsOnly)) {
     const strip = element('div', undefined, 'msg-reaction-strip');
     for (const emoji of ['❤️', '👍', '👎', '😂', '😮', '😢']) {
       const b = button(
@@ -172,13 +175,14 @@ export async function showMenu(ctrl: MsgCtrl, msg: Msg, reactionsOnly = false) {
         ),
       );
     if (!msg.deleted) {
-      menu.append(
-        button(
-          i18n.inbox.reply,
-          perform(() => ctrl.compose(msg)),
-          'reply',
-        ),
-      );
+      if (!ctrl.global)
+        menu.append(
+          button(
+            i18n.inbox.reply,
+            perform(() => ctrl.compose(msg)),
+            'reply',
+          ),
+        );
       if (msg.attachments?.length)
         menu.append(
           button(
@@ -195,7 +199,7 @@ export async function showMenu(ctrl: MsgCtrl, msg: Msg, reactionsOnly = false) {
             'edit',
           ),
         );
-      if (!msg.card?.poll)
+      if (!ctrl.global && !msg.card?.poll)
         menu.append(
           button(
             i18n.inbox.forward,
@@ -212,13 +216,14 @@ export async function showMenu(ctrl: MsgCtrl, msg: Msg, reactionsOnly = false) {
           ),
         );
     }
-    menu.append(
-      button(
-        i18n.inbox.select,
-        perform(() => ctrl.toggleSelect(msg.id)),
-        'select',
-      ),
-    );
+    if (!ctrl.global)
+      menu.append(
+        button(
+          i18n.inbox.select,
+          perform(() => ctrl.toggleSelect(msg.id)),
+          'select',
+        ),
+      );
     menu.append(
       button(
         i18n.inbox.info,
@@ -226,7 +231,7 @@ export async function showMenu(ctrl: MsgCtrl, msg: Msg, reactionsOnly = false) {
         'info',
       ),
     );
-    if (!msg.deleted)
+    if (!msg.deleted && !ctrl.global)
       menu.append(
         button(
           msg.pinnedAt ? i18n.inbox.unpin : i18n.inbox.pin,
@@ -234,13 +239,19 @@ export async function showMenu(ctrl: MsgCtrl, msg: Msg, reactionsOnly = false) {
           msg.pinnedAt ? 'unpin' : 'pin',
         ),
       );
-    menu.append(
-      button(
-        i18n.inbox.delete,
-        perform(() => showDelete(ctrl, [msg])),
-        'delete',
-      ),
-    );
+    if (
+      !ctrl.global ||
+      (!msg.deleted &&
+        (ctrl.data.convo?.canModerate ||
+          (msg.user === ctrl.data.me.id && msg.canDeleteUntil && msg.canDeleteUntil > new Date())))
+    )
+      menu.append(
+        button(
+          i18n.inbox.delete,
+          perform(() => showDelete(ctrl, [msg])),
+          'delete',
+        ),
+      );
     content.append(menu);
   }
   const dlg = await dialog(
@@ -324,11 +335,15 @@ export async function showDetails(ctrl: MsgCtrl, msg: Msg, history = false) {
   const list = element('dl');
   for (const [label, value] of [
     [i18n.inbox.from, msg.user],
-    [i18n.inbox.to, msg.user === ctrl.data.me.id ? ctrl.data.convo?.user.name : ctrl.data.me.name],
+    [
+      i18n.inbox.to,
+      ctrl.global || msg.user === ctrl.data.me.id ? ctrl.data.convo?.user.name : ctrl.data.me.name,
+    ],
     [i18n.inbox.sentAt, msg.date.toLocaleString()],
     [i18n.inbox.deliveredAt, msg.deliveredAt?.toLocaleString()],
     [i18n.inbox.readAt, msg.readAt?.toLocaleString()],
   ]) {
+    if (ctrl.global && (label === i18n.inbox.deliveredAt || label === i18n.inbox.readAt)) continue;
     list.append(element('dt', label), element('dd', value || i18n.inbox.unknown));
   }
   if (!history) content.append(list);
@@ -352,13 +367,16 @@ export async function showDelete(ctrl: MsgCtrl, messages: Msg[]) {
     ctrl.selected.clear();
     ctrl.redraw();
   };
-  content.append(button(i18n.inbox.deleteMe, () => remove('deleteMe'), 'delete'));
+  if (!ctrl.global) content.append(button(i18n.inbox.deleteMe, () => remove('deleteMe'), 'delete'));
   if (
     messages.every(
-      m => m.user === ctrl.data.me.id && m.canDeleteUntil && m.canDeleteUntil > new Date() && !m.deleted,
+      m =>
+        !m.deleted &&
+        ((ctrl.global && ctrl.data.convo?.canModerate) ||
+          (m.user === ctrl.data.me.id && m.canDeleteUntil && m.canDeleteUntil > new Date())),
     )
   ) {
-    content.append(element('p', i18n.inbox.deleteEveryoneHelp));
+    if (!ctrl.data.convo?.canModerate) content.append(element('p', i18n.inbox.deleteEveryoneHelp));
     content.append(button(i18n.inbox.deleteEveryone, () => remove('deleteEveryone'), 'delete'));
   }
   content.append(button(i18n.inbox.cancel, () => dlg.close()));
@@ -388,7 +406,7 @@ export async function showForward(ctrl: MsgCtrl, messages: Msg[]) {
         }),
       ),
     );
-  render(ctrl.data.contacts.map(c => c.user));
+  render(ctrl.data.contacts.filter(c => c.user.id !== globalChatId).map(c => c.user));
   let timer: Timeout;
   input.addEventListener('input', () => {
     clearTimeout(timer);

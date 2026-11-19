@@ -384,7 +384,14 @@ final class MsgGroups(
               $set(s"previews.${me.userId}.read" -> true)
             )
             .flatMap: r =>
-              (r.n > 0).so(notifyApi.markRead(me.userId, $doc("content.thread" -> id)).void)
+              notifyApi.markRead(
+                me.userId,
+                $doc(
+                  "content.thread" -> id
+                ) ++ (if r.n > 0 then
+                        $or($doc("content.messageId".$exists(false)), $doc("content.messageId".$in(ids)))
+                      else $doc("content.messageId".$in(ids)))
+              )
       yield
         docs
           .groupBy(_.getAsTry[UserId]("user").get)

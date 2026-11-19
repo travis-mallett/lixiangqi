@@ -17,8 +17,8 @@ final private class NotificationRepo(colls: NotifyColls)(using Executor):
   def insertMany(notifications: Iterable[Notification]): Funit =
     coll.insert.many(notifications).void
 
-  def remove(notifies: UserId, selector: Bdoc): Funit =
-    coll.delete.one(userNotificationsQuery(notifies) ++ selector).void
+  def remove(notifies: UserId, selector: Bdoc): Fu[Int] =
+    coll.delete.one(userNotificationsQuery(notifies) ++ selector).map(_.n)
 
   def markAllRead(notifies: UserId): Funit =
     markManyRead(unreadOnlyQuery(notifies)).void

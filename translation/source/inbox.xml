@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="moderateGlobalChat">Moderate Global Chat</string>
+  <string name="globalChat">Global Chat</string>
+  <string name="openInInbox">Open in Inbox</string>
+  <string name="noMessagesYet">No messages yet</string>
   <string name="title">Inbox</string>
   <string name="message">Message</string>
   <string name="send">Send</string>

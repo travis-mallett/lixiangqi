@@ -75,11 +75,89 @@ test.beforeAll(async () => {
   if (!address || typeof address === 'string') throw new Error('Inbox fixture unavailable');
   origin = `http://127.0.0.1:${address.port}`;
 });
+test('Global Chat precedes other pins and offers only public moderation and notification controls', async ({
+  page,
+}) => {
+  await inbox(page, 1100, false, undefined, true);
+  const contacts = page.locator('.msg-app__side__contact');
+  await expect(contacts.first()).toContainText('Global Chat');
+  await contacts.first().click();
+  await page.locator('.msg-app__convo__head summary').click();
+  await expect(page.getByText('Unmute notifications', { exact: true })).toBeVisible();
+  await expect(page.getByText('Unpin chat', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('Leave group', { exact: true })).toHaveCount(0);
+  await page.getByText('Group settings', { exact: true }).click();
+  await expect(page.getByRole('checkbox', { name: 'Notify for mentions when muted' })).toBeChecked();
+  await page.locator('.msg-panel').getByRole('button', { name: 'Close' }).click();
+  await page.locator('[data-message-id="theirs"]').click({ button: 'right' });
+  const actions = page.getByRole('dialog');
+  await expect(actions.getByRole('button', { name: 'Delete message', exact: true })).toBeVisible();
+  await expect(actions.getByRole('button', { name: translations.inbox.edit, exact: true })).toHaveCount(0);
+  await expect(actions.getByRole('button', { name: 'Reply', exact: true })).toHaveCount(0);
+});
+
+test('a signed-in page acknowledges offline and live deliveries without opening the inbox', async ({
+  page,
+}) => {
+  const batches: { path: string; ids: string; read: string }[] = [];
+  let pending = 0;
+  await page.route('**/inbox/delivery/pending', route => {
+    const msgs =
+      pending++ === 0
+        ? Array.from({ length: 100 }, (_, i) => ({ id: 'first-' + i, user: 'alice', text: 'offline' }))
+        : [{ id: 'next', user: 'bob', text: 'offline' }];
+    return route.fulfill({ json: { msgs } });
+  });
+  await page.route('**/inbox/**/receipt', route => {
+    const request = route.request();
+    const fields = new Map(
+      [...request.postData()!.matchAll(/name="([^"]+)"\r\n\r\n([^\r]*)/g)].map(m => [m[1], m[2]]),
+    );
+    batches.push({
+      path: new URL(request.url()).pathname,
+      ids: fields.get('ids')!,
+      read: fields.get('read')!,
+    });
+    return route.fulfill({ json: { receipts: [] } });
+  });
+  await page.goto(origin + '/fixture');
+  const bootstrap = await build({
+    stdin: {
+      resolveDir: process.cwd(),
+      contents: `
+      import { initInboxDelivery } from './ui/site/src/inboxDelivery';
+      import { pubsub } from './ui/lib/src/pubsub';
+      initInboxDelivery('me');
+      window.incoming = () => pubsub.emit('socket.in.msgChanged', { user: 'alice', kind: 'new', msg: {user:'alice', id:'live'} });
+    `,
+    },
+    bundle: true,
+    conditions: ['source'],
+    write: false,
+    format: 'iife',
+  });
+  await page.addScriptTag({ content: bootstrap.outputFiles[0].text });
+  await expect.poll(() => batches.length).toBe(2);
+  await page.evaluate(() => (window as any).incoming());
+  await expect.poll(() => batches.length).toBe(3);
+  expect(batches.map(b => [b.path, b.ids.split(',').length, b.read])).toEqual([
+    ['/inbox/alice/receipt', 100, 'false'],
+    ['/inbox/bob/receipt', 1, 'false'],
+    ['/inbox/alice/receipt', 1, 'false'],
+  ]);
+});
+
 test.afterAll(async () => {
   await server?.[Symbol.asyncDispose]();
 });
 
-async function inbox(page: Page, width: number, legacyPreview = false, attachments?: string[]) {
+async function inbox(
+  page: Page,
+  width: number,
+  legacyPreview = false,
+  attachments?: string[],
+  publicRoom = false,
+) {
   await page.setViewportSize({ width, height: 850 });
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.stack ?? error.message));
@@ -109,14 +187,19 @@ async function inbox(page: Page, width: number, legacyPreview = false, attachmen
       reactions: [],
     },
   ];
-  const groupId = '~' + 'a'.repeat(32);
+  const groupId = '~' + (publicRoom ? '0' : 'a').repeat(32);
   let group: { id: string; name: string; group: boolean } | undefined;
+  if (publicRoom) group = { id: groupId, name: 'Global Chat', group: true };
   const admins = new Set(['me']);
   let description = '';
   const org: {
     states: Record<string, Record<string, unknown>>;
     folders: { id: string; name: string; chats: string[] }[];
   } = { states: {}, folders: [] };
+  if (publicRoom) {
+    org.states[groupId] = { pin: true, mute: true, mentions: true };
+    org.states.alice = { pin: true };
+  }
   const data = () => ({
     me: { id: 'me', name: 'Me', bot: false },
     names: {},
@@ -173,12 +256,13 @@ async function inbox(page: Page, width: number, legacyPreview = false, attachmen
       } else if (path === '/inbox/group/' + groupId && request.method() === 'GET') {
         result.convo = {
           user: group,
-          admins: [...admins],
+          admins: publicRoom ? undefined : [...admins],
+          canModerate: publicRoom,
           description,
           members: [{ name: 'Me' }, { name: 'Alice' }, { name: 'Bob' }],
           postable: true,
           relations: {},
-          msgs: [],
+          msgs: publicRoom ? messages : [],
           pinned: [],
         };
       } else if (path === '/inbox/settings/organize') {

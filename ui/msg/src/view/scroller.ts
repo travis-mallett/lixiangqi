@@ -20,7 +20,7 @@ class Scroller {
     this.element = undefined;
     this.marker = undefined;
   };
-  private onScroll = () => {
+  private readonly onScroll = () => {
     const el = this.element;
     if (el) this.enabled = el.clientHeight + el.scrollTop >= el.scrollHeight - 20;
   };

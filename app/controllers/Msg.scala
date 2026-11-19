@@ -7,6 +7,7 @@ import play.api.data.Forms.*
 
 import lila.app.{ *, given }
 import lila.common.Json.given
+import lila.msg.GlobalChat
 
 final class Msg(env: Env) extends LilaController(env):
 
@@ -62,6 +63,10 @@ final class Msg(env: Env) extends LilaController(env):
       q.trim.nonEmptyOption match
         case None => env.msg.json.searchResult(env.msg.search.empty)
         case Some(q) => env.msg.search(q).flatMap(env.msg.json.searchResult)
+  }
+
+  def pendingDelivery = AuthOrScoped(_.Web.Mobile, _.Mobile.Inbox) { _ ?=> me ?=>
+    JsonOk(env.msg.api.pendingDelivery).map(_.hasPersonalData)
   }
 
   def unreadCount = AuthOrScoped(_.Web.Mobile, _.Mobile.Inbox) { _ ?=> me ?=>
@@ -173,10 +178,11 @@ final class Msg(env: Env) extends LilaController(env):
       contactIds = withConvo.toList ::: threads.map(_.other)
       studentNames <- env.clas.api.clas.myPotentialStudentNames(contactIds)
       contacts <- contactPage(threads, None, env.msg.api.inboxSize)
+      global <- me.kid.no.so(env.msg.globalChat.contact.map(List(_)))
       organization <- env.msg.organization.snapshot
     yield Json.obj(
       "me" -> Json.toJsObject(me.light).add("bot" -> me.isBot),
-      "contacts" -> contacts,
+      "contacts" -> JsArray(global ++ contacts.value),
       "organization" -> organization,
       "names" -> studentNames
     )
@@ -287,12 +293,40 @@ final class Msg(env: Env) extends LilaController(env):
     )
   }
 
+  private def globalModerator(using ctx: Context, me: Me): Fu[Boolean] =
+    if lila.core.perm.Granter(_.ChatTimeout) then fuTrue
+    else if me.enabled.yes && me.totpSecret.nonEmpty && ctx.scopes.has(_.Mobile.ModerateGlobalChat) then
+      env.user.repo.getRoles(me.userId).map(roles => lila.core.perm.Granter.ofDbKeys(_.ChatTimeout, roles))
+    else fuFalse
+
   def group(id: String, before: Option[Long]) = AuthOrScoped(_.Web.Mobile, _.Mobile.Inbox) { _ ?=> me ?=>
-    groupResult(env.msg.groups.conversation(id, before).flatMap { convo =>
+    val room = if id == GlobalChat.id then globalModerator.flatMap(env.msg.globalChat.conversation(before, _))
+    else env.msg.groups.conversation(id, before)
+    groupResult(room.flatMap { convo =>
       def data = inboxJson(None).map(_ + ("convo" -> convo))
       negotiateApi(html = Ok.async(data.map(views.msg.home)), api = _ => JsonOk(data)).map(_.hasPersonalData)
     })
   }
+
+  def globalPreview = Anon { ctx ?=>
+    env.msg.globalChat.preview.map: (body, etag) =>
+      val fresh = ctx.req.headers
+        .get(IF_NONE_MATCH)
+        .exists(_.split(",").exists(v => v.trim.stripPrefix("W/") == etag || v.trim == "*"))
+      (if fresh then NotModified else Ok(body).as(JSON))
+        .withHeaders(ETAG -> etag, CACHE_CONTROL -> "public, max-age=3")
+  }
+
+  def globalWatch = AuthOrScoped(_.Web.Mobile, _.Mobile.Inbox) { _ ?=> me ?=>
+    env.msg.globalChat.watch
+    fuccess(NoContent)
+  }
+
+  private def publicWrite(op: => Fu[lila.msg.Msg])(using me: Me) =
+    env.chat.timeout
+      .isActive(ChatId(GlobalChat.id), me.userId)
+      .flatMap: active =>
+        if active then fufail(lila.msg.MsgActionError("rejected")) else op
 
   def groupManage(id: String) = AuthOrScopedBody(_.Web.Mobile, _.Mobile.Inbox) { _ ?=> me ?=>
     bindForm(groupActionForm)(
@@ -309,8 +343,13 @@ final class Msg(env: Env) extends LilaController(env):
       doubleJsonFormError,
       d =>
         actionResult(
-          env.msg.groups
-            .send(id, d._1, d._2.getOrElse(""), d._3, d._6.toList.flatMap(ids), d._5.zip(d._4), d._7)
+          if id == GlobalChat.id then
+            if List(d._3, d._4, d._5, d._6, d._7).exists(_.exists(_.nonEmpty)) then
+              fufail(lila.msg.MsgActionError("invalid"))
+            else publicWrite(env.msg.globalChat.send(d._1, d._2.getOrElse("")))
+          else
+            env.msg.groups
+              .send(id, d._1, d._2.getOrElse(""), d._3, d._6.toList.flatMap(ids), d._5.zip(d._4), d._7)
         )
     )
   }
@@ -320,8 +359,12 @@ final class Msg(env: Env) extends LilaController(env):
       doubleJsonFormError,
       d =>
         actionResult(
-          env.msg.groups
-            .update(id, mid, d._1, d._2, d._3, d._4.orElse(d._5.contains(true).option("")).map(ids))
+          if id == GlobalChat.id then
+            def update(moderator: Boolean) = env.msg.globalChat.update(mid, d._3, d._1, d._2, moderator)
+            if d._1 == "edit" then publicWrite(update(false)) else globalModerator.flatMap(update)
+          else
+            env.msg.groups
+              .update(id, mid, d._1, d._2, d._3, d._4.orElse(d._5.contains(true).option("")).map(ids))
         )
     )
   }
@@ -329,7 +372,9 @@ final class Msg(env: Env) extends LilaController(env):
   def groupReceipt(id: String) = AuthOrScopedBody(_.Web.Mobile, _.Mobile.Inbox) { _ ?=> me ?=>
     bindForm(receiptForm)(
       doubleJsonFormError,
-      (raw, read) => groupResult(JsonOk(env.msg.groups.acknowledge(id, ids(raw), read)))
+      (raw, read) =>
+        groupResult(JsonOk(if id == GlobalChat.id then env.msg.globalChat.acknowledge(ids(raw), read)
+        else env.msg.groups.acknowledge(id, ids(raw), read)))
     )
   }
 

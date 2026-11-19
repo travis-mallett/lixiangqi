@@ -163,6 +163,14 @@ db.relay_group.createIndex({ tours: 1 });
 db.seek.createIndex({ createdAt: -1 }, { expireAfterSeconds: 86400 });
 db.msg_msg.createIndex({ tid: 1, date: -1 });
 db.msg_msg.createIndex(
+  { tid: 1, date: -1, _id: -1 },
+  { partialFilterExpression: { tid: '~00000000000000000000000000000000' } },
+);
+db.msg_msg.createIndex(
+  { deliveryTo: 1, date: 1 },
+  { partialFilterExpression: { deliveryTo: { $exists: true } } },
+);
+db.msg_msg.createIndex(
   { tid: 1, pinnedAt: -1 },
   { name: 'msg_pinned', partialFilterExpression: { pinnedAt: { $exists: true } } },
 );
@@ -384,4 +392,9 @@ db.puzzle2_path.createIndex({ min: 1, max: -1 });
 db.relay_delay.createIndex({ at: 1 }, { expireAfterSeconds: 7200 });
 
 db.msg_group.createIndex({ users: 1, updatedAt: -1 });
+db.notify.createIndex(
+  { 'content.messageId': 1 },
+  { partialFilterExpression: { 'content.messageId': { $exists: true } } },
+);
 db.msg_organization.createIndex({ owner: 1 });
+db.msg_organization.createIndex({ chat: 1, mute: 1 });

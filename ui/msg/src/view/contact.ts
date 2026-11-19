@@ -1,6 +1,7 @@
 import { h, type VNode } from 'snabbdom';
 
 import { hookMobileMousedown } from 'lib/device';
+import { globalChatId } from 'lib/inboxUrl';
 import type { MaybeVNodes } from 'lib/view/snabbdom';
 import { fullName } from 'lib/view/userLink';
 
@@ -38,7 +39,10 @@ export default function renderContact(ctrl: MsgCtrl, contact: Contact, active?: 
       h('div.msg-app__side__contact__user', [
         h('div.msg-app__side__contact__head', [
           h('div.msg-app__side__contact__name', contactName(user, ctrl)),
-          h('div.msg-app__side__contact__date', renderDate(msg)),
+          h(
+            'div.msg-app__side__contact__date',
+            user.id === globalChatId && !msg.id ? undefined : renderDate(msg),
+          ),
         ]),
         h('div.msg-app__side__contact__body', [
           h(
@@ -48,7 +52,7 @@ export default function renderContact(ctrl: MsgCtrl, contact: Contact, active?: 
               ? i18n.inbox.deleted
               : msg.text || (user.group && !msg.id ? user.name : i18n.site.mediaFiles),
           ),
-          msg.user === ctrl.data.me.id && msg.id
+          user.id !== globalChatId && msg.user === ctrl.data.me.id && msg.id
             ? glyph(msg.readAt || msg.read ? 'read' : msg.deliveredAt ? 'delivered' : 'sent')
             : undefined,
           ctrl.mailbox.state(user.id).pin ? glyph('pin') : undefined,

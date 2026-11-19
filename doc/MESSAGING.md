@@ -9,6 +9,36 @@ reply previews, an animated three-dot typing bubble, message actions, reactions,
 pins and explicit delivery/read acknowledgements. Xiangqi Kids has no inbox or
 private-chat scope and is not a consumer of these features.
 
+## Global Chat and message alerts
+
+Global Chat is a public text room pinned first in the main web and mobile inboxes.
+It uses the standard account and public-chat moderation rules. Authors have the
+usual 24-hour editing and deletion window. A moderator with the chat-timeout
+permission can remove any post, including older posts. Public edits and deletions
+invalidate the preview and remove stale notification excerpts. Delete leaves a
+moderation record. The room has no membership roster or public reader list.
+
+The room starts muted with mention alerts enabled. Unmuting enables alerts for
+ordinary posts. Turning off mention alerts while muted silences the room. The
+same exception applies to muted private groups. A later ordinary post cannot
+cancel a pending mention alert in a muted group. Muting a direct chat silences
+its alerts. The website bell and the mobile notification center honor the account’s
+notification preferences. Browser and device push additionally require an enabled
+channel and a registered browser or app installation. Reading a message during the
+five-second notification delay suppresses its alert. Unread private conversations
+remain visible in the inbox even when their notifications are muted.
+
+The public homepage preview loads when the card enters the viewport. It displays
+up to 12 recent excerpts of 320 characters, refreshes while visible, and supports
+conditional requests. Signed-in players can post from the card or open full
+history in the inbox. Anonymous visitors can read. The authenticated inbox
+requests history in pages of 100 and subscribes to room updates while open.
+
+Deploy the matching website backend and assets before the mobile update. The
+new MongoDB indexes are additive and initialize on demand. A moderator using
+native authentication needs two-factor authentication and a fresh sign-in for the
+room-specific moderation grant. Normal inbox credentials retain their existing scope.
+
 ## Media, polls, contacts and links
 
 The browser lightbox centers the active photo or clip. Its header shows the sender and time alongside Forward, Download and Close. The arrow keys move through the album and adjacent loaded albums. Select a photo to zoom. The attachment menu uses Signal Desktop’s Inter text, Signal Symbols and menu geometry. [Lightbox](https://github.com/signalapp/Signal-Desktop/blob/848443afc3fcc74a0e127ba4f4d8554b95da856e/ts/components/Lightbox.dom.tsx) · [Attachment menu](https://github.com/signalapp/Signal-Desktop/blob/848443afc3fcc74a0e127ba4f4d8554b95da856e/ts/components/CompositionArea.dom.tsx)
@@ -19,11 +49,14 @@ Eligible HTTPS links can generate a preview while composing. A sender can remove
 
 ## Interaction and policy
 
-- A clock means sending, a faint check means accepted by the server, a solid
-  check means downloaded by the recipient, and a colored double check means read.
-  Downloading or prefetching never marks a message read. Clients acknowledge
-  concrete message IDs, with read gated on visible content in the foreground.
-  Receipt times are immutable server timestamps, synchronized to both participants.
+- A clock means sending. One check means the server accepted the message. An
+  outlined double check means a recipient’s client acknowledged delivery. A
+  filled double check means the message was visible in their active conversation.
+  Receipt times come from the first acknowledgment and synchronize across devices.
+  Signing in on the web or resuming the native app downloads pending direct
+  messages in batches of 100, including when the inbox is closed. Messages sent
+  before the delivery queue shipped still acquire receipts when downloaded.
+  Group receipts aggregate acknowledgments across the message’s original audience.
 - Desktop hover/focus shows react, reply and more controls beside the bubble, on
   the opposite side from its alignment. Right-click and Shift+F10 also open actions.
   Touch long press opens a reaction strip, message preview and action menu. The

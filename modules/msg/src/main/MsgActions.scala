@@ -15,6 +15,7 @@ final class MsgActions(
     colls: MsgColls,
     api: MsgApi,
     groups: MsgGroups,
+    globalChat: GlobalChat,
     media: MsgMedia,
     json: MsgJson,
     security: MsgSecurity,
@@ -42,7 +43,8 @@ final class MsgActions(
         case None => fufail(MsgActionError("notFound"))
 
   def visibleMessage(contact: UserId, id: String)(using me: Me): Fu[Option[Msg]] =
-    colls.msg.one[Msg](visible(contact) ++ $id(id) ++ $doc("deletedAt".$exists(false)))
+    val scopes = if me.kid.yes then visible(contact) else $or(visible(contact), $doc("tid" -> GlobalChat.id))
+    colls.msg.one[Msg](scopes ++ $id(id) ++ $doc("user" -> contact, "deletedAt".$exists(false)))
 
   def history(chat: String, query: String, files: Boolean, before: Option[Long], cursor: String)(using
       me: Me
@@ -56,7 +58,8 @@ final class MsgActions(
         val filter = search ++ $doc("deletedAt".$exists(false)) ++ before.so: stamp =>
           val at = millisToInstant(stamp)
           $or($doc("date".$lt(at)), $doc("date" -> at, "_id".$lt(cursor)))
-        val result = if MsgGroups.validId(chat) then groups.matching(chat, filter)
+        val result = if chat == GlobalChat.id then globalChat.matching(filter)
+        else if MsgGroups.validId(chat) then groups.matching(chat, filter)
         else
           val peer = UserId(chat)
           for

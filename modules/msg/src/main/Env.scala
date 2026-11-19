@@ -53,6 +53,8 @@ final class Env(
 
   val api: MsgApi = wire[MsgApi]
 
+  val globalChat = wire[GlobalChat]
+
   val groups = wire[MsgGroups]
 
   val actions = wire[MsgActions]
@@ -137,7 +139,34 @@ private class MsgColls(db: lila.db.Db)(using Executor):
     group.indexesManager
       .ensure(Index(Seq("users" -> IndexType.Ascending, "updatedAt" -> IndexType.Descending)))
       .void >>
-      organization.indexesManager.ensure(Index(Seq("owner" -> IndexType.Ascending))).void
+      organization.indexesManager.ensure(Index(Seq("owner" -> IndexType.Ascending))).void >>
+      organization.indexesManager
+        .ensure(Index(Seq("chat" -> IndexType.Ascending, "mute" -> IndexType.Ascending)))
+        .void
+
+  lazy val globalIndex: Funit =
+    import reactivemongo.api.indexes.{ Index, IndexType }
+    import lila.db.dsl.{ *, given }
+    msg.indexesManager
+      .ensure(
+        Index(
+          Seq("tid" -> IndexType.Ascending, "date" -> IndexType.Descending, "_id" -> IndexType.Descending),
+          partialFilter = Some($doc("tid" -> GlobalChat.id))
+        )
+      )
+      .void
+
+  lazy val deliveryIndex: Funit =
+    import reactivemongo.api.indexes.{ Index, IndexType }
+    import lila.db.dsl.{ *, given }
+    msg.indexesManager
+      .ensure(
+        Index(
+          Seq("deliveryTo" -> IndexType.Ascending, "date" -> IndexType.Ascending),
+          partialFilter = Some($doc("deliveryTo".$exists(true)))
+        )
+      )
+      .void
 
   // Additive index, installed once before pin queries. No message data is rewritten.
   lazy val pinnedIndex: Funit =

@@ -32,7 +32,8 @@ enum NotificationContent(val key: String):
       user: UserId,
       text: String,
       thread: Option[String] = None,
-      groupName: Option[String] = None
+      groupName: Option[String] = None,
+      messageId: Option[String] = None
   ) extends NotificationContent("privateMessage")
   case GenericLink(
       url: String,
@@ -100,3 +101,4 @@ abstract class NotifyApi(val prefColl: reactivemongo.api.bson.collection.BSONCol
   def notifyMany(userIds: Iterable[UserId], content: NotificationContent): Funit
   def markRead(to: UserId, selector: BSONDocument): Funit
   def remove(to: UserId, selector: BSONDocument): Funit
+  def removeMessage(thread: String, messageId: String): Funit

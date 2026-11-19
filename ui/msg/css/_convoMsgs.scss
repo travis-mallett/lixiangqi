@@ -101,7 +101,7 @@
   overflow-wrap: anywhere;
 
   .mine > .msg-bubble-wrap > & {
-    background: $c-primary;
+    background: $msg-outgoing;
     color: white;
 
     .msg-meta {
