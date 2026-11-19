@@ -18,7 +18,11 @@ private case class MsgGroup(
     previews: Map[String, Msg.Last],
     version: Int = 0,
     hidden: List[UserId] = Nil,
-    description: Option[String] = None
+    description: Option[String] = None,
+    inviteToken: Option[String] = None,
+    adminAddOnly: Boolean = true,
+    approval: Boolean = false,
+    requests: List[UserId] = Nil
 ):
   def changeAdmin(target: UserId, promote: Boolean): Option[List[UserId]] =
     Option
@@ -68,7 +72,7 @@ final class MsgGroups(
 
   private def membership(id: String)(using me: Me) = $id(id) ++ $doc("users" -> me.userId)
   private def room(id: String)(using me: Me): Fu[MsgGroup] =
-    if me.kid.yes || !MsgGroups.validId(id) then fail("notFound")
+    if !MsgGroups.validId(id) then fail("notFound")
     else colls.group.one[MsgGroup](membership(id)).flatMap(_.fold(fail[MsgGroup]("notFound"))(fuccess))
   private def emit(users: Iterable[UserId], kind: String, data: JsObject) =
     users.foreach(u => Bus.pub(SendTo(u, makeMessage(kind, data))))
@@ -86,17 +90,25 @@ final class MsgGroups(
     contactApi
       .contacts(me, peer)
       .flatMapz: pair =>
-        pair.activeAdults.so:
+        (!pair.any(c => !c.enabled.contains(true))).so:
           text match
             case None => security.may.post(pair, isNew = true)
             case Some(body) =>
               security.can
-                .post(pair, body, isNew = false, unlimited = true, hasAttachments = body.isEmpty)
+                .post(
+                  pair,
+                  body,
+                  isNew = false,
+                  unlimited = true,
+                  inGroup = true,
+                  hasAttachments = body.isEmpty
+                )
                 .map(v => v == MsgSecurity.Ok || v == MsgSecurity.TrollFriend)
 
   private def invitees(ids: List[UserId])(using me: Me) = for
-    friends <- relationApi.fetchFriends(me)
-    _ <- check(ids.nonEmpty && ids.size < maxMembers && ids.forall(friends.contains))
+    _ <- check(ids.nonEmpty && ids.size < maxMembers)
+    blocked <- relationApi.filterBlocked(me.userId, ids)
+    _ <- check(blocked.isEmpty)
     allowed <- ids.traverse(eligible(_, None))
     _ <- check(allowed.forall(identity))
   yield ()
@@ -116,7 +128,15 @@ final class MsgGroups(
         )
         _ <- invitees(others)
         _ <- colls.group.insert.one(
-          MsgGroup(id, name, List(me.userId), users, now, users.map(_.value -> preview).toMap)
+          MsgGroup(
+            id,
+            name,
+            List(me.userId),
+            users,
+            now,
+            users.map(_.value -> preview).toMap,
+            adminAddOnly = false
+          )
         )
       yield
         refresh(users, id)
@@ -125,18 +145,16 @@ final class MsgGroups(
   def contacts(before: Option[Instant], max: Int, filter: Bdoc = $empty)(using
       me: Me
   ): Fu[List[(Instant, JsObject)]] =
-    if me.kid.yes then fuccess(Nil)
-    else
-      colls.mailboxIndexes >> colls.group
-        .find(
-          filter ++ $doc("users" -> me.userId, "hidden".$ne(me.userId)) ++ before.so(at =>
-            $doc(s"previews.${me.userId}.date".$lt(at))
-          )
+    colls.mailboxIndexes >> colls.group
+      .find(
+        filter ++ $doc("users" -> me.userId, "hidden".$ne(me.userId)) ++ before.so(at =>
+          $doc(s"previews.${me.userId}.date".$lt(at))
         )
-        .sort($sort.desc(s"previews.${me.userId}.date"))
-        .cursor[MsgGroup]()
-        .list(max)
-        .map(_.map(g => g.previews(me.userId.value).date -> g.contact(me)))
+      )
+      .sort($sort.desc(s"previews.${me.userId}.date"))
+      .cursor[MsgGroup]()
+      .list(max)
+      .map(_.map(g => g.previews(me.userId.value).date -> g.contact(me)))
 
   def conversation(id: String, before: Option[Long])(using me: Me): Fu[JsObject] = for
     g <- room(id)
@@ -157,6 +175,10 @@ final class MsgGroups(
     "user" -> g.identity,
     "members" -> users.flatten,
     "admins" -> g.admins,
+    "inviteToken" -> g.inviteToken.filter(_ => g.admins.contains(me.userId)),
+    "approval" -> g.approval,
+    "adminAddOnly" -> g.adminAddOnly,
+    "requests" -> g.requests.filter(_ => g.admins.contains(me.userId)),
     "description" -> g.description,
     "msgs" -> msgs.map(d => json.renderMsg(visibleMessage(d, me, allowed))),
     "pinned" -> pins.map(d => json.renderMsg(visibleMessage(d, me, allowed))),
@@ -169,15 +191,10 @@ final class MsgGroups(
     if msg.attachments.isEmpty || allowed(msg.id) then msg else msg.copy(attachments = Nil)
 
   def revokeMedia(user: UserId): Funit =
-    for
-      mediaRooms <- colls.msg
-        .distinctEasy[String, List]("tid", $doc("audience" -> user, "attachments.0".$exists(true)))
-      memberships <- colls.group.distinctEasy[String, List]("_id", $doc("users" -> user))
-      rooms <- colls.group.list[MsgGroup]($inIds(mediaRooms))
-      _ <- memberships.nonEmpty.so(notifyApi.remove(user, $doc("content.thread".$in(memberships))))
-    yield
-      rooms.foreach(g => emit(g.users.filterNot(_ == user), "msgMediaRevoked", Json.obj("user" -> g.id)))
-      memberships.foreach(id => emit(List(user), "msgThreadRemoved", Json.obj("user" -> id)))
+    colls.group
+      .distinctEasy[String, List]("_id", $doc("users" -> user))
+      .map: rooms =>
+        rooms.foreach(id => emit(List(user), "msgMediaRevoked", Json.obj("user" -> id)))
 
   private[msg] def matching(id: String, filter: Bdoc)(using me: Me): Fu[(List[Msg], Option[(Long, String)])] =
     for
@@ -193,10 +210,8 @@ final class MsgGroups(
     yield rows -> Option.when(docs.size > 50)(rows.last.date.toEpochMilli -> rows.last.id)
 
   def mediaAllowed(id: String)(using me: Me): Fu[Boolean] =
-    room(id)
-      .flatMap(g =>
-        g.users.filterNot(_.is(me)).traverse(media.direct(me, _)).map(a => a.nonEmpty && a.forall(identity))
-      )
+    me.kid.no
+      .so(room(id).flatMap(_ => contactApi.mediaUsers(List(me.userId)).map(_(me.userId))))
       .recover { case _: MsgActionError => false }
 
   def canReadAttachment(id: String, parent: String, author: UserId, handle: String)(using
@@ -220,13 +235,21 @@ final class MsgGroups(
     colls.msg.one[Bdoc](visible(id, me) ++ $id(msgId)).flatMap(_.fold(fail[Bdoc]("notFound"))(fuccess))
 
   def source(id: String, msgId: String)(using me: Me): Fu[Msg] =
-    for
-      _ <- room(id)
-      doc <- find(id, msgId)
-      raw = message(doc, me)
-      allowed <- media.visibleGroupMedia(List(doc), me)
-      _ <- check(raw.deletedAt.isEmpty && (raw.attachments.isEmpty || allowed(raw.id)), "notFound")
-    yield raw
+    if id == GlobalChat.id || !MsgGroups.validId(id) then
+      val tid = if id == GlobalChat.id then id else MsgThread.id(me, UserId(id)).value
+      if id == GlobalChat.id && me.kid.yes then fail("notFound")
+      else
+        colls.msg
+          .one[Msg]($id(msgId) ++ $doc("tid" -> tid, "del".$ne(me.userId), "deletedAt".$exists(false)))
+          .flatMap(_.fold(fail[Msg]("notFound"))(fuccess))
+    else
+      for
+        _ <- room(id)
+        doc <- find(id, msgId)
+        raw = message(doc, me)
+        allowed <- media.visibleGroupMedia(List(doc), me)
+        _ <- check(raw.deletedAt.isEmpty && (raw.attachments.isEmpty || allowed(raw.id)), "notFound")
+      yield raw
 
   def send(
       id: String,
@@ -266,18 +289,7 @@ final class MsgGroups(
             for
               card <- MsgCard.decode(cardJson, text, items)
               _ <- check(forward.isEmpty || card.isEmpty, "invalid")
-              forwarded <- forward.traverse: (peer, mid) =>
-                if MsgGroups.validId(peer) then source(peer, mid)
-                else
-                  colls.msg
-                    .one[Msg](
-                      $id(mid) ++ $doc(
-                        "tid" -> MsgThread.id(me, UserId(peer)),
-                        "del".$ne(me.userId),
-                        "deletedAt".$exists(false)
-                      )
-                    )
-                    .flatMap(_.fold(fail[Msg]("notFound"))(fuccess))
+              forwarded <- forward.traverse((peer, mid) => source(peer, mid))
               _ <- check(forwarded.forall(_.canForward) && (forwarded.isEmpty || items.isEmpty), "invalid")
               handles <- forwarded.filter(_.attachments.nonEmpty) match
                 case Some(src) if attachments.enabled("msg") => media.copy(me, forward.get._1, src, id, msgId)
@@ -316,7 +328,7 @@ final class MsgGroups(
                   _ <- handles.nonEmpty.so:
                     for
                       _ <- check(attachments.enabled("msg"), "attachmentsUnavailable")
-                      _ <- contactApi.guardMedia(tx, audience)
+                      _ <- contactApi.guardMedia(tx, List(me.userId))
                       ok <- mediaAllowed(id)
                       _ <- check(ok, "privateTextOnly")
                       _ <- forward.zip(forwarded).so((from, src) => media.guardForward(tx, me, from._1, src))
@@ -405,6 +417,45 @@ final class MsgGroups(
         emit(List(me.userId), "msgReceipt", payload)
         payload
 
+  private def invitation(id: String, token: String)(using me: Me) =
+    if me.kid.yes || !me.enabled.yes || me.isBot || me.marks.troll || !MsgGroups.validId(id) ||
+      !token.matches("[0-9a-f-]{36}")
+    then fail[MsgGroup]("notFound")
+    else
+      colls.group
+        .one[MsgGroup](
+          $id(id) ++ $doc("inviteToken" -> token, "blocked".$ne(me.userId), "removed".$ne(me.userId))
+        )
+        .flatMap(_.fold(fail[MsgGroup]("notFound"))(fuccess))
+
+  def inviteName(id: String, token: String)(using Me) = invitation(id, token).map(_.name)
+
+  def join(id: String, token: String)(using me: Me): Fu[Boolean] =
+    limit(me.userId, fail[Boolean]("limited")):
+      invitation(id, token).flatMap: g =>
+        if g.users.contains(me.userId) then fuccess(true)
+        else
+          for
+            _ <- check(g.users.size < maxMembers && g.admins.nonEmpty)
+            blocked <- relationApi.filterBlocked(me.userId, g.admins)
+            blocking <- relationApi.filterBlocking(g.admins, me.userId)
+            _ <- check(blocked.isEmpty && blocking.isEmpty)
+            _ <- check(!g.approval || g.requests.size < 100 || g.requests.contains(me.userId))
+            update =
+              if g.approval then $addToSet("requests" -> me.userId)
+              else
+                $addToSet("users" -> me.userId) ++ $set(
+                  s"previews.${me.userId}" -> Msg.Last("", me, nowInstant, true)
+                )
+            result <- colls.group.update.one(
+              $id(id) ++ $doc("version" -> g.version, "inviteToken" -> token),
+              update ++ $inc("version" -> 1)
+            )
+            _ <- check(result.n == 1, "conflict")
+          yield
+            refresh(if g.approval then g.admins else me.userId :: g.users, id)
+            !g.approval
+
   def manage(id: String, action: String, value: String, members: List[UserId])(using me: Me): Funit =
     limit(me.userId, fail[Unit]("limited")):
       room(id).flatMap: g =>
@@ -412,7 +463,10 @@ final class MsgGroups(
         def change(update: Bdoc, removed: List[UserId] = Nil, added: List[UserId] = Nil) =
           colls.group.update
             .one(
-              selector ++ (if added.nonEmpty then $doc("blocked".$nin(added)) else $empty),
+              selector ++ (if added.nonEmpty then
+                             $doc("blocked".$nin(added)) ++
+                               (if !g.admins.contains(me.userId) then $doc("removed".$nin(added)) else $empty)
+                           else $empty),
               update ++ $inc("version" -> 1)
             )
             .flatMap: r =>
@@ -435,16 +489,37 @@ final class MsgGroups(
           case "promote" | "demote" if g.admins.contains(me.userId) =>
             g.changeAdmin(UserId(value), action == "promote")
               .fold(fail[Unit]())(admins => change($set("admins" -> admins)))
-          case "add" if g.admins.contains(me.userId) =>
-            val added = members.distinct.diff(g.users)
+          case "linkOn" | "linkReset" if g.admins.contains(me.userId) =>
+            change(
+              $set("inviteToken" -> java.util.UUID.randomUUID().toString, "requests" -> List.empty[UserId])
+            )
+          case "linkOff" if g.admins.contains(me.userId) =>
+            change($unset("inviteToken", "requests"))
+          case "approval" if g.admins.contains(me.userId) =>
+            change($set("approval" -> (value == "true")))
+          case "decline" if g.admins.contains(me.userId) =>
+            change($pull("requests" -> UserId(value)))
+          case "adminAddOnly" if g.admins.contains(me.userId) =>
+            change($set("adminAddOnly" -> (value == "true")))
+          case "add" | "approve" if g.admins.contains(me.userId) || (action == "add" && !g.adminAddOnly) =>
+            val added = if action == "approve" then g.requests.filter(_ == UserId(value))
+            else members.distinct.diff(g.users)
             val at = nowInstant
-            check(added.size + g.users.size <= maxMembers) >> invitees(added) >>
+            val permitted = if action == "approve" then
+              for
+                active <- contactApi.adultIds(added)
+                blocked <- relationApi.filterBlocked(me.userId, added)
+                blocking <- relationApi.filterBlocking(added, me.userId)
+                _ <- check(added.nonEmpty && added.forall(active) && blocked.isEmpty && blocking.isEmpty)
+              yield ()
+            else invitees(added)
+            check(added.size + g.users.size <= maxMembers) >> permitted >>
               change(
                 $set(
                   $doc("users" -> (g.users ++ added)) ++ added.foldLeft($empty)((d, u) =>
                     d ++ $doc(s"previews.$u" -> Msg.Last("", me, at, true))
                   )
-                ),
+                ) ++ $doc("$pull" -> $doc("requests".$in(added), "removed".$in(added))),
                 added = added
               )
           case "leave" | "block" | "remove" =>
@@ -455,9 +530,10 @@ final class MsgGroups(
                 $set(
                   "users" -> remaining,
                   "admins" -> g.remainingAdmins(remaining)
-                ) ++ $unset(s"previews.$target") ++ (if action == "block" then
-                                                       $addToSet("blocked" -> me.userId)
-                                                     else $empty),
+                ) ++ (if action == "remove" then $addToSet("removed" -> target) else $empty) ++ $unset(
+                  s"previews.$target"
+                ) ++ (if action == "block" then $addToSet("blocked" -> me.userId)
+                      else $empty),
                 List(target)
               ) >>
               notifyApi.remove(target, $doc("content.thread" -> id))
@@ -492,7 +568,8 @@ final class MsgGroups(
         at = nowInstant
         next <- action match
           case "deleteMe" => fuccess(old)
-          case "deleteEveryone" if old.canDeleteForEveryone(me, at) =>
+          case "deleteEveryone"
+              if old.canDeleteForEveryone(if g.admins.contains(me.userId) then old.user else me.userId, at) =>
             fuccess(old.copy(deletedAt = Some(at), pinnedAt = None))
           case "pin" if old.deletedAt.isEmpty =>
             fuccess(old.copy(pinnedAt = Option.when(value == "true")(at)))
@@ -527,7 +604,7 @@ final class MsgGroups(
             _ <- (action == "edit" && saved.attachments.nonEmpty).so:
               mediaAllowed(id).flatMap(ok => check(ok, "privateTextOnly")) >> contactApi.guardMedia(
                 tx,
-                media.audience(doc)
+                List(me.userId)
               ) >> attachments
                 .prepare(
                   me,
@@ -584,18 +661,15 @@ final class MsgGroups(
             )
           )
         )
-        activeRecipients <- contactApi.adultIds(audience)
+        activeRecipients <- contactApi.enabledIds(audience)
         recipients = audience.diff(doc.getAsOpt[List[UserId]]("del").getOrElse(Nil)).filter(activeRecipients)
         withMedia <-
           if saved.attachments.isEmpty || saved.deletedAt.nonEmpty then fuccess(Set.empty[UserId])
           else
             for
-              active <- contactApi.mediaUsers(media.audience(doc))
               blocked <- relationApi.filterBlocked(saved.user, recipients)
               blocking <- relationApi.filterBlocking(recipients, saved.user)
-            yield
-              if media.audience(doc).forall(active) then recipients.toSet -- blocked -- blocking
-              else Set.empty[UserId]
+            yield recipients.toSet -- blocked -- blocking
       yield
         unpinned.foreach: record =>
           val recipients = media

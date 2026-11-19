@@ -47,6 +47,9 @@ private final class ContactApi(userColl: Coll)(using Executor):
       .flatMap: res =>
         if res.n == ids.size then funit else fufail(lila.core.security.SubmissionRejected("privateTextOnly"))
 
+  def enabledIds(ids: List[UserId]): Fu[Set[UserId]] =
+    userColl.distinctEasy[UserId, Set]("_id", $inIds(ids) ++ $doc("enabled" -> true))
+
   def adultIds(ids: List[UserId]): Fu[Set[UserId]] =
     userColl.distinctEasy[UserId, Set]("_id", $inIds(ids) ++ $doc("enabled" -> true, "kid".$ne(true)))
 

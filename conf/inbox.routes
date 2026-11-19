@@ -9,6 +9,8 @@ GET   /inbox/history/:chat              controllers.inbox.Msg.history(chat, q: S
 GET   /inbox/contacts/friends          controllers.inbox.Msg.friends
 POST  /inbox/settings/organize         controllers.inbox.Msg.organize
 POST  /inbox/groups/create             controllers.inbox.Msg.createGroup
+GET   /inbox/invite/:id/:token         controllers.inbox.Msg.invitation(id, token)
+POST  /inbox/invite/:id/:token         controllers.inbox.Msg.join(id, token)
 GET   /inbox/group/:id                 controllers.inbox.Msg.group(id, before: Option[Long] ?= None)
 POST  /inbox/group/:id                 controllers.inbox.Msg.groupPost(id)
 POST  /inbox/group/:id/manage          controllers.inbox.Msg.groupManage(id)

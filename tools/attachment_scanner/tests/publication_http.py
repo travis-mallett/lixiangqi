@@ -292,11 +292,11 @@ def verify(site):
 
 def verify_group_inbox(site):
     alice, bob, chen, observer = [site.user(name) for name in ("clubalice", "clubbob", "clubchen", "clubguest")]
-    for friend in (bob, chen):
+    for friend in (bob,):
         for first, second in ((alice, friend), (friend, alice)):
             site.db.relation.insert_one({"_id": f"{first}/{second}", "u1": first, "u2": second, "r": True})
 
-    assert {user["name"] for user in site.json("/inbox/contacts/friends", alice)["friends"]} == {bob, chen}
+    assert {user["name"] for user in site.json("/inbox/contacts/friends", alice)["friends"]} == {bob}
     group = site.json("/inbox/groups/create", alice, {"name": "League", "members": f"{bob},{chen}"}, status=201)["id"]
     path = f"/inbox/group/{group}"
     empty = site.json(path, chen)["convo"]
@@ -329,6 +329,40 @@ def verify_group_inbox(site):
     assert not site.json("/inbox/settings/chats?scope=archive", bob)["contacts"]
     site.call(f"{path}/manage", chen, {"action": "leave"})
     site.call(path, chen, status=404)
+
+    assert not site.json(path, alice)["convo"].get("inviteToken")
+    site.call(path + "/manage", alice, {"action": "linkOn"})
+    invite = "/inbox/invite/" + group + "/" + site.json(path, alice)["convo"]["inviteToken"]
+    assert site.json(invite, observer)["name"] == "League"
+    site.call(path + "/manage", alice, {"action": "approval", "value": "true"})
+    assert not site.json(invite, observer, {})["joined"]
+    site.call(path, observer, status=404)
+    site.call(path + "/manage", bob, {"action": "approve", "value": observer})
+    assert not site.json(path, observer)["convo"]["msgs"]
+    assert not site.json(path, observer)["convo"].get("inviteToken")
+    site.call(path + "/manage", alice, {"action": "remove", "value": observer})
+    site.call(invite, observer, {}, status=404)
+    site.call(path + "/manage", bob, {"action": "linkReset"})
+    site.call(invite, chen, {}, status=404)
+    invite = "/inbox/invite/" + group + "/" + site.json(path, bob)["convo"]["inviteToken"]
+    site.call(path + "/manage", bob, {"action": "approval", "value": "false"})
+    assert site.json(invite, chen, {})["joined"]
+    site.call(path + "/manage", bob, {"action": "linkOff"})
+    site.call(invite, chen, status=404)
+    site.call(path + "/messages/" + latest["id"], alice, {"action": "deleteEveryone", "value": "", "revision": latest["revision"]})
+    site.db.user4.update_one({"_id": chen}, {"$set": {"kid": True}})
+    dest = "/attachment/msg/" + group
+    assert site.json(dest + "/policy", alice)["enabled"]
+    assert not site.json(dest + "/policy", chen)["enabled"]
+    site.db.ugc_scanner.update_one({"_id": "worker"}, {"$set": {"at": worker.now()}})
+    handle = site.json(dest + "/upload", alice, data=b"Team notes", name="notes.txt", status=201)["id"]
+    site.screen_document()
+    rich = site.json(path, alice, {"text": "", "attachments": handle, "nonce": uuid.uuid4().hex})["msg"]
+    assert rich["attachments"] == [handle]
+    assert site.call("/attachment/msg/item/" + handle, chen)[0] == b"Team notes"
+    site.call("/attachment/msg/item/" + handle, observer, status=404)
+    site.call("/attachment/msg/item/" + handle, status=404)
+    site.call(dest + "/upload", chen, data=b"Child upload", name="notes.txt", status=403)
 
     endpoint = "/inbox/device/registration"
     fid = "a" * 22

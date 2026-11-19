@@ -6,6 +6,14 @@ Reconciliation means preserving the applicable behavior, not reproducing web scr
 
 ## Products and receipts
 
+The correspondence analysis change on `d7f7a5234b` (working-tree blobs
+`f82ee2cf57` for UserAnalysis.scala and `8bf6534e0c` for analysisXiangqi.ts)
+disables engine assistance until the game finishes. Adult mobile already exposes
+its game analysis button only in the finished branch of `play/game_page.dart`.
+Kids has no analysis workspace. Verification covered the website Xiangqi TypeScript
+project and inspection of mobile feature coverage. Deploy the website backend and
+UI assets together. Neither app requires a release.
+
 | Product          | Checkout                   | Receipt and review queue                                             |
 | ---------------- | -------------------------- | -------------------------------------------------------------------- |
 | LiXiangQi Mobile | `../lixiangqi-mobile`      | `doc/WEBSITE_RECONCILIATION.md`, `doc/website-reconciliation.json`   |
@@ -242,3 +250,7 @@ with the following working-tree SHA-256 fingerprints.
 | `modules/puzzle/src/main/JsonView.scala` | `ec87cb5c2aeaf7fdf44ae0fd6ddd0d1ac0924bd22fb651c0c4453e30b67be323` |
 | `ui/puzzle/src/xiangqi.ts`               | `52061e185101cf6178c2f6ce2335964426dd0bcea2331eb96977358864d32373` |
 | `ui/puzzle/src/ctrl.ts`                  | `6839be14e3fcf1920f751b8cc40455e672b3ffdf938fd8de3289c9bd330f7a00` |
+
+## November 19 Global Chat and group membership
+
+The main app consumes the shared public-room media, group permissions and invitation APIs, and implements the Android picker, avatars, sender identities and message actions. Xiangqi Kids has no community inbox or Global Chat entry point. Deploy the website and assets before releasing the native update. The scoped working-tree review records source fingerprints and verification without advancing either checkpoint. [Messaging reconciliation receipt](MESSAGING_RECONCILIATION.json)

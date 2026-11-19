@@ -32,14 +32,14 @@ export default function renderActions(ctrl: MsgCtrl, c: Convo): VNode[] {
     menu(t.moreActions, [
       row(state.mute ? t.unmute : t.mute, 'mute', () => void change('mute', !state.mute)),
       ...(c.user.group ? [row(t.groupSettings, 'settings', () => mode('settings'))] : []),
+      row(t.allMedia, 'photo', () => mode('media')),
+      row(t.selectMessages, 'select', () => {
+        box.selecting = true;
+        ctrl.redraw();
+      }),
       ...(id === globalChatId
         ? []
         : [
-            row(t.allMedia, 'photo', () => mode('media')),
-            row(t.selectMessages, 'select', () => {
-              box.selecting = true;
-              ctrl.redraw();
-            }),
             row(t.markUnread, 'message', () => void change('unread', true, true)),
             row(
               state.pin ? t.unpinChat : t.pinChat,
@@ -71,7 +71,7 @@ export default function renderActions(ctrl: MsgCtrl, c: Convo): VNode[] {
                     h(
                       'a.msg-menu-row',
                       { attrs: { href: '/report/inbox/' + encodeURIComponent(c.user.name) } },
-                      [glyph('report'), i18n.site.reportXToModerators(c.user.name)],
+                      [glyph('report'), t.report],
                     ),
                     row(t.deleteChat, 'delete', () => ask(t.deleteChat, ctrl.delete)),
                   ]),

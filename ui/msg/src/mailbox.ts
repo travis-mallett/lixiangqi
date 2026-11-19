@@ -202,7 +202,7 @@ export class Mailbox {
     if (this.busy) return;
     if (this.page === 'members') {
       await this.manage('add', '', [...this.checked]);
-      await this.go('chats');
+      if (!this.ctrl.error) await this.go('chats');
       return;
     }
     this.busy = true;

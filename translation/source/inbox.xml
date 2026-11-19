@@ -129,4 +129,11 @@
   <string name="shareContact">Share contact</string>
   <string name="addEmoji">Add emoji</string>
   <string name="removePreview">Remove link preview</string>
+  <string name="report">Report</string>
+  <string name="groupLink">Group link</string>
+  <string name="requireApproval">Require admin approval</string>
+  <string name="requestSent">Request sent</string>
+  <string name="resetLink">Reset link</string>
+  <string name="disableLink">Turn off link</string>
+  <string name="adminAddOnly">Only admins can add members</string>
 </resources>

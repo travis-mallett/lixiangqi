@@ -258,6 +258,7 @@ object UserAnalysis:
     Json
       .obj(
         "gameId" -> pov.gameId,
+        "engineAllowed" -> (!pov.game.isCorrespondence || pov.game.finished),
         "title" -> s"${names.white} – ${names.black}",
         "headers" -> Json.obj(
           "red" -> names.white,

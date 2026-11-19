@@ -300,10 +300,20 @@ final class Msg(env: Env) extends LilaController(env):
     else fuFalse
 
   def group(id: String, before: Option[Long]) = AuthOrScoped(_.Web.Mobile, _.Mobile.Inbox) { _ ?=> me ?=>
-    val room = if id == GlobalChat.id then globalModerator.flatMap(env.msg.globalChat.conversation(before, _))
+    val room = if id == GlobalChat.id then
+      globalModerator.flatMap(env.msg.globalChat.conversation(before, _, getBool("compact")))
     else env.msg.groups.conversation(id, before)
     groupResult(room.flatMap { convo =>
-      def data = inboxJson(None).map(_ + ("convo" -> convo))
+      def data = if id == GlobalChat.id && getBool("compact") then
+        fuccess(
+          Json.obj(
+            "me" -> Json.toJsObject(me.light).add("bot" -> me.isBot),
+            "convo" -> convo,
+            "contacts" -> Json.arr(),
+            "names" -> Json.obj()
+          )
+        )
+      else inboxJson(None).map(_ + ("convo" -> convo))
       negotiateApi(html = Ok.async(data.map(views.msg.home)), api = _ => JsonOk(data)).map(_.hasPersonalData)
     })
   }
@@ -322,11 +332,30 @@ final class Msg(env: Env) extends LilaController(env):
     fuccess(NoContent)
   }
 
-  private def publicWrite(op: => Fu[lila.msg.Msg])(using me: Me) =
+  private def publicWrite[A](op: => Fu[A])(using me: Me) =
     env.chat.timeout
       .isActive(ChatId(GlobalChat.id), me.userId)
       .flatMap: active =>
         if active then fufail(lila.msg.MsgActionError("rejected")) else op
+
+  def invitation(id: String, token: String) = AuthOrScoped(_.Web.Mobile, _.Mobile.Inbox) { _ ?=> me ?=>
+    groupResult(env.msg.groups.inviteName(id, token).flatMap { name =>
+      negotiateApi(
+        html = Ok.page(views.msg.invitation(id, token, name)),
+        api = _ => JsonOk(Json.obj("name" -> name))
+      )
+        .map(_.withHeaders(CACHE_CONTROL -> "private, no-store", "Referrer-Policy" -> "no-referrer"))
+    })
+  }
+
+  def join(id: String, token: String) = AuthOrScopedBody(_.Web.Mobile, _.Mobile.Inbox) { _ ?=> me ?=>
+    groupResult(env.msg.groups.join(id, token).flatMap { joined =>
+      negotiateApi(
+        html = if joined then fuccess(Redirect(s"/inbox/group/$id")) else Ok.page(views.msg.joinRequested),
+        api = _ => JsonOk(Json.obj("joined" -> joined))
+      )
+    })
+  }
 
   def groupManage(id: String) = AuthOrScopedBody(_.Web.Mobile, _.Mobile.Inbox) { _ ?=> me ?=>
     bindForm(groupActionForm)(
@@ -344,9 +373,10 @@ final class Msg(env: Env) extends LilaController(env):
       d =>
         actionResult(
           if id == GlobalChat.id then
-            if List(d._3, d._4, d._5, d._6, d._7).exists(_.exists(_.nonEmpty)) then
-              fufail(lila.msg.MsgActionError("invalid"))
-            else publicWrite(env.msg.globalChat.send(d._1, d._2.getOrElse("")))
+            publicWrite(
+              env.msg.globalChat
+                .send(d._1, d._2.getOrElse(""), d._3, d._6.toList.flatMap(ids), d._5.zip(d._4), d._7)
+            )
           else
             env.msg.groups
               .send(id, d._1, d._2.getOrElse(""), d._3, d._6.toList.flatMap(ids), d._5.zip(d._4), d._7)
@@ -360,8 +390,10 @@ final class Msg(env: Env) extends LilaController(env):
       d =>
         actionResult(
           if id == GlobalChat.id then
-            def update(moderator: Boolean) = env.msg.globalChat.update(mid, d._3, d._1, d._2, moderator)
-            if d._1 == "edit" then publicWrite(update(false)) else globalModerator.flatMap(update)
+            def update(moderator: Boolean) = env.msg.globalChat
+              .update(mid, d._3, d._1, d._2, moderator, d._4.orElse(d._5.contains(true).option("")).map(ids))
+            if Set("edit", "react", "vote", "endPoll")(d._1) then publicWrite(update(false))
+            else globalModerator.flatMap(update)
           else
             env.msg.groups
               .update(id, mid, d._1, d._2, d._3, d._4.orElse(d._5.contains(true).option("")).map(ids))
@@ -381,6 +413,10 @@ final class Msg(env: Env) extends LilaController(env):
   def groupTyping(id: String) = AuthOrScopedBody(_.Web.Mobile, _.Mobile.Inbox) { _ ?=> me ?=>
     bindForm(Form(single("active" -> play.api.data.Forms.boolean)))(
       doubleJsonFormError,
-      active => groupResult(env.msg.groups.typing(id, active) >> jsonOkResult)
+      active =>
+        groupResult(
+          (if id == GlobalChat.id then publicWrite(env.msg.globalChat.typing(active))
+           else env.msg.groups.typing(id, active)) >> jsonOkResult
+        )
     )
   }

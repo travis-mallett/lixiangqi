@@ -223,26 +223,22 @@ final class Report(env: Env, userC: => User, modC: => Mod) extends LilaControlle
                   if ctx.isOAuth && !ctx.scopes.has(_.Mobile.Inbox) && !ctx.scopes.has(_.Web.Mobile) then
                     fuccess(None)
                   else
-                    data.item.so(id => env.msg.actions.visibleMessage(user.id, id)).flatMapz { m =>
-                      if m.user != user.id || !data.revision.contains(m.revision.toLong) then fuccess(None)
-                      else
-                        val maySeeMedia =
-                          if m.attachments.isEmpty then fuFalse else env.msg.api.mediaAllowed(user.id, me)
-                        maySeeMedia.map { allowed =>
-                          Some(
-                            EvidenceItem(
-                              user.id,
-                              "msg",
-                              m.id,
-                              m.revision,
-                              m.text,
-                              if allowed then m.attachments else Nil,
-                              true,
-                              "delivered"
-                            )
+                    data.item
+                      .so(id => env.msg.actions.visibleMessage(user.id, id))
+                      .map(_.flatMap { m =>
+                        Option.when(m.user == user.id && data.revision.contains(m.revision.toLong))(
+                          EvidenceItem(
+                            user.id,
+                            "msg",
+                            m.id,
+                            m.revision,
+                            m.text,
+                            m.attachments,
+                            true,
+                            "delivered"
                           )
-                        }
-                    }
+                        )
+                      })
                 else if data.resource.startsWith("forum/") || data.resource.contains("/forum/redirect/post/")
                 then
                   val id = data.resource.split('/').last
@@ -316,9 +312,10 @@ final class Report(env: Env, userC: => User, modC: => Mod) extends LilaControlle
             .get(handle)
             .flatMap:
               case Some(i) =>
-                val permitted = if i.audience.startsWith("msg/") then
-                  env.msg.api.adultParticipants(i.owner, UserId(i.audience.drop(4)))
-                else fuTrue
+                val permitted =
+                  if i.audience.startsWith("msg/") && !lila.msg.MsgGroups.validId(i.audience.drop(4)) then
+                    env.msg.api.adultParticipants(i.owner, UserId(i.audience.drop(4)))
+                  else fuTrue
                 permitted.flatMap:
                   case true =>
                     env.memo.attachments

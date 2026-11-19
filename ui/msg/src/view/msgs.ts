@@ -4,13 +4,16 @@ import { alert, confirm, bind } from 'lib/view';
 import { json as xhrJson, form as xhrForm } from 'lib/xhr';
 
 import type MsgCtrl from '../ctrl';
-import type { Convo, Msg, Daily } from '../interfaces';
+import type { Convo, Msg } from '../interfaces';
 import { messageAttachments, messageLinkPreview } from './attachments';
 import { renderCard } from './cards';
+import { userIcon } from './contact';
 import { enhance, isMoreThanText, expandLpvs } from './enhance';
 import { glyph } from './icons';
+import { playerName } from './identity';
 import { toolbar, showMenu, showDetails, showForward } from './messageActions';
 import { scroller } from './scroller';
+import { messageTimeline, messageTime } from './timeline';
 
 const presses = new WeakMap<EventTarget, { timer: Timeout; x: number; y: number }>();
 function cancelPress(e: Event) {
@@ -46,7 +49,7 @@ export default function renderMsgs(ctrl: MsgCtrl, convo: Convo): VNode {
               i18n.inbox.older,
             )
           : null,
-        ...contentMsgs(ctrl, results ? (ctrl.mailbox.history ?? []) : convo.msgs),
+        ...messageTimeline(results ? (ctrl.mailbox.history ?? []) : convo.msgs, msg => renderMsg(ctrl, msg)),
         ctrl.typing
           ? h(
               'div.msg-typing',
@@ -57,25 +60,6 @@ export default function renderMsgs(ctrl: MsgCtrl, convo: Convo): VNode {
       ]),
     ],
   );
-}
-
-function contentMsgs(ctrl: MsgCtrl, msgs: Msg[]): VNode[] {
-  const dailies = groupMsgs(msgs);
-  const nodes: VNode[] = [];
-  dailies.forEach(daily => nodes.push(...renderDaily(ctrl, daily)));
-  return nodes;
-}
-
-function renderDaily(ctrl: MsgCtrl, daily: Daily): VNode[] {
-  return [
-    h('day', renderDate(daily.date)),
-    ...daily.msgs.map(group =>
-      h(
-        'group',
-        group.map(msg => renderMsg(ctrl, msg)),
-      ),
-    ),
-  ];
 }
 
 function renderMsg(ctrl: MsgCtrl, msg: Msg) {
@@ -146,6 +130,12 @@ function renderMsg(ctrl: MsgCtrl, msg: Msg) {
             on: { click: e => e.stopPropagation(), change: () => ctrl.toggleSelect(msg.id) },
           })
         : null,
+      !mine && ctrl.data.convo?.user.group
+        ? userIcon(
+            author?.id === msg.user ? author : { id: msg.user, name: msg.user, online: false },
+            'msg-author-avatar',
+          )
+        : undefined,
       h('div.msg-bubble-wrap', [
         h('div.msg-bubble', { class: { deleted: !!msg.deleted } }, [
           msg.forwarded && !msg.deleted
@@ -162,14 +152,19 @@ function renderMsg(ctrl: MsgCtrl, msg: Msg) {
                         ?.scrollIntoView({ block: 'center', behavior: 'smooth' }),
                   },
                 },
-                [h('strong', msg.reply.user), h('span', msg.reply.text || i18n.site.mediaFiles)],
+                [
+                  h('strong', [playerName(msg.reply.user)]),
+                  h('span', msg.reply.text || i18n.site.mediaFiles),
+                ],
               )
             : null,
           !msg.deleted && (msg.card?.preview || (!msg.pending && msg.attachments?.length))
             ? renderMedia()
             : null,
           h('div.msg-body', [
-            !mine && ctrl.data.convo?.user.group ? h('strong.msg-author', sender) : undefined,
+            !mine && ctrl.data.convo?.user.group
+              ? h('strong.msg-author', [playerName(msg.user, ctrl.data.names[msg.user])])
+              : undefined,
             renderCard(ctrl, msg),
             msg.deleted
               ? h('t', i18n.inbox.deleted)
@@ -192,11 +187,7 @@ function renderMsg(ctrl: MsgCtrl, msg: Msg) {
                     i18n.inbox.edited,
                   )
                 : null,
-              h(
-                'time',
-                { attrs: { title: msg.date.toLocaleString(), datetime: msg.date.toISOString() } },
-                msg.date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
-              ),
+              messageTime(msg.date),
               mine && !msg.deleted
                 ? h(
                     'span.msg-receipt',
@@ -247,44 +238,6 @@ function renderMsg(ctrl: MsgCtrl, msg: Msg) {
     ],
   );
 }
-
-function groupMsgs(msgs: Msg[]): Daily[] {
-  let prev: Msg = msgs[0];
-  if (!prev) return [{ date: new Date(), msgs: [] }];
-  const dailies: Daily[] = [{ date: prev.date, msgs: [[prev]] }];
-  msgs.slice(1).forEach(msg => {
-    if (sameDay(msg.date, prev.date)) {
-      if (msg.user === prev.user && prev.date.getTime() - msg.date.getTime() < 300000)
-        dailies[0].msgs[0].unshift(msg);
-      else dailies[0].msgs.unshift([msg]);
-    } else dailies.unshift({ date: msg.date, msgs: [[msg]] });
-    prev = msg;
-  });
-  return dailies;
-}
-
-const today = new Date();
-const yesterday = new Date();
-yesterday.setDate(yesterday.getDate() - 1);
-
-function renderDate(date: Date) {
-  if (sameDay(date, today)) return i18n.site.today.toUpperCase();
-  if (sameDay(date, yesterday)) return i18n.site.yesterday.toUpperCase();
-  return renderFullDate(date);
-}
-
-const renderFullDate = (date: Date) => {
-  // Display date using locale culture settings.
-  // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/toLocaleDateString
-  // For example: 2023-03-15
-  // de-DE: "15.3.2023"
-  // us-US: "3/15/2023"
-  const options = { year: 'numeric', month: 'numeric', day: 'numeric' } as const;
-  return date.toLocaleDateString(undefined, options);
-};
-
-const sameDay = (d: Date, e: Date) =>
-  d.getDate() === e.getDate() && d.getMonth() === e.getMonth() && d.getFullYear() === e.getFullYear();
 
 const renderText = (msg: Msg) =>
   isMoreThanText(msg.text) || msg.text.includes('.')

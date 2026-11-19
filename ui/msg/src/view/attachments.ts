@@ -4,6 +4,7 @@ import { json } from 'lib/xhr';
 
 import type { Msg } from '../interfaces';
 import { glyphElement, type Glyph } from './icons';
+import { avatarColor, playerElement } from './identity';
 
 interface Media {
   url: string;
@@ -47,7 +48,7 @@ function modal(root: HTMLElement, label: string) {
 interface MediaContext {
   msg: Msg;
   sender: string;
-  forward(): void;
+  forward?(): void;
 }
 const albums = new WeakMap<HTMLElement, { length: number; open(index: number): void }>();
 
@@ -65,11 +66,11 @@ function gallery(root: HTMLElement, photos: Media[], index: number, context: Med
   dialog.className = 'msg-lightbox';
   const header = document.createElement('header');
   const avatar = document.createElement('span');
-  avatar.className = 'msg-avatar';
+  avatar.className = 'msg-avatar ' + avatarColor(msg.user);
   avatar.textContent = [...name][0]?.toLocaleUpperCase() ?? '';
   const identity = document.createElement('div');
   const sender = document.createElement('strong');
-  sender.textContent = name;
+  sender.append(playerElement(msg.user));
   const date = document.createElement('time');
   date.dateTime = msg.date.toISOString();
   date.textContent = msg.date.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
@@ -79,7 +80,7 @@ function gallery(root: HTMLElement, photos: Media[], index: number, context: Med
     i18n.inbox.forward,
     () => {
       dialog.close();
-      context.forward();
+      context.forward?.();
     },
     'forward',
   );
@@ -164,7 +165,7 @@ function gallery(root: HTMLElement, photos: Media[], index: number, context: Med
     download.title = i18n.site.mediaDownload;
     download.setAttribute('aria-label', download.title);
     download.replaceChildren(glyphElement('download'));
-    actions.replaceChildren(forward, download, close);
+    actions.replaceChildren(...(context.forward ? [forward] : []), download, close);
   }
   dialog.onkeydown = e => {
     if (

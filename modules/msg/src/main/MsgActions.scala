@@ -43,8 +43,19 @@ final class MsgActions(
         case None => fufail(MsgActionError("notFound"))
 
   def visibleMessage(contact: UserId, id: String)(using me: Me): Fu[Option[Msg]] =
-    val scopes = if me.kid.yes then visible(contact) else $or(visible(contact), $doc("tid" -> GlobalChat.id))
-    colls.msg.one[Msg](scopes ++ $id(id) ++ $doc("user" -> contact, "deletedAt".$exists(false)))
+    val scopes = List(visible(contact), $doc("audience" -> me.userId, "del".$ne(me.userId))) ++
+      me.kid.no.option($doc("tid" -> GlobalChat.id))
+    colls.msg
+      .one[Bdoc]($or(scopes*) ++ $id(id) ++ $doc("user" -> contact, "deletedAt".$exists(false)))
+      .flatMap:
+        case None => fuccess(None)
+        case Some(doc) =>
+          val tid = doc.string("tid").get
+          val msg = BsonHandlers.msgHandler.read(doc)
+          if tid == GlobalChat.id then fuccess(Some(msg))
+          else if MsgGroups.validId(tid) then
+            groups.source(tid, id).map(Some(_)).recover { case _: MsgActionError => None }
+          else api.withVisibleMedia(msg, me, contact).map(Some(_))
 
   def history(chat: String, query: String, files: Boolean, before: Option[Long], cursor: String)(using
       me: Me
@@ -132,9 +143,7 @@ final class MsgActions(
             fail[Unit]("unsafeLink")
           else funit
         forwarded <- forwardId.traverse: fid =>
-          forwardUser.fold(fail[Msg]("invalid"))(u =>
-            if MsgGroups.validId(u.value) then groups.source(u.value, fid) else message(u, fid)
-          )
+          forwardUser.fold(fail[Msg]("invalid"))(u => groups.source(u.value, fid))
         _ <- if !forwarded.forall(_.canForward) then fail[Unit]("invalid") else funit
         ids <- forwarded.filter(_.attachments.nonEmpty) match
           case Some(src) if attachmentIds.isEmpty && attachments.enabled("msg") =>

@@ -3,11 +3,11 @@ import { h, type VNode } from 'snabbdom';
 import { hookMobileMousedown } from 'lib/device';
 import { globalChatId } from 'lib/inboxUrl';
 import type { MaybeVNodes } from 'lib/view/snabbdom';
-import { fullName } from 'lib/view/userLink';
 
 import type MsgCtrl from '../ctrl';
 import type { Contact, LastMsg, User } from '../interfaces';
 import { glyph } from './icons';
+import { avatarColor, playerName } from './identity';
 
 export default function renderContact(ctrl: MsgCtrl, contact: Contact, active?: string): VNode {
   const user = contact.user,
@@ -64,12 +64,11 @@ export default function renderContact(ctrl: MsgCtrl, contact: Contact, active?: 
   );
 }
 
-const contactName = (user: User, ctrl: MsgCtrl): MaybeVNodes =>
-  ctrl.data.names[user.id] ? [ctrl.data.names[user.id]] : fullName(user);
+const contactName = (user: User, ctrl: MsgCtrl): MaybeVNodes => [playerName(user, ctrl.data.names[user.id])];
 
 export const userIcon = (user: User, cls: string): VNode =>
   h(
-    'div.msg-avatar.' + cls,
+    'div.msg-avatar.' + cls + '.' + avatarColor(user.id),
     { class: { online: user.online }, attrs: { 'aria-hidden': 'true' } },
     user.group ? [glyph('group')] : ([...user.name][0]?.toLocaleUpperCase() ?? ''),
   );

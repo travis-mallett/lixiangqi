@@ -7,6 +7,7 @@ import type MsgCtrl from '../ctrl';
 import type { User } from '../interfaces';
 import renderContact, { userIcon } from './contact';
 import { glyph, type Glyph } from './icons';
+import { playerName } from './identity';
 import { iconButton } from './messageActions';
 import { renderResults } from './search';
 
@@ -81,7 +82,8 @@ export function sidebar(ctrl: MsgCtrl): VNode[] {
   const setQuery = (v: string) => {
     box.query = v;
     ctrl.redraw();
-    if (list || page === 'username' || page === 'compose') void ctrl.searchInput(v.trim());
+    if (list || page === 'username' || page === 'compose' || page === 'group' || page === 'members')
+      void ctrl.searchInput(v.trim());
   };
   const people = (users: User[], multi: boolean) =>
     users
@@ -96,11 +98,19 @@ export function sidebar(ctrl: MsgCtrl): VNode[] {
           },
           [
             userIcon(u, 'msg-person-avatar'),
-            h('span', u.name),
+            playerName(u),
             multi ? glyph(box.checked.has(u.id) ? 'check' : 'plus') : undefined,
           ],
         ),
       );
+  const res = ctrl.search.result;
+  const searchPeople = res
+    ? [
+        ...new Map(
+          [...res.contacts.map(c => c.user), ...res.friends, ...res.users].map(u => [u.id, u]),
+        ).values(),
+      ]
+    : [];
   const title = {
     chats: t.chats,
     archive: t.viewArchive,
@@ -283,10 +293,13 @@ export function sidebar(ctrl: MsgCtrl): VNode[] {
           : undefined,
         (page === 'compose' && !ctrl.search.result) || page === 'group' || page === 'members'
           ? [
-              h('h2', i18n.site.friends),
+              h('h2', q.length >= 2 ? i18n.site.players : i18n.site.friends),
               ...people(
-                (box.friends ?? []).filter(
-                  u => page !== 'members' || !ctrl.data.convo?.members?.some(m => m.id === u.id),
+                (q.length >= 2 ? searchPeople : (box.friends ?? [])).filter(
+                  u =>
+                    !u.group &&
+                    u.id !== ctrl.data.me.id &&
+                    (page !== 'members' || !ctrl.data.convo?.members?.some(m => m.id === u.id)),
                 ),
                 picker,
               ),

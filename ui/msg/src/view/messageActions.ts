@@ -1,6 +1,5 @@
 import { h, type VNode } from 'snabbdom';
 
-import { globalChatId } from 'lib/inboxUrl';
 import { domDialog, type Dialog } from 'lib/view/dialog';
 
 import type MsgCtrl from '../ctrl';
@@ -9,6 +8,7 @@ import { report } from '../network';
 import * as network from '../network';
 import { downloadAttachments } from './attachments';
 import { glyph, glyphElement, type Glyph } from './icons';
+import { playerElement } from './identity';
 
 export const iconButton = (name: Glyph, label: string, action: () => unknown): VNode =>
   h(
@@ -87,13 +87,11 @@ export function toolbar(ctrl: MsgCtrl, msg: Msg): VNode {
   if (msg.pending === 'failed')
     return h('div.msg-toolbar', [iconButton('more', i18n.inbox.moreActions, () => showMenu(ctrl, msg))]);
   return h('div.msg-toolbar', [
-    msg.deleted || ctrl.global ? undefined : iconButton('reply', i18n.inbox.reply, () => ctrl.compose(msg)),
+    msg.deleted ? undefined : iconButton('reply', i18n.inbox.reply, () => ctrl.compose(msg)),
     !msg.deleted && msg.attachments?.length
       ? iconButton('download', i18n.site.mediaDownload, () => downloadAttachments(msg.id))
       : undefined,
-    msg.deleted || ctrl.global
-      ? undefined
-      : iconButton('react', i18n.inbox.react, () => showMenu(ctrl, msg, true)),
+    msg.deleted ? undefined : iconButton('react', i18n.inbox.react, () => showMenu(ctrl, msg, true)),
     iconButton('more', i18n.inbox.moreActions, () => showMenu(ctrl, msg)),
   ]);
 }
@@ -124,7 +122,7 @@ export async function showMenu(ctrl: MsgCtrl, msg: Msg, reactionsOnly = false) {
     );
     content.append(menu);
   }
-  if (!msg.pending && !msg.deleted && !ctrl.global && (!desktop || reactionsOnly)) {
+  if (!msg.pending && !msg.deleted && (!desktop || reactionsOnly)) {
     const strip = element('div', undefined, 'msg-reaction-strip');
     for (const emoji of ['❤️', '👍', '👎', '😂', '😮', '😢']) {
       const b = button(
@@ -175,14 +173,13 @@ export async function showMenu(ctrl: MsgCtrl, msg: Msg, reactionsOnly = false) {
         ),
       );
     if (!msg.deleted) {
-      if (!ctrl.global)
-        menu.append(
-          button(
-            i18n.inbox.reply,
-            perform(() => ctrl.compose(msg)),
-            'reply',
-          ),
-        );
+      menu.append(
+        button(
+          i18n.inbox.reply,
+          perform(() => ctrl.compose(msg)),
+          'reply',
+        ),
+      );
       if (msg.attachments?.length)
         menu.append(
           button(
@@ -199,7 +196,7 @@ export async function showMenu(ctrl: MsgCtrl, msg: Msg, reactionsOnly = false) {
             'edit',
           ),
         );
-      if (!ctrl.global && !msg.card?.poll)
+      if (!msg.card?.poll)
         menu.append(
           button(
             i18n.inbox.forward,
@@ -216,14 +213,13 @@ export async function showMenu(ctrl: MsgCtrl, msg: Msg, reactionsOnly = false) {
           ),
         );
     }
-    if (!ctrl.global)
-      menu.append(
-        button(
-          i18n.inbox.select,
-          perform(() => ctrl.toggleSelect(msg.id)),
-          'select',
-        ),
-      );
+    menu.append(
+      button(
+        i18n.inbox.select,
+        perform(() => ctrl.toggleSelect(msg.id)),
+        'select',
+      ),
+    );
     menu.append(
       button(
         i18n.inbox.info,
@@ -231,7 +227,7 @@ export async function showMenu(ctrl: MsgCtrl, msg: Msg, reactionsOnly = false) {
         'info',
       ),
     );
-    if (!msg.deleted && !ctrl.global)
+    if (!msg.deleted && (!ctrl.global || ctrl.data.convo?.canModerate))
       menu.append(
         button(
           msg.pinnedAt ? i18n.inbox.unpin : i18n.inbox.pin,
@@ -337,14 +333,20 @@ export async function showDetails(ctrl: MsgCtrl, msg: Msg, history = false) {
     [i18n.inbox.from, msg.user],
     [
       i18n.inbox.to,
-      ctrl.global || msg.user === ctrl.data.me.id ? ctrl.data.convo?.user.name : ctrl.data.me.name,
+      ctrl.data.convo?.user.group || msg.user === ctrl.data.me.id
+        ? ctrl.data.convo?.user.name
+        : ctrl.data.me.name,
     ],
     [i18n.inbox.sentAt, msg.date.toLocaleString()],
     [i18n.inbox.deliveredAt, msg.deliveredAt?.toLocaleString()],
     [i18n.inbox.readAt, msg.readAt?.toLocaleString()],
   ]) {
     if (ctrl.global && (label === i18n.inbox.deliveredAt || label === i18n.inbox.readAt)) continue;
-    list.append(element('dt', label), element('dd', value || i18n.inbox.unknown));
+    const dd = element('dd');
+    if (value && (label === i18n.inbox.from || (label === i18n.inbox.to && !ctrl.data.convo?.user.group)))
+      dd.append(playerElement(value));
+    else dd.textContent = value || i18n.inbox.unknown;
+    list.append(element('dt', label), dd);
   }
   if (!history) content.append(list);
   if (msg.history.length && !msg.deleted) {
@@ -358,6 +360,20 @@ export async function showDetails(ctrl: MsgCtrl, msg: Msg, history = false) {
   await dialog(content, 'msg-details-dialog', i18n.inbox.info);
 }
 
+function canDeleteEveryone(ctrl: MsgCtrl, messages: Msg[]) {
+  return (
+    messages.length > 0 &&
+    messages.every(
+      m =>
+        !m.deleted &&
+        ((ctrl.global && ctrl.data.convo?.canModerate) ||
+          ((m.user === ctrl.data.me.id || ctrl.data.convo?.admins?.includes(ctrl.data.me.id)) &&
+            m.canDeleteUntil &&
+            m.canDeleteUntil > new Date())),
+    )
+  );
+}
+
 export async function showDelete(ctrl: MsgCtrl, messages: Msg[]) {
   const content = element('div');
   content.append(element('h2', i18n.inbox.deleteConfirm));
@@ -368,14 +384,7 @@ export async function showDelete(ctrl: MsgCtrl, messages: Msg[]) {
     ctrl.redraw();
   };
   if (!ctrl.global) content.append(button(i18n.inbox.deleteMe, () => remove('deleteMe'), 'delete'));
-  if (
-    messages.every(
-      m =>
-        !m.deleted &&
-        ((ctrl.global && ctrl.data.convo?.canModerate) ||
-          (m.user === ctrl.data.me.id && m.canDeleteUntil && m.canDeleteUntil > new Date())),
-    )
-  ) {
+  if (canDeleteEveryone(ctrl, messages)) {
     if (!ctrl.data.convo?.canModerate) content.append(element('p', i18n.inbox.deleteEveryoneHelp));
     content.append(button(i18n.inbox.deleteEveryone, () => remove('deleteEveryone'), 'delete'));
   }
@@ -395,18 +404,27 @@ export async function showForward(ctrl: MsgCtrl, messages: Msg[]) {
   const dlg = await dialog(content, 'msg-forward-dialog', i18n.inbox.forward);
   const render = (users: { id: string; name: string }[]) =>
     results.replaceChildren(
-      ...users.map(u =>
-        button(u.name, async () => {
+      ...users.map(u => {
+        const choice = button(u.name, async () => {
           input.disabled = true;
           if (await ctrl.forward(messages, u.id)) dlg.close();
           else {
             input.disabled = false;
             results.append(element('p', i18n.inbox.error));
           }
-        }),
-      ),
+        });
+        choice.replaceChildren(playerElement(u));
+        return choice;
+      }),
     );
-  render(ctrl.data.contacts.filter(c => c.user.id !== globalChatId).map(c => c.user));
+  if (ctrl.compact)
+    void network
+      .loadContacts()
+      .then(data => {
+        if (!input.value) render(data.contacts.map(c => c.user));
+      })
+      .catch(() => {});
+  else render(ctrl.data.contacts.map(c => c.user));
   let timer: Timeout;
   input.addEventListener('input', () => {
     clearTimeout(timer);
@@ -416,11 +434,7 @@ export async function showForward(ctrl: MsgCtrl, messages: Msg[]) {
         const res = await network.search(query);
         if (input.value !== query) return;
         const users = [...res.contacts.map(c => c.user), ...res.friends, ...res.users];
-        render([
-          ...new Map(
-            users.map(u => [u.name.toLowerCase(), { id: u.name.toLowerCase(), name: u.name }]),
-          ).values(),
-        ]);
+        render([...new Map(users.map(u => [u.id, u])).values()]);
       } catch {
         results.textContent = i18n.inbox.error;
       }

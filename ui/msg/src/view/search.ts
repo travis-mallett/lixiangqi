@@ -1,12 +1,12 @@
 import { h, type VNode } from 'snabbdom';
 
 import { hookMobileMousedown } from 'lib/device';
-import { fullName } from 'lib/view/userLink';
 
 import type MsgCtrl from '@/ctrl';
 import type { SearchResult, User } from '@/interfaces';
 
 import renderContacts, { userIcon } from './contact';
+import { playerName } from './identity';
 
 export function renderResults(ctrl: MsgCtrl, res: SearchResult): VNode {
   return h('div.msg-app__search.msg-app__side__content', [
@@ -44,7 +44,7 @@ function renderUser(ctrl: MsgCtrl, user: User): VNode {
     [
       userIcon(user, 'msg-app__side__contact__icon'),
       h('div.msg-app__side__contact__user', [
-        h('div.msg-app__side__contact__head', [h('div.msg-app__side__contact__name', fullName(user))]),
+        h('div.msg-app__side__contact__head', [h('div.msg-app__side__contact__name', [playerName(user)])]),
       ]),
     ],
   );

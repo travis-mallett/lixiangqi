@@ -23,6 +23,7 @@ export default class MsgCtrl {
   connected = () => true;
   readonly msgsPerPage = 100;
   canGetMoreSince?: Date;
+  roomVisible = true;
   canGetMoreContacts = true;
   private readonly typists = new Map<string, Timeout>();
   get typing() {
@@ -56,6 +57,7 @@ export default class MsgCtrl {
   constructor(
     public data: MsgData,
     readonly redraw: Redraw,
+    readonly compact = false,
   ) {
     this.pane = data.convo ? 'convo' : 'side';
     this.connected = network.websocketHandler(this);
@@ -65,11 +67,13 @@ export default class MsgCtrl {
     }
     void this.mailbox.loadCollection();
     setInterval(() => {
-      if (this.global && this.pane === 'convo' && !document.hidden) void network.watchGlobal();
+      if (this.global && this.roomVisible && this.pane === 'convo' && !document.hidden)
+        void network.watchGlobal();
     }, 45000);
     window.addEventListener('focus', this.setRead);
     document.addEventListener('visibilitychange', () => {
-      if (!document.hidden && this.global && this.pane === 'convo') void this.openConvo(globalChatId, true);
+      if (!document.hidden && this.global && this.roomVisible && this.pane === 'convo')
+        void this.openConvo(globalChatId, true);
       else this.setRead();
     });
   }
@@ -79,6 +83,10 @@ export default class MsgCtrl {
   }
 
   openConvo = async (userId: string, refresh = false) => {
+    if (this.compact && userId !== globalChatId) {
+      location.assign(chatPath(userId));
+      return;
+    }
     if (refresh && this.data.convo?.user.id !== userId) return;
     if (!refresh) {
       scroller.followNewest();
@@ -102,7 +110,7 @@ export default class MsgCtrl {
     const changes = new Map<string, { msg?: Msg; isNew?: boolean }>();
     this.duringFetch.set(userId, changes);
     try {
-      const data = await network.loadConvo(userId);
+      const data = await network.loadConvo(userId, this.compact);
       if (generation !== this.generation || this.removedThreads.has(userId)) return;
       if (events === this.eventGeneration) {
         this.data.contacts = data.contacts;
@@ -140,11 +148,12 @@ export default class MsgCtrl {
       this.search.result = undefined;
       if (data.convo) {
         this.conversations.set(userId, data.convo);
-        history.replaceState(
-          { contact: userId },
-          '',
-          chatPath(data.convo.user.group ? userId : data.convo.user.name),
-        );
+        if (!this.compact)
+          history.replaceState(
+            { contact: userId },
+            '',
+            chatPath(data.convo.user.group ? userId : data.convo.user.name),
+          );
         if (refresh) {
           this.acknowledge(data.convo, false);
           requestAnimationFrame(this.setRead);
@@ -204,7 +213,7 @@ export default class MsgCtrl {
 
   private onLoadConvo(convo: Convo) {
     let attachments = this.attachmentDrafts.get(convo.user.id);
-    if (!attachments && convo.user.id !== globalChatId) {
+    if (!attachments) {
       attachments = new AttachmentDraft(
         'msg',
         convo.user.id,
@@ -219,7 +228,7 @@ export default class MsgCtrl {
     this.submissionError = '';
     this.textStore = storage.make(`msg:area:${this.data.me.id}:${convo.user.id}`);
     this.draft = this.textStore.get() || '';
-    if (!this.global) this.preview.update(this.draft);
+    this.preview.update(this.draft);
     this.canGetMoreSince = convo.msgs[this.msgsPerPage - 1]?.date;
     for (const timeout of this.typists.values()) clearTimeout(timeout);
     this.typists.clear();
@@ -229,9 +238,9 @@ export default class MsgCtrl {
 
   updateDraft = (text: string) => {
     this.draft = text;
-    if (!this.global) this.preview.update(text);
+    this.preview.update(text);
     if (!this.editing) this.textStore?.set(text);
-    if (text.trim() && !this.global) this.sendTyping();
+    if (text.trim()) this.sendTyping();
     else this.stopTyping();
     this.redraw();
   };
@@ -239,7 +248,7 @@ export default class MsgCtrl {
   compose = (msg: Msg, edit = false) => {
     this.preview.reset();
     if (this.editing) this.cancelCompose();
-    if (edit && this.data.convo && !this.global)
+    if (edit && this.data.convo)
       this.attachments = new AttachmentDraft(
         'msg',
         this.data.convo.user.id,
@@ -435,6 +444,7 @@ export default class MsgCtrl {
       else if (kind === 'new') {
         convo.msgs.push(msg);
         convo.msgs.sort((a, b) => Number(b.date) - Number(a.date));
+        if (this.compact && convo.msgs.length > this.msgsPerPage) convo.msgs.length = this.msgsPerPage;
       }
       convo.pinned = convo.pinned.filter(m => m.id !== msg.id);
       if (msg.pinnedAt && !msg.deleted) convo.pinned.unshift(msg);
@@ -446,7 +456,7 @@ export default class MsgCtrl {
     if (contact && ((kind === 'new' && msg.date >= contact.lastMsg.date) || contact.lastMsg.id === msg.id)) {
       contact.lastMsg = { ...msg, read: !!msg.readAt || !!msg.deleted };
       if (kind === 'new') this.data.contacts = [contact, ...this.data.contacts.filter(c => c !== contact)];
-    } else if (!contact && kind === 'new') void this.refreshContacts();
+    } else if (!this.compact && !contact && kind === 'new') void this.refreshContacts();
     if (user === this.data.convo?.user.id) {
       this.receiveTyping(user, true, msg.user);
       requestAnimationFrame(this.setRead);
@@ -590,19 +600,22 @@ export default class MsgCtrl {
     const visible = new Set<string>();
     document.querySelectorAll<HTMLElement>('[data-message-id]').forEach(el => {
       const rect = el.getBoundingClientRect();
-      if (rect.bottom > viewport.top && rect.top < viewport.bottom) visible.add(el.dataset.messageId!);
+      if (rect.bottom > Math.max(0, viewport.top) && rect.top < Math.min(window.innerHeight, viewport.bottom))
+        visible.add(el.dataset.messageId!);
     });
     this.acknowledge(convo, true, visible);
   };
 
   searchInput = async (q: string) => {
-    this.search.input = q;
+    this.search = { input: q };
     if (q.length < 2) {
       this.search.result = undefined;
       this.redraw();
       return;
     }
     try {
+      await new Promise(resolve => setTimeout(resolve, 160));
+      if (this.search.input !== q) return;
       const result = await network.search(q);
       if (this.search.input === q) this.search.result = result;
     } catch {
@@ -612,6 +625,7 @@ export default class MsgCtrl {
   };
 
   refreshContacts = async () => {
+    if (this.compact) return;
     const events = this.eventGeneration;
     try {
       const data = await network.loadContacts();
@@ -697,7 +711,7 @@ export default class MsgCtrl {
   });
   stopTyping = () => {
     const user = this.data.convo?.user.id;
-    if (user && !this.global) void network.typing(user, false).catch(() => {});
+    if (user) void network.typing(user, false).catch(() => {});
   };
   receiveTyping = (user: string, cancel = false, sender = user) => {
     if (user !== this.data.convo?.user.id) return;

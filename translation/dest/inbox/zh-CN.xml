@@ -129,4 +129,11 @@
   <string name="shareContact">分享联系人</string>
   <string name="linkPreviews">生成链接预览</string>
   <string name="removePreview">移除链接预览</string>
+  <string name="report">举报</string>
+  <string name="groupLink">群组链接</string>
+  <string name="requireApproval">需要管理员批准</string>
+  <string name="requestSent">请求已发送</string>
+  <string name="resetLink">重置链接</string>
+  <string name="disableLink">关闭链接</string>
+  <string name="adminAddOnly">仅管理员可以添加成员</string>
 </resources>

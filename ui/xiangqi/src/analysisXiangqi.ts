@@ -100,6 +100,7 @@ interface MoveResponse extends RulesState {
 
 export interface AnalysisBootstrap extends BoardPreferences {
   gameId?: string;
+  engineAllowed?: boolean;
   variant?: 'xiangqi' | 'jieqi' | 'minixiangqi' | 'manchu';
   ruleset?: string;
   title?: string;
@@ -238,6 +239,13 @@ export default function init(bootstrap: AnalysisBootstrap = {}): void {
 if (!('site' in window)) init();
 
 async function main(bootstrap: AnalysisBootstrap): Promise<void> {
+  const engineAllowed = bootstrap.engineAllowed !== false;
+  if (!engineAllowed) {
+    engineEnabledElement.checked = false;
+    engineEnabledElement.disabled = true;
+    engineSettingsButton.disabled = true;
+    analyseLineButton.disabled = true;
+  }
   const handoff = readAnalysisUrl(location.hash);
   const orientation = handoff?.orientation ?? bootstrap.orientation ?? 'red';
 
@@ -688,7 +696,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     engineProgressDepth = node.evaluation?.depth ?? 0;
     renderEngineProgress();
 
-    if (engineEnabledElement.checked && state.gameResult === '*') {
+    if (engineAllowed && engineEnabledElement.checked && state.gameResult === '*') {
       if (engineSettings.useCloud && state.variant === 'xiangqi') {
         engineStatusElement.textContent = i18n.site.cloudAnalysis;
         const cloud = await analysisCloud.get(position, explorerController.signal);
@@ -1055,6 +1063,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
   }
 
   async function analyseCurrentLine(): Promise<void> {
+    if (!engineAllowed) return;
     if (lineController) {
       lineController.abort();
       return;

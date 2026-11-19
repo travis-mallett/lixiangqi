@@ -80,7 +80,7 @@ def verify_global_chat(site):
     message = post(alice, f"Hello @{bob} and @{quiet}")
     followup = post(alice, "Everyone can read this.")
     assert site.json(preview)["msgs"][0]["id"] == followup["id"]
-    assert set(site.json(preview)["msgs"][0]) == {"id", "date", "user", "text"}
+    assert not {"audience", "history", "requestDigest", "reads"} & site.json(preview)["msgs"][0].keys()
     note = {"content.messageId": message["id"]}
     expected = {bob, subscriber}
     deadline = time.monotonic() + 15
@@ -110,6 +110,34 @@ def verify_global_chat(site):
     edit(alice, followup, "deleteEveryone")
     assert all(m["id"] != current["id"] for m in site.json(preview)["msgs"])
     assert site.db.msg_msg.find_one({"_id": current["id"]})["deletedAt"]
+
+    from worker import now
+    site.db.ugc_scanner.update_one({"_id": "worker"}, {"$set": {"at": now()}})
+    media = "/attachment/msg/" + room
+    assert site.json(media + "/policy", bob)["enabled"]
+    handle = site.json(media + "/upload", bob, data=b"Global notes", name="notes.txt", status=201)["id"]
+    site.call("/attachment/msg/item/" + handle, status=404)
+    site.screen_document()
+    payload = {"text": "", "attachments": handle, "nonce": uuid.uuid4().hex, "replyTo": active_read["id"]}
+    rich = site.json(path, bob, payload)["msg"]
+    assert rich["reply"]["id"] == active_read["id"] and rich["attachments"] == [handle]
+    assert site.json(path, bob, payload)["msg"]["id"] == rich["id"]
+    assert site.call("/attachment/msg/item/" + handle)[0] == b"Global notes"
+    copy = site.json("/inbox/" + alice, quiet, {
+        "text": "", "forwardUser": room, "forwardId": rich["id"], "nonce": uuid.uuid4().hex,
+    })["msg"]
+    assert copy["forwarded"] and copy["attachments"] != [handle]
+    site.call("/attachment/msg/item/" + copy["attachments"][0], status=404)
+    forwarded = site.json(path, alice, {
+        "text": "", "forwardUser": quiet, "forwardId": copy["id"], "nonce": uuid.uuid4().hex,
+    })["msg"]
+    assert site.call("/attachment/msg/item/" + forwarded["attachments"][0])[0] == b"Global notes"
+    edit(quiet, rich, "react", "👍")
+    assert next(m for m in site.json(preview)["msgs"] if m["id"] == rich["id"])["reactions"] == {"👍": 1}
+    assert [handle] in [m["attachments"] for m in site.json("/inbox/history/" + room + "?files=true", quiet)["msgs"]]
+    updated = next(m for m in site.json(path, bob)["convo"]["msgs"] if m["id"] == rich["id"])
+    edit(bob, updated, "deleteEveryone")
+    site.call("/attachment/msg/item/" + handle, status=404)
 
     for n in range(13):
         post(alice, f"Post {n}" if n < 12 else "Long text " * 100)

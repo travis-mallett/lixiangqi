@@ -73,6 +73,10 @@ export interface Convo {
   canModerate?: boolean;
   members?: User[];
   admins?: string[];
+  inviteToken?: string;
+  approval?: boolean;
+  adminAddOnly?: boolean;
+  requests?: string[];
   description?: string;
   user: User;
   msgs: Msg[];
@@ -90,11 +94,6 @@ export interface ModDetails {
 export interface Relations {
   in?: boolean;
   out?: boolean;
-}
-
-export interface Daily {
-  date: Date;
-  msgs: Msg[][];
 }
 
 export interface Search {

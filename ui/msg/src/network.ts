@@ -10,8 +10,8 @@ export const watchGlobal = () =>
     () => {},
   );
 
-export async function loadConvo(userId: string): Promise<MsgData> {
-  const d = await json(chatPath(userId));
+export async function loadConvo(userId: string, compact = false): Promise<MsgData> {
+  const d = await json(chatPath(userId) + (compact ? '?compact=1' : ''));
   return upgradeData(d);
 }
 

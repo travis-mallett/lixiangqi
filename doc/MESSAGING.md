@@ -11,7 +11,7 @@ private-chat scope and is not a consumer of these features.
 
 ## Global Chat and message alerts
 
-Global Chat is a public text room pinned first in the main web and mobile inboxes.
+Global Chat is a public room for messages, files, media, polls and contacts pinned first in the main web and mobile inboxes.
 It uses the standard account and public-chat moderation rules. Authors have the
 usual 24-hour editing and deletion window. A moderator with the chat-timeout
 permission can remove any post, including older posts. Public edits and deletions
@@ -30,8 +30,7 @@ remain visible in the inbox even when their notifications are muted.
 
 The public homepage preview loads when the card enters the viewport. It displays
 up to 12 recent excerpts of 320 characters, refreshes while visible, and supports
-conditional requests. Signed-in players can post from the card or open full
-history in the inbox. Anonymous visitors can read. The authenticated inbox
+conditional requests. Signed-in players use the inbox conversation and composer directly in the card, including replies, reactions and scanned attachments. Its initial query loads the newest 12 messages. The card can open full history in the inbox. Anonymous visitors can read. The authenticated inbox
 requests history in pages of 100 and subscribes to room updates while open.
 
 Deploy the matching website backend and assets before the mobile update. The
@@ -147,7 +146,10 @@ For native background alerts, set the server environment variable `LIXIANGQI_INB
 
 ## Chats, groups and organization
 
-New chat offers friends, username lookup and group creation. A group has a stable identifier beginning with `~`, a name, an optional description and up to 32 members. Administrators can rename the group, edit its description, invite or remove members and manage administrator roles. When the last administrator leaves, a remaining member takes that role. Blocking a group leaves it and prevents reinvitation. Deleting a group chat removes that member's local history from view. Existing direct threads keep their identifiers and data.
+New chat offers friends, username lookup and group creation. A group has a stable identifier beginning with `~`, a name, an optional description and up to 32 members. The creator is its first administrator. New groups let members add eligible accounts found through site-wide username search. Administrators can restrict adding to administrators, change the name and description, remove members, grant or revoke administrator roles, and delete any member’s message within 24 hours of sending. Existing groups retain their prior administrator-only invitation setting until an administrator changes it.
+
+Invite links start disabled. Administrators can enable, reset or disable a link and optionally require approval. Following a link shows a confirmation before joining or requesting access. Removed or blocked accounts cannot rejoin through that link. A new member sees messages addressed to them after joining. Adult members can publish screened attachments in groups that include kid accounts. Kid accounts can read those group attachments but cannot upload their own. Direct chat retains its separate recipient restrictions.
+When the last administrator leaves, a remaining member takes that role. Blocking a group leaves it and prevents reinvitation. Deleting a group chat removes that member's local history from view. Existing direct threads keep their identifiers and data.
 
 Each group message records its original audience. New members see messages sent after they join. Account eligibility, message visibility, membership, and media authorization apply to history, attachments and forwarding. Group media commits fence membership and account changes inside MongoDB transactions. A group sender sees a read receipt when every original recipient has read the message. Muted groups can still notify a member who is mentioned. The member can turn that option off in group settings.
 
@@ -196,7 +198,7 @@ receipts, legacy previews and recoverable deletion. The server workflow supplies
 MongoDB 8.2 and enables this suite. Gateway `MobilePlayAuthTest` checks scope and
 both incoming and outgoing event restrictions.
 
-The staged HTTP regression creates a group from mutual friends, promotes an administrator, delivers a mention in a muted group, and follows the receipt and archive state across accounts. It also registers a Firebase installation and verifies removal on token revocation. The feature-specific verification for the November 18 website and mobile working trees is recorded in [the reconciliation receipt](MESSAGING_RECONCILIATION.json).
+The staged HTTP regression creates a group including a non-friend, promotes an administrator, delivers a mention in a muted group, and follows the receipt and archive state across accounts. It also registers a Firebase installation and verifies removal on token revocation. The feature-specific verification for the November 18 website and mobile working trees is recorded in [the reconciliation receipt](MESSAGING_RECONCILIATION.json).
 
 `tests/inbox.spec.ts` runs the real browser controller/views against an isolated
 HTTP fixture: 320/768/1440px layout, typing, replies, edits/history, reactions and

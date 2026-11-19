@@ -3,6 +3,7 @@ import { h, type VNode } from 'snabbdom';
 import type MsgCtrl from '../ctrl';
 import type { User } from '../interfaces';
 import { glyph } from './icons';
+import { playerName } from './identity';
 import { iconButton, showEmoji } from './messageActions';
 
 // The Signal Desktop scroller is 30–70px inside a 1px border, with 6px block insets.
@@ -37,7 +38,7 @@ export default function renderInteract(ctrl: MsgCtrl, _user: User): VNode {
       h('div.msg-compose-context', [
         glyph(ctrl.editing ? 'edit' : 'reply'),
         h('div', [
-          h('strong', ctrl.editing ? i18n.inbox.editing : context.user),
+          h('strong', ctrl.editing ? i18n.inbox.editing : [playerName(context.user)]),
           h('p', context.text || i18n.site.mediaFiles),
         ]),
         iconButton('close', i18n.inbox.cancel, () => {
@@ -56,6 +57,7 @@ export default function renderInteract(ctrl: MsgCtrl, _user: User): VNode {
               h(
                 'button',
                 {
+                  attrs: { 'aria-label': '@' + u.name },
                   on: {
                     mousedown: e => e.preventDefault(),
                     click: () => {
@@ -66,7 +68,7 @@ export default function renderInteract(ctrl: MsgCtrl, _user: User): VNode {
                     },
                   },
                 },
-                '@' + u.name,
+                ['@', playerName(u)],
               ),
             ),
         )

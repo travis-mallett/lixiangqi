@@ -53,9 +53,9 @@ final class Env(
 
   val api: MsgApi = wire[MsgApi]
 
-  val globalChat = wire[GlobalChat]
-
   val groups = wire[MsgGroups]
+
+  val globalChat = wire[GlobalChat]
 
   val actions = wire[MsgActions]
 
@@ -85,6 +85,7 @@ final class Env(
 
   Bus.sub[lila.core.user.SetKidMode]: change =>
     if change.user.kid.yes then
+      globalChat.unwatch(change.user.id)
       groups.revokeMedia(change.user.id)
       attachments
         .privateContacts(change.user.id)

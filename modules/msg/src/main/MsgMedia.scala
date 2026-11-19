@@ -28,22 +28,19 @@ private final class MsgMedia(
 
   def audience(doc: Bdoc): List[UserId] = doc.getAsOpt[List[UserId]]("audience").getOrElse(Nil)
 
-  /** Evaluate account and block changes once per page, including media sent before a member left. */
+  /** Apply current blocks and the original audience once per page. Kid status limits group uploads. */
   def visibleGroupMedia(docs: List[Bdoc], viewer: UserId): Fu[Set[String]] =
     val withMedia = docs.filter(_.getAsOpt[List[String]]("attachments").exists(_.nonEmpty))
     if withMedia.isEmpty then fuccess(Set.empty[String])
     else
-      val participants = withMedia.flatMap(audience).distinct
       val authors = withMedia.flatMap(_.getAsOpt[UserId]("user")).distinct
       for
-        active <- contacts.mediaUsers(participants)
         blocked <- relation.filterBlocked(viewer, authors)
         blocking <- relation.filterBlocking(authors, viewer)
       yield withMedia
         .filter { d =>
           val ids = audience(d)
-          ids.contains(viewer) && ids
-            .forall(active) && d.getAsOpt[UserId]("user").exists(a => !blocked(a) && !blocking(a))
+          ids.contains(viewer) && d.getAsOpt[UserId]("user").exists(a => !blocked(a) && !blocking(a))
         }
         .flatMap(_.string("_id"))
         .toSet
@@ -51,14 +48,24 @@ private final class MsgMedia(
   private def access(actor: UserId, chat: String, source: Msg): Fu[(String, List[UserId])] =
     val doc =
       $id(source.id) ++ $doc("del".$ne(actor), "deletedAt".$exists(false), "revision" -> source.revision)
-    if MsgGroups.validId(chat) then
+    if chat == GlobalChat.id then
+      for
+        adults <- contacts.adultIds(List(actor))
+        exists <- colls.msg.exists(
+          doc ++ $doc("tid" -> chat, "user" -> source.user, "attachments" -> source.attachments)
+        )
+        _ <-
+          if adults(actor) && exists then funit
+          else fufail[Unit](SubmissionRejected("attachmentsUnavailable"))
+      yield chat -> List(actor)
+    else if MsgGroups.validId(chat) then
       for
         member <- colls.group.exists($id(chat) ++ $doc("users" -> actor))
         record <- colls.msg.one[Bdoc](doc ++ $doc("tid" -> chat, "audience" -> actor))
         visible <- visibleGroupMedia(record.toList, actor)
         _ <-
           if member && visible(source.id) then funit else fufail(SubmissionRejected("attachmentsUnavailable"))
-      yield chat -> record.toList.flatMap(audience)
+      yield chat -> List(actor)
     else
       val peer = UserId(chat)
       val recipient = source.recipient(actor, peer)
@@ -86,7 +93,7 @@ private final class MsgMedia(
     for
       pair <- access(actor, from, source)
       _ <- contacts.guardMedia(tx, pair._2)
-      _ <- isGroup.so(
+      _ <- (isGroup && from != GlobalChat.id).so(
         rooms.update
           .one($id(from) ++ $doc("users" -> actor), $inc("serial" -> 1))
           .flatMap(r => requireMatch(r.n == 1))
@@ -99,7 +106,7 @@ private final class MsgMedia(
           "del".$ne(actor),
           "deletedAt".$exists(false)
         ) ++
-          (if isGroup then $doc("audience" -> actor) else $empty),
+          (if isGroup && from != GlobalChat.id then $doc("audience" -> actor) else $empty),
         $inc("mediaForwardRevision" -> 1)
       )
       _ <- requireMatch(result.n == 1)

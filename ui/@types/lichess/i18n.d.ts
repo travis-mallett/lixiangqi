@@ -1487,6 +1487,8 @@ interface I18n {
     addFolder: string;
     /** Add members */
     addMembers: string;
+    /** Only admins can add members */
+    adminAddOnly: string;
     /** All chats */
     allChats: string;
     /** All media */
@@ -1533,6 +1535,8 @@ interface I18n {
     delivered: string;
     /** Delivered */
     deliveredAt: string;
+    /** Turn off link */
+    disableLink: string;
     /** Done */
     done: string;
     /** Edit */
@@ -1575,6 +1579,8 @@ interface I18n {
     groupAdmin: string;
     /** Group description */
     groupDescription: string;
+    /** Group link */
+    groupLink: string;
     /** Group name */
     groupName: string;
     /** Group settings */
@@ -1685,6 +1691,14 @@ interface I18n {
     removePreview: string;
     /** Reply */
     reply: string;
+    /** Report */
+    report: string;
+    /** Request sent */
+    requestSent: string;
+    /** Require admin approval */
+    requireApproval: string;
+    /** Reset link */
+    resetLink: string;
     /** Retry */
     retry: string;
     /** Save */

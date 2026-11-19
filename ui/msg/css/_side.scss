@@ -250,9 +250,10 @@
   border-radius: 8px;
 }
 
-.msg-menu-row:hover,
-.msg-person:hover {
-  background: $c-bg-zebra2;
+.msg-dropdown .msg-menu-row:is(:hover, :focus-visible),
+.msg-person:is(:hover, :focus-visible) {
+  background: var(--msg-selected);
+  color: $c-font-clear;
 }
 
 .msg-dropdown .msg-menu-row {
@@ -371,4 +372,90 @@
     border: 0;
     padding: 5px;
   }
+}
+
+// Signal Desktop Axo avatar foreground/background pairs.
+.msg-avatar-0 {
+  background: #e3e3fe;
+  color: #3838f5;
+}
+
+.msg-avatar-1 {
+  background: #dde7fc;
+  color: #1251d3;
+}
+
+.msg-avatar-2 {
+  background: #d8e8f0;
+  color: #086da0;
+}
+
+.msg-avatar-3 {
+  background: #cde4cd;
+  color: #067906;
+}
+
+.msg-avatar-4 {
+  background: #eae0fd;
+  color: #661aff;
+}
+
+.msg-avatar-5 {
+  background: #f5e3fe;
+  color: #9f00f0;
+}
+
+.msg-avatar-6 {
+  background: #f6d8ec;
+  color: #b8057c;
+}
+
+.msg-avatar-7 {
+  background: #f5d7d7;
+  color: #be0404;
+}
+
+.msg-avatar-8 {
+  background: #fef5d0;
+  color: #836b01;
+}
+
+.msg-avatar-9 {
+  background: #eae6d5;
+  color: #7d6f40;
+}
+
+.msg-avatar-10 {
+  background: #d2d2dc;
+  color: #4f4f6d;
+}
+
+.msg-avatar-11 {
+  background: #d7d7d9;
+  color: #5c5c5c;
+}
+
+.msg-avatar.msg-author-avatar,
+.msg-author-avatar-space {
+  flex: 0 0 28px;
+}
+
+.msg-avatar.msg-author-avatar {
+  align-self: flex-end;
+  height: 28px;
+  margin: 0;
+  font-size: 14px;
+}
+
+.msg-player .line,
+.msg-player img {
+  margin-inline: 0.15em;
+  vertical-align: middle;
+}
+
+.msg-player img.uflair,
+.msg-player img.flag {
+  height: 1em;
+  width: auto;
+  border-radius: 0;
 }

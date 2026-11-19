@@ -30,6 +30,7 @@ final class Attachment(env: Env) extends LilaController(env):
 
   private def messageAudience(dest: String)(using Me): Fu[Boolean] =
     if dest.length > 150 then fuFalse
+    else if dest == lila.msg.GlobalChat.id then fuccess(env.msg.globalChat.mediaAllowed)
     else if lila.msg.MsgGroups.validId(dest) then env.msg.groups.mediaAllowed(dest)
     else env.msg.api.mediaAllowed(summon[Me], UserId(dest))
 
@@ -161,6 +162,8 @@ final class Attachment(env: Env) extends LilaController(env):
 
   private def readable(i: Item, parent: String)(using ctx: Context): Fu[Boolean] =
     i.audience.split("/") match
+      case Array("msg", dest) if dest == lila.msg.GlobalChat.id =>
+        ctx.kid.no.so(env.msg.globalChat.canReadAttachment(parent, i.owner, i.id))
       case Array("msg", dest) =>
         ctx.me.soUse: me ?=>
           if lila.msg.MsgGroups.validId(dest) then

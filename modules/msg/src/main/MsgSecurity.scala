@@ -56,14 +56,15 @@ final private class MsgSecurity(
         rawText: String,
         isNew: Boolean,
         unlimited: Boolean = false,
-        hasAttachments: Boolean = false
+        hasAttachments: Boolean = false,
+        inGroup: Boolean = false
     ): Fu[Verdict] =
       val text = rawText.trim
       if text.isEmpty && !hasAttachments then fuccess(Invalid)
       else if contacts.orig.isLichess && !contacts.dest.isLichess then fuccess(Ok)
       else
         may
-          .post(contacts, isNew)
+          .post(contacts, isNew, inGroup)
           .flatMap:
             case false => fuccess(Block)
             case _ =>
@@ -142,7 +143,7 @@ final private class MsgSecurity(
     def post(orig: UserId, dest: UserId, isNew: Boolean): Fu[Boolean] =
       contactApi.contacts(orig, dest).flatMapz { post(_, isNew) }
 
-    def post(contacts: Contacts, isNew: Boolean): Fu[Boolean] =
+    def post(contacts: Contacts, isNew: Boolean, inGroup: Boolean = false): Fu[Boolean] =
       (
         !contacts.dest.isLichess &&
           (!contacts.any(_.marks.exists(_.isolate)) ||
@@ -150,7 +151,8 @@ final private class MsgSecurity(
       ).so:
         fuccess(contacts.orig.isGranted(_.PublicMod)) >>| {
           relationApi.fetchBlocks(contacts.dest.id, contacts.orig.id).not >>&
-            (create(contacts) >>| reply(contacts)) >>&
+            (if inGroup then relationApi.fetchBlocks(contacts.orig.id, contacts.dest.id).not else fuTrue) >>&
+            (if inGroup then fuTrue else create(contacts) >>| reply(contacts)) >>&
             kidCheck(contacts, isNew) >>&
             userCache.getBotIds.map { botIds => !contacts.userIds.exists(botIds.contains) }
         }

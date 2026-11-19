@@ -900,6 +900,13 @@ object I18nKey:
     val `shareContact`: I18nKey = "inbox:shareContact"
     val `addEmoji`: I18nKey = "inbox:addEmoji"
     val `removePreview`: I18nKey = "inbox:removePreview"
+    val `report`: I18nKey = "inbox:report"
+    val `groupLink`: I18nKey = "inbox:groupLink"
+    val `requireApproval`: I18nKey = "inbox:requireApproval"
+    val `requestSent`: I18nKey = "inbox:requestSent"
+    val `resetLink`: I18nKey = "inbox:resetLink"
+    val `disableLink`: I18nKey = "inbox:disableLink"
+    val `adminAddOnly`: I18nKey = "inbox:adminAddOnly"
 
   object insight:
     val `xChessInsights`: I18nKey = "insight:xChessInsights"

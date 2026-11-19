@@ -25,7 +25,7 @@ const translations = Object.fromEntries(
 
 test.beforeAll(async () => {
   const manifest = JSON.parse(readFileSync('public/compiled/manifest.json', 'utf8'));
-  const css = ['lib.theme.all', 'site', 'msg', 'bits.dialog']
+  const css = ['lib.theme.all', 'site', 'lobby', 'msg', 'bits.dialog']
     .map(name => readFileSync(`public/css/${name}.${manifest.css[name]}.css`, 'utf8').replace(/^\uFEFF/, ''))
     .join('\n');
   script = (
@@ -37,7 +37,8 @@ test.beforeAll(async () => {
     import { pubsub } from './ui/lib/src/pubsub';
     pubsub.complete('polyfill.dialog');
     window.inboxEvent = (type, data) => pubsub.emit('socket.in.' + type, data);
-    initModule({ data: window.fixture });
+    const card = document.querySelector('.lobby__global-chat__room');
+    initModule(card ? { card } : { data: window.fixture });
   `,
       },
       bundle: true,
@@ -93,7 +94,21 @@ test('Global Chat precedes other pins and offers only public moderation and noti
   const actions = page.getByRole('dialog');
   await expect(actions.getByRole('button', { name: 'Delete message', exact: true })).toBeVisible();
   await expect(actions.getByRole('button', { name: translations.inbox.edit, exact: true })).toHaveCount(0);
-  await expect(actions.getByRole('button', { name: 'Reply', exact: true })).toHaveCount(0);
+  await expect(actions.getByRole('button', { name: 'Reply', exact: true })).toBeVisible();
+});
+
+test('chat menu links and buttons share the same hover highlight', async ({ page }) => {
+  await inbox(page, 1100);
+  await page.locator('.msg-app__convo__head summary').click();
+  const menu = page.locator('.msg-app__convo__head .msg-dropdown');
+  const report = menu.getByRole('link', { name: 'Report', exact: true });
+  const mute = menu.getByRole('button', { name: 'Mute notifications' });
+  await report.hover();
+  const color = await report.evaluate(el => window.getComputedStyle(el).backgroundColor);
+  expect(color).not.toBe('rgba(0, 0, 0, 0)');
+  await mute.hover();
+  await expect(mute).toHaveCSS('background-color', color);
+  await expect(report).not.toHaveCSS('background-color', color);
 });
 
 test('a signed-in page acknowledges offline and live deliveries without opening the inbox', async ({
@@ -157,6 +172,7 @@ async function inbox(
   legacyPreview = false,
   attachments?: string[],
   publicRoom = false,
+  card?: 'auth' | 'guest',
 ) {
   await page.setViewportSize({ width, height: 850 });
   const errors: string[] = [];
@@ -230,6 +246,17 @@ async function inbox(
       pinned: messages.filter(m => m.pinnedAt),
     },
   });
+  await page.route('**/api/users', route =>
+    route.fulfill({
+      json: (route.request().postData() ?? '').split(',').map(id => ({
+        id,
+        username: id.charAt(0).toUpperCase() + id.slice(1),
+        ...(id === 'alice'
+          ? { patron: true, patronColor: 2, profile: { flag: 'cn' }, perfs: { xiangqi: { rank: '5d' } } }
+          : {}),
+      })),
+    }),
+  );
   const requests: { path: string; fields: Record<string, string> }[] = [];
   await page.route(
     url => url.pathname === '/inbox' || url.pathname.startsWith('/inbox/'),
@@ -244,7 +271,21 @@ async function inbox(
       );
       requests.push({ path, fields });
       let result: any = data();
-      if (path === '/inbox/contacts/friends') result = { friends: [{ name: 'Alice' }, { name: 'Bob' }] };
+      if (path === '/inbox/public/global') {
+        const followup = {
+          ...messages[1],
+          id: 'followup',
+          text: 'Thanks for suggesting this feature.',
+          date: now - 1500,
+        };
+        result = {
+          msgs: [messages[0], followup, messages[1]].map(m => ({
+            ...m,
+            reactions: m.id === 'mine' ? { '👍': 2 } : {},
+          })),
+        };
+      } else if (path === '/inbox/contacts/friends')
+        result = { friends: [{ name: 'Alice' }, { name: 'Bob' }] };
       else if (path === '/inbox/groups/create') {
         group = { id: groupId, name: fields.name, group: true };
         result = { id: groupId };
@@ -320,8 +361,10 @@ async function inbox(
       else if (path === '/inbox/bob' && request.method() === 'GET') {
         result.convo.user = { name: 'Bob', online: false };
         result.convo.msgs = [];
-      } else if (path.endsWith('/search')) result = { contacts: [], friends: [], users: [{ name: 'Bob' }] };
-      else if (request.method() === 'POST') {
+      } else if (path.endsWith('/search')) {
+        const q = new URL(request.url()).searchParams.get('q')?.toLowerCase();
+        result = { contacts: [], friends: [], users: [{ name: q === 'che' ? 'Chen' : 'Bob' }] };
+      } else if (request.method() === 'POST') {
         const reply = messages.find(m => m.id === fields.replyTo);
         const msg = {
           id: `me_${fields.nonce}`,
@@ -382,11 +425,109 @@ async function inbox(
     },
     { translations, data: data() },
   );
+  if (card)
+    await page.evaluate(auth => {
+      const host = document.querySelector('main')!;
+      host.className = 'lobby';
+      host.innerHTML =
+        '<div class="lobby__center-rail"><section class="lobby__global-chat lobby__rail-card"><h2 class="lobby__rail-title">LiXiangQi Global Chat</h2><div class="lobby__global-chat__room"></div></section></div>';
+      const room = host.querySelector<HTMLElement>('.lobby__global-chat__room')!;
+      room.dataset.auth = String(auth);
+      if (!auth)
+        room.insertAdjacentHTML(
+          'afterend',
+          '<a class="lobby__global-chat__signin" href="/login">Sign in</a>',
+        );
+    }, card === 'auth');
   await page.addScriptTag({ content: script });
   expect(errors, 'inbox initialization').toEqual([]);
-  await expect(page.locator('.msg-row')).toHaveCount(2);
+  await expect(page.locator('.msg-row')).toHaveCount(card === 'guest' ? 3 : 2);
   return { errors, requests };
 }
+
+for (const width of [320, 960, 1440]) {
+  for (const mode of ['auth', 'guest'] as const) {
+    test(`homepage Global Chat bubbles and player identities at ${width}px (${mode})`, async ({
+      page,
+    }, info) => {
+      await page.route('**/attachment/msg/*/policy', route =>
+        route.fulfill({ json: { enabled: true, maxCount: 8, maxBytes: 4194304 } }),
+      );
+      const { errors, requests } = await inbox(page, width, false, undefined, true, mode);
+      const room = page.locator('.lobby__global-chat__room');
+      const row = room.locator('.msg-row').filter({ hasText: 'Shall we play another game?' });
+      await expect(row.locator('.msg-author')).toContainText('Alice (5d)');
+      await expect(row.locator('.msg-author .patron')).toHaveCount(1);
+      await expect(row.locator('.msg-author img.flag')).toHaveCount(1);
+      const avatar = row.locator('..').locator('.msg-author-avatar');
+      await expect(avatar).toHaveText('A', { ignoreCase: true });
+      const a = (await avatar.boundingBox())!,
+        b = (await row.locator('.msg-bubble').boundingBox())!;
+      expect(a.x + a.width).toBeLessThanOrEqual(b.x + 1);
+      expect(b.x + b.width).toBeLessThanOrEqual(width);
+      await expect(room.locator('textarea')).toHaveCount(mode === 'auth' ? 1 : 0);
+      if (mode === 'auth') {
+        await room.locator('.attachment-plus').click();
+        await expect(room.getByRole('menuitem', { name: 'Photos & videos' })).toBeVisible();
+        await room.locator('.attachment-plus').click();
+        await row.click({ button: 'right' });
+        await page.getByRole('dialog').getByRole('button', { name: 'Reply', exact: true }).click();
+        await room.locator('textarea').fill('Homepage reply');
+        await room.locator('textarea').press('Enter');
+        await expect.poll(() => requests.some(r => r.fields.replyTo === 'theirs')).toBe(true);
+      }
+      if (mode === 'guest') {
+        const groups = room.locator('group');
+        await expect(groups).toHaveCount(2);
+        await expect(groups.first().locator('.msg-author')).toHaveCount(1);
+        await expect(groups.first().locator('.msg-reactions')).toHaveCount(0);
+        await expect(groups.last().locator('.msg-reactions')).toHaveText('👍 2');
+        const [first, second, third] = await room.locator('.msg-bubble').evaluateAll(els =>
+          els.map(el => {
+            const r = el.getBoundingClientRect();
+            return { top: r.top, bottom: r.bottom, left: r.left };
+          }),
+        );
+        expect(second.left).toBe(first.left);
+        const within = second.top - first.bottom;
+        expect(within).toBeGreaterThan(0);
+        expect(third.top - second.bottom).toBeGreaterThan(within);
+        const footer = (await page.locator('.lobby__global-chat__signin').boundingBox())!;
+        expect(footer.y - third.bottom).toBeLessThan(36);
+        await page
+          .locator('.lobby__global-chat')
+          .screenshot({ path: info.outputPath('signed-out-chat.png') });
+      }
+      expect(new URL(page.url()).pathname).toBe('/fixture');
+      expect(errors).toEqual([]);
+    });
+  }
+}
+
+test('a full signed-out chat preview scrolls inside the card', async ({ page }) => {
+  await inbox(page, 960, false, undefined, true, 'guest');
+  const messages = Array.from({ length: 12 }, (_, i) => ({
+    id: 'public-' + i,
+    user: i % 2 ? 'alice' : 'bob',
+    text: ('Message ' + i + ' ').repeat(16),
+    date: Date.now() - i * 60000,
+    reactions: {},
+  }));
+  await page.route('**/inbox/public/global', route => route.fulfill({ json: { msgs: messages } }));
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  const list = page.locator('.msg-app__convo__msgs');
+  await expect(list.locator('.msg-row')).toHaveCount(messages.length);
+  await expect
+    .poll(() => list.evaluate(el => el.scrollHeight > el.clientHeight && el.scrollTop > 0))
+    .toBe(true);
+  const footer = page.locator('.lobby__global-chat__signin');
+  const before = await footer.boundingBox();
+  await list.evaluate(el => {
+    el.scrollTop = 0;
+  });
+  expect(await footer.boundingBox()).toEqual(before);
+  await expect(list.locator('.msg-row').first()).toContainText('Message 11');
+});
 
 for (const width of [320, 768, 1440]) {
   test(`responsive conversation, typing, reply and message menu at ${width}px`, async ({ page }, info) => {
@@ -866,11 +1007,12 @@ test('new group, mentions, chat folders, archive and full-history search', async
   await side.getByRole('button', { name: 'New group' }).click();
   await side.getByRole('textbox', { name: 'Group name' }).fill('Club analysis');
   await side.getByRole('button', { name: /Alice/ }).click();
-  await side.getByRole('button', { name: /Bob/ }).click();
+  await side.getByRole('searchbox').fill('Che');
+  await side.getByRole('button', { name: /Chen/ }).click();
   await side.getByRole('button', { name: 'Done' }).click();
   const convo = page.locator('.msg-app__convo');
   await expect(convo.locator('.msg-group-title')).toContainText('Club analysis');
-  expect(requests.find(r => r.path === '/inbox/groups/create')?.fields.members).toBe('alice,bob');
+  expect(requests.find(r => r.path === '/inbox/groups/create')?.fields.members).toBe('alice,chen');
   await convo.locator('.msg-group-title').click();
   const settings = convo.locator('.msg-group-settings');
   await settings.getByRole('textbox', { name: 'Group description' }).fill('Review our games');
@@ -935,9 +1077,9 @@ test('attachment menu sends a poll and a contact while retaining the text draft'
   await dialog.getByRole('radio', { name: 'Bob' }).check();
   await dialog.getByRole('button', { name: 'Send', exact: true }).click();
   await expect(page.locator('.msg-shared-contact')).toContainText('Bob');
-  expect(requests.some(r => r.fields.text === '@Bob' && JSON.parse(r.fields.card).contact === 'Bob')).toBe(
-    true,
-  );
+  await expect
+    .poll(() => requests.some(r => r.fields.text === '@Bob' && JSON.parse(r.fields.card).contact === 'Bob'))
+    .toBe(true);
   expect(errors).toEqual([]);
 });
 

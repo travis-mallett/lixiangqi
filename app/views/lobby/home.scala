@@ -11,9 +11,7 @@ object home:
     val path = lila.core.msg.GlobalRoom.path
     st.section(
       cls := "lobby__global-chat lobby__rail-card",
-      aria.label := trans.inbox.globalChat.txt(),
-      attr("data-empty") := trans.inbox.noMessagesYet.txt(),
-      attr("data-error") := trans.inbox.error.txt()
+      aria.label := trans.inbox.globalChat.txt()
     )(
       h2(cls := "lobby__rail-title")(
         iconTag(Icon.BubbleSpeech),
@@ -22,22 +20,7 @@ object home:
           iconTag(Icon.ExternalArrow)
         )
       ),
-      div(cls := "lobby__global-chat__messages", tabindex := 0, aria.label := trans.inbox.globalChat.txt()),
-      p(cls := "lobby__global-chat__status", role := "status"),
-      ctx.me
-        .filter(m => lila.msg.GlobalChat.canPost(using m))
-        .map: _ =>
-          form(action := path, method := "post")(
-            input(
-              name := "text",
-              maxlength := 8000,
-              required,
-              autocomplete := "off",
-              placeholder := trans.inbox.message.txt(),
-              aria.label := trans.inbox.message.txt()
-            ),
-            button(tpe := "submit", cls := "button")(trans.inbox.send())
-          ),
+      div(cls := "lobby__global-chat__room", attr("data-auth") := ctx.isAuth.toString),
       ctx.isAnon.option(
         a(cls := "lobby__global-chat__signin", href := routes.Auth.login)(trans.site.signIn())
       )
@@ -98,6 +81,7 @@ object home:
       )
     Page("")
       .copy(fullTitle = s"$siteName • ${trans.site.freeOnlineChess.txt()}".some)
+      .i18n(_.inbox)
       .i18n(_.variant)
       .i18n(_.threeKingdoms)
       .js(

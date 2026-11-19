@@ -6,7 +6,7 @@ $msg-single-pane: 680px;
 @import 'convo';
 @import 'messageActions';
 
-body {
+body:has(main.msg-app) {
   ---app-height: 100vh;
 
   overflow: hidden;

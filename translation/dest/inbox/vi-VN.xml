@@ -129,4 +129,11 @@
   <string name="shareContact">Chia sẻ liên hệ</string>
   <string name="linkPreviews">Tạo bản xem trước liên kết</string>
   <string name="removePreview">Gỡ bản xem trước liên kết</string>
+  <string name="report">Báo cáo</string>
+  <string name="groupLink">Liên kết nhóm</string>
+  <string name="requireApproval">Yêu cầu quản trị viên phê duyệt</string>
+  <string name="requestSent">Đã gửi yêu cầu</string>
+  <string name="resetLink">Đặt lại liên kết</string>
+  <string name="disableLink">Tắt liên kết</string>
+  <string name="adminAddOnly">Chỉ quản trị viên có thể thêm thành viên</string>
 </resources>

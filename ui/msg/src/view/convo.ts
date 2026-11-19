@@ -10,6 +10,7 @@ import renderActions from './actions';
 import { userIcon } from './contact';
 import groupSettings from './groupSettings';
 import { glyph } from './icons';
+import { playerName } from './identity';
 import renderInteract from './interact';
 import { iconButton, showDetails, selectionBar } from './messageActions';
 import renderMsgs from './msgs';
@@ -98,7 +99,7 @@ export default function renderConvo(ctrl: MsgCtrl, convo: Convo): VNode {
 const contactLink = (user: User, ctrl: MsgCtrl): VNode => {
   return h('a.msg-chat-title', userLinkData(user), [
     userIcon(user, 'msg-header-avatar'),
-    ctrl.data.names[user.id] ?? user.name,
+    playerName(user, ctrl.data.names[user.id]),
   ]);
 };
 

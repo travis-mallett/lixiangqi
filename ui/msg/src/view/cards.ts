@@ -6,6 +6,7 @@ import { json } from 'lib/xhr';
 import type MsgCtrl from '../ctrl';
 import type { Msg, MsgCard, User } from '../interfaces';
 import { glyph, glyphElement } from './icons';
+import { playerName, playerElement } from './identity';
 import { dialog, showEmoji } from './messageActions';
 
 export async function composeCard(ctrl: MsgCtrl, type: 'poll' | 'contact') {
@@ -127,7 +128,7 @@ export async function composeCard(ctrl: MsgCtrl, type: 'poll' | 'contact') {
               selected = u.name;
               submit.disabled = false;
             };
-            row.append(radio, u.name);
+            row.append(radio, playerElement(u));
             return row;
           }),
       );
@@ -171,22 +172,23 @@ export async function composeCard(ctrl: MsgCtrl, type: 'poll' | 'contact') {
   };
 }
 
-export function renderCard(ctrl: MsgCtrl, msg: Msg): VNode | undefined {
+export function renderCard(ctrl: MsgCtrl | undefined, msg: Msg, pollCounts?: number[]): VNode | undefined {
   const card = msg.card;
   if (!card || msg.deleted) return;
   if (card.contact)
     return h('div.msg-shared-contact', [
       glyph('contact'),
-      h('a', { attrs: { href: userProfilePath(card.contact) } }, card.contact),
-      h(
-        'button',
-        { on: { click: () => void ctrl.openConvo(card.contact!.toLowerCase()) } },
-        i18n.inbox.message,
-      ),
+      h('a', { attrs: { href: userProfilePath(card.contact) } }, [playerName(card.contact)]),
+      ctrl &&
+        h(
+          'button',
+          { on: { click: () => void ctrl.openConvo(card.contact!.toLowerCase()) } },
+          i18n.inbox.message,
+        ),
     ]);
   const poll = card.poll;
   if (!poll) return;
-  const current = poll.votes.find(v => v.user === ctrl.data.me.id)?.choices ?? [];
+  const current = poll.votes.find(v => v.user === ctrl?.data.me.id)?.choices ?? [];
   return h('div.msg-poll', [
     h('strong', poll.question),
     ...poll.options.map((option, i) => {
@@ -195,11 +197,15 @@ export function renderCard(ctrl: MsgCtrl, msg: Msg): VNode | undefined {
       return h(
         'button',
         {
-          attrs: { type: 'button', disabled: poll.ended || !!msg.pending, 'aria-pressed': String(selected) },
+          attrs: {
+            type: 'button',
+            disabled: !ctrl || poll.ended || !!msg.pending,
+            'aria-pressed': String(selected),
+          },
           on: {
             click: () => {
               const choices = selected ? current.filter(n => n !== i) : poll.multiple ? [...current, i] : [i];
-              void ctrl.act(msg, 'vote', JSON.stringify(choices));
+              void ctrl?.act(msg, 'vote', JSON.stringify(choices));
             },
           },
         },
@@ -207,7 +213,7 @@ export function renderCard(ctrl: MsgCtrl, msg: Msg): VNode | undefined {
           !poll.ended ? h('span.msg-poll-choice', selected ? [glyph('check')] : []) : undefined,
           h('span.msg-poll-option', [
             h('span', option),
-            h('small', String(voters.length)),
+            h('small', String(pollCounts?.[i] ?? voters.length)),
             h('span.msg-poll-bar', { attrs: { 'aria-hidden': 'true' } }, [
               h('span', { style: { width: (100 * voters.length) / Math.max(1, poll.votes.length) + '%' } }),
             ]),
@@ -221,18 +227,14 @@ export function renderCard(ctrl: MsgCtrl, msg: Msg): VNode | undefined {
           ...poll.options.map((label, i) =>
             h('p', [
               h('strong', label),
-              ' ' +
-                poll.votes
-                  .filter(v => v.choices.includes(i))
-                  .map(v => v.user)
-                  .join(', '),
+              ...poll.votes.filter(v => v.choices.includes(i)).map(v => playerName(v.user)),
             ]),
           ),
         ])
       : undefined,
     poll.ended
       ? h('small', i18n.inbox.pollEnded)
-      : msg.user === ctrl.data.me.id && !msg.pending
+      : ctrl && msg.user === ctrl.data.me.id && !msg.pending
         ? h(
             'button',
             {
