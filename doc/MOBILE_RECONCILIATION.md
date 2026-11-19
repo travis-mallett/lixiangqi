@@ -88,6 +88,22 @@ explicitly deferred variant project. Kids has a review queue rather than a claim
 
 None. Both checkouts were located when establishing this workflow.
 
+## GitHub Actions repairs, November 19, 2026
+
+Reviewed website base `c4ba2fdf0180dd201c726a0682362d5751c22d14`.
+
+- **LiXiangQi Mobile (not applicable).** The server and standalone browser bot workflow changes are confined to CI. The viewer outline uses web CSS. The Firebase refactor preserves recipient compatibility and the payload that the native inbox consumes.
+- **Xiangqi Kids (not applicable).** The app uses neither the web viewer nor the standalone browser bot build. The Firebase refactor preserves the existing device routing and payload.
+
+Verified the MongoDB 8.2 primary election, Scala formatting, frontend lint and formatting, the production asset build and 783 UI tests, and the standalone bot build and 55 unit and integration tests. No deployment dependency, migration, or mobile release is required. Both app checkpoints retain their prior positions.
+
+| Source                                     | Working-tree SHA-256                                               |
+| ------------------------------------------ | ------------------------------------------------------------------ |
+| `.github/workflows/human-bot.yml`          | `e6743f0e83404b4bc889aff6412ca384b4320a39ccd022a22d67b38a592e45d4` |
+| `.github/workflows/server.yml`             | `1653fe606fc6b532f2c11d1604945ca25674dcfa948680c9fc41874bd9fd395a` |
+| `modules/push/src/main/FirebasePush.scala` | `1cf2e992b0017631c49afa320d21f172fbb6d04ab94a91bf1b7ce3deb5528c6a` |
+| `ui/viewer/css/_viewer.scss`               | `72b4b151f9c92678d2583122baf4888161f001a21b3739c2bbab213fb18d28be` |
+
 ## Inbox receipts and Global Chat, November 19, 2026
 
 LiXiangQi Mobile implements the public room, its pinned position, text posting,

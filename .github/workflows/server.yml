@@ -57,7 +57,11 @@ jobs:
         run: |
           docker run -d --name test-mongo -p 127.0.0.1:27291:27291 mongo:8.2 --port 27291 --replSet ci --bind_ip_all
           timeout 60 bash -c 'until docker exec test-mongo mongosh --port 27291 --quiet --eval "db.adminCommand({ping:1})" >/dev/null 2>&1; do sleep 1; done'
-          docker exec test-mongo mongosh --port 27291 --quiet --eval 'rs.initiate({_id:"ci",members:[{_id:0,host:"127.0.0.1:27291"}]}); assert.soon(() => db.hello().isWritablePrimary, "replica primary", 30000)'
+          docker exec test-mongo mongosh --port 27291 --quiet --eval '
+            const result = rs.initiate({_id:"ci",members:[{_id:0,host:"127.0.0.1:27291"}]});
+            if (result.ok !== 1) throw new Error(EJSON.stringify(result));
+          '
+          timeout 30 bash -c 'until docker exec test-mongo mongosh --port 27291 --quiet --eval "quit(db.hello().isWritablePrimary ? 0 : 1)"; do sleep 1; done'
       - run: ./lila.sh -Depoll=true "test;stage"
       - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6
         with:

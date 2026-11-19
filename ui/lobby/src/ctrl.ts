@@ -192,8 +192,8 @@ export default class LobbyController {
   }
 
   openLobbyOverlay: () => void = () => {};
-  openSetupFromLobby: (gameType: Exclude<GameType, 'local'>) => void = gameType => {
-    this.setupCtrl.openModal(gameType);
+  openSetupFromLobby = (gameType: Exclude<GameType, 'local'>, options?: ForceSetupOptions) => {
+    this.setupCtrl.openModal(gameType, options);
     this.redraw();
   };
 

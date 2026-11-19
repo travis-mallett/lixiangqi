@@ -28,25 +28,15 @@ function renderSeek(seek: Seek) {
 }
 
 function createSeek(ctrl: LobbyController) {
-  if (ctrl.me && ctrl.data.seeks.length < 8)
-    return h('div.create', [
-      h(
-        'button.button',
-        {
-          hook: bind(
-            'click',
-            () =>
-              ctrl.setupCtrl.openModal('hook', {
-                variant: ctrl.lobbyVariant ?? 'standard',
-                timeMode: 'correspondence',
-              }),
-            ctrl.redraw,
-          ),
-        },
-        i18n.site.createAGame,
-      ),
-    ]);
-  return undefined;
+  return h('div.create', [
+    ctrl.me
+      ? h(
+          'button.button',
+          { hook: bind('click', () => ctrl.openSetupFromLobby('hook', { timeMode: 'correspondence' })) },
+          i18n.site.createAGame,
+        )
+      : h('a.button', { attrs: { href: '/login' } }, i18n.site.signIn),
+  ]);
 }
 
 export default function (ctrl: LobbyController): MaybeVNodes {

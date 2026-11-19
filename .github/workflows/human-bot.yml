@@ -60,6 +60,7 @@ jobs:
         with:
           python-version: '3.12'
       - run: pnpm install
+      - run: pnpm --dir ui/.build install
       - name: Prepare pinned browser engine network and diagnostic oracle
         run: |
           sudo apt-get update

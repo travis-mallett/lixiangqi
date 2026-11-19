@@ -24,13 +24,6 @@ final class NotationUi(helpers: Helpers):
       .hrefLangs(LangPath(routes.Notation.home))
       .flag(_.zoom)
       .flag(_.zen)
-      .append(
-        ToolIntro(trans.notation.xiangqiNotationTraining.txt(), trans.site.xiangqiNotationDescription.txt())(
-          a(href := routes.UserAnalysis.index)(trans.site.analysis()),
-          a(href := langHref(routes.Puzzle.themes))(trans.puzzle.puzzleThemes()),
-          a(href := routes.Learn.specialRules)(trans.site.xiangqiSpecialRules())
-        )
-      )
       .body(preload)
 
   private val preload = main(id := "trainer")(

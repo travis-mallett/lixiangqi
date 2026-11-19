@@ -91,15 +91,6 @@ final class PuzzleUi(helpers: Helpers, val bits: PuzzleBits):
       .hrefLangs(langPath)
       .flag(_.zoom)
       .flag(_.zen)
-      .append(if isStreak then emptyFrag
-      else
-        ToolIntro(title, description)(
-          a(href := (langHref(routes.Puzzle.themes) + theme.fold("")(t => s"#${t.key.value}")))(
-            trans.puzzle.puzzleThemes()
-          ),
-          a(href := langHref(routes.Notation.home))(trans.notation.xiangqiNotation()),
-          a(href := routes.Learn.specialRules)(trans.site.xiangqiSpecialRules())
-        ))
       .flag(_.crossSiteIsolation):
         bits.show.preload
 

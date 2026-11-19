@@ -53,9 +53,8 @@ final private class FirebasePush(
                   compatible =
                     if device.isInbox then data.key == Key.privateMessage
                     else
-                      data.mobileCompatible.exists(
-                        device.isMobileVersionCompatible
-                      ) || data.lichobileCompatible && device.isLichobile
+                      val mobileCompatible = data.mobileCompatible.exists(device.isMobileVersionCompatible)
+                      mobileCompatible || data.lichobileCompatible && device.isLichobile
                   _ <- compatible.so:
                     for
                       // access token has 1h lifetime and is requested only if expired
@@ -148,11 +147,9 @@ private object FirebasePush:
           data.firebaseMod.match
             case Some(PushApi.Data.FirebaseMod.NotifOnly(mod)) => mod(data.payload.userData)
             case _ =>
-              data.payload.userData ++ Option
-                .when(inbox)(data.payload.userId)
-                .flatten
-                .map(u => "account" -> u.value) ++ (data.iosBadge.map: number =>
-                "iosBadge" -> number.toString)
+              val account = Option.when(inbox)(data.payload.userId).flatten.map(u => "account" -> u.value)
+              val badge = data.iosBadge.map(number => "iosBadge" -> number.toString)
+              data.payload.userData ++ account ++ badge
       )
       .add:
         "notification" -> data.firebaseMod.match

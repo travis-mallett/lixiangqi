@@ -49,9 +49,9 @@ export default function main(opts: LobbyOpts) {
     });
   };
 
-  ctrl.openSetupFromLobby = gameType => {
+  ctrl.openSetupFromLobby = (gameType, options) => {
     const openSetup = () => {
-      ctrl.setupCtrl.openModal(gameType, ctrl.lobbyVariant ? { variant: ctrl.lobbyVariant } : undefined);
+      ctrl.setupCtrl.openModal(gameType, { variant: ctrl.lobbyVariant, ...options });
       redraw();
     };
     if (!lobbyOverlayOpen) return openSetup();
