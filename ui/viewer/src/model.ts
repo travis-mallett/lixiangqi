@@ -13,7 +13,7 @@ import { importedTree } from 'lib/tree/native';
 import type { TreeNode } from 'lib/tree/types';
 
 export interface ViewerNode {
-  node: TreeNode;
+  node?: TreeNode;
   id: string;
   ply: number;
   position: BoardPosition;
@@ -29,6 +29,7 @@ export interface ViewerNode {
 }
 
 export interface ViewerSource {
+  root?: ViewerNode;
   initialFen?: string;
   moves?: string[];
   pgn?: string;
@@ -102,6 +103,7 @@ export function viewerNode(
 }
 
 export async function loadViewerTree(source: ViewerSource, signal?: AbortSignal): Promise<ViewerNode> {
+  if (source.root) return source.root;
   if (source.tree) return importedViewerTree(source.tree, source);
   if (
     source.moves !== undefined &&

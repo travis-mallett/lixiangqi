@@ -1,7 +1,7 @@
 import {
   createBoard,
   boardPresentation,
-  boardDefinitionForFen,
+  boardDefinition,
   type BoardView,
   type BoardServices,
   type BoardMark,
@@ -95,16 +95,17 @@ export class GameViewer {
     layout.className = 'xiangqi-viewer__layout';
     const board = makeElement('div');
     board.className = 'xiangqi-viewer__board';
-    const definition = boardDefinitionForFen(this.current.fen);
+    const definition = boardDefinition(this.current.position.board ?? 'xiangqi');
+    const geometry = definition.geometry;
     element.style.setProperty(
       '--board-aspect-ratio',
-      String(definition.geometry.columns / definition.geometry.rows),
+      String(geometry.kind === 'graph' ? geometry.width / geometry.height : geometry.columns / geometry.rows),
     );
     const surface = makeElement('div');
     board.append(surface);
     const boardColumn = makeElement('div');
     boardColumn.className = 'xiangqi-viewer__board-column';
-    if (this.current.node.state.variant === 'jieqi') {
+    if (this.current.node?.state.variant === 'jieqi') {
       const top = makeElement('div');
       const bottom = makeElement('div');
       this.captureNodes = [top, bottom];
@@ -242,7 +243,7 @@ export class GameViewer {
     if (this.options.drawnMarks) this.board.setMarks(this.options.drawnMarks(node));
     if (this.captureNodes) {
       const bottom = this.board.getPresentation().perspective === 'red' ? 'red' : 'black';
-      const captures = node.node.state.captures ?? [];
+      const captures = node.node?.state.captures ?? [];
       this.captureNodes = [
         patch(this.captureNodes[0], capturedPieces(captures, bottom, node.ply, this.options.labels.captures)),
         patch(

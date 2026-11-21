@@ -274,8 +274,9 @@ final class GlobalChat(
         _ <- if revision == old.revision then funit else fail[Unit]("conflict")
         at = nowInstant
         next <- action match
-          case "deleteEveryone"
-              if me.kid.no && old.deletedAt.isEmpty && (old.canDeleteForEveryone(me, at) || canModerate) =>
+          case "remove" if me.kid.no && canModerate && old.user.isnt(me) =>
+            fuccess(old.copy(deletedAt = Some(at), pinnedAt = None))
+          case "deleteEveryone" if me.kid.no && old.canDeleteForEveryone(me, at) =>
             fuccess(old.copy(deletedAt = Some(at), pinnedAt = None))
           case "react" if canPost && old.deletedAt.isEmpty && MsgActions.validReaction(value) =>
             fuccess(
@@ -302,7 +303,8 @@ final class GlobalChat(
           def persist(s: MsgStore) = s
             .saveVisible(selector, me, old, saved, hide = false)
             .flatMap(ok => if ok then funit else fail[Unit]("conflict"))
-          if action == "edit" && saved.attachments.nonEmpty then
+          if action == "remove" then store.remove(selector, old)
+          else if action == "edit" && saved.attachments.nonEmpty then
             attachments.transaction: tx =>
               for
                 _ <-
@@ -320,9 +322,18 @@ final class GlobalChat(
               yield ()
           else persist(store)
         _ <- (action == "pin" && value == "true").so(trimPins())
-        _ <- (action == "edit" || action == "deleteEveryone").so(notifyApi.removeMessage(id, mid))
+        _ <- Set("edit", "deleteEveryone", "remove")(action).so(notifyApi.removeMessage(id, mid))
       yield
-        changed(saved, "update")
+        if action == "remove" then
+          latest.invalidate({})
+          Bus.pub(
+            SendTos(
+              readers.keys.toSet + old.user + me.userId,
+              "msgRemoved",
+              Json.obj("user" -> id, "id" -> mid)
+            )
+          )
+        else changed(saved, "update")
         if action == "edit" then shutupApi.publicText(me, saved.text, PublicSource.GlobalChat)
         saved
 

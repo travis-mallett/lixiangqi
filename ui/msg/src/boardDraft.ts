@@ -142,7 +142,7 @@ export class BoardDraft {
 
   takeLongPaste(text: string): boolean {
     if (text.length <= 8000 || this.entries.length >= 3) return false;
-    const source = boardSources(text).find(source => source.value === text.trim() && source.kind === 'pgn');
+    const source = boardSources(text).find(source => source.value === text.trim() && source.kind !== 'link');
     if (!source || new TextEncoder().encode(source.value).length > 16_000) return false;
     this.add({ ...source, inline: false }, 0);
     return true;

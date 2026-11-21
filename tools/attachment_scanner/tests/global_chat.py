@@ -77,6 +77,31 @@ def verify_global_chat(site):
     await_bell({"notifies": subscriber, "content.text": control["text"]})
     assert not site.db.notify.find_one({**dm_alert, "content.text": muted_direct["text"]})
 
+    incoming = private(alice, moderator, "Remove from a direct chat")
+    dm = "/inbox/" + alice
+    assert site.json(dm, moderator)["convo"]["canModerate"]
+    assert not site.json("/inbox/" + moderator, alice)["convo"].get("canModerate", False)
+    removal = {"action": "remove", "revision": str(incoming["revision"]), "value": ""}
+    site.call(f"/inbox/{moderator}/messages/{incoming['id']}", alice, removal, status=400)
+    site.call(f"{dm}/messages/{incoming['id']}", moderator, removal)
+    assert all(m["id"] != incoming["id"] for m in site.json(dm, moderator)["convo"]["msgs"])
+    assert all(m["id"] != incoming["id"] for m in site.json("/inbox/" + moderator, alice)["convo"]["msgs"])
+
+    for first, second in ((alice, moderator), (moderator, alice)):
+        site.db.relation.insert_one({"_id": f"{first}/{second}", "u1": first, "u2": second, "r": True})
+    group = site.json("/inbox/groups/create", alice, {"name": "Moderation test", "members": moderator},
+                      status=201)["id"]
+    group_path = "/inbox/group/" + group
+    grouped = site.json(group_path, alice, {"text": "Remove from a group", "nonce": uuid.uuid4().hex})["msg"]
+    assert site.json(group_path, moderator)["convo"]["canModerate"]
+    assert not site.json(group_path, alice)["convo"].get("canModerate", False)
+    group_removal = {"action": "remove", "revision": str(grouped["revision"]), "value": ""}
+    site.call(f"{group_path}/messages/{grouped['id']}", moderator, group_removal)
+    for actor in (alice, moderator):
+        assert all(m["id"] != grouped["id"] for m in site.json(group_path, actor)["convo"]["msgs"])
+        contact = next(c for c in site.json("/inbox", actor)["contacts"] if c["user"]["id"] == group)
+        assert contact["lastMsg"]["text"] == "" and not contact["lastMsg"].get("deleted")
+
     message = post(alice, f"Hello @{bob} and @{quiet}")
     followup = post(alice, "Everyone can read this.")
     assert site.json(preview)["msgs"][0]["id"] == followup["id"]
@@ -106,10 +131,17 @@ def verify_global_chat(site):
     assert current["revision"] == 1 and current["text"] == "Updated opening"
     site.db.msg_msg.update_one({"_id": current["id"]}, {"$set": {"date": datetime.now(timezone.utc) - timedelta(days=2)}})
     edit(alice, current, "deleteEveryone", status=400)
-    edit(moderator, current, "deleteEveryone")
+    edit(moderator, current, "deleteEveryone", status=400)
+    edit(bob, current, "remove", status=400)
+    edit("globalmodbasic", current, "remove", status=400)
+    edit(moderator, current, "remove")
     edit(alice, followup, "deleteEveryone")
+    for actor in (alice, bob, moderator):
+        messages = site.json(path, actor)["convo"]["msgs"]
+        assert all(m["id"] != current["id"] for m in messages)
+        assert any(m["id"] == followup["id"] and m["deleted"] for m in messages)
     assert all(m["id"] != current["id"] for m in site.json(preview)["msgs"])
-    assert site.db.msg_msg.find_one({"_id": current["id"]})["deletedAt"]
+    assert not site.db.msg_msg.find_one({"_id": current["id"]})
 
     from worker import now
     site.db.ugc_scanner.update_one({"_id": "worker"}, {"$set": {"at": now()}})

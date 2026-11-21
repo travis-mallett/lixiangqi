@@ -177,6 +177,44 @@ final class MsgActions(
             lila.db.recoverDuplicateKey(_ => existing.flatMap(_.fold(fail[Msg]("conflict"))(fuccess)))
           )
 
+  def remove(contact: UserId, id: String, revision: Int, canModerate: Boolean)(using me: Me): Fu[Msg] =
+    limit(me.userId, fail[Msg]("limited")):
+      for
+        _ <- if canModerate then funit else fail[Unit]("rejected")
+        old <- message(contact, id)
+        _ <- if old.user == contact then funit else fail[Unit]("rejected")
+        _ <- if old.revision == revision then funit else fail[Unit]("conflict")
+        thread = MsgThread.id(me, contact)
+        _ <- attachments.transaction: tx =>
+          val msgs = tx.collection(colls.msg.name)
+          val threads = tx.collection(colls.thread.name)
+          val txStore = MsgStore(msgs, threads)
+          for
+            _ <- txStore.remove(txStore.visible(me, contact), old)
+            _ <- List("lastMsg", "maskWith").sequentiallyVoid: field =>
+              threads.update
+                .one(
+                  $id(thread) ++ $doc(s"$field.user" -> old.user, s"$field.date" -> old.date),
+                  $set(field -> Msg.Last("", old.user, old.date, read = true))
+                )
+                .void
+            _ <- List(me.userId -> contact, contact -> me.userId).sequentiallyVoid: (viewer, peer) =>
+              val field = s"preview.$viewer"
+              msgs
+                .find(txStore.visible(viewer, peer))
+                .sort($sort.desc("date"))
+                .one[Msg]
+                .flatMap: last =>
+                  val change =
+                    last.fold($unset(field) ++ $addToSet("del" -> viewer))(m => $set(field -> m.asLast))
+                  threads.update.one($id(thread), change).void
+          yield ()
+        _ <- notifier.onContentChange(me.userId, old)
+      yield
+        emit(me, "msgRemoved", Json.obj("user" -> contact, "id" -> id))
+        emit(contact, "msgRemoved", Json.obj("user" -> me.userId, "id" -> id))
+        old.copy(deletedAt = Some(nowInstant), pinnedAt = None)
+
   def update(
       contact: UserId,
       id: String,

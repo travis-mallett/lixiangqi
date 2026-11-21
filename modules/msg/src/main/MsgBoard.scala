@@ -13,6 +13,7 @@ case class MsgBoard(
 
 object MsgBoard:
   case class Shape(orig: String, dest: Option[String], brush: String)
+  case class Capture(side: String, square: String, role: Option[String], concealed: Boolean, ply: Int)
   case class Frame(
       fen: String,
       ply: Int,
@@ -21,12 +22,14 @@ object MsgBoard:
       check: Boolean,
       capture: Boolean,
       checkmate: Boolean,
-      shapes: Vector[Shape]
+      shapes: Vector[Shape],
+      captured: Option[Capture] = None
   )
 
   type Resolve = (JsValue, String) => Fu[Vector[MsgBoard]]
   val unavailable: Resolve = (_, _) => fufail(MsgActionError("invalidBoard"))
 
   given OFormat[Shape] = Json.format
+  given OFormat[Capture] = Json.format
   given OFormat[Frame] = Json.format
   given OFormat[MsgBoard] = Json.format

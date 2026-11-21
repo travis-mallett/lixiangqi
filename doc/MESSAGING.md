@@ -14,9 +14,9 @@ private-chat scope and is not a consumer of these features.
 Global Chat is a public room for messages, files, media, polls and contacts pinned first in the main web and mobile inboxes.
 It uses the standard account and public-chat moderation rules. Authors have the
 usual 24-hour editing and deletion window. A moderator with the chat-timeout
-permission can remove any post, including older posts. Public edits and deletions
-invalidate the preview and remove stale notification excerpts. Delete leaves a
-moderation record. The room has no membership roster or public reader list.
+permission can remove another author’s post at any age. Public edits, deletions
+and removals invalidate the preview and remove stale notification excerpts.
+The room has no membership roster or public reader list.
 
 The room starts muted with mention alerts enabled. Unmuting enables alerts for
 ordinary posts. Turning off mention alerts while muted silences the room. The
@@ -36,7 +36,8 @@ requests history in pages of 100 and subscribes to room updates while open.
 Deploy the matching website backend and assets before the mobile update. The
 new MongoDB indexes are additive and initialize on demand. A moderator using
 native authentication needs two-factor authentication and a fresh sign-in for the
-room-specific moderation grant. Normal inbox credentials retain their existing scope.
+existing inbox moderation grant (`mobile:moderateGlobalChat`). Normal inbox
+credentials retain their existing scope.
 
 ## Media, polls, contacts and links
 
@@ -48,9 +49,11 @@ Eligible HTTPS links can generate a preview while composing. A sender can remove
 
 ## Xiangqi boards in messages
 
-Paste Standard Xiangqi FEN, PGN or a public LiXiangQi game or puzzle link to
+Paste a Xiangqi, Mini Xiangqi, Manchu+ or Jieqi FEN, PGN or public game or puzzle link to
 preview a board. The File picker also accepts `.fen` and `.pgn` files. Replay
-controls step through the game's main line. Use the drawing control to tap a
+controls step through the game's main line. On the website, Three Kingdoms accepts game
+links, TK1 positions and exported game records (`three-kingdoms-*.json`). The timeline
+includes withdrawals and draws, so each event can have its own starting position and marks. Use the drawing control to tap a
 square or draw an arrow. On the web, right-click drawing also works. Marks are
 saved at the position where they were drawn. **Start from this position** sets
 the opening position for recipients. Linked puzzles show the position to solve
@@ -100,8 +103,13 @@ database migration. Xiangqi Kids has no messaging consumer.
   hours, **including after it has been read**. It does not erase MongoDB content,
   reactions or edit history. Ordinary APIs redact tombstone content and history;
   the privileged moderation communications view retains them. Existing replies and
-  forwarded copies are independent snapshots, as with Signal. Separate moderator
-  account-purge operations retain their existing explicit administrative behavior.
+  forwarded copies are independent snapshots, as with Signal.
+- **Remove message** is available to site chat moderators for others’ messages
+  in Global Chat and their own group or direct conversations. The server checks
+  the moderation grant, normal conversation visibility and message revision.
+  Removal deletes the original record, repairs affected previews, and sends
+  `msgRemoved` to viewers. It has no age limit or placeholder. Existing reply
+  quotes and forwarded copies retain their independent snapshots.
 
 ## Persistence and synchronization
 

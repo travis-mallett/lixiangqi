@@ -6,6 +6,21 @@ Reconciliation means preserving the applicable behavior, not reproducing web scr
 
 ## Products and receipts
 
+Variant chat previews (MsgBoards.scala blob `c2dcab1b76`) use the existing board
+message endpoint and snapshot storage. Deploy the backend and web assets together.
+The adult app needs a release to open linked variants or show the selected encoded
+position without invoking its Standard-only renderer. Native mobile variant replay
+and drawing remain in the adult app's MOBILE-VARIANTS queue. Kids has no inbox.
+Verification covered native notation and rules, message snapshots, web replay,
+Chromium and Firefox annotation submissions, and the Flutter inbox board tests.
+
+Website and adult mobile inbox composers recognize twelve-character player links.
+The shared board endpoint resolves the public eight-character game ID (MsgBoards.scala
+working-tree blob `efaa86fc08`). Older website messages fetch the PGN export for
+inline replay. The web messaging and Flutter inbox board tests passed. Deploy the
+website backend and assets together and release the adult app for its composer change.
+Xiangqi Kids has no messaging inbox.
+
 The correspondence analysis change on `d7f7a5234b` (working-tree blobs
 `f82ee2cf57` for UserAnalysis.scala and `8bf6534e0c` for analysisXiangqi.ts)
 disables engine assistance until the game finishes. Adult mobile already exposes
@@ -287,3 +302,9 @@ prior positions.
 Deploy the backend and web assets before the adult mobile release. See the
 [messaging receipt](MESSAGING_RECONCILIATION.json#messageBoards) for source
 fingerprints and verification. Both checkpoints retain their prior positions.
+
+## Inbox moderator removal
+
+Site chat moderators can remove other authors’ messages from Global Chat, groups they belong to, and their direct conversations. The main app and website consume the same capability and removal event. Authors retain their existing Delete message options. Xiangqi Kids has no Inbox or Global Chat, and its credentials exclude Inbox moderation. Deploy the backend and website assets before the adult app update.
+
+The focused review leaves both checkpoints at their prior positions. [Messaging source fingerprints](MESSAGING_RECONCILIATION.json#moderatorRemoval)

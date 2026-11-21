@@ -56,6 +56,7 @@ test.beforeAll(async () => {
         : undefined;
     if (asset && !asset.includes('..')) {
       try {
+        if (asset.endsWith('.js')) response.setHeader('Content-Type', 'text/javascript');
         if (asset.endsWith('.svg')) response.setHeader('Content-Type', 'image/svg+xml');
         response.end(readFileSync(resolve('public', asset)));
         return;
@@ -446,6 +447,51 @@ async function inbox(
   await expect(page.locator('.msg-row')).toHaveCount(card === 'guest' ? 3 : 2);
   return { errors, requests };
 }
+
+test('Three Kingdoms chat sends a territorial annotation at the chosen event', async ({ page }) => {
+  const { errors } = await inbox(page, 820);
+  const link = 'https://lixiangqi.com/three-kingdoms/game/sO7KUrjr';
+  const frames = await page.evaluate(async () => {
+    const url = '/assets/three-kingdoms-engine/main.js';
+    const rules = (await import(url)).ThreeKingdoms;
+    const initial = rules.initial();
+    const move = rules.inspect(initial).moves[0];
+    const next = rules.event(initial, 'red', move);
+    return [initial, next, rules.event(next, 'green', 'draw')].map((fen, ply) => ({
+      fen,
+      ply,
+      move: [undefined, move, 'draw'][ply],
+      turn: rules.inspect(fen).turn,
+      shapes: [],
+      check: false,
+      checkmate: false,
+      capture: false,
+    }));
+  });
+  await page.route('**/inbox/board-preview', route =>
+    route.fulfill({ json: { frames, start: 2, orientation: 'red' } }),
+  );
+  const composer = page.locator('.msg-composer');
+  await composer.locator('textarea').fill(link);
+  await composer.getByRole('button', { name: 'Previous', exact: true }).click();
+  await composer.getByRole('button', { name: 'Start from this position' }).click();
+  await composer.getByRole('button', { name: 'Draw on board' }).click();
+  const square = await composer.locator('.graph-board__location[data-location="wu:4:0"]').boundingBox();
+  expect(square).toBeTruthy();
+  await page.mouse.click(square!.x + square!.width / 2, square!.y + square!.height / 2);
+  const sent = page.waitForRequest(
+    request => request.url().endsWith('/inbox/alice') && request.method() === 'POST',
+  );
+  await composer.locator('[data-testid="msg-send-button"]').click();
+  const card = JSON.parse(/name="card"\r\n\r\n([^\r\n]+)/.exec((await sent).postData()!)![1]);
+  expect(card.boards[0]).toMatchObject({
+    source: { kind: 'link', value: link },
+    start: 1,
+    end: 2,
+    marks: [{ ply: 1, fen: frames[1].fen, shapes: [{ orig: 'wu:4:0', brush: 'green' }] }],
+  });
+  expect(errors).toEqual([]);
+});
 
 for (const width of [360, 820, 1440]) {
   test(`chat sends drawings at their own replay positions at ${width}px`, async ({ page }) => {

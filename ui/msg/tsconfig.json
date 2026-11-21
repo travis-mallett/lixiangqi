@@ -1,5 +1,9 @@
 {
   "extends": "../tsconfig.base.json",
   "compilerOptions": { "noEmit": true, "isolatedDeclarations": false },
-  "references": [{ "path": "../lib/tsconfig.json" }, { "path": "../viewer/tsconfig.json" }]
+  "references": [
+    { "path": "../threeKingdoms/tsconfig.json" },
+    { "path": "../lib/tsconfig.json" },
+    { "path": "../viewer/tsconfig.json" }
+  ]
 }

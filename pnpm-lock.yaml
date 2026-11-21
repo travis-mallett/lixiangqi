@@ -421,6 +421,9 @@ importers:
 
   ui/msg:
     dependencies:
+      threeKingdoms:
+        specifier: workspace:*
+        version: link:../threeKingdoms
       '@lixiangqi/viewer':
         specifier: workspace:*
         version: link:../viewer

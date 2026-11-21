@@ -1,4 +1,4 @@
-import { boardDefinitionForFen } from '@lixiangqi/board';
+import { boardDefinition, boardDefinitionForFen } from '@lixiangqi/board';
 
 import { websiteBoardServices } from 'lib/board';
 import { websiteCaptureLabels } from 'lib/game/view/captures';
@@ -33,8 +33,15 @@ export async function mountViewer(
   const prepare = (fen: string) =>
     options.inheritAppearance
       ? site.pieceImages.ready.then(() => () => {})
-      : prepareViewerAppearance(boardDefinitionForFen(fen), assetUrl, options.boardTheme, options.pieceSet);
-  const fen = source.tree?.state.fen ?? source.initialFen;
+      : prepareViewerAppearance(
+          source.root?.position.board
+            ? boardDefinition(source.root.position.board)
+            : boardDefinitionForFen(fen),
+          assetUrl,
+          options.boardTheme,
+          options.pieceSet,
+        );
+  const fen = source.root?.fen ?? source.tree?.state.fen ?? source.initialFen;
   const [root, applyAppearance] = await Promise.all([
     tree,
     fen ? prepare(fen) : tree.then(root => prepare(root.fen)),

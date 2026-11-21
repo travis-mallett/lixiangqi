@@ -554,6 +554,39 @@ final class MsgGroups(
               .map(_ => emit(List(me.userId), "msgThreadRemoved", Json.obj("user" -> id)))
           case _ => fail()
 
+  def remove(id: String, mid: String, revision: Int, canModerate: Boolean)(using me: Me): Fu[Msg] =
+    limit(me.userId, fail[Msg]("limited")):
+      for
+        _ <- check(canModerate)
+        g <- room(id)
+        doc <- find(id, mid)
+        old = message(doc, me)
+        _ <- check(old.user.isnt(me))
+        _ <- check(old.revision == revision, "conflict")
+        audience = doc.getAsOpt[List[UserId]]("audience").getOrElse(Nil).intersect(g.users)
+        _ <- attachments.transaction: tx =>
+          val rooms = tx.collection(colls.group.name)
+          val msgs = tx.collection(colls.msg.name)
+          for
+            lock <- rooms.update.one(membership(id) ++ $doc("version" -> g.version), $inc("serial" -> 1))
+            _ <- check(lock.n == 1, "conflict")
+            _ <- MsgStore(msgs, rooms).remove(visible(id, me), old)
+            _ <- audience.sequentiallyVoid: u =>
+              val field = s"previews.$u"
+              msgs
+                .find(GroupMessages.visible(id, u))
+                .sort($sort.desc("date"))
+                .one[Bdoc]
+                .flatMap: last =>
+                  val preview =
+                    last.fold(Msg.Last("", u, g.updatedAt, read = true))(d => message(d, u).asLast)
+                  rooms.update.one($id(id) ++ $doc(s"$field.id" -> mid), $set(field -> preview)).void
+          yield ()
+        _ <- notifyApi.removeMessage(id, mid)
+      yield
+        emit(audience, "msgRemoved", Json.obj("user" -> id, "id" -> mid))
+        old.copy(deletedAt = Some(nowInstant), pinnedAt = None)
+
   def update(
       id: String,
       msgId: String,
@@ -572,8 +605,7 @@ final class MsgGroups(
         at = nowInstant
         next <- action match
           case "deleteMe" => fuccess(old)
-          case "deleteEveryone"
-              if old.canDeleteForEveryone(if g.admins.contains(me.userId) then old.user else me.userId, at) =>
+          case "deleteEveryone" if old.canDeleteForEveryone(me, at) =>
             fuccess(old.copy(deletedAt = Some(at), pinnedAt = None))
           case "pin" if old.deletedAt.isEmpty =>
             fuccess(old.copy(pinnedAt = Option.when(value == "true")(at)))

@@ -39,9 +39,12 @@ export function messageBoard(board: MessageBoard, key: string, draft?: DraftBoar
             );
             if (presentation.feedback.audio) site.sound?.preloadBoardSounds?.();
             try {
+              const source = board.frames[0].fen.startsWith('TK1;')
+                ? { root: await import('../kingdomReplay').then(module => module.loadKingdomReplay(board)) }
+                : { tree: replayTree(board) };
               viewer = await mountViewer(
                 element,
-                { tree: replayTree(board) },
+                source,
                 {
                   initialPly: draft?.current ?? board.start,
                   orientation: board.orientation,

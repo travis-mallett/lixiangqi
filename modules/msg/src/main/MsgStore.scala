@@ -56,6 +56,14 @@ private[msg] final class MsgStore(msgs: Coll, threads: Coll)(using Executor):
       )
       .map(_.nModified > 0)
 
+  def remove(selector: Bdoc, msg: Msg): Funit =
+    val revision = if msg.revision == 0 then $or($doc("revision" -> 0), $doc("revision".$exists(false)))
+    else $doc("revision" -> msg.revision)
+    msgs.delete
+      .one(selector ++ $id(msg.id) ++ revision, limit = Some(1))
+      .flatMap: result =>
+        if result.n == 1 then funit else fufail(MsgActionError("conflict"))
+
   def acknowledge(me: UserId, contact: UserId, ids: List[String], read: Boolean, at: Instant): Fu[List[Msg]] =
     val selector = visible(me, contact) ++ $inIds(ids) ++ $doc("user" -> contact, "deletedAt".$exists(false))
     for

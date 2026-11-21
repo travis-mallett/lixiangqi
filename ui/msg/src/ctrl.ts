@@ -543,7 +543,7 @@ export default class MsgCtrl {
     try {
       this.submissionError = '';
       const updated = await network.messageAction(user, msg, action, value, attachments);
-      if (action === 'deleteMe') this.removeMessage(user, msg.id);
+      if (action === 'deleteMe' || action === 'remove') this.removeMessage(user, msg.id);
       else this.receiveChange(user, updated, 'update');
       return true;
     } catch (error) {

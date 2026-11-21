@@ -118,10 +118,10 @@ function parseLink(a: HTMLAnchorElement): Link | undefined {
   if (id && !notGames.has(id))
     return {
       type: 'game',
-      src: `/embed/game/${id}`,
+      src: `/game/export/${id}.pgn`,
       opts: {
-        orientation,
-        initialPly,
+        orientation: orientation === 'black' ? 'black' : 'red',
+        initialPly: initialPly === undefined ? undefined : Number(initialPly),
       },
     };
   return undefined;

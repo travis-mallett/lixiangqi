@@ -686,5 +686,37 @@
       "../lixiangqi-mobile/test/inbox/inbox_board_test.dart": "5698b3ee3e2a91008482c023fbabc291e2a7c5c29c16b800b013957eb2b1e23e"
     },
     "checkpointAdvanced": false
+  },
+  "moderatorRemoval": {
+    "sourceCommit": "8c3e02a74eeffe7c5361a77a2063e53ac4c98653",
+    "reviewedOn": "2026-11-20",
+    "impact": "The main app and website share the moderator removal contract. Xiangqi Kids has no Inbox, Global Chat, or Inbox moderation scope.",
+    "verification": "Flutter fatal-info analysis and all 561 app tests passed (2 skipped). Website frontend lint, 786 UI tests, and Scala compile and stage passed. The HTTP assertions for moderator removal passed in Global Chat, a group, and a direct conversation. The broader HTTP scenario later stopped at an unrelated attachment upload because the scanner was unavailable.",
+    "rollout": "Deploy backend and web assets before the main app update. Existing moderator sessions without the moderation scope require sign-in.",
+    "sourceFingerprints": {
+      "app/controllers/Msg.scala": "d6be16e671dd6ebf36b6916eb1f341e2311f9c5cd18a0574a252e210a819c3f1",
+      "doc/MESSAGING.md": "9cbdb037f03e6b1b3b25da098b86319b6a13a478fcde69432b893ea1728bfd27",
+      "modules/coreI18n/src/main/key.scala": "e0a6b79fc244d7ff337d213cd39816625c7bc8c0dcfbd7ffc77df409a77182a3",
+      "modules/msg/src/main/GlobalChat.scala": "eeb0d65290fbc1779a4b6b54a36ad5db8376805be07a3cb0693ec41f730daaae",
+      "modules/msg/src/main/MsgActions.scala": "4fdb811d0792a387911103aa7abe011ff5a7b92cad63c76a71cf94a4576016e0",
+      "modules/msg/src/main/MsgGroups.scala": "a9834f129b87b9ff9ca11be33d1f9618f372903e0afabb0a0c4e34e4f6145110",
+      "modules/msg/src/main/MsgStore.scala": "b75f70092258c205e88a5b0ffbda6e486cf44de924bdb02208434b135d1f4ff3",
+      "tools/attachment_scanner/tests/global_chat.py": "d4479e007d2598939ef579b26a749b1fe06a1a9d9b9281becda5d6acc4a01356",
+      "translation/source/inbox.xml": "a38658e3c6b2f7c30f0f9f3027c320f7dd0ea6b77f70fae67101b40bf483d614",
+      "ui/@types/lichess/i18n.d.ts": "618323ac1ddfcc0390f4a6f17a944a4a8bd379d15880ede955b6332da7672bf8",
+      "ui/msg/src/ctrl.ts": "2a65b587d6b5b4f240e5edbf16cc1fc595e5e635886619fe327b90b88ddee33a",
+      "ui/msg/src/view/messageActions.ts": "96691827253152708e81c337cb5efb50a557381c8b3c965303f9c1991b695ac5"
+    },
+    "mobileFingerprints": {
+      "doc/INBOX.md": "880eb3ca251f1525509f326d2c3c2cb41651e5ff16618c7afbc7e3205dbccc4f",
+      "lib/features/inbox/inbox_controller.dart": "9b65e50a585fb0477d3ced65b967499df14b8bf4d789049d8311692c1adc3683",
+      "lib/features/inbox/inbox_page.dart": "2e1e01955c297b7e5d34c07b5c1a9788105a14fc4f5460a7f45f5a01a1c1ac0d",
+      "lib/features/inbox/message_actions.dart": "53c5aae5d981b83fc2e952560110787bd6d2850d29bbe478d18f6bb26da16835",
+      "lib/l10n/app_en.arb": "fc91b3670f7521c61903faebf003cb9026534fc5c15b1504b1754aa3c0de50a8",
+      "lib/l10n/app_localizations.dart": "dcb4f5079cf24375b97c367d865e2325cc9622d0b07db8324bc01d9a551fb1d8",
+      "lib/l10n/app_localizations_en.dart": "48936b46b2cdf470f62d7b065c77e2ef3e5778bba317d3ed3898e135c93354ba",
+      "test/inbox/inbox_test.dart": "1580e8939e8f22be3e2082a7746d4f329610fe36d4fb999620bb1d3c20b054d0",
+      "test/inbox/modern_inbox_test.dart": "a9e0b9be641cb502a2f5b38a16e7789a26077d4d33bd13a092af6f089790777a"
+    }
   }
 }

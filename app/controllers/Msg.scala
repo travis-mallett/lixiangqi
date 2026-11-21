@@ -61,7 +61,10 @@ final class Msg(env: Env) extends LilaController(env):
           .flatMap:
             case None => negotiate(Redirect(routes.Msg.home()), notFoundJson())
             case Some(c) =>
-              def json = inboxJson(c.contact.id.some).map { _ + ("convo" -> env.msg.json.convo(c)) }
+              def json = for
+                mod <- inboxModerator
+                inbox <- inboxJson(c.contact.id.some)
+              yield inbox + ("convo" -> env.msg.json.convo(c).add("canModerate" -> mod))
               negotiateApi(
                 html = Ok.async(json.map(views.msg.home)),
                 api = _ => JsonOk(json)
@@ -117,14 +120,17 @@ final class Msg(env: Env) extends LilaController(env):
         doubleJsonFormError,
         data =>
           actionResult(
-            env.msg.actions.update(
-              username.id,
-              id,
-              data._1,
-              data._2,
-              data._3,
-              data._4.orElse(data._5.contains(true).option("")).map(_.split(',').filter(_.nonEmpty).toList)
-            )
+            if data._1 == "remove" then
+              inboxModerator.flatMap(mod => env.msg.actions.remove(username.id, id, data._3, mod))
+            else
+              env.msg.actions.update(
+                username.id,
+                id,
+                data._1,
+                data._2,
+                data._3,
+                data._4.orElse(data._5.contains(true).option("")).map(_.split(',').filter(_.nonEmpty).toList)
+              )
           )
       )
   }
@@ -305,16 +311,18 @@ final class Msg(env: Env) extends LilaController(env):
     )
   }
 
-  private def globalModerator(using ctx: Context, me: Me): Fu[Boolean] =
-    if lila.core.perm.Granter(_.ChatTimeout) then fuTrue
+  private def inboxModerator(using ctx: Context, me: Me): Fu[Boolean] =
+    if me.kid.yes then fuFalse
+    else if lila.core.perm.Granter(_.ChatTimeout) then fuTrue
     else if me.enabled.yes && me.totpSecret.nonEmpty && ctx.scopes.has(_.Mobile.ModerateGlobalChat) then
       env.user.repo.getRoles(me.userId).map(roles => lila.core.perm.Granter.ofDbKeys(_.ChatTimeout, roles))
     else fuFalse
 
   def group(id: String, before: Option[Long]) = AuthOrScoped(_.Web.Mobile, _.Mobile.Inbox) { _ ?=> me ?=>
     val room = if id == GlobalChat.id then
-      globalModerator.flatMap(env.msg.globalChat.conversation(before, _, getBool("compact")))
-    else env.msg.groups.conversation(id, before)
+      inboxModerator.flatMap(env.msg.globalChat.conversation(before, _, getBool("compact")))
+    else
+      inboxModerator.flatMap(mod => env.msg.groups.conversation(id, before).map(_.add("canModerate" -> mod)))
     groupResult(room.flatMap { convo =>
       def data = if id == GlobalChat.id && getBool("compact") then
         fuccess(
@@ -422,7 +430,9 @@ final class Msg(env: Env) extends LilaController(env):
             def update(moderator: Boolean) = env.msg.globalChat
               .update(mid, d._3, d._1, d._2, moderator, d._4.orElse(d._5.contains(true).option("")).map(ids))
             if Set("edit", "react", "vote", "endPoll")(d._1) then publicWrite(update(false))
-            else globalModerator.flatMap(update)
+            else inboxModerator.flatMap(update)
+          else if d._1 == "remove" then
+            inboxModerator.flatMap(mod => env.msg.groups.remove(id, mid, d._3, mod))
           else
             env.msg.groups
               .update(id, mid, d._1, d._2, d._3, d._4.orElse(d._5.contains(true).option("")).map(ids))

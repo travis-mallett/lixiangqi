@@ -38,6 +38,7 @@ private object BsonHandlers:
   given BSONDocumentHandler[MsgPoll] = Macros.handler
   given BSONDocumentHandler[MsgPreview] = Macros.handler
   given BSONDocumentHandler[MsgBoard.Shape] = Macros.handler
+  given BSONDocumentHandler[MsgBoard.Capture] = Macros.handler
   given BSONDocumentHandler[MsgBoard.Frame] = Macros.handler
   given BSONDocumentHandler[MsgBoard] = Macros.handler
   given BSONDocumentHandler[MsgCard] = Macros.handler

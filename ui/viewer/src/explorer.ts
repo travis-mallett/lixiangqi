@@ -51,6 +51,7 @@ export function attachExplorer(
       moves.unshift(initial.move!);
       initial = initial.parent;
     }
+    if (!before.node || !initial.node) return;
     try {
       const result = await requestXiangqi<RulesState & { notation: string; chineseNotation: string }>(
         '/api/analysis/move',
@@ -92,7 +93,7 @@ export function attachExplorer(
       moves.unshift(root.move!);
       root = root.parent;
     }
-    if (!root.node.ruleset) throw new Error('Viewer is missing its native ruleset');
+    if (!root.node?.ruleset) throw new Error('Viewer is missing its native ruleset');
     explorer.setPosition({ fen: node.fen, initialFen: root.fen, moves, ruleset: root.node.ruleset });
   };
 }

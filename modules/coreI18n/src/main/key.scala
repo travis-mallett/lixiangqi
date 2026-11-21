@@ -801,6 +801,8 @@ object I18nKey:
     val `delete`: I18nKey = "inbox:delete"
     val `deleteMe`: I18nKey = "inbox:deleteMe"
     val `deleteEveryone`: I18nKey = "inbox:deleteEveryone"
+    val `removeMessage`: I18nKey = "inbox:removeMessage"
+    val `removeMessageHelp`: I18nKey = "inbox:removeMessageHelp"
     val `deleteConfirm`: I18nKey = "inbox:deleteConfirm"
     val `deleteEveryoneHelp`: I18nKey = "inbox:deleteEveryoneHelp"
     val `deleted`: I18nKey = "inbox:deleted"

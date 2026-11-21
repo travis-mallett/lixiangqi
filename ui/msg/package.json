@@ -5,6 +5,7 @@
   "dependencies": {
     "@lixiangqi/viewer": "workspace:*",
     "@types/linkify-it": "5.0.0",
+    "threeKingdoms": "workspace:*",
     "lib": "workspace:*",
     "linkify-it": "5.0.0"
   },

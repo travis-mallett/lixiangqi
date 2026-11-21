@@ -235,15 +235,10 @@ export async function showMenu(ctrl: MsgCtrl, msg: Msg, reactionsOnly = false) {
           msg.pinnedAt ? 'unpin' : 'pin',
         ),
       );
-    if (
-      !ctrl.global ||
-      (!msg.deleted &&
-        (ctrl.data.convo?.canModerate ||
-          (msg.user === ctrl.data.me.id && msg.canDeleteUntil && msg.canDeleteUntil > new Date())))
-    )
+    if (canRemove(ctrl, [msg]) || canDelete(ctrl, [msg]))
       menu.append(
         button(
-          i18n.inbox.delete,
+          canRemove(ctrl, [msg]) ? i18n.inbox.removeMessage : i18n.inbox.delete,
           perform(() => showDelete(ctrl, [msg])),
           'delete',
         ),
@@ -360,36 +355,51 @@ export async function showDetails(ctrl: MsgCtrl, msg: Msg, history = false) {
   await dialog(content, 'msg-details-dialog', i18n.inbox.info);
 }
 
+function canRemove(ctrl: MsgCtrl, messages: Msg[]) {
+  return (
+    ctrl.data.convo?.canModerate && messages.length > 0 && messages.every(m => m.user !== ctrl.data.me.id)
+  );
+}
+
 function canDeleteEveryone(ctrl: MsgCtrl, messages: Msg[]) {
+  const now = new Date();
+  return messages.every(
+    m => m.user === ctrl.data.me.id && !m.deleted && m.canDeleteUntil && m.canDeleteUntil > now,
+  );
+}
+
+function canDelete(ctrl: MsgCtrl, messages: Msg[]) {
   return (
     messages.length > 0 &&
-    messages.every(
-      m =>
-        !m.deleted &&
-        ((ctrl.global && ctrl.data.convo?.canModerate) ||
-          ((m.user === ctrl.data.me.id || ctrl.data.convo?.admins?.includes(ctrl.data.me.id)) &&
-            m.canDeleteUntil &&
-            m.canDeleteUntil > new Date())),
-    )
+    messages.every(m => m.user === ctrl.data.me.id) &&
+    (!ctrl.global || canDeleteEveryone(ctrl, messages))
   );
 }
 
 export async function showDelete(ctrl: MsgCtrl, messages: Msg[]) {
+  const moderation = canRemove(ctrl, messages);
+  if (!moderation && !canDelete(ctrl, messages)) return;
+  const title = moderation ? i18n.inbox.removeMessage : i18n.inbox.delete;
   const content = element('div');
-  content.append(element('h2', i18n.inbox.deleteConfirm));
+  content.append(element('h2', moderation ? title : i18n.inbox.deleteConfirm));
   const remove = async (action: string) => {
     dlg.close();
     for (const msg of messages) if (!(await ctrl.act(msg, action))) break;
     ctrl.selected.clear();
     ctrl.redraw();
   };
-  if (!ctrl.global) content.append(button(i18n.inbox.deleteMe, () => remove('deleteMe'), 'delete'));
-  if (canDeleteEveryone(ctrl, messages)) {
-    if (!ctrl.data.convo?.canModerate) content.append(element('p', i18n.inbox.deleteEveryoneHelp));
-    content.append(button(i18n.inbox.deleteEveryone, () => remove('deleteEveryone'), 'delete'));
+  if (moderation) {
+    content.append(element('p', i18n.inbox.removeMessageHelp));
+    content.append(button(title, () => remove('remove'), 'delete'));
+  } else {
+    if (!ctrl.global) content.append(button(i18n.inbox.deleteMe, () => remove('deleteMe'), 'delete'));
+    if (canDeleteEveryone(ctrl, messages)) {
+      content.append(element('p', i18n.inbox.deleteEveryoneHelp));
+      content.append(button(i18n.inbox.deleteEveryone, () => remove('deleteEveryone'), 'delete'));
+    }
   }
   content.append(button(i18n.inbox.cancel, () => dlg.close()));
-  const dlg = await dialog(content, 'msg-delete-dialog', i18n.inbox.delete);
+  const dlg = await dialog(content, 'msg-delete-dialog', title);
 }
 
 export async function showForward(ctrl: MsgCtrl, messages: Msg[]) {
@@ -470,6 +480,10 @@ export function selectionBar(ctrl: MsgCtrl): VNode | undefined {
     messages.every(m => !m.deleted && !m.card?.poll)
       ? iconButton('forward', i18n.inbox.forward, () => showForward(ctrl, messages))
       : undefined,
-    iconButton('delete', i18n.inbox.delete, () => showDelete(ctrl, messages)),
+    canRemove(ctrl, messages) || canDelete(ctrl, messages)
+      ? iconButton('delete', canRemove(ctrl, messages) ? i18n.inbox.removeMessage : i18n.inbox.delete, () =>
+          showDelete(ctrl, messages),
+        )
+      : undefined,
   ]);
 }

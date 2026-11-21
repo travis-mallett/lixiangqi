@@ -9,6 +9,7 @@ import play.api.libs.json.*
 import lila.app.*
 import lila.core.id.PuzzleId
 import lila.msg.{ MsgActionError, MsgBoard }
+import lila.threeKingdoms.{ Kingdom, Location, Move, Position, PositionCodec, Rules }
 import lila.xiangqi.{ Xiangqi, XiangqiAnnotations, XiangqiNotation, XiangqiRules }
 
 private[inbox] final class MsgBoards(env: Env):
@@ -33,7 +34,7 @@ private[inbox] final class MsgBoards(env: Env):
               validSource(draft.source) && (!draft.source.inline || body.contains(draft.source.bodyValue)) &&
                 draft.marks.size <= 64 && draft.marks.map(_.shapes.size).sum <= 128 &&
                 draft.marks.map(_.ply).distinct.size == draft.marks.size &&
-                draft.marks.forall(_.shapes.forall(validShape))
+                draft.marks.forall(mark => mark.shapes.forall(validShape(_, mark.fen)))
     ).flatMap: drafts =>
       limit(me.userId, invalid[Vector[MsgBoard]]("limited"), cost = drafts.size):
         drafts.traverse: draft =>
@@ -60,21 +61,35 @@ private[inbox] final class MsgBoards(env: Env):
   private def load(source: Source, end: Option[Int]): Fu[MsgBoard] =
     val text = source.value.trim.stripPrefix("\ufeff")
     source.kind match
+      case "fen" if text.startsWith("TK1;") =>
+        requireValid(PositionCodec.read(text).toOption.map(p => board(Vector(kingdomFrame(p, 0, None)))))
       case "fen" =>
         requireValid(
           XiangqiRules
             .position(Xiangqi.Position(initialFen = text))
             .toOption
-            .filter(standard)
             .map: state =>
               board(Vector(frame(state)))
         )
+      case "record" =>
+        requireValid(for
+          json <- Try(Json.parse(text)).toOption
+          if (json \ "format").asOpt[String].contains("LiXiangQi Three Kingdoms") &&
+            (json \ "formatVersion").asOpt[Int].contains(1)
+          initial <- (json \ "initial").asOpt[String].flatMap(PositionCodec.read(_).toOption)
+          events <- (json \ "events").asOpt[Vector[JsObject]].filter(_.size <= 600)
+          actions <- events.traverse: event =>
+            for
+              actor <- (event \ "actor").asOpt[String].flatMap(Kingdom.fromKey)
+              action <- (event \ "action").asOpt[String]
+            yield actor -> action
+          replay <- kingdomBoard(initial, actions, end, None, None)
+        yield replay)
       case "pgn" =>
         requireValid(
           XiangqiNotation
             .importTree(Xiangqi.NotationImport(notation = text))
             .toOption
-            .filter(tree => standard(tree.state))
             .map: tree =>
               @annotation.tailrec
               def line(
@@ -104,8 +119,22 @@ private[inbox] final class MsgBoards(env: Env):
                   puzzle
                     .filterNot(_.retired)
                     .flatMap(_.stateAfterInitialMove)
-                    .filter(standard)
                     .map(state => board(Vector(frame(state)), state.turn.key, Some(s"/training/${id.value}")))
+                )
+          case Some(Kingdoms(id, index)) =>
+            env.threeKingdoms.repo
+              .byId(id)
+              .flatMap: game =>
+                requireValid(
+                  game.flatMap(g =>
+                    kingdomBoard(
+                      g.initial,
+                      g.events.map(e => e.actor -> e.action),
+                      end,
+                      index,
+                      Some(s"/three-kingdoms/game/${id.value}")
+                    )
+                  )
                 )
           case Some(Game(id, orientation, ply, analysis)) =>
             env.game.gameRepo
@@ -113,10 +142,10 @@ private[inbox] final class MsgBoards(env: Env):
               .flatMap: game =>
                 requireValid(
                   game
-                    .filter(g => g.started && g.nativeVariant.key == "xiangqi")
+                    .filter(g => g.started)
                     .flatMap: game =>
                       val history = game.xiangqi
-                      val states = history.states.takeWhile(state => end.forall(state.ply <= _))
+                      val states = game.visibleStates.takeWhile(state => end.forall(state.ply <= _))
                       Option.when(states.nonEmpty && end.forall(states.last.ply == _) && states.size <= 601):
                         val frames = frame(states.head) +: states.tail
                           .zip(history.moves.zip(states))
@@ -144,18 +173,68 @@ object MsgBoards:
   private def requireValid[A](value: Option[A]): Fu[A] = value.fold(invalid[A]())(fuccess)
   private def validSource(source: Source) =
     source.value.trim.nonEmpty && (source.kind match
-      case "fen" => source.value.length <= 200
-      case "pgn" => source.value.getBytes(UTF_8).length <= 16_000
+      case "fen" => source.value.length <= (if source.value.trim.startsWith("TK1;") then 10000 else 200)
+      case "pgn" | "record" => source.value.getBytes(UTF_8).length <= 16_000
       case "link" => source.inline && source.value.length <= 2048
       case _ => false)
 
   private val brushes = Set("green", "red", "blue", "yellow")
-  private def validShape(shape: MsgBoard.Shape) =
+  private def validShape(shape: MsgBoard.Shape, fen: String) =
+    def valid(key: String) =
+      if fen.startsWith("TK1;") then Location.fromKey(key).exists(_.key == key)
+      else
+        Xiangqi.Square
+          .fromKey(key)
+          .exists(square =>
+            fen.takeWhile(_ != ' ').count(_ == '/') != 6 || (square.file < 7 && square.rank <= 7)
+          )
     brushes(shape.brush) &&
-      Xiangqi.Square.fromKey(shape.orig).isDefined &&
-      shape.dest.forall(dest => dest != shape.orig && Xiangqi.Square.fromKey(dest).isDefined)
+    valid(shape.orig) &&
+    shape.dest.forall(dest => dest != shape.orig && valid(dest))
 
-  private def standard(state: Xiangqi.State) = state.variant == "xiangqi"
+  private def kingdomFrame(p: Position, index: Int, action: Option[String]) =
+    MsgBoard.Frame(
+      PositionCodec.write(p.copy(repetitions = Vector.empty, checkHistory = Vector.empty)),
+      index,
+      p.turn.color,
+      action,
+      p.active.exists(Rules.checked(p, _)),
+      false,
+      false,
+      Vector.empty
+    )
+
+  private def kingdomBoard(
+      initial: Position,
+      events: Vector[(Kingdom, String)],
+      end: Option[Int],
+      start: Option[Int],
+      path: Option[String]
+  ): Option[MsgBoard] =
+    val size = end.getOrElse(events.size)
+    Option
+      .when(size >= 0 && size <= events.size && size <= 600)(size)
+      .flatMap: count =>
+        val frames = Vector.newBuilder[MsgBoard.Frame]
+        frames += kingdomFrame(initial, 0, None)
+        events
+          .take(count)
+          .zipWithIndex
+          .foldLeft(Option(initial)):
+            case (previous, ((actor, action), index)) =>
+              previous.flatMap: before =>
+                Rules
+                  .event(before, actor, action)
+                  .toOption
+                  .map: after =>
+                    frames += kingdomFrame(after, index + 1, Some(action)).copy(
+                      capture = Move.parse(action).exists(m => before.piece(m.to).nonEmpty),
+                      checkmate = after.eliminated.size > before.eliminated.size
+                    )
+                    after
+          .map: _ =>
+            val first = start.getOrElse(count).max(0).min(count)
+            board(frames.result(), path = path, start = Some(first))
 
   private def frame(
       state: Xiangqi.State,
@@ -178,6 +257,10 @@ object MsgBoards:
           case XiangqiAnnotations.Shape.Circle(brush, orig) => MsgBoard.Shape(orig.key, None, brush)
           case XiangqiAnnotations.Shape.Arrow(brush, orig, dest) =>
             MsgBoard.Shape(orig.key, Some(dest.key), brush)
+      ,
+      state.captures.lastOption
+        .filter(_.ply == state.ply)
+        .map(c => MsgBoard.Capture(c.side.key, c.square, c.role, c.concealed, c.ply))
     )
 
   private def board(
@@ -188,11 +271,14 @@ object MsgBoards:
   ) = MsgBoard(frames, orientation, start.getOrElse(frames.head.ply), path, None)
 
   private sealed trait Link
+  private case class Kingdoms(id: GameId, index: Option[Int]) extends Link
+  private val kingdomsPath = """/three-kingdoms/game/([a-zA-Z0-9]{8})""".r
   private case class Puzzle(id: PuzzleId) extends Link
   private case class Game(id: GameId, orientation: String, ply: Option[Int], analysis: Boolean) extends Link
 
   private val puzzlePath = """/(?:[a-z]{2,3}/)?training/(?:[\w-]+/)?([a-zA-Z0-9]{5}|[0-9]{6,})""".r
-  private val gamePath = """/(?:embed/(?:game/)?)?([a-zA-Z0-9]{8})(?:/(white|black)(?:/analysis)?)?""".r
+  private val gamePath =
+    """/(?:embed/(?:game/)?)?([a-zA-Z0-9]{8})(?:[a-zA-Z0-9]{4})?(?:/(white|black)(?:/analysis)?)?""".r
 
   private def link(text: String): Option[Link] =
     val normalized =
@@ -206,6 +292,7 @@ object MsgBoards:
       )
       .flatMap: uri =>
         uri.getRawPath match
+          case kingdomsPath(id) => Some(Kingdoms(GameId(id), Option(uri.getFragment).flatMap(_.toIntOption)))
           case puzzlePath(id) =>
             (if id.length == 5 then Some(PuzzleId(id))
              else id.toLongOption.flatMap(lila.puzzle.Puzzle.numericalId.apply)).map(Puzzle.apply)

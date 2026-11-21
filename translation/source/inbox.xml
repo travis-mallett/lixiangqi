@@ -30,6 +30,8 @@
   <string name="delete">Delete message</string>
   <string name="deleteMe">Delete for me</string>
   <string name="deleteEveryone">Delete for everyone</string>
+  <string name="removeMessage">Remove message</string>
+  <string name="removeMessageHelp">Remove the selected messages from the chat for everyone?</string>
   <string name="deleteConfirm">Delete the selected messages?</string>
   <string name="deleteEveryoneHelp">Your messages can be deleted for everyone within 24 hours, including after they have been read.</string>
   <string name="deleted">This message was deleted</string>
