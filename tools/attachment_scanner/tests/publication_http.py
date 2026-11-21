@@ -1,6 +1,7 @@
 """Exercise the staged server against a dedicated loopback Mongo replica set and Redis."""
 import argparse
 import hashlib
+import http.client
 import json
 import os
 import secrets
@@ -12,11 +13,11 @@ import tempfile
 import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import patch
-from urllib import error, parse, request
+from urllib import parse
 
 from pymongo import MongoClient
 
@@ -29,16 +30,10 @@ import worker
 from test_scanner import general, png
 
 
-class KeepRedirect(request.HTTPRedirectHandler):
-    def redirect_request(self, req, fp, code, msg, headers, newurl):
-        return None
-
-
 class Site:
     def __init__(self, db, port):
         self.db = db
-        self.origin = f"http://127.0.0.1:{port}"
-        self.http = request.build_opener(request.ProxyHandler({}), KeepRedirect())
+        self.port = port
         self.tokens = {}
 
     def user(self, username):
@@ -68,15 +63,13 @@ class Site:
             data = json.dumps(json_body).encode()
         if name:
             headers.update({"Content-Type": "application/octet-stream", "X-Attachment-Name": parse.quote(name)})
-        try:
-            response = self.http.open(request.Request(self.origin + path, data=data, headers=headers, method=method), timeout=15)
-        except error.HTTPError as exc:
-            response = exc
-        with response:
-            body = response.read()
-            expected = status if isinstance(status, tuple) else (status,)
-            assert response.status in expected, (path, response.status, expected, body[:240])
-            return body, response.headers
+        with closing(http.client.HTTPConnection("127.0.0.1", self.port, timeout=15)) as connection:
+            connection.request(method or ("POST" if data is not None else "GET"), path, body=data, headers=headers)
+            with connection.getresponse() as response:
+                body = response.read()
+                expected = status if isinstance(status, tuple) else (status,)
+                assert response.status in expected, (path, response.status, expected, body[:240])
+                return body, response.headers
 
     def json(self, *args, **kwargs):
         return json.loads(self.call(*args, **kwargs)[0])
@@ -349,7 +342,10 @@ def verify_group_inbox(site):
     assert site.json(invite, chen, {})["joined"]
     site.call(path + "/manage", bob, {"action": "linkOff"})
     site.call(invite, chen, status=404)
-    site.call(path + "/messages/" + latest["id"], alice, {"action": "deleteEveryone", "value": "", "revision": latest["revision"]})
+    message_path = f"{path}/messages/{latest['id']}"
+    delete = {"action": "deleteEveryone", "value": "", "revision": latest["revision"]}
+    site.call(message_path, alice, delete, status=400)
+    site.call(message_path, bob, delete)
     site.db.user4.update_one({"_id": chen}, {"$set": {"kid": True}})
     dest = "/attachment/msg/" + group
     assert site.json(dest + "/policy", alice)["enabled"]

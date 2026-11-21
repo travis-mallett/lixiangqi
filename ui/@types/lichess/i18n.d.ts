@@ -1523,10 +1523,6 @@ interface I18n {
     deleteChat: string;
     /** Delete the selected messages? */
     deleteConfirm: string;
-    /** Remove message */
-    removeMessage: string;
-    /** Remove the selected messages from the chat for everyone? */
-    removeMessageHelp: string;
     /** This message was deleted */
     deleted: string;
     /** Delete for everyone */
@@ -1701,6 +1697,10 @@ interface I18n {
     removeBoard: string;
     /** Remove member */
     removeMember: string;
+    /** Remove message */
+    removeMessage: string;
+    /** Remove the selected messages from the chat for everyone? */
+    removeMessageHelp: string;
     /** Remove link preview */
     removePreview: string;
     /** Reply */

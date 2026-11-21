@@ -48,6 +48,7 @@ if (!process.argv.includes('--skip-rules')) {
         )
       : 'java';
   const launcher = process.env.SBT_LAUNCHER ?? join(root, '.tools/sbt/sbt-launch-2.0.3.jar');
+  const tasks = 'scalafmtCheckAll;scalafmtSbtCheck;fullLinkJS';
   if (existsSync(launcher))
     run(
       java,
@@ -58,14 +59,11 @@ if (!process.argv.includes('--skip-rules')) {
         `-Dsbt.ivy.home=${join(root, '.tools/sbt-ivy')}`,
         '-jar',
         launcher,
-        'scalafmtCheckAll',
-        'scalafmtSbtCheck',
-        'fullLinkJS',
+        tasks,
       ],
       join(root, 'tools/human-bot/rules'),
     );
-  else
-    run('sbt', ['scalafmtCheckAll', 'scalafmtSbtCheck', 'fullLinkJS'], join(root, 'tools/human-bot/rules'));
+  else run('sbt', [tasks], join(root, 'tools/human-bot/rules'));
   writeFileSync(
     join(output, 'rules-manifest.json'),
     JSON.stringify(

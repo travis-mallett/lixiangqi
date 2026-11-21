@@ -6,6 +6,12 @@ Reconciliation means preserving the applicable behavior, not reproducing web scr
 
 ## Products and receipts
 
+The CI repairs against website commit `7b97edceee` affect the HTTP test client,
+the sender-only group deletion assertion, generated website translation types, and
+the standalone bot build command. The staged publication and inbox HTTP suite
+passed on Windows. Neither Flutter app consumes these test or build paths, and
+neither requires a release. There is no deployment dependency.
+
 Variant chat previews (MsgBoards.scala blob `c2dcab1b76`) use the existing board
 message endpoint and snapshot storage. Deploy the backend and web assets together.
 The adult app needs a release to open linked variants or show the selected encoded
