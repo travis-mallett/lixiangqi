@@ -1,0 +1,54 @@
+.msg-board {
+  position: relative;
+  width: min(100%, 18rem);
+  min-width: 0;
+
+  &-player {
+    min-height: min(12rem, 45vw);
+    padding: 0;
+  }
+
+  &-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.5rem;
+    min-height: 2.5rem;
+  }
+}
+
+.msg-bubble-wrap:has(.msg-board) {
+  width: min(78%, 20rem);
+}
+
+.msg-board-drafts {
+  display: flex;
+  gap: 0.5rem;
+  max-height: 42vh;
+  overflow: auto;
+  min-height: 0;
+
+  .msg-board-draft {
+    flex: 0 0 min(16rem, 85%);
+    min-width: 0;
+
+    .lixiangqi-board {
+      pointer-events: auto;
+    }
+
+    &.drawing .lixiangqi-board {
+      touch-action: none;
+      cursor: crosshair;
+    }
+  }
+}
+
+.msg-board-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+
+  button[aria-pressed='true'] {
+    color: $c-primary;
+  }
+}

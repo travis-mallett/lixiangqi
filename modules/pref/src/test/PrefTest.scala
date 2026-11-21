@@ -104,7 +104,8 @@ class PrefTest extends FunSuite:
         PieceSets.western.key -> Other,
         "xiangqi-white" -> Traditional,
         "xiangqi-white-international" -> GraphicalSymbols,
-        "celestial-lacquer" -> Traditional
+        "celestial-lacquer" -> Traditional,
+        "qing-jade" -> Traditional
       )
     )
 

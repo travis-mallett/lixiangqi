@@ -136,4 +136,10 @@
   <string name="resetLink">Reset link</string>
   <string name="disableLink">Turn off link</string>
   <string name="adminAddOnly">Only admins can add members</string>
+  <string name="startFromPosition">Start from this position</string>
+  <string name="drawOnBoard">Draw on board</string>
+  <string name="removeBoard">Remove board</string>
+  <string name="openBoardSource">Open original</string>
+  <string name="loadingBoard">Loading board…</string>
+  <string name="invalidBoard">Could not load this Xiangqi board</string>
 </resources>

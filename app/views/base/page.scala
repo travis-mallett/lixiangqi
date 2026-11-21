@@ -172,6 +172,7 @@ object page:
           dataBoard := pref.boardTheme,
           dataPieceSet := pref.pieceSet,
           attr("data-board-animations") := pref.boardAnimations,
+          attr("data-board-motion") := pref.animationMillis,
           dataAnnounce := lila.web.AnnounceApi.get.map(a => safeJsonValue(a.json)),
           attr("data-i18n-catalog") := assetHelper.manifest
             .js(s"i18n/${ctx.lang.code}")

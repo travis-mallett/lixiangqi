@@ -1539,6 +1539,8 @@ interface I18n {
     disableLink: string;
     /** Done */
     done: string;
+    /** Draw on board */
+    drawOnBoard: string;
     /** Edit */
     edit: string;
     /** Edited */
@@ -1593,8 +1595,12 @@ interface I18n {
     highlighter: string;
     /** Message details */
     info: string;
+    /** Could not load this Xiangqi board */
+    invalidBoard: string;
     /** Leave group */
     leaveGroup: string;
+    /** Loading board… */
+    loadingBoard: string;
     /** Make admin */
     makeAdmin: string;
     /** Mark as unread */
@@ -1631,6 +1637,8 @@ interface I18n {
     offline: string;
     /** Load older messages */
     older: string;
+    /** Open original */
+    openBoardSource: string;
     /** Open in Inbox */
     openInInbox: string;
     /** Outline */
@@ -1685,6 +1693,8 @@ interface I18n {
     regular: string;
     /** Remove admin */
     removeAdmin: string;
+    /** Remove board */
+    removeBoard: string;
     /** Remove member */
     removeMember: string;
     /** Remove link preview */
@@ -1727,6 +1737,8 @@ interface I18n {
     shareContact: string;
     /** Square */
     square: string;
+    /** Start from this position */
+    startFromPosition: string;
     /** Stickers */
     stickers: string;
     /** Thin */

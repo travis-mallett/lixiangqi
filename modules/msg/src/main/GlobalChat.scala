@@ -121,11 +121,13 @@ final class GlobalChat(
         val rows = docs.take(50)
         rows -> Option.when(docs.size > 50)(rows.last.date.toEpochMilli -> rows.last.id)
 
-  private def validated(body: String, handles: List[String])(using me: Me): Fu[Msg] =
+  private def validated(body: String, handles: List[String], hasBoard: Boolean = false)(using
+      me: Me
+  ): Fu[Msg] =
     if !canPost then fail("rejected")
     else if lila.core.security.SubmissionPolicy.blocked(body) || spam.detect(body) then fail("unsafeLink")
     else if MsgGroups.mentions(body).size > 16 then fail("invalid")
-    else Msg.make(body.trim, me, nowInstant, handles).fold(fail[Msg]("invalid"))(fuccess)
+    else Msg.make(body.trim, me, nowInstant, handles, hasBoard).fold(fail[Msg]("invalid"))(fuccess)
 
   private def changed(m: Msg, kind: String): Unit =
     latest.invalidate({})
@@ -150,7 +152,8 @@ final class GlobalChat(
       reply: Option[String],
       items: List[String],
       forward: Option[(String, String)],
-      cardJson: Option[String]
+      cardJson: Option[String],
+      resolveBoards: MsgBoard.Resolve = MsgBoard.unavailable
   )(using me: Me): Fu[Msg] =
     limit(me.userId, fail[Msg]("limited")):
       if !canPost || !nonce.matches("[a-zA-Z0-9-]{16,64}") then fail("invalid")
@@ -167,7 +170,7 @@ final class GlobalChat(
             case Some(m) if !m.requestDigest.contains(digest) => fail[Option[Msg]]("conflict")
             case found => fuccess(found)
         def publish = for
-          card <- MsgCard.decode(cardJson, body, items)
+          card <- MsgCard.decode(cardJson, body, items, resolveBoards)
           forwarded <- forward.traverse((peer, id) => groups.source(peer, id))
           _ <-
             if forwarded.forall(_.canForward) && (forwarded.isEmpty || (items.isEmpty && card.isEmpty))
@@ -178,7 +181,8 @@ final class GlobalChat(
               media.copy(me, forward.get._1, src, id, mid)
             case Some(_) => fail[List[String]]("attachmentsUnavailable")
             case None => fuccess(items)
-          clean <- validated(forwarded.fold(body)(_.text), handles)
+          content = forwarded.flatMap(_.card).orElse(card)
+          clean <- validated(forwarded.fold(body)(_.text), handles, content.exists(_.boards.nonEmpty))
           quote <- reply.traverse(key =>
             colls.msg
               .one[Msg](selector ++ $id(key) ++ $doc("deletedAt".$exists(false)))
@@ -188,7 +192,7 @@ final class GlobalChat(
             id = mid,
             requestDigest = Some(digest),
             forwarded = forwarded.nonEmpty,
-            card = forwarded.flatMap(_.card).orElse(card),
+            card = content,
             reply = quote.map(q => Msg.Quote(q.id, q.user, q.text.take(1000)))
           )
           doc = writeMsg(m, MsgThread.Id(id))

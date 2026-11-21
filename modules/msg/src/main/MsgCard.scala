@@ -12,7 +12,12 @@ case class MsgPoll(
     ended: Boolean
 )
 case class MsgPreview(url: String, title: String, description: String, date: Option[Long] = None)
-case class MsgCard(poll: Option[MsgPoll], contact: Option[String], preview: Option[MsgPreview])
+case class MsgCard(
+    poll: Option[MsgPoll] = None,
+    contact: Option[String] = None,
+    preview: Option[MsgPreview] = None,
+    boards: Option[Vector[MsgBoard]] = None
+)
 
 object MsgCard:
   given OFormat[PollBallot] = Json.format
@@ -20,13 +25,26 @@ object MsgCard:
   given OFormat[MsgPreview] = Json.format
   given OFormat[MsgCard] = Json.format
 
-  def decode(raw: Option[String], body: String, attachments: List[String]): Fu[Option[MsgCard]] =
+  def decode(
+      raw: Option[String],
+      body: String,
+      attachments: List[String],
+      resolveBoards: MsgBoard.Resolve = MsgBoard.unavailable
+  ): Fu[Option[MsgCard]] =
     raw match
       case None => fuccess(None)
       case Some(value) =>
-        scala.util.Try(Json.parse(value).as[MsgCard]).toOption.filter(valid(_, body, attachments)) match
-          case Some(card) => fuccess(Some(card))
-          case None => fufail(MsgActionError("invalid"))
+        scala.util.Try(Json.parse(value).as[JsObject]).toOption match
+          case Some(obj) if obj.keys == Set("boards") =>
+            resolveBoards(obj.value("boards"), body)
+              .map(boards => Some(MsgCard(boards = Some(boards))))(using
+                scala.concurrent.ExecutionContext.parasitic
+              )
+          case Some(obj) if !obj.keys.contains("boards") =>
+            obj.asOpt[MsgCard].filter(valid(_, body, attachments)) match
+              case Some(card) => fuccess(Some(card))
+              case None => fufail(MsgActionError("invalid"))
+          case _ => fufail(MsgActionError("invalid"))
 
   private def valid(card: MsgCard, body: String, attachments: List[String]): Boolean =
     def label(s: String, max: Int) = s.nonEmpty && s.trim == s && s.length <= max && !s.exists(_.isControl)

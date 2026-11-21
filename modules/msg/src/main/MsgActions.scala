@@ -108,7 +108,8 @@ final class MsgActions(
       forwardId: Option[String],
       forwardUser: Option[UserId],
       attachmentIds: List[String] = Nil,
-      cardJson: Option[String] = None
+      cardJson: Option[String] = None,
+      resolveBoards: MsgBoard.Resolve = MsgBoard.unavailable
   )(using me: Me): Fu[Msg] =
     if !nonce.matches("[a-zA-Z0-9-]{16,64}") || text.length > 8000 || contact.is(me) then fail("invalid")
     else
@@ -130,7 +131,7 @@ final class MsgActions(
         case m => fuccess(m)
       }
       def create = for
-        card <- MsgCard.decode(cardJson, text, attachmentIds)
+        card <- MsgCard.decode(cardJson, text, attachmentIds, resolveBoards)
         _ <- if forwardId.nonEmpty && card.nonEmpty then fail[Unit]("invalid") else funit
         quote <- replyId
           .traverse(message(contact, _))
@@ -259,7 +260,7 @@ final class MsgActions(
                 case None => fail("rejected")
                 case Some(contacts) =>
                   security.can
-                    .post(contacts, cleaned.text, isNew = false, hasAttachments = old.attachments.nonEmpty)
+                    .post(contacts, cleaned.text, isNew = false, hasNonTextContent = old.attachments.nonEmpty)
                     .flatMap:
                       case MsgSecurity.Ok | MsgSecurity.TrollFriend =>
                         fuccess(

@@ -46,6 +46,29 @@ Both clients offer Photos & videos, File, Poll and Contact. A poll has two to te
 
 Eligible HTTPS links can generate a preview while composing. A sender can remove a preview before sending. The server fetches the publisher’s metadata and optional thumbnail. The message carries the resulting snapshot. Recipients fetch any approved thumbnail from the private attachment endpoint, so opening an inbox does not request an image from the publisher. [Signal preview fetcher](https://github.com/signalapp/Signal-Desktop/blob/848443afc3fcc74a0e127ba4f4d8554b95da856e/ts/linkPreviews/linkPreviewFetch.preload.ts)
 
+## Xiangqi boards in messages
+
+Paste Standard Xiangqi FEN, PGN or a public LiXiangQi game or puzzle link to
+preview a board. The File picker also accepts `.fen` and `.pgn` files. Replay
+controls step through the game's main line. Use the drawing control to tap a
+square or draw an arrow. On the web, right-click drawing also works. Marks are
+saved at the position where they were drawn. **Start from this position** sets
+the opening position for recipients. Linked puzzles show the position to solve
+and link to the puzzle. Linked games include a link to the original game or analysis.
+
+`POST /inbox/board-preview` accepts the existing inbox authentication. The send
+request carries the source, starting ply and coordinate marks. The server
+resolves the source through the native Xiangqi rules or public game/puzzle
+repositories and verifies the annotations against positions in the replay.
+Messages store the resulting snapshots as optional card data. Forwarded
+messages keep the snapshot and readers play it locally with the shared viewer.
+The feature uses three boards per message, at most 16 KB per notation source,
+and at most 600 moves per replay.
+
+Deploy the backend and web assets together, then release the adult mobile app.
+The existing inbox scope and socket protocol cover board messages. There is no
+database migration. Xiangqi Kids has no messaging consumer.
+
 ## Interaction and policy
 
 - A clock means sending. One check means the server accepted the message. An

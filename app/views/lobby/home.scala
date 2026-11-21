@@ -149,44 +149,46 @@ object home:
             puzzle.map(dailyPuzzleCard(_, "left")),
             donateLink
           ),
-          div(cls := "lobby__center-rail")(
-            st.section(cls := "lobby__standard", attr("aria-label") := "Standard Xiangqi")(
-              views.lobby.preload.table,
-              currentGame
-                .map(bits.currentGameInfo)
-                .orElse(hasUnreadLichessMessage.option(bits.showUnreadLichessMessage))
-                .orElse(playban.map(bits.playbanInfo))
-            ),
-            st.section(cls := "lobby__variants", attr("aria-labelledby") := "lobby-variants-title")(
-              h2(id := "lobby-variants-title", cls := "lobby__section-title")(
-                span(cls := "lobby__svg-icon lobby__svg-icon--variants", aria.hidden := true),
-                span(cls := "lobby__label-en lobby__label-en--primary")("Variants")
+          div(cls := "lobby__main-rails")(
+            div(cls := "lobby__center-rail")(
+              st.section(cls := "lobby__standard", attr("aria-label") := "Standard Xiangqi")(
+                views.lobby.preload.table,
+                currentGame
+                  .map(bits.currentGameInfo)
+                  .orElse(hasUnreadLichessMessage.option(bits.showUnreadLichessMessage))
+                  .orElse(playban.map(bits.playbanInfo))
               ),
-              div(cls := "lobby__variant-grid")(
-                variantCard("jieqi", "揭棋", "Jieqi / Reveal Chess"),
-                variantCard("banqi", "暗棋", "Banqi / Dark Chess"),
-                variantCard("mini-xiangqi", "迷你象棋", trans.site.miniXiangqi.txt()),
-                variantCard("threeKingdoms", "三国棋", trans.site.threeKingdoms.txt()),
-                variantCard("manchu", "满洲棋", trans.site.manchu.txt()),
-                variantCard("other", "其他变体", "Other Variants")
-              )
-            ),
-            blogPosts.nonEmpty.option(views.ublog.ui.homeCarousel(blogPosts)),
-            ctx.kid.no.option(globalChatCard)
-          ),
-          st.aside(cls := "lobby__right-rail", attr("aria-label") := "Community highlights")(
-            bits.homepageLeaderboard(leaderboard, leaderboardFlags, personal),
-            st.section(cls := "lobby__feed", attr("aria-labelledby") := "lobby-updates-title")(
-              h2(id := "lobby-updates-title", cls := "lobby__feed__title")(
-                a(href := routes.Feed.index())(
-                  iconTag(Icon.RssFeed),
-                  "Updates"
+              st.section(cls := "lobby__variants", attr("aria-labelledby") := "lobby-variants-title")(
+                h2(id := "lobby-variants-title", cls := "lobby__section-title")(
+                  span(cls := "lobby__svg-icon lobby__svg-icon--variants", aria.hidden := true),
+                  span(cls := "lobby__label-en lobby__label-en--primary")("Variants")
                 ),
-                a(cls := "more", href := routes.Feed.index())(trans.site.more(), " ›")
+                div(cls := "lobby__variant-grid")(
+                  variantCard("jieqi", "揭棋", "Jieqi / Reveal Chess"),
+                  variantCard("banqi", "暗棋", "Banqi / Dark Chess"),
+                  variantCard("mini-xiangqi", "迷你象棋", trans.site.miniXiangqi.txt()),
+                  variantCard("threeKingdoms", "三国棋", trans.site.threeKingdoms.txt()),
+                  variantCard("manchu", "满洲棋", trans.site.manchu.txt()),
+                  variantCard("other", "其他变体", "Other Variants")
+                )
               ),
-              views.feed.lobbyUpdates(lastUpdates)
+              blogPosts.nonEmpty.option(views.ublog.ui.homeCarousel(blogPosts)),
+              ctx.kid.no.option(globalChatCard)
             ),
-            puzzle.map(dailyPuzzleCard(_, "right"))
+            st.aside(cls := "lobby__right-rail", attr("aria-label") := "Community highlights")(
+              bits.homepageLeaderboard(leaderboard, leaderboardFlags, personal),
+              st.section(cls := "lobby__feed", attr("aria-labelledby") := "lobby-updates-title")(
+                h2(id := "lobby-updates-title", cls := "lobby__feed__title")(
+                  a(href := routes.Feed.index())(
+                    iconTag(Icon.RssFeed),
+                    "Updates"
+                  ),
+                  a(cls := "more", href := routes.Feed.index())(trans.site.more(), " ›")
+                ),
+                views.feed.lobbyUpdates(lastUpdates)
+              ),
+              puzzle.map(dailyPuzzleCard(_, "right"))
+            )
           ),
           st.footer(cls := "lobby__footer", attr("aria-label") := "LiXiangQi links")(
             a(href := langHref(routes.Puzzle.themes))(trans.puzzle.puzzleThemes()),

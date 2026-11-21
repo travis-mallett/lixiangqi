@@ -11,6 +11,16 @@ import lila.msg.GlobalChat
 
 final class Msg(env: Env) extends LilaController(env):
 
+  private val boards = MsgBoards(env)
+
+  def boardPreview = AuthOrScopedBodyWithParser(parse.json(52_000))(_.Web.Mobile, _.Mobile.Inbox) {
+    ctx ?=> me ?=>
+      boards.preview(ctx.body.body).map(board => Ok(Json.toJson(board)).noCache).recover {
+        case lila.msg.MsgActionError("limited") => TooManyRequests(jsonError("limited"))
+        case lila.msg.MsgActionError(code) => BadRequest(jsonError(code))
+      }
+  }
+
   def registerDevice = ScopedBody(parse.json(maxLength = 8192))(Seq(_.Mobile.Inbox)) { ctx ?=> me ?=>
     val device = (ctx.body.body \ "fid").asOpt[String].filter(_.matches("[a-zA-Z0-9_-]{22}"))
     val session = lila.common.HTTPRequest.bearer(ctx.req).map(lila.oauth.AccessToken.idFrom)
@@ -94,7 +104,8 @@ final class Msg(env: Env) extends LilaController(env):
               data._4,
               data._5.map(UserId(_)),
               data._6.toList.flatMap(_.split(',')).filter(_.nonEmpty),
-              data._7
+              data._7,
+              boards.resolve
             )
           )
       )
@@ -144,7 +155,7 @@ final class Msg(env: Env) extends LilaController(env):
       "forwardId" -> optional(text(maxLength = 100)),
       "forwardUser" -> optional(text(maxLength = 100)),
       "attachments" -> optional(text(maxLength = 264)),
-      "card" -> optional(text(maxLength = 6000))
+      "card" -> optional(text(maxLength = 48_000))
     )
   )
   private val actionForm = Form(
@@ -164,6 +175,7 @@ final class Msg(env: Env) extends LilaController(env):
     result.map(msg => Ok(Json.obj("ok" -> true, "msg" -> env.msg.json.renderMsg(msg)))).recover {
       case lila.msg.MsgActionError("notFound") => NotFound(jsonError("notFound"))
       case lila.msg.MsgActionError("unsafeLink") => UnprocessableEntity(jsonError("unsafeLink"))
+      case lila.msg.MsgActionError("invalidBoard") => UnprocessableEntity(jsonError("invalidBoard"))
       case lila.msg.MsgActionError("conflict") | lila.core.security.SubmissionRejected("conflict") =>
         Conflict(jsonError("conflict"))
       case lila.core.security.SubmissionRejected(code) => UnprocessableEntity(jsonError(code))
@@ -375,11 +387,28 @@ final class Msg(env: Env) extends LilaController(env):
           if id == GlobalChat.id then
             publicWrite(
               env.msg.globalChat
-                .send(d._1, d._2.getOrElse(""), d._3, d._6.toList.flatMap(ids), d._5.zip(d._4), d._7)
+                .send(
+                  d._1,
+                  d._2.getOrElse(""),
+                  d._3,
+                  d._6.toList.flatMap(ids),
+                  d._5.zip(d._4),
+                  d._7,
+                  boards.resolve
+                )
             )
           else
             env.msg.groups
-              .send(id, d._1, d._2.getOrElse(""), d._3, d._6.toList.flatMap(ids), d._5.zip(d._4), d._7)
+              .send(
+                id,
+                d._1,
+                d._2.getOrElse(""),
+                d._3,
+                d._6.toList.flatMap(ids),
+                d._5.zip(d._4),
+                d._7,
+                boards.resolve
+              )
         )
     )
   }

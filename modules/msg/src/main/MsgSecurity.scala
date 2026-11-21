@@ -56,11 +56,11 @@ final private class MsgSecurity(
         rawText: String,
         isNew: Boolean,
         unlimited: Boolean = false,
-        hasAttachments: Boolean = false,
+        hasNonTextContent: Boolean = false,
         inGroup: Boolean = false
     ): Fu[Verdict] =
       val text = rawText.trim
-      if text.isEmpty && !hasAttachments then fuccess(Invalid)
+      if text.isEmpty && !hasNonTextContent then fuccess(Invalid)
       else if contacts.orig.isLichess && !contacts.dest.isLichess then fuccess(Ok)
       else
         may

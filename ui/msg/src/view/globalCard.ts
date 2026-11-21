@@ -11,10 +11,12 @@ import {
 import { globalChatId } from 'lib/inboxUrl';
 import { json } from 'lib/xhr';
 
+import { boardMessageText } from '../boardContent';
 import MsgCtrl from '../ctrl';
 import type { Msg } from '../interfaces';
 import { loadConvo, upgradeMsg } from '../network';
 import { messageAttachments, messageLinkPreview } from './attachments';
+import { messageBoard } from './boards';
 import { renderCard } from './cards';
 import { userIcon } from './contact';
 import renderConvo from './convo';
@@ -108,6 +110,8 @@ function row(
   const author = { id: msg.user, name: msg.user, online: false };
   const media = { msg, sender: msg.user };
   const reactions = Object.entries(msg.counts);
+  const boards = msg.card?.boards;
+  const text = boardMessageText(msg.text, boards);
   return h('article.msg-row.their', { key: msg.id }, [
     last
       ? userIcon(author, 'msg-author-avatar')
@@ -126,7 +130,8 @@ function row(
               ])
             : undefined,
           renderCard(undefined, msg, msg.pollCounts),
-          msg.text && !msg.card?.poll && !msg.card?.contact ? h('t', msg.text) : undefined,
+          text && !msg.card?.poll && !msg.card?.contact ? h('t', text) : undefined,
+          ...(boards?.map((board, index) => messageBoard(board, msg.id + '-' + index)) ?? []),
           h('div.msg-meta', [messageTime(msg.date)]),
         ]),
       ]),

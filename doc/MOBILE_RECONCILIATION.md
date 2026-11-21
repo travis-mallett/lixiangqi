@@ -254,3 +254,36 @@ with the following working-tree SHA-256 fingerprints.
 ## November 19 Global Chat and group membership
 
 The main app consumes the shared public-room media, group permissions and invitation APIs, and implements the Android picker, avatars, sender identities and message actions. Xiangqi Kids has no community inbox or Global Chat entry point. Deploy the website and assets before releasing the native update. The scoped working-tree review records source fingerprints and verification without advancing either checkpoint. [Messaging reconciliation receipt](MESSAGING_RECONCILIATION.json)
+
+## Mid-desktop homepage spacing
+
+Reviewed website HEAD `8f5db4bab2fdac94a51113958993aa5301e77792`. The browser
+homepage now stacks Standard Xiangqi, Variants, the blog, and Global Chat
+independently of the height of the TV and puzzle sidebar.
+
+- **LiXiangQi Mobile (not applicable).** Its Global Chat lives in the native
+  Flutter Inbox, which does not use the homepage markup or CSS.
+- **Xiangqi Kids (not applicable).** It has no Global Chat surface and does not
+  use the website homepage layout.
+
+The production asset build, 783 UI tests, and Chrome layout checks at eight
+widths passed. Deploy the website template and compiled assets together.
+Neither app requires a release. Both reconciliation checkpoints retain their
+prior positions.
+
+| Source                       | Working-tree SHA-256                                               |
+| ---------------------------- | ------------------------------------------------------------------ |
+| `app/views/lobby/home.scala` | `de08181175de09bde4e0502d6545f5230ac7fd9e5782b81c0418323c64d60aad` |
+| `ui/lobby/css/_layout.scss`  | `1fbe671cf9754b593ab2287076b87902334c5859aac7400ae7549bace673c417` |
+
+## In-message Xiangqi boards
+
+- **LiXiangQi Mobile (ported).** The native Inbox previews and sends boards
+  from notation, files and links. It uses the shared native board and plays
+  the server's stored positions with marks at the sender's chosen starting ply.
+- **Xiangqi Kids (not applicable).** It has no messaging composer, conversation
+  viewer or inbox scope. Its gameplay and puzzle APIs have no contract change.
+
+Deploy the backend and web assets before the adult mobile release. See the
+[messaging receipt](MESSAGING_RECONCILIATION.json#messageBoards) for source
+fingerprints and verification. Both checkpoints retain their prior positions.

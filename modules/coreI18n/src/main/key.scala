@@ -907,6 +907,12 @@ object I18nKey:
     val `resetLink`: I18nKey = "inbox:resetLink"
     val `disableLink`: I18nKey = "inbox:disableLink"
     val `adminAddOnly`: I18nKey = "inbox:adminAddOnly"
+    val `startFromPosition`: I18nKey = "inbox:startFromPosition"
+    val `drawOnBoard`: I18nKey = "inbox:drawOnBoard"
+    val `removeBoard`: I18nKey = "inbox:removeBoard"
+    val `openBoardSource`: I18nKey = "inbox:openBoardSource"
+    val `loadingBoard`: I18nKey = "inbox:loadingBoard"
+    val `invalidBoard`: I18nKey = "inbox:invalidBoard"
 
   object insight:
     val `xChessInsights`: I18nKey = "insight:xChessInsights"

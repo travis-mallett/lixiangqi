@@ -202,8 +202,11 @@ final class MsgApi(
     if lila.core.security.SubmissionPolicy.blocked(text) then
       lila.mon.submission.blocked("msg").increment()
       return fuccess(PostResult.UnsafeLink)
-    orig.isnt(dest).so(Msg.make(text, orig, date, attachmentIds)).fold(fuccess(PostResult.Invalid)) {
-      msgPre =>
+    val hasBoard = card.exists(_.boards.nonEmpty)
+    orig
+      .isnt(dest)
+      .so(Msg.make(text, orig, date, attachmentIds, hasBoard))
+      .fold(fuccess(PostResult.Invalid)) { msgPre =>
         val threadId = MsgThread.id(orig, dest)
         for
           contacts <- contactApi.contacts(orig, dest).orFail(s"Missing convo contact user $orig->$dest")
@@ -216,7 +219,7 @@ final class MsgApi(
                 msgPre.text,
                 isNew,
                 unlimited = multi,
-                hasAttachments = attachmentIds.nonEmpty
+                hasNonTextContent = attachmentIds.nonEmpty || hasBoard
               )
           _ = lila.mon.msg.post(verdict.toString, isNew = isNew, multi = multi).increment()
           maskFor = multi.option(orig)
@@ -329,7 +332,7 @@ final class MsgApi(
                     ircApi.broadcasterDm(topicUser, orig, msg.text)
                 PostResult.Success
         yield res
-    }
+      }
 
   private[msg] def withVisibleMedia(msg: Msg, first: UserId, second: UserId): Fu[Msg] =
     if msg.attachments.isEmpty then fuccess(msg)

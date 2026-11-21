@@ -45,6 +45,7 @@ export class AttachmentDraft {
     private readonly editPhoto?: (file: File, signal: AbortSignal) => Promise<File | undefined>,
     private readonly pickerIcon?: (name: 'plus' | 'photo' | 'file' | 'contact' | 'poll') => HTMLElement,
     private readonly compose?: (type: 'poll' | 'contact') => void,
+    private readonly takeFile?: (file: File) => boolean,
   ) {
     for (const id of published)
       this.items.push({
@@ -181,7 +182,7 @@ export class AttachmentDraft {
       button.type = 'button';
       button.className = this.surface === 'msg' ? 'msg-picker-row' : 'button button-empty';
       if (this.surface === 'msg') button.setAttribute('role', 'menuitem');
-      button.disabled = !this.policy?.enabled;
+      button.disabled = !this.policy?.enabled && !(this.takeFile && !accept.startsWith('image/'));
       if (this.pickerIcon)
         button.append(this.pickerIcon(accept.startsWith('image/') ? 'photo' : 'file'), ' ');
       button.append(label);
@@ -290,6 +291,7 @@ export class AttachmentDraft {
     this.render();
   }
   private add(files: File[]) {
+    if (this.takeFile) files = files.filter(file => !this.takeFile!(file));
     if (!this.policy?.enabled) return;
     for (const file of files) {
       if (this.items.length >= this.policy.maxCount) {

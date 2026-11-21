@@ -101,7 +101,7 @@ final class MsgGroups(
                   isNew = false,
                   unlimited = true,
                   inGroup = true,
-                  hasAttachments = body.isEmpty
+                  hasNonTextContent = body.isEmpty
                 )
                 .map(v => v == MsgSecurity.Ok || v == MsgSecurity.TrollFriend)
 
@@ -258,7 +258,8 @@ final class MsgGroups(
       reply: Option[String],
       items: List[String],
       forward: Option[(String, String)],
-      cardJson: Option[String] = None
+      cardJson: Option[String] = None,
+      resolveBoards: MsgBoard.Resolve = MsgBoard.unavailable
   )(using me: Me): Fu[Msg] =
     limit(me.userId, fail[Msg]("limited")):
       val msgId = s"${me.userId}_$nonce"
@@ -287,7 +288,7 @@ final class MsgGroups(
         result <- previous
           .fold {
             for
-              card <- MsgCard.decode(cardJson, text, items)
+              card <- MsgCard.decode(cardJson, text, items, resolveBoards)
               _ <- check(forward.isEmpty || card.isEmpty, "invalid")
               forwarded <- forward.traverse((peer, mid) => source(peer, mid))
               _ <- check(forwarded.forall(_.canForward) && (forwarded.isEmpty || items.isEmpty), "invalid")
@@ -297,7 +298,10 @@ final class MsgGroups(
                 case None => fuccess(items)
               body = forwarded.fold(text)(_.text)
               _ <- check(!lila.core.security.SubmissionPolicy.blocked(body), "unsafeLink")
-              clean <- Msg.make(body, me, nowInstant, handles).fold(fail[Msg]("invalid"))(fuccess)
+              content = forwarded.flatMap(_.card).orElse(card)
+              clean <- Msg
+                .make(body, me, nowInstant, handles, content.exists(_.boards.nonEmpty))
+                .fold(fail[Msg]("invalid"))(fuccess)
               quote <- reply.traverse(find(id, _))
               peers <- g.users.filterNot(_.is(me)).filterA(eligible(_, Some(body)))
               audience = me.userId :: peers
@@ -308,7 +312,7 @@ final class MsgGroups(
               m = clean.copy(
                 id = msgId,
                 requestDigest = Some(digest),
-                card = forwarded.flatMap(_.card).orElse(card),
+                card = content,
                 forwarded = forwarded.nonEmpty,
                 reply = quote
                   .map(message(_, me))

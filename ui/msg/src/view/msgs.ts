@@ -3,9 +3,11 @@ import { h, type VNode } from 'snabbdom';
 import { alert, confirm, bind } from 'lib/view';
 import { json as xhrJson, form as xhrForm } from 'lib/xhr';
 
+import { boardMessageText } from '../boardContent';
 import type MsgCtrl from '../ctrl';
 import type { Convo, Msg } from '../interfaces';
 import { messageAttachments, messageLinkPreview } from './attachments';
+import { messageBoard } from './boards';
 import { renderCard } from './cards';
 import { userIcon } from './contact';
 import { enhance, isMoreThanText, expandLpvs } from './enhance';
@@ -63,6 +65,8 @@ export default function renderMsgs(ctrl: MsgCtrl, convo: Convo): VNode {
 }
 
 function renderMsg(ctrl: MsgCtrl, msg: Msg) {
+  const boards = msg.deleted ? undefined : msg.card?.boards;
+  const text = boardMessageText(msg.text, boards);
   const mine = msg.user === ctrl.data.me.id;
   const author = mine
     ? ctrl.data.me
@@ -168,9 +172,10 @@ function renderMsg(ctrl: MsgCtrl, msg: Msg) {
             renderCard(ctrl, msg),
             msg.deleted
               ? h('t', i18n.inbox.deleted)
-              : msg.text && !msg.card?.poll && !msg.card?.contact
-                ? renderText(msg)
+              : text && !msg.card?.poll && !msg.card?.contact
+                ? renderText(text)
                 : null,
+            ...(boards?.map((board, index) => messageBoard(board, msg.id + '-' + index)) ?? []),
             h('div.msg-meta', [
               msg.pinnedAt ? glyph('pin') : null,
               msg.editedAt && !msg.deleted
@@ -239,14 +244,14 @@ function renderMsg(ctrl: MsgCtrl, msg: Msg) {
   );
 }
 
-const renderText = (msg: Msg) =>
-  isMoreThanText(msg.text) || msg.text.includes('.')
+const renderText = (text: string) =>
+  isMoreThanText(text) || text.includes('.')
     ? h('t', {
-        key: msg.text,
+        key: text,
         hook: {
           create(_, vnode: VNode) {
             const el = vnode.elm as HTMLElement;
-            el.innerHTML = enhance(msg.text);
+            el.innerHTML = enhance(text);
             el.querySelectorAll('img').forEach(c =>
               c.addEventListener('load', scroller.auto, { once: true }),
             );
@@ -257,7 +262,7 @@ const renderText = (msg: Msg) =>
           },
         },
       })
-    : h('t', msg.text);
+    : h('t', text);
 
 const setupMsgs = (insert: boolean) => (vnode: VNode) => {
   const el = vnode.elm as HTMLElement;

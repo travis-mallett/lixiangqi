@@ -4,6 +4,8 @@ import {
   boardDefinitionForFen,
   type BoardView,
   type BoardServices,
+  type BoardMark,
+  type BoardPresentation,
 } from '@lixiangqi/board';
 import { attributesModule, classModule, init, type VNode } from 'snabbdom';
 
@@ -37,6 +39,9 @@ export interface ViewerOptions {
   showMoves?: boolean;
   showControls?: boolean;
   onPosition?: (node: ViewerNode) => void;
+  presentation?: BoardPresentation;
+  drawnMarks?: (node: ViewerNode) => readonly BoardMark[];
+  onDraw?: (node: ViewerNode, marks: readonly BoardMark[]) => void;
 }
 
 type ViewerAction = 'first' | 'previous' | 'next' | 'last';
@@ -156,10 +161,15 @@ export class GameViewer {
     this.board = createBoard(surface, {
       definition,
       position: this.current.position,
-      presentation: { ...presentation, feedback: { ...presentation.feedback, audio: false } },
+      presentation: options.presentation ?? {
+        ...presentation,
+        feedback: { ...presentation.feedback, audio: false },
+      },
       interaction: { mode: 'display' },
       services: options.services,
     });
+    if (options.onDraw)
+      this.board.onDestroy(this.board.onMarksChange(marks => options.onDraw?.(this.current, marks)));
     element.addEventListener(
       'keydown',
       event => {
@@ -229,6 +239,7 @@ export class GameViewer {
 
   private renderPosition(node: ViewerNode): void {
     this.board.setMarks(node.marks, 'annotation');
+    if (this.options.drawnMarks) this.board.setMarks(this.options.drawnMarks(node));
     if (this.captureNodes) {
       const bottom = this.board.getPresentation().perspective === 'red' ? 'red' : 'black';
       const captures = node.node.state.captures ?? [];

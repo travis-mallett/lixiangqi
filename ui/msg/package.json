@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "@lixiangqi/viewer": "workspace:*",
     "@types/linkify-it": "5.0.0",
     "lib": "workspace:*",
     "linkify-it": "5.0.0"

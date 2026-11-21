@@ -4,6 +4,7 @@ import { chatPath, globalChatId } from 'lib/inboxUrl';
 import { storage, type LichessStorage } from 'lib/storage';
 import { ValidationError } from 'lib/xhr';
 
+import { BoardDraft } from './boardDraft';
 import type { MsgData, Convo, Msg, Receipt, Search, Pane, Redraw } from './interfaces';
 import { Mailbox } from './mailbox';
 import * as network from './network';
@@ -40,6 +41,8 @@ export default class MsgCtrl {
   editing?: Msg;
   draft = '';
   attachments?: AttachmentDraft;
+  boards?: BoardDraft;
+  private readonly boardDrafts = new Map<string, BoardDraft>();
   private readonly attachmentDrafts = new Map<string, AttachmentDraft>();
   submissionError = '';
   error = false;
@@ -212,6 +215,12 @@ export default class MsgCtrl {
   }
 
   private onLoadConvo(convo: Convo) {
+    let boards = this.boardDrafts.get(convo.user.id);
+    if (!boards) {
+      boards = new BoardDraft(this.redraw);
+      this.boardDrafts.set(convo.user.id, boards);
+    }
+    this.boards = boards;
     let attachments = this.attachmentDrafts.get(convo.user.id);
     if (!attachments) {
       attachments = new AttachmentDraft(
@@ -221,6 +230,7 @@ export default class MsgCtrl {
         editPhoto,
         glyphElement,
         type => void composeCard(this, type),
+        boards.takeFile,
       );
       this.attachmentDrafts.set(convo.user.id, attachments);
     }
@@ -228,6 +238,7 @@ export default class MsgCtrl {
     this.submissionError = '';
     this.textStore = storage.make(`msg:area:${this.data.me.id}:${convo.user.id}`);
     this.draft = this.textStore.get() || '';
+    this.boards.update(this.draft);
     this.preview.update(this.draft);
     this.canGetMoreSince = convo.msgs[this.msgsPerPage - 1]?.date;
     for (const timeout of this.typists.values()) clearTimeout(timeout);
@@ -238,6 +249,7 @@ export default class MsgCtrl {
 
   updateDraft = (text: string) => {
     this.draft = text;
+    if (!this.editing) this.boards?.update(text);
     this.preview.update(text);
     if (!this.editing) this.textStore?.set(text);
     if (text.trim()) this.sendTyping();
@@ -274,17 +286,21 @@ export default class MsgCtrl {
 
   post = async (text: string): Promise<boolean> => {
     const convo = this.data.convo;
+    const boardDraft = this.editing ? undefined : this.boards;
     if (
       !convo ||
       !convo.postable ||
-      (!text.trim() && !this.attachments?.active) ||
+      (!text.trim() && !this.attachments?.active && !boardDraft?.active) ||
+      boardDraft?.ready === false ||
       this.attachments?.ready === false ||
       text.length > 8000 ||
       this.sending
     )
       return false;
     const draft = this.attachments;
-    const preview = this.preview.forSend(text);
+    const boards = boardDraft?.entries.filter(entry => entry.board);
+    const boardSubmission = boards?.length ? boards.map(entry => entry.submission()!) : undefined;
+    const preview = boardSubmission ? undefined : this.preview.forSend(text);
     if (preview?.file && draft) draft.stagePreview(preview.file);
     if (draft?.active) {
       this.sending = true;
@@ -311,11 +327,15 @@ export default class MsgCtrl {
       return true;
     }
     this.submissionError = '';
+    const card = boardSubmission
+      ? { boards: boards!.map(entry => entry.snapshot()) }
+      : preview && { preview: preview.meta };
     const earlier = convo.msgs.find(
       m =>
         m.pending === 'failed' &&
         m.text === text.trim() &&
-        JSON.stringify(m.card ?? null) === JSON.stringify(preview ? { preview: preview.meta } : null) &&
+        JSON.stringify(m.card ?? null) === JSON.stringify(card ?? null) &&
+        JSON.stringify(m.boardSubmission) === JSON.stringify(boardSubmission) &&
         m.reply?.id === this.replyTo?.id &&
         (m.attachments ?? []).join(',') === (this.attachments?.ids ?? []).join(','),
     );
@@ -324,7 +344,8 @@ export default class MsgCtrl {
     const msg: Msg = {
       id: `${this.data.me.id}_${nonce}`,
       text: text.trim(),
-      card: preview && { preview: preview.meta },
+      card,
+      boardSubmission,
       attachments: this.attachments?.ids,
       user: this.data.me.id,
       date: new Date(),
@@ -399,8 +420,14 @@ export default class MsgCtrl {
         undefined,
         msg.attachments,
         msg.card,
+        msg.boardSubmission,
       );
       this.attachmentDrafts.get(convo.user.id)?.accepted(msg.attachments ?? []);
+      const boards = this.boardDrafts.get(convo.user.id);
+      for (const entry of boards?.entries.filter(entry =>
+        msg.boardSubmission?.some(board => board.source.value === entry.source.value),
+      ) ?? [])
+        boards?.remove(entry, false);
       if (this.data.convo?.user.id === convo.user.id) {
         if (!msg.card?.contact && !msg.card?.poll && this.draft.trim() === msg.text) {
           this.preview.reset();
@@ -412,7 +439,10 @@ export default class MsgCtrl {
       this.receiveChange(convo.user.id, sent, 'new');
       return true;
     } catch (error) {
-      this.submissionError = submissionError(error);
+      this.submissionError =
+        error instanceof ValidationError && error.message === 'invalidBoard'
+          ? i18n.inbox.invalidBoard
+          : submissionError(error);
       if (msg.card?.poll) {
         msg.pending = 'failed';
         this.submissionError = '';
@@ -678,6 +708,8 @@ export default class MsgCtrl {
     this.conversations.delete(user);
     this.attachmentDrafts.get(user)?.abandon();
     this.attachmentDrafts.delete(user);
+    this.boardDrafts.get(user)?.clear();
+    this.boardDrafts.delete(user);
     storage.make(`msg:area:${this.data.me.id}:${user}`).remove();
     this.data.contacts = this.data.contacts.filter(c => c.user.id !== user);
     if (this.data.convo?.user.id === user) {

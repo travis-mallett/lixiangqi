@@ -76,6 +76,7 @@ export async function post(
   forwardUser?: string,
   attachments?: string[],
   card?: Msg['card'],
+  boards?: Msg['boardSubmission'],
 ): Promise<Msg> {
   const data = await json(chatPath(dest), {
     method: 'post',
@@ -86,7 +87,7 @@ export async function post(
       forwardId,
       forwardUser,
       attachments: attachments?.join(','),
-      card: card && JSON.stringify(card),
+      card: boards ? JSON.stringify({ boards }) : card && JSON.stringify(card),
     }),
   });
   return upgradeMsg(data.msg);

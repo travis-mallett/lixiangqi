@@ -2,6 +2,7 @@ import { h, type VNode } from 'snabbdom';
 
 import type MsgCtrl from '../ctrl';
 import type { User } from '../interfaces';
+import { boardDrafts } from './boards';
 import { glyph } from './icons';
 import { playerName } from './identity';
 import { iconButton, showEmoji } from './messageActions';
@@ -20,8 +21,10 @@ function fitComposer(input: HTMLTextAreaElement) {
 
 export default function renderInteract(ctrl: MsgCtrl, _user: User): VNode {
   const context = ctrl.editing ?? ctrl.replyTo;
+  const boards = ctrl.editing ? undefined : ctrl.boards;
   const mention = ctrl.data.convo?.members && /(?:^|\s)@([\p{L}\p{N}_-]*)$/u.exec(ctrl.draft);
   return h('div.msg-composer', [
+    boards && (boards.entries.length || boards.fileError) ? boardDrafts(boards, ctrl.redraw) : undefined,
     ctrl.submissionError ? h('p.msg-error', { attrs: { role: 'alert' } }, ctrl.submissionError) : undefined,
     ctrl.preview.value && ctrl.preview.forSend(ctrl.draft)
       ? h('div.msg-staged-preview', [
@@ -137,6 +140,13 @@ export default function renderInteract(ctrl: MsgCtrl, _user: User): VNode {
               },
             },
             on: {
+              paste: (e: ClipboardEvent) => {
+                const text = e.clipboardData?.getData('text/plain').replace(/\r\n/g, '\n');
+                if (text && boards?.takeLongPaste(text)) {
+                  e.preventDefault();
+                  ctrl.redraw();
+                }
+              },
               input: e => {
                 const el = e.target as HTMLTextAreaElement;
                 ctrl.updateDraft(el.value);
@@ -161,9 +171,11 @@ export default function renderInteract(ctrl: MsgCtrl, _user: User): VNode {
           {
             attrs: {
               type: 'submit',
-              hidden: !ctrl.editing && !ctrl.draft.trim() && !ctrl.attachments?.active,
+              hidden: !ctrl.editing && !ctrl.draft.trim() && !ctrl.attachments?.active && !boards?.active,
               disabled:
-                (!ctrl.draft.trim() && !ctrl.attachments?.active) || ctrl.attachments?.ready === false,
+                (!ctrl.draft.trim() && !ctrl.attachments?.active && !boards?.active) ||
+                ctrl.attachments?.ready === false ||
+                boards?.ready === false,
               'aria-label': ctrl.editing ? i18n.inbox.save : i18n.inbox.send,
               'data-testid': 'msg-send-button',
             },

@@ -60,9 +60,15 @@ object Msg:
   ):
     def unreadBy(userId: UserId) = !read && user != userId
 
-  def make(text: String, user: UserId, date: Instant, attachments: List[String] = Nil): Option[Msg] =
+  def make(
+      text: String,
+      user: UserId,
+      date: Instant,
+      attachments: List[String] = Nil,
+      hasBoard: Boolean = false
+  ): Option[Msg] =
     val cleanText = lila.common.String.softCleanUp(text.take(8_000))
-    (cleanText.nonEmpty || attachments.nonEmpty).option(
+    (cleanText.nonEmpty || attachments.nonEmpty || hasBoard).option(
       Msg(
         text = cleanText,
         attachments = attachments,

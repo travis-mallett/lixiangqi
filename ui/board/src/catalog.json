@@ -644,6 +644,77 @@
           }
         }
       }
+    },
+    {
+      "key": "qing-jade",
+      "name": "Qing Jade",
+      "category": "traditional",
+      "variants": {
+        "xiangqi": {
+          "back": {
+            "red": "piece/qing-jade/rBack.svg",
+            "black": "piece/qing-jade/bBack.svg"
+          },
+          "faces": {
+            "red": {
+              "general": "piece/qing-jade/rK.svg",
+              "advisor": "piece/qing-jade/rA.svg",
+              "elephant": "piece/qing-jade/rB.svg",
+              "horse": "piece/qing-jade/rN.svg",
+              "chariot": "piece/qing-jade/rR.svg",
+              "cannon": "piece/qing-jade/rC.svg",
+              "soldier": "piece/qing-jade/rP.svg",
+              "banner": "piece/qing-jade/rM.svg"
+            },
+            "black": {
+              "general": "piece/qing-jade/bK.svg",
+              "advisor": "piece/qing-jade/bA.svg",
+              "elephant": "piece/qing-jade/bB.svg",
+              "horse": "piece/qing-jade/bN.svg",
+              "chariot": "piece/qing-jade/bR.svg",
+              "cannon": "piece/qing-jade/bC.svg",
+              "soldier": "piece/qing-jade/bP.svg",
+              "banner": "piece/qing-jade/bM.svg"
+            }
+          }
+        },
+        "threeKingdoms": {
+          "back": {
+            "red": "piece/qing-jade/rBack.svg",
+            "black": "piece/qing-jade/bBack.svg",
+            "green": "piece/qing-jade/gBack.svg"
+          },
+          "faces": {
+            "red": {
+              "general": "piece/qing-jade/rK3.svg",
+              "advisor": "piece/qing-jade/rA.svg",
+              "elephant": "piece/qing-jade/rB.svg",
+              "horse": "piece/qing-jade/rN.svg",
+              "chariot": "piece/qing-jade/rR.svg",
+              "cannon": "piece/qing-jade/rC.svg",
+              "soldier": "piece/qing-jade/rP.svg"
+            },
+            "black": {
+              "general": "piece/qing-jade/bK3.svg",
+              "advisor": "piece/qing-jade/bA.svg",
+              "elephant": "piece/qing-jade/bB.svg",
+              "horse": "piece/qing-jade/bN.svg",
+              "chariot": "piece/qing-jade/bR.svg",
+              "cannon": "piece/qing-jade/bC.svg",
+              "soldier": "piece/qing-jade/bP.svg"
+            },
+            "green": {
+              "general": "piece/qing-jade/gK.svg",
+              "advisor": "piece/qing-jade/gA.svg",
+              "elephant": "piece/qing-jade/gB.svg",
+              "horse": "piece/qing-jade/gN.svg",
+              "chariot": "piece/qing-jade/gR.svg",
+              "cannon": "piece/qing-jade/gC.svg",
+              "soldier": "piece/qing-jade/gP.svg"
+            }
+          }
+        }
+      }
     }
   ],
   "effects": {

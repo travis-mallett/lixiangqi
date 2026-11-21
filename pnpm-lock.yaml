@@ -421,6 +421,9 @@ importers:
 
   ui/msg:
     dependencies:
+      '@lixiangqi/viewer':
+        specifier: workspace:*
+        version: link:../viewer
       '@types/linkify-it':
         specifier: 5.0.0
         version: 5.0.0

@@ -9,7 +9,7 @@ const glyphs = parse(readFileSync(new URL('./manchu/glyphs.svg', import.meta.url
 const catalogFile = new URL('../../ui/board/src/catalog.json', import.meta.url);
 const catalog = JSON.parse(readFileSync(catalogFile, 'utf8'));
 const traditional = new Set(['default-wood', 'xiangqi-wudang', 'xiangqi-paper-traditional', 'xiangqi-white']);
-// Raster-authored collections own their complete variant artwork separately.
+// Other collections generate their banners with the rest of their artwork.
 const vectorSets = new Set([
   ...traditional,
   'xiangqi-western',

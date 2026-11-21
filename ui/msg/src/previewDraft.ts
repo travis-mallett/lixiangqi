@@ -1,5 +1,6 @@
 import { form, json } from 'lib/xhr';
 
+import { boardSources } from './boardContent';
 import type MsgCtrl from './ctrl';
 import type { LinkPreview } from './interfaces';
 import { messageLinks } from './links';
@@ -35,7 +36,7 @@ export class PreviewDraft {
   update(text: string) {
     const dest = this.ctrl.data.convo?.user.id;
     const url =
-      dest && !this.ctrl.editing
+      dest && !this.ctrl.editing && !boardSources(text).length
         ? messageLinks(text).find(m => m.raw.startsWith('https://'))?.raw
         : undefined;
     if (url === this.url) return;

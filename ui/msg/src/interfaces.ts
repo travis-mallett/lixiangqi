@@ -1,3 +1,5 @@
+import type { BoardSubmission, MessageBoard } from './boardContent';
+
 export interface MsgOpts {
   data: MsgData;
 }
@@ -37,8 +39,10 @@ export interface MsgCard {
   poll?: Poll;
   contact?: string;
   preview?: LinkPreview;
+  boards?: MessageBoard[];
 }
 export interface Msg {
+  boardSubmission?: BoardSubmission[];
   card?: MsgCard;
   id: string;
   user: string;

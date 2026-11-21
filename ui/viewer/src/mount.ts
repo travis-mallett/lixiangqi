@@ -1,5 +1,6 @@
 import { boardDefinitionForFen } from '@lixiangqi/board';
 
+import { websiteBoardServices } from 'lib/board';
 import { websiteCaptureLabels } from 'lib/game/view/captures';
 
 import { prepareViewerAppearance } from './appearance';
@@ -24,13 +25,15 @@ export async function mountViewer(
   element: HTMLElement,
   source: ViewerSource,
   options: Omit<ViewerOptions, 'root' | 'labels' | 'services'> &
-    Partial<Pick<ViewerOptions, 'labels' | 'services'>> = {},
+    Partial<Pick<ViewerOptions, 'labels' | 'services'>> & { inheritAppearance?: boolean } = {},
   signal?: AbortSignal,
 ): Promise<GameViewer> {
   const tree = loadViewerTree(source, signal);
   const assetUrl = options.services?.assetUrl ?? (path => site.asset.url(path));
   const prepare = (fen: string) =>
-    prepareViewerAppearance(boardDefinitionForFen(fen), assetUrl, options.boardTheme, options.pieceSet);
+    options.inheritAppearance
+      ? site.pieceImages.ready.then(() => () => {})
+      : prepareViewerAppearance(boardDefinitionForFen(fen), assetUrl, options.boardTheme, options.pieceSet);
   const fen = source.tree?.state.fen ?? source.initialFen;
   const [root, applyAppearance] = await Promise.all([
     tree,
@@ -43,15 +46,19 @@ export async function mountViewer(
     root,
     initialPly: options.initialPly ?? source.initialPly,
     labels: options.labels ?? websiteViewerLabels(),
-    services: options.services ?? {
-      assetUrl,
-      reducedMotion: () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches,
-      sound: cue =>
-        site.sound.move({
-          capture: cue.effects.includes('capture'),
-          check: cue.effects.includes('check'),
-          mate: cue.effects.includes('checkmate'),
-        }),
-    },
+    services:
+      options.services ??
+      (options.inheritAppearance
+        ? websiteBoardServices()
+        : {
+            assetUrl,
+            reducedMotion: () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches,
+            sound: cue =>
+              site.sound.move({
+                capture: cue.effects.includes('capture'),
+                check: cue.effects.includes('check'),
+                mate: cue.effects.includes('checkmate'),
+              }),
+          }),
   });
 }

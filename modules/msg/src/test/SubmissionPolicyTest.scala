@@ -51,3 +51,29 @@ class SubmissionPolicyTest extends munit.FunSuite:
       Some(accepted)
     )
     assert(Msg.make("", accepted.user, accepted.date).isEmpty)
+
+  test("an attachment-free board message keeps its starting ply and per-position marks in storage"):
+    import BsonHandlers.given
+    import lila.db.dsl.{ *, given }
+    val frames = Vector(
+      MsgBoard.Frame("root", 2, "red", None, false, false, false, Vector.empty),
+      MsgBoard.Frame(
+        "next",
+        3,
+        "black",
+        Some("h3e3"),
+        false,
+        false,
+        false,
+        Vector(MsgBoard.Shape("h3", Some("e3"), "green"), MsgBoard.Shape("e3", None, "red"))
+      )
+    )
+    val card = MsgCard(boards = Some(Vector(MsgBoard(frames, "red", 3, None, None))))
+    val accepted = Msg
+      .make("", UserId("alice"), java.time.Instant.EPOCH, hasBoard = true)
+      .get
+      .copy(card = Some(card), requestDigest = Some("proof"))
+    assertEquals(
+      BsonHandlers.writeMsg(accepted, MsgThread.id(accepted.user, UserId("bob"))).asOpt[Msg],
+      Some(accepted)
+    )

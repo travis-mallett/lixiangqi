@@ -86,6 +86,16 @@ and backs were created with the built-in ImageGen tool; prompts and provenance
 are recorded in `bin/gen/celestial-lacquer/prompts.json`. The SVG files embed
 the raster artwork without external images or runtime fonts.
 
+## Qing Jade pieces
+
+`public/piece/qing-jade/` and its vector masters in `bin/gen/qing-jade/` adapt
+**Jade Chinese chess pieces, The National Palace Museum, Taipei, CC BY 4.0 @ www.npm.gov.tw**.
+LiXiangQi traced the photographed carvings, inlaid rings and polished edges, reconstructed
+the plain backs and adapted the material and lettering for variants. Additional inscriptions use the project's
+TW-Kai outlines. [Museum record](https://digitalarchive.npm.gov.tw/opendata/Pub/DetailEng/2465?dep=U&mode=full) ·
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) ·
+[Outline attribution](doc/design/three-kingdoms-pieces.md#outline-authoring-and-attribution)
+
 ## External services
 
 Lichess as deployed on https://lichess.org/ also uses these external services:

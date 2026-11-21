@@ -397,6 +397,8 @@ async function inbox(
           removeCssPath: () => {},
         },
         socket: { send: () => {} },
+        pieceImages: { ready: Promise.resolve() },
+        sound: { preloadBoardSounds: () => {}, move: () => {} },
       };
       w.$html = (strings: TemplateStringsArray, ...values: unknown[]) =>
         strings.reduce((s, p, i) => s + p + (values[i] ?? ''), '');
@@ -443,6 +445,92 @@ async function inbox(
   expect(errors, 'inbox initialization').toEqual([]);
   await expect(page.locator('.msg-row')).toHaveCount(card === 'guest' ? 3 : 2);
   return { errors, requests };
+}
+
+for (const width of [360, 820, 1440]) {
+  test(`chat sends drawings at their own replay positions at ${width}px`, async ({ page }) => {
+    const { errors } = await inbox(page, width);
+    const pgn = '[Event "Inbox"]\n\n1. h3e3 h8e8 *';
+    const board = {
+      start: 0,
+      orientation: 'red',
+      frames: [
+        { fen: 'rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1', ply: 0, turn: 'red' },
+        {
+          fen: 'rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C2C4/9/RNBAKABNR b - - 1 1',
+          ply: 1,
+          turn: 'black',
+          move: 'h3e3',
+        },
+        {
+          fen: 'rnbakabnr/9/1c2c4/p1p1p1p1p/9/9/P1P1P1P1P/1C2C4/9/RNBAKABNR w - - 2 2',
+          ply: 2,
+          turn: 'red',
+          move: 'h8e8',
+        },
+      ].map(frame => ({ ...frame, shapes: [], capture: false, check: false, checkmate: false })),
+    };
+    await page.route('**/inbox/board-preview', route => route.fulfill({ json: board }));
+    let request: any;
+    await page.route('**/inbox/alice', route => {
+      const payload = route.request().postData() ?? '';
+      const card = /name="card"\r\n\r\n([^\r\n]+)/.exec(payload)?.[1];
+      if (!card) return route.fallback();
+      request = JSON.parse(card).boards[0];
+      return route.fulfill({
+        json: {
+          msg: {
+            id: 'sent-board',
+            user: 'me',
+            text: 'Look at this:\n' + pgn,
+            date: Date.now(),
+            history: [],
+            reactions: [],
+            revision: 0,
+            card: {
+              boards: [
+                {
+                  ...board,
+                  start: request.start,
+                  inline: pgn,
+                  frames: board.frames.map(frame => ({
+                    ...frame,
+                    shapes: request.marks.find((mark: any) => mark.ply === frame.ply)?.shapes ?? [],
+                  })),
+                },
+              ],
+            },
+          },
+        },
+      });
+    });
+    const composer = page.locator('.msg-composer');
+    const previewResponse = page.waitForResponse(response => response.url().endsWith('/inbox/board-preview'));
+    await composer.locator('textarea').fill('Look at this:\n' + pgn);
+    expect((await previewResponse).ok(), errors.join('\n')).toBe(true);
+    const preview = composer.locator('.msg-board-draft');
+    const surface = preview.locator('cg-board');
+    await expect(surface).toBeVisible();
+    await preview.getByRole('button', { name: 'Draw on board' }).click();
+    await surface.click({ position: { x: 31, y: 36 } });
+    await preview.getByRole('button', { name: 'Next', exact: true }).click();
+    await surface.click({ position: { x: 62, y: 68 } });
+    await preview.getByRole('button', { name: 'Start from this position' }).click();
+    await composer.locator('[data-testid="msg-send-button"]').click();
+    const sent = page.locator('[data-message-id="sent-board"]');
+    await expect(sent).toContainText('Look at this:');
+    await expect(sent).not.toContainText('[Event');
+    expect(request.start).toBe(1);
+    expect(request.marks.map((mark: { ply: number }) => mark.ply)).toEqual([0, 1]);
+    await expect(sent.getByRole('button', { name: 'Previous', exact: true })).toBeEnabled();
+    await expect(sent.locator('.cg-shapes circle')).toHaveCount(1);
+    await sent.getByRole('button', { name: 'Next', exact: true }).click();
+    await expect(sent.locator('.cg-shapes circle')).toHaveCount(0);
+    await sent.getByRole('button', { name: 'Previous', exact: true }).click();
+    await expect(sent.locator('.cg-shapes circle')).toHaveCount(1);
+    expect((await sent.locator('cg-board').boundingBox())!.width).toBeLessThan(width);
+    expect(errors).toEqual([]);
+  });
 }
 
 for (const width of [320, 960, 1440]) {

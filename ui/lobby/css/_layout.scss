@@ -11,6 +11,10 @@
   align-items: start;
   gap: 18px;
 
+  &__main-rails {
+    display: contents;
+  }
+
   &__center-rail,
   &__left-rail,
   &__right-rail {
@@ -97,9 +101,17 @@
 
   @media (min-width: 801px) and (max-width: 1099px) {
     grid-template-columns: minmax(210px, 250px) minmax(0, 1fr);
-    grid-template-areas:
-      'left center'
-      'left right';
+    grid-template-areas: 'left main';
+
+    &__main-rails {
+      display: grid;
+      grid-area: main;
+      grid-template-areas:
+        'center'
+        'right';
+      min-width: 0;
+      gap: 22px;
+    }
 
     &__right-rail {
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -113,56 +125,5 @@
   @media (min-width: 1100px) {
     grid-template-columns: minmax(0, 310px) minmax(520px, 1fr) minmax(0, 310px);
     grid-template-areas: 'left center right';
-  }
-}
-
-@media (min-width: 801px) and (max-width: 1099px) {
-  .lobby:has(.lobby__global-chat) {
-    grid-template-columns: minmax(195px, 23%) repeat(2, minmax(0, 1fr));
-    grid-template-areas:
-      'left standard standard'
-      'left variants variants'
-      'updates blog blog'
-      'updates ranking chat';
-
-    &:not(:has(.lobby__blog)) {
-      grid-template-areas:
-        'left standard standard'
-        'left variants variants'
-        'updates ranking chat';
-    }
-
-    .lobby__center-rail,
-    .lobby__right-rail {
-      display: contents;
-    }
-
-    .lobby__standard {
-      grid-area: standard;
-    }
-
-    .lobby__variants {
-      grid-area: variants;
-    }
-
-    .lobby__blog {
-      grid-area: blog;
-    }
-
-    .lobby__global-chat {
-      grid-area: chat;
-    }
-
-    .lobby__leaderboard {
-      grid-area: ranking;
-    }
-
-    .lobby__feed {
-      grid-area: updates;
-
-      .daily-feed__update:nth-child(n + 3) {
-        display: none;
-      }
-    }
   }
 }

@@ -139,7 +139,7 @@ export function createXiangqiBoard(
   return board;
 }
 
-function websiteBoardServices(): BoardServices {
+export function websiteBoardServices(): BoardServices {
   return {
     assetUrl: path => site.asset.url(path),
     inactivePieceLabel: i18n.threeKingdoms?.fallenGeneral,
