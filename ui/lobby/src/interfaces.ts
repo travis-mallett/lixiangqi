@@ -2,7 +2,7 @@ import type { ColorChoice } from 'lib/setup/color';
 import type { ClockConfig, MoveTimeLimitConfig } from 'lib/setup/interfaces';
 import type { TimeMode } from 'lib/setup/timeControl';
 
-export type Tab = 'pools' | 'real_time' | 'seeks' | 'now_playing';
+export type Tab = 'pools' | 'real_time' | 'seeks';
 export type GameType = 'hook' | 'friend' | 'ai';
 export type SetupVariant = VariantKey | 'threeKingdoms';
 
@@ -52,11 +52,11 @@ export interface HomepageRoom {
 }
 
 export interface LobbyOpts {
-  appElement: HTMLElement;
   tableElement: HTMLElement;
   socketSend: SocketSend;
   pools: Pool[];
   homePools: Pool[];
+  offerVariants: Readonly<Record<string, { name: string; icon: string }>>;
   hasUnreadLichessMessage: boolean;
   playban: boolean;
   data: LobbyData;

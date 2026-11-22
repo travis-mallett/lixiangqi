@@ -115,6 +115,11 @@ const indexes = [
     { users: 1, movedAt: -1 },
     { name: 'completed_activity', partialFilterExpression: { finished: true } },
   ],
+  [
+    'three_kingdoms_game',
+    { movedAt: -1 },
+    { name: 'recent_finished', partialFilterExpression: { finished: true } },
+  ],
   ['three_kingdoms_game', { movedAt: -1 }, { name: 'live', partialFilterExpression: { finished: false } }],
   [
     'three_kingdoms_game',

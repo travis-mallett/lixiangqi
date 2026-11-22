@@ -170,7 +170,7 @@ class StudyEngineView {
         ? ctrl.node.threat
         : ctrl.node.ceval
       : undefined;
-    if (!score) this.suggestions.resetEvaluation();
+    if (!score && (!ctrl.isCevalAllowed() || !ctrl.cevalEnabled())) this.suggestions.resetEvaluation();
     this.suggestions.setEvaluation(score ? { redCp: score.cp, redMate: score.mate } : undefined);
     if (
       ctrl.isCevalAllowed() &&

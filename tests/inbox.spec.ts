@@ -498,6 +498,8 @@ for (const width of [360, 820, 1440]) {
     const { errors } = await inbox(page, width);
     const pgn = '[Event "Inbox"]\n\n1. h3e3 h8e8 *';
     const board = {
+      title: 'Inbox replay',
+      ...(width === 820 ? { path: '/GameIdXX/white#2' } : {}),
       start: 0,
       orientation: 'red',
       frames: [
@@ -575,6 +577,36 @@ for (const width of [360, 820, 1440]) {
     await sent.getByRole('button', { name: 'Previous', exact: true }).click();
     await expect(sent.locator('.cg-shapes circle')).toHaveCount(1);
     expect((await sent.locator('cg-board').boundingBox())!.width).toBeLessThan(width);
+    await expect(sent.locator('.msg-board-header')).toContainText('Inbox replay');
+    if (width === 820)
+      await expect(sent.getByRole('link', { name: 'Open original' })).toHaveAttribute(
+        'href',
+        '/GameIdXX/white#2',
+      );
+    else {
+      await page.evaluate(() => {
+        Object.defineProperty(navigator, 'clipboard', {
+          value: {
+            writeText: async (value: string) => {
+              document.body.dataset.copied = value;
+            },
+          },
+        });
+        window.site.announce = () => {};
+      });
+      await sent.getByRole('button', { name: 'Copy', exact: true }).click();
+      await expect(page.locator('body')).toHaveAttribute('data-copied', pgn);
+    }
+    const inlineWidth = (await sent.locator('cg-board').boundingBox())!.width;
+    await sent.locator('.msg-board-enlarge').click();
+    const expanded = page.getByRole('dialog', { name: 'Inbox replay' });
+    await expect(expanded.locator('.cg-shapes circle')).toHaveCount(1);
+    expect((await expanded.locator('cg-board').boundingBox())!.width).toBeGreaterThan(inlineWidth);
+    await expanded.getByRole('button', { name: 'Next', exact: true }).click();
+    await expect(expanded.locator('.cg-shapes circle')).toHaveCount(0);
+    await expanded.getByRole('button', { name: 'Close', exact: true }).click();
+    await expect(sent.locator('.xiangqi-viewer')).toHaveCount(1);
+    await expect(sent.locator('.xiangqi-viewer__moves')).toHaveCount(0);
     expect(errors).toEqual([]);
   });
 }

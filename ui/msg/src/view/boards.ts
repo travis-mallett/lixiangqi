@@ -3,6 +3,7 @@ import { h } from 'snabbdom';
 
 import { websiteBoardPresentation } from 'lib/board';
 import { licon } from 'lib/licon';
+import { domDialog, type Dialog } from 'lib/view/dialog';
 
 import { replayTree, type BoardShape, type MessageBoard } from '../boardContent';
 import type { BoardDraft, DraftBoard } from '../boardDraft';
@@ -12,14 +13,97 @@ import { scroller } from './scroller';
 const destroy = new WeakMap<HTMLElement, () => void>();
 
 export function messageBoard(board: MessageBoard, key: string, draft?: DraftBoard, redraw?: () => void) {
+  const puzzle = board.path?.match(/^\/training\/([^/#]+)/)?.[1];
+  const title =
+    board.title ||
+    (puzzle
+      ? `LiXiangQi · ${i18n.site.puzzles} #${puzzle}`
+      : board.path
+        ? `LiXiangQi · ${board.path.split('/').filter(Boolean)[board.path.startsWith('/three-kingdoms/') ? 2 : 0]}`
+        : board.frames[0].fen.startsWith('TK1;')
+          ? 'Three Kingdoms · TK1'
+          : board.frames.length > 1
+            ? 'Xiangqi · PGN'
+            : 'Xiangqi · FEN');
   return h('div.msg-board', { key }, [
+    h('header.msg-board-header', [
+      h('strong', title),
+      board.path
+        ? h('a.msg-board-link', {
+            attrs: {
+              href: board.path,
+              target: '_blank',
+              rel: 'noopener',
+              'data-icon': licon.Link,
+              title: i18n.inbox.openBoardSource,
+              'aria-label': i18n.inbox.openBoardSource,
+            },
+          })
+        : h('button.msg-board-link', {
+            attrs: {
+              type: 'button',
+              'data-icon': licon.Clipboard,
+              title: i18n.inbox.copy,
+              'aria-label': i18n.inbox.copy,
+            },
+            on: {
+              click: async () => {
+                try {
+                  await navigator.clipboard.writeText(
+                    board.code ?? board.inline ?? draft?.source.value ?? board.frames[0].fen,
+                  );
+                  site.announce({ msg: i18n.inbox.copySuccess });
+                } catch {
+                  site.announce({ msg: i18n.inbox.error });
+                }
+              },
+            },
+          }),
+    ]),
     h('div.msg-board-player', {
       hook: {
         insert(vnode) {
           const element = vnode.elm as HTMLElement;
           const abort = new AbortController();
           const { signal } = abort;
+          const surface = document.createElement('div');
+          element.append(surface);
           let viewer: GameViewer | undefined;
+          let expanded: Dialog | undefined;
+          let opening = false;
+          async function expand() {
+            if (opening || expanded || signal.aborted) return;
+            opening = true;
+            try {
+              const heading = document.createElement('h2');
+              heading.textContent = title;
+              const dlg = await domDialog({
+                class: 'msg-board-expanded',
+                modal: true,
+                easyClose: 'clickOutside',
+                attrs: { dialog: { 'aria-label': title } },
+                append: [{ node: heading }],
+                onClose: () => {
+                  if (!signal.aborted) {
+                    element.append(surface);
+                    element.style.removeProperty('min-height');
+                    surface.querySelector<HTMLElement>('.msg-board-enlarge')?.focus({ preventScroll: true });
+                  }
+                  expanded = undefined;
+                },
+              });
+              if (signal.aborted) {
+                dlg.dialog.remove();
+                return;
+              }
+              expanded = dlg;
+              element.style.minHeight = element.offsetHeight + 'px';
+              dlg.view.append(surface);
+              await dlg.show();
+            } finally {
+              opening = false;
+            }
+          }
           const observer = draft
             ? undefined
             : new IntersectionObserver(
@@ -43,7 +127,7 @@ export function messageBoard(board: MessageBoard, key: string, draft?: DraftBoar
                 ? { root: await import('../kingdomReplay').then(module => module.loadKingdomReplay(board)) }
                 : { tree: replayTree(board) };
               viewer = await mountViewer(
-                element,
+                surface,
                 source,
                 {
                   initialPly: draft?.current ?? board.start,
@@ -93,6 +177,27 @@ export function messageBoard(board: MessageBoard, key: string, draft?: DraftBoar
                 signal,
               );
               if (draft) touchDrawing(draft, viewer, signal);
+              const area = surface.querySelector<HTMLElement>('.xiangqi-viewer__board');
+              if (area) {
+                const activate = () => {
+                  if (!draft?.drawing && !expanded) void expand();
+                };
+                area.classList.add('msg-board-enlarge');
+                area.tabIndex = 0;
+                area.setAttribute('role', 'button');
+                area.setAttribute('aria-label', title + ' · ' + i18n.site.board);
+                area.addEventListener('click', activate, { signal });
+                area.addEventListener(
+                  'keydown',
+                  event => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      activate();
+                    }
+                  },
+                  { signal },
+                );
+              }
               scroller.auto();
             } catch {
               if (!signal.aborted) element.textContent = i18n.inbox.invalidBoard;
@@ -101,6 +206,7 @@ export function messageBoard(board: MessageBoard, key: string, draft?: DraftBoar
           destroy.set(element, () => {
             observer?.disconnect();
             abort.abort();
+            expanded?.close();
             viewer?.destroy();
           });
           if (observer) observer.observe(element);
@@ -111,16 +217,6 @@ export function messageBoard(board: MessageBoard, key: string, draft?: DraftBoar
         },
       },
     }),
-    board.path
-      ? h('a.msg-board-link', {
-          attrs: {
-            href: board.path,
-            'data-icon': licon.Link,
-            'aria-label': i18n.inbox.openBoardSource,
-            title: i18n.inbox.openBoardSource,
-          },
-        })
-      : undefined,
   ]);
 }
 

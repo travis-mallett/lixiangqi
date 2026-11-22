@@ -68,7 +68,8 @@ class SubmissionPolicyTest extends munit.FunSuite:
         Vector(MsgBoard.Shape("h3", Some("e3"), "green"), MsgBoard.Shape("e3", None, "red"))
       )
     )
-    val card = MsgCard(boards = Some(Vector(MsgBoard(frames, "red", 3, None, None))))
+    val board = MsgBoard(frames, "red", 3, None, None, Some("Red vs. Black"), Some("1. h3e3 *"))
+    val card = MsgCard(boards = Some(Vector(board)))
     val accepted = Msg
       .make("", UserId("alice"), java.time.Instant.EPOCH, hasBoard = true)
       .get

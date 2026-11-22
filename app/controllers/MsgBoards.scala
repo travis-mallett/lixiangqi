@@ -21,7 +21,7 @@ private[inbox] final class MsgBoards(env: Env):
   def preview(value: JsValue)(using me: Me): Fu[MsgBoard] =
     requireValid(value.asOpt[Source].filter(validSource)).flatMap: source =>
       limit(me.userId, invalid[MsgBoard]("limited")):
-        load(source, None)
+        load(source, None).map(_.copy(code = Option.unless(source.kind == "link")(source.value)))
 
   def resolve(value: JsValue, body: String)(using me: Me): Fu[Vector[MsgBoard]] =
     requireValid(
@@ -48,10 +48,14 @@ private[inbox] final class MsgBoards(env: Env):
                 )
               ):
                 val marks = draft.marks.map(mark => mark.ply -> mark.shapes).toMap
+                val inline =
+                  Option.when(draft.source.inline)(lila.common.String.softCleanUp(draft.source.bodyValue))
                 board.copy(
                   start = start,
-                  inline =
-                    Option.when(draft.source.inline)(lila.common.String.softCleanUp(draft.source.bodyValue)),
+                  code = Option.when(draft.source.kind != "link" && !inline.contains(draft.source.value))(
+                    draft.source.value
+                  ),
+                  inline = inline,
                   frames = board.frames.map(frame =>
                     frame.copy(shapes = (frame.shapes ++ marks.getOrElse(frame.ply, Vector.empty)).distinct)
                   )
@@ -69,7 +73,9 @@ private[inbox] final class MsgBoards(env: Env):
             .position(Xiangqi.Position(initialFen = text))
             .toOption
             .map: state =>
-              board(Vector(frame(state)))
+              board(Vector(frame(state))).copy(title =
+                lila.xiangqi.GameVariant.fromKey(state.variant).toOption.map(v => s"${v.name} · FEN")
+              )
         )
       case "record" =>
         requireValid(for
@@ -84,7 +90,20 @@ private[inbox] final class MsgBoards(env: Env):
               action <- (event \ "action").asOpt[String]
             yield actor -> action
           replay <- kingdomBoard(initial, actions, end, None, None)
-        yield replay)
+        yield
+          val names = (json \ "seats")
+            .asOpt[Vector[JsObject]]
+            .filter(_.size == 3)
+            .toVector
+            .flatten
+            .flatMap: seat =>
+              (seat \ "user" \ "name")
+                .asOpt[String]
+                .map(_.take(60))
+                .orElse((seat \ "aiLevel").asOpt[Int].map(lila.core.game.AiLevel.displayName))
+          replay.copy(title =
+            Some((names.mkString(" vs. ") :: "Three Kingdoms" :: Nil).filter(_.nonEmpty).mkString(" · "))
+          ))
       case "pgn" =>
         requireValid(
           XiangqiNotation
@@ -107,7 +126,12 @@ private[inbox] final class MsgBoards(env: Env):
                     )
               board(
                 line(tree.state, tree.children, Vector(frame(tree.state, shapes = tree.annotations.shapes)))
-              )
+              ).copy(title =
+                val players = for
+                  red <- tree.headers.get("red").orElse(tree.headers.get("white"))
+                  black <- tree.headers.get("black")
+                yield s"$red vs. $black"
+                players.orElse(tree.headers.get("event")).filterNot(_ == "?").map(_.take(180)))
         )
       case "link" =>
         link(text) match
@@ -133,7 +157,19 @@ private[inbox] final class MsgBoards(env: Env):
                       end,
                       index,
                       Some(s"/three-kingdoms/game/${id.value}")
-                    )
+                    ).map: replay =>
+                      val players = g.seats.map(s =>
+                        s.userId
+                          .map(env.user.lightUserApi.syncFallback(_).name.value)
+                          .orElse(s.aiLevel.map(lila.core.game.AiLevel.displayName))
+                          .getOrElse(UserName.anonymous.value)
+                      )
+                      val clock = g.clock.config
+                      replay.copy(title =
+                        Some(
+                          s"${players.mkString(" vs. ")} · Three Kingdoms · ${clock.initialSeconds / 60}m / ${clock.moveSeconds}s"
+                        )
+                      )
                   )
                 )
           case Some(Game(id, orientation, ply, analysis)) =>
@@ -155,7 +191,14 @@ private[inbox] final class MsgBoards(env: Env):
                         val first = ply.getOrElse(frames.last.ply).max(frames.head.ply).min(frames.last.ply)
                         val destination =
                           if analysis then s"/${id.value}/$color/analysis" else s"/${id.value}/$color"
+                        def playerName(p: lila.core.game.Player) =
+                          lila.game.Namer
+                            .recordedPlayerText(p, p.userId.map(env.user.lightUserApi.syncFallback(_)))
+                        val players = s"${playerName(game.whitePlayer)} vs. ${playerName(game.blackPlayer)}"
+                        val title = (List(players, game.nativeVariant.name) ++ game.clock.map(_.config.show))
+                          .mkString(" · ")
                         board(frames, orientation, Some(s"$destination#$first"), Some(first))
+                          .copy(title = Some(title))
                 )
           case _ => invalid()
       case _ => invalid()

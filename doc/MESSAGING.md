@@ -59,6 +59,13 @@ saved at the position where they were drawn. **Start from this position** sets
 the opening position for recipients. Linked puzzles show the position to solve
 and link to the puzzle. Linked games include a link to the original game or analysis.
 
+The preview header identifies linked games by players, variant and available clock,
+and linked puzzles by ID. Pasted notation uses player or event tags when available.
+The header opens the original link or copies the pasted source, including sources
+uploaded as files. Older file snapshots that predate source storage can copy their
+initial position. Select the board to enlarge the replay at its current position.
+The adult mobile app opens supported boards in a full-screen viewer.
+
 `POST /inbox/board-preview` accepts the existing inbox authentication. The send
 request carries the source, starting ply and coordinate marks. The server
 resolves the source through the native Xiangqi rules or public game/puzzle

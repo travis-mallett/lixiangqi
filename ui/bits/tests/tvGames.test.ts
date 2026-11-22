@@ -60,6 +60,19 @@ test('TV grids recover from empty channels, preserve live boards, and retry fail
   assert.equal(document.querySelector('.tv-current .mini-game')?.textContent, 'game0002');
   assert.equal(document.querySelector('.tv-recent .mini-game')?.textContent, 'game0001');
 
+  const kingdom = (position: string) =>
+    `<a href="/three-kingdoms/game/game0003"><div data-three-kingdoms-position="${position}"></div></a>`;
+  response = grid(kingdom('initial'));
+  await refresh();
+  assert.ok(document.querySelector('.tv-current [data-three-kingdoms-position="initial"]'));
+  response = grid(kingdom('moved'));
+  await refresh();
+  assert.ok(document.querySelector('.tv-current [data-three-kingdoms-position="moved"]'));
+  response = grid('<p role="status">No game found</p>', kingdom('finished'));
+  await refresh();
+  assert.ok(document.querySelector('.tv-current [role="status"]'));
+  assert.ok(document.querySelector('.tv-recent [data-three-kingdoms-position="finished"]'));
+
   Object.defineProperty(document, 'hidden', { configurable: true, value: true });
   const before = requests;
   await refresh();
@@ -69,5 +82,5 @@ test('TV grids recover from empty channels, preserve live boards, and retry fail
   response = '<main class="tv-single"></main>';
   await refresh();
   assert.equal(reloads, 1);
-  assert.equal(contentLoaded, 4);
+  assert.equal(contentLoaded, 7);
 });

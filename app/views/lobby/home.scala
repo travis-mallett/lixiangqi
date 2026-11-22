@@ -1,6 +1,6 @@
 package views.lobby
 
-import play.api.libs.json.Json
+import play.api.libs.json.{ JsObject, Json }
 
 import lila.app.UiEnv.{ *, given }
 import lila.app.mashup.Preload.Homepage
@@ -79,6 +79,12 @@ object home:
         ),
         span(cls := "lobby__variant-card__label lobby__label-en")(s"$english ($chinese)")
       )
+    val offerVariants = JsObject:
+      lila.xiangqi.GameVariant.values.toSeq.map: variant =>
+        variant.key -> Json.obj(
+          "name" -> lila.core.i18n.I18nKey(variant.nameKey).txt(),
+          "icon" -> variant.symbol
+        )
     Page("")
       .copy(fullTitle = s"$siteName • ${trans.site.freeOnlineChess.txt()}".some)
       .i18n(_.inbox)
@@ -91,7 +97,8 @@ object home:
             .obj(
               "data" -> data,
               "pools" -> lila.pool.PoolList.json,
-              "homePools" -> lila.pool.PoolList.homepageJson
+              "homePools" -> lila.pool.PoolList.homepageJson,
+              "offerVariants" -> offerVariants
             )
             .add("hasUnreadLichessMessage", hasUnreadLichessMessage)
             .add("bots", Granter.opt(_.Beta))

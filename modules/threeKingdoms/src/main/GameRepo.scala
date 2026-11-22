@@ -1,7 +1,8 @@
 package lila.threeKingdoms
 
 import lila.db.dsl.{ *, given }
-import reactivemongo.pekkostream.{ PekkoStreamCursor, cursorProducer }
+import reactivemongo.api.bson.Macros.Annotations.Key
+import reactivemongo.pekkostream.cursorProducer
 
 final class GameRepo(val coll: Coll)(using Executor):
   import BSONHandlers.given
@@ -104,6 +105,13 @@ final class GameRepo(val coll: Coll)(using Executor):
       .sort($sort.desc("movedAt"))
       .cursor[KingdomGame](ReadPref.sec)
       .list(20)
+  def recentFinished: Fu[List[GamePreview]] =
+    coll
+      .find($doc("finished" -> true), Some($doc("position" -> true, "seats" -> true)))
+      .sort($sort.desc("movedAt"))
+      .cursor[GamePreview](ReadPref.sec)
+      .list(8)
+
   def expired(now: Long): Fu[List[KingdomGame]] =
     coll
       .find($doc("finished" -> false, "deadline" -> $doc("$lte" -> now)))
@@ -190,6 +198,8 @@ final class GameRepo(val coll: Coll)(using Executor):
             d.getAsOpt[Instant]("createdAt").get,
             d.getAsOpt[Instant]("movedAt").get
           )
+
+final case class GamePreview(@Key("_id") id: GameId, position: Position, seats: Vector[Seat])
 
 final case class TournamentResult(
     id: GameId,

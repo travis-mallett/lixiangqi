@@ -18,6 +18,10 @@ class TvTest extends munit.FunSuite:
       assertEquals(Tv.Channel.byKey(variant.key).variant, Some(variant))
     assertEquals(Tv.Channel.byKey("threeKingdoms").variant, Some(lila.xiangqi.GameVariant.ThreeKingdoms))
 
+  test("TV navigation starts with the combined Xiangqi channel and ends with Computer"):
+    assertEquals(Tv.Channel.navigation, Tv.Channel.list.filter(_.variant.isDefined) :+ Tv.Channel.Computer)
+    assertEquals(Tv.Channel.navigation.head, Tv.Channel.Xiangqi)
+
   test("variant channels exclude abandoned and correspondence games"):
     val channel = Tv.Channel.Xiangqi
     assert(!channel.filter(Tv.Candidate(game().copy(movedAt = nowInstant.minusSeconds(190)), false)))
@@ -56,6 +60,7 @@ class TvTest extends munit.FunSuite:
       rankTrack = Some(RankTrackId.xiangqi),
       clock = Some(lila.core.game.RankedGame.xiangqiClock.toClock)
     )
+    assert(Tv.Channel.Xiangqi.filter(Tv.Candidate(ranked, false)))
     assert(Tv.Channel.Best.filter(Tv.Candidate(ranked, false)))
     assert(!Tv.Channel.Best.filter(Tv.Candidate(ranked, true)))
     assert(Tv.Channel.Bot.filter(Tv.Candidate(ranked, true)))

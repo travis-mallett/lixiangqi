@@ -5,8 +5,6 @@ html.wudang {
   }
 
   .lobby__feature-card,
-  .lobby__time-controls__summary,
-  .lobby__quick-room,
   .lobby__action,
   .lobby__variant-card,
   .lobby__support-link,
@@ -24,15 +22,12 @@ html.wudang {
   }
 
   .lobby__feature-card:not(:disabled):hover,
-  .lobby__time-controls__summary:hover,
-  .lobby__quick-room:not(:disabled):hover,
   .lobby__action:not(:disabled):hover,
   .lobby__support-link:hover {
     background: #203538;
   }
 
   .lobby__feature-card--evaluation.active,
-  .lobby__quick-room.active,
   .lobby__action.active {
     border-color: var(--wudang-mineral-blue);
     background: color-mix(in oklab, var(--wudang-mineral-blue) 16%, var(--wudang-ink-850));

@@ -158,6 +158,7 @@ object Tv:
 
   object Channel:
     val list = values.filter(_.listed).toList
+    val navigation = list.filterNot(c => c == Best || c == Bot)
     val byKey = list.mapBy(_.key)
 
   private val rankedXiangqi = (c: Candidate) => c.game.rankTrack.contains(RankTrackId.xiangqi)

@@ -107,7 +107,6 @@ export class AnalysisSuggestions {
     this.explorerResult = undefined;
     this.fen = fen;
     this.position = position;
-    this.resetEvaluation();
     this.setEvaluation();
     this.pending.clear();
     this.labelRequests.clear();

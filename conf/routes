@@ -67,11 +67,15 @@ GET   /$lang<\w\w\w?>/tv               controllers.Tv.indexLang(lang: Language)
 GET   /tv/frame                        controllers.Tv.frameDefault
 GET   /tv/feed                         controllers.Tv.feedDefault
 GET   /tv/channels                     controllers.Main.movedPermanently(to = "/api/tv/channels")
+GET   /tv/best                         controllers.Main.movedPermanently(to = "/tv/xiangqi")
+GET   /tv/bot                          controllers.Main.movedPermanently(to = "/tv/xiangqi")
 GET   /tv/:chanKey                     controllers.Tv.onChannel(chanKey)
 GET   /tv/:chanKey/frame               controllers.Tv.frame(chanKey)
 GET   /tv/:chanKey/feed                controllers.Tv.feed(chanKey)
 GET   /tv/$gameId<\w{8}>/:color/sides controllers.Tv.sides(gameId: GameId, color: Color)
 GET   /games                           controllers.Tv.games
+GET   /games/best                      controllers.Main.movedPermanently(to = "/games/xiangqi")
+GET   /games/bot                       controllers.Main.movedPermanently(to = "/games/xiangqi")
 GET   /games/:chanKey                  controllers.Tv.gamesChannel(chanKey)
 GET   /games/:chanKey/replacement/$gameId<\w{8}> controllers.Tv.gameChannelReplacement(chanKey, gameId: GameId, exclude: List[GameId])
 GET   /api/tv/channels                 controllers.Tv.channels

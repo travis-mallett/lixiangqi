@@ -2156,6 +2156,10 @@ object I18nKey:
     val `thisAccountIsClosed`: I18nKey = "settings:thisAccountIsClosed"
 
   object site:
+    val `ratedXiangqi`: I18nKey = "ratedXiangqi"
+    val `playNow`: I18nKey = "playNow"
+    val `createCustomGame`: I18nKey = "createCustomGame"
+    val `createCorrespondenceGame`: I18nKey = "createCorrespondenceGame"
     val `jieqi`: I18nKey = "jieqi"
     val `jieqiLeaderboard`: I18nKey = "jieqiLeaderboard"
     val `jieqiRankExplanation`: I18nKey = "jieqiRankExplanation"

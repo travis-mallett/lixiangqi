@@ -51,6 +51,16 @@ for (const type of ['ai', 'hook', 'friend'] as const) {
   });
 }
 
+test('friend challenges use the server ruleset even after changing the computer ruleset', () => {
+  const { ctrl } = controller();
+  ctrl.openModal('ai');
+  ctrl.ruleset = 'unrestricted-v1';
+  assert.equal(ctrl.propsToFormData('white').get('ruleset'), 'unrestricted-v1');
+
+  ctrl.openModal('friend');
+  assert.equal(ctrl.propsToFormData('white').has('ruleset'), false);
+});
+
 test('explicit position and color choices survive setup initialization', () => {
   const { ctrl } = controller();
   ctrl.openModal('ai', { variant: 'fromPosition', fen: 'custom', color: 'black' });

@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="ratedXiangqi">象棋等級賽</string>
+  <string name="playNow">立即對弈</string>
+  <string name="createCustomGame">建立自訂對局</string>
+  <string name="createCorrespondenceGame">建立通信對局</string>
   <string name="gameSetup">棋局設定</string>
   <string name="challengeAFriend" comment="be mindful how 'friend' translates in gendered languages. look for a more neutral term if there's an issue, or base your translation on a different phrase like 'invite to a game'. keep it short and convey the button's meaning without offense.">挑戰朋友</string>
   <string name="playAgainstComputer">與電腦對局</string>

@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="ratedXiangqi">Rated Xiangqi</string>
+  <string name="playNow">Play Now</string>
+  <string name="createCustomGame">Create Custom Game</string>
+  <string name="createCorrespondenceGame">Create Correspondence Game</string>
   <string name="jieqi">Jieqi</string>
   <string name="jieqiLeaderboard">Jieqi leaderboard</string>
   <string name="jieqiRankExplanation">Jieqi has its own ranks, from 揭1-1 to 揭9-4. The first number identifies the rating group; the second identifies progress within that group.</string>

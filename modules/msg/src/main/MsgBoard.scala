@@ -8,7 +8,9 @@ case class MsgBoard(
     orientation: String,
     start: Int,
     path: Option[String],
-    inline: Option[String]
+    inline: Option[String],
+    title: Option[String] = None,
+    code: Option[String] = None
 )
 
 object MsgBoard:

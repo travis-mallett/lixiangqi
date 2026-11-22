@@ -20,7 +20,8 @@ final class Tv(env: Env, apiC: => Api, gameC: => Game) extends LilaController(en
 
   private def serveChannel(chanKey: String)(using Context) =
     if chanKey == Channel.ThreeKingdoms.key then
-      env.tv.tv.getChampions.flatMap(champions => Ok.page(views.threeKingdoms.television("tv", champions)))
+      if env.tv.threeKingdoms.game.isEmpty then threeKingdomsGames("/tv")
+      else env.tv.tv.getChampions.flatMap(champions => Ok.page(views.threeKingdoms.television(champions)))
     else Channel.byKey.get(chanKey).so(lichessTv)
 
   def sides(gameId: GameId, color: Color) = Open:
@@ -78,8 +79,7 @@ final class Tv(env: Env, apiC: => Api, gameC: => Game) extends LilaController(en
   def games = gamesChannel(Channel.Xiangqi.key)
 
   def gamesChannel(chanKey: String) = Open:
-    if chanKey == Channel.ThreeKingdoms.key then
-      env.tv.tv.getChampions.flatMap(champions => Ok.page(views.threeKingdoms.television("live", champions)))
+    if chanKey == Channel.ThreeKingdoms.key then threeKingdomsGames("/games")
     else
       Channel.byKey.get(chanKey).so { channel =>
         for
@@ -100,6 +100,13 @@ final class Tv(env: Env, apiC: => Api, gameC: => Game) extends LilaController(en
             .map(_.noCache)
         yield result
       }
+
+  private def threeKingdomsGames(baseUrl: String)(using Context) =
+    for
+      champs <- env.tv.tv.getChampions
+      recent <- env.threeKingdoms.repo.recentFinished
+      page <- Ok.page(views.threeKingdoms.tvGames(champs, env.tv.threeKingdoms.live, recent, baseUrl))
+    yield page.noCache
 
   def gameChannelReplacement(chanKey: String, gameId: GameId, exclude: List[GameId]) = Open:
     val gameFu = Channel.byKey.get(chanKey).so { channel =>

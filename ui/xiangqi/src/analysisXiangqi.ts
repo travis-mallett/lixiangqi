@@ -734,6 +734,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
       browserEngine?.stop();
       engineProgressDepth = node.evaluation?.depth ?? 0;
       renderEngineProgress();
+      suggestions.resetEvaluation();
       engineStatusElement.textContent = engineEnabledElement.checked ? 'Game over' : 'Engine disabled';
       suggestions.setEvaluation(
         node.evaluation ? { redCp: node.evaluation.cp, redMate: node.evaluation.mate } : undefined,

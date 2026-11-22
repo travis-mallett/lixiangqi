@@ -22,6 +22,8 @@ export interface MessageBoard {
   start: number;
   path?: string;
   inline?: string;
+  title?: string;
+  code?: string;
 }
 export interface BoardSubmission {
   source: BoardSource;

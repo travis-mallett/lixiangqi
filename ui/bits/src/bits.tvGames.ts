@@ -76,19 +76,30 @@ site.load.then(() => {
       const incoming = page.querySelector('.tv-current');
       const current = document.querySelector('.tv-current');
       if (!incoming || !current) return;
-      const ids = new Set(Array.from(incoming.querySelectorAll('.mini-game'), getId));
-      current.querySelectorAll('.mini-game').forEach(el => {
-        if (!ids.has(getId(el))) el.remove();
-      });
-      incoming.querySelectorAll('.mini-game').forEach(el => {
-        if (!Array.from(current.querySelectorAll('.mini-game')).some(old => getId(old) === getId(el)))
-          current.append(el);
-      });
-      current.querySelector('[role="status"]')?.remove();
-      if (!ids.size) {
-        const empty = incoming.querySelector('[role="status"]');
-        if (empty) current.append(empty);
+      const oldCards = new Map(
+        Array.from(current.querySelectorAll<HTMLAnchorElement>(':scope > a'), card => [
+          card.getAttribute('href'),
+          card,
+        ]),
+      );
+      for (const card of incoming.querySelectorAll<HTMLAnchorElement>(':scope > a')) {
+        const old = oldCards.get(card.getAttribute('href'));
+        oldCards.delete(card.getAttribute('href'));
+        if (!old) current.append(card);
+        else {
+          const position = card.querySelector<HTMLElement>('[data-three-kingdoms-position]');
+          if (
+            position &&
+            position.dataset.threeKingdomsPosition !==
+              old.querySelector<HTMLElement>('[data-three-kingdoms-position]')?.dataset.threeKingdomsPosition
+          )
+            old.replaceWith(card);
+        }
       }
+      for (const removed of oldCards.values()) removed.remove();
+      current.querySelector('[role="status"]')?.remove();
+      const empty = incoming.querySelector('[role="status"]');
+      if (empty) current.append(empty);
       const recent = document.querySelector('.tv-recent');
       const incomingRecent = page.querySelector('.tv-recent');
       if (recent && incomingRecent) recent.replaceChildren(...incomingRecent.childNodes);

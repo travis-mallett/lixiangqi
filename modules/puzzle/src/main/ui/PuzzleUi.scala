@@ -108,12 +108,12 @@ final class PuzzleUi(helpers: Helpers, val bits: PuzzleBits):
           bits.pageMenu("themes", ctx.me),
           div(cls := "page-menu__content box")(
             h1(cls := "box__top")(trans.puzzle.puzzleThemes()),
-            p(cls := "box__pad")(trans.site.xiangqiPuzzleThemesDescription()),
             standardFlash.map(div(cls := "box__pad")(_)),
             div(cls := "puzzle-themes")(
               all.themes.map(section =>
                 frag(
-                  h2(id := section.name.value)(section.name()),
+                  (section.name != I18nKey.puzzle.recommended)
+                    .option(h2(id := section.name.value)(section.name())),
                   section.categories.map(category =>
                     themeCategory(category.name, category.themes, category.name != section.name)
                   )

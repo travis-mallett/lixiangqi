@@ -10,7 +10,6 @@ import { colorButtons } from './components/colorButtons';
 import { fenInput } from './components/fenInput';
 import { kingdomClock, kingdomOpponents } from './components/kingdomSetup';
 import { levelButtons } from './components/levelButtons';
-import { rulesetPicker } from './components/rulesetPicker';
 import { variantPicker } from './components/variantPicker';
 
 export default function setupModal(ctrl: LobbyController): VNode[] | null {
@@ -82,7 +81,6 @@ const views = {
   ],
   friend: (ctrl: LobbyController): LooseVNodes => [
     variantPicker(ctrl.setupCtrl),
-    rulesetPicker(ctrl),
     fenInput(ctrl.setupCtrl),
     ctrl.setupCtrl.isThreeKingdoms()
       ? kingdomClock(ctrl.setupCtrl)

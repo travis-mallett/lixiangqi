@@ -88,14 +88,8 @@
         2px
     );
 
-    &__site-stats,
-    &__feature-card--evaluation {
+    &__site-stats {
       height: var(--lobby-top-card-height);
-    }
-
-    &__feature-card--evaluation {
-      min-height: 0;
-      padding-block: 10px;
     }
   }
 

@@ -6,7 +6,7 @@ export function displayedEvaluation(
   incoming: EngineScore | undefined,
   previous: EngineScore = UNKNOWN_EVALUATION,
 ): EngineScore {
-  return incoming ?? previous;
+  return incoming?.redCp !== undefined || incoming?.redMate !== undefined ? incoming : previous;
 }
 
 export function evaluationShare(score?: EngineScore): number {

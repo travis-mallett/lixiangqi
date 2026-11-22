@@ -37,6 +37,7 @@ private[threeKingdoms] object BSONHandlers:
       "after" -> s.after.map(_.value)
     )
   given BSONDocumentHandler[Seat] = Macros.handler
+  given BSONDocumentReader[GamePreview] = Macros.reader
   given BSONDocumentHandler[RecordedAction] = Macros.handler
   given BSON[KingdomGame] with
     def reads(r: BSON.Reader) = KingdomGame(

@@ -1263,9 +1263,9 @@ test('renders mobile engine rows and placeholders from the resolved MultiPV coun
       { initialFen: 'other b - - 0 1', moves: [], ruleset: 'unrestricted-v1' },
       () => undefined,
     );
-    suggestions.setEvaluation();
-    assert.equal(document.querySelector('#xiangqi-engine-score')!.textContent, '—');
-    assert.equal(document.querySelector('#xiangqi-eval')!.getAttribute('aria-valuenow'), '50.0');
+    suggestions.setEvaluation({});
+    assert.equal(document.querySelector('#xiangqi-engine-score')!.textContent, '+M2');
+    assert.equal(document.querySelector('#xiangqi-eval')!.getAttribute('aria-valuenow'), '100.0');
     assert.equal(document.querySelectorAll('#xiangqi-engine-lines > .pv:not(.placeholder)').length, 0);
     suggestions.renderExplorer(cloud, () => undefined);
     assert.equal(document.querySelector('#xiangqi-engine-score')!.textContent, '−1.25');

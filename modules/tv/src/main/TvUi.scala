@@ -77,6 +77,28 @@ final class TvUi(helpers: lila.ui.Helpers)(
   )(using
       Context
   ) =
+    gamesPage(
+      channel,
+      champions,
+      baseUrl,
+      povs.map(gameUi.mini(_)),
+      recent.map(gameUi.mini(_)),
+      trans.site.previouslyOnLichessTV()
+    )
+
+  def gamesPage(
+      channel: Tv.Channel,
+      champions: Tv.Champions,
+      baseUrl: String,
+      current: List[Frag],
+      recent: List[Frag],
+      recentTitle: Frag
+  )(using Context) =
+    def grid(kind: String, cards: List[Frag]) =
+      div(cls := s"tv-$kind now-playing")(
+        cards.isEmpty.option(p(cls := "box__pad", role := "status")(trans.site.noGameFound())),
+        cards
+      )
     Page(s"${channel.translate} • ${trans.site.currentGames.txt()}")
       .css("bits.tv.games")
       .js(Esm("bits.tvGames")):
@@ -91,15 +113,9 @@ final class TvUi(helpers: lila.ui.Helpers)(
             h1(channel.translate),
             a(cls := "button button-empty", href := routes.Tv.onChannel(channel.key))(trans.site.watch()),
             h2(trans.site.currentGames()),
-            div(cls := "tv-current now-playing")(
-              povs.isEmpty.option(p(cls := "box__pad", role := "status")(trans.site.noGameFound())),
-              povs.map(gameUi.mini(_))
-            ),
-            h2(trans.site.previouslyOnLichessTV()),
-            div(cls := "tv-recent now-playing")(
-              recent.isEmpty.option(p(cls := "box__pad", role := "status")(trans.site.noGameFound())),
-              recent.map(gameUi.mini(_))
-            )
+            grid("current", current),
+            h2(recentTitle),
+            grid("recent", recent)
           )
         )
 
@@ -134,7 +150,7 @@ final class TvUi(helpers: lila.ui.Helpers)(
 
     def channels(channel: Tv.Channel, champions: Tv.Champions, baseUrl: String)(using Context): Frag =
       lila.ui.bits.subnav:
-        Tv.Channel.list.map: c =>
+        Tv.Channel.navigation.map: c =>
           a(
             href := s"$baseUrl/${c.key}",
             cls := List(

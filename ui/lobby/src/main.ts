@@ -6,7 +6,6 @@ import makeCtrl from './ctrl';
 import type { LobbyOpts } from './interfaces';
 import { fitLeaderboards } from './leaderboard';
 import { makeCarousel } from './view/carousel';
-import appView from './view/main';
 import { occupancy } from './view/occupancy';
 import siteCountersView from './view/siteCounters';
 import tableView from './view/table';
@@ -18,46 +17,6 @@ export default function main(opts: LobbyOpts) {
   makeCarousel({ selector: '.lobby__blog', itemWidth: 192, pauseFor: 10 });
   fitLeaderboards();
   const ctrl = new makeCtrl(opts, redraw);
-
-  opts.appElement.innerHTML = '';
-  let appVNode = patch(opts.appElement, appView(ctrl));
-  let lobbyOverlayOpen = false;
-  let lobbyOverlayDialog: Dialog | undefined;
-  let afterLobbyClose: (() => void) | undefined;
-
-  ctrl.openLobbyOverlay = () => {
-    if (lobbyOverlayOpen) return;
-    lobbyOverlayOpen = true;
-    void domDialog({
-      class: 'lobby__overlay',
-      append: [{ node: appVNode.elm as HTMLElement }],
-      attrs: { dialog: { 'aria-label': i18n.site.lobby } },
-      focus: '[role="tab"]',
-      modal: true,
-      easyClose: 'clickOutside',
-      onClose: () => {
-        lobbyOverlayOpen = false;
-        lobbyOverlayDialog = undefined;
-        const callback = afterLobbyClose;
-        afterLobbyClose = undefined;
-        if (callback) requestAnimationFrame(callback);
-      },
-    }).then(dialog => {
-      lobbyOverlayDialog = dialog;
-      void dialog.show();
-      if (afterLobbyClose) dialog.close('setup');
-    });
-  };
-
-  ctrl.openSetupFromLobby = (gameType, options) => {
-    const openSetup = () => {
-      ctrl.setupCtrl.openModal(gameType, { variant: ctrl.lobbyVariant, ...options });
-      redraw();
-    };
-    if (!lobbyOverlayOpen) return openSetup();
-    afterLobbyClose = openSetup;
-    lobbyOverlayDialog?.close('setup');
-  };
 
   let tableVNode = patch(toVNode(opts.tableElement), tableView(ctrl));
   const centerRailElement = opts.tableElement.closest('.lobby__center-rail');
@@ -121,7 +80,6 @@ export default function main(opts: LobbyOpts) {
 
   function redraw() {
     variantMenus.forEach(redrawMenu => redrawMenu());
-    appVNode = patch(appVNode, appView(ctrl));
     tableVNode = patch(tableVNode, tableView(ctrl));
     siteCountersVNode = patch(siteCountersVNode, siteCountersView(ctrl));
     syncHomepageRoomLayout();

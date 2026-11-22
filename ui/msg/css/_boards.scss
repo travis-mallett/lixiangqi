@@ -52,3 +52,31 @@
     color: $c-primary;
   }
 }
+
+.msg-board-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4em;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+
+  .msg-board-link {
+    flex: none;
+    color: inherit;
+  }
+}
+
+.msg-board-enlarge {
+  cursor: zoom-in;
+}
+
+.msg-board-expanded {
+  width: min(90vw, 70dvh, 52rem);
+  h2 {
+    font-size: 1.1em;
+  }
+  .msg-board-enlarge {
+    cursor: default;
+  }
+}

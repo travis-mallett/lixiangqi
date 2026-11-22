@@ -289,7 +289,7 @@ export default class SetupController {
       days: this.timeControl.days().toString(),
       days_range: this.timeControl.daysV().toString(),
       level: this.aiLevel().toString(),
-      ruleset: this.gameType === 'hook' || this.usesVariantLevels() ? undefined : this.ruleset,
+      ruleset: this.gameType === 'ai' && !this.usesVariantLevels() ? this.ruleset : undefined,
       color,
     });
 

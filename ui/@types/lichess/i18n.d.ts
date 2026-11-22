@@ -4609,6 +4609,10 @@ interface I18n {
     createANewTopic: string;
     /** Create a new tournament */
     createANewTournament: string;
+    /** Create Correspondence Game */
+    createCorrespondenceGame: string;
+    /** Create Custom Game */
+    createCustomGame: string;
     /** Newly created simuls */
     createdSimuls: string;
     /** Create lobby game */
@@ -5683,6 +5687,8 @@ interface I18n {
     playFirstOpeningEndgameExplorerMove: string;
     /** Playing right now */
     playingRightNow: string;
+    /** Play Now */
+    playNow: string;
     /** Play a rated game to get ranked */
     playRatedGameToGetRanked: string;
     /** Play Rated Jieqi */
@@ -5789,6 +5795,8 @@ interface I18n {
     ratedMoreThanInPerf: I18nFormat;
     /** Rated */
     ratedTournament: string;
+    /** Rated Xiangqi */
+    ratedXiangqi: string;
     /** Rating */
     rating: string;
     /** Rating filter */

@@ -6,6 +6,44 @@ Reconciliation means preserving the applicable behavior, not reproducing web scr
 
 ## Products and receipts
 
+Chat board previews (MsgBoards.scala blob `7c478b485a`) now carry optional title
+and source text. Adult mobile preserves these fields in its inbox cache and opens
+supported replays full screen at the selected move. Its existing variant scope
+continues to apply. Xiangqi Kids has no messaging inbox. Verification included
+Chromium and Firefox replay tests, the Flutter full-screen widget regression,
+static analysis and the full Flutter suite. Deploy the web assets and backend
+together and release the adult app. Existing messages require no migration.
+
+The website Lobby and Correspondence offer tables show each variant's localized
+name and TV icon (website `2eb026d70d`, working-tree blobs `2772cf0b72` for
+`home.scala`, `3296ff5672` for `util.ts` and `72eb8326b0` for `_hook-list.scss`).
+Adult mobile's offer lists accept only Standard Xiangqi through
+`supportsNativeGame`. Xiangqi Kids has no offer list and applies the same
+Standard-only filter at the lobby data boundary. The column is inapplicable
+to both apps. All 791 web UI tests passed, and Edge verified the circled icons
+and table widths from 320 to 1440 pixels. Deploy the website server and rebuilt
+web assets together. Neither app requires a release or checkpoint change.
+
+Friend challenge setup now uses default Tiantian rules (website `2eb026d70d`,
+working-tree blobs `b527414884` for `setupCtrl.ts` and `b5e7da5995` for `modal.ts`).
+Adult mobile removes its corresponding challenge selector and uses its existing
+Tiantian default. Xiangqi Kids has no friend challenge setup screen. The web lobby
+suite passed all 55 tests, including switching from computer setup with unrestricted
+rules. Adult Flutter analysis and all nine challenge tests passed. Deploy rebuilt
+web assets and release adult mobile independently.
+
+The Manchu+ variant badge uses the shared website circle styling (`_data-icon.scss`
+blob `9efa6f654a`). The production Sass build passed and the compiled rules match
+Mini Xiangqi. Neither Flutter app renders the Manchu+ badge or consumes website
+CSS. Deploy the rebuilt web stylesheets. Neither app requires a release.
+
+Analysis move navigation retains the displayed evaluation while the next score is
+pending (website analysisSuggestions.ts blob `6e788adc6c`). Adult mobile ports
+the same behavior in its engine summary while clearing position-specific lines.
+Regression coverage lives in the website Xiangqi contract and Flutter analysis
+tests. Deploy the web assets and release the adult app independently. Xiangqi
+Kids has no analysis board.
+
 The CI repairs against website commit `7b97edceee` affect the HTTP test client,
 the sender-only group deletion assertion, generated website translation types, and
 the standalone bot build command. The staged publication and inbox HTTP suite
@@ -314,3 +352,17 @@ fingerprints and verification. Both checkpoints retain their prior positions.
 Site chat moderators can remove other authors’ messages from Global Chat, groups they belong to, and their direct conversations. The main app and website consume the same capability and removal event. Authors retain their existing Delete message options. Xiangqi Kids has no Inbox or Global Chat, and its credentials exclude Inbox moderation. Deploy the backend and website assets before the adult app update.
 
 The focused review leaves both checkpoints at their prior positions. [Messaging source fingerprints](MESSAGING_RECONCILIATION.json#moderatorRemoval)
+
+## TV channels and Three Kingdoms replays
+
+Reviewed website base `2eb026d70d`, TV view blob `50dc56588073`, and game repository
+blob `f3cb19d9d899`. The website lists Xiangqi once, removes Bot from its channel menu,
+and shows the eight most recently completed Three Kingdoms games alongside current games.
+
+- **LiXiangQi Mobile** watches individual games through `/api/stream/game/$id`. Its
+  watch screen does not consume the website channel list or the Three Kingdoms grid.
+- **Xiangqi Kids** has no TV channel browser. Its gameplay and puzzle contracts are unaffected.
+
+Both apps require no release. The website deployment packages the completed-game index
+with its existing Three Kingdoms index migration. Verification covered TV selector and
+grid tests, the MongoDB index migration, and Chrome layout fixtures at 390, 900, and 1440 pixels.

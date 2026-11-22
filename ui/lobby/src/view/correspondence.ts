@@ -1,13 +1,13 @@
 import { h } from 'snabbdom';
 
-import { bind, type MaybeVNodes, confirm } from 'lib/view';
+import { bind, confirm } from 'lib/view';
 
 import type LobbyController from '@/ctrl';
 import type { Seek } from '@/interfaces';
 
-import { tds } from './util';
+import { offerHead, offerVariant, tds } from './util';
 
-function renderSeek(seek: Seek) {
+function renderSeek(ctrl: LobbyController, seek: Seek) {
   const klass = seek.action === 'joinSeek' ? 'join' : 'cancel';
   return h(
     'tr.seek.' + klass,
@@ -23,55 +23,33 @@ function renderSeek(seek: Seek) {
       h('span.ulpt', { attrs: { 'data-href': `/@/${seek.username}` } }, seek.username),
       seek.rank,
       seek.days ? i18n.site.nbDays(seek.days) : '∞',
+      offerVariant(ctrl.opts.offerVariants, seek.variant?.key),
     ]),
   );
 }
 
-function createSeek(ctrl: LobbyController) {
-  return h('div.create', [
-    ctrl.me
-      ? h(
-          'button.button',
-          { hook: bind('click', () => ctrl.openSetupFromLobby('hook', { timeMode: 'correspondence' })) },
-          i18n.site.createAGame,
-        )
-      : h('a.button', { attrs: { href: '/login' } }, i18n.site.signIn),
-  ]);
-}
-
-export default function (ctrl: LobbyController): MaybeVNodes {
-  return [
-    h('table.hooks__list', [
-      h(
-        'thead',
-        h(
-          'tr',
-          [i18n.site.player, i18n.site.rank, i18n.site.time].map(label => h('th', label)),
-        ),
-      ),
-      h(
-        'tbody',
-        {
-          hook: bind('click', async e => {
-            let el = e.target as HTMLElement;
-            do {
-              el = el.parentNode as HTMLElement;
-              if (el.nodeName === 'TR') {
-                if (!ctrl.me) {
-                  if (await confirm(i18n.site.youNeedAnAccountToDoThat, i18n.site.signUp, i18n.site.cancel))
-                    location.href = '/signup';
-                  return;
-                }
-                return ctrl.clickSeek(el.dataset['id']!);
+export default function (ctrl: LobbyController) {
+  return h('table.hooks__list', [
+    offerHead(),
+    h(
+      'tbody',
+      {
+        hook: bind('click', async e => {
+          let el = e.target as HTMLElement;
+          do {
+            el = el.parentNode as HTMLElement;
+            if (el.nodeName === 'TR') {
+              if (!ctrl.me) {
+                if (await confirm(i18n.site.youNeedAnAccountToDoThat, i18n.site.signUp, i18n.site.cancel))
+                  location.href = '/signup';
+                return;
               }
-            } while (el.nodeName !== 'TABLE');
-          }),
-        },
-        ctrl.data.seeks
-          .filter(s => !ctrl.lobbyVariant || s.variant?.key === ctrl.lobbyVariant)
-          .map(renderSeek),
-      ),
-    ]),
-    createSeek(ctrl),
-  ];
+              return ctrl.clickSeek(el.dataset['id']!);
+            }
+          } while (el.nodeName !== 'TABLE');
+        }),
+      },
+      ctrl.data.seeks.map(seek => renderSeek(ctrl, seek)),
+    ),
+  ]);
 }

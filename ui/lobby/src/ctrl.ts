@@ -20,7 +20,6 @@ import type {
 import * as seekRepo from './seekRepo';
 import SetupController from './setupCtrl';
 import LobbySocket from './socket';
-import { make as makeStores, type Stores } from './store';
 import variantConfirm from './variant';
 import * as xhr from './xhr';
 
@@ -29,8 +28,7 @@ export default class LobbyController {
   playban: any;
   me?: LobbyMe;
   socket: LobbySocket;
-  stores: Stores;
-  tab: Tab;
+  tab: Tab = 'pools';
   stepHooks: Hook[] = [];
   stepping = false;
   redirecting = false;
@@ -41,7 +39,6 @@ export default class LobbyController {
   setupCtrl: SetupController;
   homepageRoom?: HomepageRoom;
   botMapOpen = false;
-  lobbyVariant?: VariantKey;
   variantPool = (variant: string): Pool => this.homePools.find(p => p.rankTrack === variant)!;
 
   openBotMap = () => {
@@ -81,14 +78,6 @@ export default class LobbyController {
     this.syncPresence();
     this.socket = new LobbySocket(opts.socketSend, this);
 
-    this.stores = makeStores(this.me?.username.toLowerCase());
-    if (this.me?.isBot) this.tab = 'now_playing';
-    else {
-      if (this.stores.tab.get() === 'now_playing' && this.data.nbNowPlaying === 0)
-        this.stores.tab.set('pools');
-      else if (this.hasOngoingRealTimeGame(false)) this.stores.tab.set('now_playing');
-      this.tab = this.stores.tab.get();
-    }
     const locationHash = location.hash.replace('#', '');
     if (['ai', 'friend', 'hook'].includes(locationHash)) {
       const forceOptions: ForceSetupOptions = {};
@@ -191,7 +180,6 @@ export default class LobbyController {
     window.addEventListener('beforeunload', () => this.leavePool());
   }
 
-  openLobbyOverlay: () => void = () => {};
   openSetupFromLobby = (gameType: Exclude<GameType, 'local'>, options?: ForceSetupOptions) => {
     this.setupCtrl.openModal(gameType, options);
     this.redraw();
@@ -285,13 +273,14 @@ export default class LobbyController {
 
   setTab = (tab: Tab) => {
     if (tab !== this.tab) {
-      if (tab === 'seeks') this.fetchSeeks();
-      else if (tab === 'real_time') this.socket.realTimeIn();
-      else if (this.tab === 'real_time') {
+      if (this.tab === 'real_time') {
         this.socket.realTimeOut();
         this.data.hooks = [];
+        this.stepHooks = [];
       }
-      this.tab = this.stores.tab.set(tab);
+      this.tab = tab;
+      if (tab === 'seeks') void this.fetchSeeks();
+      if (tab === 'real_time') this.socket.realTimeIn();
       this.redraw();
     }
   };

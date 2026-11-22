@@ -68,7 +68,7 @@ const notGames = new Set([
 export function expandLpvs(el: HTMLElement) {
   const expandables: Expandable[] = [];
 
-  el.querySelectorAll('a:not(.text)').forEach((a: HTMLAnchorElement) => {
+  el.querySelectorAll('.msg-body:not(:has(.msg-board)) > t a:not(.text)').forEach((a: HTMLAnchorElement) => {
     const link = parseLink(a);
     if (link)
       expandables.push({
@@ -120,6 +120,7 @@ function parseLink(a: HTMLAnchorElement): Link | undefined {
       type: 'game',
       src: `/game/export/${id}.pgn`,
       opts: {
+        showMoves: false,
         orientation: orientation === 'black' ? 'black' : 'red',
         initialPly: initialPly === undefined ? undefined : Number(initialPly),
       },

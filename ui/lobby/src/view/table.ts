@@ -1,15 +1,16 @@
 import { numberFormat } from 'lib/i18n';
 import { licon } from 'lib/licon';
-import { formatMoveTime } from 'lib/setup/timeControl';
-import { bind, hl } from 'lib/view';
+import { hl } from 'lib/view';
 
 import type LobbyController from '@/ctrl';
-import type { Pool } from '@/interfaces';
+import type { Pool, Tab } from '@/interfaces';
 
 import botMap from './botMap';
+import renderSeeks from './correspondence';
 import correspondenceDeck from './correspondenceDeck';
 import homepageRoomView from './homepageRoom';
 import { occupancy } from './occupancy';
+import { render as renderHooks } from './realTime/list';
 import renderSetupModal from './setup/modal';
 
 export default function table(ctrl: LobbyController) {
@@ -27,55 +28,129 @@ export default function table(ctrl: LobbyController) {
   const quickDisabled =
     opts.playban || opts.hasUnreadLichessMessage || !!ctrl.me?.isBot || hasOngoingRealTimeGame;
   const performance = ctrl.homePools.find(pool => pool.lim === 15)!;
-  const quickRooms = ctrl.homePools
-    .filter(pool => pool.lim !== 15 && (!pool.rankTrack || pool.rankTrack === 'xiangqi'))
-    .sort((a, b) => a.lim - b.lim);
-  const quickRoomCounts = new Map(quickRooms.map(pool => [pool.id, ctrl.poolCount(pool.id)]));
-  const customRoomCount = ctrl.poolCount('lobby');
-  const otherTimeControlsCount = ctrl.poolCount('other');
+  const tabs = [
+    ['pools', licon.LineGraph, i18n.site.ratedXiangqi],
+    ['real_time', licon.Group, i18n.site.lobby],
+    ['seeks', licon.Envelope, i18n.site.correspondence],
+  ] as const;
+
+  function selectTab(key: Tab) {
+    ctrl.setTab(key);
+    document.getElementById('home-tab-' + key)?.focus();
+  }
 
   return hl('div.lobby__table', { class: { 'lobby__table--seeking': poolSeeking } }, [
-    featurePoolButton(performance),
-    hl('details.lobby__time-controls', [
-      hl('summary.lobby__time-controls__summary', { class: { transp: poolSeeking } }, [
-        chevron('lobby__time-controls__chevron'),
-        englishLabel(i18n.site.otherTimeControls, 'lobby__time-controls__label'),
-        occupancy(otherTimeControlsCount),
-      ]),
-      hl('div.lobby__quick-rooms', { attrs: { role: 'group', 'aria-label': i18n.site.otherTimeControls } }, [
-        ...quickRooms.map(pool => compactPoolButton(pool, quickRoomCounts.get(pool.id)!)),
-        hl(
-          'button.lobby__quick-room.lobby__quick-room--lobby',
-          {
-            class: { transp: poolSeeking },
-            attrs: { type: 'button' },
-            hook: bind('click', () => {
-              ctrl.lobbyVariant = undefined;
-              ctrl.openLobbyOverlay();
-              ctrl.redraw();
-            }),
-          },
-          [
-            hl('span.lobby__quick-room__summary', [
-              englishLabel(i18n.site.custom, 'lobby__quick-room__label'),
-              occupancy(customRoomCount),
-              chevron('lobby__quick-room__chevron'),
-            ]),
-          ],
+    hl('section.lobby__match', [
+      hl(
+        'div.lobby__match-tabs',
+        { attrs: { role: 'tablist', 'aria-label': i18n.site.play } },
+        tabs.map(([key, icon, label], index) =>
+          hl(
+            'button',
+            {
+              attrs: {
+                type: 'button',
+                id: 'home-tab-' + key,
+                role: 'tab',
+                'aria-label': label,
+                'aria-selected': String(ctrl.tab === key),
+                tabindex: ctrl.tab === key ? 0 : -1,
+                'aria-controls': 'home-match-panel',
+                'data-icon': icon,
+              },
+              on: {
+                click: () => selectTab(key),
+                keydown: (event: KeyboardEvent) => {
+                  const next = { ArrowLeft: (index + 2) % 3, ArrowRight: (index + 1) % 3, Home: 0, End: 2 }[
+                    event.key
+                  ];
+                  if (next === undefined) return;
+                  event.preventDefault();
+                  selectTab(tabs[next][0]);
+                },
+              },
+            },
+            label,
+          ),
         ),
-      ]),
+      ),
+      hl(
+        'div#home-match-panel',
+        { attrs: { role: 'tabpanel', 'aria-labelledby': 'home-tab-' + ctrl.tab } },
+        ctrl.tab === 'pools' ? featurePoolButton(performance) : offers(),
+      ),
     ]),
     hl('div.lobby__actions', [
-      computerButton(),
-      hl('a.lobby__action.lobby__action--puzzle', { attrs: { href: '/training/themes' } }, [
-        hl('span.lobby__svg-icon.lobby__svg-icon--puzzle', { attrs: { 'aria-hidden': 'true' } }),
-        englishLabel(i18n.site.puzzles, 'lobby__action__label'),
-        actionActivity(ctrl.poolCount('puzzle')),
+      hl(
+        'button.button.button-metal.lobby__action.lobby__action--ai',
+        {
+          attrs: { type: 'button', disabled: hasOngoingRealTimeGame },
+          on: {
+            click: () => {
+              ctrl.openBotMap();
+              ctrl.redraw();
+            },
+          },
+        },
+        [svgIcon('computer'), i18n.site.playAgainstComputer],
+      ),
+      hl('a.button.button-metal.lobby__action', { attrs: { href: '/training/themes' } }, [
+        svgIcon('puzzle'),
+        i18n.site.puzzles,
       ]),
+      hl(
+        'button.button.button-metal.lobby__action',
+        {
+          attrs: { type: 'button', disabled: hasOngoingRealTimeGame },
+          on: { click: () => ctrl.openSetupFromLobby('friend') },
+        },
+        [
+          hl('span', { attrs: { 'data-icon': licon.Swords, 'aria-hidden': 'true' } }),
+          i18n.site.challengeAFriend,
+        ],
+      ),
     ]),
     correspondenceDeck(ctrl),
     renderSetupModal(ctrl),
   ]);
+
+  function svgIcon(name: string) {
+    return hl('span.lobby__svg-icon.lobby__svg-icon--' + name, { attrs: { 'aria-hidden': 'true' } });
+  }
+
+  function offers() {
+    const realTime = ctrl.tab === 'real_time';
+    const label = realTime ? i18n.site.createCustomGame : i18n.site.createCorrespondenceGame;
+    const disabled =
+      !!opts.playban ||
+      opts.hasUnreadLichessMessage ||
+      !!ctrl.me?.isBot ||
+      (realTime && hasOngoingRealTimeGame);
+    const rows = realTime ? ctrl.stepHooks : ctrl.data.seeks;
+    return hl('div.lobby__offers', { key: ctrl.tab }, [
+      hl('div.lobby__offers-list', { attrs: { inert: disabled } }, [
+        realTime ? renderHooks(ctrl, ctrl.stepHooks) : renderSeeks(ctrl),
+        !rows.length && hl('p', i18n.site.noGameFound),
+      ]),
+      !realTime && !ctrl.me
+        ? hl(
+            'a.button',
+            { attrs: { href: '/login?referrer=' + encodeURIComponent('/?time=correspondence#hook') } },
+            label,
+          )
+        : hl(
+            'button.button',
+            {
+              attrs: { type: 'button', disabled },
+              on: {
+                click: () =>
+                  ctrl.openSetupFromLobby('hook', { timeMode: realTime ? 'realTime' : 'correspondence' }),
+              },
+            },
+            label,
+          ),
+    ]);
+  }
 
   function featurePoolButton(pool: Pool) {
     const active = ctrl.isPoolSeeking(pool.id);
@@ -96,9 +171,9 @@ export default function table(ctrl: LobbyController) {
           'aria-pressed': active ? 'true' : 'false',
           'data-traffic-action': 'home.time-control',
           'data-traffic-pool': pool.id,
-          'aria-label': `${i18n.site.chessPerformanceEvaluationChinese}. ${i18n.site.playRatedXiangqi}. ${i18n.site.standard}, ${i18n.site.minutesShort(pool.lim)}. ${i18n.site.nbPlayers(playerCount, numberFormat(playerCount))}`,
+          'aria-label': `${i18n.site.playNow}. ${i18n.site.chessPerformanceEvaluationChinese}. ${i18n.site.playRatedXiangqi}. ${i18n.site.standard}, ${i18n.site.minutesShort(pool.lim)}. ${i18n.site.nbPlayers(playerCount, numberFormat(playerCount))}`,
         },
-        hook: quickDisabled && !active ? {} : bind('click', () => clickPool(pool)),
+        on: { click: () => ctrl.openHomepagePool(pool) },
       },
       [
         hl('span.lobby__feature-card__content', [
@@ -117,84 +192,16 @@ export default function table(ctrl: LobbyController) {
               ]),
               occupancy(playerCount, true),
             ]),
+            hl(
+              'span.button.lobby__play-now',
+              { attrs: { 'data-icon': licon.PlayTriangle } },
+              i18n.site.playNow,
+            ),
             !ctrl.me && hl('span.lobby__feature-card__sign-in', i18n.site.signInToPlayRatedXiangqi),
           ]),
         ]),
-        hl('img.lobby__feature-card__image', {
-          attrs: {
-            src: site.asset.url('images/homepage/xiangqi-evaluation-mode.webp'),
-            alt: '',
-            'aria-hidden': 'true',
-            width: '320',
-            height: '320',
-            decoding: 'async',
-          },
-        }),
-        chevron('lobby__feature-card__chevron'),
       ],
     );
-  }
-
-  function compactPoolButton(pool: Pool, playerCount: number) {
-    const active = ctrl.isPoolSeeking(pool.id);
-    return hl(
-      'button.lobby__quick-room',
-      {
-        class: {
-          active,
-          'bar-glider': active,
-          transp: poolSeeking && !active,
-          disabled: quickDisabled && !active,
-        },
-        attrs: {
-          type: 'button',
-          disabled: quickDisabled && !active,
-          title: formatMoveTime(pool.moveTime!),
-          'data-traffic-action': 'home.time-control',
-          'data-traffic-pool': pool.id,
-          'aria-pressed': active ? 'true' : 'false',
-        },
-        hook: quickDisabled && !active ? {} : bind('click', () => clickPool(pool)),
-      },
-      [
-        hl('span.lobby__quick-room__summary', [
-          englishLabel(i18n.site.minutesShort(pool.lim), 'lobby__quick-room__label'),
-          occupancy(playerCount),
-          chevron('lobby__quick-room__chevron'),
-        ]),
-      ],
-    );
-  }
-
-  function computerButton() {
-    const active = ctrl.setupCtrl.gameType === 'ai';
-    return hl(
-      'button.lobby__action.lobby__action--ai',
-      {
-        class: { active, disabled: hasOngoingRealTimeGame, transp: poolSeeking },
-        attrs: {
-          type: 'button',
-          disabled: hasOngoingRealTimeGame,
-          'aria-disabled': hasOngoingRealTimeGame ? 'true' : 'false',
-        },
-        on: {
-          click: () => {
-            if (ctrl.hasOngoingRealTimeGame(true)) return;
-            ctrl.openBotMap();
-            ctrl.redraw();
-          },
-        },
-      },
-      [
-        hl('span.lobby__svg-icon.lobby__svg-icon--computer', { attrs: { 'aria-hidden': 'true' } }),
-        englishLabel(i18n.site.playAgainstComputer, 'lobby__action__label'),
-        actionActivity(ctrl.poolCount('ai')),
-      ],
-    );
-  }
-
-  function actionActivity(count: number) {
-    return hl('span.lobby__action__activity', [occupancy(count), chevron('lobby__action__chevron')]);
   }
 
   function bilingualLabel(chinese: string, english: string, className: string) {
@@ -202,19 +209,5 @@ export default function table(ctrl: LobbyController) {
       hl('span.lobby__label-zh', chinese),
       hl('span.lobby__label-en', english),
     ]);
-  }
-
-  function englishLabel(english: string, className: string) {
-    return hl(`span.${className}`, hl('span.lobby__label-en.lobby__label-en--primary', english));
-  }
-
-  function chevron(className: string) {
-    return hl(`span.${className}.text`, {
-      attrs: { 'data-icon': licon.GreaterThan, 'aria-hidden': 'true' },
-    });
-  }
-
-  function clickPool(pool: Pool) {
-    ctrl.openHomepagePool(pool);
   }
 }

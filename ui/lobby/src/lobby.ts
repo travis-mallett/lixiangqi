@@ -9,8 +9,6 @@ import main from './main';
 
 export function initModule(opts: LobbyOpts) {
   initGlobalChat();
-  opts.appElement = document.createElement('div');
-  opts.appElement.className = 'lobby__app';
   opts.tableElement = document.querySelector('.lobby__table') as HTMLElement;
   opts.socketSend = wsConnect('/lobby/socket/v5', false, {
     options: { reloadOnResume: true },

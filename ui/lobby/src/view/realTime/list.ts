@@ -4,10 +4,10 @@ import { formatClock } from 'lib/setup/timeControl';
 import { bind } from 'lib/view';
 
 import type LobbyController from '@/ctrl';
-import * as hookRepo from '@/hookRepo';
 import type { Hook } from '@/interfaces';
 
-import { tds } from '../util';
+import * as hookRepo from '../../hookRepo';
+import { offerHead, offerVariant, tds } from '../util';
 
 function renderHook(ctrl: LobbyController, hook: Hook) {
   return h(
@@ -27,6 +27,7 @@ function renderHook(ctrl: LobbyController, hook: Hook) {
         : i18n.site.anonymous,
       hook.rank || '',
       formatClock(hook.clock, hook.moveTime),
+      offerVariant(ctrl.opts.offerVariants, hook.variant),
     ]),
   );
 }
@@ -36,7 +37,6 @@ const isStandard = (value: boolean) => (hook: Hook) => (hook.variant === 'standa
 const isNotMine = (hook: Hook) => !isMine(hook);
 
 export const render = (ctrl: LobbyController, allHooks: Hook[]) => {
-  allHooks = allHooks.filter(h => !ctrl.lobbyVariant || h.variant === ctrl.lobbyVariant);
   const mine = allHooks.find(isMine);
   const max = mine ? 13 : 14;
   const hooks = allHooks.slice(0, max);
@@ -45,22 +45,17 @@ export const render = (ctrl: LobbyController, allHooks: Hook[]) => {
   const variants = hooks
     .filter(isNotMine)
     .filter(isStandard(false))
-    .slice(0, Math.max(0, max - standards.length - 1));
+    .slice(0, max - standards.length);
   hookRepo.sort(variants);
 
   const renderedHooks = [
     ...standards.map(hook => renderHook(ctrl, hook)),
-    variants.length
-      ? h('tr.variants', { key: 'variants' }, [
-          h('td', { attrs: { colspan: 3 } }, `— ${i18n.site.variant} —`),
-        ])
-      : null,
     ...variants.map(hook => renderHook(ctrl, hook)),
   ];
   if (mine) renderedHooks.unshift(renderHook(ctrl, mine));
 
   return h('table.hooks__list', [
-    h('thead', h('tr', [h('th', i18n.site.player), h('th', i18n.site.rank), h('th', i18n.site.time)])),
+    offerHead(),
     h(
       'tbody',
       {
