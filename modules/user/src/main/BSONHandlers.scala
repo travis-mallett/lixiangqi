@@ -109,6 +109,8 @@ object BSONHandlers:
           case Some(f) => FlairApi.badFlairs.add(userId, f); None
           case None => None,
         marks = r.getO[UserMarks](marks) | UserMarks(Nil),
+        picture = r.strO("picture"),
+        pendingPicture = r.strO("pendingPicture"),
         hasEmail = r.contains(email)
       )
 
@@ -120,6 +122,8 @@ object BSONHandlers:
         enabled -> o.enabled,
         roles -> o.roles.nonEmptyOption,
         profile -> o.profile,
+        "picture" -> o.picture,
+        "pendingPicture" -> o.pendingPicture,
         toints -> w.intO(o.toints),
         playTime -> o.playTime,
         createdAt -> o.createdAt,

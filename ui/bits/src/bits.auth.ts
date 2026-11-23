@@ -88,6 +88,13 @@ function signupStart() {
 
   initTextClear($form[0] as HTMLFormElement);
   initSignupCountry($form[0] as HTMLFormElement);
+  const picture = $form[0]?.querySelector<HTMLInputElement>('input[name="picture"]');
+  picture?.addEventListener('change', () => {
+    picture.setCustomValidity(
+      (picture.files?.[0]?.size ?? 0) > 8 * 1024 * 1024 ? picture.dataset.sizeError! : '',
+    );
+    picture.reportValidity();
+  });
 
   turnstile($form);
 

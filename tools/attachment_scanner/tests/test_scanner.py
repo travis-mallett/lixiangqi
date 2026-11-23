@@ -50,6 +50,25 @@ class ScannerTest(unittest.TestCase):
         self.assertNotIn(b"private camera", result.data)
         self.assertEqual(result.detectors["pipeline"], "photo-openai-1")
 
+    def test_profile_accepts_only_static_photos_and_screens_the_published_thumbnail(self):
+        image = io.BytesIO()
+        Image.new("RGB", (1600, 800)).save(image, "JPEG")
+        with patch.object(screen, "malware"), patch.object(screen, "post_json", return_value=general()) as detector:
+            row = {**draft(image.getvalue(), "picture"), "audience": "profile/alice"}
+            checked = screen.screen(row, self.env)
+            with Image.open(io.BytesIO(checked.data)) as normalized:
+                self.assertEqual((normalized.format, normalized.size), ("WEBP", (512, 256)))
+            self.assertEqual(detector.call_args.args[2]["model"], screen.MODEL)
+            pixels = detector.call_args.args[2]["input"][0]["image_url"]["url"]
+            self.assertEqual(base64.b64decode(pixels.split(",")[1]), checked.data)
+            frames = [Image.new("RGB", (8, 8), c) for c in ("red", "blue")]
+            animation = io.BytesIO()
+            frames[0].save(animation, format="PNG", save_all=True, append_images=frames[1:])
+            for data in (animation.getvalue(), b"notes", bytes(screen.PICTURE_LIMIT + 1)):
+                with self.assertRaises(screen.Rejected):
+                    screen.screen({**draft(data, "picture.txt"), "audience": "profile/alice"}, self.env)
+            self.assertEqual(detector.call_count, 1)
+
     def test_held_images_never_reach_openai(self):
         with patch.object(screen, "post_json") as send, self.assertRaises(screen.Restricted):
             screen.screen({**draft(png(), "photo.png"), "hold": True}, self.env)
@@ -121,6 +140,34 @@ class LifecycleTest(unittest.TestCase):
         self.coll = self.db.ugc_attachment
         self.addCleanup(self.client.close)
         self.addCleanup(self.client.drop_database, self.db.name)
+
+    def test_only_current_approved_profile_picture_replaces_previous(self):
+        self.db.user4.insert_one({"_id": "alice", "enabled": True, "picture": "previous"})
+        def stage(key):
+            self.coll.insert_one({**draft(png(), "picture"), "_id": key, "owner": "alice",
+                                  "audience": "profile/alice", "policy": screen.POLICY, "state": "checking",
+                                  "nextCheck": worker.now(), "expiresAt": worker.now()})
+            self.db.user4.update_one({"_id": "alice"}, {"$set": {"pendingPicture": key}})
+            return worker.claim(self.coll)
+        stale, latest = stage("stale"), stage("latest")
+        def current():
+            return self.db.user4.find_one({"_id": "alice"})["picture"]
+        with patch.object(screen, "malware", return_value="test-signatures"), patch.object(screen, "post_json", return_value=general()), patch.dict(os.environ, ScannerTest.env):
+            worker.finish(self.coll, stale)
+            self.assertEqual(current(), "previous")
+            worker.finish(self.coll, latest)
+            self.assertEqual(current(), "latest")
+            denied = stage("denied")
+            with patch.object(screen, "post_json", return_value=general(True)):
+                worker.finish(self.coll, denied)
+            self.assertEqual(current(), "latest")
+            kid = stage("kid")
+            self.db.user4.update_one({"_id": "alice"}, {"$set": {"kid": True}})
+            worker.finish(self.coll, kid)
+            self.assertEqual(current(), "latest")
+        worker.cleanup(self.db)
+        self.assertIsNotNone(self.coll.find_one({"_id": "latest"}))
+        self.assertIsNone(self.coll.find_one({"_id": "stale"}))
 
     def test_restricted_fixture_vaults_once_and_never_becomes_readable(self):
         at = worker.now()

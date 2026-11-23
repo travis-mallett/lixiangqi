@@ -66,7 +66,7 @@ final private class LobbySyncActor(
 
     case CancelSeek(seekId, user) =>
       seekApi.removeBy(seekId, user.id)
-      socket ! RemoveSeek(seekId)
+      socket ! SeeksChanged
 
     case BiteHook(hookId, sri, user) =>
       NoPlayban(user):
@@ -93,7 +93,7 @@ final private class LobbySyncActor(
       onStart.exec(game.id)
       seekApi.archive(seek, game.id)
       socket ! msg
-      socket ! RemoveSeek(seek.id)
+      socket ! SeeksChanged
 
     case LeaveAll => remoteDisconnectAllAt = nowInstant
 

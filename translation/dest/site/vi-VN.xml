@@ -1032,4 +1032,11 @@ Mọi chi phí vận hành, phát triển, và nội dung được tài trợ b�
   <string name="mediaReportBlock">Báo cáo và chặn</string>
   <string name="mediaReview">Yêu cầu xem xét</string>
   <string name="mediaLimit">Đã đạt giới hạn tệp đính kèm</string>
+  <string name="profilePicture">Ảnh đại diện</string>
+  <string name="editProfilePicture">Chỉnh sửa ảnh đại diện</string>
+  <string name="profilePictureHelp">Không bắt buộc. Chọn ảnh JPG, PNG hoặc WebP tối đa 8 MiB. OpenAI kiểm duyệt ảnh trước khi ảnh xuất hiện trên hồ sơ và trong hộp thư.</string>
+  <string name="profilePictureFormat">Chọn một ảnh tĩnh JPG, PNG hoặc WebP tối đa 8 MiB.</string>
+  <string name="profilePictureChecking">Đang kiểm duyệt ảnh…</string>
+  <string name="profilePictureRejected">Ảnh này chưa được duyệt. Vui lòng chọn ảnh khác.</string>
+  <string name="profilePictureUnavailable">Hiện không thể kiểm duyệt ảnh. Vui lòng thử lại sau.</string>
 </resources>

@@ -1,4 +1,5 @@
 import { licon } from 'lib/licon';
+import { svgIcon } from 'lib/svgIcon';
 import { bind, hl } from 'lib/view';
 
 import type LobbyController from '../ctrl';
@@ -89,7 +90,7 @@ export default function variantMenu(
     ),
     button(licon.Cogs, i18n.site.playAgainstComputer, () => setup('ai'), ctrl.poolCount(`${variant}-ai`)),
     button(
-      licon.Swords,
+      svgIcon.Challenge,
       kingdoms ? i18n.threeKingdoms.friends : i18n.site.challengeAFriend,
       () => setup('friend'),
       ctrl.poolCount(`${variant}-friend`),

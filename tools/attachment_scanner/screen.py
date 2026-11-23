@@ -20,6 +20,7 @@ from PIL import Image, ImageOps, ImageSequence, UnidentifiedImageError
 POLICY = "ugc-1"
 MODEL = "omni-moderation-latest"
 LIMIT = 4 * 1024 * 1024
+PICTURE_LIMIT = 8 * 1024 * 1024
 MAX_PIXELS = 12_000_000
 Image.MAX_IMAGE_PIXELS = MAX_PIXELS
 IMAGE_TYPES = {".jpg": "JPEG", ".jpeg": "JPEG", ".png": "PNG", ".webp": "WEBP"}
@@ -99,10 +100,17 @@ def malware(data, socket_path):
         return "/".join(v.decode("ascii") for v in version.groups())
 
 
-def normalize(data, ext, private=False):
-    if not data or len(data) > LIMIT:
+def normalize(data, ext, private=False, profile=False):
+    if not data or len(data) > (PICTURE_LIMIT if profile else LIMIT):
         raise Rejected("unsupportedFile")
-    if private:
+    if profile:
+        # Profile clients need no filename. Only a single raster photo can become public.
+        try:
+            with Image.open(io.BytesIO(data), formats=list(IMAGE_TYPES.values())) as probe:
+                photo_format = probe.format
+        except (OSError, ValueError, Image.DecompressionBombError) as exc:
+            raise Rejected("unsupportedFile") from exc
+    elif private:
         # Detect raster photos by content even when the file has no extension.
         try:
             with Image.open(io.BytesIO(data), formats=["JPEG", "PNG", "WEBP", "GIF", "BMP", "TIFF", "AVIF"]) as probe:
@@ -139,16 +147,17 @@ def normalize(data, ext, private=False):
     try:
         with Image.open(io.BytesIO(data), formats=[photo_format]) as image:
             count = getattr(image, "n_frames", 1)
-            if count > (32 if private else 1) or count * image.width * image.height > MAX_PIXELS:
+            pixel_limit = 2 * MAX_PIXELS if profile else MAX_PIXELS
+            if count > (32 if private else 1) or count * image.width * image.height > pixel_limit:
                 raise Rejected("unsupportedFile")
             frames, durations, moderation = [], [], []
             pixels = 0
             for frame in ImageSequence.Iterator(image):
                 pixels += frame.width * frame.height
-                if pixels > MAX_PIXELS:
+                if pixels > pixel_limit:
                     raise Rejected("unsupportedFile")
                 oriented = ImageOps.exif_transpose(frame)
-                oriented.thumbnail((2048, 2048))
+                oriented.thumbnail((512, 512) if profile else (2048, 2048))
                 clean = oriented.convert("RGBA" if "A" in oriented.getbands() or "transparency" in oriented.info else "RGB")
                 clean.info.clear()
                 if frames and frames[0].size != clean.size:
@@ -199,7 +208,8 @@ def screen(row, env=os.environ):
     if row["sourceDigest"] != hashlib.sha256(data).hexdigest():
         raise Unavailable("identity mismatch")
     av = malware(data, env["UGC_CLAMD_SOCKET"])
-    clean, mime, photos = normalize(data, Path(row["name"]).suffix.lower(), row.get("audience", "").startswith("msg/"))
+    surface = row.get("audience", "").partition("/")[0]
+    clean, mime, photos = normalize(data, Path(row["name"]).suffix.lower(), private=surface == "msg", profile=surface == "profile")
     detectors = {"clamav": av}
     if not photos:
         return Checked(clean, mime, detectors)

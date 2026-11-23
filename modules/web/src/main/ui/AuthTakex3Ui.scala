@@ -148,6 +148,7 @@ final class AuthTakex3Ui(helpers: Helpers, flags: lila.core.user.FlagApi):
           connectionHeader("Create Lixiangqi account"),
           postForm(
             id := "signup-form",
+            enctype := "multipart/form-data",
             cls := "form3",
             action := addReferrer(routes.Auth.signupPostTakex3.url),
             autocomplete := "off"
@@ -184,6 +185,7 @@ final class AuthTakex3Ui(helpers: Helpers, flags: lila.core.user.FlagApi):
               ),
             input(id := "signup-fp-input", name := "fp", tpe := "hidden"),
             SignupCountryUi(helpers, flags)(form),
+            SignupPictureUi(helpers)(form),
             hiddenAcceptedAgreements,
             simple.not.option(turnstile.widget(hidden = true)),
             turnstile.submit("Create account"),

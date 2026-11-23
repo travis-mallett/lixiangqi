@@ -7,7 +7,7 @@ import type { MaybeVNodes } from 'lib/view/snabbdom';
 import type MsgCtrl from '../ctrl';
 import type { Contact, LastMsg, User } from '../interfaces';
 import { glyph } from './icons';
-import { avatarColor, playerName } from './identity';
+import { avatarColor, loadAvatar, playerName } from './identity';
 
 export default function renderContact(ctrl: MsgCtrl, contact: Contact, active?: string): VNode {
   const user = contact.user,
@@ -69,7 +69,12 @@ const contactName = (user: User, ctrl: MsgCtrl): MaybeVNodes => [playerName(user
 export const userIcon = (user: User, cls: string): VNode =>
   h(
     'div.msg-avatar.' + cls + '.' + avatarColor(user.id),
-    { class: { online: user.online }, attrs: { 'aria-hidden': 'true' } },
+    {
+      key: user.id,
+      class: { online: user.online },
+      attrs: { 'aria-hidden': 'true' },
+      hook: user.group ? undefined : { insert: v => loadAvatar(v.elm as HTMLElement, user.id) },
+    },
     user.group ? [glyph('group')] : ([...user.name][0]?.toLocaleUpperCase() ?? ''),
   );
 

@@ -82,7 +82,7 @@ final class UserShow(helpers: Helpers, bits: UserBits):
                     href := routes.Msg.convo(u.username)
                   ),
                   a(
-                    dataIcon := Icon.Swords,
+                    dataIcon := SvgIcon.Challenge,
                     cls := "btn-rack__btn",
                     title := trans.challenge.challengeToPlay.txt(),
                     href := s"${routes.Lobby.home}?user=${u.username}#friend"

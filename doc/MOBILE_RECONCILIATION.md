@@ -4,7 +4,67 @@ The website owns shared game semantics, API contracts, engine release pins and o
 board artwork. Each Flutter app owns its navigation, responsive layout and product scope.
 Reconciliation means preserving the applicable behavior, not reproducing web screens.
 
+The lobby pavilion, correspondence bamboo slips and player-challenge jiàn use
+website SVG blobs `af9f794142`, `68bf0eeda5` and `5da2b61b29` respectively
+(working tree based on `b2fd2f7fe1`). Adult mobile uses the same jiàn artwork
+in its player-profile challenge button. Its play screen uses text controls for
+lobby, correspondence and challenges. Xiangqi Kids' garden and rated room have
+no equivalent challenge button or offer tabs. The web build and all 793 UI
+tests passed. Browser captures cover both themes at 390, 900 and 1480 pixels,
+and the native profile widget capture verifies the jiàn. Deploy the web server
+and assets together. The adult app can ship independently.
+
+## Three Kingdoms public correspondence
+
+Carousel card blob `ed8b41b2413a` uses the Three Kingdoms miniature board for pending and active games. Browser previews at 390, 900 and 1280 pixels verified the opening board and all 48 pieces. This website carousel change has no native counterpart in Adult Mobile or Xiangqi Kids. Deploy the lobby page and assets together.
+
+Website base `b2fd2f7fe1`, challenge implementation blob `209273a83cfa`. Adult Mobile and Xiangqi Kids continue to use their existing lobby contracts. Public Three Kingdoms offers use a separate endpoint and require the deferred native three-player board in either app. The existing MOBILE-VARIANTS and KIDS-VARIANTS decisions cover these offers. Neither checkpoint advances. The website requires matching lobby assets, server routes and the pending-offer index in the existing Three Kingdoms deployment migration. Verification covers the one- and two-seat setup, pending and started seat transitions, participant visibility, public listing clicks and the displayed bot level.
+
 ## Products and receipts
+
+### Global Chat registration welcomes
+
+Reviewed website base `b2fd2f7fe1`. Working-tree SHA-256 prefixes are
+`b898093512b8` for the global chat writer and `260a330b96c6` for the web
+announcement row. Successful account creation queues a public welcome entry
+for eligible adult accounts. The server publishes the optional `welcomeUser`
+field with existing global chat history, preview and live updates.
+
+- **LiXiangQi Mobile** renders the announcement in its existing Global Chat
+  using its shared player profile widget. Cached messages preserve the field.
+  Deploy the website backend to start sending greetings. Older app builds
+  can display the plain-text message.
+- **Xiangqi Kids** has no public inbox or Global Chat. The website excludes
+  registrations from the Kids app from the public announcement.
+
+The chat asset build and 795 UI tests passed. Browser fixtures cover
+signed-in and signed-out chat at 390, 900 and 1440 pixels across light and
+dark themes. The adult Flutter suite passed with two skips, and a focused
+widget test captured the welcome entry in the native inbox. Analysis reported
+three existing informational findings outside the inbox. Both apps retain
+their existing reconciliation checkpoints.
+
+### Three Kingdoms friend challenges
+
+Reviewed website base `b2fd2f7fe1a21e529675b4b2fe3d056d4feeea46`. Working-tree SHA-256 prefixes
+are `3f9d30ec0124` for the shared lobby modal and `8428ecb87c3a` for the
+Three Kingdoms clock. The web challenge creator and round now share real-time,
+correspondence and unlimited settings. The invitation retains the creator's
+requested side and supports a bot as the third player.
+
+- **LiXiangQi Mobile (not applicable).** No native Three Kingdoms challenge,
+  round or clock consumes the changed API. The inbox recognizes Three Kingdoms
+  links and continues to open the website for unsupported boards.
+- **Xiangqi Kids (not applicable).** Its native gameplay is Standard-only and
+  does not consume the Three Kingdoms challenge or round APIs.
+
+Both native variant projects remain deferred. No checkpoints advanced. The
+existing website deployment builds the shared rules bundle and packages the
+server and web assets together. Existing clock and invitation records read the
+new optional fields without a data migration. No mobile release is needed.
+The production asset build, Scala compile, scoped clock and invitation tests,
+and all 795 UI tests passed. Chromium fixtures exercised the modal at 390, 900
+and 1440 pixels and verified correspondence in the invitation and round.
 
 ### Open game indicators
 
@@ -473,6 +533,13 @@ fingerprints and verification. Both checkpoints retain their prior positions.
 Site chat moderators can remove other authors’ messages from Global Chat, groups they belong to, and their direct conversations. The main app and website consume the same capability and removal event. Authors retain their existing Delete message options. Xiangqi Kids has no Inbox or Global Chat, and its credentials exclude Inbox moderation. Deploy the backend and website assets before the adult app update.
 
 The focused review leaves both checkpoints at their prior positions. [Messaging source fingerprints](MESSAGING_RECONCILIATION.json#moderatorRemoval)
+
+## User-uploaded profile pictures
+
+- **LiXiangQi Mobile (ported).** Native email and Google registration accept an optional photo. The owner can replace it from the profile. The native profile, inbox contacts and chat identities read the published picture. Moderation, the 8 MiB limit and 512-pixel WebP normalization belong to the server.
+- **Xiangqi Kids (excluded by product decision).** The Kids app never uploads or displays user-provided pictures. Its signup, player identity and board widgets keep their existing presentation. Game chat on both apps keeps its existing identities.
+
+Reviewed website base `b2fd2f7fe1a21e529675b4b2fe3d056d4feeea46` with working-tree SHA-256 prefixes `536c93cba895` (signup), `9d3444fcff64` (account controller), `38a3fae3eab4` (scanner) and `41357472f03b` (Flutter profile widget). Verification passed for the 11 scanner tests on a MongoDB replica, multipart registration over HTTP, a browser profile edit through moderation to publication, the production web asset build and 796 web UI tests. Flutter analysis and 572 host tests passed, with two existing skips. Deploy the scanner, backend and web assets before releasing the updated adult app. No data migration is required. Both broad reconciliation checkpoints retain their previous positions.
 
 ## TV channels and Three Kingdoms replays
 

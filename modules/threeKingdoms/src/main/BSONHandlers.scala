@@ -12,6 +12,7 @@ private[threeKingdoms] object BSONHandlers:
     { case BSONString(s) => PositionCodec.read(s).fold(sys.error, identity) },
     p => BSONString(PositionCodec.write(p))
   )
+  given BSONDocumentHandler[OpeningTime] = Macros.handler
   given BSONDocumentHandler[ClockConfig] = Macros.handler
   given BSONDocumentHandler[ClockState] = Macros.handler
   given BSON[RankSnapshot] with

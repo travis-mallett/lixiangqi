@@ -8,7 +8,7 @@ import { advancedSettings } from './components/advancedSettings';
 import { aiHistory } from './components/aiHistory';
 import { colorButtons } from './components/colorButtons';
 import { fenInput } from './components/fenInput';
-import { kingdomClock, kingdomOpponents } from './components/kingdomSetup';
+import { kingdomOpponents, kingdomSide } from './components/kingdomSetup';
 import { levelButtons } from './components/levelButtons';
 import { variantPicker } from './components/variantPicker';
 
@@ -77,15 +77,15 @@ const views = {
   hook: (ctrl: LobbyController): LooseVNodes => [
     variantPicker(ctrl.setupCtrl),
     timePickerAndSliders(ctrl.setupCtrl.timeControl, 0),
-    colorButtons(ctrl.setupCtrl),
+    ctrl.setupCtrl.isThreeKingdoms() ? kingdomSide(ctrl.setupCtrl) : colorButtons(ctrl.setupCtrl),
+    ctrl.setupCtrl.isThreeKingdoms() && kingdomOpponents(ctrl.setupCtrl),
   ],
   friend: (ctrl: LobbyController): LooseVNodes => [
     variantPicker(ctrl.setupCtrl),
     fenInput(ctrl.setupCtrl),
-    ctrl.setupCtrl.isThreeKingdoms()
-      ? kingdomClock(ctrl.setupCtrl)
-      : timePickerAndSliders(ctrl.setupCtrl.timeControl, 0),
-    ctrl.setupCtrl.isThreeKingdoms() ? kingdomOpponents(ctrl.setupCtrl) : colorButtons(ctrl.setupCtrl),
+    timePickerAndSliders(ctrl.setupCtrl.timeControl, 0),
+    ctrl.setupCtrl.isThreeKingdoms() ? kingdomSide(ctrl.setupCtrl) : colorButtons(ctrl.setupCtrl),
+    ctrl.setupCtrl.isThreeKingdoms() && kingdomOpponents(ctrl.setupCtrl),
   ],
   ai: (ctrl: LobbyController): LooseVNodes => [
     variantPicker(ctrl.setupCtrl),

@@ -29,6 +29,7 @@ final case class Attachment(
 )
 object Attachment:
   val policy = "ugc-1"
+  val pictureMaxBytes = 8 * 1024 * 1024
   val hardMaxBytes = 4 * 1024 * 1024
   def validId(id: String): Boolean = id.matches("[0-9a-f]{32}")
   def sha(bytes: Array[Byte]): String =
@@ -42,6 +43,10 @@ object Attachment:
 
   given BSONDocumentHandler[Attachment] = Macros.handler
 
+final class ProfilePictureUpload(store: Attachments, bytes: Array[Byte]):
+  def stage[A](owner: UserId)(save: (reactivemongo.api.DB, String) => Fu[A]): Fu[A] =
+    store.stagePicture(owner, bytes)(save)
+
 final class Attachments(db: lila.db.Db, config: play.api.Configuration)(using Executor):
   import Attachment.given
   private val coll = db(lila.core.config.CollName("ugc_attachment"))
@@ -54,7 +59,9 @@ final class Attachments(db: lila.db.Db, config: play.api.Configuration)(using Ex
   def maxCount(surface: String): Int = if surface == "msg" then inboxMaxCount else defaultMaxCount
   val hourlyUploads = config.get[Int]("attachments.hourlyUploads").max(1)
   def enabled(surface: String): Boolean =
-    Set("forum", "msg")(surface) && config.get[Boolean](s"attachments.$surface")
+    Set("forum", "msg", "profile")(surface) && config
+      .getOptional[Boolean](s"attachments.$surface")
+      .contains(true)
 
   def available: Fu[Boolean] = health.exists(
     $id("worker") ++ $doc(
@@ -66,7 +73,7 @@ final class Attachments(db: lila.db.Db, config: play.api.Configuration)(using Ex
 
   def scannerStatus: Fu[(String, Int)] =
     val count = coll.countSel($doc("state" -> "checking"))
-    if !enabled("msg") && !enabled("forum") then count.map("disabled" -> _)
+    if !enabled("msg") && !enabled("forum") && !enabled("profile") then count.map("disabled" -> _)
     else
       health
         .one[Bdoc]($id("worker"))
@@ -87,6 +94,21 @@ final class Attachments(db: lila.db.Db, config: play.api.Configuration)(using Ex
               notify(owner, id) >> coll.update.one($id(id), $unset("urgent")).void
             case _ => funit
 
+  def stagePicture[A](owner: UserId, bytes: Array[Byte])(
+      save: (reactivemongo.api.DB, String) => Fu[A]
+  ): Fu[A] =
+    if !enabled("profile") then fufail(SubmissionRejected("profilePictureUnavailable"))
+    else if bytes.isEmpty || bytes.length > Attachment.pictureMaxBytes then
+      fufail(SubmissionRejected("profilePictureFormat"))
+    else
+      available.flatMap:
+        case false => fufail(SubmissionRejected("profilePictureUnavailable"))
+        case true =>
+          transaction: tx =>
+            insert(owner, s"profile/$owner", "picture", bytes, tx.collection(coll.name)).flatMap(item =>
+              save(tx, item.id)
+            )
+
   def stage(owner: UserId, audience: String, filename: String, bytes: Array[Byte]): Fu[Attachment] =
     val name = Attachment.safeName(filename)
     val allowedName = name.nonEmpty && name != "." && name != ".." &&
@@ -95,6 +117,17 @@ final class Attachments(db: lila.db.Db, config: play.api.Configuration)(using Ex
         .matches(".+\\.(jpg|jpeg|png|webp|txt|pgn)"))
     if bytes.isEmpty || bytes.length > maxBytes || !allowedName then
       return fufail(SubmissionRejected("unsupportedFile"))
+    available.flatMap:
+      case false => fufail(SubmissionRejected("scannerUnavailable"))
+      case true => insert(owner, audience, name, bytes, coll)
+
+  private def insert(
+      owner: UserId,
+      audience: String,
+      name: String,
+      bytes: Array[Byte],
+      records: Coll
+  ): Fu[Attachment] =
     val id = UUID.randomUUID().toString.replace("-", "")
     val item = Attachment(
       id,
@@ -109,20 +142,17 @@ final class Attachments(db: lila.db.Db, config: play.api.Configuration)(using Ex
       None,
       None
     )
-    available.flatMap:
-      case false => fufail(SubmissionRejected("scannerUnavailable"))
-      case true =>
-        coll.insert
-          .one(
-            summon[BSONDocumentHandler[Attachment]].writeTry(item).get ++ $doc(
-              "sourceDigest" -> Attachment.sha(bytes),
-              "bytes" -> BSONBinary(bytes, reactivemongo.api.bson.Subtype.GenericBinarySubtype),
-              "createdAt" -> nowInstant,
-              "nextCheck" -> nowInstant,
-              "expiresAt" -> nowInstant.plusDays(1)
-            )
-          )
-          .inject(item)
+    records.insert
+      .one(
+        summon[BSONDocumentHandler[Attachment]].writeTry(item).get ++ $doc(
+          "sourceDigest" -> Attachment.sha(bytes),
+          "bytes" -> BSONBinary(bytes, reactivemongo.api.bson.Subtype.GenericBinarySubtype),
+          "createdAt" -> nowInstant,
+          "nextCheck" -> nowInstant,
+          "expiresAt" -> nowInstant.plusDays(1)
+        )
+      )
+      .inject(item)
 
   /** Sessions are confined to attachment commits. Bytes, parent revisions and publication become visible
     * together.

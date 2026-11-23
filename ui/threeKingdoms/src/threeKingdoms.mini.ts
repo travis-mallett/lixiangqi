@@ -24,10 +24,11 @@ export function initModule(): void {
     if (!elements.length) return;
     const rules = await loadRules();
     for (const element of elements) {
+      if (!element.isConnected) continue;
       const encoded = element.dataset.threeKingdomsPosition!;
       const previous = boards.get(element);
       if (previous?.encoded === encoded) continue;
-      const state = position(rules.inspect(encoded));
+      const state = position(rules.inspect(encoded || rules.initial()));
       if (previous) {
         previous.view.display(state, { kind: 'jump' });
         previous.encoded = encoded;

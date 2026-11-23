@@ -42,6 +42,7 @@ export interface MsgCard {
   boards?: MessageBoard[];
 }
 export interface Msg {
+  welcomeUser?: string;
   boardSubmission?: BoardSubmission[];
   card?: MsgCard;
   id: string;

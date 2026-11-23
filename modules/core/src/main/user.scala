@@ -38,7 +38,9 @@ object user:
       flair: Option[Flair] = None,
       totpSecret: Option[TotpSecret] = None,
       marks: UserMarks = UserMarks(Nil),
-      hasEmail: Boolean
+      hasEmail: Boolean,
+      picture: Option[String] = None,
+      pendingPicture: Option[String] = None
   ):
     import lila.core.user.UserMarks.*
     import lila.core.user.UserEnabled.*
@@ -60,6 +62,9 @@ object user:
     def hasTitle: Boolean = title.exists(PlayerTitle.BOT != _)
 
     def light = LightUser(id, username, title, flair, patronMonths, plan.color)
+
+    def allowsProfilePicture = enabled.yes && kid.no && !marks.troll
+    def pictureUrl = picture.filter(_ => allowsProfilePicture).map(id => s"/profile/picture/$id")
 
     def profileOrDefault = profile | Profile.default
 

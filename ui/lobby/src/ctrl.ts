@@ -5,6 +5,7 @@ import { storage, type LichessStorage } from 'lib/storage';
 
 import * as hookRepo from './hookRepo';
 import type {
+  KingdomOffer,
   LobbyOpts,
   LobbyData,
   Tab,
@@ -25,6 +26,17 @@ import * as xhr from './xhr';
 
 export default class LobbyController {
   data: LobbyData;
+  kingdomOffers: KingdomOffer[] = [];
+  myKingdomOffer = (offer: KingdomOffer) => offer.users.includes(this.me?.username.toLowerCase() ?? '');
+  joinKingdomOffer = async (id: string) => {
+    try {
+      const offer = await xhr.joinKingdomOffer(id);
+      site.redirect(`/three-kingdoms/${offer.status === 'started' ? 'game' : 'challenge'}/${id}`);
+    } catch {
+      site.announce({ msg: i18n.threeKingdoms.challengeUnavailable });
+      void this.fetchSeeks();
+    }
+  };
   playban: any;
   me?: LobbyMe;
   socket: LobbySocket;
@@ -300,8 +312,18 @@ export default class LobbyController {
 
   fetchSeeks = async () => {
     const request = ++this.seekRequest;
-    const seeks = await xhr.seeks().catch(() => undefined);
+    const [seeks, kingdoms] = await Promise.all([
+      xhr.seeks().catch(() => undefined),
+      xhr.kingdomOffers().catch(() => undefined),
+    ]);
     if (!seeks || request !== this.seekRequest) return;
+    if (kingdoms) {
+      const seatFilled = this.kingdomOffers.some(
+        o => this.myKingdomOffer(o) && !kingdoms.some(next => next.id === o.id),
+      );
+      this.kingdomOffers = kingdoms;
+      if (seatFilled) void this.refreshPlaying();
+    }
     this.data.seeks = seeks;
     seekRepo.initAll(this);
     this.syncPresence();
@@ -391,7 +413,7 @@ export default class LobbyController {
   };
 
   hasOngoingRealTimeGame = (requireTurn: boolean) =>
-    this.data.kingdomsPlaying?.some(g => !g.hasBots && (g.isMyTurn || !requireTurn)) ||
+    this.data.kingdomsPlaying?.some(g => g.realTime && !g.hasBots && (g.isMyTurn || !requireTurn)) ||
     this.data.nowPlaying.some(
       nowPlaying =>
         nowPlaying.speed !== 'correspondence' &&
@@ -404,15 +426,18 @@ export default class LobbyController {
       this.data.nowPlaying.some(p => p.gameId === gameId) ||
       this.data.kingdomsPlaying?.some(p => p.gameId === gameId)
     )
-      xhr.nowPlaying().then(res => {
-        this.data.nowPlaying = res.nowPlaying;
-        this.data.kingdomsPlaying = res.kingdomsPlaying;
-        this.data.nbNowPlaying = res.nbNowPlaying;
-        this.data.nbMyTurn = res.nbMyTurn;
-        this.startWatching();
-        this.redraw();
-      });
+      void this.refreshPlaying();
   };
+
+  private refreshPlaying = () =>
+    xhr.nowPlaying().then(res => {
+      this.data.nowPlaying = res.nowPlaying;
+      this.data.kingdomsPlaying = res.kingdomsPlaying;
+      this.data.nbNowPlaying = res.nbNowPlaying;
+      this.data.nbMyTurn = res.nbMyTurn;
+      this.startWatching();
+      this.redraw();
+    });
 
   private startWatching() {
     const kingdomIds = (this.data.kingdomsPlaying ?? []).slice(0, 3).map(g => g.gameId);

@@ -11,8 +11,8 @@ object preload:
         div(cls := "lobby__match-tabs")(
           List(
             (Icon.LineGraph, trans.site.ratedXiangqi(), true),
-            (Icon.Group, trans.site.lobby(), false),
-            (Icon.Envelope, trans.site.correspondence(), false)
+            (SvgIcon.Lobby, trans.site.lobby(), false),
+            (SvgIcon.Correspondence, trans.site.correspondence(), false)
           ).map: (icon, label, selected) =>
             button(tpe := "button", dataIcon := icon, attr("aria-selected") := selected.toString)(label)
         ),
@@ -58,7 +58,7 @@ object preload:
           trans.site.puzzles()
         ),
         button(cls := "button button-metal lobby__action", disabled, tpe := "button")(
-          span(dataIcon := Icon.Swords, aria.hidden := "true"),
+          span(dataIcon := SvgIcon.Challenge, aria.hidden := "true"),
           trans.site.challengeAFriend()
         )
       )

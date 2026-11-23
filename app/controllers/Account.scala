@@ -28,6 +28,62 @@ final class Account(
       pages.profile(me, env.user.forms.profileOf(me))
   }
 
+  def uploadPicture = AuthOrScopedBodyWithParser(
+    parse.byteString(lila.memo.Attachment.pictureMaxBytes.toLong)
+  )(_.Preference.Write) { ctx ?=> me ?=>
+    limit.imageUpload(rateLimited):
+      if !me.allowsProfilePicture then fuccess(Forbidden)
+      else
+        env.memo.attachments
+          .stagePicture(me.userId, ctx.body.body.toArray) { (tx, id) =>
+            new lila.user.UserRepo(tx.collection(env.user.repo.coll.name))
+              .requestPicture(me.userId, id)
+              .inject(id)
+          }
+          .map(id => Accepted(Json.obj("id" -> id)))
+          .recover { case lila.core.security.SubmissionRejected(code) =>
+            UnprocessableEntity(jsonError(code))
+          }
+  }
+
+  def pictureStatus(id: String) = AuthOrScoped(_.Preference.Write) { _ ?=> me ?=>
+    env.memo.attachments
+      .owned(id, me, s"profile/${me.userId}")
+      .map: item =>
+        item
+          .fold(NotFound)(i =>
+            Ok(Json.obj("state" -> (if i.state == "restricted" then "blocked" else i.state)))
+          )
+          .withHeaders(CACHE_CONTROL -> "no-store")
+  }
+
+  def picture(id: String) = Anon:
+    env.memo.attachments
+      .get(id)
+      .flatMap:
+        case Some(i)
+            if i.audience == s"profile/${i.owner}" && i.parent.contains(
+              i.owner.value
+            ) && i.state == "ready" && i.mime.contains("image/webp") =>
+          env.user.repo
+            .byId(i.owner)
+            .flatMap:
+              case Some(u) if u.allowsProfilePicture && u.picture.contains(id) =>
+                env.memo.attachments
+                  .approvedBytes(i)
+                  .map(
+                    _.fold(NotFound)(b =>
+                      Ok(b)
+                        .as("image/webp")
+                        .withHeaders(
+                          CACHE_CONTROL -> "public, max-age=300",
+                          "X-Content-Type-Options" -> "nosniff"
+                        )
+                    )
+                  )
+              case _ => fuccess(NotFound)
+        case _ => fuccess(NotFound)
+
   def username = Auth { _ ?=> me ?=>
     Ok.page:
       pages.username(me, env.user.forms.usernameOf(me))

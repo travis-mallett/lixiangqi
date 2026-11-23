@@ -1,6 +1,7 @@
 import { requestIdleCallbackSafe } from 'lib';
 import { licon } from 'lib/licon';
 import { pubsub } from 'lib/pubsub';
+import { svgIcon } from 'lib/svgIcon';
 import { spinnerHtml } from 'lib/view';
 import { text as xhrText } from 'lib/xhr';
 
@@ -34,7 +35,7 @@ const userPowertip = (el: HTMLElement, pos?: PowerTip.Placement) =>
             '</span></div></div><div class="upt__actions btn-rack">' +
             uptA('/@/' + u + '/tv', licon.AnalogTv) +
             uptA('/inbox/new?user=' + u, licon.BubbleSpeech) +
-            uptA('/?user=' + u + '#friend', licon.Swords) +
+            uptA('/?user=' + u + '#friend', svgIcon.Challenge) +
             '<a class="btn-rack__btn relation-button" disabled></a></div>',
         );
       }),

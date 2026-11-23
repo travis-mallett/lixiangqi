@@ -1,5 +1,6 @@
 import { numberFormat } from 'lib/i18n';
 import { licon } from 'lib/licon';
+import { svgIcon } from 'lib/svgIcon';
 import { hl } from 'lib/view';
 
 import type LobbyController from '@/ctrl';
@@ -32,15 +33,17 @@ export default function table(ctrl: LobbyController) {
     ['pools', licon.LineGraph, i18n.site.ratedXiangqi],
     [
       'real_time',
-      licon.Group,
+      svgIcon.Lobby,
       i18n.site.lobby,
       !quickDisabled && ctrl.data.hooks.some(hook => hook.action === 'join' && !hook.disabled),
     ],
     [
       'seeks',
-      licon.Envelope,
+      svgIcon.Correspondence,
       i18n.site.correspondence,
-      !offersDisabled && ctrl.data.seeks.some(seek => seek.action === 'joinSeek'),
+      !offersDisabled &&
+        (ctrl.data.seeks.some(seek => seek.action === 'joinSeek') ||
+          ctrl.kingdomOffers?.some(o => !ctrl.myKingdomOffer(o))),
     ],
   ] as const;
 
@@ -103,10 +106,10 @@ export default function table(ctrl: LobbyController) {
             },
           },
         },
-        [svgIcon('computer'), i18n.site.playAgainstComputer],
+        [lobbyIcon('computer'), i18n.site.playAgainstComputer],
       ),
       hl('a.button.button-metal.lobby__action', { attrs: { href: '/training/themes' } }, [
-        svgIcon('puzzle'),
+        lobbyIcon('puzzle'),
         i18n.site.puzzles,
       ]),
       hl(
@@ -116,7 +119,7 @@ export default function table(ctrl: LobbyController) {
           on: { click: () => ctrl.openSetupFromLobby('friend') },
         },
         [
-          hl('span', { attrs: { 'data-icon': licon.Swords, 'aria-hidden': 'true' } }),
+          hl('span', { attrs: { 'data-icon': svgIcon.Challenge, 'aria-hidden': 'true' } }),
           i18n.site.challengeAFriend,
         ],
       ),
@@ -125,7 +128,7 @@ export default function table(ctrl: LobbyController) {
     renderSetupModal(ctrl),
   ]);
 
-  function svgIcon(name: string) {
+  function lobbyIcon(name: string) {
     return hl('span.lobby__svg-icon.lobby__svg-icon--' + name, { attrs: { 'aria-hidden': 'true' } });
   }
 
@@ -137,7 +140,9 @@ export default function table(ctrl: LobbyController) {
     return hl('div.lobby__offers', { key: ctrl.tab }, [
       hl('div.lobby__offers-list', { attrs: { inert: disabled } }, [
         realTime ? renderHooks(ctrl, ctrl.stepHooks) : renderSeeks(ctrl),
-        !rows.length && hl('p', i18n.site.noGameFound),
+        !rows.length &&
+          (realTime || !ctrl.kingdomOffers?.some(o => !ctrl.myKingdomOffer(o))) &&
+          hl('p', i18n.site.noGameFound),
       ]),
       !realTime && !ctrl.me
         ? hl(

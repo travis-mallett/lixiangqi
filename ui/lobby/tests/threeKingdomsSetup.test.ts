@@ -2,8 +2,10 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { init, attributesModule, propsModule, eventListenersModule } from 'snabbdom';
 
+import { timePickerAndSliders } from 'lib/setup/view/timeControl';
+
 import SetupController from '../src/setupCtrl';
-import { kingdomClock, kingdomOpponents } from '../src/view/setup/components/kingdomSetup';
+import { kingdomClock, kingdomOpponents, kingdomSide } from '../src/view/setup/components/kingdomSetup';
 import { levelButtons } from '../src/view/setup/components/levelButtons';
 
 const cash = await import('../../../public/javascripts/vendor/cash.min.js');
@@ -38,6 +40,26 @@ test('shared computer setup exposes five levels, three seats and only legal cloc
   assert.equal(ctrl.valid(), true);
   ctrl.kingdomTime(5);
   assert.equal(ctrl.valid(), false);
+});
+
+test('friend setup exposes shared time modes and the three kingdoms plus random', () => {
+  const ctrl = setup('friend');
+  const patch = init([attributesModule, propsModule, eventListenersModule]);
+  const time = patch(document.createElement('div'), timePickerAndSliders(ctrl.timeControl))
+    .elm as HTMLElement;
+  const tabs = [...time.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+  assert.equal(tabs.length, 3);
+  for (const [index, mode] of (['realTime', 'correspondence', 'unlimited'] as const).entries()) {
+    tabs[index].click();
+    assert.equal(ctrl.timeControl.mode(), mode);
+  }
+  const side = patch(document.createElement('div'), kingdomSide(ctrl)).elm as HTMLElement;
+  const select = side.querySelector('select')!;
+  assert.deepEqual(
+    [...select.options].map(option => option.value),
+    ['red', 'green', 'black', 'random'],
+  );
+  assert.equal(select.value, 'random');
 });
 
 test('shared friend setup requires two distinct opponents other than the challenger', t => {
@@ -148,8 +170,10 @@ test('shared setup submits all three-player choices with CSRF XHR headers', asyn
   const ctrl = setup('friend');
   ctrl.friendUser = 'Bob';
   ctrl.friendUserTwo = 'Carol';
-  ctrl.kingdomTime(7);
-  ctrl.kingdomMoveTime(30);
+  const tc = ctrl.timeControl;
+  tc.mode('realTime');
+  tc.selectPreset({ lim: 7, inc: 5, moveTime: { seconds: 30, first: { moves: 2, seconds: 15 } } });
+  ctrl.kingdom('green');
   const originalFetch = globalThis.fetch,
     originalRedirect = site.redirect;
   let request: RequestInit | undefined, redirected: unknown;
@@ -168,15 +192,42 @@ test('shared setup submits all three-player choices with CSRF XHR headers', asyn
     assert.deepEqual(data.opponents, ['Bob', 'Carol']);
     assert.equal(data.initialSeconds, 420);
     assert.equal(data.moveSeconds, 30);
+    assert.equal(data.incrementSeconds, 5);
+    assert.deepEqual(data.opening, { moves: 2, seconds: 15 });
+    assert.equal(data.color, 'green');
     assert.equal(redirected, '/three-kingdoms/challenge/abcdefgh');
 
     ctrl.loading = false;
     ctrl.kingdomFriendBot(true);
+    tc.mode('correspondence');
     ctrl.aiLevel(4);
     await ctrl.submit();
     const mixed = JSON.parse(request!.body as string);
     assert.deepEqual(mixed.opponents, ['Bob']);
     assert.equal(mixed.botLevel, 4);
+    assert.equal(mixed.timeMode, 'correspondence');
+    assert.equal(mixed.days, tc.days());
+    assert.equal(mixed.initialSeconds, undefined);
+
+    ctrl.loading = false;
+    tc.mode('unlimited');
+    await ctrl.submit();
+    const unlimited = JSON.parse(request!.body as string);
+    assert.equal(unlimited.timeMode, 'unlimited');
+    assert.equal(unlimited.days, undefined);
+
+    ctrl.openModal('hook', { variant: 'threeKingdoms', timeMode: 'correspondence' });
+    for (const bot of [false, true]) {
+      ctrl.loading = false;
+      ctrl.kingdomFriendBot(bot);
+      ctrl.aiLevel(3);
+      await ctrl.submit();
+      const offer = JSON.parse(request!.body as string);
+      assert.equal(offer.publicSeek, true);
+      assert.deepEqual(offer.opponents, []);
+      assert.equal(offer.botLevel, bot ? 3 : undefined);
+      assert.equal(offer.timeMode, 'correspondence');
+    }
   } finally {
     globalThis.fetch = originalFetch;
     site.redirect = originalRedirect;

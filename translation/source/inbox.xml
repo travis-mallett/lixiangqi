@@ -144,4 +144,5 @@
   <string name="openBoardSource">Open original</string>
   <string name="loadingBoard">Loading board…</string>
   <string name="invalidBoard">Could not load this Xiangqi board</string>
+  <string name="welcomeUser">Welcome to our newest member, %s!</string>
 </resources>

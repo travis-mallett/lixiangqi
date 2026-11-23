@@ -60,7 +60,7 @@ const translations = (namespace: string) =>
     {},
     {
       get: (_, key: string) =>
-        ['turn', 'controls', 'place', 'drawOffered', 'takebackOffered'].includes(key)
+        ['turn', 'controls', 'place', 'drawOffered', 'takebackOffered', 'nbDays', 'nbHours'].includes(key)
           ? (text: string) => `${key}: ${text}`
           : `${namespace}.${key}`,
     },
@@ -230,3 +230,33 @@ for (const searchTime of [0, 750, 2500])
       round.destroy();
     }
   });
+
+test('friend rounds show correspondence time and omit the clock for unlimited', t => {
+  t.mock.method(Date, 'now', () => 1_000_000);
+  for (const timeMode of ['correspondence', 'unlimited'] as const) {
+    document.body.innerHTML =
+      '<main class="round"><aside class="round__side"></aside><div class="round__app"></div></main>';
+    const game = localGame(rules, 'red', 1, 900, 60);
+    game.seats.forEach(seat => {
+      seat.aiLevel = null;
+    });
+    game.clock = {
+      ...game.clock,
+      timeMode,
+      initialSeconds: 0,
+      moveSeconds: 0,
+      days: timeMode === 'correspondence' ? 2 : null,
+      deadline: timeMode === 'correspondence' ? Date.now() + 2 * 86400000 : null,
+    };
+    const root = document.querySelector<HTMLElement>('.round__app')!;
+    const round = new Round(root, game, rules, { mode: 'local', me: null, preferences: {} }, true);
+    try {
+      assert.equal(
+        document.querySelector('[data-clock="red"]')?.textContent,
+        timeMode === 'correspondence' ? 'nbDays: 2' : undefined,
+      );
+    } finally {
+      round.destroy();
+    }
+  }
+});

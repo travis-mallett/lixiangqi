@@ -294,7 +294,7 @@ final class AccountPref(helpers: Helpers, helper: PrefHelper, bits: AccountUi):
                 cls := "always-on",
                 form3.hidden(name, "true"),
                 filterName match
-                  case "challenge" => iconTag(Icon.Swords)
+                  case "challenge" => iconTag(SvgIcon.Challenge)
                   case "privateMessage" => iconTag(Icon.BellOutline)
                   case _ => emptyFrag
               )

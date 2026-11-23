@@ -30,6 +30,23 @@
     margin: 5px 0;
   }
 
+  .msg-welcome {
+    align-self: center;
+    max-width: 100%;
+    margin: 4px 0;
+    padding: 5px 12px;
+    border-radius: 12px;
+    background: $c-bg-zebra;
+    color: $c-font-dim;
+    font-size: 0.875em;
+    text-align: center;
+
+    .user-link {
+      color: $c-link;
+      white-space: normal;
+    }
+  }
+
   day {
     align-self: center;
     color: $c-font-dim;

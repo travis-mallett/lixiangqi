@@ -30,6 +30,16 @@ class MsgTest extends munit.FunSuite:
     assertEquals(read.readAt, None)
     assertEquals(read.revision, 0)
 
+  test("welcome entries round-trip through storage and expose the linked account in JSON"):
+    given Executor = scala.concurrent.ExecutionContext.global
+    val announcement = msg.copy(user = UserId.lichess, welcomeUser = Some(UserName("Alice")))
+    val stored = BsonHandlers.writeMsg(announcement, MsgThread.Id(GlobalChat.id))
+    assertEquals(stored.asOpt[Msg].flatMap(_.welcomeUser), Some(UserName("Alice")))
+    val json = new MsgJson(null, lila.core.socket.IsOnline(_ => false)).renderMsg(announcement)
+    assertEquals((json \ "welcomeUser").as[String], "Alice")
+    assert(!announcement.canForward)
+    assert(!announcement.canEdit(UserId.lichess, now))
+
   test("deletion retains original and edited content in BSON but not participant JSON"):
     given Executor = scala.concurrent.ExecutionContext.global
     val deleted = msg.copy(

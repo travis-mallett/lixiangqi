@@ -23,6 +23,17 @@
   color: $c-brag;
 }
 
+@each $name in 'challenge-jian', 'lobby-pavilion', 'correspondence-slips' {
+  [data-icon='#{$name}']::before {
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    background-color: currentcolor;
+    content: '';
+    mask: url('../images/icons/#{$name}.svg') center / contain no-repeat;
+  }
+}
+
 html[dir='rtl'] {
   [data-icon='#{$licon-Wings}'],
   [data-icon='#{$licon-PlayTriangle}'],

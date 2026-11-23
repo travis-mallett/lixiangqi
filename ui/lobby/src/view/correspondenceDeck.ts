@@ -1,5 +1,6 @@
 import { aiLevelName } from 'lib/game';
 import { timeago } from 'lib/i18n';
+import { pubsub } from 'lib/pubsub';
 import { hl, initMiniBoard, onInsert } from 'lib/view';
 
 import type LobbyController from '@/ctrl';
@@ -60,14 +61,49 @@ const gameCard = (ctrl: LobbyController, game: NowPlaying) => {
   );
 };
 
+function kingdomCard(id: string, players: string[], status: string, encoded?: string, myTurn = false) {
+  const pending = encoded === undefined;
+  return hl(
+    'a.lobby__correspondence-card',
+    {
+      key: id,
+      class: {
+        'lobby__correspondence-card--pending': pending,
+        'lobby__correspondence-card--my-turn': myTurn,
+      },
+      attrs: { href: '/three-kingdoms/' + (pending ? 'challenge/' : 'game/') + id },
+    },
+    [
+      hl('span.lobby__correspondence-player', hl('strong', i18n.site.threeKingdoms)),
+      hl(
+        'span.lobby__correspondence-board.lobby__correspondence-kingdom',
+        {
+          key: encoded ?? 'initial',
+          hook: onInsert<HTMLElement>(element => {
+            if (element.isConnected)
+              void site.asset
+                .loadEsm('threeKingdoms.mini')
+                .then(() => pubsub.emit('content-loaded', element));
+          }),
+        },
+        [hl('span', { attrs: { 'data-three-kingdoms-position': encoded ?? '' } })],
+      ),
+      hl('span.lobby__correspondence-player.lobby__correspondence-player--me', players.join(' · ')),
+      hl('span.lobby__correspondence-status', status),
+    ],
+  );
+}
 export default function correspondenceDeck(ctrl: LobbyController) {
   const games = orderedGames(ctrl.data.nowPlaying);
-  if (!games.length) return null;
+  const kingdoms = (ctrl.data.kingdomsPlaying ?? []).filter(g => !g.realTime);
+  const pending = (ctrl.kingdomOffers ?? []).filter(o => ctrl.myKingdomOffer(o));
+  const count = games.length + kingdoms.length + pending.length;
+  if (!count) return null;
 
   return hl('section.lobby__correspondence', { attrs: { 'aria-labelledby': 'lobby-correspondence-title' } }, [
     hl('header.lobby__correspondence-header', [
       hl('h2#lobby-correspondence-title', 'Correspondence games'),
-      hl('span', `${games.length} active`),
+      hl('span', pending.length ? String(count) : `${count} active`),
     ]),
     hl(
       'div.lobby__correspondence-track',
@@ -75,7 +111,25 @@ export default function correspondenceDeck(ctrl: LobbyController) {
         attrs: { 'aria-label': 'Active correspondence games' },
         hook: enableMouseDragging,
       },
-      games.map(game => gameCard(ctrl, game)),
+      [
+        ...games.map(game => gameCard(ctrl, game)),
+        ...kingdoms.map(g =>
+          kingdomCard(
+            g.gameId,
+            g.players,
+            g.isMyTurn ? i18n.site.yourTurn : i18n.site.waitingForOpponent,
+            g.position,
+            g.isMyTurn,
+          ),
+        ),
+        ...pending.map(o =>
+          kingdomCard(
+            o.id,
+            o.users,
+            `${ctrl.opts.waitingToStart} · ${o.users.length + (o.botLevel ? 1 : 0)}/3`,
+          ),
+        ),
+      ],
     ),
   ]);
 }

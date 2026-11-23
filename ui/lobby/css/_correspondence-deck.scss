@@ -106,6 +106,24 @@
     }
   }
 
+  &-kingdom {
+    display: grid;
+    align-items: center;
+    aspect-ratio: 9 / 10;
+    pointer-events: none;
+
+    > span {
+      align-self: center;
+      display: block;
+      width: 100%;
+    }
+  }
+
+  &-card--pending &-kingdom {
+    filter: saturate(0.55);
+    opacity: 0.8;
+  }
+
   &-player {
     display: flex;
     min-width: 0;

@@ -4,7 +4,7 @@ import { json } from 'lib/xhr';
 
 import type { Msg } from '../interfaces';
 import { glyphElement, type Glyph } from './icons';
-import { avatarColor, playerElement } from './identity';
+import { avatarColor, loadAvatar, playerElement } from './identity';
 
 interface Media {
   url: string;
@@ -68,6 +68,7 @@ function gallery(root: HTMLElement, photos: Media[], index: number, context: Med
   const avatar = document.createElement('span');
   avatar.className = 'msg-avatar ' + avatarColor(msg.user);
   avatar.textContent = [...name][0]?.toLocaleUpperCase() ?? '';
+  loadAvatar(avatar, msg.user);
   const identity = document.createElement('div');
   const sender = document.createElement('strong');
   sender.append(playerElement(msg.user));

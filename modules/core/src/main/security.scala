@@ -43,6 +43,8 @@ trait SignupFormFields:
 opaque type FingerHash = String
 object FingerHash extends OpaqueString[FingerHash]
 
+case class AccountRegistered(user: User)
+
 case class UserSignup(
     user: User,
     email: EmailAddress,

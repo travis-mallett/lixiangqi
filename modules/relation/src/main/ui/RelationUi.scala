@@ -54,7 +54,7 @@ final class RelationUi(helpers: Helpers):
       (ctx.isnt(user) && !blocked && !blocks).option(
         MenuItem(
           trans.challenge.challengeToPlay.txt(),
-          Icon.Swords,
+          SvgIcon.Challenge,
           s"${routes.Lobby.home}?user=${user.name}#friend",
           Some("relation")
         )

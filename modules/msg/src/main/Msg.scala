@@ -17,18 +17,19 @@ case class Msg(
     revision: Int = 0,
     attachments: List[String] = Nil,
     requestDigest: Option[String] = None,
-    card: Option[MsgCard] = None
+    card: Option[MsgCard] = None,
+    welcomeUser: Option[UserName] = None
 ):
 
   def recipient(first: UserId, second: UserId): UserId = if user == first then second else first
 
   def canDeleteForEveryone(actor: UserId, now: Instant): Boolean =
-    actor == user && deletedAt.isEmpty && !date.isBefore(now.minusSeconds(24 * 3600))
+    welcomeUser.isEmpty && actor == user && deletedAt.isEmpty && !date.isBefore(now.minusSeconds(24 * 3600))
 
   def canEdit(actor: UserId, now: Instant): Boolean =
     card.forall(_.preview.nonEmpty) && canDeleteForEveryone(actor, now) && history.size < 10
 
-  def canForward = deletedAt.isEmpty && card.forall(_.poll.isEmpty)
+  def canForward = welcomeUser.isEmpty && deletedAt.isEmpty && card.forall(_.poll.isEmpty)
 
   def asLast =
     Msg.Last(

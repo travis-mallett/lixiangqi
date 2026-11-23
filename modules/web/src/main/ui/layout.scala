@@ -59,7 +59,7 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
       s"""
 <div>
   <button id="challenge-toggle" class="toggle link" type="button">
-    <span title="$challengeTitle" role="status" aria-label="$challengeTitle" class="data-count" data-count="$challenges" data-icon="${Icon.Swords}"></span>
+    <span title="$challengeTitle" role="status" aria-label="$challengeTitle" class="data-count" data-count="$challenges" data-icon="${SvgIcon.Challenge}"></span>
   </button>
   <div id="challenge-app" class="dropdown"></div>
 </div>

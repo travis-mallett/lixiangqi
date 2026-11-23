@@ -176,6 +176,7 @@ async function inbox(
   attachments?: string[],
   publicRoom = false,
   card?: 'auth' | 'guest',
+  welcome?: { theme: 'light' | 'dark' },
 ) {
   await page.setViewportSize({ width, height: 850 });
   const errors: string[] = [];
@@ -255,7 +256,13 @@ async function inbox(
         id,
         username: id.charAt(0).toUpperCase() + id.slice(1),
         ...(id === 'alice'
-          ? { patron: true, patronColor: 2, profile: { flag: 'cn' }, perfs: { xiangqi: { rank: '5d' } } }
+          ? {
+              patron: true,
+              patronColor: 2,
+              profile: { flag: 'cn' },
+              perfs: { xiangqi: { rank: '5d' } },
+              flair: welcome ? 'activity.1st-place-medal' : undefined,
+            }
           : {}),
       })),
     }),
@@ -384,18 +391,35 @@ async function inbox(
         messages.unshift(msg);
         result = { msg };
       }
+      if (welcome && request.method() === 'GET') {
+        const announcement = {
+          id: 'welcome-alice',
+          user: 'lichess',
+          text: 'Welcome to our newest member, Alice!',
+          welcomeUser: 'Alice',
+          date: now,
+          reactions: card === 'guest' ? {} : [],
+        };
+        (result.msgs ?? result.convo?.msgs)?.unshift(announcement);
+      }
       await route.fulfill({ json: result });
     },
   );
   await page.goto(`${origin}/fixture`);
   await page.addScriptTag({ path: 'public/javascripts/vendor/cash.min.js' });
   await page.evaluate(
-    ({ translations, data }) => {
+    ({ translations, data, welcome }) => {
+      if (welcome) {
+        document.documentElement.className = welcome.theme;
+        document.body.className = welcome.theme;
+        document.body.dataset.theme = welcome.theme;
+      }
       const w = window as any;
       w.site = {
         sri: 'fixture',
         asset: {
           url: (path: string) => `/assets/${path}`,
+          flairSrc: (flair: string) => `/assets/flair/img/${flair}.webp`,
           loadCssPath: async () => {},
           removeCssPath: () => {},
         },
@@ -410,24 +434,21 @@ async function inbox(
           Object.fromEntries(
             Object.entries(keys).map(([key, value]) => {
               const str = new DOMParser().parseFromString(value, 'text/html').documentElement.textContent;
-              return [
-                key,
-                str.includes('%')
-                  ? (...args: unknown[]) => {
-                      let i = 0;
-                      return str.replace(/%(?:(\d+)\$)?[sd]/g, (_, n) =>
-                        String(args[n ? Number(n) - 1 : i++]),
-                      );
-                    }
-                  : str,
-              ];
+              if (!str.includes('%')) return [key, str];
+              const asArray = (...args: unknown[]) => {
+                let i = 0;
+                return str
+                  .split(/%(?:(\d+)\$)?[sd]/g)
+                  .map((piece, index) => (index % 2 === 0 ? piece : args[piece ? Number(piece) - 1 : i++]));
+              };
+              return [key, Object.assign((...args: unknown[]) => asArray(...args).join(''), { asArray })];
             }),
           ),
         ]),
       );
       w.fixture = data;
     },
-    { translations, data: data() },
+    { translations, data: data(), welcome },
   );
   if (card)
     await page.evaluate(auth => {
@@ -668,6 +689,45 @@ for (const width of [320, 960, 1440]) {
       expect(errors).toEqual([]);
     });
   }
+}
+
+for (const [width, theme, mode] of [
+  [390, 'light', 'guest'],
+  [900, 'dark', 'auth'],
+  [1440, 'light', 'auth'],
+] as const) {
+  test(`registration welcome at ${width}px in ${theme} theme (${mode})`, async ({ page }, info) => {
+    const { errors } = await inbox(page, width, false, undefined, true, mode, { theme });
+    const announcement = page.locator('.msg-welcome');
+    await expect(announcement).toContainText('Welcome to our newest member, Alice');
+    const profile = announcement.locator('a.user-link');
+    await expect(profile).toHaveAttribute('href', '/@/Alice');
+    await expect(profile).toContainText('5d');
+    await expect(profile.locator('img.flag')).toHaveCount(1);
+    await expect(profile.locator('img.uflair')).toHaveAttribute('src', /activity\.1st-place-medal\.webp$/);
+    await expect(announcement.locator('.msg-bubble')).toHaveCount(0);
+    await page.locator('.lobby__global-chat').screenshot({ path: info.outputPath('welcome.png') });
+    if (mode === 'auth') {
+      await page.evaluate(() => {
+        (window as any).inboxEvent('msgChanged', {
+          user: '~' + '0'.repeat(32),
+          kind: 'new',
+          msg: {
+            id: 'welcome-bob',
+            text: 'Welcome to our newest member, Bob!',
+            user: 'lichess',
+            welcomeUser: 'Bob',
+            date: Date.now(),
+          },
+        });
+      });
+      await expect(page.locator('[data-message-id="welcome-bob"] .user-link')).toHaveAttribute(
+        'href',
+        '/@/Bob',
+      );
+    }
+    expect(errors).toEqual([]);
+  });
 }
 
 test('a full signed-out chat preview scrolls inside the card', async ({ page }) => {

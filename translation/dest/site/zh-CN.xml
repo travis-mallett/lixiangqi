@@ -1052,4 +1052,11 @@
   <string name="mediaReportBlock">举报并屏蔽</string>
   <string name="mediaReview">申请复核</string>
   <string name="mediaLimit">已达到附件数量上限</string>
+  <string name="profilePicture">头像</string>
+  <string name="editProfilePicture">编辑头像</string>
+  <string name="profilePictureHelp">可选。请选择不超过 8 MiB 的 JPG、PNG 或 WebP 图片。图片经 OpenAI 审核后，将显示在个人资料和站内消息中。</string>
+  <string name="profilePictureFormat">请选择一张不超过 8 MiB 的 JPG、PNG 或 WebP 静态图片。</string>
+  <string name="profilePictureChecking">正在审核头像…</string>
+  <string name="profilePictureRejected">这张图片未通过审核，请选择其他图片。</string>
+  <string name="profilePictureUnavailable">暂时无法审核图片，请稍后重试。</string>
 </resources>

@@ -37,7 +37,7 @@ final class Env(
     seekApi
       .removeBy(id, userId)
       .map: _ =>
-        socket.seekRemoved(id)
+        socket.seeksChanged()
 
   lazy val boardApiHookStream = wire[BoardApiHookStream]
 

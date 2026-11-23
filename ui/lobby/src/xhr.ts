@@ -2,9 +2,13 @@ import debounce from 'debounce-promise';
 
 import { json as xhrJson, form, text as xhrText } from 'lib/xhr';
 
-import type { NowPlaying, KingdomsPlaying, Pool, Seek } from './interfaces';
+import type { NowPlaying, KingdomsPlaying, KingdomOffer, Pool, Seek } from './interfaces';
 
 export const seeks: () => Promise<Seek[]> = debounce(() => xhrJson('/lobby/seeks'), 3000, { leading: true });
+
+export const kingdomOffers = () => xhrJson<KingdomOffer[]>('/api/three-kingdoms/offers');
+export const joinKingdomOffer = (id: string) =>
+  xhrJson<KingdomOffer>(`/api/three-kingdoms/offers/${id}/join`, { method: 'POST' });
 
 type NowPlayingRes = {
   nowPlaying: NowPlaying[];

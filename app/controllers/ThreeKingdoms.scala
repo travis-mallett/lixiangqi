@@ -4,7 +4,7 @@ import play.api.libs.json.*
 import play.api.libs.EventSource
 import play.api.mvc.*
 import lila.app.{ *, given }
-import lila.threeKingdoms.{ ClockConfig, Kingdom, KingdomChallenge }
+import lila.threeKingdoms.{ ClockConfig, Kingdom, KingdomChallenge, OpeningTime }
 
 final class ThreeKingdoms(env: Env) extends LilaController(env):
   private val feature = env.threeKingdoms
@@ -268,22 +268,56 @@ final class ThreeKingdoms(env: Env) extends LilaController(env):
     limit.setupPost(ctx.ip, rateLimited):
       val body = ctx.body.body
       val request = for
-        config <- configFrom(body)
+        config <- challengeConfig(body)
+        color <- (body \ "color").validateOpt[String].asEither.left.map(_ => "invalidColor")
+        side <- color.filterNot(_ == "random").traverse(Kingdom.fromKey(_).toRight("invalidColor"))
         botLevel <- (body \ "botLevel").validateOpt[Int].asEither.left.map(_ => "invalidLevel")
+        publicSeek <- (body \ "publicSeek")
+          .validateOpt[Boolean]
+          .asEither
+          .left
+          .map(_ => "invalidClock")
+          .map(_.contains(true))
         opponents <- (body \ "opponents")
           .asOpt[Vector[String]]
-          .filter(v => v.size == 2 - botLevel.size && v.forall(_.length <= 30))
+          .filter(v => v.size == (if publicSeek then 0 else 2 - botLevel.size) && v.forall(_.length <= 30))
           .toRight("chooseTwoDifferentPlayers")
-      yield (config, opponents.map(s => UserId(s.trim.toLowerCase)), botLevel)
+      yield (config, opponents.map(s => UserId(s.trim.toLowerCase)), botLevel, side, publicSeek)
       request.fold(
         error => fuccess(BadRequest(jsonError(error))),
-        (config, opponents, botLevel) =>
-          feature.challenges
-            .create(me.value, opponents, config, botLevel)
+        (config, opponents, botLevel, side, publicSeek) =>
+          def create = feature.challenges
+            .create(me.value, opponents, config, botLevel, side, publicSeek)
             .map:
-              case Right(challenge) => Created(challengeJson(challenge))
+              case Right(challenge) =>
+                if publicSeek then env.lobby.socket.seeksChanged()
+                Created(challengeJson(challenge))
               case Left(error) => BadRequest(jsonError(error))
+          if publicSeek then publicMatchmaking(create) else create
       )
+  }
+
+  private def publicMatchmaking(action: => Fu[Result])(using ctx: Context, me: Me): Fu[Result] =
+    NoPlayban:
+      env.msg.unreadCount
+        .hasLichessMsg(me.userId)
+        .flatMap:
+          case true => fuccess(Forbidden(jsonError("readModeratorMessage")))
+          case false => action
+
+  def publicOffers = Open:
+    feature.challenges.publicOffers(ctx.userId).map(cs => Ok(Json.toJson(cs.map(challengeJson))).noCache)
+
+  def joinOffer(id: GameId) = AuthOrScopedBody(_.Mobile.Play) { ctx ?=> me ?=>
+    actionLimit(me.userId, rateLimited):
+      publicMatchmaking:
+        feature.challenges
+          .join(id, me.userId)
+          .map:
+            case Right(c) =>
+              env.lobby.socket.seeksChanged()
+              Ok(challengeJson(c))
+            case Left(error) => BadRequest(jsonError(error))
   }
 
   def challenges = AuthOrScoped(_.Mobile.Play) { _ ?=> me ?=>
@@ -303,7 +337,9 @@ final class ThreeKingdoms(env: Env) extends LilaController(env):
       feature.challenges
         .answer(id, me.userId, accept)
         .map:
-          case Right(c) => Ok(challengeJson(c))
+          case Right(c) =>
+            if c.openSeek.contains(true) then env.lobby.socket.seeksChanged()
+            Ok(challengeJson(c))
           case Left(error) => BadRequest(jsonError(error))
   }
 
@@ -324,15 +360,49 @@ final class ThreeKingdoms(env: Env) extends LilaController(env):
 
   private def configFrom(body: JsValue): Either[String, ClockConfig] =
     scala.util
-      .Try(
-        ClockConfig(
-          (body \ "initialSeconds").asOpt[Int].getOrElse(900),
-          (body \ "moveSeconds").asOpt[Int].getOrElse(60)
-        )
-      )
+      .Try {
+        val initial = (body \ "initialSeconds").asOpt[Int].getOrElse(900)
+        val move = (body \ "moveSeconds").asOpt[Int].getOrElse(60)
+        require(Set(420, 600, 900).contains(initial) && Set(15, 30, 60).contains(move))
+        ClockConfig(initial, move)
+      }
       .toEither
       .left
       .map(_ => "invalidClock")
+
+  private def challengeConfig(body: JsValue): Either[String, ClockConfig] =
+    (body \ "timeMode")
+      .validateOpt[String]
+      .asEither
+      .left
+      .map(_ => "invalidClock")
+      .flatMap:
+        case None => configFrom(body)
+        case Some(mode) =>
+          scala.util
+            .Try:
+              mode match
+                case "realTime" =>
+                  val initial = (body \ "initialSeconds").as[Int]
+                  val increment = (body \ "incrementSeconds").as[Int]
+                  require(initial > 0 || increment > 0)
+                  val opening = (body \ "opening")
+                    .validateOpt[JsObject]
+                    .get
+                    .map: first =>
+                      OpeningTime((first \ "moves").as[Int], (first \ "seconds").as[Int])
+                  ClockConfig(
+                    initial,
+                    (body \ "moveSeconds").as[Int],
+                    Option.when(increment != 0)(increment),
+                    opening = opening
+                  )
+                case "correspondence" => ClockConfig(0, 0, days = Some((body \ "days").as[Int]))
+                case "unlimited" => ClockConfig(0, 0)
+                case _ => throw IllegalArgumentException("Unknown clock mode")
+            .toEither
+            .left
+            .map(_ => "invalidClock")
 
   private def challengeJson(c: KingdomChallenge): JsObject = Json.obj(
     "id" -> c.id.value,
@@ -342,6 +412,5 @@ final class ThreeKingdoms(env: Env) extends LilaController(env):
     "botLevel" -> c.botLevel,
     "expiresAt" -> c.expiresAt.toEpochMilli,
     "status" -> c.status,
-    "initialSeconds" -> c.config.initialSeconds,
-    "moveSeconds" -> c.config.moveSeconds
-  )
+    "color" -> c.creatorSide.map(_.color)
+  ) ++ lila.threeKingdoms.JsonView.clockConfig(c.config)

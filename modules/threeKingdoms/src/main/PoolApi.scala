@@ -75,7 +75,9 @@ final class PoolApi(
               repo
                 .playing(user.id)
                 .flatMap: playing =>
-                  playing.find(g => g.playerOf(user.id).exists(g.position.active.contains)) match
+                  playing.find(g =>
+                    g.clock.config.realTime && g.playerOf(user.id).exists(g.position.active.contains)
+                  ) match
                     case Some(game) =>
                       matched = matched.updated(user.id, Matched(game.id, now + 300000))
                       funit

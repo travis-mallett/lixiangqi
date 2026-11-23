@@ -918,6 +918,7 @@ object I18nKey:
     val `openBoardSource`: I18nKey = "inbox:openBoardSource"
     val `loadingBoard`: I18nKey = "inbox:loadingBoard"
     val `invalidBoard`: I18nKey = "inbox:invalidBoard"
+    val `welcomeUser`: I18nKey = "inbox:welcomeUser"
 
   object insight:
     val `xChessInsights`: I18nKey = "insight:xChessInsights"
@@ -3262,6 +3263,13 @@ object I18nKey:
     val `editorPiece_cannon`: I18nKey = "editorPiece_cannon"
     val `editorPiece_soldier`: I18nKey = "editorPiece_soldier"
     val `signupCountryRequired`: I18nKey = "signupCountryRequired"
+    val `profilePicture`: I18nKey = "profilePicture"
+    val `editProfilePicture`: I18nKey = "editProfilePicture"
+    val `profilePictureHelp`: I18nKey = "profilePictureHelp"
+    val `profilePictureFormat`: I18nKey = "profilePictureFormat"
+    val `profilePictureChecking`: I18nKey = "profilePictureChecking"
+    val `profilePictureRejected`: I18nKey = "profilePictureRejected"
+    val `profilePictureUnavailable`: I18nKey = "profilePictureUnavailable"
     val `signupCountryOptOut`: I18nKey = "signupCountryOptOut"
     val `customColors`: I18nKey = "customColors"
     val `xiangqiAnalysisTitle`: I18nKey = "xiangqiAnalysisTitle"

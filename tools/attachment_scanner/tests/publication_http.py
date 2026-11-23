@@ -28,6 +28,7 @@ sys.path.insert(0, str(ROOT / "tools" / "attachment_scanner"))
 import screen
 import worker
 from test_scanner import general, png
+from profile_pictures import verify_profile_pictures
 
 
 class Site:
@@ -84,7 +85,7 @@ class Site:
 
 
 @contextmanager
-def staged_site(java, mongo_port, redis_port):
+def staged_site(java, mongo_port, redis_port, *, libraries=None):
     uri = f"mongodb://127.0.0.1:{mongo_port}"
     with MongoClient(uri, serverSelectionTimeoutMS=8000) as connection, tempfile.TemporaryDirectory() as tmp:
         assert connection.admin.command("hello").get("setName"), "start a dedicated replica set"
@@ -102,14 +103,14 @@ def staged_site(java, mongo_port, redis_port):
             f'traffic.mongodb_uri="{uri}/{name}"', 'traffic.enabled=false',
             f'redis.uri="redis://127.0.0.1:{redis_port}"',
             'api.influx_event.endpoint="http://127.0.0.1:1"',
-            'attachments.msg=true', 'attachments.forum=true',
+            'attachments.msg=true', 'attachments.forum=true', 'attachments.profile=true',
         ]), encoding="utf8")
         with (directory / "server.log").open("w+", encoding="utf8") as log:
             proc = subprocess.Popen([
                 java, "-XX:ActiveProcessorCount=4", "-Xmx1600m", f"-Dconfig.file={config}",
                 f"-Dplay.server.http.port={port}", "-Dplay.server.http.address=127.0.0.1",
                 f"-Djdk.net.unixdomain.tmpdir={directory / 'no-domain-sockets'}",
-                "-cp", str(ROOT / "target/universal/stage/lib/*"), "lila.app.Lila", str(ROOT),
+                "-cp", str(libraries or ROOT / "target/universal/stage/lib/*"), "lila.app.Lila", str(ROOT),
             ], cwd=ROOT, stdout=log, stderr=subprocess.STDOUT,
                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
             try:
@@ -392,4 +393,5 @@ if __name__ == "__main__":
         verify(app)
         verify_group_inbox(app)
         verify_global_chat(app)
+        verify_profile_pictures(app)
     print("Forum, inbox, reports and revocation HTTP checks passed.")

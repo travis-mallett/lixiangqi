@@ -129,9 +129,13 @@ final case class KingdomGame(
             events = kept,
             revision = revision + 1,
             clock = clock.copy(
-              remaining =
-                kept.lastOption.fold(Vector.fill(3)(clock.config.initialSeconds.toLong * 1000))(_.clocks),
-              startedAt = now
+              remaining = kept.lastOption.fold(Vector.fill(3)(clock.config.initialMillis))(_.clocks),
+              startedAt = now,
+              openingMoves = clock.openingMoves.map(_ =>
+                Kingdom.values.toVector.map(k =>
+                  kept.count(e => e.actor == k && Move.parse(e.action).isDefined)
+                )
+              )
             ),
             drawOffers = Set.empty,
             takebackOffers = Set.empty,

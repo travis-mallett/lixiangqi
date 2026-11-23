@@ -29,6 +29,7 @@ final class JsonView(isOnline: lila.core.socket.IsOnline) extends lila.core.user
             .ifTrue(withProfile)
             .map(p => Json.toJsObject(p.filterTroll(u.marks.troll)).noNull)
         )
+        .add("picture" -> u.pictureUrl.ifTrue(withProfile))
         .add("seenAt" -> u.seenAt)
         .add("playTime" -> u.playTime)
 

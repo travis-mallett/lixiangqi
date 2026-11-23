@@ -136,4 +136,5 @@
   <string name="resetLink">Reset link</string>
   <string name="disableLink">Turn off link</string>
   <string name="adminAddOnly">Only admins can add members</string>
+  <string name="welcomeUser">Welcome to our newest member, %s!</string>
 </resources>

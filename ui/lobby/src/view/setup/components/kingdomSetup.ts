@@ -24,7 +24,11 @@ export const kingdomClock = (ctrl: SetupController) =>
 
 export const kingdomSide = (ctrl: SetupController) =>
   hl('div.label-select.kingdom-side', [
-    hl('label', { attrs: { for: 'sf_kingdom' } }, i18n.threeKingdoms.yourKingdom),
+    hl(
+      'label',
+      { attrs: { for: 'sf_kingdom' } },
+      ctrl.gameType === 'friend' ? i18n.site.side : i18n.threeKingdoms.yourKingdom,
+    ),
     hl(
       'select#sf_kingdom',
       {
@@ -48,44 +52,48 @@ export const kingdomSide = (ctrl: SetupController) =>
 
 export const kingdomOpponents = (ctrl: SetupController) =>
   hl('div.config-group', [
-    ...(ctrl.kingdomFriendBot() ? (['friendUser'] as const) : (['friendUser', 'friendUserTwo'] as const)).map(
-      (key, i) =>
-        hl('div.label-select', [
-          hl(
-            'label',
-            { attrs: { for: `sf_${key}` } },
-            i === 0 ? i18n.threeKingdoms.opponentOne : i18n.threeKingdoms.opponentTwo,
-          ),
-          hl('div.complete-parent', [
-            hl(`input#sf_${key}`, {
-              attrs: {
-                type: 'text',
-                required: true,
-                maxlength: 30,
-                autocomplete: 'off',
-                spellcheck: 'false',
-              },
-              props: { value: ctrl[key] },
-              hook: onInsert<HTMLInputElement>(input =>
-                userComplete({
-                  input,
-                  tag: 'span',
-                  friend: true,
-                  onSelect: user => {
-                    ctrl[key] = user.name;
-                    ctrl.root.redraw();
-                  },
-                }),
-              ),
-              on: {
-                input: (event: Event) => {
-                  ctrl[key] = (event.target as HTMLInputElement).value;
+    ...(ctrl.gameType === 'hook'
+      ? []
+      : ctrl.kingdomFriendBot()
+        ? (['friendUser'] as const)
+        : (['friendUser', 'friendUserTwo'] as const)
+    ).map((key, i) =>
+      hl('div.label-select', [
+        hl(
+          'label',
+          { attrs: { for: `sf_${key}` } },
+          i === 0 ? i18n.threeKingdoms.opponentOne : i18n.threeKingdoms.opponentTwo,
+        ),
+        hl('div.complete-parent', [
+          hl(`input#sf_${key}`, {
+            attrs: {
+              type: 'text',
+              required: true,
+              maxlength: 30,
+              autocomplete: 'off',
+              spellcheck: 'false',
+            },
+            props: { value: ctrl[key] },
+            hook: onInsert<HTMLInputElement>(input =>
+              userComplete({
+                input,
+                tag: 'span',
+                friend: true,
+                onSelect: user => {
+                  ctrl[key] = user.name;
                   ctrl.root.redraw();
                 },
+              }),
+            ),
+            on: {
+              input: (event: Event) => {
+                ctrl[key] = (event.target as HTMLInputElement).value;
+                ctrl.root.redraw();
               },
-            }),
-          ]),
+            },
+          }),
         ]),
+      ]),
     ),
     hl('label.kingdom-bot-toggle', [
       hl('input', {

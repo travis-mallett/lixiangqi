@@ -26,6 +26,7 @@ final class Signup(
     passwordHasher: PasswordHasher,
     authenticator: Authenticator,
     userRepo: lila.user.UserRepo,
+    attachments: lila.memo.Attachments,
     disposableEmailAttempt: DisposableEmailAttempt,
     verifyMail: VerifyMail,
     pwnedApi: PwnedApi,
@@ -168,18 +169,24 @@ final class Signup(
                               ).flatMap: mustConfirm =>
                                 val passwordHash = Option
                                   .when(externalIdentity.isEmpty)(authenticator.passEnc(data.clearPassword))
-                                (externalIdentity.isDefined.so(externalIdentities.ready) >> userRepo
-                                  .create(
-                                    data.username,
-                                    passwordHash,
-                                    data.email,
-                                    blind = blind,
-                                    mustConfirmEmail = mustConfirm.value,
-                                    externalIdentity = externalIdentity.map(_.key),
-                                    flag = data.country.profileFlag
-                                  ))
+                                (externalIdentity.isDefined.so(externalIdentities.ready) >> signupPicture
+                                  .flatMap: picture =>
+                                    userRepo.create(
+                                      data.username,
+                                      passwordHash,
+                                      data.email,
+                                      blind = blind,
+                                      mustConfirmEmail = mustConfirm.value,
+                                      externalIdentity = externalIdentity.map(_.key),
+                                      flag = data.country.profileFlag,
+                                      picture = picture
+                                    ))
                                   .orFail(s"No user could be created for ${data.username}")
                                   .addEffect: user =>
+                                    if verifyEmail.isEmpty || !req
+                                        .getQueryString("client")
+                                        .contains("xiangqi-kids")
+                                    then lila.common.Bus.pub(lila.core.security.AccountRegistered(user))
                                     monitor(
                                       data,
                                       mustConfirm,
@@ -204,6 +211,15 @@ final class Signup(
           yield
             lila.mon.user.register.result(client, res.key).increment()
             res
+      .recover { case lila.core.security.SubmissionRejected(code) =>
+        Signup.Result.FormInvalid(
+          forms.signup
+            .full(simpleSignup, external = externalIdentity.isDefined)
+            .form
+            .bindFromRequest()
+            .withError("picture", code)
+        )
+      }
       .recover(
         lila.db.recoverDuplicateKey(_ =>
           Signup.Result.FormInvalid(
@@ -214,6 +230,20 @@ final class Signup(
           )
         )
       )
+
+  private def signupPicture(using req: Request[?]): Fu[Option[lila.memo.ProfilePictureUpload]] =
+    val picture = req.body match
+      case content: play.api.mvc.AnyContent => content.asMultipartFormData.flatMap(_.file("picture"))
+      case _ => None
+    picture.traverse: part =>
+      if part.fileSize <= 0 || part.fileSize > lila.memo.Attachment.pictureMaxBytes then
+        fufail(lila.core.security.SubmissionRejected("profilePictureFormat"))
+      else
+        scala.concurrent.Future:
+          new lila.memo.ProfilePictureUpload(
+            attachments,
+            scala.concurrent.blocking(java.nio.file.Files.readAllBytes(part.ref.path))
+          )
 
   private def confirmOrAllSet(
       email: EmailAddress,

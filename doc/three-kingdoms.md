@@ -1,5 +1,7 @@
 # Game of the Three Kingdoms
 
+Public correspondence offers reserve seats before the game clock starts. A player can advertise two human seats or reserve one seat for a level 1–5 computer. Joining players see the pending game in their correspondence deck. The last join starts the game under the same ID. Deploy the server and lobby assets together. The existing Three Kingdoms index deployment includes the pending-offer index. Adult Mobile and Xiangqi Kids retain their deferred native variant scope and use their existing two-player offer feed.
+
 LiXiangQi's `threeKingdoms` variant is a three-player, 48-piece game on the existing
 135-point board. It implements elimination, appropriation of armies, and a final
 duel. The release has rated matchmaking, two computer opponents, invitations to
@@ -168,9 +170,13 @@ draws; the perpetual-check penalty precedes a repetition draw.
 ### Time and ranking
 
 Rated games use 15 minutes per player, a 60-second move deadline, and no
-increment. Only the current player's main clock runs. Casual games offer 7, 10,
-or 15 minutes and 15-, 30-, or 60-second move deadlines. Off-turn resignation
-does not extend the current player's deadline.
+increment. Computer games offer 7, 10, or 15 minutes and 15-, 30-, or 60-second
+move deadlines. Friend challenges use the shared lobby time controls. Real-time
+games support increment and optional per-move limits, including separate limits
+for each player's opening moves. Only the current player's bank runs. In
+correspondence each new turn gets the selected number of days, and unlimited
+games have no clock. Off-turn resignation does not extend the current player's
+deadline.
 
 Rated play uses the separate `threeKingdoms` rank track and compares each player
 with both opponents once. For equal ranks the changes are +20, 0, and -20 before
@@ -229,10 +235,12 @@ Homepage totals include both game stores. Shared caches supply three-player
 counts, and the live WebSocket counter receives an authoritative snapshot every
 15 seconds. That contribution expires after 45 seconds without a refresh.
 
-Invitations require exactly two distinct opponents. All three accounts' blocking
-and challenge preferences are checked, both invitees must accept, and pending
-invitations expire after ten minutes. Durable notification receipts allow retry
-after failure without duplicating the game. Rated pool reservations cooperate
+The creator can choose any kingdom or a random seat and invite either two
+distinct friends or one friend and a bot at level 1 through 5. The server checks
+blocking and challenge preferences for the human accounts, and every invitee
+must accept. Pending real-time invitations expire after ten minutes.
+Correspondence and unlimited invitations expire after two weeks. Durable
+notification receipts allow retry after failure without duplicating the game. Rated pool reservations cooperate
 with the ordinary two-player pool and are released on elimination.
 
 Histories, bookmarks, profile filters and counters, activity, recap, personal

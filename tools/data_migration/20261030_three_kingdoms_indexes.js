@@ -141,6 +141,11 @@ const indexes = [
     { tournamentId: 1, finished: 1, tournamentRecorded: 1 },
     { name: 'tournament_recovery', partialFilterExpression: { tournamentId: { $type: 'string' } } },
   ],
+  [
+    'three_kingdoms_challenge',
+    { createdAt: -1 },
+    { name: 'public_correspondence', partialFilterExpression: { openSeek: true, status: 'pending' } },
+  ],
   ['three_kingdoms_challenge', { users: 1, status: 1, expiresAt: -1 }, { name: 'invitations' }],
   ['three_kingdoms_challenge', { status: 1 }, { name: 'recover_acceptance' }],
   [

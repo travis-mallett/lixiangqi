@@ -16,12 +16,29 @@ final case class KingdomChallenge(
     status: String = "pending",
     revision: Int = 0,
     notifyPending: Boolean = true,
-    botLevel: Option[Int] = None
+    botLevel: Option[Int] = None,
+    creatorSide: Option[Kingdom] = None,
+    openSeek: Option[Boolean] = None
 ):
-  def withBot[A](humans: Vector[A])(bot: Int => A): Vector[A] =
-    botLevel.fold(humans): level =>
-      // Keep the random seat stable when recovering an interrupted start.
-      humans.patch(Math.floorMod(id.value.hashCode, 3), Vector(bot(level)), 0)
+  def claimSeat(user: UserId): KingdomChallenge =
+    val humans = users :+ user
+    copy(
+      users = humans,
+      accepted = accepted + user,
+      revision = revision + 1,
+      status = if humans.size + botLevel.size == 3 then "starting" else "pending"
+    )
+
+  def source = if openSeek.contains(true) then "seek" else "friend"
+
+  def arrangeSeats[A](humans: Vector[A])(bot: Int => A): Vector[A] =
+    val botSeat = Math.floorMod(id.value.hashCode, 3)
+    val seats = botLevel.fold(humans)(level => humans.patch(botSeat, Vector(bot(level)), 0))
+    creatorSide.fold(seats): kingdom =>
+      val index = users.indexOf(creator)
+      val from = if botLevel.isDefined && botSeat <= index then index + 1 else index
+      val to = kingdom.ordinal
+      seats.updated(to, seats(from)).updated(from, seats(to))
 
 final class ChallengeApi(
     coll: Coll,
@@ -61,11 +78,14 @@ final class ChallengeApi(
       creator: User,
       opponents: Vector[UserId],
       config: ClockConfig,
-      botLevel: Option[Int]
+      botLevel: Option[Int],
+      creatorSide: Option[Kingdom] = None,
+      publicSeek: Boolean = false
   ): Fu[Either[String, KingdomChallenge]] =
     val humans = opponents :+ creator.id
     if botLevel.exists(level => level < 1 || level > 5) then fuccess(Left("invalidLevel"))
-    else if humans.size + botLevel.size != 3 || humans.distinct.size != humans.size then
+    else if publicSeek && (opponents.nonEmpty || config.days.isEmpty) then fuccess(Left("invalidClock"))
+    else if !publicSeek && (humans.size + botLevel.size != 3 || humans.distinct.size != humans.size) then
       fuccess(Left("chooseTwoDifferentPlayers"))
     else
       val id = GameId(scalalib.SecureRandom.nextString(GameId.size))
@@ -77,8 +97,13 @@ final class ChallengeApi(
         Set(creator.id),
         config,
         now,
-        now.plusSeconds(600),
-        botLevel = botLevel
+        now.plusSeconds(if config.realTime then 600 else 14 * 86400),
+        botLevel = botLevel,
+        creatorSide =
+          if publicSeek then creatorSide.orElse(Some(scala.util.Random.shuffle(Kingdom.values.toList).head))
+          else creatorSide,
+        openSeek = Option.when(publicSeek)(true),
+        notifyPending = !publicSeek
       )
       allowed(challenge).flatMap:
         case false => fuccess(Left("challengeNotAllowed"))
@@ -86,10 +111,41 @@ final class ChallengeApi(
           coll.insert
             .one(challenge)
             .flatMap: _ =>
-              queue(id)(deliver(challenge)).recover { case e =>
-                logger.error("Invitation delivery will be retried", e)
-              }
+              if publicSeek then funit
+              else
+                queue(id)(deliver(challenge)).recover { case e =>
+                  logger.error("Invitation delivery will be retried", e)
+                }
             .inject(Right(challenge))
+
+  def publicOffers(user: Option[UserId]): Fu[List[KingdomChallenge]] =
+    val pending = $doc("openSeek" -> true, "status" -> "pending", "expiresAt" -> $doc("$gt" -> nowInstant))
+    def list(selector: BSONDocument) = coll
+      .find(pending ++ selector)
+      .sort($sort.desc("createdAt"))
+      .cursor[KingdomChallenge]()
+      .list(50)
+    user.fold(list($doc())): id =>
+      list($doc("users" -> id)).zip(list($doc("users" -> $doc("$ne" -> id)))).map { case (mine, others) =>
+        mine ++ others
+      }
+
+  def join(id: GameId, user: UserId): Fu[Either[String, KingdomChallenge]] = queue(id):
+    byId(id).flatMap:
+      case Some(c) if c.openSeek.contains(true) && c.status == "pending" && c.expiresAt.isAfter(nowInstant) =>
+        if c.users.contains(user) then fuccess(Right(c))
+        else
+          val next = c.claimSeat(user)
+          allowed(next).flatMap:
+            case false => fuccess(Left("challengeNotAllowed"))
+            case true =>
+              coll.update
+                .one($id(id) ++ $doc("revision" -> c.revision), next)
+                .flatMap: result =>
+                  if result.n != 1 then fuccess(Left("staleRevision"))
+                  else if next.status == "starting" then start(next).map(Right(_))
+                  else fuccess(Right(next))
+      case _ => fuccess(Left("challengeUnavailable"))
 
   def answer(id: GameId, user: UserId, accept: Boolean): Fu[Either[String, KingdomChallenge]] = queue(id):
     byId(id).flatMap:
@@ -102,7 +158,7 @@ final class ChallengeApi(
             revision = c.revision + 1,
             status = if !permitted then "cancelled"
             else if !accept then "declined"
-            else if c.users.forall(accepted.contains) then "starting"
+            else if c.users.size + c.botLevel.size == 3 && c.users.forall(accepted.contains) then "starting"
             else "pending"
           )
           coll.update
@@ -118,15 +174,15 @@ final class ChallengeApi(
       case _ => fuccess(Left("challengeUnavailable"))
 
   private def start(c: KingdomChallenge): Fu[KingdomChallenge] =
-    val expectedSeats = c.withBot(c.users.map(id => (Some(id): Option[UserId]) -> Option.empty[Int]))(level =>
-      None -> Some(level)
+    val expectedSeats = c.arrangeSeats(c.users.map(id => (Some(id): Option[UserId]) -> Option.empty[Int]))(
+      level => None -> Some(level)
     )
     // Recover a game already inserted before a crash even if a later preference changed.
     maker
       .existing(c.id)
       .flatMap:
         case Some(g)
-            if g.seats.map(s => s.userId -> s.aiLevel) == expectedSeats && g.source == "friend" &&
+            if g.seats.map(s => s.userId -> s.aiLevel) == expectedSeats && g.source == c.source &&
               g.clock.config == c.config =>
           finishStart(c)
         case Some(_) => fufail("Three Kingdoms challenge game does not match its invitation")
@@ -140,9 +196,9 @@ final class ChallengeApi(
                 .seats(c.users)
                 .flatMap(humans =>
                   maker.create(
-                    c.withBot(humans)(level => Seat(None, Some(level), None)),
+                    c.arrangeSeats(humans)(level => Seat(None, Some(level), None)),
                     c.config,
-                    "friend",
+                    c.source,
                     c.id
                   )
                 )
@@ -165,9 +221,12 @@ final class ChallengeApi(
         else
           given Option[Me] = accounts.find(_.id == c.creator).map(Me(_))
           for
-            grants <- accounts.filterNot(_.id == c.creator).traverse(granter.mayChallenge)
+            grants <- accounts
+              .filterNot(a => c.openSeek.contains(true) || a.id == c.creator)
+              .traverse(granter.mayChallenge)
             relations <- c.users
               .combinations(2)
+              .filter(_.size == 2)
               .toList
               .traverse(pair => this.relations.fetchRelations(pair(0), pair(1)))
           yield grants.forall(identity) && relations.forall(r =>

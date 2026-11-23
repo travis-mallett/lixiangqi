@@ -167,6 +167,7 @@ final class AuthUi(helpers: Helpers, flags: lila.core.user.FlagApi)(providers: (
           ),
           postForm(
             id := "signup-form",
+            enctype := "multipart/form-data",
             cls := "form3",
             action := addReferrer(routes.Auth.signupPost.url),
             autocomplete := "off"
@@ -234,6 +235,7 @@ final class AuthUi(helpers: Helpers, flags: lila.core.user.FlagApi)(providers: (
               )
             ,
             SignupCountryUi(helpers, flags)(form),
+            SignupPictureUi(helpers)(form),
             agreement(form("agreement"), form.errors.exists(_.key.startsWith("agreement."))),
             simple.not.option(turnstile.widget(hidden = true)),
             turnstile.submit(trans.site.signUp()),

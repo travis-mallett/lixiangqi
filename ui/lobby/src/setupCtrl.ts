@@ -125,6 +125,8 @@ export default class SetupController {
   variantLevelCount = () => (this.isThreeKingdoms() ? 5 : 10);
 
   private readonly enforcePropRules = () => {
+    if (this.gameType === 'hook' && this.isThreeKingdoms() && this.timeControl.mode() !== 'correspondence')
+      this.variant = propWithEffect('standard' as SetupVariant, this.onVariantChange);
     // reassign with this.propWithApply in this function to avoid calling this.onPropChange
 
     if (this.usesVariantLevels() && this.aiLevel)
@@ -187,6 +189,7 @@ export default class SetupController {
     this.error = undefined;
     this.forced = forceOptions;
     this.loadPropsFromStore(forceOptions);
+    this.kingdom(gameType === 'ai' ? 'red' : 'random');
     this.kingdomFriendBot(false);
     if (gameType === 'ai' && !this.usesVariantLevels()) void this.loadAiStats();
   };
@@ -311,10 +314,13 @@ export default class SetupController {
 
   valid = () =>
     this.isThreeKingdoms()
-      ? this.gameType !== 'hook' &&
-        [7, 10, 15].includes(this.kingdomTime()) &&
-        [15, 30, 60].includes(this.kingdomMoveTime()) &&
-        (this.gameType !== 'friend' || this.validKingdomFriends())
+      ? this.gameType === 'hook'
+        ? !!this.root.me && this.timeControl.mode() === 'correspondence' && this.timeControl.valid()
+        : this.gameType === 'friend'
+          ? this.validKingdomFriends() && this.timeControl.valid()
+          : this.gameType === 'ai' &&
+            [7, 10, 15].includes(this.kingdomTime()) &&
+            [15, 30, 60].includes(this.kingdomMoveTime())
       : this.validFen() && this.timeControl.valid(this.minimumTimeIfReal()) && this.validConstraints();
 
   private readonly invalid = <A>(forced: A | undefined, current: A) =>
@@ -397,17 +403,30 @@ export default class SetupController {
     this.loading = true;
     this.error = undefined;
     this.root.redraw();
-    const config = {
-      initialSeconds: this.kingdomTime() * 60,
-      moveSeconds: this.kingdomMoveTime(),
-      level: this.aiLevel(),
-      color:
-        this.kingdom() === 'random'
-          ? ['red', 'green', 'black'][Math.floor(Math.random() * 3)]
-          : this.kingdom(),
-      opponents: this.gameType === 'friend' ? this.kingdomFriendUsers() : undefined,
-      botLevel: this.gameType === 'friend' && this.kingdomFriendBot() ? this.aiLevel() : undefined,
-    };
+    const tc = this.timeControl;
+    const config =
+      this.gameType !== 'ai'
+        ? {
+            timeMode: tc.mode(),
+            initialSeconds: tc.isRealTime() ? tc.initialSeconds() : undefined,
+            incrementSeconds: tc.isRealTime() ? tc.increment() : undefined,
+            moveSeconds: tc.isRealTime() ? (tc.moveTime()?.seconds ?? 0) : undefined,
+            opening: tc.isRealTime() ? tc.moveTime()?.first : undefined,
+            days: tc.mode() === 'correspondence' ? tc.days() : undefined,
+            color: this.kingdom(),
+            opponents: this.gameType === 'hook' ? [] : this.kingdomFriendUsers(),
+            publicSeek: this.gameType === 'hook',
+            botLevel: this.kingdomFriendBot() ? this.aiLevel() : undefined,
+          }
+        : {
+            initialSeconds: this.kingdomTime() * 60,
+            moveSeconds: this.kingdomMoveTime(),
+            level: this.aiLevel(),
+            color:
+              this.kingdom() === 'random'
+                ? ['red', 'green', 'black'][Math.floor(Math.random() * 3)]
+                : this.kingdom(),
+          };
     try {
       if (this.gameType === 'ai' && !this.root.me) {
         sessionStorage.setItem('threeKingdoms.localSetup', JSON.stringify(config));

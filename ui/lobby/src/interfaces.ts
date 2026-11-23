@@ -39,6 +39,15 @@ export interface Seek {
   action: 'joinSeek' | 'cancelSeek';
 }
 
+export interface KingdomOffer {
+  id: string;
+  creator: string;
+  users: string[];
+  days: number;
+  botLevel?: number;
+  status: string;
+}
+
 export interface Pool extends ClockConfig {
   id: PoolId;
   name: string;
@@ -52,6 +61,7 @@ export interface HomepageRoom {
 }
 
 export interface LobbyOpts {
+  waitingToStart: string;
   tableElement: HTMLElement;
   socketSend: SocketSend;
   pools: Pool[];
@@ -82,6 +92,7 @@ export interface LobbyData {
 }
 
 export interface KingdomsPlaying {
+  realTime: boolean;
   gameId: string;
   position: string;
   players: string[];

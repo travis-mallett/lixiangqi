@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { attributesModule, h, init } from 'snabbdom';
+import { attributesModule, classModule, h, init } from 'snabbdom';
 
 import type LobbyController from '../src/ctrl';
 import correspondence from '../src/view/correspondence';
 import { render as realTime } from '../src/view/realTime/list';
+
+document.documentElement.lang = 'en';
+const { default: correspondenceDeck } = await import('../src/view/correspondenceDeck');
 
 const offerVariants = {
   xiangqi: { name: 'Xiangqi', icon: '帥' },
@@ -37,6 +40,44 @@ test('a full correspondence lobby routes offer clicks by ID', () => {
   lobby.querySelector<HTMLElement>('tr.join [data-icon="迷"]')!.click();
   lobby.querySelector<HTMLElement>('tr.cancel td')!.click();
   assert.deepEqual(actions, ['1', '0']);
+});
+
+test('a reserved seat moves to the participant deck and other players can still join', () => {
+  const joined: string[] = [];
+  const ctrl = {
+    data: { seeks: [], nowPlaying: [] },
+    opts: { waitingToStart: 'Waiting to start' },
+    me: { username: 'Han' },
+    kingdomOffers: [
+      { id: 'pending1', users: ['alice', 'han'], days: 2 },
+      { id: 'mixedbot', users: ['mei'], botLevel: 4, days: 3 },
+    ],
+    myKingdomOffer(o: { users: string[] }) {
+      return o.users.includes(this.me.username.toLowerCase());
+    },
+    joinKingdomOffer(id: string) {
+      joined.push(id);
+    },
+  };
+  const lobby = ctrl as unknown as LobbyController;
+  const mount = () =>
+    init([attributesModule, classModule])(
+      document.createElement('section'),
+      h('div', [correspondence(lobby), ...(correspondenceDeck(lobby) ? [correspondenceDeck(lobby)!] : [])]),
+    ).elm as HTMLElement;
+  const member = mount();
+  assert(member.querySelector('a[href="/three-kingdoms/challenge/pending1"]'));
+  assert(member.querySelector('.lobby__correspondence-card--pending [data-three-kingdoms-position]'));
+  assert.equal(member.querySelector('.lobby__correspondence-status')?.textContent, 'Waiting to start · 2/3');
+  assert.equal(member.querySelectorAll('tr.seek').length, 1);
+  assert(
+    member.querySelector('[data-kingdom="mixedbot"]')?.textContent?.includes(`${i18n.threeKingdoms.level} 4`),
+  );
+  ctrl.me.username = 'third';
+  const viewer = mount();
+  assert.equal(viewer.querySelectorAll('tr.seek').length, 2);
+  viewer.querySelector<HTMLElement>('[data-kingdom="pending1"] td')!.click();
+  assert.deepEqual(joined, ['pending1']);
 });
 
 test('real-time offers show variant names and icons for ordinary and custom positions', () => {

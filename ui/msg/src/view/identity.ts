@@ -1,13 +1,15 @@
-import { h, type VNode } from 'snabbdom';
+import { attributesModule, classModule, h, init, type VNode } from 'snabbdom';
 
+import { userLink } from 'lib/view/userLink';
 import { json } from 'lib/xhr';
 
 type Player = LightUserNoId & { group?: boolean };
 interface Profile extends LightUserNoId {
   id: string;
   username: string;
+  picture?: string;
   profile?: { flag?: string };
-  perfs?: { xiangqi?: { rank: string } };
+  perfs?: { xiangqi?: { rank?: string; rating?: number; prov?: boolean } };
 }
 
 // Match the native PlayerName directory. Batch visible identities in a single public API request.
@@ -86,6 +88,45 @@ export function playerName(user: Player | string, alias?: string): VNode {
   return h('span.msg-player-slot', {
     key: name + (alias ?? ''),
     hook: { insert: v => v.elm!.appendChild(playerElement(user, alias)) },
+  });
+}
+
+const patchProfileLink = init([attributesModule, classModule]);
+
+export function playerProfileLink(name: string): VNode {
+  return h('span', {
+    key: name,
+    hook: {
+      insert(vnode) {
+        const host = vnode.elm as HTMLElement;
+        const link = patchProfileLink(host.appendChild(document.createElement('a')), userLink({ name }));
+        lookup(name.toLowerCase(), profile => {
+          const perf = profile?.perfs?.xiangqi;
+          patchProfileLink(
+            link,
+            userLink({
+              ...profile,
+              name: profile?.username ?? name,
+              flag: profile?.profile?.flag,
+              rank: perf?.rank,
+              rating: perf?.rating,
+              provisional: perf?.prov,
+            }),
+          );
+        });
+      },
+    },
+  });
+}
+
+export function loadAvatar(el: HTMLElement, id: string) {
+  lookup(id.toLowerCase(), profile => {
+    if (!profile?.picture) return;
+    const img = document.createElement('img');
+    img.alt = '';
+    img.className = 'msg-avatar-photo';
+    img.onload = () => el.append(img);
+    img.src = profile.picture;
   });
 }
 

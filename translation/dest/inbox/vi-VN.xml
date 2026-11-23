@@ -136,4 +136,5 @@
   <string name="resetLink">Đặt lại liên kết</string>
   <string name="disableLink">Tắt liên kết</string>
   <string name="adminAddOnly">Chỉ quản trị viên có thể thêm thành viên</string>
+  <string name="welcomeUser">Chào mừng thành viên mới nhất của chúng ta, %s!</string>
 </resources>

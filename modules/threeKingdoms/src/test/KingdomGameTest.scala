@@ -13,6 +13,29 @@ class KingdomGameTest extends munit.FunSuite:
     java.time.Instant.ofEpochMilli(1000)
   )
 
+  test("a public correspondence offer starts only when the last human seat is claimed"):
+    val g = game
+    val offer = KingdomChallenge(
+      g.id,
+      users.head,
+      users.take(1),
+      Set(users.head),
+      ClockConfig(0, 0, days = Some(3)),
+      g.createdAt,
+      g.createdAt.plusSeconds(86400),
+      openSeek = Some(true)
+    )
+    val waiting = offer.claimSeat(users(1))
+    assertEquals(waiting.status, "pending")
+    assertEquals(waiting.accepted, users.take(2).toSet)
+    assertEquals(waiting.claimSeat(users(2)).status, "starting")
+    val mixed = offer.copy(botLevel = Some(4)).claimSeat(users(1))
+    assertEquals(mixed.status, "starting")
+    assertEquals(
+      mixed.arrangeSeats(mixed.users.map(_.value))(level => s"AI $level").toSet,
+      Set(users.head.value, users(1).value, "AI 4")
+    )
+
   test("three immutable seats control moves and a spectator has no write authority"):
     val g = game
     val move = Rules.legalMoves(g.position).head.key
@@ -132,3 +155,38 @@ class KingdomGameTest extends munit.FunSuite:
     assertEquals(hosted.clock.startedAt, 7000L)
     assertEquals(hosted.deadline, None)
     assertEquals(hosted.clock.remaining, departed.clock.display(departed.position, 7000))
+
+  test("an invitation assigns the creator's requested side with either opponent lineup"):
+    val g = game
+    for
+      requested <- Kingdom.values
+      botLevel <- List(None, Some(4))
+    do
+      val humans = if botLevel.isDefined then users.take(2) else users
+      val challenge = KingdomChallenge(
+        g.id,
+        humans.last,
+        humans,
+        Set(humans.last),
+        g.clock.config,
+        g.createdAt,
+        g.createdAt.plusSeconds(600),
+        botLevel = botLevel,
+        creatorSide = Some(requested)
+      )
+      val seats = challenge.arrangeSeats(humans.map(_.value))(level => s"bot-$level")
+      assertEquals(seats(requested.ordinal), humans.last.value)
+      assertEquals(seats.toSet, humans.map(_.value).toSet ++ botLevel.map(level => s"bot-$level"))
+
+  test("clock BSON preserves existing records and new time controls"):
+    import reactivemongo.api.bson.*
+    import BSONHandlers.given
+    val codec = summon[BSONDocumentHandler[ClockConfig]]
+    val original = BSONDocument("initialSeconds" -> 900, "moveSeconds" -> 60)
+    assertEquals(codec.readTry(original).get, ClockConfig())
+    val configs = List(
+      ClockConfig(300, 30, Some(5), opening = Some(OpeningTime(2, 15))),
+      ClockConfig(0, 0, days = Some(5)),
+      ClockConfig(0, 0)
+    )
+    configs.foreach(config => assertEquals(codec.readTry(codec.writeTry(config).get).get, config))

@@ -127,6 +127,9 @@ final class Env(
                 )
               )
 
+  Bus.sub[lila.core.security.AccountRegistered]: event =>
+    globalChat.welcome(event.user).failed.foreach(e => logger.error("Global chat welcome failed", e))
+
   Bus.sub[lila.core.mod.ChatTimeout]: to =>
     systemMsg.chatTimeout(to.user)
 

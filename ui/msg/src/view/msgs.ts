@@ -16,6 +16,7 @@ import { playerName } from './identity';
 import { toolbar, showMenu, showDetails, showForward } from './messageActions';
 import { scroller } from './scroller';
 import { messageTimeline, messageTime } from './timeline';
+import { welcomeRow } from './welcomeRow';
 
 const presses = new WeakMap<EventTarget, { timer: Timeout; x: number; y: number }>();
 function cancelPress(e: Event) {
@@ -65,6 +66,7 @@ export default function renderMsgs(ctrl: MsgCtrl, convo: Convo): VNode {
 }
 
 function renderMsg(ctrl: MsgCtrl, msg: Msg) {
+  if (msg.welcomeUser) return welcomeRow(msg.id, msg.welcomeUser);
   const boards = msg.deleted ? undefined : msg.card?.boards;
   const text = boardMessageText(msg.text, boards);
   const mine = msg.user === ctrl.data.me.id;

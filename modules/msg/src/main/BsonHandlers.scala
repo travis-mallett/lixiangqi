@@ -85,7 +85,8 @@ private object BsonHandlers:
       revision = r.intD("revision"),
       attachments = r.strsD("attachments"),
       requestDigest = r.strO("requestDigest"),
-      card = r.getO[MsgCard]("card")
+      card = r.getO[MsgCard]("card"),
+      welcomeUser = r.getO[UserName]("welcomeUser")
     )
     def writes(w: BSON.Writer, m: Msg) = $doc(
       "_id" -> m.id,
@@ -104,6 +105,7 @@ private object BsonHandlers:
       "attachments" -> m.attachments.nonEmptyOption,
       "requestDigest" -> m.requestDigest,
       "card" -> m.card,
+      "welcomeUser" -> m.welcomeUser,
       "revision" -> m.revision
     )
 

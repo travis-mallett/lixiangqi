@@ -64,6 +64,7 @@ final class GlobalChat(
                 "id" -> m.id,
                 "date" -> m.date,
                 "attachments" -> m.attachments,
+                "welcomeUser" -> m.welcomeUser,
                 "reactions" -> m.reactions.groupMapReduce(_.emoji)(_ => 1)(_ + _),
                 "pollCounts" -> m.card
                   .flatMap(_.poll)
@@ -139,6 +140,20 @@ final class GlobalChat(
       )
     )
 
+  def welcome(user: lila.core.user.User): Funit =
+    (user.enabled.yes && user.kid.no && user.noBot).so:
+      val message = Msg(
+        text = s"Welcome to our newest member, ${user.username}!",
+        user = UserId.lichess,
+        date = nowInstant,
+        id = s"welcome:${user.id}:${user.createdAt.toEpochMilli}",
+        welcomeUser = Some(user.username)
+      )
+      colls.msg.insert
+        .one(writeMsg(message, MsgThread.Id(id)))
+        .map(_ => changed(message, "new"))
+        .recover(lila.db.recoverDuplicateKey(_ => ()))
+
   def mediaAllowed(using me: Me): Boolean = canPost && !me.marks.alt
 
   def canReadAttachment(parent: String, owner: UserId, handle: String): Fu[Boolean] =
@@ -185,7 +200,9 @@ final class GlobalChat(
           clean <- validated(forwarded.fold(body)(_.text), handles, content.exists(_.boards.nonEmpty))
           quote <- reply.traverse(key =>
             colls.msg
-              .one[Msg](selector ++ $id(key) ++ $doc("deletedAt".$exists(false)))
+              .one[Msg](
+                selector ++ $id(key) ++ $doc("deletedAt".$exists(false), "welcomeUser".$exists(false))
+              )
               .flatMap(_.fold(fail[Msg]("notFound"))(fuccess))
           )
           m = clean.copy(
@@ -276,6 +293,7 @@ final class GlobalChat(
         next <- action match
           case "remove" if me.kid.no && canModerate && old.user.isnt(me) =>
             fuccess(old.copy(deletedAt = Some(at), pinnedAt = None))
+          case _ if old.welcomeUser.isDefined => fail[Msg]("rejected")
           case "deleteEveryone" if me.kid.no && old.canDeleteForEveryone(me, at) =>
             fuccess(old.copy(deletedAt = Some(at), pinnedAt = None))
           case "react" if canPost && old.deletedAt.isEmpty && MsgActions.validReaction(value) =>

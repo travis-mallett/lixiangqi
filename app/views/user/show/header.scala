@@ -50,6 +50,25 @@ object header:
           else flair
     )
 
+  private def profilePicture(u: User)(using ctx: Context): Frag =
+    (u.allowsProfilePicture && ctx.kid.no && (ctx.is(u) || u.pictureUrl.isDefined)).option:
+      span(cls := "profile-picture")(
+        u.pictureUrl.fold[Frag](span(cls := "profile-picture__initial")(u.username.value.take(1)))(url =>
+          img(src := url, alt := "")
+        ),
+        ctx
+          .is(u)
+          .option(
+            button(
+              cls := "profile-picture__edit",
+              tpe := "button",
+              dataIcon := Icon.Pencil,
+              ariaTitle(trans.site.editProfilePicture.txt()),
+              data("pending") := u.pendingPicture
+            )
+          )
+      )
+
   def apply(u: User, info: UserInfo, angle: UserInfo.Angle, social: UserInfo.Social)(using ctx: Context) =
     val showLinks = !possibleSeoBot(u) || isGranted(_.Shadowban)
     frag(
@@ -57,10 +76,11 @@ object header:
         u.patronAndColor.match
           case Some(p) =>
             h1(cls := s"user-link ${if isOnline.exec(u.id) then "online" else "offline"}")(
+              profilePicture(u),
               a(href := routes.Plan.index())(patronIcon(p)),
               userDom(u)
             )
-          case None => h1(userDom(u)),
+          case None => h1(profilePicture(u), userDom(u)),
         div(cls := "trophies")(
           otherTrophies(info),
           u.plan.active.option(

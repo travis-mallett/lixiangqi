@@ -1304,6 +1304,13 @@ Leave empty to start games from the normal initial position.</string>
   <string name="editorPiece_cannon">Cannon</string>
   <string name="editorPiece_soldier">Soldier</string>
     <string name="signupCountryRequired">Add your country and flag to your profile, or choose “Opt out”.</string>
+    <string name="profilePicture">Profile picture</string>
+    <string name="editProfilePicture">Edit profile picture</string>
+    <string name="profilePictureHelp">Optional. Choose a JPG, PNG or WebP up to 8 MiB. OpenAI screens the picture before it appears on your profile and in the inbox.</string>
+    <string name="profilePictureFormat">Choose a single JPG, PNG or WebP photo up to 8 MiB.</string>
+    <string name="profilePictureChecking">Checking your picture…</string>
+    <string name="profilePictureRejected">This picture could not be approved. Choose another photo.</string>
+    <string name="profilePictureUnavailable">Picture checks are unavailable. Try again later.</string>
     <string name="signupCountryOptOut">Opt out</string>
   <string name="customColors">Custom Colors</string>
   <string name="xiangqiAnalysisTitle">Xiangqi Analysis Board</string>

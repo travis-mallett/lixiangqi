@@ -98,6 +98,7 @@ object home:
               "data" -> data,
               "pools" -> lila.pool.PoolList.json,
               "homePools" -> lila.pool.PoolList.homepageJson,
+              "waitingToStart" -> trans.storm.waitingToStart.txt(),
               "offerVariants" -> offerVariants
             )
             .add("hasUnreadLichessMessage", hasUnreadLichessMessage)

@@ -83,7 +83,20 @@ final class MobileAuth(env: Env, auth: => Auth) extends LilaController(env):
                     fuccess(error(401, "invalid_totp"))
                   case _ => fuccess(error(403, "two_factor_required"))
 
-  def googleRegister = AnonBodyOf(parse.formUrlEncoded(16384)): data =>
+  private val registrationBody: BodyParser[AnyContent] = parse.using: request =>
+    if request.contentType
+        .contains("multipart/form-data") && !request.getQueryString("client").contains("xiangqi-kids")
+    then
+      parse
+        .multipartFormData(maxLength = lila.memo.Attachment.pictureMaxBytes + 65536L)
+        .map(AnyContentAsMultipartFormData.apply)
+    else parse.formUrlEncoded(16384).map(AnyContentAsFormUrlEncoded.apply)
+
+  private def registrationFields(body: AnyContent) =
+    body.asFormUrlEncoded.orElse(body.asMultipartFormData.map(_.asFormUrlEncoded)).getOrElse(Map.empty)
+
+  def googleRegister = AnonBodyOf(registrationBody): body =>
+    val data = registrationFields(body)
     allowed:
       withGoogle(data): identity =>
         env.security.externalIdentities
@@ -207,7 +220,8 @@ final class MobileAuth(env: Env, auth: => Auth) extends LilaController(env):
         case service.Result.Limited => error(429, "rate_limited")
         case service.Result.Unavailable => error(503, "email_unavailable")
 
-  def register = AnonBodyOf(parse.formUrlEncoded(16384)): data =>
+  def register = AnonBodyOf(registrationBody): body =>
+    val data = registrationFields(body)
     allowed:
       env.security.ipTrust
         .isPubOrTor(req)

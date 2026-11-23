@@ -3,11 +3,22 @@ package lila.threeKingdoms
 import play.api.libs.json.*
 import lila.core.LightUser
 
+object JsonView:
+  def clockConfig(config: ClockConfig): JsObject = Json.obj(
+    "timeMode" -> config.timeMode,
+    "initialSeconds" -> config.initialSeconds,
+    "moveSeconds" -> config.moveSeconds,
+    "incrementSeconds" -> config.increment,
+    "days" -> config.days,
+    "opening" -> config.opening.map(first => Json.obj("moves" -> first.moves, "seconds" -> first.seconds))
+  )
+
 final class JsonView(lightUser: LightUser.GetterSyncFallback):
   def preview(g: KingdomGame, user: UserId): JsObject = Json.obj(
     "gameId" -> g.id.value,
     "position" -> PositionCodec.write(g.position),
     "isMyTurn" -> g.playerOf(user).contains(g.position.turn),
+    "realTime" -> g.clock.config.realTime,
     "hasBots" -> g.seats.exists(_.aiLevel.nonEmpty),
     "players" -> g.userIds.map(id => lightUser(id).name.value)
   )
@@ -25,13 +36,11 @@ final class JsonView(lightUser: LightUser.GetterSyncFallback):
     "botHost" -> g.botHost.map(_.value),
     "createdAt" -> g.createdAt.toEpochMilli,
     "serverTime" -> nowMillis,
-    "clock" -> Json.obj(
+    "clock" -> (JsonView.clockConfig(g.clock.config) ++ Json.obj(
       "remaining" -> g.clock.remaining,
       "startedAt" -> g.clock.startedAt,
-      "initialSeconds" -> g.clock.config.initialSeconds,
-      "moveSeconds" -> g.clock.config.moveSeconds,
       "deadline" -> g.deadline
-    ),
+    )),
     "seats" -> Kingdom.values.toVector.map: k =>
       val seat = g.seats(k.ordinal)
       Json.obj(

@@ -170,6 +170,16 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
           else if i < -2 then Color.white.some
           else none
 
+  def requestPicture(id: UserId, picture: String): Funit =
+    coll.update
+      .one(
+        $id(id) ++ enabledSelect ++ $doc("kid".$ne(true), "marks".$ne("troll")),
+        $set("pendingPicture" -> picture)
+      )
+      .flatMap(r =>
+        if r.n == 1 then funit else fufail(lila.core.security.SubmissionRejected("profilePictureUnavailable"))
+      )
+
   def setProfile(id: UserId, profile: Profile): Funit =
     coll.updateField($id(id), F.profile, profile).void
 
@@ -261,14 +271,21 @@ final class UserRepo(c: Coll)(using Executor) extends lila.core.user.UserRepo(c)
       lang: Option[LangTag] = None,
       kid: KidMode = KidMode.No,
       externalIdentity: Option[String] = None,
-      flag: Option[lila.core.user.FlagCode] = None
+      flag: Option[lila.core.user.FlagCode] = None,
+      picture: Option[lila.memo.ProfilePictureUpload] = None
   ): Fu[Option[User]] =
     exists(name).not.flatMapz:
       val doc = newUser(name, passwordHash, email, blind, mustConfirmEmail, lang, kid) ++
         ("len" -> BSONInteger(lila.core.UsernameRules.length(name.value))) ++
         externalIdentity.fold($empty)(key => $doc("externalLogins" -> List(key))) ++
         flag.fold($empty)(code => $doc(F.profile -> Profile(flag = Some(code))))
-      (coll.insert.one(doc) >> byId(name.id)).addEffect: created =>
+      val insert = picture match
+        case None => coll.insert.one(doc).void
+        case Some(upload) =>
+          upload.stage(name.id): (db, id) =>
+            val accounts: Coll = db.collection(coll.name)
+            accounts.insert.one(doc ++ $doc("pendingPicture" -> id)).void
+      (insert >> byId(name.id)).addEffect: created =>
         created.foreach: user =>
           lila.common.Bus.pub(
             lila.core.traffic.TrafficEvent(

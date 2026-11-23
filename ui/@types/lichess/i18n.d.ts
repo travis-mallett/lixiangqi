@@ -1775,6 +1775,8 @@ interface I18n {
     viewArchive: string;
     /** View votes */
     viewVotes: string;
+    /** Welcome to our newest member, %s! */
+    welcomeUser: I18nFormat;
   };
   insight: {
     /** Sorry, you cannot see %s's Xiangqi insights. */
@@ -4779,6 +4781,8 @@ interface I18n {
     editorValidationUnavailable: string;
     /** Edit profile */
     editProfile: string;
+    /** Edit profile picture */
+    editProfilePicture: string;
     /** Email */
     email: string;
     /** Email address associated to the account */
@@ -5753,6 +5757,18 @@ interface I18n {
     profile: string;
     /** Profile completion: %s */
     profileCompletion: I18nFormat;
+    /** Profile picture */
+    profilePicture: string;
+    /** Checking your picture… */
+    profilePictureChecking: string;
+    /** Choose a single JPG, PNG or WebP photo up to 8 MiB. */
+    profilePictureFormat: string;
+    /** Optional. Choose a JPG, PNG or WebP up to 8 MiB. OpenAI screens the picture before it appears on your profile and in the inbox. */
+    profilePictureHelp: string;
+    /** This picture could not be approved. Choose another photo. */
+    profilePictureRejected: string;
+    /** Picture checks are unavailable. Try again later. */
+    profilePictureUnavailable: string;
     /** Promote variation */
     promoteVariation: string;
     /** Propose a takeback */

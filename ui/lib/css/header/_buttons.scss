@@ -145,6 +145,10 @@
   }
 }
 
+#challenge-toggle .data-count::before {
+  vertical-align: middle;
+}
+
 #notify-app .initiating {
   width: 25rem;
 }

@@ -3,6 +3,7 @@ import { alert, makeLinkPopups } from 'lib/view';
 import * as xhr from 'lib/xhr';
 
 import { syncProfileNavigation } from './profileNavigation';
+import { initProfilePicture } from './profilePicture';
 
 const gamesAngle = document.querySelector<HTMLElement>('.games');
 if (gamesAngle) gamesAngle.style.visibility = 'hidden'; // FOUC
@@ -11,6 +12,7 @@ export async function initModule(): Promise<void> {
   makeLinkPopups($('.social_links'));
   makeLinkPopups($('.user-infos .bio'));
 
+  initProfilePicture();
   updatePackedTrophies();
   window.addEventListener('resize', updatePackedTrophies);
 

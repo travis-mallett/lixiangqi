@@ -137,7 +137,7 @@ final class UserList(helpers: Helpers, bits: UserBits):
           .flatMap(_.nonEmptyBio)
           .map { bio => div(cls := "bots__list__entry__bio")(shorten(bio, 400)) },
         a(
-          dataIcon := Icon.Swords,
+          dataIcon := SvgIcon.Challenge,
           cls := List("bots__list__entry__play text" -> true),
           st.title := trans.challenge.challengeToPlay.txt(),
           href := s"${routes.Lobby.home}?user=${u.username}#friend"

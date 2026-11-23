@@ -1,8 +1,18 @@
-# Moderated forum and inbox attachments
+# Moderated uploads
 
 LiXiangQi accepts staged uploads for inbox conversations and the four public discussion boards. The boards are Xiangqi Discussion, Game Analysis, LiXiangQi Feedback and Off-Topic. Existing age, account standing, posting rights, topic state, inbox preferences and blocking rules still apply. Team forums, blog discussions and diagnostic forums have no upload destination.
 
 The chat gateway has no attachment write route. This includes tournament, player-to-player, spectator, study, team, simul, Swiss, broadcast, challenge, Three Kingdoms and other shared chat rooms. Xiangqi Kids uses curated avatar components and its existing account integration.
+
+## Profile pictures
+
+Registration accepts one optional picture with the account form. Owners can replace it from the pencil on their profile. The website and adult mobile accept single-frame JPEG, PNG and WebP images up to 8 MiB. The shared worker checks the file with ClamAV, applies EXIF orientation, removes metadata, scales the long edge to at most 512 pixels and encodes at the normal WebP quality. OpenAI screens those exact output bytes.
+
+Submitting a replacement stores its ID on the account as pending. The worker publishes an approved picture in the same MongoDB transaction as its verdict, conditional on that ID still being current and the owner remaining eligible. The previous picture stays public during screening or rejection. The public reader checks the current owner and serves only the approved WebP. Superseded photos expire through the usual attachment cleanup. Existing accounts require no migration.
+
+The public user API includes the optional site-relative `picture` URL when profile details are requested. Inbox identities reuse the existing profile directory on each client. Xiangqi Kids uses curated avatars, and its token lacks the picture-write permission. Game chat uses its existing renderer.
+
+The Compose release enables `UGC_PROFILE` by default. An explicit `false` pauses new submissions while approved pictures remain readable. Deploy the scanner, backend and web assets before releasing the adult mobile client.
 
 ## Submission and storage
 

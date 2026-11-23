@@ -29,6 +29,8 @@ GET   /api/three-kingdoms/tv/stream       controllers.ThreeKingdoms.tvStream
 GET   /api/three-kingdoms/ongoing         controllers.ThreeKingdoms.ongoing
 POST  /api/three-kingdoms/computer        controllers.ThreeKingdoms.computer
 POST  /api/three-kingdoms/complete-local  controllers.ThreeKingdoms.completeLocal
+GET   /api/three-kingdoms/offers          controllers.ThreeKingdoms.publicOffers
+POST  /api/three-kingdoms/offers/$id<\w{8}>/join controllers.ThreeKingdoms.joinOffer(id: GameId)
 POST  /api/three-kingdoms/challenge       controllers.ThreeKingdoms.createChallenge
 GET   /api/three-kingdoms/challenge       controllers.ThreeKingdoms.challenges
 GET   /api/three-kingdoms/challenge/$id<\w{8}> controllers.ThreeKingdoms.challengeState(id: GameId)
@@ -763,6 +765,9 @@ POST  /diagnostic                      controllers.ForumTopic.diagnostic
 POST  /diagnostic/clear/:slug          controllers.ForumTopic.clearDiagnostic(slug: ForumTopicSlug)
 
 # Msg
+GET   /profile/picture/$id<[0-9a-f]{32}>                  controllers.Account.picture(id)
+POST  /account/profile/picture                            controllers.Account.uploadPicture
+GET   /account/profile/picture/$id<[0-9a-f]{32}>          controllers.Account.pictureStatus(id)
 GET   /attachment/$surface<forum|msg>/item/:id            controllers.Attachment.read(surface: String, id: String)
 GET   /attachment/$surface<forum|msg>/:dest/policy        controllers.Attachment.policy(surface: String, dest: String)
 POST  /attachment/msg/:dest/link-preview   controllers.Attachment.linkPreview(dest)

@@ -2,7 +2,8 @@ import { h, type VNode } from 'snabbdom';
 
 import { timeago } from 'lib/i18n';
 import { chatPath } from 'lib/inboxUrl';
-import { licon, type LiconValue } from 'lib/licon';
+import { licon } from 'lib/licon';
+import { svgIcon, type DataIcon } from 'lib/svgIcon';
 import { icon } from 'lib/view';
 
 import type { Notification, Renderer, Renderers } from './interfaces';
@@ -11,7 +12,7 @@ export default function makeRenderers(): Renderers {
   return {
     threeKingdomsChallenge: {
       html: n =>
-        generic(n, n.content.url, licon.Swords, [
+        generic(n, n.content.url, svgIcon.Challenge, [
           h('span', [h('strong', i18n.site.threeKingdoms), drawTime(n)]),
           h(
             'span',
@@ -193,7 +194,7 @@ const jobDone = (name: string): Renderer => ({
   text: n => `${n.content.user!.name}: ${name} job complete!`,
 });
 
-function generic(n: Notification, url: string | undefined, licon: LiconValue, content: VNode[]): VNode {
+function generic(n: Notification, url: string | undefined, licon: DataIcon, content: VNode[]): VNode {
   return h(
     url ? 'a' : 'span',
     {

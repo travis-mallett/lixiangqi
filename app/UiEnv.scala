@@ -16,7 +16,7 @@ object UiEnv
   export lila.core.id.ImageId
   export lila.common.extensions.*
   export lila.common.String.html.richText
-  export lila.ui.{ Page, Nonce, OpenGraph, PageModule, EsmList, Icon }
+  export lila.ui.{ Page, Nonce, OpenGraph, PageModule, EsmList, Icon, SvgIcon }
   export lila.api.Context.{ ctxToTranslate as _, *, given }
 
   private var envVar: Option[Env] = None

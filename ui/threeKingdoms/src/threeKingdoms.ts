@@ -1,3 +1,5 @@
+import { formatClock } from 'lib/setup/timeControl';
+
 import { el, button, link, request, errorText } from './dom';
 import { gameLink } from './gameLink';
 import { resetTrialStorage } from './trialReset';
@@ -50,6 +52,7 @@ export async function initModule(options: Bootstrap): Promise<void> {
         break;
       case 'challenge': {
         const id = options.challenge!.id;
+        const pollDelay = options.challenge!.timeMode === 'realTime' ? 2500 : 15000;
         let stopped = false;
         let timer: ReturnType<typeof setTimeout>;
         const render = (challenge: Challenge) => {
@@ -65,6 +68,19 @@ export async function initModule(options: Bootstrap): Promise<void> {
             return;
           }
           message.textContent = t.pending;
+          const time =
+            challenge.timeMode === 'unlimited'
+              ? i18n.site.unlimited
+              : challenge.days
+                ? `${i18n.site.correspondence} · ${i18n.site.nbDays(challenge.days)}`
+                : formatClock(
+                    `${challenge.initialSeconds / 60}+${challenge.incrementSeconds ?? 0}`,
+                    challenge.moveSeconds
+                      ? { seconds: challenge.moveSeconds, first: challenge.opening ?? undefined }
+                      : undefined,
+                  );
+          content.append(el('p', '', time));
+          if (challenge.color) content.append(el('p', '', `${challenge.creator} · ${t[challenge.color]}`));
           for (const user of challenge.users)
             content.append(
               el('p', '', `${user} · ${challenge.accepted.includes(user) ? t.accepted : t.pending}`),
@@ -90,9 +106,9 @@ export async function initModule(options: Bootstrap): Promise<void> {
           } catch (error) {
             showError(error);
           }
-          if (!stopped) timer = setTimeout(poll, 2500);
+          if (!stopped) timer = setTimeout(poll, pollDelay);
         };
-        timer = setTimeout(poll, 2500);
+        timer = setTimeout(poll, pollDelay);
         window.addEventListener(
           'pagehide',
           () => {

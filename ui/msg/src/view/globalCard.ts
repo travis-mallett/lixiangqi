@@ -22,6 +22,7 @@ import { userIcon } from './contact';
 import renderConvo from './convo';
 import { playerName } from './identity';
 import { messageTime, messageTimeline } from './timeline';
+import { welcomeRow } from './welcomeRow';
 
 type Preview = Omit<Msg, 'reactions'> & { reactions: Record<string, number>; pollCounts?: number[] };
 
@@ -107,6 +108,7 @@ function row(
   first: boolean,
   last: boolean,
 ) {
+  if (msg.welcomeUser) return welcomeRow(msg.id, msg.welcomeUser);
   const author = { id: msg.user, name: msg.user, online: false };
   const media = { msg, sender: msg.user };
   const reactions = Object.entries(msg.counts);

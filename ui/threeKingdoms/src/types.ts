@@ -66,6 +66,15 @@ export interface RecordedAction {
   at: number;
   clocks: number[];
 }
+export interface ClockSettings {
+  timeMode?: 'realTime' | 'correspondence' | 'unlimited';
+  initialSeconds: number;
+  moveSeconds: number;
+  incrementSeconds?: number;
+  days?: number | null;
+  opening?: { moves: number; seconds: number } | null;
+}
+
 export interface Game {
   id: string;
   variant: 'threeKingdoms';
@@ -80,11 +89,9 @@ export interface Game {
   tournamentId?: string | null;
   createdAt: number;
   serverTime: number;
-  clock: {
+  clock: ClockSettings & {
     remaining: number[];
     startedAt: number;
-    initialSeconds: number;
-    moveSeconds: number;
     deadline: number | null;
   };
   seats: {
@@ -102,7 +109,7 @@ export interface Game {
   takebackOffers: Color[];
   finished: boolean;
 }
-export interface Challenge {
+export interface Challenge extends ClockSettings {
   id: string;
   creator: string;
   users: string[];
@@ -110,8 +117,7 @@ export interface Challenge {
   botLevel?: number | null;
   expiresAt: number;
   status: string;
-  initialSeconds: number;
-  moveSeconds: number;
+  color?: Color | null;
 }
 export interface Bootstrap {
   mode: string;

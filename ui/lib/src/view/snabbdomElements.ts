@@ -7,7 +7,7 @@ import {
   type VNodeData,
 } from 'snabbdom';
 
-import type { LiconValue } from '@/licon';
+import type { DataIcon } from '@/svgIcon';
 
 type RemoveIndexSignature<T> = {
   [K in keyof T as string extends K ? never : number extends K ? never : symbol extends K ? never : K]: T[K];
@@ -163,4 +163,4 @@ export const a: TagFactory<[href: string]> = href => makeTag('a', { href });
 export const img: TagFactory<[src: string, alt: string]> = (src, alt) => makeTag('img', { alt, src });
 export const optgroup: TagFactory<[label: string]> = label => makeTag('optgroup', { label });
 
-export const icon: TagFactory<[icon: LiconValue]> = icon => makeExoticTag('icon', { 'data-icon': icon });
+export const icon: TagFactory<[icon: DataIcon]> = icon => makeExoticTag('icon', { 'data-icon': icon });

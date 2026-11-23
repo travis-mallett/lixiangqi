@@ -1,4 +1,4 @@
-"""One bounded worker process. A claimed job survives restarts. No publication side effects."""
+"""One bounded worker process. A claimed job survives restarts."""
 import hashlib
 import io
 import logging
@@ -70,6 +70,19 @@ def finish(coll, row):
         values = {"state": "retry", "reason": "scannerUnavailable"}
     selector = {"_id": row["_id"], "state": "checking", "lease": row["lease"],
                 "sourceDigest": row["sourceDigest"], "policy": POLICY, "hold": {"$ne": True}}
+    if row.get("audience") == "profile/" + row.get("owner", "") and values["state"] == "ready":
+        # Publish only the most recent choice, atomically with the moderation verdict.
+        def publish(session):
+            result = coll.update_one(selector, {"$set": {**values, "checkedAt": at, "parent": row["owner"]},
+                                                "$unset": {"lease": ""}}, session=session)
+            if result.modified_count:
+                coll.database.user4.update_one({"_id": row["owner"], "pendingPicture": row["_id"],
+                                                "enabled": True, "kid": {"$ne": True}, "marks": {"$ne": "troll"}},
+                                               {"$set": {"picture": row["_id"]}, "$unset": {"pendingPicture": ""}},
+                                               session=session)
+                return "ready"
+        with coll.database.client.start_session() as session:
+            return session.with_transaction(publish)
     return coll.update_one(selector, {"$set": {**values, "checkedAt": at}, "$unset": {"lease": ""}}).modified_count and values["state"]
 
 
@@ -81,6 +94,8 @@ def referenced(db, row):
     if surface == "msg":
         return db.msg_msg.find_one({"_id": parent, "attachments": row["_id"], "deletedAt": {"$exists": False},
                                     "$expr": {"$lt": [{"$size": {"$ifNull": ["$del", []]}}, 2]}}, {"_id": 1})
+    if surface == "profile":
+        return db.user4.find_one({"_id": parent, "picture": row["_id"]}, {"_id": 1})
     if surface == "forum":
         return db.f_post.find_one({"_id": parent, "attachments": row["_id"], "erasedAt": {"$exists": False}}, {"_id": 1})
     raise ValueError("unknown surface")
@@ -94,7 +109,8 @@ def cleanup(db):
         if referenced(db, row):
             db.ugc_attachment.update_one(sel, {"$set": {"expiresAt": at + timedelta(days=1)}})
         else:
-            db.ugc_attachment.delete_one(sel)
+            if db.ugc_attachment.delete_one(sel).deleted_count and row["audience"].startswith("profile/"):
+                db.user4.update_one({"_id": row["owner"], "pendingPicture": row["_id"]}, {"$unset": {"pendingPicture": ""}})
 
 
 def check_services():

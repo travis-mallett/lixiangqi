@@ -20,6 +20,7 @@ import {
 import { toggle } from 'lib';
 import { randomId } from 'lib/algo';
 import { createXiangqiBoard, websiteBoardPresentation, makeBoardResizable } from 'lib/board';
+import { formatClockTimeVerbal } from 'lib/game/clock/clockView';
 import { licon, type LiconValue } from 'lib/licon';
 import { wsSetActivity } from 'lib/socket';
 import { hl, bind, onInsert, bindReplayEvents, toggleButton, type VNode, type LooseVNodes } from 'lib/view';
@@ -321,13 +322,14 @@ export class Round {
               : hl('name', player.guest ? i18n.site.anonymous : `${i18n.site.computer} ${player.aiLevel}`),
             player.rank && hl('rank', player.rank),
           ]),
-          hl('div.rclock', { class: { running: color === this.state.turn && !this.state.ending } }, [
-            hl('div.time', { attrs: { 'data-clock': color } }),
-            hl('div.rclock-move', {
-              class: { active: color === this.state.turn && !this.state.ending },
-              attrs: { 'data-deadline': color },
-            }),
-          ]),
+          this.game.clock.timeMode !== 'unlimited' &&
+            hl('div.rclock', { class: { running: color === this.state.turn && !this.state.ending } }, [
+              hl('div.time', { attrs: { 'data-clock': color } }),
+              hl('div.rclock-move', {
+                class: { active: color === this.state.turn && !this.state.ending },
+                attrs: { 'data-deadline': color },
+              }),
+            ]),
           owner !== color && hl('small', owner ? t.controls(t[owner]) : t.removedArmy),
           place !== undefined && hl('strong', t.place(place)),
         ],
@@ -428,18 +430,24 @@ export class Round {
   private tick(): void {
     if (this.destroyed) return;
     const now = Date.now() + this.serverOffset;
+    const clock = this.game.clock;
     this.container.querySelectorAll<HTMLElement>('[data-clock]').forEach(element => {
       const color = element.dataset.clock as Color;
       const running = color === this.state.turn && !this.state.ending;
+      if (clock.timeMode === 'correspondence') {
+        const remaining =
+          running && clock.deadline !== null ? clock.deadline - now : (clock.days ?? 0) * 86400000;
+        element.textContent = formatClockTimeVerbal(Math.max(0, remaining));
+        return;
+      }
       const remaining = Math.max(
         0,
-        this.game.clock.remaining[colors.indexOf(color)] -
-          (running ? Math.max(0, now - this.game.clock.startedAt) : 0),
+        clock.remaining[colors.indexOf(color)] - (running ? Math.max(0, now - clock.startedAt) : 0),
       );
       const seconds = Math.ceil(remaining / 1000);
       const deadline =
-        running && this.game.clock.deadline
-          ? Math.max(0, Math.ceil((this.game.clock.deadline - now) / 1000))
+        running && clock.moveSeconds && clock.deadline !== null
+          ? Math.max(0, Math.ceil((clock.deadline - now) / 1000))
           : undefined;
       element.textContent = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
       const moveClock = element.parentElement!.querySelector<HTMLElement>('[data-deadline]')!;
@@ -625,7 +633,10 @@ export class Round {
               void this.act(move);
           };
           // Search time counts toward each opponent's minimum response time.
-          const remaining = 2000 - (performance.now() - startedAt);
+          const clock = this.game.clock;
+          const timeLeft =
+            clock.deadline === null ? Infinity : clock.deadline - Date.now() - this.serverOffset;
+          const remaining = Math.min(2000 - (performance.now() - startedAt), timeLeft - 500);
           if (remaining > 0) this.botTimer = setTimeout(play, remaining);
           else play();
         }
@@ -655,13 +666,18 @@ export class Round {
         });
         location.href = `/three-kingdoms/game/${g.id}`;
       } else {
+        const { timeMode, initialSeconds, moveSeconds, incrementSeconds, days, opening } = this.game.clock;
         const c = await request<Challenge>('challenge', {
+          timeMode,
+          initialSeconds,
+          moveSeconds,
+          incrementSeconds,
+          days,
+          opening,
           opponents: this.game.seats.flatMap(s =>
             s.user && s.user.id !== this.bootstrap.me ? [s.user.id] : [],
           ),
           botLevel: bot?.aiLevel,
-          initialSeconds: this.game.clock.initialSeconds,
-          moveSeconds: this.game.clock.moveSeconds,
         });
         location.href = `/three-kingdoms/challenge/${c.id}`;
       }

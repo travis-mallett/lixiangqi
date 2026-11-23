@@ -44,12 +44,35 @@ export default function (ctrl: LobbyController) {
                   location.href = '/signup';
                 return;
               }
+              if (el.dataset['kingdom']) return ctrl.joinKingdomOffer(el.dataset['kingdom']);
               return ctrl.clickSeek(el.dataset['id']!);
             }
           } while (el.nodeName !== 'TABLE');
         }),
       },
-      ctrl.data.seeks.map(seek => renderSeek(ctrl, seek)),
+      [
+        ...ctrl.data.seeks.map(seek => renderSeek(ctrl, seek)),
+        ...(ctrl.kingdomOffers ?? [])
+          .filter(o => !ctrl.myKingdomOffer(o))
+          .map(o =>
+            h(
+              'tr.seek.join',
+              {
+                key: 'kingdom-' + o.id,
+                attrs: { 'data-kingdom': o.id, role: 'button', title: i18n.site.joinTheGame },
+              },
+              tds([
+                o.users.join(', '),
+                '',
+                i18n.site.nbDays(o.days),
+                [
+                  i18n.site.threeKingdoms,
+                  o.botLevel ? `${i18n.threeKingdoms.level} ${o.botLevel}` : `${o.users.length}/3`,
+                ].join(' · '),
+              ]),
+            ),
+          ),
+      ],
     ),
   ]);
 }

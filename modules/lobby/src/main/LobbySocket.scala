@@ -34,7 +34,7 @@ final class LobbySocket(
   /** Authoritative game count; websocket room populations also include finished-game spectators. */
   def playingRoundCount(count: Int): Unit = send.exec(s"lobby/playing-rounds ${count.max(0)}")
 
-  def seekRemoved(id: String): Unit = actor ! RemoveSeek(id)
+  def seeksChanged(): Unit = actor ! SeeksChanged
 
   private val actor: SyncActor = new SyncActor:
 
@@ -107,7 +107,7 @@ final class LobbySocket(
       case SetupBus.AddSeek(seek) =>
         tellActive(makeMessage("reload_seeks"))
 
-      case RemoveSeek(seekId) =>
+      case SeeksChanged =>
         tellActive(makeMessage("reload_seeks"))
 
       case ChangeFeatured(msg) => tellActive(msg)

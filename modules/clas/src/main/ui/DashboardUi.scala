@@ -573,7 +573,7 @@ final class DashboardUi(helpers: Helpers, ui: ClasUi)(using NetDomain):
         val online = isOnline.exec(user.id)
         td(
           a(
-            dataIcon := Icon.Swords,
+            dataIcon := SvgIcon.Challenge,
             cls := List("button button-empty text" -> true, "disabled" -> !online),
             title := trans.challenge.challengeToPlay.txt(),
             href := online.option(s"${routes.Lobby.home}?user=${user.username}#friend")

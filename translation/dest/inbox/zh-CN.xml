@@ -136,4 +136,5 @@
   <string name="resetLink">重置链接</string>
   <string name="disableLink">关闭链接</string>
   <string name="adminAddOnly">仅管理员可以添加成员</string>
+  <string name="welcomeUser">欢迎新成员 %s 加入！</string>
 </resources>
