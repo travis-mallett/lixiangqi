@@ -122,15 +122,11 @@ Bundles may also be described by objects containing a "module" path and an "inli
 
 The "module" path serves the same purpose as a bare string - naming the source module for an entry point. The "inline" path identifies a special typescript source from which ui/build will emit javascript statements into a special manifest.\*.json entry.
 
-When that module is requested by a browser, the lila server injects those inline statements into a \<script> tag following the assembled DOM within the \<body> element. This allows blocking setup code to manipulate the DOM based on viewport calculations before rendering to avoid FOUC. This should be rare and globs are not supported here. [/ui/site/package.json](./site/package.json) shows an example:
+When that module is requested by a browser, the lila server injects those inline statements into a \<script> tag following the assembled DOM within the \<body> element. This allows blocking setup code to manipulate the DOM based on viewport calculations before rendering to avoid FOUC. This should be rare and globs are not supported here. The OAuth entry in [bits/package.json](./bits/package.json) uses an inline script.
 
 ```json
     "bundle": [
-      "src/site.*Embed.ts",
-      {
-        "module": "src/site.ts",
-        "inline": "src/site.inline.ts"
-      }
+      { "inline": "src/bits.oauth.inline.ts" }
     ],
 ```
 

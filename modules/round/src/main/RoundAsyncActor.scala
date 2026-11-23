@@ -183,41 +183,34 @@ final private class RoundAsyncActor(
     // round stuff
 
     case p: HumanPlay =>
-      handle(p.playerId): pov =>
-        if pov.player.isAi then fufail(s"player $pov can't play AI")
-        else if pov.game.outoftime(withGrace = true) then finisher.outOfTime(pov.game)
+      val played = handleMove(p.playerId, p.promise): pov =>
+        if pov.player.isAi then fufail(ClientError(s"player $pov can't play AI"))
         else
           recordLag(pov)
           player.human(p, this)(pov)
-      .chronometer.lap.addEffects(
-        err =>
-          p.promise.foreach(_.failure(err))
-          socketSend.exec(Protocol.Out.resyncPlayer(GameFullId(gameId, p.playerId)))
-        ,
-        lap =>
-          p.promise.foreach(_.success {})
-          lila.mon.round.move.time.record(lap.nanos)
-          MoveLatMonitor.recordMicros(lap.micros)
-      )
+      played.chronometer.lap
+        .addEffects(
+          _ =>
+            if p.promise.isEmpty then
+              socketSend.exec(Protocol.Out.resyncPlayer(GameFullId(gameId, p.playerId))),
+          lap =>
+            lila.mon.round.move.time.record(lap.nanos)
+            MoveLatMonitor.recordMicros(lap.micros)
+        )
+        .recover(errorHandler("human play"))
 
     case p: RoundBus.BotPlay =>
-      val res = proxy
-        .withPov(p.playerId):
-          _.so: pov =>
-            if pov.game.outoftime(withGrace = true) then finisher.outOfTime(pov.game)
-            else player.bot(p.uci, this)(pov)
-        .dmap(publish)
-      p.promise.foreach(_.completeWith(res))
-      res
+      handleMove(p.playerId, p.promise)(player.bot(p.uci, p.receivedAt, this))
+        .recover(errorHandler("bot play"))
 
-    case RoundBus.FishnetPlay(uci, hash) =>
+    case RoundBus.FishnetPlay(uci, hash, receivedAt) =>
       handle: game =>
-        player.fishnet(game, hash, uci)
+        player.fishnet(game, hash, uci, receivedAt)
       .mon(lila.mon.round.move.time)
 
-    case RoundBus.FishnetPlayV2(uci, turnKey, requestId) =>
+    case RoundBus.FishnetPlayV2(uci, turnKey, requestId, receivedAt) =>
       handle: game =>
-        if aiTurns.accepts(game, turnKey, requestId) then player.fishnetV2(game, turnKey, uci)
+        if aiTurns.accepts(game, turnKey, requestId) then player.fishnetV2(game, turnKey, uci, receivedAt)
         else
           lila.mon.fishnet.aiMove.staleResult.increment()
           logger.debug(s"Ignoring stale AI result ${turnKey.value.take(12)} for $gameId")
@@ -391,10 +384,9 @@ final private class RoundAsyncActor(
       fuccess:
         players(color).setBotConnected(v)
 
-    case NoStart =>
+    case NoStart(deadline) =>
       handle: game =>
-        game.timeBeforeExpiration
-          .exists(_.centis == 0)
+        (game.firstMoveDeadlineMillis.contains(deadline) && deadline <= nowMillis)
           .so:
             if game.isSwiss then
               game.startClock.so: g =>
@@ -474,6 +466,18 @@ final private class RoundAsyncActor(
   private def handle(op: Game => Fu[Events]): Funit =
     proxy.withGame: g =>
       handleAndPublish(op(g))
+
+  private def handleMove(playerId: GamePlayerId, reply: Option[Promise[Unit]])(op: Pov => Fu[Events]): Funit =
+    val result = proxy.withPov(playerId):
+      case None => fufail(ClientError("Unknown player"))
+      case Some(pov) =>
+        op(pov).map: events =>
+          publish(events)
+          // Deliver the terminal event even when the HTTP move itself was refused.
+          if reply.isDefined && !events.exists(_.isInstanceOf[Event.Move]) then
+            throw ClientError("Move was not played")
+    reply.foreach(_.completeWith(result))
+    result
 
   private def handle(playerId: GamePlayerId)(op: Pov => Fu[Events]): Funit =
     proxy.withPov(playerId):

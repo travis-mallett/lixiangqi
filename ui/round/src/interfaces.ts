@@ -92,7 +92,7 @@ export interface RoundData extends GameData {
 
 export interface Expiration {
   idleMillis: number;
-  movedAt: number;
+  expiresAt: number; // local monotonic deadline, initialized from the server snapshot
   millisToMove: number;
 }
 

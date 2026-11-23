@@ -27,15 +27,22 @@ object threeKingdoms:
   )(using Context) =
     def card(game: lila.threeKingdoms.GamePreview): Frag =
       a(href := s"/three-kingdoms/game/${game.id.value}")(
-        div(attr("data-three-kingdoms-position") := lila.threeKingdoms.PositionCodec.write(game.position)),
-        game.seats.zipWithIndex.map: (seat, index) =>
-          div(
-            seat.userId.fold[Frag](if seat.guest then trans.site.anonymous()
-            else frag(trans.site.computer(), " ", seat.aiLevel))(id => titleNameOrId(id)),
-            game.position
-              .placement(lila.threeKingdoms.Kingdom.values(index))
-              .map(place => frag(" · ", trans.threeKingdoms.place(place)))
-          )
+        div(cls := "three-kingdoms-tv-board")(
+          div(attr("data-three-kingdoms-position") := lila.threeKingdoms.PositionCodec.write(game.position)),
+          lila.threeKingdoms.Kingdom.values.toList.map: kingdom =>
+            val seat = game.seats(kingdom.ordinal)
+            val name = seat.userId.fold(
+              if seat.guest then trans.site.anonymous.txt()
+              else s"${trans.site.computer.txt()} ${seat.aiLevel.fold("")(_.toString)}".trim
+            )(titleNameOrId)
+            val label = game.position
+              .placement(kingdom)
+              .fold(name)(place => s"$name · ${trans.threeKingdoms.place.txt(place)}")
+            span(
+              cls := s"three-kingdoms-tv-board__player three-kingdoms-tv-board__player--${kingdom.color}",
+              title := label
+            )(label)
+        )
       )
     val liveIds = live.map(_.id).toSet
     views.tv.ui
@@ -57,7 +64,7 @@ object threeKingdoms:
     )(
       a(
         id := "three-kingdoms-embed",
-        cls := "three-kingdoms-embed",
+        cls := "three-kingdoms-embed three-kingdoms-tv-board",
         href := "/tv/threeKingdoms",
         targetBlank,
         attr("data-computer-label") := trans.site.computer.txt(),

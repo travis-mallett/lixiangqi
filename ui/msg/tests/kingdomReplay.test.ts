@@ -27,7 +27,6 @@ test('chat replay renders the three armies, starts on a marked green turn and na
   const root = kingdomReplay({ frames, orientation: 'red', start: 1 }, rules);
   globalThis.AbortController = window.AbortController;
   window.matchMedia = globalThis.matchMedia;
-  site.pieceImages = { preload: async () => {}, ready: Promise.resolve(), set: async () => {} };
   const viewer = await mountViewer(
     document.createElement('div'),
     { root },

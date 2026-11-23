@@ -8,7 +8,6 @@ import scalalib.cache.{ ExpireSetMemo, FrequencyThreshold }
 
 import lila.common.Json.given
 import lila.common.{ LilaScheduler, LilaStream }
-import lila.core.chess.Rank
 import lila.core.rank.RankCode.*
 
 final class TournamentLilaHttp(
@@ -58,11 +57,11 @@ final class TournamentLilaHttp(
     fullStanding <- playerRepo
       .sortedCursor(tour.id, 100, _.pri)
       .documentSource()
-      .zipWithIndex
-      .mapAsync(16): (player, index) =>
+      .via(RankedPlayer.flow)
+      .mapAsync(16): ranked =>
+        val player = ranked.player
         for
           sheet <- cached.sheet(tour, player.userId)
-          ranked = RankedPlayer(Rank(index.toInt + 1), player)
           json <- playerJson(tour, sheet, ranked)
         yield json
       .runWith(Sink.seq)

@@ -3,7 +3,6 @@ package lila.tournament
 import org.apache.pekko.stream.scaladsl.*
 import play.api.libs.json.*
 
-import lila.core.chess.Rank
 import lila.memo.CacheApi.*
 
 /*
@@ -25,14 +24,15 @@ final class TournamentStandingApi(
     playerRepo
       .sortedCursor(tour.id, 100, _.pri)
       .documentSource()
-      .zipWithIndex
-      .mapAsync(16): (player, index) =>
+      .via(RankedPlayer.flow)
+      .mapAsync(16): ranked =>
+        val player = ranked.player
         for
           sheet <- cached.sheet(tour, player.userId)
           json <- JsonView.playerJson(
             lightUserApi,
             sheet.some,
-            RankedPlayer(Rank(index.toInt + 1), player),
+            ranked,
             streakable = tour.streakable,
             withScores = true
           )
@@ -62,16 +62,17 @@ final class TournamentStandingApi(
   private def compute(id: TourId, page: Int, withScores: Boolean): Fu[JsObject] =
     cached.tourCache.byId(id).orFail(s"No such tournament: $id").flatMap { compute(_, page, withScores) }
 
-  private def playerIdsOnPage(tour: Tournament, page: Int): Fu[List[TourPlayerId]] =
-    cached.ranking(tour).map { ranking =>
-      ((page - 1) * perPage until page * perPage).toList.flatMap(ranking.playerIndex.lift)
+  private def cachedPage(tour: Tournament, page: Int): Fu[RankedPlayers] =
+    cached.ranking(tour).flatMap { ranking =>
+      val ids = ((page - 1) * perPage until page * perPage).toList.flatMap(ranking.playerIndex.lift)
+      playerRepo.byPlayerIdsOnPage(ids, ranking.ranking)
     }
 
   private def compute(tour: Tournament, page: Int, withScores: Boolean): Fu[JsObject] =
     for
       rankedPlayers <-
         if page < 10 then playerRepo.bestByTourWithRankByPage(tour.id, perPage, page)
-        else playerIdsOnPage(tour, page).flatMap { playerRepo.byPlayerIdsOnPage(_, page) }
+        else cachedPage(tour, page)
       sheets <- rankedPlayers
         .map: p =>
           cached.sheet(tour, p.player.userId).dmap { p.player.userId -> _ }

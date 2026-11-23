@@ -50,7 +50,13 @@ final private class Finisher(
       logger.info(s"Aborting game last played before JVM boot: ${game.id}")
       other(game, _.Aborted, none)
     else if game.player(!game.player.color).isOfferingDraw then
-      apply(game, _.Draw, None, Messenger.SystemMessage.Persistent(trans.site.drawOfferAccepted.txt()).some)
+      apply(
+        game,
+        _.Draw,
+        None,
+        Messenger.SystemMessage.Persistent(trans.site.drawOfferAccepted.txt()).some,
+        drawOnFlag = true
+      )
     else
       val winnerColor = !game.turnColor
       val winnerSide =
@@ -122,10 +128,11 @@ final private class Finisher(
       makeStatus: Status.type => Status,
       winnerC: Option[Color],
       message: Option[Messenger.SystemMessage] = None,
-      abortBy: Option[Color] = None
+      abortBy: Option[Color] = None,
+      drawOnFlag: Boolean = false
   )(using proxy: GameProxy): Fu[Events] =
     val status = makeStatus(Status)
-    val prog = lila.game.Progress(prev, prev.finish(status, winnerC))
+    val prog = lila.game.Progress(prev, prev.finish(status, winnerC, drawOnFlag))
     import prog.game
     if game.nonAi && game.isCorrespondence then Color.all.foreach(notifier.gameEnd(prog.game))
     lila.mon.game

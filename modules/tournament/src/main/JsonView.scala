@@ -365,14 +365,12 @@ final class JsonView(
           .finishedById(id)
           .flatMapz: tour =>
             playerRepo
-              .bestByTourWithRank(id, 3)
+              .podium(id)
               .flatMap: top3 =>
-                // check that the winner is still correctly denormalized
-                top3.headOption
-                  .map(_.player.userId)
-                  .filter(w => tour.winnerId.forall(w !=))
-                  .foreach:
-                    tournamentRepo.setWinnerId(tour.id, _)
+                val winner = top3.filter(_.rank.value == 1) match
+                  case single :: Nil => Some(single.player.userId)
+                  case _ => None
+                if winner != tour.winnerId then tournamentRepo.setWinnerId(tour.id, winner)
                 top3.sequentially: rp =>
                   for
                     sheet <- cached.sheet(tour, rp.player.userId)

@@ -13,6 +13,8 @@ declare global {
   }
 }
 
+import { boardThemeCss } from './fixtures/board-theme';
+
 const { build } = createRequire(resolve('ui/.build/package.json'))('esbuild');
 let script: string;
 let css: string;
@@ -24,20 +26,6 @@ test.beforeAll(async () => {
       resolveDir: process.cwd(),
       contents: `
         import { createBoard, standardXiangqi, miniXiangqi, threeKingdoms, boardPresentation, positionFromFen } from './ui/board/src';
-        import catalog from './ui/board/src/catalog.json';
-        const style = document.body.style;
-        const url = path => 'url("http://board.test/assets/' + path + '")';
-        const theme = catalog.pieceSets[0];
-        for (const [family, variant] of Object.entries(theme.variants))
-          for (const [side, roles] of Object.entries(variant.faces))
-            for (const [role, path] of Object.entries(roles)) {
-              style.setProperty('---' + family + '-' + side + '-' + role, url(path));
-              if (family === 'xiangqi') style.setProperty('---' + side + '-' + role, url(path));
-            }
-        for (const [geometry, path] of Object.entries(catalog.boards[0].geometries))
-          style.setProperty('---board-image-' + geometry, url(path));
-        style.setProperty('--xiangqi-rest-shadow-image', url(catalog.shadows.rest));
-        style.setProperty('--xiangqi-airborne-shadow-image', url(catalog.shadows.airborne));
         window.boards = [];
         window.positions = [];
         for (const [i, definition] of [standardXiangqi, miniXiangqi, threeKingdoms].entries()) {
@@ -75,28 +63,16 @@ async function mount(page: Page) {
     const path = new URL(route.request().url()).pathname.slice('/assets/'.length);
     return route.fulfill({ path: resolve('public', path) });
   });
-  await page.setContent(`<style>${css}
+  await page.setContent(`<style>${boardThemeCss('http://board.test/assets/')}${css}
     body { margin:0; display:flex; flex-wrap:wrap; gap:20px; align-items:flex-start; }
     .fixture-frame { width:min(350px, 90vw); }
     .fixture { width:100%; position:relative; }
-    </style><body class="piece-images-ready" style="---board-brightness:100;---board-contrast:100;---board-saturation:100;---board-hue:0;---board-opacity:100">
+    </style><body style="---board-brightness:100;---board-contrast:100;---board-saturation:100;---board-hue:0;---board-opacity:100">
     <div class="fixture-frame"><div class="fixture mini-board"></div></div>
     <div class="fixture-frame"><div class="fixture mini-board"></div></div>
     <div class="fixture-frame"><div class="fixture"></div></div></body>`);
   await page.addScriptTag({ content: script });
-  await page.evaluate(async () => {
-    const urls = [...document.body.style].map(key => document.body.style.getPropertyValue(key));
-    await Promise.all(
-      urls
-        .filter(value => value.startsWith('url('))
-        .map(async value => {
-          const image = new Image();
-          image.src = value.slice(5, -2);
-          await image.decode();
-        }),
-    );
-    await new Promise(requestAnimationFrame);
-  });
+  await expect(page.locator('.board-assets-ready')).toHaveCount(3);
 }
 
 for (const width of [1440, 900, 390]) {

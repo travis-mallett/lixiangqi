@@ -8,7 +8,7 @@ import lila.common.Json.{ *, given }
 import lila.core.LightUser
 import lila.core.game.{ Blurs, Game, Player, Pov, Source }
 import lila.core.rank.RankTrackId.*
-import lila.game.GameExt.{ hasFirstMoveDeadline, timeForFirstMove }
+import lila.game.GameExt.firstMoveDeadlineMillis
 
 final class JsonView(rematches: Rematches):
 
@@ -117,10 +117,10 @@ object JsonView:
     else Json.toJsObject(game.variant)
 
   def expiration(game: Game) =
-    game.hasFirstMoveDeadline.option:
+    game.firstMoveDeadlineMillis.map: deadline =>
       Json.obj(
         "idleMillis" -> (nowMillis - game.movedAt.toMillis),
-        "millisToMove" -> game.timeForFirstMove.millis
+        "millisToMove" -> (deadline - game.movedAt.toMillis)
       )
 
   given OWrites[chess.Status] = OWrites: s =>

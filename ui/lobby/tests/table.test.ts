@@ -20,7 +20,7 @@ test('computer button works after an ongoing game ends; tabs open the matching s
       ctrl.tab = tab;
       ctrl.redraw();
     },
-    data: { nowPlaying: [], nbNowPlaying: 1, seeks: [] },
+    data: { nowPlaying: [], nbNowPlaying: 1, hooks: [], seeks: [] },
     homePools: [{ id: '15+0', lim: 15 }],
     setupCtrl: { gameType: null },
     hasOngoingRealTimeGame: () => ongoing,
@@ -51,6 +51,25 @@ test('computer button works after an ongoing game ends; tabs open the matching s
   button.click();
   assert.equal(bots, 1);
   const root = vnode.elm as HTMLElement;
+  const dots = () => root.querySelectorAll('.has-open-games').length;
+  const hook = { id: 'hook0001', sri: 'player', t: 300, clock: '5+0', variant: 'standard' } as const;
+  const seek = { id: 'seek0001', username: 'Player', rank: '', days: 2 } as const;
+  ctrl.data.hooks = [{ ...hook, action: 'cancel' }];
+  ctrl.data.seeks = [{ ...seek, action: 'cancelSeek' }];
+  ctrl.redraw();
+  assert.equal(dots(), 0);
+  ctrl.data.hooks.push({ ...hook, action: 'join', disabled: true });
+  ctrl.data.seeks.push({ ...seek, action: 'joinSeek' });
+  ctrl.redraw();
+  assert.equal(dots(), 1);
+  ctrl.data.hooks[1].disabled = false;
+  ctrl.redraw();
+  assert.equal(dots(), 2);
+  ctrl.data.hooks = [];
+  ctrl.data.seeks = [];
+  ctrl.redraw();
+  assert.equal(dots(), 0);
+
   for (const tab of ['real_time', 'seeks']) {
     root.querySelector<HTMLButtonElement>('#home-tab-' + tab)!.click();
     assert.equal(root.querySelector('#home-match-panel .now-playing'), null);

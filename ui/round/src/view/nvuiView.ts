@@ -92,7 +92,7 @@ function inputForm(ctx: RoundNvuiContext): VNode {
             notify.set(`${i18n.nvui.invalidMove}: ${move}`);
             return;
           }
-          ctrl.socket.send('move', { u: move }, { ackable: true });
+          ctrl.actualSendMove({ u: move }, { premove: stored });
           if (ctrl.nvui) ctrl.nvui.premoveInput = '';
         };
         form.addEventListener('submit', event => {

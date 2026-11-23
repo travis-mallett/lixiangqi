@@ -1247,6 +1247,10 @@ interface I18n {
     insufficientMaterial: string;
     /** Is correspondence different from normal Xiangqi? */
     isCorrespondenceDifferent: string;
+    /** Not anytime soon. LiXiangQi focuses on xiangqi and Chinese variants. Janggi has its own rules, presentation, and Korean identity, and supporting it properly would require ongoing work. You can play it on %1$s. %2$s. */
+    janggiNotPlanned: I18nFormat;
+    /** Read why in the blog post */
+    janggiReadWhy: string;
     /** What keyboard shortcuts are there? */
     keyboardShortcuts: string;
     /** Some Lixiangqi pages have keyboard shortcuts you can use. Try pressing the '?' key on a study, analysis, puzzle, or game page to list available keyboard shortcuts. */
@@ -1365,6 +1369,8 @@ interface I18n {
     whyIsLilaCalledLila: I18nFormat;
     /** Live, because games are played and watched in real-time 24/7; light and libre for the fact that Lixiangqi is open-source and unencumbered by proprietary junk that plagues other websites. */
     whyLiveLightLibre: string;
+    /** Is janggi ever going to be included? */
+    willJanggiBeIncluded: string;
     /** Yes. Lixiangqi is based on open-source Lila technology and shares the same spirit of reusable %1$s, %2$s, and %3$s. */
     yesLichessInspiredOtherOpenSourceWebsites: I18nFormat;
     /** It is not possible to apply to become a moderator. If we see someone who we think would be good as a moderator, we will contact them directly. */
@@ -4461,8 +4467,6 @@ interface I18n {
     challengeAFriend: string;
     /** Challenge a Higher Level */
     challengeHigherLevel: string;
-    /** Challenge two friends */
-    challengeTwoFriends: string;
     /** Challenge %s */
     challengeX: I18nFormat;
     /** Change email */
@@ -5593,6 +5597,8 @@ interface I18n {
     onSlowGames: string;
     /** Opacity */
     opacity: string;
+    /** Open games available */
+    openGamesAvailable: string;
     /** Opening */
     opening: string;
     /** Opening/endgame explorer */
@@ -7673,7 +7679,7 @@ interface I18n {
     finishEditing: string;
     /** First position */
     first: string;
-    /** Challenge two friends */
+    /** Challenge Friend(s) */
     friends: string;
     /** Game not found. */
     gameNotFound: string;
@@ -7829,6 +7835,8 @@ interface I18n {
     searchHelp: string;
     /** Waiting for two opponents… */
     searching: string;
+    /** Use a bot as the second opponent */
+    secondOpponentBot: string;
     /** Select a position in the evaluation graph */
     selectPosition: string;
     /** Copy position link */

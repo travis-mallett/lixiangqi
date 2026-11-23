@@ -15,11 +15,13 @@ export default class TransientMove {
   current: number | undefined = undefined;
 
   register = (): void => {
+    this.clear();
     this.current = setTimeout(this.expire, 10000);
   };
 
   clear = (): void => {
-    if (this.current) clearTimeout(this.current);
+    clearTimeout(this.current);
+    this.current = undefined;
   };
 
   expire = (): void => {

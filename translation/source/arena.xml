@@ -25,7 +25,7 @@ Berserk only grants an extra point if you play at least 7 moves in the game.</st
   <string name="howIsTheWinnerDecided">How is the winner decided?</string>
   <string name="howIsTheWinnerDecidedAnswer">When the tournament time limit expires, the player with the most points is declared the winner.
 
-If two or more players are tied for points, tournament performance is the tie-break.</string>
+Players tied on points are ranked by their xiangqi rank at entry. Players also tied on that rank share their place. For example, two players tied for first are followed by third place.</string>
   <string name="howDoesPairingWork">How does the pairing work?</string>
   <string name="howDoesPairingWorkAnswer">At the start of the tournament, players are paired based on their rating.
 As soon as you finish a game and return to the tournament lobby, you will be paired with a new opponent close to your rank in the tournament. This keeps waiting times short. Note that you may not face every other player in the tournament.

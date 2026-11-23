@@ -27,6 +27,7 @@ export default class SetupController {
   fenError = false;
   friendUser = '';
   friendUserTwo = '';
+  kingdomFriendBot = propWithEffect(false, () => this.root.redraw());
   kingdom: Prop<'red' | 'green' | 'black' | 'random'> = propWithEffect('red', () => this.root.redraw());
   kingdomTime: Prop<number> = propWithEffect(15, () => this.root.redraw());
   kingdomMoveTime: Prop<number> = propWithEffect(60, () => this.root.redraw());
@@ -186,6 +187,7 @@ export default class SetupController {
     this.error = undefined;
     this.forced = forceOptions;
     this.loadPropsFromStore(forceOptions);
+    this.kingdomFriendBot(false);
     if (gameType === 'ai' && !this.usesVariantLevels()) void this.loadAiStats();
   };
 
@@ -295,19 +297,24 @@ export default class SetupController {
 
   validFen = () => this.variant() !== 'fromPosition' || (!this.fenError && !!this.fen());
 
+  private readonly kingdomFriendUsers = () =>
+    (this.kingdomFriendBot() ? [this.friendUser] : [this.friendUser, this.friendUserTwo]).map(user =>
+      user.trim(),
+    );
+
+  private readonly validKingdomFriends = () => {
+    if (!this.root.me) return false;
+    const opponents = this.kingdomFriendUsers();
+    const users = [...opponents, this.root.me.username].map(user => user.toLowerCase());
+    return opponents.every(user => usernamePattern.test(user)) && new Set(users).size === users.length;
+  };
+
   valid = () =>
     this.isThreeKingdoms()
       ? this.gameType !== 'hook' &&
         [7, 10, 15].includes(this.kingdomTime()) &&
         [15, 30, 60].includes(this.kingdomMoveTime()) &&
-        (this.gameType !== 'friend' ||
-          (!!this.root.me &&
-            [this.friendUser, this.friendUserTwo].every(user => usernamePattern.test(user.trim())) &&
-            new Set(
-              [this.friendUser, this.friendUserTwo, this.root.me.username].map(user =>
-                user.trim().toLowerCase(),
-              ),
-            ).size === 3))
+        (this.gameType !== 'friend' || this.validKingdomFriends())
       : this.validFen() && this.timeControl.valid(this.minimumTimeIfReal()) && this.validConstraints();
 
   private readonly invalid = <A>(forced: A | undefined, current: A) =>
@@ -398,7 +405,8 @@ export default class SetupController {
         this.kingdom() === 'random'
           ? ['red', 'green', 'black'][Math.floor(Math.random() * 3)]
           : this.kingdom(),
-      opponents: [this.friendUser.trim(), this.friendUserTwo.trim()],
+      opponents: this.gameType === 'friend' ? this.kingdomFriendUsers() : undefined,
+      botLevel: this.gameType === 'friend' && this.kingdomFriendBot() ? this.aiLevel() : undefined,
     };
     try {
       if (this.gameType === 'ai' && !this.root.me) {

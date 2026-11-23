@@ -33,7 +33,9 @@ object preload:
                     trans.site.standard(),
                     span(cls := "lobby__feature-card__separator", aria.hidden := "true")(" · "),
                     span(cls := "lobby__feature-card__time")(
-                      trans.site.minutesShort(pool.clock.limitInMinutes)
+                      trans.site.minutesShort(
+                        BigDecimal(pool.clock.limitInMinutes).bigDecimal.stripTrailingZeros.toPlainString
+                      )
                     )
                   )
                 ),

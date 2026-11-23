@@ -8,4 +8,9 @@
   font-size: 1.2em;
   cursor: initial;
   line-height: 1.8;
+
+  .user-link .line.patron {
+    line-height: 1;
+    vertical-align: middle;
+  }
 }

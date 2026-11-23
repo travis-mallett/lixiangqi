@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="willJanggiBeIncluded">LiXiangQi có bao giờ thêm janggi không?</string>
+  <string name="janggiNotPlanned">Chưa có kế hoạch trong thời gian tới. LiXiangQi tập trung vào cờ tướng và các biến thể Trung Quốc. Janggi có luật chơi, cách thể hiện và bản sắc Hàn Quốc riêng; hỗ trợ tốt đòi hỏi công sức lâu dài. Bạn có thể chơi tại %1$s. %2$s.</string>
+  <string name="janggiReadWhy">Đọc bài blog để biết lý do</string>
   <string name="faqAbbreviation">Những câu hỏi thường gặp</string>
   <string name="frequentlyAskedQuestions">Những Câu Hỏi Thường Gặp</string>
   <string name="whyIsLichessCalledLichess">Tại sao Lichess lại có tên là Lichess?</string>

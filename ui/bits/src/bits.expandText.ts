@@ -25,7 +25,7 @@ function toYoutubeEmbedUrl(url: string): string | undefined {
 
 site.load.then(() => {
   for (const root of document.querySelectorAll('.expand-text'))
-    void expandProfileLinks(root).catch(() => {
+    void expandProfileLinks(root, !root.classList.contains('ublog-post__markup')).catch(() => {
       // Ordinary profile links remain usable when the public API is unavailable.
     });
   function parseLink(a: HTMLAnchorElement): Parsed | undefined {

@@ -45,7 +45,7 @@ test('shared friend setup requires two distinct opponents other than the challen
   const ctrl = setup('friend');
   const patch = init([attributesModule, propsModule, eventListenersModule]);
   const root = patch(document.createElement('div'), kingdomOpponents(ctrl)).elm as HTMLElement;
-  const inputs = root.querySelectorAll<HTMLInputElement>('input');
+  const inputs = root.querySelectorAll<HTMLInputElement>('input[type="text"]');
   assert.equal(inputs.length, 2);
   inputs[0].value = 'Bob';
   inputs[0].dispatchEvent(new window.Event('input'));
@@ -169,6 +169,14 @@ test('shared setup submits all three-player choices with CSRF XHR headers', asyn
     assert.equal(data.initialSeconds, 420);
     assert.equal(data.moveSeconds, 30);
     assert.equal(redirected, '/three-kingdoms/challenge/abcdefgh');
+
+    ctrl.loading = false;
+    ctrl.kingdomFriendBot(true);
+    ctrl.aiLevel(4);
+    await ctrl.submit();
+    const mixed = JSON.parse(request!.body as string);
+    assert.deepEqual(mixed.opponents, ['Bob']);
+    assert.equal(mixed.botLevel, 4);
   } finally {
     globalThis.fetch = originalFetch;
     site.redirect = originalRedirect;

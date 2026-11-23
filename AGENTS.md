@@ -237,6 +237,11 @@ Specific visual departures are appropriate when explicitly requested or genuinel
 
 For meaningful layout changes, verify desktop, intermediate-width, and mobile behavior. Do not optimize only for the viewport where the issue was first observed.
 
+Capture screenshots of the finished UI and show them in the final handoff for every visible UI change.
+Show both light and dark themes for changes to elements, icons, colors, or visual design.
+For layout-only changes, such as spacing or alignment, a screenshot in either theme is enough.
+Changes with no visible UI impact, such as puzzle engine timing, require no screenshots.
+
 ## Internationalization
 
 LiXiangQi is multilingual.

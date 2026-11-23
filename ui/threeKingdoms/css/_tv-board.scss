@@ -1,0 +1,35 @@
+.three-kingdoms-tv-board {
+  display: block;
+  position: relative;
+  padding: 0 1.5rem 1.5rem;
+
+  &__player {
+    position: absolute;
+    width: 48%;
+    overflow: hidden;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.5rem;
+    transform-origin: center;
+
+    &--red {
+      bottom: 0;
+      left: 26%;
+    }
+
+    &--black {
+      width: 40%;
+      top: calc(25% - 1.125rem);
+      left: -6%;
+      transform: rotate(-60deg);
+    }
+
+    &--green {
+      width: 40%;
+      top: calc(25% - 1.125rem);
+      right: -6%;
+      transform: rotate(60deg);
+    }
+  }
+}

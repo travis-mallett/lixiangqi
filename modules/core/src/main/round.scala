@@ -19,13 +19,19 @@ enum RoundBus extends NotBuseable:
   case Abort(playerId: GamePlayerId)
   case AbortForce
   case BotConnected(color: Color, v: Boolean)
-  case BotPlay(playerId: GamePlayerId, uci: Xiangqi.Uci, promise: Option[Promise[Unit]] = None)
+  case BotPlay(
+      playerId: GamePlayerId,
+      uci: Xiangqi.Uci,
+      promise: Option[Promise[Unit]] = None,
+      receivedAt: Long = nowMillis
+  )
   case Draw(playerId: GamePlayerId, draw: Boolean)
-  case FishnetPlay(uci: Xiangqi.Uci, sign: String)
+  case FishnetPlay(uci: Xiangqi.Uci, sign: String, receivedAt: Long = nowMillis)
   case FishnetPlayV2(
       uci: Xiangqi.Uci,
       turnKey: lila.core.fishnet.AiTurnKey,
-      requestId: lila.core.fishnet.AiMoveRequestId
+      requestId: lila.core.fishnet.AiMoveRequestId,
+      receivedAt: Long = nowMillis
   )
   case FishnetFailureV2(
       turnKey: lila.core.fishnet.AiTurnKey,
@@ -81,7 +87,7 @@ case class ForecastPlay(lastMove: Xiangqi.Uci)
 case class Cheat(color: Color)
 case class HoldAlert(playerId: GamePlayerId, mean: Int, sd: Int, ip: IpAddress)
 case class GoBerserk(color: Color, promise: Promise[Boolean])
-case object NoStart
+case class NoStart(deadlineMillis: Long)
 case object StartClock
 case object TooManyPlies
 

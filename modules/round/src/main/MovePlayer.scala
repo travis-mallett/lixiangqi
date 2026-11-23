@@ -6,11 +6,10 @@ import java.util.concurrent.TimeUnit
 
 import lila.common.Bus
 import lila.core.round.*
-import lila.game.GameExt.applyMove
 import lila.game.actorApi.MoveGameEvent
 import lila.game.{ Progress, UciMemo }
 import lila.round.RoundGame.*
-import lila.xiangqi.{ Xiangqi, XiangqiRules }
+import lila.xiangqi.Xiangqi
 
 final private class MovePlayer(
     finisher: Finisher,
@@ -18,50 +17,39 @@ final private class MovePlayer(
     uciMemo: UciMemo
 )(using Executor):
 
-  sealed private trait MoveResult
-  private case object Flagged extends MoveResult
-  private case class MoveApplied(
-      progress: Progress,
-      move: Xiangqi.MoveResult,
-      compedLag: Option[Centis]
-  ) extends MoveResult
-
   private[round] def human(play: HumanPlay, round: RoundAsyncActor)(
       pov: Pov
+  )(using proxy: GameProxy): Fu[Events] =
+    playMove(pov, round, play.uci, play.blur, play.moveMetrics, play.receivedAt)
+
+  private[round] def bot(
+      uci: Xiangqi.Uci,
+      receivedAt: Long,
+      round: RoundAsyncActor
+  )(pov: Pov)(using proxy: GameProxy): Fu[Events] =
+    playMove(pov, round, uci, false, botLag, receivedAt)
+
+  private def playMove(
+      pov: Pov,
+      round: RoundAsyncActor,
+      uci: Xiangqi.Uci,
+      blur: Boolean,
+      metrics: MoveMetrics,
+      receivedAt: Long
   )(using proxy: GameProxy): Fu[Events] =
     import pov.{ game, color }
     if game.playedPlies >= lila.game.Game.maxPlies then
       round ! TooManyPlies
       fuccess(Nil)
     else if game.playableBy(color) then
-      applyUci(game, play.uci, play.blur, play.moveMetrics)
+      TimedMove(game, uci, blur, metrics, receivedAt)
         .fold(error => fufail(ClientError(s"$pov $error")), fuccess)
         .flatMap:
-          case Flagged => finisher.outOfTime(game)
-          case MoveApplied(progress, move, compedLag) =>
+          case TimedMove.NoStart => finisher.noStart(game)
+          case TimedMove.Flagged => finisher.outOfTime(game)
+          case TimedMove.Applied(progress, move, compedLag) =>
             compedLag.foreach: lag =>
               lila.mon.round.move.lag.moveComp.record(lag.millis, TimeUnit.MILLISECONDS)
-            proxy.save(progress) >>
-              postHumanOrBotPlay(round, pov, progress, move)
-    else if game.finished then fufail(GameIsFinishedError(game.id))
-    else if game.aborted then fufail(ClientError(s"$pov game is aborted"))
-    else if !game.turnOf(color) then fufail(ClientError(s"$pov not your turn"))
-    else fufail(ClientError(s"$pov move refused for some reason"))
-
-  private[round] def bot(
-      uci: Xiangqi.Uci,
-      round: RoundAsyncActor
-  )(pov: Pov)(using proxy: GameProxy): Fu[Events] =
-    import pov.{ game, color }
-    if game.playedPlies >= lila.game.Game.maxPlies then
-      round ! TooManyPlies
-      fuccess(Nil)
-    else if game.playableBy(color) then
-      applyUci(game, uci, blur = false, botLag)
-        .fold(error => fufail(ClientError(error)), fuccess)
-        .flatMap:
-          case Flagged => finisher.outOfTime(game)
-          case MoveApplied(progress, move, _) =>
             proxy.save(progress) >> postHumanOrBotPlay(round, pov, progress, move)
     else if game.finished then fufail(GameIsFinishedError(game.id))
     else if game.aborted then fufail(ClientError(s"$pov game is aborted"))
@@ -88,7 +76,8 @@ final private class MovePlayer(
   private[round] def fishnet(
       game: Game,
       sign: String,
-      uci: Xiangqi.Uci
+      uci: Xiangqi.Uci,
+      receivedAt: Long
   )(using proxy: GameProxy): Fu[Events] =
     if game.playable && game.player.isAi then
       uciMemo
@@ -98,7 +87,7 @@ final private class MovePlayer(
             fufail:
               FishnetError:
                 s"Invalid game hash: $sign id: ${game.id} playable: ${game.playable} player: ${game.player}"
-          else applyFishnetMove(game, uci)
+          else applyFishnetMove(game, uci, receivedAt)
     else
       fufail:
         FishnetError:
@@ -107,21 +96,25 @@ final private class MovePlayer(
   private[round] def fishnetV2(
       game: Game,
       turnKey: lila.core.fishnet.AiTurnKey,
-      uci: Xiangqi.Uci
+      uci: Xiangqi.Uci,
+      receivedAt: Long
   )(using proxy: GameProxy): Fu[Events] =
     if game.playable && game.player.isAi && lila.core.fishnet.AiTurnKey.from(game).contains(turnKey) then
-      applyFishnetMove(game, uci)
+      applyFishnetMove(game, uci, receivedAt)
     else
       fufail:
         FishnetError:
           s"Stale AI turn ${turnKey.value.take(12)} move: ${uci.value} id: ${game.id}"
 
-  private def applyFishnetMove(game: Game, uci: Xiangqi.Uci)(using proxy: GameProxy): Fu[Events] =
-    applyUci(game, uci, blur = false, metrics = fishnetLag)
+  private def applyFishnetMove(game: Game, uci: Xiangqi.Uci, receivedAt: Long)(using
+      proxy: GameProxy
+  ): Fu[Events] =
+    TimedMove(game, uci, blur = false, metrics = fishnetLag, receivedAt = receivedAt)
       .fold(error => fufail(ClientError(error)), fuccess)
       .flatMap:
-        case Flagged => finisher.outOfTime(game)
-        case MoveApplied(progress, move, _) =>
+        case TimedMove.NoStart => finisher.noStart(game)
+        case TimedMove.Flagged => finisher.outOfTime(game)
+        case TimedMove.Applied(progress, move, _) =>
           for
             _ <- proxy.save(progress)
             _ =
@@ -135,31 +128,6 @@ final private class MovePlayer(
 
   private val fishnetLag = MoveMetrics(clientLag = Centis(5).some)
   private val botLag = MoveMetrics(clientLag = Centis(0).some)
-
-  private def applyUci(
-      game: Game,
-      uci: Xiangqi.Uci,
-      blur: Boolean,
-      metrics: MoveMetrics
-  ): Either[String, MoveResult] =
-    XiangqiRules
-      .move(game.xiangqi, uci)
-      .flatMap: move =>
-        game.xiangqi
-          .applyMove(move)
-          .map: next =>
-            val steppedClock = game.clock.map(_.step(metrics, gameActive = !next.state.ended))
-            steppedClock match
-              case Some(stepped)
-                  if stepped.value.outOfTime(game.turnColor, withGrace = false) ||
-                    game.moveTimeOutAfterCompensation(stepped.compensated) =>
-                Flagged
-              case _ =>
-                MoveApplied(
-                  game.applyMove(next, move, steppedClock.map(_.value), blur),
-                  move,
-                  steppedClock.flatMap(_.compensated)
-                )
 
   private def notifyMove(move: Xiangqi.MoveResult, game: Game): Unit =
     import lila.core.round.{ CorresMoveEvent, MoveEvent, SimulMoveEvent }

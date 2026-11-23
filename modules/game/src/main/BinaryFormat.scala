@@ -15,16 +15,17 @@ object BinaryFormat:
       val timesToWrite = if flagged then times.dropRight(1) else times
       ByteArray(ClockEncoder.encode(Centis.raw(timesToWrite).to(Array), start.centis))
 
-    def readSide(start: Centis, ba: ByteArray, flagged: Boolean) =
+    private def readSide(start: Centis, ba: ByteArray, finalBank: Option[Centis]) =
       val decoded: Vector[Centis] =
         Centis.from(ClockEncoder.decode(ba.value, start.centis).to(Vector))
-      if flagged then decoded :+ Centis(0) else decoded
+      // The final sample is omitted on disk. A per-move timeout can leave bank time.
+      decoded ++ finalBank
 
-    def read(start: Centis, bw: ByteArray, bb: ByteArray, flagged: Option[Color]) =
+    def read(clock: Clock, bw: ByteArray, bb: ByteArray, flagged: Option[Color]) =
       Try {
         ByColor(
-          readSide(start, bw, flagged.has(White)),
-          readSide(start, bb, flagged.has(Black))
+          readSide(clock.limit, bw, flagged.filter(_.white).map(clock.remainingTime)),
+          readSide(clock.limit, bb, flagged.filter(_.black).map(clock.remainingTime))
         )
       }.fold(
         e =>

@@ -32,8 +32,9 @@ export async function mountViewer(
   const assetUrl = options.services?.assetUrl ?? (path => site.asset.url(path));
   const prepare = (fen: string) =>
     options.inheritAppearance
-      ? site.pieceImages.ready.then(() => () => {})
+      ? undefined
       : prepareViewerAppearance(
+          element.ownerDocument,
           source.root?.position.board
             ? boardDefinition(source.root.position.board)
             : boardDefinitionForFen(fen),
@@ -47,7 +48,7 @@ export async function mountViewer(
     fen ? prepare(fen) : tree.then(root => prepare(root.fen)),
   ]);
   if (signal?.aborted) throw signal.reason;
-  applyAppearance(element);
+  applyAppearance?.(element);
   return new GameViewer(element, {
     ...options,
     root,

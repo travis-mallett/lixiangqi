@@ -1,4 +1,5 @@
 export { createBoard, type BoardView } from './board';
+export { applyBoardAppearance, preloadBoardImages } from './appearance';
 export { boardAssets, validateBoardAssets, type BoardAssetCatalog } from './catalog';
 export {
   boardDefinition,

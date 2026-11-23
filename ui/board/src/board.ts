@@ -1,3 +1,4 @@
+import { revealBoardWhenReady } from './appearance';
 import { pieceGeometry } from './layout';
 import { GraphBoardView } from './renderer/graph';
 import { RectangularBoardView } from './renderer/rectangular';
@@ -47,7 +48,11 @@ export function createBoard(element: HTMLElement, options: BoardOptions): BoardV
     '--board-piece-diameter',
     String(pieceGeometry.bodyDiameter / pieceGeometry.canvasSize),
   );
-  return options.definition.geometry.kind === 'graph'
-    ? new GraphBoardView(element, options)
-    : new RectangularBoardView(element, options);
+  element.classList.remove('board-assets-ready');
+  const board =
+    options.definition.geometry.kind === 'graph'
+      ? new GraphBoardView(element, options)
+      : new RectangularBoardView(element, options);
+  revealBoardWhenReady(board);
+  return board;
 }

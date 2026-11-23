@@ -308,7 +308,7 @@ final class TournamentApi(
                 _ <- pairingRepo.removePlaying(tour.id)
                 _ <- recomputePlayers(tour)
                 winner <- playerRepo.winner(tour.id)
-                _ <- winner.so(p => tournamentRepo.setWinnerId(tour.id, p.userId))
+                _ <- tournamentRepo.setWinnerId(tour.id, winner.map(_.userId))
                 _ <- tournamentRepo.setStatus(tour.id, Status.finished)
               yield
                 cached.tourCache.clear(tour.id)
@@ -692,12 +692,8 @@ final class TournamentApi(
     Sequencing(tourId, "removePlayerAndRewriteHistory")(tournamentRepo.finishedById): tour =>
       for
         _ <- playerRepo.remove(tourId, userId)
-        _ <- tour.winnerId
-          .contains(userId)
-          .so:
-            playerRepo.winner(tour.id).flatMapz { p =>
-              tournamentRepo.setWinnerId(tour.id, p.userId)
-            }
+        winner <- playerRepo.winner(tour.id)
+        _ <- tournamentRepo.setWinnerId(tour.id, winner.map(_.userId))
       yield
         cached.tourCache.clear(tourId)
         cached.clearRanking(tourId)
@@ -821,15 +817,16 @@ final class TournamentApi(
     playerRepo
       .sortedCursor(tour.id, perSecond.value)
       .documentSource(nb)
+      .via(RankedPlayer.flow)
       .throttle(perSecond.value, 1.second)
-      .mapAsync(1): player =>
-        withSheet.optionFu(cached.sheet(tour, player.userId)).dmap(player -> _)
-      .zipWithIndex
-      .mapAsync(8) { case ((player, sheet), index) =>
+      .mapAsync(1): ranked =>
+        withSheet.optionFu(cached.sheet(tour, ranked.player.userId)).dmap(ranked -> _)
+      .mapAsync(8) { case (ranked, sheet) =>
+        val player = ranked.player
         lightUserApi
           .asyncFallback(player.userId)
           .map:
-            Player.Result(player, _, index.toInt + 1, sheet)
+            Player.Result(player, _, ranked.rank.value, sheet)
       }
 
   def byOwnerStream(

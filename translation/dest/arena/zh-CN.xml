@@ -25,7 +25,7 @@
   <string name="howIsTheWinnerDecided">获胜者如何决定？</string>
   <string name="howIsTheWinnerDecidedAnswer">在锦标赛设定的时限结束后，得分最高的棋手将被宣布为获胜者。
 
-当两名或多名棋手得分相同时，以锦标赛表现分作为破同分依据。</string>
+积分相同时，比较棋手报名时的象棋等级。等级也相同的棋手并列。例如，两人并列第一，下一名为第三。</string>
   <string name="howDoesPairingWork">配对如何运作？</string>
   <string name="howDoesPairingWorkAnswer">锦标赛开始时，棋手根据其等级分进行配对。
 一旦您结束一局对局，请返回锦标赛大厅：您将被与排名相近的棋手配对。这确保了最短的等待时间，但您可能不会遇到锦标赛中的所有其他棋手。

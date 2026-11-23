@@ -19,7 +19,6 @@ export async function initThreeKingdoms(options: Bootstrap): Promise<{ destroy()
   const showError = (error: unknown) => {
     message.textContent = errorText(error);
   };
-  await site.asset.loadPieces;
   try {
     switch (options.mode) {
       case 'local': {

@@ -29,13 +29,12 @@ final class PlayerRepo(private[tournament] val coll: Coll)(using Executor):
 
   private[tournament] def byPlayerIdsOnPage(
       playerIds: List[TourPlayerId],
-      page: Int
+      ranking: Ranking
   ): Fu[RankedPlayers] =
     coll.find($inIds(playerIds)).cursor[Player]().listAll().map { players =>
       playerIds
         .flatMap(id => players.find(_._id == id))
-        .mapWithIndex: (player, index) =>
-          RankedPlayer(Rank((page - 1) * 10 + index + 1), player)
+        .flatMap(RankedPlayer(ranking))
     }
 
   private[tournament] def bestByTour(tourId: TourId, nb: Int, skip: Int = 0): Fu[List[Player]] =
@@ -46,13 +45,26 @@ final class PlayerRepo(private[tournament] val coll: Coll)(using Executor):
       nb: Int,
       skip: Int = 0
   ): Fu[RankedPlayers] =
-    bestByTour(tourId, nb, skip).map { res =>
-      res
-        .foldRight(List.empty[RankedPlayer] -> (res.size + skip)) { case (p, (res, rank)) =>
-          (RankedPlayer(Rank(rank), p) :: res, rank - 1)
-        }
-        ._1
-    }
+    bestByTour(tourId, nb, skip).flatMap: players =>
+      players.headOption match
+        case None => fuccess(Nil)
+        case Some(first) =>
+          val ahead = if skip == 0 then fuccess(0) else computeRankOf(first).map(_.value)
+          ahead.map: preceding =>
+            val ranking = new CompetitionRanking(skip, preceding + 1)
+            players.map(p => RankedPlayer(ranking.next(p.magicScore), p))
+
+  def podium(id: TourId): Fu[RankedPlayers] =
+    bestByTourWithRank(id, 3).flatMap:
+      case top @ (_ :: _ :: last :: Nil) =>
+        coll
+          .find(selectTour(id) ++ $doc("m" -> last.player.magicScore))
+          .cursor[Player]()
+          .listAll()
+          .map: tied =>
+            top.takeWhile(_.player.magicScore != last.player.magicScore) :::
+              tied.sortBy(_.userId.value).map(RankedPlayer(last.rank, _))
+      case top => fuccess(top)
 
   private[tournament] def bestByTourWithRankByPage(
       tourId: TourId,
@@ -238,38 +250,25 @@ final class PlayerRepo(private[tournament] val coll: Coll)(using Executor):
     coll.distinctEasy[UserId, Set]("uid", selectTour(tourId) ++ selectActive ++ selectBot)
 
   def winner(tourId: TourId): Fu[Option[Player]] =
-    coll.find(selectTour(tourId)).sort(bestSort).one[Player]
+    bestByTour(tourId, 2).map:
+      case first :: second :: Nil if first.magicScore == second.magicScore => None
+      case players => players.headOption
 
-  // freaking expensive (marathons)
-  // note: tournaments before ISODate("2015-06-15T03:34:01.134Z") (s0tKhoTU)
-  // have player IDs with a length <= 8, breaking this optimization
-  // instead of fixing it with `$doc("$concat" -> $arr("$_id", ":", "$uid"))`
-  // we can just hide the damage in the UI
-  // to save serverside perfs
   private[tournament] def computeRanking(tourId: TourId): Fu[FullRanking] =
     coll
-      .aggregateWith[Bdoc](): framework =>
-        import framework.*
-        List(
-          Match(selectTour(tourId)),
-          Sort(Descending("m")),
-          Group(BSONNull)("all" -> Push($doc("$concat" -> $arr("$_id", "$uid"))))
-        )
-      .headOption
-      .map:
-        _.flatMap(_.getAsOpt[BSONArray]("all"))
-          .fold(FullRanking(Map.empty, Array.empty)): all =>
-            // mutable optimized implementation
-            val playerIndex = new Array[TourPlayerId](all.size)
-            val ranking = Map.newBuilder[UserId, Rank]
-            var r = 0
-            for u <- all.values do
-              val both = u.asInstanceOf[BSONString].value
-              val userId = UserId(both.drop(8))
-              playerIndex(r) = TourPlayerId(both.take(8))
-              ranking += (userId -> Rank(r))
-              r = r + 1
-            FullRanking(ranking.result(), playerIndex)
+      .find(selectTour(tourId), Some($doc("_id" -> true, "uid" -> true, "m" -> true)))
+      .sort(bestSort)
+      .cursor[Bdoc]()
+      .listAll()
+      .map: rows =>
+        val places = new CompetitionRanking()
+        val ranking = Map.newBuilder[UserId, Rank]
+        val index = rows.iterator.map: row =>
+          val place = places.next(row.getAsTry[Int]("m").get)
+          ranking += row.getAsTry[UserId]("uid").get -> Rank(place.value - 1)
+          row.getAsTry[TourPlayerId]("_id").get
+        val playerIndex = index.toArray
+        FullRanking(ranking.result(), playerIndex)
 
   def computeRankOf(player: Player): Fu[Rank] =
     Rank.from(coll.countSel(selectTour(player.tourId) ++ $doc("m".$gt(player.magicScore))))

@@ -76,6 +76,7 @@ export interface Game {
   initial: string;
   rated: boolean;
   source: string;
+  botHost?: string | null;
   tournamentId?: string | null;
   createdAt: number;
   serverTime: number;
@@ -106,6 +107,7 @@ export interface Challenge {
   creator: string;
   users: string[];
   accepted: string[];
+  botLevel?: number | null;
   expiresAt: number;
   status: string;
   initialSeconds: number;

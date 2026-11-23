@@ -86,6 +86,8 @@ The rectangular backend supports two participants on boards of 1–16 files/rank
 
 Each mounted board selects `---board-image-<geometry.id>` from the theme catalog through its local `--board-image` property. The definition also supplies the coordinate sprite. Hosts provide all geometry-specific theme variables so changing themes preserves each board's geometry. Website frames reserve space using the mounted board's local aspect ratio; previews must not inherit the main board's ratio.
 
+The shared renderer reveals each mounted board after its geometry artwork, coordinate sprite, faces, concealed backs and shadow textures decode. Boards in the same document share decoded URLs. Appearance changes publish the new board and piece set together once the replacement artwork is ready.
+
 Three Kingdoms uses the graph backend with 135 explicit intersections and three seat rotations. `renderer/graphPieces.ts` owns piece identity, orientation and screen geometry; `renderer/rectangularMotion.ts` adapts Chessground's keys and move plans to the same motion owner. Click targets stay at board intersections while separate piece elements travel. Resizing, changing perspective, correcting a position and destroying a board cancel the shared animation lifecycle.
 
 Three Kingdoms live and analysis playback use adjacent forward/backward transitions. Jumps and branch changes remain quiet; backward playback restores captures without replaying capture/check effects. Non-move events such as resignation do not replay the preceding move. The existing deployment installs the locked dependency patch and builds all board consumers, so no migration or additional deployment step is required.

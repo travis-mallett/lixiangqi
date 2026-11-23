@@ -14,7 +14,7 @@ const participant = (color: Color): string => (color === 'white' ? 'red' : 'blac
 
 export function interaction(ctrl: RoundController, playing: boolean = ctrl.isPlaying()): BoardInteraction {
   const { data } = ctrl;
-  return playing && !ctrl.replaying()
+  return playing && !ctrl.replaying() && !ctrl.myTimeIsUp()
     ? {
         mode: 'play',
         participant: participant(data.player.color),

@@ -10,8 +10,8 @@ cg-resize {
   @include mq-board-resizable {
     display: block;
     position: absolute;
-    right: #{13px - $resize-width};
-    bottom: #{13px - $resize-width};
+    right: var(--board-resize-right, 0%);
+    bottom: 0;
     width: $resize-width;
     height: $resize-width;
     cursor: nwse-resize;
@@ -24,16 +24,16 @@ cg-resize {
       position: absolute;
       width: 12px;
       height: 1px;
-      left: 0;
+      right: 3px;
+      bottom: 5px;
+      box-shadow: 0 1px 1px #fff;
+      transform: rotate(-45deg);
     }
 
     &::before {
       width: 5px;
-      transform: translate(7px, 8px) rotate(-45deg);
-    }
-
-    &::after {
-      transform: translate(1px, 6px) rotate(-45deg);
+      right: 2px;
+      bottom: 3px;
     }
 
     &:hover {

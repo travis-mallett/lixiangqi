@@ -206,8 +206,8 @@ final class TournamentRepo(val coll: Coll, playerCollName: CollName)(using Execu
   def setNbPlayers(tourId: TourId, nb: Int) =
     coll.updateField($id(tourId), "nbPlayers", nb).void
 
-  def setWinnerId(tourId: TourId, userId: UserId) =
-    coll.updateField($id(tourId), "winner", userId).void
+  def setWinnerId(tourId: TourId, userId: Option[UserId]) =
+    coll.update.one($id(tourId), userId.fold($unset("winner"))(id => $set("winner" -> id))).void
 
   def setFeaturedGameId(tourId: TourId, gameId: GameId) =
     coll.updateField($id(tourId), "featured", gameId).void

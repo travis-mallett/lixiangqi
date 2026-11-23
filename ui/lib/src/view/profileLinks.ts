@@ -20,7 +20,7 @@ export function profileLinkName(href: string, label: string, origin: string): st
   return name && label.trim().replace(/^@/, '').toLowerCase() === name.toLowerCase() ? name : undefined;
 }
 
-export async function expandProfileLinks(root: ParentNode): Promise<void> {
+export async function expandProfileLinks(root: ParentNode, withPresence = true): Promise<void> {
   const links = new Map<string, HTMLAnchorElement[]>();
   for (const link of root.querySelectorAll<HTMLAnchorElement>('a[href]')) {
     if (link.querySelector('img') || link.closest('pre, code')) continue;
@@ -47,6 +47,7 @@ export async function expandProfileLinks(root: ParentNode): Promise<void> {
             title: profile.title,
             flair: profile.flair,
             patronColor: profile.patronColor,
+            line: withPresence || !!profile.patronColor,
             flag: profile.profile?.flag ?? profile.profile?.country,
             rank: profile.perfs?.xiangqi?.rank,
           }),

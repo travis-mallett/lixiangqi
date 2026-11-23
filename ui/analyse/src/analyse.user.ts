@@ -12,7 +12,6 @@ const start = makeStart(patch);
 const boot = makeBoot(start);
 
 export async function initModule({ mode, cfg }: { mode: 'userAnalysis' | 'replay'; cfg: AnalyseOpts }) {
-  await site.asset.loadPieces;
   if (mode === 'replay') boot(cfg);
   else userAnalysis(cfg);
 }

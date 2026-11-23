@@ -245,32 +245,34 @@ case class Game(
       }
 
   private def moveTimeOut(clock: Clock, withGrace: Boolean): Boolean =
-    moveTimeLimit.exists: limit =>
+    currentMoveLimit.exists: limit =>
       currentMoveElapsed(clock).exists: elapsed =>
         val grace =
           if withGrace then clock.players(turnColor).lag.quota.atMost(Centis.ofSeconds(2))
           else Centis(0)
-        elapsed - grace >= Centis.ofSeconds(limit.limitForMove(playerMoves(turnColor) + 1))
+        elapsed - grace >= limit
 
   def moveTimeOutAfterCompensation(compensatedLag: Option[Centis]): Boolean =
     (for
-      limit <- moveTimeLimit
+      limit <- currentMoveLimit
       clk <- clock
       elapsed <- currentMoveElapsed(clk)
-    yield elapsed - compensatedLag.getOrElse(Centis(0)) >=
-      Centis.ofSeconds(limit.limitForMove(playerMoves(turnColor) + 1))).getOrElse(false)
+    yield elapsed - compensatedLag.getOrElse(Centis(0)) >= limit).getOrElse(false)
 
   def moveTimeRemaining: Option[Centis] =
     for
-      limit <- moveTimeLimit
+      limit <- currentMoveLimit
       clk <- clock
       elapsed <- currentMoveElapsed(clk)
-    yield
-      val full = Centis.ofSeconds(limit.limitForMove(playerMoves(turnColor) + 1))
-      (full - elapsed).nonNeg
+    yield (limit - elapsed).nonNeg
+
+  def currentMoveLimit: Option[Centis] =
+    moveTimeLimit
+      .filterNot(_ => moveTimePaused)
+      .map(l => Centis.ofSeconds(l.limitForMove(playerMoves(turnColor) + 1)))
 
   private def currentMoveElapsed(clock: Clock): Option[Centis] =
-    if moveTimePaused then None else clock.timer.map(clock.timestamper.toNow)
+    clock.timer.map(clock.timestamper.toNow)
 
   /** Time until the player flags from either their bank or the current move ceiling. */
   def effectiveClockRemaining(color: Color): Option[Centis] =

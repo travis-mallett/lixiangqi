@@ -1,9 +1,8 @@
 package lila.round
 
-import chess.{ Centis, Color }
+import chess.Color
 
 import lila.core.game.Player
-import lila.game.GameExt.{ expirable, timeForFirstMove }
 
 object RoundGame:
 
@@ -29,9 +28,6 @@ object RoundGame:
     def secondsSinceCreation = (nowSeconds - g.createdAt.toSeconds).toInt
 
     def justCreated = g.secondsSinceCreation < 2
-
-    def timeBeforeExpiration: Option[Centis] = g.expirable.option:
-      Centis.ofMillis(g.movedAt.toMillis - nowMillis + g.timeForFirstMove.millis).nonNeg
 
   def cannotLose(p: Pov) =
     p.game.position.insufficient:

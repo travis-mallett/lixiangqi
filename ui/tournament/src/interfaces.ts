@@ -227,6 +227,7 @@ export interface DuelPlayer {
 export type DuelTeams = Record<string, string>;
 
 export interface PodiumPlayer extends LightUser {
+  rank: number;
   rankTitle?: string;
   nb: Nb;
 }

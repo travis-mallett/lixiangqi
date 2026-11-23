@@ -57,6 +57,14 @@
     background: center / contain no-repeat;
   }
 
+  &.shared > div {
+    width: 33.333%;
+
+    .trophy {
+      max-width: 100%;
+    }
+  }
+
   .first .trophy {
     height: 9em;
     width: 9em;

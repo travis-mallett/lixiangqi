@@ -11,7 +11,8 @@ private class HumanPlay(
     val blur: Boolean,
     val moveMetrics: chess.MoveMetrics = chess.MoveMetrics(),
     val promise: Option[Promise[Unit]] = None
-)
+):
+  val receivedAt: Long = nowMillis
 private case class ByePlayer(playerId: GamePlayerId)
 private case class GetSocketStatus(promise: Promise[SocketStatus])
 private case class GetGameAndSocketStatus(val promise: Promise[GameAndSocketStatus])

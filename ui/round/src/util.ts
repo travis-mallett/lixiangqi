@@ -4,7 +4,7 @@ import { selectXiangqiNotation } from 'lib/game';
 import type { RecordedClockPlayback } from 'lib/game/replay/recordedClockPlayback';
 import { game as gameRoute } from 'lib/game/router';
 
-import type { EncodedDests, RoundData, Step } from './interfaces';
+import type { EncodedDests, Expiration, RoundData, Step } from './interfaces';
 
 export const analysisUrl = (d: RoundData, ply: number): string =>
   gameRoute(d, d.game.variant.key === 'racingKings' ? 'white' : d.player.color) + '/analysis#' + ply;
@@ -35,5 +35,9 @@ export const upgradeServerData = (d: RoundData): void => {
     step.san = selectXiangqiNotation(step.san, step.sanZh, d.pref.notationStyle);
   });
 
-  if (d.expiration) d.expiration.movedAt = Date.now() - d.expiration.idleMillis;
+  if (d.expiration)
+    d.expiration.expiresAt = performance.now() + d.expiration.millisToMove - d.expiration.idleMillis;
 };
+
+export const firstMoveMillis = (expiration: Expiration, now: number = performance.now()): number =>
+  Math.max(0, expiration.expiresAt - now);

@@ -36,11 +36,6 @@
     }
   }
 
-  &.board-assets-ready .lixiangqi-board cg-board > piece,
-  &.board-assets-ready .lixiangqi-board cg-board .xiangqi-piece-shadow {
-    visibility: visible;
-  }
-
   &__playback {
     min-width: 0;
   }

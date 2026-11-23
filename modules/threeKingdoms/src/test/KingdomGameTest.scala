@@ -42,6 +42,16 @@ class KingdomGameTest extends munit.FunSuite:
     assertEquals(flagged.position.turn, Wu)
     assertEquals(flagged.clock.deadline(flagged.position), Some(121000L))
 
+  test("a friend game's bot is controlled by one surviving human at a time"):
+    val mixed = game.copy(seats = game.seats.updated(Shu.ordinal, Seat(None, Some(3), None)))
+    assertEquals(mixed.botHost, Some(users(Wei.ordinal)))
+    assert(mixed.canMove(users(Wei.ordinal)))
+    assert(!mixed.canMove(users(Wu.ordinal)))
+    val duel = mixed.resign(users(Wei.ordinal), 2000).toOption.get
+    assertEquals(duel.botHost, Some(users(Wu.ordinal)))
+    assert(duel.canMove(users(Wu.ordinal)))
+    assert(!duel.canMove(users(Wei.ordinal)))
+
   test("a draw requires all surviving humans, without an eliminated spectator's consent"):
     val first = game.draw(users(0), 2000).toOption.get
     val second = first.draw(users(1), 3000).toOption.get

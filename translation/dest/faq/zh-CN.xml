@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="willJanggiBeIncluded">以后会加入朝鲜象棋吗？</string>
+  <string name="janggiNotPlanned">近期没有计划。LiXiangQi 专注于中国象棋及其变体。朝鲜象棋有自己的规则、视觉传统和韩国文化身份，要做好支持，需要长期投入。你可以在 %1$s 对弈。%2$s。</string>
+  <string name="janggiReadWhy">阅读博客文章，了解原因</string>
   <string name="faqAbbreviation">常见问题</string>
   <string name="frequentlyAskedQuestions">常见问题</string>
   <string name="whyIsLichessCalledLichess">为什么 Lichess 被称为 Lichess？</string>

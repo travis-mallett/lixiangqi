@@ -14,7 +14,6 @@ async function initModule(): Promise<void> {
   const rules = await loadRules(assetUrl('three-kingdoms-engine/main.js'));
   const element = document.createElement('div');
   const players = document.createElement('div');
-  players.className = 'three-kingdoms-embed__players';
   let board: BoardView | undefined;
   const stream = new EventSource('/api/three-kingdoms/tv/stream');
   stream.onmessage = event => {
@@ -35,7 +34,7 @@ async function initModule(): Promise<void> {
     players.replaceChildren(
       ...game.seats.map(seat => {
         const name = document.createElement('span');
-        name.className = `three-kingdoms-embed__player three-kingdoms-embed__player--${seat.color}`;
+        name.className = `three-kingdoms-tv-board__player three-kingdoms-tv-board__player--${seat.color}`;
         name.textContent =
           seat.user?.name ?? (seat.guest ? root.dataset.guestLabel : root.dataset.computerLabel)!;
         name.title = name.textContent;

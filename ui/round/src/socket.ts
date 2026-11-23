@@ -27,30 +27,6 @@ interface Incoming {
   d: any;
 }
 
-type Callback = (...args: any[]) => void;
-
-function backoff(delay: number, factor: number, callback: Callback): Callback {
-  let timer: number | undefined;
-  let lastExec = 0;
-
-  return function (this: any, ...args: any[]): void {
-    const self: any = this;
-    const elapsed = performance.now() - lastExec;
-
-    const exec = () => {
-      timer = undefined;
-      lastExec = performance.now();
-      delay *= factor;
-      callback.apply(self, args);
-    };
-
-    if (timer) clearTimeout(timer);
-
-    if (elapsed > delay) exec();
-    else timer = setTimeout(exec, delay - elapsed);
-  };
-}
-
 export function make(send: RoundSocketSend, ctrl: RoundController): RoundSocket {
   wsSign(ctrl.sign);
 
@@ -88,6 +64,7 @@ export function make(send: RoundSocketSend, ctrl: RoundController): RoundSocket 
     clockInc(o: { color: Color; time: number }) {
       if (ctrl.clock) {
         ctrl.clock.addTime(o.color, o.time);
+        ctrl.updateClockInput();
         ctrl.redraw();
       }
     },
@@ -170,7 +147,7 @@ export function make(send: RoundSocketSend, ctrl: RoundController): RoundSocket 
     send,
     handlers,
     moreTime: throttle(300, () => send('moretime')),
-    outoftime: backoff(500, 1.1, () => send('flag', ctrl.data.game.player)),
+    outoftime: () => send('flag', ctrl.data.game.player),
     berserk: throttle(200, () => send('berserk', undefined, { ackable: true })),
     sendLoading(typ: EventsWithoutPayload) {
       ctrl.setLoading(true);

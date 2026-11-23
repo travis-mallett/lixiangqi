@@ -61,6 +61,24 @@ test('friend challenges use the server ruleset even after changing the computer 
   assert.equal(ctrl.propsToFormData('white').has('ruleset'), false);
 });
 
+test('Three Kingdoms friend setup requires one username for a bot game and two for a human game', () => {
+  const { ctrl, root } = controller();
+  root.me = { username: 'Creator' };
+  ctrl.openModal('friend', { variant: 'threeKingdoms' }, 'FirstFriend');
+  assert.equal(ctrl.valid(), false);
+  ctrl.kingdomFriendBot(true);
+  assert.equal(ctrl.valid(), true);
+  ctrl.friendUser = 'creator';
+  assert.equal(ctrl.valid(), false);
+  ctrl.friendUser = 'FirstFriend';
+  ctrl.friendUserTwo = 'firstfriend';
+  assert.equal(ctrl.valid(), true);
+  ctrl.kingdomFriendBot(false);
+  assert.equal(ctrl.valid(), false);
+  ctrl.friendUserTwo = 'OtherFriend';
+  assert.equal(ctrl.valid(), true);
+});
+
 test('explicit position and color choices survive setup initialization', () => {
   const { ctrl } = controller();
   ctrl.openModal('ai', { variant: 'fromPosition', fen: 'custom', color: 'black' });

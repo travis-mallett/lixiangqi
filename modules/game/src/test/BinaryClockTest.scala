@@ -21,6 +21,18 @@ class BinaryClockTest extends munit.FunSuite:
   given Conversion[Int, Clock.IncrementSeconds] = Clock.IncrementSeconds(_)
 
   val clock = Clock(120, 2)
+  test("a timeout restores the omitted history sample from the saved bank"):
+    for
+      side <- chess.Color.all
+      bank <- List(Centis(0), Centis(6317))
+    do
+      val terminal = isomorphism(clock.setRemainingTime(side, bank))
+      val history = chess.ByColor.fill(Vector(Centis(11900))).update(side, _ :+ bank)
+      val bytes = history.mapWithColor: (color, times) =>
+        BinaryFormat.clockHistory.writeSide(terminal.limit, times, color == side)
+      val decoded = BinaryFormat.clockHistory.read(terminal, bytes.white, bytes.black, Some(side)).get
+      assertEquals(decoded, history)
+
   val bits22 = List("00000010", "00000010")
   test("write"):
     assertEquals(write(clock), bits22 ::: List.fill(6)(_0_))

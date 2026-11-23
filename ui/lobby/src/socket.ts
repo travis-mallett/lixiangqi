@@ -42,8 +42,7 @@ export default class LobbySocket {
         ctrl.redraw();
       },
       reload_seeks() {
-        if (ctrl.tab === 'seeks' || ctrl.data.seeks.some(seek => seek.action === 'cancelSeek'))
-          ctrl.fetchSeeks();
+        void ctrl.fetchSeeks();
       },
     };
 
@@ -60,10 +59,6 @@ export default class LobbySocket {
   realTimeIn() {
     this.send('hookIn');
   }
-  realTimeOut() {
-    this.send('hookOut');
-  }
-
   poolIn(member: PoolMember) {
     // last arg=true: must not retry
     // because if poolIn is sent before socket opens,

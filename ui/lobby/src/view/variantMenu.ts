@@ -90,7 +90,7 @@ export default function variantMenu(
     button(licon.Cogs, i18n.site.playAgainstComputer, () => setup('ai'), ctrl.poolCount(`${variant}-ai`)),
     button(
       licon.Swords,
-      kingdoms ? i18n.site.challengeTwoFriends : i18n.site.challengeAFriend,
+      kingdoms ? i18n.threeKingdoms.friends : i18n.site.challengeAFriend,
       () => setup('friend'),
       ctrl.poolCount(`${variant}-friend`),
     ),

@@ -68,3 +68,23 @@ test('lookup failures preserve usable profile links', async t => {
   await assert.rejects(expandProfileLinks(root), /Too many requests/);
   assert.equal(root.innerHTML, '<a href="/@/Lunps28">Lunps28</a>');
 });
+
+test('mentions without presence keep patron wings and omit status dots', async t => {
+  const root = document.createElement('div');
+  root.innerHTML = '<a href="/@/Patron">Patron</a> <a href="/@/Player">Player</a>';
+  t.mock.method(
+    globalThis,
+    'fetch',
+    async () =>
+      new Response(
+        JSON.stringify([
+          { id: 'patron', username: 'Patron', patronColor: 3 },
+          { id: 'player', username: 'Player' },
+        ]),
+      ),
+  );
+  await expandProfileLinks(root, false);
+  assert.ok(root.querySelector('a[href="/@/Patron"] .line.patron'));
+  assert.ok(root.querySelector('a.user-link[href="/@/Player"]'));
+  assert.equal(root.querySelector('a[href="/@/Player"] .line'), null);
+});

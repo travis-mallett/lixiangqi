@@ -1,7 +1,7 @@
 package lila.round
 
 import chess.format.Fen
-import chess.{ ByColor, Color, Speed }
+import chess.{ ByColor, Speed }
 import play.api.libs.json.*
 
 import scala.math
@@ -12,7 +12,7 @@ import lila.core.game.Player as GamePlayer
 import lila.core.net.ApiVersion
 import lila.core.user.{ GameUser, GameUsers, WithPerf }
 import lila.core.rank.RankCode.*
-import lila.game.GameExt.{ hasFirstMoveDeadline, moveTimes, timeForFirstMove }
+import lila.game.GameExt.moveTimes
 import lila.game.JsonView.given
 import lila.pref.Pref
 import lila.round.RoundGame.*
@@ -123,11 +123,7 @@ final class JsonView(
       .add("takebackable" -> takebackable)
       .add("moretimeable" -> moretimeable)
       .add("possibleMoves" -> possibleMoves(pov))
-      .add("expiration" -> game.hasFirstMoveDeadline.option:
-        Json.obj(
-          "idleMillis" -> (nowMillis - game.movedAt.toMillis),
-          "millisToMove" -> game.timeForFirstMove.millis
-        ))
+      .add("expiration" -> lila.game.JsonView.expiration(game))
 
   private def commonWatcherJson(
       g: Game,

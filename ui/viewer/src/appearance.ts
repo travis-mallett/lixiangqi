@@ -1,7 +1,8 @@
-import { boardAssets, type BoardDefinition } from '@lixiangqi/board';
+import { boardAssets, preloadBoardImages, type BoardDefinition } from '@lixiangqi/board';
 
 /** Decode the exact URLs the scoped viewer will paint before publishing its appearance. */
 export async function prepareViewerAppearance(
+  doc: Document,
   definition: BoardDefinition,
   assetUrl: (path: string) => string,
   boardKey: string = boardAssets.defaultBoard,
@@ -27,7 +28,7 @@ export async function prepareViewerAppearance(
   const entries = Object.entries(assets).map(([key, path]) => [key, cssUrl(path)] as const);
   const images = entries.map(([, value]) => value);
   if (definition.coordinateImage) images.push(cssUrl(definition.coordinateImage));
-  await site.pieceImages.preload(images);
+  await preloadBoardImages(doc, images);
 
   return root => {
     for (const [key, value] of entries) root.style.setProperty(key, value);
@@ -38,6 +39,5 @@ export async function prepareViewerAppearance(
     root.style.setProperty('---board-hue', '0');
     root.dataset.board = boardKey;
     root.dataset.pieceSet = pieceKey;
-    root.classList.add('board-assets-ready');
   };
 }

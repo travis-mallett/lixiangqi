@@ -1,4 +1,5 @@
 @import '../../../lib/css/embed';
+@import '../tv-board';
 
 body {
   background: transparent;
@@ -6,43 +7,10 @@ body {
 }
 
 .three-kingdoms-embed {
-  display: block;
-  position: relative;
   box-sizing: border-box;
   width: min(100%, calc((100vh - 3rem) * var(--board-aspect-ratio, 1)));
   margin: auto;
-  padding: 0 1.5rem 1.5rem;
   color: $c-font;
-
-  &__player {
-    position: absolute;
-    width: 48%;
-    overflow: hidden;
-    text-align: center;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    line-height: 1.5rem;
-    transform-origin: center;
-
-    &--red {
-      bottom: 0;
-      left: 26%;
-    }
-
-    &--black {
-      width: 40%;
-      top: calc(25% - 1.125rem);
-      left: -6%;
-      transform: rotate(-60deg);
-    }
-
-    &--green {
-      width: 40%;
-      top: calc(25% - 1.125rem);
-      right: -6%;
-      transform: rotate(60deg);
-    }
-  }
 }
 
 html.content-sized-embed {

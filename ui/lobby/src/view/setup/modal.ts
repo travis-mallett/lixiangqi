@@ -18,7 +18,7 @@ export default function setupModal(ctrl: LobbyController): VNode[] | null {
   const buttonText = {
     hook: i18n.site.createLobbyGame,
     friend: setupCtrl.isThreeKingdoms()
-      ? i18n.site.challengeTwoFriends
+      ? i18n.threeKingdoms.friends
       : setupCtrl.friendUser
         ? i18n.site.challengeX(setupCtrl.friendUser)
         : i18n.site.challengeAFriend,

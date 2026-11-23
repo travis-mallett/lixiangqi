@@ -23,14 +23,14 @@ test.beforeAll(async () => {
         contents: `
         import {createBoard,standardXiangqi,miniXiangqi,manchu,threeKingdoms,boardPresentation,positionFromFen} from './ui/board/src';
         import {boardAssets} from './ui/board/src/catalog';
-        import {applyViewerAppearance} from './ui/viewer/src/appearance';
+        import {prepareViewerAppearance} from './ui/viewer/src/appearance';
         const url=p=>'http://board.test/assets/'+p;
         const theme=boardAssets.boards.find(b=>b.key==='xiangqi-cracked-stone');
         window.stoneBoards=[];
         for(const [name,definition] of [['Xiangqi',standardXiangqi],['Mini Xiangqi',miniXiangqi],['Three Kingdoms',threeKingdoms],['Manchu+',manchu],['Jieqi',standardXiangqi]]) {
           const frame=document.createElement('section');
           const title=document.createElement('h2');title.textContent=name;frame.append(title);document.body.append(frame);
-          await applyViewerAppearance(frame,url,theme.key,theme.matchingPieceSet);
+          (await prepareViewerAppearance(document,definition,url,theme.key,theme.matchingPieceSet))(frame);
           const graph=definition===threeKingdoms, mini=definition===miniXiangqi;
           const position=name==='Xiangqi' ? positionFromFen('rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR',definition)
             : {active:'red',pieces:new Map(graph ? [
@@ -69,7 +69,7 @@ for (const width of [320, 768, 1440])
       body{margin:0;padding:16px;display:flex;flex-wrap:wrap;gap:24px;background:#232a27;color:#e8eae1}
       h2{font:18px sans-serif;margin:0 0 12px} section{width:min(650px,calc(100vw - 32px))}
       .board{width:100%;position:relative}.board.graph-board{padding-bottom:0;height:auto}
-      </style><body class="piece-images-ready"></body>`);
+      </style><body></body>`);
     await page.addScriptTag({ content: script, type: 'module' });
     await expect(page.locator('body')).toHaveAttribute('data-ready', 'true');
     await expect(page.locator('.board')).toHaveCount(5);

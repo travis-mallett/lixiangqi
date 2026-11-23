@@ -266,18 +266,20 @@ final class ThreeKingdoms(env: Env) extends LilaController(env):
 
   def createChallenge = AuthOrScopedBodyWithParser(parse.json)(_.Mobile.Play) { ctx ?=> me ?=>
     limit.setupPost(ctx.ip, rateLimited):
+      val body = ctx.body.body
       val request = for
-        config <- configFrom(ctx.body.body)
-        opponents <- (ctx.body.body \ "opponents")
+        config <- configFrom(body)
+        botLevel <- (body \ "botLevel").validateOpt[Int].asEither.left.map(_ => "invalidLevel")
+        opponents <- (body \ "opponents")
           .asOpt[Vector[String]]
-          .filter(v => v.size == 2 && v.forall(_.length <= 30))
+          .filter(v => v.size == 2 - botLevel.size && v.forall(_.length <= 30))
           .toRight("chooseTwoDifferentPlayers")
-      yield config -> opponents.map(s => UserId(s.trim.toLowerCase))
+      yield (config, opponents.map(s => UserId(s.trim.toLowerCase)), botLevel)
       request.fold(
         error => fuccess(BadRequest(jsonError(error))),
-        (config, opponents) =>
+        (config, opponents, botLevel) =>
           feature.challenges
-            .create(me.value, opponents, config)
+            .create(me.value, opponents, config, botLevel)
             .map:
               case Right(challenge) => Created(challengeJson(challenge))
               case Left(error) => BadRequest(jsonError(error))
@@ -337,6 +339,7 @@ final class ThreeKingdoms(env: Env) extends LilaController(env):
     "creator" -> c.creator.value,
     "users" -> c.users.map(_.value),
     "accepted" -> c.accepted.toVector.map(_.value),
+    "botLevel" -> c.botLevel,
     "expiresAt" -> c.expiresAt.toEpochMilli,
     "status" -> c.status,
     "initialSeconds" -> c.config.initialSeconds,

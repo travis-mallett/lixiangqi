@@ -12,7 +12,6 @@ const patch = init([classModule, attributesModule]);
 export async function initModule(opts: PuzzleOpts) {
   wsSetActivity('puzzle');
 
-  await site.asset.loadPieces;
   const element = document.querySelector('main.puzzle') as HTMLElement;
   let mounted = false;
   const ctrl = new PuzzleCtrl(opts, redraw);

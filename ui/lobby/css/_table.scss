@@ -265,6 +265,21 @@
     outline-offset: -3px;
   }
 
+  &__match-tab-label {
+    position: relative;
+
+    &.has-open-games::after {
+      position: absolute;
+      inset-block-start: 0.12em;
+      inset-inline-start: calc(100% + 0.2em);
+      width: 0.45em;
+      height: 0.45em;
+      border-radius: 50%;
+      background: $c-good;
+      content: '';
+    }
+  }
+
   &__play-now.button {
     align-self: flex-start;
     min-width: 8.5em;

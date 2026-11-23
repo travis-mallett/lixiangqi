@@ -43,7 +43,12 @@ final case class KingdomGame(
   def userIds: List[UserId] = seats.flatMap(_.userId).toList
   def playerOf(userId: UserId): Option[Kingdom] =
     Kingdom.values.find(k => seats(k.ordinal).userId.contains(userId))
-  def botHost: Option[UserId] = Option.when(seats.exists(_.aiLevel.isDefined))(userIds.headOption).flatten
+  def botHost: Option[UserId] =
+    if !seats.exists(_.aiLevel.isDefined) then None
+    else
+      userIds match
+        case sole :: Nil => Some(sole)
+        case humans => humans.find(id => playerOf(id).exists(position.active.contains))
   def canMove(userId: UserId): Boolean = !position.finished &&
     (seats(position.turn.ordinal).userId.contains(userId) ||
       (seats(position.turn.ordinal).aiLevel.isDefined && !unattendedDuel && botHost.contains(userId)))
@@ -108,7 +113,7 @@ final case class KingdomGame(
         player <- playerOf(userId).toRight("notAPlayer")
         // Undo to the human's previous move, not a bot reply it would immediately repeat.
         index =
-          if botHost.contains(userId) then
+          if userIds.size == 1 && botHost.contains(userId) then
             events.lastIndexWhere(e => e.actor == player && Move.parse(e.action).nonEmpty)
           else events.size - 1
         _ <- Either.cond(index >= 0, (), "takebackUnavailable")

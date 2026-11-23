@@ -429,6 +429,7 @@ final class GameRepo(c: Coll)(using Executor) extends lila.core.game.GameRepo(c)
         g2.moveTimeRemaining
           .flatMap(_ => g2.effectiveClockRemaining(g2.turnColor))
           .map(remaining => nowInstant.plusMillis((remaining + chess.Centis.ofSeconds(3)).millis))
+          .orElse(g2.firstMoveDeadlineMillis.map(java.time.Instant.ofEpochMilli))
           .orElse(checkInHours.map(nowInstant.plusHours(_)))
     val bson = gameHandler.write(g2) ++ $doc(
       F.initialFen -> fen,

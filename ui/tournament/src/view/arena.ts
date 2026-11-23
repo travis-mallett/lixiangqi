@@ -87,6 +87,7 @@ export function podium(ctrl: TournamentController) {
           h('div.trophy'),
           userLink({
             ...p,
+            rank: undefined,
             line: defined(p.patronColor),
             online: defined(p.patronColor),
           }),
@@ -94,11 +95,14 @@ export function podium(ctrl: TournamentController) {
           podiumStats(p, ctrl.data.berserkable),
         ])
       : undefined;
-  return h('div.podium', [
-    podiumPosition(p[1], 'second'),
-    podiumPosition(p[0], 'first'),
-    podiumPosition(p[2], 'third'),
-  ]);
+  const places = ['', 'first', 'second', 'third'];
+  const shared = new Set(p.map(player => player.rank)).size < p.length;
+  const ordered = !shared && p.length > 1 ? [p[1], p[0], ...p.slice(2)] : p;
+  return h(
+    'div.podium',
+    { class: { shared } },
+    ordered.map(player => podiumPosition(player, places[player.rank])),
+  );
 }
 
 export function controls(ctrl: TournamentController): VNode {

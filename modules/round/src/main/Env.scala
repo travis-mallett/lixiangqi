@@ -82,9 +82,10 @@ final class Env(
       ByColor(of)
 
   private val scheduleExpiration = ScheduleExpiration: game =>
-    game.timeBeforeExpiration.foreach: centis =>
-      scheduler.scheduleOnce((centis.millis + 1000).millis):
-        roundApi.tell(game.id, lila.core.round.NoStart)
+    import lila.game.GameExt.firstMoveDeadlineMillis
+    game.firstMoveDeadlineMillis.foreach: deadline =>
+      scheduler.scheduleOnce((deadline - nowMillis).max(0L).millis):
+        roundApi.tell(game.id, lila.core.round.NoStart(deadline))
 
   private val simulApi = lila.core.data.CircularDep(() => simulApiCircularDep)
   private val tourApi = lila.core.data.CircularDep(() => tourApiCircularDep)

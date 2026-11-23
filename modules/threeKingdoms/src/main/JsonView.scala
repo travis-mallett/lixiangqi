@@ -22,6 +22,7 @@ final class JsonView(lightUser: LightUser.GetterSyncFallback):
     "initial" -> PositionCodec.write(g.initial),
     "rated" -> g.rated,
     "source" -> g.source,
+    "botHost" -> g.botHost.map(_.value),
     "createdAt" -> g.createdAt.toEpochMilli,
     "serverTime" -> nowMillis,
     "clock" -> Json.obj(

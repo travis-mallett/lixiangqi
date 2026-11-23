@@ -72,6 +72,8 @@ export default class RoundController implements MoveRootCtrl {
   socket: RoundSocket;
   board: BoardView;
   private optimisticMoveId?: string;
+  private expirationTimer?: Timeout;
+  private inputExpired = false;
   clock?: ClockCtrl;
   recordedClockPlayback?: RecordedClockPlayback;
   private latestClock?: {
@@ -147,7 +149,7 @@ export default class RoundController implements MoveRootCtrl {
       this.delayedInit();
     }, 200);
 
-    setTimeout(this.showExpiration, 350);
+    this.scheduleExpiration();
 
     if (!document.referrer?.includes('/serviceWorker.')) setTimeout(this.showYourMoveNotification, 500);
 
@@ -161,13 +163,50 @@ export default class RoundController implements MoveRootCtrl {
     if (!this.opts.noab && this.isPlaying()) ab.init(this);
   }
 
-  private readonly showExpiration = () => {
-    if (!this.data.expiration) return;
-    this.redraw();
-    setTimeout(this.showExpiration, 250);
+  private readonly scheduleExpiration = () => {
+    clearTimeout(this.expirationTimer);
+    const expiration = this.data.expiration;
+    if (!expiration) return;
+    this.expirationTimer = setTimeout(
+      () => {
+        this.updateClockInput();
+        this.redraw();
+        if (util.firstMoveMillis(expiration) > 0) this.scheduleExpiration();
+      },
+      Math.min(250, util.firstMoveMillis(expiration)),
+    );
   };
 
+  myTimeIsUp = (): boolean =>
+    game.isPlayerTurn(this.data) &&
+    ((!!this.data.expiration && !this.data.swiss && util.firstMoveMillis(this.data.expiration) === 0) ||
+      !!this.clock?.expired(this.data.player.color) ||
+      this.corresClock?.millisOf(this.data.player.color) === 0);
+
+  updateClockInput = (): void => {
+    const expired = this.myTimeIsUp();
+    if (!this.board || expired === this.inputExpired) return;
+    this.inputExpired = expired;
+    if (expired && this.transientMove?.current === undefined) {
+      this.toSubmit = undefined;
+      this.optimisticMoveId = undefined;
+      this.board.cancelInput();
+      ground.sync(this, this.stepAt(this.ply), false, { kind: 'correction' });
+    } else this.board.setInteraction(ground.interaction(this));
+    this.pluginUpdate(this.stepAt(this.ply).fen);
+  };
+
+  private readonly canSubmitMove = (): boolean =>
+    game.isPlayerTurn(this.data) &&
+    !this.replaying() &&
+    !this.myTimeIsUp() &&
+    this.transientMove?.current === undefined;
+
   onBoardMove = (move: MoveIntent): void => {
+    if (!this.canSubmitMove()) {
+      this.updateClockInput();
+      return;
+    }
     if (!this.keyboardMove?.usedNotation && !this.opts.noab)
       ab.move(
         this,
@@ -235,7 +274,7 @@ export default class RoundController implements MoveRootCtrl {
   };
 
   canMove = (): boolean =>
-    !this.replaying() &&
+    this.canSubmitMove() &&
     (this.data.player.color === 'white' ? 'red' : 'black') === this.board.position().active;
 
   replayEnabledByPref = (): boolean => {
@@ -264,7 +303,11 @@ export default class RoundController implements MoveRootCtrl {
 
   setTitle = (): void => title.set(this);
 
-  actualSendMove = (data: SocketMove, meta: MoveMetadata = { premove: false }): void => {
+  actualSendMove = (data: SocketMove, meta: MoveMetadata = { premove: false }): boolean => {
+    if (!this.canSubmitMove()) {
+      this.updateClockInput();
+      return false;
+    }
     const socketOpts: SocketSendOpts = {
       sign: this.sign,
       ackable: true,
@@ -285,10 +328,11 @@ export default class RoundController implements MoveRootCtrl {
 
     this.transientMove?.register();
     this.redraw();
+    return true;
   };
 
   pluginMove = (orig: string, dest: string, _role?: Role, preConfirmed?: boolean): void => {
-    if (!this.board.allowsMove(orig, dest)) return;
+    if (!this.canSubmitMove() || !this.board.allowsMove(orig, dest)) return;
     const position = this.board.position();
     this.optimisticMoveId = `${this.ply + 1}:${orig}${dest}`;
     this.board.display(recordedPosition(position, orig + dest, position.active === 'red' ? 'black' : 'red'), {
@@ -393,7 +437,6 @@ export default class RoundController implements MoveRootCtrl {
       this.data.game.captures = step.captures;
     }
     d.steps.push(step);
-    if (this.ply === step.ply) this.board.setInteraction(ground.interaction(this, playing));
     game.setOnGame(d, playedColor, true);
     this.data.forecastCount = undefined;
     if (o.clock) {
@@ -406,7 +449,7 @@ export default class RoundController implements MoveRootCtrl {
         d.clock.black = oc.black;
       }
       this.appendRecordedClock(oc, playedColor);
-      if (this.clock && !this.replaying())
+      if (this.clock && !(this.recordedClockPlayback && this.replaying()))
         this.clock.setClock({
           white: oc.white,
           black: oc.black,
@@ -417,9 +460,12 @@ export default class RoundController implements MoveRootCtrl {
       else if (this.corresClock) this.corresClock.update(oc.white, oc.black);
     }
     if (this.data.expiration) {
-      if (this.data.steps.length > 2) this.data.expiration = undefined;
-      else this.data.expiration.movedAt = Date.now();
+      if (game.bothPlayersHavePlayed(d) || !game.playable(d)) d.expiration = undefined;
+      else this.data.expiration.expiresAt = performance.now() + this.data.expiration.millisToMove;
+      this.scheduleExpiration();
     }
+    this.inputExpired = this.myTimeIsUp();
+    if (this.ply === step.ply) this.board.setInteraction(ground.interaction(this));
     this.redraw();
     if (playing && playedColor === d.player.color) {
       this.transientMove?.clear();
@@ -433,7 +479,8 @@ export default class RoundController implements MoveRootCtrl {
       const premovePly = this.ply;
       const premoveFen = step.fen;
       setTimeout(() => {
-        if (this.ply !== premovePly || this.stepAt(this.ply).fen !== premoveFen) return;
+        if (!this.canSubmitMove() || this.ply !== premovePly || this.stepAt(this.ply).fen !== premoveFen)
+          return;
         if (this.nvui) this.nvui.playPremove();
         else if (!this.board.playPremove()) {
           this.showYourMoveNotification();
@@ -453,12 +500,16 @@ export default class RoundController implements MoveRootCtrl {
     if (posChanged) this.ply = util.lastPly(d);
     util.upgradeServerData(d);
     this.data = d;
+    this.transientMove?.clear();
+    this.optimisticMoveId = undefined;
+    this.toSubmit = undefined;
+    this.scheduleExpiration();
     recordGuestAiWin(d);
     this.shouldSendMoveTime = false;
     this.updateClockCtrl();
     this.captureLatestClock(d.clock);
     this.initRecordedClockPlayback();
-    if (this.clock && !this.replaying())
+    if (this.clock && !(this.recordedClockPlayback && this.replaying()))
       this.clock.setClock({
         white: d.clock!.white,
         black: d.clock!.black,
@@ -466,6 +517,7 @@ export default class RoundController implements MoveRootCtrl {
         ticking: this.tickingClockColor(),
       });
     if (this.corresClock) this.corresClock.update(d.correspondence!.white, d.correspondence!.black);
+    this.inputExpired = this.myTimeIsUp();
     if (posChanged || !this.replaying()) ground.reload(this);
     if (posChanged) this.board.cancelPremove();
     this.setTitle();
@@ -489,17 +541,21 @@ export default class RoundController implements MoveRootCtrl {
     d.game.abortedBy = o.abortedBy;
     d.game.boosted = o.boosted;
     d.player.blindfold = false;
-    this.userJump(this.lastPly());
-    d.game.fen = util.lastStep(this.data).fen;
-    // If losing/drawing on time but locally it is the opponent's turn, move did not reach server before the end
-    if (
-      o.status.name === 'outoftime' &&
-      d.player.color !== o.winner &&
-      this.board.position().active === (d.opponent.color === 'white' ? 'red' : 'black')
-    ) {
-      this.reload(d);
-    }
-    this.board.setInteraction({ mode: 'display' });
+    if (this.nvui) this.nvui.premoveInput = '';
+    d.expiration = undefined;
+    clearTimeout(this.expirationTimer);
+    this.transientMove?.clear();
+    this.toSubmit = undefined;
+    const finalTransition = this.optimisticMoveId ? 'correction' : 'jump';
+    this.optimisticMoveId = undefined;
+    this.ply = this.lastPly();
+    const finalStep = util.lastStep(d);
+    d.game.fen = finalStep.fen;
+    this.board.cancelInput();
+    ground.sync(this, finalStep, false, { kind: finalTransition });
+    pubsub.emit('ply', this.ply);
+    this.pluginUpdate(finalStep.fen);
+    this.syncRecordedClockForPly();
     if (o.rank) {
       d.player.rank = o.rank[d.player.color];
       d.opponent.rank = o.rank[d.opponent.color];
@@ -522,6 +578,7 @@ export default class RoundController implements MoveRootCtrl {
         black: o.clock.bc * 0.01,
         ticking: undefined,
       });
+    else this.clock?.stopClock();
     if (o.clock)
       this.latestClock = {
         white: o.clock.wc * 0.01,
@@ -571,7 +628,10 @@ export default class RoundController implements MoveRootCtrl {
     } else {
       this.clock = undefined;
       if (d.correspondence)
-        this.corresClock ??= new CorresClockController(this, d.correspondence, this.socket.outoftime);
+        this.corresClock ??= new CorresClockController(this, d.correspondence, () => {
+          this.updateClockInput();
+          this.socket.outoftime();
+        });
     }
   }
 
@@ -660,7 +720,13 @@ export default class RoundController implements MoveRootCtrl {
 
   private readonly makeClockOpts: () => ClockOpts = () => ({
     onFlag: () => {
-      if (!this.recordedClockPlayback?.isPlaying()) this.socket.outoftime();
+      if (
+        game.playable(this.data) &&
+        !(this.recordedClockPlayback && (this.replaying() || this.recordedClockPlayback.isPlaying()))
+      ) {
+        this.updateClockInput();
+        this.socket.outoftime();
+      }
     },
     bothPlayersHavePlayed: () => game.bothPlayersHavePlayed(this.data),
     hasGoneBerserk: this.hasGoneBerserk,
@@ -796,8 +862,7 @@ export default class RoundController implements MoveRootCtrl {
     this.setLoading(true, 300);
 
     if (v) {
-      this.actualSendMove(submit);
-      site.sound.play('confirmation');
+      if (this.actualSendMove(submit)) site.sound.play('confirmation');
     } else this.jump(this.ply);
   };
 

@@ -158,7 +158,7 @@ object BSONHandlers:
             bb <- blackClockHistory
             history <-
               BinaryFormat.clockHistory
-                .read(clk.limit, bw, bb, (light.status == Status.Outoftime).option(turnColor))
+                .read(clk, bw, bb, (light.status == Status.Outoftime).option(turnColor))
             _ = lila.mon.game.loadClockHistory.increment()
           yield history,
         status = light.status,

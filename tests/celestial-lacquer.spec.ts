@@ -14,11 +14,11 @@ test.beforeAll(async () => {
         resolveDir: process.cwd(),
         contents: `
       import {createBoard, standardXiangqi, manchu, threeKingdoms, boardPresentation, positionFromFen} from './ui/board/src';
-      import {applyViewerAppearance} from './ui/viewer/src/appearance';
+      import {prepareViewerAppearance} from './ui/viewer/src/appearance';
       const url=p=>'http://board.test/assets/'+p;
       for(const [index, definition] of [standardXiangqi,manchu,standardXiangqi,threeKingdoms].entries()){
         const frame=document.createElement('section');document.body.append(frame);
-        await applyViewerAppearance(frame,url,'xiangqi-tournament','celestial-lacquer');
+        (await prepareViewerAppearance(document,definition,url,'xiangqi-tournament','celestial-lacquer'))(frame);
         const graph=index===3;
         const position=index===0 ? positionFromFen('rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR',definition)
           : {active:'red',pieces:new Map(graph ? [
@@ -58,7 +58,7 @@ for (const width of [320, 768, 1440])
       body{margin:0;padding:12px;display:flex;flex-wrap:wrap;gap:16px;background:#676e68}
       section{width:min(600px,calc(100vw - 24px))}
       .board{width:100%;position:relative}.board.graph-board{padding-bottom:0;height:auto}
-      </style><body class="piece-images-ready"></body>`);
+      </style><body></body>`);
     await page.addScriptTag({ content: script, type: 'module' });
     await expect(page.locator('body')).toHaveAttribute('data-ready', 'true');
     await expect(page.locator('.board')).toHaveCount(4);

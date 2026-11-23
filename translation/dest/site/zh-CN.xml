@@ -110,6 +110,7 @@
   </plurals>
   <string name="dtzWithRounding">基于 DTZ50\'\' 的舍入值，计算至下次吃子、走兵或将杀前的半回合数</string>
   <string name="noGameFound">未找到对局</string>
+  <string name="openGamesAvailable">有可加入的对局</string>
   <string name="maxDepthReached">已达最大深度！</string>
   <string name="maybeIncludeMoreGamesFromThePreferencesMenu">请尝试在选项里包含更多对局</string>
   <string name="openings">开局</string>

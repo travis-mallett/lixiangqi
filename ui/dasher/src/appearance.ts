@@ -1,4 +1,5 @@
 import { debounce } from 'lib/async';
+import { applyBoardAppearance } from 'lib/board';
 import { prefersLightThemeQuery } from 'lib/device';
 import { updateBoardColorEmbeds, updateThemeEmbeds } from 'lib/embed';
 import { licon } from 'lib/licon';
@@ -87,7 +88,7 @@ export class AppearanceCtrl {
       this.boardSlider('brightness', i18n.site.brightness, { min: 20, max: 140, step: 1 }),
       this.boardSlider('contrast', i18n.site.contrast, { min: 40, max: 200, step: 2 }),
       this.boardSlider('saturation', i18n.site.saturation, { min: 0, max: 200, step: 2 }),
-      this.boardSlider('hue', i18n.site.hue, { min: 0, max: 100, step: 1 }, value => `${value * 3.6}°`),
+      this.boardSlider('hue', i18n.site.hue, { min: 0, max: 100, step: 1 }, value => `${value * 3.6}Ã‚Â°`),
       hl(
         'button.text.board-reset',
         {
@@ -412,9 +413,7 @@ export class AppearanceCtrl {
       doc.documentElement.classList.add(themeClass);
       doc.body.dataset.uiTheme = uiTheme.key;
       doc.body.dataset.colorScheme = colorScheme;
-      doc.body.dataset.board = state.boardTheme;
-      this.applyBoardTheme(state.boardTheme, doc);
-      this.applyPieceSet(state.pieceSet, doc);
+      this.applyBoardAssets(state, doc);
     };
     applyTheme(document);
     updateThemeEmbeds(applyTheme);
@@ -431,8 +430,6 @@ export class AppearanceCtrl {
     this.applyBoardSettings();
 
     for (const [component, field] of Object.entries({
-      board: 'board',
-      pieces: 'pieceSet',
       uiTheme: 'uiTheme',
       background: 'background',
       sound: 'soundSet',
@@ -442,10 +439,14 @@ export class AppearanceCtrl {
       if (previous && previous !== document.body.dataset[field])
         trackTraffic('appearance.changed', { component, previous });
     }
+    for (const [component, previous, value] of [
+      ['board', before.board, state.boardTheme],
+      ['pieces', before.pieceSet, state.pieceSet],
+    ] as const)
+      if (previous && previous !== value) trackTraffic('appearance.changed', { component, previous });
     site.sound.changeSoundSet(state.soundSet);
     site.sound.changeMusicSet(state.musicSet);
     pubsub.emit('theme', colorScheme);
-    pubsub.emit('board.change');
   }
 
   private readonly applyBoardSettings = (): void => {
@@ -463,28 +464,27 @@ export class AppearanceCtrl {
     updateBoardColorEmbeds();
   };
 
-  private readonly applyBoardTheme = (key: string, doc: Document): void => {
-    const board = this.data.boards.find(candidate => candidate.key === key)!;
-    doc.body.style.setProperty(
-      '---board-image',
-      `url(${site.asset.url(`images/board/${board.file}`, { pathOnly: true })})`,
-    );
+  private readonly applyBoardAssets = (state: AppearanceState, doc: Document): void => {
+    const board = this.data.boards.find(candidate => candidate.key === state.boardTheme)!;
+    const pieces = this.data.pieceSets.find(candidate => candidate.key === state.pieceSet)!;
+    const paths: Record<string, string> = {
+      ...pieces.assets,
+      '---board-image': `images/board/${board.file}`,
+    };
     for (const [geometry, path] of Object.entries(board.geometries))
-      doc.body.style.setProperty(
-        `---board-image-${geometry}`,
-        `url(${site.asset.url(path, { pathOnly: true })})`,
-      );
-    doc.body.style.setProperty('---cg-ccw', board.coordinateLight);
-    doc.body.style.setProperty('---cg-ccb', board.coordinateDark);
-    doc.body.style.setProperty('---cg-cs', 'none');
-  };
-
-  private readonly applyPieceSet = (key: string, doc: Document): void => {
-    const pieceSet = this.data.pieceSets.find(candidate => candidate.key === key)!;
-    const assets = Object.fromEntries(
-      Object.entries(pieceSet.assets).map(([variable, path]) => [variable, `url(${site.asset.url(path)})`]),
+      paths[`---board-image-${geometry}`] = path;
+    const images = Object.fromEntries(
+      Object.entries(paths).map(([key, path]) => [key, `url("${site.asset.url(path)}")`]),
     );
-    void doc.defaultView?.site?.pieceImages.set(assets, key).catch(console.error);
+    void applyBoardAppearance(doc, images, board.key, pieces.key, {
+      '---cg-ccw': board.coordinateLight,
+      '---cg-ccb': board.coordinateDark,
+      '---cg-cs': 'none',
+    })
+      .then(applied => {
+        if (applied && doc === document) pubsub.emit('board.change');
+      })
+      .catch(console.error);
   };
 
   private readonly backgroundUrl = (): string | undefined => {

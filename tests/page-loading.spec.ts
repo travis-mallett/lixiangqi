@@ -54,10 +54,14 @@ for (const path of ['/player', '/learn/ancient-manuals']) {
 test('board images still initialize when a board is requested from a text-only page', async ({ page }) => {
   await page.goto('/player');
   await page.waitForFunction(() => !!(window.site as any).asset);
-  await page.evaluate(async () => {
-    await (window.site as any).asset.loadPieces;
+  await page.evaluate(() => {
+    const preview = document.createElement('div');
+    preview.className = 'mini-board mini-board--init cg-wrap';
+    preview.dataset.state = '4k4/9/9/9/9/9/9/9/9/4K4 w,white,';
+    document.body.append(preview);
+    (window as any).lichess.initializeDom();
   });
-  await expect(page.locator('body')).toHaveClass(/piece-images-ready/);
+  await expect(page.locator('.mini-board.board-assets-ready')).toBeVisible();
 });
 
 test('late text fonts cannot rearrange an already visible leaderboard', async ({ page }) => {

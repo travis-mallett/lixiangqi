@@ -35,6 +35,18 @@ final class FaqUi(helpers: Helpers, sitePages: SitePages):
           h1(cls := "box__top")(trf.frequentlyAskedQuestions()),
           h2("Lixiangqi"),
           question(
+            "janggi",
+            trf.willJanggiBeIncluded.txt(),
+            p(
+              trf.janggiNotPlanned(
+                a(href := "https://www.pychess.org/variants/janggi")("PyChess"),
+                a(
+                  href := "/@/ChineseChessOutLoud/blog/is-janggi-korean-chess-coming-to-lixiangqi-not-anytime-soon-heres-why/nZliOV3S"
+                )(trf.janggiReadWhy())
+              )
+            )
+          ),
+          question(
             "name",
             trf.whyIsLichessCalledLichess.txt(),
             p(

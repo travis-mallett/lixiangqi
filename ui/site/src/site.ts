@@ -23,12 +23,7 @@ site.displayLocale = displayLocale;
 site.blindMode = document.body.classList.contains('blind-mode');
 site.mousetrap = new Mousetrap(document);
 site.powertip = powertip;
-site.asset = {
-  ...assets,
-  get loadPieces() {
-    return site.pieceImages.ready;
-  },
-};
+site.asset = { ...assets };
 site.unload = unload;
 site.redirect = redirect;
 site.reload = reload;

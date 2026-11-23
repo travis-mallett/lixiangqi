@@ -21,8 +21,11 @@ import { initModule } from '../src/viewer.embed';
 
 globalThis.Image = window.Image;
 site.manifest = { css: {}, js: {}, hashed: { 'piece/default-wood/bK.svg': 'testhash' } };
-site.pieceImages = { preload: async () => {}, ready: Promise.resolve(), set: async () => {} };
-Object.defineProperty(Image.prototype, 'decode', { configurable: true, value: async () => {} });
+Object.defineProperty(Image.prototype, 'decode', {
+  configurable: true,
+  writable: true,
+  value: async () => {},
+});
 globalThis.AbortController = window.AbortController;
 window.matchMedia = globalThis.matchMedia;
 const viewers: GameViewer[] = [];
@@ -252,9 +255,11 @@ test('an annotated example keeps its note box in place between moves', () => {
 
 test('a viewer mounts only after its selected board, faces and shadows are ready', async () => {
   const gate = Promise.withResolvers<void>();
-  const requested = Promise.withResolvers<string[]>();
-  mock.method(site.pieceImages, 'preload', (urls: string[]) => {
-    requested.resolve(urls);
+  const urls: string[] = [];
+  const requested = Promise.withResolvers<void>();
+  mock.method(Image.prototype, 'decode', function (this: HTMLImageElement) {
+    urls.push(`url("${new URL(this.src).pathname}")`);
+    requested.resolve();
     return gate.promise;
   });
   const element = document.createElement('div');
@@ -262,14 +267,13 @@ test('a viewer mounts only after its selected board, faces and shadows are ready
   const mounting = mountViewer(
     element,
     { tree: fixture() },
-    { labels, services: { assetUrl: path => `/assets/${path}` } },
+    { labels, services: { assetUrl: path => `/readiness/${path}` } },
   );
-  const urls = await requested.promise;
+  await requested.promise;
   assert.equal(element.children.length, 0);
-  assert.equal(element.classList.contains('board-assets-ready'), false);
   gate.resolve();
   viewers.push(await mounting);
-  assert.match(element.style.getPropertyValue('---board-image-xiangqi-9x10'), /^url\("\/assets\//);
+  assert.match(element.style.getPropertyValue('---board-image-xiangqi-9x10'), /^url\("\/readiness\//);
   for (const variable of [
     '---board-image',
     '---black-general',

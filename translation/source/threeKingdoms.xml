@@ -3,7 +3,7 @@
   <string name="title">Game of the Three Kingdoms</string>
   <string name="rated">Rated Three Kingdoms</string>
   <string name="computer">Play against computer</string>
-  <string name="friends">Challenge two friends</string>
+  <string name="friends">Challenge Friend(s)</string>
   <string name="analysis">Three Kingdoms analysis board</string>
   <string name="history">Game history</string>
   <string name="rules">Rules and how to play</string>
@@ -16,6 +16,7 @@
   <string name="invite">Send both invitations</string>
   <string name="opponentOne">First friend’s username</string>
   <string name="opponentTwo">Second friend’s username</string>
+  <string name="secondOpponentBot">Use a bot as the second opponent</string>
   <string name="accept">Accept invitation</string>
   <string name="decline">Decline invitation</string>
   <string name="accepted">Accepted</string>

@@ -55,6 +55,7 @@ export default class LobbyController {
 
   private readonly poolInStorage: LichessStorage;
   private flushHooksTimeout?: number;
+  private seekRequest = 0;
   private readonly alreadyWatching: string[] = [];
   private readonly kingdomsWatching = new Map<string, EventSource>();
 
@@ -170,11 +171,15 @@ export default class LobbyController {
     }
 
     pubsub.on('socket.open', () => {
-      if (this.tab === 'real_time') {
-        this.data.hooks = [];
-        this.socket.realTimeIn();
-      } else if (this.tab === 'pools' && this.poolMember) this.poolIn();
-      else if (this.tab === 'seeks') this.fetchSeeks();
+      if (this.tab === 'pools' && this.poolMember) this.poolIn();
+      this.awake();
+    });
+    pubsub.on('socket.close', () => {
+      ++this.seekRequest;
+      this.data.hooks = [];
+      this.stepHooks = [];
+      this.data.seeks = [];
+      this.redraw();
     });
 
     window.addEventListener('beforeunload', () => this.leavePool());
@@ -273,14 +278,8 @@ export default class LobbyController {
 
   setTab = (tab: Tab) => {
     if (tab !== this.tab) {
-      if (this.tab === 'real_time') {
-        this.socket.realTimeOut();
-        this.data.hooks = [];
-        this.stepHooks = [];
-      }
       this.tab = tab;
-      if (tab === 'seeks') void this.fetchSeeks();
-      if (tab === 'real_time') this.socket.realTimeIn();
+      if (tab === 'real_time') this.flushHooks(true);
       this.redraw();
     }
   };
@@ -300,7 +299,10 @@ export default class LobbyController {
   };
 
   fetchSeeks = async () => {
-    this.data.seeks = await xhr.seeks();
+    const request = ++this.seekRequest;
+    const seeks = await xhr.seeks().catch(() => undefined);
+    if (!seeks || request !== this.seekRequest) return;
+    this.data.seeks = seeks;
     seekRepo.initAll(this);
     this.syncPresence();
     this.redraw();
@@ -444,15 +446,8 @@ export default class LobbyController {
   };
 
   awake = () => {
-    switch (this.tab) {
-      case 'real_time':
-        this.data.hooks = [];
-        this.socket.realTimeIn();
-        break;
-      case 'seeks':
-        this.fetchSeeks();
-        break;
-    }
+    this.socket.realTimeIn();
+    void this.fetchSeeks();
   };
 
   // after click on round "new opponent" button

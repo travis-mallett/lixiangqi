@@ -25,13 +25,23 @@ export default function table(ctrl: LobbyController) {
   const { opts } = ctrl;
   const hasOngoingRealTimeGame = ctrl.hasOngoingRealTimeGame(true);
   const poolSeeking = ctrl.hasPoolSeeking();
-  const quickDisabled =
-    opts.playban || opts.hasUnreadLichessMessage || !!ctrl.me?.isBot || hasOngoingRealTimeGame;
+  const offersDisabled = !!opts.playban || opts.hasUnreadLichessMessage || !!ctrl.me?.isBot;
+  const quickDisabled = offersDisabled || hasOngoingRealTimeGame;
   const performance = ctrl.homePools.find(pool => pool.lim === 15)!;
   const tabs = [
     ['pools', licon.LineGraph, i18n.site.ratedXiangqi],
-    ['real_time', licon.Group, i18n.site.lobby],
-    ['seeks', licon.Envelope, i18n.site.correspondence],
+    [
+      'real_time',
+      licon.Group,
+      i18n.site.lobby,
+      !quickDisabled && ctrl.data.hooks.some(hook => hook.action === 'join' && !hook.disabled),
+    ],
+    [
+      'seeks',
+      licon.Envelope,
+      i18n.site.correspondence,
+      !offersDisabled && ctrl.data.seeks.some(seek => seek.action === 'joinSeek'),
+    ],
   ] as const;
 
   function selectTab(key: Tab) {
@@ -44,7 +54,7 @@ export default function table(ctrl: LobbyController) {
       hl(
         'div.lobby__match-tabs',
         { attrs: { role: 'tablist', 'aria-label': i18n.site.play } },
-        tabs.map(([key, icon, label], index) =>
+        tabs.map(([key, icon, label, available], index) =>
           hl(
             'button',
             {
@@ -53,6 +63,7 @@ export default function table(ctrl: LobbyController) {
                 id: 'home-tab-' + key,
                 role: 'tab',
                 'aria-label': label,
+                'aria-description': available ? i18n.site.openGamesAvailable : false,
                 'aria-selected': String(ctrl.tab === key),
                 tabindex: ctrl.tab === key ? 0 : -1,
                 'aria-controls': 'home-match-panel',
@@ -70,7 +81,7 @@ export default function table(ctrl: LobbyController) {
                 },
               },
             },
-            label,
+            hl('span.lobby__match-tab-label', { class: { 'has-open-games': !!available } }, label),
           ),
         ),
       ),
@@ -121,11 +132,7 @@ export default function table(ctrl: LobbyController) {
   function offers() {
     const realTime = ctrl.tab === 'real_time';
     const label = realTime ? i18n.site.createCustomGame : i18n.site.createCorrespondenceGame;
-    const disabled =
-      !!opts.playban ||
-      opts.hasUnreadLichessMessage ||
-      !!ctrl.me?.isBot ||
-      (realTime && hasOngoingRealTimeGame);
+    const disabled = realTime ? quickDisabled : offersDisabled;
     const rows = realTime ? ctrl.stepHooks : ctrl.data.seeks;
     return hl('div.lobby__offers', { key: ctrl.tab }, [
       hl('div.lobby__offers-list', { attrs: { inert: disabled } }, [

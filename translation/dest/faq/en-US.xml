@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="willJanggiBeIncluded">Is janggi ever going to be included?</string>
+  <string name="janggiNotPlanned">Not anytime soon. LiXiangQi focuses on xiangqi and Chinese variants. Janggi has its own rules, presentation, and Korean identity, and supporting it properly would require ongoing work. You can play it on %1$s. %2$s.</string>
+  <string name="janggiReadWhy">Read why in the blog post</string>
   <string name="faqAbbreviation">FAQ</string>
   <string name="frequentlyAskedQuestions">Frequently Asked Questions</string>
   <string name="whyIsLichessCalledLichess">Why is Lixiangqi called Lixiangqi?</string>

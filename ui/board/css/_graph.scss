@@ -7,6 +7,11 @@
   // Flex/grid rows may be taller than the board (for example, game history).
   align-self: start;
 
+  &[data-board-definition='threeKingdoms'] {
+    // The flat-bottom hexagon meets its lower-right vertex at 75% of the canvas width.
+    --board-resize-right: 25%;
+  }
+
   &__surface,
   &__artwork-frame,
   &__artwork,

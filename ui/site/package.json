@@ -15,10 +15,7 @@
     },
     "bundle": [
       "src/site.*Embed.ts",
-      {
-        "module": "src/site.ts",
-        "inline": "src/site.inline.ts"
-      }
+      "src/site.ts"
     ]
   }
 }

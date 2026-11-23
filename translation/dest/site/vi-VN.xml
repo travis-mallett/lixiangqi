@@ -106,6 +106,7 @@
   </plurals>
   <string name="dtzWithRounding">DTZ50\" được làm tròn, dựa vào số nước đi quân cho tới nước ăn quân hoặc đi tiến tốt tiếp theo</string>
   <string name="noGameFound">Không tìm thấy ván nào</string>
+  <string name="openGamesAvailable">Có ván đấu đang chờ người tham gia</string>
   <string name="maxDepthReached">Đã đạt độ sâu tối đa!</string>
   <string name="maybeIncludeMoreGamesFromThePreferencesMenu">Bạn có muốn thêm nhiều ván đấu hơn từ mục lục?</string>
   <string name="openings">Các khai cuộc</string>

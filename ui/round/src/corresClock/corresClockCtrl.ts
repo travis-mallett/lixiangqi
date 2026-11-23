@@ -1,3 +1,5 @@
+import { playable } from 'lib/game';
+
 import type RoundController from '../ctrl';
 
 export interface CorresClockData {
@@ -36,7 +38,7 @@ export class CorresClockController {
     this.timePercentDivisor = 0.1 / data.increment;
     this.update(data.white, data.black);
     this.ticker = setInterval(() => {
-      if (!root.data.correspondence || !root.corresClock) return clearInterval(this.ticker);
+      if (root.corresClock !== this || !playable(root.data)) return clearInterval(this.ticker);
       this.tick(root.data.game.player);
       root.redraw();
     }, 1000);

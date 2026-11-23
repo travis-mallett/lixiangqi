@@ -241,7 +241,6 @@ async function initExample(root: HTMLElement, example: Example, animationDuratio
 }
 
 export default async function initExamples(bootstrap: Bootstrap): Promise<void> {
-  await site.asset.loadPieces;
   for (const diagram of bootstrap.diagrams ?? []) {
     const element = document.getElementById(diagram.id);
     if (!element) continue;

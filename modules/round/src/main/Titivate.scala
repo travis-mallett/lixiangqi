@@ -4,9 +4,9 @@ import org.apache.pekko.actor.*
 import org.apache.pekko.stream.scaladsl.*
 
 import lila.common.LilaStream
-import lila.core.round.{ Abandon, RoundBus }
+import lila.core.round.{ Abandon, NoStart, RoundBus }
 import lila.db.dsl.*
-import lila.game.GameExt.abandoned
+import lila.game.GameExt.{ abandoned, firstMoveDeadlineMillis }
 import lila.game.{ GameRepo, Query }
 import lila.mon.extensions.*
 
@@ -88,6 +88,11 @@ final private class Titivate(
         case game if game.outoftime(withGrace = true) =>
           fuccess:
             roundApi.tell(game.id, RoundBus.QuietFlagCheck)
+
+        case game if game.firstMoveDeadlineMillis.isDefined =>
+          val deadline = game.firstMoveDeadlineMillis.get
+          if deadline <= nowMillis then fuccess(roundApi.tell(game.id, NoStart(deadline)))
+          else gameRepo.setCheckAt(game, java.time.Instant.ofEpochMilli(deadline)).void
 
         case game if game.abandoned =>
           fuccess:

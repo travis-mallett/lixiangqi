@@ -24,12 +24,11 @@ test.beforeAll(async () => {
         resolveDir: process.cwd(),
         contents: `
         import { createBoard, standardXiangqi, miniXiangqi, threeKingdoms, boardPresentation, positionFromFen } from './ui/board/src';
-        import { applyViewerAppearance } from './ui/viewer/src/appearance';
+        import { prepareViewerAppearance } from './ui/viewer/src/appearance';
         const url = p => 'http://board.test/assets/' + p;
         window.artBoards = [];
         for (const [i, set] of ['xiangqi-white', 'xiangqi-white-international'].entries()) {
           const frame = document.querySelectorAll('.frame')[i];
-          await applyViewerAppearance(frame, url, 'xiangqi-light-wood', set);
           for (const definition of [standardXiangqi, miniXiangqi, threeKingdoms]) {
             const graph = definition === threeKingdoms;
             const from = graph ? 'shu:4:0' : 'e1', to = graph ? 'shu:4:1' : 'e2';
@@ -38,6 +37,7 @@ test.beforeAll(async () => {
               : {active:'red', pieces: new Map([[from,{face:'up',participant:'red',role:'general'}], [graph ? 'wu:4:0' : 'd7', {face:'up',participant:graph?'green':'black',role:'general'}]])};
             const element = document.createElement('div');
             element.className = 'board mini-board'; frame.append(element);
+            (await prepareViewerAppearance(document, definition, url, 'xiangqi-light-wood', set))(element);
             const board = createBoard(element, {definition, position:pos,
               presentation:boardPresentation('interactive','red'),
               interaction:{mode:'play',participant:'red',destinations:new Map([[from,[to]]]),input:'both',showDestinations:true,onMove:() => {}},
@@ -72,7 +72,7 @@ for (const width of [1440, 768, 390])
       .frame { width:min(640px, calc(100vw - 24px)); }
       .board { width:100%; position:relative; margin-bottom:20px; }
       .board.graph-board { padding-bottom:0; height:auto; }
-      </style><body class="piece-images-ready"><div class="frame"></div><div class="frame"></div></body>`);
+      </style><body><div class="frame"></div><div class="frame"></div></body>`);
     await page.addScriptTag({ content: script, type: 'module' });
     await page.waitForFunction(() => window.artBoards?.length === 6);
     for (const board of await page.locator('.board').all()) {

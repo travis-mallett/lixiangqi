@@ -15,8 +15,13 @@ final case class KingdomChallenge(
     expiresAt: Instant,
     status: String = "pending",
     revision: Int = 0,
-    notifyPending: Boolean = true
-)
+    notifyPending: Boolean = true,
+    botLevel: Option[Int] = None
+):
+  def withBot[A](humans: Vector[A])(bot: Int => A): Vector[A] =
+    botLevel.fold(humans): level =>
+      // Keep the random seat stable when recovering an interrupted start.
+      humans.patch(Math.floorMod(id.value.hashCode, 3), Vector(bot(level)), 0)
 
 final class ChallengeApi(
     coll: Coll,
@@ -55,9 +60,12 @@ final class ChallengeApi(
   def create(
       creator: User,
       opponents: Vector[UserId],
-      config: ClockConfig
+      config: ClockConfig,
+      botLevel: Option[Int]
   ): Fu[Either[String, KingdomChallenge]] =
-    if opponents.size != 2 || (opponents :+ creator.id).distinct.size != 3 then
+    val humans = opponents :+ creator.id
+    if botLevel.exists(level => level < 1 || level > 5) then fuccess(Left("invalidLevel"))
+    else if humans.size + botLevel.size != 3 || humans.distinct.size != humans.size then
       fuccess(Left("chooseTwoDifferentPlayers"))
     else
       val id = GameId(scalalib.SecureRandom.nextString(GameId.size))
@@ -65,11 +73,12 @@ final class ChallengeApi(
       val challenge = KingdomChallenge(
         id,
         creator.id,
-        scala.util.Random.shuffle(opponents :+ creator.id),
+        scala.util.Random.shuffle(humans),
         Set(creator.id),
         config,
         now,
-        now.plusSeconds(600)
+        now.plusSeconds(600),
+        botLevel = botLevel
       )
       allowed(challenge).flatMap:
         case false => fuccess(Left("challengeNotAllowed"))
@@ -93,7 +102,7 @@ final class ChallengeApi(
             revision = c.revision + 1,
             status = if !permitted then "cancelled"
             else if !accept then "declined"
-            else if accepted.size == 3 then "starting"
+            else if c.users.forall(accepted.contains) then "starting"
             else "pending"
           )
           coll.update
@@ -109,11 +118,16 @@ final class ChallengeApi(
       case _ => fuccess(Left("challengeUnavailable"))
 
   private def start(c: KingdomChallenge): Fu[KingdomChallenge] =
+    val expectedSeats = c.withBot(c.users.map(id => (Some(id): Option[UserId]) -> Option.empty[Int]))(level =>
+      None -> Some(level)
+    )
     // Recover a game already inserted before a crash even if a later preference changed.
     maker
       .existing(c.id)
       .flatMap:
-        case Some(g) if g.userIds == c.users.toList && g.source == "friend" && g.clock.config == c.config =>
+        case Some(g)
+            if g.seats.map(s => s.userId -> s.aiLevel) == expectedSeats && g.source == "friend" &&
+              g.clock.config == c.config =>
           finishStart(c)
         case Some(_) => fufail("Three Kingdoms challenge game does not match its invitation")
         case None =>
@@ -124,7 +138,14 @@ final class ChallengeApi(
             case true =>
               maker
                 .seats(c.users)
-                .flatMap(maker.create(_, c.config, "friend", c.id))
+                .flatMap(humans =>
+                  maker.create(
+                    c.withBot(humans)(level => Seat(None, Some(level), None)),
+                    c.config,
+                    "friend",
+                    c.id
+                  )
+                )
                 .flatMap(_ => finishStart(c))
 
   private def finishStart(c: KingdomChallenge): Fu[KingdomChallenge] =
@@ -140,7 +161,7 @@ final class ChallengeApi(
     users
       .enabledByIds(c.users.toList)
       .flatMap: accounts =>
-        if accounts.size != 3 || accounts.exists(_.isBot) then fuFalse
+        if accounts.size != c.users.size || accounts.exists(_.isBot) then fuFalse
         else
           given Option[Me] = accounts.find(_.id == c.creator).map(Me(_))
           for

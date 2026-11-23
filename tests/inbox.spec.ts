@@ -4,6 +4,8 @@ import { createServer, type Server } from 'node:http';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 
+import { boardThemeCss } from './fixtures/board-theme';
+
 const { build } = createRequire(resolve('ui/.build/package.json'))('esbuild');
 let server: Server, origin: string, script: string;
 const translations = Object.fromEntries(
@@ -69,7 +71,7 @@ test.beforeAll(async () => {
     response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     response.end(`<html lang="en" class="dark"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
       @font-face {font-family:lichess;src:url('/assets/font/lichess.woff2') format('woff2')}
-      ${css}</style>
+      ${boardThemeCss()}${css}</style>
       <body class="dark" data-theme="dark"><div id="main-wrap"><main class="msg-app"></main></div></body></html>`);
   });
   await new Promise<void>(done => server.listen(0, '127.0.0.1', done));
@@ -398,7 +400,6 @@ async function inbox(
           removeCssPath: () => {},
         },
         socket: { send: () => {} },
-        pieceImages: { ready: Promise.resolve() },
         sound: { preloadBoardSounds: () => {}, move: () => {} },
       };
       w.$html = (strings: TemplateStringsArray, ...values: unknown[]) =>
@@ -476,9 +477,8 @@ test('Three Kingdoms chat sends a territorial annotation at the chosen event', a
   await composer.getByRole('button', { name: 'Previous', exact: true }).click();
   await composer.getByRole('button', { name: 'Start from this position' }).click();
   await composer.getByRole('button', { name: 'Draw on board' }).click();
-  const square = await composer.locator('.graph-board__location[data-location="wu:4:0"]').boundingBox();
-  expect(square).toBeTruthy();
-  await page.mouse.click(square!.x + square!.width / 2, square!.y + square!.height / 2);
+  await composer.locator('.graph-board__location[data-location="wu:4:0"]').click();
+  await expect(composer.locator('.cg-shapes circle')).toHaveCount(1);
   const sent = page.waitForRequest(
     request => request.url().endsWith('/inbox/alice') && request.method() === 'POST',
   );

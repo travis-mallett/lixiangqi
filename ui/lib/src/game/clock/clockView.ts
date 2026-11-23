@@ -108,10 +108,12 @@ export function formatClockTimeVerbal(time: Millis): string {
   return parts.join(' ');
 }
 
-function formatClockTime(time: Millis, showTenths: boolean, isRunning: boolean) {
-  if (site.blindMode) return formatClockTimeVerbal(time);
-  const { millis, seconds, minutes, hours } = parseClockTime(time);
-  const sep = isRunning && millis < 500 ? sepLow : sepHigh,
+export function formatClockTime(time: Millis, showTenths: boolean, isRunning: boolean): string {
+  const precision = showTenths && !site.blindMode ? 100 : 1000;
+  const displayed = isRunning ? Math.ceil(time / precision) * precision : time;
+  if (site.blindMode) return formatClockTimeVerbal(displayed);
+  const { millis, seconds, minutes, hours } = parseClockTime(displayed);
+  const sep = isRunning && time % 1000 < 500 ? sepLow : sepHigh,
     baseStr = pad2(minutes) + sep + pad2(seconds);
   if (hours > 0) {
     return pad2(hours) + sepHigh + baseStr;
@@ -177,6 +179,7 @@ export function updateElements(
   if (els.time) els.time.innerHTML = formatClockTime(millis, clock.showTenths(millis), true);
   if (els.clock) {
     const cl = els.clock.classList;
+    cl.toggle('outoftime', millis === 0);
     if (millis < clock.emergMs) cl.add('emerg');
     else if (cl.contains('emerg')) cl.remove('emerg');
   }

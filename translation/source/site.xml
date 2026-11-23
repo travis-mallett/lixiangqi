@@ -180,6 +180,7 @@
   </plurals>
   <string name="dtzWithRounding">DTZ50′′ with rounding, based on number of half-moves until next capture or pawn move</string>
   <string name="noGameFound">No games found</string>
+  <string name="openGamesAvailable">Open games available</string>
   <string name="maxDepthReached">Max depth reached!</string>
   <string name="maybeIncludeMoreGamesFromThePreferencesMenu">Maybe include more games from the preferences menu?</string>
   <string name="openings">Openings</string>
@@ -1278,7 +1279,6 @@ Leave empty to start games from the normal initial position.</string>
   <string name="threeKingdomsReady">All three players accepted. Your Three Kingdoms game is ready.</string>
   <string name="playRatedThreeKingdoms">Rated Three Kingdoms</string>
   <string name="threeKingdomsTimeControl">15 min · 60 sec per move</string>
-  <string name="challengeTwoFriends">Challenge two friends</string>
   <string name="threeKingdomsAnalysisBoard">Three Kingdoms analysis board</string>
   <string name="blockAds">Block ads</string>
   <string name="editorHelp">Drag pieces, or choose a piece and tap the board to place it. Use the eraser to remove pieces.</string>

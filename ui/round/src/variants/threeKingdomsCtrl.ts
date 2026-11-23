@@ -198,7 +198,7 @@ export class Round {
     const active = !!me && this.state.active.includes(me);
     wsSetActivity(
       active && !this.state.ending
-        ? `threeKingdoms-${this.game.seats.some(s => s.aiLevel) ? 'ai' : this.game.rated ? 'rated' : 'friend'}`
+        ? `threeKingdoms-${this.game.source === 'computer' ? 'ai' : this.game.rated ? 'rated' : 'friend'}`
         : undefined,
     );
     this.board.setInteraction(
@@ -607,6 +607,7 @@ export class Round {
       !seat?.aiLevel ||
       !this.myColor() ||
       (!this.local && !this.state.active.includes(this.myColor()!)) ||
+      (!this.local && this.game.botHost !== this.bootstrap.me) ||
       this.searching === this.game.position
     )
       return;
@@ -645,7 +646,7 @@ export class Round {
     }
     try {
       const bot = this.game.seats.find(s => s.aiLevel);
-      if (bot) {
+      if (bot && this.game.source === 'computer') {
         const g = await request<Game>('computer', {
           color: this.myColor(),
           level: bot.aiLevel,
@@ -658,6 +659,7 @@ export class Round {
           opponents: this.game.seats.flatMap(s =>
             s.user && s.user.id !== this.bootstrap.me ? [s.user.id] : [],
           ),
+          botLevel: bot?.aiLevel,
           initialSeconds: this.game.clock.initialSeconds,
           moveSeconds: this.game.clock.moveSeconds,
         });

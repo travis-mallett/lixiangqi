@@ -26,7 +26,6 @@ interface Site {
     jsModule(name: string): string;
     loadIife(path: string, opts?: AssetUrlOpts): Promise<void>;
     loadEsm<T>(key: string, opts?: EsmModuleOpts): Promise<T>;
-    loadPieces: Promise<void>;
     loadI18n(catalog: string): Promise<void>;
   };
   unload: { expected: boolean };
@@ -37,11 +36,6 @@ interface Site {
   displayLocale: string; // file://./../../common/src/i18n.ts
   blindMode: boolean;
   load: Promise<void>; // DOMContentLoaded promise
-  pieceImages: {
-    ready: Promise<void>;
-    preload(images: string[]): Promise<void>;
-    set(assets: Record<string, string>, key: string): Promise<void>;
-  };
   quantity(n: number): 'zero' | 'one' | 'two' | 'few' | 'many' | 'other';
   quietMode?: boolean;
   analysis?: any; // expose the analysis ctrl

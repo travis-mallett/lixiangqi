@@ -83,7 +83,25 @@ case class RankedPlayer(rank: Rank, player: Player):
 
   override def toString = s"$rank. ${player.userId}[${player.showRank}]"
 
+/** Assign places in descending score order. A page can start inside a tie. */
+private[tournament] final class CompetitionRanking(offset: Int = 0, firstPlace: Int = 1):
+  private var position = offset
+  private var previous: Option[Int] = None
+  private var place = firstPlace
+
+  def next(score: Int): Rank =
+    position += 1
+    if previous.exists(_ != score) then place = position
+    previous = Some(score)
+    Rank(place)
+
 object RankedPlayer:
+
+  val flow = org.apache.pekko.stream.scaladsl
+    .Flow[Player]
+    .statefulMapConcat: () =>
+      val ranking = new CompetitionRanking()
+      player => List(RankedPlayer(ranking.next(player.magicScore), player))
 
   def apply(ranking: Ranking)(player: Player): Option[RankedPlayer] =
     ranking.get(player.userId).map { rank =>

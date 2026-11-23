@@ -6,6 +6,127 @@ Reconciliation means preserving the applicable behavior, not reproducing web scr
 
 ## Products and receipts
 
+### Open game indicators
+
+Reviewed website base `1ab0406b31882ea4444879ef1f068dcc10ba440a`.
+Working-tree SHA-256 prefixes are `94b1445dc5fc` for the lobby controller,
+`a78470d69dc4` for the lobby socket, `7d2cb65bb2c4` for the tab view,
+and `eb39063d017e` for its stylesheet.
+
+- **LiXiangQi Mobile (ported).** The native Play screen shows a dot on each
+  offer tab with an open game from another player. Its existing lobby
+  subscription and filtered offer lists supply the state. The Play screen
+  SHA-256 prefix is `5cc5be292d14`. Flutter analysis and the full suite
+  passed with 566 tests and two skips. The widget test covers offers arriving
+  and leaving in the app's dark theme.
+- **Xiangqi Kids (not applicable).** Its online Play flow exposes a rated
+  matchmaking room and has no public Lobby or Correspondence offer tabs.
+
+The production web asset build and all 793 UI tests passed. Chromium verified
+both themes at 390, 900, and 1480 pixels with simulated lobby events and seeks.
+Ship the web translation and browser assets together. The native update can
+ship independently because it uses the existing API. Neither app's
+reconciliation checkpoint advanced.
+
+The janggi editorial article (`nZliOV3S`) has English, Simplified Chinese and
+Vietnamese editions with two static diagrams. The localized FAQ links to the
+article and PyChess. Reviewed website base `1ab0406b31882ea4444879ef1f068dcc10ba440a`,
+with SHA-256 prefixes `d1cd1d287062` for `modules/web/src/main/ui/FaqUi.scala`
+and `26d8ee281753` for `translation/source/faq.xml`.
+
+- **LiXiangQi Mobile (server inherited).** `BlogRepository` consumes the existing
+  published article/display contract, including edition URLs, paragraphs and
+  static images. All 22 blog and edition tests passed. This content introduces no
+  native gameplay or rules changes. The website FAQ has no native duplicated
+  question list to update.
+- **Xiangqi Kids (not applicable).** Its product has no blog reader, community
+  article feed or FAQ content consumer. Its Standard gameplay is unaffected.
+
+The article is published through the existing content system. The FAQ requires
+the next website backend/translation deployment; neither app needs a release.
+Scala formatting and compilation, generated translation checks and XML
+validation passed. The broad frontend checks found existing inbox stylesheet and
+TypeScript formatting issues outside this change. Both apps' review checkpoints
+and deferred variant decisions remain unchanged. No physical-device or iOS check
+was performed for this content-only update.
+
+Tournament opening deadlines and the final board were reviewed against website
+base `1ab0406b31`. The round server judges each move at receipt, and the web board
+restores the last accepted position when a result arrives. Clock history uses
+the saved bank balance when a per-move limit expires. Working-tree SHA-256
+prefixes are `67edd150d443` for TimedMove, `7e2f1ba5d7ae` for the round
+controller and `9c46ca1916ae` for clock history.
+
+LiXiangQi Mobile and Xiangqi Kids both use the server result for online games.
+Both now check the opening deadline, active bank and per-move limit before
+sending, and both restore an unaccepted move when a result arrives on the same
+ply. The native result screens identify a missed first move alongside the
+winner. Their play controller SHA-256 prefixes are `a7df65bf5e51` and
+`1442c6c097fe`, respectively. Flutter analysis, both full test suites and both
+Android debug builds passed. Verification covered 94 server tests, the Scala
+application compile, the production web build and all 793 UI tests. The opening
+cannon regression passed in Chromium, Firefox and WebKit. iOS builds and
+physical-device gameplay remain unverified. Deploy the server and web assets
+together and release both apps. Existing games use the same storage format.
+
+The shared web renderer reveals each board after its board artwork, pieces, backs,
+shadows and coordinates are ready. Appearance changes keep the previous complete
+theme visible during loading. Website base `1ab0406b31`, working-tree SHA-256
+prefixes `3c060e46b5dd` (appearance loader) and `a74a0d6f4eac` (board CSS).
+Delayed-image browser checks cover Standard, Mini, Jieqi, Manchu+ and Three
+Kingdoms on refresh and scroll in Chromium, Firefox and WebKit. Chromium also
+recorded compositor frames. The production asset build and web UI suite passed.
+
+LiXiangQi Mobile and Xiangqi Kids now reveal their entire shared Flutter board
+after the selected artwork and pieces are ready. This covers the existing native
+Standard boards, including bots and puzzles in both products. The respective
+board widget SHA-256 prefixes are `22704bb83582` and `2c8e1b580b95`. Both apps
+passed Flutter analysis, their full test suites including first-paint checks, and
+Android debug builds. iOS builds and physical-device testing remain unverified.
+Deploy the rebuilt website assets and release each Flutter app to deliver its fix.
+This scoped review leaves the existing variant decisions and review checkpoints in place.
+
+The server-rendered homepage rated Xiangqi card displays `15 min` on first paint
+(`preload.scala` blob `215f4fcd7e`). LiXiangQi Mobile's home card and Xiangqi Kids'
+rated room use native localized descriptions, so this web markup fix is inapplicable
+to both apps. Scala formatting and compilation passed. Deploy the rebuilt website
+backend. Neither app requires a release.
+
+The website resize grip sits inside the board corner on rectangular boards and at
+the lower-right hexagon vertex in Three Kingdoms (stylesheet blobs `1ff9fca5b2`
+and `18e7662653`). LiXiangQi Mobile and Xiangqi Kids each size boards through
+Flutter layout and have no corresponding web resize control. The production asset
+build and all 793 web UI tests passed. Edge verified the handle breakpoint, corner
+placement and dragging in board fixtures at 390, 900 and 1440 pixels. Deploy the
+rebuilt web stylesheets. Neither app requires a release.
+
+Three Kingdoms friend challenges support a second human or a level 1–5 bot, and
+computer setup aligns the kingdom selector with the clock controls (website
+`1ab0406b31`, working-tree blobs `f79e385b19` for lobby setup, `a065ea75a60`
+for invitations, and `5a161a34d8` for setup styles). LiXiangQi Mobile and
+Xiangqi Kids filter game feeds to their supported variants and have no native
+Three Kingdoms invitation or computer setup. Both changes are inapplicable under
+the existing variant deferral. The Three Kingdoms Scala suite, all 793 web UI
+tests, production asset build, and Edge spacing checks at 320, 768, and 1280
+pixels passed. Deploy the website backend and web assets together. Existing
+invitations require no migration, and neither app needs a release.
+
+Blog article mentions omit presence dots and vertically center patron wings (website
+`1ab0406b31`, working-tree blobs `20f0a71967` for the blog stylesheet,
+`41c5b2dcaa` for the blog opt-in, and `4249fda1e5` for profile expansion).
+LiXiangQi Mobile renders article links through Flutter's native markup component
+without the website's profile expansion. Xiangqi Kids has no blog reader. The
+change is inapplicable to both apps. The profile-link tests and production asset
+build passed. Deploy the rebuilt website JavaScript and CSS.
+
+Three Kingdoms TV game cards place players beside their board sides using the homepage
+widget's layout (website `1ab0406b31`, working-tree blobs `9a124a3998` for the
+Scala view and `83fdc2eba9` for the shared stylesheet). This is inapplicable to
+LiXiangQi Mobile and Xiangqi Kids because their native game feeds exclude Three Kingdoms
+and they do not render the website cards. Scala formatting and compilation, the
+production asset build, all 791 UI tests, and Edge layout checks at 320, 768, and
+1280 pixels passed. Deploy the website server and rebuilt assets together.
+
 Chat board previews (MsgBoards.scala blob `7c478b485a`) now carry optional title
 and source text. Adult mobile preserves these fields in its inbox cache and opens
 supported replays full screen at the selected move. Its existing variant scope

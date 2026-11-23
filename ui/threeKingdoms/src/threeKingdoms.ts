@@ -3,6 +3,9 @@ import { gameLink } from './gameLink';
 import { resetTrialStorage } from './trialReset';
 import { type Bootstrap, type Challenge, type Game } from './types';
 
+const botName = (challenge: Challenge) =>
+  challenge.botLevel == null ? undefined : `${i18n.site.computer} ${challenge.botLevel}`;
+
 export async function initModule(options: Bootstrap): Promise<void> {
   const root = document.getElementById('three-kingdoms')!;
   const t = i18n.threeKingdoms;
@@ -39,7 +42,7 @@ export async function initModule(options: Bootstrap): Promise<void> {
           for (const invitation of invitations.challenges)
             content.append(
               link(
-                `${t.friends}: ${invitation.users.join(' · ')}`,
+                [t.friends, ...invitation.users, botName(invitation)].filter(Boolean).join(' · '),
                 `/three-kingdoms/challenge/${invitation.id}`,
               ),
             );
@@ -66,6 +69,8 @@ export async function initModule(options: Bootstrap): Promise<void> {
             content.append(
               el('p', '', `${user} · ${challenge.accepted.includes(user) ? t.accepted : t.pending}`),
             );
+          const bot = botName(challenge);
+          if (bot) content.append(el('p', '', bot));
           const answer = async (accept: boolean) => {
             try {
               render(await request<Challenge>(`challenge/${id}/${accept ? 'accept' : 'decline'}`, {}));

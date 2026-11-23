@@ -598,6 +598,9 @@ object I18nKey:
     val `welcome_closing`: I18nKey = "emails:welcome_closing"
 
   object faq:
+    val `willJanggiBeIncluded`: I18nKey = "faq:willJanggiBeIncluded"
+    val `janggiNotPlanned`: I18nKey = "faq:janggiNotPlanned"
+    val `janggiReadWhy`: I18nKey = "faq:janggiReadWhy"
     val `faqAbbreviation`: I18nKey = "faq:faqAbbreviation"
     val `frequentlyAskedQuestions`: I18nKey = "faq:frequentlyAskedQuestions"
     val `whyIsLichessCalledLichess`: I18nKey = "faq:whyIsLichessCalledLichess"
@@ -2327,6 +2330,7 @@ object I18nKey:
     val `masterDbExplanation`: I18nKey = "masterDbExplanation"
     val `dtzWithRounding`: I18nKey = "dtzWithRounding"
     val `noGameFound`: I18nKey = "noGameFound"
+    val `openGamesAvailable`: I18nKey = "openGamesAvailable"
     val `maxDepthReached`: I18nKey = "maxDepthReached"
     val `maybeIncludeMoreGamesFromThePreferencesMenu`: I18nKey = "maybeIncludeMoreGamesFromThePreferencesMenu"
     val `openings`: I18nKey = "openings"
@@ -3233,7 +3237,6 @@ object I18nKey:
     val `threeKingdomsReady`: I18nKey = "threeKingdomsReady"
     val `playRatedThreeKingdoms`: I18nKey = "playRatedThreeKingdoms"
     val `threeKingdomsTimeControl`: I18nKey = "threeKingdomsTimeControl"
-    val `challengeTwoFriends`: I18nKey = "challengeTwoFriends"
     val `threeKingdomsAnalysisBoard`: I18nKey = "threeKingdomsAnalysisBoard"
     val `blockAds`: I18nKey = "blockAds"
     val `editorHelp`: I18nKey = "editorHelp"
@@ -3866,6 +3869,7 @@ object I18nKey:
     val `invite`: I18nKey = "threeKingdoms:invite"
     val `opponentOne`: I18nKey = "threeKingdoms:opponentOne"
     val `opponentTwo`: I18nKey = "threeKingdoms:opponentTwo"
+    val `secondOpponentBot`: I18nKey = "threeKingdoms:secondOpponentBot"
     val `accept`: I18nKey = "threeKingdoms:accept"
     val `decline`: I18nKey = "threeKingdoms:decline"
     val `accepted`: I18nKey = "threeKingdoms:accepted"

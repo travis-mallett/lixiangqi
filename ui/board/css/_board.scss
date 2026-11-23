@@ -16,10 +16,11 @@ body:not(.simple-board) .graph-board__artwork {
 // around the piece it marks, and breathes in step with that sweep.
 $xiangqi-last-move-cycle: 3.3s;
 
-// Hide the entire stack until its faces and shadow textures decode. Once
-// ready, normal visibility inheritance still governs hidden boards/tooltips.
-body:not(.piece-images-ready) .lixiangqi-board :is(cg-board, .board-surface) > piece,
-body:not(.piece-images-ready) .lixiangqi-board :is(cg-board, .board-surface) .xiangqi-piece-shadow {
+// Reserve the server-rendered frame and the mounted board's geometry. Hide
+// the whole surface so a child with explicit visibility cannot paint early.
+.cg-wrap:not(.lixiangqi-board) > cg-container > cg-board:empty,
+.lixiangqi-board:not(.board-assets-ready) {
+  opacity: 0;
   visibility: hidden;
 }
 

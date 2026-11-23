@@ -3,6 +3,8 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 
+import { boardThemeCss } from './fixtures/board-theme';
+
 const { build } = createRequire(resolve('ui/.build/package.json'))('esbuild');
 
 const manifest = JSON.parse(readFileSync('public/compiled/manifest.json', 'utf8'));
@@ -54,6 +56,9 @@ for (const width of [320, 390, 430, 540, 768, 1024, 1440])
 
 test('Three Kingdoms embed starts image readiness and reveals a populated board', async ({ page }) => {
   await page.route('http://homepage.test/', route => route.fulfill({ body: '<html lang="en"></html>' }));
+  await page.route('http://homepage.test/assets/**', route =>
+    route.fulfill({ path: resolve('public', new URL(route.request().url()).pathname.slice(8)) }),
+  );
   await page.goto('http://homepage.test/');
   const state = {
     turn: 'red',
@@ -82,18 +87,11 @@ test('Three Kingdoms embed starts image readiness and reveals a populated board'
       },
     ],
   });
-  await page.setContent(`<style>${css}</style><a id="three-kingdoms-embed"
+  await page.setContent(`<style>${boardThemeCss()}${css}</style><a id="three-kingdoms-embed"
     data-computer-label="Computer" data-guest-label="Anonymous" style="display:block;width:320px"></a>`);
   await page.evaluate(() => {
     document.documentElement.lang = 'en';
-    (window as any).site = {
-      pieceImages: {
-        get ready() {
-          document.body.classList.add('piece-images-ready');
-          return Promise.resolve();
-        },
-      },
-    };
+    (window as any).site = {};
     (window as any).EventSource = class {
       set onmessage(callback: (event: { data: string }) => void) {
         callback({

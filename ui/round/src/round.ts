@@ -25,7 +25,6 @@ export async function initModule(
     return initThreeKingdoms(opts);
   }
   wsSetActivity(opts.data.presence, opts.data.presenceGroup);
-  await site.asset.loadPieces;
   return opts.data.local ? app(opts) : boot(opts, app);
 }
 

@@ -192,12 +192,18 @@ object GameExt:
       Progress(g, updated, events)
     end applyMove
 
-    def finish(status: Status, winner: Option[Color]): Game =
+    def finish(status: Status, winner: Option[Color], drawOnFlag: Boolean = false): Game =
       g.copy(
         status = status,
         players = winner.fold(g.players): c =>
           g.players.update(c, _.copy(isWinner = true.some)),
-        clock = g.clock.map(_.stop),
+        clock = g.clock.map: clk =>
+          if (status == Status.Outoftime || drawOnFlag) && clk.isRunning then
+            // A delayed flag check must stop the bank at the first limit reached.
+            val remaining =
+              g.currentMoveLimit.fold(Centis(0))(limit => (clk.players(g.turnColor).remaining - limit).nonNeg)
+            clk.hardStop.setRemainingTime(g.turnColor, remaining)
+          else clk.stop,
         loadClockHistory = clk =>
           g.clockHistory.map: history =>
             // If not already finished, we're ending due to an event
@@ -249,7 +255,8 @@ object GameExt:
         g.nonAi &&
         g.clock.exists(!_.isRunning)
 
-    def hasFirstMoveDeadline = g.expirable
+    def firstMoveDeadlineMillis: Option[Long] =
+      g.expirable.option(g.movedAt.toMillis + g.timeForFirstMove.millis)
 
   end extension
 

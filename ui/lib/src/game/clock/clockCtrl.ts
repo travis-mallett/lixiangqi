@@ -184,7 +184,8 @@ export class ClockCtrl {
     const moveMillis = this.moveTimeMillis(now);
     const effectiveMillis = Math.min(bankMillis, moveMillis ?? Number.POSITIVE_INFINITY);
 
-    this.scheduleTick(effectiveMillis, 0);
+    // Keep retrying a flag while waiting for the server, including opponent lag grace.
+    this.scheduleTick(effectiveMillis, effectiveMillis === 0 ? 1000 : 0);
     updateElements(this, this.elements[color], bankMillis, moveMillis);
     if (effectiveMillis === 0) this.opts.onFlag();
 
@@ -223,6 +224,9 @@ export class ClockCtrl {
   };
 
   isRunning = (): boolean => this.times.activeColor !== undefined;
+
+  expired = (color: Color, now: number = performance.now()): boolean =>
+    this.times.activeColor === color && (this.millisOf(color, now) === 0 || this.moveTimeMillis(now) === 0);
 
   speak = (): void => {
     const msgs = [

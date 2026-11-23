@@ -69,6 +69,13 @@ $c-slider: $c-setup;
     }
   }
 
+  .kingdom-bot-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    align-self: flex-start;
+  }
+
   .fen__form {
     @extend %flex-center-nowrap;
   }
@@ -340,6 +347,10 @@ $c-slider: $c-setup;
         text-transform: uppercase;
         letter-spacing: 0.06em;
       }
+    }
+
+    .kingdom-side {
+      padding: 0.8rem 1rem;
     }
 
     .ai-difficulty {
