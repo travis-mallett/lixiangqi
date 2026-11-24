@@ -39,12 +39,17 @@ object PoolList:
   val minixiangqi = jieqi.copy(rankTrack = RankTrackId.minixiangqi.some)
   val manchu = jieqi.copy(rankTrack = RankTrackId.manchu.some)
 
-  val threeKingdoms = PoolConfig(
-    15 ++ 0,
-    Wave(13.seconds, 30.players),
-    MoveTimeLimit(60, None).some,
-    RankTrackId.threeKingdoms.some
-  )
+  val threeKingdoms =
+    val config = lila.threeKingdoms.ClockConfig()
+    PoolConfig(
+      Clock.Config(Clock.LimitSeconds(config.initialSeconds), Clock.IncrementSeconds(config.increment)),
+      Wave(13.seconds, 30.players),
+      MoveTimeLimit(
+        config.moveSeconds,
+        config.opening.map(p => MoveTimeLimit.FirstPhase(p.moves, p.seconds))
+      ).some,
+      RankTrackId.threeKingdoms.some
+    )
 
   val homepage: List[PoolConfig] = List(
     PoolConfig(

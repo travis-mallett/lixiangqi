@@ -28,10 +28,29 @@ export default class LobbyController {
   data: LobbyData;
   kingdomOffers: KingdomOffer[] = [];
   myKingdomOffer = (offer: KingdomOffer) => offer.users.includes(this.me?.username.toLowerCase() ?? '');
-  joinKingdomOffer = async (id: string) => {
+  showKingdomOffer = (offer: KingdomOffer) => {
+    this.kingdomOffers = [offer, ...this.kingdomOffers.filter(o => o.id !== offer.id)];
+    this.tab = 'seeks';
+    this.redraw();
+    void this.fetchSeeks();
+  };
+
+  clickKingdomOffer = async (id: string) => {
+    const current = this.kingdomOffers.find(o => o.id === id);
+    if (!current) return;
     try {
-      const offer = await xhr.joinKingdomOffer(id);
-      site.redirect(`/three-kingdoms/${offer.status === 'started' ? 'game' : 'challenge'}/${id}`);
+      if (current.creator === this.me?.username.toLowerCase()) {
+        const result = await xhr.cancelKingdomOffer(id);
+        if (result.status === 'started') return site.redirect('/three-kingdoms/game/' + id);
+        this.kingdomOffers = this.kingdomOffers.filter(o => o.id !== id);
+        this.redraw();
+        void this.fetchSeeks();
+      } else if (!this.myKingdomOffer(current)) {
+        const offer = await xhr.joinKingdomOffer(id);
+        if (offer.status === 'started') site.redirect('/three-kingdoms/game/' + id);
+        else if (offer.status === 'pending') this.showKingdomOffer(offer);
+        else throw new Error(offer.status);
+      }
     } catch {
       site.announce({ msg: i18n.threeKingdoms.challengeUnavailable });
       void this.fetchSeeks();
@@ -92,6 +111,14 @@ export default class LobbyController {
     this.socket = new LobbySocket(opts.socketSend, this);
 
     const locationHash = location.hash.replace('#', '');
+    const openCorrespondence = () => {
+      if (location.hash === '#home-tab-seeks') {
+        this.tab = 'seeks';
+        void this.fetchSeeks();
+      }
+    };
+    openCorrespondence();
+    window.addEventListener('hashchange', openCorrespondence);
     if (['ai', 'friend', 'hook'].includes(locationHash)) {
       const forceOptions: ForceSetupOptions = {};
       const urlParams = new URLSearchParams(location.search);
@@ -148,6 +175,7 @@ export default class LobbyController {
 
       pubsub.after('polyfill.dialog').then(() => {
         this.setupCtrl.openModal(locationHash as Exclude<GameType, 'local'>, forceOptions, friendUser);
+        if (locationHash === 'friend' && urlParams.get('gameMode') === 'rated') this.setupCtrl.setRated(true);
         redraw();
       });
       history.replaceState(null, '', '/');
@@ -290,8 +318,11 @@ export default class LobbyController {
 
   setTab = (tab: Tab) => {
     if (tab !== this.tab) {
+      if (tab !== 'seeks' && location.hash === '#home-tab-seeks')
+        history.replaceState(null, '', location.pathname + location.search);
       this.tab = tab;
       if (tab === 'real_time') this.flushHooks(true);
+      if (tab === 'seeks') void this.fetchSeeks();
       this.redraw();
     }
   };
@@ -316,7 +347,7 @@ export default class LobbyController {
       xhr.seeks().catch(() => undefined),
       xhr.kingdomOffers().catch(() => undefined),
     ]);
-    if (!seeks || request !== this.seekRequest) return;
+    if (request !== this.seekRequest) return;
     if (kingdoms) {
       const seatFilled = this.kingdomOffers.some(
         o => this.myKingdomOffer(o) && !kingdoms.some(next => next.id === o.id),
@@ -324,8 +355,10 @@ export default class LobbyController {
       this.kingdomOffers = kingdoms;
       if (seatFilled) void this.refreshPlaying();
     }
-    this.data.seeks = seeks;
-    seekRepo.initAll(this);
+    if (seeks) {
+      this.data.seeks = seeks;
+      seekRepo.initAll(this);
+    }
     this.syncPresence();
     this.redraw();
   };
@@ -429,7 +462,7 @@ export default class LobbyController {
       void this.refreshPlaying();
   };
 
-  private refreshPlaying = () =>
+  private readonly refreshPlaying = () =>
     xhr.nowPlaying().then(res => {
       this.data.nowPlaying = res.nowPlaying;
       this.data.kingdomsPlaying = res.kingdomsPlaying;

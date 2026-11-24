@@ -117,6 +117,8 @@ interface SoundI {
   setSoundEnabled(enabled: boolean): void;
   isVoiceSoundEnabled(): boolean;
   setVoiceSoundEnabled(enabled: boolean): void;
+  isChatNotificationsEnabled(): boolean;
+  setChatNotificationsEnabled(enabled: boolean): void;
   isMusicEnabled(): boolean;
   setMusicEnabled(enabled: boolean): void;
   speech(): boolean;

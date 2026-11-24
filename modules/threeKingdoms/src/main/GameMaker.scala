@@ -19,7 +19,8 @@ final class GameMaker(repo: GameRepo, users: lila.user.UserApi)(using Executor):
       .map(_ => game)
       .recoverWith:
         case e: reactivemongo.api.commands.WriteResult if lila.db.isDuplicateKey(e) => recover
-  def seats(ids: Vector[UserId]): Fu[Vector[Seat]] = ids.traverse: id =>
+  def seats(ids: Vector[UserId], correspondence: Boolean = false): Fu[Vector[Seat]] = ids.traverse: id =>
+    val track = RankTrackId.forMode(RankTrackId.threeKingdoms, correspondence)
     users
       .perfsOf(id)
       .map: perfs =>
@@ -28,7 +29,8 @@ final class GameMaker(repo: GameRepo, users: lila.user.UserApi)(using Executor):
           None,
           Some(
             ThreeKingdomsRank
-              .snapshot(perfs.rank(RankTrackId.threeKingdoms).getOrElse(ThreeKingdomsRank.initial))
+              .snapshot(perfs.rank(track).getOrElse(ThreeKingdomsRank.initial))
+              .copy(track = track)
           )
         )
 
@@ -38,7 +40,8 @@ final class GameMaker(repo: GameRepo, users: lila.user.UserApi)(using Executor):
       source: String,
       id: GameId = GameId(scalalib.SecureRandom.nextString(GameId.size)),
       initial: Position = Position.initial,
-      tournament: Option[TourId] = None
+      tournament: Option[TourId] = None,
+      ratedFriend: Boolean = false
   ): Fu[KingdomGame] =
     val now = nowInstant
     val game = KingdomGame(
@@ -49,7 +52,7 @@ final class GameMaker(repo: GameRepo, users: lila.user.UserApi)(using Executor):
       ClockState.start(config, now.toEpochMilli),
       now,
       now,
-      rated = source == "pool",
+      rated = source == "pool" || (Set("friend", "seek").contains(source) && ratedFriend),
       source = source,
       tournamentId = tournament
     )
@@ -69,7 +72,7 @@ final class GameMaker(repo: GameRepo, users: lila.user.UserApi)(using Executor):
                 case Some(existing)
                     if existing.seats.map(s => s.userId -> s.aiLevel) == seats
                       .map(s => s.userId -> s.aiLevel) &&
-                      existing.source == source && existing.initial == initial && existing.clock.config == config =>
+                      existing.rated == game.rated && existing.source == source && existing.initial == initial && existing.clock.config == config =>
                   fuccess(existing)
                 case _ => fufail("Three Kingdoms game ID collision")
 

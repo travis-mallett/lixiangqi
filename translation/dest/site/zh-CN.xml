@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="unranked">暂无等级</string>
+  <string name="livePlay">实时</string>
   <string name="ratedXiangqi">象棋等级赛</string>
   <string name="playNow">立即对弈</string>
   <string name="createCustomGame">创建自定义对局</string>

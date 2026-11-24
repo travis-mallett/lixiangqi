@@ -10,12 +10,19 @@
   &[data-board-definition='threeKingdoms'] {
     // The flat-bottom hexagon meets its lower-right vertex at 75% of the canvas width.
     --board-resize-right: 25%;
+    // The outward bisector points 60deg down from horizontal. Place the grip
+    // one hit radius along it so even its clickable area clears the wood.
+    --board-resize-angle: -30deg;
+    --board-resize-distance: 50%;
+    // Draw the strokes near the wood while keeping the hit area outside it.
+    --board-resize-mark-center: calc(50% - 6px);
   }
 
   &__surface,
   &__artwork-frame,
   &__artwork,
   &__marks,
+  &__controls,
   &__coordinates {
     position: absolute;
     inset: 0;
@@ -50,6 +57,14 @@
     z-index: 3;
   }
 
+  &__controls {
+    pointer-events: none;
+
+    > * {
+      pointer-events: auto;
+    }
+  }
+
   &__coordinates {
     pointer-events: none;
     z-index: 4;
@@ -67,6 +82,7 @@
 
   // Reserve a true outer gutter: labels must not compete with occupied back ranks.
   &--coordinates &__surface,
+  &--coordinates &__controls,
   &--coordinates &__coordinates {
     inset: 3%;
     width: 94%;

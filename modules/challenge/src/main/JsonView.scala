@@ -60,6 +60,7 @@ final class JsonView(
         "id" -> c.id,
         "url" -> s"$baseUrl/${c.id}",
         "status" -> c.status.name,
+        "rated" -> c.rated.yes,
         "challenger" -> c.challengerUser,
         "destUser" -> c.destUser,
         "variant" -> (if c.gameVariant != lila.xiangqi.GameVariant.Xiangqi then

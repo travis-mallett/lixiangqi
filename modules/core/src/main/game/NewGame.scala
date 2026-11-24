@@ -20,41 +20,66 @@ object RankedGame:
   val xiangqiMoveTime =
     MoveTimeLimit(90, MoveTimeLimit.FirstPhase(moves = 3, seconds = 30).some)
 
+  def matchesClock(track: RankTrackId, clock: Option[Clock.Config], limit: Option[MoveTimeLimit]): Boolean =
+    RankTrackId.variant(track).playerCount == 2 &&
+      clock.contains(if track == RankTrackId.xiangqi then xiangqiClock else jieqiClock) &&
+      limit.contains(if track == RankTrackId.xiangqi then xiangqiMoveTime else jieqiMoveTime)
+
   /** The native rank track is a capability granted only to its canonical entry point. Keeping this check
     * beside game construction prevents a legacy caller from becoming ranked by forwarding a flag. A future
     * track adds its own explicit authorization branch here.
     */
+  def correspondenceSource(source: Source): Boolean =
+    source == Source.Lobby || source == Source.Friend || source == Source.Api
+
   def authorize(
       requested: Option[RankTrackId],
       source: Source,
       variant: Variant,
       clock: Option[Clock.Config],
       moveTimeLimit: Option[MoveTimeLimit],
-      players: ByColor[Player]
+      players: ByColor[Player],
+      days: Option[Days] = None
   ): Option[RankTrackId] =
     requested.filter: track =>
       val snapshots = players.all.flatMap(_.rank)
-      RankTrackId.all.contains(track) &&
-      RankTrackId.variant(track).playerCount == 2 &&
-      source == Source.Pool &&
+      val timing = if RankTrackId.isCorrespondence(track) then
+        correspondenceSource(source) && days.exists(_.value > 0) &&
+        clock.isEmpty && moveTimeLimit.isEmpty
+      else
+        (source == Source.Pool || source == Source.Friend) && days.isEmpty && matchesClock(
+          track,
+          clock,
+          moveTimeLimit
+        )
+      RankTrackId.accounts.contains(track) && RankTrackId.variant(track).playerCount == 2 && timing &&
       variant == Standard &&
-      clock.contains(if track == RankTrackId.xiangqi then xiangqiClock else jieqiClock) &&
-      moveTimeLimit.contains(if track == RankTrackId.xiangqi then xiangqiMoveTime else jieqiMoveTime) &&
       players.all.flatMap(_.userId).distinct.size == 2 &&
       snapshots.size == 2 &&
+      (RankTrackId.isCorrespondence(
+        track
+      ) || (snapshots.head.matchingGroup - snapshots.last.matchingGroup).abs <= 1) &&
       snapshots.forall(_.track == track) &&
       snapshots.map(_.catalogVersion).distinct.size == 1 &&
       snapshots.map(_.policyVersion).distinct.size == 1
 
+  def hasRankedStart(position: Xiangqi.Game, correspondence: Boolean): Boolean =
+    position.initialFen == position.variant.startFen && (position.ruleset == position.variant.defaultRuleset ||
+      (correspondence && position.variant.selectableRulesets.contains(position.ruleset)))
+
   def isAuthorized(game: Game): Boolean =
-    game.xiangqi.ruleset == game.nativeVariant.defaultRuleset &&
-      game.rankTrack.contains(RankTrackId.of(game.nativeVariant)) && authorize(
+    hasRankedStart(
+      game.xiangqi,
+      game.daysPerTurn.isDefined
+    ) && game.metadata.rules.isEmpty && game.metadata.pgnImport.isEmpty &&
+      game.rankTrack.exists(t => RankTrackId.live(t) == RankTrackId.of(game.nativeVariant)) && authorize(
         game.rankTrack,
         game.metadata.source.getOrElse(Source.Lobby),
         game.variant,
         game.clock.map(_.config),
         game.moveTimeLimit,
-        game.players
+        game.players,
+        game.daysPerTurn
       ).isDefined
 
   def asCasual(game: Game): Game =
@@ -153,9 +178,11 @@ private def newSloppy(
   val createdAt = nowInstant
   val authorizedRankTrack =
     RankedGame
-      .authorize(rankTrack, source, variant, clock.map(_.config), moveTimeLimit, players)
+      .authorize(rankTrack, source, variant, clock.map(_.config), moveTimeLimit, players, daysPerTurn)
       .filter: track =>
-        track == RankTrackId.of(xiangqi.variant) && xiangqi.ruleset == xiangqi.variant.defaultRuleset
+        RankTrackId.live(track) == RankTrackId
+          .of(xiangqi.variant) && RankedGame.hasRankedStart(xiangqi, daysPerTurn.isDefined) &&
+          rules.isEmpty && pgnImport.isEmpty
   new Game(
     id = IdGenerator.uncheckedGame,
     // Rank snapshots are also presentation metadata, so casual games retain them. Whether a game
@@ -168,7 +195,7 @@ private def newSloppy(
     startedAtPly = startedAtPly,
     status = Status.Created,
     daysPerTurn = daysPerTurn,
-    // A new game is ranked only when a native rank track was assigned by an authorized pool.
+    // A new game is ranked only when a native rank track was authorized for its pool or friend challenge.
     // Legacy callers may still pass Rated.Yes, but they cannot create a ranked game implicitly.
     rated = Rated(authorizedRankTrack.isDefined),
     rankTrack = authorizedRankTrack,

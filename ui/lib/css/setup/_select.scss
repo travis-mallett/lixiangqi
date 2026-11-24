@@ -10,10 +10,16 @@
     color: $c-font-dim;
   }
 
-  select {
+  select,
+  output,
+  .complete-parent {
     flex: 2 1 16rem;
     min-width: 0;
     max-width: 100%;
+  }
+
+  .complete-parent input {
+    width: 100%;
   }
 
   @media (max-width: at-most(500px)) {
@@ -21,7 +27,9 @@
     flex-direction: column;
 
     label,
-    select {
+    select,
+    output,
+    .complete-parent {
       flex: none;
     }
   }

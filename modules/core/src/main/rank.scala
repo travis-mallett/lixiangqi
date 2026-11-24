@@ -12,13 +12,19 @@ object rank:
     val threeKingdoms: RankTrackId = "threeKingdoms"
 
     val all: List[RankTrackId] = List(xiangqi, jieqi, minixiangqi, manchu, threeKingdoms)
+    private val correspondenceTracks = all.map(t => t -> RankTrackId(t.value + "Correspondence")).toMap
+    val accounts = all ++ all.map(correspondenceTracks)
+    def forMode(track: RankTrackId, correspondence: Boolean): RankTrackId =
+      if correspondence then correspondenceTracks(live(track)) else live(track)
+    def live(track: RankTrackId): RankTrackId = RankTrackId(track.value.stripSuffix("Correspondence"))
+    def isCorrespondence(track: RankTrackId): Boolean = live(track) != track
     def of(variant: lila.xiangqi.GameVariant): RankTrackId =
       from(variant.key).get
 
     def variant(track: RankTrackId): lila.xiangqi.GameVariant =
-      lila.xiangqi.GameVariant.fromKey(track.value).fold(sys.error, identity)
+      lila.xiangqi.GameVariant.fromKey(live(track).value).fold(sys.error, identity)
 
-    def from(value: String): Option[RankTrackId] = all.find(_.value == value)
+    def from(value: String): Option[RankTrackId] = accounts.find(_.value == value)
 
   /** Internal assessment points. Public surfaces normally render a rank title instead. */
   opaque type RankScore = Int
@@ -90,5 +96,8 @@ object rank:
       after: Option[RankCode] = None
   ):
     def scoreAfter: Option[RankScore] = diff.map(score + _)
-    def matchingGroup: Int = if track == RankTrackId.xiangqi then ordinal else ordinal.min(26) / 3
-    def publicCode: Option[RankCode] = after.orElse(established.option(code))
+    def matchingGroup: Int =
+      if RankTrackId.live(track) == RankTrackId.xiangqi then ordinal else ordinal.min(26) / 3
+    def publicDiff: Option[RankDiff] = diff.filterNot(_ => RankTrackId.isCorrespondence(track))
+    def publicCode: Option[RankCode] =
+      Option.unless(RankTrackId.isCorrespondence(track))(after.orElse(established.option(code))).flatten

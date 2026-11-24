@@ -85,15 +85,9 @@ final class PoolApi(
                       for
                         seats <- maker.seats(Vector(user.id))
                         blocked <- relations.fetchBlocking(user.id)
-                        recent <- repo.recentOpponents(user.id, nowInstant.minusSeconds(3600))
-                      yield
-                        val repeated = recent
-                          .flatMap(_.userIds.filterNot(_ == user.id))
-                          .groupMapReduce(identity)(_ => 1)(_ + _)
-                          .collect { case (id, n) if n >= 3 => id }
-                          .toSet
-                        waiting =
-                          waiting.updated(user.id, Entry(user.id, seats.head, blocked, repeated, now, now))
+                        repeated <- repo.repeatedRatedOpponents(user.id)
+                      yield waiting =
+                        waiting.updated(user.id, Entry(user.id, seats.head, blocked, repeated, now, now))
           entered
             .flatMap(_ => pair())
             .map: _ =>

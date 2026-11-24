@@ -13,6 +13,34 @@ class KingdomGameTest extends munit.FunSuite:
     java.time.Instant.ofEpochMilli(1000)
   )
 
+  test("rated friend games require three member snapshots and the pool clock"):
+    val rank = lila.rating.ThreeKingdomsRank.initialSnapshot
+    val g = game.copy(seats = users.map(id => Seat(Some(id), None, Some(rank))), rated = true)
+    assertEquals(g.source, "friend")
+    intercept[IllegalArgumentException](g.copy(clock = ClockState.start(ClockConfig(600, 60), 1000)))
+    intercept[IllegalArgumentException](g.copy(seats = g.seats.updated(1, Seat(None, Some(2), None))))
+    assert(g.takeback(users.head, 2000).isLeft)
+
+  test("three human correspondence seats settle on their own track from placement"):
+    val policy = lila.rating.ThreeKingdomsRank
+    val track = lila.core.rank.RankTrackId.forMode(policy.catalog.track, true)
+    val rank = policy.initialSnapshot.copy(track = track)
+    val clock = ClockState.start(ClockConfig(0, 0, days = Some(2)), 1000)
+    val g = game.copy(
+      clock = clock,
+      seats = users.map(id => Seat(Some(id), None, Some(rank))),
+      rated = true,
+      source = "seek"
+    )
+    assertEquals(g.accountTrack, track)
+    assertEquals(
+      policy.settleThree(g.seats.flatMap(_.rank), Vector(1d, 2d, 3d)).map(_.map(_.value)),
+      Right(Vector(20, 0, -20))
+    )
+    intercept[IllegalArgumentException](
+      g.copy(seats = g.seats.updated(0, g.seats.head.copy(rank = Some(policy.initialSnapshot))))
+    )
+
   test("a public correspondence offer starts only when the last human seat is claimed"):
     val g = game
     val offer = KingdomChallenge(

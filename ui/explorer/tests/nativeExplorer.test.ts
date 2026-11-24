@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import ExplorerCtrl from '../src/explorerCtrl.ts';
-import { openingReferences, renderOpeningReferences } from '../src/references.ts';
 
 test('a profile explorer keeps source selection across side and position changes without saved analysis filters', async t => {
   const requests: any[] = [];
@@ -114,43 +113,4 @@ test('endgame queries retain rule history and expose rank-ten moves through keyb
   assert.deepEqual(played, ['i10i9']);
   assert.match(element.textContent, /DTM 7/);
   ctrl.destroy();
-});
-
-test('educational references retain source explanations and native replay links without rendering source HTML', async t => {
-  const player = { name: 'Player' };
-  t.mock.method(
-    globalThis,
-    'fetch',
-    async () =>
-      new Response(
-        JSON.stringify({
-          available: true,
-          topGames: [
-            {
-              id: 'source:id',
-              red: player,
-              black: player,
-              sourceUrl: 'https://example.org/native-record',
-              metadata: {
-                opening: 'Central cannon',
-                remark: '<script>unsafe</script>',
-                reference: 'Printed source, page 10',
-              },
-            },
-          ],
-          recentGames: [],
-        }),
-      ),
-  );
-  const references = await openingReferences('/native-explorer', {
-    fen: 'position',
-    initialFen: 'root',
-    moves: ['h3e3'],
-    ruleset: 'tiantian-v1',
-  });
-  const element = document.createElement('div');
-  renderOpeningReferences(element, references);
-  assert.match(element.textContent, /Printed source, page 10/);
-  assert.equal(element.querySelector('script'), null);
-  assert.equal(element.querySelector('a')!.getAttribute('href'), '/analysis?game=source%3Aid');
 });

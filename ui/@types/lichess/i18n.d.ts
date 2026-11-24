@@ -4455,8 +4455,8 @@ interface I18n {
     'captcha.fail': string;
     /** Capture */
     capture: string;
-    /** Voice Sound Effects */
-    captureCheckAndCheckmateVoiceSoundEffects: string;
+    /** Capture, Check, and Checkmate Sounds */
+    captureCheckAndCheckmateSounds: string;
     /** Captured pieces */
     capturedPieces: string;
     /** Special move rights */
@@ -4483,6 +4483,8 @@ interface I18n {
     changeUsernameNotSame: string;
     /** Chat */
     chat: string;
+    /** Chat Notifications */
+    chatNotificationSounds: string;
     /** Chat room */
     chatRoom: string;
     /** Cheat */
@@ -5221,6 +5223,8 @@ interface I18n {
     list: string;
     /** List players you have blocked */
     listBlockedPlayers: string;
+    /** Live */
+    livePlay: string;
     /** Live ranked games */
     liveRatedGames: string;
     /** Loading… */
@@ -6309,6 +6313,8 @@ interface I18n {
     unlinkProvider: string;
     /** You will no longer be able to sign in to this LiXiangQi account with %s. Your games and ratings will stay the same. */
     unlinkProviderHelp: I18nFormat;
+    /** Unranked */
+    unranked: string;
     /** Unsubscribe */
     unsubscribe: string;
     /** Until */
@@ -7087,8 +7093,6 @@ interface I18n {
     noneYet: string;
     /** None */
     noPinnedComment: string;
-    /** No matching Xiangqi reference is available for this position. */
-    noPositionReference: string;
     /** Normal analysis */
     normalAnalysis: string;
     /** Novelty */
@@ -7137,8 +7141,6 @@ interface I18n {
     pleaseOnlyInvitePeopleYouKnow: string;
     /** Popular topics */
     popularTopics: string;
-    /** Annotated source records containing this position */
-    positionReferences: string;
     /** Previous chapter */
     prevChapter: string;
     /** The previous import completed. Any newer input shown here has not been submitted. */
@@ -7163,10 +7165,6 @@ interface I18n {
     redIsSlightlyBetter: string;
     /** Red is winning */
     redIsWinning: string;
-    /** Read the source */
-    referenceSource: string;
-    /** The position reference service is unavailable. */
-    referenceUnavailable: string;
     /** Relevant */
     relevant: string;
     /** Right under the board */
@@ -7831,7 +7829,7 @@ interface I18n {
     rulesMovement: string;
     /** On a third occurrence of the same position, a player who checked the same opponent on every one of their own turns through both repetition cycles is a perpetual checker. If exactly one player qualifies, that player loses and the continuously checked opponent receives the army. If there are multiple qualifying players, the result is a draw. If more than one opponent was continuously checked, next-turn order decides the recipient. Repeated chasing uses the ordinary threefold draw. These are the variant’s own repetition rules, not the ordinary Tiantian chase rules. */
     rulesPerpetual: string;
-    /** Rated matchmaking uses a separate Three Kingdoms rank. Placements are compared with both opponents once; equally ranked players receive +20, 0, and −20 points before the rank floor. A tied final duel preserves third place and shares first and second. Friend and computer games are casual. */
+    /** Rated matchmaking uses a separate Three Kingdoms rank. Placements are compared with both opponents once; equally ranked players receive +20, 0, and −20 points before the rank floor. A tied final duel preserves third place and shares first and second. Friends can choose rated play with three human players and the pool clock. Computer games are casual. */
     rulesRating: string;
     /** Soldiers advance toward the river. After crossing, they can move sideways or toward the entered territory’s home edge. They cannot return across a river or cross into a third territory. Appropriation does not change this direction. */
     rulesSoldier: string;

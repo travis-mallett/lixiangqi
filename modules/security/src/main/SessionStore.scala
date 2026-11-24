@@ -197,6 +197,20 @@ final class SessionStore(val coll: Coll, cacheApi: lila.memo.CacheApi)(using Exe
   yield ()
 
   def shareAnIpOrFp(users: PairOf[UserId]): Fu[Boolean] =
+    SessionStore.shareAnIpOrFp(coll, users)
+
+  private[security] def recentByIpExists(ip: IpAddress, since: FiniteDuration): Fu[Boolean] =
+    coll.secondary.exists:
+      $doc("ip" -> ip, "date" -> $gt(nowInstant.minusMinutes(since.toMinutes.toInt)))
+
+  private[security] def recentByPrintExists(fp: FingerPrint): Fu[Boolean] =
+    lila.security.FingerHash.from(fp).so { hash =>
+      coll.secondary.exists:
+        $doc("fp" -> hash, "date" -> $gt(nowInstant.minusDays(7)))
+    }
+
+object SessionStore:
+  def shareAnIpOrFp(coll: Coll, users: PairOf[UserId])(using Executor): Fu[Boolean] =
     coll.aggregateExists(_.sec): framework =>
       import framework.*
       Match($doc("user".$in(users.asList))) -> List(
@@ -218,18 +232,6 @@ final class SessionStore(val coll: Coll, cacheApi: lila.memo.CacheApi)(using Exe
         ),
         Limit(1)
       )
-
-  private[security] def recentByIpExists(ip: IpAddress, since: FiniteDuration): Fu[Boolean] =
-    coll.secondary.exists:
-      $doc("ip" -> ip, "date" -> $gt(nowInstant.minusMinutes(since.toMinutes.toInt)))
-
-  private[security] def recentByPrintExists(fp: FingerPrint): Fu[Boolean] =
-    lila.security.FingerHash.from(fp).so { hash =>
-      coll.secondary.exists:
-        $doc("fp" -> hash, "date" -> $gt(nowInstant.minusDays(7)))
-    }
-
-object SessionStore:
 
   case class Info(ip: IpAddress, ua: UserAgent, fp: Option[FingerHash], date: Instant):
     def datedIp = Dated(ip, date)

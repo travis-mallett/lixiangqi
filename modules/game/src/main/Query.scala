@@ -10,10 +10,10 @@ object Query:
 
   import Game.BSONFields as F
 
-  val ranked: Bdoc = F.rankTrack.$in(lila.core.rank.RankTrackId.all.map(_.value))
+  val ranked: Bdoc = F.rankTrack.$in(lila.core.rank.RankTrackId.accounts.map(_.value))
 
   // Includes missing and unknown track IDs, both of which decode as unranked.
-  val notRanked: Bdoc = F.rankTrack.$nin(lila.core.rank.RankTrackId.all.map(_.value))
+  val notRanked: Bdoc = F.rankTrack.$nin(lila.core.rank.RankTrackId.accounts.map(_.value))
 
   def ranked(u: UserId): Bdoc = user(u) ++ ranked
 

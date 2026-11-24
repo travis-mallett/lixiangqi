@@ -9,7 +9,6 @@ import lila.game.{ CrosstableApi, GameRepo }
 import lila.core.game.reasonableMinimumNumberOfMoves
 import lila.core.rank.RankTrackId
 import lila.core.rank.RankScore.*
-import lila.rating.XiangqiRank
 
 final private class FarmBoostDetection(
     gameRepo: GameRepo,
@@ -56,29 +55,15 @@ final private class FarmBoostDetection(
     g.winnerColor.so(newAccountBoostingInFavorOf(g, users, _))
 
   private def newAccountBoostingInFavorOf(g: Game, users: ByColor[UserWithPerfs], favor: Color): Fu[Boolean] =
-    (!users(favor).user.createdSinceDays(7))
-      .so:
-        val track = g.rankTrack.getOrElse(RankTrackId.xiangqi)
-        val rank = users(favor).perfs.rank(track).getOrElse(lila.rating.RankPolicy(track).initial)
-        val minSeconds = linearInterpolation(rank.games)(0 -> 90, 5 -> 60)
-        def minPliesForPerfNb =
-          if g.variant.standard
-          then linearInterpolation(rank.games)(0 -> 40, 5 -> 20)
-          else reasonableMinimumNumberOfMoves(g.variant)
-        (
-          rank.games < 6 &&
-            g.playedPlies < minPliesForPerfNb &&
-            g.durationSeconds.exists(_ < minSeconds)
-        ) || g.playedPlies < 10
+    val account = g.rankTrack.getOrElse(RankTrackId.xiangqi)
+    val games = users(favor).perfs.rank(account).fold(0)(_.games)
+    FarmBoostDetection
+      .needsRelationCheck(g, users(favor).user.createdAt, nowInstant, games)
       .so(arePlayersRelated(g))
       .addEffect:
         if _ then
           lila.mon.round.farming.provisional.increment()
           logger.info(s"new account boosting: https://lixiangqi.org/${g.id} ${users.map(_.user.username)}")
-
-  private def linearInterpolation(x: Int)(p1: PairOf[Int], p2: PairOf[Int]): Int =
-    val ((x1, y1), (x2, y2)) = (p1, p2)
-    y1 + (x - x1) * (y2 - y1) / (x2 - x1)
 
   private def arePlayersRelated(game: Game): Fu[Boolean] =
     if game.sourceIs(_.Friend) then fuTrue
@@ -86,3 +71,15 @@ final private class FarmBoostDetection(
       game.userIdPair.sequence
         .map(_.toPair)
         .so(securityApi.shareAnIpOrFp)
+
+object FarmBoostDetection:
+  def needsRelationCheck(game: Game, joined: Instant, at: Instant, games: Int): Boolean =
+    val minSeconds = linearInterpolation(games)(0 -> 90, 5 -> 60)
+    val minPlies = if game.variant.standard then linearInterpolation(games)(0 -> 40, 5 -> 20)
+    else reasonableMinimumNumberOfMoves(game.variant)
+    !joined.isBefore(at.minusDays(7)) && ((games < 6 && game.playedPlies < minPlies &&
+      game.durationSeconds.exists(_ < minSeconds)) || game.playedPlies < 10)
+
+  private def linearInterpolation(x: Int)(p1: PairOf[Int], p2: PairOf[Int]): Int =
+    val ((x1, y1), (x2, y2)) = (p1, p2)
+    y1 + (x - x1) * (y2 - y1) / (x2 - x1)

@@ -7,6 +7,8 @@ import lila.core.socket.{ GetVersion, SocketVersion }
 
 @Module
 final class Env(
+    mayPlayRatedFriend: lila.core.pool.MayPlayRatedFriend,
+    participation: lila.core.pool.PoolParticipation,
     gameRepo: lila.game.GameRepo,
     userApi: lila.core.user.UserApi,
     onStart: lila.core.game.OnStart,

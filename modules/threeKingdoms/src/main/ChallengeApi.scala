@@ -18,7 +18,8 @@ final case class KingdomChallenge(
     notifyPending: Boolean = true,
     botLevel: Option[Int] = None,
     creatorSide: Option[Kingdom] = None,
-    openSeek: Option[Boolean] = None
+    openSeek: Option[Boolean] = None,
+    ranked: Option[Boolean] = None
 ):
   def claimSeat(user: UserId): KingdomChallenge =
     val humans = users :+ user
@@ -29,6 +30,8 @@ final case class KingdomChallenge(
       status = if humans.size + botLevel.size == 3 then "starting" else "pending"
     )
 
+  def correspondenceRanked = config.days.isDefined && botLevel.isEmpty
+  def intendsRank = ranked.contains(true) || correspondenceRanked
   def source = if openSeek.contains(true) then "seek" else "friend"
 
   def arrangeSeats[A](humans: Vector[A])(bot: Int => A): Vector[A] =
@@ -46,7 +49,10 @@ final class ChallengeApi(
     users: lila.user.UserApi,
     granter: lila.challenge.ChallengeGranter,
     relations: lila.core.relation.RelationApi,
-    notifyApi: lila.notify.NotifyApi
+    notifyApi: lila.notify.NotifyApi,
+    mayPlayRatedFriend: lila.core.pool.MayPlayRatedFriend,
+    repo: GameRepo,
+    participation: lila.core.pool.PoolParticipation
 )(using Executor, Scheduler):
   import BSONHandlers.given
   private given BSONDocumentHandler[KingdomChallenge] = Macros.handler
@@ -80,10 +86,14 @@ final class ChallengeApi(
       config: ClockConfig,
       botLevel: Option[Int],
       creatorSide: Option[Kingdom] = None,
-      publicSeek: Boolean = false
+      publicSeek: Boolean = false,
+      rated: Boolean = false
   ): Fu[Either[String, KingdomChallenge]] =
     val humans = opponents :+ creator.id
-    if botLevel.exists(level => level < 1 || level > 5) then fuccess(Left("invalidLevel"))
+    val liveRated = rated && config.days.isEmpty
+    if liveRated && (botLevel.nonEmpty || creatorSide.nonEmpty || publicSeek || config != ClockConfig()) then
+      fuccess(Left("invalidClock"))
+    else if botLevel.exists(level => level < 1 || level > 5) then fuccess(Left("invalidLevel"))
     else if publicSeek && (opponents.nonEmpty || config.days.isEmpty) then fuccess(Left("invalidClock"))
     else if !publicSeek && (humans.size + botLevel.size != 3 || humans.distinct.size != humans.size) then
       fuccess(Left("chooseTwoDifferentPlayers"))
@@ -102,6 +112,7 @@ final class ChallengeApi(
         creatorSide =
           if publicSeek then creatorSide.orElse(Some(scala.util.Random.shuffle(Kingdom.values.toList).head))
           else creatorSide,
+        ranked = Option.when(liveRated)(true),
         openSeek = Option.when(publicSeek)(true),
         notifyPending = !publicSeek
       )
@@ -183,25 +194,35 @@ final class ChallengeApi(
       .flatMap:
         case Some(g)
             if g.seats.map(s => s.userId -> s.aiLevel) == expectedSeats && g.source == c.source &&
-              g.clock.config == c.config =>
+              g.clock.config == c.config && g.rated == c.intendsRank =>
           finishStart(c)
         case Some(_) => fufail("Three Kingdoms challenge game does not match its invitation")
         case None =>
           allowed(c).flatMap:
-            case false =>
+            case available
+                if !available || (!c.correspondenceRanked && c.ranked
+                  .contains(true) && !participation.reserveChallenge(c.users.toList, c.id, nowMillis)) =>
               val cancelled = c.copy(status = "cancelled", revision = c.revision + 1, notifyPending = false)
               coll.update.one($id(c.id), cancelled).inject(cancelled)
-            case true =>
+            case _ =>
               maker
-                .seats(c.users)
+                .seats(c.users, c.correspondenceRanked)
                 .flatMap(humans =>
                   maker.create(
                     c.arrangeSeats(humans)(level => Seat(None, Some(level), None)),
                     c.config,
                     c.source,
-                    c.id
+                    c.id,
+                    ratedFriend = c.intendsRank
                   )
                 )
+                .recoverWith:
+                  case e if c.intendsRank =>
+                    maker
+                      .existing(c.id)
+                      .flatMap: persisted =>
+                        if persisted.isEmpty then participation.release(c.id, c.users)
+                        fufail(e)
                 .flatMap(_ => finishStart(c))
 
   private def finishStart(c: KingdomChallenge): Fu[KingdomChallenge] =
@@ -229,7 +250,21 @@ final class ChallengeApi(
               .filter(_.size == 2)
               .toList
               .traverse(pair => this.relations.fetchRelations(pair(0), pair(1)))
-          yield grants.forall(identity) && relations.forall(r =>
+            eligible <-
+              if !c.intendsRank then fuTrue
+              else if !accounts.forall(u => u.rankable && !u.lame) then fuFalse
+              else if c.correspondenceRanked then fuTrue
+              else
+                for
+                  seats <- maker.seats(c.users, c.correspondenceRanked)
+                  eligible <- accounts.traverse(mayPlayRatedFriend.exec).map(_.forall(identity))
+                  repeated <- c.users.traverse(repo.repeatedRatedOpponents)
+                yield eligible && repeated.forall(avoid => !c.users.exists(avoid)) &&
+                  seats.flatMap(_.rank).map(_.matchingGroup).combinations(2).forall {
+                    case Vector(a, b) => (a - b).abs <= 1
+                    case _ => true
+                  }
+          yield eligible && grants.forall(identity) && relations.forall(r =>
             !List(r.in, r.out).flatten.contains(lila.core.relation.Relation.Block)
           )
 

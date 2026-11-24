@@ -539,6 +539,7 @@ export class GraphBoardView implements BoardView {
     this.feedback.present(transition, this.presentation, this.geometry);
   }
   mountControl(element: HTMLElement): void {
+    element.classList.add('graph-board__controls');
     this.element.append(element);
     this.onDestroy(() => element.remove());
   }

@@ -19,6 +19,7 @@ final class UserList(helpers: Helpers, bits: UserBits):
       leaderboards: List[(RankTrackId, List[LightRank], Option[XiangqiPersonalRank])],
       flags: Map[UserId, FlagCode]
   )(using ctx: Context) =
+    val correspondence = leaderboards.headOption.exists(board => RankTrackId.isCorrespondence(board._1))
     Page(trans.site.leaderboard.txt())
       .css("user.list")
       .flag(_.fullScreen)
@@ -41,6 +42,13 @@ final class UserList(helpers: Helpers, bits: UserBits):
             ),
             div(cls := "community__leaders")(
               h2(trans.site.leaderboard()),
+              st.nav(cls := "leaderboard-modes", aria.label := trans.site.gameMode.txt())(
+                List(false -> trans.site.livePlay, true -> trans.site.correspondence).map: (mode, label) =>
+                  a(
+                    href := (routes.User.list.url + (if mode then "?mode=correspondence" else "")),
+                    attr("aria-current") := (if mode == correspondence then "page" else "false")
+                  )(label())
+              ),
               div(cls := "leaderboards")(
                 leaderboards.map((track, entries, personal) => leaderboard(track, entries, personal, flags))
               )
@@ -67,7 +75,7 @@ final class UserList(helpers: Helpers, bits: UserBits):
         span(cls := "rank")(entry.rank.value),
         span(cls := "rating")(entry.score.value)
       )
-    st.section(cls := "leaderboard", id := track.value)(
+    st.section(cls := "leaderboard", id := RankTrackId.live(track).value)(
       h3(
         span(cls := "variant-icon", aria.hidden := true)(RankTrackId.variant(track).symbol),
         " ",
@@ -87,7 +95,8 @@ final class UserList(helpers: Helpers, bits: UserBits):
           )
         case Some(XiangqiPersonalRank.Unplayed) =>
           p(cls := "leaderboard__footer")(
-            a(href := (if track == RankTrackId.threeKingdoms then
+            a(href := (if RankTrackId.isCorrespondence(track) then "/#home-tab-seeks"
+                       else if track == RankTrackId.threeKingdoms then
                          "/play/room/threeKingdoms-v1-ranked-15+0-m60"
                        else if track == RankTrackId.xiangqi then "/"
                        else s"/?variant=${track.value}"))(

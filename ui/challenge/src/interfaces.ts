@@ -29,6 +29,7 @@ export interface TimeControl {
 
 export interface Challenge {
   id: string;
+  rated: boolean;
   direction: ChallengeDirection;
   status: ChallengeStatus;
   challenger?: ChallengeUser;

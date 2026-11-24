@@ -48,8 +48,7 @@ def meta(
                 frag(
                   ui.widgets.showClock(game),
                   separator,
-                  rankedName(game.ranked),
-                  separator,
+                  game.daysPerTurn.isEmpty.option(frag(rankedName(game.ranked), separator)),
                   nativeVariantLink(game, game.perfType, initialFen)
                 )
             ),

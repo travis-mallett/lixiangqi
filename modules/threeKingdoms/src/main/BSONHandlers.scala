@@ -5,7 +5,7 @@ import lila.db.BSON
 import lila.db.dsl.{ *, given }
 import lila.core.rank.{ RankSnapshot, RankTrackId, RankScore, RankCode, RankDiff }
 
-private[threeKingdoms] object BSONHandlers:
+private[lila] object BSONHandlers:
   given BSONHandler[Kingdom] =
     quickHandler[Kingdom]({ case BSONInteger(n) => Kingdom.values(n) }, k => BSONInteger(k.ordinal))
   given BSONHandler[Position] = quickHandler[Position](
@@ -17,7 +17,7 @@ private[threeKingdoms] object BSONHandlers:
   given BSONDocumentHandler[ClockState] = Macros.handler
   given BSON[RankSnapshot] with
     def reads(r: BSON.Reader) = RankSnapshot(
-      RankTrackId.threeKingdoms,
+      RankTrackId.forMode(RankTrackId.threeKingdoms, r.boolD("correspondence")),
       RankScore(r.int("score")),
       RankCode(r.str("code")),
       r.int("ordinal"),
@@ -28,6 +28,7 @@ private[threeKingdoms] object BSONHandlers:
       r.strO("after").map(RankCode(_))
     )
     def writes(w: BSON.Writer, s: RankSnapshot) = $doc(
+      "correspondence" -> RankTrackId.isCorrespondence(s.track).option(true),
       "score" -> s.score.value,
       "code" -> s.code.value,
       "ordinal" -> s.ordinal,

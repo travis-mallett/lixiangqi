@@ -51,7 +51,9 @@ final class ChallengeUi(helpers: Helpers):
       else
         c.destUser.fold(s"Challenge from $challenger"): dest =>
           s"$challenger challenges ${titleNameOrId(dest.id)} (${dest.rank.fold("Unranked")(_.value)})"
-    s"$clockDescription ${trans.site.casual.txt()} ${c.gameVariant.name} • $players"
+    val mode =
+      c.daysPerTurn.isEmpty.option(if c.rated.yes then trans.site.rated.txt() else trans.site.casual.txt())
+    (List(clockDescription) ++ mode ++ List(c.gameVariant.name)).mkString(" ") + s" • $players"
 
   private def details(c: Challenge, requestedColor: Option[Color])(using ctx: Context) =
     div(cls := "details-wrapper")(
@@ -77,8 +79,8 @@ final class ChallengeUi(helpers: Helpers):
           c.open.fold(c.colorChoice.some)(_.colorFor(requestedColor)).map { colorChoice =>
             frag(colorChoice.trans(), br)
           },
-          trans.site.casual(),
-          br,
+          c.daysPerTurn.isEmpty
+            .option(frag(if c.rated.yes then trans.site.rated() else trans.site.casual(), br)),
           span(cls := "ruleset")(c.effectiveRuleset.label)
         )
       ),
@@ -307,7 +309,7 @@ final class ChallengeUi(helpers: Helpers):
           "user" -> user.id.value,
           "variant" -> (if c.gameVariant == lila.xiangqi.GameVariant.Xiangqi then variant.key.value
                         else c.gameVariant.key),
-          "gameMode" -> "casual"
+          "gameMode" -> (if c.rated.yes then "rated" else "casual")
         ),
         timeControl.match
           case Challenge.TimeControl.Clock(config, moveTimeLimit) =>
@@ -327,4 +329,6 @@ final class ChallengeUi(helpers: Helpers):
           case Challenge.ColorChoice.Random => Nil
           case choice => List("color" -> choice.trans.value)
       ).flatten.toMap
-      Url(addQueryParams(routeUrl(routes.Lobby.home).value, params) + "#friend")
+      val setup =
+        if c.rated.yes then params.view.filterKeys(Set("user", "variant", "gameMode")).toMap else params
+      Url(addQueryParams(routeUrl(routes.Lobby.home).value, setup) + "#friend")

@@ -56,6 +56,8 @@ case class Challenge(
   def daysPerTurn = timeControl match
     case TimeControl.Correspondence(d) => d.some
     case _ => none
+  def accountTrack =
+    lila.core.rank.RankTrackId.forMode(lila.core.rank.RankTrackId.of(gameVariant), daysPerTurn.isDefined)
   def unlimited = timeControl == TimeControl.Unlimited
 
   def openDest = destUser.isEmpty
@@ -187,7 +189,7 @@ object Challenge:
       variant: Variant,
       initialFen: Option[Fen.Full],
       timeControl: TimeControl,
-      @annotation.unused rated: Rated,
+      rated: Rated,
       color: String,
       challenger: Challenger,
       destUser: GameUser,
@@ -204,7 +206,15 @@ object Challenge:
       case "white" => ColorChoice.White -> chess.White
       case "black" => ColorChoice.Black -> chess.Black
       case _ => ColorChoice.Random -> randomColor
-    val finalRated = Rated.No
+    val finalRated = rated.map(requested =>
+      requested && challenger.isInstanceOf[Challenger.Registered] && variant.standard &&
+        initialFen.isEmpty && rules.isEmpty && ruleset == gameVariant.defaultRuleset &&
+        colorChoice == ColorChoice.Random && (timeControl match
+          case TimeControl.Clock(config, limit) =>
+            lila.core.game.RankedGame
+              .matchesClock(lila.core.rank.RankTrackId.of(gameVariant), Some(config), limit)
+          case _ => false)
+    )
     val isOpen = challenger == Challenge.Challenger.Open
     new Challenge(
       id = id.fold(randomId)(_.into(ChallengeId)),

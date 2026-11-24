@@ -80,7 +80,7 @@ final class Challenge(env: Env) extends LilaController(env):
           Ok.async:
             for
               challenger <- c.challengerUserId.so(
-                env.user.api.byIdWithPerf(_, c.perfType, lila.core.rank.RankTrackId.of(c.gameVariant))
+                env.user.api.byIdWithPerf(_, c.perfType, c.accountTrack)
               )
               relation <- (ctx.userId, c.challengerUserId).tupled.so(env.relation.api.fetchRelation.tupled)
             yield views.challenge.theirs(c, json, challenger, getColor(), relation)
@@ -359,7 +359,13 @@ final class Challenge(env: Env) extends LilaController(env):
     import lila.challenge.Challenge.*
     val timeControl = makeTimeControl(config.clock, config.days, config.moveTimeLimit)
     env.user.perfsRepo
-      .withPerf(orig -> dest, config.perfType, _.sec, lila.core.rank.RankTrackId.of(config.gameVariant))
+      .withPerf(
+        orig -> dest,
+        config.perfType,
+        _.sec,
+        lila.core.rank.RankTrackId
+          .forMode(lila.core.rank.RankTrackId.of(config.gameVariant), config.days.isDefined)
+      )
       .map: (orig, dest) =>
         lila.challenge.Challenge.make(
           variant = config.variant,

@@ -79,7 +79,7 @@ object ApiConfig extends BaseConfig:
       clock = cl,
       moveTimeLimit = ml,
       days = d,
-      rated = r,
+      rated = Rated(r.yes && d.isEmpty),
       color = TriColor.orDefault(~c),
       position = pos,
       message = msg.map(Template.apply),

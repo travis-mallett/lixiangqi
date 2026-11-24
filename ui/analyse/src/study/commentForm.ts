@@ -4,7 +4,6 @@ import { blurOnEscape, prop } from 'lib';
 import { throttleWithFlush } from 'lib/async';
 import { storage } from 'lib/storage';
 import type { TreeNode, TreePath } from 'lib/tree/types';
-import { onInsert } from 'lib/view';
 
 import type AnalyseCtrl from '../ctrl';
 import type { ChapterId } from './interfaces';
@@ -120,7 +119,7 @@ export function view(root: AnalyseCtrl): VNode {
     }
   };
 
-  return h('div.study__comments', { hook: onInsert(() => root.enableWiki(true)) }, [
+  return h('div.study__comments', [
     currentComments(root, !study.members.canContribute()),
     h('form.form3', [
       h('textarea#comment-text.form-control', {
@@ -141,6 +140,5 @@ export function view(root: AnalyseCtrl): VNode {
         },
       }),
     ]),
-    h('div.analyse__wiki.study__wiki.force-ltr', h('div.analyse__wiki-text')),
   ]);
 }

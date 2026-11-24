@@ -116,7 +116,6 @@ export function renderMain(
         'has-relay-tour': hasRelayTour,
         'is-relay': isRelay,
         'analyse-hunter': ctrl.opts.hunter,
-        'analyse--wiki': !!ctrl.wiki && !ctrl.study,
         'relay-in-variation': !!ctrl.study?.isRelayAndInVariation(),
       },
     },

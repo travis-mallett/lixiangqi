@@ -90,3 +90,133 @@
     color: $c-font-dimmer;
   }
 }
+
+.correspondence-history {
+  padding: 1rem;
+  flex: 1 1 100%;
+  min-width: 0;
+  border-bottom: $border;
+
+  h2 {
+    margin-bottom: 0.7em;
+  }
+
+  &__layout {
+    display: grid;
+    gap: 0.8em;
+
+    @media (min-width: at-least($medium)) {
+      grid-template-columns: minmax(10rem, 1fr) minmax(0, 2fr);
+    }
+  }
+
+  &__variants button {
+    width: 100%;
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.4em;
+    padding: 0.8em;
+    border-bottom: $border;
+    text-align: start;
+    color: $c-font;
+    background: $c-bg-zebra;
+
+    .variant-name {
+      flex: 1 1 100%;
+    }
+
+    &[aria-pressed='true'] {
+      background: $c-accent-cloud;
+    }
+  }
+
+  &__plot {
+    min-width: 0;
+    height: 13rem;
+    color: $c-brag;
+    position: relative;
+  }
+
+  @media (max-width: at-most($medium)) {
+    &__variants {
+      display: flex;
+      overflow-x: auto;
+      scroll-snap-type: x proximity;
+
+      button {
+        flex: 0 0 auto;
+        width: auto;
+        max-width: 10em;
+        scroll-snap-align: start;
+      }
+    }
+
+    .history-modes {
+      font-size: clamp(1em, 5vw, 1.8em);
+    }
+  }
+
+  [hidden] {
+    display: none;
+  }
+
+  .history-modes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25em;
+
+    button {
+      font: inherit;
+      color: $c-font-dim;
+      padding: 0.15em 0.3em;
+      border-bottom: 2px solid transparent;
+
+      &:hover,
+      &:focus-visible {
+        color: $c-font;
+        background: $c-bg-zebra;
+      }
+
+      &[aria-pressed='true'] {
+        color: $c-font;
+        border-color: $c-brag;
+        background: $c-bg-zebra;
+      }
+    }
+  }
+
+  &__variants[hidden] + &__plot {
+    grid-column: 1 / -1;
+  }
+
+  .history-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 0.8em;
+    color: $c-font-dim;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+
+    &::before,
+    &::after {
+      content: '';
+      flex: 1;
+      border-top: $border;
+    }
+
+    &[hidden] {
+      display: none;
+    }
+  }
+
+  &__value {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+}

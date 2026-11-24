@@ -32,6 +32,9 @@ object IsClockCompatible
 opaque type MayJoinPool = UserId => Fu[Boolean]
 object MayJoinPool extends FunctionWrapper[MayJoinPool, UserId => Fu[Boolean]]
 
+opaque type MayPlayRatedFriend = lila.core.user.User => Fu[Boolean]
+object MayPlayRatedFriend extends FunctionWrapper[MayPlayRatedFriend, lila.core.user.User => Fu[Boolean]]
+
 enum PoolFrom:
   case Socket, Api, Hook
 

@@ -42,6 +42,10 @@ final class ThreeKingdoms(env: Env) extends LilaController(env):
     feature.challenges
       .byId(id)
       .flatMap:
+        case Some(challenge) if challenge.openSeek.contains(true) && challenge.users.contains(me.userId) =>
+          val destination =
+            if challenge.status == "started" then routes.ThreeKingdoms.game(id).url else "/#home-tab-seeks"
+          fuccess(Redirect(destination))
         case Some(challenge) if challenge.users.contains(me.userId) =>
           renderPage(views.threeKingdoms.page("challenge", Json.obj("challenge" -> challengeJson(challenge))))
             .map(Ok(_))
@@ -272,6 +276,12 @@ final class ThreeKingdoms(env: Env) extends LilaController(env):
         color <- (body \ "color").validateOpt[String].asEither.left.map(_ => "invalidColor")
         side <- color.filterNot(_ == "random").traverse(Kingdom.fromKey(_).toRight("invalidColor"))
         botLevel <- (body \ "botLevel").validateOpt[Int].asEither.left.map(_ => "invalidLevel")
+        rated <- (body \ "rated")
+          .validateOpt[Boolean]
+          .asEither
+          .left
+          .map(_ => "invalidRequest")
+          .map(_.contains(true))
         publicSeek <- (body \ "publicSeek")
           .validateOpt[Boolean]
           .asEither
@@ -282,12 +292,12 @@ final class ThreeKingdoms(env: Env) extends LilaController(env):
           .asOpt[Vector[String]]
           .filter(v => v.size == (if publicSeek then 0 else 2 - botLevel.size) && v.forall(_.length <= 30))
           .toRight("chooseTwoDifferentPlayers")
-      yield (config, opponents.map(s => UserId(s.trim.toLowerCase)), botLevel, side, publicSeek)
+      yield (config, opponents.map(s => UserId(s.trim.toLowerCase)), botLevel, side, publicSeek, rated)
       request.fold(
         error => fuccess(BadRequest(jsonError(error))),
-        (config, opponents, botLevel, side, publicSeek) =>
+        (config, opponents, botLevel, side, publicSeek, rated) =>
           def create = feature.challenges
-            .create(me.value, opponents, config, botLevel, side, publicSeek)
+            .create(me.value, opponents, config, botLevel, side, publicSeek, rated)
             .map:
               case Right(challenge) =>
                 if publicSeek then env.lobby.socket.seeksChanged()
@@ -407,6 +417,7 @@ final class ThreeKingdoms(env: Env) extends LilaController(env):
   private def challengeJson(c: KingdomChallenge): JsObject = Json.obj(
     "id" -> c.id.value,
     "creator" -> c.creator.value,
+    "rated" -> c.intendsRank,
     "users" -> c.users.map(_.value),
     "accepted" -> c.accepted.toVector.map(_.value),
     "botLevel" -> c.botLevel,

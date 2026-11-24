@@ -43,6 +43,91 @@ final class JoinerTest extends munit.FunSuite:
     assertEquals(game.rated, chess.Rated.No)
     assertEquals(game.variant, FromPosition)
 
+  test("rated friend invitations start on the chosen variant's native rank track"):
+    import lila.core.game.RankedGame
+    import lila.core.rank.RankTrackId
+    import lila.core.user.*
+    for variant <- lila.xiangqi.GameVariant.values.filter(_.playerCount == 2) do
+      val track = RankTrackId.of(variant)
+      val policy = lila.rating.RankPolicy(track)
+      def player(name: String) = WithPerf(
+        User(
+          id = UserId(name.toLowerCase),
+          username = UserName(name),
+          count = Count(0, 0, 0, 0, 0),
+          enabled = UserEnabled(true),
+          roles = Nil,
+          playTime = None,
+          createdAt = java.time.Instant.EPOCH,
+          seenAt = None,
+          kid = KidMode(false),
+          lang = None,
+          plan = Plan(0, false, false, None),
+          hasEmail = false
+        ),
+        lila.rating.Perf.default,
+        Some(policy.initialSnapshot)
+      )
+      val red = player("Alice")
+      val black = player("Bob")
+      val standard = track == RankTrackId.xiangqi
+      val clock = if standard then RankedGame.xiangqiClock else RankedGame.jieqiClock
+      val limit = if standard then RankedGame.xiangqiMoveTime else RankedGame.jieqiMoveTime
+      val invitation = Challenge.make(
+        Standard,
+        None,
+        Challenge.TimeControl.Clock(clock, Some(limit)),
+        chess.Rated.Yes,
+        "random",
+        Challenge.toRegistered(red),
+        Some(black),
+        None,
+        ruleset = variant.defaultRuleset,
+        gameVariant = variant
+      )
+      assert(invitation.rated.yes)
+      val casual = Challenge.make(
+        Standard,
+        None,
+        invitation.timeControl,
+        chess.Rated.No,
+        "random",
+        Challenge.toRegistered(red),
+        Some(black),
+        None,
+        ruleset = variant.defaultRuleset,
+        gameVariant = variant
+      )
+      assert(casual.rated.no)
+      val game = ChallengeJoiner.createGame(invitation, Some(red), Some(black)).fold(fail(_), identity)
+      assertEquals(game.rankTrack, Some(track))
+      assert(RankedGame.isAuthorized(game))
+      assertEquals(game.metadata.source, Some(lila.core.game.Source.Friend))
+      assertEquals(game.xiangqi.initialFen, variant.startFen)
+
+      val byPost = invitation.copy(
+        timeControl = Challenge.TimeControl.Correspondence(scalalib.model.Days(2)),
+        rated = chess.Rated.No
+      )
+      val account = RankTrackId.forMode(track, true)
+      def correspondent(member: WithPerf) = member.copy(rank = member.rank.map(_.copy(track = account)))
+      val correspondence = ChallengeJoiner
+        .createGame(byPost, Some(correspondent(red)), Some(correspondent(black)))
+        .fold(fail(_), identity)
+      assertEquals(correspondence.rankTrack, Some(account))
+      assert(RankedGame.isAuthorized(correspondence))
+      if variant == lila.xiangqi.GameVariant.Xiangqi then
+        val legacy = byPost.copy(ruleset = Some(lila.xiangqi.adjudication.Ruleset.Unrestricted))
+        assert(
+          ChallengeJoiner
+            .createGame(legacy, Some(correspondent(red)), Some(correspondent(black)))
+            .exists(RankedGame.isAuthorized)
+        )
+
+  test("a rated invitation cannot be accepted as a guest"):
+    val challenge = makeChallenge(Standard, None).copy(rated = chess.Rated.Yes)
+    assert(ChallengeJoiner.createGame(challenge, None, None).isLeft)
+
   private def makeChallenge(
       variant: chess.variant.Variant,
       initialFen: Option[chess.format.Fen.Full]

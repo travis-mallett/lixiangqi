@@ -1,0 +1,18 @@
+{
+  "date": "2026-11-23",
+  "websiteCommit": "51a15034ab419581ba660db2b651c0f985eac1ae",
+  "reviewedWorkingTree": {
+    "ui/analyse/src/study/commentForm.ts": "5c29b665ff307bba94218b5e2f95d1a04319ada9c6cab0bc6e1b21d571263ec0"
+  },
+  "change": "Remove matching source records and their lookup from the website Study comment panel.",
+  "mobile": {
+    "disposition": "not applicable",
+    "reason": "The native analysis workspace supports authored comments without the website's source-record panel or lookup. The shared explorer API retains its existing contract."
+  },
+  "kids": {
+    "disposition": "not applicable",
+    "reason": "Xiangqi Kids has no Study workspace or corresponding comment panel."
+  },
+  "verification": "Reviewed both apps and ran the reconciliation scanner. The production asset build and UI tests passed. Edge fixtures verified comment submission and the absence of explorer requests at desktop, intermediate and mobile widths. Existing reconciliation checkpoints remain in place.",
+  "deployment": "Use the normal website deployment to ship the rebuilt assets and regenerated translation keys. No migration or mobile release is required."
+}

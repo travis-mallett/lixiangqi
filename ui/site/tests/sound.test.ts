@@ -207,6 +207,43 @@ test('voice setting only suppresses capture, check, and spoken checkmate effects
   }
 });
 
+test('chat notifications can be muted independently of board sounds', async () => {
+  const soundWasEnabled = sound.isSoundEnabled();
+  const voiceWasEnabled = sound.isVoiceSoundEnabled();
+  const chatWasEnabled = sound.isChatNotificationsEnabled();
+  const soundSet = sound.soundSet;
+  const load = sound.load;
+  const resumeWithTest = sound.resumeWithTest;
+  const played: string[] = [];
+  sound.load = async name => ({ play: async () => played.push(name) }) as never;
+  sound.resumeWithTest = async () => true;
+
+  try {
+    sound.changeSoundSet('standard');
+    sound.setSoundEnabled(true);
+    sound.setVoiceSoundEnabled(true);
+    sound.setChatNotificationsEnabled(false);
+    await sound.play('newChatMessage');
+    await sound.play('move');
+    await sound.play('capture');
+    await sound.play('check');
+    assert.deepEqual(played, ['move', 'capture', 'check']);
+
+    sound.setChatNotificationsEnabled(true);
+    await sound.play('newChatMessage');
+    sound.setSoundEnabled(false);
+    await sound.play('newChatMessage');
+    assert.deepEqual(played, ['move', 'capture', 'check', 'newChatMessage']);
+  } finally {
+    sound.load = load;
+    sound.resumeWithTest = resumeWithTest;
+    sound.setSoundEnabled(soundWasEnabled);
+    sound.setVoiceSoundEnabled(voiceWasEnabled);
+    sound.setChatNotificationsEnabled(chatWasEnabled);
+    sound.changeSoundSet(soundSet);
+  }
+});
+
 test('starts both checkmate sounds without waiting for a rendering frame', async () => {
   const soundWasEnabled = sound.isSoundEnabled();
   const soundSet = sound.soundSet;

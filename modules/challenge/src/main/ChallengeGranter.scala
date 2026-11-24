@@ -60,8 +60,7 @@ final class ChallengeGranter(
             case (Some(Follow), _) => none // always accept from followed
             case (_, _) if from.marks.engine && !dest.marks.engine => YouAreBlocked.some
             case (_, lila.core.pref.Challenge.FRIEND) => FriendsOnly.some
-            // The retired rating-range preference now means "registered users". Custom challenges
-            // are casual; native rank compatibility is enforced only by the ranked 15-minute pool.
+            // The retired rating-range preference now means "registered users".
             case (_, lila.core.pref.Challenge.RATING) => none
             case (_, lila.core.pref.Challenge.REGISTERED) => none
             case _ if from == dest => SelfChallenge.some

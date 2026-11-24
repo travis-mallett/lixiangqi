@@ -359,8 +359,7 @@ final class GameUi(helpers: Helpers):
             else if g.nativeVariant == lila.xiangqi.GameVariant.MiniXiangqi then trans.site.miniXiangqi()
             else if g.fromPosition then g.variant.name
             else "Xiangqi",
-            separator,
-            rankedName(g.ranked)
+            g.daysPerTurn.isEmpty.option(frag(separator, rankedName(g.ranked)))
           )
       )
 

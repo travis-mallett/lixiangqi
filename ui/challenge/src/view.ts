@@ -52,7 +52,13 @@ function challenge(ctrl: ChallengeCtrl, dir: ChallengeDirection) {
             h('span.desc', [
               h('span.is.color-icon.' + myColor),
               ' • ',
-              [i18n.site.casual, timeControl(c.timeControl), c.variant.name].join(' • '),
+              [
+                c.timeControl.type === 'correspondence' ? null : c.rated ? i18n.site.rated : i18n.site.casual,
+                timeControl(c.timeControl),
+                c.variant.name,
+              ]
+                .filter(Boolean)
+                .join(' • '),
             ]),
           ]),
           icon(c.perf.icon)('.perf'),

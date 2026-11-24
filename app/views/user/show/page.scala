@@ -5,7 +5,6 @@ import play.api.data.Form
 
 import lila.app.UiEnv.{ *, given }
 import lila.app.mashup.UserInfo
-import lila.core.data.SafeJsonStr
 import lila.game.GameFilter
 import lila.core.rank.RankCode.*
 import lila.rating.UserPerfsExt.*
@@ -33,7 +32,7 @@ object page:
           description = ui.describeUser(u)
         )
       )
-      .js(pageModule(info))
+      .js(info.showHistory.option(esmInit("chart.correspondence")))
       .js(esModules())
       .js(isGranted(_.AccountInfo).option(esmInit("mod.autolink")))
       .css("user.show")
@@ -56,7 +55,7 @@ object page:
   )(using Context) =
     val u = info.user
     Page(gamesTitle(u, info.nbs, filters.current, games.currentPage))
-      .js(pageModule(info))
+      .js(info.showHistory.option(esmInit("chart.correspondence")))
       .js(esModules(filters.current.name == "search"))
       .css("user.show")
       .css((filters.current.name == "search").option("user.show.search"))
@@ -90,10 +89,6 @@ object page:
       ++ Esm("bits.dropdownOverflow")
       ++ withSearch.so(Esm("bits.gameSearch"))
       ++ isGranted(_.UserModView).so(Esm("mod.user"))
-
-  private def pageModule(info: UserInfo): Option[PageModule] =
-    info.ratingChart.map: rc =>
-      PageModule("chart.ratingHistory", SafeJsonStr(s"""{"data":$rc}"""))
 
   def deleted(canCreate: Boolean) =
     Page("No such player"):

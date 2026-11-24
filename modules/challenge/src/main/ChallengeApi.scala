@@ -138,7 +138,7 @@ final class ChallengeApi(
     acceptQueue:
       def withPerf = me
         .map(_.value)
-        .traverse(userApi.withPerf(_, c.perfType, lila.core.rank.RankTrackId.of(c.gameVariant)))
+        .traverse(userApi.withPerf(_, c.perfType, c.accountTrack))
       if c.canceled
       then "The challenge has been canceled.".raise
       else if c.declined
@@ -182,7 +182,7 @@ final class ChallengeApi(
     }
 
   def setDestUser(c: Challenge, u: User): Funit = for
-    user <- userApi.withPerf(u, c.perfType, lila.core.rank.RankTrackId.of(c.gameVariant))
+    user <- userApi.withPerf(u, c.perfType, c.accountTrack)
     challenge = c.setDestUser(user)
     _ <- repo.update(challenge)
   yield

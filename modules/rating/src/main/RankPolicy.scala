@@ -8,7 +8,8 @@ import lila.core.rank.RankScore.*
 import lila.core.rank.RankTrackId.*
 
 object RankPolicy:
-  def apply(track: RankTrackId): RankPolicy =
+  def apply(account: RankTrackId): RankPolicy =
+    val track = RankTrackId.live(account)
     if track == RankTrackId.jieqi then JieqiRank
     else if track == RankTrackId.minixiangqi then MiniXiangqiRank
     else if track == RankTrackId.manchu then ManchuRank
@@ -59,7 +60,7 @@ abstract class RankPolicy:
 
   /** Settle a persisted game without reinterpreting it through a newer catalog. */
   def settle(red: RankSnapshot, black: RankSnapshot, outcome: Outcome): Either[String, Settlement] =
-    if red.track != catalog.track || black.track != catalog.track then
+    if red.track != black.track || RankTrackId.live(red.track) != catalog.track then
       Left("Game rank snapshots do not belong to the requested rank track")
     else if red.catalogVersion != black.catalogVersion then
       Left("Game rank snapshots use different catalog versions")
@@ -69,18 +70,21 @@ abstract class RankPolicy:
       (red.catalogVersion, red.policyVersion) match
         // Keep this branch when a future catalog or policy is introduced so unfinished historical
         // games are always settled by the rules captured when they were created.
-        case (`catalogVersion`, `policyVersion`) => settleOrdinals(red.ordinal, black.ordinal, outcome)
+        case (`catalogVersion`, `policyVersion`) =>
+          settleOrdinals(red.ordinal, black.ordinal, outcome, RankTrackId.isCorrespondence(red.track))
         case versions => Left(s"Unsupported native rank snapshot versions: $versions")
 
   private def settleOrdinals(
       redOrdinal: Int,
       blackOrdinal: Int,
-      outcome: Outcome
+      outcome: Outcome,
+      correspondence: Boolean = false
   ): Either[String, Settlement] =
     val redGroup = matchingGroup(redOrdinal)
     val blackGroup = matchingGroup(blackOrdinal)
     val distance = (redGroup - blackGroup).abs
-    if distance > 1 then Left(s"Rated players must be in the same or adjacent ranks (distance $distance)")
+    if distance > 1 && !correspondence then
+      Left(s"Rated players must be in the same or adjacent ranks (distance $distance)")
     else if outcome.winner.isEmpty then Right(Settlement(RankDiff.zero, RankDiff.zero))
     else
       val redWon = outcome.winner.contains(chess.Color.White)

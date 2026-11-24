@@ -140,9 +140,7 @@ export default function table(ctrl: LobbyController) {
     return hl('div.lobby__offers', { key: ctrl.tab }, [
       hl('div.lobby__offers-list', { attrs: { inert: disabled } }, [
         realTime ? renderHooks(ctrl, ctrl.stepHooks) : renderSeeks(ctrl),
-        !rows.length &&
-          (realTime || !ctrl.kingdomOffers?.some(o => !ctrl.myKingdomOffer(o))) &&
-          hl('p', i18n.site.noGameFound),
+        !rows.length && (realTime || !ctrl.kingdomOffers?.length) && hl('p', i18n.site.noGameFound),
       ]),
       !realTime && !ctrl.me
         ? hl(

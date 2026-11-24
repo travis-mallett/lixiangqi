@@ -2,7 +2,7 @@ package lila.threeKingdoms
 
 import scalalib.actor.AsyncActorSequencers
 import lila.rating.ThreeKingdomsRank
-import lila.core.rank.{ RankDiff, RankTrackId }
+import lila.core.rank.RankDiff
 
 case class MatchUpdated(game: KingdomGame)
 
@@ -109,12 +109,13 @@ final class GameApi(
             .byIds(g.userIds)
             .flatMap: accounts =>
               val eligible =
-                g.rated && accounts.size == 3 && accounts.forall(_.rankable) && g.events.size >= 2
+                g.rated && accounts.size == 3 && accounts
+                  .forall(u => u.rankable && !u.lame) && g.events.size >= 2
               g.seats.zipWithIndex.traverse: (seat, index) =>
                 if !eligible then fuccess(seat)
                 else
                   users
-                    .updateRankAtomically(seat.userId.get, RankTrackId.threeKingdoms, policy.initial): perf =>
+                    .updateRankAtomically(seat.userId.get, g.accountTrack, policy.initial): perf =>
                       policy.applyResult(
                         perf,
                         values(index),
@@ -124,7 +125,7 @@ final class GameApi(
                         g.id
                       )
                     .map: (_, updated) =>
-                      val perf = updated.rank(RankTrackId.threeKingdoms).get
+                      val perf = updated.rank(g.accountTrack).get
                       seat.copy(rank =
                         seat.rank.map(
                           _.copy(diff = perf.settlement(g.id), after = Some(policy.catalog.code(perf.score)))

@@ -36,6 +36,9 @@ final class PoolParticipation:
       users.foreach(user => entries.update(user, Entry(room, Some(game), now + 3 * 60 * 60 * 1000L)))
     available
 
+  def reserveChallenge(users: List[UserId], id: GameId, now: Long): Boolean =
+    reserve("friend", users, id, now, users.toSet)
+
   def release(game: GameId, users: Iterable[UserId]): Unit = synchronized:
     users.foreach: user =>
       if entries.get(user).exists(_.game.contains(game)) then entries.remove(user)

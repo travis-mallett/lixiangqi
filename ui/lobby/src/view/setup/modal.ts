@@ -8,7 +8,7 @@ import { advancedSettings } from './components/advancedSettings';
 import { aiHistory } from './components/aiHistory';
 import { colorButtons } from './components/colorButtons';
 import { fenInput } from './components/fenInput';
-import { kingdomOpponents, kingdomSide } from './components/kingdomSetup';
+import { friendOpponent, kingdomOpponents, kingdomSide } from './components/kingdomSetup';
 import { levelButtons } from './components/levelButtons';
 import { variantPicker } from './components/variantPicker';
 
@@ -73,20 +73,50 @@ export default function setupModal(ctrl: LobbyController): VNode[] | null {
   ].filter(v => v !== null);
 }
 
+const gameMode = (setup: LobbyController['setupCtrl']) =>
+  setup.timeControl.mode() === 'correspondence'
+    ? setup.ratedCorrespondence() && hl('p', i18n.site.rated)
+    : setup.ratedPool() &&
+      hl('div.label-select', [
+        hl('label', { attrs: { for: 'sf_game_mode' } }, i18n.site.gameMode),
+        hl(
+          'select#sf_game_mode',
+          {
+            on: { change: (e: Event) => setup.setRated((e.target as HTMLSelectElement).value === 'rated') },
+          },
+          [
+            hl('option', { attrs: { value: 'casual' }, props: { selected: !setup.rated } }, i18n.site.casual),
+            hl('option', { attrs: { value: 'rated' }, props: { selected: setup.rated } }, i18n.site.rated),
+          ],
+        ),
+      ]);
+
 const views = {
   hook: (ctrl: LobbyController): LooseVNodes => [
     variantPicker(ctrl.setupCtrl),
     timePickerAndSliders(ctrl.setupCtrl.timeControl, 0),
+    gameMode(ctrl.setupCtrl),
     ctrl.setupCtrl.isThreeKingdoms() ? kingdomSide(ctrl.setupCtrl) : colorButtons(ctrl.setupCtrl),
     ctrl.setupCtrl.isThreeKingdoms() && kingdomOpponents(ctrl.setupCtrl),
   ],
-  friend: (ctrl: LobbyController): LooseVNodes => [
-    variantPicker(ctrl.setupCtrl),
-    fenInput(ctrl.setupCtrl),
-    timePickerAndSliders(ctrl.setupCtrl.timeControl, 0),
-    ctrl.setupCtrl.isThreeKingdoms() ? kingdomSide(ctrl.setupCtrl) : colorButtons(ctrl.setupCtrl),
-    ctrl.setupCtrl.isThreeKingdoms() && kingdomOpponents(ctrl.setupCtrl),
-  ],
+  friend: ({ setupCtrl: setup }: LobbyController): LooseVNodes => {
+    const pool = setup.selectedRatedPool();
+    return [
+      variantPicker(setup),
+      gameMode(setup),
+      fenInput(setup),
+      pool
+        ? hl('div.label-select', [
+            hl('label', { attrs: { for: 'sf_rated_clock' } }, i18n.site.timeControl),
+            hl('output#sf_rated_clock', formatClock(`${pool.lim}+${pool.inc}`, pool.moveTime)),
+          ])
+        : timePickerAndSliders(setup.timeControl, 0),
+      !pool && (setup.isThreeKingdoms() ? kingdomSide(setup) : colorButtons(setup)),
+      setup.isThreeKingdoms()
+        ? kingdomOpponents(setup)
+        : (pool || setup.ratedCorrespondence()) && friendOpponent(setup, 'friendUser', i18n.site.opponent),
+    ];
+  },
   ai: (ctrl: LobbyController): LooseVNodes => [
     variantPicker(ctrl.setupCtrl),
     levelButtons(ctrl.setupCtrl),

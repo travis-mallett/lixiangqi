@@ -16,11 +16,29 @@ and assets together. The adult app can ship independently.
 
 ## Three Kingdoms public correspondence
 
+The web lobby controller (blob `60ad7a784a46`) keeps public posts and partial joins in the correspondence tab. All viewers see the listing, the creator can cancel, and only the final join opens the game. Pending carousel cards and existing participant links lead back to that lobby. Verified with creator, joining player and final player browser sessions, a signed-out read of the production listing, the production asset build, 79 lobby and Three Kingdoms tests, and the server compile. Deploy the website server and assets together. Adult Mobile and Xiangqi Kids do not use this web flow and native variants remain deferred in both.
+
 Carousel card blob `ed8b41b2413a` uses the Three Kingdoms miniature board for pending and active games. Browser previews at 390, 900 and 1280 pixels verified the opening board and all 48 pieces. This website carousel change has no native counterpart in Adult Mobile or Xiangqi Kids. Deploy the lobby page and assets together.
 
 Website base `b2fd2f7fe1`, challenge implementation blob `209273a83cfa`. Adult Mobile and Xiangqi Kids continue to use their existing lobby contracts. Public Three Kingdoms offers use a separate endpoint and require the deferred native three-player board in either app. The existing MOBILE-VARIANTS and KIDS-VARIANTS decisions cover these offers. Neither checkpoint advances. The website requires matching lobby assets, server routes and the pending-offer index in the existing Three Kingdoms deployment migration. Verification covers the one- and two-seat setup, pending and started seat transitions, participant visibility, public listing clicks and the displayed bot level.
 
 ## Products and receipts
+
+### Chat notification sounds
+
+Reviewed website base `51a15034ab`. Working-tree SHA-256 prefixes are
+`31b47d327003` for sound playback and `cfeb4e5574b4` for the Sound settings
+panel. The browser preference mutes the shared incoming-chat cue, including
+tournament chat, independently of board sounds. The setting defaults to on.
+
+- **LiXiangQi Mobile (not applicable).** Native chat does not play the web
+  chat cue. Native board audio has no separate Voice Sound Effects setting.
+- **Xiangqi Kids (not applicable).** Its board audio has no chat cue or
+  separate Voice Sound Effects setting.
+
+The production asset build and UI test suite passed, including the chat
+mute regression test. Deploy the website translations and web assets
+together. Neither app needs a release or a checkpoint change.
 
 ### Global Chat registration welcomes
 
@@ -152,13 +170,17 @@ rated room use native localized descriptions, so this web markup fix is inapplic
 to both apps. Scala formatting and compilation passed. Deploy the rebuilt website
 backend. Neither app requires a release.
 
-The website resize grip sits inside the board corner on rectangular boards and at
-the lower-right hexagon vertex in Three Kingdoms (stylesheet blobs `1ff9fca5b2`
-and `18e7662653`). LiXiangQi Mobile and Xiangqi Kids each size boards through
-Flutter layout and have no corresponding web resize control. The production asset
-build and all 793 web UI tests passed. Edge verified the handle breakpoint, corner
-placement and dragging in board fixtures at 390, 900 and 1440 pixels. Deploy the
-rebuilt web stylesheets. Neither app requires a release.
+Jieqi players can resize throughout a game unless they selected Never (round
+board blob `6bccd673b5`). Rectangular grips use the artwork corner (renderer
+`977bc59226`, styles `522ee1475d`). The shared grip (`0083b38663`) sits 4px
+farther inside the rectangular corner along its bisector. Three Kingdoms draws
+the strokes 6px closer to the wood while keeping the hit area outside the hexagon
+(graph renderer `9a5d1cc025`, styles `1e5118a97d`). Edge verified the move-14
+Jieqi player position, Standard, Mini Xiangqi, Manchu+ and all three hexagon
+perspectives, including an occupied corner with coordinates on and off. The checks covered
+390, 900 and 1440 pixels. The production asset build and all 796 UI tests passed.
+Deploy rebuilt web scripts and styles together. LiXiangQi Mobile and Xiangqi Kids
+size their native boards through Flutter layout and have no web resize grip.
 
 Three Kingdoms friend challenges support a second human or a level 1–5 bot, and
 computer setup aligns the kingdom selector with the clock controls (website
@@ -554,3 +576,66 @@ and shows the eight most recently completed Three Kingdoms games alongside curre
 Both apps require no release. The website deployment packages the completed-game index
 with its existing Three Kingdoms index migration. Verification covered TV selector and
 grid tests, the MongoDB index migration, and Chrome layout fixtures at 390, 900, and 1440 pixels.
+
+## Rated friend challenges
+
+Members can send rated invitations on each website variant's existing rank track.
+Casual remains the initial mode. Rated play uses the pool's clock, move limits,
+opening position and rules, with random sides and eligible human players.
+Three Kingdoms requires two named opponents and applies its repeated-opponent limit.
+
+- **LiXiangQi Mobile** uses the authenticated play bootstrap to discover the
+  Standard pool and rated challenge capability. Both profile challenges and
+  shareable invitations use the same native form. Incoming invitations show
+  their rating mode. Native variant games remain deferred.
+- **Xiangqi Kids** has no friend invitation flow. Its existing Standard rated
+  room continues to use matchmaking. No Kids release is required.
+
+Deploy the server and web assets together. The adult app exposes Rated when the
+deployed server advertises support. Existing invitations need no data migration.
+Neither reconciliation checkpoint advances. Reviewed against website base
+`51a15034ab`, with challenge joiner blob `8731dac648`, Three Kingdoms challenge
+blob `aa29cf0b3f`, lobby setup blob `b8b9d6b3c5` and native form blob
+`6c0d3cadda`. Verification covered game creation on all four two-player tracks,
+three-player accounting on a MongoDB replica set, pool settings, the web UI
+suite, responsive browser captures, Flutter analysis and the native widget suite.
+
+## November 23, 2026 · Correspondence ranking
+
+The web and server changes add separate correspondence accounts for all five variants.
+LiXiangQi Mobile displays live and correspondence standings for all five variants.
+Full player profiles offer a dated correspondence rank and score graph for each
+played variant. Native Standard Xiangqi play supports days per move and game
+history omits the mode tag for correspondence. For other variants, play links
+open the website under the existing deferred native-board project. Xiangqi Kids
+has no correspondence setup, public leaderboard or player-profile graph.
+
+Reviewed against website base `51a15034ab`, replay blob `6820c0c589`, chart blob
+`c2f24efdf2`, adult player repository blob `e4ca59617f` and native graph blob
+`ce207fb5ed`. Server verification covered the staged server and assets, the
+five-variant fixture, a cached production snapshot on a local replica, repeat
+deployment and deployment recovery. Browser checks covered the graph, mode selector
+and history cards at 390, 900 and 1440 pixels in light and dark themes. Mobile
+verification covered fatal-info analysis, the full Flutter suite (579 passed, two
+skipped), a local Android arm64/x64 debug build, and phone and tablet renders of
+the leaderboard and graph. Release the
+migrated server before the adult app update. The app consumes the server’s profile
+and leaderboard responses. Both broad checkpoints retain their reviewed revisions.
+
+### Full profile rating tabs
+
+The website and the adult Flutter app show Live, Correspondence and Puzzles.
+The two game tabs include all five variant tracks and show an empty graph when
+a player is unranked. The adult app uses a swipeable chart with arrow controls.
+Xiangqi Kids has no public player profile. Its private learning and puzzle
+screens use separate progress views. Release the web assets and server together
+before distributing the adult app. The deployment writer gate also fills missing
+live history days using historical game and account observations. Existing
+scores, correspondence history and puzzle history are preserved.
+
+Reviewed against website base `51a15034ab`. Working-tree SHA-256 prefixes are
+`67f819c63555` for the profile markup, `cfaea4172987` for the chart, and
+`326ace3738b5` for the native chart. Browser captures cover 390, 800, and 1300
+pixels. The Flutter suite passed 579 tests with two skips. The website UI suite
+passed 796 tests. The five-variant historical replay was exercised twice against
+isolated MongoDB and verified against known scores.

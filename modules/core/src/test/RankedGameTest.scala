@@ -72,6 +72,19 @@ class RankedGameTest extends munit.FunSuite:
       None
     )
 
+  test("friend challenges authorize only pool clocks and compatible player snapshots"):
+    for track <- RankTrackId.all.filterNot(_ == RankTrackId.threeKingdoms) do
+      val standard = track == RankTrackId.xiangqi
+      val config = Some(if standard then clock else RankedGame.jieqiClock)
+      val limit = Some(if standard then moveTime else RankedGame.jieqiMoveTime)
+      val seats = players.map(p => p.copy(rank = p.rank.map(_.copy(track = track))))
+      def authorize(pair: ByColor[Player], moveLimit: Option[MoveTimeLimit]) =
+        RankedGame.authorize(Some(track), Source.Friend, chess.variant.Standard, config, moveLimit, pair)
+      assertEquals(authorize(seats, limit), Some(track))
+      assertEquals(authorize(seats, None), None)
+      val distant = seats.black.copy(rank = seats.black.rank.map(_.copy(ordinal = 24)))
+      assertEquals(authorize(ByColor(seats.white, distant), limit), None)
+
   test("a legacy rated flag cannot create a ranked game, without discarding display ranks"):
     val game = newGame(
       xiangqi = Xiangqi.Game.initial,
@@ -81,7 +94,7 @@ class RankedGameTest extends munit.FunSuite:
       pgnImport = None,
       clock = Some(Clock(clock)),
       moveTimeLimit = Some(moveTime),
-      rankTrack = Some(RankTrackId.xiangqi)
+      rankTrack = None
     ).sloppy
 
     assertEquals(game.rankTrack, None)
@@ -167,3 +180,20 @@ class RankedGameTest extends munit.FunSuite:
     assertEquals(game.rankTrack, Some(RankTrackId.manchu))
     assertEquals(game.clock.get.config.limitSeconds, Clock.LimitSeconds(600))
     assertEquals((1 to 5).map(RankedGame.jieqiMoveTime.limitForMove).toList, List(30, 30, 30, 60, 60))
+
+  test("days-per-turn lobby games and invitations authorize only correspondence accounts"):
+    for live <- RankTrackId.all.filterNot(_ == RankTrackId.threeKingdoms) do
+      val track = RankTrackId.forMode(live, true)
+      val seats = players.map(p => p.copy(rank = p.rank.map(_.copy(track = track))))
+      val days = Some(scalalib.model.Days(2))
+      for source <- List(Source.Lobby, Source.Friend, Source.Api) do
+        def eligible(
+            account: RankTrackId,
+            deadline: Option[scalalib.model.Days],
+            timer: Option[Clock.Config]
+        ) =
+          RankedGame.authorize(Some(account), source, chess.variant.Standard, timer, None, seats, deadline)
+        assertEquals(eligible(track, days, None), Some(track))
+        assertEquals(eligible(track, None, None), None)
+        assertEquals(eligible(track, days, Some(clock)), None)
+        assertEquals(eligible(live, days, None), None)

@@ -97,13 +97,14 @@ final class ChallengeBulkApi(
           .map(_.value)
       .fold(fufail, fuccess)
       .flatMap: xiangqiGame =>
-        lila.rating.PerfType(bulk.variant, Speed(bulk.clock.left.toOption))
+        val track =
+          lila.core.rank.RankTrackId.forMode(lila.core.rank.RankTrackId.of(xiangqiGame.variant), true)
         Source(bulk.games)
           .mapAsyncUnordered(8): game =>
-            userApi
-              .gamePlayersLoggedIn(game.userIds, bulk.perfType, useCache = false)
-              .map2: users =>
-                (game.id, users)
+            val accounts = if bulk.clock.isRight then
+              game.userIds.traverse(id => userApi.byIdWithPerf(id, bulk.perfType, track)).map(_.sequence)
+            else userApi.gamePlayersLoggedIn(game.userIds, bulk.perfType, useCache = false)
+            accounts.map2(users => (game.id, users))
           .mapConcat(_.toList)
           .map: (id, users) =>
             val game = lila.core.game
@@ -112,6 +113,8 @@ final class ChallengeBulkApi(
                 players = users.map(some).mapWithColor(lila.game.Player.make),
                 rated = bulk.rated.map(_ && xiangqiGame.initialFen == Xiangqi.startFen),
                 source = lila.core.game.Source.Api,
+                rankTrack =
+                  (bulk.clock.isRight && users.forall(u => u.user.rankable && !u.user.lame)).option(track),
                 daysPerTurn = bulk.clock.toOption,
                 pgnImport = None,
                 rules = bulk.rules,

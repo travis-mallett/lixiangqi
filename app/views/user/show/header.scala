@@ -10,6 +10,66 @@ import lila.web.ui.bits.splitNumber
 
 object header:
 
+  private def ratingHistory(info: UserInfo)(using Context) =
+    import lila.core.rank.{ RankScore, RankTrackId }
+    import play.api.libs.json.Json
+    val modes = List(
+      "live" -> trans.site.livePlay,
+      "correspondence" -> trans.site.correspondence,
+      "puzzle" -> trans.site.puzzles
+    )
+    st.section(cls := "correspondence-history")(
+      h2(cls := "history-modes")(modes.map: (key, label) =>
+        button(tpe := "button", attr("data-mode") := key, attr("aria-pressed") := (key == "live").toString)(
+          label()
+        )),
+      div(cls := "correspondence-history__layout")(
+        div(cls := "correspondence-history__variants")(
+          modes
+            .take(2)
+            .flatMap: (mode, _) =>
+              RankTrackId.all.map: variant =>
+                val track = RankTrackId.forMode(variant, mode == "correspondence")
+                val policy = lila.rating.RankPolicy(track)
+                val perf = info.user.perfs.rank(track).filter(_.established)
+                val days = info.rankHistory.getOrElse(
+                  track,
+                  perf.toList.flatMap(p => p.latest.map(t => t.toString.take(10) -> p.score.value))
+                )
+                val points =
+                  days.map((day, score) => Json.arr(day, score, policy.catalog.code(RankScore(score)).value))
+                button(
+                  tpe := "button",
+                  attr("data-series") := mode,
+                  attr("data-variant") := variant.value,
+                  attr("aria-pressed") := (variant == RankTrackId.xiangqi).toString,
+                  (mode != "live").option(attr("hidden") := "hidden"),
+                  attr(if mode == "live" then "data-live-points" else "data-points") := Json
+                    .stringify(Json.toJson(points))
+                )(
+                  span(cls := "variant-name")(lila.core.i18n.I18nKey(RankTrackId.variant(track).nameKey)()),
+                  perf.map(p =>
+                    frag(
+                      strong(policy.catalog.code(p.score).value),
+                      span(p.score.value),
+                      span(trans.site.nbGames.plural(p.games, p.games.localize))
+                    )
+                  )
+                )
+        ),
+        div(
+          cls := "correspondence-history__plot",
+          attr("data-puzzle") := Json.stringify(
+            Json.toJson(info.puzzleHistory.map((day, score) => Json.arr(day, score, "")))
+          )
+        )(
+          canvas(role := "img"),
+          span(cls := "history-empty")(trans.site.unranked())
+        ),
+        span(cls := "correspondence-history__value", attr("aria-live") := "polite")
+      )
+    )
+
   private val actionMenu = lila.user.ui.UserActionMenu(helpers)
 
   private val dataToints = attr("data-toints")
@@ -158,9 +218,8 @@ object header:
           val showProfile =
             ctx.kid.no && u.kid.no && !muted && (showLinks || !profile.hasLinks) || isGranted(_.AccountInfo)
           div(id := "us_profile")(
-            if info.ratingChart.isDefined && (!u.lame || ctx.is(u) || isGranted(_.AccountInfo)) then
-              views.user.perfStat.ratingHistoryContainer
-            else (ctx.is(u) && u.count.game < 10).option(ui.newPlayer(u)),
+            info.showHistory.option(ratingHistory(info)),
+            (ctx.is(u) && u.count.game < 10 && info.rankHistory.isEmpty).option(ui.newPlayer(u)),
             div(cls := "profile-side")(
               div(cls := "user-infos")(
                 (u.lame && ctx.isnt(u)).option:

@@ -56,7 +56,16 @@ final class Env(
   val history: lila.history.Env = wire[lila.history.Env]
   val bookmark: lila.bookmark.Env = wire[lila.bookmark.Env]
   val poolParticipation = new lila.core.pool.PoolParticipation
-  val mayJoinPool = lila.core.pool.MayJoinPool(id => threeKingdoms.repo.countPlaying(id).map(_ == 0))
+  val mayJoinPool = lila.core.pool.MayJoinPool(id => threeKingdoms.repo.playingLive(id).map(!_))
+  val mayPlayRatedFriend = lila.core.pool.MayPlayRatedFriend: u =>
+    if !u.rankable then fuFalse
+    else
+      for
+        banned <- playban.hasCurrentPlayban(u.id)
+        ongoing <- game.gameRepo.playingRealtimeNoAi(u)
+        available <- mayJoinPool.exec(u.id)
+        unread <- msg.unreadCount.hasLichessMsg(u.id)
+      yield !banned && ongoing.isEmpty && available && !unread
   val pool: lila.pool.Env = wire[lila.pool.Env]
   val round: lila.round.Env = wire[lila.round.Env]
   val setup: lila.setup.Env = wire[lila.setup.Env]

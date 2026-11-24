@@ -5,7 +5,7 @@ import alleycats.Zero
 import play.api.data.Form
 
 import lila.bookmark.BookmarkApi
-import lila.core.data.SafeJsonStr
+import lila.core.rank.RankTrackId
 import lila.core.perf.UserWithPerfs
 import lila.core.user.User
 import lila.forum.ForumPostApi
@@ -19,7 +19,9 @@ case class UserInfo(
     user: UserWithPerfs,
     trophies: lila.api.UserApi.TrophiesAndAwards,
     hasSimul: Boolean,
-    ratingChart: Option[SafeJsonStr],
+    rankHistory: Map[RankTrackId, List[(String, Int)]],
+    puzzleHistory: List[(String, Int)],
+    showHistory: Boolean,
     nbForumPosts: Int,
     ublog: Option[UblogPost.BlogPreview],
     nbStudies: Int,
@@ -100,6 +102,7 @@ object UserInfo:
   final class UserInfoApi(
       postApi: ForumPostApi,
       ublogApi: UblogApi,
+      historyApi: lila.history.HistoryApi,
       perfsRepo: lila.user.UserPerfsRepo,
       studyRepo: lila.study.StudyRepo,
       simulApi: lila.simul.SimulApi,
@@ -115,11 +118,18 @@ object UserInfo:
         ctx: Context
     ): Fu[UserInfo] =
       val full = !restricted
+      val showHistory =
+        ctx.pref.showRatings && (!user.lame || ctx.is(user) || lila.core.perm.Granter.opt(_.AccountInfo))
       (
-        perfsRepo.withPerfs(user),
+        perfsRepo
+          .profilePerfs(user, showHistory)
+          .zip(showHistory.so:
+            historyApi
+              .ratingsMap(user, PerfKey.puzzle)
+              .map(_.map: (offset, rating) =>
+                user.createdAt.plusDays(offset).date.toString -> rating.value)),
         userApi.getTrophiesAndAwards(user).mon(lila.mon.user.segment("trophies")),
         (nbs.playing > 0).so(simulApi.isSimulHost(user.id).mon(lila.mon.user.segment("simul"))),
-        fuccess(none),
         (!user.is(UserId.lichess) && !user.isBot).so:
           postApi.nbByUser(user.id).mon(lila.mon.user.segment("nbForumPosts"))
         ,
@@ -133,6 +143,33 @@ object UserInfo:
         streamerApi.isActualStreamer(user).mon(lila.mon.user.segment("streamer")),
         coachApi.isListedCoach(user).mon(lila.mon.user.segment("coach")),
         playerIdOf(user.light)
-      ).mapN(UserInfo(nbs, _, _, _, _, _, _, _, _, _, _, _, _, _))
+      ).mapN:
+        (profile, trophies, simul, posts, blog, studies, simuls, relays, teams, streamer, coach, playerId) =>
+          val ((withPerfs, ranks), puzzleDays) = profile
+          val puzzleHistory = if puzzleDays.nonEmpty then puzzleDays
+          else
+            val puzzle = withPerfs.perfs.puzzle
+            puzzle.latest
+              .filter(_ => puzzle.nb > 0)
+              .map(t => t.toString.take(10) -> puzzle.intRating.value)
+              .toList
+          UserInfo(
+            nbs,
+            withPerfs,
+            trophies,
+            simul,
+            ranks,
+            puzzleHistory,
+            showHistory,
+            posts,
+            blog,
+            studies,
+            simuls,
+            relays,
+            teams,
+            streamer,
+            coach,
+            playerId
+          )
 
     def preloadTeams(info: UserInfo) = teamCache.lightCache.preloadMany(info.teamIds)

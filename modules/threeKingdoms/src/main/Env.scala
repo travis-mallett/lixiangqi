@@ -14,6 +14,7 @@ final class Env(
     granter: lila.challenge.ChallengeGranter,
     notifyApi: lila.notify.NotifyApi,
     hasCurrentPlayban: lila.core.playban.HasCurrentPlayban,
+    mayPlayRatedFriend: lila.core.pool.MayPlayRatedFriend,
     participation: lila.core.pool.PoolParticipation
 )(using Executor, Scheduler):
   val repo = GameRepo(db(CollName("three_kingdoms_game")))
@@ -25,7 +26,17 @@ final class Env(
   val api = wire[GameApi]
   val pool = wire[PoolApi]
   val challenges =
-    ChallengeApi(db(CollName("three_kingdoms_challenge")), maker, users, granter, relations, notifyApi)
+    ChallengeApi(
+      db(CollName("three_kingdoms_challenge")),
+      maker,
+      users,
+      granter,
+      relations,
+      notifyApi,
+      mayPlayRatedFriend,
+      repo,
+      participation
+    )
   private var sweeping = false
   summon[Scheduler].scheduleWithFixedDelay(3.seconds, 1.second): () =>
     synchronized:

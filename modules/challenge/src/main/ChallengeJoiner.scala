@@ -8,6 +8,8 @@ import lila.xiangqi.Xiangqi
 final private class ChallengeJoiner(
     gameRepo: lila.game.GameRepo,
     userApi: lila.core.user.UserApi,
+    mayPlayRatedFriend: lila.core.pool.MayPlayRatedFriend,
+    participation: lila.core.pool.PoolParticipation,
     onStart: lila.core.game.OnStart
 )(using Executor, Scheduler):
 
@@ -15,10 +17,28 @@ final private class ChallengeJoiner(
     exists <- gameRepo.exists(c.gameId)
     _ <- raiseIf(exists)("The challenge has already been accepted")
     origUser <- c.challengerUserId.so(
-      userApi.byIdWithPerf(_, c.perfType, lila.core.rank.RankTrackId.of(c.gameVariant))
+      userApi.byIdWithPerf(_, c.perfType, c.accountTrack)
     )
     game <- ChallengeJoiner.createGame(c, origUser, destUser).raiseIfLeft
-    _ <- gameRepo.insertDenormalized(game)
+    allowed <-
+      if game.ranked && game.daysPerTurn.isEmpty then
+        List(origUser, destUser).flatten
+          .traverse(u => mayPlayRatedFriend.exec(u.user))
+          .map(_.forall(identity))
+      else fuTrue
+    _ <- raiseIf(
+      !allowed || (game.ranked && game.daysPerTurn.isEmpty && !participation
+        .reserveChallenge(game.userIds, game.id, nowMillis))
+    )("A player is unavailable for a rated game")
+    _ <- gameRepo
+      .insertDenormalized(game)
+      .recoverWith:
+        case e if game.ranked =>
+          gameRepo
+            .exists(game.id)
+            .flatMap: persisted =>
+              if !persisted then participation.release(game.id, game.userIds)
+              fufail(e)
     _ <- onStartOrRetry(game.id).recover: _ =>
       logger.error(s"onStart failed for game ${game.id}")
   yield Pov(game, !c.finalColor)
@@ -39,7 +59,20 @@ private object ChallengeJoiner:
       origUser: GameUser,
       destUser: GameUser
   ): Either[String, Game] =
-    gameSetup(c).map(createGame(c, origUser, destUser, _))
+    for
+      _ <- Either.cond(
+        c.rated.no || List(origUser, destUser).forall(_.exists(u => u.user.rankable && !u.user.isBot)),
+        (),
+        "Rated challenges require two eligible members"
+      )
+      setup <- gameSetup(c)
+      game = createGame(c, origUser, destUser, setup)
+      _ <- Either.cond(
+        c.rated.no || game.ranked,
+        (),
+        "Rated challenges require compatible ranks and pool settings"
+      )
+    yield game
 
   private[challenge] def createGame(
       c: Challenge,
@@ -52,7 +85,7 @@ private object ChallengeJoiner:
         xiangqi = xiangqiGame,
         players = ByColor: color =>
           lila.game.Player.make(color, if c.finalColor == color then origUser else destUser),
-        rated = c.rated.map(_ && xiangqiGame.initialFen == Xiangqi.startFen),
+        rated = c.rated,
         source = lila.core.game.Source.Friend,
         daysPerTurn = c.daysPerTurn,
         pgnImport = None,
@@ -60,6 +93,8 @@ private object ChallengeJoiner:
         clock = c.timeControl.realTime.map(_.toClock),
         moveTimeLimit = c.clock.flatMap(_.moveTimeLimit),
         startedAtPly = chess.Ply(xiangqiGame.state.ply),
+        rankTrack = (c.rated.yes || (c.daysPerTurn.isDefined && c.rules.isEmpty && List(origUser, destUser)
+          .forall(_.exists(u => u.user.rankable && !u.user.lame)))).option(c.accountTrack),
         variant = c.variant
       )
       .withId(c.gameId)

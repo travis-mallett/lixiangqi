@@ -38,6 +38,7 @@ final class MobilePlay(env: Env) extends LilaController(env):
           lobby._1 ++ Json
             .obj(
               "pools" -> lila.pool.PoolList.homepageJson,
+              "ratedChallenges" -> ctx.me.exists(_.rankable),
               "quickPools" -> lila.pool.PoolList.json,
               "socketUrl" -> s"$scheme://$socketDomain/lobby/socket/v5"
             )

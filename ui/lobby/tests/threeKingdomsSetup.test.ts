@@ -23,6 +23,36 @@ function setup(type: 'ai' | 'friend', authenticated = true) {
   return ctrl;
 }
 
+test('rated friend clocks follow the selected variant without changing casual settings', () => {
+  const ctrl = setup('friend');
+  ctrl.root.homePools = ['xiangqi', 'jieqi', 'minixiangqi', 'manchu', 'threeKingdoms'].map(rankTrack => ({
+    id: rankTrack,
+    name: rankTrack,
+    rankTrack,
+    ranked: true,
+    lim: rankTrack === 'xiangqi' || rankTrack === 'threeKingdoms' ? 15 : 10,
+    inc: 0,
+    moveTime: { seconds: rankTrack === 'xiangqi' ? 90 : 60 },
+  }));
+  ctrl.timeControl.mode('realTime');
+  ctrl.kingdomFriendBot(true);
+  ctrl.setRated(true);
+  assert.equal(ctrl.kingdomFriendBot(), false);
+  assert.equal(ctrl.valid(), false);
+  for (const variant of ['standard', 'jieqi', 'minixiangqi', 'manchu'] as const) {
+    ctrl.variant(variant);
+    const fields = ctrl.propsToFormData('black');
+    assert.equal(fields.get('rated'), 'true');
+    assert.equal(fields.get('color'), 'random');
+    assert.equal(fields.get('time'), variant === 'standard' ? '15' : '10');
+    assert.equal(fields.get('timeMode'), '1');
+  }
+  ctrl.setRated(false);
+  ctrl.timeControl.mode('correspondence');
+  assert.equal(ctrl.ratedCorrespondence(), true);
+  assert.equal(ctrl.propsToFormData('black').has('rated'), false);
+});
+
 test('shared computer setup exposes five levels, three seats and only legal clocks', () => {
   const ctrl = setup('ai');
   const patch = init([attributesModule, propsModule, eventListenersModule]);
@@ -217,12 +247,19 @@ test('shared setup submits all three-player choices with CSRF XHR headers', asyn
     assert.equal(unlimited.days, undefined);
 
     ctrl.openModal('hook', { variant: 'threeKingdoms', timeMode: 'correspondence' });
+    let posted = '';
+    ctrl.root.showKingdomOffer = offer => {
+      posted = offer.id;
+    };
+    redirected = undefined;
     for (const bot of [false, true]) {
       ctrl.loading = false;
       ctrl.kingdomFriendBot(bot);
       ctrl.aiLevel(3);
       await ctrl.submit();
       const offer = JSON.parse(request!.body as string);
+      assert.equal(posted, 'abcdefgh');
+      assert.equal(redirected, undefined);
       assert.equal(offer.publicSeek, true);
       assert.deepEqual(offer.opponents, []);
       assert.equal(offer.botLevel, bot ? 3 : undefined);

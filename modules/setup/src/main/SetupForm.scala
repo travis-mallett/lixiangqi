@@ -82,8 +82,13 @@ object SetupForm:
       "color" -> color,
       "fen" -> fenField,
       adjudicationRules,
-      nativeVariant
+      nativeVariant,
+      "rated" -> boolean.into[Rated]
     )(FriendConfig.from)(_.>>)
+      .verifying(
+        "Rated challenges require a member and the variant pool settings",
+        c => c.rated.no || (me.exists(m => m.rankable && !m.isBot) && c.validRated)
+      )
       .verifying("Invalid clock", _.validClock)
       .verifying("Time per move requires a real-time clock", _.validMoveTimeLimit)
       .verifying("Invalid speed", _.validSpeed(me.exists(_.isBot)))

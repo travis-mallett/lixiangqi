@@ -49,13 +49,13 @@ test('a reserved seat moves to the participant deck and other players can still 
     opts: { waitingToStart: 'Waiting to start' },
     me: { username: 'Han' },
     kingdomOffers: [
-      { id: 'pending1', users: ['alice', 'han'], days: 2 },
-      { id: 'mixedbot', users: ['mei'], botLevel: 4, days: 3 },
+      { id: 'pending1', creator: 'alice', users: ['alice', 'han'], days: 2 },
+      { id: 'mixedbot', creator: 'mei', users: ['mei'], botLevel: 4, days: 3 },
     ],
     myKingdomOffer(o: { users: string[] }) {
       return o.users.includes(this.me.username.toLowerCase());
     },
-    joinKingdomOffer(id: string) {
+    clickKingdomOffer(id: string) {
       joined.push(id);
     },
   };
@@ -66,10 +66,13 @@ test('a reserved seat moves to the participant deck and other players can still 
       h('div', [correspondence(lobby), ...(correspondenceDeck(lobby) ? [correspondenceDeck(lobby)!] : [])]),
     ).elm as HTMLElement;
   const member = mount();
-  assert(member.querySelector('a[href="/three-kingdoms/challenge/pending1"]'));
+  assert(member.querySelector('a[href="/#home-tab-seeks"]'));
   assert(member.querySelector('.lobby__correspondence-card--pending [data-three-kingdoms-position]'));
   assert.equal(member.querySelector('.lobby__correspondence-status')?.textContent, 'Waiting to start · 2/3');
-  assert.equal(member.querySelectorAll('tr.seek').length, 1);
+  assert.equal(member.querySelectorAll('tr.seek').length, 2);
+  assert(member.querySelector('tr.reserved[data-kingdom="pending1"]'));
+  ctrl.me.username = 'Alice';
+  assert(mount().querySelector('tr.cancel[data-kingdom="pending1"]'));
   assert(
     member.querySelector('[data-kingdom="mixedbot"]')?.textContent?.includes(`${i18n.threeKingdoms.level} 4`),
   );

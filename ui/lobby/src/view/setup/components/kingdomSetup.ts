@@ -50,6 +50,40 @@ export const kingdomSide = (ctrl: SetupController) =>
     ),
   ]);
 
+export const friendOpponent = (ctrl: SetupController, key: 'friendUser' | 'friendUserTwo', label: string) =>
+  hl('div.label-select', [
+    hl('label', { attrs: { for: `sf_${key}` } }, label),
+    hl('div.complete-parent', [
+      hl(`input#sf_${key}`, {
+        attrs: {
+          type: 'text',
+          required: ctrl.isThreeKingdoms(),
+          maxlength: 30,
+          autocomplete: 'off',
+          spellcheck: 'false',
+        },
+        props: { value: ctrl[key] },
+        hook: onInsert<HTMLInputElement>(input =>
+          userComplete({
+            input,
+            tag: 'span',
+            friend: true,
+            onSelect: user => {
+              ctrl[key] = user.name;
+              ctrl.root.redraw();
+            },
+          }),
+        ),
+        on: {
+          input: (event: Event) => {
+            ctrl[key] = (event.target as HTMLInputElement).value;
+            ctrl.root.redraw();
+          },
+        },
+      }),
+    ]),
+  ]);
+
 export const kingdomOpponents = (ctrl: SetupController) =>
   hl('div.config-group', [
     ...(ctrl.gameType === 'hook'
@@ -58,51 +92,17 @@ export const kingdomOpponents = (ctrl: SetupController) =>
         ? (['friendUser'] as const)
         : (['friendUser', 'friendUserTwo'] as const)
     ).map((key, i) =>
-      hl('div.label-select', [
-        hl(
-          'label',
-          { attrs: { for: `sf_${key}` } },
-          i === 0 ? i18n.threeKingdoms.opponentOne : i18n.threeKingdoms.opponentTwo,
-        ),
-        hl('div.complete-parent', [
-          hl(`input#sf_${key}`, {
-            attrs: {
-              type: 'text',
-              required: true,
-              maxlength: 30,
-              autocomplete: 'off',
-              spellcheck: 'false',
-            },
-            props: { value: ctrl[key] },
-            hook: onInsert<HTMLInputElement>(input =>
-              userComplete({
-                input,
-                tag: 'span',
-                friend: true,
-                onSelect: user => {
-                  ctrl[key] = user.name;
-                  ctrl.root.redraw();
-                },
-              }),
-            ),
-            on: {
-              input: (event: Event) => {
-                ctrl[key] = (event.target as HTMLInputElement).value;
-                ctrl.root.redraw();
-              },
-            },
-          }),
-        ]),
-      ]),
+      friendOpponent(ctrl, key, i === 0 ? i18n.threeKingdoms.opponentOne : i18n.threeKingdoms.opponentTwo),
     ),
-    hl('label.kingdom-bot-toggle', [
-      hl('input', {
-        attrs: { type: 'checkbox' },
-        props: { checked: ctrl.kingdomFriendBot() },
-        on: { change: (event: Event) => ctrl.kingdomFriendBot((event.target as HTMLInputElement).checked) },
-      }),
-      i18n.threeKingdoms.secondOpponentBot,
-    ]),
+    !ctrl.selectedRatedPool() &&
+      hl('label.kingdom-bot-toggle', [
+        hl('input', {
+          attrs: { type: 'checkbox' },
+          props: { checked: ctrl.kingdomFriendBot() },
+          on: { change: (event: Event) => ctrl.kingdomFriendBot((event.target as HTMLInputElement).checked) },
+        }),
+        i18n.threeKingdoms.secondOpponentBot,
+      ]),
     ctrl.kingdomFriendBot() &&
       choice(
         'sf_kingdom_bot_level',

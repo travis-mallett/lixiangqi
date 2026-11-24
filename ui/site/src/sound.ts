@@ -29,6 +29,7 @@ class SoundService implements SoundI {
   volumeStorage = storage.make('sound-volume');
   soundEnabledStorage = storage.make('sound-enabled');
   voiceSoundEnabledStorage = storage.make('voice-sound-enabled');
+  private readonly chatNotificationsStorage = storage.make('chat-notifications-enabled');
   musicEnabledStorage = storage.make('music-enabled');
   musicSetStorage = storage.make('music-set');
   backgroundMusic = new BackgroundMusic(undefined, trafficMusicPlaying);
@@ -112,6 +113,7 @@ class SoundService implements SoundI {
   async play(name: Name, volume = 1): Promise<void> {
     if (name === 'checkmate') return this.playCheckmate(volume);
     if (!this.effectsEnabled()) return;
+    if (name === 'newChatMessage' && !this.isChatNotificationsEnabled()) return;
     if ((name === 'capture' || name === 'check') && !this.isVoiceSoundEnabled()) return;
     const sound = await this.load(name);
     if (sound && (await this.resumeWithTest())) await sound.play(this.getVolume() * volume);
@@ -212,6 +214,12 @@ class SoundService implements SoundI {
   };
 
   isVoiceSoundEnabled = () => this.voiceSoundEnabledStorage.get() !== '0';
+
+  isChatNotificationsEnabled = () => this.chatNotificationsStorage.get() !== '0';
+
+  setChatNotificationsEnabled = (enabled: boolean) => {
+    this.chatNotificationsStorage.set(enabled ? '1' : '0');
+  };
 
   setVoiceSoundEnabled = (enabled: boolean) => {
     this.voiceSoundEnabledStorage.set(enabled ? '1' : '0');

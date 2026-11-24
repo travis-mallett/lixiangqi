@@ -81,13 +81,26 @@ $xiangqi-last-move-cycle: 3.3s;
   }
 
   // A board also renders outside the website's body-level appearance classes.
-  cg-board::before {
-    background-image: var(--board-image);
+  cg-board::before,
+  .rectangular-board__controls {
     left: calc(-100% * var(--board-layout-left, 0) / var(--board-layout-width, 1));
     top: calc(-100% * var(--board-layout-top, 0) / var(--board-layout-height, 1));
     width: calc(100% / var(--board-layout-width, 1));
     height: calc(100% / var(--board-layout-height, 1));
+  }
+
+  cg-board::before {
+    background-image: var(--board-image);
     background-size: 100% 100%;
+  }
+
+  .rectangular-board__controls {
+    position: absolute;
+    pointer-events: none;
+
+    > * {
+      pointer-events: auto;
+    }
   }
 
   // Xiangqi board artwork defines its own edge treatment. Do not impose the

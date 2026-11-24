@@ -180,8 +180,7 @@ deadline.
 
 Rated play uses the separate `threeKingdoms` rank track and compares each player
 with both opponents once. For equal ranks the changes are +20, 0, and -20 before
-the rank floor; a tied final duel gives +10, +10, and -20. Friend and computer
-games are casual. Settlement is idempotent, with independent rank receipts and
+the rank floor; a tied final duel gives +10, +10, and -20. Friends can choose rated play with the pool clock, random sides and three eligible human players. Computer games are casual. Settlement is idempotent, with independent rank receipts and
 a transaction committing all three profile counters together with the game's
 accounting receipt.
 

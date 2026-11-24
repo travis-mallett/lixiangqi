@@ -162,7 +162,6 @@ export interface AnalyseOpts {
     enhance: EnhanceOpts;
     instance?: ChatCtrl;
   };
-  wiki?: boolean;
   inlinePgn?: string;
   externalEngineEndpoint: string;
   embed?: boolean;

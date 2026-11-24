@@ -37,7 +37,9 @@ final class PerfsUpdater(
   /** The result value comes exclusively from immutable game-start snapshots. */
   private def calculate(game: Game, users: ByColor[UserWithPerfs]): Option[ByColor[RankDiff]] = for
     outcome <- game.outcome
-    if !users.exists(_.user.lame)
+    if !users.exists(_.user.lame) && (!RankTrackId.isCorrespondence(game.rankTrack.get) || users.forall(
+      _.user.rankable
+    ))
     snapshots <- game.players.traverse(_.rank)
     if snapshots.forall(s => game.rankTrack.contains(s.track))
     settlement <- RankPolicy(game.rankTrack.get)

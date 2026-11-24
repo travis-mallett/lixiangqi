@@ -432,6 +432,7 @@ export class RectangularBoardView {
   /** Mount a host control whose lifecycle survives perspective and coordinate changes. */
   mountControl(element: HTMLElement): void {
     if (this.destroyed) return;
+    element.classList.add('rectangular-board__controls');
     this.controls.add(element);
     this.renderer.state.dom.elements.container.append(element);
     this.onDestroy(() => element.remove());

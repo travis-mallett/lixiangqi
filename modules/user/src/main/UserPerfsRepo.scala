@@ -23,7 +23,7 @@ final class UserPerfsRepo(c: Coll)(using Executor) extends lila.core.user.PerfsR
 
   private def rankSnapshot(perfs: UserPerfs, track: RankTrackId = RankTrackId.xiangqi): RankSnapshot =
     val policy = lila.rating.RankPolicy(track)
-    policy.snapshot(perfs.rank(track).getOrElse(policy.initial))
+    policy.snapshot(perfs.rank(track).getOrElse(policy.initial)).copy(track = track)
 
   def glickoField(perf: PerfKey) = s"$perf.gl"
 
@@ -101,8 +101,10 @@ final class UserPerfsRepo(c: Coll)(using Executor) extends lila.core.user.PerfsR
                 $doc(s"$field" -> $doc("$exists" -> false))
               ): rank =>
                 $doc(s"$field.s" -> rank.score.value, s"$field.nb" -> rank.games)
+            val day = nowInstant.toString.take(10)
+            val values = $doc(field -> nextRank, s"rankHistory.${track.value}.$day" -> nextRank.score.value)
             coll.update
-              .one($id(userId) ++ expected, $set(field -> nextRank), upsert = stored.isEmpty)
+              .one($id(userId) ++ expected, $doc("$set" -> values), upsert = stored.isEmpty)
               .flatMap: result =>
                 if result.n == 1 then fuccess(previous -> next)
                 else if attempt < 12 then loop(attempt + 1)
@@ -111,6 +113,26 @@ final class UserPerfsRepo(c: Coll)(using Executor) extends lila.core.user.PerfsR
                 case wr: WriteResult if isDuplicateKey(wr) && attempt < 12 => loop(attempt + 1)
 
     loop(0)
+
+  def profilePerfs(
+      user: User,
+      showHistory: Boolean
+  ): Fu[(UserWithPerfs, Map[RankTrackId, List[(String, Int)]])] =
+    coll
+      .find($id(user.id), Option.unless(showHistory)($doc("rankHistory" -> false)))
+      .one[Bdoc]
+      .map: doc =>
+        val perfs = doc.fold(lila.rating.UserPerfs.default(user.id))(userPerfsHandler.readTry(_).get)
+        val history = doc
+          .flatMap(_.child("rankHistory"))
+          .toList
+          .flatMap(_.elements)
+          .flatMap: series =>
+            for
+              track <- RankTrackId.from(series.name)
+              days <- series.value.asOpt[Bdoc]
+            yield track -> days.elements.flatMap(e => e.value.asOpt[Int].map(e.name -> _)).toList.sortBy(_._1)
+        UserWithPerfs(user, perfs) -> history.toMap
 
   def setRank(userId: UserId, track: RankTrackId, rank: RankPerf): Funit =
     coll.update.one($id(userId), $set(s"ranks.${track.value}" -> rank), upsert = true).void

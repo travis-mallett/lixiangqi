@@ -14,7 +14,6 @@ function editor() {
     opts: { userId: 'author' },
     node,
     userJump: () => {},
-    enableWiki: () => {},
     study: {
       members: { canContribute: () => true },
       currentChapter: () => ({ id: 'chapter1' }),

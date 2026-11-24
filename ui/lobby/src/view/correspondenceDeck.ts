@@ -71,7 +71,7 @@ function kingdomCard(id: string, players: string[], status: string, encoded?: st
         'lobby__correspondence-card--pending': pending,
         'lobby__correspondence-card--my-turn': myTurn,
       },
-      attrs: { href: '/three-kingdoms/' + (pending ? 'challenge/' : 'game/') + id },
+      attrs: { href: pending ? '/#home-tab-seeks' : '/three-kingdoms/game/' + id },
     },
     [
       hl('span.lobby__correspondence-player', hl('strong', i18n.site.threeKingdoms)),

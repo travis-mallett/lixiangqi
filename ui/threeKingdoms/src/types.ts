@@ -114,6 +114,7 @@ export interface Challenge extends ClockSettings {
   creator: string;
   users: string[];
   accepted: string[];
+  rated?: boolean;
   botLevel?: number | null;
   expiresAt: number;
   status: string;

@@ -53,7 +53,7 @@ class ByUserGameFilterTest extends munit.FunSuite:
 
     assertEquals(
       rankTrackFilter.getAsOpt[List[String]]("$nin"),
-      Some(RankTrackId.all.map(_.value))
+      Some(RankTrackId.accounts.map(_.value))
     )
     assertEquals(query.getAsOpt[UserId]("us.1"), Some(user.id))
     assertEquals(
@@ -106,6 +106,6 @@ class ByUserGameFilterTest extends munit.FunSuite:
 
     assertEquals(
       rankTrackFilter.getAsOpt[List[String]]("$in"),
-      Some(RankTrackId.all.map(_.value))
+      Some(RankTrackId.accounts.map(_.value))
     )
     assertEquals(query.getAsOpt[UserId]("us.1"), Some(user.id))

@@ -62,7 +62,7 @@ export function createRoundBoard(element: HTMLElement, ctrl: RoundController): B
     board,
     ctrl.isPlaying() ? ctrl.data.pref.resizeHandle : ShowResizeHandle.Always,
     ctrl.ply,
-    ply => ply <= showUntil,
+    ply => ctrl.data.game.variant.key === 'jieqi' || ply <= showUntil,
   );
   return board;
 }

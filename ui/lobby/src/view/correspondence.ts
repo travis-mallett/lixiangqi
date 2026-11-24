@@ -35,43 +35,56 @@ export default function (ctrl: LobbyController) {
       'tbody',
       {
         hook: bind('click', async e => {
-          let el = e.target as HTMLElement;
-          do {
-            el = el.parentNode as HTMLElement;
-            if (el.nodeName === 'TR') {
-              if (!ctrl.me) {
-                if (await confirm(i18n.site.youNeedAnAccountToDoThat, i18n.site.signUp, i18n.site.cancel))
-                  location.href = '/signup';
-                return;
-              }
-              if (el.dataset['kingdom']) return ctrl.joinKingdomOffer(el.dataset['kingdom']);
-              return ctrl.clickSeek(el.dataset['id']!);
-            }
-          } while (el.nodeName !== 'TABLE');
+          const target = e.target as HTMLElement;
+          const el = target.closest<HTMLElement>('tr');
+          if (
+            !el ||
+            el.classList.contains('reserved') ||
+            (el.dataset.kingdom && el.classList.contains('cancel') && !target.closest('button'))
+          )
+            return;
+
+          if (!ctrl.me) {
+            if (await confirm(i18n.site.youNeedAnAccountToDoThat, i18n.site.signUp, i18n.site.cancel))
+              location.href = '/signup';
+            return;
+          }
+          if (el.dataset['kingdom']) return ctrl.clickKingdomOffer(el.dataset['kingdom']);
+          return ctrl.clickSeek(el.dataset['id']!);
         }),
       },
       [
         ...ctrl.data.seeks.map(seek => renderSeek(ctrl, seek)),
-        ...(ctrl.kingdomOffers ?? [])
-          .filter(o => !ctrl.myKingdomOffer(o))
-          .map(o =>
-            h(
-              'tr.seek.join',
-              {
-                key: 'kingdom-' + o.id,
-                attrs: { 'data-kingdom': o.id, role: 'button', title: i18n.site.joinTheGame },
-              },
-              tds([
-                o.users.join(', '),
-                '',
-                i18n.site.nbDays(o.days),
+        ...(ctrl.kingdomOffers ?? []).map(o => {
+          const own = o.creator === ctrl.me?.username.toLowerCase();
+          const seated = ctrl.myKingdomOffer(o);
+          const title = own ? i18n.site.cancel : seated ? ctrl.opts.waitingToStart : i18n.site.joinTheGame;
+          return h(
+            'tr.seek.' + (own ? 'cancel' : seated ? 'reserved' : 'join'),
+            {
+              key: 'kingdom-' + o.id,
+              attrs: { 'data-kingdom': o.id, role: !seated ? 'button' : false, title },
+            },
+            tds([
+              o.users.join(', '),
+              '',
+              i18n.site.nbDays(o.days),
+              h('span', [
                 [
                   i18n.site.threeKingdoms,
                   o.botLevel ? `${i18n.threeKingdoms.level} ${o.botLevel}` : `${o.users.length}/3`,
                 ].join(' · '),
+                own
+                  ? h(
+                      'button.button.button-empty.button-thin',
+                      { attrs: { type: 'button' } },
+                      i18n.site.cancel,
+                    )
+                  : null,
               ]),
-            ),
-          ),
+            ]),
+          );
+        }),
       ],
     ),
   ]);

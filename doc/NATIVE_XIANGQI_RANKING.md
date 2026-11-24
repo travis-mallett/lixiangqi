@@ -1,21 +1,25 @@
 # Native Xiangqi ranking
 
-Lixiangqi has one competitive Xiangqi track. It is not an Elo/Glicko presentation layer: the
-stored score, settlement rules, matchmaking rules, game snapshots, leaderboard, and public UI are
-native Xiangqi concepts. Puzzle rating remains an independent Glicko system.
+LiXiangQi keeps independent live and correspondence accounts for Xiangqi, Jieqi, Mini Xiangqi,
+Manchu+ and Game of the Three Kingdoms. Both accounts for a variant use the same native rank
+catalogue, initial score, settlement rules and score floor. Puzzle rating uses Glicko.
 
 ## Product contract
 
-- Only the 15-minute room on the home page is ranked.
-- Custom games, challenges, rematches, correspondence, API games, AI games, and Arena tournament
-  games are casual and cannot mutate a rank.
-- A user is `Unranked` until completing a ranked game. The first ranked game starts from -160
-  (`学1-3`).
-- Public surfaces lead with the rank title. The numeric score appears only in the account owner's
-  detailed profile rank card.
-- The leaderboard has one Xiangqi list. There are no Bullet, Blitz, Rapid, Classical, or variant
-  Glicko leaderboards.
-- Ranked matchmaking permits the same rank or an adjacent rank and prefers the same rank.
+- Live ranking uses each variant’s canonical pool clock and same-group or adjacent-group pairing.
+  Eligible live friend invitations use the same clock and pairing rules.
+- A human correspondence game with an explicit days-per-turn deadline and an ordinary starting
+  position automatically uses its variant’s correspondence account. This includes both official
+  Standard Xiangqi adjudication choices and the oldest games recorded before ruleset selection.
+  Eligibility is independent of a historical casual/rated flag. Unlimited games, custom positions,
+  imports, games with guest or computer seats, and invalid finishes do not earn correspondence points.
+- Game-start ranks determine what a result is worth. Each completion applies the change to the
+  player's current balance. Correspondence allows any rank gap and uses the variant's existing
+  favourite and upset values. Three Kingdoms uses all three placements.
+- Full profiles show established correspondence titles, scores and a graph of UTC daily closing
+  scores. On the main leaderboard, one Live / Correspondence selector controls all five lists.
+  The homepage and username hover cards continue to show live ranks.
+- Standard Xiangqi starts at −160 (学1-3). A rank is established by the first settled result.
 
 ## Settlement policy v1
 
@@ -65,16 +69,10 @@ in the same collection but are otherwise unrelated. Puzzle Glicko calculation an
 chess-rating comparison used by puzzle anti-abuse logic is disabled because native rank and puzzle
 Glicko are deliberately incomparable scales.
 
-When the authorized pool creates a game it requests `rankTrack=xiangqi` and captures both users'
-snapshots. Central game construction independently authorizes that request only for two registered
-users entering the exact 15+0 homepage room with its canonical move-time policy. A wrong source,
-clock, variant, missing snapshot, duplicate user, or legacy `rated=true` flag is downgraded to a
-casual game. Player snapshots remain as immutable presentation metadata so rank identity is visible
-in casual games too; `rankTrack` alone grants settlement authority. Anonymous visitors are sent to
-sign in before entering this ranked room. Settlement uses only the two game-start snapshots. Rank
+The game constructor checks the variant, initial position, time control, source, distinct users and
+matching account snapshots before assigning a rank track. Settlement uses only the two game-start snapshots. Rank
 accounts are updated with optimistic compare-and-set retries, and the game ID makes retries
-idempotent. The
-actual applied change is persisted on the game, including a zero change when the -250 floor is
+idempotent. The actual applied change is persisted on the game, including a zero change when the -250 floor is
 reached, together with the exact post-game title so promotions and a player's first completed rank
 remain historically stable across catalog revisions.
 
@@ -137,3 +135,17 @@ For a later manual rollback after a successful release, stop all application wri
 the retained `*-native-xiangqi-rank-v1.archive.gz` through the deployment tooling before activating
 the prior application. Do not drop that archive, its checksum, or the in-database rollback copies
 until product validation and the agreed retention window are complete.
+
+
+## Correspondence rollout
+
+The deployment writer gate runs the staged application's replay against both game collections.
+Preview reports eligibility and exclusions. Before applying any score changes the deployment saves
+checksummed recovery archives for the affected game, account, counter and migration collections.
+Replay orders creation and completion events by UTC time, records start snapshots for ongoing games,
+and evaluates completed results using the application’s versioned variant policies and fair-play checks.
+It writes the game snapshots, accounts, daily history, and ranked game counts in a single verified
+MongoDB transaction. Its completion marker makes later deployments skip replay. An interrupted
+initial rollout resumes with the new release. The deployment manager checks the migration contract
+before allowing code rollback. Recovery archives contain the original collections plus an inventory
+of collections that were absent before replay. Verify the checksums before restoring an archive.

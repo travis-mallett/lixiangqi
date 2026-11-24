@@ -79,7 +79,15 @@ export async function initModule(options: Bootstrap): Promise<void> {
                       ? { seconds: challenge.moveSeconds, first: challenge.opening ?? undefined }
                       : undefined,
                   );
-          content.append(el('p', '', time));
+          content.append(
+            el(
+              'p',
+              '',
+              challenge.days
+                ? time
+                : [challenge.rated ? i18n.site.rated : i18n.site.casual, time].join(' · '),
+            ),
+          );
           if (challenge.color) content.append(el('p', '', `${challenge.creator} · ${t[challenge.color]}`));
           for (const user of challenge.users)
             content.append(

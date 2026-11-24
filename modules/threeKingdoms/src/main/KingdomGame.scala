@@ -36,9 +36,12 @@ final case class KingdomGame(
 ):
   require(seats.size == 3 && seats.flatMap(_.userId).distinct.size == seats.count(_.userId.isDefined))
   require(Kingdom.values.forall(k => !seats(k.ordinal).guest || !position.active.contains(k)))
+  def accountTrack =
+    lila.core.rank.RankTrackId.forMode(lila.core.rank.RankTrackId.threeKingdoms, clock.config.days.isDefined)
   require(
-    !rated || (source == "pool" && seats.forall(s => s.userId.isDefined && s.rank.isDefined) &&
-      clock.config == ClockConfig() && initial == Position.initial)
+    !rated || (seats.forall(s => s.userId.isDefined && s.rank.exists(_.track == accountTrack)) &&
+      initial == Position.initial && (((source == "pool" || source == "friend") && clock.config == ClockConfig()) ||
+        ((source == "friend" || source == "seek") && clock.config.days.isDefined)))
   )
   def userIds: List[UserId] = seats.flatMap(_.userId).toList
   def playerOf(userId: UserId): Option[Kingdom] =

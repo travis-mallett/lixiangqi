@@ -56,6 +56,22 @@
   }
 }
 
+.leaderboard-modes {
+  display: flex;
+  flex-wrap: wrap;
+  border-bottom: $border;
+  margin-bottom: 1rem;
+
+  a {
+    padding: 0.6em 1em;
+    color: $c-font;
+    &[aria-current='page'] {
+      border-bottom: 3px solid $c-brag;
+      color: $c-brag;
+    }
+  }
+}
+
 .community .leaderboards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));

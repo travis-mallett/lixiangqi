@@ -16,7 +16,14 @@ import { alert } from 'lib/view';
 import * as xhr from 'lib/xhr';
 
 import type LobbyController from './ctrl';
-import type { AiStatsResponse, ForceSetupOptions, GameType, SetupStore, SetupVariant } from './interfaces';
+import type {
+  AiStatsResponse,
+  ForceSetupOptions,
+  GameType,
+  KingdomOffer,
+  SetupStore,
+  SetupVariant,
+} from './interfaces';
 import { keyToId, variants } from './options';
 
 export default class SetupController {
@@ -25,6 +32,34 @@ export default class SetupController {
   gameType: GameType | null = null;
   lastValidFen = '';
   fenError = false;
+  rated = false;
+  ratedPool = () =>
+    this.gameType === 'friend' &&
+    this.root.me &&
+    this.variant() !== 'fromPosition' &&
+    !this.forced?.timeMode &&
+    !this.forced?.color
+      ? this.root.homePools?.find(pool => pool.ranked && pool.rankTrack === this.gameVariant())
+      : undefined;
+
+  canRateCorrespondence = () =>
+    !!this.root.me &&
+    (this.gameType === 'hook' || this.gameType === 'friend') &&
+    this.timeControl.mode() === 'correspondence' &&
+    this.variant() !== 'fromPosition';
+
+  ratedCorrespondence = () =>
+    this.canRateCorrespondence() && !(this.isThreeKingdoms() && this.kingdomFriendBot());
+
+  selectedRatedPool = () =>
+    this.rated && this.timeControl.mode() !== 'correspondence' ? this.ratedPool() : undefined;
+
+  setRated = (rated: boolean) => {
+    this.rated = rated && !!this.ratedPool();
+    if (this.rated) this.kingdomFriendBot(false);
+    this.root.redraw();
+  };
+
   friendUser = '';
   friendUserTwo = '';
   kingdomFriendBot = propWithEffect(false, () => this.root.redraw());
@@ -126,7 +161,7 @@ export default class SetupController {
 
   private readonly enforcePropRules = () => {
     if (this.gameType === 'hook' && this.isThreeKingdoms() && this.timeControl.mode() !== 'correspondence')
-      this.variant = propWithEffect('standard' as SetupVariant, this.onVariantChange);
+      this.variant = propWithEffect('standard', this.onVariantChange);
     // reassign with this.propWithApply in this function to avoid calling this.onPropChange
 
     if (this.usesVariantLevels() && this.aiLevel)
@@ -184,6 +219,7 @@ export default class SetupController {
     this.loading = false;
     this.fenError = false;
     this.lastValidFen = '';
+    this.rated = false;
     this.friendUser = friendUser || '';
     this.friendUserTwo = '';
     this.error = undefined;
@@ -272,31 +308,30 @@ export default class SetupController {
       );
   }, 300);
 
-  propsToFormData = (color: ColorChoice) =>
-    xhr.form({
+  propsToFormData = (color: ColorChoice) => {
+    const pool = this.selectedRatedPool();
+    const tc = this.timeControl;
+    const moveTime = pool ? pool.moveTime : tc.isRealTime() ? tc.moveTime() : undefined;
+    return xhr.form({
+      rated: pool ? 'true' : undefined,
       variant: keyToId(this.variant(), variants).toString(),
       gameVariant: this.gameVariant(),
       fen: this.variant() === 'fromPosition' ? this.fen() : undefined,
-      timeMode: keyToId(this.timeControl.mode(), timeModes).toString(),
-      time: this.timeControl.time().toString(),
+      timeMode: keyToId(pool ? 'realTime' : tc.mode(), timeModes).toString(),
+      time: (pool?.lim ?? tc.time()).toString(),
       time_range: this.timeControl.timeV().toString(),
-      increment: this.timeControl.increment().toString(),
+      increment: (pool?.inc ?? tc.increment()).toString(),
       increment_range: this.timeControl.incrementV().toString(),
-      'moveTime.seconds': this.timeControl.isRealTime()
-        ? this.timeControl.moveTime()?.seconds.toString()
-        : undefined,
-      'moveTime.firstMoves': this.timeControl.isRealTime()
-        ? this.timeControl.moveTime()?.first?.moves.toString()
-        : undefined,
-      'moveTime.firstSeconds': this.timeControl.isRealTime()
-        ? this.timeControl.moveTime()?.first?.seconds.toString()
-        : undefined,
+      'moveTime.seconds': moveTime?.seconds.toString(),
+      'moveTime.firstMoves': moveTime?.first?.moves.toString(),
+      'moveTime.firstSeconds': moveTime?.first?.seconds.toString(),
       days: this.timeControl.days().toString(),
       days_range: this.timeControl.daysV().toString(),
       level: this.aiLevel().toString(),
       ruleset: this.gameType === 'ai' && !this.usesVariantLevels() ? this.ruleset : undefined,
-      color,
+      color: pool ? 'random' : color,
     });
+  };
 
   validFen = () => this.variant() !== 'fromPosition' || (!this.fenError && !!this.fen());
 
@@ -313,15 +348,17 @@ export default class SetupController {
   };
 
   valid = () =>
-    this.isThreeKingdoms()
-      ? this.gameType === 'hook'
-        ? !!this.root.me && this.timeControl.mode() === 'correspondence' && this.timeControl.valid()
-        : this.gameType === 'friend'
-          ? this.validKingdomFriends() && this.timeControl.valid()
-          : this.gameType === 'ai' &&
-            [7, 10, 15].includes(this.kingdomTime()) &&
-            [15, 30, 60].includes(this.kingdomMoveTime())
-      : this.validFen() && this.timeControl.valid(this.minimumTimeIfReal()) && this.validConstraints();
+    this.selectedRatedPool()
+      ? !this.isThreeKingdoms() || this.validKingdomFriends()
+      : this.isThreeKingdoms()
+        ? this.gameType === 'hook'
+          ? !!this.root.me && this.timeControl.mode() === 'correspondence' && this.timeControl.valid()
+          : this.gameType === 'friend'
+            ? this.validKingdomFriends() && this.timeControl.valid()
+            : this.gameType === 'ai' &&
+              [7, 10, 15].includes(this.kingdomTime()) &&
+              [15, 30, 60].includes(this.kingdomMoveTime())
+        : this.validFen() && this.timeControl.valid(this.minimumTimeIfReal()) && this.validConstraints();
 
   private readonly invalid = <A>(forced: A | undefined, current: A) =>
     forced !== undefined && forced !== current;
@@ -361,7 +398,7 @@ export default class SetupController {
 
     let urlPath = `/setup/${this.gameType}`;
     if (this.gameType === 'hook') urlPath += `/${site.sri}`;
-    const urlParams = { user: this.friendUser || undefined };
+    const urlParams = { user: this.friendUser.trim() || undefined };
     let response;
     try {
       response = await xhr.textRaw(xhr.url(urlPath, urlParams), {
@@ -378,6 +415,8 @@ export default class SetupController {
     const { ok, redirected, url } = response;
 
     if (!ok) {
+      this.loading = false;
+      this.root.redraw();
       const errs: Record<string, string> = await response.json();
       await alert(
         errs
@@ -404,16 +443,23 @@ export default class SetupController {
     this.error = undefined;
     this.root.redraw();
     const tc = this.timeControl;
+    const pool = this.selectedRatedPool();
+    const publicOffer = this.gameType === 'hook';
     const config =
       this.gameType !== 'ai'
         ? {
-            timeMode: tc.mode(),
-            initialSeconds: tc.isRealTime() ? tc.initialSeconds() : undefined,
-            incrementSeconds: tc.isRealTime() ? tc.increment() : undefined,
-            moveSeconds: tc.isRealTime() ? (tc.moveTime()?.seconds ?? 0) : undefined,
-            opening: tc.isRealTime() ? tc.moveTime()?.first : undefined,
-            days: tc.mode() === 'correspondence' ? tc.days() : undefined,
-            color: this.kingdom(),
+            rated: pool ? true : undefined,
+            timeMode: pool ? 'realTime' : tc.mode(),
+            initialSeconds: pool ? pool.lim * 60 : tc.isRealTime() ? tc.initialSeconds() : undefined,
+            incrementSeconds: pool ? pool.inc : tc.isRealTime() ? tc.increment() : undefined,
+            moveSeconds: pool
+              ? pool.moveTime?.seconds
+              : tc.isRealTime()
+                ? (tc.moveTime()?.seconds ?? 0)
+                : undefined,
+            opening: pool ? pool.moveTime?.first : tc.isRealTime() ? tc.moveTime()?.first : undefined,
+            days: !pool && tc.mode() === 'correspondence' ? tc.days() : undefined,
+            color: pool ? 'random' : this.kingdom(),
             opponents: this.gameType === 'hook' ? [] : this.kingdomFriendUsers(),
             publicSeek: this.gameType === 'hook',
             botLevel: this.kingdomFriendBot() ? this.aiLevel() : undefined,
@@ -441,8 +487,14 @@ export default class SetupController {
           body: JSON.stringify(config),
         },
       );
-      const result = (await response.json()) as { id?: string; error?: string };
+      const result = (await response.json()) as KingdomOffer & { error?: string };
       if (!response.ok || !result.id || result.error) throw new Error(result.error);
+      if (publicOffer) {
+        this.loading = false;
+        this.closeModal?.();
+        this.root.showKingdomOffer(result);
+        return;
+      }
       site.redirect(`/three-kingdoms/${this.gameType === 'ai' ? 'game' : 'challenge'}/${result.id}`);
     } catch (error) {
       const translated =

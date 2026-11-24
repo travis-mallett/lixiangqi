@@ -25,9 +25,19 @@ class ManchuSetupTest extends FunSuite:
     for level <- List(0, 11, 720) do
       assert(SetupForm.ai.bind(fields.updated("level", level.toString)).hasErrors)
 
-  test("friend setup preserves Manchu+ and never creates a rated challenge"):
+  test("friend setup preserves Manchu+ and defaults to casual"):
     given Option[lila.core.user.Me] = None
     val config = SetupForm.friend.bind(fields - "level").get
+    assert(config.rated.no)
+    val poolFields = (fields - "level") ++ Map(
+      "rated" -> "true",
+      "moveTime.seconds" -> "60",
+      "moveTime.firstMoves" -> "3",
+      "moveTime.firstSeconds" -> "30"
+    )
+    assert(SetupForm.friend.bind(poolFields).hasErrors)
+    assert(SetupForm.friend.bind(poolFields - "rated").get.copy(rated = chess.Rated.Yes).validRated)
+    assert(!config.copy(rated = chess.Rated.Yes).validRated)
     assertEquals(config.gameVariant, GameVariant.Manchu)
     assertEquals(config.effectiveRuleset, Ruleset.Manchu)
 

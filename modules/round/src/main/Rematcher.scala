@@ -94,8 +94,13 @@ final private class Rematcher(
       case Some(Rematches.NextGame.Offered(_, id)) => createGame(id.some)
 
   private def returnGame(pov: Pov, withId: Option[GameId]): Fu[Game] =
+    val track = lila.core.rank.RankTrackId
+      .forMode(lila.core.rank.RankTrackId.of(pov.game.nativeVariant), pov.game.daysPerTurn.isDefined)
     for
-      users <- userApi.gamePlayersAny(pov.game.userIdPair, pov.game.perfKey)
+      users <-
+        if pov.game.daysPerTurn.isDefined then
+          pov.game.userIdPair.traverse(_.so(userApi.byIdWithPerf(_, pov.game.perfKey, track)))
+        else userApi.gamePlayersAny(pov.game.userIdPair, pov.game.perfKey)
       newXiangqi = Rematcher.reset(pov.game.xiangqi)
       sloppy = lila.core.game.newGame(
         xiangqi = newXiangqi,
@@ -104,8 +109,12 @@ final private class Rematcher(
         startedAtPly = chess.Ply(newXiangqi.states.head.ply),
         players = ByColor(returnPlayer(pov.game, _, users)),
         rated = Rated.No,
+        rankTrack =
+          (pov.game.daysPerTurn.isDefined && users.forall(_.exists(u => u.user.rankable && !u.user.lame)))
+            .option(track),
         source = pov.game.source | lila.core.game.Source.Lobby,
         daysPerTurn = pov.game.daysPerTurn,
+        rules = pov.game.metadata.rules,
         pgnImport = None,
         variant = pov.game.variant
       )
@@ -131,9 +140,10 @@ final private class Rematcher(
           .player(fromColor)
           .userId
           .fold(lila.game.Player.makeAnon(color)): userId =>
-            game
-              .player(fromColor)
-              .rank
+            users(fromColor)
+              .flatMap(_.rank)
+              .filter(_ => game.daysPerTurn.isDefined)
+              .orElse(game.player(fromColor).rank)
               .fold(lila.game.Player.makeAnon(color)): rank =>
                 lila.game.Player.make(color, userId, rank.copy(diff = None))
 

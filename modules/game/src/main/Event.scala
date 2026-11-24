@@ -104,11 +104,15 @@ object Event:
             "wc" -> c.remainingTime(Color.White).centis,
             "bc" -> c.remainingTime(Color.Black).centis
           ))
-        .add("rank" -> rankChanges.map: changes =>
-          Json.obj(
-            Color.White.name -> changes.white.rank.value,
-            Color.Black.name -> changes.black.rank.value
-          ))
+        .add(
+          "rank" -> rankChanges
+            .filter(_ => game.daysPerTurn.isEmpty)
+            .map: changes =>
+              Json.obj(
+                Color.White.name -> changes.white.rank.value,
+                Color.Black.name -> changes.black.rank.value
+              )
+        )
         .add("boosted" -> game.boosted)
 
   case object Reload extends Empty:

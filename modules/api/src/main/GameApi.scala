@@ -173,7 +173,7 @@ final private[api] class GameApi(
             .obj(
               "userId" -> p.userId,
               "rank" -> p.rank.flatMap(_.publicCode).map(_.value),
-              "rankDiff" -> p.rank.flatMap(_.diff).map(_.value)
+              "rankDiff" -> p.rank.flatMap(_.publicDiff).map(_.value)
             )
             .add("name", p.name)
             .add("moveCentis" -> withFlags.moveTimes.so:

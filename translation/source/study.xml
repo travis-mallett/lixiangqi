@@ -236,10 +236,6 @@
   <string name="tablebaseWin">Win</string>
   <string name="tablebaseLoss">Loss</string>
   <string name="tablebaseDraw">Draw</string>
-  <string name="referenceUnavailable">The position reference service is unavailable.</string>
-  <string name="positionReferences">Annotated source records containing this position</string>
-  <string name="noPositionReference">No matching Xiangqi reference is available for this position.</string>
-  <string name="referenceSource">Read the source</string>
   <string name="olderPgnExport">Older PGN export with a multiline description?</string>
   <string name="olderPgnExportExplanation">Some older exports put line breaks inside a quoted description. They cannot be imported safely: a missing closing quote can make another game's moves look like description text. Your input has been kept.</string>
   <string name="olderPgnExportInstructions">Keep the original file. Open the original study and download its Study PGN or Chapter PGN again, then select the new file here. You can also enter the original study or chapter URL below to download it directly.</string>

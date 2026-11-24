@@ -228,3 +228,18 @@ class XiangqiRankTest extends FunSuite:
     assertEquals(firstPoints, lila.core.rank.RankDiff(10))
     assertEquals(secondPoints, lila.core.rank.RankDiff.zero)
     assertEquals(twice, once)
+
+  test("each correspondence discipline uses its variant catalogue and accepts distant opponents"):
+    import lila.core.rank.RankTrackId
+    for live <- RankTrackId.all do
+      val track = RankTrackId.forMode(live, true)
+      val policy = RankPolicy(track)
+      assertEquals(policy.catalog.track, live)
+      val low = policy.initialSnapshot.copy(ordinal = 0, track = track, established = true)
+      val high = low.copy(ordinal = 15)
+      assertEquals(low.publicCode, None)
+      assertEquals(policy.settle(low, high, Outcome(Some(Color.White))).map(_.red.value), Right(15))
+      assertEquals(policy.settle(low, high, Outcome(Some(Color.Black))).map(_.red.value), Right(-5))
+      assertEquals(policy.settle(low, high, Outcome(None)).map(_.red.value), Right(0))
+      assert(policy.settle(low.copy(track = live), high.copy(track = live), Outcome(None)).isLeft)
+      assert(policy.settle(low, high.copy(track = live), Outcome(None)).isLeft)

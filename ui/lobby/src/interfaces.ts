@@ -28,6 +28,7 @@ export interface Hook {
 }
 
 export interface Seek {
+  mode?: number;
   id: string;
   username: string;
   rank: string;
@@ -40,6 +41,7 @@ export interface Seek {
 }
 
 export interface KingdomOffer {
+  rated?: boolean;
   id: string;
   creator: string;
   users: string[];

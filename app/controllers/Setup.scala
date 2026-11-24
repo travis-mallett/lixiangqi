@@ -117,11 +117,11 @@ final class Setup(
             for
               origUser <- ctx.user.traverse(
                 env.user.perfsRepo
-                  .withPerf(_, config.perfType, lila.core.rank.RankTrackId.of(config.gameVariant))
+                  .withPerf(_, config.perfType, config.accountTrack)
               )
               destUser <- userId.so(
                 env.user.api
-                  .enabledWithPerf(_, config.perfType, lila.core.rank.RankTrackId.of(config.gameVariant))
+                  .enabledWithPerf(_, config.perfType, config.accountTrack)
               )
               denied <- destUser.so(u => env.challenge.granter.isDenied(u.user, config.perfKey.some))
               result <- denied match
@@ -131,6 +131,19 @@ final class Setup(
                     // 403 tells setupCtrl.ts to close the setup modal
                     forbiddenJson(message), // TODO test
                     JsonBadRequest(message)
+                  )
+                case None
+                    if config.rated.yes && (userId.isDefined && destUser.isEmpty ||
+                      destUser.exists(u =>
+                        !u.user.rankable || u.user.isBot || origUser.exists(o =>
+                          o.id == u.id ||
+                            !o.rank.zip(u.rank).exists((a, b) => (a.matchingGroup - b.matchingGroup).abs <= 1)
+                        )
+                      )) =>
+                  fuccess(
+                    JsonBadRequest(
+                      "Rated challenges require eligible members in the same or adjacent rank groups"
+                    )
                   )
                 case None =>
                   import lila.challenge.Challenge.*

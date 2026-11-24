@@ -42,7 +42,7 @@ case class Seek(
         "variant" -> Json.obj("key" -> (if gameVariant != "xiangqi" then gameVariant
                                         else realVariant.key.value)),
         "perf" -> Json.obj("key" -> gameVariant),
-        "mode" -> Rated.No.id // protocol compatibility; correspondence challenges are casual
+        "mode" -> Rated(daysPerTurn.isDefined && !user.bot && !user.lame).id
       )
       .add("days" -> daysPerTurn)
 

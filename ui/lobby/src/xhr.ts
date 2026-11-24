@@ -10,6 +10,9 @@ export const kingdomOffers = () => xhrJson<KingdomOffer[]>('/api/three-kingdoms/
 export const joinKingdomOffer = (id: string) =>
   xhrJson<KingdomOffer>(`/api/three-kingdoms/offers/${id}/join`, { method: 'POST' });
 
+export const cancelKingdomOffer = (id: string) =>
+  xhrJson<KingdomOffer>(`/api/three-kingdoms/challenge/${id}/decline`, { method: 'POST' });
+
 type NowPlayingRes = {
   nowPlaying: NowPlaying[];
   kingdomsPlaying: KingdomsPlaying[];

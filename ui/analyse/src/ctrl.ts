@@ -57,7 +57,6 @@ import type { AnaMove } from './study/interfaces';
 import type StudyCtrl from './study/studyCtrl';
 import { TreeView } from './treeView/treeView';
 import { plural } from './view/util';
-import wikiTheory, { wikiClear, type WikiTheory } from './wiki';
 
 export default class AnalyseCtrl implements CevalHandler {
   data: AnalyseData;
@@ -89,7 +88,6 @@ export default class AnalyseCtrl implements CevalHandler {
   practice?: PracticeCtrl;
   study?: StudyCtrl;
   chatCtrl?: ChatCtrl;
-  wiki?: WikiTheory;
   motif: MotifCtrl;
 
   // state flags
@@ -155,7 +153,6 @@ export default class AnalyseCtrl implements CevalHandler {
     });
 
     if (this.data.forecast) this.forecast = new ForecastCtrl(this.data.forecast, this.data, redraw);
-    if (this.opts.wiki) this.wiki = wikiTheory(this.opts.explorer.endpoint);
     if (site.blindMode)
       site.asset.loadEsm<NvuiPlugin>('analyse.nvui', { init: this }).then(nvui => {
         this.nvui = nvui;
@@ -268,12 +265,6 @@ export default class AnalyseCtrl implements CevalHandler {
     } else return treePath.root;
   };
 
-  enableWiki = (v: boolean) => {
-    this.wiki = v ? wikiTheory(this.opts.explorer.endpoint) : undefined;
-    if (this.wiki) this.wiki(this.nodeList);
-    else wikiClear();
-  };
-
   private readonly setPath = (path: TreePath): void => {
     this.path = path;
     this.nodeList = this.tree.getNodeList(path);
@@ -282,7 +273,6 @@ export default class AnalyseCtrl implements CevalHandler {
     this.onMainline = this.tree.pathIsMainline(path);
     this.fenInput = undefined;
     this.pgnInput = undefined;
-    if (this.wiki) this.wiki(this.nodeList);
     this.idbTree.saveMoves();
     this.idbTree.revealNode();
   };

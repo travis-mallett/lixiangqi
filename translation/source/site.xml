@@ -309,6 +309,8 @@
   <string name="secondsPerMove">%s seconds per move</string>
   <string name="moveTimeLimitDescription">%1$ss for first %2$s moves, then %3$ss per move</string>
   <string name="moveTimeLimitShort">First %2$s: %1$ss · then %3$ss/move</string>
+  <string name="unranked">Unranked</string>
+  <string name="livePlay">Live</string>
   <string name="realTime">Real time</string>
   <string name="correspondence">Correspondence</string>
   <string name="daysPerTurn">Days per turn</string>
@@ -738,7 +740,8 @@
   <string name="backgroundMusic">Background Music</string>
   <string name="backgroundMusicStyle">Music Style</string>
   <string name="soundEffects">Sound effects</string>
-  <string name="captureCheckAndCheckmateVoiceSoundEffects">Voice Sound Effects</string>
+  <string name="captureCheckAndCheckmateSounds">Capture, Check, and Checkmate Sounds</string>
+  <string name="chatNotificationSounds">Chat Notifications</string>
   <string name="none">None</string>
   <string name="fast">Fast</string>
   <string name="normal">Normal</string>

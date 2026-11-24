@@ -68,7 +68,7 @@ object GameStream:
               "rank" -> p.rank.flatMap(_.publicCode).map(_.value)
             )
             .add("name" -> user.map(_.name))
-            .add("rankDiff" -> p.rank.flatMap(_.diff).map(_.value))
+            .add("rankDiff" -> p.rank.flatMap(_.publicDiff).map(_.value))
             .add("ai" -> p.aiLevel))
       )
       .add("winner" -> g.winnerColor.map(_.name))

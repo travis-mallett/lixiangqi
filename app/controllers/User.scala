@@ -259,15 +259,19 @@ final class User(
       yield pag
 
   def list = OpenOrScoped(_.Mobile.Inbox):
-    val track =
+    val correspondence = get("mode").contains("correspondence")
+    val variant =
       get("variant").flatMap(lila.core.rank.RankTrackId.from).getOrElse(lila.core.rank.RankTrackId.xiangqi)
+    val track = lila.core.rank.RankTrackId.forMode(lila.core.rank.RankTrackId.live(variant), correspondence)
     negotiateByAccept(
       html = for
-        leaderboards <- lila.core.rank.RankTrackId.all.traverse: discipline =>
-          for
-            entries <- env.user.xiangqiRankingApi.top(100, discipline)
-            personal <- ctx.user.traverse(env.user.xiangqiRankingApi.personal(_, entries, discipline))
-          yield (discipline, entries, personal)
+        leaderboards <- lila.core.rank.RankTrackId.all
+          .map(lila.core.rank.RankTrackId.forMode(_, correspondence))
+          .traverse: discipline =>
+            for
+              entries <- env.user.xiangqiRankingApi.top(100, discipline)
+              personal <- ctx.user.traverse(env.user.xiangqiRankingApi.personal(_, entries, discipline))
+            yield (discipline, entries, personal)
         rankedIds = leaderboards.flatMap: (_, entries, personal) =>
           entries.map(_.user.id) ::: personal.collect { case XiangqiPersonalRank.Ranked(_, entry) =>
             entry.user.id
@@ -281,15 +285,27 @@ final class User(
       json = env.user.xiangqiRankingApi
         .top(100, track)
         .map: entries =>
-          JsonOk(Json.obj(track.value -> entries.map(env.user.jsonView.lightRankIsOnline)))
+          JsonOk(
+            Json.obj(
+              lila.core.rank.RankTrackId.live(track).value -> entries.map(env.user.jsonView.lightRankIsOnline)
+            )
+          )
     )
 
   def apiList = Anon:
-    val track =
+    val correspondence = get("mode").contains("correspondence")
+    val variant =
       get("variant").flatMap(lila.core.rank.RankTrackId.from).getOrElse(lila.core.rank.RankTrackId.xiangqi)
+    val track = lila.core.rank.RankTrackId.forMode(lila.core.rank.RankTrackId.live(variant), correspondence)
     env.user.xiangqiRankingApi
       .top(100, track)
-      .map(entries => JsonOk(Json.obj(track.value -> entries.map(env.user.jsonView.lightRankIsOnline))))
+      .map(entries =>
+        JsonOk(
+          Json.obj(
+            lila.core.rank.RankTrackId.live(track).value -> entries.map(env.user.jsonView.lightRankIsOnline)
+          )
+        )
+      )
 
   def top(@annotation.unused perfKey: PerfKey, @annotation.unused page: Int) = Open:
     fuccess(Redirect(routes.User.list))

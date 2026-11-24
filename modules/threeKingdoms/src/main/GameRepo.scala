@@ -47,6 +47,8 @@ final class GameRepo(val coll: Coll)(using Executor):
       .cursor[KingdomGame](ReadPref.sec)
       .list(limit.max(1).min(100))
   def countPlaying(user: UserId): Fu[Int] = coll.countSel($doc("playingUsers" -> user))
+  def playingLive(user: UserId): Fu[Boolean] =
+    coll.exists($doc("playingUsers" -> user, "clock.config.days" -> $doc("$exists" -> false)))
   def activeFor(user: UserId): Fu[List[KingdomGame]] =
     coll.find($doc("playingUsers" -> user)).sort($sort.desc("createdAt")).cursor[KingdomGame]().list(20)
   def countWith(a: UserId, b: UserId): Fu[Int] =
@@ -126,9 +128,24 @@ final class GameRepo(val coll: Coll)(using Executor):
       .sort($sort.asc("movedAt"))
       .cursor[KingdomGame]()
       .list(50)
-  def recentOpponents(user: UserId, since: Instant): Fu[List[KingdomGame]] =
+  def repeatedRatedOpponents(user: UserId): Fu[Set[UserId]] =
+    recentOpponents(user, nowInstant.minusSeconds(3600)).map: games =>
+      games
+        .flatMap(_.userIds.filterNot(_ == user))
+        .groupMapReduce(identity)(_ => 1)(_ + _)
+        .collect { case (id, count) if count >= 3 => id }
+        .toSet
+
+  private def recentOpponents(user: UserId, since: Instant): Fu[List[KingdomGame]] =
     coll
-      .find($doc("users" -> user, "rated" -> true, "createdAt" -> $doc("$gt" -> since)))
+      .find(
+        $doc(
+          "users" -> user,
+          "rated" -> true,
+          "clock.config.days" -> $doc("$exists" -> false),
+          "createdAt" -> $doc("$gt" -> since)
+        )
+      )
       .sort($sort.desc("createdAt"))
       .cursor[KingdomGame]()
       .list(20)

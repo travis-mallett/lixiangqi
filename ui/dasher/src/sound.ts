@@ -68,9 +68,16 @@ export class SoundCtrl extends PaneCtrl {
                 ? h('div.sound-category__children', [
                     cmnToggleWrap({
                       id: 'sound-voiceSoundEffects',
-                      name: i18n.site.captureCheckAndCheckmateVoiceSoundEffects,
+                      name: i18n.site.captureCheckAndCheckmateSounds,
                       checked: site.sound.isVoiceSoundEnabled(),
                       change: site.sound.setVoiceSoundEnabled,
+                      redraw: this.redraw,
+                    }),
+                    cmnToggleWrap({
+                      id: 'sound-chatNotifications',
+                      name: i18n.site.chatNotificationSounds,
+                      checked: site.sound.isChatNotificationsEnabled(),
+                      change: site.sound.setChatNotificationsEnabled,
                       redraw: this.redraw,
                     }),
                   ])

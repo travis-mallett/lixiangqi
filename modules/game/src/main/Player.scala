@@ -164,7 +164,7 @@ object Player:
       after = rank.getAsOpt[String]("a").map(RankCode.apply)
     )
 
-  private[game] def rankWrite(rank: RankSnapshot): Bdoc =
+  private[lila] def rankWrite(rank: RankSnapshot): Bdoc =
     $doc(
       "t" -> rank.track.value,
       "s" -> rank.score.value,

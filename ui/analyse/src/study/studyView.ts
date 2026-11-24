@@ -13,7 +13,6 @@ import { viewContext, renderBoard, renderMain, renderUnderboard } from '@/view/c
 import { renderControls } from '@/view/controls';
 import { renderTools } from '@/view/tools';
 import { renderXiangqiGauge } from '@/view/xiangqiEngine';
-import { wikiToggleBox } from '@/wiki';
 
 import type AnalyseCtrl from '../ctrl';
 import { view as keyboardView } from '../keyboard';
@@ -59,7 +58,6 @@ export function studyView(ctrl: AnalyseCtrl, study: StudyCtrl, deps: typeof stud
         hook: onInsert(elm => {
           if (ctrl.opts.$side?.length) {
             $(elm).replaceWith(ctrl.opts.$side);
-            wikiToggleBox();
           }
         }),
       },

@@ -38,11 +38,22 @@ final private class Biter(
     for
       (joiner, owner) = lobbyUser -> seek.user
       ownerColor <- assignCreatorColor(owner.some, joiner.some, TriColor.Random)
-      game <- idGenerator.withUniqueId:
-        makeGame(
-          seek,
-          ownerColor.fold(ByColor(owner, joiner), ByColor(joiner, owner)).map(some)
-        )
+      members = ownerColor.fold(ByColor(owner, joiner), ByColor(joiner, owner))
+      track = lila.core.rank.RankTrackId
+        .from(seek.gameVariant)
+        .map(lila.core.rank.RankTrackId.forMode(_, true))
+      ranked <-
+        if seek.daysPerTurn.isDefined then
+          members
+            .traverse(u => userApi.byIdWithPerf(u.id, lila.core.perf.PerfKey.correspondence, track.get))
+            .map: users =>
+              if users.forall(_.exists(u => u.user.rankable && !u.user.lame)) then
+                users.map(_.flatMap(_.rank))
+              else members.map(_ => Option.empty[lila.core.rank.RankSnapshot])
+        else fuccess(members.map(_ => Option.empty[lila.core.rank.RankSnapshot]))
+      game <- idGenerator.withUniqueId(makeGame(seek, members.map(some), ranked))
+      _ <-
+        if ranked.white.isDefined && !game.ranked then fufail("Incompatible correspondence ranks") else funit
       _ <- gameRepo.insertDenormalized(game)
     yield JoinSeek(joiner.id, seek, game, ownerColor)
 
@@ -77,7 +88,11 @@ final private class Biter(
     )
     .start
 
-  private def makeGame(seek: Seek, users: ByColor[Option[LobbyUser]]) = lila.core.game
+  private def makeGame(
+      seek: Seek,
+      users: ByColor[Option[LobbyUser]],
+      ranks: ByColor[Option[lila.core.rank.RankSnapshot]]
+  ) = lila.core.game
     .newGame(
       xiangqi = lila.xiangqi.GameVariant
         .fromKey(seek.gameVariant)
@@ -88,12 +103,13 @@ final private class Biter(
           newPlayer(
             color,
             u.id,
-            u.rankFor(lila.core.rank.RankTrackId.from(seek.gameVariant))
+            ranks(color).getOrElse(u.rankFor(lila.core.rank.RankTrackId.from(seek.gameVariant)))
           )
         ),
       rated = chess.Rated.No,
       source = lila.core.game.Source.Lobby,
       daysPerTurn = seek.daysPerTurn,
+      rankTrack = ranks.white.map(_.track),
       pgnImport = None,
       variant = seek.realVariant
     )

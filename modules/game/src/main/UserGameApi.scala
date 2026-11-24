@@ -47,7 +47,7 @@ final class UserGameApi(
             .add("id" -> as.exists(p.isUser).option(p.id))
             .add("aiLevel" -> p.aiLevel)
             .add("rank" -> p.rank.flatMap(_.publicCode).map(_.value))
-            .add("rankDiff" -> p.rank.flatMap(_.diff).map(_.value))),
+            .add("rankDiff" -> p.rank.flatMap(_.publicDiff).map(_.value))),
         "fen" -> g.position.fen,
         "winner" -> g.winnerColor.map(_.name),
         "bookmarks" -> g.bookmarks

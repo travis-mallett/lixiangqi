@@ -15,7 +15,6 @@ import { relayView } from '@/study/relay/relayView';
 import type * as studyDeps from '@/study/studyDeps';
 import { studyView } from '@/study/studyView';
 import { renderXiangqiGauge } from '@/view/xiangqiEngine';
-import { wikiToggleBox } from '@/wiki';
 
 import { viewContext, renderBoard, renderMain, renderUnderboard } from './components';
 import { renderControls } from './controls';
@@ -57,7 +56,6 @@ function analyseView(ctrl: AnalyseCtrl, deps?: typeof studyDeps): VNode {
         hook: onInsert(elm => {
           if (ctrl.opts.$side?.length) {
             $(elm).replaceWith(ctrl.opts.$side);
-            wikiToggleBox();
           }
         }),
       },
