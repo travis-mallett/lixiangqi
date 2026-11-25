@@ -12,7 +12,7 @@ GET   /three-kingdoms/history            controllers.ThreeKingdoms.page(mode = "
 GET   /three-kingdoms/live               controllers.ThreeKingdoms.page(mode = "live")
 GET   /three-kingdoms/game/$id<\w{8}>    controllers.ThreeKingdoms.game(id: GameId)
 GET   /three-kingdoms/challenge/$id<\w{8}> controllers.ThreeKingdoms.challengePage(id: GameId)
-GET   /variant/threeKingdoms             controllers.Cms.threeKingdoms
+GET   /variant/$board<threeKingdoms|jieqi|minixiangqi|manchu|banqi> controllers.Cms.nativeVariant(board: String)
 GET   /api/three-kingdoms/game/$id<\w{8}> controllers.ThreeKingdoms.state(id: GameId)
 GET   /api/three-kingdoms/game/$id<\w{8}>/stream controllers.ThreeKingdoms.stream(id: GameId)
 GET   /api/three-kingdoms/game/$id<\w{8}>/export controllers.ThreeKingdoms.record(id: GameId)
@@ -448,6 +448,7 @@ GET   /$gameId<\w{8}>/$color<white|black>/analysis controllers.UserAnalysis.game
 GET   /$fullId<\w{12}>/forecasts                 controllers.UserAnalysis.forecastsGet(fullId: GameFullId)
 POST  /$fullId<\w{12}>/forecasts                 controllers.UserAnalysis.forecastsPost(fullId: GameFullId)
 POST  /$fullId<\w{12}>/forecasts/:uci            controllers.UserAnalysis.forecastsOnMyTurn(fullId: GameFullId, uci)
+POST  /round/:fullId/banqi-computer/:ply/:move  controllers.Round.banqiComputer(fullId: GameFullId, ply: Int, move: String)
 POST  /$fullId<\w{12}>/resign                    controllers.Round.resign(fullId: GameFullId)
 
 GET   /embed/$gameId<\w{8}>                      controllers.Analyse.embed(gameId: GameId, color: Color = Color.white)
@@ -1103,9 +1104,6 @@ GET   /page/:key                       controllers.Cms.lonePage(key: CmsPageKey)
 
 # Variants
 GET   /variant                         controllers.Cms.variantHome
-GET   /variant/minixiangqi             controllers.Cms.miniXiangqi
-GET   /variant/manchu                  controllers.Cms.manchu
-GET   /variant/jieqi                    controllers.Cms.jieqi
 GET   /variant/:key                    controllers.Cms.variant(key: chess.variant.Variant.LilaKey)
 
 # Help

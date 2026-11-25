@@ -111,7 +111,12 @@ final class Api(env: Env, gameC: => Game) extends LilaController(env):
                         .obj("id" -> g.id)
                         .add("clock", g.clock.map(_.config.show))
                         .add("moveTime", g.moveTimeLimit)
-                        .add("variant", g.variant.exotic.option(g.variant.key))
+                        .add(
+                          "variant",
+                          Option
+                            .when(g.nativeVariant != lila.xiangqi.GameVariant.Xiangqi)(g.nativeVariant.key)
+                            .orElse(g.variant.exotic.option(g.variant.key.value))
+                        )
                   )
               .some
           else none

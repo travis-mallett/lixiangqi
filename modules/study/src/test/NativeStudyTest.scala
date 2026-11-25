@@ -14,6 +14,18 @@ class NativeStudyTest extends munit.FunSuite:
   private def imported(text: String) =
     StudyPgnImport.result(PgnStr(text), Nil).fold(e => fail(e.value), identity)
   private def path(text: String) = UciPath(text)
+  test("Banqi flips sharing a square retain independent branches through storage and export"):
+    val chapter = imported("""[Variant "Banqi"]
+1. b3(n) (1. b3(P) {Alternative}) 1... c2(K) *""")
+    val handler = summon[BSONHandler[Root]]
+    val restored = handler.readTry(handler.writeTry(chapter.root).get).get
+    assertEquals(restored, chapter.root)
+    assertEquals(restored.children.toList.map(_.id.value), List("b3b3~n", "b3b3~P"))
+    assertEquals(restored.gameAt(path("b3b3~n/c2c2~K")).toOption.get.states.last.reveal, Some("K"))
+    assert(restored.nodeAt(path("b3b3")).isEmpty)
+    val exported = PgnDump.rootToPgn(restored, chapter.tags)(using PgnDump.fullFlags)
+    assertEquals(imported(exported.value).root, restored)
+
   test("historical tandem pawn BSON loads by verified coordinate and position"):
     // Literal persisted schema and pre-canonical labels; do not generate with today's writer.
     val first = BSONDocument(

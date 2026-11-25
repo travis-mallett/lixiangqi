@@ -57,6 +57,21 @@ function text(node: VNode): string {
   return node.text ?? children(node).map(text).join('');
 }
 
+test('New opponent keeps the pool variant even when different boards use the same clock', () => {
+  Object.assign(globalThis, { location: { href: '/' } });
+  for (const variant of ['standard', 'jieqi', 'minixiangqi', 'manchu'] as const) {
+    const ctrl = controller();
+    ctrl.data.game.source = 'pool';
+    ctrl.data.game.variant.key = variant;
+    const button = children(followUp(ctrl)).find(child => child.sel === 'button.fbt.new-opponent');
+    assert.ok(button);
+    button.elm = document.createElement('button');
+    button.data?.hook?.insert?.(button);
+    (button.elm as HTMLButtonElement).click();
+    assert.equal(location.href, '/#pool/' + (variant === 'standard' ? '5+3' : variant) + '/opponent');
+  }
+});
+
 for (const color of ['white', 'black'] as const) {
   test(`${color}: both analysis controls preserve the viewed ply and use the explicit public route`, () => {
     const ctrl = controller(color);

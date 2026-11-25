@@ -18,11 +18,21 @@ function Copy-Marker {
   Copy-Item -LiteralPath $Patch -Destination $Marker -Force
 }
 
-$reverse = & git -C $Source apply --reverse --check $Patch 2>$null
-if ($LASTEXITCODE -eq 0) { Copy-Marker; return }
+function Test-PatchApplies([switch]$Reverse) {
+  # Windows PowerShell 5.1 raises an error for redirected Git diagnostics under Stop.
+  # A mismatch is expected during these probes. Git's exit code selects the next step.
+  $ErrorActionPreference = 'Continue'
+  if ($Reverse) {
+    & git -C $Source apply --reverse --check $Patch 2>$null
+  } else {
+    & git -C $Source apply --check $Patch 2>$null
+  }
+  return $LASTEXITCODE -eq 0
+}
 
-$direct = & git -C $Source apply --check $Patch 2>$null
-if ($LASTEXITCODE -eq 0) {
+if (Test-PatchApplies -Reverse) { Copy-Marker; return }
+
+if (Test-PatchApplies) {
   & git -C $Source apply $Patch
   if ($LASTEXITCODE) { throw 'Could not apply the lila-ws patch.' }
   Copy-Marker
@@ -37,7 +47,7 @@ $temp = Join-Path ([IO.Path]::GetTempPath()) ('lila-ws-prepare-' + [guid]::NewGu
 $separator = [IO.Path]::DirectorySeparatorChar
 $tempParent = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar) + $separator
 try {
-  & git clone --local --no-hardlinks $Source $temp 2>$null
+  & git clone --quiet --local --no-hardlinks $Source $temp
   if ($LASTEXITCODE) { throw 'Could not create an isolated lila-ws preparation checkout.' }
   # A local clone contains only committed files. Copy the actual prepared tree
   # over it so the transition test sees the recorded old patch and any tracked

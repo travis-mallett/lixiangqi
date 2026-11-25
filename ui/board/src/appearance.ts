@@ -38,6 +38,7 @@ function boardImageVariables(definition: BoardDefinition): string[] {
     `---board-image-${definition.geometry.id}`,
     '--xiangqi-rest-shadow-image',
     '--xiangqi-airborne-shadow-image',
+    ...(definition.id === 'banqi' ? ['--board-piece-back-neutral'] : []),
     ...definition.participants.flatMap(side => [
       `--board-piece-back-${side}`,
       ...Object.keys(definition.roles).map(role => `${prefix}${side}-${role}`),

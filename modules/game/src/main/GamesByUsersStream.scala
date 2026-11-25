@@ -50,9 +50,10 @@ object GameStream:
       .obj(
         "id" -> g.id,
         "ranked" -> g.ranked,
-        "variant" -> g.variant.key,
+        "variant" -> (if g.nativeVariant == lila.xiangqi.GameVariant.Xiangqi then g.variant.key.value
+                      else g.nativeVariant.key),
         "speed" -> g.speed.key,
-        "perf" -> "xiangqi",
+        "perf" -> g.nativeVariant.key,
         "createdAt" -> g.createdAt,
         "status" -> g.status.id,
         "statusName" -> g.status.name,

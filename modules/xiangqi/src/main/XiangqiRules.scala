@@ -64,6 +64,14 @@ object XiangqiRules:
     game(Position(initialFen = normalizedInitialFen(initialFen), ruleset = ruleset))
 
   def game(input: Position): Either[String, Game] =
+    if Banqi.isFen(input.initialFen) then
+      input.moves.zipWithIndex.foldLeft(Banqi.analysis(input.initialFen)): (prior, indexed) =>
+        prior.flatMap(g =>
+          Banqi.advance(g, indexed._1, input.reveals.lift(indexed._2).flatten).flatMap(g.applyMove)
+        )
+    else ordinaryGame(input)
+
+  private def ordinaryGame(input: Position): Either[String, Game] =
     decode(input.initialFen).flatMap: initial =>
       val ruleset = if initial.board.variant != GameVariant.Xiangqi then initial.board.variant.defaultRuleset
       else input.ruleset
@@ -103,7 +111,8 @@ object XiangqiRules:
     * history of position snapshots and forcing facts.
     */
   def move(game: Game, uci: Uci): Either[String, MoveResult] =
-    if game.isJieqi then Jieqi.move(game, uci)
+    if game.isBanqi then Banqi.play(game, uci)
+    else if game.isJieqi then Jieqi.move(game, uci)
     else if game.ruleset == Ruleset.Unrestricted then boardMove(game.state.fen, uci)
     else if game.state.ended then Left("This Xiangqi game has ended")
     else if !game.state.legalMoves.contains(uci) then
@@ -197,7 +206,8 @@ object XiangqiRules:
         .toVector
 
   def legalMoves(fen: String): Either[String, Vector[Uci]] =
-    decode(fen).map(legalMoves)
+    if Banqi.isFen(fen) then Banqi.analysis(fen).map(_.state.legalMoves)
+    else decode(fen).map(legalMoves)
 
   /** Attack inspection for offline motif proofs, including counterfactual boards that cannot be evaluated by
     * NNUE. This uses the same attack rules as game move generation.
@@ -343,6 +353,7 @@ object XiangqiRules:
     )
 
   private def decode(fen: String): Either[String, Decoded] =
+    if Banqi.isFen(fen) then return Left("This operation requires an intersection board")
     if !Fen.isValid(fen) then Left("Invalid Xiangqi FEN")
     else
       val fields = fen.trim.split("\\s+")
@@ -675,6 +686,7 @@ object XiangqiRules:
 
   /** Editors validate setups without tightening the permissive historical diagram/replay contract. */
   def validateEditorPosition(fen: String, variant: GameVariant): Either[String, Unit] =
+    if variant == GameVariant.Banqi then return Banqi.read(fen).map(_ => ())
     for
       initial <- decode(fen)
       _ <- Either.cond(initial.board.variant == variant, (), "Position does not match the selected variant")

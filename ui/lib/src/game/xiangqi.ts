@@ -19,7 +19,7 @@ export const selectXiangqiNotation = (
   reveal?: string | null,
 ): string =>
   (style === 'chinese' ? chinese || english : english) +
-  (reveal ? `→${revealLetters[reveal] ?? reveal}` : '');
+  (reveal && revealLetters[reveal] ? `→${revealLetters[reveal]}` : '');
 
 const xiangqiPieceCount = (fen: string): number => fen.split(/\s/, 1)[0].split(/[a-z]/i).length - 1;
 

@@ -8,10 +8,11 @@ object rank:
     val xiangqi: RankTrackId = "xiangqi"
     val jieqi: RankTrackId = "jieqi"
     val minixiangqi: RankTrackId = "minixiangqi"
+    val banqi: RankTrackId = "banqi"
     val manchu: RankTrackId = "manchu"
     val threeKingdoms: RankTrackId = "threeKingdoms"
 
-    val all: List[RankTrackId] = List(xiangqi, jieqi, minixiangqi, manchu, threeKingdoms)
+    val all: List[RankTrackId] = List(xiangqi, jieqi, banqi, minixiangqi, manchu, threeKingdoms)
     private val correspondenceTracks = all.map(t => t -> RankTrackId(t.value + "Correspondence")).toMap
     val accounts = all ++ all.map(correspondenceTracks)
     def forMode(track: RankTrackId, correspondence: Boolean): RankTrackId =

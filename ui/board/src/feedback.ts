@@ -2,6 +2,7 @@ import { boardAssets } from './catalog';
 import { feedbackImageAsset, playFeedbackImage } from './feedbackImage';
 import { feedbackLayout } from './feedbackLayout';
 import { primaryBoardEffect } from './feedbackPolicy';
+import { captureToRail } from './motion/captureToRail';
 import type { BoardEffect, BoardPresentation, BoardServices, BoardTransition, GraphGeometry } from './types';
 const images: Partial<Record<BoardEffect, { path: string; duration: number }>> = boardAssets.effects;
 
@@ -63,6 +64,13 @@ export class BoardFeedback {
     supplied.forEach(effect => this.announcedEffects.add(effect));
     if (presentation.feedback.audio && (move || audioEffects.length))
       this.services.sound?.({ move, effects: audioEffects });
+    if (transition.captureToRail && effects.includes('capture')) {
+      if (presentation.motion.duration && !this.services.reducedMotion?.()) {
+        const finish = captureToRail(this.root, transition.captureToRail, presentation.perspective);
+        if (finish) this.imageCleanups.push(finish);
+      }
+      return;
+    }
     if (geometry?.riverAnchors) {
       const placements = feedbackLayout(
         {

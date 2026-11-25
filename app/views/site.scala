@@ -62,6 +62,23 @@ object variant:
         )
       )
 
+  def banqi(using Context) =
+    page(title = trans.site.banqiTitle.txt(), klass = "box-pad page variant", banqiActive = true):
+      frag(
+        h1(trans.site.banqiTitle()),
+        h2(trans.site.banqiLearnToPlay()),
+        div(cls := "body")(
+          h2(trans.site.jieqiSetupHeading()),
+          p(trans.site.banqiSetupText()),
+          h2(trans.site.jieqiMovementHeading()),
+          p(trans.site.banqiMovementText()),
+          h2(trans.site.jieqiWinningHeading()),
+          p(trans.site.banqiWinningText()),
+          p(trans.site.banqiRankExplanation()),
+          a(cls := "button", href := "/?variant=banqi")(trans.site.playRatedBanqi())
+        )
+      )
+
   def manchu(using Context) =
     page(title = trans.site.manchuTitle.txt(), klass = "box-pad page variant", manchuActive = true):
       frag(
@@ -141,16 +158,19 @@ object variant:
           "Xiangqi variants introduce different boards, pieces, information, or player counts while retaining a shared game-selection workflow."
         ),
         div(cls := "variants")(
-          a(cls := "variant text box__pad", href := routes.Cms.threeKingdoms)(
+          a(cls := "variant text box__pad", href := routes.Cms.nativeVariant("threeKingdoms"))(
             span(h2(trans.site.threeKingdoms()), h3(cls := "headline")(trans.threeKingdoms.title()))
           ),
-          a(cls := "variant text box__pad", href := routes.Cms.manchu)(
+          a(cls := "variant text box__pad", href := routes.Cms.nativeVariant("banqi"))(
+            span(h2(trans.site.banqi()), h3(cls := "headline")(trans.site.banqiTitle()))
+          ),
+          a(cls := "variant text box__pad", href := routes.Cms.nativeVariant("manchu"))(
             span(h2(trans.site.manchu()), h3(cls := "headline")(trans.site.manchuTitle()))
           ),
-          a(cls := "variant text box__pad", href := routes.Cms.miniXiangqi)(
+          a(cls := "variant text box__pad", href := routes.Cms.nativeVariant("minixiangqi"))(
             span(h2(trans.site.miniXiangqi()), h3(cls := "headline")(trans.site.miniXiangqiTitle()))
           ),
-          a(cls := "variant text box__pad", href := routes.Cms.jieqi)(
+          a(cls := "variant text box__pad", href := routes.Cms.nativeVariant("jieqi"))(
             span(h2(trans.site.jieqi()), h3(cls := "headline")(trans.site.jieqiTitle()))
           ),
           lila.rating.PerfType.variants.map: perfKey =>
@@ -175,6 +195,7 @@ object variant:
       jieqiActive: Boolean = false,
       kingdomsActive: Boolean = false,
       miniActive: Boolean = false,
+      banqiActive: Boolean = false,
       manchuActive: Boolean = false
   )(using Context) =
     Page(title)
@@ -183,16 +204,34 @@ object variant:
       .wrap: body =>
         main(cls := "page-menu")(
           lila.ui.bits.pageMenuSubnav(
-            a(cls := List("text" -> true, "active" -> kingdomsActive), href := routes.Cms.threeKingdoms)(
+            a(
+              cls := List("text" -> true, "active" -> kingdomsActive),
+              href := routes.Cms.nativeVariant("threeKingdoms")
+            )(
               trans.site.threeKingdoms()
             ),
-            a(cls := List("text" -> true, "active" -> manchuActive), href := routes.Cms.manchu)(
+            a(
+              cls := List("text" -> true, "active" -> banqiActive),
+              href := routes.Cms.nativeVariant("banqi")
+            )(
+              trans.site.banqi()
+            ),
+            a(
+              cls := List("text" -> true, "active" -> manchuActive),
+              href := routes.Cms.nativeVariant("manchu")
+            )(
               trans.site.manchu()
             ),
-            a(cls := List("text" -> true, "active" -> miniActive), href := routes.Cms.miniXiangqi)(
+            a(
+              cls := List("text" -> true, "active" -> miniActive),
+              href := routes.Cms.nativeVariant("minixiangqi")
+            )(
               trans.site.miniXiangqi()
             ),
-            a(cls := List("text" -> true, "active" -> jieqiActive), href := routes.Cms.jieqi)(
+            a(
+              cls := List("text" -> true, "active" -> jieqiActive),
+              href := routes.Cms.nativeVariant("jieqi")
+            )(
               trans.site.jieqi()
             ),
             lila.rating.PerfType.variants.map: perfKey =>

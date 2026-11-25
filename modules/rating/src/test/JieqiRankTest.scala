@@ -45,3 +45,21 @@ class JieqiRankTest extends FunSuite:
     val twice = JieqiRank.applyResult(once, RankDiff(10), true, false, at, id)
     assertEquals(twice, once)
     assertEquals(once.score, RankScore(10))
+
+  test("Banqi has two distinct accounts with its own titles and stable seat settlement"):
+    val live = RankTrackId.banqi
+    val correspondence = RankTrackId.forMode(live, true)
+    assertNotEquals(correspondence, live)
+    assertEquals(RankPolicy(correspondence), BanqiRank)
+    assertEquals(BanqiRank.catalog.levels.map(_.threshold), JieqiRank.catalog.levels.map(_.threshold))
+    assert(BanqiRank.catalog.levels.forall(_.code.value.startsWith("暗")))
+    assertEquals(
+      BanqiRank
+        .settle(RankScore(20), RankScore(30), Outcome(Some(Color.White)))
+        .map(s => s.red.value -> s.black.value),
+      Right(15 -> -15)
+    )
+    val time = nowInstant
+    val game = GameId("banqi001")
+    val once = BanqiRank.applyResult(BanqiRank.initial, RankDiff(-10), false, false, time, game)
+    assertEquals(BanqiRank.applyResult(once, RankDiff(-10), false, false, time, game), once)

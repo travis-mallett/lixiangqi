@@ -6,7 +6,7 @@ html.wudang {
 
   .lobby__feature-card,
   .lobby__action,
-  .lobby__variant-card,
+  .lobby__variant-row,
   .lobby__support-link,
   .lobby__leaderboard,
   .lobby__rail-card,
@@ -51,9 +51,5 @@ html.wudang {
 
   .lobby__leaderboard tr:nth-child(even) {
     background: rgb(255 255 255 / 0.035);
-  }
-
-  .lobby__variant-ribbon {
-    --c-font-dim: var(--wudang-muted-on-paper);
   }
 }

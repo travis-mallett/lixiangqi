@@ -942,7 +942,7 @@ object xiangqi:
               )(trans.site.computerAnalysis())
             ),
             div(cls := "xiangqi-analysis__fen")(
-              label(attr("for") := "xiangqi-fen")("Position (Xiangqi FEN)"),
+              label(attr("for") := "xiangqi-fen")(trans.site.analysisPositionFen()),
               textarea(
                 id := "xiangqi-fen",
                 rows := 2,
@@ -962,7 +962,8 @@ object xiangqi:
             ),
             div(cls := "xiangqi-analysis__notation")(
               label(attr("for") := "xiangqi-notation")(
-                "Xiangqi movetext (WXF or UCI, with variations in parentheses)"
+                if (bootstrap \ "variant").asOpt[String].contains("banqi") then trans.site.banqiRecordLabel()
+                else trans.site.analysisRecordLabel()
               ),
               textarea(
                 id := "xiangqi-notation",
@@ -985,7 +986,7 @@ object xiangqi:
               p(id := "xiangqi-notation-error", cls := "error", role := "alert", attr("hidden") := true)
             ),
             p(cls := "xiangqi-note")(
-              "Play from an earlier position to create a variation. Right-click or press and hold a move to promote, convert, or delete a line. Pikafish follows the selected line."
+              "Play from an earlier position to create a variation. Right-click or press and hold a move to promote, convert, or delete a line."
             )
           ),
           div(

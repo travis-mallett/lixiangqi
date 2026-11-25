@@ -6,7 +6,7 @@ import monocle.syntax.all.*
 object Rewind:
 
   def apply(game: CoreGame): Either[ErrorStr, Progress] =
-    if game.isJieqi then Left(ErrorStr("Takebacks are not allowed in Jieqi"))
+    if game.hasReveals then Left(ErrorStr("Takebacks are not allowed in hidden-piece games"))
     else if game.xiangqi.moves.isEmpty then Left(ErrorStr("Cannot rewind a game without moves"))
     else
       val rewinded =

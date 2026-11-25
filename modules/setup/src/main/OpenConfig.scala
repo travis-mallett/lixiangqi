@@ -7,7 +7,6 @@ import scalalib.model.Days
 
 import lila.core.game.GameRule
 import lila.core.game.MoveTimeLimit
-import lila.xiangqi.Xiangqi
 
 final case class OpenConfig(
     name: Option[String],
@@ -26,16 +25,12 @@ final case class OpenConfig(
 
   def perfType = lila.rating.PerfType(variant, chess.Speed(clock))
 
-  def validFen =
-    if gameVariant == lila.xiangqi.GameVariant.Jieqi then position.isEmpty && variant.standard
-    else if variant == FromPosition then
-      position.exists(fen => Xiangqi.Fen.board(fen.value).exists(_.variant == gameVariant))
-    else position.forall(_.value == gameVariant.startFen)
+  def validFen = gameVariant.validDuelPosition(variant.fromPosition, position.map(_.value))
 
   def validMoveTimeLimit = moveTimeLimit.isEmpty || clock.isDefined
 
   def autoVariant =
-    if gameVariant != lila.xiangqi.GameVariant.Jieqi && variant.standard && position.exists(
+    if gameVariant.supportsCustomPosition && variant.standard && position.exists(
         _.value != gameVariant.startFen
       )
     then copy(variant = FromPosition)

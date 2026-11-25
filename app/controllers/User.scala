@@ -15,6 +15,7 @@ import lila.core.userId.UserSearch
 import lila.core.security.IsProxy
 import lila.game.GameFilter
 import lila.mod.UserWithModlog
+import lila.rating.UserPerfsExt.*
 import lila.security.UserLogins
 import lila.ui.ScalatagsTemplate.{ attr, div, stringAttr }
 import lila.user.{ WithPerfsAndEmails, XiangqiPersonalRank }
@@ -278,9 +279,11 @@ final class User(
           }.toList
         rankedUsers <- env.user.repo.byIds(rankedIds.distinct)
         flags = rankedUsers.flatMap(u => u.profile.flatMap(_.flag).map(u.id -> _)).toMap
-        topOnline <- env.user.cached.getTop50Online
+        presence = env.lobby.socket.counters
+        online <- env.user.api.listWithPerfs(presence.onlineIds, includeClosed = false)
+        sorted = online.sortBy(_.perfs.xiangqiRank.fold(Int.MinValue)(_.score.value))(using Ordering.Int.reverse)
         page <- renderPage:
-          views.user.list(topOnline, leaderboards, flags)
+          views.user.list(sorted, presence.registered, presence.anonymous, leaderboards, flags)
       yield Ok(page),
       json = env.user.xiangqiRankingApi
         .top(100, track)

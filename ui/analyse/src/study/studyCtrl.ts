@@ -321,8 +321,10 @@ export default class StudyCtrl {
     // official broadcasts cannot have local mods
     pubsub.emit('chat.permissions', { local: canContribute && !this.relay?.isOfficial() });
     pubsub.emit('voiceChat.toggle', this.data.features.chat && !!this.members.myMember() && !this.relay);
-    if (!this.data.chapter.features.explorer) this.ctrl.explorer.disable();
-    this.ctrl.explorer.allowed(this.data.chapter.features.explorer);
+    this.ctrl.explorer.allowed(
+      this.data.chapter.features.explorer && this.ctrl.tree.root.state.variant === 'xiangqi',
+    );
+    this.ctrl.explorer.setNode();
   };
 
   isCevalAllowed = () =>
@@ -707,7 +709,7 @@ export default class StudyCtrl {
         node = completeNode(d.n),
         who = d.w,
         sticky = d.s;
-      if (d.relayPath === '!') d.relayPath = treePath.append(d.p.path, d.n.uci!);
+      if (d.relayPath === '!') d.relayPath = treePath.append(d.p.path, node.id);
       this.setMemberActive(who);
       this.chapters.addNode(d);
       this.multiCloudEval?.addNode(d);
@@ -715,10 +717,6 @@ export default class StudyCtrl {
       if (sticky && !this.vm.mode.sticky) this.vm.behind++;
       if (this.wrongChapter(d)) {
         if (sticky && !this.vm.mode.sticky) this.redraw();
-        return;
-      }
-      if (sticky && who?.s === site.sri && this.ctrl.variantKey !== 'xiangqi') {
-        this.data.position.path = treePath.append(position.path, node.id);
         return;
       }
       this.data.chapter.relayPath = d.relayPath;

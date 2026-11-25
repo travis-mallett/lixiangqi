@@ -178,6 +178,7 @@ export interface CheckCount {
 }
 
 export interface RoundStep {
+  reveal?: string;
   captures?: import('./jieqi').JieqiCapture[];
   ply: Ply;
   fen: FEN;

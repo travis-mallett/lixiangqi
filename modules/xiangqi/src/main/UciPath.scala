@@ -2,26 +2,46 @@ package lila.xiangqi
 
 import Xiangqi.Uci
 
-/** A branch address consists only of native coordinate move identities, independent of notation. */
-final case class UciPath private (ids: Vector[Uci]):
-  require(ids.size <= UciPath.maxDepth, s"A tree path cannot exceed ${UciPath.maxDepth} moves")
+/** A flip is an action with several possible public outcomes. Its revealed face distinguishes siblings. */
+final case class BranchId(move: Uci, reveal: Option[Char] = None):
+  require(reveal.forall(c => move.orig == move.dest && "KABRNCPkabrncp".contains(c)))
+  def value: String = reveal.fold(move.value)(face => s"${move.value}~$face")
 
-  lazy val value: String = ids.map(_.value).mkString("/")
-  def depth: Int = ids.size
-  def isEmpty: Boolean = ids.isEmpty
-  def nonEmpty: Boolean = ids.nonEmpty
-  def computeIds: Vector[Uci] = ids
-  def split: Option[(Uci, UciPath)] = ids.headOption.map(_ -> UciPath(ids.tail))
-  def parent: UciPath = UciPath(ids.dropRight(1))
-  def lastId: Option[Uci] = ids.lastOption
-  def +(id: Uci): UciPath = UciPath(ids :+ id)
-  def prepend(id: Uci): UciPath = UciPath(id +: ids)
-  def take(length: Int): UciPath = UciPath(ids.take(length))
-  def drop(length: Int): UciPath = UciPath(ids.drop(length))
-  def startsWith(other: UciPath): Boolean = ids.startsWith(other.ids)
+object BranchId:
+  def from(value: String): Either[String, BranchId] = value.split("~", -1).toList match
+    case action :: Nil => Uci.from(action).map(BranchId(_))
+    case action :: face :: Nil if face.length == 1 && "KABRNCPkabrncp".contains(face.head) =>
+      Uci
+        .from(action)
+        .filterOrElse(
+          m => m.orig == m.dest && m.orig.length == 2 && m.orig.head <= 'd' && m.orig.last <= '8',
+          "Invalid Banqi flip"
+        )
+        .map(BranchId(_, Some(face.head)))
+    case _ => Left("Invalid branch identity")
+
+/** Each step identifies the recorded outcome, independently of display notation. */
+final case class UciPath private (steps: Vector[BranchId]):
+  require(steps.size <= UciPath.maxDepth, s"A tree path cannot exceed ${UciPath.maxDepth} moves")
+
+  lazy val value: String = steps.map(_.value).mkString("/")
+  def depth: Int = steps.size
+  def isEmpty: Boolean = steps.isEmpty
+  def nonEmpty: Boolean = steps.nonEmpty
+  def computeIds: Vector[Uci] = steps.map(_.move)
+  def split: Option[(BranchId, UciPath)] = steps.headOption.map(_ -> UciPath(steps.tail))
+  def parent: UciPath = UciPath(steps.dropRight(1))
+  def lastId: Option[BranchId] = steps.lastOption
+  def +(id: BranchId): UciPath = UciPath(steps :+ id)
+  def +(move: Uci): UciPath = this + BranchId(move)
+  def prepend(id: BranchId): UciPath = UciPath(id +: steps)
+  def prepend(move: Uci): UciPath = prepend(BranchId(move))
+  def take(length: Int): UciPath = UciPath(steps.take(length))
+  def drop(length: Int): UciPath = UciPath(steps.drop(length))
+  def startsWith(other: UciPath): Boolean = steps.startsWith(other.steps)
   def isPrefixOf(other: UciPath): Boolean = other.startsWith(this)
   def intersect(other: UciPath): UciPath =
-    UciPath(ids.zip(other.ids).takeWhile((a, b) => a == b).map(_._1))
+    UciPath(steps.zip(other.steps).takeWhile((a, b) => a == b).map(_._1))
   override def toString: String = value
 
 object UciPath:
@@ -36,14 +56,15 @@ object UciPath:
       if parts.size > maxDepth then Left(s"A tree path cannot exceed $maxDepth moves")
       else
         parts
-          .foldLeft[Either[String, Vector[Uci]]](Right(Vector.empty)): (result, part) =>
+          .foldLeft[Either[String, Vector[BranchId]]](Right(Vector.empty)): (result, part) =>
             for
               ids <- result
-              move <- Uci.from(part)
+              move <- BranchId.from(part)
             yield ids :+ move
           .map(new UciPath(_))
 
   def apply(value: String): UciPath =
     from(value).fold(error => throw IllegalArgumentException(error), identity)
-  def fromId(id: Uci): UciPath = new UciPath(Vector(id))
-  def fromIds(ids: IterableOnce[Uci]): UciPath = new UciPath(ids.iterator.toVector)
+  def fromId(id: BranchId): UciPath = new UciPath(Vector(id))
+  def fromId(move: Uci): UciPath = fromId(BranchId(move))
+  def fromIds(ids: IterableOnce[BranchId]): UciPath = new UciPath(ids.iterator.toVector)

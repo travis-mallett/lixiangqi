@@ -11,7 +11,15 @@
 
   </defs>
 
+  <defs><path id="banqi-corner-knot" d="M14 14h8v8h-8z M28 14h8v8h-8z M14 28h8v8h-8z M22 22h6v6h-6z"/></defs>
   <g id="banqi-artwork" fill="none" stroke="#5b2712" stroke-linecap="butt" stroke-linejoin="miter" opacity="0.351560395">
+    <g id="banqi-outer-decoration" stroke-width="3">
+      <path id="banqi-outer-border" d="M40 14H456V28H468V40H482V856H468V868H456V882H40V868H28V856H14V40H28V28H40Z"/>
+      <use href="#banqi-corner-knot"/>
+      <use href="#banqi-corner-knot" transform="translate(496 0) scale(-1 1)"/>
+      <use href="#banqi-corner-knot" transform="translate(0 896) scale(1 -1)"/>
+      <use href="#banqi-corner-knot" transform="translate(496 896) scale(-1 -1)"/>
+    </g>
 
 
 

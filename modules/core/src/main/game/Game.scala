@@ -58,6 +58,9 @@ case class Game(
 
   def position = xiangqi.state
   def nativeVariant = xiangqi.variant
+  def isBanqi = xiangqi.isBanqi
+  def hasReveals = xiangqi.hasReveals
+  def minimumRankedPlies = if isBanqi then 1 else 2
   def isJieqi = xiangqi.isJieqi
   def visibleCaptures = lila.xiangqi.Jieqi.captures(xiangqi, revealConcealed = finishedOrAborted)
   def visibleStates = lila.xiangqi.Jieqi.publicStates(xiangqi, revealConcealed = finishedOrAborted)
@@ -188,7 +191,8 @@ case class Game(
 
   def boosted = ranked && finished && bothPlayersHaveMoved && playedPlies < 10
 
-  def abortable = status == Status.Started && playedPlies < 2 && nonMandatory
+  def pastOpeningGrace = if ranked then playedPlies >= minimumRankedPlies else bothPlayersHaveMoved
+  def abortable = status == Status.Started && !pastOpeningGrace && nonMandatory
   def abortableByUser = abortable && !hasRule(_.noAbort)
 
   def berserkable =
@@ -197,7 +201,7 @@ case class Game(
   def resignable = playable && !abortable
   def forceResignable =
     resignable && nonAi && hasClock && !isSwiss && !hasRule(_.noClaimWin)
-  def forceResignableNow = forceResignable && bothPlayersHaveMoved
+  def forceResignableNow = forceResignable && pastOpeningGrace
   def drawable = playable && !abortable && !swissPreventsDraw && !rulePreventsDraw
 
   def finished = status >= Status.Mate
@@ -314,7 +318,7 @@ case class Game(
 
   def isBeingPlayed = !isPgnImport && !finishedOrAborted
 
-  def forecastable = started && playable && isCorrespondence && !hasAi
+  def forecastable = !isBanqi && started && playable && isCorrespondence && !hasAi
 
   def userIds: List[UserId] = players.flatMap(_.userId)
 

@@ -80,10 +80,14 @@ diff --git a/src/main/scala/LilaWs.scala b/src/main/scala/LilaWs.scala
    def updateConnections(req: Req, delta: Int): Unit =
      updateConnections(req.header.headers.origin, req.authName, delta)
 diff --git a/src/main/scala/Lobby.scala b/src/main/scala/Lobby.scala
+index c0500fb..8a098fe 100644
 --- a/src/main/scala/Lobby.scala
 +++ b/src/main/scala/Lobby.scala
-@@ -4,14 +4,19 @@
+@@ -2,17 +2,31 @@ package lila.ws
+ 
+ import com.github.blemale.scaffeine.Cache
  import com.typesafe.scalalogging.Logger
++import org.apache.pekko.actor.typed.ActorRef
  import scalalib.zeros.given
  
 -import ipc.ClientIn.LobbyPong
@@ -97,13 +101,22 @@ diff --git a/src/main/scala/Lobby.scala b/src/main/scala/Lobby.scala
 +  val playingRounds = new Lobby.PlayingRounds
 +
    private val lilaIn = lila.emit.lobby
+ 
++  private val clocklessBoards = scala.collection.concurrent.TrieMap.empty[ActorRef[ipc.ClientMsg], RoomId]
++
++  def openClocklessBoard(ref: ActorRef[ipc.ClientMsg], id: RoomId): Unit = clocklessBoards.update(ref, id)
++  def closeClocklessBoard(ref: ActorRef[ipc.ClientMsg]): Unit = clocklessBoards -= ref
++
++  def requestPlayingRounds(): Unit =
++    lilaIn(LilaIn.CountPlaying(clocklessBoards.valuesIterator.toSet))
 +
 +  def lilaCounters(snapshot: Presence.Snapshot): Unit =
-+    lilaIn(LilaIn.Counters(snapshot.members, snapshot.rounds, snapshot.activities))
- 
++    lilaIn(LilaIn.Counters(snapshot.members, snapshot.rounds, snapshot.activities, snapshot.registered.size, snapshot.registered.iterator.take(50).toList))
++
    private val connect = groupedWithin[(Sri, Option[User.Id])](6, 479.millis): connects =>
      lilaIn(LilaIn.ConnectSris(connects))
-@@ -24,12 +29,13 @@
+ 
+@@ -24,12 +38,13 @@ final class Lobby(lila: Lila, groupedWithin: util.GroupedWithin, tor: Tor)(using
  
    object pong:
  
@@ -120,7 +133,7 @@ diff --git a/src/main/scala/Lobby.scala b/src/main/scala/Lobby.scala
  
    // the old app has a new SRI for each websocket connection.
    // if it disconnects while being paired,
-@@ -120,3 +126,12 @@
+@@ -120,3 +135,12 @@ final class Lobby(lila: Lila, groupedWithin: util.GroupedWithin, tor: Tor)(using
              if newPending.isEmpty
              then pendingGames.invalidate(ip)
              else pendingGames.put(ip, newPending)
@@ -134,19 +147,28 @@ diff --git a/src/main/scala/Lobby.scala b/src/main/scala/Lobby.scala
 +      val (count, at) = snapshot
 +      if now() - at < 45.seconds.toNanos then count else 0
 diff --git a/src/main/scala/Monitor.scala b/src/main/scala/Monitor.scala
+index b2d31ea..ef64753 100644
 --- a/src/main/scala/Monitor.scala
 +++ b/src/main/scala/Monitor.scala
-@@ -37,9 +37,11 @@
+@@ -29,6 +29,7 @@ final class Monitor(
+     if useKamon then kamon.Kamon.initWithoutAttaching()
+ 
+     scheduler.scheduleWithFixedDelay(5.seconds, 1949.millis) { () => periodicMetrics() }
++    scheduler.scheduleWithFixedDelay(5.seconds, 15.seconds)(() => services.lobby.requestPlayingRounds())
+ 
+     scheduler.scheduleWithFixedDelay(1.minute, 1.minute): () =>
+       jvmThreads()
+@@ -37,9 +38,11 @@ final class Monitor(
    private def periodicMetrics() =
      val connectionsByOrigin = LilaWsServer.byOriginMap
      val connectionsByAuth = LilaWsServer.byAuthMap
-+    val rounds = services.roundCrowd.size()
+-    val totalMembers = connectionsByOrigin.values.sum
+     val rounds = services.roundCrowd.size()
+-    services.lobby.pong.update(totalMembers, rounds)
 +    val snapshot = LilaWsServer.presence.snapshot(services.lobby.playingRounds.get)
 +    services.lobby.pong.update(snapshot)
 +    services.lobby.lilaCounters(snapshot)
-     val totalMembers = connectionsByOrigin.values.sum
--    val rounds = services.roundCrowd.size()
--    services.lobby.pong.update(totalMembers, rounds)
++    val totalMembers = connectionsByOrigin.values.sum
      connection.current.update(totalMembers.toDouble)
      connectionsByOrigin.foreach: (origin, count) =>
        connection.byOrigin.withTag("origin", origin).update(count)
@@ -807,9 +829,10 @@ diff --git a/src/main/scala/ipc/ClientOut.scala b/src/main/scala/ipc/ClientOut.s
      ClientMoveMetrics(
        d.int("l").map { Centis.ofMillis(_) },
 diff --git a/src/main/scala/ipc/LilaIn.scala b/src/main/scala/ipc/LilaIn.scala
+index 894d01e..781fe80 100644
 --- a/src/main/scala/ipc/LilaIn.scala
 +++ b/src/main/scala/ipc/LilaIn.scala
-@@ -2,8 +2,8 @@
+@@ -2,8 +2,8 @@ package lila.ws
  
  package ipc
  
@@ -819,19 +842,22 @@ diff --git a/src/main/scala/ipc/LilaIn.scala b/src/main/scala/ipc/LilaIn.scala
  import play.api.libs.json.*
  
  sealed trait LilaIn extends Matchable:
-@@ -69,8 +69,9 @@
+@@ -69,8 +69,12 @@ object LilaIn:
    case class DisconnectSris(sris: Iterable[Sri]) extends Lobby:
      def write = s"disconnect/sris ${commas(sris)}"
  
 -  case class Counters(members: Int, rounds: Int) extends Lobby:
 -    def write = s"counters $members $rounds"
-+  case class Counters(members: Int, rounds: Int, poolCounts: Map[String, Int] = Map.empty) extends Lobby:
++  case class CountPlaying(playerBoards: Set[RoomId]) extends Lobby:
++    def write = s"lobby/count-playing ${commas(playerBoards)}"
++
++  case class Counters(members: Int, rounds: Int, poolCounts: Map[String, Int], registered: Int, onlineIds: List[String]) extends Lobby:
 +    def write =
-+      s"counters ${Json.stringify(Json.obj("members" -> members, "rounds" -> rounds, "poolCounts" -> poolCounts))}"
++      s"counters ${Json.stringify(Json.obj("members" -> members, "rounds" -> rounds, "poolCounts" -> poolCounts, "registered" -> registered, "onlineIds" -> onlineIds))}"
  
    case class KeepAlives(roomIds: Iterable[RoomId]) extends AnyRoom:
      def write = s"room/alives ${commas(roomIds)}"
-@@ -99,7 +100,7 @@
+@@ -99,7 +103,7 @@ object LilaIn:
    case class RoundMove(fullId: Game.FullId, uci: Uci, blur: Boolean, lag: MoveMetrics) extends Round:
      private def centis(c: Option[Centis]) = optional(c.map(_.centis.toString))
      def write =
@@ -1039,9 +1065,10 @@ diff --git a/src/test/scala/EvalCacheTest.scala b/src/test/scala/EvalCacheTest.s
 +    assertNotEquals(Id(game), Id(snapshot))
 diff --git a/src/main/scala/Presence.scala b/src/main/scala/Presence.scala
 new file mode 100644
+index 0000000..8b42306
 --- /dev/null
 +++ b/src/main/scala/Presence.scala
-@@ -0,0 +1,112 @@
+@@ -0,0 +1,116 @@
 +package lila.ws
 +
 +import org.apache.pekko.actor.typed.ActorRef
@@ -1055,17 +1082,17 @@ new file mode 100644
 +
 +  private var connections = Map.empty[ActorRef[ClientMsg], Entry]
 +  private var identities = Map.empty[String, Int]
++  private var registered = Set.empty[String]
 +  private var activities = Map.empty[(String, String), Int]
 +  private var categoryTotals = Map.empty[String, Int]
++  private var localGames = Map.empty[String, Int]
 +
 +  def connect(ref: ActorRef[ClientMsg], req: ClientActor.Req): Unit = synchronized:
 +    disconnect(ref)
-+    val entry = Entry(
++    val entry = entryFor(
 +      identity(req),
-+      categories(
-+        req.header.queryParameter("activity").flatMap(Activity.apply),
-+        req.header.queryParameter("activityGroup")
-+      )
++      req.header.queryParameter("activity"),
++      req.header.queryParameter("activityGroup")
 +    )
 +    connections = connections.updated(ref, entry)
 +    add(entry)
@@ -1080,15 +1107,17 @@ new file mode 100644
 +        .get(ref)
 +        .foreach: entry =>
 +          remove(entry)
-+          val next = entry.copy(activities = categories(activity.flatMap(Activity.apply), group))
++          val next = entryFor(entry.identity, activity, group)
 +          connections = connections.updated(ref, next)
 +          add(next)
 +
 +  /** Counts each authenticated user/browser once per activity. */
 +  def snapshot(rounds: Int): Snapshot = synchronized:
-+    Snapshot(identities.size, rounds, categoryTotals)
++    Snapshot(identities.size, rounds + localGames.size, categoryTotals, registered)
 +
 +  private def add(entry: Entry): Unit =
++    entry.localGame.foreach(id => localGames = localGames.updated(id, localGames.getOrElse(id, 0) + 1))
++    if entry.identity.startsWith("u:") then registered += entry.identity.drop(2)
 +    identities = identities.updated(entry.identity, identities.getOrElse(entry.identity, 0) + 1)
 +    entry.activities.foreach: activity =>
 +      val key = entry.identity -> activity
@@ -1098,7 +1127,11 @@ new file mode 100644
 +        categoryTotals = categoryTotals.updated(activity, categoryTotals.getOrElse(activity, 0) + 1)
 +
 +  private def remove(entry: Entry): Unit =
++    entry.localGame.foreach: id =>
++      val n = localGames(id) - 1
++      localGames = if n == 0 then localGames.removed(id) else localGames.updated(id, n)
 +    val identityCount = identities(entry.identity) - 1
++    if identityCount == 0 && entry.identity.startsWith("u:") then registered -= entry.identity.drop(2)
 +    identities = if identityCount == 0 then identities.removed(entry.identity)
 +    else identities.updated(entry.identity, identityCount)
 +    entry.activities.foreach: activity =>
@@ -1120,17 +1153,15 @@ new file mode 100644
 +          .map(v => s"v:$v")
 +          .getOrElse(s"s:${req.sri.value}")
 +
-+  private def categories(activity: Option[String], group: Option[String]): Set[String] =
-+    val union =
-+      if activity.flatMap(Activity.nativeVariant).isDefined then activity.flatMap(Activity.nativeVariant).toSet
-+      else if group.contains("other") && activity.exists(Activity.isLobbyOrPool) then Set("other")
-+      else Set.empty[String]
-+    activity.toSet ++ union
++  private def entryFor(identity: String, activity: Option[String], group: Option[String]): Entry =
++    val localGame = group.filter(id => activity.contains("threeKingdoms-ai") && localGameId.matches(id))
++    Entry(identity, activity.fold(Set.empty[String])(Activity.categories(_, group)), localGame)
 +
-+  case class Entry(identity: String, activities: Set[String])
++  private val localGameId = "local-[a-z0-9]{8}".r
++  private case class Entry(identity: String, activities: Set[String], localGame: Option[String])
 +
 +object Presence:
-+  case class Snapshot(members: Int, rounds: Int, activities: Map[String, Int])
++  case class Snapshot(members: Int, rounds: Int, activities: Map[String, Int], registered: Set[String] = Set.empty)
 +
 +  object Visitor:
 +    def apply(value: String): Option[String] =
@@ -1141,19 +1172,19 @@ new file mode 100644
 +      )(value)
 +
 +  object Activity:
-+    private val pool = "[0-9]{1,3}\\+[0-9]{1,3}-m[0-9]{1,4}-[0-9]{1,4}x[0-9]{1,3}".r
-+    private val variantPool = ("(jieqi|minixiangqi|manchu)-v1-ranked-" + pool.regex).r
-+    private val variantMode = "(jieqi|minixiangqi|manchu|threeKingdoms)-(ai|friend|rated)".r
-+    def nativeVariant(value: String): Option[String] = value match
-+      case variantPool(variant) => Some(variant)
-+      case variantMode(variant, _) => Some(variant)
-+      case _ => None
-+    def apply(value: String): Option[String] = value match
-+      case variantMode(_, _) | variantPool(_) => Some(value)
-+      case "ai" | "friend" | "puzzle" | "lobby" => Some(value)
-+      case pool() => Some(value)
-+      case _ => None
-+    def isLobbyOrPool(value: String): Boolean = value == "lobby" || pool.pattern.matcher(value).matches
++    private val clock = """[0-9]{1,3}\+[0-9]{1,3}-m[0-9]{1,4}"""
++    private val opening = "-[0-9]{1,4}x[0-9]{1,3}"
++    private val pool = (clock + opening).r
++    private val variant = "(jieqi|banqi|minixiangqi|manchu|threeKingdoms)"
++    private val variantPool = s"${variant}-v1-ranked-${clock}(?:${opening})?".r
++    private val variantMode = s"${variant}-(?:ai|friend|rated)".r
++
++    def categories(value: String, group: Option[String] = None): Set[String] = value match
++      case variantPool(key) => Set(value, s"$key-rated", key)
++      case variantMode(key) => Set(value, key)
++      case "lobby" | pool() => if group.contains("other") then Set(value, "other") else Set(value)
++      case "ai" | "friend" | "puzzle" => Set(value)
++      case _ => Set.empty
 diff --git a/src/test/scala/StudyProtocolTest.scala b/src/test/scala/StudyProtocolTest.scala
 new file mode 100644
 --- /dev/null
@@ -1440,9 +1471,10 @@ new file mode 100644
 +    assert(SiteClientActor.allows("/socket/v5", ClientOut.FollowingOnline(true)))
 diff --git a/src/test/scala/PresenceTest.scala b/src/test/scala/PresenceTest.scala
 new file mode 100644
+index 0000000..0d78a81
 --- /dev/null
 +++ b/src/test/scala/PresenceTest.scala
-@@ -0,0 +1,136 @@
+@@ -0,0 +1,162 @@
 +package lila.ws
 +
 +import org.apache.pekko.actor.typed.{ ActorRef, ActorSystem }
@@ -1466,6 +1498,20 @@ new file mode 100644
 +      util.RequestHeader(uri, IpAddress("127.0.0.1"), util.RequestHeader.Headers("", "", None, None))
 +    ClientActor.Req(header, Sri(sri), user.map(u => Auth.Success.Cookie(User.Id(u))))
 +
++  test("mixed presence keeps signed-in accounts distinct from anonymous browsers"):
++    val p = new Presence
++    val guest = ref()
++    val account = ref()
++    val secondTab = ref()
++    p.connect(guest, req("guest111", None, "visitor=browser-a"))
++    p.connect(account, req("account1", Some("alice")))
++    p.connect(secondTab, req("account2", Some("alice")))
++    assertEquals(p.snapshot(0), Presence.Snapshot(2, 0, Map.empty, Set("alice")))
++    p.disconnect(account)
++    assertEquals(p.snapshot(0).registered, Set("alice"))
++    p.disconnect(secondTab)
++    assertEquals(p.snapshot(0), Presence.Snapshot(1, 0, Map.empty))
++
 +  test("deduplicates tabs and categories per identity"):
 +    val p = new Presence
 +    val a = ref(); val b = ref()
@@ -1482,7 +1528,7 @@ new file mode 100644
 +    val a = ref(); val b = ref()
 +    p.connect(a, req("a2222222", Some("user"), "activity=puzzle"))
 +    p.connect(b, req("b2222222", Some("user"), "activity=puzzle"))
-+    assertEquals(p.snapshot(0), Presence.Snapshot(1, 0, Map("puzzle" -> 1)))
++    assertEquals(p.snapshot(0), Presence.Snapshot(1, 0, Map("puzzle" -> 1), Set("user")))
 +    p.disconnect(a); assertEquals(p.snapshot(0).activities, Map("puzzle" -> 1))
 +
 +  test("counts distinct visitors and protects reconnects"):
@@ -1499,10 +1545,23 @@ new file mode 100644
 +    assertEquals(p.snapshot(0).activities, Map("puzzle" -> 3))
 +
 +  test("validates activities and pool ids"):
-+    assert(Presence.Activity("15+0-m90-30x3").isDefined)
-+    assert(Presence.Activity("puzzle").isDefined)
-+    assert(Presence.Activity("pool:15+0").isEmpty)
-+    assert(Presence.Activity("unknown").isEmpty)
++    assert(Presence.Activity.categories("15+0-m90-30x3").nonEmpty)
++    assert(Presence.Activity.categories("puzzle").nonEmpty)
++    assert(Presence.Activity.categories("pool:15+0").isEmpty)
++    assert(Presence.Activity.categories("unknown").isEmpty)
++
++  test("local Three Kingdoms games count once across reconnects and never include hosted AI boards"):
++    val p = new Presence
++    val a = ref(); val b = ref()
++    p.connect(a, req("local001", query = "activity=threeKingdoms-ai&activityGroup=local-abcdefgh"))
++    p.connect(b, req("local002", query = "activity=threeKingdoms-ai&activityGroup=local-abcdefgh"))
++    assertEquals(p.snapshot(2).rounds, 3)
++    p.disconnect(a)
++    assertEquals(p.snapshot(2).rounds, 3)
++    p.update(b, Some("threeKingdoms-ai"))
++    assertEquals(p.snapshot(2).rounds, 2)
++    p.update(b, Some("threeKingdoms-friend"), Some("local-abcdefgh"))
++    assertEquals(p.snapshot(2).rounds, 2)
 +
 +  test("groups quick pools into one other count"):
 +    val p = new Presence
@@ -1532,7 +1591,7 @@ new file mode 100644
 +    )
 +    p.connect(mobile, native)
 +    p.connect(kids, native.copy(sri = Sri("kids1234")))
-+    assertEquals(p.snapshot(0), Presence.Snapshot(1, 0, Map("puzzle" -> 1)))
++    assertEquals(p.snapshot(0), Presence.Snapshot(1, 0, Map("puzzle" -> 1), Set("alice")))
 +    p.update(mobile, Some("15+0-m90-30x3"))
 +    assertEquals(p.snapshot(0).activities, Map("puzzle" -> 1, "15+0-m90-30x3" -> 1))
 +    p.disconnect(web)
@@ -1541,44 +1600,43 @@ new file mode 100644
 +    p.disconnect(mobile)
 +    assertEquals(p.snapshot(0), Presence.Snapshot(0, 0, Map.empty))
 +
-+  test("Jieqi union deduplicates players across modes and removes departed sessions"):
-+    val p = new Presence
-+    val rated = ref(); val ai = ref(); val friend = ref()
-+    p.connect(rated, req("rated123", Some("alice")))
-+    p.connect(ai, req("ai123456", Some("alice")))
-+    p.connect(friend, req("friend12", Some("bob")))
-+    val pool = "jieqi-v1-ranked-10+0-m60-30x3"
-+    p.update(rated, Some(pool), Some("other"))
-+    p.update(ai, Some("jieqi-ai"))
-+    p.update(friend, Some("jieqi-friend"))
-+    assertEquals(p.snapshot(0).activities, Map(pool -> 1, "jieqi-ai" -> 1, "jieqi-friend" -> 1, "jieqi" -> 2))
-+    p.disconnect(rated)
-+    assertEquals(p.snapshot(0).activities("jieqi"), 2)
-+    p.update(ai, None)
-+    assertEquals(p.snapshot(0).activities, Map("jieqi-friend" -> 1, "jieqi" -> 1))
-+    p.disconnect(friend)
-+    assertEquals(p.snapshot(0).activities, Map.empty[String, Int])
-+    assert(Presence.Activity("jieqi-v1-ranked-invalid").isEmpty)
-+    assert(Presence.Activity("jieqi").isEmpty)
-+
-+  List("minixiangqi", "manchu").foreach: variant =>
-+    test(s"$variant populations remain independent of Jieqi and standard rooms"):
++  List("jieqi", "banqi", "minixiangqi", "manchu", "threeKingdoms").foreach: variant =>
++    test(s"$variant includes rated, computer and friend players once per identity"):
 +      val p = new Presence
-+      val player = ref(); val jieqi = ref(); val friend = ref()
-+      p.connect(player, req("variant1", Some("alice")))
-+      p.connect(jieqi, req("jieqi123", Some("alice")))
-+      p.connect(friend, req("friend12", Some("bob")))
-+      val pool = s"$variant-v1-ranked-10+0-m60-30x3"
-+      p.update(player, Some(pool), Some("other"))
-+      p.update(jieqi, Some("jieqi-ai"))
-+      p.update(friend, Some(s"$variant-friend"))
-+      assertEquals(p.snapshot(0).activities, Map(pool -> 1, s"$variant-friend" -> 1, variant -> 2, "jieqi-ai" -> 1, "jieqi" -> 1))
-+      p.disconnect(player)
-+      assertEquals(p.snapshot(0).activities(variant), 1)
++      val pool = s"$variant-v1-ranked-" + (if variant == "threeKingdoms" then "15+0-m60" else "10+0-m60-30x3")
++      val rated = ref()
++      val bot = ref()
++      val friend = ref()
++      val otherTab = ref()
++      p.connect(rated, req("rated123", Some("alice")))
++      p.update(rated, Some(pool), Some("other"))
++      p.connect(bot, req("bot12345", Some("bob"), s"activity=$variant-ai"))
++      p.connect(friend, req("friend12", Some("carol"), s"activity=$variant-friend"))
++      p.connect(otherTab, req("tab12345", Some("alice"), s"activity=$variant-rated"))
++      assertEquals(
++        p.snapshot(0).activities,
++        Map(pool -> 1, s"$variant-rated" -> 1, s"$variant-ai" -> 1, s"$variant-friend" -> 1, variant -> 3)
++      )
++      p.update(otherTab, Some(s"$variant-friend"))
++      assertEquals(p.snapshot(0).activities(variant), 3)
++      assertEquals(p.snapshot(0).activities(s"$variant-friend"), 2)
++      p.disconnect(rated)
++      assert(!p.snapshot(0).activities.contains(s"$variant-rated"))
++      p.update(otherTab, Some("puzzle"))
++      assertEquals(p.snapshot(0).activities(variant), 2)
++      p.disconnect(bot)
 +      p.disconnect(friend)
-+      assert(!p.snapshot(0).activities.contains(variant))
-+      assert(Presence.Activity(s"$variant-v1-ranked-invalid").isEmpty)
-+      assert(Presence.Activity(variant).isEmpty)
++      assertEquals(p.snapshot(0).activities, Map("puzzle" -> 1))
++      assert(Presence.Activity.categories(s"$variant-v1-ranked-invalid").isEmpty)
++      assert(Presence.Activity.categories(variant).isEmpty)
++
++  test("variant populations remain independent across tabs"):
++    val p = new Presence
++    val jieqi = ref()
++    val manchu = ref()
++    p.connect(jieqi, req("jieqi123", Some("alice"), "activity=jieqi-ai"))
++    p.connect(manchu, req("manchu12", Some("alice"), "activity=manchu-friend"))
++    assertEquals(p.snapshot(0), Presence.Snapshot(1, 0, Map("jieqi-ai" -> 1, "jieqi" -> 1, "manchu-friend" -> 1, "manchu" -> 1), Set("alice")))
 diff --git a/src/main/scala/LilaHandler.scala b/src/main/scala/LilaHandler.scala
 --- a/src/main/scala/LilaHandler.scala
 +++ b/src/main/scala/LilaHandler.scala
@@ -1612,12 +1670,26 @@ diff --git a/src/main/scala/ipc/LilaOut.scala b/src/main/scala/ipc/LilaOut.scala
            commas(args)
 diff --git a/src/test/scala/PlayingRoundsTest.scala b/src/test/scala/PlayingRoundsTest.scala
 new file mode 100644
+index 0000000..793cdf3
 --- /dev/null
 +++ b/src/test/scala/PlayingRoundsTest.scala
-@@ -0,0 +1,25 @@
+@@ -0,0 +1,38 @@
 +package lila.ws
 +
 +class PlayingRoundsTest extends munit.FunSuite:
++  test("only matching player credentials yield a clockless player board"):
++    val alice = User.Id("alice")
++    val seat = Game.PlayerId("aaaa")
++    val players = chess.ByColor(Game.Player(seat, Some(alice)), Game.Player(Game.PlayerId("bbbb"), None))
++    val game = Game.Round(Game.Id("testgame"), players, None, clockless = true)
++    assert(game.player(seat, Some(alice)).exists(_.clockless))
++    assertEquals(game.player(seat, None), None)
++    assertEquals(game.player(seat, Some(User.Id("watcher"))), None)
++    assert(game.player(Game.PlayerId("bbbb"), None).exists(_.clockless))
++    assert(!game.copy(clockless = false).player(seat, Some(alice)).get.clockless)
++    assertEquals(ipc.LilaIn.CountPlaying(Set.empty).write, "lobby/count-playing -")
++    assertEquals(ipc.LilaIn.CountPlaying(Set(RoomId("testgame"))).write, "lobby/count-playing testgame")
++
 +  test("snapshots replace counts and expire if the publisher stops"):
 +    var time = 0L
 +    val count = new Lobby.PlayingRounds(() => time)
@@ -1640,3 +1712,65 @@ new file mode 100644
 +    assertEquals(ipc.LilaOut.read("lobby/playing-rounds 3"), Some(ipc.LilaOut.PlayingRounds(3)))
 +    assertEquals(ipc.LilaOut.read("lobby/playing-rounds -1"), None)
 +    assertEquals(ipc.LilaOut.read("lobby/playing-rounds invalid"), None)
+diff --git a/src/main/scala/Mongo.scala b/src/main/scala/Mongo.scala
+index 42aea55..be6b08f 100644
+--- a/src/main/scala/Mongo.scala
++++ b/src/main/scala/Mongo.scala
+@@ -125,7 +125,7 @@ final class Mongo(config: Config)(using Executor)(using cacheApi: util.CacheApi)
+       }(using parasitic)
+ 
+   private val gameCacheProjection =
+-    BSONDocument("is" -> true, "us" -> true, "tid" -> true, "sid" -> true, "iid" -> true)
++    BSONDocument("is" -> true, "us" -> true, "tid" -> true, "sid" -> true, "iid" -> true, "c" -> true)
+ 
+   private val gameCache: AsyncLoadingCache[Game.Id, Option[Game.Round]] = cacheApi(65_536, "game.round"):
+     _.expireAfterWrite(10.minutes)
+@@ -151,7 +151,7 @@ final class Mongo(config: Config)(using Executor)(using cacheApi: util.CacheApi)
+                     .map(Game.RoundExt.InTour.apply)
+                     .orElse(doc.getAsOpt[Swiss.Id]("iid").map(Game.RoundExt.InSwiss.apply))
+                     .orElse(doc.getAsOpt[Simul.Id]("sid").map(Game.RoundExt.InSimul.apply))
+-              yield Game.Round(id, players, ext)
++              yield Game.Round(id, players, ext, clockless = !doc.contains("c"))
+             }(using parasitic)
+ 
+   private val visibilityNotPrivate = BSONDocument("visibility" -> BSONDocument("$ne" -> "private"))
+diff --git a/src/main/scala/actor/RoundClientActor.scala b/src/main/scala/actor/RoundClientActor.scala
+index 6ed59ca..a972b56 100644
+--- a/src/main/scala/actor/RoundClientActor.scala
++++ b/src/main/scala/actor/RoundClientActor.scala
+@@ -39,6 +39,7 @@ object RoundClientActor:
+       import deps.*
+       val state = State(roomState, player, userTv)
+       onStart(deps, ctx)
++      if player.exists(_.clockless) then services.lobby.openClocklessBoard(ctx.self, roomState.room)
+       req.user.foreach { users.connect(_, ctx.self) }
+       state.busChans.foreach { Bus.subscribe(_, ctx.self) }
+       roundCrowd.connect(roomState.room, req.user, player.map(_.color))
+@@ -202,6 +203,7 @@ object RoundClientActor:
+       }
+       .receiveSignal { case (ctx, PostStop) =>
+         onStop(state.site, deps, ctx)
++        if state.player.exists(_.clockless) then deps.services.lobby.closeClocklessBoard(ctx.self)
+         state.busChans.foreach { Bus.unsubscribe(_, ctx.self) }
+         deps.roundCrowd.disconnect(state.room.room, deps.req.user, state.player.map(_.color))
+         Behaviors.same
+diff --git a/src/main/scala/model.scala b/src/main/scala/model.scala
+index 1964951..4c82f82 100644
+--- a/src/main/scala/model.scala
++++ b/src/main/scala/model.scala
+@@ -30,12 +30,12 @@ object Game:
+ 
+   // must only contain invariant data (no status, turns, or termination)
+   // because it's cached in Mongo.scala
+-  case class Round(id: Game.Id, players: ByColor[Player], ext: Option[RoundExt]):
++  case class Round(id: Game.Id, players: ByColor[Player], ext: Option[RoundExt], clockless: Boolean):
+     def player(id: PlayerId, userId: Option[User.Id]): Option[RoundPlayer] =
+       players.zipColor.collect:
+-        case (c, p) if p.id == id && p.userId == userId => RoundPlayer(id, c, ext)
++        case (c, p) if p.id == id && p.userId == userId => RoundPlayer(id, c, ext, clockless)
+ 
+-  case class RoundPlayer(id: PlayerId, color: Color, ext: Option[RoundExt]):
++  case class RoundPlayer(id: PlayerId, color: Color, ext: Option[RoundExt], clockless: Boolean):
+     def tourId = ext.collect { case RoundExt.InTour(id) => id }
+     def swissId = ext.collect { case RoundExt.InSwiss(id) => id }
+     def simulId = ext.collect { case RoundExt.InSimul(id) => id }

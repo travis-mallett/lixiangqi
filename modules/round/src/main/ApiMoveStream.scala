@@ -59,7 +59,8 @@ final class ApiMoveStream(
                     state.fen,
                     game.xiangqi.moves.lift(index - 1),
                     clk,
-                    None
+                    None,
+                    state.reveal
                   )
                 )
               if game.finished then
@@ -92,19 +93,22 @@ final class ApiMoveStream(
       fen,
       lastMove,
       game.clock.map(clk => ByColor(clk.remainingTime)),
-      game.moveTimeRemaining
+      game.moveTimeRemaining,
+      game.position.reveal
     )
 
   private def toJson(
       fen: String,
       lastMove: Option[Xiangqi.Uci],
       clock: Option[ByColor[Centis]],
-      moveTime: Option[Centis]
+      moveTime: Option[Centis],
+      reveal: Option[String]
   ): JsObject =
     clock.foldLeft(
       Json
         .obj("fen" -> fen)
         .add("lm" -> lastMove.map(_.value))
+        .add("reveal" -> reveal)
         .add("mt" -> moveTime.map(_.roundSeconds))
     ): (js, clk) =>
       js ++ Json.obj("wc" -> clk.white.roundSeconds, "bc" -> clk.black.roundSeconds)

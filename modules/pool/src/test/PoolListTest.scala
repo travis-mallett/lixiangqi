@@ -13,6 +13,15 @@ class PoolListTest extends munit.FunSuite:
     assert(PoolList.homepage.contains(pool))
     assertEquals(PoolList.all.count(_.id == pool.id), 1)
 
+  test("Banqi ranked room has the competition clock and its own account"):
+    val pool = PoolList.banqi
+    assertEquals(pool.id.value, "banqi-v1-ranked-10+0-m60-30x3")
+    assertEquals(pool.gameVariant, lila.xiangqi.GameVariant.Banqi)
+    assertEquals(pool.rankTrack, Some(lila.core.rank.RankTrackId.banqi))
+    assertEquals(pool.moveTimeLimit.get.limitForMove(3), 30)
+    assertEquals(pool.moveTimeLimit.get.limitForMove(4), 60)
+    assert(PoolList.homepage.contains(pool))
+
   test("homepage pools have their exact bank and per-move controls"):
     val rooms = PoolList.homepage
       .filter(_.gameVariant == lila.xiangqi.GameVariant.Xiangqi)

@@ -24,7 +24,7 @@ final class AnalyseUi(helpers: Helpers)(endpoints: AnalyseEndpoints):
     )
 
   def titleOf(pov: Pov)(using Translate) =
-    s"${playerText(pov.game.whitePlayer)} vs ${playerText(pov.game.blackPlayer)}: ${trans.site.analysis.txt()}"
+    s"${playerText(pov.game.pov(chess.White))} vs ${playerText(pov.game.pov(chess.Black))}: ${trans.site.analysis.txt()}"
 
   object bits:
 

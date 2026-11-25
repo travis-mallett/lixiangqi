@@ -64,12 +64,6 @@
     gap: 18px;
   }
 
-  &__variants {
-    display: grid;
-    min-width: 0;
-    gap: 12px;
-  }
-
   @media (max-width: 800px) {
     &__center-rail,
     &__left-rail,

@@ -41,6 +41,22 @@ export const manchu: BoardDefinition<RectangularGeometry> = Object.freeze({
   roles: Object.freeze({ ...standardXiangqi.roles, banner: 'm' }),
 });
 
+export const banqi: BoardDefinition<RectangularGeometry> = Object.freeze({
+  ...standardXiangqi,
+  id: 'banqi',
+  pieceFamily: 'xiangqi',
+  coordinates: 'algebraic' as const,
+  coordinateImage: undefined,
+  royalRoles: [],
+  geometry: Object.freeze({
+    id: 'banqi-4x8',
+    columns: 4,
+    rows: 8,
+    placement: 'cells' as const,
+    frame: Object.freeze({ cellSize: 100, marginX: 98, marginY: 98 }),
+  }),
+});
+
 export const miniXiangqi: BoardDefinition<RectangularGeometry> = Object.freeze({
   ...standardXiangqi,
   id: 'minixiangqi',
@@ -174,6 +190,7 @@ function threePlayerCoordinates(): GraphCoordinate[] {
 
 export const supportedBoards: readonly BoardDefinition[] = [
   standardXiangqi,
+  banqi,
   miniXiangqi,
   manchu,
   threeKingdoms,
@@ -182,6 +199,7 @@ export const supportedBoards: readonly BoardDefinition[] = [
 /** Native FEN geometry determines the board; positionFromFen validates the entire placement. */
 export function boardDefinitionForFen(fen: string): BoardDefinition<RectangularGeometry> {
   const [placement, , variant] = fen.trim().split(/\s+/);
+  if (variant === 'banqi' || placement.split('/').length === 8) return banqi;
   if (placement.split('/').length === 7) return miniXiangqi;
   return variant === 'm' || /m/i.test(placement) ? manchu : standardXiangqi;
 }

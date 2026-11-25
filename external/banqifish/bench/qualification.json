@@ -1,0 +1,291 @@
+{
+  "dateUtc": "2026-11-25",
+  "websiteBase": "0b80c22905e3111db34dcccfc040c23e9f809247",
+  "modules": {
+    "fish": "6cac80c6ce994e2b2ea2849d88673f286d44242ece1efca651d1f1df3db3cbe3",
+    "baseline": "85d8adb23ad76d8ef4139d33c67d7b5e2e0085a87eef177e89063979e05600c3"
+  },
+  "referee": "lila.xiangqi.Banqi.play",
+  "totalGames": 1600,
+  "totalPlies": 225106,
+  "matches": [
+    {
+      "a": "fish:10",
+      "b": "baseline:10",
+      "deals": 128,
+      "firstSeed": 735000,
+      "wins": 107,
+      "draws": 117,
+      "losses": 32,
+      "score": 0.646484375,
+      "pairedBootstrap95": [0.607421875, 0.685546875],
+      "pairBins": [1, 13, 45, 48, 21],
+      "plies": 38309,
+      "terminations": {
+        "threefold-repetition": 37,
+        "elimination": 135,
+        "noProgress": 80,
+        "immobilization": 4
+      }
+    },
+    {
+      "a": "fish:1",
+      "b": "baseline:1",
+      "deals": 96,
+      "firstSeed": 831000,
+      "wins": 1,
+      "draws": 56,
+      "losses": 135,
+      "score": 0.15104166666666666,
+      "pairedBootstrap95": [0.11979166666666667, 0.18229166666666666],
+      "pairBins": [44, 46, 6, 0, 0],
+      "plies": 27175,
+      "terminations": {
+        "elimination": 133,
+        "noProgress": 56,
+        "baseline-no-action": 1,
+        "immobilization": 2
+      }
+    },
+    {
+      "a": "fish:2",
+      "b": "fish:1",
+      "deals": 64,
+      "firstSeed": 950000,
+      "wins": 40,
+      "draws": 86,
+      "losses": 2,
+      "score": 0.6484375,
+      "pairedBootstrap95": [0.609375, 0.69140625],
+      "pairBins": [0, 1, 30, 27, 6],
+      "plies": 21175,
+      "terminations": {
+        "elimination": 42,
+        "noProgress": 83,
+        "threefold-repetition": 3
+      }
+    },
+    {
+      "a": "fish:3",
+      "b": "fish:2",
+      "deals": 64,
+      "firstSeed": 950000,
+      "wins": 69,
+      "draws": 58,
+      "losses": 1,
+      "score": 0.765625,
+      "pairedBootstrap95": [0.7265625, 0.8046875],
+      "pairBins": [0, 0, 10, 40, 14],
+      "plies": 17958,
+      "terminations": {
+        "elimination": 70,
+        "noProgress": 57,
+        "threefold-repetition": 1
+      }
+    },
+    {
+      "a": "fish:4",
+      "b": "fish:3",
+      "deals": 64,
+      "firstSeed": 950000,
+      "wins": 85,
+      "draws": 42,
+      "losses": 1,
+      "score": 0.828125,
+      "pairedBootstrap95": [0.7890625, 0.86328125],
+      "pairBins": [0, 0, 5, 34, 25],
+      "plies": 16189,
+      "terminations": {
+        "elimination": 84,
+        "noProgress": 42,
+        "immobilization": 2
+      }
+    },
+    {
+      "a": "fish:5",
+      "b": "fish:4",
+      "deals": 64,
+      "firstSeed": 950000,
+      "wins": 87,
+      "draws": 34,
+      "losses": 7,
+      "score": 0.8125,
+      "pairedBootstrap95": [0.76171875, 0.86328125],
+      "pairBins": [0, 1, 12, 21, 30],
+      "plies": 16167,
+      "terminations": {
+        "elimination": 93,
+        "noProgress": 33,
+        "threefold-repetition": 1,
+        "immobilization": 1
+      }
+    },
+    {
+      "a": "fish:6",
+      "b": "fish:5",
+      "deals": 64,
+      "firstSeed": 950000,
+      "wins": 74,
+      "draws": 37,
+      "losses": 17,
+      "score": 0.72265625,
+      "pairedBootstrap95": [0.66015625, 0.78125],
+      "pairBins": [0, 6, 17, 19, 22],
+      "plies": 16471,
+      "terminations": {
+        "elimination": 91,
+        "noProgress": 34,
+        "threefold-repetition": 3
+      }
+    },
+    {
+      "a": "fish:7",
+      "b": "fish:6",
+      "deals": 64,
+      "firstSeed": 950000,
+      "wins": 76,
+      "draws": 38,
+      "losses": 14,
+      "score": 0.7421875,
+      "pairedBootstrap95": [0.68359375, 0.796875],
+      "pairBins": [0, 5, 14, 23, 22],
+      "plies": 16849,
+      "terminations": {
+        "elimination": 88,
+        "noProgress": 35,
+        "threefold-repetition": 3,
+        "immobilization": 2
+      }
+    },
+    {
+      "a": "fish:8",
+      "b": "fish:7",
+      "deals": 64,
+      "firstSeed": 950000,
+      "wins": 60,
+      "draws": 48,
+      "losses": 20,
+      "score": 0.65625,
+      "pairedBootstrap95": [0.59765625, 0.71484375],
+      "pairBins": [1, 5, 24, 21, 13],
+      "plies": 17713,
+      "terminations": {
+        "elimination": 79,
+        "noProgress": 45,
+        "threefold-repetition": 3,
+        "immobilization": 1
+      }
+    },
+    {
+      "a": "fish:9",
+      "b": "fish:8",
+      "deals": 64,
+      "firstSeed": 950000,
+      "wins": 53,
+      "draws": 53,
+      "losses": 22,
+      "score": 0.62109375,
+      "pairedBootstrap95": [0.5625, 0.6796875],
+      "pairBins": [0, 10, 24, 19, 11],
+      "plies": 18045,
+      "terminations": {
+        "immobilization": 4,
+        "elimination": 71,
+        "noProgress": 46,
+        "threefold-repetition": 7
+      }
+    },
+    {
+      "a": "fish:10",
+      "b": "fish:9",
+      "deals": 64,
+      "firstSeed": 950000,
+      "wins": 43,
+      "draws": 62,
+      "losses": 23,
+      "score": 0.578125,
+      "pairedBootstrap95": [0.52734375, 0.62890625],
+      "pairBins": [1, 9, 25, 27, 2],
+      "plies": 19055,
+      "terminations": {
+        "elimination": 63,
+        "noProgress": 52,
+        "threefold-repetition": 10,
+        "immobilization": 3
+      }
+    }
+  ],
+  "speed": {
+    "cpu": "13th Gen Intel(R) Core(TM) i9-13900HX",
+    "node": "v24.15.0",
+    "platform": "win32-x64",
+    "positions": 35,
+    "corpusSha256": "f5e6612087b1cb6301d42fc4da69d11ffa83a0344b55e5e2eaa008c3fdc4d5a1",
+    "repetitions": 12,
+    "level": 10,
+    "engines": {
+      "baseline": {
+        "decisions": 420,
+        "medianMs": 44.33499999999913,
+        "p95Ms": 74.66619999999966,
+        "cpuMsPerMove": 37.23571428571429,
+        "wasmBytes": 97191,
+        "linearMemoryBytes": 1179648,
+        "phaseMedianMs": {
+          "opening": 17.880299999998897,
+          "early": 27.529600000001665,
+          "mixed": 50.62870000000112,
+          "three covers": 59.59809999999925,
+          "open": 49.03659999999945,
+          "ending": 32.011500000000524
+        }
+      },
+      "fish": {
+        "decisions": 420,
+        "medianMs": 3.3387000000002445,
+        "p95Ms": 6.982200000000375,
+        "cpuMsPerMove": 2.6809523809523808,
+        "wasmBytes": 19749,
+        "linearMemoryBytes": 196608,
+        "phaseMedianMs": {
+          "opening": 1.8109000000004016,
+          "early": 0.16589999999996508,
+          "mixed": 3.681800000000294,
+          "three covers": 4.590299999999843,
+          "open": 3.60570000000007,
+          "ending": 1.8647000000019034
+        }
+      }
+    }
+  },
+  "browser": {
+    "browser": "158.0.4370.33",
+    "fen": "4/2r1/1*1k/4/2R1/1P*1/1C2/2pK w banqi r 0 16 Np",
+    "engines": {
+      "baseline": {
+        "first": {
+          "samples": 16,
+          "medianMs": 57.79999999701977,
+          "p95Ms": 62.599999994039536
+        },
+        "warm": {
+          "samples": 80,
+          "medianMs": 45.70000000298023,
+          "p95Ms": 50.399999998509884
+        }
+      },
+      "fish": {
+        "first": {
+          "samples": 16,
+          "medianMs": 10.200000002980232,
+          "p95Ms": 11.199999995529652
+        },
+        "warm": {
+          "samples": 80,
+          "medianMs": 3.1999999955296516,
+          "p95Ms": 3.8000000044703484
+        }
+      }
+    }
+  }
+}

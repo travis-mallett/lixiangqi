@@ -1,4 +1,4 @@
-import { positionFromFen, standardXiangqi } from '@lixiangqi/board';
+import { boardDefinitionForFen, positionFromFen } from '@lixiangqi/board';
 
 import type { CheckCount, CheckState } from './interfaces';
 
@@ -21,8 +21,8 @@ export function getMaterialDiff(fen: FEN): MaterialDiff {
     Object.fromEntries(Object.keys(xiangqiMaterialValues).map(role => [role, 0])) as MaterialDiffSide;
   const diff = { red: empty(), black: empty() };
   if (!fen) return diff;
-  for (const piece of positionFromFen(fen, standardXiangqi).pieces.values()) {
-    if (piece.face !== 'up') continue;
+  for (const piece of positionFromFen(fen, boardDefinitionForFen(fen)).pieces.values()) {
+    if (piece.face !== 'up' || !(piece.role in xiangqiMaterialValues)) continue;
     const role = piece.role as MaterialRole;
     const color = piece.participant as 'red' | 'black';
     const them = diff[color === 'red' ? 'black' : 'red'];

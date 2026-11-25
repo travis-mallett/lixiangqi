@@ -30,6 +30,7 @@ object boardViewer:
     views.base.embed.minimal(
       title = "LiXiangQi",
       cssKeys = List("viewer.embed"),
+      i18nModules = List(_.site),
       csp = _.withExternalEngine(env.fishnet.explorerEndpoint),
       modules = esmInitObj(
         "viewer.embed",

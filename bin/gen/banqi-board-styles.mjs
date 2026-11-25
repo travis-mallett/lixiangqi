@@ -23,8 +23,6 @@ for (const [variant, parent] of Object.entries({
   artwork.setAttribute('stroke', style.ink);
   artwork.setAttribute('opacity', style.opacity);
   artwork.removeAttribute('filter');
-  for (const id of ['banqi-ink', 'banqi-corner-knot', 'banqi-outer-decoration'])
-    doc.getElementById(id)?.remove();
   const frame = doc.getElementById('banqi-playing-frame');
   if (style.frame) {
     frame.setAttribute('stroke', style.frame.ink);

@@ -14,6 +14,7 @@ import scalalib.net.Bearer
 
 import lila.core.data.Template
 import lila.core.game.{ GameRule, MoveTimeLimit }
+import lila.xiangqi.{ GameVariant, Xiangqi }
 import lila.game.IdGenerator
 import lila.oauth.{ EndpointScopes, OAuthScope, OAuthServer }
 import lila.common.Form.into
@@ -41,7 +42,9 @@ final class ChallengeBulkSetup(setupForm: lila.core.setup.SetupForm):
       "pairAt" -> optional(timestampInNearFuture),
       "startClocksAt" -> optional(timestampInNearFuture),
       setupForm.message,
-      setupForm.rules
+      setupForm.rules,
+      "gameVariant" -> optional(text),
+      "ruleset" -> optional(text)
     ) {
       (
           tokens: String,
@@ -54,7 +57,9 @@ final class ChallengeBulkSetup(setupForm: lila.core.setup.SetupForm):
           pairTs: Option[Long],
           clockTs: Option[Long],
           message: Option[String],
-          rules: Option[Set[GameRule]]
+          rules: Option[Set[GameRule]],
+          requestedVariant: Option[String],
+          requestedRules: Option[String]
       ) =>
         BulkFormData(
           tokens,
@@ -67,7 +72,9 @@ final class ChallengeBulkSetup(setupForm: lila.core.setup.SetupForm):
           clockTs.map(millisToInstant),
           message.map(Template.apply),
           ~rules,
-          fen
+          fen,
+          requestedVariant,
+          requestedRules
         ).autoVariant
     }(_ => None)
       .verifying(
@@ -79,7 +86,7 @@ final class ChallengeBulkSetup(setupForm: lila.core.setup.SetupForm):
         "Time per move requires a scheduled clock start",
         c => c.moveTimeLimit.isEmpty || c.startClocksAt.isDefined
       )
-      .verifying("invalidFen", _.validFen)
+      .verifying("Invalid bulk game variant, rules or position", _.validSetup)
       .verifying(
         "Tokens must be unique for real-time games (not correspondence)",
         data =>
@@ -165,6 +172,10 @@ final class ChallengeBulkSetupApi(
 
 object ChallengeBulkSetup:
 
+  // The bulk API identifies a custom board by its FEN and otherwise starts standard Xiangqi.
+  private def boardVariant(fen: Option[Fen.Full]): Option[GameVariant] =
+    fen.fold(Option(GameVariant.Xiangqi))(f => Xiangqi.Fen.board(f.value).map(_.variant))
+
   val maxGames = 500
   val maxBulks = 20
 
@@ -191,6 +202,11 @@ object ChallengeBulkSetup:
       pairedAt: Option[Instant] = None,
       fen: Option[Fen.Full] = None
   ):
+    def initialGame = boardVariant(fen)
+      .toRight("Invalid bulk starting position")
+      .flatMap: board =>
+        board.initialGame(fen.map(_.value), board.defaultRuleset)
+
     def userSet = Set(games.flatMap(g => List(g.white, g.black)))
     def collidesWith(other: ScheduledBulk) = {
       pairAt == other.pairAt || startClocksAt.exists(other.startClocksAt.contains)
@@ -214,14 +230,17 @@ object ChallengeBulkSetup:
       startClocksAt: Option[Instant],
       message: Option[Template],
       rules: Set[GameRule],
-      fen: Option[Fen.Full] = None
+      fen: Option[Fen.Full] = None,
+      requestedVariant: Option[String] = None,
+      requestedRules: Option[String] = None
   ):
     def clockOrDays = clock.toLeft(days | Days(3))
 
     def allowMultiplePairingsPerUser = clock.isEmpty
 
-    def validFen =
-      variant != FromPosition || fen.exists(value => lila.xiangqi.Xiangqi.Fen.isValid(value.value))
+    def validSetup = boardVariant(fen).exists: board =>
+      board.validDuelPosition(variant.fromPosition, fen.map(_.value)) &&
+        requestedVariant.forall(_ == board.key) && requestedRules.forall(_ == board.defaultRuleset.key)
 
     def autoVariant =
       if variant.standard && fen.exists(_.value != lila.xiangqi.Xiangqi.startFen)

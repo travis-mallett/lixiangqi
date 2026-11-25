@@ -83,7 +83,13 @@ final class Preload(
   private def randomVariantTv: Fu[lila.xiangqi.GameVariant] =
     import lila.xiangqi.GameVariant
     val variants =
-      Vector(GameVariant.Jieqi, GameVariant.MiniXiangqi, GameVariant.Manchu, GameVariant.ThreeKingdoms)
+      Vector(
+        GameVariant.Jieqi,
+        GameVariant.Banqi,
+        GameVariant.MiniXiangqi,
+        GameVariant.Manchu,
+        GameVariant.ThreeKingdoms
+      )
     fuccess(variants(scala.util.Random.nextInt(variants.size)))
 
   def currentGameMyTurn(using me: Me): Fu[Option[CurrentGame]] =
@@ -100,7 +106,7 @@ final class Preload(
     ~povs.collectFirst:
       case p1 if p1.game.nonAi && p1.game.hasClock && p1.isMyTurn =>
         roundProxy.pov(p1.gameId, me).dmap(_ | p1).map { pov =>
-          val opponent = lila.game.Namer.playerTextBlocking(pov.opponent)(using lightUser)
+          val opponent = lila.game.Namer.playerTextBlocking(!pov)(using lightUser)
           CurrentGame(pov = pov, opponent = opponent).some
         }
 

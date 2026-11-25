@@ -1,7 +1,6 @@
 package lila.game
 package ui
 
-import chess.format.Fen
 import play.api.libs.json.Json
 
 import lila.core.game.{ Game, Player }
@@ -15,12 +14,23 @@ import lila.game.Player.nameSplit
 final class GameUi(helpers: Helpers):
   import helpers.{ *, given }
 
+  private def isBlindfold(pov: Pov)(using me: Option[Me]): Boolean =
+    pov.game.playable && me.flatMap(pov.game.player).exists(_.blindfold)
+
+  private def miniatureFen(pov: Pov)(using Option[Me]): String =
+    if isBlindfold(pov) then
+      val variant = pov.game.nativeVariant
+      val placement = List.fill(variant.ranks)(variant.files.toString).mkString("/")
+      if pov.game.isBanqi then s"$placement w banqi - 0 1 -" else s"$placement w - - 0 1"
+    else pov.game.position.fen
+
   object mini:
     private val dataState = attr("data-state")
     private val dataLive = attr("data-live")
     private val dataTime = attr("data-time")
     private val dataTimeControl = attr("data-tc")
     private val dataReplayMoves = attr("data-replay-moves")
+    private val dataReplayPositions = attr("data-replay-positions")
     private val dataReplayChecks = attr("data-replay-checks")
     private val dataReplayMate = attr("data-replay-mate")
     private val dataReplayInitialFen = attr("data-replay-initial-fen")
@@ -63,11 +73,10 @@ final class GameUi(helpers: Helpers):
       )(using transDefault, None)
 
     def renderState(pov: Pov)(using me: Option[Me]) =
-      val fen =
-        if me.flatMap(pov.game.player).exists(_.blindfold) && pov.game.playable
-        then chess.format.BoardAndColorFen("8/8/8/8/8/8/8/8 w")
-        else Fen.Full(pov.game.position.fen)
-      dataState := s"${fen},${pov.color.name},${~pov.game.lastMoveKeys}"
+      Seq(
+        dataState := s"${miniatureFen(pov)},${pov.color.name},${~pov.game.lastMoveKeys}",
+        attr("data-blindfold") := isBlindfold(pov).option("1")
+      )
 
     private def showTimeControl(c: chess.Clock.Config) = s"${c.limitSeconds}+${c.incrementSeconds}"
 
@@ -95,6 +104,16 @@ final class GameUi(helpers: Helpers):
         dataLive := game.isBeingPlayed.option(game.id),
         dataTimeControl := game.clock.map(_.config).fold("correspondence")(showTimeControl),
         dataReplayMoves := replay.option(game.xiangqi.moves.map(_.value).mkString(" ")),
+        dataReplayPositions := (replay && game.xiangqi.hasReveals).option(
+          game.visibleStates.tail
+            .map { state =>
+              if state.reveal.isDefined || (game.isBanqi && state.captures.lastOption
+                  .exists(_.ply == state.ply))
+              then state.fen
+              else "-"
+            }
+            .mkString("|")
+        ),
         dataRecordedClock := recordedClock.map(timeline => Json.stringify(timeline.json)),
         dataReplayChecks := replay.option(replayChecks.mkString(",")),
         dataReplayMate := replay.option(game.xiangqi.state.mate),
@@ -114,7 +133,12 @@ final class GameUi(helpers: Helpers):
     )(using Translate) =
       span(cls := "mini-game__player")(
         span(cls := "mini-game__user")(
-          playerUsername(pov.player.light, pov.player.userId.flatMap(lightUserSync), withRating = false),
+          playerUsername(
+            pov.player.light,
+            pov.player.userId.flatMap(lightUserSync),
+            withRating = false,
+            banqi = pov.game.isBanqi
+          ),
           withRating.option(span(cls := "rank")(lila.game.Namer.rankString(pov.player)))
         ),
         if recordedClock.isDefined then renderRecordedClock(pov.color, recordedClock.get)
@@ -146,6 +170,8 @@ final class GameUi(helpers: Helpers):
 
   def gameIcon(game: Game): Icon =
     if game.fromPosition then Icon.Feather
+    else if game.nativeVariant != lila.xiangqi.GameVariant.Xiangqi then
+      lila.ui.VariantIcon(game.nativeVariant)
     else if game.sourceIs(_.Import) then Icon.UploadCloud
     else if game.variant.exotic then game.perfType.icon
     else if game.hasAi then Icon.Cogs
@@ -161,6 +187,18 @@ final class GameUi(helpers: Helpers):
   def gameEndStatus(game: Game)(using Translate): String =
     import chess.{ White, Black, Status as S }
     import lila.game.GameExt.drawReason
+    if game.isBanqi then
+      game.position.termination match
+        case Some("elimination") => return trans.site.banqiElimination.txt()
+        case Some("immobilization") => return trans.site.banqiImmobilization.txt()
+        case Some("noProgress") => return trans.site.banqiQuietDraw.txt()
+        case Some("threefold-repetition") => return trans.site.banqiThreefold.txt()
+        case _ =>
+          game.status match
+            case S.Resign => return trans.site.banqiResignation.txt()
+            case S.Outoftime | S.Timeout => return trans.site.banqiTimeout.txt()
+            case S.Aborted | S.NoStart => return trans.site.gameAborted.txt()
+            case _ => ()
     game.status match
       case S.VariantEnd if game.position.termination.contains("forced-variation") =>
         "No permitted continuation after forced variation"
@@ -315,9 +353,9 @@ final class GameUi(helpers: Helpers):
             )
           ),
           div(cls := "versus")(
-            gamePlayer(g.whitePlayer),
+            gamePlayer(g.whitePlayer, g.isBanqi),
             div(cls := "swords", dataIcon := Icon.Swords),
-            gamePlayer(g.blackPlayer)
+            gamePlayer(g.blackPlayer, g.isBanqi)
           ),
           result(g, fromPlayer),
           if g.playedPlies > 0 && ctx.isAuth then opening(g) else frag(br, br),
@@ -332,9 +370,7 @@ final class GameUi(helpers: Helpers):
 
     def miniBoard(pov: Pov)(using ctx: Context): Tag => Tag =
       xiangqiGroundMini(
-        if ctx.me.flatMap(pov.game.player).exists(_.blindfold) && pov.game.playable
-        then "9/9/9/9/9/9/9/9/9/9 w - - 0 1"
-        else pov.game.position.fen,
+        miniatureFen(pov)(using ctx.me),
         pov.player.color,
         pov.game.lastMoveKeys
       )
@@ -355,6 +391,7 @@ final class GameUi(helpers: Helpers):
             showClock(g),
             separator,
             if g.isJieqi then trans.site.jieqi()
+            else if g.nativeVariant == lila.xiangqi.GameVariant.Banqi then trans.site.banqi()
             else if g.nativeVariant == lila.xiangqi.GameVariant.Manchu then trans.site.manchu()
             else if g.nativeVariant == lila.xiangqi.GameVariant.MiniXiangqi then trans.site.miniXiangqi()
             else if g.fromPosition then g.variant.name
@@ -363,7 +400,7 @@ final class GameUi(helpers: Helpers):
           )
       )
 
-    private def gamePlayer(player: Player)(using ctx: Context) =
+    private def gamePlayer(player: Player, banqi: Boolean)(using ctx: Context) =
       div(cls := s"player ${player.color.name}"):
         player.userId
           .map: userId =>
@@ -376,7 +413,7 @@ final class GameUi(helpers: Helpers):
           .getOrElse:
             player.aiLevel
               .map: level =>
-                span(aiNameFrag(level))
+                span(aiNameFrag(level, banqi))
               .getOrElse:
                 player.nameSplit.fold(span(cls := "anon")(UserName.anonymous)): (name, rating) =>
                   frag(
@@ -410,7 +447,11 @@ final class GameUi(helpers: Helpers):
           g.winner.map: winner =>
             frag(
               " • ",
-              winner.color.fold(trans.site.whiteIsVictorious(), trans.site.blackIsVictorious())
+              if g.isBanqi then
+                trans.site.banqiWinner(
+                  winner.color.fold(trans.site.banqiFirstSeat.txt(), trans.site.banqiSecondSeat.txt())
+                )
+              else winner.color.fold(trans.site.whiteIsVictorious(), trans.site.blackIsVictorious())
             )
         )
       else g.turnColor.fold(trans.site.whitePlays(), trans.site.blackPlays())

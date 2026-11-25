@@ -6,8 +6,8 @@ import scala.annotation.tailrec
 import alleycats.Zero
 import chess.format.pgn.Comment as CommentStr
 import chess.format.Fen
-import lila.xiangqi.{ Xiangqi, XiangqiRules, UciPath }
-import lila.xiangqi.Xiangqi.{ Uci, Move, Side }
+import lila.xiangqi.{ Xiangqi, XiangqiRules, UciPath, BranchId }
+import lila.xiangqi.Xiangqi.{ Move, Side }
 import lila.xiangqi.XiangqiJson.given
 import lila.xiangqi.adjudication.Ruleset
 import chess.{ Centis, Ply }
@@ -36,12 +36,12 @@ object Branches:
     def nonEmpty = !isEmpty
     def maxDepth: Int = if nodes.isEmpty then 0 else 1 + nodes.map(_.children.maxDepth).max
 
-    def get(id: Uci): Option[Branch] = nodes.find(_.id == id)
-    def hasNode(id: Uci): Boolean = nodes.exists(_.id == id)
+    def get(id: BranchId): Option[Branch] = nodes.find(_.id == id)
+    def hasNode(id: BranchId): Boolean = nodes.exists(_.id == id)
 
     def nodeAt(path: UciPath): Option[Branch] =
       path.split.flatMap: (head, rest) =>
-        rest.computeIds.foldLeft(get(head)): (cur, id) =>
+        rest.steps.foldLeft(get(head)): (cur, id) =>
           cur.flatMap(_.children.get(id))
 
     // select all nodes on that path
@@ -101,10 +101,10 @@ object Branches:
       nodes.map: n =>
         if child.id == n.id then child else n
 
-    def updateWith(id: Uci, op: Branch => Option[Branch]): Option[Branches] =
+    def updateWith(id: BranchId, op: Branch => Option[Branch]): Option[Branches] =
       get(id).flatMap(op).map(update)
 
-    def updateChildren(id: Uci, f: Branches => Option[Branches]): Option[Branches] =
+    def updateChildren(id: BranchId, f: Branches => Option[Branches]): Option[Branches] =
       updateWith(id, _.withChildren(f))
 
     def updateMainline(f: Branch => Branch): Branches =
@@ -147,7 +147,7 @@ sealed trait Node:
   def mergeAnnotations(source: Node): Node
 
   // implementation dependent
-  def idOption: Option[Uci]
+  def idOption: Option[BranchId]
   def moveOption: Option[Move]
 
   // who's color plays next
@@ -191,7 +191,7 @@ case class Root(
   def pathExists(path: UciPath): Boolean = nodeAt(path).isDefined
 
   def gameAt(path: UciPath): Either[String, Xiangqi.Game] =
-    path.computeIds
+    path.steps
       .foldLeft[Either[String, (Xiangqi.Game, Node)]](
         Right(Xiangqi.Game(fen.value, Vector.empty, Vector.empty, Vector(state), ruleset) -> this)
       ) { (result, id) =>
@@ -266,7 +266,7 @@ case class Root(
 
   def lastMainlinePlyOf(path: UciPath) =
     mainline
-      .zip(path.computeIds)
+      .zip(path.steps)
       .takeWhile { (node, id) => node.id == id }
       .lastOption
       .fold(ply) { (node, _) => node.ply }
@@ -340,7 +340,7 @@ case class Branch(
     forceVariation: Boolean = false // cannot be mainline
 ) extends Node:
 
-  val id = move.uci
+  val id = BranchId(move.uci, Option.when(state.variant == "banqi")(state.reveal).flatten.map(_.head))
   def idOption = Some(id)
   def moveOption = Some(move)
 
@@ -530,7 +530,7 @@ object Node:
         val comments = node.comments.value
         val json = Json
           .obj("ply" -> ply, "fen" -> fen, "state" -> state)
-          .add("id", idOption)
+          .add("id", idOption.map(_.value))
           .add("uci", moveOption.map(_.uci.value))
           .add("notation", moveOption.map(_.notation))
           .add("chineseNotation", moveOption.map(_.chineseNotation))

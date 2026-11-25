@@ -1,4 +1,9 @@
 import type { VisiblePiece } from '@lixiangqi/board';
+import { attributesModule, init, type VNode } from 'snabbdom';
+
+import { armyOfSeat } from 'lib/game/banqi';
+import { banqiRail, banqiSeatLabel } from 'lib/game/view/banqiRail';
+
 type MouchEvent = MouseEvent | TouchEvent;
 
 import { dragPiece, makeGround } from './board';
@@ -6,8 +11,12 @@ import type EditorCtrl from './ctrl';
 import type { Color, EditorVariant, Selected } from './interfaces';
 
 const pieces = ['general', 'advisor', 'elephant', 'horse', 'chariot', 'cannon', 'soldier', 'banner'] as const;
+const patch = init([attributesModule]);
 
 export default class EditorView {
+  private rails?: [HTMLElement | VNode, HTMLElement | VNode];
+  private bagInput?: HTMLInputElement;
+  private armyInput?: HTMLSelectElement;
   private turnInput?: HTMLSelectElement;
   private retryButton?: HTMLButtonElement;
   private fenError?: HTMLElement;
@@ -36,7 +45,14 @@ export default class EditorView {
     const board = element('div', 'main-board');
     const wrap = element('div', 'cg-wrap');
     board.append(wrap);
-    editor.append(board);
+    if (this.ctrl.adapter.variant === 'banqi') {
+      const frame = element('div', 'banqi-frame');
+      const upper = element('div');
+      const lower = element('div');
+      this.rails = [upper, lower];
+      frame.append(upper, board, lower);
+      editor.append(frame);
+    } else editor.append(board);
 
     editor.append(this.bottom);
     editor.append(this.controls());
@@ -51,9 +67,21 @@ export default class EditorView {
 
   update(): void {
     const state = this.ctrl.state;
+    if (this.rails) {
+      const bottom = this.ctrl.orientation === 'black' ? 'black' : 'red';
+      this.rails = [
+        patch(this.rails[0], banqiRail(state.fen, bottom, true)),
+        patch(this.rails[1], banqiRail(state.fen, bottom, false)),
+      ];
+    }
     if (this.turnInput) this.turnInput.value = this.ctrl.turn;
-    for (const choice of this.turnInput?.options ?? [])
+    for (const choice of this.turnInput?.options ?? []) {
       choice.disabled = !this.ctrl.activeColors().includes(choice.value as Color);
+      if (this.ctrl.adapter.variant === 'banqi') {
+        const seat = choice.value === armyOfSeat(state.fen, 'red') ? 'red' : 'black';
+        choice.textContent = banqiSeatLabel(state.fen, seat);
+      }
+    }
     const owners = this.ctrl.owners();
     this.ownerInputs.forEach((input, army) => {
       input.value = owners?.[(['black', 'green', 'red'] as const).indexOf(army)] ?? '';
@@ -67,6 +95,9 @@ export default class EditorView {
       this.fenInput.value = this.ctrl.invalidFen ?? state.fen;
       this.showFenError(this.ctrl.invalidFen !== undefined);
     }
+    if (this.bagInput && document.activeElement !== this.bagInput)
+      this.bagInput.value = state.fen.split(' ')[6];
+    if (this.armyInput) this.armyInput.value = state.fen.split(' ')[3];
     if (this.retryButton) this.retryButton.hidden = state.error !== 'unavailable';
     for (const palette of this.root.querySelectorAll<HTMLElement>('.spare')) {
       const bottom = palette.classList.contains(`spare-${this.ctrl.orientation}`);
@@ -143,6 +174,8 @@ export default class EditorView {
           ),
         ),
       );
+    if (this.ctrl.adapter.variant === 'banqi' && color === 'red')
+      palette.append(this.pieceButton({ face: 'down', back: 'default' }, i18n.site.editorConcealedPiece));
     if (this.ctrl.adapter.variant === 'jieqi')
       palette.append(
         this.pieceButton(
@@ -171,13 +204,13 @@ export default class EditorView {
   private pieceButton(piece: VisiblePiece, name: string): HTMLElement {
     const button = element('button', 'no-square');
     button.type = 'button';
-    button.title = `${this.colorName(piece.participant as Color)} ${name}`;
+    button.title = piece.participant ? `${this.colorName(piece.participant as Color)} ${name}` : name;
     button.setAttribute('aria-label', button.title);
     button.dataset.selection = selectionKey(piece);
-    button.dataset.army = piece.participant;
+    if (piece.participant) button.dataset.army = piece.participant;
     const square = element('div');
     const face = pieceElement(
-      `${piece.face === 'up' ? this.ctrl.adapter.definition.roles[piece.role] : '_'}-piece ${piece.participant === 'red' ? 'white' : piece.participant}`,
+      `${piece.face === 'up' ? this.ctrl.adapter.definition.roles[piece.role] : '_'}-piece ${piece.participant === 'red' ? 'white' : (piece.participant ?? 'banqi-back')}`,
     );
     if (piece.face === 'up' && this.ctrl.adapter.variant === 'threeKingdoms')
       face.style.backgroundImage = `var(---threeKingdoms-${piece.participant}-${piece.role})`;
@@ -214,6 +247,7 @@ export default class EditorView {
       const names: Record<EditorVariant, string> = {
         xiangqi: i18n.site.xiangqi,
         jieqi: i18n.site.jieqi,
+        banqi: i18n.site.banqi,
         minixiangqi: i18n.site.miniXiangqi,
         manchu: i18n.site.manchu,
         threeKingdoms: i18n.site.threeKingdoms,
@@ -225,6 +259,30 @@ export default class EditorView {
       });
       label.append(variants);
       metadata.append(label);
+    }
+    if (this.ctrl.adapter.variant === 'banqi') {
+      const bagLabel = document.createElement('label');
+      bagLabel.textContent = i18n.site.banqiBag;
+      const bag = (this.bagInput = document.createElement('input'));
+      bag.maxLength = 32;
+      bag.spellcheck = false;
+      bag.addEventListener('change', () => {
+        const fields = this.ctrl.getFen().split(' ');
+        fields[6] = bag.value || '-';
+        if (!this.ctrl.setFen(fields.join(' '))) bag.value = this.ctrl.getFen().split(' ')[6];
+      });
+      bagLabel.append(bag);
+      const armyLabel = document.createElement('label');
+      armyLabel.textContent = i18n.site.banqiFirstSeat;
+      const army = (this.armyInput = document.createElement('select'));
+      army.append(option('-', '—'), option('r', i18n.site.red), option('b', i18n.site.black));
+      army.addEventListener('change', () => {
+        const fields = this.ctrl.getFen().split(' ');
+        fields[3] = army.value;
+        this.ctrl.setFen(fields.join(' '));
+      });
+      armyLabel.append(army);
+      metadata.append(armyLabel, bagLabel);
     }
     const turnLabel = document.createElement('label');
     turnLabel.textContent = i18n.site.editorSideToMove;

@@ -76,7 +76,8 @@ def meta(
                   p,
                   withOnline = false,
                   withDiff = true,
-                  withBerserk = true
+                  withBerserk = true,
+                  banqi = game.isBanqi
                 )
               ),
               tour.flatMap(_.teamVs).map(_.teams(p.color)).map {

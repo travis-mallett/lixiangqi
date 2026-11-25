@@ -123,43 +123,20 @@ object JsonView:
         "puzzle" -> p.puzzle.nonEmpty.option(perfWrites.writes(p.puzzle))
       )
       .noNull
-      .add(
-        "jieqi" -> p
-          .rank(lila.core.rank.RankTrackId.jieqi)
-          .filter(_.established)
-          .map: perf =>
-            Json.obj("games" -> perf.games, "rank" -> lila.rating.JieqiRank.catalog.code(perf.score).value)
-      )
-      .add(
-        "manchu" -> p
-          .rank(lila.core.rank.RankTrackId.manchu)
-          .filter(_.established)
-          .map: perf =>
-            Json.obj("games" -> perf.games, "rank" -> lila.rating.ManchuRank.catalog.code(perf.score).value)
-      )
-      .add(
-        "minixiangqi" -> p
-          .rank(lila.core.rank.RankTrackId.minixiangqi)
-          .filter(_.established)
-          .map: perf =>
-            Json.obj(
-              "games" -> perf.games,
-              "rank" -> lila.rating.MiniXiangqiRank.catalog.code(perf.score).value
+      ++ JsObject(lila.core.rank.RankTrackId.all.filterNot(_ == lila.core.rank.RankTrackId.xiangqi).flatMap {
+        track =>
+          p.rank(track)
+            .filter(_.established)
+            .map(perf =>
+              track.value -> Json.obj(
+                "games" -> perf.games,
+                "rank" -> lila.rating.RankPolicy(track).catalog.code(perf.score).value
+              )
             )
-      )
-      .add(
-        "threeKingdoms" -> p
-          .rank(lila.core.rank.RankTrackId.threeKingdoms)
-          .filter(_.established)
-          .map: perf =>
-            Json.obj(
-              "games" -> perf.games,
-              "rank" -> lila.rating.ThreeKingdomsRank.catalog.code(perf.score).value
-            )
-      )
-      .add("storm", p.storm.option)
-      .add("racer", p.racer.option)
-      .add("streak", p.streak.option)
+      })
+        .add("storm", p.storm.option)
+        .add("racer", p.racer.option)
+        .add("streak", p.streak.option)
 
   private given OWrites[PuzPerf] = OWrites: p =>
     Json.obj(

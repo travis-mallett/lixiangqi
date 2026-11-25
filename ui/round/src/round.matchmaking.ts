@@ -2,6 +2,8 @@ import type { BoardView } from '@lixiangqi/board';
 import { attributesModule, classModule, init, type VNode } from 'snabbdom';
 
 import { createXiangqiBoard, websiteBoardPresentation, makeBoardResizable } from 'lib/board';
+import { BANQI_START_FEN } from 'lib/game/banqi';
+import { banqiRail } from 'lib/game/view/banqiRail';
 import { pubsub } from 'lib/pubsub';
 import type { MoveTimeLimitConfig } from 'lib/setup/interfaces';
 import { formatMoveTime } from 'lib/setup/timeControl';
@@ -19,7 +21,7 @@ interface MatchmakingPool {
   lim: number;
   inc: number;
   ranked: boolean;
-  variant: 'xiangqi' | 'jieqi' | 'minixiangqi' | 'manchu' | 'threeKingdoms';
+  variant: 'xiangqi' | 'banqi' | 'jieqi' | 'minixiangqi' | 'manchu' | 'threeKingdoms';
   moveTime?: MoveTimeLimitConfig;
 }
 
@@ -130,46 +132,68 @@ class MatchmakingPage {
     hl(
       'div.round__app.variant-standard.round__app--matchmaking',
       {
-        class: { 'round__app--three-players': this.opts.pool.variant === 'threeKingdoms' },
+        class: {
+          'round__app--three-players': this.opts.pool.variant === 'threeKingdoms',
+          'round__app--banqi-room': this.opts.pool.variant === 'banqi',
+        },
       },
       [
         hl(
           'div.round__app__board.round__matchmaking-board',
           {
             class: {
-              'main-board': this.opts.pool.variant !== 'threeKingdoms',
-              xiangqi9x10: this.opts.pool.variant !== 'threeKingdoms',
+              'main-board': !['threeKingdoms', 'banqi'].includes(this.opts.pool.variant),
+              xiangqi9x10: !['threeKingdoms', 'banqi'].includes(this.opts.pool.variant),
+              'banqi-frame': this.opts.pool.variant === 'banqi',
             },
           },
           [
-            this.opts.pool.variant === 'threeKingdoms'
-              ? hl('div.round__matchmaking-three-board', {
-                  hook: onInsert(element => {
-                    const board = (this.board = createXiangqiBoard(
-                      element,
-                      { board: 'threeKingdoms', active: 'red', pieces: new Map() },
-                      websiteBoardPresentation({}, 'replay', 'red'),
-                    ));
-                    makeBoardResizable(board);
-                    window.addEventListener('pagehide', () => this.board?.destroy(), { once: true });
-                  }),
-                })
-              : hl('div.cg-wrap.is2d.xiangqi9x10', {
-                  attrs: { 'aria-label': i18n.site.xiangqiBoardReady },
-                  hook: onInsert(element =>
-                    initMiniBoardWith(element, {
-                      fen:
-                        this.opts.pool.variant === 'minixiangqi'
-                          ? '7/7/7/7/7/7/7 w - - 0 1'
-                          : EMPTY_XIANGQI_FEN,
-                      orientation: 'red',
-                      coordinates: true,
+            this.opts.pool.variant === 'banqi'
+              ? [
+                  banqiRail(BANQI_START_FEN, 'red', true),
+                  hl(
+                    'div.main-board',
+                    hl('div.cg-wrap.is2d', {
+                      hook: onInsert(element =>
+                        initMiniBoardWith(element, {
+                          fen: BANQI_START_FEN,
+                          orientation: 'red',
+                          coordinates: true,
+                        }),
+                      ),
                     }),
                   ),
-                }),
-            this.phase === 'ready' ? this.readyPanel() : this.matchingPanel(),
+                  banqiRail(BANQI_START_FEN, 'red', false),
+                ]
+              : this.opts.pool.variant === 'threeKingdoms'
+                ? hl('div.round__matchmaking-three-board', {
+                    hook: onInsert(element => {
+                      const board = (this.board = createXiangqiBoard(
+                        element,
+                        { board: 'threeKingdoms', active: 'red', pieces: new Map() },
+                        websiteBoardPresentation({}, 'replay', 'red'),
+                      ));
+                      makeBoardResizable(board);
+                      window.addEventListener('pagehide', () => this.board?.destroy(), { once: true });
+                    }),
+                  })
+                : hl('div.cg-wrap.is2d.xiangqi9x10', {
+                    attrs: { 'aria-label': i18n.site.xiangqiBoardReady },
+                    hook: onInsert(element =>
+                      initMiniBoardWith(element, {
+                        fen:
+                          this.opts.pool.variant === 'minixiangqi'
+                            ? '7/7/7/7/7/7/7 w - - 0 1'
+                            : EMPTY_XIANGQI_FEN,
+                        orientation: 'red',
+                        coordinates: true,
+                      }),
+                    ),
+                  }),
+            this.opts.pool.variant !== 'banqi' && this.phasePanel(),
           ],
         ),
+        this.opts.pool.variant === 'banqi' && this.phasePanel(),
         hl('div.round__matchmaking-players', [
           this.player(i18n.site.opponent),
           this.opts.pool.variant === 'threeKingdoms' && this.player(i18n.site.opponent),
@@ -177,6 +201,8 @@ class MatchmakingPage {
         ]),
       ],
     );
+
+  private readonly phasePanel = () => (this.phase === 'ready' ? this.readyPanel() : this.matchingPanel());
 
   private readonly readyPanel = () =>
     hl('div.round__matchmaking-panel', [

@@ -512,13 +512,17 @@ export default class LobbyController {
   // also handles onboardink link for anon users
   private readonly joinPoolFromLocationHash = () => {
     if (location.hash.startsWith('#pool/')) {
-      const regex = /^#pool\/(\d+\+\d+(?:-m\d+(?:-\d+x\d+)?)?)(?:\/(.+))?$/,
-        match = regex.exec(location.hash),
-        member: PoolMember = { id: match![1], blocking: match![2] };
-      if (match) {
+      const [, key, blocking] = location.hash.split('/');
+      const pool = [...this.pools, ...this.homePools].find(p => p.id === key || p.rankTrack === key);
+      if (pool) {
         this.setTab('pools');
-        if (this.me) this.enterPool(member);
-        else setTimeout(() => this.clickPool(member.id), 1500);
+        if (
+          pool.rankTrack === 'threeKingdoms' ||
+          (!this.me && pool.rankTrack && pool.rankTrack !== 'xiangqi')
+        )
+          this.openHomepageMatchmaking(pool);
+        else if (this.me) this.enterPool({ id: pool.id, blocking });
+        else setTimeout(() => this.clickPool(pool.id), 1500);
         history.replaceState(null, '', '/');
       }
     }

@@ -3,7 +3,7 @@ import { hl, type VNode } from '@/view';
 import { colors, type ColorChoice, type ColorProp } from '../color';
 import { option } from '../option';
 
-export const blindModeColorPicker = (colorProp: ColorProp): VNode[] => [
+export const blindModeColorPicker = (colorProp: ColorProp, choices: typeof colors = colors): VNode[] => [
   hl('label', { attrs: { for: 'sf_color' } }, i18n.site.side),
   hl(
     'select#sf_color',
@@ -12,16 +12,16 @@ export const blindModeColorPicker = (colorProp: ColorProp): VNode[] => [
         change: (e: Event) => colorProp((e.target as HTMLSelectElement).value as ColorChoice),
       },
     },
-    colors.map(color => option(color, colorProp())),
+    choices.map(color => option(color, colorProp())),
   ),
 ];
 
-export const colorButtons = (colorProp: ColorProp): VNode =>
+export const colorButtons = (colorProp: ColorProp, choices: typeof colors = colors): VNode =>
   hl('div.config-group', [
     hl('div.label', i18n.site.side),
     hl(
       'group.radio.color-picker.color-cards',
-      colors.map(({ key, name }) =>
+      choices.map(({ key, name }) =>
         hl('div', [
           hl(`input#color-picker-${key}`, {
             attrs: { name: 'color', type: 'radio', value: key, checked: colorProp() === key },

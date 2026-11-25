@@ -1,7 +1,7 @@
 import type { VisiblePiece } from '@lixiangqi/board';
 
 export type Color = 'red' | 'black' | 'green';
-export type EditorVariant = 'xiangqi' | 'jieqi' | 'minixiangqi' | 'manchu' | 'threeKingdoms';
+export type EditorVariant = 'xiangqi' | 'banqi' | 'jieqi' | 'minixiangqi' | 'manchu' | 'threeKingdoms';
 
 export type Redraw = () => void;
 export type Selected = 'pointer' | 'trash' | VisiblePiece;

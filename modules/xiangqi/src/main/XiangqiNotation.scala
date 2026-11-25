@@ -140,6 +140,16 @@ object XiangqiNotation:
 
   private def exportMove(before: State, move: Uci, after: State, style: NotationStyle): String =
     require(before.legalMoves.contains(move), s"Illegal recorded move: ${move.value}")
+    if before.variant == "banqi" then
+      val transition = for
+        game <- Banqi.analysis(before.fen)
+        next <- Banqi.advance(game, move, after.reveal)
+      yield next
+      require(
+        transition.exists(next => next.fen == after.fen && next.ply == after.ply),
+        s"Invalid recorded Banqi position for $move"
+      )
+      return Banqi.record(move, after.reveal)
     val reveal = after.reveal.map(key =>
       Role.byKey.getOrElse(key, throw IllegalArgumentException(s"Invalid reveal: $key"))
     )
@@ -162,8 +172,10 @@ object XiangqiNotation:
   def exportTree(tree: ImportedMoveTree, style: NotationStyle = NotationStyle.English): String =
     val result = tree.headers.getOrElse("result", tree.mainline.state.gameResult.key)
     val headers = tree.headers ++ Map(
-      "variant" -> Fen.board(tree.initialFen).get.variant.name,
-      "moveformat" -> (if style == NotationStyle.Chinese then "Chinese" else "WXF"),
+      "variant" -> tree.mainline.variant.name,
+      "moveformat" -> (if tree.mainline.isBanqi then "Banqi"
+                       else if style == NotationStyle.Chinese then "Chinese"
+                       else "WXF"),
       "ruleset" -> tree.ruleset.key,
       "fen" -> tree.initialFen,
       "result" -> result
@@ -339,9 +351,15 @@ object XiangqiNotation:
                           (),
                           "Invalid reveal notation"
                         )
-                        uci <- XiangqiRules.resolveNotation(current, parts.head)
+                        uci <-
+                          if current.isBanqi then Banqi.readRecord(parts.head).map(_._1)
+                          else XiangqiRules.resolveNotation(current, parts.head)
                         moved <-
-                          if current.isJieqi then
+                          if current.isBanqi then
+                            Banqi
+                              .readRecord(parts.head)
+                              .flatMap((action, reveal) => Banqi.advance(current, action, reveal))
+                          else if current.isJieqi then
                             Jieqi.analysisMove(current, uci, parts.lift(1).filter(_.nonEmpty), parts.lift(2))
                           else XiangqiRules.move(current, uci)
                         game <- current.applyMove(moved)
@@ -481,6 +499,13 @@ object XiangqiNotation:
             index += 1
             while index < text.length && !text(index).isWhitespace && !"(){};[$".contains(text(index)) do
               index += 1
+            // Competition Banqi attaches its one-letter flip outcome to the square.
+            if index + 2 < text.length && text(index) == '(' && text(index + 2) == ')' &&
+              "KABRNCPkabrncp".contains(text(index + 1)) && index >= start + 2 &&
+              "abcd".contains(text(index - 2)) && "12345678".contains(text(index - 1))
+            then
+              index += 3
+              while index < text.length && "!?".contains(text(index)) do index += 1
             emit(Token.Word(text.substring(start, index)))
     error.toLeft(tokens.toVector)
 

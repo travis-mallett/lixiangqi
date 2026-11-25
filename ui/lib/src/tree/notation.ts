@@ -24,7 +24,7 @@ const revealedNotation = (node: TreeNode, parent: TreeNode): string => {
     assertRecordedMovePosition(parent.state, node.uci, node.state);
     notation = node.uci;
   }
-  return notation + jieqiOutcomeSuffix(node.state);
+  return node.state.variant === 'banqi' ? (notation ?? node.uci!) : notation + jieqiOutcomeSuffix(node.state);
 };
 
 const nodeResultAnnotation = (node: TreeNode): string => (node.result ? `[%nodeResult ${node.result}]` : '');
@@ -55,18 +55,25 @@ export function renderTreeNotation(root: TreeNode): string {
       Object.entries(root.metadata ?? {}).map(([key, value]) => [key.toLowerCase(), value]),
     ),
     variant:
-      root.state.variant === 'jieqi'
-        ? 'Jieqi'
-        : root.state.variant === 'manchu'
-          ? 'Manchu+'
-          : root.state.variant === 'minixiangqi'
-            ? 'Mini Xiangqi'
-            : 'Xiangqi',
+      root.state.variant === 'banqi'
+        ? 'Banqi'
+        : root.state.variant === 'jieqi'
+          ? 'Jieqi'
+          : root.state.variant === 'manchu'
+            ? 'Manchu+'
+            : root.state.variant === 'minixiangqi'
+              ? 'Mini Xiangqi'
+              : 'Xiangqi',
+    ...(root.state.variant === 'banqi' ? { moveformat: 'Banqi' } : {}),
     fen: root.fen,
     setup: '1',
     ruleset: root.ruleset,
   };
   const headerNames: Record<string, string> = {
+    first: 'First',
+    second: 'Second',
+    firstarmy: 'FirstArmy',
+    moveformat: 'MoveFormat',
     red: 'Red',
     black: 'Black',
     white: 'White',

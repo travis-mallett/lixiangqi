@@ -66,7 +66,7 @@ final case class ApiAiConfig(
     game(user).dmap { Pov(_, creatorColor) }
 
   def autoVariant =
-    if gameVariant != lila.xiangqi.GameVariant.Jieqi && variant.standard && fen.exists(
+    if gameVariant.supportsCustomPosition && variant.standard && fen.exists(
         _.value != gameVariant.startFen
       )
     then copy(variant = FromPosition)

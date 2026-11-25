@@ -14,15 +14,7 @@ object SetupForm:
 
   import Mappings.*
 
-  private val adjudicationRules = "ruleset" -> optional(
-    text.verifying(
-      "Unsupported Xiangqi ruleset",
-      v =>
-        lila.xiangqi.adjudication.Ruleset
-          .fromKey(v)
-          .exists(lila.xiangqi.GameVariant.Xiangqi.selectableRulesets.contains)
-    )
-  )
+  private val adjudicationRules = "ruleset" -> optional(text)
 
   private val nativeVariant = "gameVariant" -> optional(
     text.verifying(
@@ -49,6 +41,7 @@ object SetupForm:
       adjudicationRules,
       nativeVariant
     )(AiConfig.from)(_.>>)
+      .verifying("Invalid rules for this variant", _.resolvedRuleset.isRight)
       .verifying("invalidFen", _.validFen)
       .verifying(
         "Unsupported variant level",
@@ -93,6 +86,7 @@ object SetupForm:
       .verifying("Time per move requires a real-time clock", _.validMoveTimeLimit)
       .verifying("Invalid speed", _.validSpeed(me.exists(_.isBot)))
       .verifying("Can't create rated unlimited game", !_.isRatedUnlimited)
+      .verifying("Invalid rules for this variant", _.resolvedRuleset.isRight)
       .verifying("invalidFen", _.validFen)
 
   def hookFilled(timeModeString: Option[String])(using me: Option[Me]): Form[HookConfig] =
@@ -106,9 +100,17 @@ object SetupForm:
       "increment" -> increment,
       moveTimeLimit,
       "days" -> days,
-      "color" -> lila.common.Form.empty,
-      nativeVariant
-    )(HookConfig.from)(_.>>)
+      "color" -> lila.common.Form.empty[String],
+      nativeVariant,
+      adjudicationRules
+    )((v, tm, t, i, ml, d, c, gv, rules) => HookConfig.from(v, tm, t, i, ml, d, c, gv) -> rules)(pair =>
+      pair._1.>>.map(_ :* pair._2)
+    )
+      .verifying(
+        "Lobby games use the variant’s default rules",
+        (c, rules) => rules.forall(_ == c.gameVariant.defaultRuleset.key)
+      )
+      .transform[HookConfig](_._1, _ -> None)
       .verifying("Invalid clock", _.validClock)
       .verifying("Time per move requires a real-time clock", _.validMoveTimeLimit)
       .verifying("Can't create rated unlimited game", !_.isRatedUnlimited)
@@ -120,8 +122,10 @@ object SetupForm:
       moveTimeLimit,
       "days" -> optional(days),
       "variant" -> optional(boardApiVariantKeys),
-      "color" -> optional(color)
-    )((t, i, ml, d, v, c) =>
+      "color" -> optional(color),
+      "gameVariant" -> optional(text.verifying(_ == lila.xiangqi.GameVariant.Xiangqi.key)),
+      "ruleset" -> optional(text.verifying(_ == lila.xiangqi.GameVariant.Xiangqi.defaultRuleset.key))
+    )((t, i, ml, d, v, c, _, _) =>
       HookConfig(
         variant = Variant.orDefault(v),
         timeMode = if d.isDefined then TimeMode.Correspondence else TimeMode.RealTime,
@@ -199,6 +203,7 @@ object SetupForm:
         adjudicationRules,
         nativeVariant
       )(ApiConfig.from)(_ => none)
+        .verifying("Invalid rules for this variant", _.resolvedRuleset.isRight)
         .verifying("invalidFen", _.validFen)
         .verifying("Time per move requires a clock", _.validMoveTimeLimit)
         .verifying("can't be rated", _.validRated)
@@ -219,6 +224,7 @@ object SetupForm:
           "Unsupported variant level",
           c => c.gameVariant == lila.xiangqi.GameVariant.Xiangqi || (1 to 10).contains(c.level)
         )
+        .verifying("Invalid rules for this variant", _.resolvedRuleset.isRight)
         .verifying("invalidFen", _.validFen)
         .verifying("Time per move requires a clock", _.validMoveTimeLimit)
 
@@ -250,6 +256,7 @@ object SetupForm:
       adjudicationRules,
       nativeVariant
     )(OpenConfig.from)(_ => none)
+      .verifying("Invalid rules for this variant", _.resolvedRuleset.isRight)
       .verifying("invalidFen", _.validFen)
       .verifying("Time per move requires a clock", _.validMoveTimeLimit)
       .verifying("Only the 15-minute Xiangqi pool is ranked", _.rated.no)

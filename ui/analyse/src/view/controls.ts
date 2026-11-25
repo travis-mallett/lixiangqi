@@ -108,7 +108,7 @@ function clickControl(ctrl: AnalyseCtrl, action: Action, e: MouseEvent) {
   else if (action === 'engine-mode' && !e.target.closest<HTMLElement>('.cmn-toggle')) {
     const mode = e.target.dataset.mode as EngineMode;
     if (ctrl.activeControlBarTool()) {
-      ctrl.explorer.enabled(false);
+      ctrl.explorer.disable();
       ctrl.actionMenu(false);
       if (ctrl.showCeval() || mode !== 'ceval') return ctrl.redraw();
     }

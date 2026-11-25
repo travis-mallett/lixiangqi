@@ -70,7 +70,7 @@ final private class Titivate(
 
   private val unplayedDays = 3
   private def unplayedDate = nowInstant.minusDays(unplayedDays)
-  private def unplayed(g: Game) = !g.bothPlayersHaveMoved && g.createdAt.isBefore(unplayedDate)
+  private def unplayed(g: Game) = !g.pastOpeningGrace && g.createdAt.isBefore(unplayedDate)
 
   private val gameFlow: Flow[GameOrFail, Unit, ?] = Flow[GameOrFail].mapAsyncUnordered(8):
 

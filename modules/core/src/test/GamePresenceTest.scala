@@ -67,3 +67,24 @@ class GamePresenceTest extends munit.FunSuite:
     assertEquals(GamePresence(ai, pools), Some("jieqi-ai") -> None)
     for source <- List(Source.Pool, Source.Friend, Source.Ai) do
       assertEquals(GamePresence(jieqi(source).copy(status = Status.Mate), pools), None -> None)
+
+  test("a ranked Banqi game commits on the first flip for either army"):
+    import lila.xiangqi.{ Banqi, XiangqiRules }
+    for face <- List('K', 'k') do
+      val index = Banqi.inventory.indexOf(face)
+      val layout = face.toString + Banqi.inventory.patch(index, "", 1)
+      val initial = Banqi.initial(Banqi.Deal.read(layout).toOption.get).toOption.get
+      val before = game(Source.Friend).copy(
+        xiangqi = initial,
+        rated = Rated.Yes,
+        rankTrack = Some(RankTrackId.banqi),
+        status = Status.Started
+      )
+      assert(before.abortable)
+      val result = XiangqiRules.move(initial, Xiangqi.Uci.unsafe("a1a1")).toOption.get
+      val after = before.copy(xiangqi = initial.applyMove(result).toOption.get)
+      assert(!after.abortable)
+      assert(after.resignable)
+      assert(after.pastOpeningGrace)
+      assertEquals(after.turnColor, Color.black)
+      assertEquals(GamePresence(after, pools)._1, Some("banqi-friend"))

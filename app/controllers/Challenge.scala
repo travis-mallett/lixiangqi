@@ -112,19 +112,25 @@ final class Challenge(env: Env) extends LilaController(env):
   def accept(id: ChallengeId, color: Option[Color]) = Open:
     Found(api.byId(id)): c =>
       isForMe(c).so:
+        def redirect = Redirect(routes.Round.watcher(c.gameId, color | Color.white))
         allow:
           api
             .accept(c, ctx.req.sid, color)
             .flatMap:
-              _.fold("The Challenge has already been accepted".raise): pov =>
+              case None => // The first player claimed an open challenge and is waiting for an opponent.
+                negotiate(redirect, notFoundJson("The Challenge has already been accepted"))
+              case Some(pov) =>
                 negotiateApi(
-                  html = Redirect(routes.Round.watcher(pov.gameId, color | Color.white)),
+                  html = redirect,
                   api = _ => env.api.roundApi.player(pov, scalalib.data.Preload.none, none).map { Ok(_) }
                 )
             .flatMap(withChallengeAnonCookie(ctx.isAnon, c, owner = false))
         .rescue: err =>
           negotiate(
-            Redirect(routes.Round.watcher(c.gameId, color | Color.white)),
+            env.game.gameRepo
+              .exists(c.gameId)
+              .map: started =>
+                if started then redirect else redirect.flashFailure(err),
             notFoundJson(err)
           )
 
@@ -378,8 +384,7 @@ final class Challenge(env: Env) extends LilaController(env):
           destUser = dest.some,
           rematchOf = none,
           rules = config.rules,
-          ruleset = config.ruleset.fold(lila.xiangqi.adjudication.Ruleset.default): key =>
-            lila.xiangqi.adjudication.Ruleset.fromKey(key).fold(sys.error, identity)
+          ruleset = config.effectiveRuleset
         )
 
   def openCreate = AnonOrScopedBody(parse.anyContent)(_.Challenge.Write, _.Web.Mobile, _.Web.Takex3): ctx ?=>

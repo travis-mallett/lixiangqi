@@ -17,6 +17,7 @@ object PublicSitemap:
         "/variant",
         "/variant/jieqi",
         "/variant/minixiangqi",
+        "/variant/banqi",
         "/variant/manchu",
         "/variant/threeKingdoms",
         "/about",

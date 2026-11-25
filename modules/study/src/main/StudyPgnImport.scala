@@ -23,7 +23,7 @@ object StudyPgnImport:
             .Try {
               require(
                 imported.state.variant != "jieqi",
-                "Open Jieqi notation in the analysis board; study chapters do not support reveal branches"
+                "Open reveal notation in the analysis board; study chapters do not support reveal branches"
               )
               val author = imported.headers
                 .get("annotator")

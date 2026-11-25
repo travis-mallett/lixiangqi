@@ -123,9 +123,12 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
         .txt()}</a>
 </div>"""
 
-  def dasher(me: User) =
+  def dasher(me: User)(using ctx: Context) =
     div(cls := "dasher")(
-      button(id := "user_tag", cls := "toggle link")(me.username),
+      button(id := "user_tag", cls := "toggle link")(
+        span(me.username),
+        ctx.kid.no.option(me.pictureUrl).flatten.map(url => img(src := url, alt := ""))
+      ),
       div(id := "dasher_app", cls := "dropdown")
     )
 

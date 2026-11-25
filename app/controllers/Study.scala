@@ -238,8 +238,9 @@ final class Study(
       )
       lichobile = HTTPRequest.isLichobile(ctx.req)
       nativeTree = lila.study.JsonView.analysisTree(chapter, resolvedAnalysis)
+      variant = pov.game.nativeVariant
       nativeGame = (baseData \ "game").as[JsObject] +
-        ("variant" -> Json.obj("key" -> "xiangqi", "name" -> "Xiangqi", "short" -> "Xiangqi"))
+        ("variant" -> Json.obj("key" -> variant.key, "name" -> variant.name, "short" -> variant.name))
     yield WithChapter(study, chapter) -> JsData(
       study = studyJson,
       analysis = (baseData + ("game" -> nativeGame))

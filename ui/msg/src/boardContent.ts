@@ -34,6 +34,8 @@ export interface BoardSubmission {
 
 const fen =
   /(?:^|[\s(`])((?:[rnbakcphexmRNBAKCPHEXM1-9]+\/){6}(?:(?:[rnbakcphexmRNBAKCPHEXM1-9]+\/){3})?[rnbakcphexmRNBAKCPHEXM1-9]+(?:[ \t]+[wbr](?:[ \t]+[jm-][ \t]+-[ \t]+\d+[ \t]+\d+)?)?)(?=$|[\s)`.!,])/g;
+const banqiFen =
+  /(?:^|[\s(`])((?:[kabrncp*1-4]+\/){7}[kabrncp*1-4]+[ \t]+[wb][ \t]+banqi[ \t]+[-rb][ \t]+\d+[ \t]+\d+[ \t]+(?:[kabrncp]+|-))(?=$|[\s)`.!,])/gi;
 const pgnStart =
   /^(?:[ \t]*\[(?:Event|Site|Date|Round|Red|White|Black|Result|FEN|SetUp|Variant|Ruleset)\s+"|[ \t]*\d+\.(?:\.\.)?\s*\S)/im;
 const pgnEnd = /(?:^|[ \t])(?:1-0|0-1|1\/2-1\/2|\*)(?=[ \t]*$)/m;
@@ -60,7 +62,8 @@ export function boardSources(text: string): BoardSource[] {
   }
   for (const match of text.matchAll(/(?:^|\s)(TK1;[^\s]+)/g))
     result.push({ kind: 'fen', value: match[1], inline: true });
-  for (const match of text.matchAll(fen)) result.push({ kind: 'fen', value: match[1], inline: true });
+  for (const pattern of [fen, banqiFen])
+    for (const match of text.matchAll(pattern)) result.push({ kind: 'fen', value: match[1], inline: true });
   for (const match of messageLinks(text)) {
     const url = new URL(match.url);
     if (['lixiangqi.com', 'www.lixiangqi.com'].includes(url.hostname) && boardPath.test(url.pathname))
@@ -87,11 +90,12 @@ export function replayTree(board: MessageBoard): ImportedMoveTree {
   const ledger = board.frames.flatMap(frame => frame.captured ?? []);
   const state = (frame: BoardFrame) => {
     if (frame.turn === 'green') throw new Error('Three Kingdoms requires its native replay');
-    const jieqi = frame.fen.split(' ')[2] === 'j';
+    const marker = frame.fen.split(' ')[2];
+    const jieqi = marker === 'j';
     return {
       ...frame,
       turn: frame.turn,
-      variant: jieqi ? 'jieqi' : undefined,
+      variant: jieqi ? 'jieqi' : marker === 'banqi' ? 'banqi' : undefined,
       captures: jieqi ? ledger.filter(c => c.ply <= frame.ply) : undefined,
       legalMoves: [],
       gameResult: '*',
@@ -111,7 +115,7 @@ export function replayTree(board: MessageBoard): ImportedMoveTree {
   const root = board.frames[0];
   return {
     initialFen: root.fen,
-    ruleset: 'unrestricted-v1',
+    ruleset: root.fen.split(' ')[2] === 'banqi' ? 'banqi-taiwan-2014-v1' : 'unrestricted-v1',
     annotations: annotations(root),
     state: state(root),
     children,

@@ -103,17 +103,14 @@ final class Cms(env: Env) extends LilaController(env):
       Ok(lila.web.StaticContent.variantsJson)
     )
 
-  def miniXiangqi = Open:
-    Ok.async(views.site.variant.miniXiangqi)
-
-  def manchu = Open:
-    Ok.async(views.site.variant.manchu)
-
-  def threeKingdoms = Open:
-    Ok.async(views.site.variant.threeKingdoms)
-
-  def jieqi = Open:
-    Ok.async(views.site.variant.jieqi)
+  def nativeVariant(board: String) = Open:
+    board match
+      case "threeKingdoms" => Ok.async(views.site.variant.threeKingdoms)
+      case "minixiangqi" => Ok.async(views.site.variant.miniXiangqi)
+      case "manchu" => Ok.async(views.site.variant.manchu)
+      case "jieqi" => Ok.async(views.site.variant.jieqi)
+      case "banqi" => Ok.async(views.site.variant.banqi)
+      case _ => notFound
 
   import chess.variant.Variant
   def variant(key: Variant.LilaKey) = Open:

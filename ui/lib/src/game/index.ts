@@ -29,7 +29,11 @@ export const bothPlayersHavePlayed = (data: {
 }): boolean => playedTurns(data) > 1;
 
 export const abortable = (data: GameData): boolean =>
-  playable(data) && !bothPlayersHavePlayed(data) && !mandatory(data) && !data.game.rules?.includes('noAbort');
+  playable(data) &&
+  !bothPlayersHavePlayed(data) &&
+  !(data.game.variant.key === 'banqi' && data.game.ranked && playedTurns(data) >= 1) &&
+  !mandatory(data) &&
+  !data.game.rules?.includes('noAbort');
 
 export const rematchable = (data: GameData): boolean => !data.game.rules?.includes('noRematch');
 

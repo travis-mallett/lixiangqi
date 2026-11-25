@@ -32,6 +32,8 @@ test('recognizes all duel position formats and the public Three Kingdoms game ro
     'rcnkncr/p1ppp1p/7/7/7/P1PPP1P/RCNKNCR w - - 0 1',
     '5k3/9/9/9/9/2B6/9/2B6/9/2X1K4 w j - 0 1',
     '4k4/9/9/9/4p4/9/9/9/M8/4K4 w m - 0 1',
+    '1r*k/1*P1/*a1*/2C1/n*2/1R1p/**1b/K1*1 w banqi b 4 14 ABRNpcnp',
+    '4/4/4/4/4/1p2/k3/P2K w banqi r 0 1 -',
   ])
     assert.deepEqual(boardSources(`Position: ${value} here`), [{ kind: 'fen', value, inline: true }]);
   const value = 'https://lixiangqi.com/three-kingdoms/game/sO7KUrjr';

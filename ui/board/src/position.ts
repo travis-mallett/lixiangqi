@@ -71,7 +71,7 @@ export function recordedPosition(position: BoardPosition, move: string, active: 
 export function positionFromFen(fen: string, definition: BoardDefinition): BoardPosition {
   const geometry = definition.geometry;
   if (geometry.kind === 'graph') throw new Error('FEN requires a rectangular board');
-  const [placement, turn = 'w'] = fen.trim().split(/\s+/);
+  const [placement, turn = 'w', , firstArmy] = fen.trim().split(/\s+/);
   const ranks = placement.split('/');
   if (ranks.length !== geometry.rows || !['w', 'b'].includes(turn)) throw new Error('Invalid board position');
   const pieces = new Map<string, VisiblePiece>();
@@ -105,5 +105,6 @@ export function positionFromFen(fen: string, definition: BoardDefinition): Board
     }
     if (file !== geometry.columns) throw new Error('Invalid board width');
   });
-  return { board: definition.id, pieces, active: definition.participants[turn === 'w' ? 0 : 1] };
+  const red = definition.id === 'banqi' && firstArmy === 'b' ? turn === 'b' : turn === 'w';
+  return { board: definition.id, pieces, active: definition.participants[red ? 0 : 1] };
 }

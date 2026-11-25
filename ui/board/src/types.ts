@@ -116,6 +116,7 @@ export interface BoardTransition {
   readonly effectTargets?: Partial<Record<BoardEffect, readonly Participant[]>>;
   readonly effectRoutes?: Partial<Record<BoardEffect, readonly (readonly [Participant, Participant])[]>>;
   readonly winners?: readonly Participant[];
+  readonly captureToRail?: { readonly square: Location; readonly symbol: string };
 }
 
 export interface BoardPresentation {

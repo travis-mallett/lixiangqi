@@ -28,7 +28,7 @@ case class FriendConfig(
   def accountTrack =
     lila.core.rank.RankTrackId.forMode(lila.core.rank.RankTrackId.of(gameVariant), makeDaysPerTurn.isDefined)
   def validRated = rated.no || (variant.standard && fen.isEmpty && color == TriColor.Random &&
-    effectiveRuleset == gameVariant.defaultRuleset && lila.core.game.RankedGame.matchesClock(
+    resolvedRuleset.contains(gameVariant.defaultRuleset) && lila.core.game.RankedGame.matchesClock(
       lila.core.rank.RankTrackId.of(gameVariant),
       makeClock,
       makeMoveTimeLimit

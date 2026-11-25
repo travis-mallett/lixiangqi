@@ -12,6 +12,7 @@ object RankPolicy:
     val track = RankTrackId.live(account)
     if track == RankTrackId.jieqi then JieqiRank
     else if track == RankTrackId.minixiangqi then MiniXiangqiRank
+    else if track == RankTrackId.banqi then BanqiRank
     else if track == RankTrackId.manchu then ManchuRank
     else if track == RankTrackId.threeKingdoms then ThreeKingdomsRank
     else XiangqiRank

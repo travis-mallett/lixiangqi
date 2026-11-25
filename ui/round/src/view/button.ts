@@ -27,8 +27,13 @@ export interface ButtonState {
   overrideHint?: string;
 }
 
-function poolUrl(clock: ClockData, moveTime?: MoveTimeLimitConfig, blocking?: PlayerUser) {
-  const id = poolId(`${clock.initial / 60}+${clock.increment}`, moveTime);
+function poolUrl(
+  variant: VariantKey,
+  clock: ClockData,
+  moveTime?: MoveTimeLimitConfig,
+  blocking?: PlayerUser,
+) {
+  const id = variant === 'standard' ? poolId(`${clock.initial / 60}+${clock.increment}`, moveTime) : variant;
   return '/#pool/' + id + (blocking ? '/' + blocking.id : '');
 }
 
@@ -275,7 +280,7 @@ export function followUp(ctrl: RoundController): VNode {
           hook: bind('click', () => {
             if (d.game.source === 'local') d.local?.newOpponent();
             else if (d.game.source === 'pool')
-              location.href = poolUrl(d.clock!, d.game.moveTime, d.opponent.user);
+              location.href = poolUrl(d.game.variant.key, d.clock!, d.game.moveTime, d.opponent.user);
             else location.href = '/?hook_like=' + d.game.id;
           }),
         },

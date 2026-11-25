@@ -47,6 +47,13 @@ final class GameRepo(val coll: Coll)(using Executor):
       .cursor[KingdomGame](ReadPref.sec)
       .list(limit.max(1).min(100))
   def countPlaying(user: UserId): Fu[Int] = coll.countSel($doc("playingUsers" -> user))
+
+  def countInPlay(playerBoards: Set[(GameId, UserId)]): Fu[Int] =
+    val attended = playerBoards.groupMap(_._1)(_._2).iterator.map: (id, users) =>
+      $id(id) ++ $doc("playingUsers".$in(users))
+    val realtime = List[Bdoc]("clock.config.initialSeconds".$gt(0), "clock.config.incrementSeconds".$gt(0))
+    coll.countSel($doc("finished" -> false) ++ $or((realtime ++ attended)*))
+
   def playingLive(user: UserId): Fu[Boolean] =
     coll.exists($doc("playingUsers" -> user, "clock.config.days" -> $doc("$exists" -> false)))
   def activeFor(user: UserId): Fu[List[KingdomGame]] =

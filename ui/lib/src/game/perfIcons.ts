@@ -9,6 +9,7 @@ const perfIcons: Record<Exclude<Perf, 'fromPosition'>, LiconValue> = {
   correspondence: licon.PaperAirplane,
   xiangqi: licon.StudyBoard,
   jieqi: licon.StudyBoard,
+  banqi: licon.StudyBoard,
   minixiangqi: licon.StudyBoard,
   manchu: licon.Swords,
   threeKingdoms: licon.StudyBoard,

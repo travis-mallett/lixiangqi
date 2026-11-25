@@ -335,7 +335,7 @@ test('the common analysis variant picker includes Three Kingdoms', () => {
   });
   assert.deepEqual(
     [...select.options].map(option => option.value),
-    ['xiangqi', 'jieqi', 'minixiangqi', 'manchu', 'threeKingdoms'],
+    ['xiangqi', 'banqi', 'jieqi', 'minixiangqi', 'manchu', 'threeKingdoms'],
   );
   select.value = 'threeKingdoms';
   select.dispatchEvent(new window.Event('change'));

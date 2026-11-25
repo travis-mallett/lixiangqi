@@ -495,6 +495,12 @@ final class GameRepo(c: Coll)(using Executor) extends lila.core.game.GameRepo(c)
       initialFen(game).dmap { game -> _ }
 
   def count(query: Query.type => Bdoc): Fu[Int] = coll.countSel(query(Query))
+  def countInPlay(playerBoards: Set[GameId]): Fu[Int] =
+    val realtime = count(_.realtimeInPlay)
+    // Separate the partial clock index scan from the primary-key lookup on attended boards.
+    if playerBoards.isEmpty then realtime
+    else realtime.zip(count(_.clocklessInPlay(playerBoards))).map(_ + _)
+
   def countSec(query: Query.type => Bdoc): Fu[Int] = coll.secondary.countSel(query(Query))
 
   private[game] def favoriteOpponents(

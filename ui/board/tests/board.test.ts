@@ -190,7 +190,8 @@ test('a cell board uses the same renderer and concealed pieces never gain a role
 });
 
 test('invalid definitions and positions fail before they can silently display another game', () => {
-  assert.throws(() => boardDefinition('banqi'), /Unsupported board/);
+  assert.throws(() => boardDefinition('unknown'), /Unsupported board/);
+  assert.equal(boardDefinition('banqi').geometry.id, 'banqi-4x8');
   assert.throws(() => positionFromFen('8/8/8/8/8/8/8/8 w', standardXiangqi), /Invalid board position/);
   assert.throws(() => positionFromFen('9/9/9/9/9/9/9/9/9/8 w', standardXiangqi), /Invalid board width/);
   const board = mount();

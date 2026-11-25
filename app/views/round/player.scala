@@ -48,7 +48,7 @@ def playerBootstrap(
   )
 
 private def pageTitle(pov: Pov)(using ctx: Context) =
-  val opponentNameOrZen = if ctx.pref.isZen || ctx.pref.isZenAuto then "ZEN" else playerText(pov.opponent)
+  val opponentNameOrZen = if ctx.pref.isZen || ctx.pref.isZenAuto then "ZEN" else playerText(!pov)
   s"${trans.site.play.txt()} $opponentNameOrZen"
 
 private def moduleData(

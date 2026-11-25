@@ -94,7 +94,7 @@ def games(
                         )
                     ,
                     td(dataSort := pov.opponent.rank.fold(Int.MinValue)(_.score.value))(
-                      playerLink(pov.opponent, withDiff = false, mod = true)
+                      playerLink(pov.opponent, withDiff = false, mod = true, banqi = pov.game.isBanqi)
                     ),
                     td(
                       dataSort := pov.game.clock.fold(

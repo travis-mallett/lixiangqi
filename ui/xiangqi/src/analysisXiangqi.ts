@@ -14,12 +14,13 @@ import {
 import { PikafishBrowserEngine, type EngineAnalysis, type PikafishStatus } from 'lib/ceval';
 import { engineProgress, engineLoadingText, enginePreparing } from 'lib/ceval/engineProgress';
 import { type XiangqiNotationStyle } from 'lib/game';
+import { banqiEngineName } from 'lib/game/aiLevel';
+import { analyseBanqiPosition, banqiRevealChoices } from 'lib/game/banqi';
 import { formatMs } from 'lib/game/clock/clockWidget';
-import { jieqiObservation, jieqiOutcomeSuffix, revealChoices, JIEQI_START_FEN } from 'lib/game/jieqi';
-import { MANCHU_START_FEN } from 'lib/game/manchu';
-import { MINI_XIANGQI_START_FEN } from 'lib/game/minixiangqi';
+import { jieqiObservation, jieqiOutcomeSuffix, revealChoices } from 'lib/game/jieqi';
 import { playMoveNavigationSound } from 'lib/game/replay/moveNavigationSound';
 import { isRecordedClockTimeline, type RecordedClockTimeline } from 'lib/game/replay/recordedClockPlayback';
+import { banqiRail, banqiTurn } from 'lib/game/view/banqiRail';
 import { capturedPieces } from 'lib/game/view/captures';
 import { chooseReveal } from 'lib/game/view/reveal';
 import { requestXiangqi } from 'lib/game/xiangqiApi';
@@ -86,7 +87,12 @@ import {
 } from './analysisTabs';
 import { AnalysisTabsView } from './analysisTabsView';
 import { AnalysisTreeView } from './analysisTreeView';
-import { analysisVariantPicker, bindAnalysisStartReset, useNativeReplay } from './analysisVariant';
+import {
+  analysisStartFen,
+  analysisVariantPicker,
+  bindAnalysisStartReset,
+  useNativeReplay,
+} from './analysisVariant';
 import { annotationSourceLabel } from './gameCatalog';
 import { XIANGQI_START_FEN } from './index';
 import { renderXiangqiNotation } from './notation';
@@ -101,7 +107,7 @@ interface MoveResponse extends RulesState {
 export interface AnalysisBootstrap extends BoardPreferences {
   gameId?: string;
   engineAllowed?: boolean;
-  variant?: 'xiangqi' | 'jieqi' | 'minixiangqi' | 'manchu';
+  variant?: 'xiangqi' | 'banqi' | 'jieqi' | 'minixiangqi' | 'manchu';
   ruleset?: string;
   title?: string;
   headers?: Record<string, string>;
@@ -417,6 +423,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
   let engineVariant: ReturnType<typeof analysisEngineConfig>['variant'] | undefined;
   function engineForState(): PikafishBrowserEngine {
     const variant = engineConfig().variant;
+    if (variant === 'banqi') throw Error('Banqi uses the public-position engine');
     if (browserEngine && engineVariant === variant && selectedJieqiEngine === engineSettings.jieqiEngine)
       return browserEngine;
     browserEngine?.destroy();
@@ -615,7 +622,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
       ground.setInteraction(
         xiangqiPlay(
           ground,
-          state.turn,
+          position.active,
           state.legalMoves,
           onMove,
           bootstrap,
@@ -627,12 +634,16 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     const turn = state.turn === 'red' ? 'Red' : 'Black';
     statusElement.textContent =
       state.gameResult === '*'
-        ? `${turn} to move${state.check ? ' — check' : ''}`
+        ? state.variant === 'banqi'
+          ? banqiTurn(state.fen)
+          : `${turn} to move${state.check ? ' — check' : ''}`
         : `Game over: ${state.gameResult}`;
     statusElement.classList.remove('error');
     fenInput.value = editor.fen ?? state.fen;
     requiredElement('#xiangqi-edit-position span').textContent = i18n.site.boardEditor;
     renderEditorErrors();
+    notationInput.labels[0].textContent =
+      state.variant === 'banqi' ? i18n.site.banqiRecordLabel : i18n.site.analysisRecordLabel;
     boardElement.dataset.turn = state.turn;
     boardElement.dataset.legalMoves = String(state.legalMoves.length);
     boardElement.dataset.path = activePath;
@@ -685,7 +696,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     engineSelection.hidden = !jieqi;
     engineSelection.querySelector('select')!.value = engineSettings.jieqiEngine ?? 'abjchess';
     updateAnalysisEngineIdentity(sharedEngine, evalElement, config);
-    suggestions.setPreviewEnabled(!jieqi && engineSettings.showLinesPreview);
+    suggestions.setPreviewEnabled(!jieqi && state.variant !== 'banqi' && engineSettings.showLinesPreview);
     if (state.variant === 'xiangqi') databaseExplorer.setPosition(position);
     arrowCadence.reset(engineConfig().arrowBudget(engineSettings), engineSettings.arrowUpdates);
     arrowPositionFen = state.fen;
@@ -697,6 +708,23 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     renderEngineProgress();
 
     if (engineAllowed && engineEnabledElement.checked && state.gameResult === '*') {
+      if (state.variant === 'banqi') {
+        engineStatusElement.textContent =
+          banqiEngineName + ' · ' + i18n.site.banqiEngineScore(i18n.site.banqiFirstSeat);
+        try {
+          const result = await analyseBanqi(node, explorerController.signal);
+          if (generation !== toolsGeneration) return;
+          engineProgressDepth = result.depth;
+          renderEngineProgress();
+          rememberEvaluation(node, result);
+          suggestions.renderEngine(result, moves => void onMoves(moves), true);
+          treeView.render({ scrollToActive: false });
+          chart.render(tree, activePath);
+        } catch (err) {
+          if (generation === toolsGeneration) showError(err);
+        }
+        return;
+      }
       if (engineSettings.useCloud && state.variant === 'xiangqi') {
         engineStatusElement.textContent = i18n.site.cloudAnalysis;
         const cloud = await analysisCloud.get(position, explorerController.signal);
@@ -755,7 +783,12 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     let created = false;
     try {
       for (const move of moves) {
-        const choices = currentState().variant === 'jieqi' ? revealChoices(currentState(), move) : [];
+        const choices =
+          currentState().variant === 'banqi'
+            ? banqiRevealChoices(currentState().fen, move)
+            : currentState().variant === 'jieqi'
+              ? revealChoices(currentState(), move)
+              : [];
         const reveal = choices.length ? await chooseReveal(choices, currentState().turn) : undefined;
         if (choices.length && !reveal) break;
         const captureChoices =
@@ -894,14 +927,7 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     let failure: unknown;
     try {
       const state = await requestXiangqi<RulesState>('/api/analysis/position', {
-        initialFen:
-          variant === 'jieqi'
-            ? JIEQI_START_FEN
-            : variant === 'minixiangqi'
-              ? MINI_XIANGQI_START_FEN
-              : variant === 'manchu'
-                ? MANCHU_START_FEN
-                : XIANGQI_START_FEN,
+        initialFen: analysisStartFen(variant),
         moves: [],
       });
       syncActiveTab();
@@ -1118,11 +1144,25 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
     }
   }
 
+  function analyseBanqi(node: XiangqiPositionNode, signal: AbortSignal): Promise<EngineAnalysis> {
+    return analyseBanqiPosition(
+      getNodeList(tree, node.path).map(n => n.fen),
+      node.state.legalMoves,
+      Math.min(engineSettings.multiPv, engineConfig().maxMultiPv),
+      signal,
+    );
+  }
+
   function analyseWithBrowser(
     node: XiangqiPositionNode,
     signal: AbortSignal,
     onSnapshot: (analysis: EngineAnalysis, final: boolean) => void,
   ): Promise<EngineAnalysis> {
+    if (node.state.variant === 'banqi')
+      return analyseBanqi(node, signal).then(result => {
+        onSnapshot(result, true);
+        return result;
+      });
     return new Promise((resolve, reject) => {
       const abort = () => {
         browserEngine?.stop();
@@ -1180,6 +1220,15 @@ async function main(bootstrap: AnalysisBootstrap): Promise<void> {
   let captureNodes: [HTMLElement | VNode, HTMLElement | VNode] = [topCaptures, bottomCaptures];
   function renderCaptures(state: RulesState): void {
     const bottom = ground.getPresentation().perspective === 'red' ? 'red' : 'black';
+    const isBanqi = state.variant === 'banqi';
+    boardFrame.parentElement!.classList.toggle('banqi-frame', isBanqi);
+    if (isBanqi) {
+      captureNodes = [
+        patchCaptures(captureNodes[0], banqiRail(state.fen, bottom, true)),
+        patchCaptures(captureNodes[1], banqiRail(state.fen, bottom, false)),
+      ];
+      return;
+    }
     const ledger = state.variant === 'jieqi' ? (state.captures ?? []) : [];
     captureNodes = [
       patchCaptures(captureNodes[0], capturedPieces(ledger, bottom, state.ply)),

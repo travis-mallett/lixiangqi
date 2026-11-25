@@ -25,6 +25,16 @@ const reasons: Record<string, [string, string]> = {
 };
 
 export function adjudicationText(reason?: string | null): string | undefined {
+  switch (reason) {
+    case 'elimination':
+      return i18n.site.banqiElimination;
+    case 'immobilization':
+      return i18n.site.banqiImmobilization;
+    case 'noProgress':
+      return i18n.site.banqiQuietDraw;
+    case 'threefold-repetition':
+      return i18n.site.banqiThreefold;
+  }
   return reason ? reasons[reason]?.[document.documentElement.lang.startsWith('zh') ? 1 : 0] : undefined;
 }
 

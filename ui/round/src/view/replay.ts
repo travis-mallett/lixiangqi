@@ -205,7 +205,9 @@ function initMessage(ctrl: RoundController) {
     !d.player.spectator &&
     hl('div.message', { attrs: dataIcon(licon.InfoCircle) }, [
       hl('div', [
-        i18n.site[d.player.color === 'white' ? 'youPlayTheWhitePieces' : 'youPlayTheBlackPieces'],
+        d.game.variant.key === 'banqi'
+          ? i18n.site[d.player.color === 'white' ? 'banqiFirstSeat' : 'banqiSecondSeat']
+          : i18n.site[d.player.color === 'white' ? 'youPlayTheWhitePieces' : 'youPlayTheBlackPieces'],
         d.player.color === 'white' && [hl('br'), hl('strong', i18n.site.itsYourTurn)],
       ]),
     ])

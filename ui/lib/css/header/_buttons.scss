@@ -128,16 +128,27 @@
   @extend %flex-center-nowrap, %nowrap-ellipsis;
 
   max-width: 40vw;
-  display: inline-block;
+  gap: 0.5rem;
 
-  &::after {
+  > span {
+    @extend %nowrap-ellipsis;
+  }
+
+  > img {
+    width: 2rem;
+    height: 2rem;
+    flex: none;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  &:where(:not(:has(> img)))::after {
     @include transition(color);
     @extend %data-icon;
 
     color: color-mix(in oklab, $c-font 85%, $c-dimmer);
     content: $licon-AccountCircle;
     font-size: 2rem;
-    margin-left: 0.5rem;
   }
 
   &:hover::after {

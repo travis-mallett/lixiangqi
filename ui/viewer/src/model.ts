@@ -118,21 +118,20 @@ export async function loadViewerTree(source: ViewerSource, signal?: AbortSignal)
   // In particular, teaching diagrams may intentionally omit both generals.
   if (source.pgn === undefined && !source.moves?.length) {
     const fen = source.initialFen || XIANGQI_START_FEN;
-    const position = positionFromFen(fen, boardDefinitionForFen(fen));
     const fields = fen.trim().split(/\s+/);
     const fullmove = Number(fields[5] || 1);
     const ply =
-      (Number.isSafeInteger(fullmove) && fullmove > 0 ? fullmove - 1 : 0) * 2 +
-      Number(position.active === 'black');
+      (Number.isSafeInteger(fullmove) && fullmove > 0 ? fullmove - 1 : 0) * 2 + Number(fields[1] === 'b');
     return importedViewerTree(
       {
         initialFen: fen,
-        ruleset: 'unrestricted-v1',
+        ruleset: fields[2] === 'banqi' ? 'banqi-taiwan-2014-v1' : 'unrestricted-v1',
         annotations: { comments: [], shapes: [] },
         state: {
           fen,
+          variant: fields[2] === 'banqi' ? 'banqi' : undefined,
           ply,
-          turn: position.active === 'black' ? 'black' : 'red',
+          turn: fields[1] === 'b' ? 'black' : 'red',
           legalMoves: [],
           check: false,
           gameResult: '*',

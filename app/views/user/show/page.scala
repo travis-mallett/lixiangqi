@@ -112,6 +112,7 @@ object page:
     filter match
       case GameFilter.jieqi => "Jieqi (揭棋)"
       case GameFilter.minixiangqi => trans.site.miniXiangqi.txt()
+      case GameFilter.banqi => trans.site.banqi.txt()
       case GameFilter.manchu => trans.site.manchu.txt()
       case GameFilter.threeKingdoms => trans.site.threeKingdoms.txt()
       case GameFilter.all => transLocalize(trans.site.nbGames, u.count.game)

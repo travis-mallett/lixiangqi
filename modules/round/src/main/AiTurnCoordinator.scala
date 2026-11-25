@@ -96,7 +96,7 @@ private[round] final class AiTurnCoordinator(
         tooManyPlies()
 
   private def currentKey(game: Game): Option[AiTurnKey] =
-    if game.playableByAi then AiTurnKey.from(game) else none
+    if game.playableByAi && !game.isBanqi then AiTurnKey.from(game) else none
 
 private[round] object AiTurnCoordinator:
 

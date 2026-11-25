@@ -2,7 +2,7 @@
 import type { TreeNodeBase, TreeNodeId, TreePath } from './types';
 
 const move =
-  /^(?!.*~$)[a-i](?:10|[1-9])[a-i](?:10|[1-9])(?:~(?:chariot|horse|elephant|advisor|cannon|soldier)?(?:~(?:chariot|horse|elephant|advisor|cannon|soldier))?)?$/;
+  /^(?!.*~$)[a-i](?:10|[1-9])[a-i](?:10|[1-9])(?:~[KABRNCPkabrncp]|~(?:chariot|horse|elephant|advisor|cannon|soldier)?(?:~(?:chariot|horse|elephant|advisor|cannon|soldier))?)?$/;
 export const root: TreePath = '';
 
 export function ids(path: TreePath): TreeNodeId[] {

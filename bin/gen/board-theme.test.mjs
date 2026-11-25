@@ -38,6 +38,12 @@ for (const [index, parent] of Object.keys(boardThemes).entries()) {
         assert.equal(Number(inherited(frame, 'stroke-width')), style.frame.width);
         assert.equal(inherited(frame, 'stroke'), style.frame.ink);
       }
+      if (variant === 'banqi' && parent !== 'xiangqi-wudang') {
+        const decoration = doc.getElementById('banqi-outer-decoration');
+        assert.ok(decoration?.querySelector('#banqi-outer-border'));
+        assert.ok(doc.getElementById('banqi-corner-knot'));
+        assert.equal(decoration.querySelectorAll('use[href="#banqi-corner-knot"]').length, 4);
+      }
       source.window.close();
       output.window.close();
     });

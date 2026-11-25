@@ -18,6 +18,7 @@ object StepBuilder:
           "sanZh" -> game.chineseWxf.lift(index - 1),
           "fen" -> state.fen,
           "check" -> state.check,
+          "reveal" -> state.reveal,
           "mate" -> state.mate,
           "captures" -> state.captures
         )

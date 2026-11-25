@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { afterEach, mock, test } from 'node:test';
 
+import { BANQI_START_FEN, banqiInventory } from '../src/game/banqi';
 import { XIANGQI_START_FEN } from '../src/game/xiangqi';
 
 const sent: unknown[][] = [];
@@ -24,6 +25,7 @@ afterEach(() => {
 });
 
 const movedFen = 'rnbakabnr/9/1c5c1/p1p1p1p1p/9/P8/2P1P1P1P/1C5C1/9/RNBAKABNR b - - 0 1';
+const flippedFen = 'n***/****/****/****/****/****/****/**** b banqi b 0 1 ' + banqiInventory.replace('n', '');
 
 for (const [fen, perspective, from, to, participant] of [
   [
@@ -78,6 +80,49 @@ function mini(): HTMLElement {
   boards.push(node);
   return node;
 }
+
+test(
+  'a recorded Banqi flip shows its public face on the miniature and updates the rails',
+  { timeout: 3000 },
+  async () => {
+    const node = mini();
+    node.dataset.state = flippedFen + ',black,a8a8';
+    node.dataset.replayInitialFen = BANQI_START_FEN;
+    node.dataset.replayMoves = 'a8a8';
+    node.dataset.replayPositions = flippedFen;
+    node.dataset.recordedClock = JSON.stringify({
+      startPly: 0,
+      positions: [
+        { white: 100, black: 100 },
+        { white: 99, black: 100 },
+      ],
+      delays: [1],
+    });
+    const seen: string[] = [];
+    await new Promise<void>(resolve =>
+      initMiniGame(node, undefined, fen => {
+        seen.push(fen);
+        if (fen === flippedFen) resolve();
+      }),
+    );
+    assert.equal(seen[0], BANQI_START_FEN);
+    const position = getBoard(node.querySelector('.cg-wrap')!)!.position();
+    assert.equal(position.board, 'banqi');
+    assert.equal(position.pieces.get('a8')?.role, 'horse');
+    assert.equal(position.pieces.size, 32);
+  },
+);
+
+test('a blindfold miniature stays empty on a live Banqi update', () => {
+  const node = mini();
+  node.dataset.state = '4/4/4/4/4/4/4/4 w banqi - 0 1 -,white,';
+  node.dataset.blindfold = '1';
+  initMiniGame(node);
+  updateMiniGame(node, { fen: flippedFen, lm: 'a8a8' });
+  const position = getBoard(node.querySelector('.cg-wrap')!)!.position();
+  assert.equal(position.board, 'banqi');
+  assert.equal(position.pieces.size, 0);
+});
 
 for (const [name, fen, boardId, count] of [
   ['Mini Xiangqi', 'rcnkncr/p1ppp1p/7/7/7/P1PPP1P/RCNKNCR w - - 0 1', 'minixiangqi', 24],

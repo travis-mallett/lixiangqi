@@ -76,7 +76,10 @@ object BSONHandlers:
       states = r.get[Vector[Xiangqi.State]]("states"),
       // A missing identifier is historical behavior, never the mutable new-game default.
       ruleset = if r.contains("ruleset") then r.get[Ruleset]("ruleset") else Ruleset.Unrestricted,
-      deal = r.getO[lila.xiangqi.Jieqi.Deal]("deal").map(_.validate.fold(sys.error, identity))
+      deal = r.getO[lila.xiangqi.Jieqi.Deal]("deal").map(_.validate.fold(sys.error, identity)),
+      banqiDeal = r
+        .getO[String]("banqiDeal")
+        .map(value => lila.xiangqi.Banqi.Deal.read(value).fold(sys.error, identity))
     )
     def writes(w: BSON.Writer, game: Xiangqi.Game) = BSONDocument(
       "initialFen" -> game.initialFen,
@@ -84,7 +87,8 @@ object BSONHandlers:
       "wxf" -> game.wxf,
       "states" -> game.states,
       "ruleset" -> game.ruleset,
-      "deal" -> game.deal
+      "deal" -> game.deal,
+      "banqiDeal" -> game.banqiDeal.map(_.encoded)
     )
 
   private[game] given gameDrawOffersHandler: BSONHandler[GameDrawOffers] = tryHandler[GameDrawOffers](

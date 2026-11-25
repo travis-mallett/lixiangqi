@@ -34,7 +34,7 @@ private[inbox] final class MsgBoards(env: Env):
               validSource(draft.source) && (!draft.source.inline || body.contains(draft.source.bodyValue)) &&
                 draft.marks.size <= 64 && draft.marks.map(_.shapes.size).sum <= 128 &&
                 draft.marks.map(_.ply).distinct.size == draft.marks.size &&
-                draft.marks.forall(mark => mark.shapes.forall(validShape(_, mark.fen)))
+                draft.marks.forall(mark => mark.fen.length <= 10000 && validShapes(mark.shapes, mark.fen))
     ).flatMap: drafts =>
       limit(me.userId, invalid[Vector[MsgBoard]]("limited"), cost = drafts.size):
         drafts.traverse: draft =>
@@ -193,7 +193,11 @@ private[inbox] final class MsgBoards(env: Env):
                           if analysis then s"/${id.value}/$color/analysis" else s"/${id.value}/$color"
                         def playerName(p: lila.core.game.Player) =
                           lila.game.Namer
-                            .recordedPlayerText(p, p.userId.map(env.user.lightUserApi.syncFallback(_)))
+                            .recordedPlayerText(
+                              p,
+                              p.userId.map(env.user.lightUserApi.syncFallback(_)),
+                              game.isBanqi
+                            )
                         val players = s"${playerName(game.whitePlayer)} vs. ${playerName(game.blackPlayer)}"
                         val title = (List(players, game.nativeVariant.name) ++ game.clock.map(_.config.show))
                           .mkString(" · ")
@@ -222,18 +226,19 @@ object MsgBoards:
       case _ => false)
 
   private val brushes = Set("green", "red", "blue", "yellow")
-  private def validShape(shape: MsgBoard.Shape, fen: String) =
+  private def validShapes(shapes: Vector[MsgBoard.Shape], fen: String) =
+    lazy val variant = Xiangqi.Fen.board(fen).map(_.variant)
     def valid(key: String) =
       if fen.startsWith("TK1;") then Location.fromKey(key).exists(_.key == key)
       else
         Xiangqi.Square
           .fromKey(key)
-          .exists(square =>
-            fen.takeWhile(_ != ' ').count(_ == '/') != 6 || (square.file < 7 && square.rank <= 7)
-          )
-    brushes(shape.brush) &&
-    valid(shape.orig) &&
-    shape.dest.forall(dest => dest != shape.orig && valid(dest))
+          .exists(square => variant.exists(v => square.file < v.files && square.rank <= v.ranks))
+    shapes.forall(shape =>
+      brushes(shape.brush) && valid(shape.orig) && shape.dest.forall(dest =>
+        dest != shape.orig && valid(dest)
+      )
+    )
 
   private def kingdomFrame(p: Position, index: Int, action: Option[String]) =
     MsgBoard.Frame(

@@ -21,6 +21,7 @@ final class TvUi(helpers: lila.ui.Helpers)(
       channel match
         case Tv.Channel.Xiangqi => trans.site.xiangqi.txt()
         case Tv.Channel.Jieqi => trans.site.jieqi.txt()
+        case Tv.Channel.Banqi => trans.site.banqi.txt()
         case Tv.Channel.Manchu => trans.site.manchu.txt()
         case Tv.Channel.MiniXiangqi => trans.site.miniXiangqi.txt()
         case Tv.Channel.ThreeKingdoms => trans.site.threeKingdoms.txt()
@@ -141,7 +142,7 @@ final class TvUi(helpers: lila.ui.Helpers)(
           div(cls := "game__meta__players"):
             game.players.mapList: p =>
               div(cls := s"player color-icon is ${p.color.name} text"):
-                playerLink(p, withOnline = false, withDiff = true, withBerserk = true)
+                playerLink(p, withOnline = false, withDiff = true, withBerserk = true, banqi = game.isBanqi)
         ),
         game.tournamentId.map: tourId =>
           st.section(cls := "game__tournament-link"):

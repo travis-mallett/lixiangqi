@@ -4,6 +4,75 @@ The website owns shared game semantics, API contracts, engine release pins and o
 board artwork. Each Flutter app owns its navigation, responsive layout and product scope.
 Reconciliation means preserving the applicable behavior, not reproducing web screens.
 
+## Homepage games in play
+
+The lobby counts each started, hosted realtime game across all variants. A
+correspondence or unlimited game contributes while a participant has the player
+board open. For Three Kingdoms, the seat must still be active. TV, spectator
+streams and lobby previews contribute no attendance. Connected guest Three
+Kingdoms computer boards use their browser-local game ID until play ends.
+
+LiXiangQi Mobile opens the participant NDJSON stream for Standard realtime,
+correspondence and unlimited play. Xiangqi Kids uses the same participant
+stream for its Standard games and has no correspondence lobby. Both inherit
+the server fix. Neither native interface displays this homepage statistic.
+Deploy the website, round assets, socket gateway and additive MongoDB indexes
+together. Neither app needs a release or a checkpoint advance.
+
+Reviewed website base `0b80c22905`, native query blob `7fd8af4f79`, Three
+Kingdoms repository blob `a3c3380b00` and combined gateway patch `fb8d3b7750`.
+The server and gateway stage builds, production assets, 803 UI tests and 39
+gateway tests passed. Server regressions exercised stream teardown, snapshot
+parsing, game lifecycles, time controls and seat elimination against MongoDB.
+On the staged homepage, one realtime game and one idle correspondence game
+showed **1**. Opening TV and a spectator board kept it at **1**. Opening two
+player tabs raised it to **2** until the last player tab closed. Opening the
+native mobile player stream raised it to **2** again. Overlapping the stream
+with a player tab and closing both returned the counter to **1**.
+
+## Leaderboard online population
+
+Websocket patch blob `ecc1f58d10` supplies the homepage total, registered account
+count and up to 50 account IDs from the same presence snapshot. The website
+renders the registered total and the anonymous remainder. Adult mobile reads
+the localized breakdown from the leaderboard on load and refresh. Kids has no
+community leaderboard and continues to contribute its existing socket presence.
+Deploy the website and websocket service together. The adult app update can
+follow. Gateway presence, server snapshot parsing and native leaderboard tests
+cover this change. No data migration or reconciliation checkpoint advance.
+
+## Windows deployment preflight
+
+Gateway preparation helper blob `f11c0aec26` passes Git's reverse-check option
+as a single argument in Windows PowerShell 5.1. The open-input regression test
+covers a fresh checkout, an already applied patch and an upgrade. The interactive
+deployment command passed preflight. This local build-tool fix needs no server
+migration or mobile release. Neither LiXiangQi Mobile nor Xiangqi Kids runs the
+Windows helper or receives a protocol change from this fix.
+
+## Website account menu picture
+
+Header blob `f001a97ba5` uses the signed-in account's existing picture URL.
+The adult and Kids apps have independent native navigation and do not render
+this header. The change requires only the website server and stylesheets.
+The Sass build passed. Browser component checks covered the picture and icon
+fallback at 390, 820 and 1280 pixels in light and dark themes.
+
+## Challenge creation and rematches
+
+Website base `0b80c22905`, rematch maker blob `7ab6f7adfd`, variant contract
+blob `32500a65e2`. Friend challenges, rematches, lobby offers, API defaults
+and ranked-room re-entry are covered in the [variant audit](CHALLENGE_VARIANT_AUDIT.md).
+Deploy the website server and assets together. No data migration is required.
+
+LiXiangQi Mobile sends Standard friend challenges through the shared server
+and checks the board and rules when reading an invitation. Its challenge and
+supported-game suites passed all 12 tests. Xiangqi Kids offers the Standard
+rated room and has no player invitation flow. Its 16 rated-room tests passed.
+Both apps use native navigation for finding another opponent. These changes
+require no Flutter release. The deferred native variant work and both review
+checkpoints retain their existing disposition.
+
 The lobby pavilion, correspondence bamboo slips and player-challenge jiàn use
 website SVG blobs `af9f794142`, `68bf0eeda5` and `5da2b61b29` respectively
 (working tree based on `b2fd2f7fe1`). Adult mobile uses the same jiàn artwork
@@ -23,6 +92,40 @@ Carousel card blob `ed8b41b2413a` uses the Three Kingdoms miniature board for pe
 Website base `b2fd2f7fe1`, challenge implementation blob `209273a83cfa`. Adult Mobile and Xiangqi Kids continue to use their existing lobby contracts. Public Three Kingdoms offers use a separate endpoint and require the deferred native three-player board in either app. The existing MOBILE-VARIANTS and KIDS-VARIANTS decisions cover these offers. Neither checkpoint advances. The website requires matching lobby assets, server routes and the pending-offer index in the existing Three Kingdoms deployment migration. Verification covers the one- and two-seat setup, pending and started seat transitions, participant visibility, public listing clicks and the displayed bot level.
 
 ## Products and receipts
+
+### Homepage games played today
+
+The web counter counts games created in the preceding 24 hours on each one-minute
+cache refresh. Game and Three Kingdoms cache blobs are `209ae96787` and
+`4b2ee243f7`. Reviewed both count queries and checked the diff for whitespace.
+Neither LiXiangQi Mobile nor Xiangqi Kids consumes the homepage statistic in
+its native UI. Only the website server needs deployment.
+
+### Homepage variant shortcuts
+
+The web homepage groups its variant rows and links to the existing rated rooms,
+bot and friend setups, analysis boards and variant directory. The variant-name
+menus retain rules, game history and live player counts. Website base
+`0b80c22905`, view blob `9317b98426`, stylesheet blob `628a048051`.
+The gateway (patch blob `d4d9baebfd`) counts distinct people per variant
+across rated, bot and friend activities. Rated matchmaking and active rated
+games share the same mode counter, including the Three Kingdoms pool without
+an opening clock phase. Rated friend invitations retain their friend activity.
+Deploy the patched gateway, website server, translations and web assets together.
+
+LiXiangQi Mobile owns a native Standard play screen with deferred variant
+entries. Xiangqi Kids has a Standard-only garden and rated room. Neither app
+renders these rows or needs an API or artwork update. Both existing variant
+deferrals and review checkpoints still apply.
+
+The Scala build and stage, production assets and all 797 UI tests passed.
+Edge verified both themes at 320, 390, 900 and 1480 pixels, including 44-pixel
+phone controls. Browser checks exercised the four variant menus, bot and friend
+setups, guest rated redirects and the directory link. All 35 gateway tests
+passed, including coverage of multi-tab overlap, activity changes and disconnects
+for all four variants. Browser checks with sample counter snapshots verified the
+mode breakdowns, zero updates, an 8 px gap between adjacent cards in both themes,
+and counter alignment beneath wrapped names.
 
 ### Chat notification sounds
 
@@ -639,3 +742,48 @@ Reviewed against website base `51a15034ab`. Working-tree SHA-256 prefixes are
 pixels. The Flutter suite passed 579 tests with two skips. The website UI suite
 passed 796 tests. The five-variant historical replay was exercised twice against
 isolated MongoDB and verified against known scores.
+
+## Banqi website launch
+
+### BanqiFish browser engine
+
+Reviewed against website base `0b80c22905e3` and BanqiFish WASM SHA-256
+`6cac80c6ce994e2b2ea2849d88673f286d44242ece1efca651d1f1df3db3cbe3`.
+LiXiangQi Mobile opens Banqi in its in-app browser, where the new opponent,
+ten levels and analysis take effect with the web release. Its native
+Standard engine and the MOBILE-VARIANTS deferral still apply. Xiangqi Kids
+offers Standard bots and excludes Banqi at the gameplay boundary under
+KIDS-VARIANTS. Neither app needs a binary release or checkpoint change.
+The release packages the matching web bundles, worker, WASM, licence,
+sources and server-generated bot names. Engine verification uses the
+production Scala referee and both shipped WASM opponents. The adult home and
+supported-game suites passed 16 tests. Both Kids variant-isolation tests passed.
+
+### Variant launch
+
+The adult app shows Banqi in live and correspondence standings and in public profile rank history. Its Home entry and watch links open the website. Mixed invitations, game history and watch streams keep Banqi positions outside native Standard play. Native Banqi gameplay, bots and analysis remain in MOBILE-VARIANTS. Xiangqi Kids continues to offer Standard only. Its mixed-game and bootstrap tests now exercise Banqi. KIDS-VARIANTS retains its existing scope.
+
+The launch receipts in both apps record website base `0b80c22905e3`, working-tree hashes and verification. The web server, assets, ranks and gateway must ship before the adult app exposes the web entry. Both aggregate checkpoints retain their earlier positions.
+
+Banqi capture-rail spacing was reviewed at stylesheet SHA-256 726599ff73da926970d4ceb78ed5833f86cb75b8129bda18548d4394bf7c3d56. The lower rail is anchored inside the web board on either orientation. Adult mobile opens this board on the website. Kids offers Standard only. Shipping the website CSS delivers the fix.
+
+The empty Banqi capture slots now use the ring and character paths from the default-wood SVGs. The adult app receives these assets through web play. Kids offers Standard only. Release the web assets together. Rail view SHA-256 5637ed9ccefccde796a77099f8fe47168717f586e6d31cbb46c937139921b416.
+
+Banqi’s Default Wood, Paper and Tournament boards restore their stepped rim and four fret corners. The adult app opens web Banqi and receives these assets with the web release. Kids offers Standard only. Verified with the board-theme suite and responsive browser captures. Default Wood SVG SHA-256 f7a9cdb89e72d29b8ba720dd1ac5919d33d65f059cdd0af4b342ec54622b905d.
+
+### Banqi integration audit, 2026-11-25
+
+The adult inbox recognizes pasted Banqi positions and server-generated board attachments. It preserves the public position and opens a linked game or analysis in the web viewer. Native variant boards remain deferred under MOBILE-VARIANTS. Five adult inbox tests passed. Ship the adult inbox change in the next app build.
+
+The website supplies the adult app's Banqi play, study, editor, replay and watch boards. The new study paths require the website and the socket gateway built from the same sources. The deployment script fingerprints the shared rules sources when rebuilding the gateway. Existing study paths retain their stored identities. Xiangqi Kids offers Standard play and has no inbox, public standings or study viewer. Its two variant-isolation tests passed. KIDS-VARIANTS and both aggregate checkpoints retain their existing scope and positions.
+
+Website base `0b80c22905`. Working-tree Git blobs include study path codec `ba659ee15120`, study engine `ac4efd65835e`, miniature replay `f99c99fb4e37` and editor `ccaee3716f8a`. The adult inbox parser and attachment view have blobs `09415f6b115c` and `930bdfc8870b`.
+
+## Homepage leaderboard title link — 2026-11-25
+
+The website leaderboard card title now links to the same `/leaderboard` destination as its More link. This only changes the server-rendered homepage heading without changing its appearance.
+
+- **LiXiangQi Mobile — not applicable.** The native app has a separate Community entry and leaderboard route, but no homepage leaderboard card or Updates card.
+- **Xiangqi Kids — not applicable.** The Kids garden has no homepage leaderboard card or community leaderboard.
+
+No mobile feature or API contract is affected. No queue item was added and neither reconciliation checkpoint advances. Website base `0b80c22905e3111db34dcccfc040c23e9f809247`; working-tree SHA-256 prefixes are `4b307a497818` for `app/views/lobby/bits.scala` and `dde016263a31` for `ui/lobby/css/_lobby.scss` (both files also contain unrelated pre-existing Banqi/variant edits). No data migration is needed. Deploy the website server-rendered view and web assets together. The production asset build passed, and the UI suite passed all 803 tests. Git Bash could not initialize in this Windows session, so the same `ui/.test/runner.mjs` entry point was run directly with Node.

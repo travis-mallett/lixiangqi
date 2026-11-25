@@ -65,6 +65,7 @@
   a {
     padding: 0.6em 1em;
     color: $c-font;
+
     &[aria-current='page'] {
       border-bottom: 3px solid $c-brag;
       color: $c-brag;

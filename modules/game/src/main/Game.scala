@@ -144,7 +144,10 @@ object GameExt:
       // Both sides get their first move before the cumulative clock starts.
       // The native rules game does not own the real-time clock lifecycle.
       val nextClock = clock.map: c =>
-        if !c.isRunning && !g.moveTimePaused && game.state.ply - g.startedAtPly.value >= 2 && !game.state.ended
+        if !c.isRunning && !g.moveTimePaused && game.state.ply - g.startedAtPly.value >= (if g.ranked then
+                                                                                            g.minimumRankedPlies
+                                                                                          else
+                                                                                            2) && !game.state.ended
         then c.start
         else c
 
@@ -165,7 +168,9 @@ object GameExt:
         loadClockHistory = _ => newClockHistory,
         status =
           if !game.state.ended then g.status
-          else if game.state.termination.contains("forced-variation") then Status.VariantEnd
+          else if (game.isBanqi && game.state.gameResult.winner.isDefined) || game.state.termination
+              .contains("forced-variation")
+          then Status.VariantEnd
           else if game.state.gameResult.winner.isDefined then Status.Mate
           else Status.Draw,
         movedAt = nowInstant
@@ -249,7 +254,7 @@ object GameExt:
             case _ => 35
 
     def expirable =
-      !g.bothPlayersHaveMoved &&
+      !g.pastOpeningGrace &&
         g.source.exists(Source.expirable.contains) &&
         g.playable &&
         g.nonAi &&

@@ -116,7 +116,11 @@ export async function initModule(options: EmbedOptions): Promise<void> {
       viewer.destroy();
       return;
     }
-    if (options.explorerEndpoint && new URLSearchParams(location.search).get('explorer') === '1') {
+    if (
+      viewer.position().node?.state.variant === 'xiangqi' &&
+      options.explorerEndpoint &&
+      new URLSearchParams(location.search).get('explorer') === '1'
+    ) {
       const { attachExplorer } = await import('./explorer');
       if (abort.signal.aborted) return;
       updateExplorer = attachExplorer(viewer, options.explorerEndpoint, options.labels.analysis);

@@ -10,6 +10,7 @@ body:not(.simple-board) .graph-board__artwork {
 // Shared board presentation. Renderer adapters supply geometry and piece orientation.
 
 @import 'pieces';
+@import 'banqi';
 @import 'graph';
 
 // One revolution of the previous-move shine. The marker sweeps a bright sector

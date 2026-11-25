@@ -1,11 +1,12 @@
 # Variant board editor
 
-The website board editor at `/editor` supports all five current game variants. Select a variant in the editor, or open the selected position from its analysis board. Variant changes start a fresh position; sharing and reloading retain the selected variant and perspective.
+The website board editor at `/editor` supports all six current game variants. Select a variant in the editor, or open the selected position from its analysis board. Variant changes start a fresh position; sharing and reloading retain the selected variant and perspective.
 
 | Variant        | Editing and validation                                                                                                              | Continue from an edited position                               |
 | -------------- | ----------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
 | Xiangqi        | 9×10, seven roles per side, standard placement and turn checks                                                                      | Analysis, computer, friend                                     |
 | Jieqi          | 9×10, revealed roles and concealed pieces; concealed starting slots, visible inventory and unrestricted revealed advisors/elephants | Analysis; games require a new private deal                     |
+| Banqi          | 4×8 cells, neutral covers, remaining inventory, opening-seat army and quiet turns                                                   | Analysis with explicit or sampled reveal outcomes              |
 | Mini Xiangqi   | 7×7, five roles per side, its palace and soldier constraints                                                                        | Analysis, computer, friend                                     |
 | Manchu+        | 9×10, ordinary Red army and Black's Banner army; marker survives capture of the Banner                                              | Analysis, computer, friend                                     |
 | Three Kingdoms | Three territories and armies, native TK1 positions, army ownership, fallen generals and active turns                                | Analysis; existing game setup starts from the initial position |

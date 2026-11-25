@@ -73,9 +73,11 @@
 
 .msg-board-expanded {
   width: min(90vw, 70dvh, 52rem);
+
   h2 {
     font-size: 1.1em;
   }
+
   .msg-board-enlarge {
     cursor: default;
   }

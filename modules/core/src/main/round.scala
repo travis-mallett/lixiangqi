@@ -25,6 +25,13 @@ enum RoundBus extends NotBuseable:
       promise: Option[Promise[Unit]] = None,
       receivedAt: Long = nowMillis
   )
+  case BanqiComputerPlay(
+      playerId: GamePlayerId,
+      expectedPly: Int,
+      uci: Xiangqi.Uci,
+      promise: Promise[Unit],
+      receivedAt: Long = nowMillis
+  )
   case Draw(playerId: GamePlayerId, draw: Boolean)
   case FishnetPlay(uci: Xiangqi.Uci, sign: String, receivedAt: Long = nowMillis)
   case FishnetPlayV2(

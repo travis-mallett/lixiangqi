@@ -1,10 +1,4 @@
-import {
-  type BoardView,
-  type BoardTransition,
-  coordinateMove,
-  positionToFen,
-  standardXiangqi,
-} from '@lixiangqi/board';
+import { type BoardView, type BoardTransition, coordinateMove, positionToFen } from '@lixiangqi/board';
 import { type ArrowKey, type KeyboardMove, ctrl as makeKeyboardMove } from 'keyboard-move';
 
 import {
@@ -23,6 +17,8 @@ import { CevalCtrl, isFirstEvalBetter, type CevalHandler, type CevalOpts } from 
 import { ChatCtrl } from 'lib/chat/chatCtrl';
 import { displayColumns } from 'lib/device';
 import { playable, playedTurns, isXiangqiCapture, validUci } from 'lib/game';
+import { banqiRevealChoices } from 'lib/game/banqi';
+import { chooseReveal } from 'lib/game/view/reveal';
 import { type XiangqiSide as Color, oppositeSide as opposite } from 'lib/game/xiangqi';
 import { requestXiangqi } from 'lib/game/xiangqiApi';
 import { pubsub } from 'lib/pubsub';
@@ -492,15 +488,20 @@ export default class AnalyseCtrl implements CevalHandler {
       encodeURIComponent(fen).replace(/%20/g, '_').replace(/%2F/g, '/');
   }
 
-  userMove = (orig: string, dest: string): void => {
+  userMove = async (orig: string, dest: string): Promise<void> => {
+    const parent = this.node;
     this.justPlayed = orig;
     this.board.setInteraction({ mode: 'display' });
-    this.sendMove(orig, dest);
+    const choices = parent.state.variant === 'banqi' ? banqiRevealChoices(parent.fen, orig + dest) : [];
+    const reveal = choices.length ? await chooseReveal(choices, parent.state.turn) : undefined;
+    if (parent !== this.node || (choices.length && !reveal)) return this.reset();
+    this.sendMove(orig, dest, reveal);
   };
 
-  sendMove = (orig: string, dest: string): void => {
+  sendMove = (orig: string, dest: string, reveal?: string): void => {
     const move: AnaMove = {
       orig: storedStudyLocation(orig),
+      reveal,
       dest: storedStudyLocation(dest),
       path: this.path,
     };
@@ -754,7 +755,7 @@ export default class AnalyseCtrl implements CevalHandler {
   }
 
   toggleThreatMode = (v = !this.threatMode()) => {
-    if (v === this.threatMode()) return;
+    if (this.variantKey === 'banqi' || v === this.threatMode()) return;
     if (this.node.check() || !this.showEvaluation()) return;
     if (!this.cevalEnabled()) return;
     this.threatMode(v);
@@ -868,7 +869,7 @@ export default class AnalyseCtrl implements CevalHandler {
   playUci = (uci: Uci, uciQueue?: Uci[]) => {
     this.pvUciQueue = uciQueue ?? [];
     const [from, to] = coordinateMove(uci);
-    if (this.board.allowsMove(from, to)) this.sendMove(from, to);
+    if (this.board.allowsMove(from, to)) void this.userMove(from, to);
   };
 
   playUciList(uciList: Uci[]): void {
@@ -887,7 +888,7 @@ export default class AnalyseCtrl implements CevalHandler {
   }
 
   pluginMove = (orig: string, dest: string): void => {
-    if (this.board.allowsMove(orig, dest)) this.sendMove(orig, dest);
+    if (this.board.allowsMove(orig, dest)) void this.userMove(orig, dest);
   };
 
   handleArrowKey = (arrowKey: ArrowKey): void => {
@@ -905,7 +906,10 @@ export default class AnalyseCtrl implements CevalHandler {
   private readonly pluginUpdate = (fen: FEN) => {
     // If controller and chessground board states differ, ignore this update. Once the chessground
     // state is updated to match, pluginUpdate will be called again.
-    if (!this.board || !fen.startsWith(positionToFen(this.board.position(), standardXiangqi).split(' ')[0]))
+    if (
+      !this.board ||
+      !fen.startsWith(positionToFen(this.board.position(), this.board.getDefinition()).split(' ')[0])
+    )
       return;
     this.keyboardMove?.update({ fen, canMove: true, board: this.board });
   };

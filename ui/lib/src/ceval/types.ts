@@ -28,6 +28,7 @@ export interface Work extends EvalMeta {
   initialFen: string;
   currentFen: string;
   legalMoves?: readonly string[];
+  publicPositions?: string[];
   moves: string[];
   emit: (ev: LocalEval, meta: EvalMeta) => void;
 }

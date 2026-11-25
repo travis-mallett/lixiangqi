@@ -9,7 +9,13 @@ import lila.core.game.GameRule
 import lila.core.game.MoveTimeLimit
 import lila.core.userId.UserId
 
-trait OpenConfig:
+trait VariantConfig:
+  def gameVariant: lila.xiangqi.GameVariant
+  def ruleset: Option[String]
+  final def resolvedRuleset = gameVariant.resolveRuleset(ruleset)
+  final def effectiveRuleset = resolvedRuleset.fold(sys.error, identity)
+
+trait OpenConfig extends VariantConfig:
   val name: Option[String]
   val variant: Variant
   val clock: Option[Clock.Config]

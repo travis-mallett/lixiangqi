@@ -142,7 +142,8 @@ load_indexes() {
     return 1
   fi
 
-  if mongosh --port "$MONGO_PORT" lichess < "$PROJECT_ROOT/bin/mongodb/indexes.js"; then
+  if mongosh --port "$MONGO_PORT" lichess < "$PROJECT_ROOT/bin/mongodb/indexes.js" &&
+    mongosh --port "$MONGO_PORT" lichess --file "$PROJECT_ROOT/tools/data_migration/20261125_games_in_play_indexes.js"; then
     log_success "MongoDB indexes loaded"
     return 0
   else

@@ -23,11 +23,16 @@ object Query:
 
   val started: Bdoc = F.status.$gte(Status.Started.id)
 
+  private val onSite: Bdoc = F.source.$nin(List(Source.Import.id, Source.ImportLive.id))
+
   /** Games that were started on Lixiangqi. Imported games have a started-or-later status too, but were played
     * elsewhere and should not contribute to site totals.
     */
-  val playedOnSite: Bdoc =
-    started ++ F.source.$nin(List(Source.Import.id, Source.ImportLive.id))
+  val playedOnSite: Bdoc = started ++ onSite
+
+  private val inPlay = status(Status.Started) ++ onSite
+  val realtimeInPlay: Bdoc = inPlay ++ clock(true) ++ F.moveTimePaused.$ne(true)
+  def clocklessInPlay(playerBoards: Set[GameId]): Bdoc = $inIds(playerBoards) ++ inPlay ++ clock(false)
 
   def playedOnSiteSince(d: Instant): Bdoc = playedOnSite ++ createdSince(d)
 

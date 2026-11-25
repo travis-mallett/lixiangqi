@@ -19,7 +19,7 @@ class UciPathTest extends munit.FunSuite:
       val path = UciPath.fromId(move)
       assertEquals(path.value, move.value)
       assertEquals(UciPath.from(path.value), Right(path))
-      assertEquals(path.split, Some(move -> UciPath.root))
+      assertEquals(path.split, Some(BranchId(move) -> UciPath.root))
 
   test("path operations use moves rather than coordinate string widths"):
     val path = UciPath("i1i2/i10i9/a10a1")

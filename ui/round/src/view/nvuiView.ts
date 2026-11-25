@@ -128,8 +128,14 @@ function gameInfo({ ctrl }: RoundNvuiContext): VNode {
   const clocks = [anyClock(ctrl, 'bottom'), anyClock(ctrl, 'top')];
   return hl('section.game-info', [
     hl('h2', i18n.nvui.gameInfo),
-    hl('p', [noTrans('Red: '), playerHtml(ctrl.playerByColor('white'))]),
-    hl('p', [noTrans('Black: '), playerHtml(ctrl.playerByColor('black'))]),
+    hl('p', [
+      (ctrl.data.game.variant.key === 'banqi' ? i18n.site.banqiFirstSeat : i18n.site.red) + ' ',
+      playerHtml(ctrl.playerByColor('white'), ctrl.data.game.variant.key),
+    ]),
+    hl('p', [
+      (ctrl.data.game.variant.key === 'banqi' ? i18n.site.banqiSecondSeat : i18n.site.black) + ' ',
+      playerHtml(ctrl.playerByColor('black'), ctrl.data.game.variant.key),
+    ]),
     hl(
       'p',
       `${ctrl.data.game.ranked ? i18n.site.ranked : i18n.site.casual} ${transGamePerf(ctrl.data.game.perf)}`,
@@ -214,8 +220,8 @@ function anyClock(ctrl: RoundController, position: TopOrBottom): VNode | undefin
   );
 }
 
-function playerHtml(player: Player): VNode | string {
-  if (player.ai) return aiLevelName(player.ai);
+function playerHtml(player: Player, variant?: string): VNode | string {
+  if (player.ai) return aiLevelName(player.ai, variant);
   const user = player.user;
   const rank = player.rank ?? user?.rank ?? user?.perfs.xiangqi?.rank;
   if (!user) return i18n.site.anonymous;
@@ -230,7 +236,10 @@ function playerHtml(player: Player): VNode | string {
 }
 
 function gameText(ctrl: RoundController): string {
-  const playerSide = sideName(ctrl.data.player.color);
+  const playerSide =
+    ctrl.data.game.variant.key === 'banqi'
+      ? i18n.site[ctrl.data.player.color === 'white' ? 'banqiFirstSeat' : 'banqiSecondSeat']
+      : sideName(ctrl.data.player.color);
   return [
     ctrl.data.game.status.name === 'started'
       ? ctrl.isPlaying()

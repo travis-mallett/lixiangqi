@@ -25,7 +25,10 @@ function renderPlayer(ctrl: RoundController, position: TopOrBottom) {
   if (ctrl.nvui) return undefined;
   const player = ctrl.playerAt(position);
   return player.ai
-    ? h('div.user-link.online.ruser.ruser-' + position, [h('icon.line'), h('name', aiLevelName(player.ai))])
+    ? h('div.user-link.online.ruser.ruser-' + position, [
+        h('icon.line'),
+        h('name', aiLevelName(player.ai, ctrl.data.game.variant.key)),
+      ])
     : userHtml(ctrl, player, position);
 }
 
@@ -82,7 +85,7 @@ export const renderTablePlay = (ctrl: RoundController): LooseVNodes => {
         : [
             abortable(d)
               ? button.standard(ctrl, undefined, licon.X, i18n.site.abortGame, 'abort')
-              : d.game.variant.key === 'jieqi'
+              : ['banqi', 'jieqi'].includes(d.game.variant.key)
                 ? undefined
                 : button.standard(
                     ctrl,

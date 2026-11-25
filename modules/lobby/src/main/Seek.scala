@@ -28,7 +28,7 @@ case class Seek(
     user.id != h.user.id &&
       compatibilityProperties == h.compatibilityProperties
 
-  private def compatibilityProperties = (variant, gameVariant, daysPerTurn)
+  private[lobby] def compatibilityProperties = (variant, gameVariant, daysPerTurn)
 
   def render: JsObject =
     Json

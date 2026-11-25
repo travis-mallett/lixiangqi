@@ -60,7 +60,7 @@ object LocalAnalysis:
         val next = data.evaluations(index + 1)
         val best = prev.variation.map(s => Xiangqi.Uci.from(s).toOption.get)
         val advice = Option
-          .when(best.headOption.exists(_ != node.id))(
+          .when(best.headOption.exists(_ != node.move.uci))(
             Advice(Info(node.ply - 1, prev.score, Nil), Info(node.ply, next.score, best))
           )
           .flatten

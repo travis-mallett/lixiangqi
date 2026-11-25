@@ -1,10 +1,11 @@
 import { standardXiangqi } from '@lixiangqi/board';
 
-import { domDialog } from '../../view';
+import { domDialog } from '../../view/dialog';
 import { randomReveal, type RevealChoice } from '../jieqi';
 
 export function jieqiRoleName(role: string): string {
   const names: Record<string, string> = {
+    general: i18n.site.banqiGeneral,
     chariot: i18n.site.jieqiChariot,
     horse: i18n.site.jieqiHorse,
     elephant: i18n.site.jieqiElephant,
@@ -30,14 +31,20 @@ export async function chooseReveal(
     style: 'percent',
     maximumFractionDigits: 1,
   });
-  for (const { role, probability } of outcomes) {
+  for (const { role, probability, army, pieceRole = role, count, total } of outcomes) {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'button button-empty';
     button.dataset.role = role;
     const piece = document.createElement('piece');
-    piece.className = (side === 'red' ? 'white ' : 'black ') + standardXiangqi.roles[role] + '-piece';
-    button.append(piece, document.createTextNode(`${jieqiRoleName(role)} (${percent.format(probability)})`));
+    piece.className =
+      ((army ?? side) === 'red' ? 'white ' : 'black ') + standardXiangqi.roles[pieceRole] + '-piece';
+    button.append(
+      piece,
+      document.createTextNode(
+        `${(army ? i18n.site[army] + ' ' : '') + jieqiRoleName(pieceRole)} (${total ? count + '/' + total : percent.format(probability)})`,
+      ),
+    );
     choices.append(button);
   }
   content.append(choices);

@@ -30,6 +30,8 @@ final class GameStateStream(
 
   import GameStateStream.*
 
+  val clocklessPlayers = new lila.common.LilaStream.Subscribers[GameId]
+
   private val blueprint =
     Source.queue[Option[JsObject]](32, org.apache.pekko.stream.OverflowStrategy.dropHead)
 
@@ -54,7 +56,7 @@ final class GameStateStream(
     // terminate previous one if any
     Bus.publishDyn(PoisonPill, uniqChan(init.game.pov(as)))
 
-    blueprint.mapMaterializedValue: queue =>
+    val source = blueprint.mapMaterializedValue: queue =>
       val actor = system.actorOf(
         Props(mkActor(init, as, user, extra, queue)),
         name = s"GameStateStream:${init.game.id}:${ThreadLocalRandom.nextString(8)}"
@@ -63,6 +65,8 @@ final class GameStateStream(
         .watchCompletion()
         .addEffectAnyway:
           actor ! PoisonPill
+    if !init.game.hasClock && init.game.playable then clocklessPlayers.track(init.game.id, source)
+    else source
 
   private def uniqChan(pov: Pov)(using ua: UserAgent) =
     s"gameStreamFor:${pov.fullId}:$ua"

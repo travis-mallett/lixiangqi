@@ -199,6 +199,14 @@ final private class RoundAsyncActor(
         )
         .recover(errorHandler("human play"))
 
+    case p: RoundBus.BanqiComputerPlay =>
+      handleMove(p.playerId, Some(p.promise)): owner =>
+        if owner.game.isBanqi && owner.opponent.isAi && !owner.player.isAi && !owner.game.ranked &&
+          owner.game.ply.value == p.expectedPly
+        then player.bot(p.uci, p.receivedAt, this)(owner.flip)
+        else fufail(ClientError("Stale or ineligible Banqi computer turn"))
+      .recover(errorHandler("Banqi computer play"))
+
     case p: RoundBus.BotPlay =>
       handleMove(p.playerId, p.promise)(player.bot(p.uci, p.receivedAt, this))
         .recover(errorHandler("bot play"))

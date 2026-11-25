@@ -6,8 +6,28 @@
 .board-editor {
   @include prevent-select;
 
-  .main-board {
+  > .main-board,
+  > .banqi-frame {
     grid-area: board;
+  }
+
+  &--banqi {
+    @media (min-width: at-least($small)) {
+      grid-template-rows: max-content max-content max-content auto;
+
+      .board-editor__tools {
+        align-self: start;
+        grid-row: 1 / 5;
+      }
+
+      .copyables {
+        grid-column: 1;
+      }
+    }
+  }
+
+  > .banqi-frame {
+    width: min(100%, calc((100dvh - #{$site-header-outer-height} - 9rem) * 0.77));
   }
 
   cg-board {

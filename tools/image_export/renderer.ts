@@ -5,7 +5,7 @@ import { resolve } from 'node:path';
 import { parentPort, workerData } from 'node:worker_threads';
 
 import { boardAssets } from '../../ui/board/src/catalog';
-import { standardXiangqi } from '../../ui/board/src/definitions';
+import { boardDefinitionForFen } from '../../ui/board/src/definitions';
 import { boardImageSvg } from '../../ui/board/src/image';
 import { coordinateMove, positionFromFen } from '../../ui/board/src/position';
 import type { BoardMark } from '../../ui/board/src/types';
@@ -71,7 +71,11 @@ function validate(input: ImageRequest): void {
     throw new Error('Invalid export format');
   if (input.size !== undefined && (!Number.isInteger(input.size) || input.size < 180 || input.size > 720))
     throw new Error('Image width must be between 180 and 720');
-  if ((input.size ?? 450) ** 2 * 1.3 * input.frames.length > 160_000_000)
+  const ratio =
+    typeof input.frames[0]?.fen === 'string' && boardDefinitionForFen(input.frames[0].fen).id === 'banqi'
+      ? 2.1
+      : 1.3;
+  if ((input.size ?? 450) ** 2 * ratio * input.frames.length > 160_000_000)
     throw new Error('Image dimensions exceed the animation resource limit');
   for (const value of [input.red, input.black])
     if (value !== undefined && (typeof value !== 'string' || value.length > 200))
@@ -80,11 +84,12 @@ function validate(input: ImageRequest): void {
 
 export function renderImage(input: ImageRequest, publicRoot: string): Uint8Array {
   validate(input);
+  const definition = boardDefinitionForFen(input.frames[0].fen);
   const gif = GIFEncoder();
   const hasClocks = input.frames.some(frame => frame.clock !== undefined);
   for (const frame of input.frames) {
     if (typeof frame.fen !== 'string' || frame.fen.length > 160) throw new Error('Invalid image FEN');
-    const position = positionFromFen(frame.fen, standardXiangqi);
+    const position = positionFromFen(frame.fen, definition);
     const delay = frame.delay ?? input.delay ?? 80;
     if (!Number.isFinite(delay) || delay < 1 || delay > 6000) throw new Error('Invalid frame delay');
     if (frame.glyph !== undefined && (typeof frame.glyph !== 'string' || frame.glyph.length > 8))
@@ -105,7 +110,7 @@ export function renderImage(input: ImageRequest, publicRoot: string): Uint8Array
     }));
     const svg = boardImageSvg(
       {
-        definition: standardXiangqi,
+        definition,
         position: {
           ...position,
           lastMove: frame.lastMove ? coordinateMove(frame.lastMove) : undefined,

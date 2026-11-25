@@ -1,7 +1,8 @@
-import { positionFromFen, standardXiangqi } from '@lixiangqi/board';
+import { boardDefinitionForFen, positionFromFen } from '@lixiangqi/board';
 import type { XiangqiEditor } from 'editor';
 
 import { defined, prop, type Prop, toggle } from 'lib';
+import { BANQI_START_FEN } from 'lib/game/banqi';
 import type { XiangqiSide as Color } from 'lib/game/xiangqi';
 import { licon } from 'lib/licon';
 import { pubsub } from 'lib/pubsub';
@@ -214,7 +215,13 @@ export function view(ctrl: StudyChapterNewForm): VNode {
               pgn: tab === 'pgn' ? ctrl.pgn.text : undefined,
               orientation: fieldValue(e, 'orientation') as Orientation,
               mode: fieldValue(e, 'mode') as ChapterMode,
-              fen: fieldValue(e, 'fen') || (tab === 'edit' ? ctrl.editorFen() : null),
+              fen:
+                fieldValue(e, 'fen') ||
+                (tab === 'edit'
+                  ? ctrl.editorFen()
+                  : tab === 'init' && ctrl.root.variantKey === 'banqi'
+                    ? BANQI_START_FEN
+                    : null),
               isDefaultName: ctrl.isDefaultName(),
             });
           }, ctrl.redraw),
@@ -249,19 +256,22 @@ export function view(ctrl: StudyChapterNewForm): VNode {
               {
                 hook: {
                   insert(vnode) {
-                    xhrJson('/editor.json').then(async data => {
-                      data.el = vnode.elm;
-                      data.fen = ctrl.root.node.fen;
-                      data.embed = true;
-                      data.options = {
-                        orientation: ctrl.orientation,
-                        onChange: ctrl.editorFen,
-                        coordinates: true,
-                        bindHotkeys: false,
-                      };
-                      ctrl.editor = await site.asset.loadEsm<XiangqiEditor>('editor', { init: data });
-                      ctrl.editorFen(ctrl.editor.getFen());
-                    });
+                    xhrJson('/editor.json?' + new URLSearchParams({ variant: ctrl.root.variantKey })).then(
+                      async data => {
+                        data.el = vnode.elm;
+                        data.fen = ctrl.editorFen() || ctrl.root.node.fen;
+                        ctrl.editorFen(data.fen);
+                        data.embed = true;
+                        data.options = {
+                          orientation: ctrl.orientation,
+                          onChange: ctrl.editorFen,
+                          coordinates: true,
+                          bindHotkeys: false,
+                        };
+                        ctrl.editor = await site.asset.loadEsm<XiangqiEditor>('editor', { init: data });
+                        ctrl.editorFen(ctrl.editor.getFen());
+                      },
+                    );
                   },
                   destroy: () => {
                     ctrl.editor?.destroy();
@@ -302,7 +312,7 @@ export function view(ctrl: StudyChapterNewForm): VNode {
                   el.addEventListener('change', () => el.reportValidity());
                   el.addEventListener('input', _ => {
                     try {
-                      positionFromFen(el.value.trim(), standardXiangqi);
+                      positionFromFen(el.value.trim(), boardDefinitionForFen(el.value));
                       el.setCustomValidity('');
                       ctrl.editorFen(el.value);
                     } catch {

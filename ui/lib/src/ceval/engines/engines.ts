@@ -1,3 +1,5 @@
+import { banqiEngineName } from '../../game/aiLevel';
+import { analyseBanqiPosition } from '../../game/banqi';
 import { json } from '../../xhr';
 import type { CevalCtrl } from '../ctrl';
 import {
@@ -88,6 +90,45 @@ class PikafishCevalEngine implements CevalEngine {
   };
 }
 
+class BanqiCevalEngine implements CevalEngine {
+  private search?: AbortController;
+  private state = CevalState.Idle;
+  constructor(
+    private readonly info: BrowserEngineInfo,
+    private readonly notify: EngineNotifier,
+  ) {}
+  getInfo() {
+    return this.info;
+  }
+  getState() {
+    return this.state;
+  }
+  start(work: Work): void {
+    this.stop();
+    const search = (this.search = new AbortController());
+    this.state = CevalState.Computing;
+    void analyseBanqiPosition(work.publicPositions!, work.legalMoves!, work.multiPv, search.signal)
+      .then(result => {
+        if (search.signal.aborted) return;
+        this.state = CevalState.Idle;
+        work.emit(toLocalEval(result, work.currentFen), work);
+        this.notify();
+      })
+      .catch(error => {
+        if (search.signal.aborted) return;
+        this.state = CevalState.Failed;
+        this.notify({ error: String(error) });
+      });
+  }
+  stop(): void {
+    this.search?.abort();
+    this.state = CevalState.Idle;
+  }
+  destroy(): void {
+    this.stop();
+  }
+}
+
 export class Engines {
   readonly externalEngines: ExternalEngineInfo[];
   private readonly info: BrowserEngineInfo;
@@ -99,29 +140,44 @@ export class Engines {
       tech: 'EXTERNAL',
       capabilities: engine.officialPikafish ? ['staticAnalysis', 'cloudEval'] : ['staticAnalysis'],
     }));
-    this.info = {
-      id: 'pikafish-web',
-      name: 'Pikafish',
-      short: 'Pikafish',
-      tech: 'NNUE',
-      variants: [ctrl.opts.variant.key],
-      requires: ['wasm', 'sharedMem'],
-      assets: {
-        root: 'pikafish-web',
-        js: 'pikafish.js',
-        wasm: 'pikafish.wasm',
-        nnue: ['pikafish.nnue'],
-      },
-      minThreads: 1,
-      maxThreads: 8,
-      maxHash: 256,
-      capabilities: ['staticAnalysis', 'cloudEval'],
-    };
+    this.info =
+      ctrl.opts.variant.key === 'banqi'
+        ? {
+            id: 'banqifish',
+            name: banqiEngineName,
+            short: banqiEngineName,
+            tech: 'HCE',
+            variants: ['banqi'],
+            requires: ['wasm'],
+            assets: {},
+            minThreads: 1,
+            maxThreads: 1,
+            maxHash: 16,
+            capabilities: ['staticAnalysis'],
+          }
+        : {
+            id: 'pikafish-web',
+            name: 'Pikafish',
+            short: 'Pikafish',
+            tech: 'NNUE',
+            variants: [ctrl.opts.variant.key],
+            requires: ['wasm', 'sharedMem'],
+            assets: {
+              root: 'pikafish-web',
+              js: 'pikafish.js',
+              wasm: 'pikafish.wasm',
+              nnue: ['pikafish.nnue'],
+            },
+            minThreads: 1,
+            maxThreads: 8,
+            maxHash: 256,
+            capabilities: ['staticAnalysis', 'cloudEval'],
+          };
     this.activeEngine = this.info;
   }
 
   getEngine(selector?: { id?: string; variant?: VariantKey; capability?: EngineTrust }): EngineInfo {
-    const engines = this.supporting(selector?.variant ?? 'xiangqi', selector?.capability);
+    const engines = this.supporting(selector?.variant ?? this.ctrl.opts.variant.key, selector?.capability);
     const engine = selector?.id ? engines.find(engine => engine.id === selector.id) : engines[0];
     if (!engine) throw new Error('Selected native engine is unavailable');
     return engine;
@@ -178,6 +234,8 @@ export class Engines {
     };
     return info.tech === 'EXTERNAL'
       ? new ExternalEngine(info, notify)
-      : new PikafishCevalEngine(info, notify);
+      : info.id === 'banqifish'
+        ? new BanqiCevalEngine(info, notify)
+        : new PikafishCevalEngine(info, notify);
   }
 }

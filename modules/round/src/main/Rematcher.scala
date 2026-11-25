@@ -156,7 +156,8 @@ final private class Rematcher(
 private[round] object Rematcher:
 
   def reset(game: Xiangqi.Game): Xiangqi.Game =
-    if game.isJieqi then lila.xiangqi.Jieqi.initial().fold(sys.error, identity)
+    if game.isBanqi then lila.xiangqi.Banqi.initial().fold(sys.error, identity)
+    else if game.isJieqi then lila.xiangqi.Jieqi.initial().fold(sys.error, identity)
     else
       Xiangqi.Game(
         initialFen = game.initialFen,

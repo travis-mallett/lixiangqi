@@ -12,6 +12,27 @@ export interface StatusData {
 }
 
 export default function status(d: GameData): string {
+  if (d.game.variant?.key === 'banqi' && d.game.status.name !== 'started') {
+    const end =
+      adjudicationText(d.game.termination) ??
+      (
+        {
+          resign: i18n.site.banqiResignation,
+          outoftime: i18n.site.banqiTimeout,
+          timeout: i18n.site.banqiTimeout,
+          aborted: i18n.site.gameAborted,
+          draw: i18n.site.drawByMutualAgreement,
+        } as Partial<Record<StatusName, string>>
+      )[d.game.status.name] ??
+      i18n.site.gameOver;
+    return d.game.winner
+      ? end +
+          ' · ' +
+          i18n.site.banqiWinner(
+            d.game.winner === 'white' ? i18n.site.banqiFirstSeat : i18n.site.banqiSecondSeat,
+          )
+      : end;
+  }
   return statusOf({
     winner: d.game.winner,
     status: d.game.status.name,

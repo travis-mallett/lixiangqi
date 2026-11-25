@@ -41,8 +41,7 @@ case class Challenge(
 
   import Challenge.*
 
-  def effectiveRuleset = if gameVariant.selectableRulesets.isEmpty then gameVariant.defaultRuleset
-  else ruleset.getOrElse(lila.xiangqi.adjudication.Ruleset.default)
+  def effectiveRuleset = ruleset.getOrElse(gameVariant.defaultRuleset)
 
   def gameId = id.into(GameId)
 
@@ -199,9 +198,14 @@ object Challenge:
       openToUserIds: Option[(UserId, UserId)] = None,
       rules: Set[GameRule] = Set.empty,
       expiresAt: Option[Instant] = None,
-      ruleset: lila.xiangqi.adjudication.Ruleset = lila.xiangqi.adjudication.Ruleset.default,
-      gameVariant: lila.xiangqi.GameVariant = lila.xiangqi.GameVariant.Xiangqi
+      ruleset: lila.xiangqi.adjudication.Ruleset,
+      gameVariant: lila.xiangqi.GameVariant
   ): Challenge =
+    require(gameVariant.supportsRuleset(ruleset), s"Invalid rules for ${gameVariant.name}")
+    require(
+      gameVariant.validDuelPosition(variant.fromPosition, initialFen.map(_.value)),
+      s"Invalid position for ${gameVariant.name}"
+    )
     val (colorChoice, finalColor) = color match
       case "white" => ColorChoice.White -> chess.White
       case "black" => ColorChoice.Black -> chess.Black

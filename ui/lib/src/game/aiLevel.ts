@@ -18,4 +18,7 @@ export const aiCustomLevelIndex = (level: number): number =>
     0,
   );
 
-export const aiLevelName = (level: number): string => i18n.site.aiNameLevelAiLevel('Pikafish', level);
+export const banqiEngineName = 'BanqiFish';
+
+export const aiLevelName = (level: number, variant?: string): string =>
+  i18n.site.aiNameLevelAiLevel(variant === 'banqi' ? banqiEngineName : 'Pikafish', level);

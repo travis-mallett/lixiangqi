@@ -9,6 +9,8 @@ let interaction: BoardInteraction;
 let displayed: BoardPosition;
 let destroyed = 0;
 let zenToggles = 0;
+let presence: string | undefined;
+let presenceGroup: string | undefined;
 mock.module('lib/view/zen', { namedExports: { toggleZenMode: () => zenToggles++ } });
 mock.module('lib/board', {
   namedExports: {
@@ -31,7 +33,15 @@ mock.module('lib/board', {
     makeBoardResizable() {},
   },
 });
-mock.module('lib/socket', { namedExports: { ...(await import('lib/socket')), wsSetActivity() {} } });
+mock.module('lib/socket', {
+  namedExports: {
+    ...(await import('lib/socket')),
+    wsSetActivity: (activity?: string, group?: string) => {
+      presence = activity;
+      presenceGroup = group;
+    },
+  },
+});
 mock.module('lib/menuHover', { defaultExport() {} });
 
 document.documentElement.lang = 'en';
@@ -86,6 +96,8 @@ test('local three-seat play uses round controls, preserves replay, and releases 
     true,
   );
   try {
+    assert.equal(presence, 'threeKingdoms-ai');
+    assert.equal(presenceGroup, game.id);
     assert.ok(document.querySelector('.round__app.variant-threeKingdoms .rcontrols .ricons'));
     assert.equal(document.querySelectorAll('[data-seat]').length, 3);
     assert.equal(document.querySelectorAll('bo3 button[data-ply]').length, 4);
@@ -116,6 +128,7 @@ test('local three-seat play uses round controls, preserves replay, and releases 
     round.destroy();
   }
   assert.equal(destroyed, 1);
+  assert.equal(presenceGroup, undefined);
   assert.equal(keyboards.size, 0);
   pubsub.emit('zen');
   assert.equal(zenToggles, 1);
@@ -128,11 +141,13 @@ test('server updates preserve a replay cursor and elimination switches the playe
     '<main class="round"><aside class="round__side"></aside><div class="round__app"></div></main>';
   let stream: { onmessage: (event: { data: string }) => void; close(): void };
   let closed = false;
+  let streamUrl: string | undefined;
   Object.defineProperty(globalThis, 'EventSource', {
     configurable: true,
     value: class {
       onmessage: (event: { data: string }) => void;
-      constructor() {
+      constructor(url: string) {
+        streamUrl = url;
         stream = this;
       }
       close() {
@@ -147,7 +162,15 @@ test('server updates preserve a replay cursor and elimination switches the playe
   game.seats.forEach(seat => {
     seat.aiLevel = null;
   });
-  game = { ...game, id: 'abcdefgh', rated: true };
+  game = { ...game, id: 'abcdefgh', source: 'pool', rated: true };
+  game.clock = {
+    ...game.clock,
+    timeMode: 'correspondence',
+    initialSeconds: 0,
+    moveSeconds: 0,
+    days: 2,
+    deadline: Date.now() + 2 * 86400000,
+  };
   const round = new Round(document.querySelector('.round__app')!, game, rules, {
     mode: 'game',
     me: 'local',
@@ -165,6 +188,8 @@ test('server updates preserve a replay cursor and elimination switches the playe
     stream.onmessage({ data: JSON.stringify(game) });
   };
   try {
+    assert.equal(presence, 'threeKingdoms-rated');
+    assert.equal(streamUrl, '/api/three-kingdoms/game/abcdefgh/stream?player=1');
     send(rules.inspect(game.position).moves[0]);
     keyboards.get('home')!();
     send(rules.inspect(game.position).moves[0]);
@@ -176,8 +201,23 @@ test('server updates preserve a replay cursor and elimination switches the playe
     send('resign');
     assert.equal(interaction.mode, 'display');
     assert.ok(document.querySelector('[data-seat="red"].eliminated'));
+    assert.equal(presence, undefined);
     assert.ok(document.querySelector('a[href="/analysis/threeKingdoms?game=abcdefgh"]'));
     assert.equal(closed, false, 'Eliminated players can keep watching the final duel');
+    round.destroy();
+    for (const [mode, viewer] of [
+      ['tv', null],
+      ['game', 'spectator'],
+    ] as const) {
+      const host = document.createElement('div');
+      document.querySelector('main')!.append(host);
+      const watcher = new Round(host, game, rules, { mode, me: viewer, preferences: {} });
+      try {
+        assert.equal(streamUrl, '/api/three-kingdoms/game/abcdefgh/stream');
+      } finally {
+        watcher.destroy();
+      }
+    }
   } finally {
     round.destroy();
     globalThis.fetch = originalFetch;
@@ -248,9 +288,12 @@ test('friend rounds show correspondence time and omit the clock for unlimited', 
       days: timeMode === 'correspondence' ? 2 : null,
       deadline: timeMode === 'correspondence' ? Date.now() + 2 * 86400000 : null,
     };
+    game.source = 'friend';
+    game.rated = timeMode === 'correspondence';
     const root = document.querySelector<HTMLElement>('.round__app')!;
     const round = new Round(root, game, rules, { mode: 'local', me: null, preferences: {} }, true);
     try {
+      assert.equal(presence, 'threeKingdoms-friend');
       assert.equal(
         document.querySelector('[data-clock="red"]')?.textContent,
         timeMode === 'correspondence' ? 'nbDays: 2' : undefined,

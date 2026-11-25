@@ -325,6 +325,19 @@ final class Round(
           mode
         )
 
+  def banqiComputer(fullId: GameFullId, ply: Int, move: String) = Open:
+    Found(env.round.proxyRepo.pov(fullId)): pov =>
+      if !ownedPovForReq(pov.game).contains(pov) then theftResponse
+      else if !pov.game.isBanqi || !pov.opponent.isAi || pov.game.ranked then BadRequest
+      else
+        lila.xiangqi.Xiangqi.Uci.from(move) match
+          case Left(_) => BadRequest
+          case Right(uci) =>
+            val reply = scala.concurrent.Promise[Unit]()
+            env.round.roundApi
+              .tell(pov.gameId, lila.core.round.RoundBus.BanqiComputerPlay(pov.playerId, ply, uci, reply))
+            reply.future.map(_ => NoContent).recover { case _: lila.core.round.ClientError => Conflict }
+
   def resign(fullId: GameFullId) = Open:
     Found(env.round.proxyRepo.pov(fullId)): pov =>
       val redirection = fuccess(Redirect(routes.Lobby.home))

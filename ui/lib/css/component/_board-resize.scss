@@ -16,6 +16,7 @@ cg-resize {
     height: $resize-width;
     border-radius: 50%;
     clip-path: circle(50%);
+
     // Center on the artwork vertex, then move along the corner bisector.
     transform: translate(50%, 50%) rotate(var(--board-resize-angle, -45deg))
       translateY(var(--board-resize-distance, calc(-50% - 4px)));

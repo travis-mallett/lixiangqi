@@ -46,6 +46,9 @@ export interface RevealChoice {
   role: string;
   count: number;
   probability: number;
+  army?: 'red' | 'black';
+  pieceRole?: string;
+  total?: number;
 }
 
 export function revealChoices(state: RulesState, move: string, captured = false): RevealChoice[] {

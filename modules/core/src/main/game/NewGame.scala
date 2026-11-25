@@ -144,6 +144,10 @@ def newGame(
     variant: Variant = Standard,
     rankTrack: Option[RankTrackId] = None
 ): NewGame =
+  require(
+    xiangqi.variant.playerCount == 2 && xiangqi.variant.supportsRuleset(xiangqi.ruleset),
+    s"Invalid rules for ${xiangqi.variant.name}"
+  )
   NewGame(
     newSloppy(
       xiangqi,

@@ -1,6 +1,6 @@
 package lila.study
 
-import lila.xiangqi.{ Xiangqi, UciPath }
+import lila.xiangqi.{ BranchId, Xiangqi, UciPath }
 import lila.mon.Chronometer.syncMon
 import lila.db.dsl.*
 import lila.tree.{ Branch, Branches, Root }
@@ -22,7 +22,7 @@ private object StudyFlatTree:
         def children(parent: UciPath, history: Xiangqi.Game): Branches =
           val parentDoc =
             flatTree.getAsTry[Bdoc](if parent.isEmpty then UciPathDb.rootDbKey else parent.value).get
-          val order = parentDoc.getAsTry[List[Xiangqi.Uci]](Node.BsonFields.order).get
+          val order = parentDoc.getAsTry[List[BranchId]](Node.BsonFields.order).get
           val siblings = byParent.getOrElse(parent, Nil)
           require(
             order.distinct.size == order.size && order.toSet == siblings.flatMap(_._1.lastId).toSet,

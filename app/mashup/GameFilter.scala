@@ -20,6 +20,7 @@ object GameFilterMenu:
       List(
         Some(GameFilter.jieqi),
         Some(GameFilter.minixiangqi),
+        Some(GameFilter.banqi),
         Some(GameFilter.manchu),
         Some(GameFilter.threeKingdoms),
         (~nbs.withMe > 0).option(GameFilter.me),
@@ -44,7 +45,9 @@ object GameFilterMenu:
     filter match
       case GameFilter.bookmark => nbs.map(_.bookmark)
       case GameFilter.imported => nbs.map(_.imported)
-      case GameFilter.jieqi | GameFilter.minixiangqi | GameFilter.manchu | GameFilter.threeKingdoms => None
+      case GameFilter.banqi | GameFilter.jieqi | GameFilter.minixiangqi | GameFilter.manchu |
+          GameFilter.threeKingdoms =>
+        None
       case GameFilter.all => user.count.game.some
       case GameFilter.me => nbs.flatMap(_.withMe)
       case GameFilter.ranked => user.count.ranked.some
@@ -81,7 +84,7 @@ object GameFilterMenu:
         case GameFilter.all =>
           std(Query.started(user.id)).flatMap:
             _.mapFutureResults(gameProxyRepo.upgradeIfPresent)
-        case GameFilter.jieqi | GameFilter.minixiangqi | GameFilter.manchu =>
+        case GameFilter.banqi | GameFilter.jieqi | GameFilter.minixiangqi | GameFilter.manchu =>
           std(Query.started(user.id) ++ $doc("xg.states.0.variant" -> filter.name))
         case GameFilter.threeKingdoms =>
           fufail("Three-seat history must use GameHistory")

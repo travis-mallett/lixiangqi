@@ -6,9 +6,13 @@ import type LobbyController from '../src/ctrl';
 
 document.documentElement.lang = 'en';
 const { default: variantMenu } = await import('../src/view/variantMenu');
-for (const variant of ['jieqi', 'minixiangqi', 'manchu', 'threeKingdoms'] as const) {
+for (const variant of ['jieqi', 'banqi', 'minixiangqi', 'manchu', 'threeKingdoms'] as const) {
   test(`${variant} menu shows live per-mode populations, including zero, without the extra divider`, () => {
-    const counts: Record<string, number> = { rated: 12, [`${variant}-ai`]: 3, [`${variant}-friend`]: 0 };
+    const counts: Record<string, number> = {
+      [`${variant}-rated`]: 12,
+      [`${variant}-ai`]: 3,
+      [`${variant}-friend`]: 0,
+    };
     const ctrl = {
       variantPool: () => ({ id: 'rated', lim: 10 }),
       isPoolSeeking: () => false,

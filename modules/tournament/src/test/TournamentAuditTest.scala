@@ -35,6 +35,16 @@ class TournamentAuditTest extends munit.FunSuite:
     assert(GameVariant.Jieqi.initialGame(Some(Xiangqi.startFen), Ruleset.Jieqi).isLeft)
     assertEquals(changed.rankTrack, lila.core.rank.RankTrackId.jieqi)
 
+  test("Banqi tournaments keep ordinary seats and give each pairing a fresh private deal"):
+    val created = TournamentForm().fillFromTour(tour).copy(gameVariant = Some("banqi")).updateAll(tour)
+    val stored = BSONHandlers.tourHandler.readDocument(BSONHandlers.tourHandler.writeTry(created).get).get
+    assertEquals(stored.gameVariant, GameVariant.Banqi)
+    assertEquals(stored.rankTrack, lila.core.rank.RankTrackId.banqi)
+    val pairings = Vector.fill(2)(stored.gameVariant.initialGame(None, stored.ruleset).toOption.get)
+    assertEquals(pairings(0).state, pairings(1).state)
+    assert(pairings.forall(_.banqiDeal.isDefined))
+    assertNotEquals(pairings(0).banqiDeal, pairings(1).banqiDeal)
+
   test("native variant survives storage and partial edits"):
     val original = tour.copy(gameVariant = GameVariant.Jieqi, ruleset = Ruleset.Jieqi)
     val handler = BSONHandlers.tourHandler

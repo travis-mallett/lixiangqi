@@ -2,7 +2,8 @@
 // actual board geometry: Xiangqi and other supported boards are not square.
 export function fitEmbed(element: HTMLElement): void {
   element.style.maxWidth = '';
-  const board = element.querySelector<HTMLElement>('.cg-wrap');
+  const board =
+    element.querySelector<HTMLElement>('.banqi-frame') ?? element.querySelector<HTMLElement>('.cg-wrap');
   if (!board?.offsetHeight || element.offsetHeight <= window.innerHeight) return;
   const chromeHeight = element.offsetHeight - board.offsetHeight;
   const chromeWidth = element.offsetWidth - board.offsetWidth;

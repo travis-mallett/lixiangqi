@@ -33,13 +33,15 @@ export const annotationGlyph = (id: number): Glyph => ({
 
 export function createMoveTree(
   state: RulesState,
-  ruleset: string = state.variant === 'jieqi'
-    ? 'jieqi-v1'
-    : state.variant === 'manchu'
-      ? 'manchu-v1'
-      : state.variant === 'minixiangqi'
-        ? 'minixiangqi-v1'
-        : 'unrestricted-v1',
+  ruleset: string = state.variant === 'banqi'
+    ? 'banqi-taiwan-2014-v1'
+    : state.variant === 'jieqi'
+      ? 'jieqi-v1'
+      : state.variant === 'manchu'
+        ? 'manchu-v1'
+        : state.variant === 'minixiangqi'
+          ? 'minixiangqi-v1'
+          : 'unrestricted-v1',
 ): TreeWrapper {
   return makeTree(completeNode({ fen: state.fen, ply: state.ply, state, ruleset, children: [] }));
 }

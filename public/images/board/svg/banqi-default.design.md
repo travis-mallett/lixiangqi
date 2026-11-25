@@ -12,11 +12,7 @@ It retains the embedded wood material from `lixiangqi-default.svg`.
 - Playing frame: `(40,40,416,816)`, stroke 6, offset 8 from the grid.
 - Ink: `#5b2712`, group opacity `0.351560395`, without engraving.
 
-The parent board owns the style. The former recessed grid, heavy frame, and
-fret decorations have been removed. Engraving on the parent's lettering does
-not apply to its grid. Paper and Wudang use their own parent frame and ink;
-tournament has no extra frame. Wudang's ornamental rim remains in its raster
-background.
+Default Wood, Paper and Tournament retain the original stepped outer border and four mirrored fret corners. The playing grid uses the parent theme’s ink and stroke widths. Tournament has a decorative rim and a bare grid.
 
 ## Regeneration and verification
 

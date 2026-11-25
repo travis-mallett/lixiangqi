@@ -166,7 +166,7 @@ export default class EditorCtrl {
   }
 
   canStartGame(): boolean {
-    return this.state.playable && !['jieqi', 'threeKingdoms'].includes(this.adapter.variant);
+    return this.state.playable && !['banqi', 'jieqi', 'threeKingdoms'].includes(this.adapter.variant);
   }
 
   private updateUrl(): void {

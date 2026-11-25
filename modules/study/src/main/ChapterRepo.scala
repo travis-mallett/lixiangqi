@@ -191,7 +191,7 @@ final class ChapterRepo(val coll: AsyncColl, studyRepo: StudyRepo)(using
   ): Funit =
     val parent =
       chapter.root.nodeAt(parentPath).getOrElse(throw IllegalArgumentException("Missing subtree parent"))
-    val order = parent.children.addNode(subTree).toList.map(_.id)
+    val order = parent.children.addNode(subTree).toList.map(_.id.value)
     val set = $doc(subTreeToBsonElements(parentPath, subTree)) ++
       $doc(pathToField(parentPath, F.order) -> order) ++
       $doc("denorm" -> chapter.denorm) ++
@@ -210,7 +210,7 @@ final class ChapterRepo(val coll: AsyncColl, studyRepo: StudyRepo)(using
   // overrides all children sub-nodes in DB! Make the tree merge beforehand.
   def setChildren(children: Branches)(chapter: Chapter, path: UciPath): Funit =
     val set: Bdoc = $doc(childrenTreeToBsonElements(path, children)) ++
-      $doc(pathToField(path, F.order) -> children.toList.map(_.id))
+      $doc(pathToField(path, F.order) -> children.toList.map(_.id.value))
     coll(_.update.one($id(chapter.id), $set(set))).void
 
   private def childrenTreeToBsonElements(

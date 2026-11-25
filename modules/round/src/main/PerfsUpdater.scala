@@ -15,7 +15,8 @@ final class PerfsUpdater(
 )(using Executor):
 
   def save(game: Game, users: ByColor[UserWithPerfs]): Fu[Option[ByColor[RankChange]]] =
-    if game.rankTrack.isEmpty || !game.finished || game.playedPlies < 2 then fuccess(none)
+    if game.rankTrack.isEmpty || !game.finished || game.playedPlies < game.minimumRankedPlies then
+      fuccess(none)
     else persistedChanges(game).fold(settle(game, users))(changes => fuccess(changes.some))
 
   private def persistedChanges(game: Game): Option[ByColor[RankChange]] =

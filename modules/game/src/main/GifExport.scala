@@ -51,7 +51,7 @@ final class GifExport(
   ): Fu[Source[ByteString, ?]] =
     def showPlayer(color: Color) =
       options.players.option:
-        Namer.playerTextBlocking(pov.game.players(color), withRating = options.ratings)(using
+        Namer.playerTextBlocking(pov.withColor(color), withRating = options.ratings)(using
           lightUserApi.sync
         )
     upstreamResponse(s"pov ${pov.game.id}"):
@@ -78,8 +78,10 @@ final class GifExport(
     lightUserApi.preloadMany(game.userIds) >>
       thumbnail(
         position = game.position,
-        red = Namer.playerTextBlocking(game.whitePlayer, withRating = true)(using lightUserApi.sync).some,
-        black = Namer.playerTextBlocking(game.blackPlayer, withRating = true)(using lightUserApi.sync).some,
+        red =
+          Namer.playerTextBlocking(game.pov(chess.White), withRating = true)(using lightUserApi.sync).some,
+        black =
+          Namer.playerTextBlocking(game.pov(chess.Black), withRating = true)(using lightUserApi.sync).some,
         orientation = if game.naturalOrientation.white then Xiangqi.Side.Red else Xiangqi.Side.Black,
         lastMove = game.lastMoveKeys,
         theme = theme,

@@ -8,6 +8,7 @@ import {
 
 import { CevalState } from 'lib/ceval/types';
 import { engineSelection } from 'lib/ceval/view/settings';
+import { banqiActionLabel } from 'lib/game/banqi';
 import { hl, type VNode } from 'lib/view';
 import { updateProgressBar } from 'lib/view/progressBar';
 
@@ -67,7 +68,7 @@ class StudyEngineView {
       const searchTimes = [2, 4, 6, 8, 10, 12, 15, 20, 30, Infinity].filter(
         seconds => seconds * 1000 <= (ctrl.ceval.engines.active().maxMovetime ?? Infinity),
       );
-      const settings = createAnalysisSettings([
+      const allSettings: Parameters<typeof createAnalysisSettings>[0] = [
         {
           name: 'lines-preview',
           label: 'Show engine lines preview',
@@ -130,7 +131,11 @@ class StudyEngineView {
             restart();
           },
         },
-      ]);
+      ];
+      const banqi = ctrl.variantKey === 'banqi';
+      const settings = createAnalysisSettings(
+        banqi ? allSettings.filter(s => ['lines-preview', 'multipv'].includes(s.name)) : allSettings,
+      );
       for (const [label, action] of [
         [i18n.site.showThreat, () => ctrl.toggleThreatMode()],
         [
@@ -141,6 +146,7 @@ class StudyEngineView {
           },
         ],
       ] as const) {
+        if (banqi) break;
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'button button-empty';
@@ -193,7 +199,7 @@ class StudyEngineView {
             seldepth: evaluation.depth,
             score: { redCp: pv.cp, redMate: pv.mate },
             pvMoves: pv.moves,
-            wxfMoves: [],
+            wxfMoves: ctrl.variantKey === 'banqi' ? pv.moves.map(banqiActionLabel) : [],
           })),
         },
         moves => ctrl.playUciList(moves),

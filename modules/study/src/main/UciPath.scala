@@ -1,6 +1,6 @@
 package lila.study
 
-import lila.xiangqi.UciPath
+import lila.xiangqi.{ BranchId, UciPath }
 import lila.xiangqi.XiangqiJson.given
 
 import lila.tree.Node

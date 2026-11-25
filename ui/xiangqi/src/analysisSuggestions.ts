@@ -140,6 +140,9 @@ export class AnalysisSuggestions {
   renderEngine(result: EngineAnalysis, play: (moves: string[]) => void, final = false): void {
     this.elements.engineStatus.classList.remove('error');
     this.elements.engineStatus.textContent =
+      (this.position.ruleset === 'banqi-taiwan-2014-v1'
+        ? i18n.site.banqiEngineScore(i18n.site.banqiFirstSeat) + ' · '
+        : '') +
       (this.position.ruleset === 'jieqi-v1' ? i18n.site.jieqiAnalysisEstimate + ' · ' : '') +
       i18n.site.engineSearchStatus(i18n.site.depthX(result.depth), formatNodes(result.nodes)) +
       (final ? ' · ' + i18n.site.engineSearchComplete : '');
@@ -329,7 +332,11 @@ export class AnalysisSuggestions {
     const clipped = moves.slice(0, MAX_PV_MOVES);
     const key = JSON.stringify([this.position, clipped]);
     const positions = this.variations.get(key);
-    if (this.position.ruleset !== 'jieqi-v1' && !positions && !this.requests.has(key)) {
+    if (
+      !['jieqi-v1', 'banqi-taiwan-2014-v1'].includes(this.position.ruleset ?? '') &&
+      !positions &&
+      !this.requests.has(key)
+    ) {
       this.pending.set(key, clipped);
       clearTimeout(this.timer);
       const positionKey = rulesPositionKey(this.position);

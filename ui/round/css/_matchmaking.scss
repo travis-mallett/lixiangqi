@@ -4,6 +4,26 @@
     grid-template-rows: auto;
   }
 
+  &__app--banqi-room {
+    grid-template-areas: 'board controls' 'board players';
+    grid-template-rows: min-content 1fr;
+
+    > .round__matchmaking-panel,
+    > .round__matchmaking-status {
+      grid-area: controls;
+      position: static;
+      transform: none;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    @include mq-is-col1 {
+      &.round__app--matchmaking {
+        grid-template-areas: 'controls' 'board' 'players';
+      }
+    }
+  }
+
   &__matchmaking-side {
     @extend %box-radius, %box-shadow;
 

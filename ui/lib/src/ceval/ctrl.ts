@@ -78,7 +78,12 @@ export class CevalCtrl {
   }
 
   init(opts?: CevalOpts): void {
-    if (opts) this.opts = opts;
+    if (opts && opts.variant.key !== this.opts.variant.key) {
+      this.unload();
+      this.opts = opts;
+      this.engines = new Engines(this);
+      this.storedEngine = storedStringProp(`ceval.engine.${opts.variant.key}`, this.engines.defaultId);
+    } else if (opts) this.opts = opts;
     this.reset();
     this.analysable = true;
     this.engines.setActive(this.opts.custom?.engine?.id ?? this.storedEngine());
@@ -232,6 +237,7 @@ export class CevalCtrl {
       initialFen: s.steps[0].fen,
       moves: [],
       currentFen: step.fen,
+      publicPositions: this.opts.variant.key === 'banqi' ? s.steps.map(node => node.fen) : undefined,
       legalMoves: s.threatMode ? undefined : step.state.legalMoves,
       path: s.path,
       ply: step.ply,

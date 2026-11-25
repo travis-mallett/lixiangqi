@@ -14,7 +14,7 @@ def index(
     cross: Option[lila.game.Crosstable.WithMatchup],
     history: List[Pov]
 )(using Context) =
-  val title = s"${channel.name} TV: ${playerText(pov.player)} vs ${playerText(pov.opponent)}"
+  val title = s"${channel.name} TV: ${playerText(pov)} vs ${playerText(!pov)}"
   val page = views.round.ui.RoundPage(pov.game.variant, title)
   val roundApp = views.round.ui.roundAppPreload(pov)
   ui.index(channel, champions, pov, data, cross, history)(page)(roundApp)
@@ -24,7 +24,8 @@ def embed(pov: Option[Pov], channelKey: Option[String])(using EmbedContext) =
   views.base.embed.minimal(
     title = "lixiangqi.org Xiangqi TV",
     cssKeys = List("bits.tv.embed"),
-    modules = Esm("site.tvEmbed")
+    modules = Esm("site.tvEmbed"),
+    i18nModules = if channelKey.contains("banqi") then List(_.site) else Nil
   )(
     attr("data-stream-url") := dataStreamUrl,
     div(id := "featured-game", cls := "embedded", title := "lixiangqi.org TV")(

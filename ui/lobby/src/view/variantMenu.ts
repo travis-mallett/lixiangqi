@@ -3,28 +3,36 @@ import { svgIcon } from 'lib/svgIcon';
 import { bind, hl } from 'lib/view';
 
 import type LobbyController from '../ctrl';
-import type { GameType } from '../interfaces';
 import { occupancy } from './occupancy';
+
+export type LobbyVariant = 'banqi' | 'jieqi' | 'minixiangqi' | 'manchu' | 'threeKingdoms';
+
+export const ratedVariantDisabled = (ctrl: LobbyController) =>
+  !!(
+    ctrl.me?.isBot ||
+    ctrl.playban ||
+    ctrl.hasOngoingRealTimeGame(true) ||
+    ctrl.opts.hasUnreadLichessMessage
+  );
+
+export function playVariant(ctrl: LobbyController, variant: LobbyVariant, action: 'rated' | 'ai' | 'friend') {
+  if (action === 'rated') ctrl.openHomepagePool(ctrl.variantPool(variant));
+  else {
+    ctrl.setupCtrl.openModal(action, { variant });
+    ctrl.redraw();
+  }
+}
 
 export default function variantMenu(
   ctrl: LobbyController,
-  variant: 'jieqi' | 'minixiangqi' | 'manchu' | 'threeKingdoms',
+  variant: LobbyVariant,
   navigate: (action: () => void) => void,
 ) {
   const pool = ctrl.variantPool(variant);
   const kingdoms = variant === 'threeKingdoms';
   const mini = variant === 'minixiangqi';
   const manchu = variant === 'manchu';
-  const disabled =
-    !!ctrl.me?.isBot ||
-    ctrl.playban ||
-    ctrl.hasOngoingRealTimeGame(true) ||
-    ctrl.opts.hasUnreadLichessMessage;
-  const setup = (type: GameType) =>
-    navigate(() => {
-      ctrl.setupCtrl.openModal(type, { variant });
-      ctrl.redraw();
-    });
+  const play = (action: 'rated' | 'ai' | 'friend') => navigate(() => playVariant(ctrl, variant, action));
   const content = (icon: string, label: string, detail?: string, count?: number) => [
     hl('span.lobby__variant-menu-icon', { attrs: { 'data-icon': icon, 'aria-hidden': 'true' } }),
     hl('span.lobby__variant-menu-label', [hl('span', label), detail && hl('small', detail)]),
@@ -51,7 +59,9 @@ export default function variantMenu(
             ? `${i18n.site.threeKingdoms} (三国棋)`
             : mini
               ? i18n.site.miniXiangqiTitle
-              : i18n.site.jieqiTitle,
+              : variant === 'banqi'
+                ? i18n.site.banqiTitle
+                : i18n.site.jieqiTitle,
       ),
       hl(
         'a.text',
@@ -62,7 +72,9 @@ export default function variantMenu(
             ? i18n.site.learnMenu
             : mini
               ? i18n.site.miniXiangqiLearnToPlay
-              : i18n.site.jieqiLearnToPlay,
+              : variant === 'banqi'
+                ? i18n.site.banqiLearnToPlay
+                : i18n.site.jieqiLearnToPlay,
       ),
     ]),
     hl(
@@ -70,10 +82,10 @@ export default function variantMenu(
       {
         attrs: {
           type: 'button',
-          disabled,
+          disabled: ratedVariantDisabled(ctrl),
           title: kingdoms ? i18n.site.threeKingdomsTimeControl : i18n.site.jieqiTimeControl,
         },
-        hook: bind('click', () => navigate(() => ctrl.openHomepagePool(pool))),
+        hook: bind('click', () => play('rated')),
       },
       content(
         licon.Trophy,
@@ -83,16 +95,18 @@ export default function variantMenu(
             ? i18n.site.playRatedThreeKingdoms
             : mini
               ? i18n.site.playRatedMiniXiangqi
-              : i18n.site.playRatedJieqi,
+              : variant === 'banqi'
+                ? i18n.site.playRatedBanqi
+                : i18n.site.playRatedJieqi,
         kingdoms ? i18n.site.threeKingdomsTimeControl : i18n.site.minutesShort(pool.lim),
-        ctrl.poolCount(pool.id),
+        ctrl.poolCount(`${variant}-rated`),
       ),
     ),
-    button(licon.Cogs, i18n.site.playAgainstComputer, () => setup('ai'), ctrl.poolCount(`${variant}-ai`)),
+    button(licon.Cogs, i18n.site.playAgainstComputer, () => play('ai'), ctrl.poolCount(`${variant}-ai`)),
     button(
       svgIcon.Challenge,
       kingdoms ? i18n.threeKingdoms.friends : i18n.site.challengeAFriend,
-      () => setup('friend'),
+      () => play('friend'),
       ctrl.poolCount(`${variant}-friend`),
     ),
     link(
@@ -103,7 +117,9 @@ export default function variantMenu(
           ? i18n.site.threeKingdomsAnalysisBoard
           : mini
             ? i18n.site.miniXiangqiAnalysisBoard
-            : i18n.site.jieqiAnalysisBoard,
+            : variant === 'banqi'
+              ? i18n.site.banqiAnalysisBoard
+              : i18n.site.jieqiAnalysisBoard,
       `/analysis/${variant}`,
     ),
     link(

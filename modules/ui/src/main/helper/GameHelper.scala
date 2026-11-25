@@ -21,10 +21,11 @@ trait GameHelper:
       .fold(speedName): (clock, limit) =>
         s"$speedName (${clock.show} · ${shortMoveTimeLimitName(limit)})"
     val variant = if g.isJieqi then trans.site.jieqi.txt()
+    else if g.nativeVariant == lila.xiangqi.GameVariant.Banqi then trans.site.banqi.txt()
     else if g.nativeVariant == lila.xiangqi.GameVariant.Manchu then trans.site.manchu.txt()
     else if g.nativeVariant == lila.xiangqi.GameVariant.MiniXiangqi then trans.site.miniXiangqi.txt()
     else "Xiangqi"
-    s"$speed $variant • ${playerText(g.whitePlayer)} vs ${playerText(g.blackPlayer)}"
+    s"$speed $variant • ${playerText(g.pov(chess.White))} vs ${playerText(g.pov(chess.Black))}"
 
   def shortClockName(clock: Option[Clock.Config])(using t: Translate): Frag =
     clock.fold[Frag](trans.site.unlimited())(shortClockName)
@@ -58,7 +59,8 @@ trait GameHelper:
       player: LightPlayer,
       user: Option[LightUser],
       withRating: Boolean = true,
-      withTitle: Boolean = true
+      withTitle: Boolean = true,
+      banqi: Boolean = false
   )(using Translate): Frag =
     player.aiLevel.fold[Frag](
       user
@@ -72,10 +74,10 @@ trait GameHelper:
             )
           )
     ): level =>
-      frag(aiName(level))
+      frag(aiName(level, banqi))
 
-  def playerText(player: Player, withRating: Boolean = false): String =
-    namer.playerTextBlocking(player, withRating)(using lightUserSync)
+  def playerText(pov: Pov, withRating: Boolean = false): String =
+    namer.playerTextBlocking(pov, withRating)(using lightUserSync)
 
   def gameVsText(game: Game, withRatings: Boolean = false): String =
     namer.gameVsTextBlocking(game, withRatings)(using lightUserSync)
@@ -91,7 +93,8 @@ trait GameHelper:
       engine: Boolean = false,
       withBerserk: Boolean = false,
       mod: Boolean = false,
-      link: Boolean = true
+      link: Boolean = true,
+      banqi: Boolean = false
   )(using ctx: Context): Frag =
     val statusIcon = (withBerserk && player.berserk).option(berserkIconSpan)
     player.userId.flatMap(lightUserSync) match
@@ -99,7 +102,7 @@ trait GameHelper:
         val klass = cssClass.so(" " + _)
         span(cls := s"user-link$klass")(
           (player.aiLevel, player.name) match
-            case (Some(level), _) => aiNameFrag(level)
+            case (Some(level), _) => aiNameFrag(level, banqi)
             case (_, Some(name)) => name
             case _ => trans.site.anonymous()
           ,
@@ -150,11 +153,11 @@ trait GameHelper:
 
   def gameLink(pov: Pov)(using Context): String = gameLink(pov.game, pov.color)
 
-  def aiName(level: Int)(using Translate): String =
-    trans.site.aiNameLevelAiLevel.txt("Pikafish", level)
+  def aiName(level: Int, banqi: Boolean = false)(using Translate): String =
+    trans.site.aiNameLevelAiLevel.txt(AiLevel.engineName(banqi), level)
 
-  def aiNameFrag(level: Int)(using Translate) =
-    raw(aiName(level).replace(" ", "&nbsp;"))
+  def aiNameFrag(level: Int, banqi: Boolean = false)(using Translate) =
+    raw(aiName(level, banqi).replace(" ", "&nbsp;"))
 
   def nativeVariantLink(
       game: Game,
@@ -172,6 +175,8 @@ trait GameHelper:
     nativeVariant match
       case lila.xiangqi.GameVariant.Jieqi =>
         a(cls := "variant-link", href := s"${routes.Lobby.home}?variant=jieqi")(trans.site.jieqi())
+      case lila.xiangqi.GameVariant.Banqi =>
+        a(cls := "variant-link", href := s"${routes.Lobby.home}?variant=banqi")(trans.site.banqi())
       case lila.xiangqi.GameVariant.Manchu =>
         a(cls := "variant-link", href := s"${routes.Lobby.home}?variant=manchu")(trans.site.manchu())
       case lila.xiangqi.GameVariant.MiniXiangqi =>

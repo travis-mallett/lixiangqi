@@ -31,4 +31,5 @@ test('displays Jieqi reveals with WXF letters in either notation language', () =
     assert.equal(selectXiangqiNotation('e3+5', '象３进５', 'chinese', role), `象３进５→${letter}`);
   }
   assert.equal(selectXiangqiNotation('R9+1', undefined, 'english', null), 'R9+1');
+  assert.equal(selectXiangqiNotation('b3(n)', undefined, 'english', 'n'), 'b3(n)');
 });

@@ -125,7 +125,10 @@ export class Round {
 
   private connect(): void {
     this.source?.close();
-    this.source = new EventSource(`/api/three-kingdoms/game/${this.game.id}/stream`);
+    const player = this.bootstrap.me && this.myColor() && this.game.clock.timeMode !== 'realTime';
+    this.source = new EventSource(
+      `/api/three-kingdoms/game/${this.game.id}/stream${player ? '?player=1' : ''}`,
+    );
     this.source.onmessage = event => {
       const data = JSON.parse(event.data);
       if (data.position) void this.receive(data as Game);
@@ -197,10 +200,16 @@ export class Round {
   private render(): void {
     const me = this.myColor();
     const active = !!me && this.state.active.includes(me);
+    const mode =
+      this.game.source === 'computer'
+        ? 'ai'
+        : this.game.rated && this.game.source !== 'friend'
+          ? 'rated'
+          : 'friend';
+    const playing = active && !this.state.ending;
     wsSetActivity(
-      active && !this.state.ending
-        ? `threeKingdoms-${this.game.source === 'computer' ? 'ai' : this.game.rated ? 'rated' : 'friend'}`
-        : undefined,
+      playing ? `threeKingdoms-${mode}` : undefined,
+      playing && this.local ? this.game.id : undefined,
     );
     this.board.setInteraction(
       interaction(

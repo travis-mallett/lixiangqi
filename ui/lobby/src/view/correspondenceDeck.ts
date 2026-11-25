@@ -32,7 +32,9 @@ const deadline = (game: NowPlaying) => {
 const enableMouseDragging = onInsert<HTMLElement>(bindMouseDragging);
 
 const gameCard = (ctrl: LobbyController, game: NowPlaying) => {
-  const opponent = game.opponent.ai ? aiLevelName(game.opponent.ai) : game.opponent.username;
+  const opponent = game.opponent.ai
+    ? aiLevelName(game.opponent.ai, game.variant.key)
+    : game.opponent.username;
   const status = game.isMyTurn ? i18n.site.yourTurn : i18n.site.waitingForOpponent;
   const timeLeft = game.isMyTurn ? deadline(game) : null;
 

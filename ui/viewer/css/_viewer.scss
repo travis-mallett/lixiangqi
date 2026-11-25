@@ -126,3 +126,9 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.xiangqi-viewer__board-column.banqi-frame > .xiangqi-viewer__board {
+  width: 71.2644%;
+  margin-inline: auto;
+  aspect-ratio: 496 / 896;
+}

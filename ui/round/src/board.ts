@@ -3,6 +3,7 @@ import { h, type VNode } from 'snabbdom';
 
 import { createXiangqiBoard, xiangqiPosition, websiteBoardPresentation, makeBoardResizable } from 'lib/board';
 import { plyColor } from 'lib/game';
+import { armyOfSeat } from 'lib/game/banqi';
 import { xiangqiPremoveTargets } from 'lib/game/xiangqiPremove';
 import { ShowResizeHandle, Coords, MoveEvent } from 'lib/prefs';
 
@@ -17,7 +18,10 @@ export function interaction(ctrl: RoundController, playing: boolean = ctrl.isPla
   return playing && !ctrl.replaying() && !ctrl.myTimeIsUp()
     ? {
         mode: 'play',
-        participant: participant(data.player.color),
+        participant:
+          data.game.variant.key === 'banqi'
+            ? armyOfSeat(ctrl.stepAt(ctrl.ply).fen, data.player.color === 'white' ? 'red' : 'black')
+            : participant(data.player.color),
         destinations: util.parsePossibleMoves(data.possibleMoves),
         input:
           data.pref.moveEvent === MoveEvent.Click
@@ -27,12 +31,13 @@ export function interaction(ctrl: RoundController, playing: boolean = ctrl.isPla
               : 'both',
         showDestinations: data.pref.destination && !ctrl.blindfold(),
         onMove: ctrl.onBoardMove,
-        premove: data.pref.enablePremove
-          ? {
-              destinations: (position, from) =>
-                xiangqiPremoveTargets(position, from, data.game.variant.key === 'jieqi'),
-            }
-          : undefined,
+        premove:
+          data.pref.enablePremove && data.game.variant.key !== 'banqi'
+            ? {
+                destinations: (position, from) =>
+                  xiangqiPremoveTargets(position, from, data.game.variant.key === 'jieqi'),
+              }
+            : undefined,
       }
     : { mode: 'display' };
 }

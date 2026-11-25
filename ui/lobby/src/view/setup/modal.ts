@@ -94,7 +94,11 @@ const gameMode = (setup: LobbyController['setupCtrl']) =>
 const views = {
   hook: (ctrl: LobbyController): LooseVNodes => [
     variantPicker(ctrl.setupCtrl),
-    timePickerAndSliders(ctrl.setupCtrl.timeControl, 0),
+    timePickerAndSliders(
+      ctrl.setupCtrl.timeControl,
+      0,
+      ctrl.setupCtrl.isThreeKingdoms() ? ['correspondence'] : undefined,
+    ),
     gameMode(ctrl.setupCtrl),
     ctrl.setupCtrl.isThreeKingdoms() ? kingdomSide(ctrl.setupCtrl) : colorButtons(ctrl.setupCtrl),
     ctrl.setupCtrl.isThreeKingdoms() && kingdomOpponents(ctrl.setupCtrl),

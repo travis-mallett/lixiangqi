@@ -11,7 +11,8 @@ import type { ExplorerOpts } from './interfaces';
 /** Study owns permissions and insertion; the shared explorer owns database requests and presentation. */
 export default class ExplorerCtrl {
   readonly allowed = prop(true);
-  readonly enabled = storedBooleanProp('analyse.explorer.enabled', false);
+  private readonly preference = storedBooleanProp('analyse.explorer.enabled', false);
+  readonly enabled = (): boolean => this.allowed() && this.preference();
   readonly hovering = prop<{ fen: string; uci: string } | null>(null);
   private view?: NativeExplorer;
   constructor(
@@ -59,12 +60,13 @@ export default class ExplorerCtrl {
     });
   };
   toggle = (): void => {
-    this.enabled(!this.enabled() && this.allowed());
+    if (!this.allowed()) return;
+    this.preference(!this.preference());
     this.setNode();
     this.root.redraw();
   };
   disable = (): void => {
-    this.enabled(false);
+    this.preference(false);
     this.setNode();
   };
   onFlip = (): void => {

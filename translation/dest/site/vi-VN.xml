@@ -1,5 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="historicalVariants">Các biến thể lịch sử</string>
+  <string name="banqi">Cờ tối</string>
+  <string name="analysisPositionFen">Thế cờ (FEN)</string>
+  <string name="analysisRecordLabel">Biên bản ván cờ (các biến trong ngoặc đơn)</string>
+  <string name="banqiRecordLabel">Biên bản Cờ tối (nước đi như a4-a5, lật quân như b3(n))</string>
+  <string name="banqiLearnToPlay">Cách chơi Cờ tối</string>
+  <string name="banqiSetupText">Xáo 32 quân rồi úp trên bàn bốn cột, tám hàng. Người đi trước lật một quân và nhận màu của quân đó. Đến lượt người thứ hai. Mỗi lần lật tính là một lượt.</string>
+  <string name="banqiMovementText">Lật một quân úp hoặc đi ngang, dọc một ô. Quân ngửa ăn quân địch cùng cấp hay thấp hơn ở ô kề. Thứ tự là tướng, sĩ, tượng, xe, mã, pháo, tốt. Tốt ăn được tướng hoặc tốt. Tướng không ăn được tốt. Pháo ăn quân địch ngửa bất kỳ qua đúng một quân làm ngòi, kể cả quân úp.</string>
+  <string name="banqiWinningText">Theo luật thi đấu Đài Loan 2014, mất hết quân hoặc không còn nước hợp lệ khi tới lượt là thua. Ăn tướng chưa kết thúc ván. Hòa khi cùng thế cờ và người đi xuất hiện ba lần, hoặc sau 30 lượt liên tiếp không ăn hay lật quân.</string>
+  <string name="banqiRankExplanation">Cờ tối bắt đầu ở 0 điểm. Kết quả tính hạng đầu tiên xác lập cấp 暗. Cờ trực tiếp và cờ qua thư có bảng xếp hạng riêng.</string>
+  <string name="playRatedBanqi">Chơi Cờ tối tính hạng</string>
+  <string name="banqiLeaderboard">Bảng xếp hạng Cờ tối</string>
+  <string name="banqiAnalysisBoard">Bàn phân tích Cờ tối</string>
+  <string name="banqiElimination">Đã bắt hết quân đối phương</string>
+  <string name="banqiImmobilization">Đối phương hết nước đi hợp lệ</string>
+  <string name="banqiThreefold">Hòa do lặp lại thế cờ ba lần</string>
+  <string name="banqiQuietDraw">Hòa sau 30 lượt không lật hoặc bắt quân</string>
+  <string name="banqiWinner">%s thắng</string>
+  <string name="banqiResignation">Xin thua</string>
+  <string name="banqiTimeout">Hết giờ</string>
+  <string name="banqiFirstSeat">Người đi trước</string>
+  <string name="banqiSecondSeat">Người đi sau</string>
+  <string name="banqiSeatTurn">Đến lượt %s</string>
+  <string name="banqiQuietCount">%s/30 lượt không ăn hoặc lật</string>
+  <string name="banqiCaptured">Đã ăn %3$s/%4$s quân %2$s %1$s</string>
+  <string name="banqiFlip">Lật %s</string>
+  <string name="banqiEngineScore">Đánh giá cho %s</string>
+  <string name="banqiArmy">%1$s cầm quân %2$s</string>
+  <string name="banqiGeneral">Tướng</string>
+  <string name="banqiBag">Quân còn úp</string>
+  <string name="banqiTitle">Cờ tối (暗棋)</string>
+  <string name="otherVariantsAndGames">Các biến thể và trò chơi khác (其他变体与游戏)</string>
+  <string name="variantBot">Đấu máy</string>
+  <string name="browseAllVariants">Xem tất cả</string>
   <string name="gameSetup">Thiết lập ván đấu</string>
   <string name="challengeAFriend" comment="be mindful how 'friend' translates in gendered languages. look for a more neutral term if there's an issue, or base your translation on a different phrase like 'invite to a game'. keep it short and convey the button's meaning without offense.">Thách đấu một người bạn</string>
   <string name="playAgainstComputer">Chơi với máy</string>

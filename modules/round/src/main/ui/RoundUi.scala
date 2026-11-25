@@ -51,7 +51,8 @@ final class RoundUi(helpers: Helpers, gameUi: lila.game.ui.GameUi):
                   pov.opponent.light,
                   pov.opponent.userId.flatMap(lightUserSync),
                   withRating = false,
-                  withTitle = true
+                  withTitle = true,
+                  banqi = pov.game.isBanqi
                 ),
                 span(cls := "indicator")(
                   if pov.isMyTurn then
@@ -65,8 +66,8 @@ final class RoundUi(helpers: Helpers, gameUi: lila.game.ui.GameUi):
 
   def describePov(pov: Pov)(using Translate) =
     import pov.*
-    val p1 = playerText(game.whitePlayer, withRating = true)
-    val p2 = playerText(game.blackPlayer, withRating = true)
+    val p1 = playerText(game.pov(chess.White), withRating = true)
+    val p2 = playerText(game.pov(chess.Black), withRating = true)
     val plays = if game.finishedOrAborted then "played" else "is playing"
     val clockDescription =
       if game.sourceIs(_.Import) then "imported"
@@ -77,7 +78,8 @@ final class RoundUi(helpers: Helpers, gameUi: lila.game.ui.GameUi):
 
     val mode = if game.ranked then trans.site.ranked.txt() else trans.site.casual.txt()
     val variant =
-      if game.nativeVariant == lila.xiangqi.GameVariant.Manchu then trans.site.manchu.txt()
+      if game.nativeVariant == lila.xiangqi.GameVariant.Banqi then trans.site.banqi.txt()
+      else if game.nativeVariant == lila.xiangqi.GameVariant.Manchu then trans.site.manchu.txt()
       else if game.nativeVariant == lila.xiangqi.GameVariant.MiniXiangqi then trans.site.miniXiangqi.txt()
       else if game.isJieqi then trans.site.jieqi.txt()
       else if game.fromPosition then "a custom Xiangqi position"
@@ -85,12 +87,12 @@ final class RoundUi(helpers: Helpers, gameUi: lila.game.ui.GameUi):
     import chess.Status.*
     val result = (game.winner, game.loser, game.status) match
       case (Some(w), _, Mate) if game.position.termination.contains("stalemate") =>
-        s"${playerText(w)} won by stalemate"
-      case (Some(w), _, Mate) => s"${playerText(w)} won by checkmate"
+        s"${playerText(game.pov(w.color))} won by stalemate"
+      case (Some(w), _, Mate) => s"${playerText(game.pov(w.color))} won by checkmate"
       case (_, _, Aborted | NoStart) => gameUi.abortReason(game).txt()
-      case (_, Some(l), Resign | Timeout | Cheat | NoStart) => s"${playerText(l)} resigned"
-      case (_, Some(l), Outoftime) => s"${playerText(l)} ran out of time"
-      case (Some(w), _, UnknownFinish | VariantEnd) => s"${playerText(w)} won"
+      case (_, Some(l), Resign | Timeout | Cheat | NoStart) => s"${playerText(game.pov(l.color))} resigned"
+      case (_, Some(l), Outoftime) => s"${playerText(game.pov(l.color))} ran out of time"
+      case (Some(w), _, UnknownFinish | VariantEnd) => s"${playerText(game.pov(w.color))} won"
       case (_, _, Draw | Stalemate | UnknownFinish) => "Game is a draw"
       case _ if game.finished => "Game ended"
       case _ => "Game is still ongoing"

@@ -121,8 +121,10 @@ export default class SetupController {
     this.fen = propWithEffect(forceOptions?.fen || storeProps.fen, this.onDropdownChange);
     const canChangeTimeMode = !!this.root.me || this.gameType !== 'hook';
     const requestedTimeMode =
-      forceOptions?.timeMode ||
-      (this.gameType === 'ai' && storeProps.aiTimeControls !== true ? 'unlimited' : storeProps.timeMode);
+      this.gameType === 'hook' && this.isThreeKingdoms()
+        ? 'correspondence'
+        : forceOptions?.timeMode ||
+          (this.gameType === 'ai' && storeProps.aiTimeControls !== true ? 'unlimited' : storeProps.timeMode);
     this.aiTimeControls = this.gameType === 'ai' && requestedTimeMode !== 'unlimited';
     this.aiTimedMode = requestedTimeMode === 'correspondence' ? 'correspondence' : 'realTime';
     this.timeControl = timeControlFromStoredValues(
@@ -155,13 +157,12 @@ export default class SetupController {
         ? 'xiangqi'
         : this.variant();
 
-  usesVariantLevels = () => ['jieqi', 'minixiangqi', 'manchu', 'threeKingdoms'].includes(this.gameVariant());
+  usesVariantLevels = () =>
+    ['jieqi', 'banqi', 'minixiangqi', 'manchu', 'threeKingdoms'].includes(this.gameVariant());
 
   variantLevelCount = () => (this.isThreeKingdoms() ? 5 : 10);
 
   private readonly enforcePropRules = () => {
-    if (this.gameType === 'hook' && this.isThreeKingdoms() && this.timeControl.mode() !== 'correspondence')
-      this.variant = propWithEffect('standard', this.onVariantChange);
     // reassign with this.propWithApply in this function to avoid calling this.onPropChange
 
     if (this.usesVariantLevels() && this.aiLevel)
@@ -352,7 +353,10 @@ export default class SetupController {
       ? !this.isThreeKingdoms() || this.validKingdomFriends()
       : this.isThreeKingdoms()
         ? this.gameType === 'hook'
-          ? !!this.root.me && this.timeControl.mode() === 'correspondence' && this.timeControl.valid()
+          ? !!this.root.me &&
+            this.timeControl.mode() === 'correspondence' &&
+            this.timeControl.valid() &&
+            this.validConstraints()
           : this.gameType === 'friend'
             ? this.validKingdomFriends() && this.timeControl.valid()
             : this.gameType === 'ai' &&

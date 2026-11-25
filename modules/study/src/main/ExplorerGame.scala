@@ -44,7 +44,9 @@ final private class ExplorerGameApi(
 
   private def replayBranch(node: Branch, game: Xiangqi.Game): Either[String, Branch] =
     for
-      moved <- XiangqiRules.move(game, node.move.uci)
+      moved <-
+        if game.isBanqi then lila.xiangqi.Banqi.advance(game, node.move.uci, node.state.reveal)
+        else XiangqiRules.move(game, node.move.uci)
       next <- game.applyMove(moved)
       children <- node.children.toList.traverse(replayBranch(_, next))
     yield node.copy(
@@ -69,7 +71,7 @@ final private class ExplorerGameApi(
         if fromNode.children.nodeAt(nextPath).isDefined then (nextPath, none)
         else (path, gameNode.some)
       case (found, _) => found
-    foundGameNode.map { _ -> UciPath.fromIds(fromPath.computeIds ++ path.computeIds) }
+    foundGameNode.map { _ -> UciPath.fromIds(fromPath.steps ++ path.steps) }
 
   private def gameComment(game: Game) =
     Comment(
@@ -94,8 +96,8 @@ final private class ExplorerGameApi(
     gameTitle(g, tags)
 
   private def gameTitle(g: Game, tags: Tags): String =
-    val red = tags("Red") | namer.playerTextBlocking(g.whitePlayer)(using lightUserApi.sync)
-    val black = tags(_.Black) | namer.playerTextBlocking(g.blackPlayer)(using lightUserApi.sync)
+    val red = tags("Red") | namer.playerTextBlocking(g.pov(chess.White))(using lightUserApi.sync)
+    val black = tags(_.Black) | namer.playerTextBlocking(g.pov(chess.Black))(using lightUserApi.sync)
     val result = g.recordedResult.key
     val event: Option[String] =
       (tags(_.Event), tags.year.map(_.toString)) match

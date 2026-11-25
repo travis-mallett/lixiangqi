@@ -264,17 +264,19 @@ const renderPerf = (perf: RecapPerf): VNode => {
       ? i18n.site.xiangqi
       : perf.key === 'jieqi'
         ? i18n.site.jieqi
-        : perf.key === 'manchu'
-          ? i18n.site.manchu
-          : perf.key === 'minixiangqi'
-            ? i18n.site.miniXiangqi
-            : perf.key === 'threeKingdoms'
-              ? i18n.site.threeKingdoms
-              : !perfIsSpeed(perf.key)
-                ? i18n.variant[perf.key]
-                : perf.key !== 'ultraBullet'
-                  ? i18n.site[perf.key]
-                  : perf.key,
+        : perf.key === 'banqi'
+          ? i18n.site.banqi
+          : perf.key === 'manchu'
+            ? i18n.site.manchu
+            : perf.key === 'minixiangqi'
+              ? i18n.site.miniXiangqi
+              : perf.key === 'threeKingdoms'
+                ? i18n.site.threeKingdoms
+                : !perfIsSpeed(perf.key)
+                  ? i18n.variant[perf.key]
+                  : perf.key !== 'ultraBullet'
+                    ? i18n.site[perf.key]
+                    : perf.key,
   ]);
 };
 

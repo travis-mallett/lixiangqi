@@ -10,7 +10,6 @@ import lila.core.game.GameRule
 import lila.core.game.MoveTimeLimit
 import lila.lobby.TriColor
 import lila.rating.PerfType
-import lila.xiangqi.Xiangqi
 
 final case class ApiConfig(
     variant: chess.variant.Variant,
@@ -26,16 +25,12 @@ final case class ApiConfig(
     onlyIfOpponentFollowsMe: Boolean = false,
     ruleset: Option[String] = None,
     gameVariant: lila.xiangqi.GameVariant = lila.xiangqi.GameVariant.Xiangqi
-):
+) extends lila.core.setup.VariantConfig:
 
   def perfType: PerfType = lila.rating.PerfType(variant, chess.Speed(days.isEmpty.so(clock)))
   def perfKey = perfType.key
 
-  def validFen =
-    if gameVariant == lila.xiangqi.GameVariant.Jieqi then position.isEmpty && variant.standard
-    else if variant == FromPosition then
-      position.exists(fen => Xiangqi.Fen.board(fen.value).exists(_.variant == gameVariant))
-    else position.forall(_.value == gameVariant.startFen)
+  def validFen = gameVariant.validDuelPosition(variant.fromPosition, position.map(_.value))
 
   def isCustomPosition = position.exists(_.value != gameVariant.startFen)
 
@@ -48,7 +43,7 @@ final case class ApiConfig(
   def validMoveTimeLimit = moveTimeLimit.isEmpty || clock.isDefined
 
   def autoVariant =
-    if gameVariant != lila.xiangqi.GameVariant.Jieqi && variant.standard && position.exists(
+    if gameVariant.supportsCustomPosition && variant.standard && position.exists(
         _.value != gameVariant.startFen
       )
     then copy(variant = FromPosition)

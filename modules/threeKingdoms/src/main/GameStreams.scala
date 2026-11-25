@@ -12,8 +12,11 @@ final class GameStreams(repo: GameRepo, json: JsonView)(using Executor):
   def publishChannel(channel: String, game: KingdomGame): Unit =
     val queues = synchronized(listeners.get(channel).toList.flatMap(_.values))
     queues.foreach(_.offer(game))
-  def apply(id: GameId): Source[JsObject, NotUsed] =
-    channel(s"game:${id.value}", repo.byId(id), closeIfEmpty = true)
+  val playerBoards = new lila.common.LilaStream.Subscribers[(GameId, UserId)]
+
+  def apply(id: GameId, player: Option[UserId]): Source[JsObject, NotUsed] =
+    val source = channel(s"game:${id.value}", repo.byId(id), closeIfEmpty = true)
+    player.fold(source)(user => playerBoards.track(id -> user, source))
 
   def channel(
       channel: String,

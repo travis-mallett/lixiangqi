@@ -92,9 +92,9 @@ const myWsLagAsSignal = () => {
   return !ping ? 0 : ping < 150 ? 4 : ping < 300 ? 3 : ping < 500 ? 2 : 1;
 };
 
-export const userTxt = (player: Player): string =>
+export const userTxt = (player: Player, variant?: string): string =>
   player.user
     ? (player.user.title ? player.user.title + ' ' : '') + player.user.username
     : player.ai
-      ? aiLevelName(player.ai)
+      ? aiLevelName(player.ai, variant)
       : i18n.site.anonymous;

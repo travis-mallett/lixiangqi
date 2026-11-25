@@ -12,7 +12,7 @@ import lila.core.round.TellMany
 import lila.core.round.StartClock
 import lila.db.dsl.{ *, given }
 import lila.rating.PerfType
-import lila.xiangqi.{ Xiangqi, XiangqiRules }
+import lila.xiangqi.Xiangqi
 
 final class ChallengeBulkApi(
     colls: ChallengeColls,
@@ -90,11 +90,7 @@ final class ChallengeBulkApi(
       Challenge.TimeControl.Clock(_, bulk.moveTimeLimit),
       Challenge.TimeControl.Correspondence.apply
     )
-    XiangqiRules
-      .initialGame:
-        bulk.fen
-          .filter(_ => bulk.variant.fromPosition)
-          .map(_.value)
+    bulk.initialGame
       .fold(fufail, fuccess)
       .flatMap: xiangqiGame =>
         val track =

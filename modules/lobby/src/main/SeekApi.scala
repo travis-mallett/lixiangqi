@@ -46,19 +46,13 @@ final class SeekApi(
     cache.get(ForUser).map { seeks =>
       val filtered = seeks.filter: seek =>
         seek.user.is(user) || biter.canJoin(seek, user)
-      noDupsFor(user, filtered).take(maxPerPage.value)
+      filtered
+        .distinctBy { seek =>
+          if seek.user.id == user.id then Left(seek.id)
+          else Right((seek.user.id, seek.compatibilityProperties))
+        }
+        .take(maxPerPage.value)
     }
-
-  private def noDupsFor(user: LobbyUser, seeks: List[Seek]) =
-    seeks
-      .foldLeft(List.empty[Seek] -> Set.empty[String]):
-        case ((res, h), seek) if seek.user.id == user.id => (seek :: res, h)
-        case ((res, h), seek) =>
-          val seekH = List(seek.variant, seek.daysPerTurn, seek.user.id).mkString(",")
-          if h contains seekH then (res, h)
-          else (seek :: res, h + seekH)
-      ._1
-      .reverse
 
   def find(id: String): Fu[Option[Seek]] =
     coll.find($id(id)).one[Seek]

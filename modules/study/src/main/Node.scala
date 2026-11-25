@@ -7,6 +7,7 @@ object Node:
   object BsonFields:
     val ply = "p"
     val uci = "u"
+    val reveal = "reveal"
     val notation = "notation"
     val chineseNotation = "chineseNotation"
     val ruleset = "ruleset"

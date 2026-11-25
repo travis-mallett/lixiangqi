@@ -26,7 +26,7 @@ export function interaction(ctrl: AnalyseCtrl): BoardInteraction {
   if (!color || !ctrl.node.state.legalMoves?.length) return { mode: 'display' };
   return {
     mode: 'play',
-    participant: color === 'red' ? 'red' : 'black',
+    participant: ctrl.node.state.variant === 'banqi' ? xiangqiPosition(ctrl.node.fen).active : color,
     destinations: moveDestinations(ctrl.node.state.legalMoves),
     input:
       ctrl.data.pref.moveEvent === Prefs.MoveEvent.Drag
@@ -36,12 +36,15 @@ export function interaction(ctrl: AnalyseCtrl): BoardInteraction {
           : 'both',
     showDestinations: ctrl.data.pref.destination ?? true,
     onMove: move => ctrl.userMove(move.from, move.to),
-    premove: {
-      destinations: xiangqiPremoveTargets,
-      onChange: move => {
-        if (move) ctrl.onPremoveSet();
-      },
-    },
+    premove:
+      ctrl.node.state.variant === 'banqi'
+        ? undefined
+        : {
+            destinations: xiangqiPremoveTargets,
+            onChange: move => {
+              if (move) ctrl.onPremoveSet();
+            },
+          },
   };
 }
 

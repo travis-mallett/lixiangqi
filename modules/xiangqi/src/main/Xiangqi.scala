@@ -10,6 +10,7 @@ object Xiangqi:
     private val pieces = "kabnrcpxmKABNRCPXM"
 
     def isValid(value: String): Boolean =
+      if Banqi.isFen(value) then return Banqi.read(value).isRight
       value.trim.split("\\s+").toList match
         case board :: turn :: variant :: "-" :: halfMove :: fullMove :: Nil =>
           val ranks = board.split("/", -1)
@@ -44,6 +45,7 @@ object Xiangqi:
         .exists(_._1 == files)
 
     def board(value: String): Option[Board] =
+      if Banqi.isFen(value) then return Banqi.read(value).toOption.map(_.board)
       Option.when(isValid(value)):
         val rows = value.takeWhile(_ != ' ').count(_ == '/') + 1
         val pieces = Map.newBuilder[Square, Piece]
@@ -429,7 +431,8 @@ object Xiangqi:
       wxf: Vector[String],
       states: Vector[State],
       ruleset: Ruleset = Ruleset.default,
-      deal: Option[Jieqi.Deal] = None
+      deal: Option[Jieqi.Deal] = None,
+      banqiDeal: Option[Banqi.Deal] = None
   ):
     require(initialFen.nonEmpty, "A Xiangqi game requires an initial FEN")
     require(moves.size == wxf.size, "Every Xiangqi move requires one WXF value")
@@ -440,7 +443,11 @@ object Xiangqi:
     def variant = GameVariant.fromKey(state.variant).fold(sys.error, identity)
     def isJieqi = variant == GameVariant.Jieqi
 
-    lazy val chineseWxf: Vector[String] =
+    def isBanqi = variant == GameVariant.Banqi
+    def hasReveals = isJieqi || isBanqi
+
+    lazy val chineseWxf: Vector[String] = if isBanqi then wxf
+    else
       moves
         .zip(states)
         .map: (move, before) =>
@@ -464,7 +471,7 @@ object Xiangqi:
       initialFen,
       moves,
       ruleset,
-      if isJieqi then states.drop(1).map(_.reveal) else Vector.empty,
+      if hasReveals then states.drop(1).map(_.reveal) else Vector.empty,
       state.captures.filter(_.concealed).flatMap(c => c.role.map(c.square -> _)).toMap
     )
 

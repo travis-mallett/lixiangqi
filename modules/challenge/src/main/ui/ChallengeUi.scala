@@ -257,6 +257,7 @@ final class ChallengeUi(helpers: Helpers):
               details(c, color),
               c.notableInitialFen.map: fen =>
                 div(cls := "board-preview", chessgroundMini(fen.board, !c.finalColor)(div)),
+              failureFlash,
               if relation.has(Relation.Block) then badTag("You have blocked this player.")
               else if c.open.exists(!_.canJoin) then
                 div(

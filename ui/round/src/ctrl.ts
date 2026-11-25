@@ -18,6 +18,7 @@ import * as game from 'lib/game';
 import { isXiangqiCapture, plyOpponentColor } from 'lib/game';
 import { isXiangqiMate } from 'lib/game/adjudication';
 import { recordGuestAiWin } from 'lib/game/aiProgress';
+import { banqiCapturedPiece } from 'lib/game/banqi';
 import { plyToTurn, plyColor } from 'lib/game/chess';
 import { ClockCtrl, type ClockOpts } from 'lib/game/clock/clockCtrl';
 import type { MoveRootCtrl } from 'lib/game/moveRootCtrl';
@@ -368,7 +369,7 @@ export default class RoundController implements MoveRootCtrl {
   showYourMoveNotification = (): void => {
     if (this.data.local) return;
     const d = this.data;
-    const opponent = $('body').hasClass('zen') ? 'Your opponent' : userTxt(d.opponent);
+    const opponent = $('body').hasClass('zen') ? 'Your opponent' : userTxt(d.opponent, d.game.variant.key);
     const joined = `${opponent}\njoined the game.`;
     if (game.isPlayerTurn(d))
       notify(() => {
@@ -414,6 +415,7 @@ export default class RoundController implements MoveRootCtrl {
       if (optimistic) this.optimisticMoveId = undefined;
       this.board.display(xiangqiPosition(o.fen, o.uci, !!o.check), {
         kind: optimistic ? 'confirmation' : 'forward',
+        captureToRail: d.game.variant.key === 'banqi' ? banqiCapturedPiece(o.captures, o.ply) : undefined,
         id: `${o.ply}:${o.uci}`,
         effects,
       });
@@ -430,6 +432,7 @@ export default class RoundController implements MoveRootCtrl {
       uci: o.uci,
       check: o.check,
       capture: o.capture,
+      reveal: o.reveal,
       mate: isXiangqiMate(o.status?.name, o.termination),
     };
     if (o.captures) {
@@ -437,6 +440,7 @@ export default class RoundController implements MoveRootCtrl {
       this.data.game.captures = step.captures;
     }
     d.steps.push(step);
+    this.reconcileBanqiBot();
     game.setOnGame(d, playedColor, true);
     this.data.forecastCount = undefined;
     if (o.clock) {
@@ -460,7 +464,12 @@ export default class RoundController implements MoveRootCtrl {
       else if (this.corresClock) this.corresClock.update(oc.white, oc.black);
     }
     if (this.data.expiration) {
-      if (game.bothPlayersHavePlayed(d) || !game.playable(d)) d.expiration = undefined;
+      if (
+        game.bothPlayersHavePlayed(d) ||
+        (d.game.ranked && d.game.variant.key === 'banqi' && o.ply > 0) ||
+        !game.playable(d)
+      )
+        d.expiration = undefined;
       else this.data.expiration.expiresAt = performance.now() + this.data.expiration.millisToMove;
       this.scheduleExpiration();
     }
@@ -500,6 +509,7 @@ export default class RoundController implements MoveRootCtrl {
     if (posChanged) this.ply = util.lastPly(d);
     util.upgradeServerData(d);
     this.data = d;
+    this.reconcileBanqiBot();
     this.transientMove?.clear();
     this.optimisticMoveId = undefined;
     this.toSubmit = undefined;
@@ -946,8 +956,59 @@ export default class RoundController implements MoveRootCtrl {
     this.socket.sendLoading('draw-yes');
   };
 
+  private banqiSearch?: AbortController;
+  private banqiBotPly?: number;
+
+  private readonly reconcileBanqiBot = (): void => {
+    const d = this.data;
+    if (
+      d.game.variant.key !== 'banqi' ||
+      !d.opponent.ai ||
+      !this.isPlaying() ||
+      d.game.player === d.player.color ||
+      !game.playable(d)
+    ) {
+      this.banqiSearch?.abort();
+      this.banqiBotPly = undefined;
+      return;
+    }
+    const ply = this.lastPly();
+    if (this.banqiBotPly === ply) return;
+    this.banqiSearch?.abort();
+    const search = (this.banqiSearch = new AbortController());
+    this.banqiBotPly = ply;
+    const level = d.opponent.ai;
+    void import('lib/game/banqi')
+      .then(async ({ searchBanqi }) => {
+        const { move } = await searchBanqi(
+          d.steps.map(step => step.fen),
+          level,
+          search.signal,
+          window.crypto.getRandomValues(new Uint32Array(1))[0],
+        );
+        if (search.signal.aborted || this.lastPly() !== ply || !move) return;
+        const response = await fetch(`/round/${d.game.id}${d.player.id}/banqi-computer/${ply}/${move}`, {
+          method: 'POST',
+          signal: search.signal,
+        });
+        if (!response.ok && response.status !== 409) throw Error(String(response.status));
+        // The accepted move is delivered through the normal round socket.
+        if (this.lastPly() === ply) this.socket.reload();
+      })
+      .catch(error => {
+        if (search.signal.aborted) return;
+        console.error('Banqi computer turn', error);
+        this.banqiBotPly = undefined;
+        setTimeout(() => {
+          if (!search.signal.aborted && this.lastPly() === ply) this.socket.reload();
+        }, 2000);
+      });
+  };
+
   setBoard = (cg: BoardView): void => {
     this.board = cg;
+    this.reconcileBanqiBot();
+    cg.onDestroy(() => this.banqiSearch?.abort());
     const up = {
       fen: this.stepAt(this.ply).fen,
       canMove: this.canMove(),

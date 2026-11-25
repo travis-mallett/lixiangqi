@@ -4293,6 +4293,10 @@ interface I18n {
     analysisEngine: string;
     /** Analysis options */
     analysisOptions: string;
+    /** Position (FEN) */
+    analysisPositionFen: string;
+    /** Game notation (variations in parentheses) */
+    analysisRecordLabel: string;
     /** Press right-click (or shift+click) to draw circles and arrows on the board. For other colours, combine the following with right-click: */
     analysisShapesHowTo: string;
     /** Classical Xiangqi Manuals */
@@ -4347,6 +4351,60 @@ interface I18n {
     backToHomepage: string;
     /** Back to tournament */
     backToTournament: string;
+    /** Banqi */
+    banqi: string;
+    /** Banqi analysis board */
+    banqiAnalysisBoard: string;
+    /** %1$s plays %2$s */
+    banqiArmy: I18nFormat;
+    /** Covered inventory */
+    banqiBag: string;
+    /** %1$s %2$s captured, %3$s of %4$s */
+    banqiCaptured: I18nFormat;
+    /** All opposing pieces captured */
+    banqiElimination: string;
+    /** Evaluation for %s */
+    banqiEngineScore: I18nFormat;
+    /** First player */
+    banqiFirstSeat: string;
+    /** Flip %s */
+    banqiFlip: I18nFormat;
+    /** General */
+    banqiGeneral: string;
+    /** The opponent has no legal action */
+    banqiImmobilization: string;
+    /** Banqi leaderboard */
+    banqiLeaderboard: string;
+    /** How to play Banqi */
+    banqiLearnToPlay: string;
+    /** Flip a covered piece or step one square horizontally or vertically. Capture an exposed enemy of equal or lower rank. The order is general, advisor, elephant, chariot, horse, cannon, soldier. A soldier captures a general or soldier. A general cannot capture a soldier. A cannon captures any exposed enemy across exactly one intervening piece, even a covered one. */
+    banqiMovementText: string;
+    /** %s/30 quiet turns */
+    banqiQuietCount: I18nFormat;
+    /** Draw after 30 plies without a flip or capture */
+    banqiQuietDraw: string;
+    /** Banqi starts at 0 points. Your first rated result establishes your 暗 rank. Live and correspondence games have separate standings. */
+    banqiRankExplanation: string;
+    /** Banqi record (moves such as a4-a5 and flips such as b3(n)) */
+    banqiRecordLabel: string;
+    /** Resignation */
+    banqiResignation: string;
+    /** %s to act */
+    banqiSeatTurn: I18nFormat;
+    /** Second player */
+    banqiSecondSeat: string;
+    /** All 32 pieces start covered on a four-file, eight-rank board. The first player flips any piece and takes its army. The second player then acts. Each flip uses a whole turn. */
+    banqiSetupText: string;
+    /** Draw by threefold repetition */
+    banqiThreefold: string;
+    /** Time expired */
+    banqiTimeout: string;
+    /** Banqi / Dark Chess (暗棋) */
+    banqiTitle: string;
+    /** %s wins */
+    banqiWinner: I18nFormat;
+    /** Under the 2014 Taiwanese competition rules, losing all your pieces or having no legal action loses the game. Capturing a general alone does not win. A position appearing three times with the same seat to move, or 30 individual turns without a capture or flip, draws the game. */
+    banqiWinningText: string;
     /** Best move arrow */
     bestMoveArrow: string;
     /** Best was %s */
@@ -4431,6 +4489,8 @@ interface I18n {
     botLevelLocked: I18nFormat;
     /** Brightness */
     brightness: string;
+    /** Browse all */
+    browseAllVariants: string;
     /** Bullet */
     bullet: string;
     /** Very fast games: less than 3 minutes */
@@ -4997,6 +5057,8 @@ interface I18n {
     help: string;
     /** Hide best move */
     hideBestMove: string;
+    /** Historical variants */
+    historicalVariants: string;
     /** Host */
     host: string;
     /** Host a new simul */
@@ -5639,6 +5701,8 @@ interface I18n {
     otherSignInOptions: string;
     /** Other Time Controls */
     otherTimeControls: string;
+    /** Other Variants & Games (其他变体与游戏) */
+    otherVariantsAndGames: string;
     /** Our tips for organising events */
     ourEventTips: string;
     /** Outside the board */
@@ -5703,6 +5767,8 @@ interface I18n {
     playingRightNow: string;
     /** Play Now */
     playNow: string;
+    /** Play rated Banqi */
+    playRatedBanqi: string;
     /** Play a rated game to get ranked */
     playRatedGameToGetRanked: string;
     /** Play Rated Jieqi */
@@ -6347,6 +6413,8 @@ interface I18n {
     usingServerAnalysis: string;
     /** Variant */
     variant: string;
+    /** Bot */
+    variantBot: string;
     /** Variant ending */
     variantEnding: string;
     /** Variant loss */

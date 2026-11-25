@@ -455,7 +455,7 @@ final private class PushApi(
         else f
 
   private def asyncOpponentName(pov: Pov): Fu[String] =
-    namer.playerText(pov.opponent)(using lightUser.optional)
+    namer.playerText(!pov)(using lightUser.optional)
 
 private object PushApi:
 

@@ -4,6 +4,7 @@ export { boardAssets, validateBoardAssets, type BoardAssetCatalog } from './cata
 export {
   boardDefinition,
   boardDefinitionForFen,
+  banqi,
   miniXiangqi,
   manchu,
   threeKingdoms,

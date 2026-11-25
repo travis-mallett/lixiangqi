@@ -22,6 +22,8 @@ final class UserAnalysis(env: Env) extends LilaController(env) with lila.web.The
       case Array("minixiangqi", fen) => load(fen.some)
       case Array("manchu") => load(Some(lila.xiangqi.ManchuRules.startFen))
       case Array("manchu", fen) => load(fen.some)
+      case Array("banqi") => load(Some(lila.xiangqi.Banqi.startFen))
+      case Array("banqi", fen) => load(fen.some)
       case Array("jieqi") => load(Some(lila.xiangqi.Jieqi.startFen))
       case Array("jieqi", fen) => load(fen.some)
       case Array("threeKingdoms") =>
@@ -61,7 +63,8 @@ final class UserAnalysis(env: Env) extends LilaController(env) with lila.web.The
           )
         )
         .flatMap: game =>
-          if game.isJieqi then
+          if game.isBanqi then lila.xiangqi.Banqi.advance(game, command.move, command.reveal)
+          else if game.isJieqi then
             lila.xiangqi.Jieqi.analysisMove(game, command.move, command.reveal, command.captureReveal)
           else XiangqiRules.move(game, command.move)
 
@@ -137,7 +140,7 @@ final class UserAnalysis(env: Env) extends LilaController(env) with lila.web.The
       )
 
   private def load(pathFen: Option[String]) = Open:
-    val fen = pathFen.orElse(get("fen").map(_.trim).filter(_.nonEmpty))
+    val fen = pathFen.map(_.replace('_', ' ')).orElse(get("fen").map(_.trim).filter(_.nonEmpty))
     val orientation = get("color").flatMap(Xiangqi.Side.fromKey(_).toOption)
     XiangqiRules.game(Xiangqi.Position(initialFen = fen.getOrElse(Xiangqi.startFen))) match
       case Left(error) => BadRequest(jsonError(error))
@@ -243,7 +246,7 @@ object UserAnalysis:
       .traverse(player =>
         player.userId
           .so(summon[lila.core.LightUser.Getter])
-          .map(lila.game.Namer.recordedPlayerText(player, _))
+          .map(lila.game.Namer.recordedPlayerText(player, _, pov.game.isBanqi))
       )
       .map: names =>
         bootstrapData(pov, names, analysis, analysisInProgress)
@@ -260,12 +263,17 @@ object UserAnalysis:
         "gameId" -> pov.gameId,
         "engineAllowed" -> (!pov.game.isCorrespondence || pov.game.finished),
         "title" -> s"${names.white} – ${names.black}",
-        "headers" -> Json.obj(
-          "red" -> names.white,
-          "black" -> names.black,
-          "result" -> lila.game.PgnDump.result(pov.game),
-          "gameid" -> pov.gameId
-        ),
+        "headers" -> Json
+          .obj(
+            (if pov.game.isBanqi then "first" else "red") -> names.white,
+            (if pov.game.isBanqi then "second" else "black") -> names.black,
+            "result" -> lila.game.PgnDump.result(pov.game),
+            "gameid" -> pov.gameId
+          )
+          .add("firstarmy" -> Option.when(pov.game.isBanqi)(pov.game.position.fen.split(" ")(3)).collect {
+            case "r" => "Red"
+            case "b" => "Black"
+          }),
         "initialFen" -> pov.game.xiangqi.initialFen,
         "moves" -> pov.game.xiangqi.moves,
         "notations" -> pov.game.xiangqi.wxf,

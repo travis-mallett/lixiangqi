@@ -68,7 +68,7 @@ trait WithColor:
 
   lazy val creatorColor: Color = color.resolve()
 
-trait Positional:
+trait Positional extends lila.core.setup.VariantConfig:
   self: Config =>
 
   def fen: Option[Fen.Full]
@@ -76,17 +76,7 @@ trait Positional:
   def strictFen: Boolean
 
   def ruleset: Option[String] = None
-  def effectiveRuleset = if gameVariant.selectableRulesets.isEmpty then gameVariant.defaultRuleset
-  else
-    ruleset.fold(lila.xiangqi.adjudication.Ruleset.default): key =>
-      lila.xiangqi.adjudication.Ruleset.fromKey(key).fold(sys.error, identity)
-
-  lazy val validFen =
-    if gameVariant == lila.xiangqi.GameVariant.Jieqi then variant.standard && fen.isEmpty
-    else
-      variant != FromPosition || fen.exists(value =>
-        Xiangqi.Fen.board(value.value).exists(_.variant == gameVariant)
-      )
+  lazy val validFen = gameVariant.validDuelPosition(variant.fromPosition, fen.map(_.value))
 
   def isCustomPosition = fen.exists(_.value != gameVariant.startFen)
 

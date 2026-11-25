@@ -485,6 +485,8 @@ if ($mongosh) {
   if ($LASTEXITCODE) { throw 'Game completion migration failed.' }
   & $mongosh --quiet 'mongodb://127.0.0.1:27017/lixiangqi_preview' (Join-Path $projectRoot 'tools\data_migration\20261030_three_kingdoms_indexes.js')
   if ($LASTEXITCODE) { throw 'Three Kingdoms index migration failed.' }
+  & $mongosh --quiet 'mongodb://127.0.0.1:27017/lixiangqi_preview' (Join-Path $projectRoot 'tools\data_migration\20261125_games_in_play_indexes.js')
+  if ($LASTEXITCODE) { throw 'Games in play index migration failed.' }
 } else {
   Write-Warning 'MongoDB Shell is unavailable; local game completion migration will run on the next deployment.'
 }

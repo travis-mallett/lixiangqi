@@ -69,7 +69,8 @@ final class ThreeKingdoms(env: Env) extends LilaController(env):
 
   def stream(id: GameId) = Open:
     readLimit(ctx.ip, rateLimited):
-      fuccess(streamLimit(ctx.userId.fold(s"ip:${ctx.ip}")(id => s"user:${id.value}"))(feature.streams(id)):
+      val stream = feature.streams(id, ctx.userId.filter(_ => getBool("player")))
+      fuccess(streamLimit(ctx.userId.fold(s"ip:${ctx.ip}")(id => s"user:${id.value}"))(stream):
         source =>
           Ok.chunked(source.map(Json.stringify).via(EventSource.flow))
             .as("text/event-stream")

@@ -1,6 +1,7 @@
 import type { VNode } from 'snabbdom';
 
 import { defined } from 'lib';
+import { banqiSeatLabel } from 'lib/game/view/banqiRail';
 import { type XiangqiSide as Color, xiangqiSides as COLORS } from 'lib/game/xiangqi';
 import { intersection } from 'lib/tree/path';
 import type { TreePath } from 'lib/tree/types';
@@ -89,7 +90,9 @@ function renderPlayer(
     directoryId = playerIdTag,
     player: StudyPlayer = {
       ...players?.[color],
-      name: tags.get(color),
+      name:
+        tags.get(color) ||
+        (ctrl.variantKey === 'banqi' && !relayPlayers ? banqiSeatLabel(ctrl.node.fen, color) : undefined),
       title: tags.get(`${color}title`),
       rating: showRatings && eloTag ? parseInt(eloTag) : undefined,
       playerId: directoryId,

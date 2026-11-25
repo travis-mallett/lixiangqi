@@ -1,11 +1,13 @@
+import { BANQI_START_FEN } from 'lib/game/banqi';
 import { JIEQI_START_FEN } from 'lib/game/jieqi';
 import { MANCHU_START_FEN } from 'lib/game/manchu';
 import { MINI_XIANGQI_START_FEN } from 'lib/game/minixiangqi';
 import { XIANGQI_START_FEN } from 'lib/game/xiangqi';
 
-export type AnalysisVariant = 'xiangqi' | 'jieqi' | 'minixiangqi' | 'manchu' | 'threeKingdoms';
+export type AnalysisVariant = 'xiangqi' | 'banqi' | 'jieqi' | 'minixiangqi' | 'manchu' | 'threeKingdoms';
 
 export function analysisStartFen(variant?: string): string {
+  if (variant === 'banqi') return BANQI_START_FEN;
   if (variant === 'jieqi') return JIEQI_START_FEN;
   if (variant === 'minixiangqi') return MINI_XIANGQI_START_FEN;
   if (variant === 'manchu') return MANCHU_START_FEN;
@@ -43,6 +45,7 @@ export function analysisVariantPicker(
   const select = document.createElement('select');
   for (const [key, text] of [
     ['xiangqi', i18n.site.xiangqi],
+    ['banqi', i18n.site.banqi],
     ['jieqi', i18n.site.jieqi],
     ['minixiangqi', i18n.site.miniXiangqi],
     ['manchu', i18n.site.manchu],

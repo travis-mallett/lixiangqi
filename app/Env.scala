@@ -89,10 +89,6 @@ final class Env(
   val forum: lila.forum.Env = wire[lila.forum.Env]
   val forumSearch: lila.forumSearch.Env = wire[lila.forumSearch.Env]
   val lobby: lila.lobby.Env = wire[lila.lobby.Env]
-  scheduler.scheduleWithFixedDelay(5.seconds, 15.seconds): () =>
-    round.roundSocket.nbPlaying
-      .zip(threeKingdoms.cached.nbPlaying)
-      .foreach((native, kingdoms) => lobby.socket.playingRoundCount(native + kingdoms))
   val simul: lila.simul.Env = wire[lila.simul.Env]
   val appeal: lila.appeal.Env = wire[lila.appeal.Env]
   val timeline: lila.timeline.Env = wire[lila.timeline.Env]
@@ -119,6 +115,14 @@ final class Env(
   val relay: lila.relay.Env = wire[lila.relay.Env]
   val streamer: lila.streamer.Env = wire[lila.streamer.Env]
   val bot: lila.bot.Env = wire[lila.bot.Env]
+  lila.common.Bus.sub[lila.lobby.CountPlaying]: request =>
+    val boards = request.playerBoards ++ bot.gameStateStream.clocklessPlayers.values
+    game.gameRepo
+      .countInPlay(boards)
+      .zip(threeKingdoms.repo.countInPlay(threeKingdoms.streams.playerBoards.values))
+      .withTimeout(12.seconds, "lobby.countPlaying")
+      .logFailure(lila.log("lobby"))
+      .foreach((native, kingdoms) => lobby.socket.playingRoundCount(native + kingdoms))
   val storm: lila.storm.Env = wire[lila.storm.Env]
   val racer: lila.racer.Env = wire[lila.racer.Env]
   val tutor: lila.tutor.Env = wire[lila.tutor.Env]

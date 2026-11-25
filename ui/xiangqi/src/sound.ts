@@ -2,6 +2,7 @@ import type { BoardView, BoardEffect } from '@lixiangqi/board';
 
 import { isXiangqiCapture } from 'lib/game';
 import { isXiangqiMate } from 'lib/game/adjudication';
+import { banqiCapturedPiece } from 'lib/game/banqi';
 import { nodeAtPath, parentPath, type RulesState, type XiangqiMoveTree } from 'lib/tree/native';
 
 export interface XiangqiMoveSound {
@@ -39,7 +40,11 @@ export function xiangqiTransitionSound(
 }
 
 export function playXiangqiMoveSound(board: BoardView, state: RulesState): void {
-  board.presentTransition({ kind: 'forward', effects: moveEffects(xiangqiMoveSound(state)) });
+  board.presentTransition({
+    kind: 'forward',
+    effects: moveEffects(xiangqiMoveSound(state)),
+    captureToRail: state.variant === 'banqi' ? banqiCapturedPiece(state.captures, state.ply) : undefined,
+  });
 }
 
 export function playXiangqiTransitionSound(

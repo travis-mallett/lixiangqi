@@ -1,6 +1,7 @@
 @import 'app/hook-list';
 @import 'box';
 @import 'table';
+@import 'variants';
 @import 'variant-menu';
 @import 'homepage-room';
 @import 'bot-map';
@@ -230,6 +231,11 @@ body {
         margin: 0;
         font-size: 1em;
         font-weight: bold;
+      }
+
+      > a:first-child {
+        color: inherit;
+        text-decoration: none;
       }
 
       .lobby__leaderboard__icon {

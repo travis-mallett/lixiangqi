@@ -216,6 +216,7 @@ interface Navigator {
 }
 
 type VariantKey =
+  | 'banqi'
   | 'jieqi'
   | 'minixiangqi'
   | 'manchu'

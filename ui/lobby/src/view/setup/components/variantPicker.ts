@@ -22,6 +22,7 @@ export const variantPicker = (setupCtrl: SetupController) =>
           variant =>
             setupCtrl.gameType !== 'hook' ||
             variant.key !== 'threeKingdoms' ||
+            setupCtrl.isThreeKingdoms() ||
             setupCtrl.timeControl.mode() === 'correspondence',
         )
         .filter(variant => variant.key !== 'fromPosition' || setupCtrl.variant() === 'fromPosition')

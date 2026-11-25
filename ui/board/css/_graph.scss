@@ -10,10 +10,12 @@
   &[data-board-definition='threeKingdoms'] {
     // The flat-bottom hexagon meets its lower-right vertex at 75% of the canvas width.
     --board-resize-right: 25%;
+
     // The outward bisector points 60deg down from horizontal. Place the grip
     // one hit radius along it so even its clickable area clears the wood.
     --board-resize-angle: -30deg;
     --board-resize-distance: 50%;
+
     // Draw the strokes near the wood while keeping the hit area outside it.
     --board-resize-mark-center: calc(50% - 6px);
   }

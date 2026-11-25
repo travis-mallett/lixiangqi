@@ -12,7 +12,8 @@
       "geometries": {
         "xiangqi-9x10": "images/board/svg/lixiangqi-default.svg",
         "minixiangqi-7x7": "images/board/svg/lixiangqi-default-minixiangqi.svg",
-        "three-player-xiangqi-135": "images/board/svg/lixiangqi-default-three-player.svg"
+        "three-player-xiangqi-135": "images/board/svg/lixiangqi-default-three-player.svg",
+        "banqi-4x8": "images/board/svg/banqi-default.svg"
       }
     },
     {
@@ -24,7 +25,8 @@
       "geometries": {
         "xiangqi-9x10": "images/board/svg/paper-board.svg",
         "minixiangqi-7x7": "images/board/svg/paper-board-minixiangqi.svg",
-        "three-player-xiangqi-135": "images/board/svg/paper-board-three-player.svg"
+        "three-player-xiangqi-135": "images/board/svg/paper-board-three-player.svg",
+        "banqi-4x8": "images/board/svg/banqi-paper.svg"
       }
     },
     {
@@ -36,7 +38,8 @@
       "geometries": {
         "xiangqi-9x10": "images/board/svg/xiangqi-tournament.svg",
         "minixiangqi-7x7": "images/board/svg/xiangqi-tournament-minixiangqi.svg",
-        "three-player-xiangqi-135": "images/board/svg/xiangqi-tournament-three-player.svg"
+        "three-player-xiangqi-135": "images/board/svg/xiangqi-tournament-three-player.svg",
+        "banqi-4x8": "images/board/svg/banqi-tournament.svg"
       }
     },
     {
@@ -48,7 +51,8 @@
       "geometries": {
         "xiangqi-9x10": "images/board/svg/xiangqi-wudang.svg",
         "minixiangqi-7x7": "images/board/svg/xiangqi-wudang-minixiangqi.svg",
-        "three-player-xiangqi-135": "images/board/svg/xiangqi-wudang-three-player.svg"
+        "three-player-xiangqi-135": "images/board/svg/xiangqi-wudang-three-player.svg",
+        "banqi-4x8": "images/board/svg/banqi-wudang.svg"
       }
     },
     {
@@ -60,7 +64,8 @@
       "geometries": {
         "xiangqi-9x10": "images/board/svg/xiangqi-light-wood.svg",
         "minixiangqi-7x7": "images/board/svg/xiangqi-light-wood-minixiangqi.svg",
-        "three-player-xiangqi-135": "images/board/svg/xiangqi-light-wood-three-player.svg"
+        "three-player-xiangqi-135": "images/board/svg/xiangqi-light-wood-three-player.svg",
+        "banqi-4x8": "images/board/svg/xiangqi-light-wood-banqi.svg"
       }
     },
     {
@@ -72,7 +77,8 @@
       "geometries": {
         "xiangqi-9x10": "images/board/svg/xiangqi-cracked-stone.svg",
         "minixiangqi-7x7": "images/board/svg/xiangqi-cracked-stone-minixiangqi.svg",
-        "three-player-xiangqi-135": "images/board/svg/xiangqi-cracked-stone-three-player.svg"
+        "three-player-xiangqi-135": "images/board/svg/xiangqi-cracked-stone-three-player.svg",
+        "banqi-4x8": "images/board/svg/xiangqi-cracked-stone-banqi.svg"
       }
     }
   ],
@@ -85,7 +91,8 @@
         "xiangqi": {
           "back": {
             "red": "piece/default-wood/rBack.svg",
-            "black": "piece/default-wood/bBack.svg"
+            "black": "piece/default-wood/bBack.svg",
+            "neutral": "piece/default-wood/Back.svg"
           },
           "faces": {
             "red": {
@@ -156,7 +163,8 @@
         "xiangqi": {
           "back": {
             "red": "piece/xiangqi-wudang/rBack.svg",
-            "black": "piece/xiangqi-wudang/bBack.svg"
+            "black": "piece/xiangqi-wudang/bBack.svg",
+            "neutral": "piece/xiangqi-wudang/Back.svg"
           },
           "faces": {
             "red": {
@@ -227,7 +235,8 @@
         "xiangqi": {
           "back": {
             "red": "piece/xiangqi-paper-traditional/rBack.svg",
-            "black": "piece/xiangqi-paper-traditional/bBack.svg"
+            "black": "piece/xiangqi-paper-traditional/bBack.svg",
+            "neutral": "piece/xiangqi-paper-traditional/Back.svg"
           },
           "faces": {
             "red": {
@@ -298,7 +307,8 @@
         "xiangqi": {
           "back": {
             "red": "piece/xiangqi-international/rBack.svg",
-            "black": "piece/xiangqi-international/bBack.svg"
+            "black": "piece/xiangqi-international/bBack.svg",
+            "neutral": "piece/xiangqi-international/Back.svg"
           },
           "faces": {
             "red": {
@@ -369,7 +379,8 @@
         "xiangqi": {
           "back": {
             "red": "piece/xiangqi-western/rBack.svg",
-            "black": "piece/xiangqi-western/bBack.svg"
+            "black": "piece/xiangqi-western/bBack.svg",
+            "neutral": "piece/xiangqi-western/Back.svg"
           },
           "faces": {
             "red": {
@@ -440,7 +451,8 @@
         "xiangqi": {
           "back": {
             "red": "piece/xiangqi-white/rBack.svg",
-            "black": "piece/xiangqi-white/bBack.svg"
+            "black": "piece/xiangqi-white/bBack.svg",
+            "neutral": "piece/xiangqi-white/Back.svg"
           },
           "faces": {
             "red": {
@@ -511,7 +523,8 @@
         "xiangqi": {
           "back": {
             "red": "piece/xiangqi-white-international/rBack.svg",
-            "black": "piece/xiangqi-white-international/bBack.svg"
+            "black": "piece/xiangqi-white-international/bBack.svg",
+            "neutral": "piece/xiangqi-white-international/Back.svg"
           },
           "faces": {
             "red": {
@@ -582,7 +595,8 @@
         "xiangqi": {
           "back": {
             "red": "piece/celestial-lacquer/rBack.svg",
-            "black": "piece/celestial-lacquer/bBack.svg"
+            "black": "piece/celestial-lacquer/bBack.svg",
+            "neutral": "piece/celestial-lacquer/Back.svg"
           },
           "faces": {
             "red": {
@@ -653,7 +667,8 @@
         "xiangqi": {
           "back": {
             "red": "piece/qing-jade/rBack.svg",
-            "black": "piece/qing-jade/bBack.svg"
+            "black": "piece/qing-jade/bBack.svg",
+            "neutral": "piece/qing-jade/Back.svg"
           },
           "faces": {
             "red": {

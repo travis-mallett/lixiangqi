@@ -79,7 +79,7 @@ export function boardImageSvg(options: BoardImageOptions, assetUrl: (path: strin
     const [x, y] = point(square);
     const path =
       piece.face === 'down'
-        ? faces.back[piece.participant ?? definition.participants[0]]
+        ? faces.back[piece.participant ?? 'neutral']
         : faces.faces[piece.participant]?.[piece.role];
     if (!path) throw new Error('Unknown board image piece');
     const pieceRotation =

@@ -121,6 +121,11 @@ export function make(send: AnalyseSocketSend, ctrl: AnalyseCtrl): Socket {
             .slice(1)
             .map(node => node.uci!),
           ruleset: tree.root.ruleset,
+          reveals: tree
+            .getNodeList(req.path)
+            .slice(1)
+            .map(node => node.state.reveal),
+          reveal: req.reveal,
           move: req.orig + req.dest,
         },
       );

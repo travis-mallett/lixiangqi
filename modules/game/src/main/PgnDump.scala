@@ -79,6 +79,14 @@ final class PgnDump(
     users <- gameLightUsers(game)
     playerIds <- users.traverse(_.so(playerIdOf))
   yield Tags:
+    val banqi = game.xiangqi.isBanqi
+    val first = if banqi then "First" else "Red"
+    val second = if banqi then "Second" else "Black"
+    val firstArmy = Option
+      .when(banqi)(game.position.fen.split(" ")(3))
+      .collect:
+        case "r" => "Red"
+        case "b" => "Black"
     val importedDate = importedTags.flatMap(_.apply(_.Date))
     List[Option[Tag]](
       Tag(
@@ -91,8 +99,8 @@ final class PgnDump(
       Tag(_.GameId, game.id).some,
       Tag(_.Date, importedDate | Tag.UTCDate.format.print(game.createdAt)).some,
       Tag(_.Round, importedTags.flatMap(_.apply(_.Round)) | "-").some,
-      Tag("Red", Namer.recordedPlayerText(game.whitePlayer, users.white)).some,
-      Tag("Black", Namer.recordedPlayerText(game.blackPlayer, users.black)).some,
+      Tag(first, Namer.recordedPlayerText(game.whitePlayer, users.white, banqi)).some,
+      Tag(second, Namer.recordedPlayerText(game.blackPlayer, users.black, banqi)).some,
       Tag(_.Result, result(game)).some,
       importedDate.isEmpty.option:
         Tag(_.UTCDate, importedTags.flatMap(_.apply(_.UTCDate)) | Tag.UTCDate.format.print(game.createdAt))
@@ -100,19 +108,20 @@ final class PgnDump(
       importedDate.isEmpty.option:
         Tag(_.UTCTime, importedTags.flatMap(_.apply(_.UTCTime)) | Tag.UTCTime.format.print(game.createdAt))
       ,
-      withRating.option(Tag("RedRank", rank(game.whitePlayer))),
-      withRating.option(Tag("BlackRank", rank(game.blackPlayer))),
+      withRating.option(Tag(first + "Rank", rank(game.whitePlayer))),
+      withRating.option(Tag(second + "Rank", rank(game.blackPlayer))),
       withRating.so(game.rankTrack.map(track => Tag("RankTrack", track.value))),
-      users.white.flatMap(_.title).map(Tag("RedTitle", _)),
-      users.black.flatMap(_.title).map(Tag("BlackTitle", _)),
-      playerIds.white.map(Tag("RedPlayerId", _)),
-      playerIds.black.map(Tag("BlackPlayerId", _)),
-      teams.map(t => Tag("RedTeam", t.white)),
-      teams.map(t => Tag("BlackTeam", t.black)),
-      game.whitePlayer.berserk.option(Tag("RedBerserk", game.whitePlayer.berserk)),
-      game.blackPlayer.berserk.option(Tag("BlackBerserk", game.blackPlayer.berserk)),
+      users.white.flatMap(_.title).map(Tag(first + "Title", _)),
+      users.black.flatMap(_.title).map(Tag(second + "Title", _)),
+      playerIds.white.map(Tag(first + "PlayerId", _)),
+      playerIds.black.map(Tag(second + "PlayerId", _)),
+      teams.map(t => Tag(first + "Team", t.white)),
+      teams.map(t => Tag(second + "Team", t.black)),
+      game.whitePlayer.berserk.option(Tag(first + "Berserk", game.whitePlayer.berserk)),
+      game.blackPlayer.berserk.option(Tag(second + "Berserk", game.blackPlayer.berserk)),
+      firstArmy.map(Tag("FirstArmy", _)),
       Tag(_.Variant, game.nativeVariant.name).some,
-      Tag("MoveFormat", "WXF").some,
+      Tag("MoveFormat", if banqi then "Banqi" else "WXF").some,
       Tag("Ruleset", game.xiangqi.ruleset.key).some,
       game.position.termination.map(Tag("Adjudication", _)),
       game.daysPerTurn

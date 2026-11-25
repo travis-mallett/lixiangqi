@@ -4,7 +4,7 @@ import lila.xiangqi.XiangqiGlyph.{ Glyph, Glyphs }
 
 import chess.format.pgn.{ Tag, Tags }
 import chess.format.Fen
-import lila.xiangqi.UciPath
+import lila.xiangqi.{ Banqi, BranchId, UciPath }
 import lila.xiangqi.XiangqiJson.given
 import lila.xiangqi.Xiangqi.Uci
 
@@ -58,6 +58,11 @@ object BSONHandlers:
       t match
         case Shape.Circle(brush, pos) => $doc("b" -> brush, "p" -> pos.key)
         case Shape.Arrow(brush, orig, dest) => $doc("b" -> brush, "o" -> orig.key, "d" -> dest.key)
+
+  given BSONHandler[BranchId] = tryHandler[BranchId](
+    { case BSONString(v) => BranchId.from(v).left.map(IllegalArgumentException(_)).toTry },
+    x => BSONString(x.value)
+  )
 
   given BSONHandler[Uci] = tryHandler[Uci](
     { case BSONString(v) => Uci.from(v).left.map(error => new IllegalArgumentException(error)).toTry },
@@ -114,12 +119,17 @@ object BSONHandlers:
     import Node.BsonFields as F
     val r = Reader(doc)
     val uci = r.get[Uci](F.uci)
-    val result = XiangqiRules.move(game, uci).fold(error => throw IllegalArgumentException(error), identity)
+    val result =
+      (if game.isBanqi then Banqi.advance(game, uci, r.strO(F.reveal)) else XiangqiRules.move(game, uci))
+        .fold(error => throw IllegalArgumentException(error), identity)
     require(r.get[Ply](F.ply).value == result.ply, s"Invalid ply for ${uci.value}")
     require(r.get[Fen.Full](F.fen).value == result.fen, s"Invalid stored position for ${uci.value}")
     require(
-      XiangqiRules
-        .matchesStoredNotation(game.state.fen, uci, r.str(F.notation), Xiangqi.NotationStyle.English),
+      (if game.isBanqi then r.str(F.notation) == result.notation
+       else
+         XiangqiRules
+           .matchesStoredNotation(game.state.fen, uci, r.str(F.notation), Xiangqi.NotationStyle.English)
+      ),
       s"Invalid stored notation for ${uci.value}"
     )
     require(
@@ -148,11 +158,12 @@ object BSONHandlers:
     val w = new Writer
     $doc(
       F.ply -> n.ply,
-      F.order -> n.children.toList.map(_.id),
+      F.order -> n.children.toList.map(_.id.value),
       F.result -> n.result,
       F.elapsed -> n.elapsed,
       F.evaluationDepth -> n.evaluationDepth,
       F.uci -> n.move.uci,
+      F.reveal -> n.state.reveal,
       F.notation -> n.move.notation,
       F.chineseNotation -> n.move.chineseNotation,
       F.fen -> n.fen,
@@ -194,7 +205,7 @@ object BSONHandlers:
       StudyFlatTree.writer.rootChildren(r).appended {
         UciPathDb.rootDbKey -> $doc(
           F.ply -> r.ply,
-          F.order -> r.children.toList.map(_.id),
+          F.order -> r.children.toList.map(_.id.value),
           F.result -> r.result,
           F.elapsed -> r.elapsed,
           F.evaluationDepth -> r.evaluationDepth,

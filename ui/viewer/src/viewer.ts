@@ -9,6 +9,7 @@ import {
 } from '@lixiangqi/board';
 import { attributesModule, classModule, init, type VNode } from 'snabbdom';
 
+import { banqiRail } from 'lib/game/view/banqiRail';
 import { capturedPieces, type CaptureLabels } from 'lib/game/view/captures';
 import { licon } from 'lib/licon';
 import { renderColumnTree, renderIndex, type ColumnTreeNode } from 'lib/tree/columnView';
@@ -105,7 +106,8 @@ export class GameViewer {
     board.append(surface);
     const boardColumn = makeElement('div');
     boardColumn.className = 'xiangqi-viewer__board-column';
-    if (this.current.node?.state.variant === 'jieqi') {
+    if (definition.id === 'banqi') boardColumn.classList.add('banqi-frame');
+    if (definition.id === 'banqi' || this.current.node?.state.variant === 'jieqi') {
       const top = makeElement('div');
       const bottom = makeElement('div');
       this.captureNodes = [top, bottom];
@@ -244,18 +246,27 @@ export class GameViewer {
     if (this.captureNodes) {
       const bottom = this.board.getPresentation().perspective === 'red' ? 'red' : 'black';
       const captures = node.node?.state.captures ?? [];
-      this.captureNodes = [
-        patch(this.captureNodes[0], capturedPieces(captures, bottom, node.ply, this.options.labels.captures)),
-        patch(
-          this.captureNodes[1],
-          capturedPieces(
-            captures,
-            bottom === 'red' ? 'black' : 'red',
-            node.ply,
-            this.options.labels.captures,
-          ),
-        ),
-      ];
+      this.captureNodes =
+        node.position.board === 'banqi'
+          ? [
+              patch(this.captureNodes[0], banqiRail(node.fen, bottom, true, this.options.services.assetUrl)),
+              patch(this.captureNodes[1], banqiRail(node.fen, bottom, false, this.options.services.assetUrl)),
+            ]
+          : [
+              patch(
+                this.captureNodes[0],
+                capturedPieces(captures, bottom, node.ply, this.options.labels.captures),
+              ),
+              patch(
+                this.captureNodes[1],
+                capturedPieces(
+                  captures,
+                  bottom === 'red' ? 'black' : 'red',
+                  node.ply,
+                  this.options.labels.captures,
+                ),
+              ),
+            ];
     }
     const comments = node.comments.join('\n\n');
     if (this.comments.textContent !== comments) this.comments.textContent = comments;

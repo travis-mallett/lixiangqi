@@ -48,8 +48,7 @@ final class ChallengeApi(
       openToUserIds = config.userIds,
       rules = config.rules,
       expiresAt = config.expiresAt,
-      ruleset = config.ruleset.fold(lila.xiangqi.adjudication.Ruleset.default): key =>
-        lila.xiangqi.adjudication.Ruleset.fromKey(key).fold(sys.error, identity)
+      ruleset = config.effectiveRuleset
     )
     for
       _ <- doCreate(c)

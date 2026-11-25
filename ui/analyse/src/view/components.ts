@@ -1,4 +1,4 @@
-import { positionFromFen, standardXiangqi } from '@lixiangqi/board';
+import { boardDefinitionForFen, positionFromFen } from '@lixiangqi/board';
 import { h } from 'snabbdom';
 
 import { defined } from 'lib';
@@ -8,6 +8,7 @@ import { isMobile } from 'lib/device';
 import { playable } from 'lib/game';
 import { adjudicationText } from 'lib/game/adjudication';
 import { plyToTurn } from 'lib/game/chess';
+import { banqiRail } from 'lib/game/view/banqiRail';
 import { licon } from 'lib/licon';
 import * as Prefs from 'lib/prefs';
 import { storage } from 'lib/storage';
@@ -123,11 +124,13 @@ export function renderMain(
   );
 }
 
-export const renderBoard = ({ ctrl, study, playerBars, playerStrips }: ViewContext): VNode =>
-  hl(
+export const renderBoard = ({ ctrl, study, playerBars, playerStrips }: ViewContext): VNode => {
+  const banqi = ctrl.node.state.variant === 'banqi';
+  const orientation = ctrl.bottomIsRed() ? 'red' : 'black';
+  return hl(
     addChapterId(
       study,
-      `div.analyse__board.main-board${ctrl.variantKey === 'xiangqi' ? '.xiangqi9x10' : ''}`,
+      `div.analyse__board${banqi ? '.banqi-frame' : '.main-board'}${ctrl.variantKey === 'xiangqi' ? '.xiangqi9x10' : ''}`,
     ),
     {
       hook:
@@ -150,10 +153,13 @@ export const renderBoard = ({ ctrl, study, playerBars, playerStrips }: ViewConte
     [
       playerStrips,
       playerBars?.[ctrl.bottomIsRed() ? 1 : 0],
-      chessground.render(ctrl),
+      banqi && banqiRail(ctrl.node.fen, orientation, true),
+      banqi ? hl('div.main-board', chessground.render(ctrl)) : chessground.render(ctrl),
+      banqi && banqiRail(ctrl.node.fen, orientation, false),
       playerBars?.[ctrl.bottomIsRed() ? 0 : 1],
     ],
   );
+};
 
 export const renderUnderboard = ({ ctrl, deps, study }: ViewContext): VNode =>
   hl(
@@ -182,7 +188,7 @@ export function renderInputs(ctrl: AnalyseCtrl): VNode | undefined {
             el.addEventListener('input', () => {
               ctrl.fenInput = el.value;
               try {
-                positionFromFen(el.value.trim(), standardXiangqi);
+                positionFromFen(el.value.trim(), boardDefinitionForFen(el.value));
                 el.setCustomValidity('');
               } catch {
                 el.setCustomValidity('Invalid FEN');

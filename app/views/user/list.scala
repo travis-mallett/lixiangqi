@@ -11,9 +11,11 @@ object list:
 
   def apply(
       online: List[UserWithPerfs],
+      registered: Int,
+      anonymous: Int,
       leaderboards: List[(RankTrackId, List[LightRank], Option[lila.user.XiangqiPersonalRank])],
       flags: Map[UserId, FlagCode]
   )(using Context) =
-    ui.page(online, leaderboards, flags)
+    ui.page(online, registered, anonymous, leaderboards, flags)
 
   def bots(users: List[UserWithPerfs])(using Context) = ui.bots(users)

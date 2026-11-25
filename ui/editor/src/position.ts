@@ -7,6 +7,7 @@ import {
 } from '@lixiangqi/board';
 import { loadRules, type Rules } from 'threeKingdoms';
 
+import { banqiInventory } from 'lib/game/banqi';
 import { requestXiangqi } from 'lib/game/xiangqiApi';
 
 import { editorFen } from './fen';
@@ -34,6 +35,23 @@ export function rectangularPosition(cfg: Config): EditorPosition {
       return fen ? { fen, position: positionFromFen(fen, definition) } : undefined;
     },
     write(position, previous) {
+      if (variant === 'banqi') {
+        const fields = previous.split(' ');
+        const [placement, army] = positionToFen(position, definition).split(' ');
+        const covers = [...placement].filter(c => c === '*').length;
+        let available = banqiInventory;
+        for (const c of placement) if (available.includes(c)) available = available.replace(c, '');
+        let remaining = '';
+        for (const c of fields[6])
+          if (available.includes(c) && remaining.length < covers) {
+            remaining += c;
+            available = available.replace(c, '');
+          }
+        remaining += available.slice(0, covers - remaining.length);
+        const assigned = covers === 32 ? '-' : fields[3] === '-' ? 'r' : fields[3];
+        const seat = (army === 'w') !== (assigned === 'b') ? 'w' : 'b';
+        return [placement, seat, 'banqi', assigned, fields[4], fields[5], remaining || '-'].join(' ');
+      }
       return `${positionToFen(position, definition)} ${previous.split(' ').slice(2).join(' ')}`;
     },
     async validate(fen, signal) {

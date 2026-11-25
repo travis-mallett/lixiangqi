@@ -10,6 +10,23 @@ export function editorFen(raw: string, selected: EditorVariant = 'xiangqi'): str
   const definition = boardDefinition(selected === 'jieqi' ? 'xiangqi' : selected);
   const marker = selected === 'jieqi' ? 'j' : selected === 'manchu' ? 'm' : '-';
   const fields = raw.replace(/_/g, ' ').trim().split(/\s+/);
+  if (selected === 'banqi') {
+    if (
+      fields.length !== 7 ||
+      fields[2] !== 'banqi' ||
+      !/^[-rb]$/.test(fields[3]) ||
+      !/^(?:[KABRNCPkabrncp]*|-)$/.test(fields[6]) ||
+      !/^[0-9]+$/.test(fields[4]) ||
+      !/^[1-9][0-9]*$/.test(fields[5])
+    )
+      return;
+    try {
+      positionFromFen(fields.join(' '), definition);
+      return fields.join(' ');
+    } catch {
+      return;
+    }
+  }
   if (![1, 2, 6].includes(fields.length)) return;
   const [placement, turn = 'w', variant = '-', ep = '-', half = '0', full = '1'] = fields;
   if (

@@ -30,7 +30,7 @@ final private class CorresAlarm(
   Bus.sub[lila.core.round.CorresMoveEvent] { case lila.core.round.CorresMoveEvent(move, _, _, true, _) =>
     proxyGame(move.gameId).foreach:
       _.foreach: game =>
-        game.playableCorrespondenceClock.ifTrue(game.bothPlayersHaveMoved).so { clock =>
+        game.playableCorrespondenceClock.ifTrue(game.pastOpeningGrace).so { clock =>
           val remainingSeconds = clock.remainingTime(game.turnColor)
           val ringsAt = nowInstant.plusSeconds(remainingSeconds.toInt * 8 / 10)
           coll.update
@@ -63,7 +63,7 @@ final private class CorresAlarm(
               else
                 pov.player.userId.so: userId =>
                   lila.game.Namer
-                    .playerText(pov.opponent)(using lightUser.async)
+                    .playerText(!pov)(using lightUser.async)
                     .foreach: opponent =>
                       Bus.pub(lila.core.game.CorresAlarmEvent(userId, pov, opponent))
             }

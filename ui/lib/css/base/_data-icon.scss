@@ -50,7 +50,7 @@ html[dir='rtl'] {
   }
 }
 
-@each $symbol in '帥', '揭', '迷', '旗', '三' {
+@each $symbol in '帥', '揭', '暗', '迷', '旗', '三' {
   [data-icon='#{$symbol}']::before {
     @include variant-icon;
   }

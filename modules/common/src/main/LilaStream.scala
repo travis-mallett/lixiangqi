@@ -5,6 +5,19 @@ import org.apache.pekko.stream.scaladsl.*
 
 object LilaStream:
 
+  /** Values with at least one materialized stream, including during reconnect overlap. */
+  final class Subscribers[A]:
+    private var streams = Map.empty[Object, A]
+
+    def values: Set[A] = synchronized(streams.values.toSet)
+
+    def track[T, M](value: A, source: Source[T, M])(using Executor): Source[T, M] =
+      source.watchTermination(): (mat, done) =>
+        val subscription = new Object
+        synchronized { streams += subscription -> value }
+        done.onComplete(_ => synchronized { streams -= subscription })
+        mat
+
   def flowRate[T](
       metric: T => Int = (_: T) => 1,
       outputDelay: FiniteDuration = 1.second

@@ -68,6 +68,7 @@ export function validateBoardAssets(
     for (const definition of definitions) {
       const pieces = collection.variants[definition.pieceFamily ?? definition.id];
       if (!pieces) fail(`${collection.key} does not cover ${definition.id}`);
+      if (definition.id === 'banqi') file(pieces.back.neutral);
       for (const participant of definition.participants) file(pieces.back[participant]);
       for (const participant of definition.participants)
         for (const role of Object.keys(definition.roles)) file(pieces.faces[participant]?.[role]);

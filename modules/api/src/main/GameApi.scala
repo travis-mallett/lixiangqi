@@ -187,8 +187,8 @@ final private[api] class GameApi(
         "analysis" -> analysisOption.ifTrue(withFlags.analysis).map(analysisJson.moves(_)),
         "moves" -> withFlags.moves.option(g.sans.mkString(" ")),
         "uci" -> withFlags.moves.option(g.xiangqi.moves.map(_.value).mkString(" ")),
-        "reveals" -> (withFlags.moves && g.isJieqi).option(g.xiangqi.states.drop(1).map(_.reveal)),
-        "captures" -> (withFlags.moves && g.isJieqi).option(g.position.captures),
+        "reveals" -> (withFlags.moves && g.hasReveals).option(g.xiangqi.states.drop(1).map(_.reveal)),
+        "captures" -> (withFlags.moves && g.hasReveals).option(g.position.captures),
         "fens" -> (withFlags.fens && g.finished).option(JsArray(g.xiangqi.states.map(s => JsString(s.fen)))),
         "winner" -> g.winnerColor.map(sideName),
         "url" -> makeUrl(g)

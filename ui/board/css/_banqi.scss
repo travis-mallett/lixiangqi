@@ -1,0 +1,146 @@
+// Measurements are fractions of the 100-unit cell in the 496 × 896 artwork.
+// The entire group is 696 units wide, with 100 units reserved on either side.
+.banqi-frame {
+  position: relative;
+  place-self: start center;
+  width: min(100%, calc((100dvh - 8rem) * 0.76));
+  margin-inline: auto;
+  container-type: inline-size;
+
+  &.banqi-frame > .main-board {
+    width: 71.2644%;
+    margin-inline: auto;
+    padding-bottom: 128.7356% !important;
+  }
+}
+
+.banqi-rail {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  width: 10.54%;
+  grid-auto-rows: 12.356cqw;
+  justify-items: center;
+  pointer-events: none;
+
+  &--upper {
+    left: 1.92%;
+    top: 1.72cqw;
+  }
+
+  &--lower {
+    right: 1.63%;
+
+    // Anchor to the artwork even when the frame also contains a turn label.
+    top: calc(128.7356cqw - 1.72cqw - 7 * 12.356cqw);
+  }
+
+  &__slot {
+    position: relative;
+    width: 100%;
+    height: 10.54cqw;
+    display: grid;
+    place-items: center;
+  }
+
+  piece {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background-size: contain;
+    background-repeat: no-repeat;
+  }
+
+  &__engraving {
+    width: 100%;
+    height: 100%;
+    filter: brightness(0) invert(50%);
+    opacity: 0.48;
+  }
+
+  &__badge {
+    position: absolute;
+    z-index: 5;
+    left: 63%;
+    top: -12%;
+    display: grid;
+    place-items: center;
+    width: 5.03cqw;
+    height: 5.03cqw;
+    border-radius: 50%;
+    background: #96473e;
+    color: #fff4dc;
+    font-weight: bold;
+    font-size: 3.55cqw;
+    line-height: 1;
+  }
+}
+
+.banqi-turn {
+  text-align: center;
+  color: var(---c-font-dim);
+  margin-top: 0.7em;
+}
+
+.banqi-capture-flight {
+  position: fixed;
+  pointer-events: none;
+  z-index: 100;
+  background-size: contain;
+}
+
+.banqi-keyboard-cursor {
+  display: none;
+  position: absolute;
+  width: 20.1613%;
+  height: 11.1607%;
+  z-index: 5;
+  outline: 2px solid var(---c-primary);
+  outline-offset: -3px;
+  pointer-events: none;
+}
+
+[data-board-definition='banqi']:focus-visible > .banqi-keyboard-cursor {
+  display: block;
+}
+
+.lixiangqi-board[data-board-definition='banqi'] {
+  coords {
+    position: absolute;
+    display: flex;
+    pointer-events: none;
+    color: var(---cg-ccb);
+    font: 600 clamp(9px, 2.5cqw, 14px) / 1 sans-serif;
+  }
+
+  coords.bottom {
+    inset: 100% 0 auto;
+    width: 100%;
+    height: 5.5%;
+    flex-direction: row;
+  }
+
+  coords.side {
+    inset: 0 100% 0 auto;
+    height: 100%;
+    width: 10%;
+    flex-direction: column-reverse;
+  }
+
+  &.orientation-black coords.bottom {
+    flex-direction: row-reverse;
+  }
+
+  &.orientation-black coords.side {
+    flex-direction: column;
+  }
+
+  coord {
+    position: static;
+    display: grid;
+    flex: 1;
+    place-items: center;
+    padding: 0;
+  }
+}

@@ -460,7 +460,11 @@ final class ModUserUi(helpers: Helpers, modUi: ModUi, mailerEventsUrl: Url):
                     pag
                       .pov(result)
                       .fold[Frag](result.gameId): p =>
-                        playerUsername(p.opponent.light, p.opponent.userId.flatMap(lightUserSync))
+                        playerUsername(
+                          p.opponent.light,
+                          p.opponent.userId.flatMap(lightUserSync),
+                          banqi = p.game.isBanqi
+                        )
                 ),
                 td(
                   pag

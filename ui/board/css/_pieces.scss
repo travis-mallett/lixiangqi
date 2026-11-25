@@ -106,3 +106,10 @@ piece.m-piece.black {
 piece._-piece.black {
   --xiangqi-piece-image: var(--board-piece-back-black);
 }
+
+[data-board-definition='banqi'] piece._-piece,
+.banqi-back {
+  --xiangqi-piece-image: var(--board-piece-back-neutral);
+
+  background-image: var(--xiangqi-piece-image);
+}

@@ -58,27 +58,6 @@ object home:
           )
         )
       )
-    def variantCard(icon: String, chinese: String, english: String) =
-      (if Set("jieqi", "mini-xiangqi", "manchu", "threeKingdoms").contains(icon) then
-         a(href := s"/?variant=${if icon == "mini-xiangqi" then "minixiangqi" else icon}")
-       else st.article(attr("aria-disabled") := "true")) (cls := "lobby__variant-card")(
-        if Set("jieqi", "mini-xiangqi", "manchu", "threeKingdoms").contains(icon) then
-          span(cls := "lobby__variant-ribbon lobby__variant-ribbon--new")(trans.site.newFeature())
-        else span(cls := "lobby__variant-ribbon")(trans.site.comingSoon()),
-        img(
-          cls := s"lobby__variant-icon lobby__variant-icon--$icon",
-          src := assetUrl(
-            s"images/homepage/variants/${if icon == "threeKingdoms" then "three-player" else icon}.png"
-          ),
-          alt := "",
-          aria.hidden := "true",
-          widthA := 224,
-          heightA := 224,
-          attr("loading") := "lazy",
-          attr("decoding") := "async"
-        ),
-        span(cls := "lobby__variant-card__label lobby__label-en")(s"$english ($chinese)")
-      )
     val offerVariants = JsObject:
       lila.xiangqi.GameVariant.values.toSeq.map: variant =>
         variant.key -> Json.obj(
@@ -166,20 +145,7 @@ object home:
                   .orElse(hasUnreadLichessMessage.option(bits.showUnreadLichessMessage))
                   .orElse(playban.map(bits.playbanInfo))
               ),
-              st.section(cls := "lobby__variants", attr("aria-labelledby") := "lobby-variants-title")(
-                h2(id := "lobby-variants-title", cls := "lobby__section-title")(
-                  span(cls := "lobby__svg-icon lobby__svg-icon--variants", aria.hidden := true),
-                  span(cls := "lobby__label-en lobby__label-en--primary")("Variants")
-                ),
-                div(cls := "lobby__variant-grid")(
-                  variantCard("jieqi", "揭棋", "Jieqi / Reveal Chess"),
-                  variantCard("banqi", "暗棋", "Banqi / Dark Chess"),
-                  variantCard("mini-xiangqi", "迷你象棋", trans.site.miniXiangqi.txt()),
-                  variantCard("threeKingdoms", "三国棋", trans.site.threeKingdoms.txt()),
-                  variantCard("manchu", "满洲棋", trans.site.manchu.txt()),
-                  variantCard("other", "其他变体", "Other Variants")
-                )
-              ),
+              variants(),
               blogPosts.nonEmpty.option(views.ublog.ui.homeCarousel(blogPosts)),
               ctx.kid.no.option(globalChatCard)
             ),

@@ -1,6 +1,9 @@
 package lila.challenge
 
+import chess.format.Fen
+
 import lila.core.game.Player
+import lila.core.rank.RankTrackId
 import lila.core.user.{ GameUser, WithPerf }
 import lila.game.{ GameRepo, Rematches, rematchAlternatesColor }
 
@@ -17,8 +20,8 @@ final class ChallengeMaker(
       makeRematch(Pov(data.game, data.challenger), data.orig, data.dest).dmap(some)
 
   def showCanceledRematchFor(gameId: GameId, dest: User, nextId: GameId): Fu[Option[Challenge]] =
-    collectDataFor(gameId, dest).flatMapz: data =>
-      toChallenge(Pov(data.game, data.challenger), data.orig, data.dest, nextId).dmap(some)
+    collectDataFor(gameId, dest).dmap2: data =>
+      ChallengeMaker.fromGame(Pov(data.game, data.challenger), data.orig, data.dest, nextId)
 
   private case class Data(game: Game, challenger: Player, orig: GameUser, dest: WithPerf)
 
@@ -26,56 +29,58 @@ final class ChallengeMaker(
     gameRepo
       .game(gameId)
       .flatMapz: game =>
+        val track = rematchTrack(game)
         game
           .opponentOf(dest)
           .so: challenger =>
             for
-              orig <- challenger.userId.so(userApi.byIdWithPerf(_, game.perfKey))
-              dest <- userApi.withPerf(dest, game.perfKey)
+              orig <- challenger.userId.so(userApi.byIdWithPerf(_, game.perfKey, track))
+              dest <- userApi.withPerf(dest, game.perfKey, track)
             yield Data(game, challenger, orig, dest).some
 
   private[challenge] def makeRematchOf(game: Game, challenger: User): Fu[Option[Challenge]] =
+    val track = rematchTrack(game)
     Pov(game, challenger.id).so: pov =>
-      pov.opponent.userId.so(userApi.byIdWithPerf(_, game.perfKey)).flatMapz { dest =>
+      pov.opponent.userId.so(userApi.byIdWithPerf(_, game.perfKey, track)).flatMapz { dest =>
         for
-          challenger <- userApi.withPerf(challenger, game.perfKey)
+          challenger <- userApi.withPerf(challenger, game.perfKey, track)
           rematch <- makeRematch(pov, challenger.some, dest)
         yield rematch.some
       }
 
+  private def rematchTrack(game: Game) =
+    RankTrackId.forMode(RankTrackId.of(game.nativeVariant), game.daysPerTurn.isDefined)
+
   // pov of the challenger
   private def makeRematch(pov: Pov, challenger: GameUser, dest: WithPerf): Fu[Challenge] =
-    for
-      nextGameId <- rematches.offer(pov.ref)
-      challenge <- toChallenge(pov, challenger, dest, nextGameId)
-    yield challenge
+    rematches.offer(pov.ref).map(ChallengeMaker.fromGame(pov, challenger, dest, _))
 
-  private def toChallenge(
+private object ChallengeMaker:
+  def fromGame(
       pov: Pov,
       challenger: GameUser,
       dest: WithPerf,
       nextId: GameId
-  ): Fu[Challenge] =
-    gameRepo
-      .initialFen(pov.game)
-      .map: initialFen =>
-        val timeControl = (pov.game.clock, pov.game.daysPerTurn) match
-          case (Some(clock), _) => TimeControl.Clock(clock.config, pov.game.moveTimeLimit)
-          case (_, Some(days)) => TimeControl.Correspondence(days)
-          case _ => TimeControl.Unlimited
-        val alternateColor = rematchAlternatesColor(pov.game, List(challenger.map(_.user), dest.user.some))
-        Challenge.make(
-          variant = pov.game.variant,
-          initialFen = initialFen,
-          timeControl = timeControl,
-          rated = pov.game.rated,
-          color = (if alternateColor then !pov.color else pov.color).name,
-          // for anon, we don't know the secret, but this challenge is only serialized to json and sent to a listening bot anyway,
-          // which doesn't use the secret, so we just use an empty string
-          challenger = challenger
-            .fold(Challenge.Challenger.Anonymous(""))(Challenge.toRegistered),
-          destUser = dest.some,
-          rematchOf = pov.gameId.some,
-          id = nextId.some,
-          ruleset = pov.game.xiangqi.ruleset
-        )
+  ): Challenge =
+    val timeControl = (pov.game.clock, pov.game.daysPerTurn) match
+      case (Some(clock), _) => TimeControl.Clock(clock.config, pov.game.moveTimeLimit)
+      case (_, Some(days)) => TimeControl.Correspondence(days)
+      case _ => TimeControl.Unlimited
+    val alternateColor = rematchAlternatesColor(pov.game, List(challenger.map(_.user), dest.user.some))
+    Challenge.make(
+      variant = if pov.game.fromPosition then chess.variant.FromPosition else pov.game.variant,
+      gameVariant = pov.game.nativeVariant,
+      initialFen = Option.when[Fen.Full](pov.game.fromPosition)(Fen.Full(pov.game.xiangqi.initialFen)),
+      timeControl = timeControl,
+      rated = pov.game.rated,
+      color = (if alternateColor then !pov.color else pov.color).name,
+      // for anon, we don't know the secret, but this challenge is only serialized to json and sent to a listening bot anyway,
+      // which doesn't use the secret, so we just use an empty string
+      challenger = challenger
+        .fold(Challenge.Challenger.Anonymous(""))(Challenge.toRegistered),
+      destUser = dest.some,
+      rematchOf = pov.gameId.some,
+      id = nextId.some,
+      rules = pov.game.metadata.rules,
+      ruleset = pov.game.xiangqi.ruleset
+    )

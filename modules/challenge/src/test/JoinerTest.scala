@@ -116,12 +116,105 @@ final class JoinerTest extends munit.FunSuite:
         .fold(fail(_), identity)
       assertEquals(correspondence.rankTrack, Some(account))
       assert(RankedGame.isAuthorized(correspondence))
+      val rematch = ChallengeMaker.fromGame(
+        Pov(correspondence, chess.White),
+        Some(correspondent(red)),
+        correspondent(black),
+        GameId("rematch1")
+      )
+      assertEquals(rematch.gameVariant, variant)
+      assertEquals(rematch.rematchOf, Some(correspondence.id))
+      assertEquals(rematch.accountTrack, account)
+      val joined = ChallengeJoiner
+        .createGame(rematch, Some(correspondent(red)), Some(correspondent(black)))
+        .fold(fail(_), identity)
+      assertEquals(joined.nativeVariant, variant)
+      assertEquals(joined.daysPerTurn, byPost.daysPerTurn)
+      assertEquals(joined.rankTrack, Some(account))
+      assertEquals(joined.id, rematch.gameId)
+
       if variant == lila.xiangqi.GameVariant.Xiangqi then
         val legacy = byPost.copy(ruleset = Some(lila.xiangqi.adjudication.Ruleset.Unrestricted))
         assert(
           ChallengeJoiner
             .createGame(legacy, Some(correspondent(red)), Some(correspondent(black)))
             .exists(RankedGame.isAuthorized)
+        )
+
+  test("internal challenge creation rejects incompatible board, position and rules before publication"):
+    import lila.xiangqi.GameVariant
+    import lila.xiangqi.adjudication.Ruleset
+    def create(board: GameVariant, rules: Ruleset, fen: Option[String]) =
+      Challenge.make(
+        if fen.isDefined then FromPosition else Standard,
+        fen.map[chess.format.Fen.Full](f => chess.format.Fen.Full(f)),
+        timeControl,
+        chess.Rated.No,
+        "random",
+        Challenge.Challenger.Open,
+        None,
+        None,
+        ruleset = rules,
+        gameVariant = board
+      )
+    val allowed = Map(
+      GameVariant.Xiangqi -> Set(Ruleset.Tiantian, Ruleset.Unrestricted),
+      GameVariant.Jieqi -> Set(Ruleset.Jieqi),
+      GameVariant.Banqi -> Set(Ruleset.Banqi),
+      GameVariant.MiniXiangqi -> Set(Ruleset.MiniXiangqi),
+      GameVariant.Manchu -> Set(Ruleset.Manchu)
+    )
+    for
+      board <- GameVariant.values
+      rules <- Ruleset.values
+    do
+      if allowed.get(board).exists(_.contains(rules)) then
+        val game = ChallengeJoiner.gameSetup(create(board, rules, None)).fold(fail(_), identity)
+        assertEquals(game.variant, board)
+        assertEquals(game.ruleset, rules)
+      else intercept[IllegalArgumentException](create(board, rules, None))
+    for
+      board <- GameVariant.values
+      position <- GameVariant.values.filter(_.playerCount == 2)
+    do
+      val fen = Some(position.startFen)
+      if board == position && board.supportsCustomPosition then
+        assert(ChallengeJoiner.gameSetup(create(board, board.defaultRuleset, fen)).exists(_.variant == board))
+      else intercept[IllegalArgumentException](create(board, board.defaultRuleset, fen))
+
+    intercept[IllegalArgumentException]:
+      ChallengeJoiner.createGame(
+        makeChallenge(Standard, None),
+        None,
+        None,
+        Xiangqi.Game.initial.copy(ruleset = Ruleset.MiniXiangqi)
+      )
+
+  test("bulk pairing accepts only the variant and rules of its starting board"):
+    import lila.xiangqi.GameVariant
+    val base = ChallengeBulkSetup.BulkFormData(
+      "first:second",
+      Standard,
+      None,
+      None,
+      Some(scalalib.model.Days(2)),
+      chess.Rated.No,
+      None,
+      None,
+      None,
+      Set.empty
+    )
+    for board <- GameVariant.values do
+      val request =
+        base.copy(requestedVariant = Some(board.key), requestedRules = Some(board.defaultRuleset.key))
+      assertEquals(request.validSetup, board == GameVariant.Xiangqi)
+      if board.playerCount == 2 then
+        assertEquals(
+          request
+            .copy(fen = Some[chess.format.Fen.Full](chess.format.Fen.Full(board.startFen)))
+            .autoVariant
+            .validSetup,
+          board.supportsCustomPosition
         )
 
   test("a rated invitation cannot be accepted as a guest"):
@@ -134,6 +227,8 @@ final class JoinerTest extends munit.FunSuite:
   ) =
     Challenge.make(
       variant = variant,
+      gameVariant = lila.xiangqi.GameVariant.Xiangqi,
+      ruleset = lila.xiangqi.GameVariant.Xiangqi.defaultRuleset,
       initialFen = initialFen,
       timeControl = timeControl,
       rated = chess.Rated.No,

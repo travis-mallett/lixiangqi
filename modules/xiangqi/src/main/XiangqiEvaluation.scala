@@ -13,7 +13,7 @@ object XiangqiEvaluation:
     else XiangqiRules.game(position)
 
   def key(game: Game): String =
-    val knowledge = if game.isJieqi then
+    val knowledge = if game.hasReveals then
       val position = game.position
       "\n" + position.reveals.map(_.getOrElse("-")).mkString(" ") + "\n" +
         position.knownCaptures.toVector.sorted.map((square, role) => s"$square=$role").mkString(" ")

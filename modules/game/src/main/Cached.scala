@@ -1,6 +1,6 @@
 package lila.game
 
-import java.time.{ Instant, ZoneId, ZonedDateTime }
+import java.time.Instant
 
 import com.github.blemale.scaffeine.LoadingCache
 
@@ -19,7 +19,7 @@ final class Cached(
 
   def nbTotal: Fu[Long] = nbTotalCache.get {}
 
-  def homepageStats: Fu[HomepageStats] = homepageStatsCache.get(todayStart)
+  def homepageStats: Fu[HomepageStats] = homepageStatsCache.get(())
 
   def lastPlayedPlayingId(userId: UserId): Fu[Option[GameId]] = lastPlayedPlayingIdCache.get(userId)
 
@@ -45,15 +45,10 @@ final class Cached(
       loader: _ =>
         gameRepo.coll.countAll
 
-  private val pacificTime = ZoneId.of("America/Los_Angeles")
-
-  private def todayStart: Instant =
-    ZonedDateTime.now(pacificTime).toLocalDate.atStartOfDay(pacificTime).toInstant
-
-  private val homepageStatsCache = cacheApi[Instant, HomepageStats](2, "game.homepageStats"):
-    _.expireAfterWrite(1.minute).buildAsyncFuture: startOfDay =>
+  private val homepageStatsCache = cacheApi[Unit, HomepageStats](1, "game.homepageStats"):
+    _.expireAfterWrite(1.minute).buildAsyncFuture: _ =>
       gameRepo
-        .count(_.playedOnSiteSince(startOfDay))
+        .count(_.playedOnSiteSince(Instant.now.minusSeconds(24.hours.toSeconds)))
         .zip(gameRepo.count(_.playedOnSite))
         .map(HomepageStats.apply)
 

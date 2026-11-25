@@ -88,8 +88,92 @@ export class RectangularBoardView {
     for (const [key, value] of Object.entries(boardLayout(this.definition.geometry).viewport))
       element.style.setProperty(`--board-layout-${key}`, String(value));
     this.renderer = this.createRenderer(options.position);
+    // A neutral covered cell can be flipped by either army, in place.
+    // Chessground's normal drag/selection path handles two-cell moves.
+    if (this.definition.id === 'banqi') {
+      const flip = (event: PointerEvent) => {
+        if (event.button !== 0 || this.interaction.mode !== 'play') return;
+        const at = this.locationAt([event.clientX, event.clientY]);
+        if (!at || !this.allowsMove(at, at)) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        this.renderer.cancelMove();
+        this.interaction.onMove({ from: at, to: at, premove: false, controlKey: event.ctrlKey });
+      };
+      this.bindBanqiKeyboard();
+      element.addEventListener('pointerdown', flip, true);
+      this.onDestroy(() => element.removeEventListener('pointerdown', flip, true));
+    }
     this.setInteraction(this.interaction);
     this.display(options.position, { kind: 'initial' });
+  }
+
+  private bindBanqiKeyboard(): void {
+    const root = this.element;
+    const cursor = root.ownerDocument.createElement('span');
+    cursor.className = 'banqi-keyboard-cursor';
+    cursor.setAttribute('aria-hidden', 'true');
+    root.append(cursor);
+    let x = 0,
+      y = 7;
+    let selected: Location | undefined;
+    const update = () => {
+      const first = this.presentation.perspective === 'red';
+      const square = String.fromCharCode(97 + (first ? x : 3 - x)) + (first ? 8 - y : y + 1);
+      cursor.style.left = ((48 + x * 100) / 496) * 100 + '%';
+      cursor.style.top = ((48 + y * 100) / 896) * 100 + '%';
+      root.setAttribute('aria-label', square);
+      return square;
+    };
+    const keys = (event: KeyboardEvent) => {
+      if (event.target !== root || this.interaction.mode !== 'play') return;
+      switch (event.key) {
+        case 'ArrowLeft':
+          x = Math.max(0, x - 1);
+          break;
+        case 'ArrowRight':
+          x = Math.min(3, x + 1);
+          break;
+        case 'ArrowUp':
+          y = Math.max(0, y - 1);
+          break;
+        case 'ArrowDown':
+          y = Math.min(7, y + 1);
+          break;
+        case 'Escape':
+          selected = undefined;
+          this.cancelInput();
+          break;
+        case 'Enter':
+        case ' ': {
+          const at = update();
+          const from = selected && this.allowsMove(selected, at) ? selected : at;
+          if (this.allowsMove(from, at)) {
+            selected = undefined;
+            this.cancelInput();
+            this.interaction.onMove({ from, to: at, premove: false, controlKey: false });
+          } else if (this.interaction.destinations.get(at)?.length) {
+            selected = at;
+            this.select(at);
+          }
+          break;
+        }
+        default:
+          return;
+      }
+      update();
+      event.preventDefault();
+      event.stopPropagation();
+    };
+    root.setAttribute('aria-keyshortcuts', 'ArrowUp ArrowDown ArrowLeft ArrowRight Enter Space Escape');
+    root.addEventListener('focus', update);
+    root.addEventListener('keydown', keys);
+    this.onDestroy(() => {
+      cursor.remove();
+      root.removeEventListener('focus', update);
+      root.removeEventListener('keydown', keys);
+      for (const attr of ['aria-label', 'aria-keyshortcuts', 'tabindex']) root.removeAttribute(attr);
+    });
   }
 
   private createRenderer(position: BoardPosition): Api {
@@ -150,7 +234,7 @@ export class RectangularBoardView {
   }
 
   private placement(position: BoardPosition): string {
-    return positionToFen(position, this.definition).split(' ')[0];
+    return positionToFen(position, this.definition).split(' ')[0].replaceAll('*', 'X');
   }
 
   private presentationConfig(): Config {
@@ -207,8 +291,9 @@ export class RectangularBoardView {
       move.some(
         key =>
           this.renderer.state.boardState.pieces.get(key)?.role === '_-piece' &&
-          this.renderer.state.boardState.pieces.get(key)?.color ===
-            this.piece(position.pieces.get(position.lastMove![1])!).color,
+          (this.definition.id === 'banqi' ||
+            this.renderer.state.boardState.pieces.get(key)?.color ===
+              this.piece(position.pieces.get(position.lastMove![1])!).color),
       );
     this.renderer.set(
       {
@@ -252,6 +337,7 @@ export class RectangularBoardView {
   setInteraction(interaction: BoardInteraction): void {
     if (this.destroyed) return;
     this.interaction = interaction;
+    if (this.definition.id === 'banqi') this.element.tabIndex = interaction.mode === 'play' ? 0 : -1;
     this.enableRendererCapabilities();
     const play = interaction.mode === 'play' ? interaction : undefined;
     const editing = interaction.mode === 'edit';
@@ -423,8 +509,9 @@ export class RectangularBoardView {
     const piece = position.pieces.get(from);
     return (
       piece !== undefined &&
-      piece.participant === position.active &&
-      piece.participant === this.interaction.participant &&
+      (piece.participant === position.active ||
+        (from === to && piece.face === 'down' && piece.participant === undefined)) &&
+      position.active === this.interaction.participant &&
       !!this.interaction.destinations.get(from)?.includes(to)
     );
   }

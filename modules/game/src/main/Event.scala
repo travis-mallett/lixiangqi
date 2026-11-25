@@ -37,6 +37,7 @@ object Event:
           "legalMoves" -> result.legalMoves.map(_.value),
           "check" -> result.check,
           "capture" -> result.capture,
+          "reveal" -> result.reveal,
           "variation" -> result.variation,
           "termination" -> result.termination
         )
@@ -45,7 +46,7 @@ object Event:
         .add("winner" -> state.winner)
         .add("wDraw" -> state.whiteOffersDraw)
         .add("bDraw" -> state.blackOffersDraw)
-        .add("captures" -> Option.when(result.variant == "jieqi") {
+        .add("captures" -> Option.when(result.variant == "jieqi" || result.variant == "banqi") {
           import lila.xiangqi.XiangqiJson.given
           Json.toJson(result.captures)
         })
@@ -98,7 +99,7 @@ object Event:
           "status" -> game.status
         )
         .add("abortedBy" -> game.abortedBy)
-        .add("captures" -> Option.when(game.isJieqi)(game.visibleCaptures))
+        .add("captures" -> Option.when(game.hasReveals)(game.visibleCaptures))
         .add("clock" -> game.clock.map: c =>
           Json.obj(
             "wc" -> c.remainingTime(Color.White).centis,

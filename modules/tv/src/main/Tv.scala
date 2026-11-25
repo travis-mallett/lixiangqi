@@ -110,6 +110,14 @@ object Tv:
           filters = Nil,
           variant = Some(lila.xiangqi.GameVariant.Jieqi)
         )
+    case Banqi
+        extends Channel(
+          name = "Banqi",
+          icon = lila.ui.VariantIcon(lila.xiangqi.GameVariant.Banqi),
+          secondsSinceLastMove = 180,
+          filters = Nil,
+          variant = Some(lila.xiangqi.GameVariant.Banqi)
+        )
     case MiniXiangqi
         extends Channel(
           name = "Mini Xiangqi",

@@ -232,6 +232,7 @@ export interface EditChapterData {
 }
 
 export interface AnaMove {
+  reveal?: string;
   orig: string;
   dest: string;
   path: string;

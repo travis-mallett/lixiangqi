@@ -20,3 +20,7 @@ class NamerTest extends munit.FunSuite:
   test("replay and export share anonymous and computer identities"):
     assertEquals(Namer.recordedPlayerText(anonymous, None), UserName.anonymous.value)
     assertEquals(Namer.recordedPlayerText(anonymous.copy(aiLevel = Some(1)), None), "Pikafish level 1")
+    assertEquals(
+      Namer.recordedPlayerText(anonymous.copy(aiLevel = Some(10)), None, banqi = true),
+      "BanqiFish level 10"
+    )

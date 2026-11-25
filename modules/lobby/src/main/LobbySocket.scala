@@ -10,9 +10,13 @@ import lila.core.pool.{ PoolConfigId, PoolMember, PoolFrom }
 import lila.core.socket.{ protocol as P, * }
 import lila.core.timeline.*
 
-case class LobbyCounters(members: Int, rounds: Int, poolCounts: Map[String, Int])
+case class LobbyCounters(members: Int, rounds: Int, poolCounts: Map[String, Int], registered: Int, onlineIds: List[UserId]):
+  def anonymous = members - registered
+
 object LobbyCounters:
   given Reads[LobbyCounters] = Json.reads[LobbyCounters]
+
+case class CountPlaying(playerBoards: Set[GameId]) extends P.In
 
 final class LobbySocket(
     biter: Biter,
@@ -28,7 +32,7 @@ final class LobbySocket(
   import Protocol.*
   type SocketController = PartialFunction[(String, JsObject), Unit]
 
-  @volatile private var lastCounters = LobbyCounters(0, 0, Map.empty)
+  @volatile private var lastCounters = LobbyCounters(0, 0, Map.empty, 0, Nil)
   def counters = lastCounters
 
   /** Authoritative game count; websocket room populations also include finished-game spectators. */
@@ -260,10 +264,11 @@ final class LobbySocket(
         )
 
     case In.Counters(snapshot) => lastCounters = snapshot
+    case request: CountPlaying => Bus.pub(request)
 
     case P.In.WsBoot =>
       logger.warn("Remote socket boot")
-      lastCounters = LobbyCounters(0, 0, Map.empty)
+      lastCounters = LobbyCounters(0, 0, Map.empty, 0, Nil)
       lobby ! LeaveAll
       actor ! LeaveAll
 
@@ -287,6 +292,8 @@ private object LobbySocket:
     object In:
       case class Counters(snapshot: LobbyCounters) extends P.In
       val reader: P.In.Reader =
+        case P.RawMsg("lobby/count-playing", raw) =>
+          Some(CountPlaying(P.In.commas(raw.args).iterator.map(GameId.apply).toSet))
         case P.RawMsg("counters", raw) =>
           Json.parse(raw.args).asOpt[LobbyCounters].map(Counters.apply)
     object Out:

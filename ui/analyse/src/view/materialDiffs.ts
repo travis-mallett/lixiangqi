@@ -5,4 +5,8 @@ import * as materialView from 'lib/game/view/material';
 import type AnalyseCtrl from '@/ctrl';
 
 export const renderMaterialDiffs = (ctrl: AnalyseCtrl): [VNode, VNode] =>
-  materialView.renderMaterialDiffs(!!ctrl.data.pref.showCaptured, ctrl.bottomColor(), ctrl.node.fen);
+  materialView.renderMaterialDiffs(
+    ctrl.variantKey !== 'banqi' && !!ctrl.data.pref.showCaptured,
+    ctrl.bottomColor(),
+    ctrl.node.fen,
+  );

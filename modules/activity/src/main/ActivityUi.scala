@@ -372,7 +372,7 @@ final class ActivityUi(helpers: Helpers)(
     player.userId.flatMap(lightUserSync) match
       case None =>
         span(cls := "user-link")(
-          player.aiLevel.fold(trans.site.anonymous())(aiNameFrag),
+          player.aiLevel.fold(trans.site.anonymous())(aiNameFrag(_)),
           player.rank.flatMap(_.publicCode).map { rank => s" (${rank.value})" }
         )
       case Some(user) =>

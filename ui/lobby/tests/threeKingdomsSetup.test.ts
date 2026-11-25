@@ -246,7 +246,11 @@ test('shared setup submits all three-player choices with CSRF XHR headers', asyn
     assert.equal(unlimited.timeMode, 'unlimited');
     assert.equal(unlimited.days, undefined);
 
-    ctrl.openModal('hook', { variant: 'threeKingdoms', timeMode: 'correspondence' });
+    ctrl.openModal('hook', { variant: 'threeKingdoms', timeMode: 'realTime' });
+    assert.equal(ctrl.gameVariant(), 'threeKingdoms');
+    assert.equal(ctrl.valid(), false);
+    ctrl.openModal('hook', { variant: 'threeKingdoms' });
+    assert.equal(ctrl.timeControl.mode(), 'correspondence');
     let posted = '';
     ctrl.root.showKingdomOffer = offer => {
       posted = offer.id;

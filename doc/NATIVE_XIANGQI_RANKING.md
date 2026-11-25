@@ -1,6 +1,6 @@
 # Native Xiangqi ranking
 
-LiXiangQi keeps independent live and correspondence accounts for Xiangqi, Jieqi, Mini Xiangqi,
+LiXiangQi keeps independent live and correspondence accounts for Xiangqi, Jieqi, Banqi, Mini Xiangqi,
 Manchu+ and Game of the Three Kingdoms. Both accounts for a variant use the same native rank
 catalogue, initial score, settlement rules and score floor. Puzzle rating uses Glicko.
 
@@ -17,9 +17,11 @@ catalogue, initial score, settlement rules and score floor. Puzzle rating uses G
   player's current balance. Correspondence allows any rank gap and uses the variant's existing
   favourite and upset values. Three Kingdoms uses all three placements.
 - Full profiles show established correspondence titles, scores and a graph of UTC daily closing
-  scores. On the main leaderboard, one Live / Correspondence selector controls all five lists.
+  scores. On the main leaderboard, one Live / Correspondence selector controls all six lists.
   The homepage and username hover cards continue to show live ranks.
 - Standard Xiangqi starts at −160 (学1-3). A rank is established by the first settled result.
+
+Banqi accounts use the keys `banqi` and `banqiCorrespondence`. Both start at zero, use a −30 floor and the 暗 titles. The first accepted flip commits a ranked game, including when the opening player draws Black. Results and starting rank snapshots belong to the two original seats.
 
 ## Settlement policy v1
 
@@ -135,7 +137,6 @@ For a later manual rollback after a successful release, stop all application wri
 the retained `*-native-xiangqi-rank-v1.archive.gz` through the deployment tooling before activating
 the prior application. Do not drop that archive, its checksum, or the in-database rollback copies
 until product validation and the agreed retention window are complete.
-
 
 ## Correspondence rollout
 

@@ -69,11 +69,12 @@ final class GameApiV2(
 
   def filename(game: Game, format: Format): Fu[String] =
     gameLightUsers(game).map: users =>
+      val names = users.map((player, user) => lila.game.Namer.recordedPlayerText(player, user, game.isBanqi))
       fileR.replaceAllIn(
         "lixiangqi_%s_%s_vs_%s.%s.%s".format(
           Tag.UTCDate.format.print(game.createdAt),
-          lila.game.Namer.recordedPlayerText.tupled(users.white),
-          lila.game.Namer.recordedPlayerText.tupled(users.black),
+          names.white,
+          names.black,
           game.id,
           format.toString.toLowerCase
         ),
@@ -358,10 +359,10 @@ final class GameApiV2(
     .add("uci" -> flags.moves.option {
       applyDelay(g.xiangqi.moves, flags.keepDelayIf(g.playable)).map(_.value).mkString(" ")
     })
-    .add("reveals" -> (flags.moves && g.isJieqi).option {
+    .add("reveals" -> (flags.moves && g.hasReveals).option {
       applyDelay(g.xiangqi.states.drop(1), flags.keepDelayIf(g.playable)).map(_.reveal)
     })
-    .add("captures" -> (flags.moves && g.isJieqi).option {
+    .add("captures" -> (flags.moves && g.hasReveals).option {
       applyDelay(g.xiangqi.states, flags.keepDelayIf(g.playable)).lastOption.toVector.flatMap(_.captures)
     })
     .add("clocks" -> flags.clocks.so(g.bothClockStates).map { clocks =>

@@ -41,6 +41,7 @@ jobs:
       LIXIANGQI_ANALYSIS_TEST_URI: mongodb://127.0.0.1:27291
       LIXIANGQI_EXTERNAL_LOGIN_TEST_URI: mongodb://127.0.0.1:27291
       LIXIANGQI_MSG_TEST_URI: mongodb://127.0.0.1:27291
+      LIXIANGQI_IN_PLAY_TEST_URI: mongodb://127.0.0.1:27291
       LIXIANGQI_MEDIA_REPLICA_URI: mongodb://127.0.0.1:27291
     strategy:
       matrix:

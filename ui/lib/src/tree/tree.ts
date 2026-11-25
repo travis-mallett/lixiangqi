@@ -226,16 +226,18 @@ export function makeTree(root: TreeNode): TreeWrapper {
         initialFen: root.fen,
         moves: nodes.map(n => n.uci!),
         ruleset: root.ruleset,
-        ...(root.state.variant === 'jieqi'
-          ? {
-              reveals: nodes.map(n => n.state.reveal ?? null),
-              knownCaptures: Object.fromEntries(
-                (nodes[nodes.length - 1]?.state.captures ?? root.state.captures ?? [])
-                  .filter(c => c.concealed && c.role)
-                  .map(c => [c.square, c.role!]),
-              ),
-            }
-          : {}),
+        ...(root.state.variant === 'banqi'
+          ? { reveals: nodes.map(n => n.state.reveal ?? null) }
+          : root.state.variant === 'jieqi'
+            ? {
+                reveals: nodes.map(n => n.state.reveal ?? null),
+                knownCaptures: Object.fromEntries(
+                  (nodes[nodes.length - 1]?.state.captures ?? root.state.captures ?? [])
+                    .filter(c => c.concealed && c.role)
+                    .map(c => [c.square, c.role!]),
+                ),
+              }
+            : {}),
       };
     },
     lastPly: (): number => lastNode()?.ply || root.ply,

@@ -1,6 +1,5 @@
 .lobby {
-  &__feature-card,
-  &__variant-card {
+  &__feature-card {
     @include transition(background-color border-color box-shadow color opacity transform);
 
     min-width: 0;
@@ -9,25 +8,18 @@
     background: color-mix(in oklab, $c-bg-box 96%, transparent);
     box-shadow: 0 3px 12px rgb(0 0 0 / 0.12);
     color: $c-font;
+    cursor: pointer;
 
     &:focus-visible {
       outline: 3px solid $c-primary;
       outline-offset: 2px;
     }
-  }
 
-  &__feature-card,
-  &__variant-card[href] {
     &:hover,
     &:focus-visible {
       border-color: color-mix(in oklab, $c-primary 72%, $c-border);
       background-color: $c-bg-zebra;
     }
-  }
-
-  &__feature-card,
-  &__variant-card[href] {
-    cursor: pointer;
 
     &:disabled {
       cursor: default;
@@ -384,113 +376,11 @@
     }
   }
 
-  &__section-title {
-    display: flex;
-    min-width: 0;
-    align-items: center;
-    gap: 11px;
-    margin: 4px 4px 0;
-    font-size: 1rem;
-    font-weight: 400;
-
-    .lobby__svg-icon {
-      width: 30px;
-      height: 30px;
-      color: $c-primary;
-    }
-
-    .lobby__label-zh {
-      font-size: 1.5rem;
-    }
-
-    .lobby__label-en {
-      font-size: 1rem;
-    }
-
-    .lobby__label-en--primary {
-      color: $c-font-clear;
-      font-size: 1.5rem;
-    }
-  }
-
-  &__variant-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
-  }
-
-  &__variant-card {
-    position: relative;
-    display: flex;
-    min-height: 208px;
-    overflow: hidden;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-    padding: 24px 12px 18px;
-    cursor: default;
-    text-align: center;
-
-    &[aria-disabled='true'] .lobby__variant-icon {
-      filter: grayscale(1);
-      opacity: 0.45;
-    }
-  }
-
-  &__variant-icon {
-    display: block;
-    width: 112px;
-    height: 112px;
-    flex: 0 0 auto;
-    object-fit: contain;
-  }
-
-  &__variant-card__label {
-    display: block;
-    min-width: 0;
-    width: 100%;
-    overflow: hidden;
-    color: $c-font;
-    font-size: 0.95rem;
-    line-height: 1.2;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  &__variant-ribbon {
-    position: absolute;
-    z-index: 2;
-    top: 17px;
-    right: -38px;
-    width: 132px;
-    padding: 5px 0;
-    background: $c-bg-zebra;
-    box-shadow: 0 2px 4px rgb(0 0 0 / 0.16);
-    color: $c-font-dim;
-    font-family: Inter, 'Noto Sans', sans-serif;
-    font-size: 0.58rem;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    line-height: 1;
-    text-transform: uppercase;
-    transform: rotate(45deg);
-
-    &--new {
-      background: $c-good;
-      color: $c-over;
-    }
-  }
-
   .bar-glider::after {
     pointer-events: none;
   }
 
   @media (max-width: 600px) {
-    &__variant-card {
-      border-radius: 10px;
-    }
-
     &__feature-card--evaluation {
       padding: 18px;
 
@@ -506,54 +396,6 @@
       .lobby__label-en {
         font-size: 17px;
       }
-    }
-
-    &__section-title {
-      gap: 9px;
-
-      .lobby__svg-icon {
-        width: 24px;
-        height: 24px;
-      }
-
-      .lobby__label-zh {
-        font-size: 1.25rem;
-      }
-
-      .lobby__label-en {
-        font-size: 0.85rem;
-      }
-
-      .lobby__label-en--primary {
-        font-size: 1.25rem;
-      }
-    }
-
-    &__variant-grid {
-      gap: 8px;
-    }
-
-    &__variant-card {
-      min-height: 142px;
-      gap: 10px;
-      padding: 18px 7px 12px;
-    }
-
-    &__variant-icon {
-      width: 72px;
-      height: 72px;
-    }
-
-    &__variant-card__label {
-      font-size: clamp(8px, 2.4vw, 11px);
-    }
-
-    &__variant-ribbon {
-      top: 10px;
-      right: -31px;
-      width: 102px;
-      padding: 4px 0;
-      font-size: 0.45rem;
     }
   }
 }

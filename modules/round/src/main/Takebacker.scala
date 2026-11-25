@@ -106,7 +106,7 @@ final private class Takebacker(
       case _ => fufail(ClientError("[takebacker] invalid no " + pov))
 
   def isAllowedIn(game: Game, prefs: Preload[ByColor[Pref]]): Fu[Boolean] =
-    (!game.isJieqi && game.canTakebackOrAddTime).so(isAllowedByPrefs(game, prefs))
+    (!game.hasReveals && game.canTakebackOrAddTime).so(isAllowedByPrefs(game, prefs))
 
   private def offerTakebackMessage(pov: Pov): String =
     val k = if pov.game.turnOf(pov.color) then 2 else 1
@@ -132,7 +132,7 @@ final private class Takebacker(
             p.takeback == Pref.Takeback.ALWAYS || (p.takeback == Pref.Takeback.CASUAL && !game.ranked)
 
   private def IfAllowed[A](game: Game, prefs: Preload[ByColor[Pref]])(f: => Fu[A]): Fu[A] =
-    if game.isJieqi then fufail(ClientError("Takebacks are disabled in Jieqi"))
+    if game.hasReveals then fufail(ClientError("Takebacks are disabled in hidden-piece games"))
     else if !game.playable then fufail(ClientError("[takebacker] game is over " + game.id))
     else if !game.canTakebackOrAddTime then fufail(ClientError("[takebacker] game disallows it " + game.id))
     else

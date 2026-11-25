@@ -86,3 +86,15 @@ class XiangqiRulesetBsonTest extends munit.FunSuite:
     assertEquals(restored.variant, lila.xiangqi.GameVariant.MiniXiangqi)
     assertEquals(restored.ruleset, Ruleset.MiniXiangqi)
     assert(XiangqiRules.move(restored, Xiangqi.Uci.unsafe("a6b6")).isRight)
+
+  test("Banqi reconnect preserves the referee deal and exposes only the accepted flip"):
+    val initial = lila.xiangqi.Banqi.initial().toOption.get
+    def reload(g: Xiangqi.Game) =
+      xiangqiGameHandler.readDocument(xiangqiGameHandler.writeTry(g).get).get
+    def flip(g: Xiangqi.Game, at: String) =
+      g.applyMove(XiangqiRules.move(g, Xiangqi.Uci.unsafe(at + at)).toOption.get).toOption.get
+    val first = flip(reload(initial), "a1")
+    assertEquals(first.state.reveal.map(_.length), Some(1))
+    assertEquals(first.position.reveals, Vector(first.state.reveal))
+    assertEquals(flip(reload(first), "b2"), flip(first, "b2"))
+    assertEquals(reload(first).banqiDeal, initial.banqiDeal)

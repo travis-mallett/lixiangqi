@@ -10,7 +10,8 @@ object embed:
       title: String,
       cssKeys: List[String] = Nil,
       modules: EsmList = Nil,
-      csp: Update[ContentSecurityPolicy] = identity
+      csp: Update[ContentSecurityPolicy] = identity,
+      i18nModules: List[I18nModule.Selector] = Nil
   )(body: Modifier*)(using
       ctx: EmbedContext
   ) = lila.ui.Snippet:
@@ -30,7 +31,11 @@ object embed:
           cssKeys.map(cssTag),
           page.ui.documentSetup(ctx.nonce.some),
           page.ui.lichessFontFaceCss,
-          page.ui.scriptsPreload(modules.flatMap(_.map(_.key)))
+          page.ui.scriptsPreload(
+            i18nModules.map(mod => s"i18n/${mod(I18nModule)}.${ctx.lang.code}") ::: modules.flatMap(
+              _.map(_.key)
+            )
+          )
         ),
         st.body(
           bodyModifiers,

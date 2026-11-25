@@ -16,6 +16,8 @@ final class UserList(helpers: Helpers, bits: UserBits):
 
   def page(
       online: List[UserWithPerfs],
+      registered: Int,
+      anonymous: Int,
       leaderboards: List[(RankTrackId, List[LightRank], Option[XiangqiPersonalRank])],
       flags: Map[UserId, FlagCode]
   )(using ctx: Context) =
@@ -33,12 +35,15 @@ final class UserList(helpers: Helpers, bits: UserBits):
           div(cls := "community page-menu__content box box-pad")(
             st.section(cls := "community__online")(
               h2(trans.site.onlinePlayers()),
-              ol(cls := "user-top"):
+              p(cls := "community__registered")(trans.site.nbRegisteredUsers.plural(registered, registered.localize)),
+              ol(cls := "user-top")(
                 online.map: u =>
                   li(
                     userLink(u),
                     u.perfs.xiangqiRankCode.map(code => span(cls := "rank")(code.value))
                   )
+              ),
+              p(cls := "community__anonymous")("+", anonymous.localize, " ", trans.site.anonymous())
             ),
             div(cls := "community__leaders")(
               h2(trans.site.leaderboard()),

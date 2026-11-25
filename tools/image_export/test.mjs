@@ -60,6 +60,26 @@ test('every piece set rasterizes distinct red and black concealed backs', () => 
   }
 });
 
+test('Banqi export uses the cell board and the same neutral backs for either seat', () => {
+  const covered = '****/****/****/****/****/****/****/**** w banqi - 0 1 KAABBRRNNCCPPPPPkaabbrrnnccppppp';
+  const opened = covered.replace('****', 'n***').replace(' w banqi - ', ' b banqi b ').replace('nncc', 'ncc');
+  const image = renderImage({ ...request, frames: [{ fen: covered }] }, root);
+  const [width, height] = pngSize(image);
+  assert.equal(width, request.size);
+  assert.equal(height, Math.round((width * 896) / 496));
+  assert.notDeepEqual(image, renderImage({ ...request, frames: [{ fen: opened }] }, root));
+  for (const orientation of ['red', 'black'])
+    assert.equal(
+      gifFrames(
+        renderImage(
+          { ...request, orientation, format: 'gif', frames: [{ fen: covered }, { fen: opened }] },
+          root,
+        ),
+      ),
+      2,
+    );
+});
+
 test('Cracked Stone exports retain the embedded texture beneath the vector grid', () => {
   const image = renderImage(
     { ...request, theme: 'xiangqi-cracked-stone', size: 450, frames: [{ fen: '9/9/9/9/9/9/9/9/9/9 w' }] },

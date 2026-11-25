@@ -27,6 +27,7 @@ interface MiniGameReplay {
   animationMillis: number;
   initialFen: FEN;
   moves: Uci[];
+  positions?: FEN[];
   recordedClock: RecordedClockTimeline;
 }
 
@@ -53,15 +54,22 @@ const readMiniGameReplay = (node: Element): MiniGameReplay | undefined => {
     ),
     initialFen,
     moves,
+    positions: node.getAttribute('data-replay-positions')?.split('|'),
     recordedClock,
   };
 };
 
-const startMiniGameReplay = (node: Element, board: BoardView, replay: MiniGameReplay): void => {
+const startMiniGameReplay = (
+  node: Element,
+  board: BoardView,
+  replay: MiniGameReplay,
+  showFen?: (fen: string) => void,
+): void => {
   let repeatTimer: ReturnType<typeof setTimeout> | undefined;
   const playback: { controller?: RecordedClockPlayback } = {};
   const resetBoard = () => {
     board.display(xiangqiPosition(replay.initialFen), { kind: 'jump' });
+    showFen?.(replay.initialFen);
   };
   const renderClock = (frame: RecordedClockFrame) => {
     if (!node.isConnected) {
@@ -84,12 +92,13 @@ const startMiniGameReplay = (node: Element, board: BoardView, replay: MiniGameRe
         return;
       }
       const current = board.position();
-      const next = recordedPosition(
-        current,
-        replay.moves[position - 1],
-        current.active === 'red' ? 'black' : 'red',
-      );
+      const fen = replay.positions?.[position - 1];
+      const next =
+        fen && fen !== '-'
+          ? xiangqiPosition(fen, replay.moves[position - 1])
+          : recordedPosition(current, replay.moves[position - 1], current.active === 'red' ? 'black' : 'red');
       board.display(next, { kind: 'forward' });
+      if (fen && fen !== '-') showFen?.(fen);
     },
     renderClock,
     ended: () => {
@@ -145,7 +154,11 @@ export const renderClock = (color: Color, time: number): VNode =>
     attrs: { 'data-time': time, 'data-managed': 1 },
   });
 
-export const initMiniGame = (node: Element, services?: BoardServices): string | null => {
+export const initMiniGame = (
+  node: Element,
+  services?: BoardServices,
+  showFen?: (fen: string) => void,
+): string | null => {
   const [fen, color, lm] = node.getAttribute('data-state')!.split(','),
     replay = readMiniGameReplay(node),
     $el = $(node).removeClass('mini-game--init'),
@@ -161,7 +174,8 @@ export const initMiniGame = (node: Element, services?: BoardServices): string | 
   };
   const board = createXiangqiBoard(element, position, presentation, { mode: 'display' }, services);
   domData.set(element, 'board', board);
-  if (replay) startMiniGameReplay(node, board, replay);
+  showFen?.(replay?.initialFen ?? fen);
+  if (replay) startMiniGameReplay(node, board, replay, showFen);
 
   if (!replay)
     COLORS.forEach(color =>
@@ -186,7 +200,8 @@ export const initMiniGames = (parent?: HTMLElement): void => {
 export const updateMiniGame = (node: HTMLElement, data: MiniGameUpdateData): void => {
   const lm = data.lm,
     board = getBoard(node.querySelector('.cg-wrap')!);
-  if (board) board.display(xiangqiPosition(data.fen, lm || undefined), { kind: 'forward' });
+  if (board && !node.hasAttribute('data-blindfold'))
+    board.display(xiangqiPosition(data.fen, lm || undefined), { kind: 'forward' });
   const turnColor = fenColor(data.fen);
   const updateClock = (time: number | undefined, color: Color) => {
     const clockEl = node?.querySelector('.mini-game__clock--' + color) as HTMLElement;
